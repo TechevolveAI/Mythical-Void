@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mythical Creature Game - Test Framework</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #ffffff;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+        }
+        .test-header {
+            color: #87CEEB;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .test-pass {
+            background: #1a4a1a;
+            border-left: 4px solid #00ff00;
+            color: #90EE90;
+        }
+        .test-fail {
+            background: #4a1a1a;
+            border-left: 4px solid #ff0000;
+            color: #FFB6C1;
+        }
+        .test-info {
+            background: #1a1a4a;
+            border-left: 4px solid #87CEEB;
+            color: #87CEEB;
+        }
+        .run-button {
+            background: #87CEEB;
+            color: #1e1e1e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 10px 5px 10px 0;
+        }
+        .run-button:hover {
+            background: #98FB98;
+        }
+        .summary {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .console-output {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Mythical Creature Game - Test Framework</h1>
+        <p>Basic unit tests for core game systems</p>
+        
+        <div class="test-section">
+            <div class="test-header">🎮 Test Controls</div>
+            <button class="run-button" onclick="runAllTests()">Run All Tests</button>
+            <button class="run-button" onclick="runGameStateTests()">Test GameState</button>
+            <button class="run-button" onclick="runGraphicsEngineTests()">Test GraphicsEngine</button>
+            <button class="run-button" onclick="clearResults()">Clear Results</button>
+        </div>
+
+        <div id="results-container">
+            <!-- Test results will be inserted here -->
+        </div>
+
+        <div class="summary" id="summary" style="display: none;">
+            <h3>📊 Test Summary</h3>
+            <div id="summary-content"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">🖥️ Console Output</div>
+            <div class="console-output" id="console-output">Ready to run tests...\n</div>
+        </div>
+    </div>
+
+    <!-- Load game dependencies -->
+    <script src="node_modules/phaser/dist/phaser.min.js"></script>
+    <script src="src/systems/GameState.js"></script>
+    <script src="src/systems/GraphicsEngine.js"></script>
+
+    <script>
+        // Test framework variables
+        let testResults = [];
+        let currentTestSuite = '';
+
+        // Mock console.log to capture output
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+
+        function log(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const consoleDiv = document.getElementById('console-output');
+            const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : '📝';
+            consoleDiv.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            
+            // Call original console method
+            if (type === 'error') originalConsoleError(message);
+            else if (type === 'warn') originalConsoleWarn(message);
+            else originalConsoleLog(message);
+        }
+
+        // Override console methods
+        console.log = (msg) => log(msg, 'log');
+        console.error = (msg) => log(msg, 'error');
+        console.warn = (msg) => log(msg, 'warn');
+
+        // Test framework functions
+        function assert(condition, message) {
+            const result = {
+                suite: currentTestSuite,
+                test: message,
+                passed: !!condition,
+                timestamp: new Date().toISOString()
+            };
+            testResults.push(result);
+
+            if (condition) {
+                log(`✅ PASS: ${message}`);
+            } else {
+                log(`❌ FAIL: ${message}`, 'error');
+            }
+            
+            return condition;
+        }
+
+        function assertEqual(actual, expected, message) {
+            const condition = actual === expected;
+            const details = condition ? '' : ` (Expected: ${expected}, Actual: ${actual})`;
+            return assert(condition, message + details);
+        }
+
+        function assertNotEqual(actual, unexpected, message) {
+            const condition = actual !== unexpected;
+            const details = condition ? '' : ` (Value was: ${actual})`;
+            return assert(condition, message + details);
+        }
+
+        function assertType(value, expectedType, message) {
+            const actualType = typeof value;
+            const condition = actualType === expectedType;
+            const details = condition ? '' : ` (Expected: ${expectedType}, Actual: ${actualType})`;
+            return assert(condition, message + details);
+        }
+
+        // GameState Tests
+        function runGameStateTests() {
+            currentTestSuite = 'GameState';
+            log('🧪 Running GameState Tests...');
+
+            try {
+                // Test 1: GameState exists and is properly initialized
+                assert(typeof GameState !== 'undefined', 'GameState class exists');
+                assert(typeof GameState.init === 'function', 'GameState.init method exists');
+                assert(typeof GameState.get === 'function', 'GameState.get method exists');
+                assert(typeof GameState.set === 'function', 'GameState.set method exists');
+
+                // Test 2: Initialize GameState
+                GameState.init();
+                assert(GameState.initialized === true, 'GameState initializes successfully');
+
+                // Test 3: Test basic get/set functionality
+                const originalValue = GameState.get('creature.name');
+                GameState.set('creature.name', 'Test Creature');
+                assertEqual(GameState.get('creature.name'), 'Test Creature', 'GameState set/get works correctly');
+                
+                // Restore original value
+                GameState.set('creature.name', originalValue);
+
+                // Test 4: Test nested path access
+                assert(GameState.get('creature.stats.happiness') !== undefined, 'Nested path access works');
+                assertType(GameState.get('creature.stats.happiness'), 'number', 'Happiness stat is a number');
+
+                // Test 5: Test creature progression
+                const originalExp = GameState.get('creature.experience');
+                const originalLevel = GameState.get('creature.level');
+                
+                GameState.updateCreature({ experience: 150 });
+                assert(GameState.get('creature.experience') >= originalExp + 150, 'Experience updates correctly');
+                
+                // Test 6: Test world exploration tracking
+                GameState.updateWorldExploration({ x: 100, y: 200 }, 'flowers');
+                assertEqual(GameState.get('world.currentPosition.x'), 100, 'Position tracking works');
+                assertEqual(GameState.get('world.currentPosition.y'), 200, 'Position tracking works');
+                assert(GameState.get('world.discoveredObjects.flowers') > 0, 'Object discovery tracking works');
+
+                // Test 7: Test save/load functionality
+                const saveResult = GameState.save();
+                assert(saveResult === true, 'GameState save works');
+
+                // Test 8: Test event system
+                let eventFired = false;
+                GameState.on('testEvent', () => { eventFired = true; });
+                GameState.emit('testEvent');
+                assert(eventFired === true, 'GameState event system works');
+
+                log('✅ GameState tests completed');
+
+            } catch (error) {
+                log(`❌ GameState test error: ${error.message}`, 'error');
+                assert(false, `GameState test suite failed: ${error.message}`);
+            }
+        }
+
+        // GraphicsEngine Tests
+        function runGraphicsEngineTests() {
+            currentTestSuite = 'GraphicsEngine';
+            log('🧪 Running GraphicsEngine Tests...');
+
+            try {
+                // Test 1: GraphicsEngine class exists
+                assert(typeof GraphicsEngine !== 'undefined', 'GraphicsEngine class exists');
+                assert(typeof GraphicsEngine === 'function', 'GraphicsEngine is a constructor function');
+
+                // Test 2: Create a mock scene for testing
+                const mockScene = {
+                    add: {
+                        graphics: () => ({
+                            fillStyle: () => {},
+                            fillEllipse: () => {},
+                            fillCircle: () => {},
+                            fillRect: () => {},
+                            lineStyle: () => {},
+                            strokeEllipse: () => {},
+                            generateTexture: () => {},
+                            destroy: () => {},
+                            beginPath: () => {},
+                            moveTo: () => {},
+                            lineTo: () => {},
+                            strokePath: () => {},
+                            save: () => {},
+                            restore: () => {},
+                            translate: () => {},
+                            rotate: () => {}
+                        })
+                    }
+                };
+
+                // Test 3: Initialize GraphicsEngine
+                const engine = new GraphicsEngine(mockScene);
+                assert(engine instanceof GraphicsEngine, 'GraphicsEngine instantiates correctly');
+                assert(engine.scene === mockScene, 'GraphicsEngine stores scene reference');
+
+                // Test 4: Test method existence
+                assert(typeof engine.createEnhancedCreature === 'function', 'createEnhancedCreature method exists');
+                assert(typeof engine.createEnhancedTree === 'function', 'createEnhancedTree method exists');
+                assert(typeof engine.createEnhancedRock === 'function', 'createEnhancedRock method exists');
+                assert(typeof engine.createEnhancedFlower === 'function', 'createEnhancedFlower method exists');
+                assert(typeof engine.createMagicalSparkle === 'function', 'createMagicalSparkle method exists');
+
+                // Test 5: Test utility methods
+                assert(typeof engine.lightenColor === 'function', 'lightenColor utility exists');
+                assert(typeof engine.darkenColor === 'function', 'darkenColor utility exists');
+                assert(typeof engine.getSeasonalColors === 'function', 'getSeasonalColors utility exists');
+
+                // Test 6: Test color manipulation
+                const lightColor = engine.lightenColor(0x800080, 0.5); // Purple + 50% lighter
+                const darkColor = engine.darkenColor(0x800080, 0.5);   // Purple + 50% darker
+                
+                assertNotEqual(lightColor, 0x800080, 'lightenColor produces different color');
+                assertNotEqual(darkColor, 0x800080, 'darkenColor produces different color');
+                assertNotEqual(lightColor, darkColor, 'Light and dark colors are different');
+
+                // Test 7: Test seasonal colors
+                const summerColors = engine.getSeasonalColors('summer');
+                const winterColors = engine.getSeasonalColors('winter');
+                
+                assert(typeof summerColors === 'object', 'getSeasonalColors returns object');
+                assert(summerColors.hasOwnProperty('dark'), 'Seasonal colors have dark property');
+                assert(summerColors.hasOwnProperty('mid'), 'Seasonal colors have mid property');
+                assert(summerColors.hasOwnProperty('light'), 'Seasonal colors have light property');
+                assertNotEqual(summerColors.dark, winterColors.dark, 'Different seasons have different colors');
+
+                // Test 8: Test sprite creation (mock test - we can't fully test without Phaser)
+                try {
+                    engine.createEnhancedCreature(0x9370DB, 0xDDA0DD, 0x8A2BE2, 0);
+                    assert(true, 'createEnhancedCreature executes without error');
+                } catch (creatureError) {
+                    assert(false, `createEnhancedCreature failed: ${creatureError.message}`);
+                }
+
+                log('✅ GraphicsEngine tests completed');
+
+            } catch (error) {
+                log(`❌ GraphicsEngine test error: ${error.message}`, 'error');
+                assert(false, `GraphicsEngine test suite failed: ${error.message}`);
+            }
+        }
+
+        // Integration Tests
+        function runIntegrationTests() {
+            currentTestSuite = 'Integration';
+            log('🧪 Running Integration Tests...');
+
+            try {
+                // Test 1: GameState and GraphicsEngine work together
+                const creatureColors = GameState.get('creature.colors');
+                assert(typeof creatureColors === 'object', 'GameState provides creature colors');
+                assert(creatureColors.hasOwnProperty('body'), 'Creature colors have body property');
+                assert(creatureColors.hasOwnProperty('head'), 'Creature colors have head property');
+                assert(creatureColors.hasOwnProperty('wings'), 'Creature colors have wings property');
+
+                // Test 2: Test that scenes can be loaded (basic check)
+                assert(typeof HatchingScene !== 'undefined', 'HatchingScene is loaded');
+                assert(typeof GameScene !== 'undefined', 'GameScene is loaded');
+
+                log('✅ Integration tests completed');
+
+            } catch (error) {
+                log(`❌ Integration test error: ${error.message}`, 'error');
+                assert(false, `Integration test suite failed: ${error.message}`);
+            }
+        }
+
+        // Test runner functions
+        function runAllTests() {
+            clearResults();
+            log('🚀 Starting complete test suite...');
+            
+            runGameStateTests();
+            runGraphicsEngineTests();
+            runIntegrationTests();
+            
+            displayResults();
+            log('🏁 All tests completed');
+        }
+
+        function clearResults() {
+            testResults = [];
+            document.getElementById('results-container').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('console-output').textContent = 'Tests cleared. Ready to run...\n';
+        }
+
+        function displayResults() {
+            const container = document.getElementById('results-container');
+            const suites = [...new Set(testResults.map(r => r.suite))];
+
+            container.innerHTML = '';
+
+            suites.forEach(suite => {
+                const suiteDiv = document.createElement('div');
+                suiteDiv.className = 'test-section';
+                
+                const suiteTests = testResults.filter(r => r.suite === suite);
+                const passed = suiteTests.filter(r => r.passed).length;
+                const total = suiteTests.length;
+                
+                suiteDiv.innerHTML = `
+                    <div class="test-header">🧪 ${suite} Tests (${passed}/${total} passed)</div>
+                `;
+
+                suiteTests.forEach(test => {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = `test-result ${test.passed ? 'test-pass' : 'test-fail'}`;
+                    resultDiv.textContent = `${test.passed ? '✅' : '❌'} ${test.test}`;
+                    suiteDiv.appendChild(resultDiv);
+                });
+
+                container.appendChild(suiteDiv);
+            });
+
+            // Show summary
+            const totalTests = testResults.length;
+            const passedTests = testResults.filter(r => r.passed).length;
+            const failedTests = totalTests - passedTests;
+            
+            const summaryDiv = document.getElementById('summary');
+            const summaryContent = document.getElementById('summary-content');
+            
+            summaryContent.innerHTML = `
+                <div>Total Tests: ${totalTests}</div>
+                <div style="color: #90EE90;">Passed: ${passedTests}</div>
+                <div style="color: #FFB6C1;">Failed: ${failedTests}</div>
+                <div>Success Rate: ${totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0}%</div>
+            `;
+            
+            summaryDiv.style.display = 'block';
+        }
+
+        // Auto-run basic health check on page load
+        window.addEventListener('load', () => {
+            log('🔧 Test framework loaded');
+            log('💡 Click "Run All Tests" to start testing');
+        });
+    </script>
+</body>
+</html>

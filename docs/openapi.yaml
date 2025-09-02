@@ -1,0 +1,506 @@
+openapi: 3.1.0
+info:
+  title: Mythical Creature Game API
+  description: |
+    REST API for the Mythical Creature Game
+    Provides endpoints for game data, AI interactions, and player progress.
+    
+    This API follows the Vibe Coding Playbook governance standards:
+    - OpenAPI 3.1 specification
+    - Consistent error handling
+    - Security-first design
+    - Proper versioning
+    
+  version: 1.0.0
+  contact:
+    name: Mythical Creature Game Team
+    url: https://github.com/mythical-void/getting-started-sample
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+  - url: https://mythical-creature-game.netlify.app/api/v1
+    description: Production server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the current status of the API service
+      operationId: getHealth
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /readiness:
+    get:
+      summary: Readiness check endpoint
+      description: Returns whether the service is ready to accept requests
+      operationId: getReadiness
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /game/save:
+    post:
+      summary: Save game state
+      description: Save the current game progress to persistent storage
+      operationId: saveGame
+      tags:
+        - Game State
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameSaveRequest'
+      responses:
+        '200':
+          description: Game saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameSaveResponse'
+        '400':
+          description: Invalid save data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /game/load:
+    get:
+      summary: Load game state
+      description: Load saved game progress from persistent storage
+      operationId: loadGame
+      tags:
+        - Game State
+      parameters:
+        - name: playerId
+          in: query
+          description: Unique identifier for the player
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Game loaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameLoadResponse'
+        '404':
+          description: No saved game found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /creature/ai-chat:
+    post:
+      summary: AI-powered creature interaction
+      description: |
+        Send a message to interact with your creature using AI.
+        Requires API features to be enabled in environment configuration.
+      operationId: aiChat
+      tags:
+        - AI Features
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIChatRequest'
+      responses:
+        '200':
+          description: AI response generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatResponse'
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: API features not enabled or invalid key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - version
+      properties:
+        status:
+          type: string
+          enum: [healthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        uptime:
+          type: number
+          description: Service uptime in seconds
+        environment:
+          type: string
+          enum: [development, production, test]
+
+    ReadinessResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - checks
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+        timestamp:
+          type: string
+          format: date-time
+        checks:
+          type: object
+          properties:
+            gameState:
+              type: boolean
+            graphicsEngine:
+              type: boolean
+            localStorage:
+              type: boolean
+
+    GameSaveRequest:
+      type: object
+      required:
+        - playerId
+        - gameData
+      properties:
+        playerId:
+          type: string
+          format: uuid
+        gameData:
+          $ref: '#/components/schemas/GameState'
+        timestamp:
+          type: string
+          format: date-time
+
+    GameSaveResponse:
+      type: object
+      required:
+        - success
+        - savedAt
+      properties:
+        success:
+          type: boolean
+        savedAt:
+          type: string
+          format: date-time
+        saveId:
+          type: string
+
+    GameLoadResponse:
+      type: object
+      required:
+        - success
+        - gameData
+      properties:
+        success:
+          type: boolean
+        gameData:
+          $ref: '#/components/schemas/GameState'
+        loadedAt:
+          type: string
+          format: date-time
+        lastSaved:
+          type: string
+          format: date-time
+
+    GameState:
+      type: object
+      required:
+        - creature
+        - world
+        - session
+      properties:
+        creature:
+          $ref: '#/components/schemas/Creature'
+        world:
+          $ref: '#/components/schemas/WorldState'
+        session:
+          $ref: '#/components/schemas/SessionState'
+
+    Creature:
+      type: object
+      required:
+        - name
+        - level
+        - experience
+        - stats
+        - colors
+      properties:
+        name:
+          type: string
+          maxLength: 50
+        level:
+          type: integer
+          minimum: 1
+          maximum: 100
+        experience:
+          type: integer
+          minimum: 0
+        stats:
+          $ref: '#/components/schemas/CreatureStats'
+        colors:
+          $ref: '#/components/schemas/CreatureColors'
+        birthdate:
+          type: string
+          format: date-time
+        lastActive:
+          type: string
+          format: date-time
+
+    CreatureStats:
+      type: object
+      required:
+        - happiness
+        - energy
+        - health
+        - hunger
+      properties:
+        happiness:
+          type: number
+          minimum: 0
+          maximum: 100
+        energy:
+          type: number
+          minimum: 0
+          maximum: 100
+        health:
+          type: number
+          minimum: 0
+          maximum: 100
+        hunger:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    CreatureColors:
+      type: object
+      required:
+        - body
+        - head
+        - wings
+      properties:
+        body:
+          type: string
+          pattern: '^0x[0-9A-Fa-f]{6}$'
+        head:
+          type: string
+          pattern: '^0x[0-9A-Fa-f]{6}$'
+        wings:
+          type: string
+          pattern: '^0x[0-9A-Fa-f]{6}$'
+
+    WorldState:
+      type: object
+      required:
+        - currentPosition
+        - discoveredObjects
+        - totalExplored
+      properties:
+        currentPosition:
+          $ref: '#/components/schemas/Position'
+        discoveredObjects:
+          type: object
+          properties:
+            flowers:
+              type: integer
+              minimum: 0
+            trees:
+              type: integer
+              minimum: 0
+            rocks:
+              type: integer
+              minimum: 0
+        totalExplored:
+          type: number
+          minimum: 0
+        biome:
+          type: string
+          enum: [spring, summer, autumn, winter]
+
+    Position:
+      type: object
+      required:
+        - x
+        - y
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+
+    SessionState:
+      type: object
+      required:
+        - currentScene
+        - startTime
+        - totalPlayTime
+      properties:
+        currentScene:
+          type: string
+          enum: [hatching, naming, game]
+        startTime:
+          type: string
+          format: date-time
+        totalPlayTime:
+          type: integer
+          minimum: 0
+          description: Total play time in seconds
+        achievements:
+          type: array
+          items:
+            type: string
+
+    AIChatRequest:
+      type: object
+      required:
+        - message
+        - creatureContext
+      properties:
+        message:
+          type: string
+          maxLength: 1000
+          description: Player's message to the creature
+        creatureContext:
+          $ref: '#/components/schemas/Creature'
+        conversationHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+          maxItems: 10
+
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+        - timestamp
+      properties:
+        role:
+          type: string
+          enum: [player, creature]
+        content:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    AIChatResponse:
+      type: object
+      required:
+        - success
+        - response
+        - timestamp
+      properties:
+        success:
+          type: boolean
+        response:
+          type: string
+          description: AI-generated creature response
+        timestamp:
+          type: string
+          format: date-time
+        tokensUsed:
+          type: integer
+        model:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Error code or type
+        message:
+          type: string
+          description: Human-readable error description
+        timestamp:
+          type: string
+          format: date-time
+        requestId:
+          type: string
+          description: Unique identifier for this request
+        details:
+          type: object
+          description: Additional error details
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for accessing AI-powered features
+
+# Governance Metadata (as per Vibe Coding Playbook)
+x-api-governance:
+  owner: mythical-creature-team
+  lifecycle: development
+  capability: game-backend
+  compliance:
+    security: owasp-top-10
+    privacy: gdpr-ready
+    availability: 99.0%
+  exceptions:
+    - reason: "AI features optional for MVP"
+      approved-by: "tech-lead"
+      expires: "2025-12-31"

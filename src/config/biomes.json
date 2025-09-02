@@ -1,0 +1,195 @@
+{
+  "spaceCrashSite": {
+    "name": "Cosmic Crash Site",
+    "description": "A mystical crystalline biome where your ship landed among floating rocks and aurora streams",
+    "layers": {
+      "nebulaBackground": {
+        "enabled": true,
+        "colors": ["hsl(280,60%,25%)", "hsl(320,45%,30%)", "hsl(260,55%,35%)"],
+        "gradient": {
+          "direction": "radial",
+          "centerX": 0.4,
+          "centerY": 0.3,
+          "radius": 0.8
+        },
+        "scrollFactor": 0.1,
+        "opacity": 0.8
+      },
+      "distantStars": {
+        "enabled": true,
+        "count": 40,
+        "twinkleProbability": 0.3,
+        "colors": [0xFFFFFF, 0xF0F8FF, 0xE6E6FA, 0xFFE4E1],
+        "sizeRange": { "min": 1, "max": 3 },
+        "scrollFactor": 0.2,
+        "animationSpeed": 0.02,
+        "layerDepth": 10
+      },
+      "floatingRocks": {
+        "enabled": true,
+        "count": 8,
+        "sizes": ["large", "medium", "small"],
+        "colors": [0x708090, 0x696969, 0x778899, 0x2F4F4F],
+        "crystalGrowth": {
+          "enabled": true,
+          "colors": [0x9370DB, 0x8A2BE2, 0xDA70D6],
+          "glowIntensity": 0.4
+        },
+        "scrollFactor": 0.4,
+        "driftSpeed": { "min": 0.1, "max": 0.3 },
+        "verticalFloat": {
+          "amplitude": 15,
+          "frequency": 0.01
+        }
+      },
+      "crystalFlora": {
+        "enabled": true,
+        "groundCrystals": {
+          "count": 12,
+          "heights": { "min": 20, "max": 80 },
+          "colors": [0x40E0D0, 0x48D1CC, 0x20B2AA, 0x008B8B],
+          "glowPulse": {
+            "enabled": true,
+            "speed": 0.008,
+            "intensity": { "min": 0.3, "max": 0.7 }
+          }
+        },
+        "floatingSpores": {
+          "count": 15,
+          "colors": [0x98FB98, 0x90EE90, 0x00FA9A],
+          "driftPattern": "gentle",
+          "lifecycle": 8000
+        },
+        "scrollFactor": 0.6,
+        "bioluminescence": true
+      },
+      "atmosphericEffects": {
+        "auroraStreams": {
+          "enabled": true,
+          "count": 2,
+          "colors": [0x00CED1, 0x4682B4, 0x6A5ACD],
+          "waveAmplitude": 25,
+          "scrollSpeed": 0.1,
+          "opacity": 0.4,
+          "blendMode": "ADD"
+        },
+        "energyRipples": {
+          "enabled": true,
+          "triggerDistance": 100,
+          "colors": [0xFFD700, 0xFFA500],
+          "expansionSpeed": 200,
+          "fadeTime": 1500
+        }
+      },
+      "foregroundDust": {
+        "enabled": true,
+        "particles": {
+          "count": 25,
+          "size": { "min": 0.5, "max": 2.0 },
+          "colors": [0xF5DEB3, 0xDDD], 
+          "driftSpeed": { "min": 5, "max": 15 },
+          "fadeInOut": true,
+          "parallaxIntensity": 0.8
+        },
+        "scrollFactor": 0.9,
+        "opacity": 0.6
+      },
+      "gentleVignette": {
+        "enabled": true,
+        "color": 0x1a0d2e,
+        "intensity": 0.15,
+        "radius": 0.85,
+        "featherEdge": 0.3
+      }
+    },
+    "ambientEffects": {
+      "crystalResonance": {
+        "enabled": true,
+        "triggerRadius": 80,
+        "rippleEffect": true,
+        "soundTrigger": "crystal_chime"
+      },
+      "stardustFalls": {
+        "enabled": true,
+        "interval": { "min": 15000, "max": 45000 },
+        "duration": 3000,
+        "intensity": "gentle"
+      },
+      "atmosphericHum": {
+        "enabled": true,
+        "soundKey": "space_ambience",
+        "volume": 0.15,
+        "fadeInTime": 2000
+      }
+    },
+    "interactivity": {
+      "touchRipples": {
+        "enabled": true,
+        "colors": [0xFFD700, 0x87CEEB],
+        "expandRadius": 120,
+        "duration": 800
+      },
+      "crystalReaction": {
+        "enabled": true,
+        "glowBoost": 0.3,
+        "duration": 1200,
+        "soundEffect": "crystal_activate"
+      },
+      "floraResponse": {
+        "enabled": true,
+        "pulseIntensity": 1.4,
+        "cascadeDelay": 150,
+        "colorShift": true
+      }
+    },
+    "performance": {
+      "particleBudget": 100,
+      "lowEndOptimization": {
+        "reduceParticles": 0.6,
+        "disableGlow": false,
+        "simplifyEffects": true,
+        "reduceTwinkle": 0.5
+      },
+      "qualityLevels": {
+        "low": {
+          "particleCount": 0.4,
+          "effectComplexity": 0.3,
+          "layerCount": 0.6
+        },
+        "medium": {
+          "particleCount": 0.7,
+          "effectComplexity": 0.7,
+          "layerCount": 0.8
+        },
+        "high": {
+          "particleCount": 1.0,
+          "effectComplexity": 1.0,
+          "layerCount": 1.0
+        }
+      }
+    },
+    "accessibility": {
+      "reduceMotion": {
+        "disableFloating": true,
+        "disableTwinkle": true,
+        "staticBackgrounds": true
+      },
+      "colorBlindSupport": {
+        "alternativeIndicators": true,
+        "patternOverlays": false,
+        "contrastBoost": 1.2
+      },
+      "cognitiveLoad": {
+        "simplifiedEffects": false,
+        "reducedParticles": false,
+        "staticElements": false
+      }
+    },
+    "theme": {
+      "mood": "hopeful_discovery",
+      "energyLevel": "calm_wonder",
+      "colorTemperature": "cool_mystical",
+      "atmosphere": "magical_serenity"
+    }
+  }
+}

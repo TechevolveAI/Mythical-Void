@@ -1,0 +1,79 @@
+{
+  "timings": {
+    "crack": 0.5,
+    "glowPulse": 2.0,
+    "particleLeak": 1.0,
+    "shellPop": 0.2,
+    "creatureBlink": 0.8,
+    "traitCards": 1.2,
+    "nameInput": 0.6,
+    "firstEmote": 0.4
+  },
+  "effects": {
+    "crackLineWidth": 2,
+    "glowRadius": 60,
+    "glowIntensity": 0.6,
+    "particleCount": 15,
+    "particleSize": {
+      "min": 1,
+      "max": 3
+    },
+    "shakeAmplitude": 3,
+    "shakeDuration": 120,
+    "cardFanAngle": 45,
+    "cardSpacing": 80,
+    "cardSize": {
+      "width": 80,
+      "height": 60
+    }
+  },
+  "colors": {
+    "crack": 0x8B4513,
+    "glow": 0xFFD700,
+    "particles": 0xFFFFFF,
+    "cards": 0x87CEEB,
+    "cardBorder": 0xB39DDB,
+    "text": 0x37474F,
+    "textSecondary": 0x64B5F6,
+    "stellarGlow": 0x80CBC4,
+    "crystalShimmer": 0xF48FB1,
+    "cosmicAura": 0x98FB98
+  },
+  "sfx": {
+    "crack": "hatch_crack",
+    "glow": "hatch_glow",
+    "pop": "hatch_pop",
+    "blink": "creature_blink",
+    "cards": "trait_cards",
+    "whoosh": "name_whoosh",
+    "emote": "happy_emote",
+    "volumes": {
+      "crack": 0.4,
+      "glow": 0.3,
+      "pop": 0.7,
+      "blink": 0.5,
+      "cards": 0.4,
+      "whoosh": 0.6,
+      "emote": 0.8
+    }
+  },
+  "performance": {
+    "enableParticles": true,
+    "enableScreenshake": true,
+    "enableSounds": true,
+    "maxParticles": 20,
+    "particleLifetime": 2000
+  },
+  "accessibility": {
+    "reduceMotion": false,
+    "skipCinematics": false,
+    "visualCuesOnly": false,
+    "audioDescriptions": false
+  },
+  "debug": {
+    "showTimings": false,
+    "logTelemetry": true,
+    "skipBeats": [],
+    "speedMultiplier": 1.0
+  }
+}

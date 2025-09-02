@@ -1,0 +1,122 @@
+# Netlify deployment configuration
+# Following 12-factor app principles and Vibe Coding Playbook best practices
+
+[build]
+  # Build command - currently no build step needed for this static game
+  command = "echo 'No build step required for static game'"
+  
+  # Publish directory - root directory contains the game
+  publish = "."
+  
+  # Functions directory for serverless functions (future use)
+  functions = "netlify/functions"
+
+[build.environment]
+  # Build-time environment variables
+  NODE_ENV = "production"
+  ENABLE_API_FEATURES = "false"
+
+# Redirect rules for single-page application behavior
+[[redirects]]
+  # Handle API routes (when implemented)
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  # Serve game files with proper MIME types
+  from = "/*.js"
+  to = "/:splat"
+  status = 200
+  headers = {Content-Type = "application/javascript"}
+
+[[redirects]]
+  # Fallback to index.html for client-side routing
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers (following OWASP best practices)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # HTTPS and security
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # Content Security Policy (restrictive for security)
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: blob:;
+      connect-src 'self' https://api.x.ai;
+      font-src 'self';
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self'
+    """
+    
+    # Feature Policy (limit access to sensitive features)
+    Permissions-Policy = """
+      accelerometer=(),
+      camera=(),
+      geolocation=(),
+      gyroscope=(),
+      magnetometer=(),
+      microphone=(),
+      payment=(),
+      usb=()
+    """
+
+# Specific headers for JavaScript files
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Headers for HTML files
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+# Headers for static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Environment-specific configurations
+[context.production.environment]
+  NODE_ENV = "production"
+  ENABLE_API_FEATURES = "false"
+
+[context.deploy-preview.environment]
+  NODE_ENV = "staging"
+  ENABLE_API_FEATURES = "false"
+
+[context.branch-deploy.environment]
+  NODE_ENV = "development"
+  ENABLE_API_FEATURES = "true"
+
+# Form handling (future use for feedback/contact forms)
+[forms]
+  # Enable Netlify Forms
+  
+# Edge functions directory (future use)
+[edge_functions]
+  # Directory for edge functions
+  directory = "netlify/edge-functions"
+
+# Development settings
+[dev]
+  # Local development server settings
+  port = 8080
+  targetPort = 8080
+  autoLaunch = true

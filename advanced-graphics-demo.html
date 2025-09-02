@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Advanced Programmatic Graphics Demo</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #2c2c2c; color: white; font-family: Arial; }
+        canvas { border: 2px solid #444; margin: 10px; }
+        h2 { color: #FFD700; }
+    </style>
+</head>
+<body>
+    <h1>🎨 Advanced Programmatic Graphics Showcase</h1>
+    <p>This demonstrates the incredible visual quality possible with code-generated sprites!</p>
+    
+    <script src="node_modules/phaser/dist/phaser.min.js"></script>
+    <script>
+        class AdvancedGraphicsScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'AdvancedGraphicsScene' });
+            }
+            
+            create() {
+                this.add.text(10, 10, '🎨 Advanced Programmatic Graphics Showcase', { 
+                    fontSize: '24px', color: '#FFD700' 
+                });
+                
+                // 1. REALISTIC CREATURE WITH GRADIENTS & SHADOWS
+                this.createRealisticCreature(150, 150);
+                
+                // 2. DETAILED ENVIRONMENT OBJECTS
+                this.createDetailedTree(350, 200);
+                this.createRealisticRock(500, 250);
+                this.createBeautifulFlower(650, 200);
+                
+                // 3. ADVANCED EFFECTS
+                this.createMagicalPortal(150, 400);
+                this.createEnergyOrb(350, 400);
+                this.createCrystalGem(550, 400);
+                
+                // 4. ATMOSPHERIC ELEMENTS
+                this.createVolumetricClouds(50, 50);
+                this.createFireEffect(700, 400);
+                
+                // Add labels
+                this.addLabels();
+            }
+            
+            createRealisticCreature(x, y) {
+                const graphics = this.add.graphics();
+                
+                // Advanced creature with gradients and depth
+                
+                // Body shadow (depth)
+                graphics.fillStyle(0x000000, 0.3);
+                graphics.fillEllipse(x + 5, y + 85, 65, 85);
+                
+                // Body with gradient effect (multiple layers)
+                graphics.fillStyle(0x6A0DAD); // Dark purple base
+                graphics.fillEllipse(x, y + 75, 70, 90);
+                graphics.fillStyle(0x8A2BE2); // Medium purple
+                graphics.fillEllipse(x - 5, y + 70, 60, 80);
+                graphics.fillStyle(0x9370DB); // Light purple highlight
+                graphics.fillEllipse(x - 10, y + 65, 50, 70);
+                
+                // Head with multiple layers for depth
+                graphics.fillStyle(0x8A2BE2);
+                graphics.fillEllipse(x, y + 35, 55, 60);
+                graphics.fillStyle(0xDDA0DD);
+                graphics.fillEllipse(x - 5, y + 30, 45, 50);
+                graphics.fillStyle(0xF8F8FF, 0.8); // Soft highlight
+                graphics.fillEllipse(x - 15, y + 20, 25, 30);
+                
+                // Realistic eyes with reflections
+                graphics.fillStyle(0x000000);
+                graphics.fillCircle(x - 12, y + 25, 8);
+                graphics.fillCircle(x + 12, y + 25, 8);
+                graphics.fillStyle(0x4169E1); // Blue iris
+                graphics.fillCircle(x - 12, y + 25, 6);
+                graphics.fillCircle(x + 12, y + 25, 6);
+                graphics.fillStyle(0x000000); // Pupil
+                graphics.fillCircle(x - 12, y + 25, 3);
+                graphics.fillCircle(x + 12, y + 25, 3);
+                graphics.fillStyle(0xFFFFFF); // Eye shine
+                graphics.fillCircle(x - 10, y + 22, 2);
+                graphics.fillCircle(x + 14, y + 22, 2);
+                
+                // Detailed wings with feather-like texture
+                for (let i = 0; i < 5; i++) {
+                    const featherOffset = i * 3;
+                    graphics.fillStyle(0x9370DB, 0.8 - i * 0.1);
+                    graphics.fillEllipse(x - 35, y + 55 + featherOffset, 20, 40 - i * 2);
+                    graphics.fillEllipse(x + 35, y + 55 + featherOffset, 20, 40 - i * 2);
+                }
+                
+                // Wing highlights
+                graphics.fillStyle(0xDDA0DD, 0.6);
+                graphics.fillEllipse(x - 35, y + 45, 12, 25);
+                graphics.fillEllipse(x + 35, y + 45, 12, 25);
+                
+                graphics.generateTexture('realisticCreature', 150, 200);
+                this.add.image(x, y, 'realisticCreature');
+                graphics.destroy();
+            }
+            
+            createDetailedTree(x, y) {
+                const graphics = this.add.graphics();
+                
+                // Tree trunk with bark texture
+                graphics.fillStyle(0x4A4A4A); // Shadow
+                graphics.fillRect(x + 2, y + 32, 26, 68);
+                
+                graphics.fillStyle(0x8B4513); // Base brown
+                graphics.fillRect(x, y + 30, 26, 70);
+                
+                // Bark texture lines
+                graphics.lineStyle(2, 0x654321);
+                for (let i = 0; i < 5; i++) {
+                    graphics.beginPath();
+                    graphics.moveTo(x + 2, y + 35 + i * 12);
+                    graphics.lineTo(x + 24, y + 40 + i * 12);
+                    graphics.strokePath();
+                }
+                
+                // Layered foliage for depth
+                graphics.fillStyle(0x228B22, 0.8); // Dark green base
+                graphics.fillCircle(x + 13, y + 25, 35);
+                graphics.fillStyle(0x32CD32, 0.9); // Medium green
+                graphics.fillCircle(x + 8, y + 20, 30);
+                graphics.fillStyle(0x90EE90); // Light green highlights
+                graphics.fillCircle(x + 5, y + 15, 25);
+                
+                // Individual leaf clusters
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const leafX = x + 13 + Math.cos(angle) * 20;
+                    const leafY = y + 25 + Math.sin(angle) * 15;
+                    graphics.fillStyle(0x228B22, 0.7);
+                    graphics.fillEllipse(leafX, leafY, 8, 12);
+                }
+                
+                graphics.generateTexture('detailedTree', 80, 120);
+                this.add.image(x, y, 'detailedTree');
+                graphics.destroy();
+            }
+            
+            createRealisticRock(x, y) {
+                const graphics = this.add.graphics();
+                
+                // Rock with realistic shading and cracks
+                
+                // Base shadow
+                graphics.fillStyle(0x000000, 0.4);
+                graphics.fillEllipse(x + 3, y + 23, 43, 28);
+                
+                // Main rock body with layers
+                graphics.fillStyle(0x696969); // Dark gray base
+                graphics.fillEllipse(x, y + 20, 40, 25);
+                graphics.fillStyle(0x808080); // Medium gray
+                graphics.fillEllipse(x - 5, y + 15, 35, 22);
+                graphics.fillStyle(0xA9A9A9); // Light gray highlight
+                graphics.fillEllipse(x - 10, y + 10, 25, 18);
+                
+                // Crack details
+                graphics.lineStyle(2, 0x2F4F4F);
+                graphics.beginPath();
+                graphics.moveTo(x - 15, y + 5);
+                graphics.lineTo(x + 10, y + 25);
+                graphics.strokePath();
+                
+                graphics.lineStyle(1, 0x2F4F4F);
+                graphics.beginPath();
+                graphics.moveTo(x + 5, y);
+                graphics.lineTo(x - 5, y + 20);
+                graphics.strokePath();
+                
+                // Surface texture spots
+                graphics.fillStyle(0x556B2F, 0.6); // Moss spots
+                graphics.fillCircle(x - 8, y + 8, 3);
+                graphics.fillCircle(x + 5, y + 12, 2);
+                graphics.fillCircle(x - 2, y + 18, 2);
+                
+                graphics.generateTexture('realisticRock', 60, 50);
+                this.add.image(x, y, 'realisticRock');
+                graphics.destroy();
+            }
+            
+            createBeautifulFlower(x, y) {
+                const graphics = this.add.graphics();
+                
+                // Detailed flower with realistic petals
+                
+                // Stem with gradient
+                graphics.fillStyle(0x228B22);
+                graphics.fillRect(x - 2, y + 10, 4, 25);
+                graphics.fillStyle(0x32CD32); // Highlight
+                graphics.fillRect(x - 1, y + 10, 2, 25);
+                
+                // Leaves
+                graphics.fillStyle(0x228B22);
+                graphics.fillEllipse(x - 8, y + 20, 6, 12);
+                graphics.fillEllipse(x + 8, y + 25, 6, 12);
+                graphics.lineStyle(1, 0x006400);
+                graphics.strokeEllipse(x - 8, y + 20, 6, 12);
+                graphics.strokeEllipse(x + 8, y + 25, 6, 12);
+                
+                // Detailed petals with gradients
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    const petalX = x + Math.cos(angle) * 8;
+                    const petalY = y + Math.sin(angle) * 8;
+                    
+                    // Petal shadow
+                    graphics.fillStyle(0xDC143C, 0.3);
+                    graphics.fillEllipse(petalX + 1, petalY + 1, 8, 12);
+                    
+                    // Main petal
+                    graphics.fillStyle(0xFF69B4); // Hot pink
+                    graphics.fillEllipse(petalX, petalY, 8, 12);
+                    
+                    // Petal highlight
+                    graphics.fillStyle(0xFFB6C1, 0.8); // Light pink
+                    graphics.fillEllipse(petalX - 2, petalY - 2, 5, 8);
+                    
+                    // Petal vein
+                    graphics.lineStyle(1, 0xDC143C, 0.5);
+                    graphics.beginPath();
+                    graphics.moveTo(x, y);
+                    graphics.lineTo(petalX, petalY);
+                    graphics.strokePath();
+                }
+                
+                // Flower center with detailed stamen
+                graphics.fillStyle(0xFF8C00); // Dark orange center
+                graphics.fillCircle(x, y, 6);
+                graphics.fillStyle(0xFFD700); // Golden center
+                graphics.fillCircle(x, y, 4);
+                
+                // Individual stamens
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const stamenX = x + Math.cos(angle) * 2;
+                    const stamenY = y + Math.sin(angle) * 2;
+                    graphics.fillStyle(0xFFFFE0);
+                    graphics.fillCircle(stamenX, stamenY, 1);
+                }
+                
+                graphics.generateTexture('beautifulFlower', 40, 50);
+                this.add.image(x, y, 'beautifulFlower');
+                graphics.destroy();
+            }
+            
+            createMagicalPortal(x, y) {
+                const graphics = this.add.graphics();
+                
+                // Swirling magical portal effect
+                
+                // Outer ring with glow effect
+                for (let ring = 0; ring < 5; ring++) {
+                    const alpha = 0.8 - (ring * 0.15);
+                    const size = 40 + (ring * 8);
+                    graphics.lineStyle(3, 0x9400D3, alpha);
+                    graphics.strokeCircle(x, y, size);
+                }
+                
+                // Inner swirl pattern
+                graphics.lineStyle(2, 0xDDA0DD);
+                for (let i = 0; i < 12; i++) {
+                    const angle1 = (i / 12) * Math.PI * 2;
+                    const angle2 = ((i + 1) / 12) * Math.PI * 2;
+                    const radius = 25;
+                    
+                    graphics.beginPath();
+                    graphics.arc(x, y, radius, angle1, angle2);
+                    graphics.strokePath();
+                }
+                
+                // Central vortex
+                graphics.fillGradientStyle(0x4B0082, 0x9400D3, 0.8);
+                graphics.fillCircle(x, y, 15);
+                graphics.fillStyle(0x000080, 0.9);
+                graphics.fillCircle(x, y, 8);
+                
+                // Sparkle particles
+                for (let i = 0; i < 6; i++) {
+                    const sparkleAngle = (i / 6) * Math.PI * 2 + (Date.now() * 0.001);
+                    const sparkleX = x + Math.cos(sparkleAngle) * 35;
+                    const sparkleY = y + Math.sin(sparkleAngle) * 35;
+                    graphics.fillStyle(0xFFFFFF);
+                    graphics.fillStar(sparkleX, sparkleY, 4, 2, 4);
+                }
+                
+                graphics.generateTexture('magicalPortal', 120, 120);
+                this.add.image(x, y, 'magicalPortal');
+                graphics.destroy();
+            }
+            
+            createEnergyOrb(x, y) {
+                const graphics = this.add.graphics();
+                
+                // Glowing energy orb with electrical effects
+                
+                // Outer glow layers
+                for (let i = 0; i < 6; i++) {
+                    const alpha = 0.6 - (i * 0.1);
+                    const size = 20 + (i * 6);
+                    graphics.fillStyle(0x00FFFF, alpha);
+                    graphics.fillCircle(x, y, size);
+                }
+                
+                // Core energy
+                graphics.fillStyle(0x87CEEB);
+                graphics.fillCircle(x, y, 18);
+                graphics.fillStyle(0xE0FFFF);
+                graphics.fillCircle(x, y, 12);
+                graphics.fillStyle(0xFFFFFF, 0.8);
+                graphics.fillCircle(x, y, 6);
+                
+                // Electrical arcs
+                graphics.lineStyle(2, 0x00BFFF, 0.8);
+                for (let i = 0; i < 4; i++) {
+                    const angle = (i / 4) * Math.PI * 2;
+                    const endX = x + Math.cos(angle) * 25;
+                    const endY = y + Math.sin(angle) * 25;
+                    
+                    // Jagged lightning path
+                    graphics.beginPath();
+                    graphics.moveTo(x, y);
+                    for (let j = 1; j <= 5; j++) {
+                        const progress = j / 5;
+                        const midX = x + (endX - x) * progress + (Math.random() - 0.5) * 8;
+                        const midY = y + (endY - y) * progress + (Math.random() - 0.5) * 8;
+                        graphics.lineTo(midX, midY);
+                    }
+                    graphics.strokePath();
+                }
+                
+                graphics.generateTexture('energyOrb', 80, 80);
+                this.add.image(x, y, 'energyOrb');
+                graphics.destroy();
+            }
+            
+            createCrystalGem(x, y) {
+                const graphics = this.add.graphics();
+                
+                // Faceted crystal gem with realistic reflections
+                
+                // Crystal facets (hexagonal structure)
+                const facets = [
+                    { points: [x, y-20, x-15, y-10, x-10, y+10, x, y+15], color: 0x9932CC },
+                    { points: [x, y-20, x+15, y-10, x+10, y+10, x, y+15], color: 0xBA55D3 },
+                    { points: [x-15, y-10, x-10, y+10, x-20, y+20, x-25, y+5], color: 0x8B008B },
+                    { points: [x+15, y-10, x+10, y+10, x+20, y+20, x+25, y+5], color: 0xDDA0DD },
+                ];
+                
+                facets.forEach(facet => {
+                    graphics.fillStyle(facet.color);
+                    graphics.fillPoints(facet.points, true);
+                    graphics.lineStyle(1, 0x4B0082, 0.8);
+                    graphics.strokePoints(facet.points, true);
+                });
+                
+                // Bright highlights for sparkle effect
+                graphics.fillStyle(0xFFFFFF, 0.9);
+                graphics.fillTriangle(x-5, y-15, x, y-10, x-8, y-5);
+                graphics.fillTriangle(x+5, y-15, x+8, y-5, x, y-10);
+                graphics.fillTriangle(x-2, y+5, x+2, y+5, x, y+12);
+                
+                // Base reflection
+                graphics.fillStyle(0x000000, 0.3);
+                graphics.fillEllipse(x, y+25, 30, 8);
+                
+                graphics.generateTexture('crystalGem', 60, 80);
+                this.add.image(x, y, 'crystalGem');
+                graphics.destroy();
+            }
+            
+            createVolumetricClouds(x, y) {
+                const graphics = this.add.graphics();
+                
+                // Realistic volumetric clouds
+                
+                // Multiple cloud layers for depth
+                const cloudLayers = [
+                    { offset: { x: 0, y: 0 }, alpha: 0.4, size: 1.2 },
+                    { offset: { x: -5, y: -3 }, alpha: 0.6, size: 1.0 },
+                    { offset: { x: -10, y: -6 }, alpha: 0.8, size: 0.8 },
+                    { offset: { x: -12, y: -8 }, alpha: 1.0, size: 0.6 }
+                ];
+                
+                cloudLayers.forEach(layer => {
+                    graphics.fillStyle(0xFFFFFF, layer.alpha);
+                    const cloudX = x + layer.offset.x;
+                    const cloudY = y + layer.offset.y;
+                    const scale = layer.size;
+                    
+                    // Organic cloud shape with multiple bubbles
+                    graphics.fillCircle(cloudX + 30*scale, cloudY + 25*scale, 25*scale);
+                    graphics.fillCircle(cloudX + 50*scale, cloudY + 20*scale, 30*scale);
+                    graphics.fillCircle(cloudX + 70*scale, cloudY + 25*scale, 25*scale);
+                    graphics.fillCircle(cloudX + 45*scale, cloudY + 35*scale, 20*scale);
+                    graphics.fillCircle(cloudX + 25*scale, cloudY + 35*scale, 15*scale);
+                    graphics.fillCircle(cloudX + 65*scale, cloudY + 35*scale, 18*scale);
+                });
+                
+                graphics.generateTexture('volumetricClouds', 120, 80);
+                this.add.image(x, y, 'volumetricClouds');
+                graphics.destroy();
+            }
+            
+            createFireEffect(x, y) {
+                const graphics = this.add.graphics();
+                
+                // Animated fire effect with multiple flame layers
+                
+                // Base fire glow
+                graphics.fillStyle(0xFF4500, 0.3);
+                graphics.fillEllipse(x, y + 20, 60, 40);
+                
+                // Flame layers from bottom to top
+                const flameColors = [0xFF0000, 0xFF4500, 0xFF8C00, 0xFFD700, 0xFFFACD];
+                
+                for (let layer = 0; layer < flameColors.length; layer++) {
+                    const flameHeight = 40 - (layer * 6);
+                    const flameWidth = 20 - (layer * 2);
+                    const flickerOffset = Math.sin(Date.now() * 0.01 + layer) * 3;
+                    
+                    graphics.fillStyle(flameColors[layer], 0.8 - layer * 0.1);
+                    
+                    // Main flame body
+                    graphics.fillEllipse(x + flickerOffset, y - layer * 3, flameWidth, flameHeight);
+                    
+                    // Flame tips (random flicker points)
+                    for (let tip = 0; tip < 3; tip++) {
+                        const tipX = x + (tip - 1) * 8 + flickerOffset;
+                        const tipY = y - flameHeight/2 - layer * 2;
+                        const tipSize = 6 - layer;
+                        graphics.fillEllipse(tipX, tipY, tipSize, tipSize * 2);
+                    }
+                }
+                
+                // Hot core
+                graphics.fillStyle(0xFFFFFF, 0.9);
+                graphics.fillEllipse(x, y + 5, 8, 15);
+                
+                // Sparks/embers
+                for (let i = 0; i < 8; i++) {
+                    const sparkX = x + (Math.random() - 0.5) * 40;
+                    const sparkY = y - 20 - Math.random() * 30;
+                    graphics.fillStyle(0xFFD700, 0.8);
+                    graphics.fillCircle(sparkX, sparkY, 1 + Math.random() * 2);
+                }
+                
+                graphics.generateTexture('fireEffect', 80, 100);
+                this.add.image(x, y, 'fireEffect');
+                graphics.destroy();
+            }
+            
+            addLabels() {
+                const labels = [
+                    { text: 'Realistic Creature\n(Gradients, Depth, Eye Reflections)', x: 150, y: 300 },
+                    { text: 'Detailed Tree\n(Bark Texture, Layered Foliage)', x: 350, y: 350 },
+                    { text: 'Realistic Rock\n(Cracks, Moss, Shading)', x: 500, y: 320 },
+                    { text: 'Beautiful Flower\n(Petal Gradients, Stamen)', x: 650, y: 270 },
+                    { text: 'Magical Portal\n(Glow Rings, Swirl Pattern)', x: 150, y: 550 },
+                    { text: 'Energy Orb\n(Electrical Arcs, Glow)', x: 350, y: 550 },
+                    { text: 'Crystal Gem\n(Facets, Reflections)', x: 550, y: 520 },
+                    { text: 'Fire Effect\n(Layered Flames, Sparks)', x: 700, y: 550 }
+                ];
+                
+                labels.forEach(label => {
+                    this.add.text(label.x, label.y, label.text, {
+                        fontSize: '12px',
+                        color: '#CCCCCC',
+                        align: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.7)',
+                        padding: { x: 4, y: 2 }
+                    }).setOrigin(0.5);
+                });
+                
+                // Instructions
+                this.add.text(400, 580, 'All graphics above are created with CODE - no image files!', {
+                    fontSize: '16px',
+                    color: '#FFD700',
+                    align: 'center'
+                }).setOrigin(0.5);
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            backgroundColor: '#1a1a2e',
+            scene: AdvancedGraphicsScene
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>

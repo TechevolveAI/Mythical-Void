@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+</head>
+<body>
+    <script src="node_modules/phaser/dist/phaser.min.js"></script>
+    <script>
+        class SimpleScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'SimpleScene' });
+            }
+            
+            create() {
+                console.log('SimpleScene created!');
+                
+                // Add text
+                this.add.text(100, 100, 'Hello Game World!', { 
+                    fontSize: '32px', 
+                    color: '#ffffff',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                });
+                
+                // Create a simple egg shape
+                const graphics = this.add.graphics();
+                graphics.fillStyle(0xF5F5DC); // Cream color
+                graphics.fillEllipse(400, 300, 80, 100);
+                graphics.lineStyle(3, 0x8B4513); // Brown outline
+                graphics.strokeEllipse(400, 300, 80, 100);
+                
+                // Add some yellow spots
+                graphics.fillStyle(0xFFD700); // Yellow
+                graphics.fillCircle(385, 280, 8);
+                graphics.fillCircle(415, 305, 6);
+                graphics.fillCircle(395, 325, 5);
+                
+                // Add instruction
+                this.add.text(400, 450, 'Click the egg!', {
+                    fontSize: '24px',
+                    color: '#FFFFFF',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                }).setOrigin(0.5);
+                
+                // Make it clickable
+                graphics.setInteractive(new Phaser.Geom.Ellipse(400, 300, 80, 100), Phaser.Geom.Ellipse.Contains);
+                graphics.on('pointerdown', () => {
+                    this.add.text(400, 200, 'Egg Clicked!', {
+                        fontSize: '28px',
+                        color: '#FFD700',
+                        stroke: '#000000',
+                        strokeThickness: 2
+                    }).setOrigin(0.5);
+                });
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            backgroundColor: '#87CEEB',
+            scene: SimpleScene
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Game Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+        }
+        h1 {
+            color: #4B0082;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4B0082;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #6B46C1;
+        }
+        .success {
+            color: #28A745;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Reset Game Data</h1>
+        <p>Click the button below to clear all saved game data and start fresh:</p>
+        <button onclick="resetGame()">Reset Game Data</button>
+        <button onclick="goToGame()">Go to Game</button>
+        <p class="success" id="success">✅ Game data cleared! You can now start fresh.</p>
+    </div>
+    
+    <script>
+        function resetGame() {
+            // Clear all localStorage data
+            localStorage.clear();
+            
+            // Also try to clear specific game keys
+            const gameKeys = [
+                'mythicalCreature_gameState',
+                'mythicalCreature_achievements',
+                'mythicalCreature_tutorials',
+                'openai_api_key',
+                'darkMode',
+                'highContrast'
+            ];
+            
+            gameKeys.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            // Clear sessionStorage too
+            sessionStorage.clear();
+            
+            // Show success message
+            document.getElementById('success').style.display = 'block';
+            
+            console.log('Game data cleared successfully!');
+        }
+        
+        function goToGame() {
+            window.location.href = '/';
+        }
+        
+        // Auto-clear on page load if requested
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('auto') === 'true') {
+            resetGame();
+            setTimeout(goToGame, 1000);
+        }
+    </script>
+</body>
+</html>
