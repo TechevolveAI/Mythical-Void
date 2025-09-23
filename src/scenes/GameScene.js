@@ -3,6 +3,19 @@
  * Features: player movement, large world, environment objects, collision detection, interactions, AI chat
  */
 
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
+function requireGlobal(name) {
+    if (typeof window === 'undefined' || !window[name]) {
+        throw new Error(`${name} system not ready`);
+    }
+    return window[name];
+}
+
+const getGameState = () => requireGlobal('GameState');
+const getGraphicsEngine = () => requireGlobal('GraphicsEngine');
+const getCreatureAI = () => requireGlobal('CreatureAI');
+
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
@@ -35,9 +48,10 @@ class GameScene extends Phaser.Scene {
     create() {
         try {
             // Set current scene in GameState
-            GameState.set('session.currentScene', 'GameScene');
+            getGameState().set('session.currentScene', 'GameScene');
 
             // Initialize CreatureAI for chat functionality
+            const CreatureAI = getCreatureAI();
             this.creatureAI = new CreatureAI();
             this.creatureAI.initialize();
 
@@ -81,6 +95,7 @@ class GameScene extends Phaser.Scene {
             }
 
             // Initialize enhanced graphics engine
+            const GraphicsEngine = getGraphicsEngine();
             this.graphicsEngine = new GraphicsEngine(this);
             
             // Create enhanced sprites programmatically
@@ -135,7 +150,7 @@ class GameScene extends Phaser.Scene {
 
     createEnhancedEnvironmentSprites() {
         // Get creature colors from GameState or use defaults
-        const creatureColors = GameState.get('creature.colors') || {
+        const creatureColors = getGameState().get('creature.colors') || {
             body: 0x9370DB,  // Default purple
             head: 0xDDA0DD,  // Default plum
             wings: 0x8A2BE2  // Default blue violet
@@ -203,12 +218,12 @@ class GameScene extends Phaser.Scene {
 
     createPlayer() {
         // Get saved position or use center of world
-        const savedPos = GameState.get('world.currentPosition');
+        const savedPos = getGameState().get('world.currentPosition');
         const startX = savedPos ? savedPos.x : this.worldWidth / 2;
         const startY = savedPos ? savedPos.y : this.worldHeight / 2;
         
         // Get creature genetics for proper sprite creation
-        const creatureData = GameState.get('creature');
+        const creatureData = getGameState().get('creature');
         let creatureTextures = ['enhancedCreature0']; // Default fallback
         
         if (creatureData && creatureData.genetics) {
@@ -361,7 +376,7 @@ class GameScene extends Phaser.Scene {
         this.positionText.setScrollFactor(0); // Keep fixed on screen
 
         // Creature stats display (top-right corner)
-        const creature = GameState.get('creature');
+        const creature = getGameState().get('creature');
         this.statsText = this.add.text(784, 16, '', {
             fontSize: '14px',
             color: '#FFFFFF',
@@ -603,7 +618,7 @@ class GameScene extends Phaser.Scene {
             buttonBg.setData('ariaLabel', `${info.name} button`);
             
             buttonBg.on('pointerdown', () => {
-                this.performCareAction(actionType);
+                this.handleCareAction(actionType);
                 // Add visual feedback
                 buttonBg.setScale(0.95);
                 this.time.delayedCall(100, () => buttonBg.setScale(1));
@@ -653,7 +668,7 @@ class GameScene extends Phaser.Scene {
         newUnlocks.forEach(achievement => {
             this.showAchievementNotification(achievement);
             // Grant XP reward
-            GameState.updateCreature({ experience: achievement.reward });
+            getGameState().updateCreature({ experience: achievement.reward });
         });
     }
 
@@ -717,7 +732,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
         
-        const gameState = GameState.get();
+        const gameState = getGameState().get();
         const completedSteps = this.tutorialSystem.checkTutorials(gameState, this);
 
         completedSteps.forEach(step => {
@@ -730,7 +745,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
         
-        const gameState = GameState.get();
+        const gameState = getGameState().get();
         const nextTutorial = this.tutorialSystem.getNextTutorial(gameState, this);
 
         if (nextTutorial && !this.isShowingTutorial) {
@@ -881,19 +896,25 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    performCareAction(actionType) {
+    async handleCareAction(actionType) {
         if (!this.careSystem) {
             return;
         }
-        
-        const result = this.careSystem.performCareAction(actionType);
-        if (result.success) {
-            this.showCareActionMessage(actionType, result.happinessBonus);
-            this.updateCareButtons();
-            this.updateCareHint();
-            this.updateStatsDisplay();
-        } else {
-            this.showCareActionMessage(actionType, 0, result.reason);
+
+        try {
+            const geneticsContext = this.playerGenetics || getGameState().get('creature.genetics') || null;
+            const result = await this.careSystem.performCareAction(actionType, geneticsContext);
+
+            if (result && result.success) {
+                // GameState emits careActionPerformed which updates UI and messaging
+                return;
+            } else {
+                const reason = result && result.reason ? result.reason : 'Action not available';
+                this.showCareActionMessage(actionType, 0, reason);
+            }
+        } catch (error) {
+            console.error('[GameScene] Care action failed:', error);
+            this.showCareActionMessage(actionType, 0, 'Action failed');
         }
     }
 
@@ -934,13 +955,18 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    showCareActionMessage(actionType, happinessBonus, error = null) {
+    showCareActionMessage(actionType, happinessBonus, error = null, result = null) {
         if (!this.careSystem) {
             return;
         }
-        
+
         const actionInfo = this.careSystem.careActions[actionType];
-        const message = error || `${actionInfo.icon} ${actionInfo.name} +${happinessBonus} Happiness!`;
+        const actionLabel = actionInfo?.name || actionType.charAt(0).toUpperCase() + actionType.slice(1);
+        const icon = actionInfo?.icon || '✨';
+        const bonusSegment = happinessBonus > 0 ? ` +${happinessBonus} Happiness!` : '';
+        const message = error
+            ? `${icon} ${actionLabel} — ${error}`
+            : `${icon} ${actionLabel}${bonusSegment}`;
         const color = error ? '#FF6347' : '#90EE90';
 
         const actionText = this.add.text(400, 120, message, {
@@ -1051,7 +1077,7 @@ class GameScene extends Phaser.Scene {
         this.careMenuTitle.setScrollFactor(0);
 
         // Get creature name
-        const creatureName = GameState.get('creature.name');
+        const creatureName = getGameState().get('creature.name');
         this.creatureNameText = this.add.text(400, 210, `${creatureName} is happy to see you!`, {
             fontSize: '14px',
             color: '#FFFFFF',
@@ -1121,7 +1147,7 @@ class GameScene extends Phaser.Scene {
         buttonZone.setScrollFactor(0);
 
         buttonZone.on('pointerdown', () => {
-            this.performCareAction(action);
+            this.handleCareMenuAction(action);
         });
 
         buttonZone.on('pointerover', () => {
@@ -1200,54 +1226,96 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    performCareAction(action) {
-        const creature = GameState.get('creature');
+    async handleCareMenuAction(action) {
+        const creature = getGameState().get('creature');
         let message = '';
         let effect = null;
+        const geneticsContext = this.playerGenetics || getGameState().get('creature.genetics') || null;
 
         switch (action) {
             case 'feed':
                 if (this.careSystem && typeof this.careSystem.performCareAction === 'function') {
-                    const result = this.careSystem.performCareAction('feed');
-                    message = result.success ? `🍎 Fed ${creature.name}! +15 Happiness` : result.message;
+                    try {
+                        const result = await this.careSystem.performCareAction('feed', geneticsContext);
+                        if (result && result.success) {
+                            message = `🍎 Fed ${creature.name}! +${result.happinessBonus} Happiness`;
+                            this.updateCareButtons();
+                            this.updateCareHint();
+                        } else {
+                            message = result?.reason || 'Feed action not available';
+                        }
+                    } catch (error) {
+                        console.error('[GameScene] Feed action failed:', error);
+                        message = 'Feed action failed';
+                    }
                 } else {
-                    // Fallback
-                    GameState.updateCreature({ experience: 10 });
+                    getGameState().updateCreature({ experience: 10 });
                     message = `🍎 Fed ${creature.name}! +10 XP`;
                 }
                 effect = 0x00FF00; // Green
                 break;
             case 'play':
                 if (this.careSystem && typeof this.careSystem.performCareAction === 'function') {
-                    const result = this.careSystem.performCareAction('play');
-                    message = result.success ? `🎾 Played with ${creature.name}! +10 Happiness` : result.message;
+                    try {
+                        const result = await this.careSystem.performCareAction('play', geneticsContext);
+                        if (result && result.success) {
+                            message = `🎾 Played with ${creature.name}! +${result.happinessBonus} Happiness`;
+                            this.updateCareButtons();
+                            this.updateCareHint();
+                        } else {
+                            message = result?.reason || 'Play action not available';
+                        }
+                    } catch (error) {
+                        console.error('[GameScene] Play action failed:', error);
+                        message = 'Play action failed';
+                    }
                 } else {
-                    GameState.updateCreature({ experience: 15 });
+                    getGameState().updateCreature({ experience: 15 });
                     message = `🎾 Played with ${creature.name}! +15 XP`;
                 }
                 effect = 0x0080FF; // Blue
                 break;
             case 'rest':
                 if (this.careSystem && typeof this.careSystem.performCareAction === 'function') {
-                    const result = this.careSystem.performCareAction('rest');
-                    message = result.success ? `😴 ${creature.name} rested! +5 Happiness` : result.message;
+                    try {
+                        const result = await this.careSystem.performCareAction('rest', geneticsContext);
+                        if (result && result.success) {
+                            message = `😴 ${creature.name} rested! +${result.happinessBonus} Happiness`;
+                            this.updateCareButtons();
+                            this.updateCareHint();
+                        } else {
+                            message = result?.reason || 'Rest action not available';
+                        }
+                    } catch (error) {
+                        console.error('[GameScene] Rest action failed:', error);
+                        message = 'Rest action failed';
+                    }
                 } else {
-                    GameState.updateCreature({ experience: 5 });
+                    getGameState().updateCreature({ experience: 5 });
                     message = `😴 ${creature.name} rested! +5 XP`;
                 }
                 effect = 0xFF6600; // Orange
                 break;
             case 'pet':
-                GameState.updateCreature({ experience: 8 });
+                getGameState().updateCreature({ experience: 8 });
                 message = `🤗 Petted ${creature.name}! +8 XP`;
                 effect = 0xFF69B4; // Pink
                 break;
+            case 'clean':
+                getGameState().updateCreature({ experience: 6 });
+                message = `🫧 Cleaned ${creature.name}! +6 XP`;
+                effect = 0x00CED1; // Dark turquoise
+                break;
             case 'stats':
-                const stats = GameState.get('creature.stats');
-                const level = GameState.get('creature.level');
-                const exp = GameState.get('creature.experience');
+                const stats = getGameState().get('creature.stats');
+                const level = getGameState().get('creature.level');
+                const exp = getGameState().get('creature.experience');
                 message = `📊 ${creature.name} - Level ${level} | HP:${stats.health} Happiness:${stats.happiness} Energy:${stats.energy} | XP:${exp}`;
                 effect = 0x9370DB; // Purple
+                break;
+            default:
+                message = `✨ ${creature.name} feels cared for!`;
+                effect = 0xFFD700;
                 break;
         }
 
@@ -1301,7 +1369,7 @@ class GameScene extends Phaser.Scene {
     handleSpaceInteraction() {
         if (this.nearbyFlower) {
             // Track interaction in GameState
-            GameState.updateWorldExploration(
+            getGameState().updateWorldExploration(
                 { x: this.player.x, y: this.player.y }, 
                 'flowers'
             );
@@ -1321,8 +1389,8 @@ class GameScene extends Phaser.Scene {
             });
             
             // Update creature happiness
-            GameState.updateCreature({
-                stats: { happiness: GameState.get('creature.stats.happiness') + 2 }
+            getGameState().updateCreature({
+                stats: { happiness: getGameState().get('creature.stats.happiness') + 2 }
             });
 
             // Show interaction message
@@ -1352,13 +1420,13 @@ class GameScene extends Phaser.Scene {
         // Handle care keys (only if care system is available)
         if (this.careSystem) {
             if (Phaser.Input.Keyboard.JustDown(this.feedKey)) {
-                this.performCareAction('feed');
+                this.handleCareAction('feed');
             }
             if (Phaser.Input.Keyboard.JustDown(this.playKey)) {
-                this.performCareAction('play');
+                this.handleCareAction('play');
             }
             if (Phaser.Input.Keyboard.JustDown(this.restKey)) {
-                this.performCareAction('rest');
+                this.handleCareAction('rest');
             }
             if (Phaser.Input.Keyboard.JustDown(this.careKey)) {
                 this.toggleCarePanel();
@@ -1444,9 +1512,9 @@ class GameScene extends Phaser.Scene {
         this.positionText.setText(`Position: (${x}, ${y})`);
 
         // Update position in GameState every few pixels
-        if (Math.abs(x - (GameState.get('world.currentPosition.x') || 0)) > 5 ||
-            Math.abs(y - (GameState.get('world.currentPosition.y') || 0)) > 5) {
-            GameState.updateWorldExploration({ x, y });
+        if (Math.abs(x - (getGameState().get('world.currentPosition.x') || 0)) > 5 ||
+            Math.abs(y - (getGameState().get('world.currentPosition.y') || 0)) > 5) {
+            getGameState().updateWorldExploration({ x, y });
 
             // Check tutorials after movement
             this.time.delayedCall(300, () => this.checkAndCompleteTutorials());
@@ -1454,7 +1522,7 @@ class GameScene extends Phaser.Scene {
     }
 
     updateStatsDisplay() {
-        const creature = GameState.get('creature');
+        const creature = getGameState().get('creature');
         const stats = creature.stats;
         
         let careStatus = null;
@@ -1485,7 +1553,7 @@ class GameScene extends Phaser.Scene {
             `Care Streak: ${careStatus ? careStatus.careStreak : 0} days`,
             `${achievementProgress}`,
             `${tutorialProgress}`,
-            `Flowers: ${GameState.get('world.discoveredObjects.flowers')}`
+            `Flowers: ${getGameState().get('world.discoveredObjects.flowers')}`
         ].join('\n');
 
         this.statsText.setText(displayText);
@@ -1493,7 +1561,7 @@ class GameScene extends Phaser.Scene {
 
     setupGameStateListeners() {
         // Listen for level up events
-        GameState.on('levelUp', (data) => {
+        getGameState().on('levelUp', (data) => {
             // Show level up message
             const levelUpText = this.add.text(400, 200,
                 `🎉 Level Up!\nLevel ${data.oldLevel} → ${data.newLevel}`, {
@@ -1533,7 +1601,7 @@ class GameScene extends Phaser.Scene {
         });
 
         // Listen for care action events
-        GameState.on('careActionPerformed', (data) => {
+        getGameState().on('careActionPerformed', (data) => {
             this.showCareActionMessage(data.action, data.happinessBonus);
             this.updateCareButtons();
             this.updateCareHint();
@@ -1543,13 +1611,13 @@ class GameScene extends Phaser.Scene {
         });
 
         // Listen for daily bonus events
-        GameState.on('dailyBonusClaimed', (data) => {
+        getGameState().on('dailyBonusClaimed', (data) => {
             this.showBonusClaimedMessage();
             this.updateDailyBonusButton();
         });
 
         // Listen for state changes to update UI
-        GameState.on('stateChanged', (data) => {
+        getGameState().on('stateChanged', (data) => {
             if (data.path.startsWith('creature.stats') ||
                 data.path.startsWith('creature.care') ||
                 data.path.startsWith('world.discoveredObjects') ||
@@ -1589,7 +1657,7 @@ class GameScene extends Phaser.Scene {
      */
     createKidModeHUD() {
         // Get creature stats for status bars
-        const creatureStats = GameState.get('creature.stats') || { happiness: 80, energy: 60, health: 90 };
+        const creatureStats = getGameState().get('creature.stats') || { happiness: 80, energy: 60, health: 90 };
         const needsData = {
             hunger: 100 - creatureStats.happiness,
             energy: 100 - creatureStats.energy, 
@@ -1651,7 +1719,7 @@ class GameScene extends Phaser.Scene {
         });
 
         // Update HUD when stats change
-        GameState.on('stateChanged', (data) => {
+        getGameState().on('stateChanged', (data) => {
             if (data.path.startsWith('creature.stats') && window.KidMode && window.KidMode.isKidMode()) {
                 this.updateKidModeHUD();
             }
@@ -1667,19 +1735,19 @@ class GameScene extends Phaser.Scene {
 
         switch (action) {
             case 'feed':
-                this.performCareAction('feed');
+                this.handleCareMenuAction('feed');
                 break;
             case 'play':
-                this.performCareAction('play');
+                this.handleCareMenuAction('play');
                 break;
             case 'rest':
-                this.performCareAction('rest');
+                this.handleCareMenuAction('rest');
                 break;
             case 'pet':
-                this.performCareAction('pet');
+                this.handleCareMenuAction('pet');
                 break;
             case 'clean':
-                this.performCareAction('clean');
+                this.handleCareMenuAction('clean');
                 break;
             case 'photo':
                 this.takeCreaturePhoto();
@@ -1735,7 +1803,7 @@ class GameScene extends Phaser.Scene {
         }
 
         // Get current stats
-        const creatureStats = GameState.get('creature.stats') || { happiness: 80, energy: 60, health: 90 };
+        const creatureStats = getGameState().get('creature.stats') || { happiness: 80, energy: 60, health: 90 };
         
         // Determine new best action
         const emotion = this.determineCreatureEmotion(creatureStats);
@@ -1792,4 +1860,10 @@ class GameScene extends Phaser.Scene {
         console.log('Chat toggle - feature coming soon!');
         // TODO: Implement chat UI when needed
     }
+}
+
+export default GameScene;
+
+if (typeof window !== 'undefined') {
+    window.GameScene = GameScene;
 }

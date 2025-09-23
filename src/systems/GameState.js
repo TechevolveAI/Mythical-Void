@@ -7,18 +7,25 @@ class GameStateManager {
     constructor() {
         this.initialized = false;
         this.saveKey = 'mythical-creature-save';
-        
-        // Initialize default game state
-        this.state = {
-            // Player progression
+
+        this.state = this.createInitialState();
+        this.eventListeners = new Map();
+        this.autoSaveInterval = null;
+    }
+
+    /**
+     * Create a brand-new default state tree
+     */
+    createInitialState() {
+        const now = Date.now();
+
+        return {
             player: {
                 name: '',
                 playTime: 0,
                 gamesPlayed: 0,
                 lastPlayed: null
             },
-            
-            // Creature data
             creature: {
                 hatched: false,
                 hatchTime: null,
@@ -31,29 +38,26 @@ class GameStateManager {
                     health: 100
                 },
                 traits: [],
-                genes: null, // Will be generated on first access or hatching
+                genes: null,
                 colors: {
-                    body: 0x9370DB,    // Medium purple
-                    head: 0xDDA0DD,    // Light purple
-                    wings: 0x9370DB    // Medium purple
+                    body: 0x9370DB,
+                    head: 0xDDA0DD,
+                    wings: 0x9370DB
                 },
-                // Care system properties
                 care: {
-                    lastCareTime: null,        // Timestamp of last care action
-                    careStreak: 0,             // Consecutive days of care
-                    careHistory: [],           // Track of recent care actions
+                    lastCareTime: null,
+                    careStreak: 0,
+                    careHistory: [],
                     dailyCare: {
-                        feedCount: 0,          // Today's feed count (max 3)
-                        playCount: 0,          // Today's play count (max 2)
-                        restCount: 0,          // Today's rest count (unlimited)
-                        lastReset: null        // Last daily reset timestamp
+                        feedCount: 0,
+                        playCount: 0,
+                        restCount: 0,
+                        lastReset: null
                     }
                 }
             },
-            
-            // World exploration
             world: {
-                currentPosition: { x: 800, y: 600 }, // Center of world
+                currentPosition: { x: 800, y: 600 },
                 visitedAreas: [],
                 discoveredObjects: {
                     flowers: 0,
@@ -62,8 +66,6 @@ class GameStateManager {
                 },
                 interactionCount: 0
             },
-            
-            // Game settings
             settings: {
                 volume: {
                     master: 1.0,
@@ -79,42 +81,31 @@ class GameStateManager {
                     moveSpeed: 200
                 }
             },
-            
-            // Unlocks and achievements
             unlocks: {
-                scenes: ['HatchingScene'], // Start with only hatching scene
+                scenes: ['HatchingScene'],
                 features: [],
                 achievements: []
             },
-            
-            // Breeding shrine system
             breedingShrine: {
                 unlocked: false,
                 lastBreedingTime: null,
-                breedingCooldown: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+                breedingCooldown: 24 * 60 * 60 * 1000,
                 breedingHistory: []
             },
-
-            // Daily login bonus system
             dailyBonus: {
-                lastLoginDate: null,      // Last login date (YYYY-MM-DD)
-                currentStreak: 0,         // Current login streak
-                longestStreak: 0,         // Longest login streak achieved
-                totalLogins: 0,           // Total number of login days
-                claimedToday: false       // Whether today's bonus was claimed
+                lastLoginDate: null,
+                currentStreak: 0,
+                longestStreak: 0,
+                totalLogins: 0,
+                claimedToday: false
             },
-
-            // Session data (not saved)
             session: {
-                sessionStart: Date.now(),
+                sessionStart: now,
                 currentScene: 'HatchingScene',
                 debugMode: false,
-                gameStarted: false  // Controls game flow progression
+                gameStarted: false
             }
         };
-        
-        this.eventListeners = new Map();
-        this.autoSaveInterval = null;
     }
 
     /**
@@ -458,7 +449,7 @@ class GameStateManager {
     /**
      * Perform care action (feed, play, rest)
      */
-    performCareAction(actionType) {
+    performCareAction(actionType, happinessOverride = null) {
         const creature = this.get('creature');
         if (!creature.hatched) return false;
 
@@ -495,9 +486,13 @@ class GameStateManager {
         }
 
         if (canPerform) {
+            const appliedHappinessBonus = happinessOverride !== null
+                ? Math.max(0, Math.round(happinessOverride))
+                : happinessBonus;
+
             // Update happiness
             const currentHappiness = creature.stats.happiness;
-            const newHappiness = Math.min(100, currentHappiness + happinessBonus);
+            const newHappiness = Math.min(100, currentHappiness + appliedHappinessBonus);
             this.set('creature.stats.happiness', newHappiness);
 
             // Update care tracking
@@ -512,7 +507,9 @@ class GameStateManager {
                 action: actionType,
                 timestamp: Date.now(),
                 happinessBefore: currentHappiness,
-                happinessAfter: newHappiness
+                happinessAfter: newHappiness,
+                happinessApplied: appliedHappinessBonus,
+                baseHappinessBonus: happinessBonus
             });
 
             // Keep only last 20 care actions
@@ -523,7 +520,9 @@ class GameStateManager {
 
             this.emit('careActionPerformed', {
                 action: actionType,
-                happinessBonus,
+                happinessBonus: appliedHappinessBonus,
+                baseHappinessBonus: happinessBonus,
+                happinessOverride: happinessOverride !== null,
                 newHappiness
             });
 
@@ -753,17 +752,22 @@ class GameStateManager {
     /**
      * Reset game state to defaults
      */
-    reset() {
+    reset(options = {}) {
+        const { preserveSessionDebug = true } = options;
+
         localStorage.removeItem(this.saveKey);
-        
-        // Reset to default state but preserve session data
-        const currentSession = this.state.session;
-        this.state = {
-            ...this.constructor().state,
-            session: currentSession
-        };
-        
-        this.emit('reset', this.state);
+
+        const previousSession = this.state.session || {};
+
+        this.stopAutoSave();
+        this.state = this.createInitialState();
+        this.initialized = false;
+
+        if (preserveSessionDebug && previousSession) {
+            this.state.session.debugMode = !!previousSession.debugMode;
+        }
+
+        this.emit('reset', this.get());
         console.log('[GameState] Game state reset');
     }
 
@@ -797,14 +801,51 @@ class GameStateManager {
      */
     on(event, callback) {
         if (!this.eventListeners.has(event)) {
-            this.eventListeners.set(event, []);
+            this.eventListeners.set(event, new Set());
         }
-        this.eventListeners.get(event).push(callback);
+
+        const listeners = this.eventListeners.get(event);
+        listeners.add(callback);
+
+        return () => this.off(event, callback);
+    }
+
+    once(event, callback) {
+        const wrapped = (data) => {
+            this.off(event, wrapped);
+            callback(data);
+        };
+
+        return this.on(event, wrapped);
+    }
+
+    off(event, callback) {
+        const listeners = this.eventListeners.get(event);
+        if (!listeners) return;
+
+        listeners.delete(callback);
+
+        if (listeners.size === 0) {
+            this.eventListeners.delete(event);
+        }
+    }
+
+    removeAllListeners(event = null) {
+        if (event === null) {
+            this.eventListeners.clear();
+            return;
+        }
+
+        this.eventListeners.delete(event);
     }
 
     emit(event, data) {
-        const listeners = this.eventListeners.get(event) || [];
-        listeners.forEach(callback => {
+        const listeners = this.eventListeners.get(event);
+        if (!listeners || listeners.size === 0) {
+            return;
+        }
+
+        Array.from(listeners).forEach(callback => {
             try {
                 callback(data);
             } catch (error) {
@@ -857,4 +898,10 @@ class GameStateManager {
 }
 
 // Export singleton instance
-window.GameState = new GameStateManager();
+if (typeof window !== 'undefined') {
+    window.GameState = new GameStateManager();
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = GameStateManager;
+}

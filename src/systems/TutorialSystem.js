@@ -3,6 +3,13 @@
  * Provides basic hints for movement and interaction
  */
 
+function getGameState() {
+    if (typeof window === 'undefined' || !window.GameState) {
+        throw new Error('GameState system not ready');
+    }
+    return window.GameState;
+}
+
 class TutorialSystem {
     constructor() {
         this.initialized = false;
@@ -61,7 +68,7 @@ class TutorialSystem {
         if (this.initialized) return;
 
         // Load tutorial progress from GameState
-        const savedTutorials = GameState.get('tutorials') || {};
+        const savedTutorials = getGameState().get('tutorials') || {};
         Object.keys(this.tutorialSteps).forEach(stepId => {
             if (savedTutorials[stepId]) {
                 this.tutorialSteps[stepId].completed = savedTutorials[stepId].completed || false;
@@ -100,7 +107,7 @@ class TutorialSystem {
             this.completedTutorials.push(stepId);
 
             // Save to GameState
-            GameState.set(`tutorials.${stepId}`, {
+            getGameState().set(`tutorials.${stepId}`, {
                 completed: true,
                 completedAt: Date.now()
             });
@@ -151,7 +158,7 @@ class TutorialSystem {
             step.completed = false;
         });
         this.completedTutorials = [];
-        GameState.set('tutorials', {});
+        getGameState().set('tutorials', {});
         console.log('[TutorialSystem] All tutorials reset');
     }
 }

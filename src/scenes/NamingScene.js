@@ -3,6 +3,23 @@
  * Features: creature naming, genetics display, personality traits, transition to game world
  */
 
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
+function requireGlobal(name) {
+    if (typeof window === 'undefined' || !window[name]) {
+        throw new Error(`${name} system not ready`);
+    }
+    return window[name];
+}
+
+function getGameState() {
+    return requireGlobal('GameState');
+}
+
+function getGraphicsEngine() {
+    return requireGlobal('GraphicsEngine');
+}
+
 class NamingScene extends Phaser.Scene {
     constructor() {
         super({ key: 'NamingScene' });
@@ -16,10 +33,13 @@ class NamingScene extends Phaser.Scene {
     }
 
     create() {
+        const state = getGameState();
+
         // Set current scene in GameState
-        GameState.set('session.currentScene', 'NamingScene');
+        state.set('session.currentScene', 'NamingScene');
 
         // Initialize graphics engine
+        const GraphicsEngine = getGraphicsEngine();
         this.graphicsEngine = new GraphicsEngine(this);
 
         // Create background
@@ -79,9 +99,9 @@ class NamingScene extends Phaser.Scene {
     }
 
     generateCreatureTraits() {
-        const creatureData = GameState.get('creature');
-        
-        // Generate genetics if not exists
+        const state = getGameState();
+        const creatureData = state.get('creature');
+
         if (!creatureData.genes) {
             creatureData.genes = {
                 size: Phaser.Math.RND.pick(['small', 'medium', 'large']),
@@ -90,10 +110,9 @@ class NamingScene extends Phaser.Scene {
                 temperament: Phaser.Math.RND.pick(['gentle', 'playful', 'curious', 'wise']),
                 specialTrait: Phaser.Math.RND.pick(['none', 'horns', 'crest', 'extra_fluffy'])
             };
-            GameState.set('creature.genes', creatureData.genes);
+            state.set('creature.genes', creatureData.genes);
         }
 
-        // Generate personality
         if (!creatureData.personality) {
             const personalities = [
                 { name: 'Gentle Spirit', description: 'Calm and nurturing, loves peaceful moments' },
@@ -101,13 +120,13 @@ class NamingScene extends Phaser.Scene {
                 { name: 'Playful Friend', description: 'Energetic and loves to have fun' },
                 { name: 'Wise Oracle', description: 'Thoughtful and observant of the world' }
             ];
-            
+
             const personality = Phaser.Math.RND.pick(personalities);
             creatureData.personality = personality;
-            GameState.set('creature.personality', personality);
+            state.set('creature.personality', personality);
         }
 
-        this.creatureData = GameState.get('creature');
+        this.creatureData = state.get('creature');
     }
 
     displayCreature() {
@@ -423,7 +442,7 @@ class NamingScene extends Phaser.Scene {
 
     finalizeName() {
         if (this.nameInput.trim().length > 0) {
-            GameState.set('creature.name', this.nameInput.trim());
+            getGameState().set('creature.name', this.nameInput.trim());
             this.transitionToGame();
         } else {
             // Show error message briefly
@@ -465,4 +484,10 @@ class NamingScene extends Phaser.Scene {
     update() {
         // Scene handled by input events
     }
+}
+
+export default NamingScene;
+
+if (typeof window !== 'undefined') {
+    window.NamingScene = NamingScene;
 }

@@ -1,3 +1,5 @@
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
 /**
  * ParallaxBiome - Layered space-fantasy background system
  * Creates immersive crash-site biome with gentle parallax layers

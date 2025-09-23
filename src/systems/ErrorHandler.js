@@ -92,8 +92,37 @@ class ErrorHandler {
     /**
      * Set up Phaser-specific error handling
      */
-    setupPhaserErrorHandling() {
-        // Will be called from main.js after Phaser initialization
+    setupPhaserErrorHandling(game) {
+        if (!game || !game.events) return;
+
+        const phaserErrorHandler = (error) => {
+            this.handleError({
+                type: 'phaser',
+                message: error?.message || 'Phaser runtime error',
+                error,
+                severity: 'error'
+            });
+        };
+
+        game.events.on('error', phaserErrorHandler);
+        game.events.on('sceneerror', (error, scene) => {
+            this.handleError({
+                type: 'phaser-scene',
+                message: scene ? `Error in scene ${scene.sys.settings.key}` : 'Scene error',
+                error,
+                severity: 'error'
+            });
+        });
+
+        if (!this._cleanupHandlers) {
+            this._cleanupHandlers = [];
+        }
+        this._cleanupHandlers.push(() => {
+            if (game.events && game.events.off) {
+                game.events.off('error', phaserErrorHandler);
+                game.events.off('sceneerror', phaserErrorHandler);
+            }
+        });
     }
 
     /**

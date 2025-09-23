@@ -3,6 +3,13 @@
  * 8 basic achievements with simple unlocking logic
  */
 
+function getGameState() {
+    if (typeof window === 'undefined' || !window.GameState) {
+        throw new Error('GameState system not ready');
+    }
+    return window.GameState;
+}
+
 class AchievementSystem {
     constructor() {
         this.initialized = false;
@@ -94,7 +101,7 @@ class AchievementSystem {
         if (this.initialized) return;
 
         // Load achievement progress from GameState
-        const savedAchievements = GameState.get('achievements') || {};
+        const savedAchievements = getGameState().get('achievements') || {};
         Object.keys(this.achievements).forEach(achievementId => {
             if (savedAchievements[achievementId]) {
                 this.achievements[achievementId].unlocked = savedAchievements[achievementId].unlocked || false;
@@ -113,13 +120,13 @@ class AchievementSystem {
 
         Object.values(this.achievements).forEach(achievement => {
             if (!achievement.unlocked) {
-                const gameState = GameState.get();
+                const gameState = getGameState().get();
                 if (achievement.condition(gameState)) {
                     achievement.unlocked = true;
                     newUnlocks.push(achievement);
 
                     // Save to GameState
-                    GameState.set(`achievements.${achievement.id}`, {
+                    getGameState().set(`achievements.${achievement.id}`, {
                         unlocked: true,
                         unlockedAt: Date.now()
                     });
@@ -176,7 +183,7 @@ class AchievementSystem {
         Object.values(this.achievements).forEach(achievement => {
             achievement.unlocked = false;
         });
-        GameState.set('achievements', {});
+        getGameState().set('achievements', {});
         console.log('[AchievementSystem] All achievements reset');
     }
 }

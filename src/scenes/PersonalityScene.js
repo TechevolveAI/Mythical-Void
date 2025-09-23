@@ -3,6 +3,23 @@
  * Features: personality display, genetics showcase, creature animation
  */
 
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
+function requireGlobal(name) {
+    if (typeof window === 'undefined' || !window[name]) {
+        throw new Error(`${name} system not ready`);
+    }
+    return window[name];
+}
+
+function getGameState() {
+    return requireGlobal('GameState');
+}
+
+function getGraphicsEngine() {
+    return requireGlobal('GraphicsEngine');
+}
+
 class PersonalityScene extends Phaser.Scene {
     constructor() {
         super({ key: 'PersonalityScene' });
@@ -14,10 +31,13 @@ class PersonalityScene extends Phaser.Scene {
     }
 
     create() {
+        const state = getGameState();
+
         // Set current scene in GameState
-        GameState.set('session.currentScene', 'PersonalityScene');
+        state.set('session.currentScene', 'PersonalityScene');
 
         // Initialize graphics engine
+        const GraphicsEngine = getGraphicsEngine();
         this.graphicsEngine = new GraphicsEngine(this);
 
         // Create background
@@ -65,26 +85,23 @@ class PersonalityScene extends Phaser.Scene {
     }
 
     generateCreatureTraits() {
-        const creatureData = GameState.get('creature');
-        
-        // Check if we have genetics from HatchingScene
+        const state = getGameState();
+        const creatureData = state.get('creature');
+
         if (creatureData && creatureData.genetics) {
             console.log('personality:info [PersonalityScene] Using genetics from HatchingScene:', creatureData.genetics.id);
             this.creatureGenetics = creatureData.genetics;
         } else {
             console.warn('personality:warn [PersonalityScene] No genetics found, generating fallback');
-            // Fallback: generate basic genetics if somehow missing
             if (window.CreatureGenetics) {
                 this.creatureGenetics = window.CreatureGenetics.generateCreatureGenetics();
-                GameState.set('creature.genetics', this.creatureGenetics);
+                state.set('creature.genetics', this.creatureGenetics);
             } else {
-                // Final fallback to legacy system
                 this.generateLegacyTraits(creatureData);
                 return;
             }
         }
 
-        // Update creature data with genetics info
         if (!creatureData.personality) {
             const geneticsPersonality = this.creatureGenetics.personality;
             const displayPersonality = {
@@ -95,18 +112,17 @@ class PersonalityScene extends Phaser.Scene {
                 socialLevel: geneticsPersonality.socialLevel,
                 cosmicAffinity: this.creatureGenetics.cosmicAffinity
             };
-            
+
             creatureData.personality = displayPersonality;
-            GameState.set('creature.personality', displayPersonality);
+            state.set('creature.personality', displayPersonality);
         }
 
-        // Create legacy genes object for display compatibility
         if (!creatureData.genes) {
             creatureData.genes = this.convertGeneticsToLegacyGenes(this.creatureGenetics);
-            GameState.set('creature.genes', creatureData.genes);
+            state.set('creature.genes', creatureData.genes);
         }
 
-        this.creatureData = GameState.get('creature');
+        this.creatureData = state.get('creature');
     }
 
     generateLegacyTraits(creatureData) {
@@ -119,7 +135,7 @@ class PersonalityScene extends Phaser.Scene {
                 temperament: Phaser.Math.RND.pick(['gentle', 'playful', 'curious', 'wise']),
                 specialTrait: Phaser.Math.RND.pick(['none', 'horns', 'crest', 'extra_fluffy'])
             };
-            GameState.set('creature.genes', creatureData.genes);
+            getGameState().set('creature.genes', creatureData.genes);
         }
 
         if (!creatureData.personality) {
@@ -132,10 +148,10 @@ class PersonalityScene extends Phaser.Scene {
             
             const personality = Phaser.Math.RND.pick(personalities);
             creatureData.personality = personality;
-            GameState.set('creature.personality', personality);
+            getGameState().set('creature.personality', personality);
         }
 
-        this.creatureData = GameState.get('creature');
+        this.creatureData = getGameState().get('creature');
     }
 
     getPersonalityDisplayName(core) {
@@ -470,4 +486,10 @@ class PersonalityScene extends Phaser.Scene {
             this.revealed = true;
         }
     }
+}
+
+export default PersonalityScene;
+
+if (typeof window !== 'undefined') {
+    window.PersonalityScene = PersonalityScene;
 }

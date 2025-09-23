@@ -1,3 +1,9 @@
+import { Phaser } from './global-init.js';
+import HatchingScene from './scenes/HatchingScene.js';
+import PersonalityScene from './scenes/PersonalityScene.js';
+import NamingScene from './scenes/NamingScene.js';
+import GameScene from './scenes/GameScene.js';
+
 /**
  * Main game file that initializes Phaser with all game configuration
  * Enhanced with comprehensive error handling, memory management, and responsive design
@@ -18,6 +24,9 @@ if (window.UITheme) {
     // Theme is auto-initialized
     console.log('✅ UI Theme system ready');
 }
+
+// Cache frequently used globals
+const GameState = window.GameState;
 
 // Initialize responsive manager (will be set up after Phaser loads)
 let responsiveManager = null;
@@ -61,8 +70,12 @@ function cleanupScene(scene) {
     }
 }
 
-// Initialize GameState system before Phaser
-window.addEventListener('load', async () => {
+let gameInitialized = false;
+
+async function initializeGame() {
+    if (gameInitialized) return;
+    gameInitialized = true;
+
     try {
         console.log('🚀 Initializing Mythical Creature Game...');
         
@@ -317,18 +330,21 @@ window.addEventListener('load', async () => {
                 }
             });
             
-            // Handle scene errors
-            game.events.on('sceneerror', (error, scene) => {
-                console.error(`Scene error in ${scene.sys.config.key}:`, error);
-                if (window.errorHandler) {
-                    window.errorHandler.handleError({
-                        type: 'scene',
-                        message: `Error in scene: ${scene.sys.config.key}`,
-                        error: error,
-                        severity: 'error'
-                    });
-                }
-            });
+            if (window.errorHandler && typeof window.errorHandler.setupPhaserErrorHandling === 'function') {
+                window.errorHandler.setupPhaserErrorHandling(game);
+            } else {
+                game.events.on('sceneerror', (error, scene) => {
+                    console.error(`Scene error in ${scene.sys.config.key}:`, error);
+                    if (window.errorHandler) {
+                        window.errorHandler.handleError({
+                            type: 'scene',
+                            message: `Error in scene: ${scene.sys.config.key}`,
+                            error: error,
+                            severity: 'error'
+                        });
+                    }
+                });
+            }
             
         } catch (phaserError) {
             console.error('❌ Phaser initialization failed:', phaserError);
@@ -410,7 +426,13 @@ window.addEventListener('load', async () => {
             });
         }
     }
-});
+}
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initializeGame();
+} else {
+    window.addEventListener('DOMContentLoaded', initializeGame);
+}
 
 // Function to set up periodic health checks
 function setupHealthChecks(game) {

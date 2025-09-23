@@ -17,7 +17,7 @@ npm run validate-flow
 npm run health-check
 
 # 3. Start development server
-npm start
+npm run dev
 ```
 
 ### ✅ **Pre-Commit Checklist**
@@ -115,7 +115,6 @@ npm run pre-commit
 
 #### ✅ **Logging & Monitoring**
 - Security-aware logging (no secrets logged)
-- `HealthSystem` for monitoring
 - Error tracking and reporting
 
 ---
@@ -309,7 +308,7 @@ npm run health-check
 
 ```bash
 # Start development server
-npm start
+npm run dev
 
 # Validate game flow integrity  
 npm run validate-flow

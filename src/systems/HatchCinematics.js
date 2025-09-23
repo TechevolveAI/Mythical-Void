@@ -1,3 +1,5 @@
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
 /**
  * HatchCinematics - Space-themed 8-beat cinematic sequence for egg hatching
  * Creates a magical "hero moment" with precise timing and space-fantasy effects

@@ -1,3 +1,5 @@
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
 /**
  * UITheme - Centralized UI theme system for consistent styling
  * Manages colors, typography, spacing, and responsive design

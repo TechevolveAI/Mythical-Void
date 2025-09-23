@@ -4,11 +4,29 @@
  */
 
 // Mock window object for testing
+const createPhaserStub = () => ({
+    Math: {
+        Between: (min, max) => min,
+        FloatBetween: (min, max) => min,
+        DegToRad: (deg) => (deg * Math.PI) / 180,
+        RadToDeg: (rad) => (rad * 180) / Math.PI
+    },
+    Display: {
+        Color: {
+            ValueToColor: () => ({ r: 255, g: 255, b: 255 }),
+            GetColor: (r, g, b) => (r << 16) | (g << 8) | b,
+            Lighten: () => ({ r: 255, g: 255, b: 255 })
+        }
+    },
+    BlendModes: { ADD: 'ADD' }
+});
+
 global.window = {
     GameState: {
         emit: jest.fn(),
         set: jest.fn()
-    }
+    },
+    Phaser: createPhaserStub()
 };
 
 // Import KidMode (would need proper module setup for real tests)

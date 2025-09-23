@@ -1,3 +1,5 @@
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
 /**
  * KidMode - Child-friendly UI system for ages 8+
  * Provides larger touch targets, contextual guidance, and simplified space-themed interactions

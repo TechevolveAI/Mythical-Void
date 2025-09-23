@@ -1,3 +1,5 @@
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
 /**
  * FXLibrary - Reusable particle effects for Space-Mythic theme
  * Provides standardized visual effects for stardust, aurora, and bioluminescence

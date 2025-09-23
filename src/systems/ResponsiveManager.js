@@ -17,6 +17,10 @@ class ResponsiveManager {
         this.touchButtons = new Map();
         this.resizeHandler = null;
         this.orientationHandler = null;
+        this.cleanupTasks = [];
+        this.resolutionMediaQuery = null;
+        this.fullscreenButton = null;
+        this.fullscreenChangeHandler = null;
     }
 
     /**
@@ -83,13 +87,20 @@ class ResponsiveManager {
         }, 100);
         
         // Listen for resize events
-        window.addEventListener('resize', this.resizeHandler);
-        window.addEventListener('orientationchange', this.resizeHandler);
-        
+        this.addManagedEvent(window, 'resize', this.resizeHandler);
+        this.addManagedEvent(window, 'orientationchange', this.resizeHandler);
+
         // Listen for device pixel ratio changes (zoom)
         if (window.matchMedia) {
-            const mediaQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
-            mediaQuery.addListener(this.resizeHandler);
+            this.resolutionMediaQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+            const mediaHandler = this.resizeHandler;
+            if (this.resolutionMediaQuery.addEventListener) {
+                this.resolutionMediaQuery.addEventListener('change', mediaHandler);
+                this.registerCleanup(() => this.resolutionMediaQuery.removeEventListener('change', mediaHandler));
+            } else if (this.resolutionMediaQuery.addListener) {
+                this.resolutionMediaQuery.addListener(mediaHandler);
+                this.registerCleanup(() => this.resolutionMediaQuery.removeListener(mediaHandler));
+            }
         }
     }
 
@@ -190,18 +201,28 @@ class ResponsiveManager {
      */
     setupTouchSupport() {
         // Prevent default touch behaviors
-        document.addEventListener('touchstart', this.preventDefaults, { passive: false });
-        document.addEventListener('touchmove', this.preventDefaults, { passive: false });
-        document.addEventListener('touchend', this.preventDefaults, { passive: false });
-        
+        const preventHandler = (event) => this.preventDefaults(event);
+        this.addManagedEvent(document, 'touchstart', preventHandler, { passive: false });
+        this.addManagedEvent(document, 'touchmove', preventHandler, { passive: false });
+        this.addManagedEvent(document, 'touchend', preventHandler, { passive: false });
+
         // Add touch-specific styles
-        this.addTouchStyles();
-        
+        const styleAdded = this.addTouchStyles();
+        if (styleAdded) {
+            this.registerCleanup(() => {
+                const style = document.getElementById('responsive-touch-styles');
+                if (style) {
+                    style.remove();
+                }
+                document.body.classList.remove('responsive-touch-active');
+            });
+        }
+
         // Create virtual controls if mobile
         if (this.isMobile) {
             this.createVirtualControls();
         }
-        
+
         // Set up touch-to-mouse event mapping
         this.setupTouchToMouse();
     }
@@ -223,7 +244,7 @@ class ResponsiveManager {
      * Add touch-specific styles
      */
     addTouchStyles() {
-        if (document.getElementById('responsive-touch-styles')) return;
+        if (document.getElementById('responsive-touch-styles')) return false;
         
         const style = document.createElement('style');
         style.id = 'responsive-touch-styles';
@@ -299,8 +320,11 @@ class ResponsiveManager {
                 transition: none;
             }
         `;
-        
-        document.head.appendChild(style);
+       
+       document.head.appendChild(style);
+        document.body.classList.add('responsive-touch-active');
+
+        return true;
     }
 
     /**
@@ -369,14 +393,20 @@ class ResponsiveManager {
         };
         
         // Add event listeners
-        joystickContainer.addEventListener('touchstart', handleStart);
-        joystickContainer.addEventListener('touchmove', handleMove);
-        joystickContainer.addEventListener('touchend', handleEnd);
-        joystickContainer.addEventListener('mousedown', handleStart);
-        document.addEventListener('mousemove', handleMove);
-        document.addEventListener('mouseup', handleEnd);
-        
+        this.addManagedEvent(joystickContainer, 'touchstart', handleStart, { passive: false });
+        this.addManagedEvent(joystickContainer, 'touchmove', handleMove, { passive: false });
+        this.addManagedEvent(joystickContainer, 'touchend', handleEnd, { passive: false });
+        this.addManagedEvent(joystickContainer, 'mousedown', handleStart);
+        this.addManagedEvent(document, 'mousemove', handleMove);
+        this.addManagedEvent(document, 'mouseup', handleEnd);
+
         this.virtualJoystick = joystickContainer;
+        this.registerCleanup(() => {
+            if (this.virtualJoystick) {
+                this.virtualJoystick.remove();
+                this.virtualJoystick = null;
+            }
+        });
     }
 
     /**
@@ -408,13 +438,17 @@ class ResponsiveManager {
                 this.emitKeyEvent(btnConfig.key, 'up');
             };
             
-            button.addEventListener('touchstart', handlePress);
-            button.addEventListener('touchend', handleRelease);
-            button.addEventListener('mousedown', handlePress);
-            button.addEventListener('mouseup', handleRelease);
-            
+            this.addManagedEvent(button, 'touchstart', handlePress, { passive: false });
+            this.addManagedEvent(button, 'touchend', handleRelease, { passive: false });
+            this.addManagedEvent(button, 'mousedown', handlePress);
+            this.addManagedEvent(button, 'mouseup', handleRelease);
+
             document.body.appendChild(button);
             this.touchButtons.set(btnConfig.id, button);
+            this.registerCleanup(() => {
+                this.touchButtons.delete(btnConfig.id);
+                button.remove();
+            });
         });
     }
 
@@ -444,28 +478,35 @@ class ResponsiveManager {
         if (!canvas) return;
         
         // Map touch events to mouse events
-        canvas.addEventListener('touchstart', (e) => {
+        const touchStartHandler = (e) => {
+            if (e.cancelable) e.preventDefault();
             const touch = e.touches[0];
             const mouseEvent = new MouseEvent('mousedown', {
                 clientX: touch.clientX,
                 clientY: touch.clientY
             });
             canvas.dispatchEvent(mouseEvent);
-        });
-        
-        canvas.addEventListener('touchmove', (e) => {
+        };
+
+        const touchMoveHandler = (e) => {
+            if (e.cancelable) e.preventDefault();
             const touch = e.touches[0];
             const mouseEvent = new MouseEvent('mousemove', {
                 clientX: touch.clientX,
                 clientY: touch.clientY
             });
             canvas.dispatchEvent(mouseEvent);
-        });
-        
-        canvas.addEventListener('touchend', (e) => {
+        };
+
+        const touchEndHandler = (e) => {
+            if (e && e.cancelable) e.preventDefault();
             const mouseEvent = new MouseEvent('mouseup', {});
             canvas.dispatchEvent(mouseEvent);
-        });
+        };
+
+        this.addManagedEvent(canvas, 'touchstart', touchStartHandler, { passive: false });
+        this.addManagedEvent(canvas, 'touchmove', touchMoveHandler, { passive: false });
+        this.addManagedEvent(canvas, 'touchend', touchEndHandler, { passive: false });
     }
 
     /**
@@ -490,8 +531,8 @@ class ResponsiveManager {
             }
         };
         
-        window.addEventListener('orientationchange', this.orientationHandler);
-        window.addEventListener('resize', this.orientationHandler);
+        this.addManagedEvent(window, 'orientationchange', this.orientationHandler);
+        this.addManagedEvent(window, 'resize', this.orientationHandler);
     }
 
     /**
@@ -550,12 +591,25 @@ class ResponsiveManager {
             fullscreenBtn.style.right = '20px';
             fullscreenBtn.style.top = '80px';
             
-            fullscreenBtn.addEventListener('click', () => {
-                this.toggleFullscreen();
-            });
+            const onClick = () => this.toggleFullscreen();
+            this.addManagedEvent(fullscreenBtn, 'click', onClick);
             
             document.body.appendChild(fullscreenBtn);
+            this.fullscreenButton = fullscreenBtn;
+            this.registerCleanup(() => {
+                if (this.fullscreenButton) {
+                    this.fullscreenButton.remove();
+                    this.fullscreenButton = null;
+                }
+            });
         }
+
+        this.fullscreenChangeHandler = () => {
+            this.isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+        };
+        this.addManagedEvent(document, 'fullscreenchange', this.fullscreenChangeHandler);
+        this.addManagedEvent(document, 'webkitfullscreenchange', this.fullscreenChangeHandler);
+        this.addManagedEvent(document, 'msfullscreenchange', this.fullscreenChangeHandler);
     }
 
     /**
@@ -590,8 +644,13 @@ class ResponsiveManager {
     initializeKidModeSupport() {
         // Listen for Kid Mode toggle events
         if (window.GameState && typeof window.GameState.on === 'function') {
-            window.GameState.on('ui/kidmode_toggled', (data) => {
+            const disposer = window.GameState.on('ui/kidmode_toggled', (data) => {
                 this.handleKidModeToggle(data.enabled);
+            });
+            this.registerCleanup(() => {
+                if (typeof disposer === 'function') {
+                    disposer();
+                }
             });
         }
         
@@ -1197,28 +1256,59 @@ class ResponsiveManager {
         };
     }
 
+    registerCleanup(task) {
+        if (typeof task === 'function') {
+            this.cleanupTasks.push(task);
+        }
+    }
+
+    addManagedEvent(target, type, handler, options) {
+        if (!target || !target.addEventListener) return;
+        target.addEventListener(type, handler, options);
+        this.registerCleanup(() => {
+            try {
+                target.removeEventListener(type, handler, options);
+            } catch (error) {
+                console.warn('responsive:warn [ResponsiveManager] Failed to remove event listener', { type, error });
+            }
+        });
+    }
+
+    runCleanupTasks() {
+        while (this.cleanupTasks.length) {
+            const task = this.cleanupTasks.pop();
+            try {
+                task();
+            } catch (error) {
+                console.warn('responsive:warn [ResponsiveManager] Cleanup task failed', error);
+            }
+        }
+        this.cleanupTasks.length = 0;
+    }
+
     /**
      * Cleanup
      */
     destroy() {
-        // Remove event listeners
-        window.removeEventListener('resize', this.resizeHandler);
-        window.removeEventListener('orientationchange', this.orientationHandler);
-        
-        // Remove virtual controls
-        if (this.virtualJoystick) {
-            this.virtualJoystick.remove();
-        }
-        
-        this.touchButtons.forEach(button => {
-            button.remove();
-        });
-        
-        // Remove orientation message
+        this.runCleanupTasks();
+
+        this.touchButtons.clear();
+        this.virtualJoystick = null;
+        this.fullscreenButton = null;
+
         this.hideOrientationMessage();
         
         // Remove Kid Mode styles
         this.removeKidModeLayout();
+        const touchStyle = document.getElementById('responsive-touch-styles');
+        if (touchStyle) {
+            touchStyle.remove();
+        }
+        if (document.body) {
+            document.body.classList.remove('responsive-touch-active');
+        }
+
+        this.game = null;
         
         console.log('responsive:info [ResponsiveManager] Destroyed');
     }

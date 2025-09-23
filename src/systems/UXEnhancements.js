@@ -18,6 +18,50 @@ class UXEnhancements {
                 slow: 500
             }
         };
+        this.cleanupTasks = [];
+        this.eventScope = null;
+        this.manualEvents = [];
+        this.observers = [];
+    }
+
+    registerCleanup(task) {
+        if (typeof task === 'function') {
+            this.cleanupTasks.push(task);
+        }
+    }
+
+    addManagedEvent(target, event, handler, options) {
+        if (!target || typeof handler !== 'function') return;
+
+        if (this.eventScope && typeof this.eventScope.addEventListener === 'function') {
+            this.eventScope.addEventListener(target, event, handler, options);
+        } else if (target.addEventListener) {
+            target.addEventListener(event, handler, options);
+            this.manualEvents.push({ target, event, handler, options });
+        }
+    }
+
+    addMediaQueryListener(query, handler) {
+        if (!query || typeof handler !== 'function') return;
+        if (query.addEventListener) {
+            query.addEventListener('change', handler);
+            this.registerCleanup(() => query.removeEventListener('change', handler));
+        } else if (query.addListener) {
+            query.addListener(handler);
+            this.registerCleanup(() => query.removeListener(handler));
+        }
+    }
+
+    runCleanupTasks() {
+        while (this.cleanupTasks.length) {
+            const task = this.cleanupTasks.pop();
+            try {
+                task();
+            } catch (error) {
+                console.warn('[UXEnhancements] Cleanup task failed', error);
+            }
+        }
+        this.cleanupTasks.length = 0;
     }
 
     /**
@@ -27,7 +71,10 @@ class UXEnhancements {
         if (this.initialized) return;
         
         this.game = game;
-        
+        if (window.memoryManager && typeof window.memoryManager.createScope === 'function') {
+            this.eventScope = window.memoryManager.createScope();
+        }
+
         // Set up accessibility features
         this.setupAccessibility();
         
@@ -375,7 +422,7 @@ class UXEnhancements {
         this.updateFocusableElements();
         
         // Add keyboard event listeners
-        document.addEventListener('keydown', (e) => {
+        const handleKeydown = (e) => {
             // Tab navigation enhancement
             if (e.key === 'Tab') {
                 this.handleTabNavigation(e);
@@ -402,7 +449,9 @@ class UXEnhancements {
                         break;
                 }
             }
-        });
+        };
+
+        this.addManagedEvent(document, 'keydown', handleKeydown);
         
         // Update focusable elements when DOM changes
         const observer = new MutationObserver(() => {
@@ -413,6 +462,8 @@ class UXEnhancements {
             childList: true,
             subtree: true
         });
+        this.observers.push(observer);
+        this.registerCleanup(() => observer.disconnect());
     }
 
     /**
@@ -531,7 +582,8 @@ class UXEnhancements {
      */
     setupAnimationPreferences() {
         // Check for reduced motion preference
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const reduceQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const prefersReducedMotion = reduceQuery.matches;
         
         if (prefersReducedMotion) {
             // Override animation durations
@@ -547,13 +599,14 @@ class UXEnhancements {
         }
         
         // Listen for changes
-        window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+        const motionHandler = (e) => {
             if (e.matches) {
                 document.body.classList.add('reduced-motion');
             } else {
                 document.body.classList.remove('reduced-motion');
             }
-        });
+        };
+        this.addMediaQueryListener(reduceQuery, motionHandler);
     }
 
     /**
@@ -567,28 +620,33 @@ class UXEnhancements {
         document.body.appendChild(tooltipContainer);
         
         // Add tooltip to elements with data-tooltip attribute
-        document.addEventListener('mouseover', (e) => {
+        const handleMouseOver = (e) => {
             const element = e.target.closest('[data-tooltip]');
             if (element) {
                 this.showTooltip(element);
             }
-        });
-        
-        document.addEventListener('mouseout', (e) => {
+        };
+
+        const handleMouseOut = (e) => {
             const element = e.target.closest('[data-tooltip]');
             if (element) {
                 this.hideTooltip();
             }
-        });
-        
+        };
+
         // Touch support for tooltips
-        document.addEventListener('touchstart', (e) => {
+        const handleTouchStart = (e) => {
             const element = e.target.closest('[data-tooltip]');
             if (element) {
                 this.showTooltip(element);
                 setTimeout(() => this.hideTooltip(), 3000);
             }
-        });
+        };
+
+        this.addManagedEvent(document, 'mouseover', handleMouseOver);
+        this.addManagedEvent(document, 'mouseout', handleMouseOut);
+        this.addManagedEvent(document, 'touchstart', handleTouchStart, { passive: true });
+        this.registerCleanup(() => tooltipContainer.remove());
     }
 
     /**
@@ -631,7 +689,7 @@ class UXEnhancements {
         this.focusHistory = [];
         
         // Monitor focus changes
-        document.addEventListener('focusin', (e) => {
+        const handleFocusIn = (e) => {
             if (!e.target.closest('.modal, .panel')) {
                 this.focusHistory.push(e.target);
                 
@@ -640,7 +698,9 @@ class UXEnhancements {
                     this.focusHistory.shift();
                 }
             }
-        });
+        };
+
+        this.addManagedEvent(document, 'focusin', handleFocusIn);
     }
 
     /**
@@ -672,7 +732,7 @@ class UXEnhancements {
             }
         };
         
-        element.addEventListener('keydown', trapHandler);
+        this.addManagedEvent(element, 'keydown', trapHandler);
         element.dataset.focusTrap = true;
         
         // Store handler for cleanup
@@ -703,20 +763,22 @@ class UXEnhancements {
      */
     setupContrastControls() {
         // Check for high contrast preference
-        const prefersHighContrast = window.matchMedia('(prefers-contrast: high)').matches;
+        const contrastQuery = window.matchMedia('(prefers-contrast: high)');
+        const prefersHighContrast = contrastQuery.matches;
         
         if (prefersHighContrast) {
             document.body.classList.add('high-contrast');
         }
         
         // Listen for changes
-        window.matchMedia('(prefers-contrast: high)').addEventListener('change', (e) => {
+        const contrastHandler = (e) => {
             if (e.matches) {
                 document.body.classList.add('high-contrast');
             } else {
                 document.body.classList.remove('high-contrast');
             }
-        });
+        };
+        this.addMediaQueryListener(contrastQuery, contrastHandler);
         
         // Add high contrast styles
         const style = document.createElement('style');
@@ -739,6 +801,7 @@ class UXEnhancements {
             }
         `;
         document.head.appendChild(style);
+        this.registerCleanup(() => style.remove());
     }
 
     /**
@@ -748,21 +811,24 @@ class UXEnhancements {
         if (!navigator.vibrate) return;
         
         // Add haptic feedback to buttons
-        document.addEventListener('touchstart', (e) => {
+        const handleTouchStart = (e) => {
             if (e.target.closest('button, .game-button, .virtual-button')) {
                 // Light haptic feedback
                 navigator.vibrate(10);
                 e.target.classList.add('haptic-feedback');
                 setTimeout(() => e.target.classList.remove('haptic-feedback'), 100);
             }
-        });
-        
+        };
+
         // Stronger feedback for important actions
-        document.addEventListener('click', (e) => {
+        const handleClick = (e) => {
             if (e.target.closest('.important-action')) {
                 navigator.vibrate([20, 10, 20]);
             }
-        });
+        };
+
+        this.addManagedEvent(document, 'touchstart', handleTouchStart, { passive: true });
+        this.addManagedEvent(document, 'click', handleClick);
     }
 
     /**
@@ -1047,9 +1113,35 @@ class UXEnhancements {
      * Clean up
      */
     destroy() {
-        // Remove event listeners
-        document.removeEventListener('keydown', this.keydownHandler);
-        
+        if (this.eventScope && typeof this.eventScope.cleanup === 'function') {
+            this.eventScope.cleanup();
+            this.eventScope = null;
+        }
+
+        if (this.manualEvents.length) {
+            this.manualEvents.forEach(({ target, event, handler, options }) => {
+                try {
+                    target.removeEventListener(event, handler, options);
+                } catch (error) {
+                    console.warn('[UXEnhancements] Failed to remove manual event listener', { event, error });
+                }
+            });
+            this.manualEvents = [];
+        }
+
+        if (this.observers.length) {
+            this.observers.forEach(observer => {
+                try {
+                    observer.disconnect();
+                } catch (error) {
+                    console.warn('[UXEnhancements] Failed to disconnect observer', error);
+                }
+            });
+            this.observers = [];
+        }
+
+        this.runCleanupTasks();
+
         // Remove added elements
         const elementsToRemove = [
             'game-announcer',
@@ -1070,6 +1162,9 @@ class UXEnhancements {
         this.focusHistory = [];
         this.tooltips.clear();
         
+        this.initialized = false;
+        this.game = null;
+
         console.log('[UXEnhancements] Destroyed');
     }
 }

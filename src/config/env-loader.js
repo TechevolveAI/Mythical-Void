@@ -11,103 +11,41 @@ class EnvironmentLoader {
     }
 
     /**
-     * Load environment variables from .env file
-     * Falls back to default values if file doesn't exist
+     * Load environment variables from Vite-provided import.meta.env
+     * Falls back to default values if keys are missing
      */
     async load() {
-        try {
-            // SECURITY: Don't fetch .env in production as it exposes secrets
-            if (this.isProduction()) {
-                console.log('🔒 Production mode: Using environment variables from hosting platform');
-                this.loadFromWindowEnv();
-            } else {
-                // Development: Try to load .env, but fail gracefully
-                try {
-                    const response = await fetch('/.env');
-                    if (response.ok) {
-                        const envContent = await response.text();
-                        this.parseEnvContent(envContent);
-                        console.log('🔧 Development: Loaded .env file');
-                    } else {
-                        console.warn('⚠️ .env file not accessible, using defaults');
-                        this.loadDefaults();
-                    }
-                } catch (fetchError) {
-                    console.warn('⚠️ Could not fetch .env file, using defaults:', fetchError.message);
-                    this.loadDefaults();
-                }
+        const defaults = this.getDefaultConfig();
+        const envSource = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
+
+        const merged = { ...defaults };
+        const mappings = {
+            NODE_ENV: envSource.MODE || envSource.VITE_NODE_ENV,
+            ENABLE_API_FEATURES: envSource.VITE_ENABLE_API_FEATURES,
+            PORT: envSource.VITE_PORT,
+            DEBUG: envSource.VITE_DEBUG,
+            GAME_SAVE_PREFIX: envSource.VITE_GAME_SAVE_PREFIX,
+            AUTO_SAVE_INTERVAL: envSource.VITE_AUTO_SAVE_INTERVAL,
+            MAX_SAVE_SLOTS: envSource.VITE_MAX_SAVE_SLOTS,
+            CORS_ORIGINS: envSource.VITE_CORS_ORIGINS,
+            XAI_API_KEY: envSource.VITE_XAI_API_KEY,
+            XAI_ENDPOINT: envSource.VITE_XAI_ENDPOINT,
+            XAI_MODEL: envSource.VITE_XAI_MODEL
+        };
+
+        for (const [key, value] of Object.entries(mappings)) {
+            if (value !== undefined && value !== null) {
+                merged[key] = String(value);
             }
-        } catch (error) {
-            console.warn('⚠️ Environment loading failed, using defaults:', error.message);
-            this.loadDefaults();
         }
-        
+
+        this.config = merged;
         this.loaded = true;
         console.log('✅ Environment configuration loaded');
     }
 
-    /**
-     * Load environment from window object (for production builds)
-     */
-    loadFromWindowEnv() {
-        // In production, environment variables should be injected at build time
-        // or available through window object
-        if (window.process && window.process.env) {
-            this.config = { ...window.process.env };
-        } else {
-            // Fallback to production defaults
-            this.config = {
-                NODE_ENV: 'production',
-                ENABLE_API_FEATURES: 'false',
-                PORT: '8080',
-                DEBUG: 'false',
-                GAME_SAVE_PREFIX: 'mythical_creature_game',
-                AUTO_SAVE_INTERVAL: '30000',
-                MAX_SAVE_SLOTS: '3',
-                CORS_ORIGINS: window.location.origin
-            };
-        }
-    }
-
-    /**
-     * Check if running in production
-     */
-    isProduction() {
-        return window.location.hostname !== 'localhost' && 
-               window.location.hostname !== '127.0.0.1' &&
-               !window.location.hostname.includes('192.168.') &&
-               !window.location.hostname.includes('10.');
-    }
-
-    /**
-     * Parse .env file content
-     */
-    parseEnvContent(content) {
-        const lines = content.split('\n');
-        
-        for (const line of lines) {
-            const trimmedLine = line.trim();
-            
-            // Skip empty lines and comments
-            if (!trimmedLine || trimmedLine.startsWith('#')) {
-                continue;
-            }
-            
-            // Parse key=value pairs
-            const equalIndex = trimmedLine.indexOf('=');
-            if (equalIndex > 0) {
-                const key = trimmedLine.substring(0, equalIndex).trim();
-                const value = trimmedLine.substring(equalIndex + 1).trim();
-                this.config[key] = value;
-            }
-        }
-    }
-
-    /**
-     * Load default configuration values
-     */
-    loadDefaults() {
-        this.config = {
+    getDefaultConfig() {
+        return {
             NODE_ENV: 'development',
             PORT: '8080',
             DEBUG: 'false',
@@ -116,7 +54,6 @@ class EnvironmentLoader {
             MAX_SAVE_SLOTS: '3',
             ENABLE_API_FEATURES: 'false',
             CORS_ORIGINS: 'http://localhost:8080,http://127.0.0.1:8080',
-            // API keys will be undefined - must be set in .env
             XAI_API_KEY: undefined,
             XAI_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
             XAI_MODEL: 'grok-4-latest'
@@ -139,16 +76,19 @@ class EnvironmentLoader {
      * Get boolean configuration value
      */
     getBool(key, defaultValue = false) {
-        const value = this.get(key, defaultValue.toString());
-        return value === 'true' || value === '1' || value === 'yes';
+        const value = this.get(key, defaultValue);
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'number') return value !== 0;
+        const normalized = String(value).toLowerCase();
+        return normalized === 'true' || normalized === '1' || normalized === 'yes';
     }
 
     /**
      * Get number configuration value
      */
     getNumber(key, defaultValue = 0) {
-        const value = this.get(key, defaultValue.toString());
-        const parsed = parseInt(value, 10);
+        const raw = this.get(key, defaultValue);
+        const parsed = parseInt(raw, 10);
         return isNaN(parsed) ? defaultValue : parsed;
     }
 

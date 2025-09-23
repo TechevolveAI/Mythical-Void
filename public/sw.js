@@ -1,20 +1,10 @@
 // Simple Service Worker for Mythical Creature Game
 // Provides basic offline capabilities
 
-const CACHE_NAME = 'mythical-creature-v1';
+const CACHE_NAME = 'mythical-creature-v2';
 const urlsToCache = [
   '/',
-  '/index.html',
-  '/src/main.js',
-  '/src/config/env-loader.js',
-  '/src/config/api-config.js',
-  '/src/systems/GameState.js',
-  '/src/systems/GraphicsEngine.js',
-  '/src/systems/HealthSystem.js',
-  '/src/scenes/HatchingScene.js',
-  '/src/scenes/NamingScene.js',
-  '/src/scenes/GameScene.js',
-  '/node_modules/phaser/dist/phaser.min.js'
+  '/index.html'
 ];
 
 self.addEventListener('install', function(event) {

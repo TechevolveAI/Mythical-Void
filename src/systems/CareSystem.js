@@ -3,6 +3,13 @@
  * Handles care actions, daily bonuses, and care status management
  */
 
+function getGameState() {
+    if (typeof window === 'undefined' || !window.GameState) {
+        throw new Error('GameState system not ready');
+    }
+    return window.GameState;
+}
+
 class CareSystem {
     constructor() {
         this.initialized = false;
@@ -45,7 +52,7 @@ class CareSystem {
         console.log('[CareSystem] Initializing care system...');
 
         // Set up event listeners for GameState
-        GameState.on('careActionPerformed', (data) => {
+        getGameState().on('careActionPerformed', (data) => {
             this.onCareActionPerformed(data);
         });
 
@@ -57,7 +64,7 @@ class CareSystem {
      * Get current care status
      */
     getCareStatus() {
-        return GameState.getCareStatus();
+        return getGameState().getCareStatus();
     }
 
     /**
@@ -99,7 +106,7 @@ class CareSystem {
         const baseBonusHappiness = this.careActions[actionType].happinessBonus;
         const totalHappinessBonus = Math.round(baseBonusHappiness * personalityBonus.multiplier);
 
-        const success = GameState.performCareAction(actionType, totalHappinessBonus);
+        const success = getGameState().performCareAction(actionType, totalHappinessBonus);
 
         if (success) {
             if (actionType === 'rest') {
@@ -282,14 +289,14 @@ class CareSystem {
      * Get daily login bonus information
      */
     getDailyLoginBonus() {
-        return GameState.getDailyLoginBonus();
+        return getGameState().getDailyLoginBonus();
     }
 
     /**
      * Claim daily login bonus
      */
     claimDailyLoginBonus() {
-        return GameState.claimDailyLoginBonus();
+        return getGameState().claimDailyLoginBonus();
     }
 
     /**
@@ -465,7 +472,7 @@ class CareSystem {
      * Reset daily care counters (for testing or admin purposes)
      */
     resetDailyCounters() {
-        GameState.set('creature.care.dailyCare', {
+        getGameState().set('creature.care.dailyCare', {
             feedCount: 0,
             playCount: 0,
             restCount: 0,

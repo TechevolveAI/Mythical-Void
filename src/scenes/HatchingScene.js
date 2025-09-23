@@ -3,6 +3,23 @@
  * Features: floating egg animation, progressive hatching with color changes, sparkle effects
  */
 
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
+function requireGlobal(name) {
+    if (typeof window === 'undefined' || !window[name]) {
+        throw new Error(`${name} system not ready`);
+    }
+    return window[name];
+}
+
+function getGameState() {
+    return requireGlobal('GameState');
+}
+
+function getGraphicsEngine() {
+    return requireGlobal('GraphicsEngine');
+}
+
 class HatchingScene extends Phaser.Scene {
     constructor() {
         super({ key: 'HatchingScene' });
@@ -20,6 +37,8 @@ class HatchingScene extends Phaser.Scene {
     create() {
         console.log('🎬 HatchingScene.create() called');
         
+        const GameState = getGameState();
+
         // Set current scene in GameState
         GameState.set('session.currentScene', 'HatchingScene');
 
@@ -74,6 +93,7 @@ class HatchingScene extends Phaser.Scene {
 
     showHomeScreen() {
         // Initialize graphics engine for development mode
+        const GraphicsEngine = getGraphicsEngine();
         this.graphicsEngine = new GraphicsEngine(this);
 
         // Create beautiful home screen background
@@ -127,6 +147,7 @@ class HatchingScene extends Phaser.Scene {
 
     showHatchingScreen() {
         // Initialize enhanced graphics engine
+        const GraphicsEngine = getGraphicsEngine();
         this.graphicsEngine = new GraphicsEngine(this);
 
         // Create enhanced programmatic sprites
@@ -192,40 +213,41 @@ class HatchingScene extends Phaser.Scene {
         // See GAME_FLOW_DOCUMENTATION.md for full explanation
         startButton.on('pointerdown', () => {
             console.log('🚀 START GAME button clicked!');
+            const state = getGameState();
             
             // Mark game as started
-            GameState.set('session.gameStarted', true);
+            state.set('session.gameStarted', true);
             console.log('✅ Set gameStarted to true');
             
             // CRITICAL: Reset creature to unhatched state for fresh game flow
-            GameState.set('creature.hatched', false);
-            GameState.set('creature.name', 'Your Creature');
-            GameState.set('creature.hatchTime', null);
-            GameState.set('creature.experience', 0);
-            GameState.set('creature.level', 1);
+            state.set('creature.hatched', false);
+            state.set('creature.name', 'Your Creature');
+            state.set('creature.hatchTime', null);
+            state.set('creature.experience', 0);
+            state.set('creature.level', 1);
             console.log('✅ Set creature.hatched to false');
             
             // Reset creature stats to defaults
-            GameState.set('creature.stats', {
+            state.set('creature.stats', {
                 happiness: 100,
                 energy: 100,
                 health: 100
             });
             
             // Clear personality and genes to regenerate fresh
-            GameState.set('creature.personality', null);
-            GameState.set('creature.genes', null);
+            state.set('creature.personality', null);
+            state.set('creature.genes', null);
             
             console.log('🔄 Creature reset complete - forcing save before scene transition...');
             
             // CRITICAL: Force immediate save to localStorage before scene restart
             // This ensures the reset state persists when scene restarts
-            GameState.save();
+            state.save();
             
             // Verify the state before restarting
             console.log('🔍 Pre-restart verification:');
-            console.log('  gameStarted:', GameState.get('session.gameStarted'));
-            console.log('  creatureHatched:', GameState.get('creature.hatched'));
+            console.log('  gameStarted:', state.get('session.gameStarted'));
+            console.log('  creatureHatched:', state.get('creature.hatched'));
             
             // Check what's actually in localStorage
             const savedData = localStorage.getItem('mythical-creature-save');
@@ -269,7 +291,7 @@ class HatchingScene extends Phaser.Scene {
         this.createEnhancedEgg();
 
         // Get creature colors from GameState (allows customization later)
-        const creatureColors = GameState.get('creature.colors') || {
+        const creatureColors = getGameState().get('creature.colors') || {
             body: 0x9370DB,  // Default purple
             head: 0xDDA0DD,  // Default plum
             wings: 0x8A2BE2  // Default blue violet
@@ -750,7 +772,7 @@ class HatchingScene extends Phaser.Scene {
         this.progressText.setVisible(false);
 
         // Update GameState - creature has hatched!
-        GameState.completeHatching();
+        getGameState().completeHatching();
 
         // Stop shaking and floating animations
         this.tweens.killTweensOf(this.egg);
@@ -1044,17 +1066,19 @@ class HatchingScene extends Phaser.Scene {
         if (!this.creatureGenetics) return;
 
         // Save the complete genetic profile
-        GameState.set('creature.genetics', this.creatureGenetics);
+        const state = getGameState();
+
+        state.set('creature.genetics', this.creatureGenetics);
         
         // Save key traits for easy access
-        GameState.set('creature.species', this.creatureGenetics.species);
-        GameState.set('creature.personality', this.creatureGenetics.personality.core);
-        GameState.set('creature.rarity', this.creatureGenetics.rarity);
-        GameState.set('creature.cosmicElement', this.creatureGenetics.cosmicAffinity.element);
+        state.set('creature.species', this.creatureGenetics.species);
+        state.set('creature.personality', this.creatureGenetics.personality.core);
+        state.set('creature.rarity', this.creatureGenetics.rarity);
+        state.set('creature.cosmicElement', this.creatureGenetics.cosmicAffinity.element);
         
         // Generate a descriptive name based on genetics
         const descriptiveName = this.generateCreatureName();
-        GameState.set('creature.descriptiveName', descriptiveName);
+        state.set('creature.descriptiveName', descriptiveName);
         
         console.log(`hatch:info [HatchingScene] Saved genetics for ${descriptiveName}`);
     }
@@ -1102,8 +1126,9 @@ class HatchingScene extends Phaser.Scene {
      */
     transitionToPersonality() {
         // Mark creature as hatched
-        GameState.set('creature.hatched', true);
-        GameState.set('creature.hatchTime', Date.now());
+        const state = getGameState();
+        state.set('creature.hatched', true);
+        state.set('creature.hatchTime', Date.now());
         
         // Fade transition
         const fadeGraphics = this.add.graphics();
@@ -1235,4 +1260,10 @@ class HatchingScene extends Phaser.Scene {
             this.startDevGeneration();
         }
     }
+}
+
+export default HatchingScene;
+
+if (typeof window !== 'undefined') {
+    window.HatchingScene = HatchingScene;
 }

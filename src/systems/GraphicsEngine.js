@@ -1,3 +1,5 @@
+const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
 /**
  * GraphicsEngine - Advanced programmatic sprite generation system
  * Creates professional-quality sprites with gradients, depth, lighting, and effects
@@ -29,12 +31,69 @@ class GraphicsEngine {
     }
 
     /**
+     * Calculate canvas metrics for creature rendering with generous padding
+     */
+    getCreatureCanvasMetrics(geneticTraits = null, baseSize = { width: 60, height: 80 }) {
+        const scaleX = Math.max(1, geneticTraits?.bodyMods?.scaleX ?? geneticTraits?.scaleX ?? 1);
+        const scaleY = Math.max(1, geneticTraits?.bodyMods?.scaleY ?? geneticTraits?.scaleY ?? 1);
+
+        const basePadding = {
+            x: 80,
+            y: 90
+        };
+
+        const width = Math.ceil(baseSize.width * scaleX + basePadding.x * 2);
+        const height = Math.ceil(baseSize.height * scaleY + basePadding.y * 2);
+
+        const padding = {
+            x: Math.ceil((width - baseSize.width) / 2),
+            y: Math.ceil((height - baseSize.height) / 2)
+        };
+
+        return {
+            width,
+            height,
+            padding,
+            baseSize,
+            baseCenter: {
+                x: baseSize.width / 2,
+                y: baseSize.height / 2
+            },
+            center: {
+                x: padding.x + baseSize.width / 2,
+                y: padding.y + baseSize.height / 2
+            }
+        };
+    }
+
+    resolveScale(bodyScale) {
+        if (typeof bodyScale === 'number') {
+            return { x: bodyScale, y: bodyScale };
+        }
+
+        if (!bodyScale || typeof bodyScale !== 'object') {
+            return { x: 1, y: 1 };
+        }
+
+        return {
+            x: bodyScale.x ?? bodyScale.scaleX ?? 1,
+            y: bodyScale.y ?? bodyScale.scaleY ?? 1
+        };
+    }
+
+    /**
      * Create enhanced creature sprites with realistic depth and lighting
      */
     createEnhancedCreature(bodyColor = 0x9370DB, headColor = 0xDDA0DD, wingColor = 0x8A2BE2, frame = 0, geneticTraits = null) {
+        const baseSize = { width: 60, height: 80 };
+        const baseCenter = { x: baseSize.width / 2, y: baseSize.height / 2 };
+        const metrics = this.getCreatureCanvasMetrics(geneticTraits, baseSize);
+
         const graphics = this.scene.add.graphics();
-        const size = { width: 60, height: 80 };
-        const center = { x: 30, y: 40 };
+        graphics.save();
+        graphics.translateCanvas(metrics.padding.x, metrics.padding.y);
+
+        const center = { ...baseCenter };
 
         // Calculate lighting values
         const shadowColor = this.darkenColor(bodyColor, 0.4);
@@ -121,7 +180,9 @@ class GraphicsEngine {
         graphics.fillStyle(0xFFFFFF, 0.2);
         graphics.fillEllipse(center.x - 2, center.y - 2, 8, 12);
 
-        return this.finalizeTexture(graphics, `enhancedCreature${frame}`, size.width, size.height);
+        graphics.restore();
+
+        return this.finalizeTexture(graphics, `enhancedCreature${frame}`, metrics.width, metrics.height);
     }
 
     /**
@@ -932,16 +993,26 @@ class GraphicsEngine {
             cosmicAura = true
         } = config;
 
-        const graphics = this.scene.add.graphics();
-        const size = { width: 60, height: 80 };
-        const center = { x: 30, y: 40 };
+        const baseSize = { width: 60, height: 80 };
+        const metrics = this.getCreatureCanvasMetrics(geneticTraits, baseSize);
 
-        // Create creature with Space-Mythic colors
-        const baseName = this.createEnhancedCreature(
-            bodyColor, headColor, wingColor, frame, geneticTraits
+        const graphics = this.scene.add.graphics();
+        graphics.save();
+        graphics.translateCanvas(metrics.padding.x, metrics.padding.y);
+
+        const center = { ...metrics.baseCenter };
+
+        this.renderCreatureOnGraphics(
+            graphics,
+            center,
+            baseSize,
+            bodyColor,
+            headColor,
+            wingColor,
+            frame,
+            geneticTraits
         );
 
-        // Add cosmic aura effect if enabled
         if (cosmicAura) {
             this.addCosmicAura(graphics, center, {
                 innerColor: this.spaceMythicPalette.starGold,
@@ -950,8 +1021,7 @@ class GraphicsEngine {
             });
         }
 
-        // Add stellar sparkles
-        this.addStellarSparkles(graphics, size, {
+        this.addStellarSparkles(graphics, { width: metrics.width, height: metrics.height }, {
             count: 5,
             colors: [
                 this.spaceMythicPalette.stellarWhite,
@@ -960,8 +1030,10 @@ class GraphicsEngine {
             ]
         });
 
+        graphics.restore();
+
         const textureName = `space_creature_${frame}_${Date.now()}`;
-        return this.finalizeTexture(graphics, textureName, size.width, size.height);
+        return this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
     }
 
     /**
@@ -982,13 +1054,18 @@ class GraphicsEngine {
         const visualConfig = this.geneticsToVisualConfig(genetics);
         
         // Create base creature
+        const baseSize = { width: 60, height: 80 };
+        const metrics = this.getCreatureCanvasMetrics(enhancedTraits, baseSize);
+
         const graphics = this.scene.add.graphics();
-        const size = { width: 60, height: 80 };
-        const center = { x: 30, y: 40 };
+        graphics.save();
+        graphics.translateCanvas(metrics.padding.x, metrics.padding.y);
+
+        const center = { ...metrics.baseCenter };
 
         // Apply body shape modifications
         const bodyModifications = this.calculateBodyModifications(genetics.traits.bodyShape);
-        
+
         // Create enhanced creature with genetic modifications
         const enhancedTraits = {
             ...genetics.traits.features,
@@ -999,7 +1076,7 @@ class GraphicsEngine {
         this.renderCreatureOnGraphics(
             graphics,
             center,
-            size,
+            baseSize,
             visualConfig.colors.body,
             visualConfig.colors.head, 
             visualConfig.colors.wings,
@@ -1008,19 +1085,24 @@ class GraphicsEngine {
         );
 
         // Add enhanced markings based on genetics
-        this.addEnhancedMarkings(graphics, center, size, genetics.traits.features.markings, genetics.traits.colorGenome);
+        this.addEnhancedMarkings(graphics, center, baseSize, genetics.traits.features.markings, genetics.traits.colorGenome);
 
         // Add rarity-based special effects
-        this.addRarityEffects(graphics, genetics, center, size);
+        this.addRarityEffects(graphics, genetics, center, {
+            width: metrics.width,
+            height: metrics.height
+        });
         
         // Add cosmic affinity effects
         this.addCosmicAffinityEffects(graphics, genetics.cosmicAffinity, center);
         
         // Add personality-based visual traits
-        this.addPersonalityEffects(graphics, genetics.personality, center, size);
+        this.addPersonalityEffects(graphics, genetics.personality, center, baseSize);
+
+        graphics.restore();
 
         const textureName = `creature_${genetics.id}_${frame}`;
-        const textureResult = this.finalizeTexture(graphics, textureName, size.width, size.height);
+        const textureResult = this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
         
         const generationTime = Date.now() - startTime;
         
@@ -1234,21 +1316,22 @@ class GraphicsEngine {
      * Render standard creature body
      */
     renderStandardBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
         // Body shadow (ground shadow)
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillEllipse(center.x + 3, center.y + 25, 32, 42);
 
         // Body base layer (darkest)
         graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
-        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 15 + bodyOffset.y, 35 * bodyScale, 45 * bodyScale);
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 15 + bodyOffset.y, 35 * scale.x, 45 * scale.y);
 
         // Body mid layer
         graphics.fillStyle(bodyColor);
-        graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 12 + bodyOffset.y, 30 * bodyScale, 40 * bodyScale);
+        graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 12 + bodyOffset.y, 30 * scale.x, 40 * scale.y);
 
         // Body highlight layer (creates 3D roundness)
         graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
-        graphics.fillEllipse(center.x - 6 + bodyOffset.x, center.y + 8 + bodyOffset.y, 20 * bodyScale, 30 * bodyScale);
+        graphics.fillEllipse(center.x - 6 + bodyOffset.x, center.y + 8 + bodyOffset.y, 20 * scale.x, 30 * scale.y);
 
         // Body shine/reflection (adds realism)
         graphics.fillStyle(0xFFFFFF, 0.3);
@@ -1259,20 +1342,21 @@ class GraphicsEngine {
      * Render fish-like body
      */
     renderFishBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
         // Fish body shadow
         graphics.fillStyle(0x000000, 0.3);
-        graphics.fillEllipse(center.x + 2, center.y + 20, 28, 50);
+        graphics.fillEllipse(center.x + 2, center.y + 20, 28 * scale.x, 50 * scale.y);
 
         // Fish body - more elongated and streamlined
         graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
-        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 10 + bodyOffset.y, 32 * bodyScale, 55 * bodyScale);
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 10 + bodyOffset.y, 32 * scale.x, 55 * scale.y);
 
         graphics.fillStyle(bodyColor);
-        graphics.fillEllipse(center.x - 1 + bodyOffset.x, center.y + 8 + bodyOffset.y, 28 * bodyScale, 50 * bodyScale);
+        graphics.fillEllipse(center.x - 1 + bodyOffset.x, center.y + 8 + bodyOffset.y, 28 * scale.x, 50 * scale.y);
 
         // Streamlined highlight
         graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
-        graphics.fillEllipse(center.x - 4 + bodyOffset.x, center.y + 5 + bodyOffset.y, 18 * bodyScale, 35 * bodyScale);
+        graphics.fillEllipse(center.x - 4 + bodyOffset.x, center.y + 5 + bodyOffset.y, 18 * scale.x, 35 * scale.y);
 
         // Fish tail
         graphics.fillStyle(bodyColor);
@@ -1285,26 +1369,27 @@ class GraphicsEngine {
 
         // Side fins
         graphics.fillStyle(this.lightenColor(bodyColor, 0.2), 0.7);
-        graphics.fillEllipse(center.x - 12 + bodyOffset.x, center.y + 15 + bodyOffset.y, 8, 15);
-        graphics.fillEllipse(center.x + 12 + bodyOffset.x, center.y + 15 + bodyOffset.y, 8, 15);
+        graphics.fillEllipse(center.x - 12 + bodyOffset.x, center.y + 15 + bodyOffset.y, 8 * scale.x, 15 * scale.y);
+        graphics.fillEllipse(center.x + 12 + bodyOffset.x, center.y + 15 + bodyOffset.y, 8 * scale.x, 15 * scale.y);
     }
 
     /**
      * Render cyclops body with single large eye
      */
     renderCyclopsBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
         // Cyclops body - slightly larger and rounder
         graphics.fillStyle(0x000000, 0.3);
-        graphics.fillEllipse(center.x + 3, center.y + 25, 36, 46);
+        graphics.fillEllipse(center.x + 3, center.y + 25, 36 * scale.x, 46 * scale.y);
 
         graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
-        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 15 + bodyOffset.y, 38 * bodyScale, 48 * bodyScale);
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 15 + bodyOffset.y, 38 * scale.x, 48 * scale.y);
 
         graphics.fillStyle(bodyColor);
-        graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 12 + bodyOffset.y, 34 * bodyScale, 44 * bodyScale);
+        graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 12 + bodyOffset.y, 34 * scale.x, 44 * scale.y);
 
         graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
-        graphics.fillEllipse(center.x - 6 + bodyOffset.x, center.y + 8 + bodyOffset.y, 24 * bodyScale, 34 * bodyScale);
+        graphics.fillEllipse(center.x - 6 + bodyOffset.x, center.y + 8 + bodyOffset.y, 24 * scale.x, 34 * scale.y);
 
         // Cyclops will have its special eye rendered in head section
     }
@@ -1313,9 +1398,10 @@ class GraphicsEngine {
      * Render serpentine body - long and sinuous
      */
     renderSerpentineBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
         // Serpentine body - long and curved
         graphics.fillStyle(0x000000, 0.3);
-        graphics.fillEllipse(center.x + 2, center.y + 30, 24, 65);
+        graphics.fillEllipse(center.x + 2, center.y + 30, 24 * scale.x, 65 * scale.y);
 
         // Main body segments
         for (let i = 0; i < 3; i++) {
@@ -1323,13 +1409,13 @@ class GraphicsEngine {
             const segmentX = center.x + bodyOffset.x + (Math.sin(i * 0.5) * 3);
 
             graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
-            graphics.fillEllipse(segmentX + 1, segmentY + 2, 26 * bodyScale, 18 * bodyScale);
+            graphics.fillEllipse(segmentX + 1, segmentY + 2, 26 * scale.x, 18 * scale.y);
 
             graphics.fillStyle(bodyColor);
-            graphics.fillEllipse(segmentX, segmentY, 24 * bodyScale, 16 * bodyScale);
+            graphics.fillEllipse(segmentX, segmentY, 24 * scale.x, 16 * scale.y);
 
             graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.7);
-            graphics.fillEllipse(segmentX - 2, segmentY - 1, 16 * bodyScale, 12 * bodyScale);
+            graphics.fillEllipse(segmentX - 2, segmentY - 1, 16 * scale.x, 12 * scale.y);
         }
 
         // Tapered tail
@@ -1388,7 +1474,28 @@ class GraphicsEngine {
                 modifications.offsetY = -5;
                 modifications.specialFeatures.push('elongated_body', 'no_legs', 'undulating_movement');
                 break;
-                
+
+            case 'aurora':
+                modifications.scaleX = 1.0 + (bodyShape.intensity * 0.1);
+                modifications.scaleY = 1.35 + (bodyShape.intensity * 0.25);
+                modifications.offsetY = -4;
+                modifications.specialFeatures.push('aurora_trail', 'luminous_ridge');
+                break;
+
+            case 'crystal':
+                modifications.scaleX = 1.15 + (bodyShape.intensity * 0.1);
+                modifications.scaleY = 1.0 + (bodyShape.intensity * 0.05);
+                modifications.offsetY = -2;
+                modifications.specialFeatures.push('crystal_facets', 'angular_plating');
+                break;
+
+            case 'guardian':
+                modifications.scaleX = 1.25 + (bodyShape.intensity * 0.15);
+                modifications.scaleY = 1.05 + (bodyShape.intensity * 0.1);
+                modifications.offsetY = 1;
+                modifications.specialFeatures.push('armored_plating', 'broad_shoulders');
+                break;
+
             case 'balanced':
             default:
                 modifications.scaleX = 0.95 + (bodyShape.intensity * 0.1);

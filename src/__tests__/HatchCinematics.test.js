@@ -4,11 +4,50 @@
  */
 
 // Mock Phaser and window objects for testing
+const createPhaserStub = () => {
+    const mathStub = {
+        Between: (min, max) => min,
+        FloatBetween: (min, max) => min,
+        DegToRad: (deg) => (deg * Math.PI) / 180,
+        RadToDeg: (rad) => (rad * 180) / Math.PI,
+        Distance: {
+            Between: (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1)
+        }
+    };
+
+    const colorStub = {
+        ValueToColor: (value) => {
+            if (typeof value === 'number') {
+                return {
+                    color: value,
+                    r: (value >> 16) & 255,
+                    g: (value >> 8) & 255,
+                    b: value & 255
+                };
+            }
+            return { color: 0xffffff, r: 255, g: 255, b: 255 };
+        },
+        GetColor: (r, g, b) => (r << 16) | (g << 8) | b,
+        Interpolate: {
+            ColorWithColor: () => ({ r: 255, g: 255, b: 255 })
+        },
+        Lighten: () => ({ r: 255, g: 255, b: 255 })
+    };
+
+    return {
+        Math: mathStub,
+        Display: { Color: colorStub },
+        BlendModes: { ADD: 'ADD', MULTIPLY: 'MULTIPLY' },
+        Curves: { Path: class {} }
+    };
+};
+
 global.window = {
     GameState: {
         emit: jest.fn(),
         get: jest.fn().mockReturnValue({ genes: {}, personality: {} })
-    }
+    },
+    Phaser: createPhaserStub()
 };
 
 const HatchCinematicsManager = require('../systems/HatchCinematics.js');

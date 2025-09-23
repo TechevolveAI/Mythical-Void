@@ -33,11 +33,18 @@ A delightful 2D mythical creature game built with Phaser.js where you hatch and 
 # Install dependencies
 npm install
 
-# Start the game server
-npm start
+# Start the development server
+npm run dev
+
+# Create a production build (optional)
+npm run build
 ```
 
 The game will automatically open in your browser at `http://localhost:8080`
+
+### Configuration
+
+Environment values exposed to the browser must use the `VITE_` prefix. Create an `.env.local` (ignored by git) and add entries such as `VITE_ENABLE_API_FEATURES=true` to toggle optional integrations.
 
 ## 🎨 Game Features
 
@@ -91,7 +98,6 @@ The game will automatically open in your browser at `http://localhost:8080`
 │   └── systems/        # Core game systems
 │       ├── GameState.js      # Game progress management
 │       ├── GraphicsEngine.js # Programmatic graphics
-│       ├── HealthSystem.js   # Health monitoring
 │       ├── ErrorHandler.js   # Error management
 │       └── ...               # Additional systems
 ├── docs/               # Documentation

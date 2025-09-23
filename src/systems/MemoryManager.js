@@ -17,6 +17,12 @@ class MemoryManager {
         this.isMonitoring = false;
         this.lastCleanup = Date.now();
         this.cleanupInterval = 30000; // 30 seconds
+        this.memoryMonitorTimeout = null;
+        this.periodicCleanupId = null;
+        this.originalSetInterval = null;
+        this.originalClearInterval = null;
+        this.originalSetTimeout = null;
+        this.originalClearTimeout = null;
     }
 
     /**
@@ -43,33 +49,40 @@ class MemoryManager {
             console.warn('[MemoryManager] Performance.memory not available (Chrome only)');
             return;
         }
-        
+
         this.isMonitoring = true;
-        
+
         const checkMemory = () => {
             if (!this.isMonitoring) return;
-            
+
             const memoryUsage = performance.memory.usedJSHeapSize;
             const memoryLimit = performance.memory.jsHeapSizeLimit;
             const percentage = (memoryUsage / memoryLimit) * 100;
-            
+
             if (memoryUsage > this.memoryWarningThreshold) {
                 console.warn(`[MemoryManager] High memory usage: ${Math.round(memoryUsage / 1024 / 1024)}MB (${percentage.toFixed(1)}%)`);
                 this.performCleanup();
             }
-            
-            // Check again in 10 seconds
-            setTimeout(checkMemory, 10000);
+
+            this.memoryMonitorTimeout = window.setTimeout(checkMemory, 10000);
         };
-        
+
         checkMemory();
+    }
+
+    stopMemoryMonitoring() {
+        this.isMonitoring = false;
+        if (this.memoryMonitorTimeout) {
+            window.clearTimeout(this.memoryMonitorTimeout);
+            this.memoryMonitorTimeout = null;
+        }
     }
 
     /**
      * Set up periodic cleanup
      */
     setupPeriodicCleanup() {
-        setInterval(() => {
+        this.periodicCleanupId = window.setInterval(() => {
             const now = Date.now();
             if (now - this.lastCleanup > this.cleanupInterval) {
                 this.performCleanup();
@@ -78,47 +91,83 @@ class MemoryManager {
         }, this.cleanupInterval);
     }
 
+    stopPeriodicCleanup() {
+        if (this.periodicCleanupId) {
+            window.clearInterval(this.periodicCleanupId);
+            this.periodicCleanupId = null;
+        }
+    }
+
     /**
      * Override global functions to track resources
      */
     overrideGlobalFunctions() {
-        // Track setInterval
-        const originalSetInterval = window.setInterval;
-        window.setInterval = (...args) => {
-            const id = originalSetInterval(...args);
-            this.intervals.add(id);
-            return id;
+        if (!this.originalSetInterval) {
+            this.originalSetInterval = window.setInterval.bind(window);
+        }
+        if (!this.originalClearInterval) {
+            this.originalClearInterval = window.clearInterval.bind(window);
+        }
+        if (!this.originalSetTimeout) {
+            this.originalSetTimeout = window.setTimeout.bind(window);
+        }
+        if (!this.originalClearTimeout) {
+            this.originalClearTimeout = window.clearTimeout.bind(window);
+        }
+
+        window.setInterval = (handler, delay = 0, ...args) => {
+            const wrappedHandler = typeof handler === 'function'
+                ? (...cbArgs) => handler(...cbArgs)
+                : handler;
+
+            const intervalId = this.originalSetInterval(wrappedHandler, delay, ...args);
+            this.intervals.add(intervalId);
+            return intervalId;
         };
-        
-        // Track clearInterval
-        const originalClearInterval = window.clearInterval;
+
         window.clearInterval = (id) => {
             this.intervals.delete(id);
-            originalClearInterval(id);
+            this.originalClearInterval(id);
         };
-        
-        // Track setTimeout
-        const originalSetTimeout = window.setTimeout;
-        window.setTimeout = (...args) => {
-            const id = originalSetTimeout(...args);
-            this.timeouts.add(id);
-            
-            // Auto-remove after execution
-            const originalCallback = args[0];
-            args[0] = (...callbackArgs) => {
-                this.timeouts.delete(id);
-                return originalCallback(...callbackArgs);
+
+        window.setTimeout = (handler, delay = 0, ...args) => {
+            if (typeof handler !== 'function') {
+                return this.originalSetTimeout(handler, delay, ...args);
+            }
+
+            let timeoutId;
+            const wrappedHandler = (...cbArgs) => {
+                try {
+                    handler(...cbArgs);
+                } finally {
+                    this.timeouts.delete(timeoutId);
+                }
             };
-            
-            return id;
+
+            timeoutId = this.originalSetTimeout(wrappedHandler, delay, ...args);
+            this.timeouts.add(timeoutId);
+            return timeoutId;
         };
-        
-        // Track clearTimeout
-        const originalClearTimeout = window.clearTimeout;
+
         window.clearTimeout = (id) => {
             this.timeouts.delete(id);
-            originalClearTimeout(id);
+            this.originalClearTimeout(id);
         };
+    }
+
+    restoreGlobalFunctions() {
+        if (this.originalSetInterval) {
+            window.setInterval = this.originalSetInterval;
+        }
+        if (this.originalClearInterval) {
+            window.clearInterval = this.originalClearInterval;
+        }
+        if (this.originalSetTimeout) {
+            window.setTimeout = this.originalSetTimeout;
+        }
+        if (this.originalClearTimeout) {
+            window.clearTimeout = this.originalClearTimeout;
+        }
     }
 
     /**
@@ -179,6 +228,21 @@ class MemoryManager {
         }
         
         this.eventListeners.delete(target);
+    }
+
+    clearAllTrackedEventListeners() {
+        for (const [target, events] of this.eventListeners) {
+            for (const [event, listeners] of events) {
+                for (const entry of listeners) {
+                    try {
+                        target.removeEventListener(event, entry.listener, entry.options);
+                    } catch (error) {
+                        console.warn('[MemoryManager] Failed to remove event listener during cleanup', error);
+                    }
+                }
+            }
+        }
+        this.eventListeners.clear();
     }
 
     /**
@@ -589,8 +653,80 @@ class MemoryManager {
         
         return scope;
     }
+
+    cleanupAll() {
+        this.stopMemoryMonitoring();
+        this.stopPeriodicCleanup();
+
+        this.intervals.forEach(id => {
+            try {
+                window.clearInterval(id);
+            } catch (error) {
+                console.warn('[MemoryManager] Failed to clear interval', error);
+            }
+        });
+        this.intervals.clear();
+
+        this.timeouts.forEach(id => {
+            try {
+                window.clearTimeout(id);
+            } catch (error) {
+                console.warn('[MemoryManager] Failed to clear timeout', error);
+            }
+        });
+        this.timeouts.clear();
+
+        this.tweens.forEach(tween => {
+            try {
+                if (tween && typeof tween.stop === 'function') {
+                    tween.stop();
+                }
+                if (tween && typeof tween.remove === 'function') {
+                    tween.remove();
+                }
+                if (tween && typeof tween.destroy === 'function') {
+                    tween.destroy();
+                }
+            } catch (error) {
+                console.warn('[MemoryManager] Failed to destroy tween', error);
+            }
+        });
+        this.tweens.clear();
+
+        this.clearAllTrackedEventListeners();
+
+        this.textures.forEach(texture => {
+            try {
+                if (texture && typeof texture.destroy === 'function') {
+                    texture.destroy();
+                }
+            } catch (error) {
+                console.warn('[MemoryManager] Failed to destroy texture', error);
+            }
+        });
+        this.textures.clear();
+
+        this.canvases.forEach(canvas => {
+            try {
+                if (canvas && typeof canvas.remove === 'function') {
+                    canvas.remove();
+                }
+            } catch (error) {
+                console.warn('[MemoryManager] Failed to remove canvas', error);
+            }
+        });
+        this.canvases.clear();
+
+        this.restoreGlobalFunctions();
+    }
 }
 
 // Create global instance
 window.MemoryManager = MemoryManager;
 window.memoryManager = new MemoryManager();
+
+window.addEventListener('beforeunload', () => {
+    if (window.memoryManager) {
+        window.memoryManager.cleanupAll?.();
+    }
+});

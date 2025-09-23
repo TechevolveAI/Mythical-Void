@@ -182,42 +182,7 @@
     <!-- Load scripts in correct order -->
     
     <!-- Configuration -->
-    <script src="src/config/env-loader.js"></script>
-    <script src="src/config/api-config.js"></script>
-    
-    <!-- Core systems first -->
-    <script src="src/systems/HealthSystem.js"></script>
-    <script src="src/systems/ErrorHandler.js"></script>
-    <script src="src/systems/InputValidator.js"></script>
-    <script src="src/systems/UITheme.js"></script>
-    <script src="src/systems/MemoryManager.js"></script>
-    <script src="src/systems/ResponsiveManager.js"></script>
-    <script src="src/systems/UXEnhancements.js"></script>
-    <script src="src/systems/KidMode.js"></script>
-    <script src="src/systems/HatchCinematics.js"></script>
-    <script src="src/systems/FXLibrary.js"></script>
-    <script src="src/systems/ParallaxBiome.js"></script>
-    <script src="src/systems/CreatureGenetics.js"></script>
-    
-    <!-- Phaser library -->
-    <script src="node_modules/phaser/dist/phaser.min.js"></script>
-    
-    <!-- Game systems -->
-    <script src="src/systems/GameState.js"></script>
-    <script src="src/systems/GraphicsEngine.js"></script>
-    <script src="src/systems/CreatureAI.js"></script>
-    <script src="src/systems/CareSystem.js"></script>
-    <script src="src/systems/AchievementSystem.js"></script>
-    <script src="src/systems/TutorialSystem.js"></script>
-    
-    <!-- Game scenes -->
-    <script src="src/scenes/HatchingScene.js"></script>
-    <script src="src/scenes/PersonalityScene.js"></script>
-    <script src="src/scenes/NamingScene.js"></script>
-    <script src="src/scenes/GameScene.js"></script>
-    
-    <!-- Main game file -->
-    <script src="src/main.js"></script>
+    <script type="module" src="/src/main.js"></script>
     
     <!-- Loading complete script -->
     <script>
