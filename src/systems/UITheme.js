@@ -374,16 +374,12 @@ class UITheme {
         style.textContent = `
             /* Space-Mythic Theme Styles */
             body.space-mythic {
-                background: linear-gradient(135deg, 
-                    hsl(280,60%,25%) 0%, 
-                    hsl(320,45%,30%) 30%, 
-                    hsl(260,55%,35%) 70%,
-                    hsl(240,50%,25%) 100%);
+                background: #0a0118;
                 min-height: 100vh;
                 position: relative;
                 overflow: hidden;
             }
-            
+
             body.space-mythic::before {
                 content: '';
                 position: fixed;
@@ -391,10 +387,9 @@ class UITheme {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: 
-                    radial-gradient(circle at 20% 30%, rgba(255,215,0,0.1) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 70%, rgba(135,206,235,0.08) 0%, transparent 50%),
-                    radial-gradient(circle at 60% 40%, rgba(179,157,219,0.12) 0%, transparent 40%);
+                background:
+                    radial-gradient(circle at 20% 30%, rgba(138,43,226,0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 70%, rgba(75,0,130,0.06) 0%, transparent 50%);
                 pointer-events: none;
                 z-index: -1;
             }

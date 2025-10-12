@@ -161,34 +161,45 @@ class UXEnhancements {
         `;
         document.body.insertBefore(skipNav, document.body.firstChild);
         
-        // Style skip links
+        // Style skip links (visually hidden until focused)
         const style = document.createElement('style');
         style.textContent = `
             .skip-navigation {
                 position: absolute;
-                top: -40px;
-                left: 0;
+                left: -10000px;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
                 z-index: 100001;
             }
-            
+
             .skip-link {
                 position: absolute;
+                left: -10000px;
+                top: auto;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
                 background: #4B0082;
                 color: white;
                 padding: 8px 16px;
                 text-decoration: none;
                 border-radius: 0 0 8px 0;
-                transition: top 0.2s;
             }
-            
+
             .skip-link:focus {
-                top: 40px;
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: auto;
+                height: auto;
+                overflow: visible;
                 outline: 3px solid #FFD700;
                 outline-offset: 2px;
             }
-            
-            .skip-link:nth-child(2) { left: 120px; }
-            .skip-link:nth-child(3) { left: 240px; }
+
+            .skip-link:focus:nth-child(2) { left: 120px; }
+            .skip-link:focus:nth-child(3) { left: 240px; }
         `;
         document.head.appendChild(style);
     }

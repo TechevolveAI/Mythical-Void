@@ -96,53 +96,31 @@ class HatchingScene extends Phaser.Scene {
         const GraphicsEngine = getGraphicsEngine();
         this.graphicsEngine = new GraphicsEngine(this);
 
-        // Create beautiful home screen background
-        this.createBackground();
+        // Enable Space-Mythic theme
+        if (window.UITheme) {
+            window.UITheme.applySpaceMythicTheme();
+        }
+        if (window.KidMode) {
+            window.KidMode.enableKidMode();
+        }
 
-        // Main title
-        const titleText = this.add.text(400, 150, '🌟 Mythical Creature Game 🌟', {
-            fontSize: '42px',
-            color: '#FFD700',
-            stroke: '#4B0082',
-            strokeThickness: 4,
-            align: 'center',
-            fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
+        // Create enhanced starfield background
+        this.createEnhancedBackground();
 
-        // Subtitle
-        const subtitleText = this.add.text(400, 210, 'Begin Your Magical Adventure!', {
-            fontSize: '24px',
-            color: '#FFFFFF',
-            stroke: '#000000',
-            strokeThickness: 2,
-            align: 'center'
-        }).setOrigin(0.5);
+        // Create animated stardust particles
+        this.createStardustParticles();
 
-        // Create animated START button
-        this.createStartButton();
+        // Main title with glow effect
+        this.createEnhancedTitle();
 
-        // Game features preview
-        this.add.text(400, 350, '🥚 Hatch your creature  •  🏷️ Give it a name  •  🌍 Explore together', {
-            fontSize: '18px',
-            color: '#87CEEB',
-            align: 'center'
-        }).setOrigin(0.5);
+        // Create enhanced START button with glassmorphism
+        this.createEnhancedStartButton();
 
-        // Reset button
-        this.createResetButton();
+        // Game features preview cards
+        this.createFeatureCards();
 
-        // Development Mode: Creature Generator Button (also available on home screen)
-        this.createDevGeneratorButton();
-
-        // Control hints
-        this.add.text(400, 520, '🎮 Click START to begin your journey! • Press G key or GEN button to test creatures', {
-            fontSize: '14px',
-            color: '#FFD700',
-            stroke: '#000000',
-            strokeThickness: 1,
-            align: 'center'
-        }).setOrigin(0.5);
+        // Bottom hint text
+        this.createBottomHints();
     }
 
     showHatchingScreen() {
@@ -187,7 +165,7 @@ class HatchingScene extends Phaser.Scene {
         const startText = this.add.text(400, 310, '🚀 START GAME', {
             fontSize: '24px',
             color: '#FFFFFF',
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
@@ -306,7 +284,7 @@ class HatchingScene extends Phaser.Scene {
         );
 
         // Create magical sparkle effects
-        this.graphicsEngine.createMagicalSparkle(0xFFD700, 1.0);
+        this.graphicsEngine.createMagicalSparkle(0xFFD54F, 1.0);
 
         // Create enhanced volumetric clouds
         this.createEnhancedClouds();
@@ -353,7 +331,7 @@ class HatchingScene extends Phaser.Scene {
             graphics.fillCircle(spot.x + 1, spot.y + 1, spot.size);
 
             // Main spot
-            graphics.fillStyle(0xFFD700);
+            graphics.fillStyle(0xFFD54F);
             graphics.fillCircle(spot.x, spot.y, spot.size);
 
             // Spot highlight
@@ -470,8 +448,6 @@ class HatchingScene extends Phaser.Scene {
         // Handle space key for scene transition (with null check for touch devices)
         if (this.input.keyboard) {
             this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-            // Development mode: G key for creature generation
-            this.gKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.G);
         }
     }
 
@@ -479,11 +455,11 @@ class HatchingScene extends Phaser.Scene {
         // Main title
         const titleText = this.add.text(400, 60, '🌟 Mythical Creature Game 🌟', {
             fontSize: '32px',
-            color: '#FFD700',
-            stroke: '#4B0082',
+            color: '#FFD54F',
+            stroke: '#7B1FA2',
             strokeThickness: 3,
             align: 'center',
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
@@ -493,14 +469,15 @@ class HatchingScene extends Phaser.Scene {
             color: '#FFFFFF',
             stroke: '#000000',
             strokeThickness: 2,
-            align: 'center'
+            align: 'center',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
         }).setOrigin(0.5);
 
         // Instructions text with better styling
         this.instructionText = this.add.text(400, 150, '👆 Click the magical egg below to hatch your creature! 👆', {
             fontSize: '20px',
             color: '#FFFFFF',
-            stroke: '#4B0082',
+            stroke: '#7B1FA2',
             strokeThickness: 2,
             align: 'center',
             fontFamily: 'Arial, sans-serif'
@@ -512,23 +489,15 @@ class HatchingScene extends Phaser.Scene {
         // Progress text (hidden initially)
         this.progressText = this.add.text(400, 450, '', {
             fontSize: '24px',
-            color: '#FFD700',
+            color: '#FFD54F',
             stroke: '#000000',
             strokeThickness: 3,
             align: 'center',
-            fontFamily: 'Arial, sans-serif',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'bold'
         }).setOrigin(0.5).setVisible(false);
 
-        // Adventure text (hidden initially)
-        this.adventureText = this.add.text(400, 500, '✨ Press SPACE to meet your creature! ✨', {
-            fontSize: '20px',
-            color: '#FFD700',
-            stroke: '#000000',
-            strokeThickness: 2,
-            align: 'center',
-            fontFamily: 'Arial, sans-serif'
-        }).setOrigin(0.5).setVisible(false);
+        // Adventure text removed - replaced by Keep/Reroll UI
     }
 
     createControlPanel() {
@@ -536,174 +505,26 @@ class HatchingScene extends Phaser.Scene {
         const panelBg = this.add.graphics();
         panelBg.fillStyle(0x000000, 0.7);
         panelBg.fillRoundedRect(50, 480, 700, 100, 15);
-        panelBg.lineStyle(3, 0xFFD700);
+        panelBg.lineStyle(3, 0xFFD54F);
         panelBg.strokeRoundedRect(50, 480, 700, 100, 15);
 
-        // Reset Game Button
-        this.createResetButton();
-
-        // Development Mode: Creature Generator Button
-        this.createDevGeneratorButton();
-
         // Instructions
-        this.add.text(400, 500, '🎮 Controls: Click egg to hatch • SPACE to continue • G key / GEN button to generate • WASD/Arrows to move', {
-            fontSize: '14px',
-            color: '#FFFFFF',
-            align: 'center'
-        }).setOrigin(0.5);
-
-        // Game info
-        this.add.text(400, 520, '🏆 Goal: Hatch → Name → Explore the magical world with your creature!', {
-            fontSize: '14px',
-            color: '#87CEEB',
-            align: 'center'
-        }).setOrigin(0.5);
-
-        // Debug info
-        this.add.text(400, 545, '🔧 Debug: Use Reset button to start over • Save data persists between sessions', {
-            fontSize: '12px',
-            color: '#999999',
-            align: 'center'
-        }).setOrigin(0.5);
-    }
-
-    createResetButton() {
-        // Reset button background
-        const buttonBg = this.add.graphics();
-        buttonBg.fillStyle(0xFF4444, 0.9);
-        buttonBg.fillRoundedRect(680, 55, 100, 35, 8);
-        buttonBg.lineStyle(2, 0xFFFFFF);
-        buttonBg.strokeRoundedRect(680, 55, 100, 35, 8);
-
-        // Reset button text
-        const resetText = this.add.text(730, 72, '🔄 RESET', {
-            fontSize: '14px',
-            color: '#FFFFFF',
-            fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        // Make button interactive
-        const resetButton = this.add.zone(680, 55, 100, 35)
-            .setOrigin(0, 0)
-            .setInteractive({ cursor: 'pointer' });
-
-        resetButton.on('pointerdown', () => {
-            this.resetGameData();
-        });
-
-        resetButton.on('pointerover', () => {
-            buttonBg.clear();
-            buttonBg.fillStyle(0xFF6666, 0.9);
-            buttonBg.fillRoundedRect(680, 55, 100, 35, 8);
-            buttonBg.lineStyle(2, 0xFFFFFF);
-            buttonBg.strokeRoundedRect(680, 55, 100, 35, 8);
-        });
-
-        resetButton.on('pointerout', () => {
-            buttonBg.clear();
-            buttonBg.fillStyle(0xFF4444, 0.9);
-            buttonBg.fillRoundedRect(680, 55, 100, 35, 8);
-            buttonBg.lineStyle(2, 0xFFFFFF);
-            buttonBg.strokeRoundedRect(680, 55, 100, 35, 8);
-        });
-    }
-
-    createDevGeneratorButton() {
-        // Dev Generator button background
-        const devButtonBg = this.add.graphics();
-        devButtonBg.fillStyle(0x9370DB, 0.9);
-        devButtonBg.fillRoundedRect(570, 55, 100, 35, 8);
-        devButtonBg.lineStyle(2, 0xFFFFFF);
-        devButtonBg.strokeRoundedRect(570, 55, 100, 35, 8);
-
-        // Dev Generator button text
-        const devText = this.add.text(620, 72, '🧪 GEN', {
-            fontSize: '14px',
-            color: '#FFFFFF',
-            fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        // Make button interactive
-        const devButton = this.add.zone(570, 55, 100, 35)
-            .setOrigin(0, 0)
-            .setInteractive({ cursor: 'pointer' });
-
-        devButton.on('pointerdown', () => {
-            this.startDevGeneration();
-        });
-
-        devButton.on('pointerover', () => {
-            devButtonBg.clear();
-            devButtonBg.fillStyle(0xBA55D3, 0.9);
-            devButtonBg.fillRoundedRect(570, 55, 100, 35, 8);
-            devButtonBg.lineStyle(2, 0xFFFFFF);
-            devButtonBg.strokeRoundedRect(570, 55, 100, 35, 8);
-        });
-
-        devButton.on('pointerout', () => {
-            devButtonBg.clear();
-            devButtonBg.fillStyle(0x9370DB, 0.9);
-            devButtonBg.fillRoundedRect(570, 55, 100, 35, 8);
-            devButtonBg.lineStyle(2, 0xFFFFFF);
-            devButtonBg.strokeRoundedRect(570, 55, 100, 35, 8);
-        });
-    }
-
-    resetGameData() {
-        // Show confirmation
-        const confirmBg = this.add.graphics();
-        confirmBg.fillStyle(0x000000, 0.8);
-        confirmBg.fillRect(0, 0, 800, 600);
-
-        const confirmPanel = this.add.graphics();
-        confirmPanel.fillStyle(0x333333, 0.95);
-        confirmPanel.fillRoundedRect(200, 200, 400, 200, 15);
-        confirmPanel.lineStyle(3, 0xFF4444);
-        confirmPanel.strokeRoundedRect(200, 200, 400, 200, 15);
-
-        const confirmText = this.add.text(400, 280, '🚨 Reset Game Data? 🚨\n\nThis will delete your creature\nand start completely over.', {
-            fontSize: '18px',
-            color: '#FFFFFF',
+        this.add.text(400, 500, '🎮 Click egg to hatch • SPACE to continue • WASD/Arrows to move', {
+            fontSize: '16px',
+            color: '#F5F5F5',
             align: 'center',
             fontFamily: 'Arial, sans-serif'
         }).setOrigin(0.5);
 
-        // Yes button
-        const yesButton = this.add.text(330, 350, '✅ YES', {
-            fontSize: '16px',
-            color: '#00FF00',
-            fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setInteractive({ cursor: 'pointer' });
-
-        // No button
-        const noButton = this.add.text(470, 350, '❌ NO', {
-            fontSize: '16px',
-            color: '#FF4444',
-            fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setInteractive({ cursor: 'pointer' });
-
-        yesButton.on('pointerdown', () => {
-            // Clear all game data completely
-            localStorage.removeItem('mythical-creature-save');
-            console.log('🔄 Game data reset - localStorage cleared');
-            
-            // Reload the page to start fresh
-            window.location.reload();
-        });
-
-        noButton.on('pointerdown', () => {
-            // Close confirmation dialog
-            confirmBg.destroy();
-            confirmPanel.destroy();
-            confirmText.destroy();
-            yesButton.destroy();
-            noButton.destroy();
-        });
+        // Game info
+        this.add.text(400, 530, '🏆 Hatch → Name → Explore the magical world!', {
+            fontSize: '14px',
+            color: '#80CBC4',
+            align: 'center',
+            fontFamily: 'Arial, sans-serif'
+        }).setOrigin(0.5);
     }
+
 
     startHatching() {
         this.hatchingStarted = true;
@@ -756,7 +577,7 @@ class HatchingScene extends Phaser.Scene {
         eggGraphics.fillEllipse(50, 75, 80, 100);
         eggGraphics.lineStyle(3, strokeColor);
         eggGraphics.strokeEllipse(50, 75, 80, 100);
-        eggGraphics.fillStyle(0xFFD700); // Keep yellow spots
+        eggGraphics.fillStyle(0xFFD54F); // Keep yellow spots
         eggGraphics.fillCircle(35, 60, 8);
         eggGraphics.fillCircle(65, 85, 6);
         eggGraphics.fillCircle(45, 95, 5);
@@ -842,16 +663,36 @@ class HatchingScene extends Phaser.Scene {
         // Create sparkle effects around the creature
         this.createSparkles();
 
-        // Show adventure text
-        this.time.delayedCall(1500, () => {
-            this.adventureText.setVisible(true);
-            this.tweens.add({
-                targets: this.adventureText,
-                alpha: { from: 0, to: 1 },
-                scale: { from: 0.8, to: 1 },
-                duration: 500
+        // Start reroll session if system is available
+        if (window.rerollSystem && this.creatureGenetics) {
+            window.rerollSystem.startHatchSession({
+                genetics: this.creatureGenetics,
+                rarity: this.creatureGenetics.rarity
             });
-        });
+
+            // Show rarity announcement and reroll options
+            this.time.delayedCall(1500, () => {
+                this.showRarityReveal();
+                this.showRerollOptions();
+            });
+        } else {
+            // Fallback: Show old adventure text behavior
+            console.warn('hatch:warn [HatchingScene] RerollSystem not available, using simple transition');
+            this.time.delayedCall(1500, () => {
+                const continueText = this.add.text(400, 500, '✨ Press SPACE to continue! ✨', {
+                    fontSize: '20px',
+                    color: '#FFD54F',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: continueText,
+                    alpha: { from: 0, to: 1 },
+                    duration: 500
+                });
+            });
+        }
     }
 
     createSparkles() {
@@ -953,7 +794,7 @@ class HatchingScene extends Phaser.Scene {
     }
 
     /**
-     * Generate unique genetics for this creature
+     * Generate unique genetics for this creature with rarity system
      */
     generateCreatureGenetics() {
         if (!window.CreatureGenetics) {
@@ -961,14 +802,42 @@ class HatchingScene extends Phaser.Scene {
             return;
         }
 
-        // Generate a completely unique creature
-        this.creatureGenetics = window.CreatureGenetics.generateCreatureGenetics();
-        
+        // Check if RaritySystem is available
+        if (!window.raritySystem) {
+            console.warn('hatch:warn [HatchingScene] RaritySystem not available, using default generation');
+            this.creatureGenetics = window.CreatureGenetics.generateCreatureGenetics();
+            this.rarityInfo = { name: 'Unknown', emoji: '🔮', displayColor: '#9370DB' };
+            return;
+        }
+
+        // Get pity data from GameState
+        const state = getGameState();
+        let pityData = state.get('pitySystem');
+
+        // Initialize pity system if needed
+        if (!pityData || typeof pityData.hatchesSinceEpic === 'undefined') {
+            pityData = window.raritySystem.initializePitySystem();
+        }
+
+        // Roll rarity using pity system
+        const rollResult = window.raritySystem.rollRarity(pityData);
+        const rarity = rollResult.rarity;
+
+        // Update pity data in GameState
+        state.set('pitySystem', rollResult.pityData);
+
+        // Generate creature with the rolled rarity
+        this.creatureGenetics = window.CreatureGenetics.generateCreatureGenetics(rarity);
+
+        // Store rarity info for UI
+        this.rarityInfo = window.raritySystem.getRarityInfo(rarity);
+
         console.log(`hatch:info [HatchingScene] Generated ${this.creatureGenetics.rarity} ${this.creatureGenetics.species}:`, {
             id: this.creatureGenetics.id,
             personality: this.creatureGenetics.personality.core,
             cosmicElement: this.creatureGenetics.cosmicAffinity.element,
-            specialFeatures: this.creatureGenetics.traits.features.specialFeatures?.length || 0
+            specialFeatures: this.creatureGenetics.traits.features.specialFeatures?.length || 0,
+            pityCounter: `${rollResult.pityData.hatchesSinceEpic}/${window.raritySystem.PITY_THRESHOLD}`
         });
     }
 
@@ -982,15 +851,29 @@ class HatchingScene extends Phaser.Scene {
         }
 
         try {
+            // Ensure graphics engine has necessary methods
+            if (typeof this.graphicsEngine.createRandomizedSpaceMythicCreature !== 'function') {
+                console.error('hatch:error [HatchingScene] GraphicsEngine missing createRandomizedSpaceMythicCreature method');
+                return null;
+            }
+
             // Use the GraphicsEngine to create a randomized creature
             const creatureResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(
-                this.creatureGenetics, 
+                this.creatureGenetics,
                 0 // frame 0
             );
 
+            // Validate the result
+            if (!creatureResult || !creatureResult.textureName) {
+                console.error('hatch:error [HatchingScene] Graphics engine returned invalid result');
+                return null;
+            }
+
+            console.log('hatch:info [HatchingScene] Successfully created creature texture:', creatureResult.textureName);
             return creatureResult;
         } catch (error) {
             console.error('hatch:error [HatchingScene] Failed to create unique creature:', error);
+            console.error('hatch:error Stack trace:', error.stack);
             return null;
         }
     }
@@ -1069,18 +952,22 @@ class HatchingScene extends Phaser.Scene {
         const state = getGameState();
 
         state.set('creature.genetics', this.creatureGenetics);
-        
+
+        // Save the texture name for consistency across scenes
+        const textureName = `creature_${this.creatureGenetics.id}_0`;
+        state.set('creature.textureName', textureName);
+
         // Save key traits for easy access
         state.set('creature.species', this.creatureGenetics.species);
         state.set('creature.personality', this.creatureGenetics.personality.core);
         state.set('creature.rarity', this.creatureGenetics.rarity);
         state.set('creature.cosmicElement', this.creatureGenetics.cosmicAffinity.element);
-        
+
         // Generate a descriptive name based on genetics
         const descriptiveName = this.generateCreatureName();
         state.set('creature.descriptiveName', descriptiveName);
-        
-        console.log(`hatch:info [HatchingScene] Saved genetics for ${descriptiveName}`);
+
+        console.log(`hatch:info [HatchingScene] Saved genetics for ${descriptiveName} with texture ${textureName}`);
     }
 
     /**
@@ -1144,107 +1031,6 @@ class HatchingScene extends Phaser.Scene {
             }
         });
     }
-
-    /**
-     * Development mode: Generate and display a new creature without game flow
-     */
-    startDevGeneration() {
-        console.log('🧪 [DEV MODE] Starting creature generation test');
-        
-        // Clear existing creature if any
-        if (this.creature) {
-            this.creature.destroy();
-        }
-        
-        // Clear existing textures to prevent black sprite issue
-        this.clearCreatureTextures();
-        
-        // Generate fresh genetics
-        this.generateCreatureGenetics();
-        
-        // Create creature with new genetics
-        const creatureResult = this.createUniqueCreature();
-        
-        if (creatureResult && creatureResult.textureName) {
-            // Create the creature sprite
-            this.creature = this.add.image(400, 300, creatureResult.textureName);
-            this.creature.setScale(1.5);
-            this.creature.setAlpha(0);
-            
-            // Store genetics for debugging
-            this.creature.genetics = this.creatureGenetics;
-            
-            // Animate appearance
-            this.tweens.add({
-                targets: this.creature,
-                alpha: 1,
-                scale: 1.2,
-                duration: 800,
-                ease: 'Back.easeOut'
-            });
-            
-            // Add genetics-based effects
-            this.addGeneticEffects();
-            
-            // Show creature info in console for debugging
-            console.log('🧪 [DEV MODE] Generated creature:', {
-                id: this.creatureGenetics.id,
-                species: this.creatureGenetics.species,
-                bodyType: this.creatureGenetics.traits.bodyShape.type,
-                personality: this.creatureGenetics.personality.core,
-                rarity: this.creatureGenetics.rarity,
-                element: this.creatureGenetics.cosmicAffinity.element,
-                textureName: creatureResult.textureName
-            });
-            
-            // Update save data for testing persistence
-            this.saveCreatureGenetics();
-            
-        } else {
-            console.error('🧪 [DEV MODE] Failed to generate creature - black sprite issue detected');
-            
-            // Try fallback generation
-            this.creature = this.add.image(400, 300, 'enhancedCreature0');
-            this.creature.setScale(1.5);
-            this.creature.setAlpha(0);
-            
-            this.tweens.add({
-                targets: this.creature,
-                alpha: 1,
-                scale: 1.2, 
-                duration: 800,
-                ease: 'Back.easeOut'
-            });
-        }
-        
-        // Add sparkle effects for visual feedback
-        this.createSparkles();
-    }
-    
-    /**
-     * Clear creature textures to prevent black sprite issues
-     */
-    clearCreatureTextures() {
-        const textureManager = this.textures;
-        
-        // Clear all dynamic creature textures
-        const texturesToClear = [];
-        textureManager.each((key, texture) => {
-            if (key.includes('creature_') || key.includes('space_creature_') || key.includes('enhancedCreature')) {
-                texturesToClear.push(key);
-            }
-        });
-        
-        texturesToClear.forEach(key => {
-            if (textureManager.exists(key)) {
-                textureManager.remove(key);
-                console.log(`🧹 [DEV MODE] Cleared texture: ${key}`);
-            }
-        });
-        
-        console.log(`🧹 [DEV MODE] Cleared ${texturesToClear.length} creature textures`);
-    }
-
     update() {
         // Check for space key to start cinematic hatch or transition
         if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
@@ -1254,11 +1040,1008 @@ class HatchingScene extends Phaser.Scene {
                 this.transitionToPersonality();
             }
         }
-        
-        // Development mode: G key for creature generation
-        if (this.gKey && Phaser.Input.Keyboard.JustDown(this.gKey)) {
-            this.startDevGeneration();
+    }
+
+    /**
+     * Show rarity announcement banner
+     */
+    showRarityReveal() {
+        try {
+            if (!this.creatureGenetics || !this.rarityInfo) {
+                console.error('hatch:error [HatchingScene] Missing genetics or rarity info for reveal');
+                return;
+            }
+
+            if (!this.creatureGenetics.rarity) {
+                console.error('hatch:error [HatchingScene] Creature genetics missing rarity field');
+                return;
+            }
+
+            const rarity = this.creatureGenetics.rarity;
+            const rarityInfo = this.rarityInfo;
+
+            // Create banner background
+            const bannerBg = this.add.graphics();
+            bannerBg.fillStyle(0x000000, 0.8);
+            bannerBg.fillRoundedRect(150, 50, 500, 80, 10);
+            bannerBg.lineStyle(3, parseInt(rarityInfo.displayColor.replace('#', '0x')));
+            bannerBg.strokeRoundedRect(150, 50, 500, 80, 10);
+
+            // Rarity title
+            const rarityText = this.add.text(400, 70, `${rarityInfo.emoji} ${rarityInfo.name} Creature!`, {
+                fontSize: '28px',
+                color: rarityInfo.displayColor,
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5);
+
+            // Creature name/species
+            const speciesText = this.add.text(400, 105, `${this.creatureGenetics.species} • ${this.creatureGenetics.personality.core}`, {
+                fontSize: '18px',
+                color: '#FFFFFF'
+            }).setOrigin(0.5);
+
+            // Animate banner
+            [bannerBg, rarityText, speciesText].forEach(element => {
+                element.setAlpha(0);
+                this.tweens.add({
+                    targets: element,
+                    alpha: 1,
+                    y: element.y + 10,
+                    duration: 600,
+                    ease: 'Back.easeOut'
+                });
+            });
+
+            // Store references for cleanup
+            this.rarityBanner = { bannerBg, rarityText, speciesText };
+
+        } catch (error) {
+            console.error('hatch:error [HatchingScene] Error in showRarityReveal:', error);
+            if (window.errorHandler) {
+                window.errorHandler.handleError({
+                    type: 'scene',
+                    severity: 'error',
+                    message: 'Failed to show rarity reveal: ' + error.message,
+                    stack: error.stack
+                });
+            }
         }
+    }
+
+    /**
+     * Show Keep/Reroll buttons
+     */
+    showRerollOptions() {
+        try {
+            if (!window.rerollSystem) {
+                console.error('hatch:error [HatchingScene] RerollSystem not available');
+                return;
+            }
+
+            if (!this.creatureGenetics || !this.creatureGenetics.rarity) {
+                console.error('hatch:error [HatchingScene] Creature genetics or rarity missing for reroll options');
+                return;
+            }
+
+            const canReroll = window.rerollSystem.canReroll();
+
+            // Button container
+            const buttonY = 500;
+
+            // KEEP button
+            const keepBg = this.add.graphics();
+            keepBg.fillStyle(0x228B22, 0.9);
+            keepBg.fillRoundedRect(200, buttonY, 150, 50, 10);
+            keepBg.lineStyle(3, 0xFFD54F);
+            keepBg.strokeRoundedRect(200, buttonY, 150, 50, 10);
+
+            const keepText = this.add.text(275, buttonY + 25, '✓ KEEP', {
+                fontSize: '22px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            const keepZone = this.add.zone(200, buttonY, 150, 50).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+
+            // REROLL button (if available)
+            let rerollBg, rerollText, rerollZone;
+            if (canReroll) {
+                rerollBg = this.add.graphics();
+                rerollBg.fillStyle(0x4169E1, 0.9);
+                rerollBg.fillRoundedRect(450, buttonY, 150, 50, 10);
+                rerollBg.lineStyle(3, 0xFFD54F);
+                rerollBg.strokeRoundedRect(450, buttonY, 150, 50, 10);
+
+                rerollText = this.add.text(525, buttonY + 25, '🔄 REROLL', {
+                    fontSize: '22px',
+                    color: '#FFFFFF',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+
+                rerollZone = this.add.zone(450, buttonY, 150, 50).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+            }
+
+            // Advice text
+            const advice = window.rerollSystem.getRerollAdvice(this.creatureGenetics.rarity);
+            const adviceText = this.add.text(400, 450, advice.message, {
+                fontSize: '14px',
+                color: '#FFFF00',
+                align: 'center',
+                wordWrap: { width: 500 }
+            }).setOrigin(0.5);
+
+            // Animate elements
+            const elements = [keepBg, keepText, adviceText];
+            if (canReroll) {
+                elements.push(rerollBg, rerollText);
+            }
+
+            elements.forEach((el, index) => {
+                el.setAlpha(0);
+                this.tweens.add({
+                    targets: el,
+                    alpha: 1,
+                    duration: 500,
+                    delay: index * 100,
+                    ease: 'Power2'
+                });
+            });
+
+            // Button interactions
+            keepZone.on('pointerdown', () => this.handleKeepCreature());
+            keepZone.on('pointerover', () => {
+                keepBg.clear();
+                keepBg.fillStyle(0x32CD32, 0.9);
+                keepBg.fillRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.lineStyle(3, 0xFFD54F);
+                keepBg.strokeRoundedRect(200, buttonY, 150, 50, 10);
+            });
+            keepZone.on('pointerout', () => {
+                keepBg.clear();
+                keepBg.fillStyle(0x228B22, 0.9);
+                keepBg.fillRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.lineStyle(3, 0xFFD54F);
+                keepBg.strokeRoundedRect(200, buttonY, 150, 50, 10);
+            });
+
+            if (canReroll) {
+                console.log('hatch:info [HatchingScene] Reroll button enabled and interactive');
+                rerollZone.on('pointerdown', () => {
+                    console.log('hatch:info [HatchingScene] Reroll zone clicked!');
+                    this.handleRerollCreature();
+                });
+                rerollZone.on('pointerover', () => {
+                    rerollBg.clear();
+                    rerollBg.fillStyle(0x6495ED, 0.9);
+                    rerollBg.fillRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.lineStyle(3, 0xFFD54F);
+                    rerollBg.strokeRoundedRect(450, buttonY, 150, 50, 10);
+                });
+                rerollZone.on('pointerout', () => {
+                    rerollBg.clear();
+                    rerollBg.fillStyle(0x4169E1, 0.9);
+                    rerollBg.fillRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.lineStyle(3, 0xFFD54F);
+                    rerollBg.strokeRoundedRect(450, buttonY, 150, 50, 10);
+                });
+
+                this.rerollUI = { rerollBg, rerollText, rerollZone };
+            }
+
+            this.keepUI = { keepBg, keepText, keepZone };
+            this.adviceText = adviceText;
+
+        } catch (error) {
+            console.error('hatch:error [HatchingScene] Error in showRerollOptions:', error);
+            if (window.errorHandler) {
+                window.errorHandler.handleError({
+                    type: 'scene',
+                    severity: 'error',
+                    message: 'Failed to show reroll options: ' + error.message,
+                    stack: error.stack
+                });
+            }
+        }
+    }
+
+    /**
+     * Handle KEEP button click
+     */
+    handleKeepCreature() {
+        console.log('hatch:info [HatchingScene] Player kept creature');
+
+        // Cleanup UI
+        this.cleanupRerollUI();
+
+        // End reroll session
+        window.rerollSystem.endHatchSession();
+
+        // Show "Great choice!" message
+        const confirmText = this.add.text(400, 480, '✨ Great choice! ✨', {
+            fontSize: '24px',
+            color: '#FFD54F',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+            targets: confirmText,
+            alpha: { from: 0, to: 1 },
+            scale: { from: 0.8, to: 1.2 },
+            duration: 500,
+            yoyo: true,
+            onComplete: () => {
+                confirmText.destroy();
+                this.transitionToPersonality();
+            }
+        });
+    }
+
+    /**
+     * Handle REROLL button click
+     */
+    handleRerollCreature() {
+        console.log('hatch:info [HatchingScene] 🔄 REROLL BUTTON CLICKED!');
+
+        if (!this.creatureGenetics) {
+            console.error('hatch:error [HatchingScene] No creature genetics to reroll');
+            return;
+        }
+
+        const originalRarity = this.creatureGenetics.rarity;
+        console.log(`hatch:info [HatchingScene] Player rerolling ${originalRarity} creature`);
+
+        // Execute reroll
+        if (!window.rerollSystem.executeReroll()) {
+            console.warn('hatch:warn [HatchingScene] Reroll failed - already used or not available');
+            return;
+        }
+
+        // Track reroll in GameState
+        const state = getGameState();
+        let rerollData = state.get('rerollSystem');
+        if (!rerollData) {
+            rerollData = window.rerollSystem.initializeRerollData();
+        }
+        rerollData = window.rerollSystem.trackReroll(originalRarity, 'pending', rerollData);
+        state.set('rerollSystem', rerollData);
+
+        // Cleanup current UI
+        this.cleanupRerollUI();
+
+        // Check if creature exists
+        if (!this.creature) {
+            console.error('hatch:error [HatchingScene] No creature object to animate');
+            // Skip animation and regenerate immediately
+            this.performRerollRegeneration(originalRarity, rerollData, state);
+            return;
+        }
+
+        console.log('hatch:info [HatchingScene] Fading out current creature...');
+
+        // Fade out current creature
+        this.tweens.add({
+            targets: this.creature,
+            alpha: 0,
+            scale: 0.5,
+            duration: 500,
+            onComplete: () => {
+                console.log('hatch:info [HatchingScene] Creature fade out complete, destroying...');
+                this.creature.destroy();
+
+                this.performRerollRegeneration(originalRarity, rerollData, state);
+            }
+        });
+    }
+
+    /**
+     * Perform the creature regeneration after reroll
+     */
+    performRerollRegeneration(originalRarity, rerollData, state) {
+        console.log('hatch:info [HatchingScene] Generating new creature after reroll...');
+
+        // Generate NEW creature
+        this.generateCreatureGenetics();
+
+        if (!this.creatureGenetics) {
+            console.error('hatch:error [HatchingScene] Failed to generate new genetics');
+            return;
+        }
+
+        console.log(`hatch:info [HatchingScene] New creature generated: ${this.creatureGenetics.rarity} ${this.creatureGenetics.species}`);
+
+        const creatureResult = this.createUniqueCreature();
+
+        if (creatureResult && creatureResult.textureName) {
+            console.log('hatch:info [HatchingScene] Creating new creature sprite...');
+
+            this.creature = this.add.image(400, 300, creatureResult.textureName);
+            this.creature.setScale(0.5);
+            this.creature.setAlpha(0);
+            this.creature.genetics = this.creatureGenetics;
+
+            // Fade in new creature
+            this.tweens.add({
+                targets: this.creature,
+                alpha: 1,
+                scale: 1.2,
+                duration: 1000,
+                ease: 'Back.easeOut'
+            });
+
+            // Update reroll tracking with new rarity
+            rerollData = window.rerollSystem.trackReroll(originalRarity, this.creatureGenetics.rarity, rerollData);
+            state.set('rerollSystem', rerollData);
+
+            console.log(`hatch:info [HatchingScene] Reroll complete: ${originalRarity} → ${this.creatureGenetics.rarity}`);
+
+            // Set rerolled creature in system
+            window.rerollSystem.setRerolledCreature({
+                genetics: this.creatureGenetics,
+                rarity: this.creatureGenetics.rarity
+            });
+
+            // Show new rarity reveal
+            this.time.delayedCall(1000, () => {
+                console.log('hatch:info [HatchingScene] Showing new rarity reveal and final keep button');
+                this.showRarityReveal();
+
+                // Show ONLY keep button (no second reroll)
+                this.showFinalKeepButton();
+            });
+        } else {
+            console.error('hatch:error [HatchingScene] Failed to create creature result');
+        }
+    }
+
+    /**
+     * Show final KEEP button after reroll (no second reroll allowed)
+     */
+    showFinalKeepButton() {
+        const buttonY = 500;
+
+        const keepBg = this.add.graphics();
+        keepBg.fillStyle(0x228B22, 0.9);
+        keepBg.fillRoundedRect(325, buttonY, 150, 50, 10);
+        keepBg.lineStyle(3, 0xFFD54F);
+        keepBg.strokeRoundedRect(325, buttonY, 150, 50, 10);
+
+        const keepText = this.add.text(400, buttonY + 25, '✓ KEEP THIS ONE', {
+            fontSize: '20px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        const keepZone = this.add.zone(325, buttonY, 150, 50).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+
+        const finalText = this.add.text(400, 450, '✅ This is your final creature!', {
+            fontSize: '16px',
+            color: '#90EE90'
+        }).setOrigin(0.5);
+
+        [keepBg, keepText, finalText].forEach(el => {
+            el.setAlpha(0);
+            this.tweens.add({
+                targets: el,
+                alpha: 1,
+                duration: 500,
+                ease: 'Power2'
+            });
+        });
+
+        keepZone.on('pointerdown', () => this.handleKeepCreature());
+        keepZone.on('pointerover', () => {
+            keepBg.clear();
+            keepBg.fillStyle(0x32CD32, 0.9);
+            keepBg.fillRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.lineStyle(3, 0xFFD54F);
+            keepBg.strokeRoundedRect(325, buttonY, 150, 50, 10);
+        });
+        keepZone.on('pointerout', () => {
+            keepBg.clear();
+            keepBg.fillStyle(0x228B22, 0.9);
+            keepBg.fillRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.lineStyle(3, 0xFFD54F);
+            keepBg.strokeRoundedRect(325, buttonY, 150, 50, 10);
+        });
+
+        this.keepUI = { keepBg, keepText, keepZone };
+        this.finalText = finalText;
+    }
+
+    /**
+     * Cleanup reroll UI elements
+     */
+    cleanupRerollUI() {
+        if (this.rarityBanner) {
+            Object.values(this.rarityBanner).forEach(el => el && el.destroy());
+            this.rarityBanner = null;
+        }
+        if (this.keepUI) {
+            Object.values(this.keepUI).forEach(el => el && el.destroy());
+            this.keepUI = null;
+        }
+        if (this.rerollUI) {
+            Object.values(this.rerollUI).forEach(el => el && el.destroy());
+            this.rerollUI = null;
+        }
+        if (this.adviceText) {
+            this.adviceText.destroy();
+            this.adviceText = null;
+        }
+        if (this.finalText) {
+            this.finalText.destroy();
+            this.finalText = null;
+        }
+    }
+
+    // ==========================================
+    // ENHANCED HOME SCREEN UI METHODS
+    // ==========================================
+
+    /**
+     * Create enhanced starfield background with depth
+     */
+    createEnhancedBackground() {
+        // Deep space gradient background - responsive to screen size
+        const { width, height } = this.scale;
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x2C1B47, 0x4A148C, 0x6A1B9A, 0x4A148C, 1);
+        bg.fillRect(0, 0, width, height);
+
+        // Add nebula clouds
+        for (let i = 0; i < 3; i++) {
+            const nebula = this.add.graphics();
+            nebula.fillStyle(0x9C27B0, 0.1 + Math.random() * 0.1);
+            nebula.fillCircle(
+                Phaser.Math.Between(0, width),
+                Phaser.Math.Between(0, height),
+                Phaser.Math.Between(100, 200)
+            );
+            nebula.setBlendMode(Phaser.BlendModes.ADD);
+
+            // Slow drift animation
+            this.tweens.add({
+                targets: nebula,
+                x: nebula.x + Phaser.Math.Between(-50, 50),
+                y: nebula.y + Phaser.Math.Between(-30, 30),
+                duration: Phaser.Math.Between(8000, 12000),
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        // Multiple star layers for parallax depth
+        for (let layer = 0; layer < 3; layer++) {
+            const starCount = 30 - (layer * 8);
+            const starSize = 1 + layer;
+            const twinkleSpeed = 1500 + (layer * 500);
+
+            for (let i = 0; i < starCount; i++) {
+                const star = this.add.circle(
+                    Phaser.Math.Between(0, width),
+                    Phaser.Math.Between(0, height),
+                    starSize,
+                    0xFFFFFF,
+                    0.3 + (layer * 0.3)
+                );
+
+                // Twinkling animation
+                this.tweens.add({
+                    targets: star,
+                    alpha: 0.1 + Math.random() * 0.3,
+                    duration: twinkleSpeed,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: -1,
+                    delay: Math.random() * 1000
+                });
+            }
+        }
+    }
+
+    /**
+     * Create animated stardust particles
+     */
+    createStardustParticles() {
+        // Create floating stardust particles
+        const { width, height } = this.scale;
+        for (let i = 0; i < 15; i++) {
+            const particle = this.add.circle(
+                Phaser.Math.Between(0, width),
+                Phaser.Math.Between(0, height),
+                2,
+                0xFFD54F,
+                0.6
+            );
+
+            // Floating animation
+            this.tweens.add({
+                targets: particle,
+                y: particle.y - Phaser.Math.Between(100, 200),
+                x: particle.x + Phaser.Math.Between(-20, 20),
+                alpha: 0,
+                duration: Phaser.Math.Between(4000, 6000),
+                ease: 'Sine.easeOut',
+                delay: Math.random() * 2000,
+                repeat: -1,
+                onRepeat: () => {
+                    particle.y = 650;
+                    particle.x = Phaser.Math.Between(0, 800);
+                    particle.alpha = 0.6;
+                }
+            });
+        }
+    }
+
+    /**
+     * Create enhanced title with glow effect
+     */
+    createEnhancedTitle() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const titleY = Math.min(120, height * 0.15);
+        const panelWidth = Math.min(400, width * 0.6);
+        const panelHeight = 120;
+
+        // Glassmorphic panel behind title
+        const titlePanel = this.add.graphics();
+        titlePanel.fillStyle(0xFFFFFF, 0.1);
+        titlePanel.fillRoundedRect(centerX - panelWidth/2, titleY - 40, panelWidth, panelHeight, 20);
+        titlePanel.lineStyle(2, 0xFFD54F, 0.5);
+        titlePanel.strokeRoundedRect(centerX - panelWidth/2, titleY - 40, panelWidth, panelHeight, 20);
+
+        // Main title with glow
+        const titleText = this.add.text(centerX, titleY, 'MYTHICAL VOID', {
+            fontSize: '64px',
+            color: '#FFD54F',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+            fontStyle: 'bold',
+            stroke: '#7B1FA2',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+
+        // Add glow effect
+        titleText.setStyle({
+            shadow: {
+                offsetX: 0,
+                offsetY: 0,
+                color: 'rgba(255, 213, 79, 0.8)',
+                blur: 20,
+                stroke: true,
+                fill: false
+            }
+        });
+
+        // Pulsing glow animation
+        this.tweens.add({
+            targets: titleText,
+            scaleX: 1.02,
+            scaleY: 1.02,
+            duration: 2000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Subtitle
+        const subtitleText = this.add.text(centerX, titleY + 70, 'Where Space Meets Magic', {
+            fontSize: '20px',
+            color: '#000000',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+            fontStyle: 'italic'
+        }).setOrigin(0.5);
+    }
+
+    /**
+     * Create enhanced START button with glassmorphism
+     */
+    createEnhancedStartButton() {
+        const { width, height } = this.scale;
+        const buttonX = width / 2;
+        const buttonY = height / 2;
+        const buttonWidth = 340;
+        const buttonHeight = 95;
+
+        // Create container for the button
+        const buttonContainer = this.add.container(buttonX, buttonY);
+
+        // LAYERED GLOW SYSTEM - Creates magnetic visual pull
+        const outerGlow = this.add.graphics();
+        outerGlow.fillStyle(0xFF6B35, 0.12);
+        outerGlow.fillRoundedRect(-buttonWidth/2 - 24, -buttonHeight/2 - 24, buttonWidth + 48, buttonHeight + 48, 28);
+        outerGlow.setBlendMode(Phaser.BlendModes.ADD);
+
+        const middleGlow = this.add.graphics();
+        middleGlow.fillStyle(0xFF6B35, 0.2);
+        middleGlow.fillRoundedRect(-buttonWidth/2 - 14, -buttonHeight/2 - 14, buttonWidth + 28, buttonHeight + 28, 24);
+        middleGlow.setBlendMode(Phaser.BlendModes.ADD);
+
+        const innerGlow = this.add.graphics();
+        innerGlow.fillStyle(0xFF6B35, 0.3);
+        innerGlow.fillRoundedRect(-buttonWidth/2 - 5, -buttonHeight/2 - 5, buttonWidth + 10, buttonHeight + 10, 20);
+        innerGlow.setBlendMode(Phaser.BlendModes.ADD);
+
+        // WARM GRADIENT BACKGROUND - Orange (urgency) to yellow (optimism)
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0xFF6B35, 0xFF6B35, 0xFFB347, 0xFFB347, 1, 1, 1, 1);
+        bg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 18);
+
+        // Bright border for definition
+        bg.lineStyle(3, 0xFFFFFF, 0.95);
+        bg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 18);
+
+        // Top shine for 3D depth
+        const shine = this.add.graphics();
+        shine.fillStyle(0xFFFFFF, 0.22);
+        shine.fillRoundedRect(-buttonWidth/2 + 8, -buttonHeight/2 + 8, buttonWidth - 16, buttonHeight/2 - 10, 14);
+
+        // POWER WORDS - Action-oriented, benefit-focused
+        const buttonText = this.add.text(0, 0, 'START YOUR ADVENTURE', {
+            fontSize: '28px',
+            color: '#FFFFFF',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+            fontStyle: '900',
+            align: 'center',
+            stroke: '#8B3000',
+            strokeThickness: 4,
+            shadow: {
+                offsetX: 0,
+                offsetY: 2,
+                color: 'rgba(0,0,0,0.35)',
+                blur: 4,
+                fill: true
+            }
+        }).setOrigin(0.5);
+
+        // ROCKET EMOJI - Visual anchor + emotional connection
+        const rocket = this.add.text(0, -33, '🚀', {
+            fontSize: '36px'
+        }).setOrigin(0.5);
+
+        // URGENCY PULSE DOT - Triggers FOMO
+        const urgencyDot = this.add.circle(buttonWidth/2 - 22, -buttonHeight/2 + 14, 5, 0x00FF88, 1);
+
+        buttonContainer.add([outerGlow, middleGlow, innerGlow, bg, shine, rocket, buttonText, urgencyDot]);
+        buttonContainer.setSize(buttonWidth, buttonHeight);
+        buttonContainer.setInteractive({ cursor: 'pointer', useHandCursor: true });
+
+        // BREATHING ANIMATION - Subconscious familiarity
+        this.tweens.add({
+            targets: buttonContainer,
+            scaleX: 1.025,
+            scaleY: 1.025,
+            duration: 2200,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // LAYERED GLOW PULSE - Energy feeling
+        this.tweens.add({
+            targets: [outerGlow, middleGlow, innerGlow],
+            alpha: '-=0.08',
+            duration: 1900,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // URGENCY DOT PULSE - FOMO trigger
+        this.tweens.add({
+            targets: urgencyDot,
+            alpha: 0.4,
+            scale: 1.4,
+            duration: 1100,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // ROCKET FLOAT - Motion draws attention
+        this.tweens.add({
+            targets: rocket,
+            y: -35,
+            duration: 1600,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // HOVER - Immediate dopamine feedback
+        buttonContainer.on('pointerover', () => {
+            this.tweens.add({
+                targets: buttonContainer,
+                scaleX: 1.09,
+                scaleY: 1.09,
+                duration: 160,
+                ease: 'Back.easeOut.config(1.4)'
+            });
+            this.tweens.add({
+                targets: [outerGlow, middleGlow, innerGlow],
+                alpha: '+=0.25',
+                duration: 160
+            });
+            this.tweens.add({
+                targets: buttonText,
+                y: -3,
+                duration: 160,
+                ease: 'Back.easeOut'
+            });
+            this.tweens.add({
+                targets: rocket,
+                angle: -12,
+                scale: 1.2,
+                duration: 160
+            });
+        });
+
+        buttonContainer.on('pointerout', () => {
+            this.tweens.add({
+                targets: buttonContainer,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 200,
+                ease: 'Back.easeIn'
+            });
+            this.tweens.add({
+                targets: [outerGlow, middleGlow, innerGlow],
+                alpha: '-=0.25',
+                duration: 200
+            });
+            this.tweens.add({
+                targets: buttonText,
+                y: 0,
+                duration: 200
+            });
+            this.tweens.add({
+                targets: rocket,
+                angle: 0,
+                scale: 1,
+                duration: 200
+            });
+        });
+
+        // CLICK - Tactile satisfaction & reward
+        buttonContainer.on('pointerdown', () => {
+            console.log('🚀 START GAME button clicked!');
+
+            // Squash effect
+            this.tweens.add({
+                targets: buttonContainer,
+                scaleX: 0.94,
+                scaleY: 0.94,
+                duration: 85,
+                ease: 'Power2'
+            });
+            // Flash
+            this.tweens.add({
+                targets: shine,
+                alpha: 0.55,
+                duration: 85
+            });
+        });
+
+        buttonContainer.on('pointerup', () => {
+            // Satisfying bounce back
+            this.tweens.add({
+                targets: buttonContainer,
+                scaleX: 1.06,
+                scaleY: 1.06,
+                duration: 110,
+                ease: 'Back.easeOut'
+            });
+
+            // Success burst
+            for (let i = 0; i < 16; i++) {
+                const angle = (i / 16) * Math.PI * 2;
+                const distance = 90;
+                const particle = this.add.circle(buttonX, buttonY, 5, 0xFFD700, 1);
+                this.tweens.add({
+                    targets: particle,
+                    x: buttonX + Math.cos(angle) * distance,
+                    y: buttonY + Math.sin(angle) * distance,
+                    alpha: 0,
+                    scale: 0,
+                    duration: 650,
+                    ease: 'Power2.easeOut',
+                    onComplete: () => particle.destroy()
+                });
+            }
+
+            // Fade and transition
+            this.tweens.add({
+                targets: buttonContainer,
+                alpha: 0,
+                scaleX: 1.25,
+                scaleY: 1.25,
+                duration: 350,
+                delay: 150,
+                ease: 'Back.easeIn',
+                onComplete: () => {
+                    this.showHatchingScreen();
+                }
+            });
+        });
+
+        this.startButton = buttonContainer;
+    }
+
+    /**
+     * Create feature preview cards
+     */
+    createFeatureCards() {
+        const { width, height } = this.scale;
+        const cardWidth = 180;
+        const cardHeight = 120;
+        const centerX = width / 2;
+        const cardY = height - 180;
+        const spacing = Math.min(215, width / 4);
+
+        const cards = [
+            { icon: '🥚', title: 'HATCH', desc: 'Discover your\nunique companion', x: centerX - spacing, color: 0xFFD54F },
+            { icon: '✨', title: 'EVOLVE', desc: 'Unlock cosmic\npowers', x: centerX, color: 0xB39DDB },
+            { icon: '🌍', title: 'EXPLORE', desc: 'Navigate vast\nstar systems', x: centerX + spacing, color: 0x80CBC4 }
+        ];
+
+        cards.forEach(card => {
+            // Glassmorphic card with subtle gradient
+            const cardBg = this.add.graphics();
+            cardBg.fillStyle(0xFFFFFF, 0.12);
+            cardBg.fillRoundedRect(card.x - cardWidth/2, cardY, cardWidth, cardHeight, 12);
+            cardBg.lineStyle(2, card.color, 0.5);
+            cardBg.strokeRoundedRect(card.x - cardWidth/2, cardY, cardWidth, cardHeight, 12);
+
+            // Icon
+            const icon = this.add.text(card.x, cardY + 30, card.icon, {
+                fontSize: '40px'
+            }).setOrigin(0.5);
+
+            // Title
+            const title = this.add.text(card.x, cardY + 70, card.title, {
+                fontSize: '18px',
+                color: '#FFD54F',
+                fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+
+            // Description
+            const desc = this.add.text(card.x, cardY + 100, card.desc, {
+                fontSize: '12px',
+                color: '#B39DDB',
+                fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+                align: 'center'
+            }).setOrigin(0.5);
+
+            // Hover animation
+            const cardContainer = this.add.container(0, 0, [cardBg, icon, title, desc]);
+            cardContainer.setSize(cardWidth, cardHeight);
+            cardContainer.setInteractive({ cursor: 'pointer' });
+
+            cardContainer.on('pointerover', () => {
+                this.tweens.add({
+                    targets: [icon, title, desc],
+                    y: '+=- 5',
+                    duration: 200,
+                    ease: 'Back.easeOut'
+                });
+            });
+
+            cardContainer.on('pointerout', () => {
+                this.tweens.add({
+                    targets: [icon, title, desc],
+                    y: '+= 5',
+                    duration: 200,
+                    ease: 'Back.easeIn'
+                });
+            });
+        });
+    }
+
+    /**
+     * Create bottom hint text
+     */
+    createBottomHints() {
+        const { width, height } = this.scale;
+        const hintText = this.add.text(width / 2, height - 30, 'Click BEGIN ADVENTURE to start your cosmic journey!', {
+            fontSize: '16px',
+            color: '#000000',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        // Gentle fade animation
+        this.tweens.add({
+            targets: hintText,
+            alpha: 0.6,
+            duration: 2000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * Create star burst particle effect
+     */
+    createStartBurstEffect(x, y) {
+        // Create particles radiating outward
+        for (let i = 0; i < 12; i++) {
+            const angle = (Math.PI * 2 * i) / 12;
+            const distance = 60;
+
+            const particle = this.add.circle(x, y, 4, 0xFFD54F, 1);
+
+            this.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * distance,
+                y: y + Math.sin(angle) * distance,
+                alpha: 0,
+                scale: 0,
+                duration: 600,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        // Central flash
+        const flash = this.add.circle(x, y, 20, 0xFFFFFF, 0.8);
+        flash.setBlendMode(Phaser.BlendModes.ADD);
+
+        this.tweens.add({
+            targets: flash,
+            scale: 3,
+            alpha: 0,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => flash.destroy()
+        });
+    }
+
+    /**
+     * Handle start game button click
+     */
+    handleStartGame() {
+        const state = getGameState();
+
+        // Mark game as started
+        state.set('session.gameStarted', true);
+        console.log('✅ Set gameStarted to true');
+
+        // CRITICAL: Reset creature to unhatched state for fresh game flow
+        state.set('creature.hatched', false);
+        state.set('creature.name', 'Your Creature');
+        state.set('creature.hatchTime', null);
+        state.set('creature.experience', 0);
+        state.set('creature.level', 1);
+        console.log('✅ Set creature.hatched to false');
+
+        // Reset creature stats to defaults
+        state.set('creature.stats', {
+            happiness: 100,
+            energy: 100,
+            health: 100
+        });
+
+        // Clear personality and genes to regenerate fresh
+        state.set('creature.personality', null);
+        state.set('creature.genes', null);
+
+        console.log('🔄 Creature reset complete - forcing save before scene transition...');
+
+        // CRITICAL: Force immediate save to localStorage before scene restart
+        state.save();
+
+        // Verify the state before restarting
+        console.log('🔍 Pre-restart verification:');
+        console.log('  gameStarted:', state.get('session.gameStarted'));
+        console.log('  creatureHatched:', state.get('creature.hatched'));
+
+        // Restart scene to trigger hatching flow
+        this.scene.restart();
     }
 }
 

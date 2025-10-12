@@ -169,20 +169,29 @@ class CreatureGenetics {
      * @param {string|null} seed - Optional seed for deterministic generation
      * @returns {Object} Complete genetic profile
      */
-    generateCreatureGenetics(seed = null) {
-        // Set random seed if provided (for reproducible creatures)
-        if (seed) {
+    generateCreatureGenetics(rarityOrSeed = null) {
+        // Check if first parameter is a rarity tier (string) or a seed (number/other)
+        let rarity = null;
+        let seed = null;
+
+        if (typeof rarityOrSeed === 'string' && ['common', 'uncommon', 'rare', 'epic', 'legendary'].includes(rarityOrSeed)) {
+            rarity = rarityOrSeed; // Use provided rarity
+            console.log(`genetics:info [CreatureGenetics] Using provided rarity: ${rarity}`);
+        } else if (rarityOrSeed !== null) {
+            seed = rarityOrSeed; // Use as seed
             Math.seedrandom(seed); // Would need seedrandom library, fallback to Math.random
         }
-        
+
         const startTime = Date.now();
-        
+
         // 1. Determine species
         const species = this.selectSpecies();
         const template = this.speciesTemplates[species];
-        
-        // 2. Determine rarity level
-        const rarity = this.selectRarity();
+
+        // 2. Determine rarity level (use provided or generate)
+        if (!rarity) {
+            rarity = this.selectRarity();
+        }
         
         // 3. Generate visual traits
         const visualTraits = this.generateVisualTraits(template, rarity);
@@ -225,6 +234,21 @@ class CreatureGenetics {
             },
             personality: personality,
             cosmicAffinity: cosmicAffinity,
+            // Breeding foundation (for future implementation)
+            breedingData: {
+                canBreed: true,
+                breedingCooldown: 0,
+                timesBreeded: 0,
+                maxBreedingTimes: 5,
+                compatibleSpecies: [species], // Can breed within same species
+                fertilityRate: 0.8 + (Math.random() * 0.2) // 0.8-1.0
+            },
+            lineage: {
+                parent1: null,
+                parent2: null,
+                generation: 0,
+                familyTree: []
+            },
             metadata: {
                 generationTime: Date.now() - startTime,
                 version: '1.0.0'

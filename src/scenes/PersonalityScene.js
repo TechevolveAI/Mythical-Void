@@ -86,7 +86,18 @@ class PersonalityScene extends Phaser.Scene {
 
     generateCreatureTraits() {
         const state = getGameState();
-        const creatureData = state.get('creature');
+        let creatureData = state.get('creature');
+
+        // Ensure creatureData exists
+        if (!creatureData) {
+            console.warn('personality:warn [PersonalityScene] No creature data found, creating fresh');
+            creatureData = {
+                name: 'Your Creature',
+                hatched: true,
+                colors: { body: 0x9370DB, head: 0xDDA0DD, wings: 0x8A2BE2 }
+            };
+            state.set('creature', creatureData);
+        }
 
         if (creatureData && creatureData.genetics) {
             console.log('personality:info [PersonalityScene] Using genetics from HatchingScene:', creatureData.genetics.id);
@@ -102,14 +113,14 @@ class PersonalityScene extends Phaser.Scene {
             }
         }
 
-        if (!creatureData.personality) {
+        if (!creatureData.personality && this.creatureGenetics && this.creatureGenetics.personality) {
             const geneticsPersonality = this.creatureGenetics.personality;
             const displayPersonality = {
                 name: this.getPersonalityDisplayName(geneticsPersonality.core),
                 description: geneticsPersonality.description,
                 core: geneticsPersonality.core,
-                quirks: geneticsPersonality.quirks,
-                socialLevel: geneticsPersonality.socialLevel,
+                quirks: geneticsPersonality.quirks || [],
+                socialLevel: geneticsPersonality.socialLevel || 0.5,
                 cosmicAffinity: this.creatureGenetics.cosmicAffinity
             };
 
@@ -117,12 +128,18 @@ class PersonalityScene extends Phaser.Scene {
             state.set('creature.personality', displayPersonality);
         }
 
-        if (!creatureData.genes) {
+        if (!creatureData.genes && this.creatureGenetics) {
             creatureData.genes = this.convertGeneticsToLegacyGenes(this.creatureGenetics);
             state.set('creature.genes', creatureData.genes);
         }
 
         this.creatureData = state.get('creature');
+
+        // Final safety check
+        if (!this.creatureData || !this.creatureData.personality || !this.creatureData.genes) {
+            console.error('personality:error [PersonalityScene] Failed to generate creature traits, using emergency fallback');
+            this.generateLegacyTraits(this.creatureData || {});
+        }
     }
 
     generateLegacyTraits(creatureData) {
@@ -206,12 +223,38 @@ class PersonalityScene extends Phaser.Scene {
 
     displayCreature() {
         let textureName = 'enhancedCreature0'; // Default fallback
-        
-        // Use genetics system if available
-        if (this.creatureGenetics) {
-            console.log('personality:info [PersonalityScene] Creating creature with genetics');
-            const spriteResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(this.creatureGenetics, 0);
-            textureName = spriteResult.textureName;
+
+        // Priority 1: Use saved texture name from GameState (most reliable)
+        const savedTextureName = this.creatureData?.textureName;
+        if (savedTextureName && this.textures.exists(savedTextureName)) {
+            console.log('personality:info [PersonalityScene] Using saved texture from GameState:', savedTextureName);
+            textureName = savedTextureName;
+        }
+        // Priority 2: Use genetics system if available
+        else if (this.creatureGenetics) {
+            console.log('personality:info [PersonalityScene] Loading creature with genetics ID:', this.creatureGenetics.id);
+
+            // IMPORTANT: Use the same texture name that was created in HatchingScene
+            // Don't regenerate - just reuse the existing texture
+            const expectedTextureName = `creature_${this.creatureGenetics.id}_0`;
+
+            // Check if the texture already exists from HatchingScene
+            if (this.textures.exists(expectedTextureName)) {
+                console.log('personality:info [PersonalityScene] Reusing existing texture:', expectedTextureName);
+                textureName = expectedTextureName;
+            } else {
+                // Texture doesn't exist, need to create it
+                console.warn('personality:warn [PersonalityScene] Texture not found, creating new:', expectedTextureName);
+                try {
+                    const spriteResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(this.creatureGenetics, 0);
+                    textureName = spriteResult.textureName;
+                } catch (error) {
+                    console.error('personality:error [PersonalityScene] Failed to create creature sprite:', error);
+                    // Fall back to default
+                    textureName = 'enhancedCreature0';
+                    this.graphicsEngine.createEnhancedCreature(0x9370DB, 0xDDA0DD, 0x8A2BE2, 0, null);
+                }
+            }
         } else if (this.creatureData && this.creatureData.colors) {
             // Legacy fallback
             console.log('personality:info [PersonalityScene] Using legacy creature rendering');
@@ -291,6 +334,14 @@ class PersonalityScene extends Phaser.Scene {
     }
 
     createPersonalityPanel() {
+        // Validate creatureData exists
+        if (!this.creatureData || !this.creatureData.personality || !this.creatureData.genes) {
+            console.error('personality:error [PersonalityScene] Cannot create panel - missing creature data');
+            // Show error and return to hatching
+            this.showErrorAndRestart();
+            return;
+        }
+
         // Background panel with magical border
         const panelX = 350;
         const panelY = 150;
@@ -300,11 +351,11 @@ class PersonalityScene extends Phaser.Scene {
         this.panel = this.add.graphics();
         this.panel.fillStyle(0x000000, 0.8);
         this.panel.fillRoundedRect(panelX, panelY, panelW, panelH, 20);
-        
+
         // Magical border
         this.panel.lineStyle(4, 0xFFD700);
         this.panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 20);
-        
+
         // Inner border
         this.panel.lineStyle(2, 0xFF69B4);
         this.panel.strokeRoundedRect(panelX + 8, panelY + 8, panelW - 16, panelH - 16, 15);
@@ -329,14 +380,16 @@ class PersonalityScene extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5);
 
-        this.personalityName = this.add.text(550, 220, this.creatureData.personality.name, {
+        const personalityName = this.creatureData.personality.name || 'Mysterious Being';
+        this.personalityName = this.add.text(550, 220, personalityName, {
             fontSize: '20px',
             color: '#FF69B4',
             fontStyle: 'bold',
             align: 'center'
         }).setOrigin(0.5);
 
-        this.personalityDesc = this.add.text(550, 250, this.creatureData.personality.description, {
+        const personalityDesc = this.creatureData.personality.description || 'A unique creature with its own special traits';
+        this.personalityDesc = this.add.text(550, 250, personalityDesc, {
             fontSize: '16px',
             color: '#FFFFFF',
             align: 'center',
@@ -353,10 +406,10 @@ class PersonalityScene extends Phaser.Scene {
 
         const genetics = this.creatureData.genes;
         const geneticsInfo = [
-            `Size: ${genetics.size}`,
-            `Pattern: ${genetics.pattern}`,
-            `Temperament: ${genetics.temperament}`,
-            genetics.specialTrait !== 'none' ? `Special: ${genetics.specialTrait.replace('_', ' ')}` : ''
+            `Size: ${genetics.size || 'medium'}`,
+            `Pattern: ${genetics.pattern || 'solid'}`,
+            `Temperament: ${genetics.temperament || 'gentle'}`,
+            genetics.specialTrait && genetics.specialTrait !== 'none' ? `Special: ${genetics.specialTrait.replace('_', ' ')}` : ''
         ].filter(text => text).join('\n');
 
         this.geneticsText = this.add.text(550, 365, geneticsInfo, {
@@ -382,6 +435,21 @@ class PersonalityScene extends Phaser.Scene {
                 ease: 'Power2',
                 delay: 200 + (index * 300)
             });
+        });
+    }
+
+    showErrorAndRestart() {
+        const errorText = this.add.text(400, 300, '⚠️ Error Loading Creature\n\nReturning to start...', {
+            fontSize: '24px',
+            color: '#FF4444',
+            stroke: '#000000',
+            strokeThickness: 3,
+            align: 'center',
+            fontFamily: 'Arial, sans-serif'
+        }).setOrigin(0.5);
+
+        this.time.delayedCall(2000, () => {
+            this.scene.start('HatchingScene');
         });
     }
 

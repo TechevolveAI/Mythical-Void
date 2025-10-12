@@ -17,6 +17,8 @@ const modulesToLoad = [
     './systems/HatchCinematics.js',
     './systems/FXLibrary.js',
     './systems/ParallaxBiome.js',
+    './systems/RaritySystem.js',      // NEW: Rarity with pity
+    './systems/RerollSystem.js',      // NEW: Reroll mechanics
     './systems/CreatureGenetics.js',
     './systems/GeneticsEngine.js',
     './systems/GameState.js',

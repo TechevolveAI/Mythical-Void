@@ -187,17 +187,17 @@ async function initializeGame() {
             },
             scene: [HatchingScene, PersonalityScene, NamingScene, GameScene],
             scale: {
-                mode: Phaser.Scale.FIT,
+                mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: 800,
-                height: 600,
+                width: window.innerWidth,
+                height: window.innerHeight,
                 min: {
-                    width: 400,
-                    height: 300
+                    width: 800,
+                    height: 600
                 },
                 max: {
-                    width: 1600,
-                    height: 1200
+                    width: window.innerWidth,
+                    height: window.innerHeight
                 }
             },
             input: {

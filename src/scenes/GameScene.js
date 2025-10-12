@@ -225,18 +225,39 @@ class GameScene extends Phaser.Scene {
         // Get creature genetics for proper sprite creation
         const creatureData = getGameState().get('creature');
         let creatureTextures = ['enhancedCreature0']; // Default fallback
-        
+
         if (creatureData && creatureData.genetics) {
             console.log('game:info [GameScene] Creating player with genetics:', creatureData.genetics.id);
-            
-            // Create creature sprites with genetics for all animation frames
-            const spriteResults = [];
-            for (let frame = 0; frame < 4; frame++) {
-                const spriteResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(creatureData.genetics, frame);
-                spriteResults.push(spriteResult.textureName);
+
+            // Check if textures already exist (created in previous scenes)
+            const baseTextureName = `creature_${creatureData.genetics.id}`;
+            const frame0Exists = this.textures.exists(`${baseTextureName}_0`);
+
+            if (frame0Exists) {
+                // Reuse existing textures from previous scenes
+                console.log('game:info [GameScene] Reusing existing creature textures');
+                creatureTextures = [];
+                for (let frame = 0; frame < 4; frame++) {
+                    const textureName = `${baseTextureName}_${frame}`;
+                    if (this.textures.exists(textureName)) {
+                        creatureTextures.push(textureName);
+                    } else {
+                        // Create missing frame
+                        const spriteResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(creatureData.genetics, frame);
+                        creatureTextures.push(spriteResult.textureName);
+                    }
+                }
+            } else {
+                // Create all creature sprite frames with genetics
+                console.log('game:info [GameScene] Creating new creature sprite frames');
+                const spriteResults = [];
+                for (let frame = 0; frame < 4; frame++) {
+                    const spriteResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(creatureData.genetics, frame);
+                    spriteResults.push(spriteResult.textureName);
+                }
+                creatureTextures = spriteResults;
             }
-            creatureTextures = spriteResults;
-            
+
             // Store the genetics reference for later use
             this.playerGenetics = creatureData.genetics;
         } else {
@@ -250,7 +271,15 @@ class GameScene extends Phaser.Scene {
         // Create physics sprite with the first texture
         this.player = this.physics.add.sprite(startX, startY, creatureTextures[0]);
         this.player.setScale(1.0);
+
+        // Enable collision with world bounds
         this.player.setCollideWorldBounds(true);
+
+        // Set player collision body size (slightly smaller than sprite for better gameplay)
+        this.player.body.setSize(40, 60);
+        this.player.body.setOffset(10, 10);
+
+        console.log(`game:info [GameScene] Player created at (${startX}, ${startY}) with world bounds: ${this.worldWidth}x${this.worldHeight}`);
         
         // Make creature clickable for care interactions
         this.player.setInteractive({ cursor: 'pointer' });
@@ -288,10 +317,16 @@ class GameScene extends Phaser.Scene {
     }
 
     setupCamera() {
-        // Make camera follow the player
-        this.cameras.main.startFollow(this.player);
+        // Make camera follow the player with smooth following
+        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+        // Set camera bounds to match world bounds
         this.cameras.main.setBounds(0, 0, this.worldWidth, this.worldHeight);
+
+        // Set default zoom
         this.cameras.main.setZoom(1);
+
+        console.log(`game:info [GameScene] Camera configured - World: ${this.worldWidth}x${this.worldHeight}, Viewport: ${this.cameras.main.width}x${this.cameras.main.height}`);
     }
 
     createEnvironmentObjects() {
@@ -1684,8 +1719,8 @@ class GameScene extends Phaser.Scene {
         }
 
         // Show contextual help message
-        if (bestAction.message) {
-            window.KidMode.showHelpMessage(this, bestAction.message);
+        if (bestAction.message && window.KidMode && window.KidMode.showSpaceHelpMessage) {
+            window.KidMode.showSpaceHelpMessage(this, bestAction.message);
         }
     }
 

@@ -99,6 +99,33 @@ class GameStateManager {
                 totalLogins: 0,
                 claimedToday: false
             },
+            pitySystem: {
+                hatchesSinceEpic: 0,
+                guaranteedEpicNext: false,
+                totalHatches: 0,
+                pitiesTriggered: 0,
+                lastHatchTime: null,
+                history: []
+            },
+            rerollSystem: {
+                freeRerollsAvailable: 1,
+                totalRerolls: 0,
+                successfulRerolls: 0,
+                rerollHistory: [],
+                lastRerollTime: null
+            },
+            creatures: [],  // Collection of all hatched creatures
+            codex: {
+                discovered: 0,
+                total: 50,
+                byRarity: {
+                    common: 0,
+                    uncommon: 0,
+                    rare: 0,
+                    epic: 0,
+                    legendary: 0
+                }
+            },
             session: {
                 sessionStart: now,
                 currentScene: 'HatchingScene',

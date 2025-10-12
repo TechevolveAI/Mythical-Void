@@ -1049,19 +1049,9 @@ class GraphicsEngine {
         }
 
         const startTime = Date.now();
-        
+
         // Convert genetic data to visual parameters
         const visualConfig = this.geneticsToVisualConfig(genetics);
-        
-        // Create base creature
-        const baseSize = { width: 60, height: 80 };
-        const metrics = this.getCreatureCanvasMetrics(enhancedTraits, baseSize);
-
-        const graphics = this.scene.add.graphics();
-        graphics.save();
-        graphics.translateCanvas(metrics.padding.x, metrics.padding.y);
-
-        const center = { ...metrics.baseCenter };
 
         // Apply body shape modifications
         const bodyModifications = this.calculateBodyModifications(genetics.traits.bodyShape);
@@ -1071,6 +1061,16 @@ class GraphicsEngine {
             ...genetics.traits.features,
             bodyMods: bodyModifications
         };
+
+        // Create base creature
+        const baseSize = { width: 60, height: 80 };
+        const metrics = this.getCreatureCanvasMetrics(enhancedTraits, baseSize);
+
+        const graphics = this.scene.add.graphics();
+        graphics.save();
+        graphics.translateCanvas(metrics.padding.x, metrics.padding.y);
+
+        const center = { ...metrics.baseCenter };
 
         // Create creature directly on the graphics context
         this.renderCreatureOnGraphics(

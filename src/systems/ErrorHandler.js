@@ -129,8 +129,15 @@ class ErrorHandler {
      * Handle an error with appropriate user feedback
      */
     handleError(errorInfo) {
-        // Log to console for debugging
-        console.error('[ErrorHandler]', errorInfo);
+        // Log to console for debugging with full details
+        console.error('[ErrorHandler] Error caught:');
+        console.error('  Message:', errorInfo.message);
+        console.error('  Type:', errorInfo.type);
+        console.error('  Severity:', errorInfo.severity);
+        if (errorInfo.stack) {
+            console.error('  Stack:', errorInfo.stack);
+        }
+        console.error('  Full error object:', errorInfo);
 
         // Add to error queue
         this.errorQueue.push({
@@ -146,8 +153,8 @@ class ErrorHandler {
         // Determine if error is recoverable
         const isRecoverable = this.isErrorRecoverable(errorInfo);
 
-        // Show user-friendly error message
-        this.showErrorMessage(errorInfo, isRecoverable);
+        // TEMPORARILY DISABLED: Show user-friendly error message to prevent cascading errors
+        // this.showErrorMessage(errorInfo, isRecoverable);
 
         // Auto-recover if possible
         if (isRecoverable) {
@@ -181,7 +188,10 @@ class ErrorHandler {
      * Show user-friendly error message
      */
     showErrorMessage(errorInfo, isRecoverable) {
-        if (!this.errorContainer) return;
+        if (!this.errorContainer || !document.body.contains(this.errorContainer)) {
+            console.warn('[ErrorHandler] Error container not available in DOM');
+            return;
+        }
 
         // Create error element
         const errorElement = document.createElement('div');
@@ -250,14 +260,18 @@ class ErrorHandler {
             </div>
         `;
 
-        // Add to container
-        this.errorContainer.appendChild(errorElement);
+        // Add to container (verify container still exists)
+        if (this.errorContainer && document.body.contains(this.errorContainer)) {
+            this.errorContainer.appendChild(errorElement);
 
-        // Auto-dismiss after delay (longer for errors)
-        const dismissDelay = errorInfo.severity === 'error' ? 8000 : 5000;
-        setTimeout(() => {
-            this.dismissErrorElement(errorElement);
-        }, dismissDelay);
+            // Auto-dismiss after delay (longer for errors)
+            const dismissDelay = errorInfo.severity === 'error' ? 8000 : 5000;
+            setTimeout(() => {
+                this.dismissErrorElement(errorElement);
+            }, dismissDelay);
+        } else {
+            console.warn('[ErrorHandler] Cannot append error element - container removed');
+        }
     }
 
     /**
@@ -385,11 +399,18 @@ class ErrorHandler {
      * Dismiss error element with animation
      */
     dismissErrorElement(element) {
-        if (!element || !element.parentNode) return;
-        
+        if (!element) return;
+
+        // Check if element still exists in DOM
+        if (!element.parentNode || !document.body.contains(element)) {
+            console.warn('[ErrorHandler] Element already removed from DOM');
+            return;
+        }
+
         element.style.animation = 'fadeOut 0.3s ease-out';
         setTimeout(() => {
-            if (element.parentNode) {
+            // Double-check element still exists before removing
+            if (element.parentNode && document.body.contains(element)) {
                 element.remove();
             }
         }, 300);
