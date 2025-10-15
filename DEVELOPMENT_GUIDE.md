@@ -18,6 +18,8 @@ npm run health-check
 
 # 3. Start development server
 npm run dev
+
+# Reference: see LOCAL_SERVER_REFERENCE.md for port mappings & additional local servers
 ```
 
 ### ✅ **Pre-Commit Checklist**

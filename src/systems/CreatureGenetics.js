@@ -4,6 +4,35 @@
  * Kid-friendly design emphasizing wonder and discovery over complexity
  */
 
+// Global rarity color anchors keep palettes consistent across generation paths
+const RARITY_COLOR_FAMILIES = Object.freeze({
+    common: {
+        primary: [0x1B5E20, 0x2E7D32, 0x33691E, 0x388E3C, 0x43A047, 0x4CAF50, 0x558B2F],
+        secondary: [0x2E7D32, 0x3D8B3D, 0x4E9A45, 0x5DAF52, 0x66BB6A, 0x7CB342],
+        accent: [0x81C784, 0x9CCC65, 0xA5D6A7, 0xB9F6CA, 0xC5E1A5]
+    },
+    uncommon: {
+        primary: [0xE65100, 0xEF6C00, 0xF57C00, 0xFB8C00, 0xFF9800, 0xFFA726],
+        secondary: [0xFF7043, 0xFF8A65, 0xFFAB40, 0xFFB74D, 0xFFC107, 0xFFB74D],
+        accent: [0xFFE0B2, 0xFFCC80, 0xFFD180, 0xFFD54F, 0xFFE082]
+    },
+    rare: {
+        primary: [0xAD1457, 0xC2185B, 0xD81B60, 0xE91E63, 0xEC407A, 0xF06292],
+        secondary: [0xB71C1C, 0xC62828, 0xD32F2F, 0xE53935, 0xF44336, 0xFF1744],
+        accent: [0xF48FB1, 0xF8BBD0, 0xFF80AB, 0xFF8A80, 0xFFCDD2]
+    },
+    epic: {
+        primary: [0x4A148C, 0x5E35B1, 0x6A1B9A, 0x7B1FA2, 0x8E24AA, 0x512DA8],
+        secondary: [0x4527A0, 0x512DA8, 0x5C6BC0, 0x3949AB, 0x3F51B5, 0x7E57C2],
+        accent: [0x9575CD, 0xB39DDB, 0xC5CAE9, 0xD1C4E9, 0x9FA8DA]
+    },
+    legendary: {
+        primary: [0xB28704, 0xBF9B30, 0xC6A700, 0xD4AF37, 0xF9A825, 0xFBC02D, 0xFFD54F],
+        secondary: [0xBFA741, 0xC8A600, 0xD1B264, 0xE0C15A, 0xFDD835, 0xFFE082],
+        accent: [0xFFF59D, 0xFFF176, 0xFFE082, 0xFFD740, 0xFFECB3]
+    }
+});
+
 class CreatureGenetics {
     constructor() {
         this.initialized = false;
@@ -123,8 +152,9 @@ class CreatureGenetics {
         this.rarityWeights = {
             common: 0.70,    // Standard variations
             uncommon: 0.20,  // Enhanced features
-            rare: 0.08,      // Special markings  
-            legendary: 0.02  // Unique variants
+            rare: 0.07,      // Special markings  
+            epic: 0.02,      // High-tier variants
+            legendary: 0.01  // Unique variants
         };
     }
 
@@ -304,6 +334,7 @@ class CreatureGenetics {
             common: 1.0,
             uncommon: 1.2,
             rare: 1.5,
+            epic: 1.7,
             legendary: 2.0
         };
         
@@ -318,61 +349,70 @@ class CreatureGenetics {
      * Generate color genome with Space-Mythic palette and advanced mixing
      */
     generateColorGenome(template, rarity) {
-        const baseBodyColor = this.selectFromPalette(template.baseColors.body);
-        const baseWingColor = this.selectFromPalette(template.baseColors.wings);
-        const baseEyeColor = this.selectFromPalette(template.baseColors.eyes);
-        
-        // Advanced color mixing based on genetics
-        const colorMixingStrength = Math.random() * 0.4 + 0.1; // 0.1-0.5 range
+        const rarityAnchors = this.getRarityAnchors(rarity);
+        const paletteBlendRatio = this.getPaletteBlendRatio(rarity);
         const mutationChance = this.config?.mutationChance || 0.15;
-        
-        // Body color with potential secondary mixing
-        let primaryColor = baseBodyColor;
+        const colorMixingStrength = Math.random() * 0.4 + 0.1; // 0.1-0.5 range
+
+        // Start with rarity-aligned colors so each tier stays within its family
+        let primaryColor = rarityAnchors.primary;
+        let secondaryColor = rarityAnchors.secondary;
+        let accentColor = rarityAnchors.accent;
+
+        // Blend with species palettes to keep subtle species identity without breaking rarity family
+        const templateBodyColor = this.selectFromPalette(template.baseColors.body);
+        const templateWingColor = this.selectFromPalette(template.baseColors.wings);
+        const templateEyeColor = this.selectFromPalette(template.baseColors.eyes);
+
+        primaryColor = this.blendColors(primaryColor, templateBodyColor, paletteBlendRatio);
+        secondaryColor = this.blendColors(secondaryColor, templateWingColor, paletteBlendRatio);
+        accentColor = this.blendColors(accentColor, templateEyeColor, Math.min(0.35, paletteBlendRatio + 0.05));
+
+        // Additional mixing stays within the rarity palette family for variation
         if (Math.random() < colorMixingStrength) {
-            const secondaryBodyColor = this.selectFromPalette(template.baseColors.body);
-            primaryColor = this.blendColors(baseBodyColor, secondaryBodyColor, 0.3);
+            const alternatePrimary = this.randomChoice(rarityAnchors.swatchPool.primary);
+            primaryColor = this.blendColors(primaryColor, alternatePrimary, 0.4);
         }
-        
-        // Wing color with potential complementary mixing
-        let secondaryColor = baseWingColor;
         if (Math.random() < colorMixingStrength) {
-            const complementaryColor = this.selectFromPalette(template.baseColors.wings);
-            secondaryColor = this.blendColors(baseWingColor, complementaryColor, 0.4);
+            const alternateSecondary = this.randomChoice(rarityAnchors.swatchPool.secondary);
+            secondaryColor = this.blendColors(secondaryColor, alternateSecondary, 0.35);
         }
-        
-        // Eye color with cosmic influence
-        let accentColor = baseEyeColor;
-        if (Math.random() < 0.3) { // 30% chance for cosmic eye influence
+
+        // Allow cosmic accents but keep final clamp to rarity palette
+        if (Math.random() < 0.3) { // 30% chance for cosmic influence
             const cosmicColors = this.getCosmicColorPalette(template.cosmicAffinities);
             if (cosmicColors.length > 0) {
                 const cosmicColor = this.randomChoice(cosmicColors);
-                accentColor = this.blendColors(baseEyeColor, cosmicColor, 0.25);
+                accentColor = this.blendColors(accentColor, cosmicColor, 0.2);
             }
         }
-        
-        // Color mutations for rarity
+
+        // Color mutations provide subtle brightness shifts without leaving the family
         if (Math.random() < mutationChance) {
             primaryColor = this.applyColorMutation(primaryColor, rarity);
         }
         if (Math.random() < mutationChance * 0.7) {
             secondaryColor = this.applyColorMutation(secondaryColor, rarity);
         }
-        
-        // Rarity-based enhancements
+        if (Math.random() < mutationChance * 0.6) {
+            accentColor = this.applyColorMutation(accentColor, rarity);
+        }
+
+        // Final clamp ensures palette alignment after all mixes
+        primaryColor = this.clampToRarityPalette(primaryColor, rarityAnchors.swatchPool.primary, rarity);
+        secondaryColor = this.clampToRarityPalette(secondaryColor, rarityAnchors.swatchPool.secondary, rarity);
+        accentColor = this.clampToRarityPalette(accentColor, rarityAnchors.swatchPool.accent, rarity);
+
         const rarityEnhancement = this.getRarityColorEnhancement(rarity);
-        
+
         return {
             primary: this.enhanceColor(primaryColor, rarityEnhancement.intensity),
             secondary: this.enhanceColor(secondaryColor, rarityEnhancement.intensity),
             accent: this.enhanceColor(accentColor, rarityEnhancement.intensity),
-            
-            // Advanced color properties
             gradient: this.generateColorGradient(primaryColor, secondaryColor, rarity),
             shimmerIntensity: rarityEnhancement.shimmer,
             colorComplexity: this.calculateColorComplexity(primaryColor, secondaryColor, accentColor),
             harmonicResonance: this.calculateColorHarmony([primaryColor, secondaryColor, accentColor]),
-            
-            // Genetic color metadata
             mixingPattern: this.determineMixingPattern(rarity),
             dominantHue: this.extractDominantHue(primaryColor),
             saturationLevel: this.calculateSaturationLevel([primaryColor, secondaryColor, accentColor]),
@@ -429,6 +469,7 @@ class CreatureGenetics {
             common: 0,
             uncommon: 0.1,
             rare: 0.2,
+            epic: 0.25,
             legendary: 0.3
         };
         
@@ -460,6 +501,48 @@ class CreatureGenetics {
     /**
      * Helper methods
      */
+    getRarityPalette(rarity) {
+        return RARITY_COLOR_FAMILIES[rarity] || RARITY_COLOR_FAMILIES.common;
+    }
+
+    getRarityAnchors(rarity) {
+        const palette = this.getRarityPalette(rarity);
+
+        return {
+            primary: this.randomChoice(palette.primary),
+            secondary: this.randomChoice(palette.secondary || palette.primary),
+            accent: this.randomChoice(palette.accent || palette.secondary || palette.primary),
+            swatchPool: {
+                primary: palette.primary,
+                secondary: palette.secondary || palette.primary,
+                accent: palette.accent || palette.secondary || palette.primary
+            }
+        };
+    }
+
+    getPaletteBlendRatio(rarity) {
+        const ratios = {
+            common: 0.35,
+            uncommon: 0.3,
+            rare: 0.25,
+            epic: 0.22,
+            legendary: 0.18
+        };
+
+        return ratios[rarity] ?? 0.3;
+    }
+
+    clampToRarityPalette(color, palette, rarity) {
+        if (!palette || palette.length === 0) {
+            return color;
+        }
+
+        // Slightly bias back toward palette anchor without collapsing variation
+        const anchor = this.randomChoice(palette);
+        const blendRatio = Math.max(0.12, this.getPaletteBlendRatio(rarity) * 0.6);
+        return this.blendColors(anchor, color, blendRatio);
+    }
+
     selectFromPalette(palette) {
         return palette[Math.floor(Math.random() * palette.length)];
     }
@@ -493,6 +576,7 @@ class CreatureGenetics {
             common: ['spots', 'stripes', 'simple_sparkles'],
             uncommon: ['spots', 'stripes', 'sparkles', 'swirls', 'crescents'],
             rare: ['complex_spots', 'galaxy_swirls', 'constellation_dots', 'aurora_stripes', 'crystal_facets'],
+            epic: ['galaxy_swirls', 'nebula_trail', 'aurora_stripes', 'stellar_mandala', 'crystal_facets', 'twilight_rings'],
             legendary: ['stellar_mandala', 'cosmic_fractals', 'reality_rifts', 'time_spirals', 'void_portals']
         };
         
@@ -500,6 +584,7 @@ class CreatureGenetics {
             common: 0.4,     // 40% chance for markings
             uncommon: 0.7,   // 70% chance for markings
             rare: 0.9,       // 90% chance for markings
+            epic: 0.95,      // 95% chance for markings
             legendary: 1.0   // Always has markings
         };
         
@@ -746,8 +831,9 @@ class CreatureGenetics {
         const mutationStrength = {
             common: 0.1,
             uncommon: 0.2,
-            rare: 0.3,
-            legendary: 0.5
+            rare: 0.28,
+            epic: 0.32,
+            legendary: 0.45
         };
         
         const strength = mutationStrength[rarity] || 0.1;
@@ -781,11 +867,15 @@ class CreatureGenetics {
             },
             rare: {
                 intensity: 0.2,
-                shimmer: 0.7 + Math.random() * 0.3
+                shimmer: 0.65 + Math.random() * 0.25
+            },
+            epic: {
+                intensity: 0.25,
+                shimmer: 0.75 + Math.random() * 0.2
             },
             legendary: {
-                intensity: 0.3,
-                shimmer: 0.8 + Math.random() * 0.2
+                intensity: 0.32,
+                shimmer: 0.85 + Math.random() * 0.15
             }
         };
         
@@ -801,6 +891,7 @@ class CreatureGenetics {
             common: ['linear'],
             uncommon: ['linear', 'radial'],
             rare: ['linear', 'radial', 'spiral'],
+            epic: ['linear', 'radial', 'spiral'],
             legendary: ['radial', 'spiral']
         };
         
@@ -866,6 +957,7 @@ class CreatureGenetics {
             common: ['solid', 'subtle_blend'],
             uncommon: ['gradient', 'color_shift', 'subtle_blend'],
             rare: ['complex_gradient', 'color_morph', 'harmonic_blend'],
+            epic: ['aurora_flow', 'prismatic_wave', 'color_morph', 'stellar_burst'],
             legendary: ['aurora_flow', 'cosmic_weave', 'stellar_burst']
         };
         
@@ -895,12 +987,12 @@ class CreatureGenetics {
     generateMutationFlags(rarity) {
         const flags = [];
         
-        if (rarity === 'uncommon' || rarity === 'rare' || rarity === 'legendary') {
+        if (rarity === 'uncommon' || rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
             if (Math.random() < 0.3) flags.push('chromatic_shift');
             if (Math.random() < 0.2) flags.push('luminance_boost');
         }
         
-        if (rarity === 'rare' || rarity === 'legendary') {
+        if (rarity === 'rare' || rarity === 'epic' || rarity === 'legendary') {
             if (Math.random() < 0.4) flags.push('prismatic_effect');
             if (Math.random() < 0.3) flags.push('cosmic_resonance');
         }

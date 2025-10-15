@@ -1,8 +1,22 @@
-import { Phaser } from './global-init.js';
+import { Phaser, preloadModulesReady } from './global-init.js';
 import HatchingScene from './scenes/HatchingScene.js';
 import PersonalityScene from './scenes/PersonalityScene.js';
 import NamingScene from './scenes/NamingScene.js';
 import GameScene from './scenes/GameScene.js';
+import kidModeConfig from './config/kid-mode.json';
+import hatchCinematicsConfig from './config/hatch-cinematics.json';
+import biomesConfig from './config/biomes.json';
+
+const cloneConfig = (config) => {
+    try {
+        if (typeof structuredClone === 'function') {
+            return structuredClone(config);
+        }
+    } catch (err) {
+        // Ignore and fall back to JSON clone below
+    }
+    return JSON.parse(JSON.stringify(config));
+};
 
 /**
  * Main game file that initializes Phaser with all game configuration
@@ -77,6 +91,7 @@ async function initializeGame() {
     gameInitialized = true;
 
     try {
+        await preloadModulesReady;
         console.log('🚀 Initializing Mythical Creature Game...');
         
         // Initialize environment configuration first
@@ -213,6 +228,22 @@ async function initializeGame() {
             callbacks: {
                 postBoot: function (game) {
                     console.log('🎮 Phaser game booted successfully');
+
+                    try {
+                        const canvas = game.canvas;
+                        if (canvas) {
+                            canvas.classList.add('ready');
+                        }
+
+                        const loadingScreen = document.getElementById('loading-screen');
+                        if (loadingScreen) {
+                            loadingScreen.style.opacity = '0';
+                            loadingScreen.style.pointerEvents = 'none';
+                            setTimeout(() => loadingScreen.remove(), 500);
+                        }
+                    } catch (uiError) {
+                        console.warn('ui:warn [Main] Failed to finalize loading screen:', uiError);
+                    }
                     
                     // Initialize responsive manager
                     if (window.ResponsiveManager) {
@@ -231,33 +262,25 @@ async function initializeGame() {
                     // Initialize Kid Mode system
                     if (window.KidMode) {
                         kidModeManager = window.KidMode;
-                        // Load Kid Mode config
-                        fetch('src/config/kid-mode.json')
-                            .then(response => response.json())
-                            .then(config => {
-                                kidModeManager.initialize(config);
-                                console.log('✅ Kid Mode system initialized');
-                            })
-                            .catch(error => {
-                                console.log('Kid Mode config not found, using defaults');
-                                kidModeManager.initialize();
-                            });
+                        try {
+                            kidModeManager.initialize(cloneConfig(kidModeConfig));
+                            console.log('✅ Kid Mode system initialized');
+                        } catch (configError) {
+                            console.warn('Kid Mode config failed to load, using defaults', configError);
+                            kidModeManager.initialize();
+                        }
                     }
 
                     // Initialize Hatch Cinematics system
                     if (window.HatchCinematics) {
                         hatchCinematicsManager = window.HatchCinematics;
-                        // Load cinematics config
-                        fetch('src/config/hatch-cinematics.json')
-                            .then(response => response.json())
-                            .then(config => {
-                                hatchCinematicsManager.initialize(config);
-                                console.log('✅ Hatch Cinematics system initialized');
-                            })
-                            .catch(error => {
-                                console.log('Cinematics config not found, using defaults');
-                                hatchCinematicsManager.initialize();
-                            });
+                        try {
+                            hatchCinematicsManager.initialize(cloneConfig(hatchCinematicsConfig));
+                            console.log('✅ Hatch Cinematics system initialized');
+                        } catch (configError) {
+                            console.warn('Hatch Cinematics config failed to load, using defaults', configError);
+                            hatchCinematicsManager.initialize();
+                        }
                     }
 
                     // Initialize FX Library system
@@ -270,17 +293,13 @@ async function initializeGame() {
                     // Initialize Parallax Biome system
                     if (window.ParallaxBiome) {
                         parallaxBiome = window.ParallaxBiome;
-                        // Load biomes config
-                        fetch('src/config/biomes.json')
-                            .then(response => response.json())
-                            .then(config => {
-                                parallaxBiome.initialize(config);
-                                console.log('✅ Parallax Biome system initialized');
-                            })
-                            .catch(error => {
-                                console.log('Biomes config not found, using defaults');
-                                parallaxBiome.initialize();
-                            });
+                        try {
+                            parallaxBiome.initialize(cloneConfig(biomesConfig));
+                            console.log('✅ Parallax Biome system initialized');
+                        } catch (configError) {
+                            console.warn('Parallax Biome config failed to load, using defaults', configError);
+                            parallaxBiome.initialize();
+                        }
                     }
 
                     // Initialize Creature Genetics system

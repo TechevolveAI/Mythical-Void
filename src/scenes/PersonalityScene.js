@@ -221,6 +221,151 @@ class PersonalityScene extends Phaser.Scene {
         };
     }
 
+    getRarityMeta(rarity) {
+        const meta = {
+            common: { name: 'Common', emoji: '🟢', color: '#7CFC00' },
+            uncommon: { name: 'Uncommon', emoji: '🟠', color: '#FFA500' },
+            rare: { name: 'Rare', emoji: '🩷', color: '#FF6B81' },
+            epic: { name: 'Epic', emoji: '🟣', color: '#9B59B6' },
+            legendary: { name: 'Legendary', emoji: '⭐', color: '#FFD700' }
+        };
+        return meta[rarity] || meta.common;
+    }
+
+    buildPersonalitySummary(personality = {}, genetics = {}) {
+        if (!personality.core) {
+            return 'This soul is still stabilising — keep bonding to learn its temperament.';
+        }
+
+        const quirks = this.formatQuirks(personality.quirks);
+        const carePrefs = this.formatCarePreferences(genetics.personality?.carePreferences || personality.carePreferences);
+        const social = Math.round((personality.socialLevel ?? 0.5) * 100);
+        const independence = Math.round((personality.independence ?? 0.5) * 100);
+
+        return [
+            `Essence: ${personality.description || 'A mysterious being with untapped potential.'}`,
+            quirks ? `Quirks: ${quirks}` : '',
+            carePrefs ? `Thrives when you: ${carePrefs}` : '',
+            `Social ${social}% • Independence ${independence}%`
+        ].filter(Boolean).join('\n');
+    }
+
+    buildGeneticSummary(genetics = {}) {
+        const traits = genetics.traits || {};
+        const body = traits.bodyShape || {};
+        const features = traits.features || {};
+        const markings = features.markings || {};
+        const specialFeatures = this.formatSpecialFeatures(features.specialFeatures);
+
+        const bodyFlavor = this.describeBodyForm(body.type);
+        const markingFlavor = markings.pattern ? `Markings: ${this.formatTitleCase(markings.pattern)} ${markings.distribution ? `with ${markings.distribution} flow` : ''}` : '';
+        const wingFlavor = features.wings ? `Wing style: ${this.describeWing(features.wings.type)} (${Math.round((features.wings.span ?? 1) * 100)}% span)` : '';
+
+        return [
+            bodyFlavor,
+            markingFlavor,
+            wingFlavor,
+            specialFeatures ? `Signature traits: ${specialFeatures}` : 'Signature traits: still awakening'
+        ].filter(Boolean).join('\n');
+    }
+
+    buildCosmicSummary(cosmic = {}) {
+        if (!cosmic.element) {
+            return 'Cosmic alignment is still forming — explore together to unlock it.';
+        }
+
+        const abilities = this.formatList(cosmic.specialAbilities, 'Hidden potential awaiting discovery');
+        const effects = this.formatList(cosmic.visualEffects, null);
+        const power = Math.round((cosmic.powerLevel ?? 0.5) * 100);
+
+        return [
+            `${this.describeElement(cosmic.element)} (${power}% resonance)`,
+            cosmic.description || '',
+            abilities ? `Innate gifts: ${abilities}` : '',
+            effects ? `Aura tells: ${effects}` : ''
+        ].filter(Boolean).join('\n');
+    }
+
+    formatQuirks(quirks = []) {
+        if (!Array.isArray(quirks) || quirks.length === 0) return '';
+        return quirks.map(q => this.formatTitleCase(q.replace(/_/g, ' '))).join(', ');
+    }
+
+    formatCarePreferences(preferences = {}) {
+        const entries = Object.entries(preferences)
+            .filter(([, value]) => typeof value === 'number' && value > 1.05)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([action]) => this.formatCareAction(action));
+
+        return entries.length ? entries.join(', ') : '';
+    }
+
+    formatSpecialFeatures(features) {
+        if (!features || features.length === 0) return '';
+        const names = features.map(feature => {
+            if (typeof feature === 'string') return feature;
+            if (feature && typeof feature === 'object' && feature.type) return feature.type;
+            return null;
+        }).filter(Boolean);
+
+        return names.length ? this.formatList(names) : '';
+    }
+
+    describeBodyForm(type = 'balanced') {
+        const map = {
+            slender: 'Body form: Slender stargazer build',
+            balanced: 'Body form: Balanced adventurer stance',
+            sturdy: 'Body form: Stalwart guardian frame',
+            fish: 'Body form: Flowing aquatic drifter',
+            cyclops: 'Body form: Mythic cyclopean sentinel',
+            serpentine: 'Body form: Serpentine wanderer'
+        };
+        return map[type] || `Body form: ${this.formatTitleCase(type)}`;
+    }
+
+    describeWing(type = 'feathered') {
+        const map = {
+            feathered: 'feathered starlight wings',
+            crystal: 'crystalline resonance wings',
+            ethereal: 'ethereal aurora wings',
+            none: 'no visible wings'
+        };
+        return map[type] || `${type} wings`;
+    }
+
+    describeElement(element = 'star') {
+        const map = {
+            star: 'Element: Radiant Starborn',
+            moon: 'Element: Lunar Dreamtide',
+            nebula: 'Element: Nebula Mystic',
+            crystal: 'Element: Crystal Resonant',
+            void: 'Element: Void Whisper'
+        };
+        return map[element] || `Element: ${this.formatTitleCase(element)}`;
+    }
+
+    formatCareAction(action) {
+        const map = {
+            feed: 'Feasting together',
+            play: 'Playful adventures',
+            rest: 'Soft starlit rests',
+            pet: 'Affectionate cuddles',
+            photo: 'Capturing memories',
+            clean: 'Aurora baths'
+        };
+        return map[action] || this.formatTitleCase(action);
+    }
+
+    formatList(items, fallback = '') {
+        if (!items || items.length === 0) return fallback;
+        return items.map(item => this.formatTitleCase(String(item).replace(/_/g, ' '))).join(', ');
+    }
+
+    formatTitleCase(text = '') {
+        return text.replace(/\b\w/g, char => char.toUpperCase());
+    }
+
     displayCreature() {
         let textureName = 'enhancedCreature0'; // Default fallback
 
@@ -372,68 +517,88 @@ class PersonalityScene extends Phaser.Scene {
             ease: 'Back.easeOut'
         });
 
-        // Personality section
-        this.personalityTitle = this.add.text(550, 180, '🌟 Personality 🌟', {
+        const contentX = panelX + 24;
+        let currentY = panelY + 40;
+
+        const rarityMeta = this.getRarityMeta(this.creatureGenetics?.rarity);
+        const personality = this.creatureData.personality || {};
+        const genetics = this.creatureGenetics || {};
+
+        this.rarityBadge = this.add.text(contentX, currentY, `${rarityMeta.emoji} ${rarityMeta.name} Soul`, {
             fontSize: '24px',
+            color: rarityMeta.color,
+            fontStyle: 'bold',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
+        }).setOrigin(0, 0.5);
+        currentY += 36;
+
+        this.personalityTitle = this.add.text(contentX, currentY, '🌟 Personality Profile', {
+            fontSize: '18px',
             color: '#FFD700',
-            fontStyle: 'bold',
-            align: 'center'
-        }).setOrigin(0.5);
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+        currentY += 26;
 
-        const personalityName = this.creatureData.personality.name || 'Mysterious Being';
-        this.personalityName = this.add.text(550, 220, personalityName, {
-            fontSize: '20px',
-            color: '#FF69B4',
-            fontStyle: 'bold',
-            align: 'center'
-        }).setOrigin(0.5);
-
-        const personalityDesc = this.creatureData.personality.description || 'A unique creature with its own special traits';
-        this.personalityDesc = this.add.text(550, 250, personalityDesc, {
-            fontSize: '16px',
-            color: '#FFFFFF',
-            align: 'center',
-            wordWrap: { width: 350 }
-        }).setOrigin(0.5);
-
-        // Genetics section
-        this.geneticsTitle = this.add.text(550, 320, '🧬 Genetics 🧬', {
-            fontSize: '20px',
-            color: '#87CEEB',
-            fontStyle: 'bold',
-            align: 'center'
-        }).setOrigin(0.5);
-
-        const genetics = this.creatureData.genes;
-        const geneticsInfo = [
-            `Size: ${genetics.size || 'medium'}`,
-            `Pattern: ${genetics.pattern || 'solid'}`,
-            `Temperament: ${genetics.temperament || 'gentle'}`,
-            genetics.specialTrait && genetics.specialTrait !== 'none' ? `Special: ${genetics.specialTrait.replace('_', ' ')}` : ''
-        ].filter(text => text).join('\n');
-
-        this.geneticsText = this.add.text(550, 365, geneticsInfo, {
+        this.personalityDesc = this.add.text(contentX, currentY, this.buildPersonalitySummary(personality, genetics), {
             fontSize: '14px',
+            color: '#FFFFFF',
+            align: 'left',
+            lineSpacing: 6,
+            wordWrap: { width: panelW - 48 }
+        }).setOrigin(0, 0);
+        currentY += this.personalityDesc.height + 16;
+
+        this.geneticsTitle = this.add.text(contentX, currentY, '🧬 Genetic Highlights', {
+            fontSize: '18px',
+            color: '#87CEEB',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+        currentY += 26;
+
+        this.geneticsText = this.add.text(contentX, currentY, this.buildGeneticSummary(genetics), {
+            fontSize: '13px',
             color: '#E0E0E0',
-            align: 'center',
-            lineSpacing: 8
-        }).setOrigin(0.5);
+            align: 'left',
+            lineSpacing: 6,
+            wordWrap: { width: panelW - 48 }
+        }).setOrigin(0, 0);
+        currentY += this.geneticsText.height + 16;
 
-        // Hide all text initially
-        [this.personalityTitle, this.personalityName, this.personalityDesc, this.geneticsTitle, this.geneticsText].forEach(text => {
-            text.setAlpha(0);
-        });
+        this.cosmicTitle = this.add.text(contentX, currentY, '🔮 Cosmic Affinity', {
+            fontSize: '18px',
+            color: '#B39DDB',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+        currentY += 26;
 
-        // Stagger text animations
-        const textElements = [this.personalityTitle, this.personalityName, this.personalityDesc, this.geneticsTitle, this.geneticsText];
-        textElements.forEach((text, index) => {
+        this.cosmicText = this.add.text(contentX, currentY, this.buildCosmicSummary(genetics.cosmicAffinity), {
+            fontSize: '13px',
+            color: '#CCCCFF',
+            align: 'left',
+            lineSpacing: 6,
+            wordWrap: { width: panelW - 48 }
+        }).setOrigin(0, 0);
+
+        const revealTexts = [
+            this.rarityBadge,
+            this.personalityTitle,
+            this.personalityDesc,
+            this.geneticsTitle,
+            this.geneticsText,
+            this.cosmicTitle,
+            this.cosmicText
+        ];
+
+        revealTexts.forEach(text => text.setAlpha(0));
+
+        revealTexts.forEach((text, index) => {
             this.tweens.add({
                 targets: text,
                 alpha: 1,
-                x: text.x + 20,
+                x: text.x + 12,
                 duration: 600,
                 ease: 'Power2',
-                delay: 200 + (index * 300)
+                delay: 200 + (index * 250)
             });
         });
     }

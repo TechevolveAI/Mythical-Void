@@ -28,16 +28,16 @@
     }
   },
   "colors": {
-    "crack": 0x8B4513,
-    "glow": 0xFFD700,
-    "particles": 0xFFFFFF,
-    "cards": 0x87CEEB,
-    "cardBorder": 0xB39DDB,
-    "text": 0x37474F,
-    "textSecondary": 0x64B5F6,
-    "stellarGlow": 0x80CBC4,
-    "crystalShimmer": 0xF48FB1,
-    "cosmicAura": 0x98FB98
+    "crack": "#8B4513",
+    "glow": "#FFD700",
+    "particles": "#FFFFFF",
+    "cards": "#87CEEB",
+    "cardBorder": "#B39DDB",
+    "text": "#37474F",
+    "textSecondary": "#64B5F6",
+    "stellarGlow": "#80CBC4",
+    "crystalShimmer": "#F48FB1",
+    "cosmicAura": "#98FB98"
   },
   "sfx": {
     "crack": "hatch_crack",

@@ -22,6 +22,8 @@ const modulesToLoad = [
     './systems/CreatureGenetics.js',
     './systems/GeneticsEngine.js',
     './systems/GameState.js',
+    './systems/CreatureMemory.js',
+    './systems/SafetyManager.js',
     './systems/GraphicsEngine.js',
     './systems/CreatureAI.js',
     './systems/CareSystem.js',
@@ -33,8 +35,6 @@ const modulesToLoad = [
     './scenes/GameScene.js'
 ];
 
-for (const modulePath of modulesToLoad) {
-    await import(modulePath);
-}
+const preloadModulesReady = Promise.all(modulesToLoad.map(modulePath => import(modulePath)));
 
-export { Phaser };
+export { Phaser, preloadModulesReady };

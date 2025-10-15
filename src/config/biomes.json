@@ -19,7 +19,7 @@
         "enabled": true,
         "count": 40,
         "twinkleProbability": 0.3,
-        "colors": [0xFFFFFF, 0xF0F8FF, 0xE6E6FA, 0xFFE4E1],
+        "colors": ["#FFFFFF", "#F0F8FF", "#E6E6FA", "#FFE4E1"],
         "sizeRange": { "min": 1, "max": 3 },
         "scrollFactor": 0.2,
         "animationSpeed": 0.02,
@@ -29,10 +29,10 @@
         "enabled": true,
         "count": 8,
         "sizes": ["large", "medium", "small"],
-        "colors": [0x708090, 0x696969, 0x778899, 0x2F4F4F],
+        "colors": ["#708090", "#696969", "#778899", "#2F4F4F"],
         "crystalGrowth": {
           "enabled": true,
-          "colors": [0x9370DB, 0x8A2BE2, 0xDA70D6],
+          "colors": ["#9370DB", "#8A2BE2", "#DA70D6"],
           "glowIntensity": 0.4
         },
         "scrollFactor": 0.4,
@@ -47,7 +47,7 @@
         "groundCrystals": {
           "count": 12,
           "heights": { "min": 20, "max": 80 },
-          "colors": [0x40E0D0, 0x48D1CC, 0x20B2AA, 0x008B8B],
+          "colors": ["#40E0D0", "#48D1CC", "#20B2AA", "#008B8B"],
           "glowPulse": {
             "enabled": true,
             "speed": 0.008,
@@ -56,7 +56,7 @@
         },
         "floatingSpores": {
           "count": 15,
-          "colors": [0x98FB98, 0x90EE90, 0x00FA9A],
+          "colors": ["#98FB98", "#90EE90", "#00FA9A"],
           "driftPattern": "gentle",
           "lifecycle": 8000
         },
@@ -67,7 +67,7 @@
         "auroraStreams": {
           "enabled": true,
           "count": 2,
-          "colors": [0x00CED1, 0x4682B4, 0x6A5ACD],
+          "colors": ["#00CED1", "#4682B4", "#6A5ACD"],
           "waveAmplitude": 25,
           "scrollSpeed": 0.1,
           "opacity": 0.4,
@@ -76,7 +76,7 @@
         "energyRipples": {
           "enabled": true,
           "triggerDistance": 100,
-          "colors": [0xFFD700, 0xFFA500],
+          "colors": ["#FFD700", "#FFA500"],
           "expansionSpeed": 200,
           "fadeTime": 1500
         }
@@ -86,7 +86,7 @@
         "particles": {
           "count": 25,
           "size": { "min": 0.5, "max": 2.0 },
-          "colors": [0xF5DEB3, 0xDDD], 
+          "colors": ["#F5DEB3", "#DDDDDD"], 
           "driftSpeed": { "min": 5, "max": 15 },
           "fadeInOut": true,
           "parallaxIntensity": 0.8
@@ -96,7 +96,7 @@
       },
       "gentleVignette": {
         "enabled": true,
-        "color": 0x1a0d2e,
+        "color": "#1A0D2E",
         "intensity": 0.15,
         "radius": 0.85,
         "featherEdge": 0.3
@@ -125,7 +125,7 @@
     "interactivity": {
       "touchRipples": {
         "enabled": true,
-        "colors": [0xFFD700, 0x87CEEB],
+        "colors": ["#FFD700", "#87CEEB"],
         "expandRadius": 120,
         "duration": 800
       },

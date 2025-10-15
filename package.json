@@ -8,7 +8,7 @@
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"Opening test framework...\" && http-server -p 8081 -o test-framework.html",
+    "test": "node ./scripts/serve-test-framework.js",
     "test:unit": "jest",
     "validate-flow": "node scripts/validate-game-flow.js",
     "pre-commit": "npm run validate-flow",

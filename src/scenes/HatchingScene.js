@@ -3,7 +3,19 @@
  * Features: floating egg animation, progressive hatching with color changes, sparkle effects
  */
 
+import hatchCinematicsConfig from '../config/hatch-cinematics.json';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
+const cloneConfig = (config) => {
+    try {
+        if (typeof structuredClone === 'function') {
+            return structuredClone(config);
+        }
+    } catch (err) {
+        // Ignore and fall back to JSON cloning
+    }
+    return JSON.parse(JSON.stringify(config));
+};
 
 function requireGlobal(name) {
     if (typeof window === 'undefined' || !window[name]) {
@@ -625,6 +637,7 @@ class HatchingScene extends Phaser.Scene {
             this.creature = this.add.image(400, 300, creatureResult.textureName);
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
+            this.creature.setDepth(20);
 
             // Store genetics data on the sprite for later access
             this.creature.genetics = this.creatureGenetics;
@@ -650,6 +663,7 @@ class HatchingScene extends Phaser.Scene {
             this.creature = this.add.image(400, 300, 'enhancedCreature0');
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
+            this.creature.setDepth(20);
 
             this.tweens.add({
                 targets: this.creature,
@@ -733,8 +747,7 @@ class HatchingScene extends Phaser.Scene {
      */
     async loadHatchConfig() {
         try {
-            const response = await fetch('src/config/hatch-cinematics.json');
-            this.hatchConfig = await response.json();
+            this.hatchConfig = cloneConfig(hatchCinematicsConfig);
             console.log('cinematic:debug [HatchingScene] Config loaded', this.hatchConfig);
         } catch (error) {
             console.log('cinematic:debug [HatchingScene] Using default config:', error.message);
@@ -954,7 +967,7 @@ class HatchingScene extends Phaser.Scene {
         state.set('creature.genetics', this.creatureGenetics);
 
         // Save the texture name for consistency across scenes
-        const textureName = `creature_${this.creatureGenetics.id}_0`;
+        const textureName = this.creature?.texture?.key || `creature_${this.creatureGenetics.id}_0`;
         state.set('creature.textureName', textureName);
 
         // Save key traits for easy access
@@ -1358,8 +1371,9 @@ class HatchingScene extends Phaser.Scene {
             console.log('hatch:info [HatchingScene] Creating new creature sprite...');
 
             this.creature = this.add.image(400, 300, creatureResult.textureName);
-            this.creature.setScale(0.5);
+            this.creature.setScale(1.5);
             this.creature.setAlpha(0);
+            this.creature.setDepth(20);
             this.creature.genetics = this.creatureGenetics;
 
             // Fade in new creature
@@ -1370,6 +1384,13 @@ class HatchingScene extends Phaser.Scene {
                 duration: 1000,
                 ease: 'Back.easeOut'
             });
+
+            // Bring back sparkle reveal & genetic VFX
+            this.createSparkles();
+            this.addGeneticEffects();
+
+            // Persist latest genetics/texture to GameState so downstream scenes use the rerolled creature
+            this.saveCreatureGenetics();
 
             // Update reroll tracking with new rarity
             rerollData = window.rerollSystem.trackReroll(originalRarity, this.creatureGenetics.rarity, rerollData);
