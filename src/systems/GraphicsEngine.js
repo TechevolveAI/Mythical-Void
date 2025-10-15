@@ -31,6 +31,19 @@ class GraphicsEngine {
     }
 
     /**
+     * Create a scratch graphics instance that never flashes on screen while generating textures.
+     */
+    createScratchGraphics() {
+        if (this.scene && this.scene.make && typeof this.scene.make.graphics === 'function') {
+            return this.scene.make.graphics({ x: 0, y: 0, add: false });
+        }
+
+        const graphics = this.scene.add.graphics({ x: -1000, y: -1000 });
+        graphics.setVisible(false);
+        return graphics;
+    }
+
+    /**
      * Calculate canvas metrics for creature rendering with generous padding
      */
     getCreatureCanvasMetrics(geneticTraits = null, baseSize = { width: 60, height: 80 }) {
@@ -82,6 +95,47 @@ class GraphicsEngine {
     }
 
     /**
+     * Safely translate the drawing context, falling back when Phaser-specific helpers are unavailable.
+     * Returns an object with the center shift that should be applied manually when translation is not supported.
+     */
+    safeGraphicsTranslate(graphics, padding = { x: 0, y: 0 }) {
+        const safePadding = {
+            x: padding?.x || 0,
+            y: padding?.y || 0
+        };
+
+        const result = {
+            centerShift: { x: 0, y: 0 },
+            restore: () => {}
+        };
+
+        if (!graphics) {
+            return result;
+        }
+
+        let saved = false;
+        if (typeof graphics.save === 'function') {
+            graphics.save();
+            saved = true;
+        }
+
+        if (typeof graphics.translateCanvas === 'function') {
+            graphics.translateCanvas(safePadding.x, safePadding.y);
+        } else {
+            result.centerShift.x = safePadding.x;
+            result.centerShift.y = safePadding.y;
+        }
+
+        result.restore = () => {
+            if (saved && typeof graphics.restore === 'function') {
+                graphics.restore();
+            }
+        };
+
+        return result;
+    }
+
+    /**
      * Create enhanced creature sprites with realistic depth and lighting
      */
     createEnhancedCreature(bodyColor = 0x9370DB, headColor = 0xDDA0DD, wingColor = 0x8A2BE2, frame = 0, geneticTraits = null) {
@@ -89,11 +143,13 @@ class GraphicsEngine {
         const baseCenter = { x: baseSize.width / 2, y: baseSize.height / 2 };
         const metrics = this.getCreatureCanvasMetrics(geneticTraits, baseSize);
 
-        const graphics = this.scene.add.graphics();
-        graphics.save();
-        graphics.translateCanvas(metrics.padding.x, metrics.padding.y);
+        const graphics = this.createScratchGraphics();
+        const translation = this.safeGraphicsTranslate(graphics, metrics.padding);
 
-        const center = { ...baseCenter };
+        const center = {
+            x: baseCenter.x + translation.centerShift.x,
+            y: baseCenter.y + translation.centerShift.y
+        };
 
         // Calculate lighting values
         const shadowColor = this.darkenColor(bodyColor, 0.4);
@@ -180,7 +236,7 @@ class GraphicsEngine {
         graphics.fillStyle(0xFFFFFF, 0.2);
         graphics.fillEllipse(center.x - 2, center.y - 2, 8, 12);
 
-        graphics.restore();
+        translation.restore();
 
         return this.finalizeTexture(graphics, `enhancedCreature${frame}`, metrics.width, metrics.height);
     }
@@ -441,7 +497,7 @@ class GraphicsEngine {
      * Create enhanced tree with bark texture and layered foliage
      */
     createEnhancedTree(scale = 1.0, season = 'summer') {
-        const graphics = this.scene.add.graphics();
+        const graphics = this.createScratchGraphics();
         const center = { x: 30, y: 50 };
         
         // === TRUNK WITH REALISTIC BARK ===
@@ -525,7 +581,7 @@ class GraphicsEngine {
      * Create realistic rock with cracks, moss, and proper shading
      */
     createEnhancedRock(scale = 1.0, mossiness = 0.3) {
-        const graphics = this.scene.add.graphics();
+        const graphics = this.createScratchGraphics();
         const center = { x: 25, y: 25 };
 
         // === GROUND SHADOW ===
@@ -620,7 +676,7 @@ class GraphicsEngine {
      * Create beautiful flower with realistic petals and details
      */
     createEnhancedFlower(petalColor = 0xFF69B4, centerColor = 0xFFD700, scale = 1.0) {
-        const graphics = this.scene.add.graphics();
+        const graphics = this.createScratchGraphics();
         const center = { x: 20, y: 25 };
 
         // === STEM WITH GRADIENT ===
@@ -743,7 +799,7 @@ class GraphicsEngine {
      * Create advanced magical sparkle effects
      */
     createMagicalSparkle(color = 0xFFD700, size = 1.0) {
-        const graphics = this.scene.add.graphics();
+        const graphics = this.createScratchGraphics();
         const center = { x: 15, y: 15 };
 
         // Glow effect (multiple layers)
@@ -996,11 +1052,13 @@ class GraphicsEngine {
         const baseSize = { width: 60, height: 80 };
         const metrics = this.getCreatureCanvasMetrics(geneticTraits, baseSize);
 
-        const graphics = this.scene.add.graphics();
-        graphics.save();
-        graphics.translateCanvas(metrics.padding.x, metrics.padding.y);
+        const graphics = this.createScratchGraphics();
+        const translation = this.safeGraphicsTranslate(graphics, metrics.padding);
 
-        const center = { ...metrics.baseCenter };
+        const center = {
+            x: metrics.baseCenter.x + translation.centerShift.x,
+            y: metrics.baseCenter.y + translation.centerShift.y
+        };
 
         this.renderCreatureOnGraphics(
             graphics,
@@ -1030,7 +1088,7 @@ class GraphicsEngine {
             ]
         });
 
-        graphics.restore();
+        translation.restore();
 
         const textureName = `space_creature_${frame}_${Date.now()}`;
         return this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
@@ -1066,11 +1124,13 @@ class GraphicsEngine {
         const baseSize = { width: 60, height: 80 };
         const metrics = this.getCreatureCanvasMetrics(enhancedTraits, baseSize);
 
-        const graphics = this.scene.add.graphics();
-        graphics.save();
-        graphics.translateCanvas(metrics.padding.x, metrics.padding.y);
+        const graphics = this.createScratchGraphics();
+        const translation = this.safeGraphicsTranslate(graphics, metrics.padding);
 
-        const center = { ...metrics.baseCenter };
+        const center = {
+            x: metrics.baseCenter.x + translation.centerShift.x,
+            y: metrics.baseCenter.y + translation.centerShift.y
+        };
 
         // Create creature directly on the graphics context
         this.renderCreatureOnGraphics(
@@ -1099,7 +1159,7 @@ class GraphicsEngine {
         // Add personality-based visual traits
         this.addPersonalityEffects(graphics, genetics.personality, center, baseSize);
 
-        graphics.restore();
+        translation.restore();
 
         const textureName = `creature_${genetics.id}_${frame}`;
         const textureResult = this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);

@@ -113,6 +113,10 @@ class KidModeManager {
             window.GameState.emit('ui/kidmode_toggled', { enabled: true, theme: 'spaceMythic' });
             window.GameState.set('ui.kidMode', true);
             window.GameState.set('ui.theme', 'spaceMythic');
+            if (typeof window.GameState.set === 'function') {
+                window.GameState.set('safety.kidProfile.enabled', true);
+                window.GameState.set('safety.kidProfile.updatedAt', Date.now());
+            }
         }
 
         console.log('ui:info [KidMode] Space-Mythic Kid Mode enabled - stellar UI active!');
@@ -133,6 +137,10 @@ class KidModeManager {
         if (window.GameState && typeof window.GameState.emit === 'function') {
             window.GameState.emit('ui/kidmode_toggled', { enabled: false });
             window.GameState.set('ui.kidMode', false);
+            if (typeof window.GameState.set === 'function') {
+                window.GameState.set('safety.kidProfile.enabled', false);
+                window.GameState.set('safety.kidProfile.updatedAt', Date.now());
+            }
         }
 
         console.log('ui:info [KidMode] Kid Mode disabled - standard UI restored');

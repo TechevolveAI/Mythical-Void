@@ -126,6 +126,35 @@ class GameStateManager {
                     legendary: 0
                 }
             },
+            memory: {
+                optIn: false,
+                lastOptInChange: null,
+                lastPurge: null,
+                deletionLog: [],
+                creatures: {}
+            },
+            safety: {
+                kidProfile: {
+                    enabled: false,
+                    nickname: '',
+                    emojiAvatar: '🛸',
+                    ageBracket: '7-9',
+                    createdAt: null
+                },
+                parentalControls: {
+                    enabled: false,
+                    requireChatApproval: true,
+                    allowMemoryTracking: false,
+                    allowExplorationWithoutGuardian: true,
+                    screenTimeLimitMinutes: 0,
+                    lastUpdated: null
+                },
+                guardian: {
+                    pinHash: null,
+                    lastVerified: null
+                },
+                auditLog: []
+            },
             session: {
                 sessionStart: now,
                 currentScene: 'HatchingScene',

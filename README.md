@@ -40,7 +40,9 @@ npm run dev
 npm run build
 ```
 
-The game will automatically open in your browser at `http://localhost:8080`
+The Vite dev server launches on port **5173** by default. After running `npm run dev`, open the URL printed in the terminal (e.g. `http://localhost:5173/`; Vite will bump to the next free port if 5173 is busy).
+
+Looking for the manual test harness instead? Run `npm test` and open the URL it prints (starts at `http://localhost:8080/test-framework.html` with automatic fallback to nearby ports).
 
 ### Configuration
 
