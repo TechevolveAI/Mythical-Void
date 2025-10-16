@@ -62,41 +62,41 @@ describe('KidMode System', () => {
     describe('Emotion-to-Action Mapping', () => {
         test('should return correct action for hungry emotion', () => {
             const action = kidMode.getNextBestAction('hungry');
-            
+
             expect(action).toBeDefined();
             expect(action.action).toBe('feed');
             expect(action.icon).toBe('🍎');
             expect(action.text).toBe('FEED');
-            expect(action.message).toContain('rumbling');
+            expect(action.message).toContain('stardust nutrients');
         });
 
         test('should return correct action for sleepy emotion', () => {
             const action = kidMode.getNextBestAction('sleepy');
-            
+
             expect(action).toBeDefined();
             expect(action.action).toBe('rest');
             expect(action.icon).toBe('🌙');
-            expect(action.text).toBe('NAP TIME');
+            expect(action.text).toBe('REST');
             expect(action.message).toContain('nap');
         });
 
         test('should return correct action for bored emotion', () => {
             const action = kidMode.getNextBestAction('bored');
-            
+
             expect(action).toBeDefined();
             expect(action.action).toBe('play');
             expect(action.icon).toBe('🎈');
-            expect(action.text).toBe('PLAY!');
-            expect(action.message).toContain('fun');
+            expect(action.text).toBe('PLAY');
+            expect(action.message).toContain('crystal gardens');
         });
 
         test('should return correct action for excited emotion', () => {
             const action = kidMode.getNextBestAction('excited');
-            
+
             expect(action).toBeDefined();
             expect(action.action).toBe('photo');
             expect(action.icon).toBe('📸');
-            expect(action.text).toBe('PHOTO TIME!');
+            expect(action.text).toBe('PHOTO');
             expect(action.message).toContain('moment');
         });
 

@@ -2,6 +2,28 @@
 
 A delightful 2D mythical creature game built with Phaser.js where you hatch and guide your own magical companion through an enchanted world.
 
+## 📁 Documentation Structure
+
+**Current Features & Development Guides** (in root directory):
+- [README.md](README.md) - This file, game overview and getting started
+- [CLAUDE.md](CLAUDE.md) - Architecture guide for AI assistants and developers
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment instructions
+- [DEVELOPMENT_GUIDE.md](DEVELOPMENT_GUIDE.md) - Development setup and workflows
+- [GAME_FLOW_DOCUMENTATION.md](GAME_FLOW_DOCUMENTATION.md) - Critical game flow logic
+- [SECURITY.md](SECURITY.md) - Security practices and compliance
+- [TECHNICAL_IMPLEMENTATION.md](TECHNICAL_IMPLEMENTATION.md) - Technical architecture details
+- [TUNING_GUIDE.md](TUNING_GUIDE.md) - Game balance and tuning
+- [VIBE_CODING_COMPLIANCE.md](VIBE_CODING_COMPLIANCE.md) - Security standards
+- [LOCAL_SERVER_REFERENCE.md](LOCAL_SERVER_REFERENCE.md) - Local development reference
+
+**Future Plans & Historical Analysis** (in `/archive/` directory):
+- `/archive/planning/` - MVP roadmaps and implementation plans
+- `/archive/future-features/` - Specs for features not yet built
+- `/archive/gap-analysis/` - Feature gap reports and business analysis
+- `/archive/vision/` - Long-term vision documents
+
+**Note**: If documentation is in `/archive/`, it describes future features NOT in the current game yet!
+
 ## 🎮 How to Play
 
 ### Hatching Scene
