@@ -312,12 +312,16 @@ class FXLibrary {
         const stripHeight = options.height / 3;
         for (let layer = 0; layer < 3; layer++) {
             const alpha = 1.0 - (layer * 0.3);
-            const color = Phaser.Display.Color.Lighten(
-                Phaser.Display.Color.ValueToColor(options.color), 
-                layer * 20
+            const baseColor = Phaser.Display.Color.ValueToColor(options.color);
+            const lightenAmount = layer * 20;
+            const color = Phaser.Display.Color.Interpolate.ColorWithColor(
+                baseColor,
+                Phaser.Display.Color.ValueToColor(0xFFFFFF),
+                100,
+                lightenAmount
             );
-            
-            strip.fillStyle(color.color, alpha);
+
+            strip.fillStyle(Phaser.Display.Color.GetColor(color.r, color.g, color.b), alpha);
             strip.beginPath();
             strip.moveTo(points[0].x, points[0].y - stripHeight * layer);
             

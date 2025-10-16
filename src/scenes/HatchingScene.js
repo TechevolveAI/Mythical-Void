@@ -624,15 +624,35 @@ class HatchingScene extends Phaser.Scene {
     }
 
     showCreature() {
+        console.log('hatch:info [HatchingScene] === showCreature() called ===');
         this.creatureAppeared = true;
 
         // Generate unique genetics for this creature
+        console.log('hatch:info [HatchingScene] Step 1: Generating creature genetics...');
         this.generateCreatureGenetics();
 
+        if (!this.creatureGenetics) {
+            console.error('hatch:error [HatchingScene] CRITICAL: generateCreatureGenetics() returned null!');
+            this.showCriticalError('Failed to generate creature genetics');
+            return;
+        }
+
+        console.log('hatch:info [HatchingScene] Step 2: Creating creature sprite...');
         // Create the creature sprite using genetics
         const creatureResult = this.createUniqueCreature();
 
+        console.log('hatch:info [HatchingScene] Step 3: Creature result:', creatureResult ? 'SUCCESS' : 'FAILED');
+
         if (creatureResult && creatureResult.textureName) {
+            console.log('hatch:info [HatchingScene] Step 4: Creating sprite with texture:', creatureResult.textureName);
+
+            // Verify texture exists
+            if (!this.textures.exists(creatureResult.textureName)) {
+                console.error('hatch:error [HatchingScene] Texture does not exist in cache!');
+                this.showCriticalError('Creature texture generation failed');
+                return;
+            }
+
             // Create the enhanced creature with the new texture
             this.creature = this.add.image(400, 300, creatureResult.textureName);
             this.creature.setScale(1.5);
@@ -642,13 +662,17 @@ class HatchingScene extends Phaser.Scene {
             // Store genetics data on the sprite for later access
             this.creature.genetics = this.creatureGenetics;
 
+            console.log('hatch:info [HatchingScene] Step 5: Fading in creature...');
             // Fade in the creature
             this.tweens.add({
                 targets: this.creature,
                 alpha: 1,
                 scale: 1.2,
                 duration: 1000,
-                ease: 'Back.easeOut'
+                ease: 'Back.easeOut',
+                onComplete: () => {
+                    console.log('hatch:info [HatchingScene] Creature fade-in complete');
+                }
             });
 
             // Add cosmic effects based on genetics
@@ -656,10 +680,18 @@ class HatchingScene extends Phaser.Scene {
 
             // Save genetics to GameState
             this.saveCreatureGenetics();
-            
+
         } else {
             // Fallback to default creature
-            console.warn('hatch:warn [HatchingScene] Failed to create genetic creature, using default');
+            console.warn('hatch:warn [HatchingScene] Failed to create genetic creature, using default fallback');
+
+            // Check if default texture exists
+            if (!this.textures.exists('enhancedCreature0')) {
+                console.error('hatch:error [HatchingScene] Default texture enhancedCreature0 also missing!');
+                this.showCriticalError('No creature textures available');
+                return;
+            }
+
             this.creature = this.add.image(400, 300, 'enhancedCreature0');
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
@@ -674,9 +706,11 @@ class HatchingScene extends Phaser.Scene {
             });
         }
 
+        console.log('hatch:info [HatchingScene] Step 6: Creating sparkle effects...');
         // Create sparkle effects around the creature
         this.createSparkles();
 
+        console.log('hatch:info [HatchingScene] Step 7: Setting up reroll system...');
         // Start reroll session if system is available
         if (window.rerollSystem && this.creatureGenetics) {
             window.rerollSystem.startHatchSession({
@@ -686,6 +720,7 @@ class HatchingScene extends Phaser.Scene {
 
             // Show rarity announcement and reroll options
             this.time.delayedCall(1500, () => {
+                console.log('hatch:info [HatchingScene] Showing rarity reveal and reroll options');
                 this.showRarityReveal();
                 this.showRerollOptions();
             });
@@ -707,6 +742,24 @@ class HatchingScene extends Phaser.Scene {
                 });
             });
         }
+
+        console.log('hatch:info [HatchingScene] === showCreature() complete ===');
+    }
+
+    /**
+     * Show critical error message to user
+     */
+    showCriticalError(message) {
+        const errorText = this.add.text(400, 300, `❌ ${message}\n\nPlease refresh the page`, {
+            fontSize: '24px',
+            color: '#FF4444',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: 600 }
+        }).setOrigin(0.5);
+
+        errorText.setDepth(1000);
     }
 
     createSparkles() {
@@ -858,10 +911,25 @@ class HatchingScene extends Phaser.Scene {
      * Create unique creature sprite using GraphicsEngine
      */
     createUniqueCreature() {
-        if (!this.creatureGenetics || !this.graphicsEngine) {
-            console.warn('hatch:warn [HatchingScene] Missing genetics or graphics engine');
+        console.log('hatch:debug [HatchingScene] createUniqueCreature() called');
+
+        if (!this.creatureGenetics) {
+            console.error('hatch:error [HatchingScene] No genetics available!');
             return null;
         }
+
+        if (!this.graphicsEngine) {
+            console.error('hatch:error [HatchingScene] No graphics engine available!');
+            return null;
+        }
+
+        console.log('hatch:debug [HatchingScene] Genetics:', {
+            id: this.creatureGenetics.id,
+            species: this.creatureGenetics.species,
+            rarity: this.creatureGenetics.rarity,
+            bodyType: this.creatureGenetics.traits?.bodyShape?.type,
+            colors: this.creatureGenetics.traits?.colorGenome
+        });
 
         try {
             // Ensure graphics engine has necessary methods
@@ -870,15 +938,19 @@ class HatchingScene extends Phaser.Scene {
                 return null;
             }
 
+            console.log('hatch:debug [HatchingScene] Calling createRandomizedSpaceMythicCreature...');
+
             // Use the GraphicsEngine to create a randomized creature
             const creatureResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(
                 this.creatureGenetics,
                 0 // frame 0
             );
 
+            console.log('hatch:debug [HatchingScene] createRandomizedSpaceMythicCreature returned:', creatureResult);
+
             // Validate the result
             if (!creatureResult || !creatureResult.textureName) {
-                console.error('hatch:error [HatchingScene] Graphics engine returned invalid result');
+                console.error('hatch:error [HatchingScene] Graphics engine returned invalid result:', creatureResult);
                 return null;
             }
 
@@ -886,7 +958,8 @@ class HatchingScene extends Phaser.Scene {
             return creatureResult;
         } catch (error) {
             console.error('hatch:error [HatchingScene] Failed to create unique creature:', error);
-            console.error('hatch:error Stack trace:', error.stack);
+            console.error('hatch:error [HatchingScene] Error message:', error.message);
+            console.error('hatch:error [HatchingScene] Stack trace:', error.stack);
             return null;
         }
     }
@@ -959,7 +1032,10 @@ class HatchingScene extends Phaser.Scene {
      * Save creature genetics to GameState
      */
     saveCreatureGenetics() {
-        if (!this.creatureGenetics) return;
+        if (!this.creatureGenetics) {
+            console.error('hatch:error [HatchingScene] Cannot save - no genetics generated!');
+            return;
+        }
 
         // Save the complete genetic profile
         const state = getGameState();
@@ -980,7 +1056,12 @@ class HatchingScene extends Phaser.Scene {
         const descriptiveName = this.generateCreatureName();
         state.set('creature.descriptiveName', descriptiveName);
 
+        // CRITICAL: Force save to localStorage immediately
+        state.save();
+
         console.log(`hatch:info [HatchingScene] Saved genetics for ${descriptiveName} with texture ${textureName}`);
+        console.log(`hatch:debug [HatchingScene] Genetics body type: ${this.creatureGenetics.traits.bodyShape.type}`);
+        console.log(`hatch:debug [HatchingScene] Genetics colors:`, this.creatureGenetics.traits.colorGenome);
     }
 
     /**
@@ -1368,7 +1449,14 @@ class HatchingScene extends Phaser.Scene {
         const creatureResult = this.createUniqueCreature();
 
         if (creatureResult && creatureResult.textureName) {
-            console.log('hatch:info [HatchingScene] Creating new creature sprite...');
+            console.log('hatch:info [HatchingScene] Creating new creature sprite with texture:', creatureResult.textureName);
+
+            // Verify texture exists before creating sprite
+            if (!this.textures.exists(creatureResult.textureName)) {
+                console.error('hatch:error [HatchingScene] Texture was not created properly:', creatureResult.textureName);
+                this.showRerollError('Failed to generate creature appearance');
+                return;
+            }
 
             this.creature = this.add.image(400, 300, creatureResult.textureName);
             this.creature.setScale(1.5);
@@ -1414,6 +1502,7 @@ class HatchingScene extends Phaser.Scene {
             });
         } else {
             console.error('hatch:error [HatchingScene] Failed to create creature result');
+            this.showRerollError('Creature generation failed - please try again');
         }
     }
 
@@ -1470,6 +1559,32 @@ class HatchingScene extends Phaser.Scene {
 
         this.keepUI = { keepBg, keepText, keepZone };
         this.finalText = finalText;
+    }
+
+    /**
+     * Show error message when reroll fails
+     */
+    showRerollError(message) {
+        const errorText = this.add.text(400, 300, `⚠️ ${message}`, {
+            fontSize: '24px',
+            color: '#FF6B6B',
+            stroke: '#000000',
+            strokeThickness: 3,
+            align: 'center',
+            wordWrap: { width: 600 }
+        }).setOrigin(0.5);
+
+        errorText.setAlpha(0);
+        this.tweens.add({
+            targets: errorText,
+            alpha: 1,
+            duration: 500
+        });
+
+        // Show retry button after delay
+        this.time.delayedCall(2000, () => {
+            this.showFinalKeepButton();
+        });
     }
 
     /**

@@ -201,18 +201,56 @@ class GameScene extends Phaser.Scene {
     }
 
     createWorldBackground() {
-        // Create a large green ground background
+        // Create cosmic space background with stars and nebula
         const background = this.add.graphics();
-        background.fillStyle(0x7CFC00); // Lawn green
+
+        // Deep space gradient (dark blue to purple)
+        background.fillGradientStyle(0x0a0a2e, 0x0a0a2e, 0x16213e, 0x1a1a4e, 1);
         background.fillRect(0, 0, this.worldWidth, this.worldHeight);
-        
-        // Add some texture with different shades of green
-        background.fillStyle(0x90EE90, 0.3); // Light green patches
-        for (let i = 0; i < 50; i++) {
+
+        // Add distant stars
+        for (let i = 0; i < 200; i++) {
             const x = Phaser.Math.Between(0, this.worldWidth);
             const y = Phaser.Math.Between(0, this.worldHeight);
-            const size = Phaser.Math.Between(20, 80);
+            const brightness = Math.random();
+            const color = brightness > 0.7 ? 0xFFFFFF : (brightness > 0.4 ? 0xCCCCFF : 0x8888FF);
+            const size = brightness > 0.8 ? 2 : 1;
+
+            background.fillStyle(color, brightness);
             background.fillCircle(x, y, size);
+        }
+
+        // Add nebula clouds (purple and blue patches)
+        const nebulaColors = [
+            { color: 0x9370DB, alpha: 0.15 }, // Purple
+            { color: 0x4169E1, alpha: 0.12 }, // Blue
+            { color: 0xFF1493, alpha: 0.08 }, // Pink
+            { color: 0x00CED1, alpha: 0.10 }  // Cyan
+        ];
+
+        for (let i = 0; i < 30; i++) {
+            const nebula = Phaser.Math.RND.pick(nebulaColors);
+            const x = Phaser.Math.Between(0, this.worldWidth);
+            const y = Phaser.Math.Between(0, this.worldHeight);
+            const size = Phaser.Math.Between(80, 200);
+
+            background.fillStyle(nebula.color, nebula.alpha);
+            background.fillCircle(x, y, size);
+        }
+
+        // Add cosmic "ground" platforms (floating crystal platforms)
+        background.fillStyle(0x2a2a4e, 0.4);
+        for (let i = 0; i < 40; i++) {
+            const x = Phaser.Math.Between(0, this.worldWidth);
+            const y = Phaser.Math.Between(0, this.worldHeight);
+            const width = Phaser.Math.Between(100, 300);
+            const height = Phaser.Math.Between(20, 40);
+
+            background.fillRoundedRect(x, y, width, height, 10);
+
+            // Add crystal edge highlights
+            background.fillStyle(0x9370DB, 0.3);
+            background.fillRoundedRect(x, y, width, height * 0.3, 5);
         }
     }
 
@@ -330,49 +368,92 @@ class GameScene extends Phaser.Scene {
     }
 
     createEnvironmentObjects() {
-        // Create physics groups for environment objects
+        console.log('game:info [GameScene] Creating cosmic environment objects');
+
+        // Create physics groups
         this.trees = this.physics.add.staticGroup();
         this.rocks = this.physics.add.staticGroup();
         this.flowers = this.physics.add.staticGroup();
 
-        // Place enhanced trees randomly throughout the world
+        // Verify textures exist before placing objects
         const treeVariants = ['enhancedTree_summer', 'enhancedTree_spring', 'enhancedTree_autumn'];
-        for (let i = 0; i < 20; i++) {
-            const x = Phaser.Math.Between(100, this.worldWidth - 100);
-            const y = Phaser.Math.Between(100, this.worldHeight - 100);
-            const treeType = treeVariants[Math.floor(Math.random() * treeVariants.length)];
-            const tree = this.trees.create(x, y, treeType);
-            tree.setScale(Phaser.Math.FloatBetween(0.8, 1.4));
-            tree.body.setSize(30, 40); // Collision area smaller than sprite
+        const validTreeVariants = treeVariants.filter(tex => this.textures.exists(tex));
+
+        if (validTreeVariants.length > 0) {
+            console.log(`game:info [GameScene] Placing ${validTreeVariants.length} tree variants`);
+            for (let i = 0; i < 15; i++) {
+                const x = Phaser.Math.Between(150, this.worldWidth - 150);
+                const y = Phaser.Math.Between(150, this.worldHeight - 150);
+                const treeType = Phaser.Math.RND.pick(validTreeVariants);
+
+                try {
+                    const tree = this.trees.create(x, y, treeType);
+                    tree.setScale(Phaser.Math.FloatBetween(1.0, 1.8));
+                    tree.body.setSize(30, 40);
+                    tree.setDepth(y); // Depth sorting for proper layering
+                } catch (error) {
+                    console.warn('game:warn [GameScene] Failed to create tree:', error.message);
+                }
+            }
+        } else {
+            console.warn('game:warn [GameScene] No tree textures available');
         }
 
-        // Place enhanced rocks randomly with moss variations
-        for (let i = 0; i < 30; i++) {
-            const x = Phaser.Math.Between(50, this.worldWidth - 50);
-            const y = Phaser.Math.Between(50, this.worldHeight - 50);
-            const mossLevel = Math.floor(Math.random() * 3);
-            const rock = this.rocks.create(x, y, `enhancedRock_${mossLevel}`);
-            rock.setScale(Phaser.Math.FloatBetween(0.8, 1.4));
-            rock.body.setSize(25, 20);
-        }
+        // Place cosmic asteroids
+        let rockCount = 0;
+        for (let i = 0; i < 3; i++) {
+            const textureName = `enhancedRock_${i}`;
+            if (this.textures.exists(textureName)) {
+                for (let j = 0; j < 10; j++) {
+                    const x = Phaser.Math.Between(100, this.worldWidth - 100);
+                    const y = Phaser.Math.Between(100, this.worldHeight - 100);
 
-        // Place enhanced flowers randomly with color variations
-        for (let i = 0; i < 40; i++) {
-            const x = Phaser.Math.Between(30, this.worldWidth - 30);
-            const y = Phaser.Math.Between(30, this.worldHeight - 30);
-            const flower = this.flowers.create(x, y, 'enhancedFlower');
-            flower.setScale(Phaser.Math.FloatBetween(0.8, 1.2));
-            flower.body.setSize(15, 20);
-            
-            // Add slight color tinting for variety
-            const tints = [0xFFFFFF, 0xFFB6C1, 0xDDA0DD, 0x98FB98, 0xF0E68C];
-            flower.setTint(tints[Math.floor(Math.random() * tints.length)]);
+                    try {
+                        const rock = this.rocks.create(x, y, textureName);
+                        rock.setScale(Phaser.Math.FloatBetween(1.2, 2.0));
+                        rock.body.setSize(25, 20);
+                        rock.setDepth(y);
+                        rockCount++;
+                    } catch (error) {
+                        console.warn('game:warn [GameScene] Failed to create rock:', error.message);
+                    }
+                }
+            }
+        }
+        console.log(`game:info [GameScene] Placed ${rockCount} cosmic asteroids`);
+
+        // Place cosmic star flowers
+        if (this.textures.exists('enhancedFlower')) {
+            for (let i = 0; i < 25; i++) {
+                const x = Phaser.Math.Between(80, this.worldWidth - 80);
+                const y = Phaser.Math.Between(80, this.worldHeight - 80);
+
+                try {
+                    const flower = this.flowers.create(x, y, 'enhancedFlower');
+                    flower.setScale(Phaser.Math.FloatBetween(1.0, 1.5));
+                    flower.body.setSize(15, 20);
+                    flower.setDepth(y);
+
+                    // Color variations for variety
+                    const tints = [0xFFFFFF, 0xFFB6FF, 0xB6FFFF, 0xFFFFB6, 0xFFB6B6];
+                    flower.setTint(Phaser.Math.RND.pick(tints));
+                } catch (error) {
+                    console.warn('game:warn [GameScene] Failed to create flower:', error.message);
+                }
+            }
+            console.log('game:info [GameScene] Placed 25 cosmic star flowers');
+        } else {
+            console.warn('game:warn [GameScene] Flower texture not available');
         }
 
         // Set up collision detection
-        this.physics.add.collider(this.player, this.trees);
-        this.physics.add.collider(this.player, this.rocks);
-        this.physics.add.overlap(this.player, this.flowers, this.handleFlowerInteraction, null, this);
+        if (this.player) {
+            this.physics.add.collider(this.player, this.trees);
+            this.physics.add.collider(this.player, this.rocks);
+            this.physics.add.overlap(this.player, this.flowers, this.handleFlowerInteraction, null, this);
+        }
+
+        console.log('game:info [GameScene] Environment objects creation complete');
     }
 
     setupInput() {
@@ -457,6 +538,186 @@ class GameScene extends Phaser.Scene {
         this.careHintText.setOrigin(0, 1);
         this.careHintText.setScrollFactor(0);
         this.updateCareHint();
+
+        // Add innovative cosmic UI elements
+        this.createCosmicMiniMap();
+        this.createGlowingStatBars();
+        this.createFloatingParticles();
+    }
+
+    createCosmicMiniMap() {
+        // Mini-map in bottom-right corner
+        const miniMapSize = 120;
+        const miniMapX = 800 - 16 - miniMapSize;
+        const miniMapY = 600 - 16 - miniMapSize;
+
+        // Mini-map background (cosmic portal style)
+        const miniMapBg = this.add.graphics();
+        miniMapBg.setScrollFactor(0);
+        miniMapBg.setDepth(1000);
+
+        // Outer glow
+        miniMapBg.fillStyle(0x9370DB, 0.3);
+        miniMapBg.fillCircle(miniMapX + miniMapSize / 2, miniMapY + miniMapSize / 2, miniMapSize / 2 + 5);
+
+        // Main background
+        miniMapBg.fillStyle(0x0a0a2e, 0.8);
+        miniMapBg.fillCircle(miniMapX + miniMapSize / 2, miniMapY + miniMapSize / 2, miniMapSize / 2);
+
+        // Border
+        miniMapBg.lineStyle(2, 0xFFD700, 0.8);
+        miniMapBg.strokeCircle(miniMapX + miniMapSize / 2, miniMapY + miniMapSize / 2, miniMapSize / 2);
+
+        // Player position indicator (updated in update loop)
+        this.miniMapPlayer = this.add.graphics();
+        this.miniMapPlayer.setScrollFactor(0);
+        this.miniMapPlayer.setDepth(1001);
+        this.miniMapData = { x: miniMapX, y: miniMapY, size: miniMapSize };
+
+        // Mini-map label
+        this.add.text(miniMapX + miniMapSize / 2, miniMapY - 10, 'Cosmic Map', {
+            fontSize: '10px',
+            color: '#FFD700',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5, 1).setScrollFactor(0).setDepth(1000);
+    }
+
+    createGlowingStatBars() {
+        // Enhanced stat bars with glow effects (left side)
+        const barX = 16;
+        const barY = 100;
+        const barWidth = 150;
+        const barHeight = 16;
+        const barSpacing = 30;
+
+        const creature = getGameState().get('creature');
+        const stats = creature.stats || { health: 100, happiness: 100, energy: 100 };
+
+        this.statBars = {
+            health: { value: stats.health, color: 0xFF4444, label: '❤️ Health' },
+            happiness: { value: stats.happiness, color: 0xFFD700, label: '😊 Joy' },
+            energy: { value: stats.energy, color: 0x4444FF, label: '⚡ Energy' }
+        };
+
+        this.statBarGraphics = this.add.graphics();
+        this.statBarGraphics.setScrollFactor(0);
+        this.statBarGraphics.setDepth(1000);
+
+        Object.keys(this.statBars).forEach((key, index) => {
+            const stat = this.statBars[key];
+            const y = barY + (index * barSpacing);
+
+            // Label
+            this.add.text(barX, y - 2, stat.label, {
+                fontSize: '12px',
+                color: '#FFFFFF',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setScrollFactor(0).setDepth(1000);
+
+            // Store position for dynamic updates
+            stat.x = barX;
+            stat.y = y + 12;
+            stat.width = barWidth;
+            stat.height = barHeight;
+        });
+    }
+
+    createFloatingParticles() {
+        // Add ambient floating particles (cosmic dust)
+        this.cosmicParticles = [];
+
+        for (let i = 0; i < 15; i++) {
+            const particle = this.add.circle(
+                Phaser.Math.Between(0, 800),
+                Phaser.Math.Between(0, 600),
+                Phaser.Math.FloatBetween(1, 3),
+                0xFFFFFF,
+                Phaser.Math.FloatBetween(0.3, 0.7)
+            );
+            particle.setScrollFactor(0.1); // Slight parallax
+            particle.setDepth(-10); // Behind everything
+
+            // Floating animation
+            this.tweens.add({
+                targets: particle,
+                y: particle.y + Phaser.Math.Between(-50, 50),
+                x: particle.x + Phaser.Math.Between(-30, 30),
+                alpha: { from: 0.3, to: 0.8 },
+                duration: Phaser.Math.Between(3000, 6000),
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+
+            this.cosmicParticles.push(particle);
+        }
+    }
+
+    updateCosmicMiniMap() {
+        if (!this.miniMapData || !this.miniMapPlayer || !this.player) return;
+
+        // Clear previous player indicator
+        this.miniMapPlayer.clear();
+
+        // Calculate player position on mini-map
+        const mapX = this.miniMapData.x + this.miniMapData.size / 2;
+        const mapY = this.miniMapData.y + this.miniMapData.size / 2;
+        const scaleX = (this.player.x / this.worldWidth) * (this.miniMapData.size / 2);
+        const scaleY = (this.player.y / this.worldHeight) * (this.miniMapData.size / 2);
+
+        const playerMapX = mapX + (scaleX - this.miniMapData.size / 4);
+        const playerMapY = mapY + (scaleY - this.miniMapData.size / 4);
+
+        // Draw pulsing player indicator
+        const pulseScale = 1 + Math.sin(this.time.now / 200) * 0.3;
+
+        this.miniMapPlayer.fillStyle(0xFFFFFF, 0.9);
+        this.miniMapPlayer.fillCircle(playerMapX, playerMapY, 4 * pulseScale);
+
+        this.miniMapPlayer.fillStyle(0xFFD700, 0.7);
+        this.miniMapPlayer.fillCircle(playerMapX, playerMapY, 2 * pulseScale);
+    }
+
+    updateGlowingStatBars() {
+        if (!this.statBarGraphics || !this.statBars) return;
+
+        this.statBarGraphics.clear();
+
+        const creature = getGameState().get('creature');
+        const stats = creature.stats || { health: 100, happiness: 100, energy: 100 };
+
+        // Update values
+        this.statBars.health.value = stats.health;
+        this.statBars.happiness.value = stats.happiness;
+        this.statBars.energy.value = stats.energy;
+
+        Object.keys(this.statBars).forEach(key => {
+            const stat = this.statBars[key];
+            const fillAmount = (stat.value / 100) * stat.width;
+            const pulseAmount = Math.sin(this.time.now / 500) * 0.1 + 0.9;
+
+            // Background
+            this.statBarGraphics.fillStyle(0x000000, 0.6);
+            this.statBarGraphics.fillRoundedRect(stat.x, stat.y, stat.width, stat.height, 8);
+
+            // Border
+            this.statBarGraphics.lineStyle(2, 0x333333, 0.8);
+            this.statBarGraphics.strokeRoundedRect(stat.x, stat.y, stat.width, stat.height, 8);
+
+            // Glow effect
+            this.statBarGraphics.fillStyle(stat.color, 0.2);
+            this.statBarGraphics.fillRoundedRect(stat.x, stat.y, fillAmount, stat.height, 8);
+
+            // Main fill
+            this.statBarGraphics.fillStyle(stat.color, pulseAmount);
+            this.statBarGraphics.fillRoundedRect(stat.x + 2, stat.y + 2, Math.max(0, fillAmount - 4), stat.height - 4, 6);
+
+            // Shine effect
+            this.statBarGraphics.fillStyle(0xFFFFFF, 0.3 * pulseAmount);
+            this.statBarGraphics.fillRoundedRect(stat.x + 2, stat.y + 2, Math.max(0, fillAmount - 4), (stat.height - 4) / 2, 6);
+        });
     }
 
     createDailyBonusButton() {
@@ -1446,6 +1707,10 @@ class GameScene extends Phaser.Scene {
 
         // Update position display
         this.updatePositionDisplay();
+
+        // Update cosmic UI elements
+        this.updateCosmicMiniMap();
+        this.updateGlowingStatBars();
 
         // Handle C key for chat toggle
         if (Phaser.Input.Keyboard.JustDown(this.chatKey)) {
