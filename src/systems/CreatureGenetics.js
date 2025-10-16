@@ -552,10 +552,10 @@ class CreatureGenetics {
     }
 
     selectBodyShape(template) {
-        const shapes = ['slender', 'balanced', 'sturdy', 'fish', 'cyclops', 'serpentine'];
+        const shapes = ['slender', 'balanced', 'sturdy', 'fish', 'cyclops', 'serpentine', 'avian', 'quadruped', 'blob', 'reptilian', 'insectoid'];
         const preferred = template.bodyShape.preferred;
         const variance = template.bodyShape.variance;
-        
+
         // 60% chance for preferred shape, 30% for other common shapes, 10% for unique shapes
         const random = Math.random();
         if (random < 0.6) {
@@ -565,8 +565,8 @@ class CreatureGenetics {
             const commonShapes = ['slender', 'balanced', 'sturdy'].filter(s => s !== preferred);
             return this.randomChoice(commonShapes);
         } else {
-            // Unique body types (10% chance)
-            const uniqueShapes = ['fish', 'cyclops', 'serpentine'];
+            // Unique body types (10% chance) - Phase 1 expansion
+            const uniqueShapes = ['fish', 'cyclops', 'serpentine', 'avian', 'quadruped', 'blob', 'reptilian', 'insectoid'];
             return this.randomChoice(uniqueShapes);
         }
     }

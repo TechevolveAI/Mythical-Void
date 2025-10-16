@@ -1366,6 +1366,21 @@ class GraphicsEngine {
             case 'serpentine':
                 this.renderSerpentineBody(graphics, center, bodyOffset, bodyScale, bodyColor);
                 break;
+            case 'avian':
+                this.renderAvianBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                break;
+            case 'quadruped':
+                this.renderQuadrupedBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                break;
+            case 'blob':
+                this.renderBlobBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                break;
+            case 'reptilian':
+                this.renderReptilianBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                break;
+            case 'insectoid':
+                this.renderInsectoidBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                break;
             default:
                 this.renderStandardBody(graphics, center, bodyOffset, bodyScale, bodyColor);
                 break;
@@ -1486,6 +1501,325 @@ class GraphicsEngine {
         graphics.lineTo(center.x + 4 + bodyOffset.x, center.y + 65 + bodyOffset.y);
         graphics.closePath();
         graphics.fillPath();
+    }
+
+    /**
+     * Render avian (bird-like) body with chest and feathered details
+     */
+    renderAvianBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
+
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillEllipse(center.x + 3, center.y + 25, 30, 38);
+
+        // Prominent chest (birds have pronounced chests)
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 8 + bodyOffset.y, 36 * scale.x, 38 * scale.y);
+
+        graphics.fillStyle(bodyColor);
+        graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 5 + bodyOffset.y, 32 * scale.x, 35 * scale.y);
+
+        // Chest highlight (bright plumage)
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.4), 0.85);
+        graphics.fillEllipse(center.x - 5 + bodyOffset.x, center.y + 2 + bodyOffset.y, 22 * scale.x, 25 * scale.y);
+
+        // Breast shine (soft feathers)
+        graphics.fillStyle(0xFFFFFF, 0.35);
+        graphics.fillEllipse(center.x - 7 + bodyOffset.x, center.y + 0 + bodyOffset.y, 14 * scale.x, 18 * scale.y);
+
+        // Tapered lower body (slim waist to legs)
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.3));
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 22 + bodyOffset.y, 22 * scale.x, 26 * scale.y);
+
+        graphics.fillStyle(bodyColor);
+        graphics.fillEllipse(center.x - 1 + bodyOffset.x, center.y + 20 + bodyOffset.y, 18 * scale.x, 24 * scale.y);
+
+        // Tail feathers (fan shape)
+        const tailBaseX = center.x + bodyOffset.x;
+        const tailBaseY = center.y + 38 + bodyOffset.y;
+
+        // Three tail feathers for depth
+        for (let i = -1; i <= 1; i++) {
+            graphics.fillStyle(this.darkenColor(bodyColor, 0.2 + Math.abs(i) * 0.1), 0.8);
+            graphics.beginPath();
+            graphics.moveTo(tailBaseX, tailBaseY);
+            graphics.lineTo(tailBaseX + (i * 6) - 4, tailBaseY + 12);
+            graphics.lineTo(tailBaseX + (i * 6) + 4, tailBaseY + 12);
+            graphics.closePath();
+            graphics.fillPath();
+        }
+
+        // Wing indication (folded wings on sides)
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.2), 0.7);
+        // Left wing fold
+        graphics.fillEllipse(center.x - 14 + bodyOffset.x, center.y + 12 + bodyOffset.y, 8 * scale.x, 20 * scale.y);
+        // Right wing fold
+        graphics.fillEllipse(center.x + 14 + bodyOffset.x, center.y + 12 + bodyOffset.y, 8 * scale.x, 20 * scale.y);
+
+        // Wing details (feather lines)
+        graphics.lineStyle(1, this.darkenColor(bodyColor, 0.3), 0.4);
+        // Left wing feathers
+        for (let i = 0; i < 3; i++) {
+            graphics.beginPath();
+            graphics.moveTo(center.x - 14 + bodyOffset.x, center.y + 8 + (i * 6) + bodyOffset.y);
+            graphics.lineTo(center.x - 18 + bodyOffset.x, center.y + 10 + (i * 6) + bodyOffset.y);
+            graphics.strokePath();
+        }
+        // Right wing feathers
+        for (let i = 0; i < 3; i++) {
+            graphics.beginPath();
+            graphics.moveTo(center.x + 14 + bodyOffset.x, center.y + 8 + (i * 6) + bodyOffset.y);
+            graphics.lineTo(center.x + 18 + bodyOffset.x, center.y + 10 + (i * 6) + bodyOffset.y);
+            graphics.strokePath();
+        }
+    }
+
+    /**
+     * Render quadruped (four-legged) body - feline/canine style
+     */
+    renderQuadrupedBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
+
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillEllipse(center.x + 3, center.y + 30, 40, 20);
+
+        // Main body (horizontal orientation)
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 10 + bodyOffset.y, 42 * scale.x, 28 * scale.y);
+
+        graphics.fillStyle(bodyColor);
+        graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 8 + bodyOffset.y, 38 * scale.x, 25 * scale.y);
+
+        // Body highlight
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
+        graphics.fillEllipse(center.x - 6 + bodyOffset.x, center.y + 5 + bodyOffset.y, 28 * scale.x, 18 * scale.y);
+
+        // Spine shine
+        graphics.fillStyle(0xFFFFFF, 0.3);
+        graphics.fillEllipse(center.x - 8 + bodyOffset.x, center.y + 3 + bodyOffset.y, 20 * scale.x, 12 * scale.y);
+
+        // Four legs (simple pillars)
+        const legColor = this.darkenColor(bodyColor, 0.2);
+        const legWidth = 6 * scale.x;
+        const legHeight = 18 * scale.y;
+
+        // Front left leg
+        graphics.fillStyle(legColor);
+        graphics.fillRect(center.x - 12 + bodyOffset.x, center.y + 20 + bodyOffset.y, legWidth, legHeight);
+        // Front right leg
+        graphics.fillRect(center.x + 6 + bodyOffset.x, center.y + 20 + bodyOffset.y, legWidth, legHeight);
+        // Back left leg
+        graphics.fillRect(center.x - 16 + bodyOffset.x, center.y + 18 + bodyOffset.y, legWidth, legHeight);
+        // Back right leg
+        graphics.fillRect(center.x + 10 + bodyOffset.x, center.y + 18 + bodyOffset.y, legWidth, legHeight);
+
+        // Paws (small circles at leg ends)
+        const pawColor = this.darkenColor(bodyColor, 0.3);
+        graphics.fillStyle(pawColor);
+        graphics.fillCircle(center.x - 9 + bodyOffset.x, center.y + 38 + bodyOffset.y, 4 * scale.x);
+        graphics.fillCircle(center.x + 9 + bodyOffset.x, center.y + 38 + bodyOffset.y, 4 * scale.x);
+        graphics.fillCircle(center.x - 13 + bodyOffset.x, center.y + 36 + bodyOffset.y, 4 * scale.x);
+        graphics.fillCircle(center.x + 13 + bodyOffset.x, center.y + 36 + bodyOffset.y, 4 * scale.x);
+
+        // Tail (curved)
+        graphics.fillStyle(bodyColor);
+        graphics.beginPath();
+        graphics.moveTo(center.x + 18 + bodyOffset.x, center.y + 10 + bodyOffset.y);
+        graphics.lineTo(center.x + 24 + bodyOffset.x, center.y + 5 + bodyOffset.y);
+        graphics.lineTo(center.x + 26 + bodyOffset.x, center.y + 12 + bodyOffset.y);
+        graphics.closePath();
+        graphics.fillPath();
+    }
+
+    /**
+     * Render blob/slime body - amorphous and fluid
+     */
+    renderBlobBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
+
+        // Shadow (wider for blob)
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillEllipse(center.x + 4, center.y + 28, 45, 35);
+
+        // Main blob body (very round)
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.3));
+        graphics.fillCircle(center.x + bodyOffset.x, center.y + 15 + bodyOffset.y, 26 * Math.max(scale.x, scale.y));
+
+        graphics.fillStyle(bodyColor, 0.85); // Slightly transparent for gooey effect
+        graphics.fillCircle(center.x - 2 + bodyOffset.x, center.y + 13 + bodyOffset.y, 24 * Math.max(scale.x, scale.y));
+
+        // Translucent highlight (gooey shine)
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.4), 0.6);
+        graphics.fillCircle(center.x - 8 + bodyOffset.x, center.y + 8 + bodyOffset.y, 16 * Math.max(scale.x, scale.y));
+
+        // Multiple shine spots (gooey bubbles)
+        graphics.fillStyle(0xFFFFFF, 0.5);
+        graphics.fillCircle(center.x - 10 + bodyOffset.x, center.y + 5 + bodyOffset.y, 8);
+        graphics.fillStyle(0xFFFFFF, 0.3);
+        graphics.fillCircle(center.x + 4 + bodyOffset.x, center.y + 10 + bodyOffset.y, 6);
+        graphics.fillCircle(center.x - 4 + bodyOffset.x, center.y + 18 + bodyOffset.y, 5);
+
+        // Drip effect (hanging blob at bottom)
+        graphics.fillStyle(bodyColor, 0.7);
+        graphics.beginPath();
+        graphics.moveTo(center.x + bodyOffset.x, center.y + 30 + bodyOffset.y);
+        graphics.lineTo(center.x - 3 + bodyOffset.x, center.y + 36 + bodyOffset.y);
+        graphics.lineTo(center.x + 3 + bodyOffset.x, center.y + 36 + bodyOffset.y);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Puddle base
+        graphics.fillStyle(bodyColor, 0.4);
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 32 + bodyOffset.y, 30 * scale.x, 8 * scale.y);
+    }
+
+    /**
+     * Render reptilian body - scaled with ridges
+     */
+    renderReptilianBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
+
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillEllipse(center.x + 2, center.y + 25, 30, 48);
+
+        // Main body (elongated like serpentine but thicker)
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 12 + bodyOffset.y, 32 * scale.x, 50 * scale.y);
+
+        graphics.fillStyle(bodyColor);
+        graphics.fillEllipse(center.x - 1 + bodyOffset.x, center.y + 10 + bodyOffset.y, 28 * scale.x, 46 * scale.y);
+
+        // Body highlight
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
+        graphics.fillEllipse(center.x - 4 + bodyOffset.x, center.y + 7 + bodyOffset.y, 18 * scale.x, 32 * scale.y);
+
+        // Scaled texture (diamond pattern)
+        const scaleColor = this.darkenColor(bodyColor, 0.15);
+        graphics.lineStyle(1, scaleColor, 0.6);
+        for (let i = 0; i < 5; i++) {
+            const yOffset = center.y + 5 + (i * 8) + bodyOffset.y;
+            graphics.beginPath();
+            graphics.moveTo(center.x - 8 + bodyOffset.x, yOffset);
+            graphics.lineTo(center.x + 8 + bodyOffset.x, yOffset);
+            graphics.strokePath();
+        }
+
+        // Spinal ridges
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.2), 0.7);
+        for (let i = 0; i < 4; i++) {
+            const ridgeY = center.y + (i * 10) + bodyOffset.y;
+            graphics.beginPath();
+            graphics.moveTo(center.x - 12 + bodyOffset.x, ridgeY);
+            graphics.lineTo(center.x - 10 + bodyOffset.x, ridgeY - 3);
+            graphics.lineTo(center.x - 8 + bodyOffset.x, ridgeY);
+            graphics.closePath();
+            graphics.fillPath();
+        }
+
+        // Forked tongue (small detail)
+        graphics.lineStyle(2, 0xFF6B6B, 0.8);
+        graphics.beginPath();
+        graphics.moveTo(center.x + bodyOffset.x, center.y - 8 + bodyOffset.y);
+        graphics.lineTo(center.x - 2 + bodyOffset.x, center.y - 12 + bodyOffset.y);
+        graphics.strokePath();
+        graphics.beginPath();
+        graphics.moveTo(center.x + bodyOffset.x, center.y - 8 + bodyOffset.y);
+        graphics.lineTo(center.x + 2 + bodyOffset.x, center.y - 12 + bodyOffset.y);
+        graphics.strokePath();
+    }
+
+    /**
+     * Render insectoid body - segmented with antennae
+     */
+    renderInsectoidBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
+
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillEllipse(center.x + 3, center.y + 28, 34, 42);
+
+        // Head segment
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
+        graphics.fillCircle(center.x + bodyOffset.x, center.y - 5 + bodyOffset.y, 10 * Math.max(scale.x, scale.y));
+        graphics.fillStyle(bodyColor);
+        graphics.fillCircle(center.x - 1 + bodyOffset.x, center.y - 6 + bodyOffset.y, 9 * Math.max(scale.x, scale.y));
+
+        // Thorax segment
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 8 + bodyOffset.y, 16 * scale.x, 20 * scale.y);
+        graphics.fillStyle(bodyColor);
+        graphics.fillEllipse(center.x - 1 + bodyOffset.x, center.y + 7 + bodyOffset.y, 14 * scale.x, 18 * scale.y);
+
+        // Abdomen segment
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 26 + bodyOffset.y, 14 * scale.x, 22 * scale.y);
+        graphics.fillStyle(bodyColor);
+        graphics.fillEllipse(center.x - 1 + bodyOffset.x, center.y + 25 + bodyOffset.y, 12 * scale.x, 20 * scale.y);
+
+        // Segment lines (showing separation)
+        graphics.lineStyle(1, this.darkenColor(bodyColor, 0.5), 0.8);
+        graphics.beginPath();
+        graphics.moveTo(center.x - 10 + bodyOffset.x, center.y + 18 + bodyOffset.y);
+        graphics.lineTo(center.x + 10 + bodyOffset.x, center.y + 18 + bodyOffset.y);
+        graphics.strokePath();
+
+        // Six legs (three pairs)
+        const legColor = this.darkenColor(bodyColor, 0.2);
+        graphics.lineStyle(2, legColor, 0.9);
+        // Front pair
+        graphics.beginPath();
+        graphics.moveTo(center.x - 12 + bodyOffset.x, center.y + 5 + bodyOffset.y);
+        graphics.lineTo(center.x - 18 + bodyOffset.x, center.y + 15 + bodyOffset.y);
+        graphics.lineTo(center.x - 16 + bodyOffset.x, center.y + 25 + bodyOffset.y);
+        graphics.strokePath();
+        graphics.beginPath();
+        graphics.moveTo(center.x + 12 + bodyOffset.x, center.y + 5 + bodyOffset.y);
+        graphics.lineTo(center.x + 18 + bodyOffset.x, center.y + 15 + bodyOffset.y);
+        graphics.lineTo(center.x + 16 + bodyOffset.x, center.y + 25 + bodyOffset.y);
+        graphics.strokePath();
+
+        // Middle pair
+        graphics.beginPath();
+        graphics.moveTo(center.x - 12 + bodyOffset.x, center.y + 12 + bodyOffset.y);
+        graphics.lineTo(center.x - 20 + bodyOffset.x, center.y + 20 + bodyOffset.y);
+        graphics.lineTo(center.x - 18 + bodyOffset.x, center.y + 30 + bodyOffset.y);
+        graphics.strokePath();
+        graphics.beginPath();
+        graphics.moveTo(center.x + 12 + bodyOffset.x, center.y + 12 + bodyOffset.y);
+        graphics.lineTo(center.x + 20 + bodyOffset.x, center.y + 20 + bodyOffset.y);
+        graphics.lineTo(center.x + 18 + bodyOffset.x, center.y + 30 + bodyOffset.y);
+        graphics.strokePath();
+
+        // Back pair
+        graphics.beginPath();
+        graphics.moveTo(center.x - 10 + bodyOffset.x, center.y + 20 + bodyOffset.y);
+        graphics.lineTo(center.x - 16 + bodyOffset.x, center.y + 28 + bodyOffset.y);
+        graphics.lineTo(center.x - 14 + bodyOffset.x, center.y + 36 + bodyOffset.y);
+        graphics.strokePath();
+        graphics.beginPath();
+        graphics.moveTo(center.x + 10 + bodyOffset.x, center.y + 20 + bodyOffset.y);
+        graphics.lineTo(center.x + 16 + bodyOffset.x, center.y + 28 + bodyOffset.y);
+        graphics.lineTo(center.x + 14 + bodyOffset.x, center.y + 36 + bodyOffset.y);
+        graphics.strokePath();
+
+        // Antennae
+        graphics.lineStyle(2, this.lightenColor(bodyColor, 0.2), 0.8);
+        graphics.beginPath();
+        graphics.moveTo(center.x - 4 + bodyOffset.x, center.y - 10 + bodyOffset.y);
+        graphics.lineTo(center.x - 8 + bodyOffset.x, center.y - 18 + bodyOffset.y);
+        graphics.strokePath();
+        graphics.beginPath();
+        graphics.moveTo(center.x + 4 + bodyOffset.x, center.y - 10 + bodyOffset.y);
+        graphics.lineTo(center.x + 8 + bodyOffset.x, center.y - 18 + bodyOffset.y);
+        graphics.strokePath();
+
+        // Antennae tips (small circles)
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.3));
+        graphics.fillCircle(center.x - 8 + bodyOffset.x, center.y - 18 + bodyOffset.y, 2);
+        graphics.fillCircle(center.x + 8 + bodyOffset.x, center.y - 18 + bodyOffset.y, 2);
     }
 
     /**
