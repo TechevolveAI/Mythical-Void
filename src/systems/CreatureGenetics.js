@@ -556,18 +556,20 @@ class CreatureGenetics {
         const preferred = template.bodyShape.preferred;
         const variance = template.bodyShape.variance;
 
-        // 60% chance for preferred shape, 30% for other common shapes, 10% for unique shapes
+        // Production mode: 50% unique shapes, 30% preferred, 20% common
+        // Balanced for good variety while maintaining some patterns
         const random = Math.random();
-        if (random < 0.6) {
-            return preferred;
-        } else if (random < 0.9) {
-            // Common alternative shapes
-            const commonShapes = ['slender', 'balanced', 'sturdy'].filter(s => s !== preferred);
-            return this.randomChoice(commonShapes);
-        } else {
-            // Unique body types (10% chance) - Phase 1 expansion
+        if (random < 0.5) {
+            // Unique body types (50% chance)
             const uniqueShapes = ['fish', 'cyclops', 'serpentine', 'avian', 'quadruped', 'blob', 'reptilian', 'insectoid'];
             return this.randomChoice(uniqueShapes);
+        } else if (random < 0.8) {
+            // Preferred shape (30% chance)
+            return preferred;
+        } else {
+            // Common alternative shapes (20% chance)
+            const commonShapes = ['slender', 'balanced', 'sturdy'].filter(s => s !== preferred);
+            return this.randomChoice(commonShapes);
         }
     }
 
@@ -581,10 +583,10 @@ class CreatureGenetics {
         };
         
         const rarityPatternChance = {
-            common: 0.4,     // 40% chance for markings
-            uncommon: 0.7,   // 70% chance for markings
-            rare: 0.9,       // 90% chance for markings
-            epic: 0.95,      // 95% chance for markings
+            common: 0.6,     // 60% chance for markings
+            uncommon: 0.8,   // 80% chance for markings
+            rare: 0.95,      // 95% chance for markings
+            epic: 1.0,       // Always has markings
             legendary: 1.0   // Always has markings
         };
         

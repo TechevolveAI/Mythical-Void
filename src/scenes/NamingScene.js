@@ -130,7 +130,52 @@ class NamingScene extends Phaser.Scene {
     }
 
     displayCreature() {
-        // Create enhanced creature sprite
+        const state = getGameState();
+        const genetics = state.get('creature.genetics'); // Fixed: was 'creature.genes', should be 'creature.genetics'
+
+        console.log('naming:debug [NamingScene] Loading creature genetics:', genetics);
+
+        // Check if we have genetics from hatching
+        if (genetics && genetics.id) {
+            console.log('naming:info [NamingScene] Using genetics from hatching scene');
+
+            // Use the same method as HatchingScene to create creature
+            try {
+                const creatureResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(
+                    genetics,
+                    0 // frame 0
+                );
+
+                if (creatureResult && creatureResult.textureName) {
+                    console.log('naming:info [NamingScene] Created creature texture:', creatureResult.textureName);
+
+                    // Display the creature with the correct texture
+                    this.creature = this.add.image(200, 300, creatureResult.textureName);
+                    this.creature.setScale(1.5);
+
+                    // Gentle breathing animation
+                    this.tweens.add({
+                        targets: this.creature,
+                        scaleY: 1.55,
+                        duration: 2000,
+                        ease: 'Sine.easeInOut',
+                        yoyo: true,
+                        repeat: -1
+                    });
+
+                    return;
+                } else {
+                    console.warn('naming:warn [NamingScene] Failed to create creature from genetics, using fallback');
+                }
+            } catch (error) {
+                console.error('naming:error [NamingScene] Error creating creature:', error);
+            }
+        } else {
+            console.warn('naming:warn [NamingScene] No genetics found in GameState');
+        }
+
+        // Fallback: Use default creature
+        console.log('naming:info [NamingScene] Using default creature sprite');
         this.graphicsEngine.createEnhancedCreature(
             this.creatureData.colors.body,
             this.creatureData.colors.head,
@@ -139,11 +184,9 @@ class NamingScene extends Phaser.Scene {
             this.creatureData.genes
         );
 
-        // Display the creature
         this.creature = this.add.image(200, 300, 'enhancedCreature0');
         this.creature.setScale(1.5);
 
-        // Gentle breathing animation
         this.tweens.add({
             targets: this.creature,
             scaleY: 1.55,
@@ -328,11 +371,10 @@ class NamingScene extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5);
 
-        // Current name or default
-        const currentName = this.creatureData.name;
-        if (currentName && currentName !== 'Your Creature') {
-            this.nameInput = currentName;
-        }
+        // ALWAYS start with blank name field
+        // User must type a new name each time they reach this scene
+        this.nameInput = '';
+        console.log('naming:info [NamingScene] Name field initialized as blank');
 
         // Name input display
         this.nameText = this.add.text(410, 450, '', {

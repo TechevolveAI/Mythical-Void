@@ -39,8 +39,8 @@ if (window.UITheme) {
     console.log('✅ UI Theme system ready');
 }
 
-// Cache frequently used globals
-const GameState = window.GameState;
+// Cache frequently used globals - will be set after modules load
+let GameState = null;
 
 // Initialize responsive manager (will be set up after Phaser loads)
 let responsiveManager = null;
@@ -93,7 +93,10 @@ async function initializeGame() {
     try {
         await preloadModulesReady;
         console.log('🚀 Initializing Mythical Creature Game...');
-        
+
+        // Cache GameState after modules are loaded
+        GameState = window.GameState;
+
         // Initialize environment configuration first
         if (window.envLoader) {
             await window.envLoader.load();
@@ -115,16 +118,16 @@ async function initializeGame() {
         if (typeof Phaser === 'undefined') {
             throw new Error('Phaser.js library not loaded');
         }
-        
-        if (typeof GameState === 'undefined') {
+
+        if (!window.GameState) {
             throw new Error('GameState system not loaded');
         }
-        
-        if (typeof GraphicsEngine === 'undefined') {
+
+        if (!window.GraphicsEngine) {
             throw new Error('GraphicsEngine system not loaded');
         }
-        
-        if (typeof HatchingScene === 'undefined' || typeof NamingScene === 'undefined' || typeof GameScene === 'undefined') {
+
+        if (!HatchingScene || !NamingScene || !GameScene) {
             throw new Error('Game scenes not loaded properly');
         }
         
