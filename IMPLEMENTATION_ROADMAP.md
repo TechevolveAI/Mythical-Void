@@ -970,7 +970,85 @@ PUT  /api/breeding/update    - Update baby stats (if shared)
 
 ---
 
-### 3.2 Achievements & Milestones (1 week)
+### 3.2 AI Creature Visualization ⭐ NEW (2-3 weeks)
+
+**Feature**: Generate photorealistic AI images of players' unique creatures
+
+**What It Does**:
+- Players unlock ability to generate AI-rendered photorealistic images of their creature
+- Uses DALL-E 3 / Imagen 3 / Adobe Firefly API
+- Transforms programmatic sprite → stunning realistic art
+- Shows exact genetics: colors, body type, markings, cosmic effects
+- Fully automated, template-based prompts (no user input)
+- Watermarked images stored in player gallery
+
+**Why It's Brilliant**:
+- ✅ Safe use of AI (not conversational, no privacy concerns)
+- ✅ Enhances programmatic graphics (shows "what it would really look like")
+- ✅ Viral marketing (players share stunning AI images on social media)
+- ✅ Emotional attachment (deepens connection to creature)
+- ✅ Competitive differentiation (no other creature game has this)
+- ✅ Monetization potential (premium HD generations in Phase 4)
+
+**Safety Measures**:
+- ✅ Parental consent required for under-13 (COPPA compliant)
+- ✅ Enterprise API with no-training clause
+- ✅ Multi-layer NSFW content scanning
+- ✅ Template-based prompts only (no user input)
+- ✅ Watermarking prevents commercial misuse
+- ✅ Parent dashboard shows all generated images
+
+**Implementation**:
+- Week 1: Prompt generation system + API integration
+- Week 2: Safety scanning + watermarking + CDN storage
+- Week 3: UI + parental controls + rate limiting + testing
+
+**Prompt Example**:
+```
+"A majestic fantasy creature, with graceful wings and feathered plumage,
+predominantly golden with white accents, surrounded by golden starlight
+and cosmic sparkles, with an inquisitive, alert expression and head tilted,
+fantasy art style, whimsical and magical, vibrant colors, studio lighting,
+professional digital art, child-friendly, no violence, no weapons,
+no scary elements, cute and appealing"
+```
+
+**Rate Limiting**:
+- Free tier: 1 generation per week (4/month)
+- Unlock at Level 10, 20, 30 for different life stages
+- Additional generations via in-game currency (earned through gameplay)
+- Premium tier (Phase 4): 10 generations/month for $2.99
+
+**Cost Analysis** (1,000 active users):
+- API calls (DALL-E 3): $160/month (4,000 images × $0.04)
+- NSFW scanning: $40/month
+- CDN storage: $20/month
+- **Total**: ~$220/month or $2,640/year
+
+**Cost at Scale** (10,000 users):
+- ~$2,000/month or $24,000/year
+- Monetization potential: $2,990/month ($2.99 × 1,000 purchases)
+- **Net profit**: $990/month or $11,880/year
+
+**User Flow**:
+1. Player reaches Level 10 → Feature unlocks
+2. "Visualize Your Creature" button in main menu
+3. Shows programmatic sprite + explanation
+4. Player clicks "Generate" → 10-20 second loading
+5. Stunning AI image revealed
+6. Options: Save, Share, Set as Profile Pic, Generate Another
+
+**Target Metrics**:
+- 60% of eligible players try visualization
+- 80% satisfaction rate ("This is amazing!")
+- 30% share on social media (free marketing!)
+- +15-20% retention boost (players return to visualize growth stages)
+
+**Full Details**: See [AI_IMAGE_GENERATION_FEATURE.md](AI_IMAGE_GENERATION_FEATURE.md)
+
+---
+
+### 3.3 Achievements & Milestones (1 week)
 
 **Achievement Categories**:
 
