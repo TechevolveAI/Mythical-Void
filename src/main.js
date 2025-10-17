@@ -193,9 +193,10 @@ async function initializeGame() {
         // Game configuration object with responsive settings
         const config = {
             type: Phaser.AUTO,
+            parent: 'game-container',
             width: 800,
             height: 600,
-            backgroundColor: '#87CEEB', // Sky blue background
+            backgroundColor: '#0a0118', // Dark cosmic background
             physics: {
                 default: 'arcade',
                 arcade: {
@@ -205,23 +206,19 @@ async function initializeGame() {
             },
             scene: [HatchingScene, PersonalityScene, NamingScene, GameScene],
             scale: {
-                mode: Phaser.Scale.RESIZE,
-                autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: window.innerWidth,
-                height: window.innerHeight,
-                min: {
-                    width: 800,
-                    height: 600
-                },
-                max: {
-                    width: window.innerWidth,
-                    height: window.innerHeight
-                }
+                mode: Phaser.Scale.WIDTH_CONTROLS_HEIGHT,
+                parent: 'game-container',
+                width: 800,
+                height: 600,
+                autoCenter: Phaser.Scale.CENTER_BOTH
             },
             input: {
                 activePointers: 3, // Support multi-touch
                 touch: {
                     capture: true
+                },
+                mouse: {
+                    preventDefaultWheel: false
                 }
             },
             dom: {

@@ -1,40 +1,40 @@
 import Phaser from 'phaser';
 
+// Static imports for proper bundling in production
+import './config/env-loader.js';
+import './config/api-config.js';
+import './systems/ErrorHandler.js';
+import './systems/InputValidator.js';
+import './systems/UITheme.js';
+import './systems/MemoryManager.js';
+import './systems/ResponsiveManager.js';
+import './systems/UXEnhancements.js';
+import './systems/KidMode.js';
+import './systems/HatchCinematics.js';
+import './systems/FXLibrary.js';
+import './systems/ParallaxBiome.js';
+import './systems/RaritySystem.js';
+import './systems/RerollSystem.js';
+import './systems/CreatureGenetics.js';
+import './systems/GeneticsEngine.js';
+import './systems/GameState.js';
+import './systems/CreatureMemory.js';
+import './systems/SafetyManager.js';
+import './systems/GraphicsEngine.js';
+import './systems/CreatureAI.js';
+import './systems/CareSystem.js';
+import './systems/AchievementSystem.js';
+import './systems/TutorialSystem.js';
+import './scenes/HatchingScene.js';
+import './scenes/PersonalityScene.js';
+import './scenes/NamingScene.js';
+import './scenes/GameScene.js';
+
 if (typeof window !== 'undefined' && !window.Phaser) {
     window.Phaser = Phaser;
 }
 
-const modulesToLoad = [
-    './config/env-loader.js',
-    './config/api-config.js',
-    './systems/ErrorHandler.js',
-    './systems/InputValidator.js',
-    './systems/UITheme.js',
-    './systems/MemoryManager.js',
-    './systems/ResponsiveManager.js',
-    './systems/UXEnhancements.js',
-    './systems/KidMode.js',
-    './systems/HatchCinematics.js',
-    './systems/FXLibrary.js',
-    './systems/ParallaxBiome.js',
-    './systems/RaritySystem.js',      // NEW: Rarity with pity
-    './systems/RerollSystem.js',      // NEW: Reroll mechanics
-    './systems/CreatureGenetics.js',
-    './systems/GeneticsEngine.js',
-    './systems/GameState.js',
-    './systems/CreatureMemory.js',
-    './systems/SafetyManager.js',
-    './systems/GraphicsEngine.js',
-    './systems/CreatureAI.js',
-    './systems/CareSystem.js',
-    './systems/AchievementSystem.js',
-    './systems/TutorialSystem.js',
-    './scenes/HatchingScene.js',
-    './scenes/PersonalityScene.js',
-    './scenes/NamingScene.js',
-    './scenes/GameScene.js'
-];
-
-const preloadModulesReady = Promise.all(modulesToLoad.map(modulePath => import(modulePath)));
+// Modules are now loaded synchronously via static imports
+const preloadModulesReady = Promise.resolve();
 
 export { Phaser, preloadModulesReady };
