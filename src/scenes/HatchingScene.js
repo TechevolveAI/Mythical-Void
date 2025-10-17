@@ -304,6 +304,12 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createEnhancedEgg() {
+        // Check if texture already exists (prevent duplicate textures on scene restart)
+        if (this.textures.exists('enhancedEgg')) {
+            console.log('hatching:info [HatchingScene] Egg texture already exists, skipping generation');
+            return;
+        }
+
         const graphics = this.add.graphics();
         const center = { x: 50, y: 75 };
 
@@ -361,6 +367,11 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createEnhancedClouds() {
+        // Check if texture already exists
+        if (this.textures.exists('enhancedCloud')) {
+            return;
+        }
+
         const graphics = this.add.graphics();
 
         // Volumetric clouds with multiple layers
