@@ -190,20 +190,13 @@ async function initializeGame() {
             console.warn('⚠️ Some GameState event listeners failed to set up:', listenerError);
         }
         
-        // Detect if mobile device
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                         ('ontouchstart' in window) ||
-                         (navigator.maxTouchPoints > 0);
-
-        console.log(`🖥️ Device type: ${isMobile ? 'Mobile' : 'Desktop'}`);
-
-        // Game configuration object with responsive settings
+        // Game configuration object - SIMPLE and WORKING
         const config = {
             type: Phaser.AUTO,
             parent: 'game-container',
             width: 800,
             height: 600,
-            backgroundColor: '#0a0118', // Dark cosmic background
+            backgroundColor: '#0a0118',
             physics: {
                 default: 'arcade',
                 arcade: {
@@ -213,14 +206,8 @@ async function initializeGame() {
             },
             scene: [HatchingScene, PersonalityScene, NamingScene, GameScene],
             scale: {
-                // FIT mode works for both desktop and mobile
                 mode: Phaser.Scale.FIT,
-                parent: 'game-container',
-                width: 800,
-                height: 600,
-                autoCenter: Phaser.Scale.CENTER_BOTH,
-                expandParent: false,
-                fullscreenTarget: 'game-container'
+                autoCenter: Phaser.Scale.CENTER_BOTH
             },
             input: {
                 activePointers: 3, // Support multi-touch
