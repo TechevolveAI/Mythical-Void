@@ -190,6 +190,13 @@ async function initializeGame() {
             console.warn('⚠️ Some GameState event listeners failed to set up:', listenerError);
         }
         
+        // Detect if mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                         ('ontouchstart' in window) ||
+                         (navigator.maxTouchPoints > 0);
+
+        console.log(`🖥️ Device type: ${isMobile ? 'Mobile' : 'Desktop'}`);
+
         // Game configuration object with responsive settings
         const config = {
             type: Phaser.AUTO,
@@ -206,11 +213,14 @@ async function initializeGame() {
             },
             scene: [HatchingScene, PersonalityScene, NamingScene, GameScene],
             scale: {
-                mode: Phaser.Scale.WIDTH_CONTROLS_HEIGHT,
+                // FIT mode works for both desktop and mobile
+                mode: Phaser.Scale.FIT,
                 parent: 'game-container',
                 width: 800,
                 height: 600,
-                autoCenter: Phaser.Scale.CENTER_BOTH
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                expandParent: false,
+                fullscreenTarget: 'game-container'
             },
             input: {
                 activePointers: 3, // Support multi-touch

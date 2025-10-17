@@ -94,14 +94,12 @@
             padding: 0 1rem;
         }
 
-        /* Canvas styles - let Phaser handle sizing */
+        /* Canvas styles - Phaser handles sizing with FIT mode */
         canvas {
             border: none;
             display: block;
             touch-action: none;
-            image-rendering: pixelated;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: crisp-edges;
+            margin: 0 auto;
         }
 
         #game-container {
@@ -110,6 +108,10 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0a0118;
         }
         
         /* Hide canvas initially */
