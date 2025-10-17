@@ -445,12 +445,15 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createEgg() {
+        // FIX #3: Improved cleanup - kill tweens AND destroy sprite to prevent duplication
+        if (this.egg) {
+            this.tweens.killTweensOf(this.egg);
+            this.egg.destroy();
+            this.egg = null;
+        }
+
         // Create the enhanced egg sprite at CENTER of 800x600 game
         // No responsive positioning needed - game is always 800x600, Phaser scales it
-        // Destroy existing egg if any (prevent duplicates)
-        if (this.egg) {
-            this.egg.destroy();
-        }
         this.egg = this.add.image(400, 300, 'enhancedEgg');
 
         // Mobile-optimized touch area (larger hit area for easier tapping)
@@ -464,6 +467,35 @@ class HatchingScene extends Phaser.Scene {
 
         this.egg.setScale(1.2);
 
+        // CRITICAL FIX: Attach click handler HERE immediately after making egg interactive
+        // This ensures the handler is ALWAYS attached when egg is created/recreated
+        // Previously this was in setupInput() which meant handlers were lost on egg recreation
+        this.egg.on('pointerdown', () => {
+            console.log('🥚 EGG CLICKED! Starting hatching sequence...');
+
+            if (!this.hatchingStarted && !this.creatureAppeared) {
+                MobileHelpers.vibrate(30); // Gentle haptic feedback
+
+                // Hide "Tap to Hatch" text on first click
+                if (this.tapToHatchText) {
+                    this.tweens.add({
+                        targets: this.tapToHatchText,
+                        alpha: 0,
+                        scale: 0.8,
+                        duration: 300,
+                        onComplete: () => {
+                            this.tapToHatchText.destroy();
+                            this.tapToHatchText = null;
+                        }
+                    });
+                }
+
+                this.startHatching();
+            } else {
+                console.log('🥚 Egg click ignored - hatching already in progress or creature appeared');
+            }
+        });
+
         // Create floating animation for the egg
         this.tweens.add({
             targets: this.egg,
@@ -473,16 +505,14 @@ class HatchingScene extends Phaser.Scene {
             yoyo: true,
             repeat: -1
         });
+
+        // Add "Tap to Hatch" instruction text (Quick Win #1 from QA Audit)
+        this.createTapToHatchText();
     }
 
     setupInput() {
-        // Handle egg click with haptic feedback
-        this.egg.on('pointerdown', () => {
-            if (!this.hatchingStarted && !this.creatureAppeared) {
-                MobileHelpers.vibrate(30); // Gentle haptic feedback
-                this.startHatching();
-            }
-        });
+        // NOTE: Egg click handler is now attached directly in createEgg()
+        // This ensures the handler persists when egg is recreated
 
         // Handle space key for scene transition (with null check for touch devices)
         if (this.input.keyboard) {
@@ -1137,7 +1167,7 @@ class HatchingScene extends Phaser.Scene {
         const state = getGameState();
         state.set('creature.hatched', true);
         state.set('creature.hatchTime', Date.now());
-        
+
         // Fade transition
         const fadeGraphics = this.add.graphics();
         fadeGraphics.fillStyle(0x000000, 0);
@@ -1152,6 +1182,70 @@ class HatchingScene extends Phaser.Scene {
             }
         });
     }
+
+    /**
+     * FIX #5: Scene cleanup to prevent duplication on restart
+     * Called automatically by Phaser when scene stops/restarts
+     */
+    shutdown() {
+        console.log('🧹 HatchingScene.shutdown() - Cleaning up scene resources');
+
+        // Clean up tap to hatch text
+        if (this.tapToHatchText) {
+            this.tweens.killTweensOf(this.tapToHatchText);
+            this.tapToHatchText.destroy();
+            this.tapToHatchText = null;
+        }
+
+        // Clean up egg
+        if (this.egg) {
+            this.tweens.killTweensOf(this.egg);
+            this.egg.destroy();
+            this.egg = null;
+        }
+
+        // Clean up creature
+        if (this.creature) {
+            this.tweens.killTweensOf(this.creature);
+            this.creature.destroy();
+            this.creature = null;
+        }
+
+        // Clean up clouds group
+        if (this.clouds) {
+            this.clouds.clear(true, true);
+            this.clouds = null;
+        }
+
+        // Clean up UI elements
+        if (this.instructionText) {
+            this.instructionText.destroy();
+            this.instructionText = null;
+        }
+
+        if (this.progressText) {
+            this.progressText.destroy();
+            this.progressText = null;
+        }
+
+        // Clean up reroll UI elements
+        this.cleanupRerollUI();
+
+        // Clean up graphics engine
+        if (this.graphicsEngine) {
+            this.graphicsEngine = null;
+        }
+
+        // Reset scene state flags
+        this.hatchingProgress = 0;
+        this.isHatching = false;
+        this.hatchingStarted = false;
+        this.creatureAppeared = false;
+        this.creatureGenetics = null;
+
+        console.log('✅ HatchingScene cleanup complete');
+    }
+
     update() {
         // Check for space key to start cinematic hatch or transition
         if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
@@ -1742,29 +1836,41 @@ class HatchingScene extends Phaser.Scene {
 
     /**
      * Create enhanced title with glow effect
+     * CRITICAL FIX: Proper responsive font sizing for MYTHICAL VOID text
+     * The game canvas is ALWAYS 800x600, but Phaser scales it to fit viewport
+     * We need MUCH smaller base fonts since they scale UP with the canvas
      */
     createEnhancedTitle() {
         const { width, height } = this.scale;
         const centerX = width / 2;
-        const titleY = Math.min(120, height * 0.15);
-        const panelWidth = Math.min(400, width * 0.6);
-        const panelHeight = 120;
+        const titleY = Math.min(120, height * 0.2);  // Position lower to fit better
+        const panelWidth = Math.min(550, width * 0.68);  // Narrower panel to contain text
+        const panelHeight = 100;
+
+        // CRITICAL FIX: Use fixed sizes that work well in 800x600 canvas
+        // Phaser's FIT mode will scale the entire canvas to fit the viewport
+        // So we need sizes that look good at 800x600 base resolution
+        // MYTHICAL VOID at 32px fits on ONE LINE within 800px width
+        const titleFontSize = 32;  // Much smaller to fit on single line
+        const subtitleFontSize = 14;  // Proportionally smaller
 
         // Glassmorphic panel behind title
         const titlePanel = this.add.graphics();
         titlePanel.fillStyle(0xFFFFFF, 0.1);
-        titlePanel.fillRoundedRect(centerX - panelWidth/2, titleY - 40, panelWidth, panelHeight, 20);
+        titlePanel.fillRoundedRect(centerX - panelWidth/2, titleY - 30, panelWidth, panelHeight, 20);
         titlePanel.lineStyle(2, 0xFFD54F, 0.5);
-        titlePanel.strokeRoundedRect(centerX - panelWidth/2, titleY - 40, panelWidth, panelHeight, 20);
+        titlePanel.strokeRoundedRect(centerX - panelWidth/2, titleY - 30, panelWidth, panelHeight, 20);
 
-        // Main title with glow
+        // Main title with glow - now using proper fixed size
         const titleText = this.add.text(centerX, titleY, 'MYTHICAL VOID', {
-            fontSize: '64px',
+            fontSize: `${titleFontSize}px`,
             color: '#FFD54F',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'bold',
             stroke: '#7B1FA2',
-            strokeThickness: 3
+            strokeThickness: 3,
+            // Add word wrap to prevent overflow
+            wordWrap: { width: panelWidth - 20, useAdvancedWrap: true }
         }).setOrigin(0.5);
 
         // Add glow effect
@@ -1790,10 +1896,10 @@ class HatchingScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Subtitle
-        const subtitleText = this.add.text(centerX, titleY + 70, 'Where Space Meets Magic', {
-            fontSize: '20px',
-            color: '#000000',
+        // Subtitle - now using proper fixed size
+        const subtitleText = this.add.text(centerX, titleY + 50, 'Where Space Meets Magic', {
+            fontSize: `${subtitleFontSize}px`,
+            color: '#B0B0B0',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'italic'
         }).setOrigin(0.5);
@@ -2023,7 +2129,7 @@ class HatchingScene extends Phaser.Scene {
                 });
             }
 
-            // Fade and transition
+            // Fade and transition - CRITICAL FIX: Use handleStartGame() for proper state management
             this.tweens.add({
                 targets: buttonContainer,
                 alpha: 0,
@@ -2033,7 +2139,8 @@ class HatchingScene extends Phaser.Scene {
                 delay: 150,
                 ease: 'Back.easeIn',
                 onComplete: () => {
-                    this.showHatchingScreen();
+                    // Use the proper state management flow
+                    this.handleStartGame();
                 }
             });
         });
@@ -2128,6 +2235,63 @@ class HatchingScene extends Phaser.Scene {
         this.tweens.add({
             targets: hintText,
             alpha: 0.6,
+            duration: 2000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * Create "Tap to Hatch" instructional text over the egg
+     * Quick Win #1 from QA Audit - improves discoverability
+     * FIX #1: Make text non-interactive so clicks pass through to egg
+     * FIX #2: Destroy existing text to prevent duplication
+     */
+    createTapToHatchText() {
+        // FIX #2: Destroy existing text if it exists (prevents duplication)
+        if (this.tapToHatchText) {
+            this.tweens.killTweensOf(this.tapToHatchText);
+            this.tapToHatchText.destroy();
+            this.tapToHatchText = null;
+        }
+
+        const isMobile = MobileHelpers.isMobile();
+        const text = isMobile ? '👆 TAP TO HATCH 👆' : '👆 CLICK TO HATCH 👆';
+
+        this.tapToHatchText = this.add.text(400, 180, text, {
+            fontSize: '28px',
+            color: '#FFD54F',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+            fontStyle: 'bold',
+            stroke: '#7B1FA2',
+            strokeThickness: 4,
+            align: 'center',
+            shadow: {
+                offsetX: 0,
+                offsetY: 0,
+                color: 'rgba(255, 213, 79, 0.8)',
+                blur: 15,
+                fill: true
+            }
+        }).setOrigin(0.5);
+
+        // Pulsing animation - draws attention without being annoying
+        this.tweens.add({
+            targets: this.tapToHatchText,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            alpha: 0.85,
+            duration: 1200,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Gentle floating animation synced with egg
+        this.tweens.add({
+            targets: this.tapToHatchText,
+            y: 170,
             duration: 2000,
             ease: 'Sine.easeInOut',
             yoyo: true,
