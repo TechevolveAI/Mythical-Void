@@ -445,9 +445,9 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createEgg() {
-        // Create the enhanced egg sprite (responsive position)
-        const pos = MobileHelpers.getResponsivePosition(this.scale, { x: 400, y: 300 });
-        this.egg = this.add.image(pos.x, pos.y, 'enhancedEgg');
+        // Create the enhanced egg sprite at CENTER of 800x600 game
+        // No responsive positioning needed - game is always 800x600, Phaser scales it
+        this.egg = this.add.image(400, 300, 'enhancedEgg');
 
         // Mobile-optimized touch area (larger hit area for easier tapping)
         const isMobile = MobileHelpers.isMobile();
