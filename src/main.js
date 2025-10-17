@@ -193,7 +193,7 @@ async function initializeGame() {
         // Game configuration - PROPERLY CONFIGURED FOR DESKTOP AND MOBILE
         const config = {
             type: Phaser.AUTO,
-            parent: 'game-container',
+            parent: 'game',
             width: 800,
             height: 600,
             backgroundColor: '#0a0118',

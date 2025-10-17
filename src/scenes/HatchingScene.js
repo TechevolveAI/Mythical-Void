@@ -447,6 +447,10 @@ class HatchingScene extends Phaser.Scene {
     createEgg() {
         // Create the enhanced egg sprite at CENTER of 800x600 game
         // No responsive positioning needed - game is always 800x600, Phaser scales it
+        // Destroy existing egg if any (prevent duplicates)
+        if (this.egg) {
+            this.egg.destroy();
+        }
         this.egg = this.add.image(400, 300, 'enhancedEgg');
 
         // Mobile-optimized touch area (larger hit area for easier tapping)
