@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="description" content="Mythical Creature Game - Raise and explore with your magical creature">
     <title>Mythical Creature Game</title>
     
@@ -19,22 +22,28 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        
-        body {
+
+        html, body {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            background: #0a0118;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            background: #0a0118;
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            touch-action: none;
         }
         
         /* Loading screen */
@@ -56,9 +65,11 @@
         #loading-screen h1 {
             font-family: 'Fredoka One', cursive;
             color: white;
-            font-size: 2.5rem;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
             margin-bottom: 2rem;
             text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            padding: 0 1rem;
         }
         
         .loading-spinner {
@@ -77,17 +88,21 @@
         .loading-text {
             color: white;
             margin-top: 1.5rem;
-            font-size: 1.1rem;
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
             opacity: 0.9;
+            text-align: center;
+            padding: 0 1rem;
         }
-        
-        /* Canvas styles */
+
+        /* Canvas styles - optimized for mobile */
         canvas {
             border: none;
-            box-shadow: 0 0 60px rgba(138, 43, 226, 0.3);
-            max-width: 100%;
-            max-height: 100%;
+            max-width: 100vw;
+            max-height: 100vh;
+            width: 100% !important;
+            height: auto !important;
             display: block;
+            touch-action: none;
         }
 
         #game-container {
@@ -96,6 +111,9 @@
             align-items: center;
             width: 100%;
             height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
         
         /* Hide canvas initially */
@@ -140,15 +158,21 @@
         
         /* Mobile optimization */
         @media (max-width: 768px) {
-            #loading-screen h1 {
-                font-size: 2rem;
-            }
-
             canvas {
                 border-radius: 0;
             }
         }
-        
+
+        /* iPhone notch support */
+        @supports (padding: max(0px)) {
+            body {
+                padding-top: max(0px, env(safe-area-inset-top));
+                padding-bottom: max(0px, env(safe-area-inset-bottom));
+                padding-left: max(0px, env(safe-area-inset-left));
+                padding-right: max(0px, env(safe-area-inset-right));
+            }
+        }
+
         /* Reduced motion support */
         @media (prefers-reduced-motion: reduce) {
             * {
@@ -183,23 +207,38 @@
     
     <!-- Loading complete script -->
     <script>
+        // Prevent pull-to-refresh and other mobile gestures
+        document.addEventListener('touchmove', function(e) {
+            if (e.scale !== 1) { e.preventDefault(); }
+        }, { passive: false });
+
+        // Prevent double-tap zoom
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
         // Hide loading screen when game is ready
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const loadingScreen = document.getElementById('loading-screen');
                 const canvas = document.querySelector('canvas');
-                
+
                 if (loadingScreen) {
                     loadingScreen.style.opacity = '0';
                     setTimeout(() => {
                         loadingScreen.style.display = 'none';
                     }, 500);
                 }
-                
+
                 if (canvas) {
                     canvas.classList.add('ready');
                 }
-                
+
                 // Announce to screen readers
                 const announcer = document.getElementById('sr-announcer');
                 if (announcer) {
@@ -207,7 +246,7 @@
                 }
             }, 1500);
         });
-        
+
         // Progressive Web App support (if service worker exists)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

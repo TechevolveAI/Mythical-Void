@@ -195,7 +195,7 @@ async function initializeGame() {
             type: Phaser.AUTO,
             width: 800,
             height: 600,
-            backgroundColor: '#87CEEB', // Sky blue background
+            backgroundColor: '#0a0118', // Dark cosmic background
             physics: {
                 default: 'arcade',
                 arcade: {
@@ -205,23 +205,19 @@ async function initializeGame() {
             },
             scene: [HatchingScene, PersonalityScene, NamingScene, GameScene],
             scale: {
-                mode: Phaser.Scale.RESIZE,
+                mode: Phaser.Scale.FIT, // FIT mode scales to fill screen while maintaining aspect ratio
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: window.innerWidth,
-                height: window.innerHeight,
-                min: {
-                    width: 800,
-                    height: 600
-                },
-                max: {
-                    width: window.innerWidth,
-                    height: window.innerHeight
-                }
+                width: 800,
+                height: 600,
+                // Remove min/max constraints that break mobile
             },
             input: {
                 activePointers: 3, // Support multi-touch
                 touch: {
                     capture: true
+                },
+                mouse: {
+                    preventDefaultWheel: false
                 }
             },
             dom: {

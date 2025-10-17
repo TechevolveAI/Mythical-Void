@@ -4,6 +4,7 @@
  */
 
 import hatchCinematicsConfig from '../config/hatch-cinematics.json';
+import MobileHelpers from '../utils/mobile-helpers.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
 const cloneConfig = (config) => {
@@ -433,9 +434,19 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createEgg() {
-        // Create the enhanced egg sprite
-        this.egg = this.add.image(400, 300, 'enhancedEgg');
-        this.egg.setInteractive({ cursor: 'pointer' });
+        // Create the enhanced egg sprite (responsive position)
+        const pos = MobileHelpers.getResponsivePosition(this.scale, { x: 400, y: 300 });
+        this.egg = this.add.image(pos.x, pos.y, 'enhancedEgg');
+
+        // Mobile-optimized touch area (larger hit area for easier tapping)
+        const isMobile = MobileHelpers.isMobile();
+        const hitAreaPadding = isMobile ? 40 : 0;
+        this.egg.setInteractive({
+            hitArea: new Phaser.Geom.Circle(0, 0, (this.egg.width / 2) + hitAreaPadding),
+            hitAreaCallback: Phaser.Geom.Circle.Contains,
+            cursor: isMobile ? 'default' : 'pointer'
+        });
+
         this.egg.setScale(1.2);
 
         // Create floating animation for the egg
@@ -450,9 +461,10 @@ class HatchingScene extends Phaser.Scene {
     }
 
     setupInput() {
-        // Handle egg click
+        // Handle egg click with haptic feedback
         this.egg.on('pointerdown', () => {
             if (!this.hatchingStarted && !this.creatureAppeared) {
+                MobileHelpers.vibrate(30); // Gentle haptic feedback
                 this.startHatching();
             }
         });
@@ -1779,8 +1791,11 @@ class HatchingScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const buttonX = width / 2;
         const buttonY = height / 2;
-        const buttonWidth = 340;
-        const buttonHeight = 95;
+
+        // Responsive button sizing for mobile
+        const buttonSize = MobileHelpers.getButtonSize(this.scale, { width: 340, height: 95 });
+        const buttonWidth = buttonSize.width;
+        const buttonHeight = buttonSize.height;
 
         // Create container for the button
         const buttonContainer = this.add.container(buttonX, buttonY);
@@ -1815,9 +1830,10 @@ class HatchingScene extends Phaser.Scene {
         shine.fillStyle(0xFFFFFF, 0.22);
         shine.fillRoundedRect(-buttonWidth/2 + 8, -buttonHeight/2 + 8, buttonWidth - 16, buttonHeight/2 - 10, 14);
 
-        // POWER WORDS - Action-oriented, benefit-focused
+        // POWER WORDS - Action-oriented, benefit-focused (responsive font size)
+        const fontSize = MobileHelpers.getFontSize(this.scale, 28);
         const buttonText = this.add.text(0, 0, 'START YOUR ADVENTURE', {
-            fontSize: '28px',
+            fontSize: fontSize,
             color: '#FFFFFF',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: '900',
@@ -1842,8 +1858,9 @@ class HatchingScene extends Phaser.Scene {
         const urgencyDot = this.add.circle(buttonWidth/2 - 22, -buttonHeight/2 + 14, 5, 0x00FF88, 1);
 
         buttonContainer.add([outerGlow, middleGlow, innerGlow, bg, shine, rocket, buttonText, urgencyDot]);
-        buttonContainer.setSize(buttonWidth, buttonHeight);
-        buttonContainer.setInteractive({ cursor: 'pointer', useHandCursor: true });
+
+        // Mobile-optimized touch hit area
+        MobileHelpers.setTouchHitArea(buttonContainer, buttonWidth, buttonHeight, 30);
 
         // BREATHING ANIMATION - Subconscious familiarity
         this.tweens.add({
@@ -1944,6 +1961,9 @@ class HatchingScene extends Phaser.Scene {
         // CLICK - Tactile satisfaction & reward
         buttonContainer.on('pointerdown', () => {
             console.log('🚀 START GAME button clicked!');
+
+            // Haptic feedback for mobile
+            MobileHelpers.vibrate(50);
 
             // Squash effect
             this.tweens.add({
