@@ -193,6 +193,7 @@ async function initializeGame() {
         // Game configuration object with responsive settings
         const config = {
             type: Phaser.AUTO,
+            parent: 'game-container',
             width: 800,
             height: 600,
             backgroundColor: '#0a0118', // Dark cosmic background
@@ -205,11 +206,11 @@ async function initializeGame() {
             },
             scene: [HatchingScene, PersonalityScene, NamingScene, GameScene],
             scale: {
-                mode: Phaser.Scale.FIT, // FIT mode scales to fill screen while maintaining aspect ratio
-                autoCenter: Phaser.Scale.CENTER_BOTH,
+                mode: Phaser.Scale.WIDTH_CONTROLS_HEIGHT,
+                parent: 'game-container',
                 width: 800,
                 height: 600,
-                // Remove min/max constraints that break mobile
+                autoCenter: Phaser.Scale.CENTER_BOTH
             },
             input: {
                 activePointers: 3, // Support multi-touch
