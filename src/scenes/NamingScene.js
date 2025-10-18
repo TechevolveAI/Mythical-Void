@@ -153,14 +153,22 @@ class NamingScene extends Phaser.Scene {
                 if (creatureResult && creatureResult.textureName) {
                     console.log('naming:info [NamingScene] Created creature texture:', creatureResult.textureName);
 
+                    // MOBILE-RESPONSIVE creature positioning
+                    // Mobile layout will reposition this later if needed
+                    const { width, height } = this.scale;
+                    const isMobile = width < 600;
+                    const creatureX = isMobile ? width / 2 : 200;
+                    const creatureY = isMobile ? height * 0.25 : 300;
+                    const baseScale = isMobile ? Math.min(1.5, width / 300) : 1.5;
+
                     // Display the creature with the correct texture
-                    this.creature = this.add.image(200, 300, creatureResult.textureName);
-                    this.creature.setScale(1.5);
+                    this.creature = this.add.image(creatureX, creatureY, creatureResult.textureName);
+                    this.creature.setScale(baseScale);
 
                     // Gentle breathing animation
                     this.tweens.add({
                         targets: this.creature,
-                        scaleY: 1.55,
+                        scaleY: baseScale * 1.05,
                         duration: 2000,
                         ease: 'Sine.easeInOut',
                         yoyo: true,
@@ -188,12 +196,18 @@ class NamingScene extends Phaser.Scene {
             this.creatureData.genes
         );
 
-        this.creature = this.add.image(200, 300, 'enhancedCreature0');
-        this.creature.setScale(1.5);
+        const { width, height } = this.scale;
+        const isMobile = width < 600;
+        const creatureX = isMobile ? width / 2 : 200;
+        const creatureY = isMobile ? height * 0.25 : 300;
+        const baseScale = isMobile ? Math.min(1.5, width / 300) : 1.5;
+
+        this.creature = this.add.image(creatureX, creatureY, 'enhancedCreature0');
+        this.creature.setScale(baseScale);
 
         this.tweens.add({
             targets: this.creature,
-            scaleY: 1.55,
+            scaleY: baseScale * 1.05,
             duration: 2000,
             ease: 'Sine.easeInOut',
             yoyo: true,
@@ -327,6 +341,122 @@ class NamingScene extends Phaser.Scene {
         localStorage.removeItem('mythical-creature-save');
         console.log('🔄 Game data reset from naming scene');
         window.location.reload();
+    }
+
+    createMobileLayout() {
+        // MOBILE VERTICAL STACK: Creature → Name Input → Info
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        let currentY = height * 0.15; // Start below subtitle
+
+        // Responsive font sizes for mobile
+        const labelSize = Math.max(16, Math.min(18, width * 0.045));
+        const bodySize = Math.max(13, Math.min(14, width * 0.036));
+        const titleSize = Math.max(14, Math.min(16, width * 0.04));
+
+        // Reposition creature to center (already created in displayCreature)
+        if (this.creature) {
+            this.creature.x = centerX;
+            this.creature.y = currentY + (height * 0.12); // Give it some space
+            const scale = Math.min(1.5, width / 300);
+            this.creature.setScale(scale);
+        }
+
+        currentY += height * 0.25; // Move past creature
+
+        // NAME INPUT SECTION
+        const inputWidth = width * 0.8;
+        const inputHeight = height * 0.06;
+        const inputX = centerX - (inputWidth / 2);
+        const inputY = currentY;
+
+        // Name label
+        this.add.text(centerX, inputY - (height * 0.03), 'Name your creature:', {
+            fontSize: `${labelSize}px`,
+            color: '#4B0082',
+            align: 'center',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        // Name input background
+        const inputBg = this.add.graphics();
+        inputBg.fillStyle(0xFFFFFF, 0.9);
+        inputBg.fillRoundedRect(inputX, inputY, inputWidth, inputHeight, 8);
+        inputBg.lineStyle(2, 0x4B0082);
+        inputBg.strokeRoundedRect(inputX, inputY, inputWidth, inputHeight, 8);
+
+        // ALWAYS start with blank name field
+        this.nameInput = '';
+        console.log('naming:info [NamingScene] Name field initialized as blank (mobile)');
+
+        // Name input display
+        this.nameText = this.add.text(centerX, inputY + (inputHeight / 2), '', {
+            fontSize: `${bodySize}px`,
+            color: '#333333'
+        }).setOrigin(0.5);
+
+        this.updateNameDisplay();
+
+        currentY += inputHeight + (height * 0.05);
+
+        // COMPACT INFO PANEL
+        const panelWidth = width * 0.9;
+        const panelHeight = height * 0.28;
+        const panelX = centerX - (panelWidth / 2);
+        const panelY = currentY;
+
+        // Background panel
+        const panelGraphics = this.add.graphics();
+        panelGraphics.fillStyle(0xFFFFFF, 0.9);
+        panelGraphics.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panelGraphics.lineStyle(3, 0x4B0082);
+        panelGraphics.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+
+        const contentX = panelX + (panelWidth * 0.05);
+        let infoY = panelY + (panelHeight * 0.08);
+
+        // Personality section
+        this.add.text(contentX, infoY, 'Personality:', {
+            fontSize: `${titleSize}px`,
+            color: '#4B0082',
+            fontStyle: 'bold'
+        });
+        infoY += titleSize * 1.3;
+
+        this.add.text(contentX, infoY, this.creatureData.personality.name, {
+            fontSize: `${bodySize}px`,
+            color: '#2E8B57',
+            fontStyle: 'bold'
+        });
+        infoY += bodySize * 1.5;
+
+        this.add.text(contentX, infoY, this.creatureData.personality.description, {
+            fontSize: `${bodySize - 1}px`,
+            color: '#666666',
+            wordWrap: { width: panelWidth * 0.9 }
+        });
+        infoY += (bodySize * 3); // Account for wrapped text
+
+        // Genetics section (compact)
+        this.add.text(contentX, infoY, 'Genetics:', {
+            fontSize: `${titleSize}px`,
+            color: '#4B0082',
+            fontStyle: 'bold'
+        });
+        infoY += titleSize * 1.3;
+
+        const genetics = this.creatureData.genes;
+        const geneticsText = [
+            `Size: ${genetics.size}`,
+            `Pattern: ${genetics.pattern}`,
+            `Mood: ${genetics.temperament}`
+        ].join(' • '); // Use bullets to save space
+
+        this.add.text(contentX, infoY, geneticsText, {
+            fontSize: `${bodySize - 1}px`,
+            color: '#666666',
+            wordWrap: { width: panelWidth * 0.9 }
+        });
     }
 
     createInfoPanel() {
