@@ -190,12 +190,13 @@ async function initializeGame() {
             console.warn('⚠️ Some GameState event listeners failed to set up:', listenerError);
         }
         
-        // Game configuration - PROPERLY CONFIGURED FOR DESKTOP AND MOBILE
+        // Game configuration - MOBILE-FIRST PORTRAIT LAYOUT
+        // iPhone 12 dimensions: 390x844 (portrait), but we use dynamic sizing
         const config = {
             type: Phaser.AUTO,
             parent: 'game',
-            width: 800,
-            height: 600,
+            width: window.innerWidth,
+            height: window.innerHeight,
             backgroundColor: '#0a0118',
             physics: {
                 default: 'arcade',
@@ -206,10 +207,14 @@ async function initializeGame() {
             },
             scene: [HatchingScene, PersonalityScene, NamingScene, GameScene],
             scale: {
-                mode: Phaser.Scale.FIT,
+                mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: 800,
-                height: 600
+                width: window.innerWidth,
+                height: window.innerHeight,
+                // Handle window resize for orientation changes
+                parent: 'game',
+                expandParent: true,
+                fullscreenTarget: 'game'
             },
             input: {
                 activePointers: 3, // Support multi-touch

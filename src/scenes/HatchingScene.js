@@ -452,9 +452,10 @@ class HatchingScene extends Phaser.Scene {
             this.egg = null;
         }
 
-        // Create the enhanced egg sprite at CENTER of 800x600 game
-        // No responsive positioning needed - game is always 800x600, Phaser scales it
-        this.egg = this.add.image(400, 300, 'enhancedEgg');
+        // MOBILE-RESPONSIVE egg positioning
+        // Center the egg in the middle of the viewport
+        const { width, height } = this.scale;
+        this.egg = this.add.image(width / 2, height * 0.45, 'enhancedEgg');  // Slightly above center
 
         // Mobile-optimized touch area (larger hit area for easier tapping)
         const isMobile = MobileHelpers.isMobile();
@@ -521,9 +522,17 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createUI() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        // MOBILE-RESPONSIVE font sizes
+        const titleFontSize = Math.max(20, Math.min(32, width * 0.07));
+        const subtitleFontSize = Math.max(14, Math.min(18, width * 0.04));
+        const instructionFontSize = Math.max(16, Math.min(20, width * 0.045));
+
         // Main title
-        const titleText = this.add.text(400, 60, '🌟 Mythical Creature Game 🌟', {
-            fontSize: '32px',
+        const titleText = this.add.text(centerX, height * 0.08, '🌟 Mythical Creature Game 🌟', {
+            fontSize: `${titleFontSize}px`,
             color: '#FFD54F',
             stroke: '#7B1FA2',
             strokeThickness: 3,
@@ -533,8 +542,8 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Subtitle
-        const subtitleText = this.add.text(400, 100, 'Your magical adventure begins here!', {
-            fontSize: '18px',
+        const subtitleText = this.add.text(centerX, height * 0.13, 'Your magical adventure begins here!', {
+            fontSize: `${subtitleFontSize}px`,
             color: '#FFFFFF',
             stroke: '#000000',
             strokeThickness: 2,
@@ -543,13 +552,14 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Instructions text with better styling
-        this.instructionText = this.add.text(400, 150, '👆 Click the magical egg below to hatch your creature! 👆', {
-            fontSize: '20px',
+        this.instructionText = this.add.text(centerX, height * 0.2, '👆 Click the magical egg below to hatch your creature! 👆', {
+            fontSize: `${instructionFontSize}px`,
             color: '#FFFFFF',
             stroke: '#7B1FA2',
             strokeThickness: 2,
             align: 'center',
-            fontFamily: 'Arial, sans-serif'
+            fontFamily: 'Arial, sans-serif',
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
         // Create UI panel background
@@ -570,15 +580,28 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createControlPanel() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        // Skip control panel on mobile to simplify UI
+        if (width < 600) {
+            return;
+        }
+
+        // Desktop: Control panel at bottom
+        const panelWidth = Math.min(width * 0.9, 700);
+        const panelHeight = 100;
+        const panelY = height - 120;
+
         // Control panel background
         const panelBg = this.add.graphics();
         panelBg.fillStyle(0x000000, 0.7);
-        panelBg.fillRoundedRect(50, 480, 700, 100, 15);
+        panelBg.fillRoundedRect(centerX - panelWidth/2, panelY, panelWidth, panelHeight, 15);
         panelBg.lineStyle(3, 0xFFD54F);
-        panelBg.strokeRoundedRect(50, 480, 700, 100, 15);
+        panelBg.strokeRoundedRect(centerX - panelWidth/2, panelY, panelWidth, panelHeight, 15);
 
         // Instructions
-        this.add.text(400, 500, '🎮 Click egg to hatch • SPACE to continue • WASD/Arrows to move', {
+        this.add.text(centerX, panelY + 30, '🎮 Click egg to hatch • SPACE to continue • WASD/Arrows to move', {
             fontSize: '16px',
             color: '#F5F5F5',
             align: 'center',
@@ -586,7 +609,7 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Game info
-        this.add.text(400, 530, '🏆 Hatch → Name → Explore the magical world!', {
+        this.add.text(centerX, panelY + 60, '🏆 Hatch → Name → Explore the magical world!', {
             fontSize: '14px',
             color: '#80CBC4',
             align: 'center',
@@ -1836,23 +1859,20 @@ class HatchingScene extends Phaser.Scene {
 
     /**
      * Create enhanced title with glow effect
-     * CRITICAL FIX: Proper responsive font sizing for MYTHICAL VOID text
-     * The game canvas is ALWAYS 800x600, but Phaser scales it to fit viewport
-     * We need MUCH smaller base fonts since they scale UP with the canvas
+     * MOBILE-FIRST RESPONSIVE: Now uses actual viewport dimensions
+     * RESIZE mode means width/height are the actual screen pixels
      */
     createEnhancedTitle() {
         const { width, height } = this.scale;
         const centerX = width / 2;
-        const titleY = Math.min(120, height * 0.2);  // Position lower to fit better
-        const panelWidth = Math.min(550, width * 0.68);  // Narrower panel to contain text
-        const panelHeight = 100;
+        const titleY = height * 0.15;  // 15% from top - works for portrait
+        const panelWidth = Math.min(width * 0.9, 550);  // 90% of screen width, max 550px
+        const panelHeight = Math.min(height * 0.12, 100);  // Responsive height
 
-        // CRITICAL FIX: Use fixed sizes that work well in 800x600 canvas
-        // Phaser's FIT mode will scale the entire canvas to fit the viewport
-        // So we need sizes that look good at 800x600 base resolution
-        // MYTHICAL VOID at 32px fits on ONE LINE within 800px width
-        const titleFontSize = 32;  // Much smaller to fit on single line
-        const subtitleFontSize = 14;  // Proportionally smaller
+        // MOBILE-RESPONSIVE font sizes based on screen width
+        // iPhone 12 width = 390px, so 32px * (390/800) = ~15px
+        const titleFontSize = Math.max(24, Math.min(32, width * 0.08));  // 8% of screen width
+        const subtitleFontSize = Math.max(12, Math.min(16, width * 0.04));  // 4% of screen width
 
         // Glassmorphic panel behind title
         const titlePanel = this.add.graphics();
@@ -1907,16 +1927,16 @@ class HatchingScene extends Phaser.Scene {
 
     /**
      * Create enhanced START button with glassmorphism
+     * MOBILE-RESPONSIVE positioning
      */
     createEnhancedStartButton() {
         const { width, height } = this.scale;
         const buttonX = width / 2;
-        const buttonY = height / 2;
+        const buttonY = height * 0.5;  // Center vertically at 50%
 
-        // Responsive button sizing for mobile
-        const buttonSize = MobileHelpers.getButtonSize(this.scale, { width: 340, height: 95 });
-        const buttonWidth = buttonSize.width;
-        const buttonHeight = buttonSize.height;
+        // Responsive button sizing for mobile - wider for portrait screens
+        const buttonWidth = Math.min(width * 0.85, 340);  // 85% of screen width, max 340px
+        const buttonHeight = Math.min(height * 0.08, 95);  // 8% of screen height, max 95px
 
         // Create container for the button
         const buttonContainer = this.add.container(buttonX, buttonY);
@@ -2150,12 +2170,21 @@ class HatchingScene extends Phaser.Scene {
 
     /**
      * Create feature preview cards
+     * MOBILE-RESPONSIVE: Stack vertically on narrow screens
      */
     createFeatureCards() {
         const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        // Skip feature cards on mobile to simplify UI
+        // They're just informational and clutter the portrait layout
+        if (width < 600) {
+            return;
+        }
+
+        // Desktop: Horizontal layout
         const cardWidth = 180;
         const cardHeight = 120;
-        const centerX = width / 2;
         const cardY = height - 180;
         const spacing = Math.min(215, width / 4);
 
