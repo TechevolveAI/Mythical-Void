@@ -733,8 +733,14 @@ class HatchingScene extends Phaser.Scene {
                 return;
             }
 
+            // MOBILE-RESPONSIVE creature positioning
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const creatureY = height * 0.45; // Center at 45% height
+            const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+
             // Create the enhanced creature with the new texture
-            this.creature = this.add.image(400, 300, creatureResult.textureName);
+            this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
@@ -747,7 +753,7 @@ class HatchingScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.creature,
                 alpha: 1,
-                scale: 1.2,
+                scale: targetScale,
                 duration: 1000,
                 ease: 'Back.easeOut',
                 onComplete: () => {
@@ -772,7 +778,13 @@ class HatchingScene extends Phaser.Scene {
                 return;
             }
 
-            this.creature = this.add.image(400, 300, 'enhancedCreature0');
+            // MOBILE-RESPONSIVE fallback creature positioning
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const creatureY = height * 0.45;
+            const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+
+            this.creature = this.add.image(centerX, creatureY, 'enhancedCreature0');
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
@@ -780,7 +792,7 @@ class HatchingScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.creature,
                 alpha: 1,
-                scale: 1.2,
+                scale: targetScale,
                 duration: 1000,
                 ease: 'Back.easeOut'
             });
@@ -808,11 +820,17 @@ class HatchingScene extends Phaser.Scene {
             // Fallback: Show old adventure text behavior
             console.warn('hatch:warn [HatchingScene] RerollSystem not available, using simple transition');
             this.time.delayedCall(1500, () => {
-                const continueText = this.add.text(400, 500, '✨ Press SPACE to continue! ✨', {
-                    fontSize: '20px',
+                // MOBILE-RESPONSIVE continue text
+                const { width, height } = this.scale;
+                const centerX = width / 2;
+                const fontSize = Math.max(16, Math.min(20, width * 0.048));
+
+                const continueText = this.add.text(centerX, height * 0.88, '✨ Press SPACE to continue! ✨', {
+                    fontSize: `${fontSize}px`,
                     color: '#FFD54F',
                     stroke: '#000000',
-                    strokeThickness: 2
+                    strokeThickness: 2,
+                    wordWrap: { width: width * 0.9 }
                 }).setOrigin(0.5);
 
                 this.tweens.add({
@@ -830,9 +848,15 @@ class HatchingScene extends Phaser.Scene {
      * Show critical error message to user
      */
     showCriticalError(message) {
-        const errorText = this.add.text(400, 300, `❌ ${message}\n\nPlease refresh the page`, {
-            fontSize: '24px',
+        // MOBILE-RESPONSIVE error message
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const fontSize = Math.max(18, Math.min(24, width * 0.055));
+
+        const errorText = this.add.text(centerX, height * 0.5, `❌ ${message}\n\nPlease refresh the page`, {
+            fontSize: `${fontSize}px`,
             color: '#FF4444',
+            wordWrap: { width: width * 0.8 },
             stroke: '#000000',
             strokeThickness: 4,
             align: 'center',
@@ -1298,26 +1322,40 @@ class HatchingScene extends Phaser.Scene {
             const rarity = this.creatureGenetics.rarity;
             const rarityInfo = this.rarityInfo;
 
+            // MOBILE-RESPONSIVE rarity banner
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const bannerWidth = Math.min(width * 0.9, 500);
+            const bannerHeight = Math.min(height * 0.12, 80);
+            const bannerX = centerX - (bannerWidth / 2);
+            const bannerY = height * 0.08;
+
+            // Responsive font sizes
+            const titleSize = Math.max(20, Math.min(28, width * 0.065));
+            const subtitleSize = Math.max(14, Math.min(18, width * 0.042));
+
             // Create banner background
             const bannerBg = this.add.graphics();
             bannerBg.fillStyle(0x000000, 0.8);
-            bannerBg.fillRoundedRect(150, 50, 500, 80, 10);
+            bannerBg.fillRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 10);
             bannerBg.lineStyle(3, parseInt(rarityInfo.displayColor.replace('#', '0x')));
-            bannerBg.strokeRoundedRect(150, 50, 500, 80, 10);
+            bannerBg.strokeRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 10);
 
             // Rarity title
-            const rarityText = this.add.text(400, 70, `${rarityInfo.emoji} ${rarityInfo.name} Creature!`, {
-                fontSize: '28px',
+            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.35), `${rarityInfo.emoji} ${rarityInfo.name} Creature!`, {
+                fontSize: `${titleSize}px`,
                 color: rarityInfo.displayColor,
                 fontStyle: 'bold',
                 stroke: '#000000',
-                strokeThickness: 3
+                strokeThickness: 3,
+                wordWrap: { width: bannerWidth * 0.9 }
             }).setOrigin(0.5);
 
             // Creature name/species
-            const speciesText = this.add.text(400, 105, `${this.creatureGenetics.species} • ${this.creatureGenetics.personality.core}`, {
-                fontSize: '18px',
-                color: '#FFFFFF'
+            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.75), `${this.creatureGenetics.species} • ${this.creatureGenetics.personality.core}`, {
+                fontSize: `${subtitleSize}px`,
+                color: '#FFFFFF',
+                wordWrap: { width: bannerWidth * 0.9 }
             }).setOrigin(0.5);
 
             // Animate banner
