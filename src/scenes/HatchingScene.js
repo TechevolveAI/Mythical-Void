@@ -1403,49 +1403,71 @@ class HatchingScene extends Phaser.Scene {
 
             const canReroll = window.rerollSystem.canReroll();
 
-            // Button container
-            const buttonY = 500;
+            // MOBILE-RESPONSIVE button positioning
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const isMobile = width < 600;
+
+            // Responsive sizing
+            const buttonWidth = isMobile ? Math.min(width * 0.4, 140) : 150;
+            const buttonHeight = isMobile ? Math.min(height * 0.07, 50) : 50;
+            const buttonSpacing = isMobile ? width * 0.05 : 50;
+            const buttonY = height * 0.78; // 78% from top
+            const fontSize = Math.max(18, Math.min(22, width * 0.05));
+
+            // Calculate button positions (centered pair)
+            const keepX = canReroll ?
+                (centerX - buttonWidth - (buttonSpacing / 2)) :
+                (centerX - (buttonWidth / 2));
+            const rerollX = centerX + (buttonSpacing / 2);
 
             // KEEP button
             const keepBg = this.add.graphics();
             keepBg.fillStyle(0x228B22, 0.9);
-            keepBg.fillRoundedRect(200, buttonY, 150, 50, 10);
+            keepBg.fillRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 10);
             keepBg.lineStyle(3, 0xFFD54F);
-            keepBg.strokeRoundedRect(200, buttonY, 150, 50, 10);
+            keepBg.strokeRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 10);
 
-            const keepText = this.add.text(275, buttonY + 25, '✓ KEEP', {
-                fontSize: '22px',
+            const keepText = this.add.text(keepX + (buttonWidth / 2), buttonY + (buttonHeight / 2), '✓ KEEP', {
+                fontSize: `${fontSize}px`,
                 color: '#FFFFFF',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
 
-            const keepZone = this.add.zone(200, buttonY, 150, 50).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+            const keepZone = this.add.zone(keepX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+
+            // Store dimensions for hover effects
+            this.keepButtonDims = { x: keepX, y: buttonY, w: buttonWidth, h: buttonHeight };
 
             // REROLL button (if available)
             let rerollBg, rerollText, rerollZone;
             if (canReroll) {
                 rerollBg = this.add.graphics();
                 rerollBg.fillStyle(0x4169E1, 0.9);
-                rerollBg.fillRoundedRect(450, buttonY, 150, 50, 10);
+                rerollBg.fillRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 10);
                 rerollBg.lineStyle(3, 0xFFD54F);
-                rerollBg.strokeRoundedRect(450, buttonY, 150, 50, 10);
+                rerollBg.strokeRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 10);
 
-                rerollText = this.add.text(525, buttonY + 25, '🔄 REROLL', {
-                    fontSize: '22px',
+                rerollText = this.add.text(rerollX + (buttonWidth / 2), buttonY + (buttonHeight / 2), '🔄 REROLL', {
+                    fontSize: `${fontSize}px`,
                     color: '#FFFFFF',
                     fontStyle: 'bold'
                 }).setOrigin(0.5);
 
-                rerollZone = this.add.zone(450, buttonY, 150, 50).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+                rerollZone = this.add.zone(rerollX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+
+                // Store dimensions for hover effects
+                this.rerollButtonDims = { x: rerollX, y: buttonY, w: buttonWidth, h: buttonHeight };
             }
 
             // Advice text
             const advice = window.rerollSystem.getRerollAdvice(this.creatureGenetics.rarity);
-            const adviceText = this.add.text(400, 450, advice.message, {
-                fontSize: '14px',
+            const adviceFontSize = Math.max(13, Math.min(14, width * 0.036));
+            const adviceText = this.add.text(centerX, height * 0.7, advice.message, {
+                fontSize: `${adviceFontSize}px`,
                 color: '#FFFF00',
                 align: 'center',
-                wordWrap: { width: 500 }
+                wordWrap: { width: width * 0.9 }
             }).setOrigin(0.5);
 
             // Animate elements
@@ -1468,18 +1490,20 @@ class HatchingScene extends Phaser.Scene {
             // Button interactions
             keepZone.on('pointerdown', () => this.handleKeepCreature());
             keepZone.on('pointerover', () => {
+                const dims = this.keepButtonDims;
                 keepBg.clear();
                 keepBg.fillStyle(0x32CD32, 0.9);
-                keepBg.fillRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                 keepBg.lineStyle(3, 0xFFD54F);
-                keepBg.strokeRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
             });
             keepZone.on('pointerout', () => {
+                const dims = this.keepButtonDims;
                 keepBg.clear();
                 keepBg.fillStyle(0x228B22, 0.9);
-                keepBg.fillRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                 keepBg.lineStyle(3, 0xFFD54F);
-                keepBg.strokeRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
             });
 
             if (canReroll) {
@@ -1489,18 +1513,20 @@ class HatchingScene extends Phaser.Scene {
                     this.handleRerollCreature();
                 });
                 rerollZone.on('pointerover', () => {
+                    const dims = this.rerollButtonDims;
                     rerollBg.clear();
                     rerollBg.fillStyle(0x6495ED, 0.9);
-                    rerollBg.fillRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                     rerollBg.lineStyle(3, 0xFFD54F);
-                    rerollBg.strokeRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                 });
                 rerollZone.on('pointerout', () => {
+                    const dims = this.rerollButtonDims;
                     rerollBg.clear();
                     rerollBg.fillStyle(0x4169E1, 0.9);
-                    rerollBg.fillRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                     rerollBg.lineStyle(3, 0xFFD54F);
-                    rerollBg.strokeRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                 });
 
                 this.rerollUI = { rerollBg, rerollText, rerollZone };
