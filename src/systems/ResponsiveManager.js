@@ -293,7 +293,7 @@ class ResponsiveManager {
                 position: absolute;
                 width: 120px;
                 height: 120px;
-                bottom: 20px;
+                bottom: 100px;
                 left: 20px;
                 z-index: 1000;
             }

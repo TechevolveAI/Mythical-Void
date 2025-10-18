@@ -474,6 +474,29 @@ class GameScene extends Phaser.Scene {
 
         // Space key for interactions
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        // MOBILE: Virtual joystick state
+        this.joystickX = 0;
+        this.joystickY = 0;
+
+        // Listen for virtual joystick events
+        this.game.events.on('virtual-joystick', (data) => {
+            this.joystickX = data.x;
+            this.joystickY = data.y;
+        });
+
+        // Listen for virtual button events
+        this.game.events.on('virtual-key', (data) => {
+            if (data.key === 'space' && data.type === 'down') {
+                this.handleInteraction();
+            }
+        });
+
+        // MOBILE: Show virtual controls (joystick + action buttons)
+        if (window.responsiveManager && window.responsiveManager.isMobile) {
+            window.responsiveManager.showVirtualControls();
+            console.log('[GameScene] Virtual controls activated for mobile');
+        }
     }
 
     createUI() {
@@ -526,7 +549,7 @@ class GameScene extends Phaser.Scene {
         this.interactionText.setScrollFactor(0);
         this.interactionText.setVisible(false);
 
-        // Care hint (bottom-left corner)
+        // Care hint (bottom-left corner) - DISABLED FOR MOBILE SIMPLICITY
         this.careHintText = this.add.text(16, 584, '', {
             fontSize: '12px',
             color: '#FFFFFF',
@@ -537,7 +560,8 @@ class GameScene extends Phaser.Scene {
         });
         this.careHintText.setOrigin(0, 1);
         this.careHintText.setScrollFactor(0);
-        this.updateCareHint();
+        this.careHintText.setVisible(false); // Hide on mobile
+        // this.updateCareHint(); // Disabled
 
         // Add innovative cosmic UI elements
         this.createCosmicMiniMap();
@@ -842,8 +866,8 @@ class GameScene extends Phaser.Scene {
         this.carePanelTitle.setScrollFactor(0);
         this.carePanelTitle.setVisible(false);
 
-        // Care action buttons
-        this.createCareButtons();
+        // Care action buttons - DISABLED FOR MOBILE SIMPLICITY
+        // this.createCareButtons();
 
         // Close button
         this.careCloseButton = this.add.text(330, 60, '✕', {
@@ -1381,8 +1405,8 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.creatureNameText.setScrollFactor(0);
 
-        // Care buttons
-        this.createCareButtons();
+        // Care buttons - DISABLED FOR MOBILE SIMPLICITY
+        // this.createCareButtons();
 
         // Close button
         this.createCareMenuCloseButton();
@@ -1765,25 +1789,33 @@ class GameScene extends Phaser.Scene {
         let velocityY = 0;
         let isMoving = false;
 
-        // Check for input from both arrow keys and WASD
-        if (this.cursors.left.isDown || this.wasdKeys.A.isDown) {
-            velocityX = -speed;
+        // Check for virtual joystick input (mobile)
+        const joystickThreshold = 0.1; // Ignore very small joystick movements
+        if (Math.abs(this.joystickX) > joystickThreshold || Math.abs(this.joystickY) > joystickThreshold) {
+            velocityX = this.joystickX * speed;
+            velocityY = this.joystickY * speed;
             isMoving = true;
-        } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) {
-            velocityX = speed;
-            isMoving = true;
+        } else {
+            // Check for input from arrow keys and WASD (desktop)
+            if (this.cursors.left.isDown || this.wasdKeys.A.isDown) {
+                velocityX = -speed;
+                isMoving = true;
+            } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) {
+                velocityX = speed;
+                isMoving = true;
+            }
+
+            if (this.cursors.up.isDown || this.wasdKeys.W.isDown) {
+                velocityY = -speed;
+                isMoving = true;
+            } else if (this.cursors.down.isDown || this.wasdKeys.S.isDown) {
+                velocityY = speed;
+                isMoving = true;
+            }
         }
 
-        if (this.cursors.up.isDown || this.wasdKeys.W.isDown) {
-            velocityY = -speed;
-            isMoving = true;
-        } else if (this.cursors.down.isDown || this.wasdKeys.S.isDown) {
-            velocityY = speed;
-            isMoving = true;
-        }
-
-        // Normalize diagonal movement
-        if (velocityX !== 0 && velocityY !== 0) {
+        // Normalize diagonal movement for keyboard (joystick already normalized)
+        if (this.joystickX === 0 && this.joystickY === 0 && velocityX !== 0 && velocityY !== 0) {
             velocityX *= 0.707; // 1/√2 for normalized diagonal movement
             velocityY *= 0.707;
         }
@@ -1974,14 +2006,14 @@ class GameScene extends Phaser.Scene {
         const bestAction = window.KidMode.getNextBestAction(emotion);
         const secondaryActions = window.KidMode.getSecondaryActions(bestAction.action);
 
-        // Create CTA bar at bottom
-        if (window.responsiveManager) {
-            this.kidModeCTABar = window.responsiveManager.createKidModeCTABar(this, {
-                primaryAction: bestAction,
-                secondaryActions: secondaryActions.slice(0, 2), // Limit to 2 secondary
-                showPhoto: true
-            });
-        }
+        // Create CTA bar at bottom - DISABLED FOR MOBILE SIMPLICITY
+        // if (window.responsiveManager) {
+        //     this.kidModeCTABar = window.responsiveManager.createKidModeCTABar(this, {
+        //         primaryAction: bestAction,
+        //         secondaryActions: secondaryActions.slice(0, 2), // Limit to 2 secondary
+        //         showPhoto: true
+        //     });
+        // }
 
         // Show contextual help message
         if (bestAction.message && window.KidMode && window.KidMode.showSpaceHelpMessage) {

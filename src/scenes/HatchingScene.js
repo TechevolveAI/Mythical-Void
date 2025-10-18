@@ -1666,7 +1666,13 @@ class HatchingScene extends Phaser.Scene {
                 return;
             }
 
-            this.creature = this.add.image(400, 300, creatureResult.textureName);
+            // MOBILE-RESPONSIVE rerolled creature positioning
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const creatureY = height * 0.45;
+            const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+
+            this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
@@ -1676,7 +1682,7 @@ class HatchingScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.creature,
                 alpha: 1,
-                scale: 1.2,
+                scale: targetScale,
                 duration: 1000,
                 ease: 'Back.easeOut'
             });
@@ -1718,25 +1724,37 @@ class HatchingScene extends Phaser.Scene {
      * Show final KEEP button after reroll (no second reroll allowed)
      */
     showFinalKeepButton() {
-        const buttonY = 500;
+        // MOBILE-RESPONSIVE final keep button (after reroll)
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const isMobile = width < 600;
+
+        // Button sizing
+        const buttonWidth = isMobile ? Math.min(width * 0.65, 180) : 150;
+        const buttonHeight = isMobile ? Math.min(height * 0.08, 60) : 50;
+        const buttonX = centerX - (buttonWidth / 2);
+        const buttonY = height * 0.78;
+        const fontSize = Math.max(18, Math.min(20, width * 0.048));
+        const textFontSize = Math.max(14, Math.min(16, width * 0.04));
 
         const keepBg = this.add.graphics();
         keepBg.fillStyle(0x228B22, 0.9);
-        keepBg.fillRoundedRect(325, buttonY, 150, 50, 10);
+        keepBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
         keepBg.lineStyle(3, 0xFFD54F);
-        keepBg.strokeRoundedRect(325, buttonY, 150, 50, 10);
+        keepBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
 
-        const keepText = this.add.text(400, buttonY + 25, '✓ KEEP THIS ONE', {
-            fontSize: '20px',
+        const keepText = this.add.text(centerX, buttonY + (buttonHeight / 2), '✓ KEEP THIS ONE', {
+            fontSize: `${fontSize}px`,
             color: '#FFFFFF',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        const keepZone = this.add.zone(325, buttonY, 150, 50).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+        const keepZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
 
-        const finalText = this.add.text(400, 450, '✅ This is your final creature!', {
-            fontSize: '16px',
-            color: '#90EE90'
+        const finalText = this.add.text(centerX, height * 0.7, '✅ This is your final creature!', {
+            fontSize: `${textFontSize}px`,
+            color: '#90EE90',
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
         [keepBg, keepText, finalText].forEach(el => {
@@ -1749,20 +1767,25 @@ class HatchingScene extends Phaser.Scene {
             });
         });
 
+        // Store dimensions for hover effects
+        this.finalKeepButtonDims = { x: buttonX, y: buttonY, w: buttonWidth, h: buttonHeight };
+
         keepZone.on('pointerdown', () => this.handleKeepCreature());
         keepZone.on('pointerover', () => {
+            const dims = this.finalKeepButtonDims;
             keepBg.clear();
             keepBg.fillStyle(0x32CD32, 0.9);
-            keepBg.fillRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
             keepBg.lineStyle(3, 0xFFD54F);
-            keepBg.strokeRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
         });
         keepZone.on('pointerout', () => {
+            const dims = this.finalKeepButtonDims;
             keepBg.clear();
             keepBg.fillStyle(0x228B22, 0.9);
-            keepBg.fillRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
             keepBg.lineStyle(3, 0xFFD54F);
-            keepBg.strokeRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
         });
 
         this.keepUI = { keepBg, keepText, keepZone };
@@ -1773,13 +1796,19 @@ class HatchingScene extends Phaser.Scene {
      * Show error message when reroll fails
      */
     showRerollError(message) {
-        const errorText = this.add.text(400, 300, `⚠️ ${message}`, {
-            fontSize: '24px',
+        // MOBILE-RESPONSIVE error message positioning
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const errorY = height * 0.4; // 40% from top
+        const fontSize = Math.max(18, Math.min(24, width * 0.055));
+
+        const errorText = this.add.text(centerX, errorY, `⚠️ ${message}`, {
+            fontSize: `${fontSize}px`,
             color: '#FF6B6B',
             stroke: '#000000',
             strokeThickness: 3,
             align: 'center',
-            wordWrap: { width: 600 }
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
         errorText.setAlpha(0);

@@ -261,16 +261,22 @@ class NamingScene extends Phaser.Scene {
         }
 
         // Enhanced instructions with better styling
-        this.instructionText = this.add.text(centerX, height * 0.92, '✨ Press ENTER when ready to explore! ✨', {
-            fontSize: `${instructionSize}px`,
-            color: '#FFD700',
-            stroke: '#4B0082',
-            strokeThickness: 2,
-            align: 'center',
-            fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold',
-            wordWrap: { width: width * 0.9 }
-        }).setOrigin(0.5);
+        if (isMobile) {
+            // Create "Enter World" button for mobile
+            this.createEnterWorldButton();
+        } else {
+            // Desktop: Show "Press ENTER" text
+            this.instructionText = this.add.text(centerX, height * 0.92, '✨ Press ENTER when ready to explore! ✨', {
+                fontSize: `${instructionSize}px`,
+                color: '#FFD700',
+                stroke: '#4B0082',
+                strokeThickness: 2,
+                align: 'center',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                wordWrap: { width: width * 0.9 }
+            }).setOrigin(0.5);
+        }
 
         // Control hints (hide on mobile to save space)
         if (!isMobile) {
@@ -394,6 +400,9 @@ class NamingScene extends Phaser.Scene {
             fontSize: `${bodySize}px`,
             color: '#333333'
         }).setOrigin(0.5);
+
+        // Create HTML input element for mobile keyboard
+        this.createMobileInput(inputX, inputY, inputWidth, inputHeight);
 
         this.updateNameDisplay();
 
@@ -549,6 +558,164 @@ class NamingScene extends Phaser.Scene {
         this.updateNameDisplay();
     }
 
+    /**
+     * Create HTML input element for mobile keyboard
+     */
+    createMobileInput(inputX, inputY, inputWidth, inputHeight) {
+        // Create HTML input element
+        const htmlInput = document.createElement('input');
+        htmlInput.type = 'text';
+        htmlInput.maxLength = this.maxNameLength;
+        htmlInput.placeholder = 'Tap to name your creature';
+        htmlInput.style.position = 'absolute';
+        htmlInput.style.fontSize = '16px'; // Prevents iOS zoom
+        htmlInput.style.padding = '8px';
+        htmlInput.style.border = '2px solid #4B0082';
+        htmlInput.style.borderRadius = '8px';
+        htmlInput.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+        htmlInput.style.color = '#333333';
+        htmlInput.style.textAlign = 'center';
+        htmlInput.style.fontFamily = 'Arial, sans-serif';
+        htmlInput.style.zIndex = '1000';
+        htmlInput.autocomplete = 'off';
+        htmlInput.autocorrect = 'off';
+        htmlInput.autocapitalize = 'words';
+        htmlInput.spellcheck = false;
+
+        // Position the input - need to account for canvas position
+        const updateInputPosition = () => {
+            const canvas = this.game.canvas;
+            const canvasRect = canvas.getBoundingClientRect();
+            const scaleX = canvasRect.width / this.scale.width;
+            const scaleY = canvasRect.height / this.scale.height;
+
+            const screenX = canvasRect.left + (inputX * scaleX);
+            const screenY = canvasRect.top + (inputY * scaleY);
+            const screenWidth = inputWidth * scaleX;
+            const screenHeight = inputHeight * scaleY;
+
+            htmlInput.style.left = `${screenX}px`;
+            htmlInput.style.top = `${screenY}px`;
+            htmlInput.style.width = `${screenWidth}px`;
+            htmlInput.style.height = `${screenHeight}px`;
+        };
+
+        // Add to document body (not game container)
+        document.body.appendChild(htmlInput);
+        updateInputPosition();
+
+        // Update position on window resize
+        window.addEventListener('resize', updateInputPosition);
+        this.inputResizeHandler = updateInputPosition;
+
+        // Sync HTML input with game state
+        htmlInput.addEventListener('input', (e) => {
+            const value = e.target.value;
+
+            // Validate input
+            let validation;
+            if (window.InputValidator && typeof window.InputValidator.validate === 'function') {
+                try {
+                    validation = window.InputValidator.validate(value, 'username', { maxLength: this.maxNameLength });
+                } catch (validatorError) {
+                    console.warn('InputValidator error, using fallback:', validatorError);
+                    validation = this.fallbackValidation(value, value.slice(-1));
+                }
+            } else {
+                validation = this.fallbackValidation(value, value.slice(-1));
+            }
+
+            if (validation.isValid) {
+                this.nameInput = validation.sanitized || value;
+            } else {
+                this.nameInput = validation.sanitized || value.slice(0, -1);
+                htmlInput.value = this.nameInput; // Sync back
+            }
+
+            this.updateNameDisplay();
+            this.validateName();
+        });
+
+        // Handle Enter key on mobile keyboard
+        htmlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                htmlInput.blur(); // Hide keyboard
+                this.finalizeName();
+            }
+        });
+
+        // Focus when tapped
+        htmlInput.addEventListener('touchstart', () => {
+            htmlInput.focus();
+        });
+
+        // Store reference for cleanup
+        this.mobileInput = htmlInput;
+    }
+
+    /**
+     * Create "Enter World" button for mobile
+     */
+    createEnterWorldButton() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        const buttonWidth = Math.min(width * 0.65, 200);
+        const buttonHeight = Math.min(height * 0.065, 50);
+        const buttonX = centerX - (buttonWidth / 2);
+        const buttonY = height * 0.88;
+        const fontSize = Math.max(16, Math.min(20, width * 0.048));
+
+        // Button background
+        const buttonBg = this.add.graphics();
+        buttonBg.fillStyle(0x32CD32, 0.95);
+        buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
+        buttonBg.lineStyle(3, 0xFFD700);
+        buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
+
+        // Button text
+        const buttonText = this.add.text(centerX, buttonY + (buttonHeight / 2), '✨ Enter World ✨', {
+            fontSize: `${fontSize}px`,
+            color: '#FFFFFF',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        // Interactive zone
+        const buttonZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight)
+            .setOrigin(0, 0)
+            .setInteractive({ cursor: 'pointer' });
+
+        // Store dimensions for hover effects
+        this.enterButtonDims = { x: buttonX, y: buttonY, w: buttonWidth, h: buttonHeight };
+
+        // Button interactions
+        buttonZone.on('pointerdown', () => {
+            this.finalizeName();
+        });
+
+        buttonZone.on('pointerover', () => {
+            buttonBg.clear();
+            buttonBg.fillStyle(0x3FE03F, 0.95);
+            buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
+            buttonBg.lineStyle(4, 0xFFD700);
+            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
+        });
+
+        buttonZone.on('pointerout', () => {
+            buttonBg.clear();
+            buttonBg.fillStyle(0x32CD32, 0.95);
+            buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
+            buttonBg.lineStyle(3, 0xFFD700);
+            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
+        });
+
+        // Store UI elements
+        this.enterWorldButton = { buttonBg, buttonText, buttonZone };
+    }
+
     setupInput() {
         // Set up keyboard input for naming
         this.input.keyboard.on('keydown', (event) => {
@@ -649,10 +816,17 @@ class NamingScene extends Phaser.Scene {
     finalizeName() {
         if (this.nameInput.trim().length > 0) {
             getGameState().set('creature.name', this.nameInput.trim());
+
+            // IMMEDIATELY hide mobile input before transition
+            if (this.mobileInput) {
+                this.mobileInput.style.display = 'none';
+            }
+
             this.transitionToGame();
         } else {
             // Show error message briefly
-            const errorText = this.add.text(400, 480, 'Please enter a name!', {
+            const { width } = this.scale;
+            const errorText = this.add.text(width / 2, this.scale.height * 0.5, 'Please enter a name!', {
                 fontSize: '14px',
                 color: '#FF0000'
             }).setOrigin(0.5);
@@ -666,10 +840,22 @@ class NamingScene extends Phaser.Scene {
     transitionToGame() {
         // Stop all tweens before transition
         this.tweens.killAll();
-        
+
         // Remove keyboard listeners
         this.input.keyboard.removeAllListeners();
-        
+
+        // Clean up mobile HTML input if it exists
+        if (this.mobileInput && this.mobileInput.parentElement) {
+            this.mobileInput.parentElement.removeChild(this.mobileInput);
+            this.mobileInput = null;
+        }
+
+        // Remove resize listener
+        if (this.inputResizeHandler) {
+            window.removeEventListener('resize', this.inputResizeHandler);
+            this.inputResizeHandler = null;
+        }
+
         // Fade out effect
         const fadeGraphics = this.add.graphics();
         fadeGraphics.fillStyle(0x000000, 0);
