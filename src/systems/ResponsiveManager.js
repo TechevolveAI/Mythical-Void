@@ -329,13 +329,43 @@ class ResponsiveManager {
 
     /**
      * Create virtual controls for mobile
+     * ONLY show these in GameScene (actual gameplay), not in hatching/naming scenes
      */
     createVirtualControls() {
+        // Don't create controls yet - they will be created when GameScene starts
+        // This prevents joystick/buttons from showing during hatching/naming
+        console.log('[ResponsiveManager] Virtual controls deferred until GameScene');
+    }
+
+    /**
+     * Show virtual controls (called by GameScene when it starts)
+     */
+    showVirtualControls() {
+        if (this.virtualJoystick) return; // Already created
+
         // Create virtual joystick
         this.createVirtualJoystick();
-        
+
         // Create action buttons
         this.createActionButtons();
+
+        console.log('[ResponsiveManager] Virtual controls activated for GameScene');
+    }
+
+    /**
+     * Hide virtual controls (called when leaving GameScene)
+     */
+    hideVirtualControls() {
+        if (this.virtualJoystick) {
+            this.virtualJoystick.remove();
+            this.virtualJoystick = null;
+        }
+
+        // Remove action buttons
+        const actionButtons = document.querySelectorAll('.action-button');
+        actionButtons.forEach(btn => btn.remove());
+
+        console.log('[ResponsiveManager] Virtual controls hidden');
     }
 
     /**

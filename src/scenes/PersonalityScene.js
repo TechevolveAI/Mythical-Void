@@ -57,18 +57,22 @@ class PersonalityScene extends Phaser.Scene {
     }
 
     createBackground() {
+        // MOBILE-RESPONSIVE: Use actual viewport dimensions
+        const { width, height } = this.scale;
+
         // Create a magical gradient background
         const background = this.add.graphics();
         background.fillGradientStyle(0x4B0082, 0x4B0082, 0x9370DB, 0x9370DB, 1);
-        background.fillRect(0, 0, 800, 600);
+        background.fillRect(0, 0, width, height);
 
         // Add magical sparkles
-        for (let i = 0; i < 20; i++) {
+        const sparkleCount = Math.min(20, Math.floor(width / 40)); // Fewer sparkles on small screens
+        for (let i = 0; i < sparkleCount; i++) {
             const sparkle = this.add.graphics();
             sparkle.fillStyle(0xFFFFFF, Phaser.Math.FloatBetween(0.3, 0.8));
             sparkle.fillCircle(0, 0, Phaser.Math.Between(1, 3));
-            sparkle.x = Phaser.Math.Between(50, 750);
-            sparkle.y = Phaser.Math.Between(50, 550);
+            sparkle.x = Phaser.Math.Between(width * 0.05, width * 0.95);
+            sparkle.y = Phaser.Math.Between(height * 0.05, height * 0.95);
 
             // Twinkle animation
             this.tweens.add({
@@ -416,16 +420,27 @@ class PersonalityScene extends Phaser.Scene {
             this.graphicsEngine.createEnhancedCreature(0x9370DB, 0xDDA0DD, 0x8A2BE2, 0, null);
         }
 
-        // Display the creature in center-left
-        this.creature = this.add.image(200, 300, textureName);
-        this.creature.setScale(2.0); // Make it bigger for the reveal
+        // MOBILE-RESPONSIVE creature positioning
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        // Position creature centered horizontally, in upper portion
+        const creatureX = centerX;
+        const creatureY = height * 0.35; // 35% from top
+
+        // Responsive scale - larger on desktop, smaller on mobile to fit
+        const baseScale = width < 600 ? 1.2 : 1.5;
+        const targetScale = width < 600 ? 1.0 : 1.2;
+
+        this.creature = this.add.image(creatureX, creatureY, textureName);
+        this.creature.setScale(baseScale * 1.3); // Start larger for entrance
         this.creature.setAlpha(0); // Start invisible
 
         // Dramatic entrance animation
         this.tweens.add({
             targets: this.creature,
             alpha: 1,
-            scale: 1.5,
+            scale: targetScale,
             duration: 1500,
             ease: 'Back.easeOut',
             delay: 500
@@ -435,7 +450,7 @@ class PersonalityScene extends Phaser.Scene {
         this.time.delayedCall(2000, () => {
             this.tweens.add({
                 targets: this.creature,
-                scaleY: 1.55,
+                scaleY: targetScale * 1.05,
                 duration: 2000,
                 ease: 'Sine.easeInOut',
                 yoyo: true,
@@ -445,15 +460,21 @@ class PersonalityScene extends Phaser.Scene {
     }
 
     showPersonalityReveal() {
+        // MOBILE-RESPONSIVE positioning
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const titleFontSize = Math.max(20, Math.min(32, width * 0.07));
+
         // Title appears first
-        this.titleText = this.add.text(400, 80, '✨ Your Creature\'s Soul Revealed! ✨', {
-            fontSize: '32px',
+        this.titleText = this.add.text(centerX, height * 0.08, '✨ Your Creature\'s Soul Revealed! ✨', {
+            fontSize: `${titleFontSize}px`,
             color: '#FFD700',
             stroke: '#4B0082',
             strokeThickness: 3,
             align: 'center',
             fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
         this.titleText.setAlpha(0);
 
@@ -487,11 +508,14 @@ class PersonalityScene extends Phaser.Scene {
             return;
         }
 
-        // Background panel with magical border
-        const panelX = 350;
-        const panelY = 150;
-        const panelW = 400;
-        const panelH = 350;
+        // MOBILE-RESPONSIVE panel positioning
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        const panelW = Math.min(width * 0.9, 400); // 90% of width or 400px max
+        const panelH = Math.min(height * 0.6, 350); // 60% of height or 350px max
+        const panelX = centerX - (panelW / 2); // Center horizontally
+        const panelY = height * 0.2; // Start at 20% from top
 
         this.panel = this.add.graphics();
         this.panel.fillStyle(0x000000, 0.8);
@@ -517,66 +541,74 @@ class PersonalityScene extends Phaser.Scene {
             ease: 'Back.easeOut'
         });
 
-        const contentX = panelX + 24;
-        let currentY = panelY + 40;
+        // RESPONSIVE content positioning and font sizes
+        const padding = panelW * 0.06; // 6% padding
+        const contentX = panelX + padding;
+        let currentY = panelY + (panelH * 0.08); // Start 8% from top
+
+        // Responsive font sizes based on panel width
+        const titleFontSize = Math.max(18, Math.min(24, panelW * 0.055));
+        const subtitleFontSize = Math.max(16, Math.min(18, panelW * 0.045));
+        const bodyFontSize = Math.max(12, Math.min(14, panelW * 0.035));
+        const smallFontSize = Math.max(11, Math.min(13, panelW * 0.032));
 
         const rarityMeta = this.getRarityMeta(this.creatureGenetics?.rarity);
         const personality = this.creatureData.personality || {};
         const genetics = this.creatureGenetics || {};
 
         this.rarityBadge = this.add.text(contentX, currentY, `${rarityMeta.emoji} ${rarityMeta.name} Soul`, {
-            fontSize: '24px',
+            fontSize: `${titleFontSize}px`,
             color: rarityMeta.color,
             fontStyle: 'bold',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
         }).setOrigin(0, 0.5);
-        currentY += 36;
+        currentY += titleFontSize * 1.5;
 
         this.personalityTitle = this.add.text(contentX, currentY, '🌟 Personality Profile', {
-            fontSize: '18px',
+            fontSize: `${subtitleFontSize}px`,
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0, 0.5);
-        currentY += 26;
+        currentY += subtitleFontSize * 1.4;
 
         this.personalityDesc = this.add.text(contentX, currentY, this.buildPersonalitySummary(personality, genetics), {
-            fontSize: '14px',
+            fontSize: `${bodyFontSize}px`,
             color: '#FFFFFF',
             align: 'left',
-            lineSpacing: 6,
-            wordWrap: { width: panelW - 48 }
+            lineSpacing: 4,
+            wordWrap: { width: panelW - (padding * 2) }
         }).setOrigin(0, 0);
-        currentY += this.personalityDesc.height + 16;
+        currentY += this.personalityDesc.height + (panelH * 0.04);
 
         this.geneticsTitle = this.add.text(contentX, currentY, '🧬 Genetic Highlights', {
-            fontSize: '18px',
+            fontSize: `${subtitleFontSize}px`,
             color: '#87CEEB',
             fontStyle: 'bold'
         }).setOrigin(0, 0.5);
-        currentY += 26;
+        currentY += subtitleFontSize * 1.4;
 
         this.geneticsText = this.add.text(contentX, currentY, this.buildGeneticSummary(genetics), {
-            fontSize: '13px',
+            fontSize: `${smallFontSize}px`,
             color: '#E0E0E0',
             align: 'left',
-            lineSpacing: 6,
-            wordWrap: { width: panelW - 48 }
+            lineSpacing: 4,
+            wordWrap: { width: panelW - (padding * 2) }
         }).setOrigin(0, 0);
-        currentY += this.geneticsText.height + 16;
+        currentY += this.geneticsText.height + (panelH * 0.04);
 
         this.cosmicTitle = this.add.text(contentX, currentY, '🔮 Cosmic Affinity', {
-            fontSize: '18px',
+            fontSize: `${subtitleFontSize}px`,
             color: '#B39DDB',
             fontStyle: 'bold'
         }).setOrigin(0, 0.5);
-        currentY += 26;
+        currentY += subtitleFontSize * 1.4;
 
         this.cosmicText = this.add.text(contentX, currentY, this.buildCosmicSummary(genetics.cosmicAffinity), {
-            fontSize: '13px',
+            fontSize: `${smallFontSize}px`,
             color: '#CCCCFF',
             align: 'left',
-            lineSpacing: 6,
-            wordWrap: { width: panelW - 48 }
+            lineSpacing: 4,
+            wordWrap: { width: panelW - (padding * 2) }
         }).setOrigin(0, 0);
 
         const revealTexts = [
@@ -619,15 +651,25 @@ class PersonalityScene extends Phaser.Scene {
     }
 
     createContinueButton() {
+        // MOBILE-RESPONSIVE button positioning
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        const buttonWidth = Math.min(width * 0.85, 300);
+        const buttonHeight = Math.min(height * 0.08, 60);
+        const buttonX = centerX - (buttonWidth / 2);
+        const buttonY = height * 0.88; // 88% from top (near bottom)
+        const fontSize = Math.max(14, Math.min(18, width * 0.042));
+
         // Continue button with magical styling
         const buttonBg = this.add.graphics();
         buttonBg.fillStyle(0x9370DB, 0.9);
-        buttonBg.fillRoundedRect(300, 520, 200, 50, 15);
+        buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
         buttonBg.lineStyle(3, 0xFFD700);
-        buttonBg.strokeRoundedRect(300, 520, 200, 50, 15);
+        buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
 
-        const buttonText = this.add.text(400, 545, '💫 NAME YOUR CREATURE', {
-            fontSize: '16px',
+        const buttonText = this.add.text(centerX, buttonY + (buttonHeight / 2), '💫 NAME YOUR CREATURE', {
+            fontSize: `${fontSize}px`,
             color: '#FFFFFF',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
@@ -635,7 +677,7 @@ class PersonalityScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Make button interactive
-        const buttonZone = this.add.zone(300, 520, 200, 50)
+        const buttonZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight)
             .setOrigin(0, 0)
             .setInteractive({ cursor: 'pointer' });
 
@@ -654,20 +696,23 @@ class PersonalityScene extends Phaser.Scene {
             this.transitionToNaming();
         });
 
+        // Store dimensions for hover effects
+        this.buttonDimensions = { x: buttonX, y: buttonY, w: buttonWidth, h: buttonHeight };
+
         buttonZone.on('pointerover', () => {
             buttonBg.clear();
             buttonBg.fillStyle(0xBA55D3, 0.9);
-            buttonBg.fillRoundedRect(300, 520, 200, 50, 15);
+            buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
             buttonBg.lineStyle(3, 0xFFD700);
-            buttonBg.strokeRoundedRect(300, 520, 200, 50, 15);
+            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
         });
 
         buttonZone.on('pointerout', () => {
             buttonBg.clear();
             buttonBg.fillStyle(0x9370DB, 0.9);
-            buttonBg.fillRoundedRect(300, 520, 200, 50, 15);
+            buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
             buttonBg.lineStyle(3, 0xFFD700);
-            buttonBg.strokeRoundedRect(300, 520, 200, 50, 15);
+            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
         });
 
         // Start all elements as invisible

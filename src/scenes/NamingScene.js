@@ -62,14 +62,18 @@ class NamingScene extends Phaser.Scene {
     }
 
     createBackground() {
+        // MOBILE-RESPONSIVE background
+        const { width, height } = this.scale;
+
         // Create a gentle gradient background
         const background = this.add.graphics();
         background.fillGradientStyle(0x87CEEB, 0x87CEEB, 0xE0F6FF, 0xE0F6FF, 1);
-        background.fillRect(0, 0, 800, 600);
+        background.fillRect(0, 0, width, height);
 
-        // Add some floating clouds
+        // Add some floating clouds (fewer on mobile)
         this.clouds = this.add.group();
-        for (let i = 0; i < 3; i++) {
+        const cloudCount = width < 600 ? 2 : 3;
+        for (let i = 0; i < cloudCount; i++) {
             // Create simple cloud graphics
             const cloudGraphics = this.add.graphics();
             cloudGraphics.fillStyle(0xFFFFFF, 0.8);
@@ -77,10 +81,10 @@ class NamingScene extends Phaser.Scene {
             cloudGraphics.fillCircle(20, -5, 30);
             cloudGraphics.fillCircle(40, 0, 25);
             cloudGraphics.fillCircle(25, 10, 20);
-            
+
             const cloud = this.add.container(
-                Phaser.Math.Between(100, 700),
-                Phaser.Math.Between(50, 150)
+                Phaser.Math.Between(width * 0.1, width * 0.9),
+                Phaser.Math.Between(height * 0.05, height * 0.25)
             );
             cloud.add(cloudGraphics);
             cloud.setAlpha(0.6);
@@ -198,74 +202,104 @@ class NamingScene extends Phaser.Scene {
     }
 
     createUI() {
+        // MOBILE-RESPONSIVE UI with vertical stacking for mobile
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const isMobile = width < 600;
+
+        // Responsive font sizes
+        const titleSize = Math.max(20, Math.min(28, width * 0.065));
+        const subtitleSize = Math.max(14, Math.min(16, width * 0.04));
+        const instructionSize = Math.max(14, Math.min(18, width * 0.042));
+
         // Enhanced title with emoji
-        this.titleText = this.add.text(400, 40, '🎉 Meet Your Magical Creature! 🎉', {
-            fontSize: '28px',
+        this.titleText = this.add.text(centerX, height * 0.04, '🎉 Meet Your Magical Creature! 🎉', {
+            fontSize: `${titleSize}px`,
             color: '#4B0082',
             stroke: '#FFFFFF',
             strokeThickness: 3,
             align: 'center',
             fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
         // Subtitle
-        this.subtitleText = this.add.text(400, 75, 'Your creature has hatched! Now give it a special name.', {
-            fontSize: '16px',
+        this.subtitleText = this.add.text(centerX, height * 0.09, 'Your creature has hatched! Now give it a special name.', {
+            fontSize: `${subtitleSize}px`,
             color: '#2E8B57',
             stroke: '#FFFFFF',
             strokeThickness: 1,
-            align: 'center'
+            align: 'center',
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
         // Reset button in top right
         this.createResetButton();
 
-        // Creature info panel
-        this.createInfoPanel();
-
-        // Naming section
-        this.createNamingSection();
+        if (isMobile) {
+            // MOBILE LAYOUT: Stack vertically
+            this.createMobileLayout();
+        } else {
+            // DESKTOP LAYOUT: Side-by-side
+            this.createInfoPanel();
+            this.createNamingSection();
+        }
 
         // Enhanced instructions with better styling
-        this.instructionText = this.add.text(400, 520, '✨ Press ENTER when ready to explore the magical world! ✨', {
-            fontSize: '18px',
+        this.instructionText = this.add.text(centerX, height * 0.92, '✨ Press ENTER when ready to explore! ✨', {
+            fontSize: `${instructionSize}px`,
             color: '#FFD700',
             stroke: '#4B0082',
             strokeThickness: 2,
             align: 'center',
             fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
-        // Control hints
-        this.controlText = this.add.text(400, 550, '🎮 Type to name • Backspace to delete • ENTER to continue', {
-            fontSize: '14px',
-            color: '#666666',
-            align: 'center'
-        }).setOrigin(0.5);
+        // Control hints (hide on mobile to save space)
+        if (!isMobile) {
+            this.controlText = this.add.text(centerX, height * 0.97, '🎮 Type to name • Backspace to delete • ENTER to continue', {
+                fontSize: '14px',
+                color: '#666666',
+                align: 'center'
+            }).setOrigin(0.5);
+        }
     }
 
     createResetButton() {
+        // MOBILE-RESPONSIVE reset button in top right
+        const { width, height } = this.scale;
+
+        const buttonWidth = Math.min(100, width * 0.22);
+        const buttonHeight = Math.min(35, height * 0.045);
+        const buttonX = width - buttonWidth - (width * 0.03);
+        const buttonY = height * 0.015;
+        const fontSize = Math.max(12, Math.min(14, width * 0.035));
+
         // Reset button background
         const buttonBg = this.add.graphics();
         buttonBg.fillStyle(0xFF4444, 0.9);
-        buttonBg.fillRoundedRect(680, 10, 100, 35, 8);
+        buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
         buttonBg.lineStyle(2, 0xFFFFFF);
-        buttonBg.strokeRoundedRect(680, 10, 100, 35, 8);
+        buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
 
         // Reset button text
-        const resetText = this.add.text(730, 27, '🔄 RESET', {
-            fontSize: '14px',
+        const resetText = this.add.text(buttonX + buttonWidth/2, buttonY + buttonHeight/2, '🔄 RESET', {
+            fontSize: `${fontSize}px`,
             color: '#FFFFFF',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
         // Make button interactive
-        const resetButton = this.add.zone(680, 10, 100, 35)
+        const resetButton = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight)
             .setOrigin(0, 0)
             .setInteractive({ cursor: 'pointer' });
+
+        // Store dimensions for hover effects
+        this.resetButtonDims = { x: buttonX, y: buttonY, w: buttonWidth, h: buttonHeight };
 
         resetButton.on('pointerdown', () => {
             this.resetGameData();
@@ -274,17 +308,17 @@ class NamingScene extends Phaser.Scene {
         resetButton.on('pointerover', () => {
             buttonBg.clear();
             buttonBg.fillStyle(0xFF6666, 0.9);
-            buttonBg.fillRoundedRect(680, 10, 100, 35, 8);
+            buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
             buttonBg.lineStyle(2, 0xFFFFFF);
-            buttonBg.strokeRoundedRect(680, 10, 100, 35, 8);
+            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
         });
 
         resetButton.on('pointerout', () => {
             buttonBg.clear();
             buttonBg.fillStyle(0xFF4444, 0.9);
-            buttonBg.fillRoundedRect(680, 10, 100, 35, 8);
+            buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
             buttonBg.lineStyle(2, 0xFFFFFF);
-            buttonBg.strokeRoundedRect(680, 10, 100, 35, 8);
+            buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 8);
         });
     }
 
