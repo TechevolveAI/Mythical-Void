@@ -2,22 +2,20 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- Mobile-optimized viewport - prevents zooming, removes iOS Safari chrome -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <!-- iOS Safari full-screen web app -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="description" content="Mythical Creature Game - Raise and explore with your magical creature">
+
+    <!-- Prevent iOS tap highlight -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="description" content="Mythical Creature Game">
     <title>Mythical Creature Game</title>
-    
-    <!-- Preconnect to external resources -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Load Google Fonts for better typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    
     <style>
-        /* Critical inline styles for immediate rendering */
+        /* Mobile-first full-screen layout */
         * {
             margin: 0;
             padding: 0;
@@ -26,231 +24,45 @@
         }
 
         html, body {
-            margin: 0;
-            padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
             position: fixed;
             background: #0a0118;
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            touch-action: none;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
+            /* Prevent pull-to-refresh on mobile */
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
         }
 
-        body {
+        #game {
+            width: 100%;
+            height: 100%;
             display: flex;
-            justify-content: center;
             align-items: center;
-        }
-        
-        /* Loading screen */
-        #loading-screen {
+            justify-content: center;
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0a0118;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            transition: opacity 0.5s ease-out;
-        }
-        
-        #loading-screen h1 {
-            font-family: 'Fredoka One', cursive;
-            color: white;
-            font-size: clamp(1.5rem, 5vw, 2.5rem);
-            margin-bottom: 2rem;
-            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            text-align: center;
-            padding: 0 1rem;
-        }
-        
-        .loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
-            color: white;
-            margin-top: 1.5rem;
-            font-size: clamp(0.9rem, 3vw, 1.1rem);
-            opacity: 0.9;
-            text-align: center;
-            padding: 0 1rem;
         }
 
-        /* Canvas styles - let Phaser handle sizing */
-        canvas {
-            border: none;
+        /* Ensure Phaser canvas fills the container */
+        #game canvas {
             display: block;
+            width: 100% !important;
+            height: 100% !important;
             touch-action: none;
-            image-rendering: pixelated;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: crisp-edges;
         }
 
-        #game-container {
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-        
-        /* Hide canvas initially */
-        canvas {
-            opacity: 0;
-            transition: opacity 0.5s ease-in;
-        }
-        
-        canvas.ready {
-            opacity: 1;
-        }
-        
-        /* Accessibility skip link */
-        .skip-link {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background: #4B0082;
-            color: white;
-            padding: 8px 16px;
-            z-index: 100001;
-            text-decoration: none;
-            border-radius: 0 0 8px 0;
-        }
-        
-        .skip-link:focus {
-            top: 0;
-        }
-        
-        /* Screen reader only content */
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border-width: 0;
-        }
-        
-        /* Mobile optimization */
+        /* Hide any desktop-only UI elements on mobile */
         @media (max-width: 768px) {
-            canvas {
-                border-radius: 0;
-            }
-        }
-
-        /* iPhone notch support */
-        @supports (padding: max(0px)) {
-            body {
-                padding-top: max(0px, env(safe-area-inset-top));
-                padding-bottom: max(0px, env(safe-area-inset-bottom));
-                padding-left: max(0px, env(safe-area-inset-left));
-                padding-right: max(0px, env(safe-area-inset-right));
-            }
-        }
-
-        /* Reduced motion support */
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
+            .desktop-only {
+                display: none !important;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Accessibility skip link -->
-    <a href="#game-canvas" class="skip-link">Skip to game</a>
-    
-    <!-- Screen reader announcements -->
-    <div class="sr-only" role="status" aria-live="polite" aria-atomic="true" id="sr-announcer"></div>
-    
-    <!-- Loading screen -->
-    <div id="loading-screen">
-        <h1>Mythical Creatures</h1>
-        <div class="loading-spinner"></div>
-        <p class="loading-text">Loading magical world...</p>
-    </div>
-    
-    <!-- Game canvas will be inserted here by Phaser -->
-    <div id="game-container" role="application" aria-label="Mythical Creature Game"></div>
-    
-    <!-- Load scripts in correct order -->
-    
-    <!-- Configuration -->
+    <div id="game"></div>
     <script type="module" src="/src/main.js"></script>
-    
-    <!-- Loading complete script -->
-    <script>
-        // Prevent pull-to-refresh and other mobile gestures
-        document.addEventListener('touchmove', function(e) {
-            if (e.scale !== 1) { e.preventDefault(); }
-        }, { passive: false });
-
-        // Prevent double-tap zoom
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(e) {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
-
-        // Hide loading screen when game is ready
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                const loadingScreen = document.getElementById('loading-screen');
-                const canvas = document.querySelector('canvas');
-
-                if (loadingScreen) {
-                    loadingScreen.style.opacity = '0';
-                    setTimeout(() => {
-                        loadingScreen.style.display = 'none';
-                    }, 500);
-                }
-
-                if (canvas) {
-                    canvas.classList.add('ready');
-                }
-
-                // Announce to screen readers
-                const announcer = document.getElementById('sr-announcer');
-                if (announcer) {
-                    announcer.textContent = 'Game loaded and ready to play';
-                }
-            }, 1500);
-        });
-
-        // Progressive Web App support (if service worker exists)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(() => {
-                    // Service worker registration failed, continue without offline support
-                });
-            });
-        }
-    </script>
 </body>
 </html>

@@ -445,9 +445,17 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createEgg() {
-        // Create the enhanced egg sprite (responsive position)
-        const pos = MobileHelpers.getResponsivePosition(this.scale, { x: 400, y: 300 });
-        this.egg = this.add.image(pos.x, pos.y, 'enhancedEgg');
+        // FIX #3: Improved cleanup - kill tweens AND destroy sprite to prevent duplication
+        if (this.egg) {
+            this.tweens.killTweensOf(this.egg);
+            this.egg.destroy();
+            this.egg = null;
+        }
+
+        // MOBILE-RESPONSIVE egg positioning
+        // Center the egg in the middle of the viewport
+        const { width, height } = this.scale;
+        this.egg = this.add.image(width / 2, height * 0.45, 'enhancedEgg');  // Slightly above center
 
         // Mobile-optimized touch area (larger hit area for easier tapping)
         const isMobile = MobileHelpers.isMobile();
@@ -460,6 +468,35 @@ class HatchingScene extends Phaser.Scene {
 
         this.egg.setScale(1.2);
 
+        // CRITICAL FIX: Attach click handler HERE immediately after making egg interactive
+        // This ensures the handler is ALWAYS attached when egg is created/recreated
+        // Previously this was in setupInput() which meant handlers were lost on egg recreation
+        this.egg.on('pointerdown', () => {
+            console.log('🥚 EGG CLICKED! Starting hatching sequence...');
+
+            if (!this.hatchingStarted && !this.creatureAppeared) {
+                MobileHelpers.vibrate(30); // Gentle haptic feedback
+
+                // Hide "Tap to Hatch" text on first click
+                if (this.tapToHatchText) {
+                    this.tweens.add({
+                        targets: this.tapToHatchText,
+                        alpha: 0,
+                        scale: 0.8,
+                        duration: 300,
+                        onComplete: () => {
+                            this.tapToHatchText.destroy();
+                            this.tapToHatchText = null;
+                        }
+                    });
+                }
+
+                this.startHatching();
+            } else {
+                console.log('🥚 Egg click ignored - hatching already in progress or creature appeared');
+            }
+        });
+
         // Create floating animation for the egg
         this.tweens.add({
             targets: this.egg,
@@ -469,16 +506,14 @@ class HatchingScene extends Phaser.Scene {
             yoyo: true,
             repeat: -1
         });
+
+        // Add "Tap to Hatch" instruction text (Quick Win #1 from QA Audit)
+        this.createTapToHatchText();
     }
 
     setupInput() {
-        // Handle egg click with haptic feedback
-        this.egg.on('pointerdown', () => {
-            if (!this.hatchingStarted && !this.creatureAppeared) {
-                MobileHelpers.vibrate(30); // Gentle haptic feedback
-                this.startHatching();
-            }
-        });
+        // NOTE: Egg click handler is now attached directly in createEgg()
+        // This ensures the handler persists when egg is recreated
 
         // Handle space key for scene transition (with null check for touch devices)
         if (this.input.keyboard) {
@@ -487,9 +522,17 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createUI() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        // MOBILE-RESPONSIVE font sizes
+        const titleFontSize = Math.max(20, Math.min(32, width * 0.07));
+        const subtitleFontSize = Math.max(14, Math.min(18, width * 0.04));
+        const instructionFontSize = Math.max(16, Math.min(20, width * 0.045));
+
         // Main title
-        const titleText = this.add.text(400, 60, '🌟 Mythical Creature Game 🌟', {
-            fontSize: '32px',
+        const titleText = this.add.text(centerX, height * 0.08, '🌟 Mythical Creature Game 🌟', {
+            fontSize: `${titleFontSize}px`,
             color: '#FFD54F',
             stroke: '#7B1FA2',
             strokeThickness: 3,
@@ -499,8 +542,8 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Subtitle
-        const subtitleText = this.add.text(400, 100, 'Your magical adventure begins here!', {
-            fontSize: '18px',
+        const subtitleText = this.add.text(centerX, height * 0.13, 'Your magical adventure begins here!', {
+            fontSize: `${subtitleFontSize}px`,
             color: '#FFFFFF',
             stroke: '#000000',
             strokeThickness: 2,
@@ -509,13 +552,14 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Instructions text with better styling
-        this.instructionText = this.add.text(400, 150, '👆 Click the magical egg below to hatch your creature! 👆', {
-            fontSize: '20px',
+        this.instructionText = this.add.text(centerX, height * 0.2, '👆 Click the magical egg below to hatch your creature! 👆', {
+            fontSize: `${instructionFontSize}px`,
             color: '#FFFFFF',
             stroke: '#7B1FA2',
             strokeThickness: 2,
             align: 'center',
-            fontFamily: 'Arial, sans-serif'
+            fontFamily: 'Arial, sans-serif',
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
         // Create UI panel background
@@ -536,15 +580,28 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createControlPanel() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        // Skip control panel on mobile to simplify UI
+        if (width < 600) {
+            return;
+        }
+
+        // Desktop: Control panel at bottom
+        const panelWidth = Math.min(width * 0.9, 700);
+        const panelHeight = 100;
+        const panelY = height - 120;
+
         // Control panel background
         const panelBg = this.add.graphics();
         panelBg.fillStyle(0x000000, 0.7);
-        panelBg.fillRoundedRect(50, 480, 700, 100, 15);
+        panelBg.fillRoundedRect(centerX - panelWidth/2, panelY, panelWidth, panelHeight, 15);
         panelBg.lineStyle(3, 0xFFD54F);
-        panelBg.strokeRoundedRect(50, 480, 700, 100, 15);
+        panelBg.strokeRoundedRect(centerX - panelWidth/2, panelY, panelWidth, panelHeight, 15);
 
         // Instructions
-        this.add.text(400, 500, '🎮 Click egg to hatch • SPACE to continue • WASD/Arrows to move', {
+        this.add.text(centerX, panelY + 30, '🎮 Click egg to hatch • SPACE to continue • WASD/Arrows to move', {
             fontSize: '16px',
             color: '#F5F5F5',
             align: 'center',
@@ -552,7 +609,7 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Game info
-        this.add.text(400, 530, '🏆 Hatch → Name → Explore the magical world!', {
+        this.add.text(centerX, panelY + 60, '🏆 Hatch → Name → Explore the magical world!', {
             fontSize: '14px',
             color: '#80CBC4',
             align: 'center',
@@ -676,8 +733,14 @@ class HatchingScene extends Phaser.Scene {
                 return;
             }
 
+            // MOBILE-RESPONSIVE creature positioning
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const creatureY = height * 0.45; // Center at 45% height
+            const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+
             // Create the enhanced creature with the new texture
-            this.creature = this.add.image(400, 300, creatureResult.textureName);
+            this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
@@ -690,7 +753,7 @@ class HatchingScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.creature,
                 alpha: 1,
-                scale: 1.2,
+                scale: targetScale,
                 duration: 1000,
                 ease: 'Back.easeOut',
                 onComplete: () => {
@@ -715,7 +778,13 @@ class HatchingScene extends Phaser.Scene {
                 return;
             }
 
-            this.creature = this.add.image(400, 300, 'enhancedCreature0');
+            // MOBILE-RESPONSIVE fallback creature positioning
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const creatureY = height * 0.45;
+            const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+
+            this.creature = this.add.image(centerX, creatureY, 'enhancedCreature0');
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
@@ -723,7 +792,7 @@ class HatchingScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.creature,
                 alpha: 1,
-                scale: 1.2,
+                scale: targetScale,
                 duration: 1000,
                 ease: 'Back.easeOut'
             });
@@ -751,11 +820,17 @@ class HatchingScene extends Phaser.Scene {
             // Fallback: Show old adventure text behavior
             console.warn('hatch:warn [HatchingScene] RerollSystem not available, using simple transition');
             this.time.delayedCall(1500, () => {
-                const continueText = this.add.text(400, 500, '✨ Press SPACE to continue! ✨', {
-                    fontSize: '20px',
+                // MOBILE-RESPONSIVE continue text
+                const { width, height } = this.scale;
+                const centerX = width / 2;
+                const fontSize = Math.max(16, Math.min(20, width * 0.048));
+
+                const continueText = this.add.text(centerX, height * 0.88, '✨ Press SPACE to continue! ✨', {
+                    fontSize: `${fontSize}px`,
                     color: '#FFD54F',
                     stroke: '#000000',
-                    strokeThickness: 2
+                    strokeThickness: 2,
+                    wordWrap: { width: width * 0.9 }
                 }).setOrigin(0.5);
 
                 this.tweens.add({
@@ -773,9 +848,15 @@ class HatchingScene extends Phaser.Scene {
      * Show critical error message to user
      */
     showCriticalError(message) {
-        const errorText = this.add.text(400, 300, `❌ ${message}\n\nPlease refresh the page`, {
-            fontSize: '24px',
+        // MOBILE-RESPONSIVE error message
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const fontSize = Math.max(18, Math.min(24, width * 0.055));
+
+        const errorText = this.add.text(centerX, height * 0.5, `❌ ${message}\n\nPlease refresh the page`, {
+            fontSize: `${fontSize}px`,
             color: '#FF4444',
+            wordWrap: { width: width * 0.8 },
             stroke: '#000000',
             strokeThickness: 4,
             align: 'center',
@@ -1133,7 +1214,7 @@ class HatchingScene extends Phaser.Scene {
         const state = getGameState();
         state.set('creature.hatched', true);
         state.set('creature.hatchTime', Date.now());
-        
+
         // Fade transition
         const fadeGraphics = this.add.graphics();
         fadeGraphics.fillStyle(0x000000, 0);
@@ -1148,6 +1229,70 @@ class HatchingScene extends Phaser.Scene {
             }
         });
     }
+
+    /**
+     * FIX #5: Scene cleanup to prevent duplication on restart
+     * Called automatically by Phaser when scene stops/restarts
+     */
+    shutdown() {
+        console.log('🧹 HatchingScene.shutdown() - Cleaning up scene resources');
+
+        // Clean up tap to hatch text
+        if (this.tapToHatchText) {
+            this.tweens.killTweensOf(this.tapToHatchText);
+            this.tapToHatchText.destroy();
+            this.tapToHatchText = null;
+        }
+
+        // Clean up egg
+        if (this.egg) {
+            this.tweens.killTweensOf(this.egg);
+            this.egg.destroy();
+            this.egg = null;
+        }
+
+        // Clean up creature
+        if (this.creature) {
+            this.tweens.killTweensOf(this.creature);
+            this.creature.destroy();
+            this.creature = null;
+        }
+
+        // Clean up clouds group
+        if (this.clouds) {
+            this.clouds.clear(true, true);
+            this.clouds = null;
+        }
+
+        // Clean up UI elements
+        if (this.instructionText) {
+            this.instructionText.destroy();
+            this.instructionText = null;
+        }
+
+        if (this.progressText) {
+            this.progressText.destroy();
+            this.progressText = null;
+        }
+
+        // Clean up reroll UI elements
+        this.cleanupRerollUI();
+
+        // Clean up graphics engine
+        if (this.graphicsEngine) {
+            this.graphicsEngine = null;
+        }
+
+        // Reset scene state flags
+        this.hatchingProgress = 0;
+        this.isHatching = false;
+        this.hatchingStarted = false;
+        this.creatureAppeared = false;
+        this.creatureGenetics = null;
+
+        console.log('✅ HatchingScene cleanup complete');
+    }
+
     update() {
         // Check for space key to start cinematic hatch or transition
         if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
@@ -1177,26 +1322,40 @@ class HatchingScene extends Phaser.Scene {
             const rarity = this.creatureGenetics.rarity;
             const rarityInfo = this.rarityInfo;
 
+            // MOBILE-RESPONSIVE rarity banner
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const bannerWidth = Math.min(width * 0.9, 500);
+            const bannerHeight = Math.min(height * 0.12, 80);
+            const bannerX = centerX - (bannerWidth / 2);
+            const bannerY = height * 0.08;
+
+            // Responsive font sizes
+            const titleSize = Math.max(20, Math.min(28, width * 0.065));
+            const subtitleSize = Math.max(14, Math.min(18, width * 0.042));
+
             // Create banner background
             const bannerBg = this.add.graphics();
             bannerBg.fillStyle(0x000000, 0.8);
-            bannerBg.fillRoundedRect(150, 50, 500, 80, 10);
+            bannerBg.fillRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 10);
             bannerBg.lineStyle(3, parseInt(rarityInfo.displayColor.replace('#', '0x')));
-            bannerBg.strokeRoundedRect(150, 50, 500, 80, 10);
+            bannerBg.strokeRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 10);
 
             // Rarity title
-            const rarityText = this.add.text(400, 70, `${rarityInfo.emoji} ${rarityInfo.name} Creature!`, {
-                fontSize: '28px',
+            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.35), `${rarityInfo.emoji} ${rarityInfo.name} Creature!`, {
+                fontSize: `${titleSize}px`,
                 color: rarityInfo.displayColor,
                 fontStyle: 'bold',
                 stroke: '#000000',
-                strokeThickness: 3
+                strokeThickness: 3,
+                wordWrap: { width: bannerWidth * 0.9 }
             }).setOrigin(0.5);
 
             // Creature name/species
-            const speciesText = this.add.text(400, 105, `${this.creatureGenetics.species} • ${this.creatureGenetics.personality.core}`, {
-                fontSize: '18px',
-                color: '#FFFFFF'
+            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.75), `${this.creatureGenetics.species} • ${this.creatureGenetics.personality.core}`, {
+                fontSize: `${subtitleSize}px`,
+                color: '#FFFFFF',
+                wordWrap: { width: bannerWidth * 0.9 }
             }).setOrigin(0.5);
 
             // Animate banner
@@ -1244,49 +1403,71 @@ class HatchingScene extends Phaser.Scene {
 
             const canReroll = window.rerollSystem.canReroll();
 
-            // Button container
-            const buttonY = 500;
+            // MOBILE-RESPONSIVE button positioning
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const isMobile = width < 600;
+
+            // Responsive sizing
+            const buttonWidth = isMobile ? Math.min(width * 0.4, 140) : 150;
+            const buttonHeight = isMobile ? Math.min(height * 0.07, 50) : 50;
+            const buttonSpacing = isMobile ? width * 0.05 : 50;
+            const buttonY = height * 0.78; // 78% from top
+            const fontSize = Math.max(18, Math.min(22, width * 0.05));
+
+            // Calculate button positions (centered pair)
+            const keepX = canReroll ?
+                (centerX - buttonWidth - (buttonSpacing / 2)) :
+                (centerX - (buttonWidth / 2));
+            const rerollX = centerX + (buttonSpacing / 2);
 
             // KEEP button
             const keepBg = this.add.graphics();
             keepBg.fillStyle(0x228B22, 0.9);
-            keepBg.fillRoundedRect(200, buttonY, 150, 50, 10);
+            keepBg.fillRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 10);
             keepBg.lineStyle(3, 0xFFD54F);
-            keepBg.strokeRoundedRect(200, buttonY, 150, 50, 10);
+            keepBg.strokeRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 10);
 
-            const keepText = this.add.text(275, buttonY + 25, '✓ KEEP', {
-                fontSize: '22px',
+            const keepText = this.add.text(keepX + (buttonWidth / 2), buttonY + (buttonHeight / 2), '✓ KEEP', {
+                fontSize: `${fontSize}px`,
                 color: '#FFFFFF',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
 
-            const keepZone = this.add.zone(200, buttonY, 150, 50).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+            const keepZone = this.add.zone(keepX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+
+            // Store dimensions for hover effects
+            this.keepButtonDims = { x: keepX, y: buttonY, w: buttonWidth, h: buttonHeight };
 
             // REROLL button (if available)
             let rerollBg, rerollText, rerollZone;
             if (canReroll) {
                 rerollBg = this.add.graphics();
                 rerollBg.fillStyle(0x4169E1, 0.9);
-                rerollBg.fillRoundedRect(450, buttonY, 150, 50, 10);
+                rerollBg.fillRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 10);
                 rerollBg.lineStyle(3, 0xFFD54F);
-                rerollBg.strokeRoundedRect(450, buttonY, 150, 50, 10);
+                rerollBg.strokeRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 10);
 
-                rerollText = this.add.text(525, buttonY + 25, '🔄 REROLL', {
-                    fontSize: '22px',
+                rerollText = this.add.text(rerollX + (buttonWidth / 2), buttonY + (buttonHeight / 2), '🔄 REROLL', {
+                    fontSize: `${fontSize}px`,
                     color: '#FFFFFF',
                     fontStyle: 'bold'
                 }).setOrigin(0.5);
 
-                rerollZone = this.add.zone(450, buttonY, 150, 50).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+                rerollZone = this.add.zone(rerollX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+
+                // Store dimensions for hover effects
+                this.rerollButtonDims = { x: rerollX, y: buttonY, w: buttonWidth, h: buttonHeight };
             }
 
             // Advice text
             const advice = window.rerollSystem.getRerollAdvice(this.creatureGenetics.rarity);
-            const adviceText = this.add.text(400, 450, advice.message, {
-                fontSize: '14px',
+            const adviceFontSize = Math.max(13, Math.min(14, width * 0.036));
+            const adviceText = this.add.text(centerX, height * 0.7, advice.message, {
+                fontSize: `${adviceFontSize}px`,
                 color: '#FFFF00',
                 align: 'center',
-                wordWrap: { width: 500 }
+                wordWrap: { width: width * 0.9 }
             }).setOrigin(0.5);
 
             // Animate elements
@@ -1309,18 +1490,20 @@ class HatchingScene extends Phaser.Scene {
             // Button interactions
             keepZone.on('pointerdown', () => this.handleKeepCreature());
             keepZone.on('pointerover', () => {
+                const dims = this.keepButtonDims;
                 keepBg.clear();
                 keepBg.fillStyle(0x32CD32, 0.9);
-                keepBg.fillRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                 keepBg.lineStyle(3, 0xFFD54F);
-                keepBg.strokeRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
             });
             keepZone.on('pointerout', () => {
+                const dims = this.keepButtonDims;
                 keepBg.clear();
                 keepBg.fillStyle(0x228B22, 0.9);
-                keepBg.fillRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                 keepBg.lineStyle(3, 0xFFD54F);
-                keepBg.strokeRoundedRect(200, buttonY, 150, 50, 10);
+                keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
             });
 
             if (canReroll) {
@@ -1330,18 +1513,20 @@ class HatchingScene extends Phaser.Scene {
                     this.handleRerollCreature();
                 });
                 rerollZone.on('pointerover', () => {
+                    const dims = this.rerollButtonDims;
                     rerollBg.clear();
                     rerollBg.fillStyle(0x6495ED, 0.9);
-                    rerollBg.fillRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                     rerollBg.lineStyle(3, 0xFFD54F);
-                    rerollBg.strokeRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                 });
                 rerollZone.on('pointerout', () => {
+                    const dims = this.rerollButtonDims;
                     rerollBg.clear();
                     rerollBg.fillStyle(0x4169E1, 0.9);
-                    rerollBg.fillRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                     rerollBg.lineStyle(3, 0xFFD54F);
-                    rerollBg.strokeRoundedRect(450, buttonY, 150, 50, 10);
+                    rerollBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
                 });
 
                 this.rerollUI = { rerollBg, rerollText, rerollZone };
@@ -1481,7 +1666,13 @@ class HatchingScene extends Phaser.Scene {
                 return;
             }
 
-            this.creature = this.add.image(400, 300, creatureResult.textureName);
+            // MOBILE-RESPONSIVE rerolled creature positioning
+            const { width, height } = this.scale;
+            const centerX = width / 2;
+            const creatureY = height * 0.45;
+            const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+
+            this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
@@ -1491,7 +1682,7 @@ class HatchingScene extends Phaser.Scene {
             this.tweens.add({
                 targets: this.creature,
                 alpha: 1,
-                scale: 1.2,
+                scale: targetScale,
                 duration: 1000,
                 ease: 'Back.easeOut'
             });
@@ -1533,25 +1724,37 @@ class HatchingScene extends Phaser.Scene {
      * Show final KEEP button after reroll (no second reroll allowed)
      */
     showFinalKeepButton() {
-        const buttonY = 500;
+        // MOBILE-RESPONSIVE final keep button (after reroll)
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const isMobile = width < 600;
+
+        // Button sizing
+        const buttonWidth = isMobile ? Math.min(width * 0.65, 180) : 150;
+        const buttonHeight = isMobile ? Math.min(height * 0.08, 60) : 50;
+        const buttonX = centerX - (buttonWidth / 2);
+        const buttonY = height * 0.78;
+        const fontSize = Math.max(18, Math.min(20, width * 0.048));
+        const textFontSize = Math.max(14, Math.min(16, width * 0.04));
 
         const keepBg = this.add.graphics();
         keepBg.fillStyle(0x228B22, 0.9);
-        keepBg.fillRoundedRect(325, buttonY, 150, 50, 10);
+        keepBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
         keepBg.lineStyle(3, 0xFFD54F);
-        keepBg.strokeRoundedRect(325, buttonY, 150, 50, 10);
+        keepBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
 
-        const keepText = this.add.text(400, buttonY + 25, '✓ KEEP THIS ONE', {
-            fontSize: '20px',
+        const keepText = this.add.text(centerX, buttonY + (buttonHeight / 2), '✓ KEEP THIS ONE', {
+            fontSize: `${fontSize}px`,
             color: '#FFFFFF',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        const keepZone = this.add.zone(325, buttonY, 150, 50).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
+        const keepZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
 
-        const finalText = this.add.text(400, 450, '✅ This is your final creature!', {
-            fontSize: '16px',
-            color: '#90EE90'
+        const finalText = this.add.text(centerX, height * 0.7, '✅ This is your final creature!', {
+            fontSize: `${textFontSize}px`,
+            color: '#90EE90',
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
         [keepBg, keepText, finalText].forEach(el => {
@@ -1564,20 +1767,25 @@ class HatchingScene extends Phaser.Scene {
             });
         });
 
+        // Store dimensions for hover effects
+        this.finalKeepButtonDims = { x: buttonX, y: buttonY, w: buttonWidth, h: buttonHeight };
+
         keepZone.on('pointerdown', () => this.handleKeepCreature());
         keepZone.on('pointerover', () => {
+            const dims = this.finalKeepButtonDims;
             keepBg.clear();
             keepBg.fillStyle(0x32CD32, 0.9);
-            keepBg.fillRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
             keepBg.lineStyle(3, 0xFFD54F);
-            keepBg.strokeRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
         });
         keepZone.on('pointerout', () => {
+            const dims = this.finalKeepButtonDims;
             keepBg.clear();
             keepBg.fillStyle(0x228B22, 0.9);
-            keepBg.fillRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
             keepBg.lineStyle(3, 0xFFD54F);
-            keepBg.strokeRoundedRect(325, buttonY, 150, 50, 10);
+            keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
         });
 
         this.keepUI = { keepBg, keepText, keepZone };
@@ -1588,13 +1796,19 @@ class HatchingScene extends Phaser.Scene {
      * Show error message when reroll fails
      */
     showRerollError(message) {
-        const errorText = this.add.text(400, 300, `⚠️ ${message}`, {
-            fontSize: '24px',
+        // MOBILE-RESPONSIVE error message positioning
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const errorY = height * 0.4; // 40% from top
+        const fontSize = Math.max(18, Math.min(24, width * 0.055));
+
+        const errorText = this.add.text(centerX, errorY, `⚠️ ${message}`, {
+            fontSize: `${fontSize}px`,
             color: '#FF6B6B',
             stroke: '#000000',
             strokeThickness: 3,
             align: 'center',
-            wordWrap: { width: 600 }
+            wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
         errorText.setAlpha(0);
@@ -1738,29 +1952,38 @@ class HatchingScene extends Phaser.Scene {
 
     /**
      * Create enhanced title with glow effect
+     * MOBILE-FIRST RESPONSIVE: Now uses actual viewport dimensions
+     * RESIZE mode means width/height are the actual screen pixels
      */
     createEnhancedTitle() {
         const { width, height } = this.scale;
         const centerX = width / 2;
-        const titleY = Math.min(120, height * 0.15);
-        const panelWidth = Math.min(400, width * 0.6);
-        const panelHeight = 120;
+        const titleY = height * 0.15;  // 15% from top - works for portrait
+        const panelWidth = Math.min(width * 0.9, 550);  // 90% of screen width, max 550px
+        const panelHeight = Math.min(height * 0.12, 100);  // Responsive height
+
+        // MOBILE-RESPONSIVE font sizes based on screen width
+        // iPhone 12 width = 390px, so 32px * (390/800) = ~15px
+        const titleFontSize = Math.max(24, Math.min(32, width * 0.08));  // 8% of screen width
+        const subtitleFontSize = Math.max(12, Math.min(16, width * 0.04));  // 4% of screen width
 
         // Glassmorphic panel behind title
         const titlePanel = this.add.graphics();
         titlePanel.fillStyle(0xFFFFFF, 0.1);
-        titlePanel.fillRoundedRect(centerX - panelWidth/2, titleY - 40, panelWidth, panelHeight, 20);
+        titlePanel.fillRoundedRect(centerX - panelWidth/2, titleY - 30, panelWidth, panelHeight, 20);
         titlePanel.lineStyle(2, 0xFFD54F, 0.5);
-        titlePanel.strokeRoundedRect(centerX - panelWidth/2, titleY - 40, panelWidth, panelHeight, 20);
+        titlePanel.strokeRoundedRect(centerX - panelWidth/2, titleY - 30, panelWidth, panelHeight, 20);
 
-        // Main title with glow
+        // Main title with glow - now using proper fixed size
         const titleText = this.add.text(centerX, titleY, 'MYTHICAL VOID', {
-            fontSize: '64px',
+            fontSize: `${titleFontSize}px`,
             color: '#FFD54F',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'bold',
             stroke: '#7B1FA2',
-            strokeThickness: 3
+            strokeThickness: 3,
+            // Add word wrap to prevent overflow
+            wordWrap: { width: panelWidth - 20, useAdvancedWrap: true }
         }).setOrigin(0.5);
 
         // Add glow effect
@@ -1786,10 +2009,10 @@ class HatchingScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Subtitle
-        const subtitleText = this.add.text(centerX, titleY + 70, 'Where Space Meets Magic', {
-            fontSize: '20px',
-            color: '#000000',
+        // Subtitle - now using proper fixed size
+        const subtitleText = this.add.text(centerX, titleY + 50, 'Where Space Meets Magic', {
+            fontSize: `${subtitleFontSize}px`,
+            color: '#B0B0B0',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'italic'
         }).setOrigin(0.5);
@@ -1797,16 +2020,16 @@ class HatchingScene extends Phaser.Scene {
 
     /**
      * Create enhanced START button with glassmorphism
+     * MOBILE-RESPONSIVE positioning
      */
     createEnhancedStartButton() {
         const { width, height } = this.scale;
         const buttonX = width / 2;
-        const buttonY = height / 2;
+        const buttonY = height * 0.5;  // Center vertically at 50%
 
-        // Responsive button sizing for mobile
-        const buttonSize = MobileHelpers.getButtonSize(this.scale, { width: 340, height: 95 });
-        const buttonWidth = buttonSize.width;
-        const buttonHeight = buttonSize.height;
+        // Responsive button sizing for mobile - wider for portrait screens
+        const buttonWidth = Math.min(width * 0.85, 340);  // 85% of screen width, max 340px
+        const buttonHeight = Math.min(height * 0.08, 95);  // 8% of screen height, max 95px
 
         // Create container for the button
         const buttonContainer = this.add.container(buttonX, buttonY);
@@ -2019,7 +2242,7 @@ class HatchingScene extends Phaser.Scene {
                 });
             }
 
-            // Fade and transition
+            // Fade and transition - CRITICAL FIX: Use handleStartGame() for proper state management
             this.tweens.add({
                 targets: buttonContainer,
                 alpha: 0,
@@ -2029,7 +2252,8 @@ class HatchingScene extends Phaser.Scene {
                 delay: 150,
                 ease: 'Back.easeIn',
                 onComplete: () => {
-                    this.showHatchingScreen();
+                    // Use the proper state management flow
+                    this.handleStartGame();
                 }
             });
         });
@@ -2039,12 +2263,21 @@ class HatchingScene extends Phaser.Scene {
 
     /**
      * Create feature preview cards
+     * MOBILE-RESPONSIVE: Stack vertically on narrow screens
      */
     createFeatureCards() {
         const { width, height } = this.scale;
+        const centerX = width / 2;
+
+        // Skip feature cards on mobile to simplify UI
+        // They're just informational and clutter the portrait layout
+        if (width < 600) {
+            return;
+        }
+
+        // Desktop: Horizontal layout
         const cardWidth = 180;
         const cardHeight = 120;
-        const centerX = width / 2;
         const cardY = height - 180;
         const spacing = Math.min(215, width / 4);
 
@@ -2124,6 +2357,63 @@ class HatchingScene extends Phaser.Scene {
         this.tweens.add({
             targets: hintText,
             alpha: 0.6,
+            duration: 2000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * Create "Tap to Hatch" instructional text over the egg
+     * Quick Win #1 from QA Audit - improves discoverability
+     * FIX #1: Make text non-interactive so clicks pass through to egg
+     * FIX #2: Destroy existing text to prevent duplication
+     */
+    createTapToHatchText() {
+        // FIX #2: Destroy existing text if it exists (prevents duplication)
+        if (this.tapToHatchText) {
+            this.tweens.killTweensOf(this.tapToHatchText);
+            this.tapToHatchText.destroy();
+            this.tapToHatchText = null;
+        }
+
+        const isMobile = MobileHelpers.isMobile();
+        const text = isMobile ? '👆 TAP TO HATCH 👆' : '👆 CLICK TO HATCH 👆';
+
+        this.tapToHatchText = this.add.text(400, 180, text, {
+            fontSize: '28px',
+            color: '#FFD54F',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+            fontStyle: 'bold',
+            stroke: '#7B1FA2',
+            strokeThickness: 4,
+            align: 'center',
+            shadow: {
+                offsetX: 0,
+                offsetY: 0,
+                color: 'rgba(255, 213, 79, 0.8)',
+                blur: 15,
+                fill: true
+            }
+        }).setOrigin(0.5);
+
+        // Pulsing animation - draws attention without being annoying
+        this.tweens.add({
+            targets: this.tapToHatchText,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            alpha: 0.85,
+            duration: 1200,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Gentle floating animation synced with egg
+        this.tweens.add({
+            targets: this.tapToHatchText,
+            y: 170,
             duration: 2000,
             ease: 'Sine.easeInOut',
             yoyo: true,
