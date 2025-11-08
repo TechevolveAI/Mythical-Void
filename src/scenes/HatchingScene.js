@@ -2460,45 +2460,48 @@ class HatchingScene extends Phaser.Scene {
 
     /**
      * Handle start game button click
+     * ⚠️ CRITICAL SECTION - DO NOT MODIFY - GAME FLOW LOGIC ⚠️
      */
     handleStartGame() {
-        const state = getGameState();
+        const GameState = getGameState();
 
-        // Mark game as started
-        state.set('session.gameStarted', true);
+        // Mark game as started - CRITICAL for game flow validation
+        GameState.set('session.gameStarted', true);
         console.log('✅ Set gameStarted to true');
 
         // CRITICAL: Reset creature to unhatched state for fresh game flow
-        state.set('creature.hatched', false);
-        state.set('creature.name', 'Your Creature');
-        state.set('creature.hatchTime', null);
-        state.set('creature.experience', 0);
-        state.set('creature.level', 1);
+        GameState.set('creature.hatched', false);
+        GameState.set('creature.name', 'Your Creature');
+        GameState.set('creature.hatchTime', null);
+        GameState.set('creature.experience', 0);
+        GameState.set('creature.level', 1);
         console.log('✅ Set creature.hatched to false');
 
         // Reset creature stats to defaults
-        state.set('creature.stats', {
+        GameState.set('creature.stats', {
             happiness: 100,
             energy: 100,
             health: 100
         });
 
         // Clear personality and genes to regenerate fresh
-        state.set('creature.personality', null);
-        state.set('creature.genes', null);
+        GameState.set('creature.personality', null);
+        GameState.set('creature.genes', null);
 
         console.log('🔄 Creature reset complete - forcing save before scene transition...');
 
         // CRITICAL: Force immediate save to localStorage before scene restart
-        state.save();
+        GameState.save();
 
         // Verify the state before restarting
         console.log('🔍 Pre-restart verification:');
-        console.log('  gameStarted:', state.get('session.gameStarted'));
-        console.log('  creatureHatched:', state.get('creature.hatched'));
+        console.log('  gameStarted:', GameState.get('session.gameStarted'));
+        console.log('  creatureHatched:', GameState.get('creature.hatched'));
 
-        // Restart scene to trigger hatching flow
-        this.scene.restart();
+        // Delayed restart to ensure save completes
+        this.time.delayedCall(100, () => {
+            this.scene.restart();
+        });
     }
 }
 

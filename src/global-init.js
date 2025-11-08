@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
 
+// Import Logger first (other systems may use it)
+import './utils/Logger.js';
+
 // Static imports for proper bundling in production
 import './config/env-loader.js';
 import './config/api-config.js';

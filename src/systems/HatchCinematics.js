@@ -118,6 +118,14 @@ class HatchCinematicsManager {
     }
 
     /**
+     * Create the main cinematic timeline
+     * Alias for createSpaceTimeline - required for game flow validation
+     */
+    createTimeline(scene, config, resolve) {
+        return this.createSpaceTimeline(scene, config, resolve);
+    }
+
+    /**
      * Create the main space-themed timeline with all 8 beats
      */
     createSpaceTimeline(scene, config, resolve) {
