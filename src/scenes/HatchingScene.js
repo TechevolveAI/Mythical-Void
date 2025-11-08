@@ -1959,13 +1959,14 @@ class HatchingScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const centerX = width / 2;
         const titleY = height * 0.15;  // 15% from top - works for portrait
-        const panelWidth = Math.min(width * 0.9, 550);  // 90% of screen width, max 550px
-        const panelHeight = Math.min(height * 0.12, 100);  // Responsive height
+        const panelWidth = Math.min(width * 0.95, 600);  // 95% of screen width, max 600px
+        const panelHeight = Math.min(height * 0.18, 150);  // Taller panel for both lines
 
-        // MOBILE-RESPONSIVE font sizes based on screen width
-        // iPhone 12 width = 390px, so 32px * (390/800) = ~15px
-        const titleFontSize = Math.max(24, Math.min(32, width * 0.08));  // 8% of screen width
-        const subtitleFontSize = Math.max(12, Math.min(16, width * 0.04));  // 4% of screen width
+        // MOBILE-RESPONSIVE font sizes - scaled for readability
+        // Desktop: 48px title, 18px subtitle
+        // Mobile (390px): 31px title, 14px subtitle
+        const titleFontSize = Math.max(28, Math.min(48, width * 0.08));  // 8% of screen width, min 28px
+        const subtitleFontSize = Math.max(14, Math.min(18, width * 0.036));  // 3.6% of screen width
 
         // Glassmorphic panel behind title
         const titlePanel = this.add.graphics();
@@ -1974,16 +1975,15 @@ class HatchingScene extends Phaser.Scene {
         titlePanel.lineStyle(2, 0xFFD54F, 0.5);
         titlePanel.strokeRoundedRect(centerX - panelWidth/2, titleY - 30, panelWidth, panelHeight, 20);
 
-        // Main title with glow - now using proper fixed size
+        // Main title - "MYTHICAL VOID" stays on ONE line (NO word wrap)
         const titleText = this.add.text(centerX, titleY, 'MYTHICAL VOID', {
             fontSize: `${titleFontSize}px`,
             color: '#FFD54F',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'bold',
             stroke: '#7B1FA2',
-            strokeThickness: 3,
-            // Add word wrap to prevent overflow
-            wordWrap: { width: panelWidth - 20, useAdvancedWrap: true }
+            strokeThickness: 3
+            // NO wordWrap - title must never break across lines
         }).setOrigin(0.5);
 
         // Add glow effect
@@ -2009,13 +2009,20 @@ class HatchingScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Subtitle - now using proper fixed size
-        const subtitleText = this.add.text(centerX, titleY + 50, 'Where Space Meets Magic', {
+        // Subtitle - "Where Space Meets Magic" on SEPARATE line below
+        // Dynamic spacing based on title font size for proper visual hierarchy
+        const subtitleY = titleY + (titleFontSize * 1.6);  // 1.6x title size = proper spacing
+        const subtitleText = this.add.text(centerX, subtitleY, 'Where Space Meets Magic', {
             fontSize: `${subtitleFontSize}px`,
             color: '#B0B0B0',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'italic'
         }).setOrigin(0.5);
+
+        // Store for cleanup
+        this.titlePanel = titlePanel;
+        this.titleText = titleText;
+        this.subtitleText = subtitleText;
     }
 
     /**
