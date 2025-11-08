@@ -261,22 +261,8 @@ class NamingScene extends Phaser.Scene {
         }
 
         // Enhanced instructions with better styling
-        if (isMobile) {
-            // Create "Enter World" button for mobile
-            this.createEnterWorldButton();
-        } else {
-            // Desktop: Show "Press ENTER" text
-            this.instructionText = this.add.text(centerX, height * 0.92, '✨ Press ENTER when ready to explore! ✨', {
-                fontSize: `${instructionSize}px`,
-                color: '#FFD700',
-                stroke: '#4B0082',
-                strokeThickness: 2,
-                align: 'center',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
-                wordWrap: { width: width * 0.9 }
-            }).setOrigin(0.5);
-        }
+        // ALWAYS create a button for both mobile and desktop for better UX
+        this.createEnterWorldButton();
 
         // Control hints (hide on mobile to save space)
         if (!isMobile) {
@@ -655,17 +641,18 @@ class NamingScene extends Phaser.Scene {
     }
 
     /**
-     * Create "Enter World" button for mobile
+     * Create "Enter World" button (works for both mobile and desktop)
      */
     createEnterWorldButton() {
         const { width, height } = this.scale;
         const centerX = width / 2;
+        const isMobile = width < 600;
 
-        const buttonWidth = Math.min(width * 0.65, 200);
-        const buttonHeight = Math.min(height * 0.065, 50);
+        const buttonWidth = isMobile ? Math.min(width * 0.65, 200) : 250;
+        const buttonHeight = isMobile ? Math.min(height * 0.065, 50) : 55;
         const buttonX = centerX - (buttonWidth / 2);
-        const buttonY = height * 0.88;
-        const fontSize = Math.max(16, Math.min(20, width * 0.048));
+        const buttonY = isMobile ? height * 0.88 : height * 0.85;
+        const fontSize = isMobile ? Math.max(16, Math.min(20, width * 0.048)) : 22;
 
         // Button background
         const buttonBg = this.add.graphics();
@@ -675,7 +662,7 @@ class NamingScene extends Phaser.Scene {
         buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
 
         // Button text
-        const buttonText = this.add.text(centerX, buttonY + (buttonHeight / 2), '✨ Enter World ✨', {
+        const buttonText = this.add.text(centerX, buttonY + (buttonHeight / 2), '🚀 START ADVENTURE 🚀', {
             fontSize: `${fontSize}px`,
             color: '#FFFFFF',
             fontFamily: 'Arial, sans-serif',
@@ -693,6 +680,7 @@ class NamingScene extends Phaser.Scene {
 
         // Button interactions
         buttonZone.on('pointerdown', () => {
+            console.log('[NamingScene] START ADVENTURE button clicked');
             this.finalizeName();
         });
 
@@ -717,9 +705,16 @@ class NamingScene extends Phaser.Scene {
     }
 
     setupInput() {
+        console.log('[NamingScene] Setting up keyboard input');
+
         // Set up keyboard input for naming
         this.input.keyboard.on('keydown', (event) => {
+            console.log('[NamingScene] Key pressed:', event.key);
+
             if (event.key === 'Enter') {
+                console.log('[NamingScene] Enter key pressed - calling finalizeName()');
+                event.preventDefault(); // Prevent default behavior
+                event.stopPropagation(); // Stop event bubbling
                 this.finalizeName();
             } else if (event.key === 'Backspace') {
                 this.nameInput = this.nameInput.slice(0, -1);
@@ -814,21 +809,38 @@ class NamingScene extends Phaser.Scene {
     }
 
     finalizeName() {
+        console.log('[NamingScene] finalizeName() called, nameInput:', this.nameInput);
+
         if (this.nameInput.trim().length > 0) {
-            getGameState().set('creature.name', this.nameInput.trim());
+            console.log('[NamingScene] Valid name entered:', this.nameInput.trim());
+
+            try {
+                const state = getGameState();
+                state.set('creature.name', this.nameInput.trim());
+                state.set('creature.named', true);
+                state.save();
+                console.log('[NamingScene] Name saved to GameState');
+            } catch (error) {
+                console.error('[NamingScene] Error saving name:', error);
+            }
 
             // IMMEDIATELY hide mobile input before transition
             if (this.mobileInput) {
                 this.mobileInput.style.display = 'none';
+                console.log('[NamingScene] Mobile input hidden');
             }
 
             this.transitionToGame();
         } else {
+            console.warn('[NamingScene] Empty name - showing error');
             // Show error message briefly
             const { width } = this.scale;
             const errorText = this.add.text(width / 2, this.scale.height * 0.5, 'Please enter a name!', {
-                fontSize: '14px',
-                color: '#FF0000'
+                fontSize: '20px',
+                fontFamily: 'Arial Black',
+                color: '#FF0000',
+                stroke: '#FFFFFF',
+                strokeThickness: 3
             }).setOrigin(0.5);
 
             this.time.delayedCall(2000, () => {
@@ -838,39 +850,85 @@ class NamingScene extends Phaser.Scene {
     }
 
     transitionToGame() {
-        // Stop all tweens before transition
-        this.tweens.killAll();
+        console.log('[NamingScene] ===== STARTING TRANSITION TO GAMESCENE =====');
 
-        // Remove keyboard listeners
-        this.input.keyboard.removeAllListeners();
-
-        // Clean up mobile HTML input if it exists
-        if (this.mobileInput && this.mobileInput.parentElement) {
-            this.mobileInput.parentElement.removeChild(this.mobileInput);
-            this.mobileInput = null;
+        // Prevent multiple transitions
+        if (this.isTransitioning) {
+            console.warn('[NamingScene] Already transitioning, ignoring');
+            return;
         }
+        this.isTransitioning = true;
 
-        // Remove resize listener
-        if (this.inputResizeHandler) {
-            window.removeEventListener('resize', this.inputResizeHandler);
-            this.inputResizeHandler = null;
-        }
+        try {
+            // Stop all tweens before transition
+            this.tweens.killAll();
+            console.log('[NamingScene] Tweens killed');
 
-        // Fade out effect
-        const fadeGraphics = this.add.graphics();
-        fadeGraphics.fillStyle(0x000000, 0);
-        fadeGraphics.fillRect(0, 0, 800, 600);
+            // Remove keyboard listeners
+            this.input.keyboard.removeAllListeners();
+            console.log('[NamingScene] Keyboard listeners removed');
 
-        this.tweens.add({
-            targets: fadeGraphics,
-            alpha: 1,
-            duration: 1000,
-            onComplete: () => {
-                // Use stop instead of start to properly clean up
-                this.scene.stop('NamingScene');
-                this.scene.start('GameScene');
+            // Clean up mobile HTML input if it exists
+            if (this.mobileInput && this.mobileInput.parentElement) {
+                this.mobileInput.parentElement.removeChild(this.mobileInput);
+                this.mobileInput = null;
+                console.log('[NamingScene] Mobile input cleaned up');
             }
-        });
+
+            // Remove resize listener
+            if (this.inputResizeHandler) {
+                window.removeEventListener('resize', this.inputResizeHandler);
+                this.inputResizeHandler = null;
+                console.log('[NamingScene] Resize listener removed');
+            }
+
+            console.log('[NamingScene] Creating fade effect...');
+
+            // Fade out effect with proper dimensions
+            const { width, height } = this.scale;
+            const fadeGraphics = this.add.graphics();
+            fadeGraphics.setDepth(10000); // Ensure it's on top
+            fadeGraphics.fillStyle(0x000000, 0);
+            fadeGraphics.fillRect(0, 0, width, height);
+
+            this.tweens.add({
+                targets: fadeGraphics,
+                alpha: 1,
+                duration: 800,
+                onStart: () => {
+                    console.log('[NamingScene] Fade animation started');
+                },
+                onUpdate: (tween) => {
+                    const progress = tween.progress;
+                    fadeGraphics.clear();
+                    fadeGraphics.fillStyle(0x000000, progress);
+                    fadeGraphics.fillRect(0, 0, width, height);
+                },
+                onComplete: () => {
+                    console.log('[NamingScene] Fade complete, transitioning to GameScene');
+
+                    try {
+                        // Clean up this scene
+                        this.scene.stop('NamingScene');
+                        console.log('[NamingScene] Scene stopped');
+
+                        // Start GameScene
+                        this.scene.start('GameScene');
+                        console.log('[NamingScene] GameScene started');
+                    } catch (sceneError) {
+                        console.error('[NamingScene] Error in scene transition:', sceneError);
+                        // Fallback: Try direct transition without stop
+                        this.scene.start('GameScene');
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('[NamingScene] CRITICAL ERROR in transition:', error);
+            // Emergency fallback: Direct scene switch
+            console.log('[NamingScene] Attempting emergency fallback transition');
+            this.isTransitioning = false;
+            this.scene.start('GameScene');
+        }
     }
 
     update() {

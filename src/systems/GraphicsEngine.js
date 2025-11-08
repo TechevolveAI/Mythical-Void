@@ -948,11 +948,501 @@ class GraphicsEngine {
         return this.finalizeTexture(graphics, `magicalSparkle`, 30, 30);
     }
 
+    /**
+     * Create cosmic coin collectible sprite
+     * Beautiful space-themed currency with glow and sparkle effects
+     */
+    createCosmicCoin() {
+        // Check if texture already exists
+        if (this.scene.textures.exists('cosmicCoin')) {
+            console.log('[GraphicsEngine] Cosmic coin texture already exists, skipping');
+            return 'cosmicCoin';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 16, y: 16 };
+        const radius = 12;
+
+        // Outer glow layers (pulsing aura effect)
+        const glowColors = [
+            { color: 0x4A90E2, alpha: 0.3, size: 16 },
+            { color: 0x00CED1, alpha: 0.4, size: 14 },
+            { color: 0x9370DB, alpha: 0.3, size: 12 }
+        ];
+
+        glowColors.forEach(glow => {
+            graphics.fillStyle(glow.color, glow.alpha);
+            graphics.fillCircle(center.x, center.y, glow.size);
+        });
+
+        // Main coin body - gradient from cyan to purple (cosmic theme)
+        // Simulate gradient with layered circles (Phaser doesn't support Canvas gradients)
+        for (let i = 0; i < 8; i++) {
+            const t = i / 7; // 0 to 1
+            // Interpolate between cyan (0x00CED1) and purple (0x9370DB)
+            const r = Math.floor(0x00 + (0x93 - 0x00) * t);
+            const g = Math.floor(0xCE - (0xCE - 0x70) * t);
+            const b = Math.floor(0xD1 + (0xDB - 0xD1) * t);
+            const color = (r << 16) | (g << 8) | b;
+
+            const alpha = 0.9;
+            const layerRadius = radius - i * 0.5;
+            graphics.fillStyle(color, alpha);
+            graphics.fillCircle(center.x, center.y, layerRadius);
+        }
+
+        // Inner ring detail (gives coin depth)
+        graphics.lineStyle(2, 0xFFFFFF, 0.4);
+        graphics.strokeCircle(center.x, center.y, radius * 0.7);
+
+        // Central star symbol (currency marking)
+        graphics.fillStyle(0xFFD700, 0.8); // Gold star
+        this.drawStar(graphics, center.x, center.y, 4, 3, 5);
+
+        // Highlight shine (top-left)
+        graphics.fillStyle(0xFFFFFF, 0.6);
+        graphics.fillCircle(center.x - 4, center.y - 4, 3);
+
+        // Tiny sparkles around edge (3 sparkles for cosmic effect)
+        const sparklePositions = [
+            { angle: 45, distance: 10 },
+            { angle: 135, distance: 11 },
+            { angle: 270, distance: 10 }
+        ];
+
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        sparklePositions.forEach(pos => {
+            const rads = (pos.angle * Math.PI) / 180;
+            const x = center.x + Math.cos(rads) * pos.distance;
+            const y = center.y + Math.sin(rads) * pos.distance;
+
+            // Draw small diamond sparkle
+            graphics.beginPath();
+            graphics.moveTo(x, y - 1.5);
+            graphics.lineTo(x + 1, y);
+            graphics.lineTo(x, y + 1.5);
+            graphics.lineTo(x - 1, y);
+            graphics.closePath();
+            graphics.fillPath();
+        });
+
+        return this.finalizeTexture(graphics, 'cosmicCoin', 32, 32);
+    }
+
     // === UTILITY METHODS ===
 
     /**
      * Get seasonal foliage colors
      */
+    /**
+     * Create Void Wisp enemy sprite (ghostly wisp with purple-blue glow)
+     * @returns {string} Texture name
+     */
+    createVoidWisp() {
+        // Check if texture already exists
+        if (this.scene.textures.exists('voidWisp')) {
+            return 'voidWisp';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 24, y: 24 };
+        const size = 48;
+
+        // Outer glow layers (ethereal effect)
+        const glowLayers = [
+            { color: 0x4A0080, alpha: 0.2, radius: 22 },
+            { color: 0x6B00B3, alpha: 0.3, radius: 18 },
+            { color: 0x8B00D9, alpha: 0.4, radius: 14 }
+        ];
+
+        glowLayers.forEach(layer => {
+            graphics.fillStyle(layer.color, layer.alpha);
+            graphics.fillCircle(center.x, center.y, layer.radius);
+        });
+
+        // Main wisp body - gradient effect
+        for (let i = 0; i < 10; i++) {
+            const t = i / 9;
+            const radius = 12 - i * 1.2;
+            const alpha = 0.6 - t * 0.3;
+
+            // Purple to cyan gradient
+            const r = Math.floor(139 - (139 - 0) * t);
+            const g = Math.floor(0 + (206 - 0) * t);
+            const b = Math.floor(217 + (217 - 217) * t);
+            const color = (r << 16) | (g << 8) | b;
+
+            graphics.fillStyle(color, alpha);
+            graphics.fillCircle(center.x, center.y, radius);
+        }
+
+        // Wispy tendrils (3 trailing wisps)
+        for (let i = 0; i < 3; i++) {
+            const angle = (Math.PI / 2) + (i - 1) * (Math.PI / 6);
+            const length = 10 + i * 2;
+
+            for (let j = 0; j < 4; j++) {
+                const dist = length + j * 3;
+                const wispX = center.x + Math.cos(angle + Math.PI) * dist;
+                const wispY = center.y + Math.sin(angle + Math.PI) * dist;
+                const wispRadius = 3 - j * 0.5;
+                const wispAlpha = 0.4 - j * 0.1;
+
+                graphics.fillStyle(0x8B00D9, wispAlpha);
+                graphics.fillCircle(wispX, wispY, wispRadius);
+            }
+        }
+
+        // Core sparkle (white center)
+        graphics.fillStyle(0xFFFFFF, 0.8);
+        graphics.fillCircle(center.x, center.y, 3);
+
+        return this.finalizeTexture(graphics, 'voidWisp', size, size);
+    }
+
+    /**
+     * Create Shadow Sprite enemy (darker, more solid enemy)
+     * @returns {string} Texture name
+     */
+    createShadowSprite() {
+        // Check if texture already exists
+        if (this.scene.textures.exists('shadowSprite')) {
+            return 'shadowSprite';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 28, y: 28 };
+        const size = 56;
+
+        // Dark aura
+        graphics.fillStyle(0x0A0118, 0.4);
+        graphics.fillCircle(center.x, center.y, 24);
+
+        // Main body - rounded shape
+        graphics.fillStyle(0x1A0A2E, 0.9);
+        graphics.fillEllipse(center.x, center.y, 18, 20);
+
+        // Shadow gradient layers
+        for (let i = 0; i < 6; i++) {
+            const t = i / 5;
+            const width = 18 - i * 2;
+            const height = 20 - i * 2.5;
+            const alpha = 0.9 - t * 0.4;
+
+            // Gradient from dark purple to near-black
+            const r = Math.floor(26 - 26 * t);
+            const g = Math.floor(10 - 10 * t);
+            const b = Math.floor(46 - 46 * t);
+            const color = (r << 16) | (g << 8) | b;
+
+            graphics.fillStyle(color, alpha);
+            graphics.fillEllipse(center.x, center.y, width, height);
+        }
+
+        // Sinister eyes (glowing red)
+        const eyeY = center.y - 4;
+        const eyeSpacing = 8;
+
+        // Left eye
+        graphics.fillStyle(0xFF0000, 0.8);
+        graphics.fillCircle(center.x - eyeSpacing / 2, eyeY, 3);
+        graphics.fillStyle(0xFF4444, 0.6);
+        graphics.fillCircle(center.x - eyeSpacing / 2, eyeY, 4);
+
+        // Right eye
+        graphics.fillStyle(0xFF0000, 0.8);
+        graphics.fillCircle(center.x + eyeSpacing / 2, eyeY, 3);
+        graphics.fillStyle(0xFF4444, 0.6);
+        graphics.fillCircle(center.x + eyeSpacing / 2, eyeY, 4);
+
+        // Eye glow
+        graphics.fillStyle(0xFFFFFF, 1.0);
+        graphics.fillCircle(center.x - eyeSpacing / 2, eyeY, 1.5);
+        graphics.fillCircle(center.x + eyeSpacing / 2, eyeY, 1.5);
+
+        // Dark tendrils at bottom
+        for (let i = 0; i < 4; i++) {
+            const tendrilX = center.x - 9 + i * 6;
+            const tendrilY = center.y + 12;
+
+            graphics.fillStyle(0x16213E, 0.7);
+            graphics.fillRect(tendrilX, tendrilY, 3, 8);
+
+            // Fade effect
+            graphics.fillStyle(0x16213E, 0.4);
+            graphics.fillRect(tendrilX, tendrilY + 8, 3, 4);
+        }
+
+        return this.finalizeTexture(graphics, 'shadowSprite', size, size);
+    }
+
+    /**
+     * Create Cosmic Shop building sprite
+     * @returns {string} Texture name
+     */
+    createCosmicShop() {
+        // Check if texture already exists
+        if (this.scene.textures.exists('cosmicShop')) {
+            return 'cosmicShop';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 120;
+        const height = 140;
+
+        // Building base - dark cosmic stone
+        graphics.fillStyle(0x1A0A2E, 1);
+        graphics.fillRect(10, 60, 100, 80);
+
+        // Stone texture lines
+        graphics.lineStyle(1, 0x2E1A47, 0.6);
+        for (let i = 0; i < 8; i++) {
+            const y = 65 + i * 10;
+            graphics.lineBetween(10, y, 110, y);
+        }
+
+        // Entrance archway
+        graphics.fillStyle(0x0A0118, 0.9);
+        graphics.fillRect(40, 100, 40, 40);
+
+        // Archway top (rounded)
+        graphics.fillCircle(60, 100, 20);
+
+        // Mystical door glow
+        graphics.fillStyle(0x4A90E2, 0.5);
+        graphics.fillRect(42, 105, 36, 35);
+
+        // Door detail - cosmic symbols
+        graphics.lineStyle(2, 0x00CED1, 0.8);
+        graphics.strokeCircle(60, 120, 8);
+
+        // Star symbol on door
+        const doorCenterX = 60;
+        const doorCenterY = 120;
+        this.drawStar(graphics, doorCenterX, doorCenterY, 5, 3, 6);
+
+        // Roof - mystical cosmic style
+        graphics.fillStyle(0x4A0080, 0.9);
+        graphics.fillTriangle(
+            60, 40,    // Top point
+            5, 65,     // Left point
+            115, 65    // Right point
+        );
+
+        // Roof trim
+        graphics.lineStyle(3, 0x6B00B3, 1);
+        graphics.lineBetween(5, 65, 60, 40);
+        graphics.lineBetween(60, 40, 115, 65);
+        graphics.lineBetween(5, 65, 115, 65);
+
+        // Roof details - cosmic tiles
+        for (let i = 0; i < 6; i++) {
+            const y = 45 + i * 4;
+            const leftX = 20 + i * 6;
+            const rightX = 100 - i * 6;
+            graphics.lineStyle(1, 0x8B00D9, 0.6);
+            graphics.lineBetween(leftX, y, rightX, y);
+        }
+
+        // Chimney (left side)
+        graphics.fillStyle(0x2E1A47, 1);
+        graphics.fillRect(20, 30, 15, 15);
+
+        // Chimney smoke (mystical purple)
+        graphics.fillStyle(0x9370DB, 0.4);
+        graphics.fillCircle(27, 22, 5);
+        graphics.fillCircle(25, 16, 4);
+        graphics.fillCircle(29, 12, 3);
+
+        // Windows (2)
+        const windowY = 75;
+
+        // Left window
+        graphics.fillStyle(0xFFD700, 0.7);
+        graphics.fillRect(20, windowY, 15, 15);
+        graphics.lineStyle(2, 0x2E1A47, 1);
+        graphics.strokeRect(20, windowY, 15, 15);
+        graphics.lineBetween(27, windowY, 27, windowY + 15); // Vertical bar
+        graphics.lineBetween(20, windowY + 7, 35, windowY + 7); // Horizontal bar
+
+        // Right window
+        graphics.fillStyle(0xFFD700, 0.7);
+        graphics.fillRect(85, windowY, 15, 15);
+        graphics.lineStyle(2, 0x2E1A47, 1);
+        graphics.strokeRect(85, windowY, 15, 15);
+        graphics.lineBetween(92, windowY, 92, windowY + 15);
+        graphics.lineBetween(85, windowY + 7, 100, windowY + 7);
+
+        // Shop sign above door
+        graphics.fillStyle(0x6B00B3, 0.9);
+        graphics.fillRoundedRect(35, 90, 50, 12, 3);
+
+        // Sign border
+        graphics.lineStyle(2, 0x00CED1, 0.8);
+        graphics.strokeRoundedRect(35, 90, 50, 12, 3);
+
+        // Hanging sign chains
+        graphics.lineStyle(1, 0x808080, 0.8);
+        graphics.lineBetween(40, 85, 40, 90);
+        graphics.lineBetween(80, 85, 80, 90);
+
+        // Ground shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillEllipse(60, 145, 55, 8);
+
+        // Magical sparkles around building
+        const sparklePositions = [
+            { x: 15, y: 50 },
+            { x: 105, y: 55 },
+            { x: 30, y: 95 },
+            { x: 90, y: 100 },
+            { x: 60, y: 35 }
+        ];
+
+        sparklePositions.forEach(pos => {
+            graphics.fillStyle(0xFFFFFF, 0.8);
+            graphics.fillCircle(pos.x, pos.y, 2);
+            graphics.lineStyle(1, 0x00CED1, 0.6);
+            graphics.lineBetween(pos.x - 3, pos.y, pos.x + 3, pos.y);
+            graphics.lineBetween(pos.x, pos.y - 3, pos.x, pos.y + 3);
+        });
+
+        return this.finalizeTexture(graphics, 'cosmicShop', width, height);
+    }
+
+    /**
+     * Create animated Void Merchant shopkeeper sprite
+     * @param {number} frame - Animation frame (0-3 for idle animation)
+     * @returns {string} - Texture name
+     */
+    createVoidMerchant(frame = 0) {
+        const width = 80;
+        const height = 120;
+        const graphics = this.createScratchGraphics();
+        const centerX = width / 2;
+
+        // Animation parameters based on frame
+        const floatOffset = Math.sin((frame / 3) * Math.PI * 2) * 3;
+        const orbRotation = (frame / 3) * Math.PI * 2;
+        const eyeGlow = 0.5 + Math.sin((frame / 3) * Math.PI * 2) * 0.3;
+
+        // Body - flowing cosmic robe
+        const bodyY = 45 + floatOffset;
+
+        // Robe shadow/base
+        graphics.fillStyle(0x0A0520, 0.8);
+        graphics.fillEllipse(centerX, bodyY + 45, 30, 12);
+
+        // Main robe body - dark purple with gradient
+        for (let i = 0; i < 40; i++) {
+            const t = i / 40;
+            const y = bodyY + i;
+            const width_at_y = 20 + (t * 15); // Widens toward bottom
+            const alpha = 0.9 - (t * 0.2);
+
+            graphics.fillStyle(0x2A0040, alpha);
+            graphics.fillEllipse(centerX, y, width_at_y, 3);
+        }
+
+        // Robe highlights (lighter purple)
+        graphics.fillStyle(0x4A0080, 0.7);
+        graphics.fillEllipse(centerX - 8, bodyY + 15, 8, 25);
+        graphics.fillEllipse(centerX + 8, bodyY + 15, 8, 25);
+
+        // Cosmic patterns on robe (stars and runes)
+        const patterns = [
+            { x: centerX - 10, y: bodyY + 20, size: 3 },
+            { x: centerX + 8, y: bodyY + 28, size: 2 },
+            { x: centerX - 5, y: bodyY + 35, size: 2.5 },
+            { x: centerX + 12, y: bodyY + 43, size: 2 }
+        ];
+
+        patterns.forEach(p => {
+            graphics.fillStyle(0x00FFFF, 0.6);
+            graphics.fillStar(p.x, p.y, 4, p.size, p.size * 0.5);
+        });
+
+        // Head - hooded figure
+        const headY = bodyY - 15;
+
+        // Hood shadow
+        graphics.fillStyle(0x1A0A2E, 0.9);
+        graphics.fillCircle(centerX, headY, 22);
+
+        // Face area (dark, mysterious)
+        graphics.fillStyle(0x0A0520, 1);
+        graphics.fillEllipse(centerX, headY + 2, 16, 20);
+
+        // Hood
+        graphics.fillStyle(0x2A0040, 1);
+        graphics.beginPath();
+        graphics.moveTo(centerX - 28, headY);
+        graphics.lineTo(centerX, headY - 35);
+        graphics.lineTo(centerX + 28, headY);
+        graphics.lineTo(centerX + 20, headY + 10);
+        graphics.lineTo(centerX - 20, headY + 10);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Hood trim (lighter purple)
+        graphics.lineStyle(2, 0x6B00B3);
+        graphics.beginPath();
+        graphics.arc(centerX, headY + 10, 20, 0, Math.PI, true);
+        graphics.strokePath();
+
+        // Glowing eyes with animation
+        const eyeY = headY - 2;
+        const eyeSize = 5 + eyeGlow * 2;
+
+        // Left eye
+        graphics.fillStyle(0x00FFFF, eyeGlow);
+        graphics.fillCircle(centerX - 8, eyeY, eyeSize);
+        graphics.fillStyle(0x00FFFF, eyeGlow * 1.5);
+        graphics.fillCircle(centerX - 8, eyeY, eyeSize * 0.6);
+
+        // Right eye
+        graphics.fillStyle(0x00FFFF, eyeGlow);
+        graphics.fillCircle(centerX + 8, eyeY, eyeSize);
+        graphics.fillStyle(0x00FFFF, eyeGlow * 1.5);
+        graphics.fillCircle(centerX + 8, eyeY, eyeSize * 0.6);
+
+        // Floating mystical orb (rotates with animation)
+        const orbDistance = 25;
+        const orbX = centerX + Math.cos(orbRotation) * orbDistance;
+        const orbY = bodyY - 25 + Math.sin(orbRotation) * 15;
+
+        // Orb glow
+        graphics.fillStyle(0xFFD700, 0.2);
+        graphics.fillCircle(orbX, orbY, 14);
+        graphics.fillStyle(0xFFD700, 0.4);
+        graphics.fillCircle(orbX, orbY, 10);
+
+        // Orb core
+        graphics.fillStyle(0xFFD700, 0.9);
+        graphics.fillCircle(orbX, orbY, 7);
+        graphics.fillStyle(0xFFFFFF, 0.8);
+        graphics.fillCircle(orbX - 2, orbY - 2, 3);
+
+        // Mystical particles around orb
+        const particleAngle = orbRotation + Math.PI / 4;
+        for (let i = 0; i < 4; i++) {
+            const angle = particleAngle + (i * Math.PI / 2);
+            const px = orbX + Math.cos(angle) * 12;
+            const py = orbY + Math.sin(angle) * 12;
+
+            graphics.fillStyle(0xFFD700, 0.5);
+            graphics.fillCircle(px, py, 2);
+        }
+
+        // Hands (simple dark shapes at sides)
+        graphics.fillStyle(0x1A0A2E, 0.8);
+        graphics.fillCircle(centerX - 25, bodyY + 5, 6);
+        graphics.fillCircle(centerX + 25, bodyY + 5, 6);
+
+        const textureName = `voidMerchant_${frame}`;
+        return this.finalizeTexture(graphics, textureName, width, height);
+    }
+
     getSeasonalColors(season) {
         const colorSets = {
             spring: { dark: 0x228B22, mid: 0x32CD32, light: 0x90EE90, accent: 0x98FB98 },
@@ -960,7 +1450,7 @@ class GraphicsEngine {
             autumn: { dark: 0x8B4513, mid: 0xFF8C00, light: 0xFFA500, accent: 0xFFD700 },
             winter: { dark: 0x2F4F4F, mid: 0x696969, light: 0x808080, accent: 0xA9A9A9 }
         };
-        
+
         return colorSets[season] || colorSets.summer;
     }
 

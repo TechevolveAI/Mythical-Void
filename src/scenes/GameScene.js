@@ -39,6 +39,12 @@ class GameScene extends Phaser.Scene {
         this.careSystem = null;
         this.carePanel = null;
         this.isCarePanelOpen = false;
+        this.coins = null;
+        this.coinRespawnTimers = [];
+        this.enemies = null;
+        this.projectiles = null;
+        this.shop = null;
+        this.nearShop = false;
     }
 
     preload() {
@@ -115,7 +121,13 @@ class GameScene extends Phaser.Scene {
             
             // Create environment objects
             this.createEnvironmentObjects();
-            
+
+            // Create cosmic coins for collection
+            this.createCosmicCoins();
+
+            // Create enemies
+            this.createEnemies();
+
             // Set up input controls
             this.setupInput();
             
@@ -446,14 +458,335 @@ class GameScene extends Phaser.Scene {
             console.warn('game:warn [GameScene] Flower texture not available');
         }
 
+        // Create and place Cosmic Shop
+        this.graphicsEngine.createCosmicShop();
+
+        const shopX = 1400; // Right side of the world
+        const shopY = 600;  // Center vertically
+
+        this.shop = this.physics.add.staticSprite(shopX, shopY, 'cosmicShop');
+        this.shop.setDepth(shopY);
+
+        // Set collision body - LARGE AREA for easy shop entry
+        this.shop.body.setSize(200, 200); // Large interaction area
+        this.shop.body.setOffset(-50, -50); // Center the collision box
+
+        console.log(`game:info [GameScene] Cosmic Shop placed at (${shopX}, ${shopY})`);
+        console.log(`game:debug [GameScene] Shop body: width=${this.shop.body.width}, height=${this.shop.body.height}`);
+
+        // DEBUG: Draw shop collision area (green rectangle)
+        const shopDebugGraphics = this.add.graphics();
+        shopDebugGraphics.lineStyle(3, 0x00FF00, 0.8);
+        shopDebugGraphics.strokeRect(
+            this.shop.body.x,
+            this.shop.body.y,
+            this.shop.body.width,
+            this.shop.body.height
+        );
+        shopDebugGraphics.setDepth(10000); // Very high so it's always visible
+        console.log(`game:debug [GameScene] Shop collision area drawn at (${this.shop.body.x}, ${this.shop.body.y})`);
+
         // Set up collision detection
         if (this.player) {
             this.physics.add.collider(this.player, this.trees);
             this.physics.add.collider(this.player, this.rocks);
             this.physics.add.overlap(this.player, this.flowers, this.handleFlowerInteraction, null, this);
+
+            // Shop proximity detection for entry
+            this.physics.add.overlap(this.player, this.shop, this.handleShopProximity, null, this);
+            console.log(`game:debug [GameScene] Shop overlap handler set up`);
         }
 
         console.log('game:info [GameScene] Environment objects creation complete');
+    }
+
+    createCosmicCoins() {
+        console.log('game:info [GameScene] Creating cosmic coins for collection');
+
+        // Create cosmic coin sprite if it doesn't exist
+        this.graphicsEngine.createCosmicCoin();
+
+        // Create physics group for coins (no gravity, not static - they can be collected)
+        this.coins = this.physics.add.group({
+            defaultKey: 'cosmicCoin',
+            maxSize: 20
+        });
+
+        // Track coin respawn timers
+        this.coinRespawnTimers = [];
+
+        // Spawn initial coins scattered around the world
+        const coinCount = 18; // 15-20 coins
+        for (let i = 0; i < coinCount; i++) {
+            this.spawnCoin();
+        }
+
+        // Set up overlap detection for coin collection
+        if (this.player) {
+            this.physics.add.overlap(this.player, this.coins, this.handleCoinCollection, null, this);
+        }
+
+        console.log(`game:info [GameScene] Spawned ${coinCount} cosmic coins`);
+    }
+
+    spawnCoin(x = null, y = null) {
+        // Use provided position or random position avoiding center (where player starts)
+        const coinX = x !== null ? x : Phaser.Math.Between(200, this.worldWidth - 200);
+        const coinY = y !== null ? y : Phaser.Math.Between(200, this.worldHeight - 200);
+
+        // Avoid spawning too close to player spawn point (center)
+        const centerX = this.worldWidth / 2;
+        const centerY = this.worldHeight / 2;
+        const distance = Phaser.Math.Distance.Between(coinX, coinY, centerX, centerY);
+
+        if (distance < 150 && x === null) {
+            // Too close to center, try again
+            return this.spawnCoin();
+        }
+
+        // Create coin sprite
+        const coin = this.coins.get(coinX, coinY, 'cosmicCoin');
+
+        if (!coin) {
+            console.warn('game:warn [GameScene] Could not create coin (group full)');
+            return null;
+        }
+
+        coin.setActive(true);
+        coin.setVisible(true);
+        coin.setScale(1.0);
+        coin.setDepth(1000); // Above environment objects
+
+        // Store original position for respawn
+        coin.setData('originalX', coinX);
+        coin.setData('originalY', coinY);
+        coin.setData('value', 10); // Each coin worth 10 cosmic coins
+
+        // Floating animation - gentle up/down movement
+        this.tweens.add({
+            targets: coin,
+            y: coinY - 8,
+            duration: 1500,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Rotation animation - slow spin
+        this.tweens.add({
+            targets: coin,
+            angle: 360,
+            duration: 4000,
+            repeat: -1
+        });
+
+        // Pulse scale animation - subtle breathing effect
+        this.tweens.add({
+            targets: coin,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            duration: 2000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        return coin;
+    }
+
+    handleCoinCollection(player, coin) {
+        // Prevent double collection
+        if (!coin.active) return;
+
+        const coinValue = coin.getData('value') || 10;
+
+        // Magnet effect - coin flies toward player before collection
+        this.tweens.add({
+            targets: coin,
+            x: player.x,
+            y: player.y,
+            scaleX: 0.5,
+            scaleY: 0.5,
+            alpha: 1,
+            duration: 200,
+            ease: 'Power2',
+            onComplete: () => {
+                // Add coins to economy
+                if (window.EconomyManager) {
+                    window.EconomyManager.addCoins(coinValue, 'collection');
+                }
+
+                // Particle burst effect
+                this.createCollectionParticles(coin.x, coin.y);
+
+                // Play collection sound effect
+                if (window.AudioManager) {
+                    window.AudioManager.playCoinCollect();
+                }
+
+                // Hide coin and mark for respawn
+                coin.setActive(false);
+                coin.setVisible(false);
+                this.tweens.killTweensOf(coin); // Stop all animations on this coin
+
+                // Schedule respawn
+                const respawnTime = Phaser.Math.Between(45000, 60000); // 45-60 seconds
+                const timer = this.time.delayedCall(respawnTime, () => {
+                    this.respawnCoin(coin);
+                });
+
+                this.coinRespawnTimers.push(timer);
+
+                console.log(`game:info [GameScene] Collected ${coinValue} cosmic coins. Respawn in ${respawnTime / 1000}s`);
+            }
+        });
+    }
+
+    respawnCoin(coin) {
+        const originalX = coin.getData('originalX');
+        const originalY = coin.getData('originalY');
+
+        // Reset coin to original position
+        coin.setPosition(originalX, originalY);
+        coin.setActive(true);
+        coin.setVisible(true);
+        coin.setAlpha(0);
+        coin.setScale(0.5);
+
+        // Fade in animation
+        this.tweens.add({
+            targets: coin,
+            alpha: 1,
+            scaleX: 1.0,
+            scaleY: 1.0,
+            duration: 500,
+            ease: 'Back.easeOut'
+        });
+
+        // Restart floating animations
+        this.tweens.add({
+            targets: coin,
+            y: originalY - 8,
+            duration: 1500,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        this.tweens.add({
+            targets: coin,
+            angle: 360,
+            duration: 4000,
+            repeat: -1
+        });
+
+        this.tweens.add({
+            targets: coin,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            duration: 2000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        console.log('game:info [GameScene] Coin respawned at', originalX, originalY);
+    }
+
+    createCollectionParticles(x, y) {
+        // Create sparkle particles on coin collection
+        const particles = this.add.particles(x, y, 'cosmicCoin', {
+            speed: { min: 50, max: 150 },
+            scale: { start: 0.4, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: 600,
+            gravityY: -100,
+            quantity: 8,
+            blendMode: 'ADD'
+        });
+
+        // Clean up particle emitter after particles fade
+        this.time.delayedCall(700, () => {
+            particles.destroy();
+        });
+    }
+
+    createEnemies() {
+        console.log('game:info [GameScene] Creating enemy spawning system');
+
+        // Create enemy sprites
+        this.graphicsEngine.createVoidWisp();
+        this.graphicsEngine.createShadowSprite();
+
+        // Create physics group for enemies
+        this.enemies = this.physics.add.group({
+            maxSize: 10
+        });
+
+        // Create physics group for projectiles
+        this.projectiles = this.physics.add.group({
+            maxSize: 20
+        });
+
+        // Set up ProjectileManager
+        if (window.ProjectileManager) {
+            window.ProjectileManager.setup(this, this.projectiles, this.enemies);
+            console.log('game:info [GameScene] ProjectileManager setup complete');
+        } else {
+            console.error('[GameScene] ProjectileManager not available');
+        }
+
+        // Start enemy spawning via EnemyManager
+        if (window.EnemyManager) {
+            window.EnemyManager.startSpawning(
+                this,
+                this.enemies,
+                this.player,
+                this.worldWidth,
+                this.worldHeight
+            );
+
+            // Listen for enemy death events to create particles
+            window.EnemyManager.on('enemyKilled', (data) => {
+                this.createEnemyDeathParticles(data.x, data.y, data.type);
+            });
+
+            console.log('game:info [GameScene] Enemy Manager started');
+        } else {
+            console.error('[GameScene] EnemyManager not available');
+        }
+    }
+
+    createEnemyDeathParticles(x, y, enemyType) {
+        // Determine particle color based on enemy type
+        const particleColor = enemyType === 'voidWisp' ? 0x8B00D9 : 0x1A0A2E;
+
+        // Create simple graphics for particles
+        const particleGraphics = this.add.graphics();
+        particleGraphics.fillStyle(particleColor, 1);
+        particleGraphics.fillCircle(4, 4, 4);
+        particleGraphics.generateTexture('enemyParticle', 8, 8);
+        particleGraphics.destroy();
+
+        // Create explosion particles
+        const particles = this.add.particles(x, y, 'enemyParticle', {
+            speed: { min: 100, max: 200 },
+            scale: { start: 1.0, end: 0 },
+            alpha: { start: 0.8, end: 0 },
+            lifespan: 800,
+            gravityY: 50,
+            quantity: 12,
+            blendMode: 'ADD',
+            angle: { min: 0, max: 360 }
+        });
+
+        // Clean up
+        this.time.delayedCall(1000, () => {
+            particles.destroy();
+            if (this.textures.exists('enemyParticle')) {
+                this.textures.remove('enemyParticle');
+            }
+        });
     }
 
     setupInput() {
@@ -474,6 +807,12 @@ class GameScene extends Phaser.Scene {
 
         // Space key for interactions
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+        // I key for inventory
+        this.inventoryKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
+
+        // M key for combat (desktop)
+        this.combatKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
 
         // MOBILE: Virtual joystick state
         this.joystickX = 0;
@@ -497,6 +836,17 @@ class GameScene extends Phaser.Scene {
             window.responsiveManager.showVirtualControls();
             console.log('[GameScene] Virtual controls activated for mobile');
         }
+
+        // Resume audio context on first user interaction (required by browsers)
+        const resumeAudio = () => {
+            if (window.AudioManager) {
+                window.AudioManager.resume();
+            }
+        };
+
+        // Listen for first pointer down or keyboard interaction
+        this.input.once('pointerdown', resumeAudio);
+        this.input.keyboard.once('keydown', resumeAudio);
     }
 
     createUI() {
@@ -529,24 +879,31 @@ class GameScene extends Phaser.Scene {
         this.statsText.setScrollFactor(0);
         this.updateStatsDisplay();
 
+        // Currency HUD (top-right, below stats)
+        this.createCurrencyHUD();
+
         // Daily bonus button (top-center)
         this.createDailyBonusButton();
+
+        // Combat action button (bottom-right)
+        this.createCombatButton();
 
         // Care panel (hidden initially)
         this.createCarePanel();
 
         // Interaction hint (hidden initially)
         this.interactionText = this.add.text(400, 550, '', {
-            fontSize: '14px',
+            fontSize: '16px',
             color: '#FFD700',
             stroke: '#000000',
-            strokeThickness: 1,
+            strokeThickness: 2,
             align: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            padding: { x: 8, y: 4 }
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: { x: 10, y: 6 }
         });
         this.interactionText.setOrigin(0.5);
         this.interactionText.setScrollFactor(0);
+        this.interactionText.setDepth(3000); // High depth to ensure visibility
         this.interactionText.setVisible(false);
 
         // Care hint (bottom-left corner) - DISABLED FOR MOBILE SIMPLICITY
@@ -567,6 +924,188 @@ class GameScene extends Phaser.Scene {
         this.createCosmicMiniMap();
         this.createGlowingStatBars();
         this.createFloatingParticles();
+    }
+
+    createCurrencyHUD() {
+        console.log('[GameScene] Creating currency HUD');
+
+        // Container for currency display (top-right, below stats)
+        const hudX = 784;
+        const hudY = 90; // Below stats text
+
+        // Background for currency display
+        const currencyBg = this.add.graphics();
+        currencyBg.setScrollFactor(0);
+        currencyBg.setDepth(1000);
+
+        // Cosmic-themed background with glow
+        currencyBg.fillStyle(0x9370DB, 0.15); // Purple glow
+        currencyBg.fillRoundedRect(hudX - 140, hudY - 8, 140, 32, 8);
+        currencyBg.lineStyle(2, 0x00CED1, 0.6); // Cyan border
+        currencyBg.strokeRoundedRect(hudX - 140, hudY - 8, 140, 32, 8);
+
+        this.currencyBg = currencyBg;
+
+        // Cosmic coin icon (using the sprite we created)
+        this.currencyIcon = this.add.image(hudX - 120, hudY + 8, 'cosmicCoin');
+        this.currencyIcon.setScale(0.75);
+        this.currencyIcon.setScrollFactor(0);
+        this.currencyIcon.setDepth(1001);
+
+        // Add subtle rotation animation to icon
+        this.tweens.add({
+            targets: this.currencyIcon,
+            angle: 360,
+            duration: 6000,
+            repeat: -1,
+            ease: 'Linear'
+        });
+
+        // Currency text display
+        const initialBalance = window.EconomyManager ? window.EconomyManager.getBalance() : 0;
+        this.currencyText = this.add.text(hudX - 95, hudY + 8, this.formatCurrencyText(initialBalance), {
+            fontSize: '16px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#00CED1', // Cyan
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        this.currencyText.setOrigin(0, 0.5);
+        this.currencyText.setScrollFactor(0);
+        this.currencyText.setDepth(1001);
+
+        // Store current balance for animation
+        this.currentDisplayedBalance = initialBalance;
+
+        // Listen to EconomyManager events for updates
+        if (window.EconomyManager) {
+            window.EconomyManager.on('coins:added', this.handleCoinsAdded.bind(this));
+            window.EconomyManager.on('coins:spent', this.handleCoinsSpent.bind(this));
+            window.EconomyManager.on('coins:insufficient', this.handleInsufficientCoins.bind(this));
+        }
+
+        console.log('[GameScene] Currency HUD created with balance:', initialBalance);
+    }
+
+    formatCurrencyText(amount) {
+        // Format with thousands separator
+        return window.EconomyManager ? window.EconomyManager.formatCoins(amount) : '0';
+    }
+
+    handleCoinsAdded(data) {
+        console.log('[GameScene] Coins added:', data);
+
+        // Animate count-up effect
+        this.animateCurrencyChange(data.oldBalance, data.newBalance);
+
+        // Flash effect on background
+        this.tweens.add({
+            targets: this.currencyBg,
+            alpha: 0.5,
+            duration: 100,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Pulse effect on icon
+        this.tweens.add({
+            targets: this.currencyIcon,
+            scaleX: 1.0,
+            scaleY: 1.0,
+            duration: 150,
+            ease: 'Back.easeOut',
+            yoyo: true
+        });
+
+        // Glow pulse on text
+        this.tweens.add({
+            targets: this.currencyText,
+            scaleX: 1.15,
+            scaleY: 1.15,
+            duration: 200,
+            ease: 'Back.easeOut',
+            yoyo: true
+        });
+    }
+
+    handleCoinsSpent(data) {
+        console.log('[GameScene] Coins spent:', data);
+
+        // Animate count-down effect
+        this.animateCurrencyChange(data.oldBalance, data.newBalance);
+
+        // Play purchase sound if this was a purchase
+        if (window.AudioManager && data.reason && data.reason.startsWith('purchase:')) {
+            window.AudioManager.playPurchase();
+        }
+
+        // Subtle red flash for spending
+        const originalColor = this.currencyText.style.color;
+        this.currencyText.setColor('#FF6347'); // Tomato red
+
+        this.time.delayedCall(300, () => {
+            this.currencyText.setColor(originalColor);
+        });
+    }
+
+    handleInsufficientCoins(data) {
+        console.log('[GameScene] Insufficient coins:', data);
+
+        // Play error sound
+        if (window.AudioManager) {
+            window.AudioManager.playError();
+        }
+
+        // Shake effect to indicate can't afford
+        const originalX = this.currencyText.x;
+
+        this.tweens.add({
+            targets: [this.currencyText, this.currencyIcon, this.currencyBg],
+            x: '+=5',
+            duration: 50,
+            yoyo: true,
+            repeat: 3,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                this.currencyText.x = originalX;
+                this.currencyIcon.x = originalX - 25;
+            }
+        });
+
+        // Flash red
+        this.currencyText.setColor('#FF0000');
+        this.time.delayedCall(500, () => {
+            this.currencyText.setColor('#00CED1');
+        });
+    }
+
+    animateCurrencyChange(oldBalance, newBalance) {
+        // Smooth count-up or count-down animation
+        const duration = 500;
+        const steps = 20;
+        const stepDuration = duration / steps;
+        const balanceDiff = newBalance - oldBalance;
+        const stepAmount = balanceDiff / steps;
+
+        let currentStep = 0;
+
+        const timer = this.time.addEvent({
+            delay: stepDuration,
+            callback: () => {
+                currentStep++;
+                this.currentDisplayedBalance += stepAmount;
+
+                if (currentStep >= steps) {
+                    this.currentDisplayedBalance = newBalance; // Ensure exact final value
+                    timer.remove();
+                }
+
+                this.currencyText.setText(this.formatCurrencyText(Math.floor(this.currentDisplayedBalance)));
+            },
+            repeat: steps - 1
+        });
     }
 
     createCosmicMiniMap() {
@@ -792,6 +1331,226 @@ class GameScene extends Phaser.Scene {
         });
 
         this.updateDailyBonusButton();
+    }
+
+    createCombatButton() {
+        console.log('[GameScene] Creating combat action button');
+
+        // Only create visual button on mobile devices
+        const isMobile = window.responsiveManager && window.responsiveManager.isMobile;
+
+        if (!isMobile) {
+            console.log('[GameScene] Desktop detected - combat button skipped (use M key instead)');
+            // Combat state still needed for desktop
+            this.combatCooldown = 0;
+            this.combatCooldownMax = 1000; // 1 second between attacks
+            return;
+        }
+
+        // Combat button positioned at bottom-right (easy thumb access on mobile)
+        const buttonX = 720;
+        const buttonY = 550;
+        const buttonWidth = 70;
+        const buttonHeight = 70;
+
+        // Button background (glowing cosmic circle)
+        const combatBg = this.add.graphics();
+        combatBg.setScrollFactor(0);
+        combatBg.setDepth(2000);
+
+        // Outer glow
+        combatBg.fillStyle(0xFF6B35, 0.3);
+        combatBg.fillCircle(buttonX, buttonY, buttonWidth / 2 + 5);
+
+        // Main button circle
+        combatBg.fillStyle(0xFF6B35, 0.8);
+        combatBg.fillCircle(buttonX, buttonY, buttonWidth / 2);
+
+        // Inner gradient effect
+        combatBg.fillStyle(0xFF8C42, 0.6);
+        combatBg.fillCircle(buttonX, buttonY, buttonWidth / 2 - 5);
+
+        // Border
+        combatBg.lineStyle(3, 0xFFFFFF, 0.8);
+        combatBg.strokeCircle(buttonX, buttonY, buttonWidth / 2);
+
+        this.combatBg = combatBg;
+
+        // Attack icon/text
+        this.combatText = this.add.text(buttonX, buttonY, '⚔️', {
+            fontSize: '32px',
+            color: '#FFFFFF',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        this.combatText.setOrigin(0.5);
+        this.combatText.setScrollFactor(0);
+        this.combatText.setDepth(2001);
+
+        // Cooldown text (hidden initially)
+        this.combatCooldownText = this.add.text(buttonX, buttonY + 45, '', {
+            fontSize: '12px',
+            color: '#FFD700',
+            stroke: '#000000',
+            strokeThickness: 2,
+            align: 'center'
+        });
+        this.combatCooldownText.setOrigin(0.5);
+        this.combatCooldownText.setScrollFactor(0);
+        this.combatCooldownText.setDepth(2001);
+        this.combatCooldownText.setVisible(false);
+
+        // Make button interactive
+        const hitArea = new Phaser.Geom.Circle(0, 0, buttonWidth / 2);
+        const combatButton = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight);
+        combatButton.setInteractive({ hitArea, hitAreaCallback: Phaser.Geom.Circle.Contains, useHandCursor: true });
+        combatButton.setScrollFactor(0);
+        combatButton.setDepth(2000);
+
+        // Combat state
+        this.combatCooldown = 0;
+        this.combatCooldownMax = 1000; // 1 second between attacks
+
+        // Button press handler
+        combatButton.on('pointerdown', () => {
+            this.fireCombatProjectile();
+        });
+
+        // Hover effects
+        combatButton.on('pointerover', () => {
+            this.tweens.add({
+                targets: [this.combatBg, this.combatText],
+                scaleX: 1.1,
+                scaleY: 1.1,
+                duration: 100,
+                ease: 'Power2'
+            });
+        });
+
+        combatButton.on('pointerout', () => {
+            this.tweens.add({
+                targets: [this.combatBg, this.combatText],
+                scaleX: 1.0,
+                scaleY: 1.0,
+                duration: 100,
+                ease: 'Power2'
+            });
+        });
+
+        // Pulse animation
+        this.tweens.add({
+            targets: combatBg,
+            alpha: 0.6,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        this.combatButton = combatButton;
+
+        console.log('[GameScene] Combat button created (mobile)');
+    }
+
+    fireCombatProjectile() {
+        // Check cooldown
+        if (this.combatCooldown > 0) {
+            console.log('[GameScene] Combat on cooldown');
+            return;
+        }
+
+        // Play attack sound
+        if (window.AudioManager) {
+            window.AudioManager.playAttack();
+        }
+
+        // Get creature rarity for projectile type
+        const creatureGenes = window.GameState.get('creature.genes');
+        const rarity = creatureGenes?.rarity || 'common';
+
+        // Fire projectile from player toward nearest enemy
+        const nearestEnemy = this.findNearestEnemy();
+
+        if (!nearestEnemy) {
+            console.log('[GameScene] No enemies to target');
+            return;
+        }
+
+        // Create projectile (will implement ProjectileManager next)
+        if (window.ProjectileManager) {
+            window.ProjectileManager.fireProjectile(
+                this,
+                this.player.x,
+                this.player.y,
+                nearestEnemy.x,
+                nearestEnemy.y,
+                rarity
+            );
+        }
+
+        // Set cooldown
+        this.combatCooldown = this.combatCooldownMax;
+
+        // Visual feedback (mobile only)
+        if (this.combatText) {
+            this.tweens.add({
+                targets: this.combatText,
+                scaleX: 1.3,
+                scaleY: 1.3,
+                duration: 100,
+                yoyo: true,
+                ease: 'Back.easeOut'
+            });
+        }
+
+        console.log(`[GameScene] Fired ${rarity} projectile`);
+    }
+
+    findNearestEnemy() {
+        if (!this.enemies || !this.player) return null;
+
+        const activeEnemies = this.enemies.getChildren().filter(e => e.active);
+        if (activeEnemies.length === 0) return null;
+
+        let nearest = null;
+        let nearestDist = Infinity;
+
+        activeEnemies.forEach(enemy => {
+            const dist = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                enemy.x,
+                enemy.y
+            );
+
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearest = enemy;
+            }
+        });
+
+        return nearest;
+    }
+
+    updateCombatCooldown(delta) {
+        if (this.combatCooldown > 0) {
+            this.combatCooldown -= delta;
+
+            if (this.combatCooldown <= 0) {
+                this.combatCooldown = 0;
+                // Only update UI if it exists (mobile only)
+                if (this.combatCooldownText) {
+                    this.combatCooldownText.setVisible(false);
+                }
+            } else {
+                // Show cooldown timer (mobile only)
+                if (this.combatCooldownText) {
+                    const seconds = (this.combatCooldown / 1000).toFixed(1);
+                    this.combatCooldownText.setText(`${seconds}s`);
+                    this.combatCooldownText.setVisible(true);
+                }
+            }
+        }
     }
 
     createResetButton() {
@@ -1339,15 +2098,55 @@ class GameScene extends Phaser.Scene {
     handleFlowerInteraction(player, flower) {
         // Show interaction hint when near flowers
         this.showInteractionHint('Press SPACE to smell the flower');
-        
+
         // Store reference to current flower for space key interaction
         this.nearbyFlower = flower;
     }
 
+    handleShopProximity(player, shop) {
+        // Player is near shop
+        console.log('[GameScene] ===== handleShopProximity CALLED =====');
+        console.log('[GameScene] Player position:', player.x, player.y);
+        console.log('[GameScene] Shop position:', shop.x, shop.y);
+
+        this.nearShop = true;
+        console.log('[GameScene] nearShop set to TRUE');
+
+        // Show shop entry hint
+        this.showInteractionHint('Press SPACE to enter the Cosmic Shop');
+        console.log('[GameScene] Interaction hint shown');
+    }
+
+    enterShop() {
+        console.log('[GameScene] Entering Cosmic Shop');
+
+        // Play button click sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Start ShopScene
+        this.scene.start('ShopScene');
+    }
+
+    openInventory() {
+        console.log('[GameScene] Opening Inventory');
+
+        // Play button click sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Start InventoryScene
+        this.scene.start('InventoryScene');
+    }
+
     showInteractionHint(message) {
+        console.log('[GameScene] showInteractionHint called:', message);
         this.interactionText.setText(message);
         this.interactionText.setVisible(true);
-        
+        console.log('[GameScene] Interaction text visible:', this.interactionText.visible, 'depth:', this.interactionText.depth);
+
         // Hide the hint after 3 seconds
         this.time.delayedCall(3000, () => {
             this.interactionText.setVisible(false);
@@ -1687,6 +2486,16 @@ class GameScene extends Phaser.Scene {
     }
 
     handleSpaceInteraction() {
+        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearbyFlower:', !!this.nearbyFlower);
+
+        // Check for shop entry first
+        if (this.nearShop) {
+            console.log('[GameScene] Entering shop from SPACE handler');
+            this.enterShop();
+            this.nearShop = false;
+            return;
+        }
+
         if (this.nearbyFlower) {
             // Track interaction in GameState
             getGameState().updateWorldExploration(
@@ -1736,6 +2545,35 @@ class GameScene extends Phaser.Scene {
         this.updateCosmicMiniMap();
         this.updateGlowingStatBars();
 
+        // Update enemy AI
+        if (this.enemies && window.EnemyManager) {
+            this.enemies.getChildren().forEach(enemy => {
+                if (enemy.active) {
+                    window.EnemyManager.updateEnemyAI(enemy, this.game.loop.delta);
+                }
+            });
+        }
+
+        // Update combat cooldown
+        this.updateCombatCooldown(this.game.loop.delta);
+
+        // Check shop proximity distance
+        if (this.nearShop && this.shop && this.player) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.shop.x,
+                this.shop.y
+            );
+
+            // Reset nearShop flag if player moved away (> 250 pixels - accounts for 200x200 body)
+            if (distance > 250) {
+                console.log('[GameScene] Player moved away from shop, distance:', distance);
+                this.nearShop = false;
+                this.hideInteractionHint();
+            }
+        }
+
         // Handle C key for chat toggle
         if (Phaser.Input.Keyboard.JustDown(this.chatKey)) {
             this.toggleChat();
@@ -1760,6 +2598,16 @@ class GameScene extends Phaser.Scene {
         // Handle space key for interactions
         if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
             this.handleSpaceInteraction();
+        }
+
+        // Handle I key for inventory
+        if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
+            this.openInventory();
+        }
+
+        // Handle M key for combat (desktop)
+        if (Phaser.Input.Keyboard.JustDown(this.combatKey)) {
+            this.fireCombatProjectile();
         }
 
         // Check achievements periodically (every 5 seconds)

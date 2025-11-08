@@ -6,6 +6,8 @@ import HatchingScene from './scenes/HatchingScene.js';
 import PersonalityScene from './scenes/PersonalityScene.js';
 import NamingScene from './scenes/NamingScene.js';
 import GameScene from './scenes/GameScene.js';
+import ShopScene from './scenes/ShopScene.js';
+import InventoryScene from './scenes/InventoryScene.js';
 import kidModeConfig from './config/kid-mode.json';
 import hatchCinematicsConfig from './config/hatch-cinematics.json';
 import biomesConfig from './config/biomes.json';
@@ -161,6 +163,50 @@ async function initializeGame() {
             console.error('❌ EconomyManager initialization failed:', economyError);
         }
 
+        // Initialize audio system
+        try {
+            if (window.AudioManager) {
+                window.AudioManager.initialize();
+            } else {
+                console.warn('⚠️ AudioManager not available');
+            }
+        } catch (audioError) {
+            console.error('❌ AudioManager initialization failed:', audioError);
+        }
+
+        // Initialize enemy system
+        try {
+            if (window.EnemyManager) {
+                window.EnemyManager.initialize();
+            } else {
+                console.warn('⚠️ EnemyManager not available');
+            }
+        } catch (enemyError) {
+            console.error('❌ EnemyManager initialization failed:', enemyError);
+        }
+
+        // Initialize projectile system
+        try {
+            if (window.ProjectileManager) {
+                window.ProjectileManager.initialize();
+            } else {
+                console.warn('⚠️ ProjectileManager not available');
+            }
+        } catch (projectileError) {
+            console.error('❌ ProjectileManager initialization failed:', projectileError);
+        }
+
+        // Initialize inventory system
+        try {
+            if (window.InventoryManager) {
+                window.InventoryManager.initialize();
+            } else {
+                console.warn('⚠️ InventoryManager not available');
+            }
+        } catch (inventoryError) {
+            console.error('❌ InventoryManager initialization failed:', inventoryError);
+        }
+
         // Set up GameState event listeners with error handling
         try {
             GameState.on('levelUp', (data) => {
@@ -219,7 +265,7 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene],
+            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
