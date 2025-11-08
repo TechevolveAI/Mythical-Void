@@ -21,6 +21,7 @@ import './systems/RerollSystem.js';
 import './systems/CreatureGenetics.js';
 import './systems/GeneticsEngine.js';
 import './systems/GameState.js';
+import './systems/EconomyManager.js';
 import './systems/CreatureMemory.js';
 import './systems/SafetyManager.js';
 import './systems/GraphicsEngine.js';

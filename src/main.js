@@ -149,7 +149,18 @@ async function initializeGame() {
                 });
             }
         }
-        
+
+        // Initialize economy system (depends on GameState)
+        try {
+            if (window.EconomyManager) {
+                window.EconomyManager.initialize();
+            } else {
+                console.warn('⚠️ EconomyManager not available');
+            }
+        } catch (economyError) {
+            console.error('❌ EconomyManager initialization failed:', economyError);
+        }
+
         // Set up GameState event listeners with error handling
         try {
             GameState.on('levelUp', (data) => {
