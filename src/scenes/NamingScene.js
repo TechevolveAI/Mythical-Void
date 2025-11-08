@@ -567,16 +567,16 @@ class NamingScene extends Phaser.Scene {
         htmlInput.type = 'text';
         htmlInput.maxLength = this.maxNameLength;
         htmlInput.placeholder = 'Tap to name your creature';
+
+        // Apply Tailwind CSS classes for professional styling
+        htmlInput.className = 'absolute z-[1000] text-center bg-white/95 text-gray-800 border-2 border-mythic-purple rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-mythic-gold focus:border-mythic-gold transition-all duration-200';
+
+        // Keep positioning and sizing in JS (required for dynamic canvas positioning)
         htmlInput.style.position = 'absolute';
         htmlInput.style.fontSize = '16px'; // Prevents iOS zoom
         htmlInput.style.padding = '8px';
-        htmlInput.style.border = '2px solid #4B0082';
-        htmlInput.style.borderRadius = '8px';
-        htmlInput.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-        htmlInput.style.color = '#333333';
-        htmlInput.style.textAlign = 'center';
-        htmlInput.style.fontFamily = 'Arial, sans-serif';
         htmlInput.style.zIndex = '1000';
+
         htmlInput.autocomplete = 'off';
         htmlInput.autocorrect = 'off';
         htmlInput.autocapitalize = 'words';

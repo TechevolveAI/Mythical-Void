@@ -1,3 +1,6 @@
+// Import Tailwind CSS styles
+import './styles/main.css';
+
 import { Phaser, preloadModulesReady } from './global-init.js';
 import HatchingScene from './scenes/HatchingScene.js';
 import PersonalityScene from './scenes/PersonalityScene.js';

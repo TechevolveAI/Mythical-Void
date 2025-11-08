@@ -40,17 +40,10 @@ class ErrorHandler {
             existing.remove();
         }
 
-        // Create new container
+        // Create new container with Tailwind classes
         const container = document.createElement('div');
         container.id = 'error-handler-container';
-        container.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            max-width: 400px;
-            z-index: 100000;
-            pointer-events: none;
-        `;
+        container.className = 'fixed top-5 right-5 max-w-md z-[100000] pointer-events-none';
         document.body.appendChild(container);
         this.errorContainer = container;
     }
@@ -193,45 +186,10 @@ class ErrorHandler {
             return;
         }
 
-        // Create error element
+        // Create error element with Tailwind classes
         const errorElement = document.createElement('div');
-        errorElement.style.cssText = `
-            background: ${errorInfo.severity === 'error' ? 'rgba(220, 53, 69, 0.95)' : 'rgba(255, 193, 7, 0.95)'};
-            color: white;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 14px;
-            pointer-events: auto;
-            animation: slideIn 0.3s ease-out;
-        `;
-
-        // Add animation styles
-        if (!document.getElementById('error-handler-styles')) {
-            const style = document.createElement('style');
-            style.id = 'error-handler-styles';
-            style.textContent = `
-                @keyframes slideIn {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                }
-                @keyframes fadeOut {
-                    to {
-                        opacity: 0;
-                        transform: translateY(-10px);
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        }
+        const bgClass = errorInfo.severity === 'error' ? 'bg-red-600/95' : 'bg-yellow-500/95';
+        errorElement.className = `${bgClass} text-white p-4 mb-3 rounded-lg shadow-lg pointer-events-auto animate-slide-in`;
 
         // Create message content
         const icon = errorInfo.severity === 'error' ? '❌' : '⚠️';
@@ -239,24 +197,15 @@ class ErrorHandler {
         const message = this.getFriendlyErrorMessage(errorInfo);
 
         errorElement.innerHTML = `
-            <div style="display: flex; align-items: start;">
-                <span style="font-size: 20px; margin-right: 10px;">${icon}</span>
-                <div style="flex: 1;">
-                    <div style="font-weight: bold; margin-bottom: 5px;">${title}</div>
-                    <div style="opacity: 0.9; font-size: 13px;">${message}</div>
+            <div class="flex items-start">
+                <span class="text-xl mr-3">${icon}</span>
+                <div class="flex-1">
+                    <div class="font-bold mb-1">${title}</div>
+                    <div class="opacity-90 text-sm">${message}</div>
                     ${isRecoverable ? this.getRecoveryOptions(errorInfo) : ''}
                 </div>
-                <button onclick="ErrorHandler.dismissError(this)" style="
-                    background: none;
-                    border: none;
-                    color: white;
-                    cursor: pointer;
-                    font-size: 20px;
-                    padding: 0;
-                    margin-left: 10px;
-                    opacity: 0.7;
-                    transition: opacity 0.2s;
-                " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">×</button>
+                <button onclick="window.ErrorHandler.dismissError(this)"
+                        class="bg-transparent border-0 text-white cursor-pointer text-xl p-0 ml-3 opacity-70 hover:opacity-100 transition-opacity duration-200">×</button>
             </div>
         `;
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <!-- Mobile-optimized viewport - prevents zooming, removes iOS Safari chrome -->
@@ -12,23 +12,18 @@
     <!-- Prevent iOS tap highlight -->
     <meta name="format-detection" content="telephone=no">
 
-    <meta name="description" content="Mythical Creature Game">
-    <title>Mythical Creature Game</title>
+    <meta name="description" content="Mythical Void - Where Space Meets Magic. Hatch and raise cosmic creatures in this magical space adventure.">
+    <meta name="theme-color" content="#0F0F1E">
+    <title>Mythical Void - Where Space Meets Magic</title>
     <style>
-        /* Mobile-first full-screen layout */
+        /* Mobile-first full-screen layout - core styles for Phaser */
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
 
         html, body {
-            width: 100%;
-            height: 100%;
             overflow: hidden;
             position: fixed;
-            background: #0a0118;
             /* Prevent pull-to-refresh on mobile */
             overscroll-behavior: none;
             -webkit-overflow-scrolling: touch;
@@ -61,8 +56,8 @@
         }
     </style>
 </head>
-<body>
-    <div id="game"></div>
+<body class="w-full h-full bg-mythic-void text-stellar-white overflow-hidden">
+    <div id="game" class="w-full h-full flex items-center justify-center fixed top-0 left-0"></div>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
