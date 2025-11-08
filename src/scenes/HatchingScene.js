@@ -406,12 +406,17 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createBackground() {
+        // MOBILE-RESPONSIVE cloud positioning
+        const { width, height } = this.scale;
+
         // Add floating enhanced clouds
         this.clouds = this.add.group();
-        for (let i = 0; i < 4; i++) {
+        const cloudCount = width < 600 ? 3 : 4; // Fewer clouds on mobile
+
+        for (let i = 0; i < cloudCount; i++) {
             const cloud = this.add.image(
-                Phaser.Math.Between(100, 700),
-                Phaser.Math.Between(50, 150),
+                Phaser.Math.Between(width * 0.1, width * 0.9),  // 10%-90% of screen width
+                Phaser.Math.Between(height * 0.08, height * 0.25), // Top 8%-25% of screen
                 'enhancedCloud'
             );
             cloud.setAlpha(0.8);
@@ -431,16 +436,22 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createGround() {
+        // MOBILE-RESPONSIVE ground positioning
+        const { width, height } = this.scale;
+        const groundY = height * 0.83; // Ground at 83% down the screen
+        const groundHeight = height * 0.17; // Ground is 17% of screen height
+
         // Create green ground at the bottom
         const ground = this.add.graphics();
         ground.fillStyle(0x228B22); // Forest green
-        ground.fillRect(0, 500, 800, 100);
+        ground.fillRect(0, groundY, width, groundHeight);
 
-        // Add some grass details
+        // Add some grass details - responsive count based on width
         ground.fillStyle(0x32CD32); // Lime green
-        for (let i = 0; i < 20; i++) {
+        const grassCount = Math.floor(width / 40); // One grass tuft per 40px
+        for (let i = 0; i < grassCount; i++) {
             const x = i * 40 + Phaser.Math.Between(-10, 10);
-            ground.fillTriangle(x, 500, x + 5, 490, x + 10, 500);
+            ground.fillTriangle(x, groundY, x + 5, groundY - 10, x + 10, groundY);
         }
     }
 
@@ -460,10 +471,11 @@ class HatchingScene extends Phaser.Scene {
         // IMPORTANT: Set scale BEFORE interactive to ensure hit area matches visual size
         this.egg.setScale(1.2);
 
-        // Mobile-optimized touch area (larger hit area for easier tapping)
+        // LARGE touch area for easy clicking - significantly bigger than the egg
+        // This ensures clicking anywhere near the egg will trigger hatching
         const isMobile = MobileHelpers.isMobile();
-        const hitAreaPadding = isMobile ? 40 : 0;
-        // Now the hit area will correctly match the scaled egg size
+        const hitAreaPadding = isMobile ? 80 : 60; // Even larger hit area
+        // Now the hit area will correctly match the scaled egg size PLUS generous padding
         this.egg.setInteractive({
             hitArea: new Phaser.Geom.Circle(0, 0, (this.egg.width / 2) + hitAreaPadding),
             hitAreaCallback: Phaser.Geom.Circle.Contains,
@@ -1217,10 +1229,11 @@ class HatchingScene extends Phaser.Scene {
         state.set('creature.hatched', true);
         state.set('creature.hatchTime', Date.now());
 
-        // Fade transition
+        // Fade transition - responsive to screen size
+        const { width, height } = this.scale;
         const fadeGraphics = this.add.graphics();
         fadeGraphics.fillStyle(0x000000, 0);
-        fadeGraphics.fillRect(0, 0, 800, 600);
+        fadeGraphics.fillRect(0, 0, width, height);
 
         this.tweens.add({
             targets: fadeGraphics,
