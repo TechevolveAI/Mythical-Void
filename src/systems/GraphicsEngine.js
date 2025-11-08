@@ -31,16 +31,36 @@ class GraphicsEngine {
     }
 
     /**
-     * Create a scratch graphics instance that never flashes on screen while generating textures.
+     * Create a scratch graphics instance that never flashes on screen while generating textures
+     * With error handling for missing scene or graphics factory
      */
     createScratchGraphics() {
-        if (this.scene && this.scene.make && typeof this.scene.make.graphics === 'function') {
-            return this.scene.make.graphics({ x: 0, y: 0, add: false });
-        }
+        try {
+            if (!this.scene) {
+                throw new Error('Scene not initialized');
+            }
 
-        const graphics = this.scene.add.graphics({ x: -1000, y: -1000 });
-        graphics.setVisible(false);
-        return graphics;
+            if (this.scene.make && typeof this.scene.make.graphics === 'function') {
+                return this.scene.make.graphics({ x: 0, y: 0, add: false });
+            }
+
+            if (this.scene.add && typeof this.scene.add.graphics === 'function') {
+                const graphics = this.scene.add.graphics({ x: -1000, y: -1000 });
+                graphics.setVisible(false);
+                return graphics;
+            }
+
+            throw new Error('No graphics factory available');
+        } catch (error) {
+            console.error('graphics:error [GraphicsEngine] Failed to create scratch graphics:', error);
+
+            // Emit error for ErrorHandler
+            if (typeof window !== 'undefined' && window.ErrorHandler) {
+                window.ErrorHandler.handleError(error, 'GraphicsEngine.createScratchGraphics', 'error');
+            }
+
+            throw error; // Re-throw as this is critical
+        }
     }
 
     /**
@@ -1045,12 +1065,38 @@ class GraphicsEngine {
     }
 
     /**
-     * Finalize texture creation and cleanup
+     * Finalize texture creation and cleanup with error handling
      */
     finalizeTexture(graphics, name, width, height) {
-        graphics.generateTexture(name, width, height);
-        graphics.destroy();
-        return name;
+        try {
+            if (!graphics || typeof graphics.generateTexture !== 'function') {
+                throw new Error('Invalid graphics object');
+            }
+
+            if (!name || typeof name !== 'string') {
+                throw new Error('Invalid texture name');
+            }
+
+            graphics.generateTexture(name, width, height);
+            graphics.destroy();
+            return name;
+        } catch (error) {
+            console.error('graphics:error [GraphicsEngine] Failed to finalize texture:', error);
+
+            // Try to clean up graphics even if generation failed
+            try {
+                if (graphics && typeof graphics.destroy === 'function') {
+                    graphics.destroy();
+                }
+            } catch (cleanupError) {
+                console.warn('graphics:warn [GraphicsEngine] Failed to cleanup graphics:', cleanupError);
+            }
+
+            // Return a fallback texture name
+            const fallbackName = `fallback_${Date.now()}`;
+            console.warn(`graphics:warn [GraphicsEngine] Using fallback texture: ${fallbackName}`);
+            return fallbackName;
+        }
     }
 
     /**
@@ -1199,86 +1245,100 @@ class GraphicsEngine {
      * @returns {Object} Texture info and metadata
      */
     createRandomizedSpaceMythicCreature(genetics, frame = 0) {
+        // Input validation
         if (!genetics || !genetics.traits) {
             console.warn('graphics:warn [GraphicsEngine] Invalid genetics provided, using defaults');
             return this.createSpaceMythicCreature({ frame });
         }
 
-        const startTime = Date.now();
+        try {
+            const startTime = Date.now();
 
-        // Convert genetic data to visual parameters
-        const visualConfig = this.geneticsToVisualConfig(genetics);
+            // Convert genetic data to visual parameters
+            const visualConfig = this.geneticsToVisualConfig(genetics);
 
-        // Apply body shape modifications
-        const bodyModifications = this.calculateBodyModifications(genetics.traits.bodyShape);
+            // Apply body shape modifications
+            const bodyModifications = this.calculateBodyModifications(genetics.traits.bodyShape);
 
-        // Create enhanced creature with genetic modifications
-        const enhancedTraits = {
-            ...genetics.traits.features,
-            bodyMods: bodyModifications
-        };
+            // Create enhanced creature with genetic modifications
+            const enhancedTraits = {
+                ...genetics.traits.features,
+                bodyMods: bodyModifications
+            };
 
-        // Create base creature
-        const baseSize = { width: 60, height: 80 };
-        const metrics = this.getCreatureCanvasMetrics(enhancedTraits, baseSize);
+            // Create base creature
+            const baseSize = { width: 60, height: 80 };
+            const metrics = this.getCreatureCanvasMetrics(enhancedTraits, baseSize);
 
-        const graphics = this.createScratchGraphics();
-        const translation = this.safeGraphicsTranslate(graphics, metrics.padding);
+            const graphics = this.createScratchGraphics();
+            const translation = this.safeGraphicsTranslate(graphics, metrics.padding);
 
-        const center = {
-            x: metrics.baseCenter.x + translation.centerShift.x,
-            y: metrics.baseCenter.y + translation.centerShift.y
-        };
+            const center = {
+                x: metrics.baseCenter.x + translation.centerShift.x,
+                y: metrics.baseCenter.y + translation.centerShift.y
+            };
 
-        // Create creature directly on the graphics context
-        this.renderCreatureOnGraphics(
-            graphics,
-            center,
-            baseSize,
-            visualConfig.colors.body,
-            visualConfig.colors.head, 
-            visualConfig.colors.wings,
-            frame,
-            enhancedTraits
-        );
-
-        // Add enhanced markings based on genetics
-        this.addEnhancedMarkings(graphics, center, baseSize, genetics.traits.features.markings, genetics.traits.colorGenome);
-
-        // Add rarity-based special effects
-        this.addRarityEffects(graphics, genetics, center, {
-            width: metrics.width,
-            height: metrics.height
-        });
-        
-        // Add cosmic affinity effects
-        this.addCosmicAffinityEffects(graphics, genetics.cosmicAffinity, center);
-        
-        // Add personality-based visual traits
-        this.addPersonalityEffects(graphics, genetics.personality, center, baseSize);
-
-        translation.restore();
-
-        const textureName = `creature_${genetics.id}_${frame}`;
-        const textureResult = this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
-        
-        const generationTime = Date.now() - startTime;
-        
-        console.log(`graphics:debug [GraphicsEngine] Created ${genetics.rarity} ${genetics.species} in ${generationTime}ms`, {
-            textureId: textureName,
-            genetics: genetics.id
-        });
-
-        return {
-            textureName,
-            genetics,
-            visualConfig,
-            metadata: {
-                generationTime,
+            // Create creature directly on the graphics context
+            this.renderCreatureOnGraphics(
+                graphics,
+                center,
+                baseSize,
+                visualConfig.colors.body,
+                visualConfig.colors.head,
+                visualConfig.colors.wings,
                 frame,
-                createdAt: Date.now()
+                enhancedTraits
+            );
+
+            // Add enhanced markings based on genetics
+            this.addEnhancedMarkings(graphics, center, baseSize, genetics.traits.features.markings, genetics.traits.colorGenome);
+
+            // Add rarity-based special effects
+            this.addRarityEffects(graphics, genetics, center, {
+                width: metrics.width,
+                height: metrics.height
+            });
+
+            // Add cosmic affinity effects
+            this.addCosmicAffinityEffects(graphics, genetics.cosmicAffinity, center);
+
+            // Add personality-based visual traits
+            this.addPersonalityEffects(graphics, genetics.personality, center, baseSize);
+
+            translation.restore();
+
+            const textureName = `creature_${genetics.id}_${frame}`;
+            const textureResult = this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
+
+            const generationTime = Date.now() - startTime;
+
+            console.log(`graphics:debug [GraphicsEngine] Created ${genetics.rarity} ${genetics.species} in ${generationTime}ms`, {
+                textureId: textureName,
+                genetics: genetics.id
+            });
+
+            return {
+                textureName,
+                genetics,
+                visualConfig,
+                metadata: {
+                    generationTime,
+                    frame,
+                    createdAt: Date.now()
+                }
+            };
+        } catch (error) {
+            console.error('graphics:error [GraphicsEngine] Failed to create randomized creature:', error);
+
+            // Emit error event for ErrorHandler
+            if (typeof window !== 'undefined' && window.ErrorHandler) {
+                window.ErrorHandler.handleError(error, 'GraphicsEngine.createRandomizedSpaceMythicCreature', 'warning');
             }
-        };
+
+            // Graceful fallback: create default creature
+            console.warn('graphics:warn [GraphicsEngine] Falling back to default creature');
+            return this.createSpaceMythicCreature({ frame });
+        }
     }
 
     /**

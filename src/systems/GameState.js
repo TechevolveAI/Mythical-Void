@@ -11,6 +11,71 @@ class GameStateManager {
         this.state = this.createInitialState();
         this.eventListeners = new Map();
         this.autoSaveInterval = null;
+
+        // Storage mode tracking
+        this.storageMode = 'localStorage'; // 'localStorage', 'sessionStorage', or 'memory'
+        this.storageErrorShown = false; // Show error message only once
+        this.checkStorageAvailability();
+    }
+
+    /**
+     * Check if localStorage is available and working
+     * Handles private browsing, disabled storage, and quota issues
+     */
+    checkStorageAvailability() {
+        try {
+            const testKey = '__storage_test__';
+            localStorage.setItem(testKey, 'test');
+            localStorage.removeItem(testKey);
+            this.storageMode = 'localStorage';
+            return true;
+        } catch (error) {
+            console.warn('[GameState] localStorage unavailable, falling back to memory-only mode');
+            this.storageMode = 'memory';
+            this.showStorageWarning('localStorage unavailable - progress will not be saved');
+            return false;
+        }
+    }
+
+    /**
+     * Show storage warning to user (only once)
+     * Kid Mode gets simplified message
+     */
+    showStorageWarning(message) {
+        if (this.storageErrorShown) return;
+        this.storageErrorShown = true;
+
+        const isKidMode = typeof window !== 'undefined' && window.KidMode?.isEnabled?.();
+        const userMessage = isKidMode
+            ? 'Your progress might not be saved. Ask a grown-up if you need help!'
+            : message;
+
+        console.warn('[GameState]', userMessage);
+        this.emit('storageWarning', { message: userMessage, isKidMode });
+    }
+
+    /**
+     * Get available storage space (approximate)
+     * Returns null if detection fails
+     */
+    getStorageQuota() {
+        try {
+            let total = 0;
+            for (let key in localStorage) {
+                if (localStorage.hasOwnProperty(key)) {
+                    total += localStorage[key].length + key.length;
+                }
+            }
+            // Most browsers allow 5-10MB for localStorage
+            const estimatedLimit = 5 * 1024 * 1024; // 5MB conservative estimate
+            return {
+                used: total,
+                available: estimatedLimit - total,
+                percentUsed: (total / estimatedLimit) * 100
+            };
+        } catch (error) {
+            return null;
+        }
     }
 
     /**
@@ -222,39 +287,79 @@ class GameStateManager {
     }
 
     /**
-     * Set state property and trigger events
+     * Set a value in the state tree with input validation
+     * Supports dot-notation paths and emits events on changes
+     * @param {string} path - Dot-notation path (e.g., 'creature.stats.happiness')
+     * @param {*} value - Value to set
      */
     set(path, value) {
-        const keys = path.split('.');
-        const lastKey = keys.pop();
-        let target = this.state;
-        
-        // Navigate to the target object
-        for (const key of keys) {
-            if (!target[key] || typeof target[key] !== 'object') {
-                target[key] = {};
-            }
-            target = target[key];
+        // Input validation
+        if (!path || typeof path !== 'string') {
+            console.error('[GameState] Invalid path: must be a non-empty string');
+            return;
         }
-        
-        // Store old value for event
-        const oldValue = target[lastKey];
-        
-        // Set new value
-        target[lastKey] = value;
-        
-        // Emit change event
-        this.emit('stateChanged', {
-            path,
-            oldValue,
-            newValue: value,
-            timestamp: Date.now()
-        });
-        
-        // Emit specific property change event
-        this.emit(`changed:${path}`, value, oldValue);
-        
-        console.log(`[GameState] ${path} changed:`, oldValue, '->', value);
+
+        if (path.trim() === '') {
+            console.error('[GameState] Invalid path: cannot be empty');
+            return;
+        }
+
+        // Prevent setting dangerous paths
+        if (path.includes('__proto__') || path.includes('constructor') || path.includes('prototype')) {
+            console.error('[GameState] Invalid path: prototype pollution attempt blocked');
+            return;
+        }
+
+        try {
+            const keys = path.split('.');
+            const lastKey = keys.pop();
+
+            if (!lastKey || lastKey.trim() === '') {
+                console.error('[GameState] Invalid path: ends with a dot');
+                return;
+            }
+
+            let target = this.state;
+
+            // Navigate to the target object
+            for (const key of keys) {
+                if (!key || key.trim() === '') {
+                    console.error('[GameState] Invalid path: contains empty segment');
+                    return;
+                }
+
+                if (!target[key] || typeof target[key] !== 'object') {
+                    target[key] = {};
+                }
+                target = target[key];
+            }
+
+            // Store old value for event
+            const oldValue = target[lastKey];
+
+            // Set new value
+            target[lastKey] = value;
+
+            // Emit change event
+            this.emit('stateChanged', {
+                path,
+                oldValue,
+                newValue: value,
+                timestamp: Date.now()
+            });
+
+            // Emit specific property change event
+            this.emit(`changed:${path}`, value, oldValue);
+
+            console.log(`[GameState] ${path} changed:`, oldValue, '->', value);
+        } catch (error) {
+            console.error('[GameState] Failed to set value at path:', path, error);
+
+            // Emit error event
+            if (typeof window !== 'undefined' && window.ErrorHandler) {
+                window.ErrorHandler.handleError(error, 'GameState.set', 'warning');
+            }
+        }
     }
 
     /**
@@ -746,16 +851,22 @@ class GameStateManager {
     }
 
     /**
-     * Save game state to localStorage
+     * Save game state to localStorage with quota detection and fallback
      */
     save() {
+        // Skip saving in memory-only mode
+        if (this.storageMode === 'memory') {
+            console.warn('[GameState] Running in memory-only mode, save skipped');
+            return false;
+        }
+
         try {
             // Update play time before saving
             const sessionTime = Date.now() - this.state.session.sessionStart;
             this.state.player.playTime += sessionTime;
             this.state.player.lastPlayed = Date.now();
             this.state.session.sessionStart = Date.now();
-            
+
             // Create save data (exclude session data)
             const saveData = {
                 ...this.state,
@@ -763,55 +874,109 @@ class GameStateManager {
                 savedAt: Date.now()
             };
             delete saveData.session;
-            
-            localStorage.setItem(this.saveKey, JSON.stringify(saveData));
-            
+
+            const serialized = JSON.stringify(saveData);
+
+            // Check quota before saving
+            const quota = this.getStorageQuota();
+            if (quota && quota.percentUsed > 90) {
+                console.warn('[GameState] Storage quota nearly full:', quota.percentUsed.toFixed(1) + '%');
+            }
+
+            localStorage.setItem(this.saveKey, serialized);
+
             this.emit('saved', saveData);
             console.log('[GameState] Game saved successfully');
-            
+
             return true;
         } catch (error) {
-            console.error('[GameState] Save failed:', error);
-            this.emit('saveError', error);
+            // Handle specific quota exceeded error
+            if (error.name === 'QuotaExceededError' ||
+                error.code === 22 ||
+                error.code === 1014) {
+
+                console.error('[GameState] Storage quota exceeded!');
+                this.storageMode = 'memory';
+                this.showStorageWarning('Storage full - progress will not be saved. Try clearing browser data.');
+                this.stopAutoSave(); // Disable auto-save to prevent spam
+
+                this.emit('saveError', {
+                    type: 'quota_exceeded',
+                    error,
+                    mode: this.storageMode
+                });
+            } else {
+                console.error('[GameState] Save failed:', error);
+                this.emit('saveError', { type: 'unknown', error });
+            }
+
             return false;
         }
     }
 
     /**
-     * Load game state from localStorage
+     * Load game state from localStorage with error handling
      */
     load() {
+        // Skip loading in memory-only mode
+        if (this.storageMode === 'memory') {
+            console.warn('[GameState] Running in memory-only mode, load skipped');
+            return false;
+        }
+
         try {
             const saveData = localStorage.getItem(this.saveKey);
-            
+
             if (saveData) {
+                // Validate JSON before parsing
                 const parsed = JSON.parse(saveData);
-                
+
+                // Basic validation of save data structure
+                if (!parsed || typeof parsed !== 'object') {
+                    throw new Error('Invalid save data structure');
+                }
+
                 // Merge saved data with current state (preserves new properties in updates)
                 this.state = this.deepMerge(this.state, parsed);
-                
+
                 this.emit('loaded', this.state);
-                console.log('[GameState] Game loaded successfully:', this.state);
-                
+                console.log('[GameState] Game loaded successfully');
+
                 return true;
             } else {
                 console.log('[GameState] No save data found, using defaults');
                 return false;
             }
         } catch (error) {
-            console.error('[GameState] Load failed:', error);
-            this.emit('loadError', error);
+            // Handle corrupted save data
+            if (error instanceof SyntaxError) {
+                console.error('[GameState] Save data corrupted (JSON parse failed):', error);
+                this.showStorageWarning('Save data corrupted - starting fresh game');
+                this.emit('loadError', { type: 'corrupted', error });
+            } else {
+                console.error('[GameState] Load failed:', error);
+                this.emit('loadError', { type: 'unknown', error });
+            }
+
             return false;
         }
     }
 
     /**
-     * Reset game state to defaults
+     * Reset game state to defaults with error handling
      */
     reset(options = {}) {
         const { preserveSessionDebug = true } = options;
 
-        localStorage.removeItem(this.saveKey);
+        // Only try to remove from localStorage if not in memory-only mode
+        if (this.storageMode !== 'memory') {
+            try {
+                localStorage.removeItem(this.saveKey);
+            } catch (error) {
+                console.warn('[GameState] Failed to remove save data:', error);
+                // Continue with reset even if removal fails
+            }
+        }
 
         const previousSession = this.state.session || {};
 

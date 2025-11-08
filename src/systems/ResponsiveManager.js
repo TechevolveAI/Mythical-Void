@@ -105,70 +105,86 @@ class ResponsiveManager {
     }
 
     /**
-     * Handle window resize
+     * Handle window resize with error handling
      */
     handleResize() {
         if (!this.game) return;
-        
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        
-        // Calculate scale to fit window while maintaining aspect ratio
-        const scaleX = windowWidth / this.baseWidth;
-        const scaleY = windowHeight / this.baseHeight;
-        const scale = Math.min(scaleX, scaleY);
-        
-        // Apply minimum scale for readability
-        const minScale = this.isMobile ? 0.5 : 0.75;
-        this.currentScale = Math.max(scale, minScale);
-        
-        // Calculate new dimensions
-        const newWidth = Math.floor(this.baseWidth * this.currentScale);
-        const newHeight = Math.floor(this.baseHeight * this.currentScale);
-        
-        // Update Phaser game size
-        if (this.game.scale) {
-            this.game.scale.resize(newWidth, newHeight);
+
+        try {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            // Calculate scale to fit window while maintaining aspect ratio
+            const scaleX = windowWidth / this.baseWidth;
+            const scaleY = windowHeight / this.baseHeight;
+            const scale = Math.min(scaleX, scaleY);
+
+            // Apply minimum scale for readability
+            const minScale = this.isMobile ? 0.5 : 0.75;
+            this.currentScale = Math.max(scale, minScale);
+
+            // Calculate new dimensions
+            const newWidth = Math.floor(this.baseWidth * this.currentScale);
+            const newHeight = Math.floor(this.baseHeight * this.currentScale);
+
+            // Update Phaser game size
+            if (this.game.scale && typeof this.game.scale.resize === 'function') {
+                this.game.scale.resize(newWidth, newHeight);
+            }
+
+            // Center the game canvas
+            this.centerCanvas();
+
+            // Update UI scale
+            this.updateUIScale();
+
+            // Emit resize event
+            if (this.game.events && typeof this.game.events.emit === 'function') {
+                this.game.events.emit('resize', {
+                    width: newWidth,
+                    height: newHeight,
+                    scale: this.currentScale,
+                    windowWidth,
+                    windowHeight
+                });
+            }
+
+            console.log(`[ResponsiveManager] Resized to ${newWidth}x${newHeight} (scale: ${this.currentScale.toFixed(2)})`);
+        } catch (error) {
+            console.error('[ResponsiveManager] Resize failed:', error);
+
+            // Emit error event for ErrorHandler
+            if (typeof window !== 'undefined' && window.ErrorHandler) {
+                window.ErrorHandler.handleError(error, 'ResponsiveManager.handleResize', 'warning');
+            }
+
+            // Graceful degradation: Continue without failing
         }
-        
-        // Center the game canvas
-        this.centerCanvas();
-        
-        // Update UI scale
-        this.updateUIScale();
-        
-        // Emit resize event
-        if (this.game.events) {
-            this.game.events.emit('resize', {
-                width: newWidth,
-                height: newHeight,
-                scale: this.currentScale,
-                windowWidth,
-                windowHeight
-            });
-        }
-        
-        console.log(`[ResponsiveManager] Resized to ${newWidth}x${newHeight} (scale: ${this.currentScale.toFixed(2)})`);
     }
 
     /**
-     * Center the game canvas
+     * Center the game canvas with error handling for DOM operations
      */
     centerCanvas() {
-        const canvas = this.game.canvas;
-        if (!canvas) return;
-        
-        // Apply centering styles
-        canvas.style.position = 'absolute';
-        canvas.style.left = '50%';
-        canvas.style.top = '50%';
-        canvas.style.transform = 'translate(-50%, -50%)';
-        
-        // Prevent mobile browser scaling
-        canvas.style.touchAction = 'none';
-        canvas.style.userSelect = 'none';
-        canvas.style.webkitUserSelect = 'none';
-        canvas.style.webkitTouchCallout = 'none';
+        try {
+            const canvas = this.game.canvas;
+            if (!canvas || !canvas.style) return;
+
+            // Apply centering styles
+            canvas.style.position = 'absolute';
+            canvas.style.left = '50%';
+            canvas.style.top = '50%';
+            canvas.style.transform = 'translate(-50%, -50%)';
+
+            // Prevent mobile browser scaling
+            canvas.style.touchAction = 'none';
+            canvas.style.userSelect = 'none';
+            canvas.style.webkitUserSelect = 'none';
+            canvas.style.webkitTouchCallout = 'none';
+        } catch (error) {
+            console.warn('[ResponsiveManager] Failed to center canvas:', error);
+            // Continue without centering - non-critical
+        }
     }
 
     /**
