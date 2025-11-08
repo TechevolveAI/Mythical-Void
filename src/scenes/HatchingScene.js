@@ -457,16 +457,18 @@ class HatchingScene extends Phaser.Scene {
         const { width, height } = this.scale;
         this.egg = this.add.image(width / 2, height * 0.45, 'enhancedEgg');  // Slightly above center
 
+        // IMPORTANT: Set scale BEFORE interactive to ensure hit area matches visual size
+        this.egg.setScale(1.2);
+
         // Mobile-optimized touch area (larger hit area for easier tapping)
         const isMobile = MobileHelpers.isMobile();
         const hitAreaPadding = isMobile ? 40 : 0;
+        // Now the hit area will correctly match the scaled egg size
         this.egg.setInteractive({
             hitArea: new Phaser.Geom.Circle(0, 0, (this.egg.width / 2) + hitAreaPadding),
             hitAreaCallback: Phaser.Geom.Circle.Contains,
             cursor: isMobile ? 'default' : 'pointer'
         });
-
-        this.egg.setScale(1.2);
 
         // CRITICAL FIX: Attach click handler HERE immediately after making egg interactive
         // This ensures the handler is ALWAYS attached when egg is created/recreated
@@ -2388,8 +2390,14 @@ class HatchingScene extends Phaser.Scene {
         const isMobile = MobileHelpers.isMobile();
         const text = isMobile ? '👆 TAP TO HATCH 👆' : '👆 CLICK TO HATCH 👆';
 
-        this.tapToHatchText = this.add.text(400, 180, text, {
-            fontSize: '28px',
+        // MOBILE-RESPONSIVE positioning - position relative to egg
+        const { width, height } = this.scale;
+        const textX = width / 2;
+        const textY = (height * 0.45) - 120; // Position above the egg
+        const fontSize = Math.max(20, Math.min(28, width * 0.065));
+
+        this.tapToHatchText = this.add.text(textX, textY, text, {
+            fontSize: `${fontSize}px`,
             color: '#FFD54F',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'bold',
