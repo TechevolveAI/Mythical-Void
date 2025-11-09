@@ -26,14 +26,28 @@ export default class ShopScene extends Phaser.Scene {
             this.graphicsEngine = new window.GraphicsEngine(this);
         }
 
-        // Create shop UI
+        // Calculate responsive dimensions
+        this.calculateResponsiveDimensions();
+
+        // Initialize scroll state
+        this.scrollY = 0;
+        this.maxScrollY = 0;
+        this.isDragging = false;
+        this.dragStartY = 0;
+        this.dragStartScrollY = 0;
+
+        // Create shop UI with responsive layout
         this.createBackground();
-        this.createShopkeeper();
-        this.createCurrencyDisplay();
+        this.createHeader(); // New: Combined header with title, coins, and close button
+        if (this.dims.showShopkeeper) {
+            this.createShopkeeper();
+        }
         this.createCategoryMenu();
         this.createItemCatalog();
         this.createPurchasePanel();
-        this.createExitButton();
+
+        // Set up scroll handling
+        this.setupScrolling();
 
         // Initialize shop items
         this.initializeShopItems();
@@ -53,19 +67,83 @@ export default class ShopScene extends Phaser.Scene {
     }
 
     /**
-     * Create cosmic shop background
+     * Calculate responsive dimensions based on viewport size
+     * Mobile-first approach with breakpoints
+     */
+    calculateResponsiveDimensions() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // Determine device type
+        const isMobile = width < 600;
+        const isTablet = width >= 600 && width < 1000;
+        const isDesktop = width >= 1000;
+
+        this.dims = {
+            width,
+            height,
+            isMobile,
+            isTablet,
+            isDesktop,
+
+            // Safe margins
+            margin: isMobile ? 10 : 20,
+            padding: isMobile ? 8 : 15,
+
+            // Header
+            headerHeight: isMobile ? 60 : 80,
+
+            // Shopkeeper (hide on mobile to save space)
+            showShopkeeper: !isMobile,
+            shopkeeperWidth: isMobile ? 0 : 200,
+
+            // Category buttons
+            categoryHeight: isMobile ? 45 : 50,
+            categoryButtonWidth: isMobile ? (width - 30) / 3 : 150,
+
+            // Item catalog
+            catalogStartY: isMobile ? 115 : 150,
+            itemHeight: isMobile ? 70 : 80,
+            itemSpacing: isMobile ? 8 : 10,
+
+            // Button sizes (44px minimum for touch targets)
+            buttonMinSize: 44,
+            closeButtonSize: isMobile ? 50 : 40,
+
+            // Font sizes
+            titleSize: isMobile ? '24px' : '36px',
+            subtitleSize: isMobile ? '12px' : '16px',
+            itemNameSize: isMobile ? '16px' : '18px',
+            itemDescSize: isMobile ? '11px' : '12px',
+            priceSize: isMobile ? '18px' : '20px',
+
+            // Calculated areas
+            contentWidth: isMobile ? width - 20 : width - 40,
+            catalogX: isMobile ? 10 : (isDesktop ? 230 : 20),
+            catalogWidth: isMobile ? width - 20 : (isDesktop ? width - 260 : width - 40)
+        };
+
+        console.log('[ShopScene] Responsive dims:', {
+            viewport: `${width}x${height}`,
+            device: isMobile ? 'mobile' : (isTablet ? 'tablet' : 'desktop'),
+            catalogArea: `${this.dims.catalogWidth}x${height - this.dims.catalogStartY - 20}`
+        });
+    }
+
+    /**
+     * Create cosmic shop background (responsive)
      */
     createBackground() {
-        const width = 800;
-        const height = 600;
+        const { width, height } = this.dims;
 
         // Dark cosmic background
         const bgGraphics = this.add.graphics();
         bgGraphics.fillStyle(0x0A0520, 1);
         bgGraphics.fillRect(0, 0, width, height);
 
-        // Add star field
-        for (let i = 0; i < 100; i++) {
+        // Add star field (density based on screen size)
+        const starCount = Math.min(200, Math.floor((width * height) / 3000));
+        for (let i = 0; i < starCount; i++) {
             const x = Phaser.Math.Between(0, width);
             const y = Phaser.Math.Between(0, height);
             const size = Phaser.Math.FloatBetween(0.5, 2);
@@ -84,42 +162,132 @@ export default class ShopScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Shop title
-        const title = this.add.text(400, 30, 'COSMIC SHOP', {
-            fontSize: '36px',
-            fontFamily: 'Arial Black',
-            color: '#FFD700',
-            stroke: '#4A0080',
-            strokeThickness: 6,
-            align: 'center'
-        });
-        title.setOrigin(0.5, 0.5);
-        title.setDepth(10);
-
-        // Subtitle
-        const subtitle = this.add.text(400, 65, 'Mystical Wares from the Void', {
-            fontSize: '16px',
-            fontFamily: 'Arial',
-            color: '#00FFFF',
-            style: 'italic'
-        });
-        subtitle.setOrigin(0.5, 0.5);
-        subtitle.setDepth(10);
+        bgGraphics.setDepth(0);
     }
 
     /**
-     * Create animated shopkeeper NPC sprite
+     * Create header with title, coins, and close button (responsive)
+     */
+    createHeader() {
+        const { width, headerHeight, margin, titleSize, closeButtonSize } = this.dims;
+
+        // Header background
+        const headerBg = this.add.graphics();
+        headerBg.fillStyle(0x1A0A2E, 0.9);
+        headerBg.fillRect(0, 0, width, headerHeight);
+        headerBg.lineStyle(2, 0x6B00B3);
+        headerBg.strokeRect(0, headerHeight - 2, width, 2);
+        headerBg.setDepth(10);
+
+        // Shop title
+        const title = this.add.text(this.dims.isMobile ? width / 2 : 60, headerHeight / 2 - 5, 'COSMIC SHOP', {
+            fontSize: titleSize,
+            fontFamily: 'Arial Black',
+            color: '#FFD700',
+            stroke: '#4A0080',
+            strokeThickness: this.dims.isMobile ? 4 : 6,
+            align: 'center'
+        });
+        title.setOrigin(this.dims.isMobile ? 0.5 : 0, 0.5);
+        title.setDepth(11);
+
+        // Currency display (top-right area)
+        const coinX = width - (closeButtonSize + margin * 2 + 80);
+        const coinY = headerHeight / 2;
+
+        // Coin icon
+        const coinIcon = this.add.graphics();
+        coinIcon.fillStyle(0xFFD700, 1);
+        coinIcon.fillCircle(coinX, coinY, 10);
+        coinIcon.fillStyle(0xFFA500, 1);
+        coinIcon.fillCircle(coinX, coinY, 7);
+        coinIcon.fillStyle(0xFFFF00, 0.6);
+        coinIcon.fillCircle(coinX - 2, coinY - 2, 3);
+        coinIcon.setDepth(11);
+
+        // Currency text
+        const currentCoins = window.GameState?.get('player.cosmicCoins') || 0;
+        this.currencyText = this.add.text(coinX + 20, coinY, `${currentCoins}`, {
+            fontSize: this.dims.isMobile ? '20px' : '24px',
+            fontFamily: 'Arial Black',
+            color: '#FFD700',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        this.currencyText.setOrigin(0, 0.5);
+        this.currencyText.setDepth(11);
+
+        // Listen for currency changes
+        if (window.GameState) {
+            window.GameState.on('changed:player.cosmicCoins', (newValue) => {
+                this.updateCurrencyDisplay(newValue);
+            });
+        }
+
+        // Close button (X) - ALWAYS VISIBLE top-right
+        const closeX = width - closeButtonSize - margin;
+        const closeY = (headerHeight - closeButtonSize) / 2;
+
+        const closeBtn = this.add.graphics();
+        closeBtn.fillStyle(0xAA0000, 0.9);
+        closeBtn.fillRoundedRect(closeX, closeY, closeButtonSize, closeButtonSize, 8);
+        closeBtn.lineStyle(2, 0xFF0000);
+        closeBtn.strokeRoundedRect(closeX, closeY, closeButtonSize, closeButtonSize, 8);
+        closeBtn.setDepth(11);
+
+        const closeLabel = this.add.text(closeX + closeButtonSize / 2, closeY + closeButtonSize / 2, 'X', {
+            fontSize: this.dims.isMobile ? '28px' : '24px',
+            fontFamily: 'Arial Black',
+            color: '#FFFFFF'
+        });
+        closeLabel.setOrigin(0.5, 0.5);
+        closeLabel.setDepth(11);
+
+        // Close button interactive zone (large touch target)
+        const closeTouchSize = Math.max(closeButtonSize, 44); // Minimum 44px for touch
+        const closeZone = this.add.zone(closeX, closeY, closeTouchSize, closeTouchSize).setOrigin(0, 0);
+        closeZone.setInteractive({ useHandCursor: true });
+        closeZone.setDepth(11);
+
+        closeZone.on('pointerdown', () => {
+            this.exitShop();
+        });
+
+        closeZone.on('pointerover', () => {
+            closeBtn.clear();
+            closeBtn.fillStyle(0xDD0000, 1);
+            closeBtn.fillRoundedRect(closeX, closeY, closeButtonSize, closeButtonSize, 8);
+            closeBtn.lineStyle(3, 0xFF0000);
+            closeBtn.strokeRoundedRect(closeX, closeY, closeButtonSize, closeButtonSize, 8);
+        });
+
+        closeZone.on('pointerout', () => {
+            closeBtn.clear();
+            closeBtn.fillStyle(0xAA0000, 0.9);
+            closeBtn.fillRoundedRect(closeX, closeY, closeButtonSize, closeButtonSize, 8);
+            closeBtn.lineStyle(2, 0xFF0000);
+            closeBtn.strokeRoundedRect(closeX, closeY, closeButtonSize, closeButtonSize, 8);
+        });
+
+        // Store reference for cleanup
+        this.closeButtonZone = closeZone;
+    }
+
+    /**
+     * Create animated shopkeeper NPC sprite (desktop only)
      */
     createShopkeeper() {
+        const { margin, headerHeight } = this.dims;
         const shopkeeperX = 120;
-        const shopkeeperY = 200;
+        const shopkeeperY = headerHeight + 100;
 
         // Shopkeeper container panel
         const keeperPanel = this.add.graphics();
         keeperPanel.fillStyle(0x1A0A2E, 0.8);
-        keeperPanel.fillRoundedRect(20, 100, 200, 200, 10);
+        keeperPanel.fillRoundedRect(margin, headerHeight + margin, 200, 200, 10);
         keeperPanel.lineStyle(3, 0x6B00B3);
-        keeperPanel.strokeRoundedRect(20, 100, 200, 200, 10);
+        keeperPanel.strokeRoundedRect(margin, headerHeight + margin, 200, 200, 10);
+        keeperPanel.setDepth(20);
 
         // Generate all animation frames
         for (let frame = 0; frame < 4; frame++) {
@@ -149,7 +317,7 @@ export default class ShopScene extends Phaser.Scene {
         this.shopkeeper.play('voidMerchantIdle');
 
         // Shopkeeper label
-        const keeperLabel = this.add.text(120, 270, 'Void Merchant', {
+        const keeperLabel = this.add.text(120, shopkeeperY + 70, 'Void Merchant', {
             fontSize: '14px',
             fontFamily: 'Arial',
             color: '#00FFFF',
@@ -159,47 +327,6 @@ export default class ShopScene extends Phaser.Scene {
         keeperLabel.setDepth(20);
     }
 
-    /**
-     * Create currency display (top-right)
-     */
-    createCurrencyDisplay() {
-        const x = 650;
-        const y = 100;
-
-        // Currency panel
-        const panel = this.add.graphics();
-        panel.fillStyle(0x1A0A2E, 0.9);
-        panel.fillRoundedRect(x - 70, y - 30, 140, 60, 8);
-        panel.lineStyle(2, 0xFFD700);
-        panel.strokeRoundedRect(x - 70, y - 30, 140, 60, 8);
-
-        // Coin icon (matches cosmic coin sprite)
-        const coinIcon = this.add.graphics();
-        coinIcon.fillStyle(0xFFD700, 1);
-        coinIcon.fillCircle(x - 40, y, 12);
-        coinIcon.fillStyle(0xFFA500, 1);
-        coinIcon.fillCircle(x - 40, y, 8);
-        coinIcon.fillStyle(0xFFFF00, 0.6);
-        coinIcon.fillCircle(x - 43, y - 3, 4);
-
-        // Currency text
-        const currentCoins = window.GameState?.get('currency.cosmicCoins') || 0;
-        this.currencyText = this.add.text(x + 10, y, `${currentCoins}`, {
-            fontSize: '24px',
-            fontFamily: 'Arial Black',
-            color: '#FFD700',
-            stroke: '#000000',
-            strokeThickness: 3
-        });
-        this.currencyText.setOrigin(0.5, 0.5);
-
-        // Listen for currency changes
-        if (window.GameState) {
-            window.GameState.on('changed:currency.cosmicCoins', (newValue) => {
-                this.updateCurrencyDisplay(newValue);
-            });
-        }
-    }
 
     /**
      * Update currency display
@@ -219,7 +346,7 @@ export default class ShopScene extends Phaser.Scene {
     }
 
     /**
-     * Create category menu (Pokemon-style tabs)
+     * Create category menu (responsive tabs)
      */
     createCategoryMenu() {
         const categories = [
@@ -228,40 +355,54 @@ export default class ShopScene extends Phaser.Scene {
             { id: 'utilities', label: 'Items', icon: '🎒' }
         ];
 
-        const startX = 250;
-        const startY = 100;
-        const buttonWidth = 150;
-        const buttonHeight = 50;
-        const spacing = 10;
+        const { width, headerHeight, catalogX, categoryHeight, categoryButtonWidth, margin, isMobile } = this.dims;
+        const spacing = margin;
+        const startY = headerHeight + margin;
+
+        // Calculate button positions (centered on mobile, left-aligned on desktop)
+        const totalWidth = (categoryButtonWidth * 3) + (spacing * 2);
+        const startX = isMobile ? (width - totalWidth) / 2 : catalogX;
 
         categories.forEach((category, index) => {
-            const x = startX + (buttonWidth + spacing) * index;
+            const x = startX + (categoryButtonWidth + spacing) * index;
             const y = startY;
 
             // Button background
             const button = this.add.graphics();
             button.fillStyle(0x2A0040, 0.9);
-            button.fillRoundedRect(x, y, buttonWidth, buttonHeight, 8);
+            button.fillRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
             button.lineStyle(2, 0x6B00B3);
-            button.strokeRoundedRect(x, y, buttonWidth, buttonHeight, 8);
+            button.strokeRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
+            button.setDepth(20);
 
             // Icon
-            const icon = this.add.text(x + 20, y + 25, category.icon, {
-                fontSize: '24px'
-            });
+            const icon = this.add.text(
+                x + (isMobile ? categoryButtonWidth / 4 : 20),
+                y + categoryHeight / 2,
+                category.icon,
+                { fontSize: isMobile ? '20px' : '24px' }
+            );
             icon.setOrigin(0.5, 0.5);
+            icon.setDepth(21);
 
             // Label
-            const label = this.add.text(x + 85, y + 25, category.label, {
-                fontSize: '16px',
-                fontFamily: 'Arial',
-                color: '#FFFFFF'
-            });
+            const label = this.add.text(
+                x + (isMobile ? categoryButtonWidth * 0.65 : categoryButtonWidth / 2 + 20),
+                y + categoryHeight / 2,
+                category.label,
+                {
+                    fontSize: isMobile ? '14px' : '16px',
+                    fontFamily: 'Arial',
+                    color: '#FFFFFF'
+                }
+            );
             label.setOrigin(0.5, 0.5);
+            label.setDepth(21);
 
             // Interactive zone
-            const zone = this.add.zone(x, y, buttonWidth, buttonHeight).setOrigin(0, 0);
+            const zone = this.add.zone(x, y, categoryButtonWidth, categoryHeight).setOrigin(0, 0);
             zone.setInteractive({ useHandCursor: true });
+            zone.setDepth(21);
 
             zone.on('pointerdown', () => {
                 this.selectCategory(category.id);
@@ -270,29 +411,31 @@ export default class ShopScene extends Phaser.Scene {
             zone.on('pointerover', () => {
                 button.clear();
                 button.fillStyle(0x4A0080, 0.9);
-                button.fillRoundedRect(x, y, buttonWidth, buttonHeight, 8);
+                button.fillRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
                 button.lineStyle(3, 0x8B00D9);
-                button.strokeRoundedRect(x, y, buttonWidth, buttonHeight, 8);
+                button.strokeRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
             });
 
             zone.on('pointerout', () => {
                 if (this.selectedCategory !== category.id) {
                     button.clear();
                     button.fillStyle(0x2A0040, 0.9);
-                    button.fillRoundedRect(x, y, buttonWidth, buttonHeight, 8);
+                    button.fillRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
                     button.lineStyle(2, 0x6B00B3);
-                    button.strokeRoundedRect(x, y, buttonWidth, buttonHeight, 8);
+                    button.strokeRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
                 }
             });
 
             this.categoryButtons.push({
                 id: category.id,
                 button,
+                icon,
+                label,
                 zone,
                 x,
                 y,
-                width: buttonWidth,
-                height: buttonHeight
+                width: categoryButtonWidth,
+                height: categoryHeight
             });
         });
     }
@@ -335,42 +478,64 @@ export default class ShopScene extends Phaser.Scene {
     }
 
     /**
-     * Create item catalog display area
+     * Create item catalog display area (responsive with scrolling)
      */
     createItemCatalog() {
-        const x = 250;
-        const y = 170;
-        const width = 530;
-        const height = 350;
+        const { catalogX, catalogStartY, catalogWidth, height, margin } = this.dims;
+        const catalogHeight = height - catalogStartY - margin;
 
-        // Catalog panel
+        // Catalog panel background
         this.catalogPanel = this.add.graphics();
         this.catalogPanel.fillStyle(0x1A0A2E, 0.8);
-        this.catalogPanel.fillRoundedRect(x, y, width, height, 10);
+        this.catalogPanel.fillRoundedRect(catalogX, catalogStartY, catalogWidth, catalogHeight, 10);
         this.catalogPanel.lineStyle(3, 0x4A0080);
-        this.catalogPanel.strokeRoundedRect(x, y, width, height, 10);
+        this.catalogPanel.strokeRoundedRect(catalogX, catalogStartY, catalogWidth, catalogHeight, 10);
+        this.catalogPanel.setDepth(15);
 
-        // Scrollable area marker
+        // Create scrollable container
         this.catalogContainer = this.add.container(0, 0);
+        this.catalogContainer.setDepth(16);
+
+        // Create mask for scrollable area (prevents items from showing outside bounds)
+        const maskShape = this.make.graphics({});
+        maskShape.fillStyle(0xffffff);
+        maskShape.fillRect(catalogX, catalogStartY, catalogWidth, catalogHeight);
+        const mask = maskShape.createGeometryMask();
+        this.catalogContainer.setMask(mask);
+
+        // Store catalog bounds for scroll calculations
+        this.catalogBounds = {
+            x: catalogX,
+            y: catalogStartY,
+            width: catalogWidth,
+            height: catalogHeight
+        };
     }
 
     /**
-     * Display items for selected category
+     * Display items for selected category (responsive with scrolling)
      */
     displayCategory(categoryId) {
         // Clear existing items
         this.catalogContainer.removeAll(true);
         this.itemButtons = [];
 
-        const items = this.shopItems[categoryId] || [];
+        // Reset scroll position
+        this.scrollY = 0;
 
-        const startX = 270;
-        const startY = 190;
-        const itemHeight = 80;
-        const itemWidth = 490;
+        const items = this.shopItems[categoryId] || [];
+        const { catalogX, catalogStartY, catalogWidth, itemHeight, itemSpacing, padding } = this.dims;
+
+        const startX = catalogX + padding;
+        const startY = catalogStartY + padding;
+        const itemWidth = catalogWidth - (padding * 2);
+
+        // Calculate total content height and max scroll
+        const totalHeight = items.length * (itemHeight + itemSpacing);
+        this.maxScrollY = Math.max(0, totalHeight - this.catalogBounds.height + padding * 2);
 
         items.forEach((item, index) => {
-            const y = startY + (itemHeight + 10) * index;
+            const y = startY + (itemHeight + itemSpacing) * index;
 
             // Item row background
             const itemBg = this.add.graphics();
@@ -379,29 +544,41 @@ export default class ShopScene extends Phaser.Scene {
             itemBg.lineStyle(2, 0x6B00B3);
             itemBg.strokeRoundedRect(startX, y, itemWidth, itemHeight, 8);
 
+            // Responsive layout calculations
+            const iconSize = this.dims.isMobile ? '28px' : '36px';
+            const iconX = startX + (this.dims.isMobile ? 25 : 30);
+            const textX = startX + (this.dims.isMobile ? 55 : 80);
+            const buyBtnWidth = this.dims.isMobile ? 60 : 70;
+            const buyBtnX = startX + itemWidth - buyBtnWidth - 10;
+
             // Item icon
-            const icon = this.add.text(startX + 30, y + 40, item.icon, {
-                fontSize: '36px'
+            const icon = this.add.text(iconX, y + itemHeight / 2, item.icon, {
+                fontSize: iconSize
             });
             icon.setOrigin(0.5, 0.5);
 
             // Item name
-            const name = this.add.text(startX + 80, y + 20, item.name, {
-                fontSize: '18px',
+            const name = this.add.text(textX, y + (this.dims.isMobile ? itemHeight / 2 - 15 : 20), item.name, {
+                fontSize: this.dims.itemNameSize,
                 fontFamily: 'Arial Black',
                 color: '#FFFFFF'
             });
 
-            // Item description
-            const desc = this.add.text(startX + 80, y + 45, item.description, {
-                fontSize: '12px',
+            // Item description (truncate on mobile if needed)
+            const descMaxWidth = itemWidth - textX - buyBtnWidth - 30;
+            const desc = this.add.text(textX, y + (this.dims.isMobile ? itemHeight / 2 + 5 : 45), item.description, {
+                fontSize: this.dims.itemDescSize,
                 fontFamily: 'Arial',
-                color: '#AAAAAA'
+                color: '#AAAAAA',
+                wordWrap: { width: descMaxWidth }
             });
 
-            // Price
-            const priceText = this.add.text(startX + 380, y + 40, `${item.price}`, {
-                fontSize: '20px',
+            // Price and coin (above buy button on mobile, next to it on desktop)
+            const priceX = buyBtnX + buyBtnWidth / 2;
+            const priceY = y + (this.dims.isMobile ? 15 : itemHeight / 2);
+
+            const priceText = this.add.text(priceX, priceY, `${item.price}`, {
+                fontSize: this.dims.priceSize,
                 fontFamily: 'Arial Black',
                 color: '#FFD700',
                 stroke: '#000000',
@@ -410,28 +587,33 @@ export default class ShopScene extends Phaser.Scene {
             priceText.setOrigin(0.5, 0.5);
 
             // Coin icon next to price
+            const coinIconX = priceX + 25;
             const coinIcon = this.add.graphics();
             coinIcon.fillStyle(0xFFD700, 1);
-            coinIcon.fillCircle(startX + 430, y + 40, 10);
+            coinIcon.fillCircle(coinIconX, priceY, this.dims.isMobile ? 8 : 10);
             coinIcon.fillStyle(0xFFA500, 1);
-            coinIcon.fillCircle(startX + 430, y + 40, 7);
+            coinIcon.fillCircle(coinIconX, priceY, this.dims.isMobile ? 6 : 7);
 
             // Buy button
+            const buyBtnY = y + (this.dims.isMobile ? itemHeight - 50 - 5 : 15);
+            const buyBtnHeight = this.dims.isMobile ? 40 : 50;
+
             const buyBtn = this.add.graphics();
             buyBtn.fillStyle(0x00AA00, 0.9);
-            buyBtn.fillRoundedRect(startX + 400, y + 15, 70, 50, 8);
+            buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
             buyBtn.lineStyle(2, 0x00FF00);
-            buyBtn.strokeRoundedRect(startX + 400, y + 15, 70, 50, 8);
+            buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
-            const buyLabel = this.add.text(startX + 435, y + 40, 'BUY', {
-                fontSize: '16px',
+            const buyLabel = this.add.text(buyBtnX + buyBtnWidth / 2, buyBtnY + buyBtnHeight / 2, 'BUY', {
+                fontSize: this.dims.isMobile ? '14px' : '16px',
                 fontFamily: 'Arial Black',
                 color: '#FFFFFF'
             });
             buyLabel.setOrigin(0.5, 0.5);
 
-            // Interactive zone
-            const zone = this.add.zone(startX + 400, y + 15, 70, 50).setOrigin(0, 0);
+            // Interactive zone (larger touch target)
+            const zoneTouchSize = Math.max(buyBtnHeight, 44);
+            const zone = this.add.zone(buyBtnX, buyBtnY, buyBtnWidth, zoneTouchSize).setOrigin(0, 0);
             zone.setInteractive({ useHandCursor: true });
 
             zone.on('pointerdown', () => {
@@ -441,20 +623,22 @@ export default class ShopScene extends Phaser.Scene {
             zone.on('pointerover', () => {
                 buyBtn.clear();
                 buyBtn.fillStyle(0x00DD00, 1);
-                buyBtn.fillRoundedRect(startX + 400, y + 15, 70, 50, 8);
+                buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
                 buyBtn.lineStyle(3, 0x00FF00);
-                buyBtn.strokeRoundedRect(startX + 400, y + 15, 70, 50, 8);
+                buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
-                // Show item tooltip
-                this.showItemTooltip(item, startX, y);
+                // Show item tooltip (only on desktop)
+                if (!this.dims.isMobile) {
+                    this.showItemTooltip(item, startX, y);
+                }
             });
 
             zone.on('pointerout', () => {
                 buyBtn.clear();
                 buyBtn.fillStyle(0x00AA00, 0.9);
-                buyBtn.fillRoundedRect(startX + 400, y + 15, 70, 50, 8);
+                buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
                 buyBtn.lineStyle(2, 0x00FF00);
-                buyBtn.strokeRoundedRect(startX + 400, y + 15, 70, 50, 8);
+                buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
                 // Hide item tooltip
                 this.hideItemTooltip();
@@ -468,6 +652,8 @@ export default class ShopScene extends Phaser.Scene {
                 zone
             });
         });
+
+        console.log(`[ShopScene] Displayed ${items.length} items, maxScroll: ${this.maxScrollY}`);
     }
 
     /**
@@ -481,73 +667,89 @@ export default class ShopScene extends Phaser.Scene {
     }
 
     /**
-     * Show purchase confirmation dialog
+     * Show purchase confirmation dialog (responsive)
      */
     showPurchaseConfirmation(item) {
         console.log(`[ShopScene] Showing confirmation for: ${item.name}`);
 
+        const { width, height, isMobile } = this.dims;
+
         // Create dark overlay
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(0, 0, 800, 600);
+        overlay.fillRect(0, 0, width, height);
         overlay.setDepth(200);
+
+        // Modal dimensions (responsive)
+        const modalWidth = isMobile ? width - 40 : 400;
+        const modalHeight = isMobile ? 280 : 300;
+        const modalX = (width - modalWidth) / 2;
+        const modalY = (height - modalHeight) / 2;
 
         // Create confirmation panel
         const panel = this.add.graphics();
         panel.fillStyle(0x1A1A3E, 1);
-        panel.fillRoundedRect(200, 150, 400, 300, 15);
+        panel.fillRoundedRect(modalX, modalY, modalWidth, modalHeight, 15);
         panel.lineStyle(3, 0x7B68EE);
-        panel.strokeRoundedRect(200, 150, 400, 300, 15);
+        panel.strokeRoundedRect(modalX, modalY, modalWidth, modalHeight, 15);
         panel.setDepth(201);
 
         // Title
-        const title = this.add.text(400, 200, 'Confirm Purchase', {
-            fontSize: '28px',
+        const title = this.add.text(width / 2, modalY + 40, 'Confirm Purchase', {
+            fontSize: isMobile ? '22px' : '28px',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
         // Item details
-        const details = this.add.text(400, 260,
+        const details = this.add.text(width / 2, modalY + 110,
             `${item.name}\n\nPrice: ${item.price} Cosmic Coins`, {
-            fontSize: '20px',
+            fontSize: isMobile ? '16px' : '20px',
             color: '#FFFFFF',
             align: 'center'
         }).setOrigin(0.5).setDepth(202);
 
+        // Button dimensions
+        const btnWidth = isMobile ? (modalWidth - 60) / 2 : 140;
+        const btnHeight = isMobile ? 50 : 50;
+        const btnY = modalY + modalHeight - btnHeight - 20;
+        const btnSpacing = 20;
+
         // Confirm button
+        const confirmBtnX = modalX + 20;
         const confirmBtn = this.add.graphics();
         confirmBtn.fillStyle(0x00AA00, 1);
-        confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+        confirmBtn.fillRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
         confirmBtn.lineStyle(2, 0x00FF00);
-        confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+        confirmBtn.strokeRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
         confirmBtn.setDepth(202);
 
-        const confirmLabel = this.add.text(300, 385, 'Confirm', {
-            fontSize: '20px',
+        const confirmLabel = this.add.text(confirmBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Confirm', {
+            fontSize: isMobile ? '18px' : '20px',
             color: '#FFFFFF',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
-        const confirmZone = this.add.zone(230, 360, 140, 50).setOrigin(0, 0);
+        const confirmZone = this.add.zone(confirmBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
         confirmZone.setInteractive({ useHandCursor: true });
         confirmZone.setDepth(202);
 
         // Cancel button
+        const cancelBtnX = modalX + modalWidth - btnWidth - 20;
         const cancelBtn = this.add.graphics();
         cancelBtn.fillStyle(0xAA0000, 1);
-        cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+        cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         cancelBtn.lineStyle(2, 0xFF0000);
-        cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+        cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         cancelBtn.setDepth(202);
 
-        const cancelLabel = this.add.text(500, 385, 'Cancel', {
-            fontSize: '20px',
+        const cancelLabel = this.add.text(cancelBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Cancel', {
+            fontSize: isMobile ? '18px' : '20px',
             color: '#FFFFFF',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
-        const cancelZone = this.add.zone(430, 360, 140, 50).setOrigin(0, 0);
+        const cancelZone = this.add.zone(cancelBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
         cancelZone.setInteractive({ useHandCursor: true });
         cancelZone.setDepth(202);
 
@@ -571,17 +773,17 @@ export default class ShopScene extends Phaser.Scene {
         confirmZone.on('pointerover', () => {
             confirmBtn.clear();
             confirmBtn.fillStyle(0x00DD00, 1);
-            confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.fillRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
             confirmBtn.lineStyle(3, 0x00FF00);
-            confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.strokeRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
         confirmZone.on('pointerout', () => {
             confirmBtn.clear();
             confirmBtn.fillStyle(0x00AA00, 1);
-            confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.fillRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
             confirmBtn.lineStyle(2, 0x00FF00);
-            confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.strokeRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
         // Cancel handler
@@ -598,17 +800,17 @@ export default class ShopScene extends Phaser.Scene {
         cancelZone.on('pointerover', () => {
             cancelBtn.clear();
             cancelBtn.fillStyle(0xDD0000, 1);
-            cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
             cancelBtn.lineStyle(3, 0xFF0000);
-            cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
         cancelZone.on('pointerout', () => {
             cancelBtn.clear();
             cancelBtn.fillStyle(0xAA0000, 1);
-            cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
             cancelBtn.lineStyle(2, 0xFF0000);
-            cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
         // ESC to cancel
@@ -687,7 +889,8 @@ export default class ShopScene extends Phaser.Scene {
     purchaseItem(item) {
         console.log(`[ShopScene] Attempting to purchase: ${item.name} for ${item.price} coins`);
 
-        const currentCoins = window.GameState?.get('currency.cosmicCoins') || 0;
+        // FIX: Read from correct state path (player.cosmicCoins not currency.cosmicCoins)
+        const currentCoins = window.GameState?.get('player.cosmicCoins') || 0;
 
         // Validate purchase
         if (currentCoins < item.price) {
@@ -782,57 +985,68 @@ export default class ShopScene extends Phaser.Scene {
     }
 
     /**
-     * Create exit button
+     * Set up scroll handling for item catalog
      */
-    createExitButton() {
-        const x = 700;
-        const y = 540;
-        const width = 80;
-        const height = 40;
+    setupScrolling() {
+        const { x, y, width, height } = this.catalogBounds;
 
-        // Button background
-        const button = this.add.graphics();
-        button.fillStyle(0xAA0000, 0.9);
-        button.fillRoundedRect(x, y, width, height, 8);
-        button.lineStyle(2, 0xFF0000);
-        button.strokeRoundedRect(x, y, width, height, 8);
+        // Create invisible interactive zone for scrolling
+        const scrollZone = this.add.zone(x, y, width, height).setOrigin(0, 0);
+        scrollZone.setInteractive();
+        scrollZone.setDepth(17);
 
-        // Label
-        const label = this.add.text(x + 40, y + 20, 'EXIT', {
-            fontSize: '16px',
-            fontFamily: 'Arial Black',
-            color: '#FFFFFF'
-        });
-        label.setOrigin(0.5, 0.5);
-
-        // Interactive zone
-        const zone = this.add.zone(x, y, width, height).setOrigin(0, 0);
-        zone.setInteractive({ useHandCursor: true });
-
-        zone.on('pointerdown', () => {
-            this.exitShop();
+        // Touch/mouse drag scrolling
+        scrollZone.on('pointerdown', (pointer) => {
+            this.isDragging = true;
+            this.dragStartY = pointer.y;
+            this.dragStartScrollY = this.scrollY;
         });
 
-        zone.on('pointerover', () => {
-            button.clear();
-            button.fillStyle(0xDD0000, 1);
-            button.fillRoundedRect(x, y, width, height, 8);
-            button.lineStyle(3, 0xFF0000);
-            button.strokeRoundedRect(x, y, width, height, 8);
+        scrollZone.on('pointermove', (pointer) => {
+            if (this.isDragging) {
+                const deltaY = this.dragStartY - pointer.y;
+                this.scrollY = Phaser.Math.Clamp(
+                    this.dragStartScrollY + deltaY,
+                    0,
+                    this.maxScrollY
+                );
+                this.updateScroll();
+            }
         });
 
-        zone.on('pointerout', () => {
-            button.clear();
-            button.fillStyle(0xAA0000, 0.9);
-            button.fillRoundedRect(x, y, width, height, 8);
-            button.lineStyle(2, 0xFF0000);
-            button.strokeRoundedRect(x, y, width, height, 8);
+        scrollZone.on('pointerup', () => {
+            this.isDragging = false;
         });
 
-        // ESC key to exit
+        scrollZone.on('pointerout', () => {
+            this.isDragging = false;
+        });
+
+        // Mouse wheel scrolling
+        scrollZone.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
+            this.scrollY = Phaser.Math.Clamp(
+                this.scrollY + deltaY * 0.5,
+                0,
+                this.maxScrollY
+            );
+            this.updateScroll();
+        });
+
+        // ESC key to exit shop
         this.input.keyboard.on('keydown-ESC', () => {
             this.exitShop();
         });
+
+        console.log('[ShopScene] Scroll handling set up');
+    }
+
+    /**
+     * Update scroll position of catalog container
+     */
+    updateScroll() {
+        if (this.catalogContainer) {
+            this.catalogContainer.y = -this.scrollY;
+        }
     }
 
     /**
@@ -933,9 +1147,9 @@ export default class ShopScene extends Phaser.Scene {
     shutdown() {
         console.log('[ShopScene] Shutting down - cleaning up event listeners');
 
-        // Remove global event listeners
+        // Remove global event listeners - FIX: Use correct state path
         if (window.GameState) {
-            window.GameState.off('changed:currency.cosmicCoins');
+            window.GameState.off('changed:player.cosmicCoins');
         }
 
         // Remove keyboard listeners
