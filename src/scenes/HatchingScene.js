@@ -164,6 +164,17 @@ class HatchingScene extends Phaser.Scene {
             // Load config
             this.loadHatchConfig();
         }
+
+        // Show tutorial hints for first-time players
+        if (!this.hasSeenTutorial()) {
+            // Create visual pointer to egg
+            this.createTutorialPointer();
+
+            // Show initial tutorial hint after a brief delay
+            this.time.delayedCall(1000, () => {
+                this.showTutorialHint('preHatch');
+            });
+        }
     }
 
     createStartButton() {
@@ -204,6 +215,12 @@ class HatchingScene extends Phaser.Scene {
         // See GAME_FLOW_DOCUMENTATION.md for full explanation
         startButton.on('pointerdown', () => {
             console.log('🚀 START GAME button clicked!');
+
+            // Play button click sound
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+
             const state = getGameState();
             
             // Mark game as started
@@ -535,6 +552,155 @@ class HatchingScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Check if player has seen the tutorial before
+     * @returns {boolean} True if tutorial has been seen
+     */
+    hasSeenTutorial() {
+        const gameState = getGameState();
+        return gameState.get('tutorial.hatchingSeen') || false;
+    }
+
+    /**
+     * Mark the hatching tutorial as seen
+     */
+    markTutorialSeen() {
+        const gameState = getGameState();
+        gameState.set('tutorial.hatchingSeen', true);
+        console.log('[HatchingScene] Tutorial marked as seen');
+    }
+
+    /**
+     * Create a visual pointer/indicator to guide player to the egg
+     */
+    createTutorialPointer() {
+        if (this.hasSeenTutorial() || this.tutorialPointer) {
+            return; // Don't show if already seen or already exists
+        }
+
+        const { width, height } = this.scale;
+        const eggX = width / 2;
+        const eggY = height * 0.45;
+
+        // Create animated arrow pointing down at the egg
+        const arrowGraphics = this.add.graphics();
+        arrowGraphics.fillStyle(0xFFD700, 1);
+
+        // Draw arrow shape
+        const arrowSize = 30;
+        const arrowX = eggX;
+        const arrowY = eggY - 100;
+
+        arrowGraphics.beginPath();
+        arrowGraphics.moveTo(arrowX, arrowY);
+        arrowGraphics.lineTo(arrowX - arrowSize/2, arrowY - arrowSize);
+        arrowGraphics.lineTo(arrowX + arrowSize/2, arrowY - arrowSize);
+        arrowGraphics.closePath();
+        arrowGraphics.fillPath();
+
+        // Draw arrow shaft
+        arrowGraphics.fillRect(arrowX - 5, arrowY - arrowSize - 20, 10, 20);
+
+        this.tutorialPointer = arrowGraphics;
+
+        // Animate the pointer with bouncing effect
+        this.tweens.add({
+            targets: this.tutorialPointer,
+            y: '+=15',
+            duration: 800,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Add glow effect
+        this.tweens.add({
+            targets: this.tutorialPointer,
+            alpha: 0.6,
+            duration: 1000,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        console.log('[HatchingScene] Tutorial pointer created');
+    }
+
+    /**
+     * Show contextual tutorial hint based on current state
+     * @param {string} stage - Tutorial stage: 'preHatch', 'hatching', 'postHatch'
+     */
+    showTutorialHint(stage) {
+        if (this.hasSeenTutorial()) {
+            return; // Skip hints for experienced players
+        }
+
+        const { width, height } = this.scale;
+        let hintText = '';
+        let duration = 4000;
+
+        switch (stage) {
+            case 'preHatch':
+                hintText = '💡 Tip: Click anywhere on or near the egg to begin!';
+                break;
+            case 'hatching':
+                hintText = '✨ Your creature is hatching! Watch as it reveals its unique traits...';
+                duration = 3000;
+                break;
+            case 'postHatch':
+                hintText = '🎉 Amazing! Next you\'ll choose its personality and give it a name.';
+                duration = 5000;
+                break;
+            default:
+                return;
+        }
+
+        // Remove existing hint if present
+        if (this.tutorialHintText) {
+            this.tweens.killTweensOf(this.tutorialHintText);
+            this.tutorialHintText.destroy();
+        }
+
+        // Create hint text
+        this.tutorialHintText = this.add.text(width / 2, height * 0.75, hintText, {
+            fontSize: '18px',
+            color: '#FFD700',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            padding: { x: 20, y: 10 },
+            align: 'center',
+            fontFamily: 'Arial, sans-serif',
+            wordWrap: { width: width * 0.8 }
+        }).setOrigin(0.5).setAlpha(0);
+
+        // Fade in
+        this.tweens.add({
+            targets: this.tutorialHintText,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
+        });
+
+        // Auto-dismiss after duration
+        this.time.delayedCall(duration, () => {
+            if (this.tutorialHintText) {
+                this.tweens.add({
+                    targets: this.tutorialHintText,
+                    alpha: 0,
+                    duration: 300,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        if (this.tutorialHintText) {
+                            this.tutorialHintText.destroy();
+                            this.tutorialHintText = null;
+                        }
+                    }
+                });
+            }
+        });
+
+        console.log(`[HatchingScene] Showing tutorial hint: ${stage}`);
+    }
+
     createUI() {
         const { width, height } = this.scale;
         const centerX = width / 2;
@@ -565,8 +731,12 @@ class HatchingScene extends Phaser.Scene {
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
         }).setOrigin(0.5);
 
-        // Instructions text with better styling
-        this.instructionText = this.add.text(centerX, height * 0.2, '👆 Click the magical egg below to hatch your creature! 👆', {
+        // Instructions text with better styling and enhanced tutorial hints
+        const tutorialText = this.hasSeenTutorial()
+            ? '👆 Click the magical egg below to hatch your creature! 👆'
+            : '✨ Welcome! Click or tap the egg below to begin.\nYour creature will hatch and reveal its unique traits! ✨';
+
+        this.instructionText = this.add.text(centerX, height * 0.2, tutorialText, {
             fontSize: `${instructionFontSize}px`,
             color: '#FFFFFF',
             stroke: '#7B1FA2',
@@ -575,6 +745,18 @@ class HatchingScene extends Phaser.Scene {
             fontFamily: 'Arial, sans-serif',
             wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
+
+        // Add pulsing animation to make instruction more noticeable
+        if (!this.hasSeenTutorial()) {
+            this.tweens.add({
+                targets: this.instructionText,
+                scale: 1.05,
+                duration: 1000,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+        }
 
         // Create UI panel background
         this.createControlPanel();
@@ -637,6 +819,24 @@ class HatchingScene extends Phaser.Scene {
         this.isHatching = true;
         this.instructionText.setVisible(false);
         this.progressText.setVisible(true);
+
+        // Hide tutorial pointer if present
+        if (this.tutorialPointer) {
+            this.tweens.add({
+                targets: this.tutorialPointer,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => {
+                    if (this.tutorialPointer) {
+                        this.tutorialPointer.destroy();
+                        this.tutorialPointer = null;
+                    }
+                }
+            });
+        }
+
+        // Show hatching tutorial hint
+        this.showTutorialHint('hatching');
 
         // Start shaking animation
         this.tweens.add({
@@ -721,19 +921,48 @@ class HatchingScene extends Phaser.Scene {
         console.log('hatch:info [HatchingScene] === showCreature() called ===');
         this.creatureAppeared = true;
 
-        // Generate unique genetics for this creature
-        console.log('hatch:info [HatchingScene] Step 1: Generating creature genetics...');
-        this.generateCreatureGenetics();
-
-        if (!this.creatureGenetics) {
-            console.error('hatch:error [HatchingScene] CRITICAL: generateCreatureGenetics() returned null!');
-            this.showCriticalError('Failed to generate creature genetics');
-            return;
+        // Show loading overlay
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Generating your creature...');
         }
 
-        console.log('hatch:info [HatchingScene] Step 2: Creating creature sprite...');
-        // Create the creature sprite using genetics
-        const creatureResult = this.createUniqueCreature();
+        // Use setTimeout to allow loading overlay to render
+        this.time.delayedCall(100, () => {
+            try {
+                // Generate unique genetics for this creature
+                console.log('hatch:info [HatchingScene] Step 1: Generating creature genetics...');
+                this.generateCreatureGenetics();
+
+                if (!this.creatureGenetics) {
+                    console.error('hatch:error [HatchingScene] CRITICAL: generateCreatureGenetics() returned null!');
+                    if (window.UXEnhancements) {
+                        window.UXEnhancements.hideLoading();
+                    }
+                    this.showCriticalError('Failed to generate creature genetics');
+                    return;
+                }
+
+                console.log('hatch:info [HatchingScene] Step 2: Creating creature sprite...');
+                // Create the creature sprite using genetics
+                const creatureResult = this.createUniqueCreature();
+
+                // Hide loading overlay after generation
+                if (window.UXEnhancements) {
+                    window.UXEnhancements.hideLoading();
+                }
+
+                this.completeCreatureDisplay(creatureResult);
+            } catch (error) {
+                console.error('hatch:error [HatchingScene] Error during creature generation:', error);
+                if (window.UXEnhancements) {
+                    window.UXEnhancements.hideLoading();
+                }
+                this.showCriticalError('An error occurred during creature generation');
+            }
+        });
+    }
+
+    completeCreatureDisplay(creatureResult) {
 
         console.log('hatch:info [HatchingScene] Step 3: Creature result:', creatureResult ? 'SUCCESS' : 'FAILED');
 
@@ -772,6 +1001,14 @@ class HatchingScene extends Phaser.Scene {
                 ease: 'Back.easeOut',
                 onComplete: () => {
                     console.log('hatch:info [HatchingScene] Creature fade-in complete');
+
+                    // Show post-hatch tutorial hint and mark tutorial as seen
+                    if (!this.hasSeenTutorial()) {
+                        this.time.delayedCall(500, () => {
+                            this.showTutorialHint('postHatch');
+                            this.markTutorialSeen();
+                        });
+                    }
                 }
             });
 
@@ -1290,6 +1527,19 @@ class HatchingScene extends Phaser.Scene {
             this.progressText = null;
         }
 
+        // Clean up tutorial elements
+        if (this.tutorialPointer) {
+            this.tweens.killTweensOf(this.tutorialPointer);
+            this.tutorialPointer.destroy();
+            this.tutorialPointer = null;
+        }
+
+        if (this.tutorialHintText) {
+            this.tweens.killTweensOf(this.tutorialHintText);
+            this.tutorialHintText.destroy();
+            this.tutorialHintText = null;
+        }
+
         // Clean up reroll UI elements
         this.cleanupRerollUI();
 
@@ -1485,10 +1735,35 @@ class HatchingScene extends Phaser.Scene {
                 wordWrap: { width: width * 0.9 }
             }).setOrigin(0.5);
 
+            // Tutorial hint for first-time players
+            let tutorialHint = null;
+            const gameState = getGameState();
+            const hasSeenRerollTutorial = gameState.get('tutorial.rerollSeen') || false;
+
+            if (!hasSeenRerollTutorial && canReroll) {
+                const tutorialFontSize = Math.max(14, Math.min(16, width * 0.04));
+                tutorialHint = this.add.text(centerX, height * 0.63,
+                    '💡 Choose KEEP to continue, or REROLL for a different creature!\nRerolls are limited - use them wisely!', {
+                    fontSize: `${tutorialFontSize}px`,
+                    color: '#FFFFFF',
+                    backgroundColor: 'rgba(123, 31, 162, 0.8)',
+                    padding: { x: 15, y: 10 },
+                    align: 'center',
+                    fontFamily: 'Arial, sans-serif',
+                    wordWrap: { width: width * 0.85 }
+                }).setOrigin(0.5).setAlpha(0);
+
+                // Mark tutorial as seen
+                gameState.set('tutorial.rerollSeen', true);
+            }
+
             // Animate elements
             const elements = [keepBg, keepText, adviceText];
             if (canReroll) {
                 elements.push(rerollBg, rerollText);
+            }
+            if (tutorialHint) {
+                elements.push(tutorialHint);
             }
 
             elements.forEach((el, index) => {

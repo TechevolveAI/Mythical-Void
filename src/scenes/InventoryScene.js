@@ -13,6 +13,12 @@ export default class InventoryScene extends Phaser.Scene {
         this.selectedSlot = null;
         this.inventorySlots = [];
         this.itemSprites = [];
+
+        // Sort and filter state
+        this.currentSort = 'none'; // none, name, type, price
+        this.currentFilter = 'all'; // all, food, accessories, consumables
+        this.sortButtons = [];
+        this.filterButtons = [];
     }
 
     create() {
@@ -26,6 +32,7 @@ export default class InventoryScene extends Phaser.Scene {
         // Create UI
         this.createBackground();
         this.createHeader();
+        this.createSortFilterControls();
         this.createInventoryGrid();
         this.createItemDetails();
         this.createActionButtons();
@@ -39,6 +46,11 @@ export default class InventoryScene extends Phaser.Scene {
             window.InventoryManager.on('itemAdded', this.refreshInventory, this);
             window.InventoryManager.on('itemRemoved', this.refreshInventory, this);
             window.InventoryManager.on('itemQuantityChanged', this.refreshInventory, this);
+        }
+
+        // Hide loading overlay once inventory is ready
+        if (window.UXEnhancements) {
+            window.UXEnhancements.hideLoading();
         }
     }
 
@@ -92,6 +104,177 @@ export default class InventoryScene extends Phaser.Scene {
             align: 'center'
         });
         this.statsText.setOrigin(0.5, 0.5);
+    }
+
+    /**
+     * Create sort and filter controls
+     */
+    createSortFilterControls() {
+        const startX = 80;
+        const y = 85;
+        const buttonWidth = 60;
+        const buttonHeight = 20;
+        const spacing = 5;
+
+        // Sort label
+        const sortLabel = this.add.text(startX, y, 'Sort:', {
+            fontSize: '12px',
+            fontFamily: 'Arial',
+            color: '#00FFFF'
+        });
+
+        // Sort buttons
+        const sortOptions = [
+            { key: 'none', label: 'None' },
+            { key: 'name', label: 'Name' },
+            { key: 'type', label: 'Type' },
+            { key: 'price', label: 'Price' }
+        ];
+
+        sortOptions.forEach((option, index) => {
+            const btnX = startX + 40 + index * (buttonWidth + spacing);
+            const btn = this.createSmallButton(btnX, y, buttonWidth, buttonHeight, option.label, () => {
+                this.setSortOrder(option.key);
+            });
+            this.sortButtons.push({ key: option.key, ...btn });
+        });
+
+        // Filter label
+        const filterX = startX + 300;
+        const filterLabel = this.add.text(filterX, y, 'Filter:', {
+            fontSize: '12px',
+            fontFamily: 'Arial',
+            color: '#00FFFF'
+        });
+
+        // Filter buttons
+        const filterOptions = [
+            { key: 'all', label: 'All' },
+            { key: 'food', label: 'Food' },
+            { key: 'accessories', label: 'Accessories' },
+            { key: 'consumables', label: 'Consumables' }
+        ];
+
+        filterOptions.forEach((option, index) => {
+            const btnX = filterX + 50 + index * (buttonWidth + spacing);
+            const btn = this.createSmallButton(btnX, y, buttonWidth, buttonHeight, option.label, () => {
+                this.setFilter(option.key);
+            });
+            this.filterButtons.push({ key: option.key, ...btn });
+        });
+
+        // Update button states to show current selection
+        this.updateSortFilterButtonStates();
+    }
+
+    /**
+     * Create small button helper for sort/filter controls
+     */
+    createSmallButton(x, y, width, height, label, callback) {
+        const button = this.add.graphics();
+        button.fillStyle(0x2A0040, 0.8);
+        button.fillRoundedRect(x, y, width, height, 5);
+        button.lineStyle(1, 0x6B00B3);
+        button.strokeRoundedRect(x, y, width, height, 5);
+
+        const text = this.add.text(x + width / 2, y + height / 2, label, {
+            fontSize: '10px',
+            fontFamily: 'Arial',
+            color: '#FFFFFF'
+        });
+        text.setOrigin(0.5, 0.5);
+
+        const zone = this.add.zone(x, y, width, height).setOrigin(0, 0);
+        zone.setInteractive({ useHandCursor: true });
+
+        zone.on('pointerdown', callback);
+
+        zone.on('pointerover', () => {
+            button.clear();
+            button.fillStyle(0x4A0080, 1);
+            button.fillRoundedRect(x, y, width, height, 5);
+            button.lineStyle(2, 0x8B00D9);
+            button.strokeRoundedRect(x, y, width, height, 5);
+        });
+
+        zone.on('pointerout', () => {
+            button.clear();
+            button.fillStyle(0x2A0040, 0.8);
+            button.fillRoundedRect(x, y, width, height, 5);
+            button.lineStyle(1, 0x6B00B3);
+            button.strokeRoundedRect(x, y, width, height, 5);
+        });
+
+        return { button, text, zone, x, y, width, height };
+    }
+
+    /**
+     * Set sort order
+     */
+    setSortOrder(sortKey) {
+        this.currentSort = sortKey;
+        this.updateSortFilterButtonStates();
+        this.refreshInventory();
+
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+    }
+
+    /**
+     * Set filter
+     */
+    setFilter(filterKey) {
+        this.currentFilter = filterKey;
+        this.updateSortFilterButtonStates();
+        this.refreshInventory();
+
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+    }
+
+    /**
+     * Update sort/filter button visual states
+     */
+    updateSortFilterButtonStates() {
+        // Update sort buttons
+        this.sortButtons.forEach(btn => {
+            const isActive = btn.key === this.currentSort;
+            btn.button.clear();
+            if (isActive) {
+                btn.button.fillStyle(0x6B00B3, 1);
+                btn.button.fillRoundedRect(btn.x, btn.y, btn.width, btn.height, 5);
+                btn.button.lineStyle(2, 0xFFD700);
+                btn.button.strokeRoundedRect(btn.x, btn.y, btn.width, btn.height, 5);
+                btn.text.setColor('#FFD700');
+            } else {
+                btn.button.fillStyle(0x2A0040, 0.8);
+                btn.button.fillRoundedRect(btn.x, btn.y, btn.width, btn.height, 5);
+                btn.button.lineStyle(1, 0x6B00B3);
+                btn.button.strokeRoundedRect(btn.x, btn.y, btn.width, btn.height, 5);
+                btn.text.setColor('#FFFFFF');
+            }
+        });
+
+        // Update filter buttons
+        this.filterButtons.forEach(btn => {
+            const isActive = btn.key === this.currentFilter;
+            btn.button.clear();
+            if (isActive) {
+                btn.button.fillStyle(0x6B00B3, 1);
+                btn.button.fillRoundedRect(btn.x, btn.y, btn.width, btn.height, 5);
+                btn.button.lineStyle(2, 0xFFD700);
+                btn.button.strokeRoundedRect(btn.x, btn.y, btn.width, btn.height, 5);
+                btn.text.setColor('#FFD700');
+            } else {
+                btn.button.fillStyle(0x2A0040, 0.8);
+                btn.button.fillRoundedRect(btn.x, btn.y, btn.width, btn.height, 5);
+                btn.button.lineStyle(1, 0x6B00B3);
+                btn.button.strokeRoundedRect(btn.x, btn.y, btn.width, btn.height, 5);
+                btn.text.setColor('#FFFFFF');
+            }
+        });
     }
 
     /**
@@ -367,7 +550,13 @@ export default class InventoryScene extends Phaser.Scene {
         this.itemSprites = [];
 
         // Get all items from InventoryManager
-        const items = window.InventoryManager?.getAllItems() || [];
+        let items = window.InventoryManager?.getAllItems() || [];
+
+        // Apply filtering
+        items = this.applyFilter(items);
+
+        // Apply sorting
+        items = this.applySort(items);
 
         // Update stats
         const stats = window.InventoryManager?.getStats();
@@ -420,6 +609,72 @@ export default class InventoryScene extends Phaser.Scene {
                 slot.itemQuantity = null;
             }
         });
+    }
+
+    /**
+     * Apply filter to items
+     */
+    applyFilter(items) {
+        if (this.currentFilter === 'all') {
+            return items;
+        }
+
+        return items.filter(item => {
+            const itemType = (item.type || item.category || '').toLowerCase();
+
+            switch (this.currentFilter) {
+                case 'food':
+                    return itemType === 'food' || itemType === 'consumable' || item.effect;
+                case 'accessories':
+                    return itemType === 'accessory' || itemType === 'accessories' || item.equippable;
+                case 'consumables':
+                    return itemType === 'consumable' || itemType === 'potion' || item.effect;
+                default:
+                    return true;
+            }
+        });
+    }
+
+    /**
+     * Apply sort to items
+     */
+    applySort(items) {
+        if (this.currentSort === 'none') {
+            return items;
+        }
+
+        const sortedItems = [...items]; // Create copy to avoid mutating original
+
+        switch (this.currentSort) {
+            case 'name':
+                sortedItems.sort((a, b) => {
+                    const nameA = (a.name || '').toLowerCase();
+                    const nameB = (b.name || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+                break;
+
+            case 'type':
+                sortedItems.sort((a, b) => {
+                    const typeA = (a.type || a.category || '').toLowerCase();
+                    const typeB = (b.type || b.category || '').toLowerCase();
+                    return typeA.localeCompare(typeB);
+                });
+                break;
+
+            case 'price':
+                sortedItems.sort((a, b) => {
+                    const priceA = a.price || 0;
+                    const priceB = b.price || 0;
+                    return priceB - priceA; // Descending order (highest price first)
+                });
+                break;
+
+            default:
+                break;
+        }
+
+        return sortedItems;
     }
 
     /**
@@ -505,6 +760,180 @@ export default class InventoryScene extends Phaser.Scene {
     }
 
     /**
+     * Show confirmation dialog for using expensive items
+     */
+    showUseConfirmation(item) {
+        console.log(`[InventoryScene] Showing use confirmation for: ${item.name}`);
+
+        // Create dark overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, 800, 600);
+        overlay.setDepth(200);
+
+        // Create confirmation panel
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 1);
+        panel.fillRoundedRect(200, 150, 400, 300, 15);
+        panel.lineStyle(3, 0x7B68EE);
+        panel.strokeRoundedRect(200, 150, 400, 300, 15);
+        panel.setDepth(201);
+
+        // Title
+        const title = this.add.text(400, 200, 'Use Expensive Item?', {
+            fontSize: '26px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Item details
+        const details = this.add.text(400, 260,
+            `${item.name}\n\nValue: ${item.price} Cosmic Coins\n\nThis item is valuable!\nAre you sure you want to use it?`, {
+            fontSize: '18px',
+            color: '#FFFFFF',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Confirm button
+        const confirmBtn = this.add.graphics();
+        confirmBtn.fillStyle(0x00AA00, 1);
+        confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+        confirmBtn.lineStyle(2, 0x00FF00);
+        confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+        confirmBtn.setDepth(202);
+
+        const confirmLabel = this.add.text(300, 385, 'Use It', {
+            fontSize: '20px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        const confirmZone = this.add.zone(230, 360, 140, 50).setOrigin(0, 0);
+        confirmZone.setInteractive({ useHandCursor: true });
+        confirmZone.setDepth(202);
+
+        // Cancel button
+        const cancelBtn = this.add.graphics();
+        cancelBtn.fillStyle(0xAA0000, 1);
+        cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+        cancelBtn.lineStyle(2, 0xFF0000);
+        cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+        cancelBtn.setDepth(202);
+
+        const cancelLabel = this.add.text(500, 385, 'Cancel', {
+            fontSize: '20px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        const cancelZone = this.add.zone(430, 360, 140, 50).setOrigin(0, 0);
+        cancelZone.setInteractive({ useHandCursor: true });
+        cancelZone.setDepth(202);
+
+        // Store references for cleanup
+        const dialogElements = [overlay, panel, title, details, confirmBtn, confirmLabel, confirmZone, cancelBtn, cancelLabel, cancelZone];
+
+        // Confirm handler
+        confirmZone.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+
+            // Clean up dialog
+            dialogElements.forEach(el => el.destroy());
+
+            // Proceed with using the item
+            this.confirmUseItem();
+        });
+
+        // Confirm button hover
+        confirmZone.on('pointerover', () => {
+            confirmBtn.clear();
+            confirmBtn.fillStyle(0x00DD00, 1);
+            confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.lineStyle(3, 0x00FF00);
+            confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+        });
+
+        confirmZone.on('pointerout', () => {
+            confirmBtn.clear();
+            confirmBtn.fillStyle(0x00AA00, 1);
+            confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.lineStyle(2, 0x00FF00);
+            confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+        });
+
+        // Cancel handler
+        cancelZone.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+
+            // Clean up dialog
+            dialogElements.forEach(el => el.destroy());
+        });
+
+        // Cancel button hover
+        cancelZone.on('pointerover', () => {
+            cancelBtn.clear();
+            cancelBtn.fillStyle(0xDD0000, 1);
+            cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.lineStyle(3, 0xFF0000);
+            cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+        });
+
+        cancelZone.on('pointerout', () => {
+            cancelBtn.clear();
+            cancelBtn.fillStyle(0xAA0000, 1);
+            cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.lineStyle(2, 0xFF0000);
+            cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+        });
+
+        // ESC to cancel
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                dialogElements.forEach(el => el.destroy());
+                this.input.keyboard.off('keydown', escHandler);
+            }
+        };
+        this.input.keyboard.on('keydown', escHandler);
+    }
+
+    /**
+     * Confirm and use item (called after confirmation)
+     */
+    confirmUseItem() {
+        if (this.selectedSlot === null || !window.InventoryManager) {
+            return;
+        }
+
+        const item = window.InventoryManager.getItem(this.selectedSlot);
+        if (!item) return;
+
+        console.log(`[InventoryScene] Using item (confirmed): ${item.name}`);
+
+        const success = window.InventoryManager.useItem(this.selectedSlot);
+
+        if (success) {
+            this.showMessage(`Used ${item.name}!`, 0x00FF00);
+
+            if (window.AudioManager) {
+                window.AudioManager.playCollectCoin();
+            }
+
+            // Refresh display
+            this.time.delayedCall(500, () => {
+                this.refreshInventory();
+                this.selectedSlot = null;
+                this.updateItemDetails(null);
+            });
+        } else {
+            this.showMessage('Cannot use item!', 0xFF0000);
+        }
+    }
+
+    /**
      * Use selected item
      */
     useSelectedItem() {
@@ -516,6 +945,13 @@ export default class InventoryScene extends Phaser.Scene {
         const item = window.InventoryManager?.getItem(this.selectedSlot);
         if (!item) {
             console.warn('[InventoryScene] No item in selected slot');
+            return;
+        }
+
+        // Check if item is expensive (>= 100 coins) and show confirmation
+        const EXPENSIVE_THRESHOLD = 100;
+        if (item.price && item.price >= EXPENSIVE_THRESHOLD) {
+            this.showUseConfirmation(item);
             return;
         }
 
@@ -621,13 +1057,55 @@ export default class InventoryScene extends Phaser.Scene {
      * Cleanup
      */
     shutdown() {
-        console.log('[InventoryScene] Shutting down');
+        console.log('[InventoryScene] Shutting down - cleaning up event listeners');
 
-        // Remove event listeners
+        // Remove global event listeners
         if (window.InventoryManager) {
             window.InventoryManager.off('itemAdded', this.refreshInventory, this);
             window.InventoryManager.off('itemRemoved', this.refreshInventory, this);
             window.InventoryManager.off('itemQuantityChanged', this.refreshInventory, this);
+        }
+
+        // Remove keyboard listeners
+        if (this.input && this.input.keyboard) {
+            this.input.keyboard.off('keydown-I');
+            this.input.keyboard.off('keydown-ESC');
+        }
+
+        // Remove listeners from inventory slot zones
+        if (this.inventorySlots && Array.isArray(this.inventorySlots)) {
+            this.inventorySlots.forEach(slot => {
+                if (slot && slot.zone && slot.zone.removeAllListeners) {
+                    slot.zone.removeAllListeners();
+                }
+            });
+        }
+
+        // Remove listeners from sort/filter buttons
+        if (this.sortButtons && Array.isArray(this.sortButtons)) {
+            this.sortButtons.forEach(btn => {
+                if (btn && btn.zone && btn.zone.removeAllListeners) {
+                    btn.zone.removeAllListeners();
+                }
+            });
+        }
+
+        if (this.filterButtons && Array.isArray(this.filterButtons)) {
+            this.filterButtons.forEach(btn => {
+                if (btn && btn.zone && btn.zone.removeAllListeners) {
+                    btn.zone.removeAllListeners();
+                }
+            });
+        }
+
+        // Remove listeners from close button zone
+        if (this.closeButtonZone && this.closeButtonZone.removeAllListeners) {
+            this.closeButtonZone.removeAllListeners();
+        }
+
+        // Clear all timers
+        if (this.time) {
+            this.time.removeAllEvents();
         }
 
         // Clear references
@@ -635,6 +1113,11 @@ export default class InventoryScene extends Phaser.Scene {
         this.inventorySlots = [];
         this.itemSprites = [];
         this.selectedSlot = null;
+        this.sortButtons = [];
+        this.filterButtons = [];
+        this.closeButtonZone = null;
+
+        console.log('[InventoryScene] Cleanup complete');
     }
 }
 

@@ -496,6 +496,11 @@ class PersonalityScene extends Phaser.Scene {
         // Continue button appears last
         this.time.delayedCall(4000, () => {
             this.createContinueButton();
+
+            // Show tutorial hint for first-time players
+            this.time.delayedCall(500, () => {
+                this.showTutorialHint();
+            });
         });
     }
 
@@ -733,6 +738,68 @@ class PersonalityScene extends Phaser.Scene {
         // Space key as alternative to button
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+    }
+
+    /**
+     * Show tutorial hint for first-time players
+     */
+    showTutorialHint() {
+        const state = getGameState();
+        const hasSeenTutorial = state.get('tutorial.personalitySeen') || false;
+
+        if (hasSeenTutorial) {
+            return; // Skip for experienced players
+        }
+
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const tutorialFontSize = Math.max(14, Math.min(16, width * 0.04));
+
+        // Create tutorial hint text
+        this.tutorialHintText = this.add.text(
+            centerX,
+            height * 0.75,
+            '💡 These traits define your creature\'s personality!\nClick the button below to give your creature a name.',
+            {
+                fontSize: `${tutorialFontSize}px`,
+                color: '#FFFFFF',
+                backgroundColor: 'rgba(123, 31, 162, 0.8)',
+                padding: { x: 15, y: 10 },
+                align: 'center',
+                fontFamily: 'Arial, sans-serif',
+                wordWrap: { width: width * 0.85 }
+            }
+        ).setOrigin(0.5).setAlpha(0);
+
+        // Fade in animation
+        this.tweens.add({
+            targets: this.tutorialHintText,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+
+        // Auto-dismiss after 6 seconds
+        this.time.delayedCall(6000, () => {
+            if (this.tutorialHintText) {
+                this.tweens.add({
+                    targets: this.tutorialHintText,
+                    alpha: 0,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        if (this.tutorialHintText) {
+                            this.tutorialHintText.destroy();
+                            this.tutorialHintText = null;
+                        }
+                    }
+                });
+            }
+        });
+
+        // Mark tutorial as seen
+        state.set('tutorial.personalitySeen', true);
+        console.log('[PersonalityScene] Tutorial hint shown and marked as seen');
     }
 
     transitionToNaming() {

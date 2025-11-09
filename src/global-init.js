@@ -19,7 +19,7 @@ import './systems/ParallaxBiome.js';
 import './systems/RaritySystem.js';
 import './systems/RerollSystem.js';
 import './systems/CreatureGenetics.js';
-import './systems/GeneticsEngine.js';
+import './systems/BreedingEngine.js';
 import './systems/GameState.js';
 import './systems/EconomyManager.js';
 import './systems/AudioManager.js';

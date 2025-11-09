@@ -372,7 +372,33 @@ async function initializeGame() {
                         creatureGenetics.initialize();
                         console.log('✅ Creature Genetics system initialized');
                     }
-                    
+
+                    // Initialize Creature AI system
+                    if (window.CreatureAI) {
+                        const creatureAI = new window.CreatureAI();
+                        creatureAI.initialize().then(() => {
+                            window.creatureAI = creatureAI;
+                            console.log('✅ Creature AI system initialized');
+                        }).catch((error) => {
+                            console.warn('⚠️ Creature AI initialization failed, using fallback mode:', error.message);
+                            window.creatureAI = creatureAI; // Still available in fallback mode
+                        });
+                    }
+
+                    // Resume audio context on first user interaction (browser requirement)
+                    const resumeAudio = () => {
+                        if (window.AudioManager) {
+                            window.AudioManager.resume();
+                            // Remove listener after first interaction
+                            document.removeEventListener('click', resumeAudio);
+                            document.removeEventListener('touchstart', resumeAudio);
+                            document.removeEventListener('keydown', resumeAudio);
+                        }
+                    };
+                    document.addEventListener('click', resumeAudio);
+                    document.addEventListener('touchstart', resumeAudio);
+                    document.addEventListener('keydown', resumeAudio);
+
                     // Set up scene transition cleanup
                     game.scene.scenes.forEach(scene => {
                         if (scene.events) {
@@ -568,9 +594,12 @@ function setupKeyboardShortcuts(game) {
             }
         }
         
-        // Alt + M to mute/unmute (future audio support)
+        // Alt + M to mute/unmute
         if (event.altKey && event.key === 'm') {
-            console.log('Audio toggle (not yet implemented)');
+            if (window.AudioManager) {
+                const muted = window.AudioManager.toggleMute();
+                console.log(`Audio ${muted ? 'muted' : 'unmuted'}`);
+            }
         }
         
         // Escape to pause/unpause

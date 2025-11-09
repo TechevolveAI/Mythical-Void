@@ -65,6 +65,11 @@ class EconomyManager {
 
         window.GameState.set('player.cosmicCoins', newBalance);
 
+        // Play coin collection sound
+        if (typeof window !== 'undefined' && window.AudioManager) {
+            window.AudioManager.playCoinCollect();
+        }
+
         // Emit event for UI updates and animations
         this.events.emit('coins:added', {
             amount,
@@ -99,6 +104,12 @@ class EconomyManager {
 
         if (currentBalance < amount) {
             console.warn(`[EconomyManager] Insufficient funds: need ${amount}, have ${currentBalance}`);
+
+            // Play error sound
+            if (typeof window !== 'undefined' && window.AudioManager) {
+                window.AudioManager.playError();
+            }
+
             this.events.emit('coins:insufficient', {
                 amount,
                 currentBalance,
@@ -109,6 +120,11 @@ class EconomyManager {
 
         const newBalance = currentBalance - amount;
         window.GameState.set('player.cosmicCoins', newBalance);
+
+        // Play purchase sound
+        if (typeof window !== 'undefined' && window.AudioManager) {
+            window.AudioManager.playPurchase();
+        }
 
         // Emit event for UI updates
         this.events.emit('coins:spent', {

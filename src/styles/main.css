@@ -1,174 +1,78 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Custom Mythical Void styles */
-@layer base {
-  body {
-    @apply bg-mythic-void text-stellar-white;
-    margin: 0;
-    padding: 0;
-    font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
-    overflow: hidden;
+/* Custom CSS Variables for Mythical Void Theme */
+@theme {
+  --color-mythic-gold: #FFD54F;
+  --color-mythic-purple: #7B1FA2;
+  --color-mythic-space: #1A1A2E;
+  --color-mythic-void: #0F0F1E;
+  --color-cosmic-blue: #4A90E2;
+  --color-cosmic-teal: #00CED1;
+  --color-stellar-white: #F8F8FF;
+}
+
+/* Base styles */
+body {
+  background-color: var(--color-mythic-void);
+  color: var(--color-stellar-white);
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Utility classes */
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(255, 213, 79, 0.6);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(123, 31, 162, 0.6);
+}
+
+.glow-cosmic {
+  box-shadow: 0 0 30px rgba(74, 144, 226, 0.7);
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
   }
-
-  * {
-    box-sizing: border-box;
+  to {
+    transform: translateX(0);
+    opacity: 1;
   }
 }
 
-@layer components {
-  /* Glassmorphic panel utility */
-  .glass-panel {
-    @apply bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-2xl;
-  }
-
-  /* Glow effect utility */
-  .glow-gold {
-    @apply shadow-[0_0_20px_rgba(255,213,79,0.6)];
-  }
-
-  .glow-purple {
-    @apply shadow-[0_0_20px_rgba(123,31,162,0.6)];
-  }
-
-  .glow-cosmic {
-    @apply shadow-[0_0_30px_rgba(74,144,226,0.7)];
-  }
-
-  /* Button styles */
-  .btn-primary {
-    @apply px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600
-           hover:from-orange-600 hover:to-orange-700
-           text-white font-bold rounded-lg shadow-lg
-           transform transition-all duration-200
-           hover:scale-105 active:scale-95
-           focus:outline-none focus:ring-2 focus:ring-mythic-gold;
-  }
-
-  .btn-secondary {
-    @apply px-6 py-3 bg-white/10 backdrop-blur-md
-           hover:bg-white/20 text-white font-semibold
-           rounded-lg border border-white/30
-           transition-all duration-200
-           hover:scale-105 active:scale-95
-           focus:outline-none focus:ring-2 focus:ring-cosmic-blue;
-  }
-
-  .btn-success {
-    @apply px-6 py-3 bg-gradient-to-r from-green-500 to-green-600
-           hover:from-green-600 hover:to-green-700
-           text-white font-bold rounded-lg shadow-lg
-           transform transition-all duration-200
-           hover:scale-105 active:scale-95
-           focus:outline-none focus:ring-2 focus:ring-mythic-gold;
-  }
-
-  .btn-danger {
-    @apply px-6 py-3 bg-gradient-to-r from-red-500 to-red-600
-           hover:from-red-600 hover:to-red-700
-           text-white font-bold rounded-lg shadow-lg
-           transform transition-all duration-200
-           hover:scale-105 active:scale-95
-           focus:outline-none focus:ring-2 focus:ring-red-400;
-  }
-
-  /* Input styles */
-  .input-primary {
-    @apply px-4 py-2 bg-white/95 text-gray-800
-           border-2 border-mythic-purple rounded-lg
-           shadow-lg focus:outline-none
-           focus:ring-2 focus:ring-mythic-gold focus:border-mythic-gold
-           transition-all duration-200
-           placeholder:text-gray-400;
-  }
-
-  /* Card styles */
-  .feature-card {
-    @apply glass-panel p-6 hover:bg-white/15
-           transition-all duration-300 cursor-pointer
-           hover:scale-105 hover:border-mythic-gold/40;
-  }
-
-  .info-panel {
-    @apply bg-white/90 backdrop-blur-md rounded-2xl
-           border-2 border-mythic-purple shadow-2xl
-           p-6 transition-all duration-300;
-  }
-
-  /* Text styles */
-  .text-heading {
-    @apply text-2xl md:text-3xl font-bold text-mythic-purple;
-  }
-
-  .text-subheading {
-    @apply text-lg md:text-xl font-semibold text-cosmic-blue;
-  }
-
-  .text-body {
-    @apply text-sm md:text-base text-gray-700;
-  }
-
-  /* Status badges */
-  .badge-success {
-    @apply inline-block px-3 py-1 bg-green-500 text-white
-           rounded-full text-xs font-bold shadow-md;
-  }
-
-  .badge-warning {
-    @apply inline-block px-3 py-1 bg-yellow-500 text-gray-900
-           rounded-full text-xs font-bold shadow-md;
-  }
-
-  .badge-error {
-    @apply inline-block px-3 py-1 bg-red-500 text-white
-           rounded-full text-xs font-bold shadow-md;
-  }
-
-  .badge-info {
-    @apply inline-block px-3 py-1 bg-cosmic-blue text-white
-           rounded-full text-xs font-bold shadow-md;
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
   }
 }
 
-@layer utilities {
-  /* Text gradients */
-  .text-gradient-gold {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-yellow-200 via-mythic-gold to-yellow-400;
-  }
+.animate-pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
 
-  .text-gradient-cosmic {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-cosmic-blue via-cosmic-teal to-purple-400;
-  }
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
 
-  /* Animations */
-  .animate-pulse-slow {
-    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  .animate-slide-in {
-    animation: slideIn 0.3s ease-out;
-  }
-
-  .animate-fade-out {
-    animation: fadeOut 0.3s ease-out forwards;
-  }
-
-  @keyframes slideIn {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-
-  @keyframes fadeOut {
-    to {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-  }
+.animate-fade-out {
+  animation: fadeOut 0.3s ease-out forwards;
 }

@@ -1,9 +1,13 @@
 /**
- * GeneticsEngine - Core genetics system for trait inheritance and breeding
+ * BreedingEngine - Mendelian genetics system for creature breeding and trait inheritance
  * Features: 7 core traits, dominant/recessive inheritance, visual trait representation
+ *
+ * NOTE: This is separate from CreatureGenetics.js which handles procedural creature generation.
+ * - CreatureGenetics.js: Generates unique creatures from scratch (hatching, Space-Mythic theme)
+ * - BreedingEngine.js: Combines two creatures to produce offspring (Mendelian inheritance)
  */
 
-class GeneticsEngine {
+class BreedingEngine {
     constructor() {
         this.traitDefinitions = {
             bodyShape: {
@@ -313,4 +317,4 @@ class GeneticsEngine {
 }
 
 // Export for use in other modules
-window.GeneticsEngine = new GeneticsEngine();
+window.BreedingEngine = new BreedingEngine();

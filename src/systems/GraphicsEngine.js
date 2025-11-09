@@ -1359,7 +1359,7 @@ class GraphicsEngine {
 
         patterns.forEach(p => {
             graphics.fillStyle(0x00FFFF, 0.6);
-            graphics.fillStar(p.x, p.y, 4, p.size, p.size * 0.5);
+            this.drawStar(graphics, p.x, p.y, 4, p.size * 0.5, p.size);
         });
 
         // Head - hooded figure
@@ -3254,6 +3254,54 @@ class GraphicsEngine {
             // Inner bright dot
             graphics.fillStyle(this.lightenColor(color, 0.3), 0.8);
             graphics.fillCircle(x, y, 2);
+        }
+    }
+
+    /**
+     * Add soft glow effect around creature
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics object
+     * @param {Object} center - Center point {x, y}
+     * @param {number} color - Color for glow
+     * @param {number} intensity - Intensity of glow (0-1)
+     */
+    addSoftGlow(graphics, center, color, intensity) {
+        const numCircles = 3 + Math.floor(intensity * 3); // 3-6 layers
+        const maxRadius = 40 + intensity * 20; // 40-60 pixel radius
+
+        for (let i = 0; i < numCircles; i++) {
+            const radius = (maxRadius / numCircles) * (i + 1);
+            const alpha = (1 - i / numCircles) * intensity * 0.15; // Fade out, max 15% opacity
+
+            graphics.fillStyle(color, alpha);
+            graphics.fillCircle(center.x, center.y, radius);
+        }
+    }
+
+    /**
+     * Add gentle shimmer effect with subtle sparkles
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics object
+     * @param {Object} center - Center point {x, y}
+     * @param {number} color - Color for shimmer
+     * @param {number} intensity - Intensity of shimmer (0-1)
+     */
+    addGentleShimmer(graphics, center, color, intensity) {
+        const numShimmers = Math.floor(3 + intensity * 5); // 3-8 shimmer points
+        const spread = 30 + intensity * 15; // 30-45 pixel spread
+
+        for (let i = 0; i < numShimmers; i++) {
+            const angle = (i / numShimmers) * Math.PI * 2 + Math.random() * 0.3;
+            const distance = (Math.random() * 0.5 + 0.5) * spread;
+            const shimmerX = center.x + Math.cos(angle) * distance;
+            const shimmerY = center.y + Math.sin(angle) * distance;
+            const shimmerSize = (1 + Math.random() * 1.5) * intensity;
+
+            // Outer glow
+            graphics.fillStyle(color, 0.2 * intensity);
+            graphics.fillCircle(shimmerX, shimmerY, shimmerSize * 2);
+
+            // Inner bright point
+            graphics.fillStyle(this.lightenColor(color, 0.4), 0.6 * intensity);
+            graphics.fillCircle(shimmerX, shimmerY, shimmerSize);
         }
     }
 

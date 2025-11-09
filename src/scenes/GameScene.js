@@ -139,7 +139,10 @@ class GameScene extends Phaser.Scene {
             
             // Listen for GameState events
             this.setupGameStateListeners();
-            
+
+            // Set up periodic timers for achievements and tutorials
+            this.setupPeriodicTimers();
+
             console.log('[GameScene] Scene created successfully');
         } catch (error) {
             console.error('[GameScene] Error during scene creation:', error);
@@ -474,17 +477,19 @@ class GameScene extends Phaser.Scene {
         console.log(`game:info [GameScene] Cosmic Shop placed at (${shopX}, ${shopY})`);
         console.log(`game:debug [GameScene] Shop body: width=${this.shop.body.width}, height=${this.shop.body.height}`);
 
-        // DEBUG: Draw shop collision area (green rectangle)
-        const shopDebugGraphics = this.add.graphics();
-        shopDebugGraphics.lineStyle(3, 0x00FF00, 0.8);
-        shopDebugGraphics.strokeRect(
-            this.shop.body.x,
-            this.shop.body.y,
-            this.shop.body.width,
-            this.shop.body.height
-        );
-        shopDebugGraphics.setDepth(10000); // Very high so it's always visible
-        console.log(`game:debug [GameScene] Shop collision area drawn at (${this.shop.body.x}, ${this.shop.body.y})`);
+        // DEBUG: Draw shop collision area (green rectangle) - only in development
+        if (import.meta.env.DEV) {
+            const shopDebugGraphics = this.add.graphics();
+            shopDebugGraphics.lineStyle(3, 0x00FF00, 0.8);
+            shopDebugGraphics.strokeRect(
+                this.shop.body.x,
+                this.shop.body.y,
+                this.shop.body.width,
+                this.shop.body.height
+            );
+            shopDebugGraphics.setDepth(10000); // Very high so it's always visible
+            console.log(`game:debug [GameScene] Shop collision area drawn at (${this.shop.body.x}, ${this.shop.body.y})`);
+        }
 
         // Set up collision detection
         if (this.player) {
@@ -891,6 +896,9 @@ class GameScene extends Phaser.Scene {
         // Care panel (hidden initially)
         this.createCarePanel();
 
+        // Chat UI (hidden initially)
+        this.createChatUI();
+
         // Interaction hint (hidden initially)
         this.interactionText = this.add.text(400, 550, '', {
             fontSize: '16px',
@@ -1028,6 +1036,9 @@ class GameScene extends Phaser.Scene {
             ease: 'Back.easeOut',
             yoyo: true
         });
+
+        // Floating coin animation
+        this.showFloatingCoinText(data.amount);
     }
 
     handleCoinsSpent(data) {
@@ -1079,6 +1090,205 @@ class GameScene extends Phaser.Scene {
         this.time.delayedCall(500, () => {
             this.currencyText.setColor('#00CED1');
         });
+    }
+
+    /**
+     * Show floating coin text animation when coins are collected
+     * @param {number} amount - Amount of coins collected
+     */
+    showFloatingCoinText(amount) {
+        if (!this.player) return;
+
+        // Create floating text near the player
+        const offsetX = Phaser.Math.Between(-20, 20);
+        const startX = this.player.x + offsetX;
+        const startY = this.player.y - 30;
+
+        const floatingText = this.add.text(startX, startY, `+${amount}`, {
+            fontSize: '24px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFD700', // Golden color
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4,
+            shadow: {
+                offsetX: 2,
+                offsetY: 2,
+                color: 'rgba(0, 0, 0, 0.7)',
+                blur: 4,
+                fill: true
+            }
+        }).setOrigin(0.5);
+
+        // Set scroll factor so it moves with camera
+        floatingText.setScrollFactor(1);
+        floatingText.setDepth(1000); // High depth to appear above everything
+
+        // Animate upward and fade out
+        this.tweens.add({
+            targets: floatingText,
+            y: startY - 80, // Float up 80 pixels
+            alpha: { from: 1, to: 0 },
+            scale: { from: 1, to: 1.5 },
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => {
+                floatingText.destroy();
+            }
+        });
+
+        // Add a subtle scale pulse at the start
+        this.tweens.add({
+            targets: floatingText,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 200,
+            ease: 'Back.easeOut',
+            yoyo: true
+        });
+
+        console.log(`[GameScene] Floating coin text shown: +${amount} at (${startX}, ${startY})`);
+    }
+
+    /**
+     * Show dramatic level up celebration with particles and effects
+     * @param {Object} data - Level up data {oldLevel, newLevel}
+     */
+    showLevelUpCelebration(data) {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        // Play level up sound
+        if (window.AudioManager) {
+            window.AudioManager.playLevelUp();
+        }
+
+        // Screen flash effect
+        const flashGraphics = this.add.graphics();
+        flashGraphics.fillStyle(0xFFD700, 0.3);
+        flashGraphics.fillRect(0, 0, width, height);
+        flashGraphics.setScrollFactor(0);
+        flashGraphics.setDepth(998);
+
+        this.tweens.add({
+            targets: flashGraphics,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => flashGraphics.destroy()
+        });
+
+        // Particle burst effects using FXLibrary
+        if (window.FXLibrary) {
+            // Stardust burst at center
+            window.FXLibrary.stardustBurst(this, centerX, centerY, {
+                count: 20,
+                color: [0xFFD700, 0xFFA500, 0xFFFFFF],
+                duration: 2000
+            });
+
+            // Additional bursts around the edges
+            const positions = [
+                { x: centerX - 150, y: centerY - 100 },
+                { x: centerX + 150, y: centerY - 100 },
+                { x: centerX - 150, y: centerY + 100 },
+                { x: centerX + 150, y: centerY + 100 }
+            ];
+
+            positions.forEach((pos, index) => {
+                this.time.delayedCall(index * 150, () => {
+                    window.FXLibrary.stardustBurst(this, pos.x, pos.y, {
+                        count: 10,
+                        color: [0xFFD700, 0xFFA500],
+                        duration: 1500
+                    });
+                });
+            });
+        }
+
+        // Main level up text
+        const levelUpText = this.add.text(centerX, centerY - 50,
+            `🎉 LEVEL UP! 🎉`, {
+            fontSize: '48px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6,
+            align: 'center',
+            shadow: {
+                offsetX: 4,
+                offsetY: 4,
+                color: 'rgba(0, 0, 0, 0.8)',
+                blur: 8,
+                fill: true
+            }
+        }).setOrigin(0.5);
+        levelUpText.setScrollFactor(0);
+        levelUpText.setDepth(999);
+        levelUpText.setAlpha(0);
+
+        // Level details text
+        const levelDetailsText = this.add.text(centerX, centerY + 20,
+            `Level ${data.oldLevel} → ${data.newLevel}`, {
+            fontSize: '28px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5);
+        levelDetailsText.setScrollFactor(0);
+        levelDetailsText.setDepth(999);
+        levelDetailsText.setAlpha(0);
+
+        // Animate main text with dramatic entrance
+        this.tweens.add({
+            targets: levelUpText,
+            scale: { from: 0.5, to: 1.3 },
+            alpha: { from: 0, to: 1 },
+            duration: 600,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Pulse effect
+                this.tweens.add({
+                    targets: levelUpText,
+                    scale: 1.2,
+                    duration: 400,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: 2
+                });
+            }
+        });
+
+        // Animate level details
+        this.tweens.add({
+            targets: levelDetailsText,
+            alpha: { from: 0, to: 1 },
+            y: centerY + 30,
+            duration: 500,
+            delay: 300,
+            ease: 'Power2'
+        });
+
+        // Fade out after 3.5 seconds
+        this.time.delayedCall(3000, () => {
+            this.tweens.add({
+                targets: [levelUpText, levelDetailsText],
+                alpha: 0,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => {
+                    levelUpText.destroy();
+                    levelDetailsText.destroy();
+                }
+            });
+        });
+
+        console.log(`[GameScene] Level up celebration shown: ${data.oldLevel} → ${data.newLevel}`);
     }
 
     animateCurrencyChange(oldBalance, newBalance) {
@@ -1752,46 +1962,188 @@ class GameScene extends Phaser.Scene {
     }
 
     showAchievementNotification(achievement) {
-        const notification = this.add.text(400, 150, '', {
-            fontSize: '18px',
-            color: '#FFD700',
-            stroke: '#000000',
-            strokeThickness: 3,
-            align: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: { x: 20, y: 12 }
-        });
-        notification.setOrigin(0.5);
-
-        const message = `🏆 Achievement Unlocked!\n${achievement.icon} ${achievement.name}\n${achievement.description}\n+${achievement.reward} XP`;
-
-        notification.setText(message);
-        
         // Announce to screen reader
         if (window.UXEnhancements) {
             window.UXEnhancements.announce(`Achievement unlocked: ${achievement.name}. ${achievement.description}`, 'assertive');
         }
 
-        // Animate notification
+        // Show enhanced modal popup
+        this.showAchievementModal(achievement);
+    }
+
+    /**
+     * Show enhanced achievement unlock modal with particles
+     * @param {Object} achievement - Achievement data
+     */
+    showAchievementModal(achievement) {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        // Play achievement unlock sound
+        if (window.AudioManager) {
+            window.AudioManager.playAchievement();
+        }
+
+        // Dark overlay background
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(900);
+        overlay.setAlpha(0);
+
+        // Modal panel
+        const panelWidth = Math.min(width * 0.8, 500);
+        const panelHeight = Math.min(height * 0.5, 300);
+        const panelX = centerX - (panelWidth / 2);
+        const panelY = centerY - (panelHeight / 2);
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 1);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.lineStyle(4, 0xFFD700);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.setScrollFactor(0);
+        panel.setDepth(901);
+        panel.setAlpha(0);
+
+        // Achievement icon (large emoji)
+        const iconText = this.add.text(centerX, centerY - 60, achievement.icon || '🏆', {
+            fontSize: '64px'
+        }).setOrigin(0.5);
+        iconText.setScrollFactor(0);
+        iconText.setDepth(902);
+        iconText.setAlpha(0);
+
+        // "Achievement Unlocked!" header
+        const headerText = this.add.text(centerX, centerY - 10, '🎉 ACHIEVEMENT UNLOCKED! 🎉', {
+            fontSize: '24px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5);
+        headerText.setScrollFactor(0);
+        headerText.setDepth(902);
+        headerText.setAlpha(0);
+
+        // Achievement name
+        const nameText = this.add.text(centerX, centerY + 25, achievement.name, {
+            fontSize: '20px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: panelWidth - 40 }
+        }).setOrigin(0.5);
+        nameText.setScrollFactor(0);
+        nameText.setDepth(902);
+        nameText.setAlpha(0);
+
+        // Achievement description
+        const descText = this.add.text(centerX, centerY + 55, achievement.description, {
+            fontSize: '16px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#CCCCCC',
+            align: 'center',
+            wordWrap: { width: panelWidth - 40 }
+        }).setOrigin(0.5);
+        descText.setScrollFactor(0);
+        descText.setDepth(902);
+        descText.setAlpha(0);
+
+        // Reward text
+        const rewardText = this.add.text(centerX, centerY + 90, `+${achievement.reward} XP`, {
+            fontSize: '18px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#00FF00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        rewardText.setScrollFactor(0);
+        rewardText.setDepth(902);
+        rewardText.setAlpha(0);
+
+        const allElements = [overlay, panel, iconText, headerText, nameText, descText, rewardText];
+
+        // Particle effects
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, centerX, centerY, {
+                count: 15,
+                color: [0xFFD700, 0xFFA500, 0xFFFFFF],
+                duration: 2000
+            });
+        }
+
+        // Fade in overlay
         this.tweens.add({
-            targets: notification,
-            scale: { from: 0.5, to: 1.2 },
-            alpha: { from: 0, to: 1 },
-            duration: 600,
+            targets: overlay,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
+        });
+
+        // Panel entrance animation
+        this.tweens.add({
+            targets: panel,
+            alpha: 1,
+            scale: { from: 0.8, to: 1 },
+            duration: 400,
+            delay: 200,
+            ease: 'Back.easeOut'
+        });
+
+        // Icon pop in
+        this.tweens.add({
+            targets: iconText,
+            alpha: 1,
+            scale: { from: 0, to: 1.2 },
+            duration: 500,
+            delay: 400,
             ease: 'Back.easeOut',
             onComplete: () => {
-                // Hold for 3 seconds, then fade out
-                this.time.delayedCall(3000, () => {
-                    this.tweens.add({
-                        targets: notification,
-                        alpha: 0,
-                        scale: 0.8,
-                        duration: 800,
-                        onComplete: () => notification.destroy()
-                    });
+                // Subtle bounce
+                this.tweens.add({
+                    targets: iconText,
+                    scale: 1.1,
+                    duration: 300,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: 2
                 });
             }
         });
+
+        // Text fade in sequence
+        [headerText, nameText, descText, rewardText].forEach((text, index) => {
+            this.tweens.add({
+                targets: text,
+                alpha: 1,
+                y: text.y + 10,
+                duration: 400,
+                delay: 600 + (index * 150),
+                ease: 'Power2'
+            });
+        });
+
+        // Auto-dismiss after 4 seconds
+        this.time.delayedCall(4000, () => {
+            this.tweens.add({
+                targets: allElements,
+                alpha: 0,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => {
+                    allElements.forEach(el => el.destroy());
+                }
+            });
+        });
+
+        console.log(`[GameScene] Achievement modal shown: ${achievement.name}`);
     }
 
     getAchievementProgressText() {
@@ -1985,6 +2337,21 @@ class GameScene extends Phaser.Scene {
             const result = await this.careSystem.performCareAction(actionType, geneticsContext);
 
             if (result && result.success) {
+                // Play appropriate sound for the care action
+                if (window.AudioManager) {
+                    switch(actionType) {
+                        case 'pet':
+                            window.AudioManager.playPet();
+                            break;
+                        case 'feed':
+                            window.AudioManager.playFeed();
+                            break;
+                        case 'play':
+                            window.AudioManager.playPlay();
+                            break;
+                    }
+                }
+
                 // GameState emits careActionPerformed which updates UI and messaging
                 return;
             } else {
@@ -2096,27 +2463,24 @@ class GameScene extends Phaser.Scene {
     }
 
     handleFlowerInteraction(player, flower) {
-        // Show interaction hint when near flowers
-        this.showInteractionHint('Press SPACE to smell the flower');
+        // Only show hint once per flower interaction to prevent spam
+        if (!this.nearbyFlower) {
+            // Show interaction hint when near flowers
+            this.showInteractionHint('Press SPACE to smell the flower');
+        }
 
         // Store reference to current flower for space key interaction
         this.nearbyFlower = flower;
     }
 
     handleShopProximity(player, shop) {
-        // Player is near shop
-        console.log('[GameScene] ===== handleShopProximity CALLED =====');
-        console.log('[GameScene] Player position:', player.x, player.y);
-        console.log('[GameScene] Shop position:', shop.x, shop.y);
-
-        // Only set nearShop if not already true to prevent repeated triggers
+        // Only execute once per shop proximity to prevent performance issues
         if (!this.nearShop) {
             this.nearShop = true;
-            console.log('[GameScene] nearShop set to TRUE');
+            console.log('[GameScene] Player near shop - showing interaction hint');
 
             // Show shop entry hint
             this.showInteractionHint('Press SPACE to enter the Cosmic Shop');
-            console.log('[GameScene] Interaction hint shown');
         }
     }
 
@@ -2135,6 +2499,9 @@ class GameScene extends Phaser.Scene {
             this.shopEntryCooldown = false;
         });
 
+        // Reset nearShop flag before entering
+        this.nearShop = false;
+
         // Save current player position before entering shop
         getGameState().set('world.lastPosition', {
             x: this.player.x,
@@ -2147,8 +2514,14 @@ class GameScene extends Phaser.Scene {
             window.AudioManager.playButtonClick();
         }
 
-        // Start ShopScene
-        this.scene.start('ShopScene');
+        // Show loading overlay
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Opening Cosmic Shop...');
+        }
+
+        // Pause this scene and launch ShopScene on top
+        this.scene.pause();
+        this.scene.launch('ShopScene');
     }
 
     openInventory() {
@@ -2159,15 +2532,18 @@ class GameScene extends Phaser.Scene {
             window.AudioManager.playButtonClick();
         }
 
+        // Show loading overlay
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Opening Inventory...');
+        }
+
         // Start InventoryScene
         this.scene.start('InventoryScene');
     }
 
     showInteractionHint(message) {
-        console.log('[GameScene] showInteractionHint called:', message);
         this.interactionText.setText(message);
         this.interactionText.setVisible(true);
-        console.log('[GameScene] Interaction text visible:', this.interactionText.visible, 'depth:', this.interactionText.depth);
 
         // Hide the hint after 3 seconds
         this.time.delayedCall(3000, () => {
@@ -2632,20 +3008,8 @@ class GameScene extends Phaser.Scene {
             this.fireCombatProjectile();
         }
 
-        // Check achievements periodically (every 5 seconds)
-        if (this.time.now % 5000 < 100) {
-            this.checkAndUnlockAchievements();
-        }
-
-        // Check tutorials periodically (every 3 seconds)
-        if (this.time.now % 3000 < 100) {
-            this.checkAndCompleteTutorials();
-        }
-
-        // Show tutorial hint if there's an active tutorial
-        if (this.time.now % 8000 < 100) {
-            this.showTutorialHintIfNeeded();
-        }
+        // Periodic checks for achievements and tutorials are now handled by timers
+        // in setupPeriodicTimers() to improve performance
 
         // Reset nearby flower when moving away
         if (!this.physics.overlap(this.player, this.flowers)) {
@@ -2726,10 +3090,10 @@ class GameScene extends Phaser.Scene {
     updateStatsDisplay() {
         const creature = getGameState().get('creature');
         const stats = creature.stats;
-        
+
         let careStatus = null;
         let happinessDesc = { level: 'unknown' };
-        
+
         if (this.careSystem) {
             try {
                 if (typeof this.careSystem.getCareStatus === 'function') {
@@ -2744,14 +3108,21 @@ class GameScene extends Phaser.Scene {
                 happinessDesc = { level: 'unknown' };
             }
         }
-        
+
         const achievementProgress = this.getAchievementProgressText();
         const tutorialProgress = this.getTutorialProgressText();
+
+        // Check for low/critical stat values and add warnings
+        const healthWarning = this.getStatWarning(stats.health, 100);
+        const happinessWarning = this.getStatWarning(stats.happiness, 100);
+        const energyWarning = this.getStatWarning(stats.energy, 100);
+
+        const hasCriticalStats = healthWarning.critical || happinessWarning.critical || energyWarning.critical;
 
         const displayText = [
             `${creature.name} - Level ${creature.level}`,
             `XP: ${creature.experience}/100`,
-            `❤️ ${stats.health} 😊 ${stats.happiness} (${happinessDesc.level}) ⚡ ${stats.energy}`,
+            `${healthWarning.icon} ${stats.health} ${happinessWarning.icon} ${stats.happiness} (${happinessDesc.level}) ${energyWarning.icon} ${stats.energy}`,
             `Care Streak: ${careStatus ? careStatus.careStreak : 0} days`,
             `${achievementProgress}`,
             `${tutorialProgress}`,
@@ -2759,43 +3130,74 @@ class GameScene extends Phaser.Scene {
         ].join('\n');
 
         this.statsText.setText(displayText);
+
+        // Change background color based on stat levels
+        if (hasCriticalStats) {
+            this.statsText.setBackgroundColor('rgba(139, 0, 0, 0.8)'); // Dark red for critical
+
+            // Add pulsing animation for critical stats
+            if (!this.statsPulseAnimation) {
+                this.statsPulseAnimation = this.tweens.add({
+                    targets: this.statsText,
+                    alpha: 0.7,
+                    duration: 500,
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: -1
+                });
+            }
+        } else if (healthWarning.warning || happinessWarning.warning || energyWarning.warning) {
+            this.statsText.setBackgroundColor('rgba(139, 69, 0, 0.8)'); // Dark orange for warning
+
+            // Stop critical pulse if it exists
+            if (this.statsPulseAnimation) {
+                this.statsPulseAnimation.stop();
+                this.statsPulseAnimation = null;
+                this.statsText.setAlpha(1);
+            }
+        } else {
+            this.statsText.setBackgroundColor('rgba(0, 0, 0, 0.7)'); // Normal
+
+            // Stop pulse if it exists
+            if (this.statsPulseAnimation) {
+                this.statsPulseAnimation.stop();
+                this.statsPulseAnimation = null;
+                this.statsText.setAlpha(1);
+            }
+        }
+    }
+
+    /**
+     * Get warning indicator for a stat value
+     * @param {number} value - Current stat value
+     * @param {number} max - Maximum stat value
+     * @returns {Object} Warning info {icon, warning, critical}
+     */
+    getStatWarning(value, max) {
+        const percentage = (value / max) * 100;
+
+        if (percentage <= 20) {
+            // Critical - show red warning
+            return { icon: '🔴', warning: true, critical: true };
+        } else if (percentage <= 40) {
+            // Low - show yellow warning
+            return { icon: '🟡', warning: true, critical: false };
+        } else {
+            // Good - show normal icon
+            if (value === 100) {
+                return { icon: '❤️', warning: false, critical: false }; // Health
+            }
+            return { icon: '✅', warning: false, critical: false };
+        }
     }
 
     setupGameStateListeners() {
         // Listen for level up events
         getGameState().on('levelUp', (data) => {
-            // Show level up message
-            const levelUpText = this.add.text(400, 200,
-                `🎉 Level Up!\nLevel ${data.oldLevel} → ${data.newLevel}`, {
-                fontSize: '24px',
-                color: '#FFD700',
-                stroke: '#000000',
-                strokeThickness: 2,
-                align: 'center',
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: { x: 16, y: 8 }
-            });
-            levelUpText.setOrigin(0.5);
-            levelUpText.setScrollFactor(0);
+            console.log('[GameScene] Level up celebration triggered!', data);
 
-            // Animate and remove after 3 seconds
-            this.tweens.add({
-                targets: levelUpText,
-                scale: { from: 0.8, to: 1.2 },
-                alpha: { from: 0, to: 1 },
-                duration: 500,
-                ease: 'Back.easeOut',
-                onComplete: () => {
-                    this.time.delayedCall(2500, () => {
-                        this.tweens.add({
-                            targets: levelUpText,
-                            alpha: 0,
-                            duration: 500,
-                            onComplete: () => levelUpText.destroy()
-                        });
-                    });
-                }
-            });
+            // Trigger level up celebration animation
+            this.showLevelUpCelebration(data);
 
             this.updateStatsDisplay();
             // Check achievements after level up
@@ -2832,6 +3234,35 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
+    }
+
+    /**
+     * Set up periodic timers for achievements and tutorials
+     * Replaces inefficient modulo checks in update loop
+     */
+    setupPeriodicTimers() {
+        // Check achievements every 5 seconds
+        this.time.addEvent({
+            delay: 5000,
+            callback: () => this.checkAndUnlockAchievements(),
+            loop: true
+        });
+
+        // Check tutorials every 3 seconds
+        this.time.addEvent({
+            delay: 3000,
+            callback: () => this.checkAndCompleteTutorials(),
+            loop: true
+        });
+
+        // Show tutorial hints every 8 seconds
+        this.time.addEvent({
+            delay: 8000,
+            callback: () => this.showTutorialHintIfNeeded(),
+            loop: true
+        });
+
+        console.log('[GameScene] Periodic timers set up');
     }
 
     /**
@@ -3056,11 +3487,321 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
+     * Create chat UI system with Space-Mythic theme
+     */
+    createChatUI() {
+        const width = 800;
+        const height = 600;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        // Chat container (starts hidden)
+        this.chatContainer = this.add.container(0, 0);
+        this.chatContainer.setScrollFactor(0);
+        this.chatContainer.setDepth(5000);
+        this.chatContainer.setVisible(false);
+
+        // Semi-transparent overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, width, height);
+        this.chatContainer.add(overlay);
+
+        // Chat panel background (glassmorphism Space-Mythic style)
+        const panelBg = this.add.graphics();
+        const panelX = centerX - 300;
+        const panelY = centerY - 200;
+        const panelWidth = 600;
+        const panelHeight = 400;
+
+        // Cosmic gradient background
+        panelBg.fillGradientStyle(0x4A148C, 0x4A148C, 0x1A237E, 0x1A237E, 0.95);
+        panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
+
+        // Glowing border
+        panelBg.lineStyle(3, 0x00CED1, 0.8);
+        panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
+
+        this.chatContainer.add(panelBg);
+
+        // Title
+        const titleText = this.add.text(centerX, panelY + 30, `Chat with ${getGameState().get('creature.name')}`, {
+            fontSize: '24px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#00CED1',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        });
+        titleText.setOrigin(0.5);
+        this.chatContainer.add(titleText);
+
+        // Message history container
+        const historyBg = this.add.graphics();
+        historyBg.fillStyle(0x0a0118, 0.8);
+        historyBg.fillRoundedRect(panelX + 20, panelY + 60, panelWidth - 40, 240, 8);
+        this.chatContainer.add(historyBg);
+
+        // Chat history text
+        this.chatHistoryText = this.add.text(panelX + 30, panelY + 70, 'Start a conversation with your cosmic companion!', {
+            fontSize: '14px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            wordWrap: { width: panelWidth - 60 },
+            lineSpacing: 8
+        });
+        this.chatContainer.add(this.chatHistoryText);
+
+        // Input prompt text
+        const promptText = this.add.text(panelX + 20, panelY + 315, 'Quick messages:', {
+            fontSize: '12px',
+            color: '#00CED1'
+        });
+        this.chatContainer.add(promptText);
+
+        // Quick message buttons
+        const quickMessages = ['Hello!', 'How are you?', 'Tell me about yourself', 'What can you do?'];
+        const buttonY = panelY + 340;
+        const buttonSpacing = (panelWidth - 40) / 4;
+
+        quickMessages.forEach((message, index) => {
+            const buttonX = panelX + 20 + (buttonSpacing * index) + (buttonSpacing / 2);
+
+            const buttonBg = this.add.graphics();
+            const btnWidth = buttonSpacing - 10;
+            const btnHeight = 35;
+
+            buttonBg.fillStyle(0x00CED1, 0.3);
+            buttonBg.fillRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
+            buttonBg.lineStyle(2, 0x00CED1, 0.6);
+            buttonBg.strokeRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
+            buttonBg.setInteractive(new Phaser.Geom.Rectangle(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight), Phaser.Geom.Rectangle.Contains);
+
+            const buttonText = this.add.text(buttonX, buttonY + btnHeight/2, message, {
+                fontSize: '12px',
+                color: '#FFFFFF',
+                align: 'center'
+            });
+            buttonText.setOrigin(0.5);
+
+            buttonBg.on('pointerdown', () => {
+                if (window.AudioManager) window.AudioManager.playButtonClick();
+                this.sendChatMessage(message);
+            });
+
+            buttonBg.on('pointerover', () => {
+                buttonBg.clear();
+                buttonBg.fillStyle(0x00CED1, 0.5);
+                buttonBg.fillRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
+                buttonBg.lineStyle(2, 0xFFD700, 0.8);
+                buttonBg.strokeRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
+            });
+
+            buttonBg.on('pointerout', () => {
+                buttonBg.clear();
+                buttonBg.fillStyle(0x00CED1, 0.3);
+                buttonBg.fillRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
+                buttonBg.lineStyle(2, 0x00CED1, 0.6);
+                buttonBg.strokeRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
+            });
+
+            this.chatContainer.add(buttonBg);
+            this.chatContainer.add(buttonText);
+        });
+
+        // Close button
+        const closeBtn = this.add.text(panelX + panelWidth - 40, panelY + 20, 'X', {
+            fontSize: '24px',
+            color: '#FF6B6B',
+            fontStyle: 'bold'
+        });
+        closeBtn.setOrigin(0.5);
+        closeBtn.setInteractive();
+        closeBtn.on('pointerdown', () => {
+            if (window.AudioManager) window.AudioManager.playButtonClick();
+            this.toggleChat();
+        });
+        closeBtn.on('pointerover', () => closeBtn.setColor('#FF4444'));
+        closeBtn.on('pointerout', () => closeBtn.setColor('#FF6B6B'));
+        this.chatContainer.add(closeBtn);
+
+        // Chat button (always visible bottom-right)
+        const chatBtnX = 730;
+        const chatBtnY = 530;
+
+        const chatButtonBg = this.add.graphics();
+        chatButtonBg.fillStyle(0x00CED1, 0.9);
+        chatButtonBg.fillCircle(chatBtnX, chatBtnY, 30);
+        chatButtonBg.lineStyle(3, 0xFFD700, 0.8);
+        chatButtonBg.strokeCircle(chatBtnX, chatBtnY, 30);
+        chatButtonBg.setScrollFactor(0);
+        chatButtonBg.setDepth(4000);
+        chatButtonBg.setInteractive(new Phaser.Geom.Circle(chatBtnX, chatBtnY, 30), Phaser.Geom.Circle.Contains);
+
+        const chatButtonText = this.add.text(chatBtnX, chatBtnY, '💬', {
+            fontSize: '32px'
+        });
+        chatButtonText.setOrigin(0.5);
+        chatButtonText.setScrollFactor(0);
+        chatButtonText.setDepth(4001);
+
+        chatButtonBg.on('pointerdown', () => {
+            if (window.AudioManager) window.AudioManager.playButtonClick();
+            this.toggleChat();
+        });
+
+        chatButtonBg.on('pointerover', () => {
+            chatButtonBg.clear();
+            chatButtonBg.fillStyle(0x00CED1, 1.0);
+            chatButtonBg.fillCircle(chatBtnX, chatBtnY, 32);
+            chatButtonBg.lineStyle(3, 0xFFD700, 1.0);
+            chatButtonBg.strokeCircle(chatBtnX, chatBtnY, 32);
+            chatButtonText.setScale(1.1);
+        });
+
+        chatButtonBg.on('pointerout', () => {
+            chatButtonBg.clear();
+            chatButtonBg.fillStyle(0x00CED1, 0.9);
+            chatButtonBg.fillCircle(chatBtnX, chatBtnY, 30);
+            chatButtonBg.lineStyle(3, 0xFFD700, 0.8);
+            chatButtonBg.strokeCircle(chatBtnX, chatBtnY, 30);
+            chatButtonText.setScale(1.0);
+        });
+
+        this.chatButton = chatButtonBg;
+        this.chatButtonText = chatButtonText;
+
+        console.log('[GameScene] Chat UI created');
+    }
+
+    /**
+     * Send a chat message to the creature AI
+     */
+    async sendChatMessage(message) {
+        if (!this.creatureAI) {
+            console.warn('[GameScene] CreatureAI not initialized');
+            return;
+        }
+
+        // Add user message to history
+        const currentHistory = this.chatHistoryText.text;
+        this.chatHistoryText.setText(currentHistory + `\n\nYou: ${message}`);
+
+        // Show "thinking" indicator
+        this.chatHistoryText.setText(this.chatHistoryText.text + `\n\n${getGameState().get('creature.name')}: ...`);
+
+        try {
+            // Get creature data for AI context
+            const creatureData = {
+                name: getGameState().get('creature.name'),
+                level: getGameState().get('creature.level'),
+                experience: getGameState().get('creature.experience'),
+                stats: getGameState().get('creature.stats'),
+                colors: getGameState().get('creature.colors'),
+                genetics: getGameState().get('creature.genes')
+            };
+
+            // Send message to AI
+            const response = await this.creatureAI.sendMessage(message, creatureData);
+
+            // Remove "thinking" indicator and add response
+            const historyWithoutThinking = this.chatHistoryText.text.replace(/\n\n.*: \.\.\.$/, '');
+            this.chatHistoryText.setText(historyWithoutThinking + `\n\n${getGameState().get('creature.name')}: ${response}`);
+
+            // Auto-scroll to bottom (simulate)
+            // Trim history if too long
+            const lines = this.chatHistoryText.text.split('\n');
+            if (lines.length > 20) {
+                this.chatHistoryText.setText(lines.slice(-20).join('\n'));
+            }
+
+        } catch (error) {
+            console.error('[GameScene] Chat error:', error);
+            const historyWithoutThinking = this.chatHistoryText.text.replace(/\n\n.*: \.\.\.$/, '');
+            this.chatHistoryText.setText(historyWithoutThinking + `\n\n${getGameState().get('creature.name')}: Sorry, I couldn't respond right now.`);
+        }
+    }
+
+    /**
      * Toggle chat interface
      */
     toggleChat() {
-        console.log('Chat toggle - feature coming soon!');
-        // TODO: Implement chat UI when needed
+        this.isChatOpen = !this.isChatOpen;
+        this.chatContainer.setVisible(this.isChatOpen);
+
+        console.log(`[GameScene] Chat ${this.isChatOpen ? 'opened' : 'closed'}`);
+    }
+
+    /**
+     * Shutdown and cleanup
+     * Called when scene is stopped/destroyed
+     */
+    shutdown() {
+        console.log('[GameScene] Shutting down - cleaning up event listeners');
+
+        // Remove global event listeners
+        if (window.EnemyManager) {
+            window.EnemyManager.off('enemyKilled');
+        }
+
+        if (window.EconomyManager) {
+            window.EconomyManager.off('coins:added');
+            window.EconomyManager.off('coins:spent');
+            window.EconomyManager.off('coins:insufficient');
+        }
+
+        const gameState = getGameState();
+        if (gameState) {
+            gameState.off('levelUp');
+            gameState.off('careActionPerformed');
+            gameState.off('dailyBonusClaimed');
+            gameState.off('stateChanged');
+        }
+
+        // Remove game event listeners
+        if (this.game && this.game.events) {
+            this.game.events.off('virtual-joystick');
+            this.game.events.off('virtual-key');
+        }
+
+        // Remove scene event listeners
+        if (this.events) {
+            this.events.off('kid_mode_action');
+        }
+
+        // Remove input event listeners
+        if (this.input) {
+            this.input.off('pointerdown');
+            if (this.input.keyboard) {
+                this.input.keyboard.off('keydown');
+            }
+        }
+
+        // Destroy interactive objects (this removes their listeners)
+        const interactiveObjects = [
+            this.player,
+            this.dailyBonusButton,
+            this.careCloseButton,
+            this.chatButtonBg
+        ];
+
+        interactiveObjects.forEach(obj => {
+            if (obj && obj.removeAllListeners) {
+                obj.removeAllListeners();
+            }
+        });
+
+        // Clear timers
+        if (this.time) {
+            this.time.removeAllEvents();
+        }
+
+        // Clean up graphics engine
+        if (this.graphicsEngine) {
+            this.graphicsEngine = null;
+        }
+
+        console.log('[GameScene] Cleanup complete');
     }
 }
 

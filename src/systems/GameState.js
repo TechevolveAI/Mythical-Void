@@ -511,18 +511,18 @@ class GameStateManager {
         let creatureGenes = this.get('creature.genes');
         if (!creatureGenes) {
             // Generate initial genes for current creature
-            creatureGenes = window.GeneticsEngine.generateInitialGenes();
+            creatureGenes = window.BreedingEngine.generateInitialGenes();
             this.set('creature.genes', creatureGenes);
         }
 
         // If no partner provided, generate a random partner
         if (!partnerGenes) {
-            partnerGenes = window.GeneticsEngine.generateRandomGenes();
+            partnerGenes = window.BreedingEngine.generateRandomGenes();
         }
 
         // Perform breeding
-        const offspringGenes = window.GeneticsEngine.breedCreatures(creatureGenes, partnerGenes);
-        const offspringData = window.GeneticsEngine.getCreatureTraits(offspringGenes);
+        const offspringGenes = window.BreedingEngine.breedCreatures(creatureGenes, partnerGenes);
+        const offspringData = window.BreedingEngine.getCreatureTraits(offspringGenes);
 
         // Update breeding shrine state
         this.set('breedingShrine.lastBreedingTime', Date.now());
@@ -532,7 +532,7 @@ class GameStateManager {
         history.push({
             timestamp: Date.now(),
             offspringTraits: offspringData.traits,
-            compatibility: window.GeneticsEngine.getBreedingCompatibility(creatureGenes, partnerGenes)
+            compatibility: window.BreedingEngine.getBreedingCompatibility(creatureGenes, partnerGenes)
         });
         this.set('breedingShrine.breedingHistory', history);
 
@@ -558,7 +558,7 @@ class GameStateManager {
      * Get breeding shrine information for UI
      */
     getBreedingShrineInfo() {
-        const shrineData = window.GeneticsEngine.getBreedingShrineData();
+        const shrineData = window.BreedingEngine.getBreedingShrineData();
         const status = this.getBreedingShrineStatus();
 
         return {

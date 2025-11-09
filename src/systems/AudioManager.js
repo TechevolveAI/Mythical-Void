@@ -95,6 +95,45 @@ class AudioManager {
             { frequency: 80, duration: 0.1, volume: 0.2 }
         ]);
 
+        // Level up - triumphant fanfare
+        this.createToneSequence('level_up', [
+            { frequency: 523.25, duration: 0.12, volume: 0.3 },  // C5
+            { frequency: 659.25, duration: 0.12, volume: 0.3 },  // E5
+            { frequency: 783.99, duration: 0.12, volume: 0.3 },  // G5
+            { frequency: 1046.50, duration: 0.15, volume: 0.35 }, // C6
+            { frequency: 1318.51, duration: 0.2, volume: 0.3 }   // E6
+        ]);
+
+        // Achievement unlock - magical chime sequence
+        this.createToneSequence('achievement', [
+            { frequency: 659.25, duration: 0.1, volume: 0.25 },  // E5
+            { frequency: 783.99, duration: 0.1, volume: 0.25 },  // G5
+            { frequency: 987.77, duration: 0.1, volume: 0.25 },  // B5
+            { frequency: 1318.51, duration: 0.15, volume: 0.3 }, // E6
+            { frequency: 1567.98, duration: 0.2, volume: 0.25 }  // G6
+        ]);
+
+        // Pet/interact - warm, gentle tone
+        this.createToneSequence('pet', [
+            { frequency: 523.25, duration: 0.15, volume: 0.2 },  // C5
+            { frequency: 659.25, duration: 0.15, volume: 0.2 }   // E5
+        ]);
+
+        // Feed - satisfying munch sound
+        this.createToneSequence('feed', [
+            { frequency: 400, duration: 0.08, volume: 0.25 },
+            { frequency: 350, duration: 0.08, volume: 0.2 },
+            { frequency: 400, duration: 0.08, volume: 0.25 }
+        ]);
+
+        // Play - playful bounce
+        this.createToneSequence('play', [
+            { frequency: 523.25, duration: 0.1, volume: 0.2 },   // C5
+            { frequency: 659.25, duration: 0.1, volume: 0.2 },   // E5
+            { frequency: 523.25, duration: 0.1, volume: 0.2 },   // C5
+            { frequency: 783.99, duration: 0.15, volume: 0.25 }  // G5
+        ]);
+
         console.log('[AudioManager] Generated', this.generatedSounds.size, 'procedural sounds');
     }
 
@@ -194,6 +233,41 @@ class AudioManager {
      */
     playEnemyHit() {
         this.playSound('enemy_hit');
+    }
+
+    /**
+     * Play level up sound effect
+     */
+    playLevelUp() {
+        this.playSound('level_up');
+    }
+
+    /**
+     * Play achievement unlock sound effect
+     */
+    playAchievement() {
+        this.playSound('achievement');
+    }
+
+    /**
+     * Play pet/interact sound
+     */
+    playPet() {
+        this.playSound('pet');
+    }
+
+    /**
+     * Play feed sound
+     */
+    playFeed() {
+        this.playSound('feed');
+    }
+
+    /**
+     * Play play/interact sound
+     */
+    playPlay() {
+        this.playSound('play');
     }
 
     /**

@@ -45,6 +45,11 @@ export default class ShopScene extends Phaser.Scene {
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
         }
+
+        // Hide loading overlay once shop is ready
+        if (window.UXEnhancements) {
+            window.UXEnhancements.hideLoading();
+        }
     }
 
     /**
@@ -430,7 +435,7 @@ export default class ShopScene extends Phaser.Scene {
             zone.setInteractive({ useHandCursor: true });
 
             zone.on('pointerdown', () => {
-                this.purchaseItem(item);
+                this.showPurchaseConfirmation(item);
             });
 
             zone.on('pointerover', () => {
@@ -439,6 +444,9 @@ export default class ShopScene extends Phaser.Scene {
                 buyBtn.fillRoundedRect(startX + 400, y + 15, 70, 50, 8);
                 buyBtn.lineStyle(3, 0x00FF00);
                 buyBtn.strokeRoundedRect(startX + 400, y + 15, 70, 50, 8);
+
+                // Show item tooltip
+                this.showItemTooltip(item, startX, y);
             });
 
             zone.on('pointerout', () => {
@@ -447,6 +455,9 @@ export default class ShopScene extends Phaser.Scene {
                 buyBtn.fillRoundedRect(startX + 400, y + 15, 70, 50, 8);
                 buyBtn.lineStyle(2, 0x00FF00);
                 buyBtn.strokeRoundedRect(startX + 400, y + 15, 70, 50, 8);
+
+                // Hide item tooltip
+                this.hideItemTooltip();
             });
 
             this.catalogContainer.add([itemBg, icon, name, desc, priceText, coinIcon, buyBtn, buyLabel, zone]);
@@ -467,6 +478,207 @@ export default class ShopScene extends Phaser.Scene {
         this.purchasePanel = this.add.container(0, 0);
         this.purchasePanel.setVisible(false);
         this.purchasePanel.setDepth(100);
+    }
+
+    /**
+     * Show purchase confirmation dialog
+     */
+    showPurchaseConfirmation(item) {
+        console.log(`[ShopScene] Showing confirmation for: ${item.name}`);
+
+        // Create dark overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, 800, 600);
+        overlay.setDepth(200);
+
+        // Create confirmation panel
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 1);
+        panel.fillRoundedRect(200, 150, 400, 300, 15);
+        panel.lineStyle(3, 0x7B68EE);
+        panel.strokeRoundedRect(200, 150, 400, 300, 15);
+        panel.setDepth(201);
+
+        // Title
+        const title = this.add.text(400, 200, 'Confirm Purchase', {
+            fontSize: '28px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Item details
+        const details = this.add.text(400, 260,
+            `${item.name}\n\nPrice: ${item.price} Cosmic Coins`, {
+            fontSize: '20px',
+            color: '#FFFFFF',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Confirm button
+        const confirmBtn = this.add.graphics();
+        confirmBtn.fillStyle(0x00AA00, 1);
+        confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+        confirmBtn.lineStyle(2, 0x00FF00);
+        confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+        confirmBtn.setDepth(202);
+
+        const confirmLabel = this.add.text(300, 385, 'Confirm', {
+            fontSize: '20px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        const confirmZone = this.add.zone(230, 360, 140, 50).setOrigin(0, 0);
+        confirmZone.setInteractive({ useHandCursor: true });
+        confirmZone.setDepth(202);
+
+        // Cancel button
+        const cancelBtn = this.add.graphics();
+        cancelBtn.fillStyle(0xAA0000, 1);
+        cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+        cancelBtn.lineStyle(2, 0xFF0000);
+        cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+        cancelBtn.setDepth(202);
+
+        const cancelLabel = this.add.text(500, 385, 'Cancel', {
+            fontSize: '20px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        const cancelZone = this.add.zone(430, 360, 140, 50).setOrigin(0, 0);
+        cancelZone.setInteractive({ useHandCursor: true });
+        cancelZone.setDepth(202);
+
+        // Store references for cleanup
+        const dialogElements = [overlay, panel, title, details, confirmBtn, confirmLabel, confirmZone, cancelBtn, cancelLabel, cancelZone];
+
+        // Confirm handler
+        confirmZone.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+
+            // Clean up dialog
+            dialogElements.forEach(el => el.destroy());
+
+            // Proceed with purchase
+            this.purchaseItem(item);
+        });
+
+        // Confirm button hover
+        confirmZone.on('pointerover', () => {
+            confirmBtn.clear();
+            confirmBtn.fillStyle(0x00DD00, 1);
+            confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.lineStyle(3, 0x00FF00);
+            confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+        });
+
+        confirmZone.on('pointerout', () => {
+            confirmBtn.clear();
+            confirmBtn.fillStyle(0x00AA00, 1);
+            confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.lineStyle(2, 0x00FF00);
+            confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+        });
+
+        // Cancel handler
+        cancelZone.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+
+            // Clean up dialog
+            dialogElements.forEach(el => el.destroy());
+        });
+
+        // Cancel button hover
+        cancelZone.on('pointerover', () => {
+            cancelBtn.clear();
+            cancelBtn.fillStyle(0xDD0000, 1);
+            cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.lineStyle(3, 0xFF0000);
+            cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+        });
+
+        cancelZone.on('pointerout', () => {
+            cancelBtn.clear();
+            cancelBtn.fillStyle(0xAA0000, 1);
+            cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.lineStyle(2, 0xFF0000);
+            cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+        });
+
+        // ESC to cancel
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                dialogElements.forEach(el => el.destroy());
+                this.input.keyboard.off('keydown', escHandler);
+            }
+        };
+        this.input.keyboard.on('keydown', escHandler);
+    }
+
+    /**
+     * Show detailed item tooltip on hover
+     * @param {Object} item - Item data
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     */
+    showItemTooltip(item, x, y) {
+        // Hide existing tooltip first
+        this.hideItemTooltip();
+
+        // Create tooltip background
+        const tooltipWidth = 250;
+        const tooltipHeight = 120;
+        const tooltipX = x + 500; // Position to the right of the item
+        const tooltipY = y;
+
+        this.itemTooltip = this.add.graphics();
+        this.itemTooltip.fillStyle(0x1A1A3E, 0.95);
+        this.itemTooltip.fillRoundedRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 10);
+        this.itemTooltip.lineStyle(2, 0xFFD700);
+        this.itemTooltip.strokeRoundedRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight, 10);
+        this.itemTooltip.setDepth(150);
+
+        // Item details
+        const detailsText = [
+            `${item.icon} ${item.name}`,
+            '',
+            item.description,
+            '',
+            `Type: ${item.category}`,
+            `Effect: ${item.effect || 'Cosmetic'}`,
+            '',
+            `Price: ${item.price} Cosmic Coins`
+        ].join('\n');
+
+        this.itemTooltipText = this.add.text(tooltipX + 15, tooltipY + 15, detailsText, {
+            fontSize: '14px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            wordWrap: { width: tooltipWidth - 30 }
+        });
+        this.itemTooltipText.setDepth(151);
+
+        console.log(`[ShopScene] Showing tooltip for: ${item.name}`);
+    }
+
+    /**
+     * Hide the item tooltip
+     */
+    hideItemTooltip() {
+        if (this.itemTooltip) {
+            this.itemTooltip.destroy();
+            this.itemTooltip = null;
+        }
+        if (this.itemTooltipText) {
+            this.itemTooltipText.destroy();
+            this.itemTooltipText = null;
+        }
     }
 
     /**
@@ -633,7 +845,9 @@ export default class ShopScene extends Phaser.Scene {
             window.AudioManager.playButtonClick();
         }
 
-        this.scene.start('GameScene');
+        // Stop this scene and resume GameScene
+        this.scene.stop();
+        this.scene.resume('GameScene');
     }
 
     /**
@@ -717,11 +931,45 @@ export default class ShopScene extends Phaser.Scene {
      * Cleanup on shutdown
      */
     shutdown() {
-        console.log('[ShopScene] Shutting down');
+        console.log('[ShopScene] Shutting down - cleaning up event listeners');
 
-        // Remove event listeners
+        // Remove global event listeners
         if (window.GameState) {
             window.GameState.off('changed:currency.cosmicCoins');
+        }
+
+        // Remove keyboard listeners
+        if (this.input && this.input.keyboard) {
+            this.input.keyboard.off('keydown-ESC');
+        }
+
+        // Remove listeners from interactive zones/buttons
+        // Category buttons
+        if (this.categoryButtons && Array.isArray(this.categoryButtons)) {
+            this.categoryButtons.forEach(button => {
+                if (button && button.zone && button.zone.removeAllListeners) {
+                    button.zone.removeAllListeners();
+                }
+            });
+        }
+
+        // Item buttons
+        if (this.itemButtons && Array.isArray(this.itemButtons)) {
+            this.itemButtons.forEach(button => {
+                if (button && button.zone && button.zone.removeAllListeners) {
+                    button.zone.removeAllListeners();
+                }
+            });
+        }
+
+        // Close button zone
+        if (this.closeButtonZone && this.closeButtonZone.removeAllListeners) {
+            this.closeButtonZone.removeAllListeners();
+        }
+
+        // Clear all timers
+        if (this.time) {
+            this.time.removeAllEvents();
         }
 
         // Clear references
@@ -731,6 +979,9 @@ export default class ShopScene extends Phaser.Scene {
         this.itemButtons = [];
         this.catalogContainer = null;
         this.purchasePanel = null;
+        this.closeButtonZone = null;
+
+        console.log('[ShopScene] Cleanup complete');
     }
 }
 
