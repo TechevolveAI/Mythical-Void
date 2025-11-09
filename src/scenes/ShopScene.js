@@ -35,6 +35,9 @@ export default class ShopScene extends Phaser.Scene {
         this.isDragging = false;
         this.dragStartY = 0;
         this.dragStartScrollY = 0;
+        this.dragDistance = 0;
+        this.dragThreshold = 10; // Minimum pixels to differentiate tap from drag
+        this.isPurchasing = false; // Track purchase state to prevent double-clicks
 
         // Create shop UI with responsive layout
         this.createBackground();
@@ -889,60 +892,290 @@ export default class ShopScene extends Phaser.Scene {
     purchaseItem(item) {
         console.log(`[ShopScene] Attempting to purchase: ${item.name} for ${item.price} coins`);
 
+        // Prevent double-purchases
+        if (this.isPurchasing) {
+            console.log('[ShopScene] Purchase already in progress');
+            return;
+        }
+
+        this.isPurchasing = true;
+
+        // Show loading overlay
+        this.showLoadingOverlay('Processing purchase...');
+
         // FIX: Read from correct state path (player.cosmicCoins not currency.cosmicCoins)
         const currentCoins = window.GameState?.get('player.cosmicCoins') || 0;
 
         // Validate purchase
         if (currentCoins < item.price) {
-            this.showMessage('Not enough cosmic coins!', 0xFF0000);
+            this.hideLoadingOverlay();
+            this.showPurchaseError('Not enough cosmic coins!');
+            this.isPurchasing = false;
 
             if (window.AudioManager) {
-                window.AudioManager.playCollectCoin(); // Use as error sound
+                window.AudioManager.playError();
             }
             return;
         }
 
         // Check inventory space
         if (window.InventoryManager && !window.InventoryManager.hasSpace()) {
-            this.showMessage('Inventory is full!', 0xFF0000);
+            this.hideLoadingOverlay();
+            this.showPurchaseError('Inventory is full!');
+            this.isPurchasing = false;
 
             if (window.AudioManager) {
-                window.AudioManager.playCollectCoin(); // Use as error sound
+                window.AudioManager.playError();
             }
             return;
         }
 
-        // Process purchase via EconomyManager
-        if (window.EconomyManager) {
-            const success = window.EconomyManager.purchase(item.name, item.price, 'shop_purchase');
+        // Simulate async purchase (adds realistic feel)
+        this.time.delayedCall(300, () => {
+            // Process purchase via EconomyManager
+            if (window.EconomyManager) {
+                const success = window.EconomyManager.purchase(item.name, item.price, 'shop_purchase');
 
-            if (success) {
-                // Add item to inventory
-                if (window.InventoryManager) {
-                    const itemAdded = window.InventoryManager.addItem(item);
+                if (success) {
+                    // Add item to inventory
+                    if (window.InventoryManager) {
+                        const itemAdded = window.InventoryManager.addItem(item);
 
-                    if (itemAdded) {
-                        console.log(`[ShopScene] Purchase successful: ${item.name}`);
-                        this.showMessage(`Purchased ${item.name}!`, 0x00FF00);
+                        if (itemAdded) {
+                            console.log(`[ShopScene] Purchase successful: ${item.name}`);
+                            this.hideLoadingOverlay();
+                            this.showPurchaseSuccess(item);
 
-                        if (window.AudioManager) {
-                            window.AudioManager.playCollectCoin();
+                            // Update coin display in header
+                            this.updateCoinDisplay();
+
+                            if (window.AudioManager) {
+                                window.AudioManager.playPurchase();
+                            }
+
+                            this.isPurchasing = false;
+                        } else {
+                            // Refund if item couldn't be added
+                            window.EconomyManager.addCoins(item.price, 'shop_refund');
+                            this.hideLoadingOverlay();
+                            this.showPurchaseError('Failed to add item to inventory!');
+                            this.isPurchasing = false;
                         }
                     } else {
-                        // Refund if item couldn't be added
+                        console.warn('[ShopScene] InventoryManager not available');
+                        this.hideLoadingOverlay();
+                        this.showPurchaseError('Inventory system unavailable!');
+
+                        // Refund purchase
                         window.EconomyManager.addCoins(item.price, 'shop_refund');
-                        this.showMessage('Failed to add item to inventory!', 0xFF0000);
+                        this.isPurchasing = false;
                     }
                 } else {
-                    console.warn('[ShopScene] InventoryManager not available');
-                    this.showMessage('Inventory system unavailable!', 0xFF0000);
-
-                    // Refund purchase
-                    window.EconomyManager.addCoins(item.price, 'shop_refund');
+                    this.hideLoadingOverlay();
+                    this.showPurchaseError('Purchase failed!');
+                    this.isPurchasing = false;
                 }
             } else {
-                this.showMessage('Purchase failed!', 0xFF0000);
+                this.hideLoadingOverlay();
+                this.showPurchaseError('Shop system unavailable!');
+                this.isPurchasing = false;
             }
+        });
+    }
+
+    /**
+     * Show loading overlay during purchase processing
+     */
+    showLoadingOverlay(message = 'Loading...') {
+        const { width, height } = this.dims;
+
+        // Semi-transparent dark overlay
+        this.loadingOverlay = this.add.graphics();
+        this.loadingOverlay.fillStyle(0x000000, 0.8);
+        this.loadingOverlay.fillRect(0, 0, width, height);
+        this.loadingOverlay.setDepth(300);
+
+        // Loading text
+        this.loadingText = this.add.text(width / 2, height / 2, message, {
+            fontSize: this.dims.isMobile ? '20px' : '24px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(301);
+
+        // Pulsing animation
+        this.tweens.add({
+            targets: this.loadingText,
+            alpha: { from: 1, to: 0.3 },
+            duration: 600,
+            yoyo: true,
+            repeat: -1
+        });
+
+        console.log('[ShopScene] Loading overlay shown');
+    }
+
+    /**
+     * Hide loading overlay
+     */
+    hideLoadingOverlay() {
+        if (this.loadingOverlay) {
+            this.loadingOverlay.destroy();
+            this.loadingOverlay = null;
+        }
+        if (this.loadingText) {
+            this.tweens.killTweensOf(this.loadingText);
+            this.loadingText.destroy();
+            this.loadingText = null;
+        }
+        console.log('[ShopScene] Loading overlay hidden');
+    }
+
+    /**
+     * Show purchase success animation
+     */
+    showPurchaseSuccess(item) {
+        const { width, height, isMobile } = this.dims;
+
+        // Success message
+        const successText = this.add.text(width / 2, height / 2 - 50, `✅ Purchased ${item.name}!`, {
+            fontSize: isMobile ? '22px' : '28px',
+            color: '#00FF00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(250).setAlpha(0);
+
+        // Coin animation (fly from item to header)
+        const coinIcon = this.add.text(width / 2, height / 2, item.icon, {
+            fontSize: isMobile ? '48px' : '64px'
+        }).setOrigin(0.5).setDepth(251).setScale(0);
+
+        // Success sequence
+        this.tweens.add({
+            targets: successText,
+            alpha: 1,
+            y: height / 2 - 70,
+            duration: 300,
+            ease: 'Back.easeOut'
+        });
+
+        this.tweens.add({
+            targets: coinIcon,
+            scale: 1.5,
+            duration: 300,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Fly coin to inventory/top
+                this.tweens.add({
+                    targets: coinIcon,
+                    x: width - 100,
+                    y: 50,
+                    scale: 0.5,
+                    duration: 600,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        coinIcon.destroy();
+                    }
+                });
+            }
+        });
+
+        // Particle burst using FXLibrary if available
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, width / 2, height / 2, {
+                count: 20,
+                color: [0x00FF00, 0xFFD700, 0xFFFFFF],
+                duration: 1500
+            });
+        }
+
+        // Fade out success text
+        this.time.delayedCall(1500, () => {
+            this.tweens.add({
+                targets: successText,
+                alpha: 0,
+                y: height / 2 - 100,
+                duration: 400,
+                onComplete: () => {
+                    successText.destroy();
+                }
+            });
+        });
+    }
+
+    /**
+     * Show purchase error animation
+     */
+    showPurchaseError(message) {
+        const { width, height, isMobile } = this.dims;
+
+        // Error message
+        const errorText = this.add.text(width / 2, height / 2, `❌ ${message}`, {
+            fontSize: isMobile ? '20px' : '24px',
+            color: '#FF0000',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: width - 100 }
+        }).setOrigin(0.5).setDepth(250).setAlpha(0);
+
+        // Shake animation
+        const originalY = height / 2;
+        this.tweens.add({
+            targets: errorText,
+            alpha: 1,
+            duration: 200
+        });
+
+        this.tweens.add({
+            targets: errorText,
+            x: { from: width / 2 - 10, to: width / 2 + 10 },
+            duration: 50,
+            yoyo: true,
+            repeat: 3
+        });
+
+        // Fade out
+        this.time.delayedCall(2000, () => {
+            this.tweens.add({
+                targets: errorText,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => {
+                    errorText.destroy();
+                }
+            });
+        });
+    }
+
+    /**
+     * Update coin display in header with animation
+     */
+    updateCoinDisplay() {
+        const currentCoins = window.GameState?.get('player.cosmicCoins') || 0;
+
+        if (this.currencyText) {
+            // Animate the coin count update
+            const oldCount = parseInt(this.currencyText.text) || 0;
+
+            this.tweens.add({
+                targets: this.currencyText,
+                scale: { from: 1.2, to: 1 },
+                duration: 300,
+                ease: 'Back.easeOut'
+            });
+
+            // Count up animation
+            this.tweens.addCounter({
+                from: oldCount,
+                to: currentCoins,
+                duration: 400,
+                onUpdate: (tween) => {
+                    const value = Math.floor(tween.getValue());
+                    this.currencyText.setText(value.toString());
+                }
+            });
         }
     }
 
@@ -986,27 +1219,40 @@ export default class ShopScene extends Phaser.Scene {
 
     /**
      * Set up scroll handling for item catalog
+     * CRITICAL FIX: Implements tap vs drag detection to prevent blocking buy buttons
      */
     setupScrolling() {
         const { x, y, width, height } = this.catalogBounds;
 
         // Create invisible interactive zone for scrolling
+        // DEPTH FIX: Set to 14 (below catalog at 16) to allow button clicks
         const scrollZone = this.add.zone(x, y, width, height).setOrigin(0, 0);
         scrollZone.setInteractive();
-        scrollZone.setDepth(17);
+        scrollZone.setDepth(14);
 
-        // Touch/mouse drag scrolling
+        // Store reference for cleanup
+        this.scrollZone = scrollZone;
+
+        // Touch/mouse drag scrolling with tap detection
         scrollZone.on('pointerdown', (pointer) => {
-            this.isDragging = true;
             this.dragStartY = pointer.y;
             this.dragStartScrollY = this.scrollY;
+            this.dragDistance = 0;
+            this.isDragging = false; // Don't set true yet - wait for movement
         });
 
         scrollZone.on('pointermove', (pointer) => {
-            if (this.isDragging) {
-                const deltaY = this.dragStartY - pointer.y;
+            // Calculate drag distance
+            const deltaY = Math.abs(this.dragStartY - pointer.y);
+            this.dragDistance = deltaY;
+
+            // Only start scrolling if movement exceeds threshold
+            if (deltaY > this.dragThreshold) {
+                this.isDragging = true;
+
+                const scrollDelta = this.dragStartY - pointer.y;
                 this.scrollY = Phaser.Math.Clamp(
-                    this.dragStartScrollY + deltaY,
+                    this.dragStartScrollY + scrollDelta,
                     0,
                     this.maxScrollY
                 );
@@ -1014,12 +1260,20 @@ export default class ShopScene extends Phaser.Scene {
             }
         });
 
-        scrollZone.on('pointerup', () => {
+        scrollZone.on('pointerup', (pointer) => {
+            // If drag distance is below threshold, it's a tap - do nothing
+            // This allows button zones to handle the click
+            if (this.dragDistance < this.dragThreshold) {
+                console.log('[ShopScene] Tap detected - allowing button interaction');
+            }
+
             this.isDragging = false;
+            this.dragDistance = 0;
         });
 
         scrollZone.on('pointerout', () => {
             this.isDragging = false;
+            this.dragDistance = 0;
         });
 
         // Mouse wheel scrolling
@@ -1037,7 +1291,7 @@ export default class ShopScene extends Phaser.Scene {
             this.exitShop();
         });
 
-        console.log('[ShopScene] Scroll handling set up');
+        console.log('[ShopScene] Smart scroll handling set up (tap vs drag detection enabled)');
     }
 
     /**
@@ -1181,9 +1435,22 @@ export default class ShopScene extends Phaser.Scene {
             this.closeButtonZone.removeAllListeners();
         }
 
+        // Scroll zone
+        if (this.scrollZone && this.scrollZone.removeAllListeners) {
+            this.scrollZone.removeAllListeners();
+        }
+
+        // Clean up any active overlays
+        this.hideLoadingOverlay();
+
         // Clear all timers
         if (this.time) {
             this.time.removeAllEvents();
+        }
+
+        // Clear all tweens
+        if (this.tweens) {
+            this.tweens.killAll();
         }
 
         // Clear references
@@ -1194,6 +1461,10 @@ export default class ShopScene extends Phaser.Scene {
         this.catalogContainer = null;
         this.purchasePanel = null;
         this.closeButtonZone = null;
+        this.scrollZone = null;
+        this.currencyText = null;
+        this.loadingOverlay = null;
+        this.loadingText = null;
 
         console.log('[ShopScene] Cleanup complete');
     }
