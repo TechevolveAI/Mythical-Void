@@ -651,23 +651,33 @@ class NamingScene extends Phaser.Scene {
         htmlInput.addEventListener('touchstart', (e) => {
             e.stopPropagation();
             htmlInput.focus();
+            console.log('[NamingScene] HTML input touched');
         });
 
         htmlInput.addEventListener('click', (e) => {
             e.stopPropagation();
             htmlInput.focus();
+            console.log('[NamingScene] HTML input clicked');
         });
-
-        // Auto-focus after a brief delay to ensure visibility
-        setTimeout(() => {
-            if (this.mobileInput && document.body.contains(this.mobileInput)) {
-                this.mobileInput.focus();
-                console.log('[NamingScene] Mobile input auto-focused');
-            }
-        }, 500);
 
         // Store reference for cleanup
         this.mobileInput = htmlInput;
+
+        // CRITICAL iOS FIX: Create a Phaser interactive zone that forwards touches to HTML input
+        // iOS requires focus() to be called directly from a user event, not programmatically
+        const inputZone = this.add.zone(inputX + inputWidth/2, inputY + inputHeight/2, inputWidth, inputHeight)
+            .setOrigin(0.5)
+            .setInteractive({ cursor: 'text' });
+
+        inputZone.on('pointerdown', (pointer) => {
+            console.log('[NamingScene] Input zone tapped - focusing HTML input');
+            // This happens directly in response to user touch, so iOS allows keyboard
+            htmlInput.focus();
+            htmlInput.click(); // Some devices need this
+        });
+
+        // Store zone reference for cleanup
+        this.mobileInputZone = inputZone;
     }
 
     /**
@@ -905,6 +915,15 @@ class NamingScene extends Phaser.Scene {
                 console.log('[NamingScene] Mobile input cleaned up');
             }
 
+            // Clean up mobile input zone
+            if (this.mobileInputZone) {
+                if (this.mobileInputZone.removeAllListeners) {
+                    this.mobileInputZone.removeAllListeners();
+                }
+                this.mobileInputZone = null;
+                console.log('[NamingScene] Mobile input zone cleaned up');
+            }
+
             // Remove resize listener
             if (this.inputResizeHandler) {
                 window.removeEventListener('resize', this.inputResizeHandler);
@@ -975,6 +994,15 @@ class NamingScene extends Phaser.Scene {
             }
             this.mobileInput = null;
             console.log('[NamingScene] Mobile input cleaned up in shutdown');
+        }
+
+        // Clean up mobile input zone
+        if (this.mobileInputZone) {
+            if (this.mobileInputZone.removeAllListeners) {
+                this.mobileInputZone.removeAllListeners();
+            }
+            this.mobileInputZone = null;
+            console.log('[NamingScene] Mobile input zone cleaned up in shutdown');
         }
 
         // Remove resize listener
