@@ -541,6 +541,13 @@ class NamingScene extends Phaser.Scene {
             color: '#333333'
         }).setOrigin(0.5);
 
+        // Detect touch capability and create mobile input if needed
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        if (isTouchDevice) {
+            console.log('[NamingScene] Touch device detected on desktop layout - creating mobile input');
+            this.createMobileInput(300, 430, 200, 40);
+        }
+
         this.updateNameDisplay();
     }
 
@@ -553,20 +560,29 @@ class NamingScene extends Phaser.Scene {
         htmlInput.type = 'text';
         htmlInput.maxLength = this.maxNameLength;
         htmlInput.placeholder = 'Tap to name your creature';
+        htmlInput.value = ''; // Ensure it starts empty
 
-        // Apply Tailwind CSS classes for professional styling
-        htmlInput.className = 'absolute z-[1000] text-center bg-white/95 text-gray-800 border-2 border-mythic-purple rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-mythic-gold focus:border-mythic-gold transition-all duration-200';
-
-        // Keep positioning and sizing in JS (required for dynamic canvas positioning)
+        // Use inline styles for maximum compatibility (no Tailwind dependencies)
         htmlInput.style.position = 'absolute';
-        htmlInput.style.fontSize = '16px'; // Prevents iOS zoom
-        htmlInput.style.padding = '8px';
-        htmlInput.style.zIndex = '1000';
+        htmlInput.style.fontSize = '18px'; // Prevents iOS zoom (16px+ required)
+        htmlInput.style.padding = '12px';
+        htmlInput.style.zIndex = '10000'; // Very high to ensure it's on top
+        htmlInput.style.textAlign = 'center';
+        htmlInput.style.backgroundColor = 'rgba(255, 255, 255, 0.98)';
+        htmlInput.style.color = '#333333';
+        htmlInput.style.border = '3px solid #4B0082';
+        htmlInput.style.borderRadius = '12px';
+        htmlInput.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+        htmlInput.style.outline = 'none';
+        htmlInput.style.WebkitAppearance = 'none'; // Remove iOS default styling
+        htmlInput.style.WebkitTapHighlightColor = 'transparent';
+        htmlInput.style.touchAction = 'manipulation'; // Prevent double-tap zoom
 
         htmlInput.autocomplete = 'off';
         htmlInput.autocorrect = 'off';
         htmlInput.autocapitalize = 'words';
         htmlInput.spellcheck = false;
+        htmlInput.inputMode = 'text'; // Hint for mobile keyboard type
 
         // Position the input - need to account for canvas position
         const updateInputPosition = () => {
@@ -631,10 +647,24 @@ class NamingScene extends Phaser.Scene {
             }
         });
 
-        // Focus when tapped
-        htmlInput.addEventListener('touchstart', () => {
+        // Focus when tapped (handle both touch and click)
+        htmlInput.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
             htmlInput.focus();
         });
+
+        htmlInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+            htmlInput.focus();
+        });
+
+        // Auto-focus after a brief delay to ensure visibility
+        setTimeout(() => {
+            if (this.mobileInput && document.body.contains(this.mobileInput)) {
+                this.mobileInput.focus();
+                console.log('[NamingScene] Mobile input auto-focused');
+            }
+        }, 500);
 
         // Store reference for cleanup
         this.mobileInput = htmlInput;
@@ -933,6 +963,50 @@ class NamingScene extends Phaser.Scene {
 
     update() {
         // Scene handled by input events
+    }
+
+    shutdown() {
+        console.log('[NamingScene] Shutting down - cleaning up resources');
+
+        // Clean up mobile HTML input if it exists
+        if (this.mobileInput) {
+            if (this.mobileInput.parentElement) {
+                this.mobileInput.parentElement.removeChild(this.mobileInput);
+            }
+            this.mobileInput = null;
+            console.log('[NamingScene] Mobile input cleaned up in shutdown');
+        }
+
+        // Remove resize listener
+        if (this.inputResizeHandler) {
+            window.removeEventListener('resize', this.inputResizeHandler);
+            this.inputResizeHandler = null;
+            console.log('[NamingScene] Resize listener removed in shutdown');
+        }
+
+        // Remove keyboard listeners
+        if (this.input && this.input.keyboard) {
+            this.input.keyboard.removeAllListeners();
+            console.log('[NamingScene] Keyboard listeners removed in shutdown');
+        }
+
+        // Stop all tweens
+        if (this.tweens) {
+            this.tweens.killAll();
+        }
+
+        // Clear timers
+        if (this.time) {
+            this.time.removeAllEvents();
+        }
+
+        // Clear references
+        this.graphicsEngine = null;
+        this.creature = null;
+        this.clouds = null;
+        this.enterWorldButton = null;
+
+        console.log('[NamingScene] Cleanup complete');
     }
 }
 
