@@ -1050,7 +1050,9 @@ export default class InventoryScene extends Phaser.Scene {
             window.AudioManager.playButtonClick();
         }
 
-        this.scene.start('GameScene');
+        // Stop this scene and resume GameScene
+        this.scene.stop();
+        this.scene.resume('GameScene');
     }
 
     /**

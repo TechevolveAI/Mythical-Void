@@ -33,6 +33,7 @@ import './systems/CreatureAI.js';
 import './systems/CareSystem.js';
 import './systems/AchievementSystem.js';
 import './systems/TutorialSystem.js';
+import './systems/MobileControls.js';
 import './scenes/HatchingScene.js';
 import './scenes/PersonalityScene.js';
 import './scenes/NamingScene.js';

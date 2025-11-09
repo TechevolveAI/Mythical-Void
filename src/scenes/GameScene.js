@@ -45,6 +45,7 @@ class GameScene extends Phaser.Scene {
         this.projectiles = null;
         this.shop = null;
         this.nearShop = false;
+        this.mobileControls = null;
     }
 
     preload() {
@@ -133,6 +134,13 @@ class GameScene extends Phaser.Scene {
             
             // Create UI elements
             this.createUI();
+
+            // Initialize mobile controls if on mobile device
+            if (window.MobileControls) {
+                this.mobileControls = new window.MobileControls(this);
+                this.mobileControls.show();
+                console.log('[GameScene] Mobile controls initialized');
+            }
 
             // Initialize Kid Mode features if enabled
             this.initializeKidMode();
@@ -2438,6 +2446,12 @@ class GameScene extends Phaser.Scene {
     }
 
     toggleCarePanel() {
+        // Defensive check: ensure care panel elements exist
+        if (!this.carePanelBg || !this.carePanelTitle || !this.careCloseButton) {
+            console.warn('[GameScene] Care panel elements not initialized');
+            return;
+        }
+
         this.isCarePanelOpen = !this.isCarePanelOpen;
 
         // Toggle visibility of all care panel elements
@@ -2454,7 +2468,9 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.isCarePanelOpen) {
-            this.updateCareButtons();
+            if (this.updateCareButtons) {
+                this.updateCareButtons();
+            }
             // Announce to screen reader
             if (window.UXEnhancements) {
                 window.UXEnhancements.announce('Care panel opened. Use Tab to navigate options.');
@@ -2467,6 +2483,11 @@ class GameScene extends Phaser.Scene {
         if (!this.nearbyFlower) {
             // Show interaction hint when near flowers
             this.showInteractionHint('Press SPACE to smell the flower');
+
+            // Update mobile interact button icon to flower
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('🌸');
+            }
         }
 
         // Store reference to current flower for space key interaction
@@ -2481,6 +2502,11 @@ class GameScene extends Phaser.Scene {
 
             // Show shop entry hint
             this.showInteractionHint('Press SPACE to enter the Cosmic Shop');
+
+            // Update mobile interact button icon to shop
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('🏪');
+            }
         }
     }
 
@@ -2537,8 +2563,9 @@ class GameScene extends Phaser.Scene {
             window.UXEnhancements.showLoading('Opening Inventory...');
         }
 
-        // Start InventoryScene
-        this.scene.start('InventoryScene');
+        // Pause this scene and launch InventoryScene on top
+        this.scene.pause();
+        this.scene.launch('InventoryScene');
     }
 
     showInteractionHint(message) {
@@ -2924,6 +2951,11 @@ class GameScene extends Phaser.Scene {
             this.showInteractionHint('*sniff* What a lovely smell! (+2 Happiness, +5 XP)');
             this.nearbyFlower = null;
 
+            // Reset mobile interact button icon to default (unless near shop)
+            if (this.mobileControls && !this.nearShop) {
+                this.mobileControls.updateInteractIcon('👆');
+            }
+
             // Update stats display
             this.updateStatsDisplay();
 
@@ -2969,6 +3001,11 @@ class GameScene extends Phaser.Scene {
                 console.log('[GameScene] Player moved away from shop, distance:', distance);
                 this.nearShop = false;
                 this.hideInteractionHint();
+
+                // Reset mobile interact button icon to default
+                if (this.mobileControls && !this.nearbyFlower) {
+                    this.mobileControls.updateInteractIcon('👆');
+                }
             }
         }
 
@@ -3013,7 +3050,14 @@ class GameScene extends Phaser.Scene {
 
         // Reset nearby flower when moving away
         if (!this.physics.overlap(this.player, this.flowers)) {
-            this.nearbyFlower = null;
+            if (this.nearbyFlower) {
+                this.nearbyFlower = null;
+
+                // Reset mobile interact button icon to default (unless near shop)
+                if (this.mobileControls && !this.nearShop) {
+                    this.mobileControls.updateInteractIcon('👆');
+                }
+            }
         }
     }
 
@@ -3794,6 +3838,13 @@ class GameScene extends Phaser.Scene {
         // Clear timers
         if (this.time) {
             this.time.removeAllEvents();
+        }
+
+        // Clean up mobile controls
+        if (this.mobileControls) {
+            this.mobileControls.destroy();
+            this.mobileControls = null;
+            console.log('[GameScene] Mobile controls cleaned up');
         }
 
         // Clean up graphics engine
