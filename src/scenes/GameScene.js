@@ -827,7 +827,7 @@ class GameScene extends Phaser.Scene {
         // Listen for virtual button events
         this.game.events.on('virtual-key', (data) => {
             if (data.key === 'space' && data.type === 'down') {
-                this.handleInteraction();
+                this.handleSpaceInteraction();
             }
         });
 
@@ -2109,16 +2109,38 @@ class GameScene extends Phaser.Scene {
         console.log('[GameScene] Player position:', player.x, player.y);
         console.log('[GameScene] Shop position:', shop.x, shop.y);
 
-        this.nearShop = true;
-        console.log('[GameScene] nearShop set to TRUE');
+        // Only set nearShop if not already true to prevent repeated triggers
+        if (!this.nearShop) {
+            this.nearShop = true;
+            console.log('[GameScene] nearShop set to TRUE');
 
-        // Show shop entry hint
-        this.showInteractionHint('Press SPACE to enter the Cosmic Shop');
-        console.log('[GameScene] Interaction hint shown');
+            // Show shop entry hint
+            this.showInteractionHint('Press SPACE to enter the Cosmic Shop');
+            console.log('[GameScene] Interaction hint shown');
+        }
     }
 
     enterShop() {
         console.log('[GameScene] Entering Cosmic Shop');
+
+        // Check cooldown to prevent rapid scene transitions
+        if (this.shopEntryCooldown) {
+            console.log('[GameScene] Shop entry on cooldown');
+            return;
+        }
+
+        // Set cooldown flag
+        this.shopEntryCooldown = true;
+        this.time.delayedCall(1000, () => {
+            this.shopEntryCooldown = false;
+        });
+
+        // Save current player position before entering shop
+        getGameState().set('world.lastPosition', {
+            x: this.player.x,
+            y: this.player.y
+        });
+        console.log('[GameScene] Saved player position:', this.player.x, this.player.y);
 
         // Play button click sound
         if (window.AudioManager) {
