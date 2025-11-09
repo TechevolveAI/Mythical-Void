@@ -137,12 +137,23 @@ class HatchingScene extends Phaser.Scene {
     }
 
     showHatchingScreen() {
+        console.log('[HatchingScene] 🥚 Showing hatching screen with audio');
+
+        // Play suspenseful ambient sound
+        if (window.AudioManager) {
+            window.AudioManager.playSuspenseAmbient();
+            console.log('[HatchingScene] 🎵 Playing suspense ambient sound');
+        }
+
         // Initialize enhanced graphics engine
         const GraphicsEngine = getGraphicsEngine();
         this.graphicsEngine = new GraphicsEngine(this);
 
         // Create enhanced programmatic sprites
         this.createEnhancedSprites();
+
+        // Add audio indicator
+        this.createAudioIndicator();
 
         // Create beautiful sky background with clouds
         this.createBackground();
@@ -861,11 +872,21 @@ class HatchingScene extends Phaser.Scene {
         this.hatchingProgress += 2;
         this.progressText.setText(`Hatching... ${this.hatchingProgress}%`);
 
-        // Change egg color as it hatches
-        if (this.hatchingProgress >= 33 && this.hatchingProgress < 66) {
+        // Change egg color as it hatches with crack sounds
+        if (this.hatchingProgress >= 33 && this.hatchingProgress < 35) {
+            // First crack at 33%
+            console.log('[HatchingScene] 🔊 First crack sound (33%)');
+            if (window.AudioManager) {
+                window.AudioManager.playEggCrack();
+            }
             // Change to pink
             this.updateEggColor(0xFFC0CB, 0x8B4513); // Pink with brown outline
-        } else if (this.hatchingProgress >= 66) {
+        } else if (this.hatchingProgress >= 66 && this.hatchingProgress < 68) {
+            // Second crack at 66%
+            console.log('[HatchingScene] 🔊 Second crack sound (66%)');
+            if (window.AudioManager) {
+                window.AudioManager.playEggCrack();
+            }
             // Change to red
             this.updateEggColor(0xFF6B6B, 0x8B4513); // Red with brown outline
         }
@@ -894,6 +915,13 @@ class HatchingScene extends Phaser.Scene {
     }
 
     completeHatching() {
+        console.log('[HatchingScene] 🎉 Egg hatched! Playing celebration sound');
+
+        // Play celebration sound
+        if (window.AudioManager) {
+            window.AudioManager.playHatchCelebration();
+        }
+
         this.hatchingTimer.destroy();
         this.isHatching = false;
         this.progressText.setVisible(false);
@@ -1480,6 +1508,86 @@ class HatchingScene extends Phaser.Scene {
                 this.scene.start('PersonalityScene');
             }
         });
+    }
+
+    /**
+     * Create audio indicator with mute/unmute toggle
+     */
+    createAudioIndicator() {
+        const width = this.cameras.main.width;
+        const isMobile = width < 600;
+
+        // Position in top-right corner
+        const x = width - (isMobile ? 50 : 70);
+        const y = isMobile ? 30 : 40;
+        const size = isMobile ? 40 : 50;
+
+        // Create background circle
+        this.audioIndicatorBg = this.add.graphics();
+        this.audioIndicatorBg.fillStyle(0x2A0A4E, 0.8);
+        this.audioIndicatorBg.fillCircle(x, y, size / 2);
+        this.audioIndicatorBg.lineStyle(2, 0x7B68EE);
+        this.audioIndicatorBg.strokeCircle(x, y, size / 2);
+        this.audioIndicatorBg.setDepth(1000);
+
+        // Create audio icon (speaker with waves)
+        this.audioIcon = this.add.text(x, y, '🔊', {
+            fontSize: isMobile ? '24px' : '28px'
+        }).setOrigin(0.5).setDepth(1001);
+
+        // Pulsing animation for audio waves
+        this.tweens.add({
+            targets: this.audioIcon,
+            scale: { from: 1, to: 1.1 },
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Make it interactive
+        const hitArea = new Phaser.Geom.Circle(0, 0, size / 2);
+        this.audioIcon.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
+
+        // Toggle mute on click
+        this.audioIcon.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.toggleMute();
+                const isMuted = window.AudioManager.muted;
+                this.audioIcon.setText(isMuted ? '🔇' : '🔊');
+
+                // Play feedback sound if unmuting
+                if (!isMuted && window.AudioManager) {
+                    window.AudioManager.playButtonClick();
+                }
+
+                console.log(`[HatchingScene] Audio ${isMuted ? 'muted' : 'unmuted'}`);
+            }
+        });
+
+        // Hover effect
+        this.audioIcon.on('pointerover', () => {
+            this.audioIndicatorBg.clear();
+            this.audioIndicatorBg.fillStyle(0x4A0080, 1);
+            this.audioIndicatorBg.fillCircle(x, y, size / 2);
+            this.audioIndicatorBg.lineStyle(3, 0xFFD700);
+            this.audioIndicatorBg.strokeCircle(x, y, size / 2);
+        });
+
+        this.audioIcon.on('pointerout', () => {
+            this.audioIndicatorBg.clear();
+            this.audioIndicatorBg.fillStyle(0x2A0A4E, 0.8);
+            this.audioIndicatorBg.fillCircle(x, y, size / 2);
+            this.audioIndicatorBg.lineStyle(2, 0x7B68EE);
+            this.audioIndicatorBg.strokeCircle(x, y, size / 2);
+        });
+
+        // Update icon based on current mute state
+        if (window.AudioManager && window.AudioManager.muted) {
+            this.audioIcon.setText('🔇');
+        }
+
+        console.log('[HatchingScene] ✅ Audio indicator created');
     }
 
     /**

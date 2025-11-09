@@ -22,39 +22,131 @@ export default class InventoryScene extends Phaser.Scene {
     }
 
     create() {
-        console.log('[InventoryScene] Initializing Inventory UI');
+        console.log('[InventoryScene] 🎒 Initializing Inventory UI');
 
-        // Initialize graphics engine
-        if (window.GraphicsEngine) {
-            this.graphicsEngine = new window.GraphicsEngine(this);
-        }
+        try {
+            // Initialize graphics engine
+            if (window.GraphicsEngine) {
+                this.graphicsEngine = new window.GraphicsEngine(this);
+                console.log('[InventoryScene] ✅ GraphicsEngine initialized');
+            } else {
+                console.error('[InventoryScene] ❌ GraphicsEngine not available');
+            }
 
-        // Calculate responsive dimensions (mobile-first approach)
-        this.calculateResponsiveDimensions();
+            // Calculate responsive dimensions (mobile-first approach)
+            console.log('[InventoryScene] Calculating responsive dimensions...');
+            this.calculateResponsiveDimensions();
+            console.log('[InventoryScene] ✅ Dimensions calculated:', this.dims);
 
-        // Create UI
-        this.createBackground();
-        this.createHeader();
-        this.createSortFilterControls();
-        this.createInventoryGrid();
-        this.createItemDetails();
-        this.createActionButtons();
-        this.createExitButton();
+            // Create UI (responsive approach) with error handling for each step
+            console.log('[InventoryScene] Creating background...');
+            this.createBackground();
+            console.log('[InventoryScene] ✅ Background created');
 
-        // Load inventory items
-        this.refreshInventory();
+            console.log('[InventoryScene] Creating header...');
+            this.createHeader();
+            console.log('[InventoryScene] ✅ Header created');
 
-        // Listen for inventory changes
-        if (window.InventoryManager) {
+            console.log('[InventoryScene] Creating sort/filter controls...');
+            this.createSortFilterControls();
+            console.log('[InventoryScene] ✅ Sort/filter controls created');
+
+            console.log('[InventoryScene] Creating inventory grid...');
+            this.createInventoryGrid();
+            console.log('[InventoryScene] ✅ Inventory grid created');
+
+            // Only create desktop sidebar on larger screens
+            if (!this.dims.isMobile) {
+                console.log('[InventoryScene] Creating item details (desktop only)...');
+                this.createItemDetails();
+                console.log('[InventoryScene] ✅ Item details created');
+
+                console.log('[InventoryScene] Creating action buttons (desktop only)...');
+                this.createActionButtons();
+                console.log('[InventoryScene] ✅ Action buttons created');
+            } else {
+                console.log('[InventoryScene] ⚠️ Skipping desktop-only UI (mobile mode)');
+            }
+
+            console.log('[InventoryScene] Creating exit button...');
+            this.createExitButton();
+            console.log('[InventoryScene] ✅ Exit button created');
+
+            // Check if InventoryManager exists
+            if (!window.InventoryManager) {
+                console.error('[InventoryScene] ❌ CRITICAL: InventoryManager not found!');
+                this.showErrorMessage('Inventory system not available');
+                return;
+            }
+
+            // Load inventory items
+            console.log('[InventoryScene] Refreshing inventory...');
+            this.refreshInventory();
+            console.log('[InventoryScene] ✅ Inventory refreshed');
+
+            // Listen for inventory changes
+            console.log('[InventoryScene] Setting up event listeners...');
             window.InventoryManager.on('itemAdded', this.refreshInventory, this);
             window.InventoryManager.on('itemRemoved', this.refreshInventory, this);
             window.InventoryManager.on('itemQuantityChanged', this.refreshInventory, this);
-        }
+            console.log('[InventoryScene] ✅ Event listeners registered');
 
-        // Hide loading overlay once inventory is ready
-        if (window.UXEnhancements) {
-            window.UXEnhancements.hideLoading();
+            // Hide loading overlay once inventory is ready
+            if (window.UXEnhancements) {
+                window.UXEnhancements.hideLoading();
+            }
+
+            console.log('[InventoryScene] 🎉 Inventory UI fully initialized');
+        } catch (error) {
+            console.error('[InventoryScene] 💥 FATAL ERROR during initialization:', error);
+            console.error('[InventoryScene] Error stack:', error.stack);
+            this.showErrorMessage('Failed to load inventory: ' + error.message);
+
+            // Try to create a minimal exit button so user can escape
+            try {
+                this.createMinimalExitButton();
+            } catch (e) {
+                console.error('[InventoryScene] Could not create exit button:', e);
+            }
         }
+    }
+
+    /**
+     * Show error message to user
+     */
+    showErrorMessage(message) {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        const errorText = this.add.text(width / 2, height / 2, `ERROR:\n${message}`, {
+            fontSize: '20px',
+            color: '#FF0000',
+            backgroundColor: '#000000',
+            padding: { x: 20, y: 20 },
+            align: 'center'
+        }).setOrigin(0.5).setDepth(1000);
+    }
+
+    /**
+     * Create minimal exit button for error recovery
+     */
+    createMinimalExitButton() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        const exitText = this.add.text(width / 2, height - 50, 'TAP TO EXIT', {
+            fontSize: '24px',
+            color: '#FFFFFF',
+            backgroundColor: '#AA0000',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5).setDepth(1001);
+
+        exitText.setInteractive({ useHandCursor: true });
+        exitText.on('pointerdown', () => {
+            console.log('[InventoryScene] Emergency exit triggered');
+            this.scene.stop();
+            this.scene.resume('GameScene');
+        });
     }
 
     /**
@@ -84,10 +176,15 @@ export default class InventoryScene extends Phaser.Scene {
             // Header
             headerHeight: isMobile ? 60 : 80,
 
-            // Grid
-            slotSize: isMobile ? 60 : 80,
+            // Grid (mobile gets full width, desktop leaves room for sidebar)
+            slotSize: isMobile ? 70 : 70,
             slotMargin: isMobile ? 8 : 10,
-            gridCols: isMobile ? 4 : 6,
+            gridCols: isMobile ? 4 : 5,  // Mobile: 4 cols full width, Desktop: 5 cols with sidebar
+            gridStartX: isMobile ? null : 80,  // null = centered on mobile
+
+            // Sidebar (desktop only)
+            sidebarX: 510,
+            sidebarWidth: 270,
 
             // Fonts
             titleSize: isMobile ? '24px' : '32px',
@@ -161,11 +258,13 @@ export default class InventoryScene extends Phaser.Scene {
      * Create sort and filter controls
      */
     createSortFilterControls() {
-        const startX = 80;
+        const { width, isMobile, margin } = this.dims;
+
+        const startX = margin + 10;
         const y = 85;
-        const buttonWidth = 60;
-        const buttonHeight = 20;
-        const spacing = 5;
+        const buttonWidth = isMobile ? 50 : 60;
+        const buttonHeight = isMobile ? 18 : 20;
+        const spacing = isMobile ? 3 : 5;
 
         // Sort label
         const sortLabel = this.add.text(startX, y, 'Sort:', {
@@ -190,25 +289,25 @@ export default class InventoryScene extends Phaser.Scene {
             this.sortButtons.push({ key: option.key, ...btn });
         });
 
-        // Filter label
-        const filterX = startX + 300;
-        const filterLabel = this.add.text(filterX, y, 'Filter:', {
+        // Filter label (responsive positioning)
+        const filterX = isMobile ? startX : (startX + 300);
+        const filterLabel = this.add.text(filterX, y + (isMobile ? 25 : 0), 'Filter:', {
             fontSize: '12px',
             fontFamily: 'Arial',
             color: '#00FFFF'
         });
 
-        // Filter buttons
+        // Filter buttons (responsive labels for mobile)
         const filterOptions = [
-            { key: 'all', label: 'All' },
-            { key: 'food', label: 'Food' },
-            { key: 'accessories', label: 'Accessories' },
-            { key: 'consumables', label: 'Consumables' }
+            { key: 'all', label: isMobile ? 'All' : 'All' },
+            { key: 'food', label: isMobile ? 'Food' : 'Food' },
+            { key: 'accessories', label: isMobile ? 'Acc.' : 'Accessories' },
+            { key: 'consumables', label: isMobile ? 'Cons.' : 'Consumables' }
         ];
 
         filterOptions.forEach((option, index) => {
             const btnX = filterX + 50 + index * (buttonWidth + spacing);
-            const btn = this.createSmallButton(btnX, y, buttonWidth, buttonHeight, option.label, () => {
+            const btn = this.createSmallButton(btnX, y + (isMobile ? 25 : 0), buttonWidth, buttonHeight, option.label, () => {
                 this.setFilter(option.key);
             });
             this.filterButtons.push({ key: option.key, ...btn });
@@ -332,13 +431,23 @@ export default class InventoryScene extends Phaser.Scene {
      * Create inventory grid (5 columns x 6 rows = 30 slots)
      */
     createInventoryGrid() {
-        const { width, slotSize, slotMargin, gridCols, margin } = this.dims;
+        const { width, slotSize, slotMargin, gridCols, margin, gridStartX, isMobile } = this.dims;
 
-        const startX = margin + 10;
-        const startY = 110;
         const spacing = slotMargin;
         const cols = gridCols;
-        const rows = 5; // Fixed rows to fit on screen
+        const rows = isMobile ? 6 : 6;  // 6 rows = 24 slots (mobile) or 30 slots (desktop)
+
+        // Calculate start position (centered on mobile, left-aligned on desktop)
+        let startX;
+        if (gridStartX === null || isMobile) {
+            // Center the grid
+            const gridWidth = cols * slotSize + (cols - 1) * spacing;
+            startX = (width - gridWidth) / 2;
+        } else {
+            startX = gridStartX;
+        }
+
+        const startY = 110;
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
@@ -597,72 +706,104 @@ export default class InventoryScene extends Phaser.Scene {
      * Refresh inventory display
      */
     refreshInventory() {
-        console.log('[InventoryScene] Refreshing inventory display');
+        try {
+            console.log('[InventoryScene] Refreshing inventory display');
 
-        // Clear existing item sprites
-        this.itemSprites.forEach(sprite => sprite.destroy());
-        this.itemSprites = [];
-
-        // Get all items from InventoryManager
-        let items = window.InventoryManager?.getAllItems() || [];
-
-        // Apply filtering
-        items = this.applyFilter(items);
-
-        // Apply sorting
-        items = this.applySort(items);
-
-        // Update stats
-        const stats = window.InventoryManager?.getStats();
-        if (this.statsText) {
-            this.statsText.setText(`${stats?.totalItems || 0} / ${stats?.maxSlots || 30} Items`);
-        }
-
-        // Display items in slots
-        items.forEach((item, index) => {
-            if (index >= this.inventorySlots.length) return;
-
-            const slot = this.inventorySlots[index];
-
-            // Item icon
-            if (slot.itemIcon) {
-                slot.itemIcon.destroy();
+            // Clear existing item sprites
+            if (this.itemSprites && Array.isArray(this.itemSprites)) {
+                this.itemSprites.forEach(sprite => {
+                    if (sprite && sprite.destroy) {
+                        sprite.destroy();
+                    }
+                });
+                this.itemSprites = [];
             }
 
-            slot.itemIcon = this.add.text(
-                slot.x + slot.size / 2,
-                slot.y + slot.size / 2 - 5,
-                item.icon,
-                { fontSize: '32px' }
-            );
-            slot.itemIcon.setOrigin(0.5, 0.5);
-            this.itemSprites.push(slot.itemIcon);
+            // Check if InventoryManager exists
+            if (!window.InventoryManager) {
+                console.error('[InventoryScene] InventoryManager not available in refreshInventory');
+                return;
+            }
 
-            // Item quantity (if > 1)
-            if (item.quantity > 1) {
-                if (slot.itemQuantity) {
-                    slot.itemQuantity.destroy();
+            // Get all items from InventoryManager
+            let items = window.InventoryManager.getAllItems() || [];
+            console.log('[InventoryScene] Retrieved items:', items.length);
+
+            // Apply filtering
+            items = this.applyFilter(items);
+            console.log('[InventoryScene] After filter:', items.length);
+
+            // Apply sorting
+            items = this.applySort(items);
+            console.log('[InventoryScene] After sort:', items.length);
+
+            // Update stats
+            const stats = window.InventoryManager.getStats();
+            if (this.statsText) {
+                this.statsText.setText(`${stats?.totalItems || 0} / ${stats?.maxSlots || 30} Items`);
+            }
+
+            // Check if inventory slots exist
+            if (!this.inventorySlots || !Array.isArray(this.inventorySlots)) {
+                console.error('[InventoryScene] Inventory slots not initialized');
+                return;
+            }
+
+            // Display items in slots
+            items.forEach((item, index) => {
+                if (index >= this.inventorySlots.length) return;
+
+                const slot = this.inventorySlots[index];
+                if (!slot) {
+                    console.warn('[InventoryScene] Slot not found at index:', index);
+                    return;
                 }
 
-                slot.itemQuantity = this.add.text(
-                    slot.x + slot.size - 8,
-                    slot.y + slot.size - 20,
-                    `x${item.quantity}`,
-                    {
-                        fontSize: '12px',
-                        fontFamily: 'Arial Black',
-                        color: '#FFFFFF',
-                        stroke: '#000000',
-                        strokeThickness: 3
-                    }
+                // Item icon
+                if (slot.itemIcon) {
+                    slot.itemIcon.destroy();
+                }
+
+                slot.itemIcon = this.add.text(
+                    slot.x + slot.size / 2,
+                    slot.y + slot.size / 2 - 5,
+                    item.icon || '?',
+                    { fontSize: '32px' }
                 );
-                slot.itemQuantity.setOrigin(1, 1);
-                this.itemSprites.push(slot.itemQuantity);
-            } else if (slot.itemQuantity) {
-                slot.itemQuantity.destroy();
-                slot.itemQuantity = null;
-            }
-        });
+                slot.itemIcon.setOrigin(0.5, 0.5);
+                this.itemSprites.push(slot.itemIcon);
+
+                // Item quantity (if > 1)
+                if (item.quantity > 1) {
+                    if (slot.itemQuantity) {
+                        slot.itemQuantity.destroy();
+                    }
+
+                    slot.itemQuantity = this.add.text(
+                        slot.x + slot.size - 8,
+                        slot.y + slot.size - 20,
+                        `x${item.quantity}`,
+                        {
+                            fontSize: '12px',
+                            fontFamily: 'Arial Black',
+                            color: '#FFFFFF',
+                            stroke: '#000000',
+                            strokeThickness: 3
+                        }
+                    );
+                    slot.itemQuantity.setOrigin(1, 1);
+                    this.itemSprites.push(slot.itemQuantity);
+                } else if (slot.itemQuantity) {
+                    slot.itemQuantity.destroy();
+                    slot.itemQuantity = null;
+                }
+            });
+
+            console.log('[InventoryScene] ✅ Inventory refreshed successfully');
+        } catch (error) {
+            console.error('[InventoryScene] Error in refreshInventory:', error);
+            console.error('[InventoryScene] Error stack:', error.stack);
+        }
     }
 
     /**
@@ -769,42 +910,49 @@ export default class InventoryScene extends Phaser.Scene {
      * Update item details panel
      */
     updateItemDetails(slotIndex) {
+        // Mobile doesn't have detail panel - skip update
+        if (this.dims.isMobile || !this.detailName) {
+            return;
+        }
+
         const item = window.InventoryManager?.getItem(slotIndex);
 
         if (!item) {
-            // Empty slot
+            // Empty slot - defensive checks for all properties
             this.detailName.setText('Empty Slot');
-            this.detailIcon.setText('');
-            this.detailType.setText('');
-            this.detailDescription.setText('');
-            this.detailEffects.setText('');
-            this.detailQuantity.setText('');
+            if (this.detailIcon) this.detailIcon.setText('');
+            if (this.detailType) this.detailType.setText('');
+            if (this.detailDescription) this.detailDescription.setText('');
+            if (this.detailEffects) this.detailEffects.setText('');
+            if (this.detailQuantity) this.detailQuantity.setText('');
             if (this.equipButton) this.equipButton.visible = false;
             return;
         }
 
-        // Update details
+        // Update details - defensive checks for all properties
         this.detailName.setText(item.name);
-        this.detailIcon.setText(item.icon);
-        this.detailType.setText(`Type: ${item.type.toUpperCase()}`);
-        this.detailDescription.setText(item.description || 'No description available');
+        if (this.detailIcon) this.detailIcon.setText(item.icon);
+        if (this.detailType) this.detailType.setText(`Type: ${item.type.toUpperCase()}`);
+        if (this.detailDescription) this.detailDescription.setText(item.description || 'No description available');
 
         // Show effects if food
-        if (item.effect) {
+        if (item.effect && this.detailEffects) {
             const effects = [];
             if (item.effect.happiness) effects.push(`+${item.effect.happiness} Happiness`);
             if (item.effect.hunger) effects.push(`+${item.effect.hunger} Hunger`);
             if (item.effect.health) effects.push(`+${item.effect.health} Health`);
             this.detailEffects.setText('Effects:\n' + effects.join('\n'));
-        } else {
+        } else if (this.detailEffects) {
             this.detailEffects.setText('');
         }
 
         // Show quantity
-        if (item.quantity > 1) {
-            this.detailQuantity.setText(`Quantity: ${item.quantity}`);
-        } else {
-            this.detailQuantity.setText('');
+        if (this.detailQuantity) {
+            if (item.quantity > 1) {
+                this.detailQuantity.setText(`Quantity: ${item.quantity}`);
+            } else {
+                this.detailQuantity.setText('');
+            }
         }
 
         // Show/hide equip button
@@ -819,68 +967,85 @@ export default class InventoryScene extends Phaser.Scene {
     showUseConfirmation(item) {
         console.log(`[InventoryScene] Showing use confirmation for: ${item.name}`);
 
-        // Create dark overlay
+        // Get responsive dimensions
+        const { width, height, isMobile } = this.dims;
+
+        // Create dark overlay (full screen)
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(0, 0, 800, 600);
+        overlay.fillRect(0, 0, width, height);
         overlay.setDepth(200);
 
-        // Create confirmation panel
+        // Create confirmation panel (responsive sizing and positioning)
+        const panelWidth = isMobile ? width * 0.9 : 400;
+        const panelHeight = isMobile ? 320 : 300;
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+
         const panel = this.add.graphics();
         panel.fillStyle(0x1A1A3E, 1);
-        panel.fillRoundedRect(200, 150, 400, 300, 15);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
         panel.lineStyle(3, 0x7B68EE);
-        panel.strokeRoundedRect(200, 150, 400, 300, 15);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
         panel.setDepth(201);
 
         // Title
-        const title = this.add.text(400, 200, 'Use Expensive Item?', {
-            fontSize: '26px',
+        const title = this.add.text(width / 2, panelY + 50, 'Use Expensive Item?', {
+            fontSize: isMobile ? '20px' : '26px',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
         // Item details
-        const details = this.add.text(400, 260,
+        const details = this.add.text(width / 2, panelY + 110,
             `${item.name}\n\nValue: ${item.price} Cosmic Coins\n\nThis item is valuable!\nAre you sure you want to use it?`, {
-            fontSize: '18px',
+            fontSize: isMobile ? '14px' : '18px',
             color: '#FFFFFF',
-            align: 'center'
+            align: 'center',
+            wordWrap: { width: panelWidth - 40 }
         }).setOrigin(0.5).setDepth(202);
 
+        // Button dimensions
+        const btnWidth = isMobile ? 100 : 140;
+        const btnHeight = isMobile ? 40 : 50;
+        const btnSpacing = isMobile ? 10 : 15;
+        const btnY = panelY + panelHeight - btnHeight - 20;
+
         // Confirm button
+        const confirmBtnX = width / 2 - btnWidth - btnSpacing / 2;
         const confirmBtn = this.add.graphics();
         confirmBtn.fillStyle(0x00AA00, 1);
-        confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+        confirmBtn.fillRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
         confirmBtn.lineStyle(2, 0x00FF00);
-        confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+        confirmBtn.strokeRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
         confirmBtn.setDepth(202);
 
-        const confirmLabel = this.add.text(300, 385, 'Use It', {
-            fontSize: '20px',
+        const confirmLabel = this.add.text(confirmBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Use It', {
+            fontSize: isMobile ? '16px' : '20px',
             color: '#FFFFFF',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
-        const confirmZone = this.add.zone(230, 360, 140, 50).setOrigin(0, 0);
+        const confirmZone = this.add.zone(confirmBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
         confirmZone.setInteractive({ useHandCursor: true });
         confirmZone.setDepth(202);
 
         // Cancel button
+        const cancelBtnX = width / 2 + btnSpacing / 2;
         const cancelBtn = this.add.graphics();
         cancelBtn.fillStyle(0xAA0000, 1);
-        cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+        cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         cancelBtn.lineStyle(2, 0xFF0000);
-        cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+        cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         cancelBtn.setDepth(202);
 
-        const cancelLabel = this.add.text(500, 385, 'Cancel', {
-            fontSize: '20px',
+        const cancelLabel = this.add.text(cancelBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Cancel', {
+            fontSize: isMobile ? '16px' : '20px',
             color: '#FFFFFF',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
-        const cancelZone = this.add.zone(430, 360, 140, 50).setOrigin(0, 0);
+        const cancelZone = this.add.zone(cancelBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
         cancelZone.setInteractive({ useHandCursor: true });
         cancelZone.setDepth(202);
 
@@ -904,17 +1069,17 @@ export default class InventoryScene extends Phaser.Scene {
         confirmZone.on('pointerover', () => {
             confirmBtn.clear();
             confirmBtn.fillStyle(0x00DD00, 1);
-            confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.fillRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
             confirmBtn.lineStyle(3, 0x00FF00);
-            confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.strokeRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
         confirmZone.on('pointerout', () => {
             confirmBtn.clear();
             confirmBtn.fillStyle(0x00AA00, 1);
-            confirmBtn.fillRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.fillRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
             confirmBtn.lineStyle(2, 0x00FF00);
-            confirmBtn.strokeRoundedRect(230, 360, 140, 50, 10);
+            confirmBtn.strokeRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
         // Cancel handler
@@ -931,17 +1096,17 @@ export default class InventoryScene extends Phaser.Scene {
         cancelZone.on('pointerover', () => {
             cancelBtn.clear();
             cancelBtn.fillStyle(0xDD0000, 1);
-            cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
             cancelBtn.lineStyle(3, 0xFF0000);
-            cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
         cancelZone.on('pointerout', () => {
             cancelBtn.clear();
             cancelBtn.fillStyle(0xAA0000, 1);
-            cancelBtn.fillRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
             cancelBtn.lineStyle(2, 0xFF0000);
-            cancelBtn.strokeRoundedRect(430, 360, 140, 50, 10);
+            cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
         // ESC to cancel
@@ -1063,8 +1228,10 @@ export default class InventoryScene extends Phaser.Scene {
      * Show temporary message
      */
     showMessage(message, color) {
-        const msgText = this.add.text(400, 550, message, {
-            fontSize: '18px',
+        const { width, height, isMobile } = this.dims;
+
+        const msgText = this.add.text(width / 2, height - 50, message, {
+            fontSize: isMobile ? '16px' : '18px',
             fontFamily: 'Arial Black',
             color: `#${color.toString(16).padStart(6, '0')}`,
             stroke: '#000000',

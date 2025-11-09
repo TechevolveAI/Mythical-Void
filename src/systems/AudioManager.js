@@ -15,6 +15,10 @@ class AudioManager {
 
         // Cache for procedurally generated audio buffers
         this.generatedSounds = new Map();
+
+        // Mobile audio unlock state
+        this.audioUnlocked = false;
+        this.unlockHandler = null;
     }
 
     /**
@@ -46,11 +50,60 @@ class AudioManager {
             // Generate common sound effects
             this.generateCommonSounds();
 
+            // Set up mobile audio unlock (auto-resume on first user interaction)
+            this.setupMobileAudioUnlock();
+
             this.initialized = true;
             console.log('✅ AudioManager initialized');
         } catch (error) {
             console.error('[AudioManager] Initialization failed:', error);
         }
+    }
+
+    /**
+     * Set up automatic audio unlock for mobile browsers
+     * Mobile browsers require user interaction before audio can play
+     */
+    setupMobileAudioUnlock() {
+        if (!this.audioContext) return;
+
+        // Create unlock handler that resumes audio context on first interaction
+        this.unlockHandler = () => {
+            if (this.audioUnlocked) return;
+
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                this.audioContext.resume().then(() => {
+                    console.log('[AudioManager] 🔊 Audio unlocked on mobile');
+                    this.audioUnlocked = true;
+                    this.removeUnlockListeners();
+                });
+            } else {
+                this.audioUnlocked = true;
+                this.removeUnlockListeners();
+            }
+        };
+
+        // Listen for first user interaction (touch or click)
+        const events = ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+        events.forEach(event => {
+            document.addEventListener(event, this.unlockHandler, { once: true, passive: true });
+        });
+
+        console.log('[AudioManager] Mobile audio unlock listeners added');
+    }
+
+    /**
+     * Remove audio unlock event listeners
+     */
+    removeUnlockListeners() {
+        if (!this.unlockHandler) return;
+
+        const events = ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+        events.forEach(event => {
+            document.removeEventListener(event, this.unlockHandler);
+        });
+
+        this.unlockHandler = null;
     }
 
     /**
@@ -134,6 +187,32 @@ class AudioManager {
             { frequency: 783.99, duration: 0.15, volume: 0.25 }  // G5
         ]);
 
+        // Egg crack sound - sharp crack with descending rumble
+        this.createToneSequence('egg_crack', [
+            { frequency: 800, duration: 0.05, volume: 0.3 },   // Sharp crack
+            { frequency: 600, duration: 0.08, volume: 0.25 },  // Echo
+            { frequency: 400, duration: 0.1, volume: 0.2 },    // Rumble
+            { frequency: 200, duration: 0.12, volume: 0.15 }   // Deep rumble
+        ]);
+
+        // Hatch celebration - triumphant fanfare with sparkle
+        this.createToneSequence('hatch_celebration', [
+            { frequency: 523.25, duration: 0.15, volume: 0.35 },  // C5
+            { frequency: 659.25, duration: 0.15, volume: 0.35 },  // E5
+            { frequency: 783.99, duration: 0.15, volume: 0.35 },  // G5
+            { frequency: 1046.50, duration: 0.2, volume: 0.4 },   // C6
+            { frequency: 1318.51, duration: 0.25, volume: 0.35 }, // E6
+            { frequency: 1567.98, duration: 0.3, volume: 0.3 }    // G6
+        ]);
+
+        // Ambient suspense loop - low mysterious tones
+        this.createToneSequence('suspense_ambient', [
+            { frequency: 220, duration: 0.4, volume: 0.12 },    // A3 - low drone
+            { frequency: 246.94, duration: 0.4, volume: 0.12 }, // B3
+            { frequency: 261.63, duration: 0.4, volume: 0.12 }, // C4
+            { frequency: 293.66, duration: 0.4, volume: 0.12 }  // D4
+        ]);
+
         console.log('[AudioManager] Generated', this.generatedSounds.size, 'procedural sounds');
     }
 
@@ -155,6 +234,15 @@ class AudioManager {
      */
     playSound(name, volumeMultiplier = 1.0) {
         if (!this.initialized || this.muted || !this.audioContext) return;
+
+        // Auto-resume audio context if suspended (mobile safety check)
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume().then(() => {
+                this.audioUnlocked = true;
+                this.playSound(name, volumeMultiplier); // Retry after resume
+            });
+            return;
+        }
 
         const tones = this.generatedSounds.get(name);
         if (!tones) {
@@ -271,6 +359,27 @@ class AudioManager {
     }
 
     /**
+     * Play egg crack sound effect
+     */
+    playEggCrack() {
+        this.playSound('egg_crack');
+    }
+
+    /**
+     * Play hatch celebration sound effect
+     */
+    playHatchCelebration() {
+        this.playSound('hatch_celebration');
+    }
+
+    /**
+     * Play suspense ambient sound
+     */
+    playSuspenseAmbient() {
+        this.playSound('suspense_ambient');
+    }
+
+    /**
      * Toggle mute on/off
      */
     toggleMute() {
@@ -352,6 +461,9 @@ class AudioManager {
      * Clean up audio resources
      */
     destroy() {
+        // Remove mobile audio unlock listeners
+        this.removeUnlockListeners();
+
         if (this.audioContext) {
             this.audioContext.close();
             this.audioContext = null;
