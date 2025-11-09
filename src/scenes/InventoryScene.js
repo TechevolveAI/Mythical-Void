@@ -29,6 +29,9 @@ export default class InventoryScene extends Phaser.Scene {
             this.graphicsEngine = new window.GraphicsEngine(this);
         }
 
+        // Calculate responsive dimensions (mobile-first approach)
+        this.calculateResponsiveDimensions();
+
         // Create UI
         this.createBackground();
         this.createHeader();
@@ -55,11 +58,57 @@ export default class InventoryScene extends Phaser.Scene {
     }
 
     /**
+     * Calculate responsive dimensions based on viewport size
+     * Mobile-first approach with breakpoints
+     */
+    calculateResponsiveDimensions() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // Determine device type
+        const isMobile = width < 600;
+        const isTablet = width >= 600 && width < 1000;
+        const isDesktop = width >= 1000;
+
+        this.dims = {
+            width,
+            height,
+            isMobile,
+            isTablet,
+            isDesktop,
+
+            // Safe margins
+            margin: isMobile ? 10 : 20,
+            padding: isMobile ? 8 : 15,
+
+            // Header
+            headerHeight: isMobile ? 60 : 80,
+
+            // Grid
+            slotSize: isMobile ? 60 : 80,
+            slotMargin: isMobile ? 8 : 10,
+            gridCols: isMobile ? 4 : 6,
+
+            // Fonts
+            titleSize: isMobile ? '24px' : '32px',
+            textSize: isMobile ? '14px' : '16px',
+            smallTextSize: isMobile ? '12px' : '14px',
+
+            // Buttons
+            buttonHeight: isMobile ? 40 : 50,
+            closeButtonSize: isMobile ? 40 : 40
+        };
+
+        console.log('[InventoryScene] Responsive dims:', {
+            width, height, isMobile, isTablet, isDesktop
+        });
+    }
+
+    /**
      * Create background
      */
     createBackground() {
-        const width = 800;
-        const height = 600;
+        const { width, height } = this.dims;
 
         // Dark cosmic background
         const bgGraphics = this.add.graphics();
@@ -82,13 +131,15 @@ export default class InventoryScene extends Phaser.Scene {
      * Create header with title and stats
      */
     createHeader() {
+        const { width, titleSize, textSize } = this.dims;
+
         // Title
-        const title = this.add.text(400, 30, 'INVENTORY', {
-            fontSize: '32px',
+        const title = this.add.text(width / 2, 30, 'INVENTORY', {
+            fontSize: titleSize,
             fontFamily: 'Arial Black',
             color: '#00FFFF',
             stroke: '#4A0080',
-            strokeThickness: 6,
+            strokeThickness: this.dims.isMobile ? 4 : 6,
             align: 'center'
         });
         title.setOrigin(0.5, 0.5);
@@ -97,7 +148,7 @@ export default class InventoryScene extends Phaser.Scene {
         const stats = window.InventoryManager?.getStats();
         const statsText = `${stats?.totalItems || 0} / ${stats?.maxSlots || 30} Items`;
 
-        this.statsText = this.add.text(400, 65, statsText, {
+        this.statsText = this.add.text(width / 2, 65, statsText, {
             fontSize: '16px',
             fontFamily: 'Arial',
             color: '#FFFFFF',
@@ -281,12 +332,13 @@ export default class InventoryScene extends Phaser.Scene {
      * Create inventory grid (5 columns x 6 rows = 30 slots)
      */
     createInventoryGrid() {
-        const startX = 80;
+        const { width, slotSize, slotMargin, gridCols, margin } = this.dims;
+
+        const startX = margin + 10;
         const startY = 110;
-        const slotSize = 70;
-        const spacing = 10;
-        const cols = 5;
-        const rows = 6;
+        const spacing = slotMargin;
+        const cols = gridCols;
+        const rows = 5; // Fixed rows to fit on screen
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
@@ -487,25 +539,27 @@ export default class InventoryScene extends Phaser.Scene {
      * Create exit button
      */
     createExitButton() {
-        const x = 700;
-        const y = 540;
-        const width = 80;
-        const height = 40;
+        const { width: screenWidth, height: screenHeight, margin, buttonHeight, closeButtonSize } = this.dims;
+
+        const btnWidth = this.dims.isMobile ? 60 : 80;
+        const btnHeight = buttonHeight;
+        const x = screenWidth - btnWidth - margin;
+        const y = screenHeight - btnHeight - margin;
 
         const button = this.add.graphics();
         button.fillStyle(0xAA0000, 0.9);
-        button.fillRoundedRect(x, y, width, height, 8);
+        button.fillRoundedRect(x, y, btnWidth, btnHeight, 8);
         button.lineStyle(2, 0xFF0000);
-        button.strokeRoundedRect(x, y, width, height, 8);
+        button.strokeRoundedRect(x, y, btnWidth, btnHeight, 8);
 
-        const label = this.add.text(x + 40, y + 20, 'EXIT', {
-            fontSize: '16px',
+        const label = this.add.text(x + btnWidth / 2, y + btnHeight / 2, 'EXIT', {
+            fontSize: this.dims.isMobile ? '14px' : '16px',
             fontFamily: 'Arial Black',
             color: '#FFFFFF'
         });
         label.setOrigin(0.5, 0.5);
 
-        const zone = this.add.zone(x, y, width, height).setOrigin(0, 0);
+        const zone = this.add.zone(x, y, btnWidth, btnHeight).setOrigin(0, 0);
         zone.setInteractive({ useHandCursor: true });
 
         zone.on('pointerdown', () => {
@@ -515,17 +569,17 @@ export default class InventoryScene extends Phaser.Scene {
         zone.on('pointerover', () => {
             button.clear();
             button.fillStyle(0xDD0000, 1);
-            button.fillRoundedRect(x, y, width, height, 8);
+            button.fillRoundedRect(x, y, btnWidth, btnHeight, 8);
             button.lineStyle(3, 0xFF0000);
-            button.strokeRoundedRect(x, y, width, height, 8);
+            button.strokeRoundedRect(x, y, btnWidth, btnHeight, 8);
         });
 
         zone.on('pointerout', () => {
             button.clear();
             button.fillStyle(0xAA0000, 0.9);
-            button.fillRoundedRect(x, y, width, height, 8);
+            button.fillRoundedRect(x, y, btnWidth, btnHeight, 8);
             button.lineStyle(2, 0xFF0000);
-            button.strokeRoundedRect(x, y, width, height, 8);
+            button.strokeRoundedRect(x, y, btnWidth, btnHeight, 8);
         });
 
         // I key to open/close inventory

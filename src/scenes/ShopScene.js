@@ -933,8 +933,9 @@ export default class ShopScene extends Phaser.Scene {
         // Simulate async purchase (adds realistic feel)
         this.time.delayedCall(300, () => {
             // Process purchase via EconomyManager
+            // CRITICAL FIX: EconomyManager.purchase() expects (price, itemName) - price first!
             if (window.EconomyManager) {
-                const success = window.EconomyManager.purchase(item.name, item.price, 'shop_purchase');
+                const success = window.EconomyManager.purchase(item.price, item.name);
 
                 if (success) {
                     // Add item to inventory

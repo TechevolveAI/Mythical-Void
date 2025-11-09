@@ -3,10 +3,14 @@
  * Handles player progression, world state, creature data, and persistence
  */
 
+// GAME VERSION - Increment when making breaking changes to save data schema
+const GAME_VERSION = '1.1.0'; // Format: major.minor.patch
+
 class GameStateManager {
     constructor() {
         this.initialized = false;
         this.saveKey = 'mythical-creature-save';
+        this.gameVersion = GAME_VERSION;
 
         this.state = this.createInitialState();
         this.eventListeners = new Map();
@@ -85,6 +89,10 @@ class GameStateManager {
         const now = Date.now();
 
         return {
+            // Version tracking for save data migration
+            version: GAME_VERSION,
+            savedAt: now,
+
             player: {
                 name: '',
                 playTime: 0,
@@ -936,11 +944,39 @@ class GameStateManager {
                     throw new Error('Invalid save data structure');
                 }
 
+                // VERSION CHECKING: Detect incompatible save data
+                const saveVersion = parsed.version || '1.0.0';
+                const isCompatible = this.checkVersionCompatibility(saveVersion, GAME_VERSION);
+
+                if (!isCompatible) {
+                    console.warn(`[GameState] Save data version ${saveVersion} incompatible with game version ${GAME_VERSION}`);
+                    console.warn('[GameState] Starting fresh game to prevent errors');
+
+                    // Backup old save before clearing
+                    try {
+                        localStorage.setItem(`${this.saveKey}_backup_${saveVersion}`, saveData);
+                        console.log(`[GameState] Old save backed up as ${this.saveKey}_backup_${saveVersion}`);
+                    } catch (e) {
+                        console.warn('[GameState] Could not backup old save:', e);
+                    }
+
+                    this.showStorageWarning(`Game updated! Starting fresh. Your old progress was backed up.`);
+                    this.emit('versionMismatch', { oldVersion: saveVersion, newVersion: GAME_VERSION });
+                    return false;
+                }
+
+                // MIGRATION: Auto-migrate old saves to new schema
+                const migrated = this.migrateSaveData(parsed, saveVersion);
+
                 // Merge saved data with current state (preserves new properties in updates)
-                this.state = this.deepMerge(this.state, parsed);
+                this.state = this.deepMerge(this.state, migrated);
+
+                // Update version and timestamp
+                this.state.version = GAME_VERSION;
+                this.state.savedAt = Date.now();
 
                 this.emit('loaded', this.state);
-                console.log('[GameState] Game loaded successfully');
+                console.log(`[GameState] Game loaded successfully (v${saveVersion} → v${GAME_VERSION})`);
 
                 return true;
             } else {
@@ -953,6 +989,14 @@ class GameStateManager {
                 console.error('[GameState] Save data corrupted (JSON parse failed):', error);
                 this.showStorageWarning('Save data corrupted - starting fresh game');
                 this.emit('loadError', { type: 'corrupted', error });
+
+                // Try to clear corrupted data
+                try {
+                    localStorage.removeItem(this.saveKey);
+                    console.log('[GameState] Cleared corrupted save data');
+                } catch (e) {
+                    console.warn('[GameState] Could not clear corrupted data:', e);
+                }
             } else {
                 console.error('[GameState] Load failed:', error);
                 this.emit('loadError', { type: 'unknown', error });
@@ -960,6 +1004,42 @@ class GameStateManager {
 
             return false;
         }
+    }
+
+    /**
+     * Check if save version is compatible with current game version
+     * Major version mismatches are incompatible (1.x.x vs 2.x.x)
+     */
+    checkVersionCompatibility(saveVersion, gameVersion) {
+        const saveParts = saveVersion.split('.').map(Number);
+        const gameParts = gameVersion.split('.').map(Number);
+
+        const saveMajor = saveParts[0] || 1;
+        const gameMajor = gameParts[0] || 1;
+
+        // Major version mismatch = incompatible
+        if (saveMajor !== gameMajor) {
+            return false;
+        }
+
+        // Same major version = compatible (minor/patch changes should be backward compatible)
+        return true;
+    }
+
+    /**
+     * Migrate save data from old versions to current schema
+     * Add migration logic here when changing save data structure
+     */
+    migrateSaveData(saveData, fromVersion) {
+        const migrated = { ...saveData };
+
+        // Example migration for v1.0.0 → v1.1.0
+        // if (fromVersion === '1.0.0') {
+        //     migrated.newField = 'default value';
+        // }
+
+        console.log(`[GameState] Migration complete: ${fromVersion} → ${GAME_VERSION}`);
+        return migrated;
     }
 
     /**

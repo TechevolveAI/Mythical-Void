@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "start": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/inject-build-timestamp.js",
     "preview": "vite preview",
     "test": "node ./scripts/serve-test-framework.js",
     "test:unit": "jest",
