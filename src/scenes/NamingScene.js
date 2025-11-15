@@ -858,6 +858,8 @@ class NamingScene extends Phaser.Scene {
                 const state = getGameState();
                 state.set('creature.name', this.nameInput.trim());
                 state.set('creature.named', true);
+                state.set('session.showWelcomeToast', true);
+                state.set('session.pendingWelcomeName', this.nameInput.trim());
                 state.save();
                 console.log('[NamingScene] Name saved to GameState');
             } catch (error) {

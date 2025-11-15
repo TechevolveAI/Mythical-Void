@@ -19,9 +19,15 @@ export default class InventoryScene extends Phaser.Scene {
         this.currentFilter = 'all'; // all, food, accessories, consumables
         this.sortButtons = [];
         this.filterButtons = [];
+        this._isShuttingDown = false;
     }
 
     create() {
+        this._isShuttingDown = false;
+        if (this.events) {
+            this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+            this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdown, this);
+        }
         console.log('[InventoryScene] 🎒 Initializing Inventory UI');
 
         try {
@@ -1280,6 +1286,10 @@ export default class InventoryScene extends Phaser.Scene {
      * Cleanup
      */
     shutdown() {
+        if (this._isShuttingDown) {
+            return;
+        }
+        this._isShuttingDown = true;
         console.log('[InventoryScene] Shutting down - cleaning up event listeners');
 
         // Remove global event listeners

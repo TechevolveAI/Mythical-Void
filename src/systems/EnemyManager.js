@@ -6,10 +6,10 @@
 class EnemyManager {
     constructor() {
         this.initialized = false;
-        this.maxEnemies = 5; // Maximum concurrent enemies in sanctuary
+        this.maxEnemies = 3; // Maximum concurrent enemies in sanctuary
         this.spawnRadius = 300; // Minimum distance from player to spawn
         this.despawnRadius = 800; // Maximum distance before despawn
-        this.spawnInterval = 15000; // 15 seconds between spawn attempts
+        this.spawnInterval = 25000; // 25 seconds between spawn attempts
         this.enemyTypes = ['voidWisp', 'shadowSprite'];
         this.events = new Phaser.Events.EventEmitter();
     }
@@ -65,7 +65,7 @@ class EnemyManager {
      * Spawn initial enemies
      */
     spawnInitialEnemies() {
-        const initialCount = Phaser.Math.Between(2, 4);
+        const initialCount = Phaser.Math.Between(1, 2);
         for (let i = 0; i < initialCount; i++) {
             this.spawnEnemy();
         }
@@ -387,10 +387,10 @@ class EnemyManager {
             }
         });
 
-        // Create death particles (will implement in GameScene)
-        this.events.emit('enemyKilled', { enemy, type, coinDrop, x: enemy.x, y: enemy.y });
+        // Broadcast calming event for sparkles/particles
+        this.events.emit('wispCalmed', { enemy, type, coinDrop, x: enemy.x, y: enemy.y });
 
-        console.log(`[EnemyManager] ${type} defeated! Dropped ${coinDrop} coins`);
+        console.log(`[EnemyManager] ${type} calmed. Shared ${coinDrop} cozy coins`);
     }
 
     /**

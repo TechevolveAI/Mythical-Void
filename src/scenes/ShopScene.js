@@ -16,10 +16,19 @@ export default class ShopScene extends Phaser.Scene {
         this.categoryButtons = [];
         this.itemButtons = [];
         this.shopkeeper = null;
+        this.gameStateUnsubscribers = [];
+        this.cleanupCallbacks = [];
+        this._isShuttingDown = false;
     }
 
     create() {
         console.log('[ShopScene] Initializing Cosmic Shop');
+
+        this.resetLifecycleTracking();
+        if (this.events) {
+            this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+            this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdown, this);
+        }
 
         // Initialize graphics engine for this scene
         if (window.GraphicsEngine) {
@@ -67,6 +76,29 @@ export default class ShopScene extends Phaser.Scene {
         if (window.UXEnhancements) {
             window.UXEnhancements.hideLoading();
         }
+    }
+
+    resetLifecycleTracking() {
+        this._isShuttingDown = false;
+        this.gameStateUnsubscribers = [];
+        this.cleanupCallbacks = [];
+    }
+
+    registerCleanupCallback(callback) {
+        if (typeof callback === 'function') {
+            this.cleanupCallbacks.push(callback);
+        }
+    }
+
+    registerGameStateListener(event, handler) {
+        if (!window.GameState || typeof window.GameState.on !== 'function') {
+            return null;
+        }
+        const unsubscribe = window.GameState.on(event, handler);
+        if (typeof unsubscribe === 'function') {
+            this.gameStateUnsubscribers.push(unsubscribe);
+        }
+        return unsubscribe;
     }
 
     /**
@@ -183,7 +215,7 @@ export default class ShopScene extends Phaser.Scene {
         headerBg.setDepth(10);
 
         // Shop title
-        const title = this.add.text(this.dims.isMobile ? width / 2 : 60, headerHeight / 2 - 5, 'COSMIC SHOP', {
+        const title = this.add.text(this.dims.isMobile ? width / 2 : 60, headerHeight / 2 - 5, 'COZY COSMIC BOUTIQUE', {
             fontSize: titleSize,
             fontFamily: 'Arial Black',
             color: '#FFD700',
@@ -193,6 +225,14 @@ export default class ShopScene extends Phaser.Scene {
         });
         title.setOrigin(this.dims.isMobile ? 0.5 : 0, 0.5);
         title.setDepth(11);
+
+        const grownUpHelper = this.add.text(width / 2, headerHeight - 18, 'Need help? Ask a grown-up to browse cozy goodies with you.', {
+            fontSize: this.dims.isMobile ? '11px' : '13px',
+            color: '#E6E6FA',
+            fontFamily: 'Arial, sans-serif'
+        }).setOrigin(0.5, 0.5);
+        grownUpHelper.setDepth(11);
+        grownUpHelper.setAlpha(0.9);
 
         // Currency display (top-right area)
         const coinX = width - (closeButtonSize + margin * 2 + 80);
@@ -222,9 +262,10 @@ export default class ShopScene extends Phaser.Scene {
 
         // Listen for currency changes
         if (window.GameState) {
-            window.GameState.on('changed:player.cosmicCoins', (newValue) => {
+            this.currencyChangeHandler = this.currencyChangeHandler || ((newValue) => {
                 this.updateCurrencyDisplay(newValue);
             });
+            this.registerGameStateListener('changed:player.cosmicCoins', this.currencyChangeHandler);
         }
 
         // Close button (X) - ALWAYS VISIBLE top-right
@@ -607,8 +648,8 @@ export default class ShopScene extends Phaser.Scene {
             buyBtn.lineStyle(2, 0x00FF00);
             buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
-            const buyLabel = this.add.text(buyBtnX + buyBtnWidth / 2, buyBtnY + buyBtnHeight / 2, 'BUY', {
-                fontSize: this.dims.isMobile ? '14px' : '16px',
+            const buyLabel = this.add.text(buyBtnX + buyBtnWidth / 2, buyBtnY + buyBtnHeight / 2, 'BRING HOME', {
+                fontSize: this.dims.isMobile ? '12px' : '14px',
                 fontFamily: 'Arial Black',
                 color: '#FFFFFF'
             });
@@ -1288,8 +1329,14 @@ export default class ShopScene extends Phaser.Scene {
         });
 
         // ESC key to exit shop
-        this.input.keyboard.on('keydown-ESC', () => {
+        this.escapeKeyHandler = this.escapeKeyHandler || (() => {
             this.exitShop();
+        });
+        this.input.keyboard.on('keydown-ESC', this.escapeKeyHandler);
+        this.registerCleanupCallback(() => {
+            if (this.input?.keyboard && this.escapeKeyHandler) {
+                this.input.keyboard.off('keydown-ESC', this.escapeKeyHandler);
+            }
         });
 
         console.log('[ShopScene] Smart scroll handling set up (tap vs drag detection enabled)');
@@ -1328,7 +1375,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'basic_egg',
                     name: 'Cosmic Egg',
-                    description: 'A mysterious egg from the void',
+                    description: 'A gentle star egg waiting for a cuddle buddy',
                     icon: '🥚',
                     price: 100,
                     type: 'egg',
@@ -1337,7 +1384,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'rare_egg',
                     name: 'Stellar Egg',
-                    description: 'Radiates powerful cosmic energy',
+                    description: 'Radiates warm, sleepy aurora giggles',
                     icon: '🌟',
                     price: 500,
                     type: 'egg',
@@ -1348,7 +1395,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'stardust_treat',
                     name: 'Stardust Treat',
-                    description: 'Restores 20 happiness',
+                    description: 'Sparkly cookies that boost smiles (+20 happiness)',
                     icon: '✨',
                     price: 20,
                     type: 'food',
@@ -1357,7 +1404,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'cosmic_berry',
                     name: 'Cosmic Berry',
-                    description: 'Restores 30 hunger',
+                    description: 'Juicy berry snack (+30 hunger)',
                     icon: '🫐',
                     price: 30,
                     type: 'food',
@@ -1366,7 +1413,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'nebula_nectar',
                     name: 'Nebula Nectar',
-                    description: 'Restores 40 health',
+                    description: 'A soothing tea (+40 health)',
                     icon: '🍯',
                     price: 50,
                     type: 'food',
@@ -1377,7 +1424,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'void_crystal',
                     name: 'Void Crystal',
-                    description: 'Used to enhance abilities',
+                    description: 'Sparkly keepsake for decorating cozy corners',
                     icon: '💎',
                     price: 150,
                     type: 'utility'
@@ -1385,7 +1432,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'star_map',
                     name: 'Star Map',
-                    description: 'Reveals hidden locations',
+                    description: 'Points to gentle new nooks to explore',
                     icon: '🗺️',
                     price: 200,
                     type: 'utility'
@@ -1400,17 +1447,32 @@ export default class ShopScene extends Phaser.Scene {
      * Cleanup on shutdown
      */
     shutdown() {
+        if (this._isShuttingDown) {
+            return;
+        }
+        this._isShuttingDown = true;
+
         console.log('[ShopScene] Shutting down - cleaning up event listeners');
 
-        // Remove global event listeners - FIX: Use correct state path
-        if (window.GameState) {
-            window.GameState.off('changed:player.cosmicCoins');
-        }
+        // Remove GameState listeners
+        this.gameStateUnsubscribers.forEach((unsubscribe) => {
+            try {
+                unsubscribe?.();
+            } catch (error) {
+                console.warn('[ShopScene] Failed to unsubscribe GameState listener', error);
+            }
+        });
+        this.gameStateUnsubscribers = [];
 
-        // Remove keyboard listeners
-        if (this.input && this.input.keyboard) {
-            this.input.keyboard.off('keydown-ESC');
-        }
+        // Run registered cleanup callbacks (keyboard, etc.)
+        this.cleanupCallbacks.forEach((callback) => {
+            try {
+                callback();
+            } catch (error) {
+                console.warn('[ShopScene] Cleanup callback failed', error);
+            }
+        });
+        this.cleanupCallbacks = [];
 
         // Remove listeners from interactive zones/buttons
         // Category buttons
