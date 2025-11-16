@@ -1,0 +1,250 @@
+{
+  "happy": {
+    "feed": [
+      "Yum! That was so tasty, thank you! 😊",
+      "I feel so much better now! You're the best!",
+      "Nom nom! This is delicious! You always pick the best snacks! 🍎",
+      "Thank you! My tummy is happy now! ✨"
+    ],
+    "play": [
+      "That was so much fun! Let's play again soon! 🎾",
+      "I love playing with you! You make me so happy!",
+      "Yay! Playing is the best! You're an amazing friend! 🎉",
+      "Woohoo! That was awesome! More adventures please! ⭐"
+    ],
+    "rest": [
+      "Ahh, I feel so peaceful now. Thanks for caring! 😴",
+      "That rest felt amazing! I'm ready for adventure!",
+      "Perfect! I feel so refreshed and cozy! 💤",
+      "Thank you for letting me relax! I feel wonderful! 🌙"
+    ],
+    "combat": [
+      "We did it together! You're so brave! ✨",
+      "Victory! That was exciting! High five! 🌟",
+      "We make a great team! I feel so safe with you! 💛"
+    ],
+    "exploration": [
+      "This place is beautiful! Thanks for exploring with me! 🗺️",
+      "Wow! What a lovely spot! You find the best places! ✨"
+    ],
+    "flower": [
+      "These flowers are gorgeous! Nature is amazing! 🌸",
+      "So pretty! I love discovering beautiful things with you! 🌺"
+    ],
+    "default": [
+      "I'm feeling wonderful today! Want to explore together? ✨",
+      "Everything feels so bright and cheerful! You're awesome!",
+      "I'm so happy we're friends! What should we do next? 🌟",
+      "Life is so good! Thank you for everything! 💛"
+    ]
+  },
+  "sleepy": {
+    "feed": [
+      "Thanks for the snack... *yawn* so cozy now. 😴",
+      "That helps, but I think I need some rest soon.",
+      "Mmm, thank you! Now I'm extra sleepy though... 💤"
+    ],
+    "play": [
+      "Can we play later? I'm feeling quite tired right now. 💤",
+      "I'd love to, but I really need to rest first!",
+      "*yawn* Maybe after a little nap? I'm so sleepy! 😴"
+    ],
+    "rest": [
+      "Perfect! I was hoping we could rest. Sweet dreams! 🌙",
+      "Thank you! I really needed this quiet time.",
+      "Ahh, this is exactly what I needed. So peaceful! 💤",
+      "Yes please! Resting sounds wonderful right now! 🌟"
+    ],
+    "default": [
+      "*yawn* I'm feeling a bit sleepy. Maybe we should rest? 😴",
+      "My eyelids are getting heavy... rest time soon?",
+      "I'm so tired... can we find a cozy spot to relax? 💤",
+      "Everything feels so dreamy right now... *yawn* 🌙"
+    ]
+  },
+  "nervous": {
+    "feed": [
+      "Thanks... that makes me feel a little safer. 💛",
+      "Food helps! I feel a bit braver now.",
+      "Thank you for taking care of me when I'm worried. 🌸"
+    ],
+    "play": [
+      "I'm not sure... maybe gentle play? I'm feeling nervous. 😟",
+      "Can we do something calm? I'm a little worried.",
+      "Maybe we could try something peaceful instead? 💙"
+    ],
+    "rest": [
+      "Yes! Resting together sounds perfect right now. 🌸",
+      "I'd feel better if we could just be peaceful for a bit.",
+      "Thank you! Being calm helps when I'm nervous. 💛",
+      "Perfect! A quiet moment is just what I need. 🌙"
+    ],
+    "combat": [
+      "That was scary! Can we find somewhere calm? 😰",
+      "I'm glad that's over... let's be careful!",
+      "Phew! That made me nervous. You keep me safe! 💙",
+      "I was worried, but you protected me. Thank you! 🌸"
+    ],
+    "default": [
+      "I'm feeling a bit nervous... stay close, okay? 💙",
+      "Everything seems a little overwhelming right now.",
+      "I need a friend... I'm glad you're here! 🌸",
+      "Can we stay together? You make me feel safe. 💛"
+    ]
+  },
+  "curious": {
+    "exploration": [
+      "Ooh! What's over there? Let's go look! 🔍",
+      "I wonder what we'll discover next! So exciting!",
+      "My curiosity is tingling! Let's explore everywhere! ✨",
+      "There's so much to see! Come on, let's investigate! 🗺️"
+    ],
+    "flower": [
+      "These flowers are beautiful! I love finding pretty things. 🌸",
+      "Wow! Nature is so amazing, isn't it?",
+      "Look at all the colors! I wonder what else is here! 🌺",
+      "So lovely! What other treasures can we find? ✨"
+    ],
+    "coin": [
+      "Ooh, shiny! I wonder if there are more nearby! ✨",
+      "A treasure! What else might we discover? 🪙"
+    ],
+    "default": [
+      "I'm so curious about everything around us! Let's explore! ✨",
+      "There's so much to discover! Where should we go?",
+      "I wonder what's beyond that tree... shall we check? 🔍",
+      "My senses are tingling! Adventure awaits! 🗺️"
+    ]
+  },
+  "grateful": {
+    "feed": [
+      "Thank you so much! You always take such good care of me. 💛",
+      "I'm so lucky to have you as my friend!",
+      "You're so thoughtful! This means a lot to me. 🌟",
+      "I appreciate you more than words can say! Thank you! ✨"
+    ],
+    "play": [
+      "That meant a lot to me. You're so thoughtful! 🌟",
+      "I really appreciate you spending time with me!",
+      "Thank you for making time to play! You're wonderful! 💛",
+      "Every moment with you is special. Thank you! ✨"
+    ],
+    "rest": [
+      "Thanks for understanding I needed rest. You're so caring! 💙",
+      "I'm grateful for your patience and kindness! 🌸"
+    ],
+    "default": [
+      "I'm so grateful for everything you do! You're wonderful! ✨",
+      "Thank you for being such a caring friend!",
+      "I don't know what I'd do without you! You're amazing! 💛",
+      "Every day with you is a gift. Thank you! 🌟"
+    ]
+  },
+  "playful": {
+    "feed": [
+      "Nom nom nom! Now I'm ready for adventures! 🎉",
+      "Thanks! Energy boost received! What's next?",
+      "Yummy! Let's go have some fun now! ⭐",
+      "Perfect fuel for excitement! Ready to play! 🎾"
+    ],
+    "play": [
+      "Yes yes yes! This is the best! More please! 🎾",
+      "Woohoo! I love playing! You're so fun!",
+      "Wheee! This is amazing! Let's never stop! 🎉",
+      "Best! Game! Ever! You're the greatest! ⭐"
+    ],
+    "combat": [
+      "We did it! That was exciting! High five! ✨",
+      "Victory! Ready for more adventures!",
+      "Woohoo! We showed them! That was awesome! 🌟",
+      "What a rush! We're unstoppable together! 💫"
+    ],
+    "exploration": [
+      "Adventures everywhere! This is so cool! 🗺️",
+      "Ooh, what's that? And that? Let's see everything! ⭐",
+      "Exploring is the best! You find such fun places! ✨"
+    ],
+    "default": [
+      "I'm feeling super playful! Let's have some fun! 🎉",
+      "Everything is an adventure when I'm with you!",
+      "Yay! What exciting thing should we try next? ⭐",
+      "I'm bouncing with energy! Ready to play! 🎾"
+    ]
+  },
+  "excited": {
+    "feed": [
+      "Oh wow! This is going to be great! Thank you! ⭐",
+      "Yay yay yay! Food and fun! Best day ever! 🎉"
+    ],
+    "play": [
+      "THIS IS AMAZING! Let's go go go! 🎾",
+      "I'm so pumped! This is incredible! ✨"
+    ],
+    "exploration": [
+      "WOW! Look at all of this! So much to explore! 🗺️",
+      "I can't believe how awesome this is! Let's see more! ⭐"
+    ],
+    "default": [
+      "Everything is so exciting! I can barely contain myself! ✨",
+      "This is the best! I'm having such an amazing time! 🌟"
+    ]
+  },
+  "tired": {
+    "feed": [
+      "Thanks... this gives me a little energy. 💙",
+      "I appreciate it, but I'm still pretty worn out. 💤"
+    ],
+    "play": [
+      "I'm too tired right now... maybe after some rest? 😴",
+      "I'd love to, but I need to recharge first. 💤"
+    ],
+    "rest": [
+      "Oh thank goodness! I really need this. 🌙",
+      "Perfect timing! I'm exhausted! Thank you! 💤",
+      "Yes! Rest is exactly what I need right now. 😴"
+    ],
+    "default": [
+      "I'm so tired... everything feels like slow motion. 💤",
+      "Can we rest soon? I'm running on empty. 😴",
+      "I need to recharge... feeling very worn out. 💙"
+    ]
+  },
+  "peaceful": {
+    "feed": [
+      "Thank you. Everything feels so calm and nice. 🌸",
+      "Mmm, this is lovely. So serene! 💙"
+    ],
+    "rest": [
+      "Ahh, pure bliss. Thank you for this moment. 🌙",
+      "So tranquil... I feel completely at peace. ✨"
+    ],
+    "flower": [
+      "Beautiful and peaceful... just like this moment. 🌺",
+      "Nature brings such serenity. I love it here. 🌸"
+    ],
+    "default": [
+      "Everything feels so calm and harmonious. 💙",
+      "I'm in such a peaceful state of mind. Lovely! 🌸",
+      "The world feels gentle and kind right now. ✨"
+    ]
+  },
+  "calm": {
+    "feed": [
+      "Thank you. This is nice and relaxing. 💙",
+      "Perfect! Just what I needed to stay balanced. 🌸"
+    ],
+    "play": [
+      "Sure! Gentle play sounds good to me. ✨",
+      "I'm up for something chill and fun! 💛"
+    ],
+    "rest": [
+      "Lovely! Staying calm and rested is important. 🌙",
+      "Thank you! Balance is everything. 💙"
+    ],
+    "default": [
+      "I feel nicely balanced and centered. All is well! 🌸",
+      "Everything is just right. Calm and content! ✨",
+      "Life feels steady and good. Happy to be here! 💛"
+    ]
+  }
+}

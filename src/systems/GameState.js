@@ -689,6 +689,7 @@ class GameStateManager {
 
             this.emit('careActionPerformed', {
                 action: actionType,
+                actionType: actionType, // For PersonalitySystem compatibility
                 happinessBonus: appliedHappinessBonus,
                 baseHappinessBonus: happinessBonus,
                 happinessOverride: happinessOverride !== null,

@@ -373,6 +373,24 @@ async function initializeGame() {
                         console.log('✅ Creature Genetics system initialized');
                     }
 
+                    // Initialize Creature DNA system
+                    if (window.CreatureDNA) {
+                        window.CreatureDNA.initialize();
+                        console.log('✅ Creature DNA system initialized');
+                    }
+
+                    // Initialize Personality Shaping system
+                    if (window.PersonalitySystem) {
+                        window.PersonalitySystem.initialize();
+                        console.log('✅ Personality Shaping system initialized');
+                    }
+
+                    // Initialize Creature AI Controller (kid-safe chat)
+                    if (window.CreatureAIController) {
+                        window.CreatureAIController.initialize();
+                        console.log('✅ Creature AI Controller initialized');
+                    }
+
                     // Initialize Creature AI system
                     if (window.CreatureAI) {
                         const creatureAI = new window.CreatureAI();

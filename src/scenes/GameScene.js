@@ -94,6 +94,12 @@ class GameScene extends Phaser.Scene {
             // Set current scene in GameState
             getGameState().set('session.currentScene', 'GameScene');
 
+            // Emit session started event for PersonalitySystem
+            getGameState().emit('sessionStarted', {
+                scene: 'GameScene',
+                timestamp: Date.now()
+            });
+
             // Initialize CreatureAI for chat functionality
             const CreatureAI = getCreatureAI();
             this.creatureAI = new CreatureAI();
@@ -353,49 +359,28 @@ class GameScene extends Phaser.Scene {
         const startY = savedPos ? savedPos.y : this.worldHeight / 2;
         
         // Get creature genetics for proper sprite creation
-        const creatureData = getGameState().get('creature');
-        let creatureTextures = ['enhancedCreature0']; // Default fallback
+        console.log('game:info [GameScene] Creating player creature');
 
-        if (creatureData && creatureData.genetics) {
-            console.log('game:info [GameScene] Creating player with genetics:', creatureData.genetics.id);
+        // Use unified creature animation loading method
+        let creatureTextures = [];
 
-            // Check if textures already exist (created in previous scenes)
-            const baseTextureName = `creature_${creatureData.genetics.id}`;
-            const frame0Exists = this.textures.exists(`${baseTextureName}_0`);
-
-            if (frame0Exists) {
-                // Reuse existing textures from previous scenes
-                console.log('game:info [GameScene] Reusing existing creature textures');
-                creatureTextures = [];
-                for (let frame = 0; frame < 4; frame++) {
-                    const textureName = `${baseTextureName}_${frame}`;
-                    if (this.textures.exists(textureName)) {
-                        creatureTextures.push(textureName);
-                    } else {
-                        // Create missing frame
-                        const spriteResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(creatureData.genetics, frame);
-                        creatureTextures.push(spriteResult.textureName);
-                    }
-                }
-            } else {
-                // Create all creature sprite frames with genetics
-                console.log('game:info [GameScene] Creating new creature sprite frames');
-                const spriteResults = [];
-                for (let frame = 0; frame < 4; frame++) {
-                    const spriteResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(creatureData.genetics, frame);
-                    spriteResults.push(spriteResult.textureName);
-                }
-                creatureTextures = spriteResults;
-            }
-
-            // Store the genetics reference for later use
-            this.playerGenetics = creatureData.genetics;
-        } else {
-            console.warn('game:warn [GameScene] No genetics found, using default creature sprites');
-            // Create fallback enhanced creature frames
+        try {
+            creatureTextures = this.graphicsEngine.createCreatureAnimationFrames();
+            console.log('game:info [GameScene] Successfully created creature animation frames:', creatureTextures);
+        } catch (error) {
+            console.error('game:error [GameScene] Error creating creature frames:', error);
+            // Fallback to default creature frames
+            console.warn('game:warn [GameScene] Using fallback creature frames');
             for (let frame = 0; frame < 4; frame++) {
                 this.graphicsEngine.createEnhancedCreature(0x9370DB, 0xDDA0DD, 0x8A2BE2, frame, null);
             }
+            creatureTextures = ['enhancedCreature0', 'enhancedCreature1', 'enhancedCreature2', 'enhancedCreature3'];
+        }
+
+        // Store genetics reference for later use
+        const creatureData = getGameState().get('creature');
+        if (creatureData && creatureData.genetics) {
+            this.playerGenetics = creatureData.genetics;
         }
         
         // Create physics sprite with the first texture
@@ -784,7 +769,177 @@ class GameScene extends Phaser.Scene {
         this.createCosmicMiniMap();
         this.createGlowingStatBars();
         this.createFloatingParticles();
+        this.createPersonalityDisplay();
         this.createChatUI();
+    }
+
+    /**
+     * Create personality traits display
+     * Shows current personality traits based on player behavior
+     */
+    createPersonalityDisplay() {
+        const { width } = this.scale;
+
+        // Create compact personality panel (upper right, below stats)
+        this.personalityText = this.add.text(width - 16, 100, '', {
+            fontSize: '12px',
+            color: '#88FFCC',
+            stroke: '#000000',
+            strokeThickness: 2,
+            backgroundColor: 'rgba(0, 30, 30, 0.75)',
+            padding: { x: 8, y: 4 },
+            align: 'right',
+            lineSpacing: 2
+        });
+        this.personalityText.setOrigin(1, 0);
+        this.personalityText.setScrollFactor(0);
+        this.personalityText.setDepth(1000);
+
+        // Update personality display
+        this.updatePersonalityDisplay();
+
+        // Set up periodic updates (every 5 seconds)
+        this.time.addEvent({
+            delay: 5000,
+            callback: () => this.updatePersonalityDisplay(),
+            loop: true
+        });
+
+        // Listen for personality shifts
+        if (window.GameState && typeof window.GameState.on === 'function') {
+            window.GameState.on('personality/shift', (data) => {
+                this.showPersonalityShiftNotification(data);
+            });
+        }
+    }
+
+    /**
+     * Show personality shift notification
+     * Displays a toast when creature's personality traits change
+     */
+    showPersonalityShiftNotification(data) {
+        if (!data || !data.shifts || data.shifts.length === 0) return;
+
+        const shift = data.shifts[0]; // Show first shift
+        const { width, height } = this.scale;
+
+        // Create floating notification
+        const notification = this.add.graphics();
+        notification.fillStyle(0x1A1A3E, 0.95);
+        notification.fillRoundedRect(0, 0, 300, 80, 10);
+        notification.lineStyle(3, 0x88FFCC);
+        notification.strokeRoundedRect(0, 0, 300, 80, 10);
+        notification.setScrollFactor(0);
+        notification.setDepth(5000);
+
+        // Position at center of screen
+        notification.setPosition(width / 2 - 150, height / 2 - 100);
+        notification.setAlpha(0);
+
+        // Title text
+        const titleText = this.add.text(width / 2, height / 2 - 85, '🌟 Personality Shift!', {
+            fontSize: '18px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+        titleText.setOrigin(0.5);
+        titleText.setScrollFactor(0);
+        titleText.setDepth(5001);
+        titleText.setAlpha(0);
+
+        // Shift details
+        const detailsText = this.add.text(width / 2, height / 2 - 55,
+            `${this.capitalizeFirst(shift.traitType)}:\n${shift.from} → ${shift.to}`,
+            {
+                fontSize: '16px',
+                color: '#88FFCC',
+                align: 'center',
+                stroke: '#000000',
+                strokeThickness: 2,
+                lineSpacing: 4
+            }
+        );
+        detailsText.setOrigin(0.5);
+        detailsText.setScrollFactor(0);
+        detailsText.setDepth(5001);
+        detailsText.setAlpha(0);
+
+        // Fade in animation
+        this.tweens.add({
+            targets: [notification, titleText, detailsText],
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+
+        // Update personality display immediately
+        this.updatePersonalityDisplay();
+
+        // Play sound effect
+        if (window.AudioManager) {
+            window.AudioManager.playLevelUp?.(); // Reuse level up sound for personality shifts
+        }
+
+        // Fade out and destroy after 3 seconds
+        this.time.delayedCall(3000, () => {
+            this.tweens.add({
+                targets: [notification, titleText, detailsText],
+                alpha: 0,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => {
+                    notification.destroy();
+                    titleText.destroy();
+                    detailsText.destroy();
+                }
+            });
+        });
+
+        console.log('[GameScene] Personality shift notification shown:', shift);
+    }
+
+    /**
+     * Capitalize first letter of a string
+     */
+    capitalizeFirst(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    /**
+     * Update personality traits display
+     */
+    updatePersonalityDisplay() {
+        if (!this.personalityText) return;
+
+        const summary = window.PersonalitySystem?.getPersonalitySummary();
+        if (!summary || !summary.traits) {
+            this.personalityText.setVisible(false);
+            return;
+        }
+
+        const { traits } = summary;
+
+        // Build compact display string
+        const lines = ['🧬 Personality'];
+
+        if (traits.temperament) {
+            lines.push(`💫 ${traits.temperament.label}`);
+        }
+        if (traits.energyLevel) {
+            lines.push(`⚡ ${traits.energyLevel.label}`);
+        }
+        if (traits.curiosity) {
+            lines.push(`🔍 ${traits.curiosity.label}`);
+        }
+        if (traits.attachmentStyle) {
+            lines.push(`💛 ${traits.attachmentStyle.label}`);
+        }
+
+        this.personalityText.setText(lines.join('\n'));
+        this.personalityText.setVisible(true);
     }
 
     createResetButton() {
@@ -1050,6 +1205,13 @@ class GameScene extends Phaser.Scene {
             rarity
         );
 
+        // Track combat for personality shaping
+        getGameState().emit('combatEngaged', {
+            targetX: nearestEnemy.x,
+            targetY: nearestEnemy.y,
+            timestamp: Date.now()
+        });
+
         this.combatCooldown = this.combatCooldownMax;
         if (this.combatText) {
             this.tweens.add({
@@ -1139,6 +1301,12 @@ class GameScene extends Phaser.Scene {
             // Update mobile interact button icon to flower
             if (this.mobileControls) {
                 this.mobileControls.updateInteractIcon('🌸');
+            }
+
+            // Track flower interaction for personality shaping
+            // (Peaceful, gentle activity)
+            if (window.PersonalitySystem && typeof window.PersonalitySystem.trackFlowerInteraction === 'function') {
+                window.PersonalitySystem.trackFlowerInteraction();
             }
         }
 
@@ -1319,9 +1487,71 @@ class GameScene extends Phaser.Scene {
             // Update stats display
             this.updateStatsDisplay();
 
+            // INTEGRATION EXAMPLE 2: Get creature's response via CreatureAIController
+            if (window.CreatureAIController) {
+                window.CreatureAIController.respondToExploration('flower')
+                    .then(response => {
+                        this.showCreatureResponse(response);
+                    })
+                    .catch(error => {
+                        console.warn('[GameScene] AI response failed:', error);
+                        // Fail silently - flower interaction still succeeded
+                    });
+            }
+
             // Check achievements after flower interaction
             this.time.delayedCall(500, () => this.checkAndUnlockAchievements());
         }
+    }
+
+    /**
+     * Show creature's chat response
+     * Helper for displaying AI-generated responses in the game world
+     */
+    showCreatureResponse(response) {
+        if (!response) return;
+
+        const x = this.player.x;
+        const y = this.player.y - 80; // Above player
+
+        const bubble = this.add.text(x, y, response, {
+            fontSize: '14px',
+            color: '#FFFFFF',
+            backgroundColor: 'rgba(123, 104, 238, 0.95)',
+            padding: { x: 12, y: 9 },
+            borderRadius: 12,
+            align: 'center',
+            wordWrap: { width: 280 },
+            fontFamily: 'Arial, sans-serif',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        bubble.setDepth(5000);
+        bubble.setScrollFactor(1); // Move with camera
+
+        // Fade in and bounce
+        bubble.setAlpha(0);
+        bubble.setScale(0.8);
+        this.tweens.add({
+            targets: bubble,
+            alpha: 1,
+            scale: 1,
+            duration: 400,
+            ease: 'Back.easeOut'
+        });
+
+        // Auto-dismiss after 4 seconds
+        this.time.delayedCall(4000, () => {
+            this.tweens.add({
+                targets: bubble,
+                alpha: 0,
+                y: y - 30,
+                scale: 0.9,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => bubble.destroy()
+            });
+        });
     }
 
     update() {
@@ -2282,6 +2512,14 @@ class GameScene extends Phaser.Scene {
         }
         this._isShuttingDown = true;
         console.log('[GameScene] Shutting down - cleaning up event listeners');
+
+        // Emit session ended event for PersonalitySystem
+        if (window.GameState && typeof window.GameState.emit === 'function') {
+            window.GameState.emit('sessionEnded', {
+                scene: 'GameScene',
+                timestamp: Date.now()
+            });
+        }
 
         // Remove global enemy listeners
         if (window.EnemyManager) {

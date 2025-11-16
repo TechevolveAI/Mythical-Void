@@ -158,6 +158,17 @@ class CarePanelManager {
                 this.showCareEffect(actionType, result.happinessBonus);
                 this.updateButtons();
                 this.updateHint();
+
+                // INTEGRATION EXAMPLE: Get creature's response via CreatureAIController
+                if (window.CreatureAIController) {
+                    try {
+                        const response = await window.CreatureAIController.respondToCareAction(actionType);
+                        this.showCreatureResponse(response);
+                    } catch (error) {
+                        console.warn('[CarePanelManager] AI response failed:', error);
+                        // Fail silently - care action still succeeded
+                    }
+                }
             } else {
                 const reason = result?.reason || 'Not available right now';
                 this.showCareMessage(actionType, 0, reason);
@@ -166,6 +177,50 @@ class CarePanelManager {
             console.warn('[CarePanelManager] Care action failed', error);
             this.showCareMessage(actionType, 0, 'Action failed');
         }
+    }
+
+    /**
+     * Show creature's chat response
+     */
+    showCreatureResponse(response) {
+        if (!response) return;
+
+        const player = this.playerProvider ? this.playerProvider() : null;
+        const x = player ? player.x : 400;
+        const y = player ? player.y + 40 : 360; // Below player
+
+        const bubble = this.scene.add.text(x, y, response, {
+            fontSize: '14px',
+            color: '#FFFFFF',
+            backgroundColor: 'rgba(123, 104, 238, 0.9)',
+            padding: { x: 10, y: 8 },
+            borderRadius: 10,
+            align: 'center',
+            wordWrap: { width: 250 },
+            fontFamily: 'Arial, sans-serif'
+        }).setOrigin(0.5);
+        bubble.setDepth(4000);
+
+        // Fade in and out
+        bubble.setAlpha(0);
+        this.scene.tweens.add({
+            targets: bubble,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
+        });
+
+        // Auto-dismiss after 3 seconds
+        this.scene.time.delayedCall(3000, () => {
+            this.scene.tweens.add({
+                targets: bubble,
+                alpha: 0,
+                y: y - 20,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => bubble.destroy()
+            });
+        });
     }
 
     handleCareEvent(data) {

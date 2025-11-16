@@ -149,7 +149,10 @@ class HatchingScene extends Phaser.Scene {
         const GraphicsEngine = getGraphicsEngine();
         this.graphicsEngine = new GraphicsEngine(this);
 
-        // Create enhanced programmatic sprites
+        // Generate creature genetics early so egg can have proper rarity pattern
+        this.generateCreatureGenetics();
+
+        // Create enhanced programmatic sprites (now with rarity info)
         this.createEnhancedSprites();
 
         // Add audio indicator
@@ -253,9 +256,11 @@ class HatchingScene extends Phaser.Scene {
                 health: 100
             });
             
-            // Clear personality and genes to regenerate fresh
+            // Clear personality, genes, DNA, and personality state to regenerate fresh
             state.set('creature.personality', null);
             state.set('creature.genes', null);
+            state.set('creature.dna', null);
+            state.set('creature.personalityState', null);
             
             console.log('🔄 Creature reset complete - forcing save before scene transition...');
             
@@ -306,8 +311,14 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createEnhancedSprites() {
-        // Create enhanced egg with realistic shading and texture
-        this.createEnhancedEgg();
+        // Get rarity from creature DNA (generated in showHatchingScreen)
+        const rarityKey = this.creatureDNA?.raritySignature || 'common';
+
+        // Create enhanced egg with rarity-specific pattern
+        const eggTextureName = this.createEnhancedEgg(rarityKey);
+
+        // Store texture name for later use
+        this.eggTextureName = eggTextureName || 'enhancedEgg_common';
 
         // Get creature colors from GameState (allows customization later)
         const creatureColors = getGameState().get('creature.colors') || {
@@ -331,67 +342,177 @@ class HatchingScene extends Phaser.Scene {
         this.createEnhancedClouds();
     }
 
-    createEnhancedEgg() {
+    createEnhancedEgg(rarityKey = 'common') {
+        // Load rarity config if not already loaded
+        if (!this.rarityConfig) {
+            try {
+                this.rarityConfig = require('../config/rarity-config.json');
+            } catch (error) {
+                console.warn('hatching:warn [HatchingScene] Could not load rarity config, using defaults');
+                this.rarityConfig = {};
+            }
+        }
+
+        // Get rarity-specific egg configuration
+        const rarityData = this.rarityConfig[rarityKey] || this.rarityConfig.common || {};
+        const eggConfig = rarityData.egg || {
+            baseColor: '#90EE90',
+            pattern: 'speckled',
+            patternColor: '#7CFC00',
+            shimmer: 0.3
+        };
+
+        // Convert hex colors to numbers for Phaser
+        const baseColor = parseInt(eggConfig.baseColor.replace('#', ''), 16);
+        const patternColor = parseInt(eggConfig.patternColor.replace('#', ''), 16);
+
         // Check if texture already exists (prevent duplicate textures on scene restart)
-        if (this.textures.exists('enhancedEgg')) {
-            console.log('hatching:info [HatchingScene] Egg texture already exists, skipping generation');
-            return;
+        const textureName = `enhancedEgg_${rarityKey}`;
+        if (this.textures.exists(textureName)) {
+            console.log(`hatching:info [HatchingScene] Egg texture ${textureName} already exists, skipping generation`);
+            return textureName;
         }
 
         const graphics = this.add.graphics();
         const center = { x: 50, y: 75 };
 
-        // === ENHANCED EGG WITH REALISTIC SHADING ===
+        // === RARITY-ENHANCED EGG WITH REALISTIC SHADING ===
 
         // Egg shadow on ground
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillEllipse(center.x + 3, center.y + 25, 85, 45);
 
-        // Egg base layer (darkest)
-        graphics.fillStyle(0xE6E6E6); // Light gray base
+        // Egg base layer (darkest) - using rarity color darkened
+        const darkBase = Phaser.Display.Color.ValueToColor(baseColor).darken(30).color;
+        graphics.fillStyle(darkBase);
         graphics.fillEllipse(center.x, center.y, 84, 104);
 
-        // Egg main color (cream)
-        graphics.fillStyle(0xF5F5DC);
+        // Egg main color (from rarity config)
+        graphics.fillStyle(baseColor);
         graphics.fillEllipse(center.x - 2, center.y - 2, 80, 100);
 
-        // Egg highlight (creates 3D roundness)
-        graphics.fillStyle(0xFFFAF0);
+        // Egg highlight (creates 3D roundness) - lighter version of base
+        const lightBase = Phaser.Display.Color.ValueToColor(baseColor).lighten(20).color;
+        graphics.fillStyle(lightBase);
         graphics.fillEllipse(center.x - 8, center.y - 8, 65, 85);
 
-        // Egg shine (realistic light reflection)
-        graphics.fillStyle(0xFFFFFF, 0.6);
+        // Egg shine (realistic light reflection) with shimmer intensity
+        graphics.fillStyle(0xFFFFFF, eggConfig.shimmer);
         graphics.fillEllipse(center.x - 15, center.y - 15, 35, 45);
 
-        // Enhanced spots with depth
-        const spots = [
-            { x: 35, y: 60, size: 8 },
-            { x: 65, y: 85, size: 6 },
-            { x: 45, y: 95, size: 5 },
-            { x: 30, y: 80, size: 4 },
-            { x: 55, y: 65, size: 3 }
-        ];
-
-        spots.forEach(spot => {
-            // Spot shadow
-            graphics.fillStyle(0xDAA520, 0.8);
-            graphics.fillCircle(spot.x + 1, spot.y + 1, spot.size);
-
-            // Main spot
-            graphics.fillStyle(0xFFD54F);
-            graphics.fillCircle(spot.x, spot.y, spot.size);
-
-            // Spot highlight
-            graphics.fillStyle(0xFFFACD, 0.7);
-            graphics.fillCircle(spot.x - 1, spot.y - 1, spot.size * 0.6);
-        });
+        // Apply pattern based on rarity
+        this.applyEggPattern(graphics, center, eggConfig.pattern, patternColor, eggConfig.shimmer);
 
         // Egg outline for definition
         graphics.lineStyle(2, 0x8B4513, 0.8);
         graphics.strokeEllipse(center.x - 2, center.y - 2, 80, 100);
 
-        graphics.generateTexture('enhancedEgg', 100, 150);
+        graphics.generateTexture(textureName, 100, 150);
         graphics.destroy();
+
+        return textureName;
+    }
+
+    /**
+     * Apply pattern to egg based on rarity configuration
+     */
+    applyEggPattern(graphics, center, pattern, patternColor, shimmer) {
+        switch (pattern) {
+            case 'speckled': // Common
+                const spots = [
+                    { x: 35, y: 60, size: 8 },
+                    { x: 65, y: 85, size: 6 },
+                    { x: 45, y: 95, size: 5 },
+                    { x: 30, y: 80, size: 4 },
+                    { x: 55, y: 65, size: 3 }
+                ];
+                spots.forEach(spot => {
+                    graphics.fillStyle(patternColor, 0.8);
+                    graphics.fillCircle(center.x + spot.x - 50, center.y + spot.y - 75, spot.size);
+                });
+                break;
+
+            case 'striped': // Unusual
+                for (let i = 0; i < 5; i++) {
+                    graphics.fillStyle(patternColor, 0.4 + i * 0.1);
+                    graphics.fillRect(center.x - 40, center.y - 40 + i * 20, 80, 8);
+                }
+                break;
+
+            case 'crystalline': // Rare
+                const crystalPoints = [
+                    [center.x - 20, center.y - 30],
+                    [center.x + 10, center.y - 20],
+                    [center.x - 15, center.y + 10],
+                    [center.x + 15, center.y + 20]
+                ];
+                crystalPoints.forEach(([x, y]) => {
+                    graphics.fillStyle(patternColor, shimmer);
+                    graphics.fillTriangle(x, y, x + 8, y + 12, x - 8, y + 12);
+                    graphics.fillStyle(0xFFFFFF, shimmer * 1.5);
+                    graphics.fillTriangle(x, y, x + 4, y + 6, x - 4, y + 6);
+                });
+                break;
+
+            case 'cosmic': // Epic
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const radius = 35 + Math.sin(angle * 3) * 8;
+                    const x = center.x + Math.cos(angle) * radius;
+                    const y = center.y + Math.sin(angle) * radius * 1.2;
+                    graphics.fillStyle(patternColor, shimmer);
+                    graphics.fillCircle(x, y, 3 + Math.sin(angle * 5) * 2);
+                }
+                break;
+
+            case 'radiant': // Legendary
+                const rays = 8;
+                for (let i = 0; i < rays; i++) {
+                    const angle = (i / rays) * Math.PI * 2;
+                    graphics.lineStyle(2, patternColor, shimmer);
+                    graphics.lineBetween(
+                        center.x,
+                        center.y,
+                        center.x + Math.cos(angle) * 40,
+                        center.y + Math.sin(angle) * 50
+                    );
+                }
+                // Add central glow
+                graphics.fillStyle(0xFFFFFF, shimmer);
+                graphics.fillCircle(center.x, center.y, 10);
+                break;
+
+            case 'nebula': // Mythic
+                for (let i = 0; i < 20; i++) {
+                    const x = center.x + Phaser.Math.Between(-35, 35);
+                    const y = center.y + Phaser.Math.Between(-45, 45);
+                    const size = Phaser.Math.Between(2, 6);
+                    graphics.fillStyle(patternColor, shimmer * Phaser.Math.FloatBetween(0.3, 0.9));
+                    graphics.fillCircle(x, y, size);
+                }
+                break;
+
+            case 'glitched': // Secret
+                // Intentional "glitch" effect with random rectangles
+                for (let i = 0; i < 15; i++) {
+                    const x = center.x + Phaser.Math.Between(-40, 40);
+                    const y = center.y + Phaser.Math.Between(-50, 50);
+                    const w = Phaser.Math.Between(5, 15);
+                    const h = Phaser.Math.Between(2, 8);
+                    graphics.fillStyle(patternColor, Phaser.Math.FloatBetween(0.3, 1.0));
+                    graphics.fillRect(x, y, w, h);
+                }
+                // Add cyan/magenta glitch offsets
+                graphics.fillStyle(0x00FFFF, 0.3);
+                graphics.fillEllipse(center.x - 3, center.y, 80, 100);
+                graphics.fillStyle(0xFF00FF, 0.3);
+                graphics.fillEllipse(center.x + 3, center.y, 80, 100);
+                break;
+
+            default:
+                // Default to speckled
+                this.applyEggPattern(graphics, center, 'speckled', patternColor, shimmer);
+        }
     }
 
     createEnhancedClouds() {
@@ -494,7 +615,9 @@ class HatchingScene extends Phaser.Scene {
         // MOBILE-RESPONSIVE egg positioning
         // Center the egg in the middle of the viewport
         const { width, height } = this.scale;
-        this.egg = this.add.image(width / 2, height * 0.45, 'enhancedEgg');  // Slightly above center
+        // Use rarity-specific egg texture
+        const textureName = this.eggTextureName || 'enhancedEgg_common';
+        this.egg = this.add.image(width / 2, height * 0.45, textureName);  // Slightly above center
 
         // IMPORTANT: Set scale BEFORE interactive to ensure hit area matches visual size
         this.egg.setScale(1.2);
@@ -917,10 +1040,56 @@ class HatchingScene extends Phaser.Scene {
     completeHatching() {
         console.log('[HatchingScene] 🎉 Egg hatched! Playing celebration sound');
 
+        // Get rarity-specific effects configuration
+        const rarityKey = this.creatureDNA?.raritySignature || 'common';
+        const rarityConfig = this.rarityConfig?.[rarityKey] || this.rarityConfig?.common || {};
+        const hatchEffects = rarityConfig.hatchingEffects || {};
+        const celebrationMsg = rarityConfig.celebrationMessage || 'You hatched a wonderful companion!';
+
         // Play celebration sound
         if (window.AudioManager) {
             window.AudioManager.playHatchCelebration();
         }
+
+        // Add rarity-specific camera effects for Epic+
+        const rarityTiers = ['common', 'unusual', 'rare', 'epic', 'legendary', 'mythic', 'secret'];
+        const rarityTier = rarityTiers.indexOf(rarityKey);
+        const isEpicOrHigher = rarityTier >= 3; // Epic and above
+
+        if (isEpicOrHigher) {
+            // Camera shake effect
+            if (hatchEffects.cameraShake && this.cameras.main) {
+                this.cameras.main.shake(300, 0.005);
+            }
+
+            // Camera zoom effect
+            if (hatchEffects.cameraZoom && this.cameras.main) {
+                const originalZoom = this.cameras.main.zoom;
+                this.tweens.add({
+                    targets: this.cameras.main,
+                    zoom: originalZoom + 0.1,
+                    duration: 300,
+                    yoyo: true,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        }
+
+        // Add extra sparkles based on rarity
+        if (hatchEffects.extraSparkles > 0 && window.FXLibrary) {
+            const { width, height } = this.scale;
+            const eggX = width / 2;
+            const eggY = height * 0.45;
+
+            window.FXLibrary.stardustBurst(this, eggX, eggY, {
+                count: hatchEffects.particleCount || 20,
+                color: [0xFFD700, 0xFFA500, 0xFFFFFF],
+                duration: 2000
+            });
+        }
+
+        // Show celebration banner
+        this.showCelebrationBanner(celebrationMsg, rarityConfig);
 
         this.hatchingTimer.destroy();
         this.isHatching = false;
@@ -932,7 +1101,10 @@ class HatchingScene extends Phaser.Scene {
         // Stop shaking and floating animations
         this.tweens.killTweensOf(this.egg);
 
-        // Make egg disappear with fade effect
+        // Make egg disappear with fade effect (with flash intensity based on rarity)
+        const flashIntensity = hatchEffects.flashIntensity || 0.2;
+        this.createFlashEffect(flashIntensity);
+
         this.tweens.add({
             targets: this.egg,
             alpha: 0,
@@ -942,6 +1114,95 @@ class HatchingScene extends Phaser.Scene {
                 this.egg.destroy();
                 this.showCreature();
             }
+        });
+    }
+
+    /**
+     * Show celebration banner with rarity-specific message
+     */
+    showCelebrationBanner(message, rarityConfig) {
+        const { width, height } = this.scale;
+
+        // Get rarity display name and visual config
+        const displayName = rarityConfig.displayName || 'Companion';
+        const visualConfig = rarityConfig.visual || {};
+        const frameColor = visualConfig.frame ? parseInt(visualConfig.frame.replace('#', ''), 16) : 0x7CFC00;
+        const badge = visualConfig.badge || '✨';
+
+        // Create banner background
+        const bannerBg = this.add.graphics();
+        bannerBg.fillStyle(0x000000, 0.7);
+        bannerBg.fillRoundedRect(width / 2 - 250, height * 0.15, 500, 100, 15);
+        bannerBg.lineStyle(3, frameColor, 1);
+        bannerBg.strokeRoundedRect(width / 2 - 250, height * 0.15, 500, 100, 15);
+        bannerBg.setDepth(1000);
+
+        // Create banner text
+        const bannerText = this.add.text(width / 2, height * 0.15 + 30, `${badge} ${displayName}!`, {
+            fontSize: '28px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
+        }).setOrigin(0.5).setDepth(1001);
+
+        const messageText = this.add.text(width / 2, height * 0.15 + 65, message, {
+            fontSize: '16px',
+            color: '#FFFFFF',
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+            wordWrap: { width: 480 }
+        }).setOrigin(0.5).setDepth(1001);
+
+        // Fade in animation
+        bannerBg.setAlpha(0);
+        bannerText.setAlpha(0);
+        messageText.setAlpha(0);
+
+        this.tweens.add({
+            targets: [bannerBg, bannerText, messageText],
+            alpha: 1,
+            duration: 500,
+            ease: 'Sine.easeOut'
+        });
+
+        // Scale animation for text
+        bannerText.setScale(0.5);
+        this.tweens.add({
+            targets: bannerText,
+            scale: 1,
+            duration: 600,
+            ease: 'Back.easeOut'
+        });
+
+        // Auto-dismiss after 3 seconds
+        this.time.delayedCall(3000, () => {
+            this.tweens.add({
+                targets: [bannerBg, bannerText, messageText],
+                alpha: 0,
+                duration: 500,
+                onComplete: () => {
+                    bannerBg.destroy();
+                    bannerText.destroy();
+                    messageText.destroy();
+                }
+            });
+        });
+    }
+
+    /**
+     * Create flash effect for hatching
+     */
+    createFlashEffect(intensity = 0.3) {
+        const { width, height } = this.scale;
+        const flash = this.add.graphics();
+        flash.fillStyle(0xFFFFFF, intensity);
+        flash.fillRect(0, 0, width, height);
+        flash.setDepth(500);
+
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => flash.destroy()
         });
     }
 
@@ -957,17 +1218,21 @@ class HatchingScene extends Phaser.Scene {
         // Use setTimeout to allow loading overlay to render
         this.time.delayedCall(100, () => {
             try {
-                // Generate unique genetics for this creature
-                console.log('hatch:info [HatchingScene] Step 1: Generating creature genetics...');
-                this.generateCreatureGenetics();
-
+                // Generate genetics if not already generated (should be generated in showHatchingScreen)
                 if (!this.creatureGenetics) {
-                    console.error('hatch:error [HatchingScene] CRITICAL: generateCreatureGenetics() returned null!');
-                    if (window.UXEnhancements) {
-                        window.UXEnhancements.hideLoading();
+                    console.log('hatch:info [HatchingScene] Step 1: Generating creature genetics (fallback)...');
+                    this.generateCreatureGenetics();
+
+                    if (!this.creatureGenetics) {
+                        console.error('hatch:error [HatchingScene] CRITICAL: generateCreatureGenetics() returned null!');
+                        if (window.UXEnhancements) {
+                            window.UXEnhancements.hideLoading();
+                        }
+                        this.showCriticalError('Failed to generate creature genetics');
+                        return;
                     }
-                    this.showCriticalError('Failed to generate creature genetics');
-                    return;
+                } else {
+                    console.log('hatch:info [HatchingScene] Step 1: Using pre-generated creature genetics');
                 }
 
                 console.log('hatch:info [HatchingScene] Step 2: Creating creature sprite...');
@@ -1281,6 +1546,32 @@ class HatchingScene extends Phaser.Scene {
         // Store rarity info for UI
         this.rarityInfo = window.raritySystem.getRarityInfo(rarity);
 
+        // Generate DNA profile (DNA v1)
+        if (window.CreatureDNA) {
+            this.creatureDNA = window.CreatureDNA.generateDNA({ forcedRarity: rarity });
+
+            // Store DNA in GameState for persistence
+            state.set('creature.dna', this.creatureDNA);
+
+            console.log(`hatch:info [HatchingScene] Generated DNA profile:`, {
+                id: this.creatureDNA.id,
+                body: this.creatureDNA.bodyArchetype,
+                head: this.creatureDNA.headArchetype,
+                hybrid: this.creatureDNA.hybridTag,
+                temperament: this.creatureDNA.temperament,
+                rarity: this.creatureDNA.raritySignature
+            });
+
+            // Initialize personality shaping system (Personality v1)
+            if (window.PersonalitySystem) {
+                const personalityState = window.PersonalitySystem.initializePersonalityState(this.creatureDNA);
+                state.set('creature.personalityState', personalityState);
+                console.log('hatch:info [HatchingScene] Initialized personality shaping system');
+            }
+        } else {
+            console.warn('hatch:warn [HatchingScene] CreatureDNA system not available');
+        }
+
         console.log(`hatch:info [HatchingScene] Generated ${this.creatureGenetics.rarity} ${this.creatureGenetics.species}:`, {
             id: this.creatureGenetics.id,
             personality: this.creatureGenetics.personality.core,
@@ -1296,16 +1587,44 @@ class HatchingScene extends Phaser.Scene {
     createUniqueCreature() {
         console.log('hatch:debug [HatchingScene] createUniqueCreature() called');
 
-        if (!this.creatureGenetics) {
-            console.error('hatch:error [HatchingScene] No genetics available!');
-            return null;
-        }
-
         if (!this.graphicsEngine) {
             console.error('hatch:error [HatchingScene] No graphics engine available!');
             return null;
         }
 
+        // Try DNA-based rendering first (if CreatureDNA is available)
+        if (this.creatureDNA && typeof this.graphicsEngine.createCreatureFromDNA === 'function') {
+            console.log('hatch:info [HatchingScene] Using DNA-based creature rendering');
+            console.log('hatch:debug [HatchingScene] DNA:', {
+                id: this.creatureDNA.id,
+                body: this.creatureDNA.bodyArchetype,
+                head: this.creatureDNA.headArchetype,
+                hybrid: this.creatureDNA.hybridTag,
+                aura: this.creatureDNA.elementalAura,
+                rarity: this.creatureDNA.raritySignature
+            });
+
+            try {
+                const creatureResult = this.graphicsEngine.createCreatureFromDNA(this.creatureDNA, 0);
+
+                if (!creatureResult || !creatureResult.textureName) {
+                    console.warn('hatch:warn [HatchingScene] DNA rendering failed, falling back to genetics');
+                } else {
+                    console.log('hatch:info [HatchingScene] Successfully created DNA-based creature:', creatureResult.textureName);
+                    return creatureResult;
+                }
+            } catch (error) {
+                console.error('hatch:error [HatchingScene] DNA rendering error, falling back to genetics:', error);
+            }
+        }
+
+        // Fallback to genetics-based rendering
+        if (!this.creatureGenetics) {
+            console.error('hatch:error [HatchingScene] No genetics available!');
+            return null;
+        }
+
+        console.log('hatch:info [HatchingScene] Using genetics-based creature rendering');
         console.log('hatch:debug [HatchingScene] Genetics:', {
             id: this.creatureGenetics.id,
             species: this.creatureGenetics.species,
@@ -2895,9 +3214,11 @@ class HatchingScene extends Phaser.Scene {
             health: 100
         });
 
-        // Clear personality and genes to regenerate fresh
+        // Clear personality, genes, DNA, and personality state to regenerate fresh
         GameState.set('creature.personality', null);
         GameState.set('creature.genes', null);
+        GameState.set('creature.dna', null);
+        GameState.set('creature.personalityState', null);
 
         console.log('🔄 Creature reset complete - forcing save before scene transition...');
 

@@ -137,6 +137,14 @@ class PersonalityScene extends Phaser.Scene {
             state.set('creature.genes', creatureData.genes);
         }
 
+        // Load DNA profile (DNA v1)
+        this.creatureDNA = state.get('creature.dna');
+        if (this.creatureDNA) {
+            console.log('personality:info [PersonalityScene] Loaded DNA profile:', this.creatureDNA.id);
+        } else {
+            console.warn('personality:warn [PersonalityScene] No DNA profile found');
+        }
+
         this.creatureData = state.get('creature');
 
         // Final safety check
@@ -290,6 +298,31 @@ class PersonalityScene extends Phaser.Scene {
         ].filter(Boolean).join('\n');
     }
 
+    buildDNASummary(dna = {}) {
+        if (!dna || !dna.id) {
+            return 'DNA profile is still crystallizing...';
+        }
+
+        const bodyDesc = this.formatTitleCase(dna.bodyArchetype || 'unknown');
+        const headDesc = this.formatTitleCase(dna.headArchetype || 'unknown');
+        const hybridDesc = this.formatTitleCase(dna.hybridTag || 'single-species');
+        const auraDesc = this.formatTitleCase(dna.elementalAura || 'cosmic');
+        const temperamentDesc = this.formatTitleCase(dna.temperament || 'gentle');
+        const energyDesc = this.formatTitleCase(dna.energyLevel || 'balanced');
+        const curiosityDesc = this.formatTitleCase(dna.curiosity || 'medium');
+        const attachmentDesc = this.formatTitleCase(dna.attachmentStyle || 'balanced');
+        const favoriteDesc = this.formatTitleCase(dna.favouriteCareAction || 'play');
+
+        return [
+            `Physical Form: ${bodyDesc} body, ${headDesc} head`,
+            `Hybrid Nature: ${hybridDesc}`,
+            `Elemental Aura: ${auraDesc}`,
+            `Temperament: ${temperamentDesc} • Energy: ${energyDesc}`,
+            `Curiosity: ${curiosityDesc} • Attachment: ${attachmentDesc}`,
+            `Favorite Activity: ${favoriteDesc}`
+        ].filter(Boolean).join('\n');
+    }
+
     formatQuirks(quirks = []) {
         if (!Array.isArray(quirks) || quirks.length === 0) return '';
         return quirks.map(q => this.formatTitleCase(q.replace(/_/g, ' '))).join(', ');
@@ -373,51 +406,26 @@ class PersonalityScene extends Phaser.Scene {
     displayCreature() {
         let textureName = 'enhancedCreature0'; // Default fallback
 
-        // Priority 1: Use saved texture name from GameState (most reliable)
-        const savedTextureName = this.creatureData?.textureName;
-        if (savedTextureName && this.textures.exists(savedTextureName)) {
-            console.log('personality:info [PersonalityScene] Using saved texture from GameState:', savedTextureName);
-            textureName = savedTextureName;
-        }
-        // Priority 2: Use genetics system if available
-        else if (this.creatureGenetics) {
-            console.log('personality:info [PersonalityScene] Loading creature with genetics ID:', this.creatureGenetics.id);
+        // Use the unified creature loading method from GraphicsEngine
+        console.log('personality:info [PersonalityScene] Loading creature from GameState');
 
-            // IMPORTANT: Use the same texture name that was created in HatchingScene
-            // Don't regenerate - just reuse the existing texture
-            const expectedTextureName = `creature_${this.creatureGenetics.id}_0`;
+        try {
+            const creatureResult = this.graphicsEngine.loadCreatureFromGameState(0);
 
-            // Check if the texture already exists from HatchingScene
-            if (this.textures.exists(expectedTextureName)) {
-                console.log('personality:info [PersonalityScene] Reusing existing texture:', expectedTextureName);
-                textureName = expectedTextureName;
+            if (creatureResult && creatureResult.textureName) {
+                textureName = creatureResult.textureName;
+                console.log('personality:info [PersonalityScene] Successfully loaded creature:', textureName);
             } else {
-                // Texture doesn't exist, need to create it
-                console.warn('personality:warn [PersonalityScene] Texture not found, creating new:', expectedTextureName);
-                try {
-                    const spriteResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(this.creatureGenetics, 0);
-                    textureName = spriteResult.textureName;
-                } catch (error) {
-                    console.error('personality:error [PersonalityScene] Failed to create creature sprite:', error);
-                    // Fall back to default
-                    textureName = 'enhancedCreature0';
-                    this.graphicsEngine.createEnhancedCreature(0x9370DB, 0xDDA0DD, 0x8A2BE2, 0, null);
-                }
+                console.warn('personality:warn [PersonalityScene] Failed to load creature, using fallback');
+                // Create fallback creature
+                this.graphicsEngine.createEnhancedCreature(0x9370DB, 0xDDA0DD, 0x8A2BE2, 0, null);
+                textureName = 'enhancedCreature0';
             }
-        } else if (this.creatureData && this.creatureData.colors) {
-            // Legacy fallback
-            console.log('personality:info [PersonalityScene] Using legacy creature rendering');
-            this.graphicsEngine.createEnhancedCreature(
-                this.creatureData.colors.body,
-                this.creatureData.colors.head,
-                this.creatureData.colors.wings,
-                0,
-                this.creatureData.genes
-            );
-        } else {
-            // Final fallback - create a basic creature
-            console.warn('personality:warn [PersonalityScene] Using basic fallback creature');
+        } catch (error) {
+            console.error('personality:error [PersonalityScene] Error loading creature:', error);
+            // Create fallback creature
             this.graphicsEngine.createEnhancedCreature(0x9370DB, 0xDDA0DD, 0x8A2BE2, 0, null);
+            textureName = 'enhancedCreature0';
         }
 
         // MOBILE-RESPONSIVE creature positioning
@@ -615,6 +623,23 @@ class PersonalityScene extends Phaser.Scene {
             lineSpacing: 4,
             wordWrap: { width: panelW - (padding * 2) }
         }).setOrigin(0, 0);
+        currentY += this.cosmicText.height + (panelH * 0.04);
+
+        // DNA Profile section (DNA v1)
+        this.dnaTitle = this.add.text(contentX, currentY, '🧬 DNA Profile', {
+            fontSize: `${subtitleFontSize}px`,
+            color: '#00FF88',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+        currentY += subtitleFontSize * 1.4;
+
+        this.dnaText = this.add.text(contentX, currentY, this.buildDNASummary(this.creatureDNA), {
+            fontSize: `${smallFontSize}px`,
+            color: '#88FFCC',
+            align: 'left',
+            lineSpacing: 4,
+            wordWrap: { width: panelW - (padding * 2) }
+        }).setOrigin(0, 0);
 
         const revealTexts = [
             this.rarityBadge,
@@ -623,7 +648,9 @@ class PersonalityScene extends Phaser.Scene {
             this.geneticsTitle,
             this.geneticsText,
             this.cosmicTitle,
-            this.cosmicText
+            this.cosmicText,
+            this.dnaTitle,
+            this.dnaText
         ];
 
         revealTexts.forEach(text => text.setAlpha(0));
