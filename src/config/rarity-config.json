@@ -1,0 +1,271 @@
+{
+  "common": {
+    "name": "Common",
+    "displayName": "Lovely Companion",
+    "emoji": "🟢",
+    "description": "Every creature is special; this one is a Lovely Companion.",
+    "celebrationMessage": "You hatched a wonderful companion!",
+    "visual": {
+      "frame": "#7CFC00",
+      "frameBorder": 2,
+      "frameStyle": "solid",
+      "badge": "✨",
+      "badgeColor": "#90EE90",
+      "glowIntensity": 0,
+      "glowColor": "#7CFC00",
+      "outlineGlow": false
+    },
+    "egg": {
+      "baseColor": "#90EE90",
+      "pattern": "speckled",
+      "patternColor": "#7CFC00",
+      "shimmer": 0.3
+    },
+    "hatchingEffects": {
+      "extraSparkles": 0,
+      "cameraShake": false,
+      "cameraZoom": false,
+      "flashIntensity": 0.2,
+      "particleCount": 10
+    },
+    "perks": {
+      "happinessRecoveryBonus": 0,
+      "coinGainBonus": 0,
+      "flowerBonusChance": 0
+    }
+  },
+  "unusual": {
+    "name": "Unusual",
+    "displayName": "Special Friend",
+    "emoji": "🟠",
+    "description": "Every creature is special; this one is a Special Friend.",
+    "celebrationMessage": "You hatched a delightfully unusual companion!",
+    "visual": {
+      "frame": "#FFA500",
+      "frameBorder": 2,
+      "frameStyle": "solid",
+      "badge": "🌟",
+      "badgeColor": "#FFB74D",
+      "glowIntensity": 0.1,
+      "glowColor": "#FFA500",
+      "outlineGlow": false
+    },
+    "egg": {
+      "baseColor": "#FFB74D",
+      "pattern": "striped",
+      "patternColor": "#FF8C00",
+      "shimmer": 0.4
+    },
+    "hatchingEffects": {
+      "extraSparkles": 5,
+      "cameraShake": false,
+      "cameraZoom": false,
+      "flashIntensity": 0.3,
+      "particleCount": 15
+    },
+    "perks": {
+      "happinessRecoveryBonus": 0,
+      "coinGainBonus": 0,
+      "flowerBonusChance": 0
+    }
+  },
+  "rare": {
+    "name": "Rare",
+    "displayName": "Remarkable Companion",
+    "emoji": "🩷",
+    "description": "Every creature is special; this one is a Remarkable Companion.",
+    "celebrationMessage": "Amazing! You hatched a rare and remarkable companion!",
+    "visual": {
+      "frame": "#FF6B81",
+      "frameBorder": 3,
+      "frameStyle": "double",
+      "badge": "💎",
+      "badgeColor": "#FF8FA3",
+      "glowIntensity": 0.2,
+      "glowColor": "#FF6B81",
+      "outlineGlow": true
+    },
+    "egg": {
+      "baseColor": "#FF8FA3",
+      "pattern": "crystalline",
+      "patternColor": "#D81B60",
+      "shimmer": 0.5
+    },
+    "hatchingEffects": {
+      "extraSparkles": 10,
+      "cameraShake": false,
+      "cameraZoom": false,
+      "flashIntensity": 0.4,
+      "particleCount": 20
+    },
+    "perks": {
+      "happinessRecoveryBonus": 0,
+      "coinGainBonus": 0,
+      "flowerBonusChance": 0
+    }
+  },
+  "epic": {
+    "name": "Epic",
+    "displayName": "Extraordinary Companion",
+    "emoji": "🟣",
+    "description": "Every creature is special; this one is an Extraordinary Companion.",
+    "celebrationMessage": "WOW! You hatched an epic companion with extraordinary abilities!",
+    "visual": {
+      "frame": "#9B59B6",
+      "frameBorder": 3,
+      "frameStyle": "glowing",
+      "badge": "👑",
+      "badgeColor": "#B39DDB",
+      "glowIntensity": 0.3,
+      "glowColor": "#9B59B6",
+      "outlineGlow": true
+    },
+    "egg": {
+      "baseColor": "#B39DDB",
+      "pattern": "cosmic",
+      "patternColor": "#7B1FA2",
+      "shimmer": 0.7
+    },
+    "hatchingEffects": {
+      "extraSparkles": 20,
+      "cameraShake": true,
+      "cameraZoom": true,
+      "flashIntensity": 0.5,
+      "particleCount": 30
+    },
+    "perks": {
+      "happinessRecoveryBonus": 0.05,
+      "coinGainBonus": 0,
+      "flowerBonusChance": 0
+    },
+    "perkDescriptions": [
+      "+5% happiness from care actions"
+    ]
+  },
+  "legendary": {
+    "name": "Legendary",
+    "displayName": "Legendary Companion",
+    "emoji": "⭐",
+    "description": "Every creature is special; this one is a Legendary Companion.",
+    "celebrationMessage": "INCREDIBLE! A legendary companion has chosen you as their friend!",
+    "visual": {
+      "frame": "#FFD700",
+      "frameBorder": 4,
+      "frameStyle": "radiant",
+      "badge": "🌠",
+      "badgeColor": "#FFF176",
+      "glowIntensity": 0.4,
+      "glowColor": "#FFD700",
+      "outlineGlow": true
+    },
+    "egg": {
+      "baseColor": "#FFF176",
+      "pattern": "radiant",
+      "patternColor": "#D4AF37",
+      "shimmer": 0.8
+    },
+    "hatchingEffects": {
+      "extraSparkles": 30,
+      "cameraShake": true,
+      "cameraZoom": true,
+      "flashIntensity": 0.6,
+      "particleCount": 40
+    },
+    "perks": {
+      "happinessRecoveryBonus": 0.05,
+      "coinGainBonus": 0.05,
+      "flowerBonusChance": 0
+    },
+    "perkDescriptions": [
+      "+5% happiness from care actions",
+      "+5% coins from exploration"
+    ]
+  },
+  "mythic": {
+    "name": "Mythic",
+    "displayName": "Mythic Companion",
+    "emoji": "🌌",
+    "description": "Every creature is special; this one is a Mythic Companion of legend.",
+    "celebrationMessage": "EXTRAORDINARY! A mythic companion from legend has bonded with you!",
+    "visual": {
+      "frame": "#9370DB",
+      "frameBorder": 4,
+      "frameStyle": "prismatic",
+      "badge": "🔮",
+      "badgeColor": "#DDA0DD",
+      "glowIntensity": 0.5,
+      "glowColor": "#9370DB",
+      "outlineGlow": true
+    },
+    "egg": {
+      "baseColor": "#DDA0DD",
+      "pattern": "nebula",
+      "patternColor": "#8A2BE2",
+      "shimmer": 0.9
+    },
+    "hatchingEffects": {
+      "extraSparkles": 40,
+      "cameraShake": true,
+      "cameraZoom": true,
+      "flashIntensity": 0.7,
+      "particleCount": 50
+    },
+    "perks": {
+      "happinessRecoveryBonus": 0.10,
+      "coinGainBonus": 0.05,
+      "flowerBonusChance": 0.10
+    },
+    "perkDescriptions": [
+      "+10% happiness from care actions",
+      "+5% coins from exploration",
+      "+10% chance for bonus coins from flowers"
+    ]
+  },
+  "secret": {
+    "name": "Secret",
+    "displayName": "???  Glitched Companion",
+    "emoji": "❓",
+    "description": "Every creature is special; this one is... something beyond understanding.",
+    "celebrationMessage": "?!?! Something impossible just happened! A glitched companion!",
+    "visual": {
+      "frame": "#00FFFF",
+      "frameBorder": 4,
+      "frameStyle": "glitched",
+      "badge": "⚡",
+      "badgeColor": "#00CED1",
+      "glowIntensity": 0.6,
+      "glowColor": "#00FFFF",
+      "outlineGlow": true
+    },
+    "egg": {
+      "baseColor": "#00CED1",
+      "pattern": "glitched",
+      "patternColor": "#40E0D0",
+      "shimmer": 1.0
+    },
+    "hatchingEffects": {
+      "extraSparkles": 50,
+      "cameraShake": true,
+      "cameraZoom": true,
+      "flashIntensity": 0.8,
+      "particleCount": 60,
+      "specialEffect": "glitch"
+    },
+    "perks": {
+      "happinessRecoveryBonus": 0.10,
+      "coinGainBonus": 0.10,
+      "flowerBonusChance": 0.15
+    },
+    "perkDescriptions": [
+      "+10% happiness from care actions",
+      "+10% coins from exploration",
+      "+15% chance for bonus coins from flowers",
+      "Mysterious glitched effects"
+    ]
+  },
+  "meta": {
+    "philosophy": "Every rarity is lovable. Higher rarities add visual flair and tiny perks for fun, but common creatures are just as viable and special.",
+    "balanceNotes": "Perks are intentionally small (5-15% max) to maintain fun without creating power gaps. A common creature with good care is better than a mythic creature with poor care.",
+    "noPayToWin": "Rarity is earned through gameplay only. NO real-money purchases for rarity boosts or rerolls beyond the free daily reroll system."
+  }
+}

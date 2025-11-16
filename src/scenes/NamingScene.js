@@ -134,77 +134,39 @@ class NamingScene extends Phaser.Scene {
     }
 
     displayCreature() {
-        const state = getGameState();
-        const genetics = state.get('creature.genetics'); // Fixed: was 'creature.genes', should be 'creature.genetics'
+        console.log('naming:info [NamingScene] Loading creature from GameState');
 
-        console.log('naming:debug [NamingScene] Loading creature genetics:', genetics);
+        let textureName = 'enhancedCreature0'; // Default fallback
 
-        // Check if we have genetics from hatching
-        if (genetics && genetics.id) {
-            console.log('naming:info [NamingScene] Using genetics from hatching scene');
+        try {
+            // Use unified creature loading method
+            const creatureResult = this.graphicsEngine.loadCreatureFromGameState(0);
 
-            // Use the same method as HatchingScene to create creature
-            try {
-                const creatureResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(
-                    genetics,
-                    0 // frame 0
-                );
-
-                if (creatureResult && creatureResult.textureName) {
-                    console.log('naming:info [NamingScene] Created creature texture:', creatureResult.textureName);
-
-                    // MOBILE-RESPONSIVE creature positioning
-                    // Mobile layout will reposition this later if needed
-                    const { width, height } = this.scale;
-                    const isMobile = width < 600;
-                    const creatureX = isMobile ? width / 2 : 200;
-                    const creatureY = isMobile ? height * 0.25 : 300;
-                    const baseScale = isMobile ? Math.min(1.5, width / 300) : 1.5;
-
-                    // Display the creature with the correct texture
-                    this.creature = this.add.image(creatureX, creatureY, creatureResult.textureName);
-                    this.creature.setScale(baseScale);
-
-                    // Gentle breathing animation
-                    this.tweens.add({
-                        targets: this.creature,
-                        scaleY: baseScale * 1.05,
-                        duration: 2000,
-                        ease: 'Sine.easeInOut',
-                        yoyo: true,
-                        repeat: -1
-                    });
-
-                    return;
-                } else {
-                    console.warn('naming:warn [NamingScene] Failed to create creature from genetics, using fallback');
-                }
-            } catch (error) {
-                console.error('naming:error [NamingScene] Error creating creature:', error);
+            if (creatureResult && creatureResult.textureName) {
+                textureName = creatureResult.textureName;
+                console.log('naming:info [NamingScene] Successfully loaded creature:', textureName);
+            } else {
+                console.warn('naming:warn [NamingScene] Failed to load creature, using fallback');
+                // Create fallback creature
+                this.graphicsEngine.createEnhancedCreature(0x9370DB, 0xDDA0DD, 0x8A2BE2, 0, null);
             }
-        } else {
-            console.warn('naming:warn [NamingScene] No genetics found in GameState');
+        } catch (error) {
+            console.error('naming:error [NamingScene] Error loading creature:', error);
+            // Create fallback creature
+            this.graphicsEngine.createEnhancedCreature(0x9370DB, 0xDDA0DD, 0x8A2BE2, 0, null);
         }
 
-        // Fallback: Use default creature
-        console.log('naming:info [NamingScene] Using default creature sprite');
-        this.graphicsEngine.createEnhancedCreature(
-            this.creatureData.colors.body,
-            this.creatureData.colors.head,
-            this.creatureData.colors.wings,
-            0,
-            this.creatureData.genes
-        );
-
+        // MOBILE-RESPONSIVE creature positioning
         const { width, height } = this.scale;
         const isMobile = width < 600;
         const creatureX = isMobile ? width / 2 : 200;
         const creatureY = isMobile ? height * 0.25 : 300;
         const baseScale = isMobile ? Math.min(1.5, width / 300) : 1.5;
 
-        this.creature = this.add.image(creatureX, creatureY, 'enhancedCreature0');
+        this.creature = this.add.image(creatureX, creatureY, textureName);
         this.creature.setScale(baseScale);
 
+        // Gentle breathing animation
         this.tweens.add({
             targets: this.creature,
             scaleY: baseScale * 1.05,

@@ -3706,6 +3706,849 @@ class GraphicsEngine {
     getSpaceMythicPalette() {
         return { ...this.spaceMythicPalette }; // Return copy to prevent mutation
     }
+
+    // ============================================================
+    // DNA-BASED CREATURE RENDERING SYSTEM
+    // Extends GraphicsEngine to support CreatureDNA traits
+    // ============================================================
+
+    /**
+     * Create a creature from CreatureDNA
+     * Main entry point for DNA-based creature rendering
+     * @param {Object} dna - CreatureDNA object with discrete traits
+     * @param {number} frame - Animation frame (0-based)
+     * @returns {Object} Creature render result with texture name
+     */
+    createCreatureFromDNA(dna, frame = 0) {
+        if (!dna) {
+            console.warn('graphics:warn [GraphicsEngine] No DNA provided, using default creature');
+            return this.createSpaceMythicCreature({ frame });
+        }
+
+        try {
+            const startTime = Date.now();
+
+            // Get DNA-based color scheme
+            const colors = this.getDNAColorScheme(dna);
+
+            // Calculate canvas size based on body archetype
+            const metrics = this.getDNACanvasMetrics(dna.bodyArchetype);
+
+            // Create graphics context
+            const graphics = this.createScratchGraphics();
+            const translation = this.safeGraphicsTranslate(graphics, metrics.padding);
+
+            const center = {
+                x: metrics.baseCenter.x + translation.centerShift.x,
+                y: metrics.baseCenter.y + translation.centerShift.y
+            };
+
+            // Render body based on DNA bodyArchetype
+            this.renderBodyArchetype(graphics, center, metrics.size, dna.bodyArchetype, colors);
+
+            // Render head based on DNA headArchetype (with hybrid support)
+            this.renderHeadArchetype(graphics, center, metrics.size, dna.headArchetype, colors, dna.hybridTag);
+
+            // Add elemental aura effects (drawn on graphics for texture)
+            this.addElementalAuraToGraphics(graphics, center, metrics.size, dna.elementalAura);
+
+            // Add rarity enhancements for epic+
+            if (this.isEpicOrHigher(dna.raritySignature)) {
+                this.addRarityEnhancements(graphics, center, metrics.size, dna.raritySignature);
+            }
+
+            translation.restore();
+
+            // Generate texture
+            const textureName = `creature_dna_${dna.id}_${frame}`;
+            this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
+
+            const generationTime = Date.now() - startTime;
+            console.log(`graphics:info [GraphicsEngine] DNA creature created in ${generationTime}ms`, {
+                id: dna.id,
+                body: dna.bodyArchetype,
+                head: dna.headArchetype,
+                rarity: dna.raritySignature
+            });
+
+            return {
+                textureName,
+                dna,
+                colors,
+                metadata: {
+                    generationTime,
+                    frame,
+                    createdAt: Date.now()
+                }
+            };
+        } catch (error) {
+            console.error('graphics:error [GraphicsEngine] Failed to create DNA creature:', error);
+            if (typeof window !== 'undefined' && window.ErrorHandler) {
+                window.ErrorHandler.handleError(error, 'GraphicsEngine.createCreatureFromDNA', 'warning');
+            }
+            return this.createSpaceMythicCreature({ frame });
+        }
+    }
+
+    /**
+     * Get color scheme based on DNA traits
+     * @param {Object} dna - CreatureDNA object
+     * @returns {Object} Color configuration
+     */
+    getDNAColorScheme(dna) {
+        // Map elemental aura to color themes
+        const auraColors = {
+            cosmic: { primary: 0x9370DB, secondary: 0xDDA0DD, accent: 0x8A2BE2 },
+            forest: { primary: 0x228B22, secondary: 0x90EE90, accent: 0x32CD32 },
+            ember: { primary: 0xFF4500, secondary: 0xFF6347, accent: 0xFF8C00 },
+            tidal: { primary: 0x4682B4, secondary: 0x87CEEB, accent: 0x00CED1 },
+            storm: { primary: 0x4B0082, secondary: 0x9370DB, accent: 0xFFD700 },
+            'shadow-soft': { primary: 0x2F4F4F, secondary: 0x696969, accent: 0x9370DB }
+        };
+
+        const colorScheme = auraColors[dna.elementalAura] || auraColors.cosmic;
+
+        return {
+            body: colorScheme.primary,
+            head: colorScheme.secondary,
+            accent: colorScheme.accent,
+            eyes: 0x4169E1
+        };
+    }
+
+    /**
+     * Calculate canvas metrics based on body archetype
+     * @param {string} bodyArchetype - DNA body archetype
+     * @returns {Object} Canvas metrics
+     */
+    getDNACanvasMetrics(bodyArchetype) {
+        const baseSizes = {
+            blob: { width: 60, height: 60 },
+            quadruped: { width: 70, height: 55 },
+            biped: { width: 50, height: 80 },
+            serpentine: { width: 45, height: 90 },
+            winged: { width: 75, height: 70 }
+        };
+
+        const size = baseSizes[bodyArchetype] || baseSizes.blob;
+        const padding = { x: 15, y: 15 };
+
+        return {
+            size,
+            width: size.width + padding.x * 2,
+            height: size.height + padding.y * 2,
+            padding,
+            baseCenter: {
+                x: size.width / 2 + padding.x,
+                y: size.height / 2 + padding.y
+            }
+        };
+    }
+
+    /**
+     * Render body based on DNA bodyArchetype
+     * Maps DNA archetypes to existing body renderers
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {Object} center - Center point {x, y}
+     * @param {Object} size - Body size {width, height}
+     * @param {string} bodyArchetype - DNA body archetype
+     * @param {Object} colors - Color scheme
+     */
+    renderBodyArchetype(graphics, center, size, bodyArchetype, colors) {
+        const bodyScale = { width: size.width, height: size.height };
+        const bodyOffset = { x: 0, y: 0 };
+
+        switch (bodyArchetype) {
+            case 'blob':
+                this.renderBlobBody(graphics, center, bodyOffset, bodyScale, colors.body);
+                break;
+
+            case 'quadruped':
+                this.renderQuadrupedBody(graphics, center, bodyOffset, bodyScale, colors.body);
+                break;
+
+            case 'biped':
+                // Biped uses standard body with upright stance
+                this.renderStandardBody(graphics, center, bodyOffset, bodyScale, colors.body);
+                break;
+
+            case 'serpentine':
+                this.renderSerpentineBody(graphics, center, bodyOffset, bodyScale, colors.body);
+                break;
+
+            case 'winged':
+                // Winged uses avian body
+                this.renderAvianBody(graphics, center, bodyOffset, bodyScale, colors.body);
+                break;
+
+            default:
+                this.renderStandardBody(graphics, center, bodyOffset, bodyScale, colors.body);
+        }
+    }
+
+    /**
+     * Render head based on DNA headArchetype with hybrid support
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {Object} center - Center point {x, y}
+     * @param {Object} size - Body size {width, height}
+     * @param {string} headArchetype - DNA head archetype
+     * @param {Object} colors - Color scheme
+     * @param {string} hybridTag - Hybrid type (single-species, dual-hybrid, triple-hybrid, glitchy)
+     */
+    renderHeadArchetype(graphics, center, size, headArchetype, colors, hybridTag) {
+        // Head position (top of body)
+        const headY = center.y - size.height * 0.35;
+        const headSize = size.width * 0.4;
+
+        // For hybrids, blend features
+        const isDualHybrid = hybridTag === 'dual-hybrid';
+        const isTripleHybrid = hybridTag === 'triple-hybrid';
+        const isGlitchy = hybridTag === 'glitchy';
+
+        // Main head features
+        this.drawHeadFeatures(graphics, center.x, headY, headSize, headArchetype, colors);
+
+        // Add hybrid features
+        if (isDualHybrid || isTripleHybrid) {
+            // Draw subtle second head features (smaller, offset)
+            const secondHeadArchetype = this.getComplementaryHeadType(headArchetype);
+            graphics.setAlpha(0.4);
+            this.drawHeadFeatures(graphics, center.x + headSize * 0.3, headY - 2, headSize * 0.7, secondHeadArchetype, colors);
+            graphics.setAlpha(1.0);
+        }
+
+        if (isGlitchy) {
+            // Add glitch effect - offset RGB channels
+            graphics.setAlpha(0.3);
+            this.drawHeadFeatures(graphics, center.x - 2, headY, headSize, headArchetype, { ...colors, head: 0x00FFFF });
+            this.drawHeadFeatures(graphics, center.x + 2, headY, headSize, headArchetype, { ...colors, head: 0xFF00FF });
+            graphics.setAlpha(1.0);
+        }
+    }
+
+    /**
+     * Draw head features based on head archetype
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {number} size - Head size
+     * @param {string} headArchetype - Head type
+     * @param {Object} colors - Color scheme
+     */
+    drawHeadFeatures(graphics, x, y, size, headArchetype, colors) {
+        switch (headArchetype) {
+            case 'feline':
+                this.drawFelineHead(graphics, x, y, size, colors);
+                break;
+            case 'canine':
+                this.drawCanineHead(graphics, x, y, size, colors);
+                break;
+            case 'avian':
+                this.drawAvianHead(graphics, x, y, size, colors);
+                break;
+            case 'reptile':
+                this.drawReptileHead(graphics, x, y, size, colors);
+                break;
+            case 'aquatic':
+                this.drawAquaticHead(graphics, x, y, size, colors);
+                break;
+            case 'simian':
+                this.drawSimianHead(graphics, x, y, size, colors);
+                break;
+            case 'insectoid':
+                this.drawInsectoidHead(graphics, x, y, size, colors);
+                break;
+            case 'rodent':
+                this.drawRodentHead(graphics, x, y, size, colors);
+                break;
+            case 'cervine':
+                this.drawCervineHead(graphics, x, y, size, colors);
+                break;
+            default:
+                this.drawFelineHead(graphics, x, y, size, colors);
+        }
+    }
+
+    /**
+     * Get complementary head type for hybrids
+     * @param {string} primaryHead - Primary head archetype
+     * @returns {string} Complementary head type
+     */
+    getComplementaryHeadType(primaryHead) {
+        const complements = {
+            feline: 'avian',
+            canine: 'reptile',
+            avian: 'feline',
+            reptile: 'canine',
+            aquatic: 'insectoid',
+            simian: 'rodent',
+            insectoid: 'aquatic',
+            rodent: 'cervine',
+            cervine: 'simian'
+        };
+        return complements[primaryHead] || 'feline';
+    }
+
+    // ============================================================
+    // HEAD ARCHETYPE RENDERERS
+    // Individual head rendering methods for each archetype
+    // ============================================================
+
+    drawFelineHead(graphics, x, y, size, colors) {
+        // Cat-like head - round with pointed ears
+        graphics.fillStyle(colors.head);
+        graphics.fillCircle(x, y, size);
+
+        // Pointed ears
+        graphics.beginPath();
+        graphics.moveTo(x - size * 0.6, y - size * 0.5);
+        graphics.lineTo(x - size * 0.3, y - size);
+        graphics.lineTo(x - size * 0.4, y - size * 0.3);
+        graphics.closePath();
+        graphics.fillPath();
+
+        graphics.beginPath();
+        graphics.moveTo(x + size * 0.6, y - size * 0.5);
+        graphics.lineTo(x + size * 0.3, y - size);
+        graphics.lineTo(x + size * 0.4, y - size * 0.3);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Eyes
+        this.createRealisticEyes(graphics, x - size * 0.3, y, x + size * 0.3, y, colors.eyes);
+
+        // Whiskers
+        graphics.lineStyle(1, colors.accent, 0.8);
+        graphics.lineBetween(x + size * 0.5, y, x + size * 1.2, y - 2);
+        graphics.lineBetween(x + size * 0.5, y + 3, x + size * 1.2, y + 3);
+        graphics.lineBetween(x - size * 0.5, y, x - size * 1.2, y - 2);
+        graphics.lineBetween(x - size * 0.5, y + 3, x - size * 1.2, y + 3);
+    }
+
+    drawCanineHead(graphics, x, y, size, colors) {
+        // Dog-like head - elongated snout
+        graphics.fillStyle(colors.head);
+        graphics.fillCircle(x, y, size);
+
+        // Floppy ears
+        graphics.fillEllipse(x - size * 0.8, y + size * 0.2, size * 0.4, size * 0.8);
+        graphics.fillEllipse(x + size * 0.8, y + size * 0.2, size * 0.4, size * 0.8);
+
+        // Snout
+        graphics.fillStyle(Phaser.Display.Color.ValueToColor(colors.head).darken(10).color);
+        graphics.fillEllipse(x, y + size * 0.4, size * 0.6, size * 0.4);
+
+        // Nose
+        graphics.fillStyle(0x000000);
+        graphics.fillCircle(x, y + size * 0.5, size * 0.15);
+
+        // Eyes
+        this.createRealisticEyes(graphics, x - size * 0.3, y - size * 0.2, x + size * 0.3, y - size * 0.2, colors.eyes);
+    }
+
+    drawAvianHead(graphics, x, y, size, colors) {
+        // Bird-like head - small with beak
+        graphics.fillStyle(colors.head);
+        graphics.fillCircle(x, y, size * 0.8);
+
+        // Beak
+        graphics.fillStyle(0xFFA500);
+        graphics.beginPath();
+        graphics.moveTo(x, y + size * 0.2);
+        graphics.lineTo(x + size * 0.6, y + size * 0.4);
+        graphics.lineTo(x, y + size * 0.6);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Eyes (larger for birds)
+        this.createRealisticEyes(graphics, x - size * 0.4, y - size * 0.1, x + size * 0.2, y - size * 0.1, colors.eyes);
+
+        // Crest feathers
+        graphics.fillStyle(colors.accent);
+        for (let i = 0; i < 3; i++) {
+            const featherX = x - size * 0.3 + i * size * 0.3;
+            graphics.fillTriangle(
+                featherX, y - size * 0.8,
+                featherX - size * 0.15, y - size * 1.2,
+                featherX + size * 0.15, y - size * 1.2
+            );
+        }
+    }
+
+    drawReptileHead(graphics, x, y, size, colors) {
+        // Reptile/dragon-like head - angular with scales
+        graphics.fillStyle(colors.head);
+
+        // Main head (angular)
+        graphics.beginPath();
+        graphics.moveTo(x, y - size);
+        graphics.lineTo(x + size * 0.8, y);
+        graphics.lineTo(x + size * 0.5, y + size * 0.5);
+        graphics.lineTo(x - size * 0.5, y + size * 0.5);
+        graphics.lineTo(x - size * 0.8, y);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Horns/spikes
+        graphics.fillStyle(colors.accent);
+        graphics.fillTriangle(x - size * 0.4, y - size * 0.5, x - size * 0.6, y - size * 1.2, x - size * 0.2, y - size * 0.7);
+        graphics.fillTriangle(x + size * 0.4, y - size * 0.5, x + size * 0.6, y - size * 1.2, x + size * 0.2, y - size * 0.7);
+
+        // Slit eyes (reptilian)
+        graphics.fillStyle(colors.eyes);
+        graphics.fillEllipse(x - size * 0.3, y - size * 0.2, size * 0.15, size * 0.25);
+        graphics.fillEllipse(x + size * 0.3, y - size * 0.2, size * 0.15, size * 0.25);
+        graphics.fillStyle(0x000000);
+        graphics.fillRect(x - size * 0.3 - 1, y - size * 0.3, 2, size * 0.2);
+        graphics.fillRect(x + size * 0.3 - 1, y - size * 0.3, 2, size * 0.2);
+    }
+
+    drawAquaticHead(graphics, x, y, size, colors) {
+        // Fish/dolphin-like head - streamlined
+        graphics.fillStyle(colors.head);
+        graphics.fillEllipse(x, y, size * 1.2, size * 0.9);
+
+        // Fins
+        graphics.fillStyle(colors.accent);
+        graphics.fillTriangle(x - size * 0.8, y - size * 0.3, x - size * 1.3, y - size * 0.6, x - size * 1.1, y);
+        graphics.fillTriangle(x + size * 0.8, y - size * 0.3, x + size * 1.3, y - size * 0.6, x + size * 1.1, y);
+
+        // Large eyes (fish-like)
+        this.createRealisticEyes(graphics, x - size * 0.4, y - size * 0.2, x + size * 0.4, y - size * 0.2, colors.eyes);
+
+        // Bubbles
+        graphics.fillStyle(0x87CEEB, 0.5);
+        graphics.fillCircle(x + size * 0.7, y - size * 0.5, size * 0.1);
+        graphics.fillCircle(x + size * 0.9, y - size * 0.7, size * 0.08);
+    }
+
+    drawSimianHead(graphics, x, y, size, colors) {
+        // Monkey-like head - round with prominent features
+        graphics.fillStyle(colors.head);
+        graphics.fillCircle(x, y, size);
+
+        // Large ears
+        graphics.fillCircle(x - size * 0.9, y, size * 0.5);
+        graphics.fillCircle(x + size * 0.9, y, size * 0.5);
+
+        // Face (lighter)
+        graphics.fillStyle(Phaser.Display.Color.ValueToColor(colors.head).lighten(20).color);
+        graphics.fillEllipse(x, y + size * 0.2, size * 0.7, size * 0.8);
+
+        // Eyes
+        this.createRealisticEyes(graphics, x - size * 0.3, y, x + size * 0.3, y, colors.eyes);
+
+        // Nose
+        graphics.fillStyle(0x000000);
+        graphics.fillTriangle(x, y + size * 0.3, x - size * 0.1, y + size * 0.5, x + size * 0.1, y + size * 0.5);
+    }
+
+    drawInsectoidHead(graphics, x, y, size, colors) {
+        // Bug-like head - compact with antennae
+        graphics.fillStyle(colors.head);
+        graphics.fillEllipse(x, y, size * 0.9, size);
+
+        // Compound eyes (large)
+        graphics.fillStyle(colors.eyes);
+        graphics.fillCircle(x - size * 0.4, y - size * 0.2, size * 0.4);
+        graphics.fillCircle(x + size * 0.4, y - size * 0.2, size * 0.4);
+
+        // Eye facets
+        graphics.fillStyle(0x000000, 0.3);
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            graphics.fillCircle(
+                x - size * 0.4 + Math.cos(angle) * size * 0.15,
+                y - size * 0.2 + Math.sin(angle) * size * 0.15,
+                size * 0.08
+            );
+            graphics.fillCircle(
+                x + size * 0.4 + Math.cos(angle) * size * 0.15,
+                y - size * 0.2 + Math.sin(angle) * size * 0.15,
+                size * 0.08
+            );
+        }
+
+        // Antennae
+        graphics.lineStyle(2, colors.accent);
+        graphics.lineBetween(x - size * 0.2, y - size * 0.8, x - size * 0.4, y - size * 1.5);
+        graphics.lineBetween(x + size * 0.2, y - size * 0.8, x + size * 0.4, y - size * 1.5);
+        graphics.fillStyle(colors.accent);
+        graphics.fillCircle(x - size * 0.4, y - size * 1.5, size * 0.15);
+        graphics.fillCircle(x + size * 0.4, y - size * 1.5, size * 0.15);
+    }
+
+    drawRodentHead(graphics, x, y, size, colors) {
+        // Mouse/rabbit-like head - small with large ears
+        graphics.fillStyle(colors.head);
+        graphics.fillCircle(x, y, size);
+
+        // Large ears (rabbit style)
+        graphics.fillEllipse(x - size * 0.6, y - size * 0.8, size * 0.4, size * 1.2);
+        graphics.fillEllipse(x + size * 0.6, y - size * 0.8, size * 0.4, size * 1.2);
+
+        // Inner ear (pink)
+        graphics.fillStyle(0xFFB6C1);
+        graphics.fillEllipse(x - size * 0.6, y - size * 0.7, size * 0.2, size * 0.8);
+        graphics.fillEllipse(x + size * 0.6, y - size * 0.7, size * 0.2, size * 0.8);
+
+        // Large eyes
+        this.createRealisticEyes(graphics, x - size * 0.3, y - size * 0.1, x + size * 0.3, y - size * 0.1, colors.eyes);
+
+        // Nose
+        graphics.fillStyle(0xFF69B4);
+        graphics.fillCircle(x, y + size * 0.3, size * 0.15);
+
+        // Whiskers
+        graphics.lineStyle(1, colors.accent, 0.8);
+        for (let i = -1; i <= 1; i++) {
+            graphics.lineBetween(x + size * 0.4, y + size * 0.2 + i * 3, x + size * 1.0, y + i * 3);
+            graphics.lineBetween(x - size * 0.4, y + size * 0.2 + i * 3, x - size * 1.0, y + i * 3);
+        }
+    }
+
+    drawCervineHead(graphics, x, y, size, colors) {
+        // Deer-like head - elegant with antlers
+        graphics.fillStyle(colors.head);
+        graphics.fillEllipse(x, y, size * 0.7, size * 1.1);
+
+        // Snout
+        graphics.fillStyle(Phaser.Display.Color.ValueToColor(colors.head).darken(10).color);
+        graphics.fillEllipse(x, y + size * 0.5, size * 0.5, size * 0.4);
+
+        // Nose
+        graphics.fillStyle(0x000000);
+        graphics.fillCircle(x, y + size * 0.7, size * 0.12);
+
+        // Eyes (gentle, large)
+        this.createRealisticEyes(graphics, x - size * 0.3, y - size * 0.2, x + size * 0.3, y - size * 0.2, colors.eyes);
+
+        // Antlers
+        graphics.lineStyle(3, colors.accent);
+        // Left antler
+        graphics.lineBetween(x - size * 0.3, y - size * 0.8, x - size * 0.5, y - size * 1.5);
+        graphics.lineBetween(x - size * 0.5, y - size * 1.5, x - size * 0.7, y - size * 1.3);
+        graphics.lineBetween(x - size * 0.5, y - size * 1.5, x - size * 0.4, y - size * 1.8);
+        // Right antler
+        graphics.lineBetween(x + size * 0.3, y - size * 0.8, x + size * 0.5, y - size * 1.5);
+        graphics.lineBetween(x + size * 0.5, y - size * 1.5, x + size * 0.7, y - size * 1.3);
+        graphics.lineBetween(x + size * 0.5, y - size * 1.5, x + size * 0.4, y - size * 1.8);
+
+        // Ears (pointed)
+        graphics.fillStyle(colors.head);
+        graphics.fillTriangle(x - size * 0.5, y - size * 0.5, x - size * 0.7, y - size * 0.9, x - size * 0.3, y - size * 0.7);
+        graphics.fillTriangle(x + size * 0.5, y - size * 0.5, x + size * 0.7, y - size * 0.9, x + size * 0.3, y - size * 0.7);
+    }
+
+    // ============================================================
+    // ELEMENTAL AURA & RARITY ENHANCEMENTS
+    // ============================================================
+
+    /**
+     * Add elemental aura visual effects to graphics
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {Object} center - Center point {x, y}
+     * @param {Object} size - Body size {width, height}
+     * @param {string} elementalAura - Elemental aura type
+     */
+    addElementalAuraToGraphics(graphics, center, size, elementalAura) {
+        const auraRadius = Math.max(size.width, size.height) * 0.7;
+
+        switch (elementalAura) {
+            case 'cosmic':
+                // Purple/blue sparkles
+                graphics.fillStyle(0x9370DB, 0.3);
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const x = center.x + Math.cos(angle) * auraRadius;
+                    const y = center.y + Math.sin(angle) * auraRadius;
+                    this.drawStar(graphics, x, y, 4, 2, 4);
+                }
+                break;
+
+            case 'forest':
+                // Green leaves
+                graphics.fillStyle(0x32CD32, 0.4);
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    const x = center.x + Math.cos(angle) * auraRadius;
+                    const y = center.y + Math.sin(angle) * auraRadius;
+                    graphics.fillEllipse(x, y, 3, 5);
+                }
+                break;
+
+            case 'ember':
+                // Orange/red flames
+                graphics.fillStyle(0xFF4500, 0.4);
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const x = center.x + Math.cos(angle) * auraRadius;
+                    const y = center.y + Math.sin(angle) * auraRadius - 5;
+                    graphics.fillTriangle(x, y, x - 2, y + 6, x + 2, y + 6);
+                }
+                break;
+
+            case 'tidal':
+                // Blue water droplets
+                graphics.fillStyle(0x00CED1, 0.4);
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const x = center.x + Math.cos(angle) * auraRadius;
+                    const y = center.y + Math.sin(angle) * auraRadius;
+                    graphics.fillCircle(x, y, 2);
+                    graphics.fillCircle(x, y - 4, 1.5);
+                }
+                break;
+
+            case 'storm':
+                // Yellow/white lightning bolts
+                graphics.lineStyle(2, 0xFFD700, 0.5);
+                for (let i = 0; i < 4; i++) {
+                    const angle = (i / 4) * Math.PI * 2;
+                    const startX = center.x + Math.cos(angle) * auraRadius * 0.5;
+                    const startY = center.y + Math.sin(angle) * auraRadius * 0.5;
+                    const endX = center.x + Math.cos(angle) * auraRadius;
+                    const endY = center.y + Math.sin(angle) * auraRadius;
+                    graphics.lineBetween(startX, startY, endX, endY);
+                }
+                break;
+
+            case 'shadow-soft':
+                // Dark purple wisps
+                graphics.fillStyle(0x9370DB, 0.2);
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    const x = center.x + Math.cos(angle) * auraRadius;
+                    const y = center.y + Math.sin(angle) * auraRadius;
+                    graphics.fillCircle(x, y, 4);
+                }
+                break;
+        }
+    }
+
+    /**
+     * Add rarity enhancements for epic+ creatures
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {Object} center - Center point {x, y}
+     * @param {Object} size - Body size {width, height}
+     * @param {string} raritySignature - Rarity tier
+     */
+    addRarityEnhancements(graphics, center, size, raritySignature) {
+        const radius = Math.max(size.width, size.height) * 0.8;
+
+        switch (raritySignature) {
+            case 'epic':
+                // Gentle purple glow
+                graphics.lineStyle(2, 0x9B59B6, 0.3);
+                graphics.strokeCircle(center.x, center.y, radius);
+                break;
+
+            case 'legendary':
+                // Golden rays
+                graphics.lineStyle(2, 0xFFD700, 0.4);
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    graphics.lineBetween(
+                        center.x,
+                        center.y,
+                        center.x + Math.cos(angle) * radius,
+                        center.y + Math.sin(angle) * radius
+                    );
+                }
+                break;
+
+            case 'mythic':
+                // Prismatic outline
+                const mythicColors = [0xFF0000, 0xFF7F00, 0xFFFF00, 0x00FF00, 0x0000FF, 0x8B00FF];
+                mythicColors.forEach((color, i) => {
+                    graphics.lineStyle(1, color, 0.3);
+                    graphics.strokeCircle(center.x, center.y, radius - i * 2);
+                });
+                break;
+
+            case 'secret':
+                // Glitch effect
+                graphics.lineStyle(2, 0x00FFFF, 0.4);
+                graphics.strokeRect(center.x - radius, center.y - radius, radius * 2, radius * 2);
+                graphics.lineStyle(2, 0xFF00FF, 0.4);
+                graphics.strokeRect(center.x - radius + 2, center.y - radius - 2, radius * 2, radius * 2);
+                break;
+        }
+    }
+
+    /**
+     * Check if rarity is epic or higher
+     * @param {string} raritySignature - Rarity tier
+     * @returns {boolean} True if epic or higher
+     */
+    isEpicOrHigher(raritySignature) {
+        const epicTiers = ['epic', 'legendary', 'mythic', 'secret'];
+        return epicTiers.includes(raritySignature);
+    }
+
+    /**
+     * Create particle emitter for elemental aura (for live sprites)
+     * Call this after sprite is created to add particle effects
+     * @param {Phaser.Scene} scene - Scene instance
+     * @param {Phaser.GameObjects.Sprite} sprite - Target sprite
+     * @param {string} elementalAura - Elemental aura type
+     * @returns {Phaser.GameObjects.Particles.ParticleEmitter|null} Particle emitter or null
+     */
+    createElementalAuraParticles(scene, sprite, elementalAura) {
+        if (!scene || !sprite || !scene.add || !scene.add.particles) {
+            return null;
+        }
+
+        const auraConfigs = {
+            cosmic: {
+                color: [0x9370DB, 0xDDA0DD, 0x8A2BE2],
+                speed: 20,
+                lifespan: 2000,
+                scale: { start: 0.3, end: 0 }
+            },
+            forest: {
+                color: [0x228B22, 0x90EE90, 0x32CD32],
+                speed: 15,
+                lifespan: 2500,
+                scale: { start: 0.2, end: 0 }
+            },
+            ember: {
+                color: [0xFF4500, 0xFF6347, 0xFF8C00],
+                speed: 25,
+                lifespan: 1500,
+                scale: { start: 0.4, end: 0.1 },
+                gravityY: -50
+            },
+            tidal: {
+                color: [0x4682B4, 0x87CEEB, 0x00CED1],
+                speed: 10,
+                lifespan: 3000,
+                scale: { start: 0.2, end: 0 },
+                gravityY: 20
+            },
+            storm: {
+                color: [0x4B0082, 0x9370DB, 0xFFD700],
+                speed: 30,
+                lifespan: 1000,
+                scale: { start: 0.5, end: 0 }
+            },
+            'shadow-soft': {
+                color: [0x2F4F4F, 0x696969, 0x9370DB],
+                speed: 10,
+                lifespan: 2500,
+                scale: { start: 0.3, end: 0 },
+                alpha: { start: 0.5, end: 0 }
+            }
+        };
+
+        const config = auraConfigs[elementalAura] || auraConfigs.cosmic;
+
+        try {
+            // Create simple particle graphics texture if doesn't exist
+            if (!scene.textures.exists('particle')) {
+                const graphics = scene.add.graphics();
+                graphics.fillStyle(0xFFFFFF);
+                graphics.fillCircle(4, 4, 4);
+                graphics.generateTexture('particle', 8, 8);
+                graphics.destroy();
+            }
+
+            const emitter = scene.add.particles(sprite.x, sprite.y, 'particle', {
+                speed: config.speed,
+                lifespan: config.lifespan,
+                scale: config.scale,
+                alpha: config.alpha || { start: 0.6, end: 0 },
+                blendMode: 'ADD',
+                frequency: 200,
+                tint: config.color,
+                gravityY: config.gravityY || 0
+            });
+
+            // Follow sprite
+            emitter.startFollow(sprite);
+
+            return emitter;
+        } catch (error) {
+            console.warn('graphics:warn [GraphicsEngine] Failed to create particle emitter:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Load and render creature from GameState
+     * This is the unified method for all scenes to render the player's creature
+     * @param {number} frame - Animation frame (0-3 for walk cycle)
+     * @returns {Object|null} Creature render result or null
+     */
+    loadCreatureFromGameState(frame = 0) {
+        // Try to get GameState
+        const gameState = typeof window !== 'undefined' && window.GameState
+            ? window.GameState
+            : (typeof getGameState === 'function' ? getGameState() : null);
+
+        if (!gameState) {
+            console.error('graphics:error [GraphicsEngine] GameState not available');
+            return null;
+        }
+
+        // Priority 1: Try DNA-based rendering
+        const dna = gameState.get('creature.dna');
+        if (dna) {
+            console.log('graphics:info [GraphicsEngine] Loading creature from DNA:', dna.id);
+            try {
+                const result = this.createCreatureFromDNA(dna, frame);
+                if (result && result.textureName) {
+                    console.log('graphics:info [GraphicsEngine] Successfully loaded creature from DNA');
+                    return result;
+                }
+            } catch (error) {
+                console.warn('graphics:warn [GraphicsEngine] DNA rendering failed, trying genetics:', error);
+            }
+        }
+
+        // Priority 2: Try genetics-based rendering
+        const genetics = gameState.get('creature.genetics');
+        if (genetics) {
+            console.log('graphics:info [GraphicsEngine] Loading creature from genetics:', genetics.id);
+            try {
+                if (typeof this.createRandomizedSpaceMythicCreature === 'function') {
+                    const result = this.createRandomizedSpaceMythicCreature(genetics, frame);
+                    if (result && result.textureName) {
+                        console.log('graphics:info [GraphicsEngine] Successfully loaded creature from genetics');
+                        return result;
+                    }
+                }
+            } catch (error) {
+                console.warn('graphics:warn [GraphicsEngine] Genetics rendering failed:', error);
+            }
+        }
+
+        // Priority 3: Fallback to basic creature
+        console.warn('graphics:warn [GraphicsEngine] No DNA or genetics found, using fallback creature');
+        return this.createSpaceMythicCreature({ frame });
+    }
+
+    /**
+     * Create creature animation frames for walking
+     * Generates all 4 frames needed for walk cycle
+     * @returns {Array<string>} Array of texture names [frame0, frame1, frame2, frame3]
+     */
+    createCreatureAnimationFrames() {
+        const frameNames = [];
+
+        for (let frame = 0; frame < 4; frame++) {
+            const result = this.loadCreatureFromGameState(frame);
+            if (result && result.textureName) {
+                frameNames.push(result.textureName);
+            } else {
+                console.warn(`graphics:warn [GraphicsEngine] Failed to create frame ${frame}, using fallback`);
+                frameNames.push(`enhancedCreature${frame}`);
+            }
+        }
+
+        console.log('graphics:info [GraphicsEngine] Created animation frames:', frameNames);
+        return frameNames;
+    }
 }
 
 // Export for use in scenes
