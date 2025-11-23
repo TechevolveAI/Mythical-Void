@@ -129,6 +129,60 @@ this.time.delayedCall(100, () => {
 });
 ```
 
+### Inventory Egg Hatching Flow
+
+When hatching an egg from inventory (purchased from shop), the flow differs from initial onboarding:
+
+**Flow: Inventory → Farewell → HatchingScene → PersonalityScene → NamingScene → GameScene**
+
+**Key differences from initial onboarding:**
+1. **State must be completely reset** - The existing creature data must be cleared before hatching
+2. **Scene isolation required** - Each scene must stop all other scenes to prevent visual overlap
+3. **Data passed via scene.start()** - The `isEggHatch` flag and egg type are passed to HatchingScene
+
+**State reset in InventoryScene.showFarewellAnimation():**
+```javascript
+// Complete creature state reset for new hatching
+window.GameState.set('creature.hatched', false);
+window.GameState.set('creature.named', false);
+window.GameState.set('creature.genes', null);
+window.GameState.set('creature.name', null);
+window.GameState.set('creature.textureName', null);
+window.GameState.set('creature.dna', null);
+window.GameState.set('creature.personality', null);
+window.GameState.set('creature.personalityState', null);
+window.GameState.set('creature.stats', { happiness: 100, energy: 100, health: 100 });
+window.GameState.set('creature.level', 1);
+window.GameState.set('creature.experience', 0);
+window.GameState.save();
+```
+
+**Scene isolation pattern** (used by HatchingScene, PersonalityScene, NamingScene):
+```javascript
+create() {
+    // Stop all other scenes to ensure clean display
+    const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene', 'HatchingScene', 'PersonalityScene'];
+    scenesToStop.forEach(sceneKey => {
+        try {
+            this.scene.stop(sceneKey);
+        } catch (e) {
+            // Scene might not exist - that's fine
+        }
+    });
+    this.scene.bringToTop();
+    // ... rest of create()
+}
+```
+
+**HatchingScene receives egg data via init():**
+```javascript
+init(data) {
+    this.isEggHatch = data?.isEggHatch || false;  // true when from inventory
+    this.eggType = data?.eggType || null;         // 'cosmic', 'stellar', etc.
+    this.spawnPosition = data?.spawnPosition || null;
+}
+```
+
 ### Scene Lifecycle Patterns
 
 **CRITICAL**: Proper lifecycle management prevents memory leaks and ensures stable performance. Every scene MUST follow this pattern:
@@ -817,137 +871,9 @@ applySort(items) {
 14. **ALWAYS implement tutorial hints** for new features with state tracking
 15. **ALWAYS provide visual AND audio feedback** for player actions
 
-## Recent Implementation Work (Production-Stable Foundation)
+## Architectural Patterns (MUST FOLLOW)
 
-### Phase 1-8 Enhancements (25 Tasks Completed)
-
-The codebase has undergone comprehensive polish and stabilization work. **DO NOT reverse or break these patterns**:
-
-#### Phase 1: Critical Bug Fixes
-- ✅ **Debug graphics wrapped** in `import.meta.env.DEV` checks (GameScene.js)
-- ✅ **GraphicsEngine methods added**: `addSoftGlow()`, `addGentleShimmer()` (GraphicsEngine.js:3262-3308)
-- ✅ **Event listener cleanup** implemented in all scenes (GameScene, ShopScene, InventoryScene)
-  - Pattern: Remove global listeners, keyboard listeners, zone listeners in `shutdown()`
-  - Clear timers with `time.removeAllEvents()`
-  - Null out all references
-
-#### Phase 2: Performance Optimizations
-- ✅ **Timer-based periodic execution** replaces modulo checks (GameScene.js:2844-2871)
-  - `setupPeriodicTimers()` method pattern
-  - `time.addEvent({ delay, callback, loop })` for achievements, tutorials
-- ✅ **Development-only logging** via `devLogger.js` utility
-  - `devLog()`, `devWarn()`, `devDebug()` functions
-  - Production logs stripped automatically
-
-#### Phase 3: Loading States
-- ✅ **Loading overlay system** via UXEnhancements
-  - `showLoading(message)` / `hideLoading()` pattern
-  - Applied to: creature generation, shop transitions, inventory operations
-- ✅ **Async operation wrapping** prevents perceived freezing
-
-#### Phase 4: User Confirmations
-- ✅ **Purchase confirmation dialog** (ShopScene.js:480-622)
-  - Modal overlay pattern (depth 200+)
-  - ESC key support for cancellation
-  - Hover effects on buttons
-- ✅ **Item use confirmation** for expensive items (InventoryScene.js:515-651)
-  - Threshold: 100+ cosmic coins
-  - Same modal pattern as purchases
-
-#### Phase 5: Tutorial System
-- ✅ **Tutorial state management** (GameState paths: `tutorial.*`)
-  - `hasSeenTutorial()` / `markTutorialSeen()` pattern
-  - Progressive hints (preHatch → hatching → postHatch)
-- ✅ **Visual tutorial pointers** (HatchingScene.js:544-691)
-  - Animated arrows pointing to interactive elements
-  - Pulsing animations for emphasis
-  - Auto-dismiss after completion
-- ✅ **Reroll tutorial** with state tracking (HatchingScene.js:1738-1758)
-- ✅ **Personality scene tutorial** (PersonalityScene.js:746-803)
-
-#### Phase 6: Visual Feedback
-- ✅ **Floating coin animations** (GameScene.js:1099-1151)
-  - Spawn at player position with random offset
-  - Float up with scale increase and fade out
-- ✅ **Level up celebration** (GameScene.js:1157-1287)
-  - Screen flash with golden tint
-  - Particle bursts via FXLibrary.stardustBurst()
-  - Animated level up text with scale/glow effects
-  - Sound effect integration
-- ✅ **Achievement unlock modal** (GameScene.js:1978-2137)
-  - Full-screen dark overlay
-  - Centered modal with achievement details
-  - Particle effects and sound
-  - Auto-dismiss with fade out
-- ✅ **Stat warning indicators** (GameScene.js:3065-3167)
-  - Dynamic icons: 🔴 critical (≤20%), 🟡 warning (≤40%), ✅ good (>40%)
-  - Background color changes for critical stats
-  - Pulsing animation for critical states
-
-#### Phase 7: Sound Effects
-- ✅ **Procedural sound effects** added to AudioManager (AudioManager.js:98-138)
-  - `playLevelUp()` - 5-note triumphant fanfare
-  - `playAchievement()` - Magical chime sequence
-  - `playPet()` - Warm, gentle tone
-  - `playFeed()` - Satisfying munch (3 notes)
-  - `playPlay()` - Playful bounce (4 notes)
-- ✅ **Sound integration** in GameScene (GameScene.js:2340-2353)
-  - Care actions (pet, feed, play)
-  - Level up events
-  - Achievement unlocks
-
-#### Phase 8: Polish & UX
-- ✅ **Item tooltips** in ShopScene (ShopScene.js:630-682)
-  - Hover to show detailed item information
-  - Auto-positioning to prevent overflow
-  - Clean up on hover out
-- ✅ **Inventory sorting & filtering** (InventoryScene.js:105-278, 433-494)
-  - Sort options: None, Name, Type, Price
-  - Filter options: All, Food, Accessories, Consumables
-  - Visual state indication (gold highlight for active)
-  - Sound feedback on selection
-
-### Critical Files Modified (DO NOT BREAK)
-
-**GameScene.js** - Main gameplay scene
-- Lines 477-489: Debug graphics wrapped in DEV check
-- Lines 1099-1151: Floating coin animation system
-- Lines 1157-1287: Level up celebration system
-- Lines 1978-2137: Achievement modal system
-- Lines 2340-2353: Care action sound integration
-- Lines 2844-2871: Timer-based periodic execution
-- Lines 3065-3167: Stat warning indicator system
-- Lines 3308-3378: Comprehensive shutdown cleanup
-
-**InventoryScene.js** - Inventory management
-- Lines 17-22: Sort/filter state variables
-- Lines 105-278: Sort/filter control UI
-- Lines 433-494: Sort/filter logic
-- Lines 515-651: Expensive item confirmation
-- Lines 1071-1121: Enhanced shutdown cleanup
-
-**ShopScene.js** - Shop interface
-- Lines 480-622: Purchase confirmation dialog
-- Lines 630-682: Item tooltip system
-- Shutdown cleanup with event listener removal
-
-**HatchingScene.js** - Egg hatching flow
-- Lines 544-691: Tutorial system (progressive hints)
-- Lines 1738-1758: Reroll tutorial
-- Tutorial state tracking via GameState
-
-**AudioManager.js** - Sound system
-- Lines 98-138: New procedural sound effects
-- Lines 202-232: New playback methods
-
-**devLogger.js** (NEW) - Development logging utility
-- `devLog()`, `devWarn()`, `devDebug()` functions
-- Environment-aware logging
-
-**GraphicsEngine.js** - Sprite generation
-- Lines 3262-3308: `addSoftGlow()` and `addGentleShimmer()` methods
-
-### Architectural Patterns Established (MUST FOLLOW)
+The codebase follows these established patterns. **DO NOT reverse or break them**:
 
 1. **Scene Lifecycle Pattern**: constructor → create → setupPeriodicTimers → shutdown
 2. **Memory Management Pattern**: Track all listeners/timers/refs → clean up in shutdown
@@ -1144,10 +1070,12 @@ if (window.AudioManager) {
 
 ## Resources
 
-- **Game documentation**: See `*.md` files in root directory
-- **Technical specs**: TECHNICAL_IMPLEMENTATION.md
-- **MVP roadmap**: MVP_ROADMAP.md
-- **Tuning guide**: TUNING_GUIDE.md
-- **Security docs**: SECURITY.md
-- **PRD phases**: PRD_PHASE_1_3.md
-- **Implementation plan**: IMPLEMENTATION_PLAN.md (Phase 1-8 completed)
+- **Technical specs**: `docs/TECHNICAL_IMPLEMENTATION.md`
+- **Testing guide**: `docs/TESTING.md`
+- **Tuning guide**: `docs/TUNING_GUIDE.md`
+- **Security docs**: `docs/SECURITY.md`
+- **Deployment**: `docs/DEPLOYMENT.md`
+- **Game flow**: `docs/GAME_FLOW_DOCUMENTATION.md`
+- **Development guide**: `docs/DEVELOPMENT_GUIDE.md`
+- **Future plans**: `docs/archive/planning/` (roadmaps, implementation plans)
+- **Product requirements**: `prd.md`

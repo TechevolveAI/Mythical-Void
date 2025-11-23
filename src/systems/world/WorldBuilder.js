@@ -137,26 +137,16 @@ class WorldBuilder {
             }
         }
 
-        // Cosmic shop
+        // Cosmic shop - larger teal/gold building
         this.graphicsEngine.createCosmicShop();
-        const shopX = this.worldWidth - 200;
+        const shopX = this.worldWidth - 220;
         const shopY = this.worldHeight / 2;
         const shop = physics.add.staticSprite(shopX, shopY, 'cosmicShop');
+        shop.setScale(1.3); // Make shop more prominent
         shop.setDepth(shopY);
-        shop.body.setSize(200, 200);
-        shop.body.setOffset(-50, -50);
+        shop.body.setSize(220, 220);
+        shop.body.setOffset(-60, -60);
 
-        if (import.meta.env.DEV) {
-            this.debugGraphics = this.scene.add.graphics();
-            this.debugGraphics.lineStyle(3, 0x00FF00, 0.8);
-            this.debugGraphics.strokeRect(
-                shop.body.x,
-                shop.body.y,
-                shop.body.width,
-                shop.body.height
-            );
-            this.debugGraphics.setDepth(10000);
-        }
 
         return { trees, rocks, flowers, shop };
     }

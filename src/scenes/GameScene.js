@@ -6,6 +6,7 @@
 import EconomyHudManager from '../systems/ui/EconomyHudManager.js';
 import CarePanelManager from '../systems/ui/CarePanelManager.js';
 import WorldBuilder from '../systems/world/WorldBuilder.js';
+import ChatOverlay from '../ui/ChatOverlay.js';
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
@@ -40,6 +41,7 @@ class GameScene extends Phaser.Scene {
         this.creatureAI = null;
         this.chatUI = null;
         this.isChatOpen = false;
+        this.chatOverlay = null;
         this.careSystem = null;
         this.carePanelManager = null;
         this.coins = null;
@@ -87,11 +89,14 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        console.log('[GameScene] ===== CREATE() STARTING =====');
         try {
+            console.log('[GameScene] Initializing lifecycle tracking...');
             this.initializeLifecycleTracking();
             this.registerSceneLifecycleEvents();
 
             // Set current scene in GameState
+            console.log('[GameScene] Setting current scene in GameState...');
             getGameState().set('session.currentScene', 'GameScene');
 
             // Emit session started event for PersonalitySystem
@@ -213,6 +218,9 @@ class GameScene extends Phaser.Scene {
 
             // Set up periodic timers for achievements and tutorials
             this.setupPeriodicTimers();
+
+            // Show controls hint for desktop users on first visit
+            this.showControlsHintIfNeeded();
 
             console.log('[GameScene] Scene created successfully');
         } catch (error) {
@@ -353,10 +361,28 @@ class GameScene extends Phaser.Scene {
     }
 
     createPlayer() {
-        // Get saved position or use center of world
+        // Check for spawn position from egg hatching (creature replacement)
+        const spawnPos = getGameState().get('creature.spawnPosition');
         const savedPos = getGameState().get('world.currentPosition');
-        const startX = savedPos ? savedPos.x : this.worldWidth / 2;
-        const startY = savedPos ? savedPos.y : this.worldHeight / 2;
+
+        let startX, startY;
+
+        if (spawnPos) {
+            // Use spawn position from egg hatching (where old creature was)
+            startX = spawnPos.x;
+            startY = spawnPos.y;
+            console.log('game:info [GameScene] Using egg spawn position:', spawnPos);
+            // Clear the spawn position after using it
+            getGameState().set('creature.spawnPosition', null);
+        } else if (savedPos) {
+            // Use saved position
+            startX = savedPos.x;
+            startY = savedPos.y;
+        } else {
+            // Default to center of world
+            startX = this.worldWidth / 2;
+            startY = this.worldHeight / 2;
+        }
         
         // Get creature genetics for proper sprite creation
         console.log('game:info [GameScene] Creating player creature');
@@ -396,10 +422,10 @@ class GameScene extends Phaser.Scene {
 
         console.log(`game:info [GameScene] Player created at (${startX}, ${startY}) with world bounds: ${this.worldWidth}x${this.worldHeight}`);
         
-        // Make creature clickable for care interactions
+        // Make creature clickable for chat interactions
         this.player.setInteractive({ cursor: 'pointer' });
         this.player.on('pointerdown', () => {
-            this.carePanelManager?.togglePanel();
+            this.openChat();
         });
     }
 
@@ -408,9 +434,15 @@ class GameScene extends Phaser.Scene {
 
         this.graphicsEngine?.createCosmicCoin();
 
-        if (this.coins) {
-            this.coins.clear(true, true);
+        // Clear existing coins if they exist and are still valid
+        if (this.coins && this.coins.scene) {
+            try {
+                this.coins.clear(true, true);
+            } catch (e) {
+                console.warn('[GameScene] Could not clear old coins group:', e.message);
+            }
         }
+        this.coins = null;  // Reset reference
 
         this.coins = this.physics.add.group({
             defaultKey: 'cosmicCoin',
@@ -770,7 +802,6 @@ class GameScene extends Phaser.Scene {
         this.createGlowingStatBars();
         this.createFloatingParticles();
         this.createPersonalityDisplay();
-        this.createChatUI();
     }
 
     /**
@@ -1388,6 +1419,23 @@ class GameScene extends Phaser.Scene {
         this.scene.launch('InventoryScene');
     }
 
+    openChat() {
+        // Don't open chat if already open
+        if (this.chatOverlay?.getIsVisible()) {
+            return;
+        }
+
+        console.log('[GameScene] Opening Chat');
+
+        // Create chat overlay if not exists
+        if (!this.chatOverlay) {
+            this.chatOverlay = new ChatOverlay(this);
+        }
+
+        // Show the chat overlay
+        this.chatOverlay.show();
+    }
+
     showInteractionHint(message) {
         this.interactionText.setText(message);
         this.interactionText.setVisible(true);
@@ -1599,11 +1647,6 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Handle C key for chat toggle
-        if (Phaser.Input.Keyboard.JustDown(this.chatKey)) {
-            this.toggleChat();
-        }
-
         // Handle care keys (only if care system is available)
         if (this.carePanelManager) {
             if (Phaser.Input.Keyboard.JustDown(this.feedKey)) {
@@ -1633,6 +1676,11 @@ class GameScene extends Phaser.Scene {
         // Handle M key for combat (desktop)
         if (Phaser.Input.Keyboard.JustDown(this.combatKey)) {
             this.fireCombatProjectile();
+        }
+
+        // Handle C key for chat (desktop)
+        if (Phaser.Input.Keyboard.JustDown(this.chatKey)) {
+            this.openChat();
         }
 
         // Periodic checks for achievements and tutorials are now handled by timers
@@ -1943,6 +1991,73 @@ class GameScene extends Phaser.Scene {
             delay: 2000,
             duration: 500,
             onComplete: () => completion.destroy()
+        });
+    }
+
+    /**
+     * Show controls hint for desktop users on first visit
+     */
+    showControlsHintIfNeeded() {
+        // Only show on desktop
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) return;
+
+        // Check if already seen
+        const hasSeen = window.GameState?.get('tutorial.controlsSeen');
+        if (hasSeen) return;
+
+        // Mark as seen
+        window.GameState?.set('tutorial.controlsSeen', true);
+
+        // Create controls hint panel
+        const { width, height } = this.scale;
+        const panelWidth = 280;
+        const panelHeight = 180;
+        const panelX = width - panelWidth - 20;
+        const panelY = 80;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 0.9);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
+        panel.lineStyle(2, 0x7B68EE);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
+        panel.setScrollFactor(0);
+        panel.setDepth(4000);
+
+        const title = this.add.text(panelX + panelWidth / 2, panelY + 15, 'Controls', {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(4001);
+
+        const controlsText = [
+            'WASD / Arrows - Move',
+            'Space - Interact',
+            'I - Inventory',
+            'M - Attack',
+            'C - Chat with creature',
+            'Click creature - Chat'
+        ].join('\n');
+
+        const controls = this.add.text(panelX + 15, panelY + 40, controlsText, {
+            fontSize: '13px',
+            fontFamily: 'Arial',
+            color: '#FFFFFF',
+            lineSpacing: 6
+        }).setScrollFactor(0).setDepth(4001);
+
+        // Fade out after 8 seconds
+        this.tweens.add({
+            targets: [panel, title, controls],
+            alpha: 0,
+            delay: 8000,
+            duration: 1000,
+            onComplete: () => {
+                panel.destroy();
+                title.destroy();
+                controls.destroy();
+            }
         });
     }
 
@@ -2257,252 +2372,6 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
-     * Create chat UI system with Space-Mythic theme
-     */
-    createChatUI() {
-        const width = 800;
-        const height = 600;
-        const centerX = width / 2;
-        const centerY = height / 2;
-
-        // Chat container (starts hidden)
-        this.chatContainer = this.add.container(0, 0);
-        this.chatContainer.setScrollFactor(0);
-        this.chatContainer.setDepth(5000);
-        this.chatContainer.setVisible(false);
-
-        // Semi-transparent overlay
-        const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.7);
-        overlay.fillRect(0, 0, width, height);
-        this.chatContainer.add(overlay);
-
-        // Chat panel background (glassmorphism Space-Mythic style)
-        const panelBg = this.add.graphics();
-        const panelX = centerX - 300;
-        const panelY = centerY - 200;
-        const panelWidth = 600;
-        const panelHeight = 400;
-
-        // Cosmic gradient background
-        panelBg.fillGradientStyle(0x4A148C, 0x4A148C, 0x1A237E, 0x1A237E, 0.95);
-        panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
-
-        // Glowing border
-        panelBg.lineStyle(3, 0x00CED1, 0.8);
-        panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
-
-        this.chatContainer.add(panelBg);
-
-        // Title
-        const titleText = this.add.text(centerX, panelY + 30, `Chat with ${getGameState().get('creature.name')}`, {
-            fontSize: '24px',
-            fontFamily: 'Arial, sans-serif',
-            color: '#00CED1',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        titleText.setOrigin(0.5);
-        this.chatContainer.add(titleText);
-
-        // Message history container
-        const historyBg = this.add.graphics();
-        historyBg.fillStyle(0x0a0118, 0.8);
-        historyBg.fillRoundedRect(panelX + 20, panelY + 60, panelWidth - 40, 240, 8);
-        this.chatContainer.add(historyBg);
-
-        // Chat history text
-        this.chatHistoryText = this.add.text(panelX + 30, panelY + 70, 'Start a conversation with your cosmic companion!', {
-            fontSize: '14px',
-            fontFamily: 'Arial, sans-serif',
-            color: '#FFFFFF',
-            wordWrap: { width: panelWidth - 60 },
-            lineSpacing: 8
-        });
-        this.chatContainer.add(this.chatHistoryText);
-
-        // Input prompt text
-        const promptText = this.add.text(panelX + 20, panelY + 315, 'Quick messages:', {
-            fontSize: '12px',
-            color: '#00CED1'
-        });
-        this.chatContainer.add(promptText);
-
-        // Quick message buttons
-        const quickMessages = ['Hello!', 'How are you?', 'Tell me about yourself', 'What can you do?'];
-        const buttonY = panelY + 340;
-        const buttonSpacing = (panelWidth - 40) / 4;
-
-        quickMessages.forEach((message, index) => {
-            const buttonX = panelX + 20 + (buttonSpacing * index) + (buttonSpacing / 2);
-
-            const buttonBg = this.add.graphics();
-            const btnWidth = buttonSpacing - 10;
-            const btnHeight = 35;
-
-            buttonBg.fillStyle(0x00CED1, 0.3);
-            buttonBg.fillRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
-            buttonBg.lineStyle(2, 0x00CED1, 0.6);
-            buttonBg.strokeRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
-            buttonBg.setInteractive(new Phaser.Geom.Rectangle(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight), Phaser.Geom.Rectangle.Contains);
-
-            const buttonText = this.add.text(buttonX, buttonY + btnHeight/2, message, {
-                fontSize: '12px',
-                color: '#FFFFFF',
-                align: 'center'
-            });
-            buttonText.setOrigin(0.5);
-
-            buttonBg.on('pointerdown', () => {
-                if (window.AudioManager) window.AudioManager.playButtonClick();
-                this.sendChatMessage(message);
-            });
-
-            buttonBg.on('pointerover', () => {
-                buttonBg.clear();
-                buttonBg.fillStyle(0x00CED1, 0.5);
-                buttonBg.fillRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
-                buttonBg.lineStyle(2, 0xFFD700, 0.8);
-                buttonBg.strokeRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
-            });
-
-            buttonBg.on('pointerout', () => {
-                buttonBg.clear();
-                buttonBg.fillStyle(0x00CED1, 0.3);
-                buttonBg.fillRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
-                buttonBg.lineStyle(2, 0x00CED1, 0.6);
-                buttonBg.strokeRoundedRect(buttonX - btnWidth/2, buttonY, btnWidth, btnHeight, 8);
-            });
-
-            this.chatContainer.add(buttonBg);
-            this.chatContainer.add(buttonText);
-        });
-
-        // Close button
-        const closeBtn = this.add.text(panelX + panelWidth - 40, panelY + 20, 'X', {
-            fontSize: '24px',
-            color: '#FF6B6B',
-            fontStyle: 'bold'
-        });
-        closeBtn.setOrigin(0.5);
-        closeBtn.setInteractive();
-        closeBtn.on('pointerdown', () => {
-            if (window.AudioManager) window.AudioManager.playButtonClick();
-            this.toggleChat();
-        });
-        closeBtn.on('pointerover', () => closeBtn.setColor('#FF4444'));
-        closeBtn.on('pointerout', () => closeBtn.setColor('#FF6B6B'));
-        this.chatContainer.add(closeBtn);
-
-        // Chat button (always visible bottom-right)
-        const chatBtnX = 730;
-        const chatBtnY = 530;
-
-        const chatButtonBg = this.add.graphics();
-        chatButtonBg.fillStyle(0x00CED1, 0.9);
-        chatButtonBg.fillCircle(chatBtnX, chatBtnY, 30);
-        chatButtonBg.lineStyle(3, 0xFFD700, 0.8);
-        chatButtonBg.strokeCircle(chatBtnX, chatBtnY, 30);
-        chatButtonBg.setScrollFactor(0);
-        chatButtonBg.setDepth(4000);
-        chatButtonBg.setInteractive(new Phaser.Geom.Circle(chatBtnX, chatBtnY, 30), Phaser.Geom.Circle.Contains);
-
-        const chatButtonText = this.add.text(chatBtnX, chatBtnY, '💬', {
-            fontSize: '32px'
-        });
-        chatButtonText.setOrigin(0.5);
-        chatButtonText.setScrollFactor(0);
-        chatButtonText.setDepth(4001);
-
-        chatButtonBg.on('pointerdown', () => {
-            if (window.AudioManager) window.AudioManager.playButtonClick();
-            this.toggleChat();
-        });
-
-        chatButtonBg.on('pointerover', () => {
-            chatButtonBg.clear();
-            chatButtonBg.fillStyle(0x00CED1, 1.0);
-            chatButtonBg.fillCircle(chatBtnX, chatBtnY, 32);
-            chatButtonBg.lineStyle(3, 0xFFD700, 1.0);
-            chatButtonBg.strokeCircle(chatBtnX, chatBtnY, 32);
-            chatButtonText.setScale(1.1);
-        });
-
-        chatButtonBg.on('pointerout', () => {
-            chatButtonBg.clear();
-            chatButtonBg.fillStyle(0x00CED1, 0.9);
-            chatButtonBg.fillCircle(chatBtnX, chatBtnY, 30);
-            chatButtonBg.lineStyle(3, 0xFFD700, 0.8);
-            chatButtonBg.strokeCircle(chatBtnX, chatBtnY, 30);
-            chatButtonText.setScale(1.0);
-        });
-
-        this.chatButton = chatButtonBg;
-        this.chatButtonText = chatButtonText;
-
-        console.log('[GameScene] Chat UI created');
-    }
-
-    /**
-     * Send a chat message to the creature AI
-     */
-    async sendChatMessage(message) {
-        if (!this.creatureAI) {
-            console.warn('[GameScene] CreatureAI not initialized');
-            return;
-        }
-
-        // Add user message to history
-        const currentHistory = this.chatHistoryText.text;
-        this.chatHistoryText.setText(currentHistory + `\n\nYou: ${message}`);
-
-        // Show "thinking" indicator
-        this.chatHistoryText.setText(this.chatHistoryText.text + `\n\n${getGameState().get('creature.name')}: ...`);
-
-        try {
-            // Get creature data for AI context
-            const creatureData = {
-                name: getGameState().get('creature.name'),
-                level: getGameState().get('creature.level'),
-                experience: getGameState().get('creature.experience'),
-                stats: getGameState().get('creature.stats'),
-                colors: getGameState().get('creature.colors'),
-                genetics: getGameState().get('creature.genes')
-            };
-
-            // Send message to AI
-            const response = await this.creatureAI.sendMessage(message, creatureData);
-
-            // Remove "thinking" indicator and add response
-            const historyWithoutThinking = this.chatHistoryText.text.replace(/\n\n.*: \.\.\.$/, '');
-            this.chatHistoryText.setText(historyWithoutThinking + `\n\n${getGameState().get('creature.name')}: ${response}`);
-
-            // Auto-scroll to bottom (simulate)
-            // Trim history if too long
-            const lines = this.chatHistoryText.text.split('\n');
-            if (lines.length > 20) {
-                this.chatHistoryText.setText(lines.slice(-20).join('\n'));
-            }
-
-        } catch (error) {
-            console.error('[GameScene] Chat error:', error);
-            const historyWithoutThinking = this.chatHistoryText.text.replace(/\n\n.*: \.\.\.$/, '');
-            this.chatHistoryText.setText(historyWithoutThinking + `\n\n${getGameState().get('creature.name')}: Sorry, I couldn't respond right now.`);
-        }
-    }
-
-    /**
-     * Toggle chat interface
-     */
-    toggleChat() {
-        this.isChatOpen = !this.isChatOpen;
-        this.chatContainer.setVisible(this.isChatOpen);
-
-        console.log(`[GameScene] Chat ${this.isChatOpen ? 'opened' : 'closed'}`);
-    }
-
-    /**
      * Shutdown and cleanup
      * Called when scene is stopped/destroyed
      */
@@ -2580,6 +2449,8 @@ class GameScene extends Phaser.Scene {
         this.economyHud = null;
         this.carePanelManager?.destroy();
         this.carePanelManager = null;
+        this.chatOverlay?.cleanup();
+        this.chatOverlay = null;
         this.worldBuilder?.destroy();
         this.worldBuilder = null;
         if (this.statBarGraphics) {
@@ -2646,16 +2517,29 @@ class GameScene extends Phaser.Scene {
             this.coinRespawnTimers = [];
         }
 
-        if (this.coins) {
-            this.coins.clear(true, true);
+        // Clear physics groups with safety checks
+        if (this.coins && this.coins.scene) {
+            try {
+                this.coins.clear(true, true);
+            } catch (e) {
+                console.warn('[GameScene] Could not clear coins in shutdown:', e.message);
+            }
             this.coins = null;
         }
-        if (this.projectiles) {
-            this.projectiles.clear(true, true);
+        if (this.projectiles && this.projectiles.scene) {
+            try {
+                this.projectiles.clear(true, true);
+            } catch (e) {
+                console.warn('[GameScene] Could not clear projectiles in shutdown:', e.message);
+            }
             this.projectiles = null;
         }
-        if (this.enemies) {
-            this.enemies.clear(true, true);
+        if (this.enemies && this.enemies.scene) {
+            try {
+                this.enemies.clear(true, true);
+            } catch (e) {
+                console.warn('[GameScene] Could not clear enemies in shutdown:', e.message);
+            }
             this.enemies = null;
         }
 

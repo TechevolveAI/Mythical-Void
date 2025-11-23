@@ -142,6 +142,31 @@ class RaritySystem {
     }
 
     /**
+     * Stellar egg roll - no common creatures
+     * Distribution: 50% Uncommon, 30% Rare, 15% Epic, 5% Legendary
+     */
+    rollStellarRarity() {
+        const roll = Math.random() * 100;
+
+        if (roll < 50) return 'uncommon';      // 0-50 (50%)
+        if (roll < 80) return 'rare';          // 50-80 (30%)
+        if (roll < 95) return 'epic';          // 80-95 (15%)
+        return 'legendary';                    // 95-100 (5%)
+    }
+
+    /**
+     * Roll rarity for egg hatching (no pity system)
+     * @param {string} eggType - 'cosmic' or 'stellar'
+     * @returns {string} rarity
+     */
+    rollEggRarity(eggType) {
+        if (eggType === 'stellar') {
+            return this.rollStellarRarity();
+        }
+        return this.rollStandardRarity();
+    }
+
+    /**
      * Get rarity info
      */
     getRarityInfo(rarity) {

@@ -31,6 +31,17 @@ class PersonalityScene extends Phaser.Scene {
     }
 
     create() {
+        // Stop all other scenes to ensure clean display
+        const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene', 'HatchingScene'];
+        scenesToStop.forEach(sceneKey => {
+            try {
+                this.scene.stop(sceneKey);
+            } catch (e) {
+                // Scene might not exist - that's fine
+            }
+        });
+        this.scene.bringToTop();
+
         const state = getGameState();
 
         // Set current scene in GameState
@@ -516,7 +527,6 @@ class PersonalityScene extends Phaser.Scene {
         // Validate creatureData exists
         if (!this.creatureData || !this.creatureData.personality || !this.creatureData.genes) {
             console.error('personality:error [PersonalityScene] Cannot create panel - missing creature data');
-            // Show error and return to hatching
             this.showErrorAndRestart();
             return;
         }
@@ -525,22 +535,18 @@ class PersonalityScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const centerX = width / 2;
 
-        const panelW = Math.min(width * 0.9, 400); // 90% of width or 400px max
-        const panelH = Math.min(height * 0.6, 350); // 60% of height or 350px max
-        const panelX = centerX - (panelW / 2); // Center horizontally
-        const panelY = height * 0.2; // Start at 20% from top
+        const panelW = Math.min(width * 0.9, 380);
+        const panelH = Math.min(height * 0.55, 320); // Reduced height for cleaner design
+        const panelX = centerX - (panelW / 2);
+        const panelY = height * 0.18;
 
         this.panel = this.add.graphics();
-        this.panel.fillStyle(0x000000, 0.8);
-        this.panel.fillRoundedRect(panelX, panelY, panelW, panelH, 20);
+        this.panel.fillStyle(0x1A1A3E, 0.95); // Cosmic dark blue
+        this.panel.fillRoundedRect(panelX, panelY, panelW, panelH, 16);
 
-        // Magical border
-        this.panel.lineStyle(4, 0xFFD700);
-        this.panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 20);
-
-        // Inner border
-        this.panel.lineStyle(2, 0xFF69B4);
-        this.panel.strokeRoundedRect(panelX + 8, panelY + 8, panelW - 16, panelH - 16, 15);
+        // Single elegant border
+        this.panel.lineStyle(3, 0xFFD700);
+        this.panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 16);
 
         this.panel.setAlpha(0);
 
@@ -548,123 +554,141 @@ class PersonalityScene extends Phaser.Scene {
         this.tweens.add({
             targets: this.panel,
             alpha: 1,
-            scaleX: { from: 0.8, to: 1 },
-            scaleY: { from: 0.8, to: 1 },
-            duration: 800,
+            scaleX: { from: 0.9, to: 1 },
+            scaleY: { from: 0.9, to: 1 },
+            duration: 600,
             ease: 'Back.easeOut'
         });
 
-        // RESPONSIVE content positioning and font sizes
-        const padding = panelW * 0.06; // 6% padding
+        // Content layout
+        const padding = panelW * 0.08;
         const contentX = panelX + padding;
-        let currentY = panelY + (panelH * 0.08); // Start 8% from top
+        const contentWidth = panelW - (padding * 2);
+        let currentY = panelY + padding;
 
-        // Responsive font sizes based on panel width
-        const titleFontSize = Math.max(18, Math.min(24, panelW * 0.055));
-        const subtitleFontSize = Math.max(16, Math.min(18, panelW * 0.045));
-        const bodyFontSize = Math.max(12, Math.min(14, panelW * 0.035));
-        const smallFontSize = Math.max(11, Math.min(13, panelW * 0.032));
+        // Responsive font sizes
+        const headerSize = Math.max(20, Math.min(26, panelW * 0.065));
+        const titleSize = Math.max(14, Math.min(16, panelW * 0.042));
+        const bodySize = Math.max(12, Math.min(14, panelW * 0.037));
 
         const rarityMeta = this.getRarityMeta(this.creatureGenetics?.rarity);
-        const personality = this.creatureData.personality || {};
         const genetics = this.creatureGenetics || {};
+        const cosmicAffinity = genetics.cosmicAffinity || {};
+        const personality = genetics.personality || {};
 
-        this.rarityBadge = this.add.text(contentX, currentY, `${rarityMeta.emoji} ${rarityMeta.name} Soul`, {
-            fontSize: `${titleFontSize}px`,
+        // === HEADER: Rarity Badge ===
+        this.rarityBadge = this.add.text(centerX, currentY, `${rarityMeta.emoji} ${rarityMeta.name} Soul`, {
+            fontSize: `${headerSize}px`,
             color: rarityMeta.color,
             fontStyle: 'bold',
-            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
-        }).setOrigin(0, 0.5);
-        currentY += titleFontSize * 1.5;
+            fontFamily: 'Poppins, Inter, system-ui, sans-serif'
+        }).setOrigin(0.5, 0);
+        currentY += headerSize + 16;
 
-        this.personalityTitle = this.add.text(contentX, currentY, '🌟 Personality Profile', {
-            fontSize: `${subtitleFontSize}px`,
+        // === SECTION 1: Soul Essence (Personality + Traits) ===
+        this.soulTitle = this.add.text(contentX, currentY, '✨ Soul Essence', {
+            fontSize: `${titleSize}px`,
             color: '#FFD700',
             fontStyle: 'bold'
-        }).setOrigin(0, 0.5);
-        currentY += subtitleFontSize * 1.4;
-
-        this.personalityDesc = this.add.text(contentX, currentY, this.buildPersonalitySummary(personality, genetics), {
-            fontSize: `${bodyFontSize}px`,
-            color: '#FFFFFF',
-            align: 'left',
-            lineSpacing: 4,
-            wordWrap: { width: panelW - (padding * 2) }
         }).setOrigin(0, 0);
-        currentY += this.personalityDesc.height + (panelH * 0.04);
+        currentY += titleSize + 8;
 
-        this.geneticsTitle = this.add.text(contentX, currentY, '🧬 Genetic Highlights', {
-            fontSize: `${subtitleFontSize}px`,
-            color: '#87CEEB',
-            fontStyle: 'bold'
-        }).setOrigin(0, 0.5);
-        currentY += subtitleFontSize * 1.4;
+        // Get personality core trait
+        const personalityCore = personality.core || 'mysterious';
+        const personalityDesc = personality.description || 'A unique spirit awaits discovery';
 
-        this.geneticsText = this.add.text(contentX, currentY, this.buildGeneticSummary(genetics), {
-            fontSize: `${smallFontSize}px`,
-            color: '#E0E0E0',
-            align: 'left',
-            lineSpacing: 4,
-            wordWrap: { width: panelW - (padding * 2) }
+        // Build concise soul description
+        const soulText = `${this.capitalize(personalityCore)} Nature\n${personalityDesc}`;
+
+        this.soulDesc = this.add.text(contentX, currentY, soulText, {
+            fontSize: `${bodySize}px`,
+            color: '#E8E8E8',
+            lineSpacing: 6,
+            wordWrap: { width: contentWidth }
         }).setOrigin(0, 0);
-        currentY += this.geneticsText.height + (panelH * 0.04);
+        currentY += this.soulDesc.height + 20;
 
+        // === SECTION 2: Cosmic Affinity ===
         this.cosmicTitle = this.add.text(contentX, currentY, '🔮 Cosmic Affinity', {
-            fontSize: `${subtitleFontSize}px`,
+            fontSize: `${titleSize}px`,
             color: '#B39DDB',
             fontStyle: 'bold'
-        }).setOrigin(0, 0.5);
-        currentY += subtitleFontSize * 1.4;
-
-        this.cosmicText = this.add.text(contentX, currentY, this.buildCosmicSummary(genetics.cosmicAffinity), {
-            fontSize: `${smallFontSize}px`,
-            color: '#CCCCFF',
-            align: 'left',
-            lineSpacing: 4,
-            wordWrap: { width: panelW - (padding * 2) }
         }).setOrigin(0, 0);
-        currentY += this.cosmicText.height + (panelH * 0.04);
+        currentY += titleSize + 8;
 
-        // DNA Profile section (DNA v1)
-        this.dnaTitle = this.add.text(contentX, currentY, '🧬 DNA Profile', {
-            fontSize: `${subtitleFontSize}px`,
-            color: '#00FF88',
+        // Build concise cosmic description
+        const element = cosmicAffinity.element || 'star';
+        const powerLevel = cosmicAffinity.powerLevel ? Math.round(cosmicAffinity.powerLevel * 100) : 50;
+        const abilities = cosmicAffinity.specialAbilities || [];
+
+        const cosmicText = `${this.capitalize(element)} Affinity (${powerLevel}% resonance)\n` +
+            (abilities.length > 0 ? `Gift: ${this.formatAbility(abilities[0])}` : 'Gifts awakening...');
+
+        this.cosmicDesc = this.add.text(contentX, currentY, cosmicText, {
+            fontSize: `${bodySize}px`,
+            color: '#D4C4FF',
+            lineSpacing: 6,
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0, 0);
+        currentY += this.cosmicDesc.height + 20;
+
+        // === SECTION 3: Physical Form (Brief) ===
+        this.formTitle = this.add.text(contentX, currentY, '🦋 Physical Form', {
+            fontSize: `${titleSize}px`,
+            color: '#87CEEB',
             fontStyle: 'bold'
-        }).setOrigin(0, 0.5);
-        currentY += subtitleFontSize * 1.4;
+        }).setOrigin(0, 0);
+        currentY += titleSize + 8;
 
-        this.dnaText = this.add.text(contentX, currentY, this.buildDNASummary(this.creatureDNA), {
-            fontSize: `${smallFontSize}px`,
-            color: '#88FFCC',
-            align: 'left',
-            lineSpacing: 4,
-            wordWrap: { width: panelW - (padding * 2) }
+        // Get body info from genetics or DNA
+        const bodyShape = genetics.traits?.bodyShape?.type || 'unique';
+        const wingType = genetics.traits?.features?.wings?.type || 'ethereal';
+
+        const formText = `${this.capitalize(bodyShape)} form with ${wingType} wings`;
+
+        this.formDesc = this.add.text(contentX, currentY, formText, {
+            fontSize: `${bodySize}px`,
+            color: '#B8E8FF',
+            lineSpacing: 6,
+            wordWrap: { width: contentWidth }
         }).setOrigin(0, 0);
 
+        // Collect all text elements for animation
         const revealTexts = [
             this.rarityBadge,
-            this.personalityTitle,
-            this.personalityDesc,
-            this.geneticsTitle,
-            this.geneticsText,
+            this.soulTitle,
+            this.soulDesc,
             this.cosmicTitle,
-            this.cosmicText,
-            this.dnaTitle,
-            this.dnaText
+            this.cosmicDesc,
+            this.formTitle,
+            this.formDesc
         ];
 
         revealTexts.forEach(text => text.setAlpha(0));
 
+        // Staggered fade-in animation
         revealTexts.forEach((text, index) => {
             this.tweens.add({
                 targets: text,
                 alpha: 1,
-                x: text.x + 12,
-                duration: 600,
+                duration: 500,
                 ease: 'Power2',
-                delay: 200 + (index * 250)
+                delay: 150 + (index * 120)
             });
         });
+    }
+
+    // Helper methods for formatting
+    capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase().replace(/_/g, ' ');
+    }
+
+    formatAbility(ability) {
+        if (!ability) return 'Unknown';
+        return ability.split('_').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
     }
 
     showErrorAndRestart() {
@@ -713,18 +737,34 @@ class PersonalityScene extends Phaser.Scene {
             .setOrigin(0, 0)
             .setInteractive({ cursor: 'pointer' });
 
-        // Button animations
-        this.tweens.add({
-            targets: [buttonBg, buttonText],
-            scaleX: 1.05,
-            scaleY: 1.05,
-            duration: 1500,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1
+        // Static button with subtle glow effect (no more floating/moving)
+        // Just animate the border glow instead of scaling
+        this.time.addEvent({
+            delay: 2000,
+            callback: () => {
+                // Subtle pulse on the border only
+                buttonBg.clear();
+                buttonBg.fillStyle(0x9370DB, 0.9);
+                buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
+                buttonBg.lineStyle(4, 0xFFD700);
+                buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
+
+                this.time.delayedCall(500, () => {
+                    buttonBg.clear();
+                    buttonBg.fillStyle(0x9370DB, 0.9);
+                    buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
+                    buttonBg.lineStyle(3, 0xFFD700);
+                    buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
+                });
+            },
+            loop: true
         });
 
         buttonZone.on('pointerdown', () => {
+            // Play click sound
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
             this.transitionToNaming();
         });
 

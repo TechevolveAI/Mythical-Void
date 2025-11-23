@@ -133,8 +133,14 @@ const RARITY_MODIFIERS = Object.freeze({
         glitchyChance: 0,      // No glitchy chance
         mutationPotential: 0.05
     },
+    // "unusual" is the DNA system name, "uncommon" is the RaritySystem name
     unusual: {
         hybridBonus: 0.1,      // +10% chance for dual-hybrid
+        glitchyChance: 0,
+        mutationPotential: 0.10
+    },
+    uncommon: {
+        hybridBonus: 0.1,      // Alias for "unusual" - matches RaritySystem
         glitchyChance: 0,
         mutationPotential: 0.10
     },
@@ -211,7 +217,11 @@ class CreatureDNA {
 
         // Step 1: Roll rarity first (unless forced)
         const rarity = options.forcedRarity || this.rollTrait('raritySignature');
-        const rarityMods = this.rarityModifiers[rarity];
+        const rarityMods = this.rarityModifiers[rarity] || this.rarityModifiers.common;
+
+        if (!this.rarityModifiers[rarity]) {
+            console.warn(`[CreatureDNA] Unknown rarity "${rarity}", using common modifiers`);
+        }
 
         // Step 2: Roll physical traits
         const bodyArchetype = this.rollTrait('bodyArchetype');

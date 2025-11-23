@@ -1187,125 +1187,165 @@ class GraphicsEngine {
         }
 
         const graphics = this.createScratchGraphics();
-        const width = 120;
-        const height = 140;
+        const width = 160;
+        const height = 180;
+        const centerX = width / 2;
 
-        // Building base - dark cosmic stone
-        graphics.fillStyle(0x1A0A2E, 1);
-        graphics.fillRect(10, 60, 100, 80);
+        // Outer glow effect - teal/cyan to stand out from purple background
+        graphics.fillStyle(0x00CED1, 0.15);
+        graphics.fillCircle(centerX, 110, 70);
+        graphics.fillStyle(0x00CED1, 0.1);
+        graphics.fillCircle(centerX, 110, 85);
 
-        // Stone texture lines
-        graphics.lineStyle(1, 0x2E1A47, 0.6);
-        for (let i = 0; i < 8; i++) {
-            const y = 65 + i * 10;
-            graphics.lineBetween(10, y, 110, y);
+        // Building base - dark teal stone (contrasts with purple BG)
+        graphics.fillStyle(0x0A2E2E, 1);
+        graphics.fillRect(20, 70, 120, 100);
+
+        // Stone texture lines - cyan tint
+        graphics.lineStyle(1, 0x1A4747, 0.6);
+        for (let i = 0; i < 10; i++) {
+            const y = 75 + i * 10;
+            graphics.lineBetween(20, y, 140, y);
         }
 
-        // Entrance archway
-        graphics.fillStyle(0x0A0118, 0.9);
-        graphics.fillRect(40, 100, 40, 40);
+        // Vertical stone lines
+        for (let i = 0; i < 5; i++) {
+            const x = 35 + i * 25;
+            graphics.lineBetween(x, 70, x, 170);
+        }
+
+        // Entrance archway - deeper
+        graphics.fillStyle(0x001515, 0.95);
+        graphics.fillRect(55, 120, 50, 50);
 
         // Archway top (rounded)
-        graphics.fillCircle(60, 100, 20);
+        graphics.fillCircle(centerX, 120, 25);
 
-        // Mystical door glow
-        graphics.fillStyle(0x4A90E2, 0.5);
-        graphics.fillRect(42, 105, 36, 35);
+        // Mystical door glow - bright cyan
+        graphics.fillStyle(0x00FFFF, 0.4);
+        graphics.fillRect(57, 125, 46, 45);
 
-        // Door detail - cosmic symbols
-        graphics.lineStyle(2, 0x00CED1, 0.8);
-        graphics.strokeCircle(60, 120, 8);
+        // Inner door glow
+        graphics.fillStyle(0x00FFFF, 0.6);
+        graphics.fillRect(62, 130, 36, 40);
 
-        // Star symbol on door
-        const doorCenterX = 60;
-        const doorCenterY = 120;
-        this.drawStar(graphics, doorCenterX, doorCenterY, 5, 3, 6);
+        // Door detail - cosmic portal symbol
+        graphics.lineStyle(3, 0xFFD700, 0.9);
+        graphics.strokeCircle(centerX, 145, 12);
 
-        // Roof - mystical cosmic style
-        graphics.fillStyle(0x4A0080, 0.9);
+        // Star symbol on door - gold
+        this.drawStar(graphics, centerX, 145, 6, 4, 8);
+
+        // Portal swirl in door
+        graphics.lineStyle(2, 0x00FFFF, 0.7);
+        graphics.beginPath();
+        graphics.arc(centerX, 145, 8, 0, Math.PI * 1.5);
+        graphics.stroke();
+
+        // Roof - gradient teal to cyan
+        graphics.fillStyle(0x008B8B, 0.95);
         graphics.fillTriangle(
-            60, 40,    // Top point
-            5, 65,     // Left point
-            115, 65    // Right point
+            centerX, 35,    // Top point
+            10, 75,         // Left point
+            150, 75         // Right point
         );
 
-        // Roof trim
-        graphics.lineStyle(3, 0x6B00B3, 1);
-        graphics.lineBetween(5, 65, 60, 40);
-        graphics.lineBetween(60, 40, 115, 65);
-        graphics.lineBetween(5, 65, 115, 65);
+        // Roof trim - gold
+        graphics.lineStyle(4, 0xFFD700, 1);
+        graphics.lineBetween(10, 75, centerX, 35);
+        graphics.lineBetween(centerX, 35, 150, 75);
+        graphics.lineBetween(10, 75, 150, 75);
 
-        // Roof details - cosmic tiles
-        for (let i = 0; i < 6; i++) {
-            const y = 45 + i * 4;
-            const leftX = 20 + i * 6;
-            const rightX = 100 - i * 6;
-            graphics.lineStyle(1, 0x8B00D9, 0.6);
+        // Roof details - tile pattern
+        for (let i = 0; i < 7; i++) {
+            const y = 42 + i * 5;
+            const leftX = 30 + i * 7;
+            const rightX = 130 - i * 7;
+            graphics.lineStyle(1, 0x00CED1, 0.5);
             graphics.lineBetween(leftX, y, rightX, y);
         }
 
+        // Roof peak ornament - golden star
+        graphics.fillStyle(0xFFD700, 1);
+        this.drawStar(graphics, centerX, 30, 5, 6, 10);
+
         // Chimney (left side)
-        graphics.fillStyle(0x2E1A47, 1);
-        graphics.fillRect(20, 30, 15, 15);
+        graphics.fillStyle(0x1A4747, 1);
+        graphics.fillRect(30, 30, 18, 20);
 
-        // Chimney smoke (mystical purple)
-        graphics.fillStyle(0x9370DB, 0.4);
-        graphics.fillCircle(27, 22, 5);
-        graphics.fillCircle(25, 16, 4);
-        graphics.fillCircle(29, 12, 3);
+        // Chimney smoke - cyan mist
+        graphics.fillStyle(0x00FFFF, 0.3);
+        graphics.fillCircle(39, 22, 6);
+        graphics.fillCircle(36, 14, 5);
+        graphics.fillCircle(41, 8, 4);
 
-        // Windows (2)
-        const windowY = 75;
+        // Windows (2) - larger
+        const windowY = 85;
 
-        // Left window
-        graphics.fillStyle(0xFFD700, 0.7);
-        graphics.fillRect(20, windowY, 15, 15);
-        graphics.lineStyle(2, 0x2E1A47, 1);
-        graphics.strokeRect(20, windowY, 15, 15);
-        graphics.lineBetween(27, windowY, 27, windowY + 15); // Vertical bar
-        graphics.lineBetween(20, windowY + 7, 35, windowY + 7); // Horizontal bar
+        // Left window - golden glow
+        graphics.fillStyle(0xFFD700, 0.8);
+        graphics.fillRect(30, windowY, 20, 22);
+        graphics.lineStyle(3, 0x0A2E2E, 1);
+        graphics.strokeRect(30, windowY, 20, 22);
+        graphics.lineBetween(40, windowY, 40, windowY + 22);
+        graphics.lineBetween(30, windowY + 11, 50, windowY + 11);
 
         // Right window
-        graphics.fillStyle(0xFFD700, 0.7);
-        graphics.fillRect(85, windowY, 15, 15);
-        graphics.lineStyle(2, 0x2E1A47, 1);
-        graphics.strokeRect(85, windowY, 15, 15);
-        graphics.lineBetween(92, windowY, 92, windowY + 15);
-        graphics.lineBetween(85, windowY + 7, 100, windowY + 7);
+        graphics.fillStyle(0xFFD700, 0.8);
+        graphics.fillRect(110, windowY, 20, 22);
+        graphics.lineStyle(3, 0x0A2E2E, 1);
+        graphics.strokeRect(110, windowY, 20, 22);
+        graphics.lineBetween(120, windowY, 120, windowY + 22);
+        graphics.lineBetween(110, windowY + 11, 130, windowY + 11);
 
-        // Shop sign above door
-        graphics.fillStyle(0x6B00B3, 0.9);
-        graphics.fillRoundedRect(35, 90, 50, 12, 3);
+        // Shop sign above door - "SHOP" indicator
+        graphics.fillStyle(0x008B8B, 0.95);
+        graphics.fillRoundedRect(45, 105, 70, 16, 4);
 
-        // Sign border
-        graphics.lineStyle(2, 0x00CED1, 0.8);
-        graphics.strokeRoundedRect(35, 90, 50, 12, 3);
+        // Sign border - gold
+        graphics.lineStyle(3, 0xFFD700, 1);
+        graphics.strokeRoundedRect(45, 105, 70, 16, 4);
+
+        // Sign decorations - dots
+        graphics.fillStyle(0xFFD700, 0.8);
+        graphics.fillCircle(55, 113, 3);
+        graphics.fillCircle(80, 113, 3);
+        graphics.fillCircle(105, 113, 3);
 
         // Hanging sign chains
-        graphics.lineStyle(1, 0x808080, 0.8);
-        graphics.lineBetween(40, 85, 40, 90);
-        graphics.lineBetween(80, 85, 80, 90);
+        graphics.lineStyle(2, 0xFFD700, 0.8);
+        graphics.lineBetween(50, 95, 50, 105);
+        graphics.lineBetween(110, 95, 110, 105);
 
         // Ground shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillEllipse(60, 145, 55, 8);
+        graphics.fillStyle(0x000000, 0.4);
+        graphics.fillEllipse(centerX, 178, 70, 10);
 
-        // Magical sparkles around building
+        // Magical sparkles around building - more prominent
         const sparklePositions = [
-            { x: 15, y: 50 },
-            { x: 105, y: 55 },
-            { x: 30, y: 95 },
-            { x: 90, y: 100 },
-            { x: 60, y: 35 }
+            { x: 15, y: 55 },
+            { x: 145, y: 60 },
+            { x: 25, y: 110 },
+            { x: 135, y: 115 },
+            { x: centerX, y: 25 },
+            { x: 45, y: 45 },
+            { x: 115, y: 48 }
         ];
 
         sparklePositions.forEach(pos => {
-            graphics.fillStyle(0xFFFFFF, 0.8);
-            graphics.fillCircle(pos.x, pos.y, 2);
-            graphics.lineStyle(1, 0x00CED1, 0.6);
-            graphics.lineBetween(pos.x - 3, pos.y, pos.x + 3, pos.y);
-            graphics.lineBetween(pos.x, pos.y - 3, pos.x, pos.y + 3);
+            graphics.fillStyle(0xFFFFFF, 0.9);
+            graphics.fillCircle(pos.x, pos.y, 3);
+            graphics.lineStyle(2, 0x00FFFF, 0.7);
+            graphics.lineBetween(pos.x - 5, pos.y, pos.x + 5, pos.y);
+            graphics.lineBetween(pos.x, pos.y - 5, pos.x, pos.y + 5);
         });
+
+        // Corner decorations - small golden gems
+        graphics.fillStyle(0xFFD700, 0.9);
+        graphics.fillCircle(20, 70, 4);
+        graphics.fillCircle(140, 70, 4);
+        graphics.fillCircle(20, 170, 4);
+        graphics.fillCircle(140, 170, 4);
 
         return this.finalizeTexture(graphics, 'cosmicShop', width, height);
     }

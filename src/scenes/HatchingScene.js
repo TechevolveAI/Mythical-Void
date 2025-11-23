@@ -41,6 +41,31 @@ class HatchingScene extends Phaser.Scene {
         this.hatchingStarted = false;
         this.creatureAppeared = false;
         this.creatureGenetics = null; // Store the generated genetics
+
+        // Egg hatching mode properties
+        this.isEggHatch = false;
+        this.eggType = null; // 'cosmic' or 'stellar'
+        this.spawnPosition = null; // Where to spawn new creature
+    }
+
+    /**
+     * Initialize scene with data (used for egg hatching)
+     */
+    init(data) {
+        // Reset all scene state properties (important for scene restarts)
+        this.hatchingProgress = 0;
+        this.isHatching = false;
+        this.hatchingStarted = false;
+        this.creatureAppeared = false;
+        this.creatureGenetics = null;
+        this.creatureDNA = null;
+        this.rarityInfo = null;
+        this.eggTextureName = null;
+
+        // Set egg hatching properties from passed data
+        this.isEggHatch = data?.isEggHatch || false;
+        this.eggType = data?.eggType || null;
+        this.spawnPosition = data?.spawnPosition || null;
     }
 
     preload() {
@@ -48,8 +73,17 @@ class HatchingScene extends Phaser.Scene {
     }
 
     create() {
-        console.log('🎬 HatchingScene.create() called');
-        
+        // Stop all other scenes to ensure clean display
+        const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene'];
+        scenesToStop.forEach(sceneKey => {
+            try {
+                this.scene.stop(sceneKey);
+            } catch (e) {
+                // Scene might not exist - that's fine
+            }
+        });
+        this.scene.bringToTop();
+
         const GameState = getGameState();
 
         // Set current scene in GameState
@@ -61,43 +95,39 @@ class HatchingScene extends Phaser.Scene {
         const creatureName = GameState.get('creature.name');
         const creatureNamed = creatureName && creatureName !== 'Your Creature';
 
-        // DEBUG: Log the COMPLETE current state
-        console.log('🔍 HatchingScene.create() - FULL Game State Check:');
-        console.log('  gameStarted:', gameStarted);
-        console.log('  creatureHatched:', creatureHatched);
-        console.log('  creatureName:', creatureName);
-        console.log('  creatureNamed:', creatureNamed);
-        console.log('  Full creature object:', GameState.get('creature'));
-        console.log('  Full session object:', GameState.get('session'));
-
         // ⚠️ CRITICAL SECTION - DO NOT MODIFY - GAME FLOW LOGIC
         // This logic ensures the correct scene flow: Home → Hatch → Personality → Name → Game
         // See GAME_FLOW_DOCUMENTATION.md for details
         // 🚨 PROTECTED CODE - ANY CHANGES REQUIRE TEAM REVIEW 🚨
-        
-        // Determine which state to show
+
+        // Special handling for egg hatching from inventory
+        if (this.isEggHatch) {
+            // Store spawn position for GameScene
+            if (this.spawnPosition) {
+                GameState.set('creature.spawnPosition', this.spawnPosition);
+            }
+            this.showHatchingScreen();
+            return;
+        }
+
+        // Determine which state to show based on game progress
         if (!gameStarted) {
-            // Always show home screen first if game hasn't been started this session
-            console.log('🏠 Showing home screen - game not started');
+            // Show home screen first if game hasn't been started
             this.showHomeScreen();
             return;
         } else if (gameStarted && !creatureHatched) {
             // Game started but creature not hatched - show hatching process
-            console.log('🥚 Showing hatching screen - game started, creature not hatched');
             this.showHatchingScreen();
         } else if (gameStarted && creatureHatched && !creatureNamed) {
-            // Game started, hatched but not named - go to personality scene first
-            console.log('✨ Going to personality scene - creature hatched but not named');
+            // Hatched but not named - go to personality scene
             this.scene.start('PersonalityScene');
             return;
         } else if (gameStarted && creatureHatched && creatureNamed) {
-            // Game started, fully set up - go to game scene
-            console.log('🌍 Going to game scene - creature fully set up');
+            // Fully set up - go to game scene
             this.scene.start('GameScene');
             return;
         } else {
             // Fallback to home screen
-            console.log('🏠 Fallback to home screen');
             this.showHomeScreen();
             return;
         }
@@ -615,9 +645,66 @@ class HatchingScene extends Phaser.Scene {
         // MOBILE-RESPONSIVE egg positioning
         // Center the egg in the middle of the viewport
         const { width, height } = this.scale;
+        const eggX = width / 2;
+        const eggY = height * 0.45;
+
+        // Stellar egg golden aura effect
+        if (this.isEggHatch && this.eggType === 'stellar') {
+            // Outer golden glow
+            this.stellarGlow = this.add.graphics();
+            this.stellarGlow.fillStyle(0xFFD700, 0.15);
+            this.stellarGlow.fillCircle(eggX, eggY, 120);
+            this.stellarGlow.fillStyle(0xFFD700, 0.25);
+            this.stellarGlow.fillCircle(eggX, eggY, 80);
+            this.stellarGlow.fillStyle(0xFFA500, 0.3);
+            this.stellarGlow.fillCircle(eggX, eggY, 50);
+
+            // Pulsing animation for glow
+            this.tweens.add({
+                targets: this.stellarGlow,
+                alpha: { from: 1, to: 0.6 },
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // Golden particles orbiting the egg
+            this.stellarParticles = [];
+            for (let i = 0; i < 12; i++) {
+                const particle = this.add.graphics();
+                particle.fillStyle(0xFFD700, 0.9);
+                particle.fillCircle(0, 0, 4);
+                particle.fillStyle(0xFFFFFF, 0.8);
+                particle.fillCircle(0, 0, 2);
+                particle.setPosition(eggX, eggY);
+
+                // Orbit animation
+                const angle = (i / 12) * Math.PI * 2;
+                const radius = 90;
+                this.tweens.add({
+                    targets: particle,
+                    x: { from: eggX + Math.cos(angle) * radius, to: eggX + Math.cos(angle + Math.PI * 2) * radius },
+                    y: { from: eggY + Math.sin(angle) * radius, to: eggY + Math.sin(angle + Math.PI * 2) * radius },
+                    duration: 4000,
+                    repeat: -1,
+                    ease: 'Linear'
+                });
+
+                this.stellarParticles.push(particle);
+            }
+
+            console.log('hatch:info [HatchingScene] ✨ Stellar egg golden visuals created');
+        }
+
         // Use rarity-specific egg texture
         const textureName = this.eggTextureName || 'enhancedEgg_common';
-        this.egg = this.add.image(width / 2, height * 0.45, textureName);  // Slightly above center
+        this.egg = this.add.image(eggX, eggY, textureName);  // Slightly above center
+
+        // Apply golden tint for Stellar eggs
+        if (this.isEggHatch && this.eggType === 'stellar') {
+            this.egg.setTint(0xFFE4B5); // Soft golden tint
+        }
 
         // IMPORTANT: Set scale BEFORE interactive to ensure hit area matches visual size
         this.egg.setScale(1.2);
@@ -1533,12 +1620,23 @@ class HatchingScene extends Phaser.Scene {
             pityData = window.raritySystem.initializePitySystem();
         }
 
-        // Roll rarity using pity system
-        const rollResult = window.raritySystem.rollRarity(pityData);
-        const rarity = rollResult.rarity;
+        let rarity;
 
-        // Update pity data in GameState
-        state.set('pitySystem', rollResult.pityData);
+        // Check if in egg hatching mode - use egg-specific rarity rolling
+        if (this.isEggHatch && this.eggType) {
+            // Use egg-specific rarity (no pity system)
+            rarity = window.raritySystem.rollEggRarity(this.eggType);
+            console.log(`hatch:info [HatchingScene] 🥚 Egg rarity roll (${this.eggType}): ${rarity}`);
+
+            // Don't update pity for egg hatching - it was already reset
+        } else {
+            // Roll rarity using pity system (normal flow)
+            const rollResult = window.raritySystem.rollRarity(pityData);
+            rarity = rollResult.rarity;
+
+            // Update pity data in GameState
+            state.set('pitySystem', rollResult.pityData);
+        }
 
         // Generate creature with the rolled rarity
         this.creatureGenetics = window.CreatureGenetics.generateCreatureGenetics(rarity);
@@ -1572,12 +1670,17 @@ class HatchingScene extends Phaser.Scene {
             console.warn('hatch:warn [HatchingScene] CreatureDNA system not available');
         }
 
+        // Get pity counter info (only available for normal hatching, not egg hatching)
+        const pityInfo = this.isEggHatch
+            ? 'N/A (egg hatch)'
+            : `${pityData.hatchesSinceEpic}/${window.raritySystem.PITY_THRESHOLD}`;
+
         console.log(`hatch:info [HatchingScene] Generated ${this.creatureGenetics.rarity} ${this.creatureGenetics.species}:`, {
             id: this.creatureGenetics.id,
             personality: this.creatureGenetics.personality.core,
             cosmicElement: this.creatureGenetics.cosmicAffinity.element,
             specialFeatures: this.creatureGenetics.traits.features.specialFeatures?.length || 0,
-            pityCounter: `${rollResult.pityData.hatchesSinceEpic}/${window.raritySystem.PITY_THRESHOLD}`
+            pityCounter: pityInfo
         });
     }
 
@@ -2093,7 +2196,18 @@ class HatchingScene extends Phaser.Scene {
                 return;
             }
 
-            const canReroll = window.rerollSystem.canReroll();
+            // Disable reroll for egg hatching
+            const canReroll = this.isEggHatch ? false : window.rerollSystem.canReroll();
+
+            console.log('hatch:info [HatchingScene] Reroll check:', {
+                isEggHatch: this.isEggHatch,
+                canReroll: canReroll,
+                hasRerollState: !!window.rerollSystem.currentRerollState
+            });
+
+            if (this.isEggHatch) {
+                console.log('hatch:info [HatchingScene] 🥚 Reroll disabled for egg hatching');
+            }
 
             // MOBILE-RESPONSIVE button positioning
             const { width, height } = this.scale;
@@ -2361,80 +2475,108 @@ class HatchingScene extends Phaser.Scene {
     performRerollRegeneration(originalRarity, rerollData, state) {
         console.log('hatch:info [HatchingScene] Generating new creature after reroll...');
 
-        // Generate NEW creature
-        this.generateCreatureGenetics();
+        // Generate NEW creature with retry logic
+        let retryCount = 0;
+        const maxRetries = 3;
+        let creatureResult = null;
 
-        if (!this.creatureGenetics) {
-            console.error('hatch:error [HatchingScene] Failed to generate new genetics');
+        while (retryCount < maxRetries && !creatureResult) {
+            // Generate NEW creature genetics
+            this.generateCreatureGenetics();
+
+            if (!this.creatureGenetics) {
+                console.error(`hatch:error [HatchingScene] Failed to generate new genetics (attempt ${retryCount + 1})`);
+                retryCount++;
+                continue;
+            }
+
+            console.log(`hatch:info [HatchingScene] New creature generated: ${this.creatureGenetics.rarity} ${this.creatureGenetics.species}`);
+
+            // Try to create the creature
+            creatureResult = this.createUniqueCreature();
+
+            if (!creatureResult || !creatureResult.textureName) {
+                console.warn(`hatch:warn [HatchingScene] Creature creation failed (attempt ${retryCount + 1}), retrying...`);
+                creatureResult = null;
+                retryCount++;
+
+                // Clear DNA and try genetics-only on retry
+                if (retryCount > 1) {
+                    this.creatureDNA = null;
+                }
+            }
+        }
+
+        // Final validation
+        if (!creatureResult || !creatureResult.textureName) {
+            console.error('hatch:error [HatchingScene] Failed to create creature after all retries');
+            this.showRerollError('Creature generation failed - please try again');
             return;
         }
 
-        console.log(`hatch:info [HatchingScene] New creature generated: ${this.creatureGenetics.rarity} ${this.creatureGenetics.species}`);
+        console.log('hatch:info [HatchingScene] Creating new creature sprite with texture:', creatureResult.textureName);
 
-        const creatureResult = this.createUniqueCreature();
-
-        if (creatureResult && creatureResult.textureName) {
-            console.log('hatch:info [HatchingScene] Creating new creature sprite with texture:', creatureResult.textureName);
-
-            // Verify texture exists before creating sprite
-            if (!this.textures.exists(creatureResult.textureName)) {
-                console.error('hatch:error [HatchingScene] Texture was not created properly:', creatureResult.textureName);
-                this.showRerollError('Failed to generate creature appearance');
-                return;
-            }
-
-            // MOBILE-RESPONSIVE rerolled creature positioning
-            const { width, height } = this.scale;
-            const centerX = width / 2;
-            const creatureY = height * 0.45;
-            const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
-
-            this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
-            this.creature.setScale(1.5);
-            this.creature.setAlpha(0);
-            this.creature.setDepth(20);
-            this.creature.genetics = this.creatureGenetics;
-
-            // Fade in new creature
-            this.tweens.add({
-                targets: this.creature,
-                alpha: 1,
-                scale: targetScale,
-                duration: 1000,
-                ease: 'Back.easeOut'
-            });
-
-            // Bring back sparkle reveal & genetic VFX
-            this.createSparkles();
-            this.addGeneticEffects();
-
-            // Persist latest genetics/texture to GameState so downstream scenes use the rerolled creature
-            this.saveCreatureGenetics();
-
-            // Update reroll tracking with new rarity
-            rerollData = window.rerollSystem.trackReroll(originalRarity, this.creatureGenetics.rarity, rerollData);
-            state.set('rerollSystem', rerollData);
-
-            console.log(`hatch:info [HatchingScene] Reroll complete: ${originalRarity} → ${this.creatureGenetics.rarity}`);
-
-            // Set rerolled creature in system
-            window.rerollSystem.setRerolledCreature({
-                genetics: this.creatureGenetics,
-                rarity: this.creatureGenetics.rarity
-            });
-
-            // Show new rarity reveal
-            this.time.delayedCall(1000, () => {
-                console.log('hatch:info [HatchingScene] Showing new rarity reveal and final keep button');
-                this.showRarityReveal();
-
-                // Show ONLY keep button (no second reroll)
-                this.showFinalKeepButton();
-            });
-        } else {
-            console.error('hatch:error [HatchingScene] Failed to create creature result');
-            this.showRerollError('Creature generation failed - please try again');
+        // Verify texture exists before creating sprite
+        if (!this.textures.exists(creatureResult.textureName)) {
+            console.error('hatch:error [HatchingScene] Texture was not created properly:', creatureResult.textureName);
+            this.showRerollError('Failed to generate creature appearance');
+            return;
         }
+
+        // MOBILE-RESPONSIVE rerolled creature positioning
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const creatureY = height * 0.45;
+        const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+
+        this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
+        this.creature.setScale(1.5);
+        this.creature.setAlpha(0);
+        this.creature.setDepth(20);
+        this.creature.genetics = this.creatureGenetics;
+
+        // Fade in new creature with audio feedback
+        this.tweens.add({
+            targets: this.creature,
+            alpha: 1,
+            scale: targetScale,
+            duration: 1000,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Play reveal sound for dramatic effect
+                if (window.AudioManager) {
+                    window.AudioManager.playLevelUp();
+                }
+            }
+        });
+
+        // Bring back sparkle reveal & genetic VFX
+        this.createSparkles();
+        this.addGeneticEffects();
+
+        // Persist latest genetics/texture to GameState so downstream scenes use the rerolled creature
+        this.saveCreatureGenetics();
+
+        // Update reroll tracking with new rarity
+        rerollData = window.rerollSystem.trackReroll(originalRarity, this.creatureGenetics.rarity, rerollData);
+        state.set('rerollSystem', rerollData);
+
+        console.log(`hatch:info [HatchingScene] Reroll complete: ${originalRarity} → ${this.creatureGenetics.rarity}`);
+
+        // Set rerolled creature in system
+        window.rerollSystem.setRerolledCreature({
+            genetics: this.creatureGenetics,
+            rarity: this.creatureGenetics.rarity
+        });
+
+        // Show new rarity reveal
+        this.time.delayedCall(1000, () => {
+            console.log('hatch:info [HatchingScene] Showing new rarity reveal and final keep button');
+            this.showRarityReveal();
+
+            // Show ONLY keep button (no second reroll)
+            this.showFinalKeepButton();
+        });
     }
 
     /**

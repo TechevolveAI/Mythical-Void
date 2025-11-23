@@ -565,13 +565,10 @@ class ResponsiveManager {
             if (newOrientation !== this.orientation) {
                 this.orientation = newOrientation;
                 console.log(`[ResponsiveManager] Orientation changed to: ${this.orientation}`);
-                
-                if (this.isMobile && this.orientation === 'portrait') {
-                    this.showOrientationMessage();
-                } else {
-                    this.hideOrientationMessage();
-                }
-                
+
+                // Game works in both portrait and landscape - no rotation message needed
+                this.hideOrientationMessage();
+
                 // Trigger resize
                 this.handleResize();
             }

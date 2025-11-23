@@ -1,0 +1,324 @@
+{
+  "greetings": {
+    "curious": {
+      "happy": [
+        "*{name} bounces excitedly to see you!*",
+        "*{name}'s eyes light up with wonder!*",
+        "*{name} chirps a happy greeting!*"
+      ],
+      "neutral": [
+        "*{name} tilts head curiously at you*",
+        "*{name} looks at you with interested eyes*",
+        "*{name} perks up as you approach*"
+      ],
+      "sad": [
+        "*{name} looks up at you with questioning eyes*",
+        "*{name} seems to want to understand something*",
+        "*{name} reaches out tentatively*"
+      ],
+      "upset": [
+        "*{name} looks confused and needs reassurance*",
+        "*{name} seems lost in thought*"
+      ]
+    },
+    "playful": {
+      "happy": [
+        "*{name} does a happy spin and bounces!*",
+        "*{name} playfully tumbles toward you!*",
+        "*{name} can barely contain their excitement!*"
+      ],
+      "neutral": [
+        "*{name} playfully nudges you*",
+        "*{name} bounces in anticipation*",
+        "*{name} gives you a mischievous look*"
+      ],
+      "sad": [
+        "*{name} tries to muster a playful bounce*",
+        "*{name} looks like they want to play but feel down*"
+      ],
+      "upset": [
+        "*{name} sits quietly, unusual for them*",
+        "*{name} seems to have lost their spark*"
+      ]
+    },
+    "gentle": {
+      "happy": [
+        "*{name} nuzzles you warmly and purrs*",
+        "*{name} approaches with a soft, loving gaze*",
+        "*{name} gently brushes against you*"
+      ],
+      "neutral": [
+        "*{name} approaches with calm grace*",
+        "*{name} looks at you with peaceful eyes*",
+        "*{name} settles nearby contentedly*"
+      ],
+      "sad": [
+        "*{name} looks at you with soft, sad eyes*",
+        "*{name} seems to need gentle comfort*"
+      ],
+      "upset": [
+        "*{name} curls up, seeking solace*",
+        "*{name} looks like they need extra care*"
+      ]
+    },
+    "wise": {
+      "happy": [
+        "*{name} greets you with knowing, joyful eyes*",
+        "*{name} seems pleased to share wisdom today*",
+        "*{name} radiates calm contentment*"
+      ],
+      "neutral": [
+        "*{name} regards you thoughtfully*",
+        "*{name} observes you with ancient eyes*",
+        "*{name} seems to be contemplating something*"
+      ],
+      "sad": [
+        "*{name} carries a heavy, thoughtful look*",
+        "*{name} seems to be pondering difficult truths*"
+      ],
+      "upset": [
+        "*{name} appears troubled by deep thoughts*",
+        "*{name} seems burdened with concerns*"
+      ]
+    },
+    "energetic": {
+      "happy": [
+        "*{name} zooms around you in excited circles!*",
+        "*{name} can't stop bouncing with joy!*",
+        "*{name} practically vibrates with happiness!*"
+      ],
+      "neutral": [
+        "*{name} bounces eagerly in place*",
+        "*{name} hops around with energy to spare*",
+        "*{name} seems ready for action!*"
+      ],
+      "sad": [
+        "*{name} has less bounce than usual*",
+        "*{name} moves more slowly than normal*"
+      ],
+      "upset": [
+        "*{name} is unusually still and quiet*",
+        "*{name} seems drained of their usual energy*"
+      ]
+    }
+  },
+  "playerOptions": {
+    "general": [
+      "How are you feeling?",
+      "Want to play?",
+      "Tell me about your day",
+      "I love you!",
+      "Are you hungry?",
+      "Let's go on an adventure!",
+      "What's on your mind?",
+      "You're amazing!"
+    ],
+    "followup": [
+      "That sounds great!",
+      "Tell me more!",
+      "You're the best!",
+      "I'm so glad!",
+      "What else?",
+      "That's wonderful!",
+      "I understand",
+      "Let's do it!"
+    ],
+    "comfort": [
+      "It's okay, I'm here",
+      "I'll take care of you",
+      "Let's make you feel better",
+      "You're safe with me"
+    ]
+  },
+  "creatureResponses": {
+    "feelings": {
+      "curious": [
+        "*{name} chirps thoughtfully* I've been wondering about so many things today!",
+        "*{name} tilts head* Every moment brings something new to discover!",
+        "*{name} looks around excitedly* There's so much to explore with you!"
+      ],
+      "playful": [
+        "*{name} bounces* I'm feeling bouncy and ready for fun!",
+        "*{name} spins* Every day is a chance to play!",
+        "*{name} wiggles* I've got so much energy!"
+      ],
+      "gentle": [
+        "*{name} purrs softly* I feel peaceful when you're here",
+        "*{name} nuzzles you* Your presence brings me comfort",
+        "*{name} settles close* I'm content just being with you"
+      ],
+      "wise": [
+        "*{name} considers* Each day brings new lessons to learn",
+        "*{name} nods slowly* I feel balanced and at peace",
+        "*{name} gazes thoughtfully* There is wisdom in simply being"
+      ],
+      "energetic": [
+        "*{name} zooms* I feel like I could run forever!",
+        "*{name} bounces high* So much energy today!",
+        "*{name} spins rapidly* Ready for anything!"
+      ]
+    },
+    "play": {
+      "curious": [
+        "*{name} perks up* Ooh, what kind of game? Something new?",
+        "*{name} bounces* Let's discover something fun together!",
+        "*{name} looks excited* I wonder what we'll find!"
+      ],
+      "playful": [
+        "*{name} leaps with joy* Yes yes yes! Let's play NOW!",
+        "*{name} does a flip* I thought you'd never ask!",
+        "*{name} bounces wildly* This is going to be SO fun!"
+      ],
+      "gentle": [
+        "*{name} purrs* A gentle game sounds lovely",
+        "*{name} nods softly* I'd like that very much",
+        "*{name} approaches* Something calm and nice?"
+      ],
+      "wise": [
+        "*{name} considers* Play is important for growth",
+        "*{name} nods* A wise choice to balance work with fun",
+        "*{name} agrees* Recreation nurtures the spirit"
+      ],
+      "energetic": [
+        "*{name} explodes with excitement* LET'S GOOO!",
+        "*{name} zooms in circles* I was BORN to play!",
+        "*{name} can't contain themselves* FINALLY!"
+      ]
+    },
+    "adventure": {
+      "curious": [
+        "*{name}'s eyes widen* An adventure?! What will we find?",
+        "*{name} bounces eagerly* New places to explore!",
+        "*{name} chirps excitedly* I love discovering new things!"
+      ],
+      "playful": [
+        "*{name} tumbles forward* Adventure means fun!",
+        "*{name} bounces* Let's go find trouble!",
+        "*{name} grins* This is gonna be great!"
+      ],
+      "gentle": [
+        "*{name} nods calmly* A peaceful journey sounds nice",
+        "*{name} prepares* I'll stay close to you",
+        "*{name} agrees* Together we can face anything"
+      ],
+      "wise": [
+        "*{name} considers the path* Every journey teaches us",
+        "*{name} nods sagely* Adventure awaits those who seek",
+        "*{name} prepares* Let us see what we may learn"
+      ],
+      "energetic": [
+        "*{name} rockets forward* ADVENTURE TIME!",
+        "*{name} can't wait* Let's GO GO GO!",
+        "*{name} zooms ahead* Try to keep up!"
+      ]
+    },
+    "food": {
+      "curious": [
+        "*{name} sniffs the air* What kind of food? Something new?",
+        "*{name} perks up* I wonder what it tastes like!",
+        "*{name} looks interested* Tell me about it!"
+      ],
+      "playful": [
+        "*{name} bounces* Food AND fun? Perfect!",
+        "*{name} wiggles* Yummy in my tummy!",
+        "*{name} spins* Snack time is the BEST time!"
+      ],
+      "gentle": [
+        "*{name} approaches calmly* A nice meal sounds lovely",
+        "*{name} purrs* Thank you for thinking of me",
+        "*{name} nods* I appreciate your care"
+      ],
+      "wise": [
+        "*{name} considers* Nourishment feeds more than the body",
+        "*{name} agrees* Good food brings good health",
+        "*{name} nods* A wise choice to eat well"
+      ],
+      "energetic": [
+        "*{name} zooms to you* FOOD?! Yes please!",
+        "*{name} bounces* Gotta fuel up for more zooming!",
+        "*{name} can't wait* Nom nom nom!"
+      ]
+    },
+    "affection": {
+      "curious": [
+        "*{name} tilts head happily* I love you too! Why does love feel so warm?",
+        "*{name} nuzzles close* Your love makes me curious about everything!",
+        "*{name} chirps* Being loved is the best feeling!"
+      ],
+      "playful": [
+        "*{name} tackles you with love* Right back at you, best friend!",
+        "*{name} bounces joyfully* Love love love!",
+        "*{name} spins happily* You make everything fun!"
+      ],
+      "gentle": [
+        "*{name} nuzzles warmly* And I love you, with all my heart",
+        "*{name} purrs deeply* Your love means everything to me",
+        "*{name} settles close* I feel so safe with you"
+      ],
+      "wise": [
+        "*{name} gazes warmly* Love is the truest wisdom",
+        "*{name} nods* And I cherish you beyond words",
+        "*{name} radiates calm* Our bond transcends all"
+      ],
+      "energetic": [
+        "*{name} zooms around you excitedly* LOVE YOU TOO!!!",
+        "*{name} bounces with joy* So! Much! Love!",
+        "*{name} can't contain happiness* You're the BEST!"
+      ]
+    },
+    "story": {
+      "curious": [
+        "*{name} settles in eagerly* Ooh, what kind of story? Tell me everything!",
+        "*{name}'s eyes widen* I love learning new things through stories!",
+        "*{name} listens intently* What happens next?!"
+      ],
+      "playful": [
+        "*{name} bounces* A fun story? With adventure?",
+        "*{name} wiggles* Make it exciting!",
+        "*{name} grins* Does it have a happy ending?"
+      ],
+      "gentle": [
+        "*{name} settles close* I'd love to hear your story",
+        "*{name} purrs* Your voice is so soothing",
+        "*{name} listens peacefully* Please, go on"
+      ],
+      "wise": [
+        "*{name} listens thoughtfully* Stories carry ancient wisdom",
+        "*{name} nods* I am ready to receive your tale",
+        "*{name} considers* What truth does it reveal?"
+      ],
+      "energetic": [
+        "*{name} tries to sit still* Story time! I'll try not to wiggle!",
+        "*{name} bounces in place* Is it an exciting one?!",
+        "*{name} zooms then stops* Okay okay I'm listening!"
+      ]
+    },
+    "general": {
+      "curious": [
+        "*{name} chirps happily and looks around with wonder*",
+        "*{name} tilts head thoughtfully at your words*",
+        "*{name} seems to be pondering something interesting*"
+      ],
+      "playful": [
+        "*{name} does a happy little dance*",
+        "*{name} bounces with delight*",
+        "*{name} playfully tumbles around*"
+      ],
+      "gentle": [
+        "*{name} purrs contentedly*",
+        "*{name} nuzzles you softly*",
+        "*{name} radiates calm warmth*"
+      ],
+      "wise": [
+        "*{name} nods with understanding*",
+        "*{name} seems to appreciate your words*",
+        "*{name} considers this thoughtfully*"
+      ],
+      "energetic": [
+        "*{name} bounces with enthusiasm!*",
+        "*{name} zooms in happy circles!*",
+        "*{name} vibrates with excitement!*"
+      ]
+    }
+  }
+}

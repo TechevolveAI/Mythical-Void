@@ -26,6 +26,8 @@ class NamingScene extends Phaser.Scene {
         this.nameInput = '';
         this.maxNameLength = 20;
         this.cursorBlink = true;
+        this.isTransitioning = false;  // CRITICAL: Initialize to prevent stuck state
+        this.domClickHandler = null;   // Store reference for cleanup
     }
 
     preload() {
@@ -33,7 +35,21 @@ class NamingScene extends Phaser.Scene {
     }
 
     create() {
+        // Stop all other scenes to ensure clean display
+        const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene', 'HatchingScene', 'PersonalityScene'];
+        scenesToStop.forEach(sceneKey => {
+            try {
+                this.scene.stop(sceneKey);
+            } catch (e) {
+                // Scene might not exist - that's fine
+            }
+        });
+        this.scene.bringToTop();
+
         const state = getGameState();
+
+        // CRITICAL: Reset transition state for this instance
+        this.isTransitioning = false;
 
         // Set current scene in GameState
         state.set('session.currentScene', 'NamingScene');
@@ -55,7 +71,13 @@ class NamingScene extends Phaser.Scene {
         this.createUI();
 
         // Set up input handling
-        this.setupInput();
+        console.log('[NamingScene] Calling setupInput...');
+        try {
+            this.setupInput();
+            console.log('[NamingScene] setupInput completed successfully');
+        } catch (inputError) {
+            console.error('[NamingScene] Error in setupInput:', inputError);
+        }
 
         // Create cursor blink timer
         this.createCursorBlink();
@@ -234,6 +256,37 @@ class NamingScene extends Phaser.Scene {
                 align: 'center'
             }).setOrigin(0.5);
         }
+
+        // CRITICAL: Ensure input is enabled
+        if (!this.input.enabled) {
+            console.warn('[NamingScene] Input was disabled, enabling now');
+            this.input.enabled = true;
+        }
+
+        // Debug: Add scene-wide pointer listener to understand click issues
+        this.input.on('pointerdown', (pointer) => {
+            console.log('[NamingScene] Scene pointer down at:', pointer.x, pointer.y);
+            if (this.enterButtonDims) {
+                const { x, y, w, h } = this.enterButtonDims;
+                const inButton = pointer.x >= x && pointer.x <= x + w && pointer.y >= y && pointer.y <= y + h;
+                console.log('[NamingScene] Button bounds:', x, y, w, h, 'In button:', inButton);
+            }
+        });
+
+        // Also listen for pointerup in case that's what's needed
+        this.input.on('pointerup', (pointer) => {
+            console.log('[NamingScene] Scene pointer UP at:', pointer.x, pointer.y);
+        });
+
+        console.log('[NamingScene] Create complete, input enabled:', this.input.enabled);
+        console.log('[NamingScene] Input manager active:', this.input.manager?.isActive);
+
+        // Check input status after a delay to catch any late initialization issues
+        this.time.delayedCall(100, () => {
+            console.log('[NamingScene] Delayed input check - enabled:', this.input.enabled,
+                        'keyboard:', !!this.input.keyboard,
+                        'pointer count:', this.input.manager?.pointers?.length);
+        });
     }
 
     createResetButton() {
@@ -298,46 +351,44 @@ class NamingScene extends Phaser.Scene {
     }
 
     createMobileLayout() {
-        // MOBILE VERTICAL STACK: Creature → Name Input → Info
+        // SIMPLIFIED MOBILE LAYOUT: Creature → Name Input only (no duplicate info)
         const { width, height } = this.scale;
         const centerX = width / 2;
-        let currentY = height * 0.15; // Start below subtitle
 
         // Responsive font sizes for mobile
-        const labelSize = Math.max(16, Math.min(18, width * 0.045));
-        const bodySize = Math.max(13, Math.min(14, width * 0.036));
-        const titleSize = Math.max(14, Math.min(16, width * 0.04));
+        const labelSize = Math.max(16, Math.min(20, width * 0.05));
+        const bodySize = Math.max(14, Math.min(16, width * 0.04));
 
-        // Reposition creature to center (already created in displayCreature)
+        // Reposition creature to center with more prominence
         if (this.creature) {
             this.creature.x = centerX;
-            this.creature.y = currentY + (height * 0.12); // Give it some space
-            const scale = Math.min(1.5, width / 300);
+            this.creature.y = height * 0.35;
+            const scale = Math.min(1.8, width / 280);
             this.creature.setScale(scale);
         }
 
-        currentY += height * 0.25; // Move past creature
-
-        // NAME INPUT SECTION
-        const inputWidth = width * 0.8;
-        const inputHeight = height * 0.06;
+        // NAME INPUT SECTION - centered and prominent
+        const inputWidth = width * 0.85;
+        const inputHeight = height * 0.07;
         const inputX = centerX - (inputWidth / 2);
-        const inputY = currentY;
+        const inputY = height * 0.58;
 
-        // Name label
-        this.add.text(centerX, inputY - (height * 0.03), 'Name your creature:', {
+        // Name label with cosmic styling
+        this.add.text(centerX, inputY - (height * 0.04), '✨ Give your creature a name ✨', {
             fontSize: `${labelSize}px`,
-            color: '#4B0082',
+            color: '#FFD700',
             align: 'center',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            stroke: '#4B0082',
+            strokeThickness: 2
         }).setOrigin(0.5);
 
-        // Name input background
+        // Name input background with cosmic theme
         const inputBg = this.add.graphics();
-        inputBg.fillStyle(0xFFFFFF, 0.9);
-        inputBg.fillRoundedRect(inputX, inputY, inputWidth, inputHeight, 8);
-        inputBg.lineStyle(2, 0x4B0082);
-        inputBg.strokeRoundedRect(inputX, inputY, inputWidth, inputHeight, 8);
+        inputBg.fillStyle(0x1A1A3E, 0.9);
+        inputBg.fillRoundedRect(inputX, inputY, inputWidth, inputHeight, 12);
+        inputBg.lineStyle(3, 0x9370DB);
+        inputBg.strokeRoundedRect(inputX, inputY, inputWidth, inputHeight, 12);
 
         // ALWAYS start with blank name field
         this.nameInput = '';
@@ -346,168 +397,82 @@ class NamingScene extends Phaser.Scene {
         // Name input display
         this.nameText = this.add.text(centerX, inputY + (inputHeight / 2), '', {
             fontSize: `${bodySize}px`,
-            color: '#333333'
+            color: '#FFFFFF'
         }).setOrigin(0.5);
 
         // Create HTML input element for mobile keyboard
         this.createMobileInput(inputX, inputY, inputWidth, inputHeight);
 
         this.updateNameDisplay();
-
-        currentY += inputHeight + (height * 0.05);
-
-        // COMPACT INFO PANEL
-        const panelWidth = width * 0.9;
-        const panelHeight = height * 0.28;
-        const panelX = centerX - (panelWidth / 2);
-        const panelY = currentY;
-
-        // Background panel
-        const panelGraphics = this.add.graphics();
-        panelGraphics.fillStyle(0xFFFFFF, 0.9);
-        panelGraphics.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
-        panelGraphics.lineStyle(3, 0x4B0082);
-        panelGraphics.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
-
-        const contentX = panelX + (panelWidth * 0.05);
-        let infoY = panelY + (panelHeight * 0.08);
-
-        // Personality section
-        this.add.text(contentX, infoY, 'Personality:', {
-            fontSize: `${titleSize}px`,
-            color: '#4B0082',
-            fontStyle: 'bold'
-        });
-        infoY += titleSize * 1.3;
-
-        this.add.text(contentX, infoY, this.creatureData.personality.name, {
-            fontSize: `${bodySize}px`,
-            color: '#2E8B57',
-            fontStyle: 'bold'
-        });
-        infoY += bodySize * 1.5;
-
-        this.add.text(contentX, infoY, this.creatureData.personality.description, {
-            fontSize: `${bodySize - 1}px`,
-            color: '#666666',
-            wordWrap: { width: panelWidth * 0.9 }
-        });
-        infoY += (bodySize * 3); // Account for wrapped text
-
-        // Genetics section (compact)
-        this.add.text(contentX, infoY, 'Genetics:', {
-            fontSize: `${titleSize}px`,
-            color: '#4B0082',
-            fontStyle: 'bold'
-        });
-        infoY += titleSize * 1.3;
-
-        const genetics = this.creatureData.genes;
-        const geneticsText = [
-            `Size: ${genetics.size}`,
-            `Pattern: ${genetics.pattern}`,
-            `Mood: ${genetics.temperament}`
-        ].join(' • '); // Use bullets to save space
-
-        this.add.text(contentX, infoY, geneticsText, {
-            fontSize: `${bodySize - 1}px`,
-            color: '#666666',
-            wordWrap: { width: panelWidth * 0.9 }
-        });
     }
 
     createInfoPanel() {
-        // Background panel
-        const panelGraphics = this.add.graphics();
-        panelGraphics.fillStyle(0xFFFFFF, 0.9);
-        panelGraphics.fillRoundedRect(420, 120, 360, 280, 15);
-        panelGraphics.lineStyle(3, 0x4B0082);
-        panelGraphics.strokeRoundedRect(420, 120, 360, 280, 15);
+        // SIMPLIFIED DESKTOP LAYOUT - no duplicate personality/genetics info
+        // Just show a hint about the creature's rarity
+        const { width, height } = this.scale;
 
-        // Personality section
-        this.add.text(440, 140, 'Personality:', {
-            fontSize: '20px',
-            color: '#4B0082',
-            fontStyle: 'bold'
-        });
+        // Get rarity info for display
+        const rarity = this.creatureGenetics?.rarity || 'common';
+        const rarityColors = {
+            common: '#32CD32',
+            uncommon: '#FF8C00',
+            rare: '#DC143C',
+            epic: '#9370DB',
+            legendary: '#FFD700'
+        };
 
-        this.add.text(440, 170, this.creatureData.personality.name, {
-            fontSize: '18px',
-            color: '#2E8B57'
-        });
-
-        this.add.text(440, 195, this.creatureData.personality.description, {
+        // Small rarity badge below creature
+        const rarityBadge = this.add.text(200, 420, `${rarity.toUpperCase()} CREATURE`, {
             fontSize: '14px',
-            color: '#666666',
-            wordWrap: { width: 320 }
-        });
-
-        // Genetics section
-        this.add.text(440, 240, 'Genetics:', {
-            fontSize: '20px',
-            color: '#4B0082',
-            fontStyle: 'bold'
-        });
-
-        const genetics = this.creatureData.genes;
-        const geneticsText = [
-            `Size: ${genetics.size}`,
-            `Pattern: ${genetics.pattern}`,
-            `Temperament: ${genetics.temperament}`,
-            genetics.specialTrait !== 'none' ? `Special: ${genetics.specialTrait}` : ''
-        ].filter(text => text).join('\n');
-
-        this.add.text(440, 265, geneticsText, {
-            fontSize: '14px',
-            color: '#666666',
-            lineSpacing: 5
-        });
-
-        // Stats section
-        this.add.text(440, 340, 'Stats:', {
-            fontSize: '20px',
-            color: '#4B0082',
-            fontStyle: 'bold'
-        });
-
-        const stats = this.creatureData.stats;
-        this.add.text(440, 365, `❤️ Health: ${stats.health} | 😊 Happiness: ${stats.happiness} | ⚡ Energy: ${stats.energy}`, {
-            fontSize: '14px',
-            color: '#666666'
-        });
+            color: rarityColors[rarity] || '#32CD32',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
     }
 
     createNamingSection() {
-        // Name input background
-        const inputBg = this.add.graphics();
-        inputBg.fillStyle(0xFFFFFF, 0.9);
-        inputBg.fillRoundedRect(300, 430, 200, 40, 8);
-        inputBg.lineStyle(2, 0x4B0082);
-        inputBg.strokeRoundedRect(300, 430, 200, 40, 8);
+        // SIMPLIFIED DESKTOP NAMING - cosmic themed, centered
+        const { width, height } = this.scale;
+        const centerX = width / 2;
 
-        // Name label
-        this.add.text(400, 415, 'Name your creature:', {
-            fontSize: '18px',
-            color: '#4B0082',
-            align: 'center'
+        // Name label with cosmic styling
+        this.add.text(centerX, height * 0.55, '✨ Give your creature a name ✨', {
+            fontSize: '22px',
+            color: '#FFD700',
+            align: 'center',
+            fontStyle: 'bold',
+            stroke: '#4B0082',
+            strokeThickness: 2
         }).setOrigin(0.5);
 
+        // Name input background with cosmic theme
+        const inputWidth = 280;
+        const inputHeight = 50;
+        const inputX = centerX - (inputWidth / 2);
+        const inputY = height * 0.60;
+
+        const inputBg = this.add.graphics();
+        inputBg.fillStyle(0x1A1A3E, 0.9);
+        inputBg.fillRoundedRect(inputX, inputY, inputWidth, inputHeight, 12);
+        inputBg.lineStyle(3, 0x9370DB);
+        inputBg.strokeRoundedRect(inputX, inputY, inputWidth, inputHeight, 12);
+
         // ALWAYS start with blank name field
-        // User must type a new name each time they reach this scene
         this.nameInput = '';
         console.log('naming:info [NamingScene] Name field initialized as blank');
 
         // Name input display
-        this.nameText = this.add.text(410, 450, '', {
-            fontSize: '16px',
-            color: '#333333'
+        this.nameText = this.add.text(centerX, inputY + (inputHeight / 2), '', {
+            fontSize: '18px',
+            color: '#FFFFFF'
         }).setOrigin(0.5);
 
         // Detect touch capability and create mobile input if needed
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         if (isTouchDevice) {
             console.log('[NamingScene] Touch device detected on desktop layout - creating mobile input');
-            this.createMobileInput(300, 430, 200, 40);
+            this.createMobileInput(inputX, inputY, inputWidth, inputHeight);
         }
 
         this.updateNameDisplay();
@@ -662,6 +627,7 @@ class NamingScene extends Phaser.Scene {
         buttonBg.fillRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
         buttonBg.lineStyle(3, 0xFFD700);
         buttonBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 12);
+        buttonBg.setDepth(100);
 
         // Button text
         const buttonText = this.add.text(centerX, buttonY + (buttonHeight / 2), '🚀 START ADVENTURE 🚀', {
@@ -670,21 +636,78 @@ class NamingScene extends Phaser.Scene {
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
             align: 'center'
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(101);
 
-        // Interactive zone
+        // Interactive zone - MUST be above other elements
         const buttonZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight)
             .setOrigin(0, 0)
-            .setInteractive({ cursor: 'pointer' });
+            .setInteractive({ cursor: 'pointer', useHandCursor: true })
+            .setDepth(102);
+
+        console.log('[NamingScene] Button zone created at:', buttonX, buttonY, buttonWidth, buttonHeight);
 
         // Store dimensions for hover effects
         this.enterButtonDims = { x: buttonX, y: buttonY, w: buttonWidth, h: buttonHeight };
 
         // Button interactions
         buttonZone.on('pointerdown', () => {
-            console.log('[NamingScene] START ADVENTURE button clicked');
+            console.log('[NamingScene] START ADVENTURE button clicked via pointerdown');
             this.finalizeName();
         });
+
+        // Also try pointerup as backup
+        buttonZone.on('pointerup', () => {
+            console.log('[NamingScene] START ADVENTURE button clicked via pointerup');
+            this.finalizeName();
+        });
+
+        // Store reference for potential direct access
+        this.startAdventureButton = buttonZone;
+
+        // DOM-level debug: Check if clicks reach the canvas at all
+        if (this.game.canvas) {
+            const canvas = this.game.canvas;
+            const sceneRef = this;  // Store reference for closure
+            const debugClickHandler = (e) => {
+                // CRITICAL: Check if THIS scene is the active scene before processing
+                const currentScene = window.GameState?.get('session.currentScene');
+                if (currentScene !== 'NamingScene') {
+                    console.log('[NamingScene] DOM click ignored - scene not active (current:', currentScene, ')');
+                    return;
+                }
+
+                // Also check if the scene instance is still valid
+                if (!sceneRef.scene || !sceneRef.scene.isActive()) {
+                    console.log('[NamingScene] DOM click ignored - scene instance not active');
+                    return;
+                }
+
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                console.log('[NamingScene] DOM canvas click at:', x, y);
+
+                // Check if within button bounds
+                if (sceneRef.enterButtonDims) {
+                    const { x: bx, y: by, w, h } = sceneRef.enterButtonDims;
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    const gameX = x * scaleX;
+                    const gameY = y * scaleY;
+                    console.log('[NamingScene] Scaled to game coords:', gameX, gameY);
+
+                    if (gameX >= bx && gameX <= bx + w && gameY >= by && gameY <= by + h) {
+                        console.log('[NamingScene] DOM click was inside button! Calling finalizeName directly.');
+                        sceneRef.finalizeName();
+                    }
+                }
+            };
+
+            // Store handler for cleanup
+            this.domClickHandler = debugClickHandler;
+            canvas.addEventListener('click', debugClickHandler);
+            console.log('[NamingScene] Added DOM-level click handler as fallback');
+        }
 
         buttonZone.on('pointerover', () => {
             buttonBg.clear();
@@ -864,35 +887,59 @@ class NamingScene extends Phaser.Scene {
         this.isTransitioning = true;
 
         try {
-            // Stop all tweens before transition
-            this.tweens.killAll();
-            console.log('[NamingScene] Tweens killed');
+            // Stop all tweens before transition - wrap in try-catch as this can fail
+            try {
+                if (this.tweens) {
+                    this.tweens.killAll();
+                }
+                console.log('[NamingScene] Tweens killed');
+            } catch (tweenError) {
+                console.warn('[NamingScene] Error killing tweens (continuing):', tweenError.message);
+            }
 
-            // Remove keyboard listeners
-            this.input.keyboard.removeAllListeners();
-            console.log('[NamingScene] Keyboard listeners removed');
+            // Remove keyboard listeners - wrap in try-catch
+            try {
+                if (this.input && this.input.keyboard) {
+                    this.input.keyboard.removeAllListeners();
+                }
+                console.log('[NamingScene] Keyboard listeners removed');
+            } catch (keyboardError) {
+                console.warn('[NamingScene] Error removing keyboard listeners (continuing):', keyboardError.message);
+            }
 
             // Clean up mobile HTML input if it exists
-            if (this.mobileInput && this.mobileInput.parentElement) {
-                this.mobileInput.parentElement.removeChild(this.mobileInput);
-                this.mobileInput = null;
-                console.log('[NamingScene] Mobile input cleaned up');
+            try {
+                if (this.mobileInput && this.mobileInput.parentElement) {
+                    this.mobileInput.parentElement.removeChild(this.mobileInput);
+                    this.mobileInput = null;
+                    console.log('[NamingScene] Mobile input cleaned up');
+                }
+            } catch (mobileError) {
+                console.warn('[NamingScene] Error cleaning mobile input (continuing):', mobileError.message);
             }
 
             // Clean up mobile input zone
-            if (this.mobileInputZone) {
-                if (this.mobileInputZone.removeAllListeners) {
-                    this.mobileInputZone.removeAllListeners();
+            try {
+                if (this.mobileInputZone) {
+                    if (this.mobileInputZone.removeAllListeners) {
+                        this.mobileInputZone.removeAllListeners();
+                    }
+                    this.mobileInputZone = null;
+                    console.log('[NamingScene] Mobile input zone cleaned up');
                 }
-                this.mobileInputZone = null;
-                console.log('[NamingScene] Mobile input zone cleaned up');
+            } catch (zoneError) {
+                console.warn('[NamingScene] Error cleaning mobile zone (continuing):', zoneError.message);
             }
 
             // Remove resize listener
-            if (this.inputResizeHandler) {
-                window.removeEventListener('resize', this.inputResizeHandler);
-                this.inputResizeHandler = null;
-                console.log('[NamingScene] Resize listener removed');
+            try {
+                if (this.inputResizeHandler) {
+                    window.removeEventListener('resize', this.inputResizeHandler);
+                    this.inputResizeHandler = null;
+                    console.log('[NamingScene] Resize listener removed');
+                }
+            } catch (resizeError) {
+                console.warn('[NamingScene] Error removing resize listener (continuing):', resizeError.message);
             }
 
             console.log('[NamingScene] Creating fade effect...');
@@ -921,17 +968,15 @@ class NamingScene extends Phaser.Scene {
                     console.log('[NamingScene] Fade complete, transitioning to GameScene');
 
                     try {
-                        // Clean up this scene
-                        this.scene.stop('NamingScene');
-                        console.log('[NamingScene] Scene stopped');
-
-                        // Start GameScene
+                        // Start GameScene first - this will handle cleanup of NamingScene
+                        // Don't stop NamingScene explicitly as it kills the execution context
+                        console.log('[NamingScene] Starting GameScene');
                         this.scene.start('GameScene');
                         console.log('[NamingScene] GameScene started');
                     } catch (sceneError) {
                         console.error('[NamingScene] Error in scene transition:', sceneError);
-                        // Fallback: Try direct transition without stop
-                        this.scene.start('GameScene');
+                        // Fallback: Use game scene manager
+                        this.game.scene.start('GameScene');
                     }
                 }
             });
@@ -969,6 +1014,13 @@ class NamingScene extends Phaser.Scene {
             console.log('[NamingScene] Mobile input zone cleaned up in shutdown');
         }
 
+        // Clean up DOM click handler
+        if (this.domClickHandler && this.game.canvas) {
+            this.game.canvas.removeEventListener('click', this.domClickHandler);
+            this.domClickHandler = null;
+            console.log('[NamingScene] DOM click handler cleaned up in shutdown');
+        }
+
         // Remove resize listener
         if (this.inputResizeHandler) {
             window.removeEventListener('resize', this.inputResizeHandler);
@@ -998,7 +1050,31 @@ class NamingScene extends Phaser.Scene {
         this.clouds = null;
         this.enterWorldButton = null;
 
+        // Reset transition state
+        this.isTransitioning = false;
+
         console.log('[NamingScene] Cleanup complete');
+    }
+
+    // Backup cleanup method in case shutdown isn't called
+    destroy() {
+        console.log('[NamingScene] Destroy called - ensuring cleanup');
+
+        // Clean up DOM click handler if not already done
+        if (this.domClickHandler && this.game?.canvas) {
+            this.game.canvas.removeEventListener('click', this.domClickHandler);
+            this.domClickHandler = null;
+            console.log('[NamingScene] DOM click handler cleaned up in destroy');
+        }
+
+        // Clean up mobile HTML input if it exists
+        if (this.mobileInput && this.mobileInput.parentElement) {
+            this.mobileInput.parentElement.removeChild(this.mobileInput);
+            this.mobileInput = null;
+        }
+
+        // Reset state
+        this.isTransitioning = false;
     }
 }
 

@@ -17,6 +17,9 @@ export default class InventoryScene extends Phaser.Scene {
         // Sort and filter state
         this.currentSort = 'none'; // none, name, type, price
         this.currentFilter = 'all'; // all, food, accessories, consumables
+
+        // Farewell animation state - prevents accidental closure during animation
+        this.farewellInProgress = false;
         this.sortButtons = [];
         this.filterButtons = [];
         this._isShuttingDown = false;
@@ -1173,6 +1176,12 @@ export default class InventoryScene extends Phaser.Scene {
             return;
         }
 
+        // Check if item is an egg - show special egg confirmation
+        if (item.type === 'egg') {
+            this.showEggConfirmation(item);
+            return;
+        }
+
         // Check if item is expensive (>= 100 coins) and show confirmation
         const EXPENSIVE_THRESHOLD = 100;
         if (item.price && item.price >= EXPENSIVE_THRESHOLD) {
@@ -1200,6 +1209,536 @@ export default class InventoryScene extends Phaser.Scene {
                 });
             } else {
                 this.showMessage('Cannot use item!', 0xFF0000);
+            }
+        }
+    }
+
+    /**
+     * Show egg hatching confirmation with rarity odds
+     */
+    showEggConfirmation(item) {
+        console.log(`[InventoryScene] Showing egg confirmation for: ${item.name}`);
+
+        const { width, height, isMobile } = this.dims;
+        const creatureName = window.GameState?.get('creature.name') || 'your creature';
+        const isStellar = item.eggType === 'stellar';
+
+        // Create dark overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.8);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(200);
+
+        // Create confirmation panel
+        const panelWidth = isMobile ? width * 0.95 : 450;
+        const panelHeight = isMobile ? 420 : 400;
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+
+        const panel = this.add.graphics();
+        // Stellar egg gets golden border
+        const borderColor = isStellar ? 0xFFD700 : 0x7B68EE;
+        panel.fillStyle(0x1A1A3E, 1);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.lineStyle(4, borderColor);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.setDepth(201);
+
+        // Title with egg icon
+        const titleText = isStellar ? '🌟 Hatch Stellar Egg? 🌟' : '🥚 Hatch Cosmic Egg? 🥚';
+        const title = this.add.text(width / 2, panelY + 40, titleText, {
+            fontSize: isMobile ? '20px' : '24px',
+            color: isStellar ? '#FFD700' : '#00FFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Warning message
+        const warning = this.add.text(width / 2, panelY + 85, `⚠️ ${creatureName} will be gone forever!`, {
+            fontSize: isMobile ? '14px' : '16px',
+            color: '#FF6B6B',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Rarity odds
+        const oddsTitle = this.add.text(width / 2, panelY + 130, 'Rarity Chances:', {
+            fontSize: isMobile ? '14px' : '16px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        const oddsText = item.rarityOdds || (isStellar
+            ? '50% Uncommon, 30% Rare, 15% Epic, 5% Legendary'
+            : '50% Common, 25% Uncommon, 15% Rare, 8% Epic, 2% Legendary');
+
+        const odds = this.add.text(width / 2, panelY + 170, oddsText, {
+            fontSize: isMobile ? '12px' : '14px',
+            color: isStellar ? '#FFD700' : '#00CED1',
+            align: 'center',
+            wordWrap: { width: panelWidth - 40 }
+        }).setOrigin(0.5).setDepth(202);
+
+        // Info text
+        const infoText = isStellar
+            ? '✨ Premium egg - No common creatures!'
+            : 'A new creature will take their place.';
+        const info = this.add.text(width / 2, panelY + 220, infoText, {
+            fontSize: isMobile ? '13px' : '15px',
+            color: '#CCCCCC',
+            align: 'center',
+            wordWrap: { width: panelWidth - 40 }
+        }).setOrigin(0.5).setDepth(202);
+
+        // Final confirmation text
+        const confirm = this.add.text(width / 2, panelY + 260, 'This cannot be undone.', {
+            fontSize: isMobile ? '12px' : '14px',
+            color: '#FF9999',
+            fontStyle: 'italic'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Buttons
+        const btnWidth = isMobile ? 110 : 140;
+        const btnHeight = isMobile ? 45 : 50;
+        const btnSpacing = 15;
+        const btnY = panelY + panelHeight - btnHeight - 25;
+
+        // Hatch button (green)
+        const hatchBtnX = width / 2 - btnWidth - btnSpacing / 2;
+        const hatchBtn = this.add.graphics();
+        hatchBtn.fillStyle(0x00AA00, 1);
+        hatchBtn.fillRoundedRect(hatchBtnX, btnY, btnWidth, btnHeight, 10);
+        hatchBtn.lineStyle(3, 0x00FF00);
+        hatchBtn.strokeRoundedRect(hatchBtnX, btnY, btnWidth, btnHeight, 10);
+        hatchBtn.setDepth(202);
+
+        const hatchLabel = this.add.text(hatchBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Hatch It!', {
+            fontSize: isMobile ? '16px' : '18px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        const hatchZone = this.add.zone(hatchBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
+        hatchZone.setInteractive({ useHandCursor: true });
+        hatchZone.setDepth(202);
+
+        // Cancel button (red)
+        const cancelBtnX = width / 2 + btnSpacing / 2;
+        const cancelBtn = this.add.graphics();
+        cancelBtn.fillStyle(0xAA0000, 1);
+        cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+        cancelBtn.lineStyle(3, 0xFF0000);
+        cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+        cancelBtn.setDepth(202);
+
+        const cancelLabel = this.add.text(cancelBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Keep Pet', {
+            fontSize: isMobile ? '16px' : '18px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        const cancelZone = this.add.zone(cancelBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
+        cancelZone.setInteractive({ useHandCursor: true });
+        cancelZone.setDepth(202);
+
+        // Store elements for cleanup
+        const dialogElements = [overlay, panel, title, warning, oddsTitle, odds, info, confirm,
+            hatchBtn, hatchLabel, hatchZone, cancelBtn, cancelLabel, cancelZone];
+
+        // Hatch handler
+        hatchZone.on('pointerdown', () => {
+            try {
+                console.log('[InventoryScene] ========================================');
+                console.log('[InventoryScene] Hatch It! button clicked');
+                console.log('[InventoryScene] Egg type:', item.eggType);
+                console.log('[InventoryScene] Selected slot:', this.selectedSlot);
+
+                if (window.AudioManager) {
+                    window.AudioManager.playButtonClick();
+                }
+
+                // Store egg type BEFORE cleaning up
+                const eggTypeToHatch = item.eggType || 'cosmic';
+                console.log('[InventoryScene] Stored egg type:', eggTypeToHatch);
+
+                // Clean up dialog
+                console.log('[InventoryScene] Cleaning up dialog elements...');
+                dialogElements.forEach(el => {
+                    if (el && el.destroy) el.destroy();
+                });
+                console.log('[InventoryScene] Dialog elements cleaned up');
+
+                // Remove item from inventory
+                if (window.InventoryManager) {
+                    const removed = window.InventoryManager.removeItem(this.selectedSlot, 1);
+                    console.log('[InventoryScene] Item removed from inventory:', removed);
+                }
+
+                // Show farewell animation then transition to hatching
+                console.log('[InventoryScene] Calling showFarewellAnimation with eggType:', eggTypeToHatch);
+                this.showFarewellAnimation(eggTypeToHatch);
+                console.log('[InventoryScene] showFarewellAnimation called successfully');
+            } catch (err) {
+                console.error('[InventoryScene] ERROR in Hatch It! handler:', err);
+                console.error('[InventoryScene] Error stack:', err.stack);
+
+                // Emergency fallback - try to transition directly
+                console.log('[InventoryScene] Attempting emergency fallback transition...');
+                try {
+                    window.GameState?.set('creature.hatched', false);
+                    window.GameState?.set('creature.named', false);
+                    window.GameState?.save();
+
+                    if (this.game?.scene) {
+                        this.game.scene.stop('GameScene');
+                    }
+                    this.scene.start('HatchingScene', {
+                        isEggHatch: true,
+                        eggType: item.eggType || 'cosmic',
+                        spawnPosition: { x: 400, y: 300 }
+                    });
+                } catch (fallbackErr) {
+                    console.error('[InventoryScene] Fallback also failed:', fallbackErr);
+                }
+            }
+        });
+
+        // Hover effects for hatch button
+        hatchZone.on('pointerover', () => {
+            hatchBtn.clear();
+            hatchBtn.fillStyle(0x00DD00, 1);
+            hatchBtn.fillRoundedRect(hatchBtnX, btnY, btnWidth, btnHeight, 10);
+            hatchBtn.lineStyle(4, 0x00FF00);
+            hatchBtn.strokeRoundedRect(hatchBtnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        hatchZone.on('pointerout', () => {
+            hatchBtn.clear();
+            hatchBtn.fillStyle(0x00AA00, 1);
+            hatchBtn.fillRoundedRect(hatchBtnX, btnY, btnWidth, btnHeight, 10);
+            hatchBtn.lineStyle(3, 0x00FF00);
+            hatchBtn.strokeRoundedRect(hatchBtnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        // Cancel handler
+        cancelZone.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+            dialogElements.forEach(el => el.destroy());
+        });
+
+        // Hover effects for cancel button
+        cancelZone.on('pointerover', () => {
+            cancelBtn.clear();
+            cancelBtn.fillStyle(0xDD0000, 1);
+            cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+            cancelBtn.lineStyle(4, 0xFF0000);
+            cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        cancelZone.on('pointerout', () => {
+            cancelBtn.clear();
+            cancelBtn.fillStyle(0xAA0000, 1);
+            cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+            cancelBtn.lineStyle(3, 0xFF0000);
+            cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        // ESC to cancel
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                dialogElements.forEach(el => el.destroy());
+                this.input.keyboard.off('keydown', escHandler);
+            }
+        };
+        this.input.keyboard.on('keydown', escHandler);
+    }
+
+    /**
+     * Show farewell animation for current creature before hatching new one
+     */
+    showFarewellAnimation(eggType) {
+        console.log('[InventoryScene] ========================================');
+        console.log('[InventoryScene] showFarewellAnimation() called');
+        console.log('[InventoryScene] Egg type:', eggType);
+
+        // Defensive check for dims
+        if (!this.dims) {
+            console.error('[InventoryScene] ERROR: this.dims is undefined!');
+            this.dims = {
+                width: this.cameras?.main?.width || 800,
+                height: this.cameras?.main?.height || 600,
+                isMobile: false
+            };
+        }
+
+        const { width, height } = this.dims;
+        console.log('[InventoryScene] Screen dimensions:', width, 'x', height);
+
+        const creatureName = window.GameState?.get('creature.name') || 'Your creature';
+        console.log('[InventoryScene] Creature name:', creatureName);
+
+        // Prevent accidental closure during animation
+        this.farewellInProgress = true;
+        console.log('[InventoryScene] Set farewellInProgress = true');
+
+        try {
+
+        // Dark overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.9);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(300);
+
+        // Get creature texture - use stored texture name or regenerate
+        // Note: genetics stored in both creature.genes and creature.genetics paths
+        const creatureGenes = window.GameState?.get('creature.genes') || window.GameState?.get('creature.genetics');
+        const storedTextureName = window.GameState?.get('creature.textureName');
+        let creatureSprite = null;
+
+        console.log('[InventoryScene] Creature genes:', creatureGenes ? 'present' : 'null');
+        console.log('[InventoryScene] Stored texture name:', storedTextureName);
+
+        if (creatureGenes) {
+            let textureName = storedTextureName;
+
+            // If stored texture exists, use it
+            if (textureName && this.textures.exists(textureName)) {
+                console.log('[InventoryScene] Using stored texture:', textureName);
+                creatureSprite = this.add.sprite(width / 2, height / 2 - 30, textureName);
+            }
+            // Otherwise, regenerate using GraphicsEngine
+            else {
+                console.log('[InventoryScene] Regenerating creature texture with GraphicsEngine');
+                try {
+                    // Create temporary GraphicsEngine for this scene
+                    const GraphicsEngine = window.GraphicsEngine;
+                    if (GraphicsEngine) {
+                        const tempEngine = new GraphicsEngine(this);
+                        const result = tempEngine.createRandomizedSpaceMythicCreature(creatureGenes, 0);
+                        textureName = result.textureName;
+                        console.log('[InventoryScene] Regenerated texture:', textureName);
+
+                        if (textureName && this.textures.exists(textureName)) {
+                            creatureSprite = this.add.sprite(width / 2, height / 2 - 30, textureName);
+                        }
+                    }
+                } catch (err) {
+                    console.error('[InventoryScene] Failed to regenerate creature:', err);
+                }
+            }
+
+            if (creatureSprite) {
+                creatureSprite.setScale(1.5);
+                creatureSprite.setDepth(301);
+                console.log('[InventoryScene] Creature sprite created successfully');
+            } else {
+                console.warn('[InventoryScene] Could not create creature sprite - showing farewell without visual');
+            }
+        }
+
+        // Farewell text
+        const farewellText = this.add.text(width / 2, height / 2 + 80, `Farewell, ${creatureName}...`, {
+            fontSize: '28px',
+            color: '#FFFFFF',
+            fontStyle: 'italic'
+        }).setOrigin(0.5).setDepth(301);
+        farewellText.setAlpha(0);
+
+        // Sparkle particles around creature
+        const sparkles = [];
+        for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2;
+            const radius = 80;
+            const sparkle = this.add.graphics();
+            sparkle.fillStyle(0xFFFFFF, 0.8);
+            sparkle.fillCircle(0, 0, 3);
+            sparkle.setPosition(
+                width / 2 + Math.cos(angle) * radius,
+                height / 2 - 30 + Math.sin(angle) * radius
+            );
+            sparkle.setDepth(302);
+            sparkle.setAlpha(0);
+            sparkles.push(sparkle);
+        }
+
+        // Play melancholy sound
+        if (window.AudioManager) {
+            window.AudioManager.playPet(); // Soft, gentle sound
+        }
+
+        // Animation sequence
+        // 1. Fade in text and sparkles
+        this.tweens.add({
+            targets: farewellText,
+            alpha: 1,
+            duration: 800,
+            ease: 'Power2'
+        });
+
+        sparkles.forEach((sparkle, i) => {
+            this.tweens.add({
+                targets: sparkle,
+                alpha: 1,
+                delay: i * 50,
+                duration: 300
+            });
+        });
+
+        // 2. After 1.5s, fade out creature with sparkles floating up
+        this.time.delayedCall(1500, () => {
+            if (creatureSprite) {
+                this.tweens.add({
+                    targets: creatureSprite,
+                    alpha: 0,
+                    scale: 0.5,
+                    y: creatureSprite.y - 50,
+                    duration: 1000,
+                    ease: 'Power2'
+                });
+            }
+
+            sparkles.forEach((sparkle, i) => {
+                this.tweens.add({
+                    targets: sparkle,
+                    y: sparkle.y - 150,
+                    alpha: 0,
+                    delay: i * 30,
+                    duration: 800,
+                    ease: 'Power2'
+                });
+            });
+
+            this.tweens.add({
+                targets: farewellText,
+                alpha: 0,
+                delay: 500,
+                duration: 500
+            });
+        });
+
+        // 3. After 3s total, transition to hatching scene
+        this.time.delayedCall(3000, () => {
+            try {
+                // Store old creature position for new creature spawn
+                const savedPos = window.GameState?.get('world.currentPosition');
+                const oldPosition = {
+                    x: savedPos?.x || 400,
+                    y: savedPos?.y || 300
+                };
+
+                // Reset creature state COMPLETELY for new hatching
+                window.GameState?.set('creature.hatched', false);
+                window.GameState?.set('creature.named', false);
+                window.GameState?.set('creature.genes', null);
+                window.GameState?.set('creature.name', null);
+                window.GameState?.set('creature.textureName', null);
+                // Additional state that must be reset for clean hatching
+                window.GameState?.set('creature.dna', null);
+                window.GameState?.set('creature.personality', null);
+                window.GameState?.set('creature.personalityState', null);
+                window.GameState?.set('creature.stats', {
+                    happiness: 100,
+                    energy: 100,
+                    health: 100
+                });
+                window.GameState?.set('creature.level', 1);
+                window.GameState?.set('creature.experience', 0);
+
+                // Store spawn position for new creature
+                window.GameState?.set('creature.spawnPosition', oldPosition);
+
+                // Reset pity system for fresh start
+                const freshPity = window.raritySystem?.initializePitySystem();
+                if (freshPity) {
+                    window.GameState?.set('pitySystem', freshPity);
+                }
+
+                // Save state before transition
+                window.GameState?.save();
+
+                // Prepare data for HatchingScene
+                const hatchData = {
+                    isEggHatch: true,
+                    eggType: eggType,
+                    spawnPosition: oldPosition
+                };
+
+                // Store references before stopping scenes
+                const game = this.game;
+                const sceneManager = game.scene;
+
+                // Stop current scenes and transition to HatchingScene
+                if (sceneManager.isActive('GameScene')) {
+                    sceneManager.stop('GameScene');
+                }
+                sceneManager.stop('InventoryScene');
+
+                // Use setTimeout to ensure scenes are fully stopped before starting new one
+                setTimeout(() => {
+                    sceneManager.start('HatchingScene', hatchData);
+                }, 100);
+
+            } catch (err) {
+                console.error('[InventoryScene] Error during scene transition:', err);
+                console.error('[InventoryScene] Error stack:', err.stack);
+
+                // Fallback: try direct scene start with proper cleanup
+                try {
+                    const sceneManager = this.game?.scene;
+                    if (sceneManager) {
+                        sceneManager.stop('GameScene');
+                        sceneManager.stop('InventoryScene');
+
+                        setTimeout(() => {
+                            sceneManager.start('HatchingScene', {
+                                isEggHatch: true,
+                                eggType: eggType,
+                                spawnPosition: { x: 400, y: 300 }
+                            });
+                        }, 100);
+                    }
+                } catch (fallbackErr) {
+                    console.error('[InventoryScene] Fallback transition also failed:', fallbackErr);
+                }
+            }
+        });
+
+        } catch (err) {
+            console.error('[InventoryScene] Error in showFarewellAnimation:', err);
+
+            // Emergency fallback - skip animation and go directly to HatchingScene
+            try {
+                // Complete state reset
+                window.GameState?.set('creature.hatched', false);
+                window.GameState?.set('creature.named', false);
+                window.GameState?.set('creature.genes', null);
+                window.GameState?.set('creature.name', null);
+                window.GameState?.set('creature.textureName', null);
+                window.GameState?.set('creature.dna', null);
+                window.GameState?.set('creature.personality', null);
+                window.GameState?.set('creature.personalityState', null);
+                window.GameState?.set('creature.stats', {
+                    happiness: 100,
+                    energy: 100,
+                    health: 100
+                });
+                window.GameState?.save();
+
+                const sceneManager = this.game?.scene;
+                if (sceneManager) {
+                    sceneManager.stop('GameScene');
+                    sceneManager.stop('InventoryScene');
+
+                    setTimeout(() => {
+                        sceneManager.start('HatchingScene', {
+                            isEggHatch: true,
+                            eggType: eggType || 'cosmic',
+                            spawnPosition: { x: 400, y: 300 }
+                        });
+                    }, 100);
+                }
+            } catch (fallbackErr) {
+                console.error('[InventoryScene] Emergency fallback also failed:', fallbackErr);
             }
         }
     }
@@ -1271,6 +1810,12 @@ export default class InventoryScene extends Phaser.Scene {
      * Exit inventory and return to GameScene
      */
     exitInventory() {
+        // Prevent closing during farewell animation
+        if (this.farewellInProgress) {
+            console.log('[InventoryScene] Cannot close - farewell animation in progress');
+            return;
+        }
+
         console.log('[InventoryScene] Closing inventory');
 
         if (window.AudioManager) {
