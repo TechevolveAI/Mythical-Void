@@ -265,10 +265,17 @@ class InputValidator {
         if (typeof value !== 'string') {
             return value;
         }
-        
-        const textarea = document.createElement('textarea');
-        textarea.innerHTML = value;
-        return textarea.value;
+
+        // Safe decoding without innerHTML to prevent XSS
+        return value
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#x27;/g, "'")
+            .replace(/&#x2F;/g, '/')
+            .replace(/&#x60;/g, '`')
+            .replace(/&#x3D;/g, '=');
     }
     
     /**

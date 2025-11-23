@@ -39,28 +39,16 @@ class CreatureAI {
      * Get API key from various sources
      */
     getApiKey() {
-        // Check for XAI API key in config first
+        // Check for XAI API key in config (set via environment variables)
         if (window.APIConfig && window.APIConfig.xai && window.APIConfig.xai.apiKey) {
             this.apiUrl = window.APIConfig.xai.endpoint;
             this.apiModel = window.APIConfig.xai.model;
             console.log('[CreatureAI] Using XAI Grok API for enhanced AI capabilities');
             return window.APIConfig.xai.apiKey;
         }
-        
-        // Check for API key in localStorage (client-side storage)
-        const storedKey = localStorage.getItem('openai_api_key');
-        if (storedKey) {
-            return storedKey;
-        }
 
-        // Check for API key in URL parameters (for development/testing)
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlKey = urlParams.get('api_key');
-        if (urlKey) {
-            return urlKey;
-        }
-
-        // For MVP, we'll use fallback mode if no key is available
+        // API key must be configured via environment variables
+        // Never accept keys from URL parameters or localStorage for security
         throw new Error('API key not configured');
     }
 
