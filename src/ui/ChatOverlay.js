@@ -31,7 +31,7 @@ class ChatOverlay {
         this.overlay = this.scene.add.graphics();
         this.overlay.fillStyle(0x000000, 0.75);
         this.overlay.fillRect(0, 0, width, height);
-        this.overlay.setDepth(300);
+        this.overlay.setDepth(5000);
         this.overlay.setScrollFactor(0);
         this.elements.push(this.overlay);
 
@@ -50,7 +50,7 @@ class ChatOverlay {
         this.panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
         this.panel.lineStyle(3, 0x7B68EE);
         this.panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
-        this.panel.setDepth(301);
+        this.panel.setDepth(5001);
         this.panel.setScrollFactor(0);
         this.elements.push(this.panel);
 
@@ -117,7 +117,7 @@ class ChatOverlay {
                 color: '#FFFFFF',
                 fontStyle: 'bold'
             }
-        ).setDepth(302).setScrollFactor(0);
+        ).setDepth(5002).setScrollFactor(0);
         this.elements.push(this.title);
 
         // Close button
@@ -128,7 +128,7 @@ class ChatOverlay {
         const closeBtn = this.scene.add.graphics();
         closeBtn.fillStyle(0xFF6B6B, 1);
         closeBtn.fillCircle(btnX + btnSize/2, btnY + btnSize/2, btnSize/2);
-        closeBtn.setDepth(303);
+        closeBtn.setDepth(5003);
         closeBtn.setScrollFactor(0);
         this.elements.push(closeBtn);
 
@@ -137,13 +137,13 @@ class ChatOverlay {
             btnY + btnSize/2,
             '✕',
             { fontSize: '18px', color: '#FFFFFF', fontStyle: 'bold' }
-        ).setOrigin(0.5).setDepth(304).setScrollFactor(0);
+        ).setOrigin(0.5).setDepth(5004).setScrollFactor(0);
         this.elements.push(closeText);
 
         // Make close button interactive
         const closeZone = this.scene.add.zone(btnX + btnSize/2, btnY + btnSize/2, btnSize, btnSize)
             .setInteractive()
-            .setDepth(305)
+            .setDepth(5005)
             .setScrollFactor(0);
 
         closeZone.on('pointerdown', () => this.hide());
@@ -173,7 +173,7 @@ class ChatOverlay {
         const msgBg = this.scene.add.graphics();
         msgBg.fillStyle(0x0D0D1F, 0.8);
         msgBg.fillRoundedRect(x + 15, msgAreaY, width - 30, msgAreaHeight, 10);
-        msgBg.setDepth(302);
+        msgBg.setDepth(5002);
         msgBg.setScrollFactor(0);
         this.elements.push(msgBg);
 
@@ -205,7 +205,7 @@ class ChatOverlay {
                 color: '#FFFFFF',
                 wordWrap: { width: width - 20 }
             }
-        ).setOrigin(isCreature ? 0 : 1, 0).setDepth(303).setScrollFactor(0);
+        ).setOrigin(isCreature ? 0 : 1, 0).setDepth(5003).setScrollFactor(0);
 
         this.elements.push(msgText);
         this.messageElements.push(msgText);
@@ -246,7 +246,7 @@ class ChatOverlay {
             const btnBg = this.scene.add.graphics();
             btnBg.fillStyle(0x6B5B95, 1);
             btnBg.fillRoundedRect(btnX, btnY, buttonWidth, buttonHeight, 8);
-            btnBg.setDepth(302);
+            btnBg.setDepth(5002);
             btnBg.setScrollFactor(0);
             this.elements.push(btnBg);
 
@@ -262,13 +262,13 @@ class ChatOverlay {
                     align: 'center',
                     wordWrap: { width: buttonWidth - 10 }
                 }
-            ).setOrigin(0.5).setDepth(303).setScrollFactor(0);
+            ).setOrigin(0.5).setDepth(5003).setScrollFactor(0);
             this.elements.push(btnText);
 
             // Interactive zone
             const zone = this.scene.add.zone(btnX + buttonWidth/2, btnY + buttonHeight/2, buttonWidth, buttonHeight)
                 .setInteractive()
-                .setDepth(304)
+                .setDepth(5004)
                 .setScrollFactor(0);
 
             zone.on('pointerdown', () => this.onOptionSelected(option));
@@ -337,7 +337,7 @@ class ChatOverlay {
                 stroke: '#000000',
                 strokeThickness: 4
             }
-        ).setOrigin(0.5).setDepth(400).setScrollFactor(0);
+        ).setOrigin(0.5).setDepth(5100).setScrollFactor(0);
 
         this.scene.tweens.add({
             targets: feedback,
