@@ -234,13 +234,13 @@ class MobileControls {
                 action: () => this.handleButtonPress('inventory')
             },
             {
-                id: 'care',
-                label: '❤️',
+                id: 'chat',
+                label: '💬',
                 x: width - 180,
                 y: height - 190,
                 size: 55,
                 color: 0xFF44FF,
-                action: () => this.handleButtonPress('care')
+                action: () => this.handleButtonPress('chat')
             }
         ];
 
@@ -361,10 +361,10 @@ class MobileControls {
                 }
                 break;
 
-            case 'care':
-                // Open care panel
-                if (this.scene.toggleCarePanel) {
-                    this.scene.toggleCarePanel();
+            case 'chat':
+                // Open chat overlay
+                if (this.scene.openChat) {
+                    this.scene.openChat();
                 }
                 break;
         }

@@ -6,6 +6,7 @@
 import EconomyHudManager from '../systems/ui/EconomyHudManager.js';
 import CarePanelManager from '../systems/ui/CarePanelManager.js';
 import WorldBuilder from '../systems/world/WorldBuilder.js';
+import ChatOverlay from '../ui/ChatOverlay.js';
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
@@ -40,6 +41,7 @@ class GameScene extends Phaser.Scene {
         this.creatureAI = null;
         this.chatUI = null;
         this.isChatOpen = false;
+        this.chatOverlay = null;
         this.careSystem = null;
         this.carePanelManager = null;
         this.coins = null;
@@ -216,6 +218,9 @@ class GameScene extends Phaser.Scene {
 
             // Set up periodic timers for achievements and tutorials
             this.setupPeriodicTimers();
+
+            // Show controls hint for desktop users on first visit
+            this.showControlsHintIfNeeded();
 
             console.log('[GameScene] Scene created successfully');
         } catch (error) {
@@ -417,10 +422,10 @@ class GameScene extends Phaser.Scene {
 
         console.log(`game:info [GameScene] Player created at (${startX}, ${startY}) with world bounds: ${this.worldWidth}x${this.worldHeight}`);
         
-        // Make creature clickable for care interactions
+        // Make creature clickable for chat interactions
         this.player.setInteractive({ cursor: 'pointer' });
         this.player.on('pointerdown', () => {
-            this.carePanelManager?.togglePanel();
+            this.openChat();
         });
     }
 
@@ -1415,6 +1420,23 @@ class GameScene extends Phaser.Scene {
         this.scene.launch('InventoryScene');
     }
 
+    openChat() {
+        // Don't open chat if already open
+        if (this.chatOverlay?.getIsVisible()) {
+            return;
+        }
+
+        console.log('[GameScene] Opening Chat');
+
+        // Create chat overlay if not exists
+        if (!this.chatOverlay) {
+            this.chatOverlay = new ChatOverlay(this);
+        }
+
+        // Show the chat overlay
+        this.chatOverlay.show();
+    }
+
     showInteractionHint(message) {
         this.interactionText.setText(message);
         this.interactionText.setVisible(true);
@@ -1660,6 +1682,11 @@ class GameScene extends Phaser.Scene {
         // Handle M key for combat (desktop)
         if (Phaser.Input.Keyboard.JustDown(this.combatKey)) {
             this.fireCombatProjectile();
+        }
+
+        // Handle C key for chat (desktop)
+        if (Phaser.Input.Keyboard.JustDown(this.chatKey)) {
+            this.openChat();
         }
 
         // Periodic checks for achievements and tutorials are now handled by timers
@@ -1970,6 +1997,73 @@ class GameScene extends Phaser.Scene {
             delay: 2000,
             duration: 500,
             onComplete: () => completion.destroy()
+        });
+    }
+
+    /**
+     * Show controls hint for desktop users on first visit
+     */
+    showControlsHintIfNeeded() {
+        // Only show on desktop
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) return;
+
+        // Check if already seen
+        const hasSeen = window.GameState?.get('tutorial.controlsSeen');
+        if (hasSeen) return;
+
+        // Mark as seen
+        window.GameState?.set('tutorial.controlsSeen', true);
+
+        // Create controls hint panel
+        const { width, height } = this.scale;
+        const panelWidth = 280;
+        const panelHeight = 180;
+        const panelX = width - panelWidth - 20;
+        const panelY = 80;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 0.9);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
+        panel.lineStyle(2, 0x7B68EE);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
+        panel.setScrollFactor(0);
+        panel.setDepth(4000);
+
+        const title = this.add.text(panelX + panelWidth / 2, panelY + 15, 'Controls', {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(4001);
+
+        const controlsText = [
+            'WASD / Arrows - Move',
+            'Space - Interact',
+            'I - Inventory',
+            'M - Attack',
+            'C - Chat with creature',
+            'Click creature - Chat'
+        ].join('\n');
+
+        const controls = this.add.text(panelX + 15, panelY + 40, controlsText, {
+            fontSize: '13px',
+            fontFamily: 'Arial',
+            color: '#FFFFFF',
+            lineSpacing: 6
+        }).setScrollFactor(0).setDepth(4001);
+
+        // Fade out after 8 seconds
+        this.tweens.add({
+            targets: [panel, title, controls],
+            alpha: 0,
+            delay: 8000,
+            duration: 1000,
+            onComplete: () => {
+                panel.destroy();
+                title.destroy();
+                controls.destroy();
+            }
         });
     }
 
@@ -2607,6 +2701,8 @@ class GameScene extends Phaser.Scene {
         this.economyHud = null;
         this.carePanelManager?.destroy();
         this.carePanelManager = null;
+        this.chatOverlay?.cleanup();
+        this.chatOverlay = null;
         this.worldBuilder?.destroy();
         this.worldBuilder = null;
         if (this.statBarGraphics) {
