@@ -1,249 +1,205 @@
-# 🎮 Mythical Creature Game - Navigation Flow Documentation
+# Game Flow Documentation
 
-## 🚨 CRITICAL: DO NOT MODIFY GAME FLOW LOGIC
-This document describes the **WORKING** game navigation flow. The implementation is stable and tested. 
-**ANY CHANGES TO THE CORE FLOW LOGIC MUST BE REVIEWED AND APPROVED.**
+This document describes the expected game flow for Mythical Void.
 
----
+## Initial Game Flow (New Player)
 
-## 📋 Complete Game Navigation Flow
+1. **HatchingScene** - Home Screen
+   - Player clicks "Start Adventure" button
+   - Sets `session.gameStarted = true`
+   - Sets `creature.hatched = false`
+   - Scene restarts
 
-### 🎯 User Journey Overview
-```
-Home Screen → Start Game → Hatch Egg → See Personality → Name Creature → Free Roam World
-```
+2. **HatchingScene** - Hatching Screen
+   - Player clicks egg to hatch
+   - Creature genetics are generated (via CreatureGenetics/RaritySystem)
+   - Sets `creature.hatched = true`
+   - Stores `creature.genes`
+   - Transitions to PersonalityScene
 
----
+3. **PersonalityScene** - Soul/Genetics Display
+   - Shows creature's personality and traits
+   - Player clicks "Continue"
+   - Transitions to NamingScene
 
-## 🔄 Scene Flow Implementation
+4. **NamingScene** - Name Your Creature
+   - Player enters name
+   - Sets `creature.name`
+   - Sets `creature.named = true` (implicitly, via name being set)
+   - Player clicks "Start Adventure"
+   - Transitions to GameScene
 
-### 1. **HatchingScene** (Entry Point)
-**File:** `src/scenes/HatchingScene.js`
-**Key Method:** `create()`
+5. **GameScene** - Main Game World
+   - Player can navigate around the map
+   - Collect coins, fight enemies
+   - Visit shop, manage inventory
+   - All normal gameplay
 
-#### State Logic Decision Tree:
+## Egg Hatching Flow (From Inventory)
+
+When player hatches a new egg from inventory, the current creature is replaced.
+
+### Flow Steps:
+
+1. **GameScene** - Player opens shop (click on shop building)
+2. **ShopScene** - Player buys Cosmic Egg (250 coins) or Stellar Egg (1000 coins)
+3. **GameScene** - Player presses 'I' key to open inventory
+4. **InventoryScene** (overlay over GameScene)
+   - Player selects the egg item
+   - Player clicks "USE" button
+
+5. **Egg Confirmation Dialog**
+   - Shows warning: "Your creature will be gone forever!"
+   - Shows rarity odds
+   - Player clicks "Hatch It!" button
+
+6. **Farewell Animation** (3 seconds)
+   - Dark overlay appears
+   - Current creature fades out with sparkles
+   - "Farewell, [creature name]..." text
+
+7. **State Reset**
+   - `creature.hatched = false`
+   - `creature.named = false`
+   - `creature.genes = null`
+   - `creature.name = null`
+   - `creature.spawnPosition` = saved position
+
+8. **Scene Transition**
+   - Stops GameScene
+   - Stops InventoryScene
+   - Starts HatchingScene with data:
+     - `isEggHatch: true`
+     - `eggType: 'cosmic' or 'stellar'`
+     - `spawnPosition: {x, y}`
+
+9. **HatchingScene** - Egg Hatching
+   - Detects `isEggHatch = true`
+   - Skips home screen, goes directly to hatching
+   - Uses appropriate rarity distribution for egg type:
+     - Cosmic: Standard odds (50% Common, 25% Uncommon, 15% Rare, 8% Epic, 2% Legendary)
+     - Stellar: Premium odds (50% Uncommon, 30% Rare, 15% Epic, 5% Legendary - no common!)
+   - Player hatches egg
+
+10. **PersonalityScene** - New Creature Soul/Genetics
+11. **NamingScene** - Name New Creature
+12. **GameScene** - Back to map with new creature at saved position
+
+### Technical Implementation: Scene Isolation Pattern
+
+Each scene in the hatching flow **MUST stop all other scenes** to prevent visual overlap issues. This is critical because when transitioning from an overlay scene (InventoryScene) to a fresh scene flow, Phaser may not properly clean up the underlying scenes.
+
+**Pattern used in each scene's create() method:**
 ```javascript
-if (!gameStarted) {
-    showHomeScreen();          // First time experience
-} else if (gameStarted && !creatureHatched) {
-    showHatchingScreen();      // Egg hatching experience
-} else if (gameStarted && creatureHatched && !creatureNamed) {
-    scene.start('PersonalityScene');  // Show personality reveal
-} else if (gameStarted && creatureHatched && creatureNamed) {
-    scene.start('GameScene');  // Free roam world
-}
-```
-
-#### Critical GameState Flags:
-- `session.gameStarted`: Boolean - Game has been initiated
-- `creature.hatched`: Boolean - Egg has been hatched
-- `creature.name`: String - Creature has been named (not 'Your Creature')
-
----
-
-### 2. **START GAME Button Logic** ⚠️ **CRITICAL SECTION**
-**Location:** `HatchingScene.createStartButton()` line ~166
-
-```javascript
-startButton.on('pointerdown', () => {
-    // Step 1: Mark game as started
-    GameState.set('session.gameStarted', true);
-    
-    // Step 2: CRITICAL - Reset creature to unhatched state
-    GameState.set('creature.hatched', false);
-    GameState.set('creature.name', 'Your Creature');
-    GameState.set('creature.hatchTime', null);
-    GameState.set('creature.experience', 0);
-    GameState.set('creature.level', 1);
-    
-    // Step 3: Reset stats and clear generated data
-    GameState.set('creature.stats', { happiness: 100, energy: 100, health: 100 });
-    GameState.set('creature.personality', null);
-    GameState.set('creature.genes', null);
-    
-    // Step 4: CRITICAL - Force save to localStorage
-    GameState.save();
-    
-    // Step 5: Delayed scene restart (ensures save completion)
-    this.time.delayedCall(100, () => {
-        this.scene.restart();
+create() {
+    // Stop all other scenes to ensure clean display
+    const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene', 'HatchingScene', 'PersonalityScene'];
+    scenesToStop.forEach(sceneKey => {
+        try {
+            this.scene.stop(sceneKey);
+        } catch (e) {
+            // Scene may not be active, ignore
+        }
     });
-});
-```
+    this.scene.bringToTop();
 
-**🚨 WHY THIS WORKS:**
-- Forces `GameState.save()` before scene restart
-- 100ms delay ensures localStorage persistence
-- Scene restart triggers `create()` with fresh `creature.hatched: false`
-
----
-
-### 3. **PersonalityScene** (Personality Reveal)
-**File:** `src/scenes/PersonalityScene.js`
-**Purpose:** Dramatic reveal of creature's personality and genetics
-**Transition:** Button click → `scene.start('NamingScene')`
-
-#### Key Features:
-- Generates creature personality if not exists
-- Generates creature genetics if not exists
-- Magical animation and reveal effects
-- Transitions to naming after user interaction
-
----
-
-### 4. **NamingScene** (Creature Naming)
-**File:** `src/scenes/NamingScene.js`
-**Purpose:** User names their creature
-**Transition:** Enter key → `scene.start('GameScene')`
-
-#### Key Features:
-- Input validation using `InputValidator`
-- Real-time name validation feedback
-- Sets `creature.name` in GameState
-- Displays creature stats and genetics
-
----
-
-### 5. **GameScene** (Free Roam World)
-**File:** `src/scenes/GameScene.js`
-**Purpose:** Main gameplay experience
-**Features:** Creature care, exploration, interaction
-
----
-
-## 🔧 Technical Implementation Details
-
-### GameState Management
-**File:** `src/systems/GameState.js`
-
-#### Critical Methods:
-- `GameState.set(key, value)` - Update state
-- `GameState.get(key)` - Retrieve state
-- `GameState.save()` - Persist to localStorage
-- `GameState.load()` - Load from localStorage
-
-#### Persistence Strategy:
-- Auto-save every 30 seconds
-- Manual save on critical state changes
-- Load on game initialization
-- Session data excluded from persistence
-
----
-
-## 🛡️ Protection Measures
-
-### 1. **Debug Logging** (Active)
-Comprehensive logging tracks every state transition:
-```javascript
-console.log('🔍 HatchingScene.create() - FULL Game State Check:');
-console.log('  gameStarted:', gameStarted);
-console.log('  creatureHatched:', creatureHatched);
-console.log('  Full creature object:', GameState.get('creature'));
-```
-
-### 2. **State Validation**
-Each scene validates expected state before proceeding.
-
-### 3. **Fallback Logic**
-Default to home screen if state is inconsistent.
-
----
-
-## 🚨 CRITICAL CODE SECTIONS - DO NOT MODIFY
-
-### Section 1: HatchingScene State Logic (Lines 40-62)
-```javascript
-// Determine which state to show
-if (!gameStarted) {
-    console.log('🏠 Showing home screen - game not started');
-    this.showHomeScreen();
-    return;
-} else if (gameStarted && !creatureHatched) {
-    console.log('🥚 Showing hatching screen - game started, creature not hatched');
-    this.showHatchingScreen();
+    // ... rest of create
 }
-// ... rest of logic
 ```
 
-### Section 2: START Button Handler (Lines 166-222)
-**ENTIRE FUNCTION IS CRITICAL - Contains the fix for game flow bug**
+**Why this is necessary:**
+- Without this pattern, previous scene visuals persist and appear "on top" of the new scene
+- Audio from the new scene plays but visuals from old scene remain
+- Each scene must stop ALL potential scenes, not just the previous one in the flow
 
-### Section 3: GameState Save/Load Logic
-**File:** `src/systems/GameState.js`
-- `save()` method (line ~696)
-- `load()` method (line ~728)
-- `init()` method (line ~123)
+## Key State Variables
 
----
+### Session State
+- `session.gameStarted` - Whether player has clicked "Start Adventure"
+- `session.currentScene` - Current active scene name (for cross-scene communication)
 
-## 🧪 Testing Protocol
+### Creature State
+- `creature.hatched` - Whether current creature has been hatched
+- `creature.named` - Whether creature has been named (derived from `creature.name`)
+- `creature.genes` - Genetic data for creature rendering
+- `creature.name` - Creature's name
+- `creature.textureName` - Cached texture name for creature sprite
+- `creature.spawnPosition` - Where to spawn creature in GameScene
 
-### Required Test Cases:
-1. **Fresh Start:** New user → Home Screen → Start → Egg Hatch
-2. **Complete Flow:** Full journey through all scenes
-3. **State Persistence:** Refresh during each scene
-4. **Reset Function:** Reset button clears all data
+## Egg Types
 
-### Validation Points:
-- Console logs show correct state transitions
-- localStorage reflects accurate data
-- No scene skipping occurs
-- User sees complete creature creation journey
+### Cosmic Egg (250 coins)
+- Standard rarity odds
+- Can get Common through Legendary
 
----
+### Stellar Egg (1000 coins)
+- Premium rarity odds - NO COMMON creatures!
+- 50% Uncommon, 30% Rare, 15% Epic, 5% Legendary
 
-## 📊 Vibe Coding Principles Compliance
+## Troubleshooting
 
-### ✅ **12-Factor App Principles**
-- **Config:** Environment variables for API keys
-- **Dependencies:** Package.json management
-- **Build/Release/Run:** Clear separation
-- **Stateless:** GameState handles persistence
-- **Logs:** Comprehensive debug logging
+### Common Issues
 
-### ✅ **OWASP Security**
-- Input validation in NamingScene
-- No hardcoded secrets
-- Secure headers in deployment configs
+1. **Stuck on NamingScene after clicking "Start Adventure"**
+   - Check console for `isTransitioning` flag issues
+   - DOM click handlers may persist between scene instances
+   - Solution: Scene active checks in handlers
 
-### ✅ **Observability**
-- Health system monitoring
-- Error handling and logging
-- Performance tracking in MemoryManager
+2. **Black screen after farewell animation**
+   - Check console for scene transition errors
+   - May be physics group clear errors in GameScene
+   - Solution: Safety checks around `.clear()` calls
 
-### ✅ **Code Quality**
-- Clear separation of concerns
-- Consistent naming conventions
-- Comprehensive error handling
-- Documentation and comments
+3. **Inventory closes during farewell animation**
+   - ESC or I key pressed during animation
+   - Solution: `farewellInProgress` flag prevents closure
 
----
+4. **GameScene frozen after egg use**
+   - State may have been reset but scene transition failed
+   - Check console for HatchingScene initialization logs
 
-## 🚨 MODIFICATION GUIDELINES
+## Debug Logging
 
-### ✅ **SAFE MODIFICATIONS:**
-- UI/UX styling and animations
-- Adding new features to GameScene
-- Enhancing graphics and effects
-- Adding new creature care options
+Production logs are minimal. In development mode, use `devLog()` for debugging. Key log patterns:
+- `[SceneName] Shutting down` - Scene cleanup beginning
+- `[SceneName] Cleanup complete` - Scene cleanup finished
+- Console errors for failed operations (always logged)
 
-### 🚫 **DANGEROUS MODIFICATIONS:**
-- Changing scene transition logic
-- Modifying GameState.save()/load() timing
-- Altering START button state reset sequence
-- Removing debug logging
-- Changing scene flow decision tree
+For detailed debugging, add `devLog()` statements temporarily in development mode.
 
-### 📋 **CHANGE PROCESS:**
-1. Document proposed change
-2. Test with all user journey scenarios  
-3. Verify debug logs still show correct flow
-4. Update this documentation
-5. Get approval before implementing
+## Scene Flow Diagram
 
----
-
-**📅 Document Created:** $(date)
-**🔒 Status:** PROTECTED - Critical game flow implementation
-**👤 Maintainer:** Development Team
-**⚠️ Warning:** Modifications to core flow logic require team review
+```
+[HatchingScene: Home] --Start Adventure--> [HatchingScene: Hatch]
+        |                                           |
+        v                                           v
+[HatchingScene: Hatch] --Egg Hatched--> [PersonalityScene]
+                                                    |
+                                                    v
+                                           [NamingScene]
+                                                    |
+                                                    v
+                                           [GameScene]
+                                                    |
+                                            (Open Inventory)
+                                                    |
+                                                    v
+                                    [InventoryScene: Use Egg]
+                                                    |
+                                          (Hatch It! clicked)
+                                                    |
+                                                    v
+                                        [Farewell Animation]
+                                                    |
+                                                    v
+                                    [HatchingScene: Egg Hatch]
+                                                    |
+                                                    v
+                                           [PersonalityScene]
+                                                    |
+                                                    v
+                                           [NamingScene]
+                                                    |
+                                                    v
+                                    [GameScene: New Creature]
+```

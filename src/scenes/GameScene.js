@@ -87,11 +87,14 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
+        console.log('[GameScene] ===== CREATE() STARTING =====');
         try {
+            console.log('[GameScene] Initializing lifecycle tracking...');
             this.initializeLifecycleTracking();
             this.registerSceneLifecycleEvents();
 
             // Set current scene in GameState
+            console.log('[GameScene] Setting current scene in GameState...');
             getGameState().set('session.currentScene', 'GameScene');
 
             // Emit session started event for PersonalitySystem
@@ -353,10 +356,28 @@ class GameScene extends Phaser.Scene {
     }
 
     createPlayer() {
-        // Get saved position or use center of world
+        // Check for spawn position from egg hatching (creature replacement)
+        const spawnPos = getGameState().get('creature.spawnPosition');
         const savedPos = getGameState().get('world.currentPosition');
-        const startX = savedPos ? savedPos.x : this.worldWidth / 2;
-        const startY = savedPos ? savedPos.y : this.worldHeight / 2;
+
+        let startX, startY;
+
+        if (spawnPos) {
+            // Use spawn position from egg hatching (where old creature was)
+            startX = spawnPos.x;
+            startY = spawnPos.y;
+            console.log('game:info [GameScene] Using egg spawn position:', spawnPos);
+            // Clear the spawn position after using it
+            getGameState().set('creature.spawnPosition', null);
+        } else if (savedPos) {
+            // Use saved position
+            startX = savedPos.x;
+            startY = savedPos.y;
+        } else {
+            // Default to center of world
+            startX = this.worldWidth / 2;
+            startY = this.worldHeight / 2;
+        }
         
         // Get creature genetics for proper sprite creation
         console.log('game:info [GameScene] Creating player creature');
@@ -408,9 +429,15 @@ class GameScene extends Phaser.Scene {
 
         this.graphicsEngine?.createCosmicCoin();
 
-        if (this.coins) {
-            this.coins.clear(true, true);
+        // Clear existing coins if they exist and are still valid
+        if (this.coins && this.coins.scene) {
+            try {
+                this.coins.clear(true, true);
+            } catch (e) {
+                console.warn('[GameScene] Could not clear old coins group:', e.message);
+            }
         }
+        this.coins = null;  // Reset reference
 
         this.coins = this.physics.add.group({
             defaultKey: 'cosmicCoin',
@@ -2646,16 +2673,29 @@ class GameScene extends Phaser.Scene {
             this.coinRespawnTimers = [];
         }
 
-        if (this.coins) {
-            this.coins.clear(true, true);
+        // Clear physics groups with safety checks
+        if (this.coins && this.coins.scene) {
+            try {
+                this.coins.clear(true, true);
+            } catch (e) {
+                console.warn('[GameScene] Could not clear coins in shutdown:', e.message);
+            }
             this.coins = null;
         }
-        if (this.projectiles) {
-            this.projectiles.clear(true, true);
+        if (this.projectiles && this.projectiles.scene) {
+            try {
+                this.projectiles.clear(true, true);
+            } catch (e) {
+                console.warn('[GameScene] Could not clear projectiles in shutdown:', e.message);
+            }
             this.projectiles = null;
         }
-        if (this.enemies) {
-            this.enemies.clear(true, true);
+        if (this.enemies && this.enemies.scene) {
+            try {
+                this.enemies.clear(true, true);
+            } catch (e) {
+                console.warn('[GameScene] Could not clear enemies in shutdown:', e.message);
+            }
             this.enemies = null;
         }
 

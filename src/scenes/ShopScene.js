@@ -204,7 +204,7 @@ export default class ShopScene extends Phaser.Scene {
      * Create header with title, coins, and close button (responsive)
      */
     createHeader() {
-        const { width, headerHeight, margin, titleSize, closeButtonSize } = this.dims;
+        const { width, headerHeight, margin, titleSize, closeButtonSize, isMobile } = this.dims;
 
         // Header background
         const headerBg = this.add.graphics();
@@ -214,16 +214,22 @@ export default class ShopScene extends Phaser.Scene {
         headerBg.strokeRect(0, headerHeight - 2, width, 2);
         headerBg.setDepth(10);
 
-        // Shop title
-        const title = this.add.text(this.dims.isMobile ? width / 2 : 60, headerHeight / 2 - 5, 'COZY COSMIC BOUTIQUE', {
+        // Mobile mini merchant in top-left corner
+        if (isMobile) {
+            this.createMobileMerchant();
+        }
+
+        // Shop title - shifted right on mobile to make room for merchant
+        const titleX = isMobile ? width / 2 + 20 : 60;
+        const title = this.add.text(titleX, headerHeight / 2 - 5, 'COZY COSMIC BOUTIQUE', {
             fontSize: titleSize,
             fontFamily: 'Arial Black',
             color: '#FFD700',
             stroke: '#4A0080',
-            strokeThickness: this.dims.isMobile ? 4 : 6,
+            strokeThickness: isMobile ? 4 : 6,
             align: 'center'
         });
-        title.setOrigin(this.dims.isMobile ? 0.5 : 0, 0.5);
+        title.setOrigin(isMobile ? 0.5 : 0, 0.5);
         title.setDepth(11);
 
         const grownUpHelper = this.add.text(width / 2, headerHeight - 18, 'Need help? Ask a grown-up to browse cozy goodies with you.', {
@@ -369,6 +375,68 @@ export default class ShopScene extends Phaser.Scene {
         });
         keeperLabel.setOrigin(0.5, 0.5);
         keeperLabel.setDepth(20);
+    }
+
+    /**
+     * Create mini void merchant for mobile header
+     */
+    createMobileMerchant() {
+        const { headerHeight, margin } = this.dims;
+
+        // Position in top-left corner
+        const merchantX = margin + 25;
+        const merchantY = headerHeight / 2;
+
+        // Small circular background with glow
+        const merchantBg = this.add.graphics();
+        merchantBg.fillStyle(0x6B00B3, 0.3);
+        merchantBg.fillCircle(merchantX, merchantY, 28);
+        merchantBg.fillStyle(0x1A0A2E, 0.9);
+        merchantBg.fillCircle(merchantX, merchantY, 22);
+        merchantBg.lineStyle(2, 0x00FFFF);
+        merchantBg.strokeCircle(merchantX, merchantY, 22);
+        merchantBg.setDepth(11);
+
+        // Generate merchant frame if not exists
+        if (!this.textures.exists('voidMerchant_0')) {
+            this.graphicsEngine.createVoidMerchant(0);
+        }
+
+        // Create small merchant sprite
+        this.mobileMerchant = this.add.sprite(merchantX, merchantY, 'voidMerchant_0');
+        this.mobileMerchant.setScale(0.35);
+        this.mobileMerchant.setDepth(12);
+
+        // Create animation if not exists
+        if (!this.anims.exists('voidMerchantIdle')) {
+            for (let frame = 0; frame < 4; frame++) {
+                this.graphicsEngine.createVoidMerchant(frame);
+            }
+            this.anims.create({
+                key: 'voidMerchantIdle',
+                frames: [
+                    { key: 'voidMerchant_0' },
+                    { key: 'voidMerchant_1' },
+                    { key: 'voidMerchant_2' },
+                    { key: 'voidMerchant_3' }
+                ],
+                frameRate: 4,
+                repeat: -1
+            });
+        }
+
+        // Play idle animation
+        this.mobileMerchant.play('voidMerchantIdle');
+
+        // Subtle glow pulse effect
+        this.tweens.add({
+            targets: merchantBg,
+            alpha: { from: 1, to: 0.7 },
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
     }
 
 
@@ -1373,22 +1441,24 @@ export default class ShopScene extends Phaser.Scene {
         this.shopItems = {
             eggs: [
                 {
-                    id: 'basic_egg',
+                    id: 'cosmic_egg',
                     name: 'Cosmic Egg',
-                    description: 'A gentle star egg waiting for a cuddle buddy',
+                    description: 'Hatch a new creature to replace your current companion. All rarities possible.',
                     icon: '🥚',
-                    price: 100,
+                    price: 250,
                     type: 'egg',
-                    rarity: 'common'
+                    eggType: 'cosmic',
+                    rarityOdds: '50% Common, 25% Uncommon, 15% Rare, 8% Epic, 2% Legendary'
                 },
                 {
-                    id: 'rare_egg',
+                    id: 'stellar_egg',
                     name: 'Stellar Egg',
-                    description: 'Radiates warm, sleepy aurora giggles',
+                    description: 'Premium egg with NO common creatures! Hatch a guaranteed uncommon or better.',
                     icon: '🌟',
-                    price: 500,
+                    price: 1000,
                     type: 'egg',
-                    rarity: 'rare'
+                    eggType: 'stellar',
+                    rarityOdds: '50% Uncommon, 30% Rare, 15% Epic, 5% Legendary'
                 }
             ],
             food: [
