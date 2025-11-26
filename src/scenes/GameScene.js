@@ -7,6 +7,7 @@ import EconomyHudManager from '../systems/ui/EconomyHudManager.js';
 import CarePanelManager from '../systems/ui/CarePanelManager.js';
 import WorldBuilder from '../systems/world/WorldBuilder.js';
 import ChatOverlay from '../ui/ChatOverlay.js';
+import MobileHUD from '../systems/ui/MobileHUD.js';
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
@@ -51,6 +52,7 @@ class GameScene extends Phaser.Scene {
         this.shop = null;
         this.nearShop = false;
         this.mobileControls = null;
+        this.mobileHUD = null;
         this.economyHud = null;
         this.worldBuilder = null;
         this.currentCameraZoom = 1;
@@ -203,11 +205,20 @@ class GameScene extends Phaser.Scene {
 
             this.showWelcomeToastIfNeeded();
 
-            // Initialize mobile controls if on mobile device
+            // Initialize mobile controls and HUD if on mobile device
             if (window.MobileControls) {
                 this.mobileControls = new window.MobileControls(this);
                 this.mobileControls.show();
                 console.log('[GameScene] Mobile controls initialized');
+            }
+
+            // Initialize mobile-optimized HUD
+            this.mobileHUD = new MobileHUD(this);
+            this.mobileHUD.init();
+            if (this.mobileHUD.isVisible) {
+                console.log('[GameScene] Mobile HUD initialized');
+                // Hide desktop-oriented UI elements on mobile
+                this.hideDesktopUIOnMobile();
             }
 
             // Initialize Kid Mode features if enabled
@@ -971,6 +982,58 @@ class GameScene extends Phaser.Scene {
 
         this.personalityText.setText(lines.join('\n'));
         this.personalityText.setVisible(true);
+    }
+
+    /**
+     * Hide desktop-oriented UI elements when mobile HUD is active
+     * This prevents UI overlap and provides a cleaner mobile experience
+     */
+    hideDesktopUIOnMobile() {
+        console.log('[GameScene] Hiding desktop UI elements for mobile');
+
+        // Hide verbose stats text (MobileHUD shows compact version)
+        if (this.statsText) {
+            this.statsText.setVisible(false);
+        }
+
+        // Hide old stat bars (MobileHUD has its own)
+        if (this.statBarGraphics) {
+            this.statBarGraphics.setVisible(false);
+        }
+
+        // Hide personality display (too verbose for mobile)
+        if (this.personalityText) {
+            this.personalityText.setVisible(false);
+        }
+
+        // Hide position text (not needed on mobile)
+        if (this.positionText) {
+            this.positionText.setVisible(false);
+        }
+
+        // Hide desktop economy HUD (MobileHUD has integrated coins)
+        if (this.economyHud) {
+            if (this.economyHud.currencyBgImage) {
+                this.economyHud.currencyBgImage.setVisible(false);
+            }
+            if (this.economyHud.currencyIcon) {
+                this.economyHud.currencyIcon.setVisible(false);
+            }
+            if (this.economyHud.currencyText) {
+                this.economyHud.currencyText.setVisible(false);
+            }
+        }
+
+        // Hide combat button (integrated into mobile action buttons)
+        if (this.combatButton) {
+            this.combatButton.setVisible(false);
+        }
+        if (this.combatBg) {
+            this.combatBg.setVisible(false);
+        }
+        if (this.combatText) {
+            this.combatText.setVisible(false);
+        }
     }
 
     createResetButton() {
@@ -2447,6 +2510,8 @@ class GameScene extends Phaser.Scene {
 
         this.economyHud?.destroy();
         this.economyHud = null;
+        this.mobileHUD?.destroy();
+        this.mobileHUD = null;
         this.carePanelManager?.destroy();
         this.carePanelManager = null;
         this.chatOverlay?.cleanup();
