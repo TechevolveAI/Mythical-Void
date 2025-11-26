@@ -70,13 +70,21 @@ class MobileControls {
         if (this.joystickThumb) this.joystickThumb.destroy();
         if (this.joystickZone) this.joystickZone.destroy();
 
+        // Destroy button container
+        if (this.buttonContainer) {
+            this.buttonContainer.destroy();
+            this.buttonContainer = null;
+        }
+
         // Destroy buttons
         Object.values(this.actionButtons).forEach(button => {
             if (button.bg) button.bg.destroy();
             if (button.icon) button.icon.destroy();
             if (button.zone) button.zone.destroy();
+            if (button.glow) button.glow.destroy();
         });
 
+        this.actionButtons = {};
         this.isVisible = false;
         console.log('[MobileControls] Mobile controls hidden');
     }
@@ -200,105 +208,192 @@ class MobileControls {
 
     /**
      * Create action buttons for combat, interact, inventory, etc.
+     * Optimized 2x2 grid layout:
+     *   [Chat]     [Inventory]   <- Top row
+     *   [Action]   [Attack]      <- Bottom row
      */
     createActionButtons() {
         const { width, height } = this.scene.scale;
 
-        // Button configurations (right side layout)
+        // Layout constants - optimized for mobile touch
+        const buttonSize = 56; // Uniform size for consistency
+        const primarySize = 62; // Slightly larger for primary actions
+        const spacing = 12; // Gap between buttons
+        const marginRight = 20; // Distance from right edge
+        const marginBottom = 28; // Distance from bottom edge
+
+        // Calculate grid positions
+        // Right column X (primary actions - Attack, Inventory)
+        const rightColX = width - marginRight - buttonSize / 2;
+        // Left column X (secondary actions - Chat, Action)
+        const leftColX = rightColX - buttonSize - spacing;
+
+        // Bottom row Y (Attack, Action)
+        const bottomRowY = height - marginBottom - primarySize / 2;
+        // Top row Y (Inventory, Chat)
+        const topRowY = bottomRowY - primarySize - spacing;
+
+        // Button configurations in optimal game design order:
+        // Top-Left: Chat (social/secondary)
+        // Top-Right: Inventory/Skill Bag (utility)
+        // Bottom-Left: Action/Interact (context-sensitive)
+        // Bottom-Right: Attack (primary combat)
         const buttons = [
             {
-                id: 'attack',
-                label: '⚔️',
-                x: width - 80,
-                y: height - 100,
-                size: 70,
-                color: 0xFF4444,
-                action: () => this.handleButtonPress('attack')
-            },
-            {
-                id: 'interact',
-                label: '👆',
-                x: width - 180,
-                y: height - 100,
-                size: 60,
-                color: 0x44FF44,
-                action: () => this.handleButtonPress('interact')
+                id: 'chat',
+                label: '💬',
+                x: leftColX,
+                y: topRowY,
+                size: buttonSize,
+                color: 0x9B59B6, // Purple - social
+                glowColor: 0xBB8FCE,
+                action: () => this.handleButtonPress('chat'),
+                priority: 'secondary'
             },
             {
                 id: 'inventory',
                 label: '🎒',
-                x: width - 80,
-                y: height - 190,
-                size: 55,
-                color: 0x4444FF,
-                action: () => this.handleButtonPress('inventory')
+                x: rightColX,
+                y: topRowY,
+                size: buttonSize,
+                color: 0x3498DB, // Blue - utility
+                glowColor: 0x5DADE2,
+                action: () => this.handleButtonPress('inventory'),
+                priority: 'secondary'
             },
             {
-                id: 'chat',
-                label: '💬',
-                x: width - 180,
-                y: height - 190,
-                size: 55,
-                color: 0xFF44FF,
-                action: () => this.handleButtonPress('chat')
+                id: 'interact',
+                label: '✋',
+                x: leftColX,
+                y: bottomRowY,
+                size: primarySize,
+                color: 0x27AE60, // Green - action
+                glowColor: 0x58D68D,
+                action: () => this.handleButtonPress('interact'),
+                priority: 'primary'
+            },
+            {
+                id: 'attack',
+                label: '⚔️',
+                x: rightColX,
+                y: bottomRowY,
+                size: primarySize,
+                color: 0xE74C3C, // Red - combat
+                glowColor: 0xEC7063,
+                action: () => this.handleButtonPress('attack'),
+                priority: 'primary'
             }
         ];
+
+        // Create button container background for visual grouping
+        this.createButtonContainer(leftColX, topRowY, rightColX, bottomRowY, buttonSize, primarySize, spacing);
 
         buttons.forEach(config => {
             this.createActionButton(config);
         });
 
-        console.log('[MobileControls] Created', buttons.length, 'action buttons');
+        console.log('[MobileControls] Created', buttons.length, 'action buttons in optimized 2x2 grid');
     }
 
     /**
-     * Create a single action button
+     * Create semi-transparent container for button group
+     */
+    createButtonContainer(leftX, topY, rightX, bottomY, smallSize, bigSize, spacing) {
+        const padding = 10;
+        const containerWidth = (rightX - leftX) + bigSize + padding * 2;
+        const containerHeight = (bottomY - topY) + bigSize + padding * 2;
+        const containerX = leftX - smallSize / 2 - padding;
+        const containerY = topY - smallSize / 2 - padding;
+
+        this.buttonContainer = this.scene.add.graphics();
+        this.buttonContainer.setScrollFactor(0);
+        this.buttonContainer.setDepth(9999);
+
+        // Subtle dark background with rounded corners
+        this.buttonContainer.fillStyle(0x0D0D1A, 0.4);
+        this.buttonContainer.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 16);
+
+        // Subtle border
+        this.buttonContainer.lineStyle(1, 0xFFFFFF, 0.15);
+        this.buttonContainer.strokeRoundedRect(containerX, containerY, containerWidth, containerHeight, 16);
+    }
+
+    /**
+     * Create a single action button with modern glass-morphism design
      */
     createActionButton(config) {
-        const { id, label, x, y, size, color, action } = config;
+        const { id, label, x, y, size, color, glowColor, action, priority } = config;
+        const radius = size / 2;
 
-        // Create background circle
+        // Create outer glow ring for primary buttons
+        let glow = null;
+        if (priority === 'primary') {
+            glow = this.scene.add.graphics();
+            glow.setScrollFactor(0);
+            glow.setDepth(9999);
+            glow.lineStyle(3, glowColor || color, 0.3);
+            glow.strokeCircle(x, y, radius + 4);
+        }
+
+        // Create background circle with gradient effect
         const bg = this.scene.add.graphics();
         bg.setScrollFactor(0);
         bg.setDepth(10000);
-        bg.fillStyle(color, 0.7);
-        bg.fillCircle(x, y, size / 2);
-        bg.lineStyle(3, 0xFFFFFF, 0.8);
-        bg.strokeCircle(x, y, size / 2);
 
-        // Create icon/label
+        // Draw button with layered effect
+        this.drawButton(bg, x, y, radius, color, false);
+
+        // Create icon/label with shadow for depth
         const icon = this.scene.add.text(x, y, label, {
-            fontSize: `${size * 0.5}px`,
+            fontSize: `${size * 0.45}px`,
             color: '#FFFFFF',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            shadow: {
+                offsetX: 1,
+                offsetY: 1,
+                color: 'rgba(0,0,0,0.5)',
+                blur: 2,
+                fill: true
+            }
         });
         icon.setOrigin(0.5);
         icon.setScrollFactor(0);
         icon.setDepth(10001);
 
-        // Create interactive zone
-        const zone = this.scene.add.zone(x, y, size, size)
+        // Create larger interactive zone for easier touch
+        const touchPadding = 8;
+        const zone = this.scene.add.zone(x, y, size + touchPadding, size + touchPadding)
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setInteractive();
 
-        // Handle touch events
+        // Handle touch events with enhanced feedback
         zone.on('pointerdown', () => {
-            // Visual feedback
-            bg.clear();
-            bg.fillStyle(color, 1);
-            bg.fillCircle(x, y, size / 2);
-            bg.lineStyle(4, 0xFFFFFF, 1);
-            bg.strokeCircle(x, y, size / 2);
+            // Visual feedback - pressed state
+            this.drawButton(bg, x, y, radius, color, true);
 
-            // Scale animation
+            // Scale down animation
             this.scene.tweens.add({
-                targets: [bg, icon],
-                scaleX: 0.9,
-                scaleY: 0.9,
-                duration: 50,
-                yoyo: true
+                targets: icon,
+                scaleX: 0.85,
+                scaleY: 0.85,
+                duration: 60,
+                ease: 'Power2'
             });
+
+            // Pulse glow on primary buttons
+            if (glow) {
+                this.scene.tweens.add({
+                    targets: glow,
+                    alpha: 0.8,
+                    duration: 100
+                });
+            }
+
+            // Play haptic/sound feedback
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
 
             // Execute action
             action();
@@ -306,24 +401,89 @@ class MobileControls {
 
         zone.on('pointerup', () => {
             // Reset visual
-            bg.clear();
-            bg.fillStyle(color, 0.7);
-            bg.fillCircle(x, y, size / 2);
-            bg.lineStyle(3, 0xFFFFFF, 0.8);
-            bg.strokeCircle(x, y, size / 2);
+            this.drawButton(bg, x, y, radius, color, false);
+
+            // Scale back animation
+            this.scene.tweens.add({
+                targets: icon,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 100,
+                ease: 'Back.easeOut'
+            });
+
+            // Reset glow
+            if (glow) {
+                this.scene.tweens.add({
+                    targets: glow,
+                    alpha: 1,
+                    duration: 150
+                });
+            }
         });
 
         zone.on('pointerout', () => {
             // Reset if finger leaves button
-            bg.clear();
-            bg.fillStyle(color, 0.7);
-            bg.fillCircle(x, y, size / 2);
-            bg.lineStyle(3, 0xFFFFFF, 0.8);
-            bg.strokeCircle(x, y, size / 2);
+            this.drawButton(bg, x, y, radius, color, false);
+
+            this.scene.tweens.add({
+                targets: icon,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 80
+            });
+
+            if (glow) {
+                glow.setAlpha(1);
+            }
         });
 
         // Store button references
-        this.actionButtons[id] = { bg, icon, zone };
+        this.actionButtons[id] = { bg, icon, zone, glow, x, y, radius, color };
+    }
+
+    /**
+     * Draw a button with modern styling
+     */
+    drawButton(graphics, x, y, radius, color, pressed) {
+        graphics.clear();
+
+        if (pressed) {
+            // Pressed state - darker, slightly smaller
+            graphics.fillStyle(this.darkenColor(color, 0.3), 0.95);
+            graphics.fillCircle(x, y, radius - 2);
+            graphics.lineStyle(2, 0xFFFFFF, 0.6);
+            graphics.strokeCircle(x, y, radius - 2);
+        } else {
+            // Normal state - gradient-like effect with inner highlight
+            // Outer darker ring
+            graphics.fillStyle(this.darkenColor(color, 0.2), 0.9);
+            graphics.fillCircle(x, y, radius);
+
+            // Inner lighter fill
+            graphics.fillStyle(color, 0.85);
+            graphics.fillCircle(x, y, radius - 3);
+
+            // Top highlight arc for 3D effect
+            graphics.lineStyle(2, 0xFFFFFF, 0.4);
+            graphics.beginPath();
+            graphics.arc(x, y, radius - 4, Math.PI * 1.2, Math.PI * 1.8);
+            graphics.strokePath();
+
+            // Outer border
+            graphics.lineStyle(2, 0xFFFFFF, 0.5);
+            graphics.strokeCircle(x, y, radius);
+        }
+    }
+
+    /**
+     * Darken a color by a factor
+     */
+    darkenColor(color, factor) {
+        const r = Math.floor(((color >> 16) & 0xFF) * (1 - factor));
+        const g = Math.floor(((color >> 8) & 0xFF) * (1 - factor));
+        const b = Math.floor((color & 0xFF) * (1 - factor));
+        return (r << 16) | (g << 8) | b;
     }
 
     /**
