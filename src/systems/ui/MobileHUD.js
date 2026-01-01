@@ -33,6 +33,11 @@ export default class MobileHUD {
         this.lastXP = 0;
         this.lastCoins = 0;
 
+        // Personality mood indicator
+        this.moodIndicator = null;
+        this.moodBg = null;
+        this.lastMoodEmoji = null;
+
         // Layout constants - optimized for mobile
         this.layout = {
             topBarHeight: 44,
@@ -293,6 +298,148 @@ export default class MobileHUD {
             this.elements.push(indicator.bg);
             this.elements.push(indicator.icon);
         });
+
+        // Create mood indicator after stats
+        this.createMoodIndicator();
+    }
+
+    /**
+     * Create personality mood indicator (tappable to show personality panel)
+     */
+    createMoodIndicator() {
+        const { width } = this.scene.scale;
+        const { topBarPadding, topBarHeight } = this.layout;
+        const centerY = topBarPadding + topBarHeight / 2;
+
+        // Position mood indicator to the left of coin display
+        const moodX = width / 2 - 30;
+
+        // Background circle with glow effect
+        this.moodBg = this.scene.add.graphics();
+        this.moodBg.setScrollFactor(0);
+        this.moodBg.setDepth(1501);
+
+        // Draw background
+        this.moodBg.fillStyle(0x1A1A2E, 0.8);
+        this.moodBg.fillCircle(moodX, centerY, 14);
+        this.moodBg.lineStyle(2, 0x9370DB, 0.8);
+        this.moodBg.strokeCircle(moodX, centerY, 14);
+
+        this.elements.push(this.moodBg);
+
+        // Mood emoji
+        this.moodIndicator = this.scene.add.text(moodX, centerY, '😊', {
+            fontSize: '18px'
+        });
+        this.moodIndicator.setOrigin(0.5);
+        this.moodIndicator.setScrollFactor(0);
+        this.moodIndicator.setDepth(1502);
+
+        // Make tappable to show personality panel
+        this.moodIndicator.setInteractive();
+        this.moodIndicator.on('pointerdown', () => this.onMoodTapped());
+
+        this.elements.push(this.moodIndicator);
+
+        // Initial update
+        this.updateMood();
+    }
+
+    /**
+     * Handle mood indicator tap - show personality panel
+     */
+    onMoodTapped() {
+        // Emit event for GameScene to handle
+        if (this.scene?.events) {
+            this.scene.events.emit('showPersonalityPanel');
+        }
+
+        // Play button sound
+        window.AudioManager?.playButtonClick?.();
+
+        // Visual feedback
+        this.scene.tweens.add({
+            targets: this.moodIndicator,
+            scale: { from: 1, to: 1.3 },
+            duration: 100,
+            yoyo: true,
+            ease: 'Power2'
+        });
+    }
+
+    /**
+     * Update mood indicator based on personality state
+     */
+    updateMood() {
+        if (!this.isVisible || !this.moodIndicator) return;
+
+        const personalityState = window.GameState?.get('creature.personalityState');
+        if (!personalityState) return;
+
+        // Get current traits from PersonalitySystem
+        let traits = null;
+        if (window.PersonalitySystem?.getCurrentTraits) {
+            traits = window.PersonalitySystem.getCurrentTraits(personalityState);
+        }
+
+        // Determine mood emoji based on personality traits
+        const moodEmoji = this.getMoodEmoji(traits, personalityState);
+
+        if (moodEmoji !== this.lastMoodEmoji) {
+            this.moodIndicator.setText(moodEmoji);
+            this.lastMoodEmoji = moodEmoji;
+
+            // Subtle animation on mood change
+            this.scene.tweens.add({
+                targets: this.moodIndicator,
+                scale: { from: 1.2, to: 1 },
+                duration: 300,
+                ease: 'Back.easeOut'
+            });
+        }
+    }
+
+    /**
+     * Get mood emoji based on personality traits and state
+     */
+    getMoodEmoji(traits, personalityState) {
+        if (!traits) return '😊';
+
+        // Priority order: attachment, temperament, energy
+        const temperament = traits.temperament?.label || 'playful';
+        const energy = traits.energyLevel?.label || 'balanced';
+        const attachment = traits.attachment?.label || 'balanced';
+
+        // Map personality combinations to emojis
+        if (attachment === 'clingy') {
+            return '🥹'; // Pleading face - wants attention
+        }
+        if (attachment === 'independent') {
+            return '😎'; // Cool - doesn't need you
+        }
+
+        // Temperament-based
+        const temperamentEmojis = {
+            'shy': '🥺',
+            'gentle': '🥰',
+            'playful': '😄',
+            'mischievous': '😏',
+            'bold': '😤'
+        };
+
+        if (temperamentEmojis[temperament]) {
+            return temperamentEmojis[temperament];
+        }
+
+        // Energy-based fallback
+        if (energy === 'hyper') {
+            return '⚡';
+        }
+        if (energy === 'chill') {
+            return '😌';
+        }
+
+        return '😊'; // Default happy
     }
 
     /**
@@ -396,6 +543,7 @@ export default class MobileHUD {
         this.updateLevel();
         this.updateXP();
         this.updateCoins();
+        this.updateMood();
     }
 
     /**

@@ -8,6 +8,7 @@ import NamingScene from './scenes/NamingScene.js';
 import GameScene from './scenes/GameScene.js';
 import ShopScene from './scenes/ShopScene.js';
 import InventoryScene from './scenes/InventoryScene.js';
+import BreedingShrineScene from './scenes/BreedingShrineScene.js';
 import kidModeConfig from './config/kid-mode.json';
 import hatchCinematicsConfig from './config/hatch-cinematics.json';
 import biomesConfig from './config/biomes.json';
@@ -265,7 +266,7 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene],
+            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, BreedingShrineScene],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,

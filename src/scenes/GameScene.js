@@ -84,6 +84,24 @@ class GameScene extends Phaser.Scene {
         this.dailyBonusGlow = null;
         this.isShowingTutorial = false;
         this.welcomeToastDisplayed = false;
+
+        // ParallaxBiome for layered space-fantasy backgrounds
+        this.parallaxBiome = null;
+
+        // Cosmic affinity effect modifiers
+        this.cosmicAffinityEffects = {
+            healthRegenRate: 1.0,
+            energyDrainRate: 1.0,
+            explorationXPBonus: 1.0,
+            coinFindBonus: 1.0,
+            damageBonus: 1.0
+        };
+
+        // Personality mood tracking
+        this.lastMoodEmoji = null;
+        this.moodIndicator = null;
+        this.personalityPanel = null;
+        this.personalityPanelVisible = false;
     }
 
     preload() {
@@ -183,7 +201,13 @@ class GameScene extends Phaser.Scene {
             
             // Set up camera to follow player
             this.setupCamera();
-            
+
+            // Set up parallax background layers (after camera setup)
+            this.setupParallaxBiome();
+
+            // Apply cosmic affinity passive effects
+            this.applyCosmicAffinityEffects();
+
             if (this.player) {
                 this.physics.add.collider(this.player, this.trees);
                 this.physics.add.collider(this.player, this.rocks);
@@ -317,6 +341,136 @@ class GameScene extends Phaser.Scene {
         camera.setBackgroundColor('#050214');
 
         this.currentCameraZoom = zoom;
+    }
+
+    /**
+     * Set up parallax background biome for immersive space-fantasy atmosphere
+     */
+    setupParallaxBiome() {
+        if (!window.ParallaxBiome) {
+            console.warn('[GameScene] ParallaxBiome system not available');
+            return;
+        }
+
+        try {
+            this.parallaxBiome = window.ParallaxBiome;
+
+            // Re-initialize with this scene context (was initialized globally with no scene)
+            const config = this.parallaxBiome.getConfig?.() || null;
+            this.parallaxBiome.initialize(this, config);
+
+            // Create all 5 biome layers: nebula, stars, rocks, flora, dust
+            this.parallaxBiome.createBiome();
+
+            console.log('[GameScene] ParallaxBiome activated with', this.parallaxBiome.getLayerCount(), 'layers');
+        } catch (error) {
+            console.error('[GameScene] Failed to setup ParallaxBiome:', error);
+        }
+    }
+
+    /**
+     * Apply cosmic affinity passive effects based on creature genetics
+     * Each cosmic element provides unique gameplay bonuses
+     */
+    applyCosmicAffinityEffects() {
+        const genes = getGameState().get('creature.genes');
+        const affinity = genes?.cosmicAffinity;
+
+        if (!affinity) {
+            console.log('[GameScene] No cosmic affinity found, using default modifiers');
+            return;
+        }
+
+        const element = affinity.element;
+        const powerLevel = affinity.powerLevel || 0.5;
+
+        console.log(`[GameScene] Applying ${element} cosmic affinity (power: ${powerLevel.toFixed(2)})`);
+
+        switch (element) {
+            case 'star':
+                // Star affinity: Enhanced health regeneration
+                this.cosmicAffinityEffects.healthRegenRate = 1.0 + (powerLevel * 0.5);
+                break;
+            case 'moon':
+                // Moon affinity: Reduced energy drain (calmer creature)
+                this.cosmicAffinityEffects.energyDrainRate = 1.0 - (powerLevel * 0.3);
+                break;
+            case 'nebula':
+                // Nebula affinity: Bonus XP from exploration
+                this.cosmicAffinityEffects.explorationXPBonus = 1.0 + (powerLevel * 0.25);
+                break;
+            case 'crystal':
+                // Crystal affinity: Find more coins
+                this.cosmicAffinityEffects.coinFindBonus = 1.0 + (powerLevel * 0.2);
+                break;
+            case 'void':
+                // Void affinity: Deal more damage in combat
+                this.cosmicAffinityEffects.damageBonus = 1.0 + (powerLevel * 0.4);
+                break;
+            default:
+                console.log('[GameScene] Unknown cosmic affinity:', element);
+        }
+
+        // Show affinity notification to player
+        this.showCosmicAffinityNotification(element, powerLevel);
+    }
+
+    /**
+     * Show cosmic affinity effect notification
+     */
+    showCosmicAffinityNotification(element, powerLevel) {
+        const affinityInfo = {
+            star: { emoji: '⭐', color: '#FFD700', effect: 'Health regeneration enhanced' },
+            moon: { emoji: '🌙', color: '#C0C0FF', effect: 'Energy lasts longer' },
+            nebula: { emoji: '🌌', color: '#FF69B4', effect: 'Exploration XP bonus' },
+            crystal: { emoji: '💎', color: '#00FFFF', effect: 'Find more coins' },
+            void: { emoji: '🕳️', color: '#8B008B', effect: 'Combat damage boost' }
+        };
+
+        const info = affinityInfo[element];
+        if (!info) return;
+
+        // Only show on first visit or after level up
+        const hasShownAffinity = getGameState().get('session.shownCosmicAffinity');
+        if (hasShownAffinity) return;
+
+        getGameState().set('session.shownCosmicAffinity', true);
+
+        const { width } = this.cameras.main;
+        const text = this.add.text(width / 2, 120, `${info.emoji} ${element.toUpperCase()} AFFINITY ${info.emoji}\n${info.effect}`, {
+            fontSize: '16px',
+            color: info.color,
+            stroke: '#000000',
+            strokeThickness: 3,
+            align: 'center'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(1500).setAlpha(0);
+
+        // Fade in, hold, fade out
+        this.tweens.add({
+            targets: text,
+            alpha: 1,
+            duration: 500,
+            onComplete: () => {
+                this.time.delayedCall(2500, () => {
+                    this.tweens.add({
+                        targets: text,
+                        alpha: 0,
+                        y: text.y - 20,
+                        duration: 500,
+                        onComplete: () => text.destroy()
+                    });
+                });
+            }
+        });
+    }
+
+    /**
+     * Trigger atmospheric parallax effect for major events
+     */
+    triggerAtmosphericEffect(effectType, x, y, intensity = 1.0) {
+        if (this.parallaxBiome?.triggerAtmosphericEffect) {
+            this.parallaxBiome.triggerAtmosphericEffect(effectType, x, y, intensity);
+        }
     }
 
     createEnhancedEnvironmentSprites() {
@@ -721,6 +875,8 @@ class GameScene extends Phaser.Scene {
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.inventoryKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
         this.combatKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+        this.shopKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+        this.breedingKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
 
         this.joystickX = 0;
         this.joystickY = 0;
@@ -1482,6 +1638,41 @@ class GameScene extends Phaser.Scene {
         this.scene.launch('InventoryScene');
     }
 
+    openBreedingShrine() {
+        // Check if breeding shrine is unlocked (level 5+)
+        const shrineStatus = getGameState().getBreedingShrineStatus?.();
+
+        if (!shrineStatus?.unlocked) {
+            const creatureLevel = getGameState().get('creature.level') || 1;
+            this.showInteractionHint(`Breeding Shrine unlocks at Level 5 (Current: ${creatureLevel})`);
+            window.AudioManager?.playError?.();
+            return;
+        }
+
+        console.log('[GameScene] Opening Breeding Shrine');
+
+        // Play button click sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Show loading overlay
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Opening Breeding Shrine...');
+        }
+
+        // Pause this scene and launch BreedingShrineScene on top
+        this.scene.pause();
+        this.scene.launch('BreedingShrineScene');
+
+        // Hide loading after short delay
+        this.time.delayedCall(500, () => {
+            if (window.UXEnhancements) {
+                window.UXEnhancements.hideLoading();
+            }
+        });
+    }
+
     openChat() {
         // Don't open chat if already open
         if (this.chatOverlay?.getIsVisible()) {
@@ -1734,6 +1925,16 @@ class GameScene extends Phaser.Scene {
         // Handle I key for inventory
         if (Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
             this.openInventory();
+        }
+
+        // Handle S key for shop
+        if (this.shopKey && Phaser.Input.Keyboard.JustDown(this.shopKey)) {
+            this.openShop();
+        }
+
+        // Handle B key for breeding shrine
+        if (this.breedingKey && Phaser.Input.Keyboard.JustDown(this.breedingKey)) {
+            this.openBreedingShrine();
         }
 
         // Handle M key for combat (desktop)
@@ -2181,6 +2382,16 @@ class GameScene extends Phaser.Scene {
                 this.updateDailyBonusButton();
             }
         });
+
+        // Listen for personality shift events
+        this.registerGameStateListener('personality/shift', (data) => {
+            this.showPersonalityShiftCelebration(data);
+        });
+
+        // Listen for scene events from MobileHUD
+        if (this.events) {
+            this.events.on('showPersonalityPanel', () => this.showPersonalityPanel());
+        }
     }
 
     /**
@@ -2210,6 +2421,220 @@ class GameScene extends Phaser.Scene {
         });
 
         console.log('[GameScene] Periodic timers set up');
+    }
+
+    /**
+     * Show personality panel popup with full trait details
+     */
+    showPersonalityPanel() {
+        if (this.personalityPanelVisible) {
+            this.hidePersonalityPanel();
+            return;
+        }
+
+        const { width, height } = this.cameras.main;
+        const personalityState = getGameState().get('creature.personalityState');
+        const creatureName = getGameState().get('creature.name') || 'Your Creature';
+
+        if (!personalityState) {
+            console.warn('[GameScene] No personality state available');
+            return;
+        }
+
+        // Get current traits
+        let traits = null;
+        if (window.PersonalitySystem?.getCurrentTraits) {
+            traits = window.PersonalitySystem.getCurrentTraits(personalityState);
+        }
+
+        // Create overlay
+        this.personalityPanelOverlay = this.add.graphics();
+        this.personalityPanelOverlay.fillStyle(0x000000, 0.7);
+        this.personalityPanelOverlay.fillRect(0, 0, width, height);
+        this.personalityPanelOverlay.setScrollFactor(0).setDepth(2000);
+        this.personalityPanelOverlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        this.personalityPanelOverlay.on('pointerdown', () => this.hidePersonalityPanel());
+
+        // Create panel
+        const panelWidth = Math.min(320, width - 40);
+        const panelHeight = 280;
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+
+        this.personalityPanel = this.add.graphics();
+        this.personalityPanel.fillStyle(0x1A1A3E, 0.95);
+        this.personalityPanel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        this.personalityPanel.lineStyle(3, 0x9370DB, 1);
+        this.personalityPanel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        this.personalityPanel.setScrollFactor(0).setDepth(2001);
+
+        // Title
+        this.personalityTitle = this.add.text(width / 2, panelY + 25, `${creatureName}'s Personality`, {
+            fontSize: '18px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
+
+        // Personality traits display
+        const traitInfo = [
+            { label: 'Temperament', value: traits?.temperament?.label || 'Unknown', emoji: '💫', color: '#FF69B4' },
+            { label: 'Energy', value: traits?.energyLevel?.label || 'Unknown', emoji: '⚡', color: '#00FFFF' },
+            { label: 'Curiosity', value: traits?.curiosity?.label || 'Unknown', emoji: '🔍', color: '#90EE90' },
+            { label: 'Attachment', value: traits?.attachment?.label || 'Unknown', emoji: '💛', color: '#FFD700' }
+        ];
+
+        this.personalityTexts = [];
+        traitInfo.forEach((trait, index) => {
+            const y = panelY + 70 + (index * 45);
+
+            const text = this.add.text(panelX + 20, y, `${trait.emoji} ${trait.label}:`, {
+                fontSize: '14px',
+                color: '#AAAAAA'
+            }).setScrollFactor(0).setDepth(2002);
+            this.personalityTexts.push(text);
+
+            const valueText = this.add.text(panelX + panelWidth - 20, y, trait.value.toUpperCase(), {
+                fontSize: '14px',
+                color: trait.color,
+                fontStyle: 'bold'
+            }).setOrigin(1, 0).setScrollFactor(0).setDepth(2002);
+            this.personalityTexts.push(valueText);
+
+            // Progress bar showing axis position
+            const axisValue = personalityState[trait.label.toLowerCase()] || 0;
+            const barX = panelX + 20;
+            const barY = y + 22;
+            const barWidth = panelWidth - 40;
+            const barHeight = 6;
+
+            const barBg = this.add.graphics();
+            barBg.fillStyle(0x333333, 1);
+            barBg.fillRoundedRect(barX, barY, barWidth, barHeight, 3);
+            barBg.setScrollFactor(0).setDepth(2002);
+            this.personalityTexts.push(barBg);
+
+            // Fill based on axis (-100 to +100, mapped to 0-100%)
+            const fillPercent = (axisValue + 100) / 200;
+            const fillColor = parseInt(trait.color.replace('#', ''), 16);
+            const barFill = this.add.graphics();
+            barFill.fillStyle(fillColor, 0.8);
+            barFill.fillRoundedRect(barX, barY, barWidth * fillPercent, barHeight, 3);
+            barFill.setScrollFactor(0).setDepth(2003);
+            this.personalityTexts.push(barFill);
+        });
+
+        // Close hint
+        this.closeHint = this.add.text(width / 2, panelY + panelHeight - 20, 'Tap anywhere to close', {
+            fontSize: '12px',
+            color: '#666666'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
+
+        this.personalityPanelVisible = true;
+
+        // Play sound
+        window.AudioManager?.playButtonClick?.();
+    }
+
+    /**
+     * Hide personality panel
+     */
+    hidePersonalityPanel() {
+        if (!this.personalityPanelVisible) return;
+
+        this.personalityPanelOverlay?.destroy();
+        this.personalityPanel?.destroy();
+        this.personalityTitle?.destroy();
+        this.closeHint?.destroy();
+        this.personalityTexts?.forEach(t => t?.destroy());
+
+        this.personalityPanelOverlay = null;
+        this.personalityPanel = null;
+        this.personalityTitle = null;
+        this.closeHint = null;
+        this.personalityTexts = [];
+        this.personalityPanelVisible = false;
+    }
+
+    /**
+     * Show celebration for personality shift with particles and sound
+     */
+    showPersonalityShiftCelebration(data) {
+        if (!data?.shifts || data.shifts.length === 0) return;
+
+        const { width, height } = this.cameras.main;
+
+        data.shifts.forEach((shift, index) => {
+            // Stagger multiple shifts
+            this.time.delayedCall(index * 500, () => {
+                // Create floating notification
+                const message = `${shift.from} → ${shift.to}`;
+                const title = `Personality Shift!`;
+
+                // Background panel
+                const panelWidth = 220;
+                const panelHeight = 70;
+                const panelX = (width - panelWidth) / 2;
+                const panelY = 80;
+
+                const panel = this.add.graphics();
+                panel.fillStyle(0x4B0082, 0.9);
+                panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
+                panel.lineStyle(2, 0xFFD700, 1);
+                panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
+                panel.setScrollFactor(0).setDepth(2500).setAlpha(0);
+
+                const titleText = this.add.text(width / 2, panelY + 20, `✨ ${title} ✨`, {
+                    fontSize: '14px',
+                    color: '#FFD700',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(2501).setAlpha(0);
+
+                const shiftText = this.add.text(width / 2, panelY + 45, message, {
+                    fontSize: '16px',
+                    color: '#FFFFFF'
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(2501).setAlpha(0);
+
+                // Animate in
+                this.tweens.add({
+                    targets: [panel, titleText, shiftText],
+                    alpha: 1,
+                    duration: 300,
+                    onComplete: () => {
+                        // Hold and then fade out
+                        this.time.delayedCall(2500, () => {
+                            this.tweens.add({
+                                targets: [panel, titleText, shiftText],
+                                alpha: 0,
+                                y: '-=30',
+                                duration: 500,
+                                onComplete: () => {
+                                    panel.destroy();
+                                    titleText.destroy();
+                                    shiftText.destroy();
+                                }
+                            });
+                        });
+                    }
+                });
+
+                // Trigger atmospheric effect if parallax biome is active
+                if (this.parallaxBiome && this.player) {
+                    this.triggerAtmosphericEffect('stardust_burst', this.player.x, this.player.y, 1.2);
+                }
+
+                // Particle burst using FXLibrary
+                if (window.FXLibrary) {
+                    window.FXLibrary.stardustBurst(this, width / 2, panelY + panelHeight / 2, {
+                        count: 12,
+                        color: [0xFFD700, 0x9370DB, 0xFF69B4],
+                        duration: 1500
+                    });
+                }
+
+                // Play sound
+                window.AudioManager?.playAchievement?.();
+            });
+        });
     }
 
     /**
@@ -2628,6 +3053,22 @@ class GameScene extends Phaser.Scene {
         if (this.graphicsEngine) {
             this.graphicsEngine = null;
         }
+
+        // Clean up ParallaxBiome
+        if (this.parallaxBiome) {
+            try {
+                this.parallaxBiome.cleanup();
+            } catch (error) {
+                console.warn('[GameScene] Failed to cleanup ParallaxBiome:', error);
+            }
+            this.parallaxBiome = null;
+        }
+
+        // Clean up personality UI elements
+        this.moodIndicator?.destroy();
+        this.moodIndicator = null;
+        this.personalityPanel?.destroy();
+        this.personalityPanel = null;
 
         if (this.cameras?.main) {
             this.cameras.main.stopFollow();

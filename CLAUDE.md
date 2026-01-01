@@ -31,6 +31,13 @@ npm run validate-flow
 - Create `.env.local` (git-ignored) for local configuration
 - Example: `VITE_ENABLE_API_FEATURES=true`
 
+### Mobile Development
+The game uses a **mobile-first portrait layout** with responsive scaling:
+- Uses `Phaser.Scale.RESIZE` mode for dynamic sizing
+- `MobileControls` system provides virtual joystick and action buttons
+- `ResponsiveManager` handles orientation changes and resize events
+- Touch input supports multi-touch (up to 3 active pointers)
+
 ## Architecture Overview
 
 ### Module Loading System
@@ -439,6 +446,20 @@ this.scene.bringToTop('UIScene');
 this.scene.restart();
 ```
 
+### Shop and Inventory Scenes
+
+**ShopScene** (`src/scenes/ShopScene.js`):
+- Displays purchasable items (eggs, consumables, cosmetics)
+- Integrates with EconomyManager for transactions
+- Shows confirmation dialogs for purchases over 100 coins
+- Keyboard: `S` to open from GameScene
+
+**InventoryScene** (`src/scenes/InventoryScene.js`):
+- Displays player's owned items
+- Supports item usage (eggs trigger hatching flow)
+- Includes farewell animation when replacing creature
+- Keyboard: `I` to open from GameScene
+
 ## Performance Considerations & Best Practices
 
 ### Core Performance Rules
@@ -838,6 +859,47 @@ applySort(items) {
 }
 ```
 
+## Global Keyboard Shortcuts
+
+The following keyboard shortcuts are available globally (defined in `main.js`):
+
+| Shortcut | Action |
+|----------|--------|
+| **Alt + F** | Toggle fullscreen mode |
+| **Alt + D** | Toggle dark mode |
+| **Alt + M** | Mute/unmute audio |
+| **Escape** | Pause/unpause game |
+
+## Manager Systems
+
+### EconomyManager (`src/systems/EconomyManager.js`)
+- Manages player currency (coins)
+- Handles transactions (spend, earn)
+- Validates sufficient funds before purchases
+- Events: `coinsChanged`, `transactionComplete`, `insufficientFunds`
+- Access: `window.EconomyManager`
+
+### InventoryManager (`src/systems/InventoryManager.js`)
+- Manages player inventory (items, eggs, consumables)
+- Handles item acquisition and usage
+- Events: `itemAdded`, `itemRemoved`, `itemUsed`
+- Access: `window.InventoryManager`
+
+### EnemyManager (`src/systems/EnemyManager.js`)
+- Spawns and manages enemy entities
+- Handles enemy AI and behavior
+- Access: `window.EnemyManager`
+
+### ProjectileManager (`src/systems/ProjectileManager.js`)
+- Handles projectile creation and collision
+- Manages attack animations
+- Access: `window.ProjectileManager`
+
+### ChatManager (`src/systems/ChatManager.js`)
+- Manages in-game chat system
+- Kid-safe filtering integration
+- Access: `window.ChatManager`
+
 ## Security & Safety
 
 - Follows **Vibe Coding Playbook** security standards (see VIBE_CODING_COMPLIANCE.md)
@@ -912,20 +974,49 @@ The codebase follows these established patterns. **DO NOT reverse or break them*
 ```
 main.js (entry point)
   └─> global-init.js (module loader)
-       └─> Systems:
+       └─> Core Systems:
             ├─> ErrorHandler (error management)
             ├─> MemoryManager (resource tracking)
             ├─> GameState (state management)
             ├─> GraphicsEngine (sprite generation)
+            ├─> SafetyManager (parental controls)
+            └─> InputValidator (input validation)
+       └─> Creature Systems:
             ├─> CreatureGenetics (procedural genetics)
+            ├─> CreatureDNA (DNA encoding)
+            ├─> CreatureAI (AI behavior)
+            ├─> CreatureAIController (chat behavior)
+            ├─> PersonalitySystem (personality shaping)
+            └─> BreedingEngine (breeding mechanics)
+       └─> Game Systems:
             ├─> RaritySystem (weighted rarity)
-            ├─> HatchCinematics (animation sequences)
-            └─> SafetyManager (parental controls)
+            ├─> RerollSystem (reroll mechanics)
+            ├─> CareSystem (creature care)
+            ├─> AchievementSystem (achievements)
+            ├─> TutorialSystem (guided tutorials)
+            └─> HatchCinematics (animation sequences)
+       └─> Managers:
+            ├─> EconomyManager (coins/currency)
+            ├─> InventoryManager (items/inventory)
+            ├─> EnemyManager (enemy spawning)
+            ├─> ProjectileManager (projectiles)
+            ├─> AudioManager (sound effects)
+            └─> ChatManager (chat system)
+       └─> UI/UX Systems:
+            ├─> UITheme (theming)
+            ├─> UXEnhancements (loading states)
+            ├─> ResponsiveManager (responsive design)
+            ├─> MobileControls (touch controls)
+            ├─> FXLibrary (particle effects)
+            ├─> ParallaxBiome (parallax backgrounds)
+            └─> KidMode (family-friendly mode)
        └─> Scenes:
             ├─> HatchingScene (egg hatching)
             ├─> PersonalityScene (personality selection)
             ├─> NamingScene (creature naming)
-            └─> GameScene (exploration gameplay)
+            ├─> GameScene (exploration gameplay)
+            ├─> ShopScene (in-game shop)
+            └─> InventoryScene (inventory management)
 ```
 
 ## Quick Reference: Code Quality Checklist

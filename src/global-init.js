@@ -44,6 +44,7 @@ import './scenes/NamingScene.js';
 import './scenes/GameScene.js';
 import './scenes/ShopScene.js';
 import './scenes/InventoryScene.js';
+import './scenes/BreedingShrineScene.js';
 
 if (typeof window !== 'undefined' && !window.Phaser) {
     window.Phaser = Phaser;

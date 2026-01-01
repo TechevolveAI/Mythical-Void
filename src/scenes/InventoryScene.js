@@ -1147,7 +1147,7 @@ export default class InventoryScene extends Phaser.Scene {
             this.showMessage(`Used ${item.name}!`, 0x00FF00);
 
             if (window.AudioManager) {
-                window.AudioManager.playCollectCoin();
+                window.AudioManager.playCoinCollect();
             }
 
             // Refresh display
@@ -1198,7 +1198,7 @@ export default class InventoryScene extends Phaser.Scene {
                 this.showMessage(`Used ${item.name}!`, 0x00FF00);
 
                 if (window.AudioManager) {
-                    window.AudioManager.playCollectCoin();
+                    window.AudioManager.playCoinCollect();
                 }
 
                 // Refresh display
@@ -1761,7 +1761,7 @@ export default class InventoryScene extends Phaser.Scene {
                 this.showMessage(`Equipped ${item.name}!`, 0x00FF00);
 
                 if (window.AudioManager) {
-                    window.AudioManager.playCollectCoin();
+                    window.AudioManager.playCoinCollect();
                 }
             } else {
                 this.showMessage('Cannot equip item!', 0xFF0000);

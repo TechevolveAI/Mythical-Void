@@ -113,6 +113,9 @@ class CareSystem {
                 this.lastRestTime = Date.now();
             }
 
+            // Play appropriate sound effect for the care action
+            this.playCareSound(actionType);
+
             console.log(`care:debug [CareSystem] ${actionType} performed with personality bonus:`, {
                 baseBonus: baseBonusHappiness,
                 personalityMultiplier: personalityBonus.multiplier.toFixed(2),
@@ -479,6 +482,35 @@ class CareSystem {
             lastReset: Date.now()
         });
         console.log('[CareSystem] Daily care counters reset');
+    }
+
+    /**
+     * Play appropriate sound effect for care action
+     */
+    playCareSound(actionType) {
+        if (!window.AudioManager) return;
+
+        try {
+            switch (actionType) {
+                case 'feed':
+                    window.AudioManager.playFeed?.();
+                    break;
+                case 'play':
+                    window.AudioManager.playPlay?.();
+                    break;
+                case 'pet':
+                    window.AudioManager.playPet?.();
+                    break;
+                case 'rest':
+                    // Soft, calming sound for rest
+                    window.AudioManager.playButtonClick?.();
+                    break;
+                default:
+                    window.AudioManager.playButtonClick?.();
+            }
+        } catch (error) {
+            console.warn('[CareSystem] Failed to play care sound:', error);
+        }
     }
 }
 
