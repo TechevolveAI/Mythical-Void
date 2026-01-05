@@ -91,6 +91,11 @@ class BreedingShrineScene extends Phaser.Scene {
         // Play ambient sound
         window.AudioManager?.playButtonClick?.();
 
+        // Hide loading overlay once shrine is ready (critical for UX)
+        if (window.UXEnhancements) {
+            window.UXEnhancements.hideLoading();
+        }
+
         console.log('[BreedingShrineScene] Breeding shrine created');
     }
 
@@ -556,24 +561,151 @@ class BreedingShrineScene extends Phaser.Scene {
             color: '#00FF00'
         }).setOrigin(0.5).setDepth(202);
 
-        // Continue button
-        const btnY = panelY + panelHeight - 50;
-        const continueBtn = this.add.text(width / 2, btnY, 'Continue', {
-            fontSize: '18px',
-            color: '#FFFFFF',
-            backgroundColor: '#4B0082',
-            padding: { x: 30, y: 10 }
-        }).setOrigin(0.5).setDepth(202).setInteractive();
+        // Store offspring data for adding to collection
+        this.offspringResult = result;
 
-        continueBtn.on('pointerdown', () => {
-            this.closeScene();
-        });
+        // Check if collection has space
+        const collectionStatus = getGameState().getCollectionStatus?.() || { hasSpace: true };
+        const btnY = panelY + panelHeight - 70;
 
-        continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: '#6B21A8' }));
-        continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: '#4B0082' }));
+        if (collectionStatus.hasSpace) {
+            // Add to Collection button
+            const addBtn = this.add.text(width / 2, btnY, '🐾 Add to Collection', {
+                fontSize: '16px',
+                color: '#FFFFFF',
+                backgroundColor: '#00AA00',
+                padding: { x: 20, y: 10 }
+            }).setOrigin(0.5).setDepth(202).setInteractive();
+
+            addBtn.on('pointerdown', () => {
+                this.addOffspringToCollection(result);
+                addBtn.destroy();
+                skipBtn.destroy();
+            });
+
+            addBtn.on('pointerover', () => addBtn.setStyle({ backgroundColor: '#00DD00' }));
+            addBtn.on('pointerout', () => addBtn.setStyle({ backgroundColor: '#00AA00' }));
+
+            // Skip button
+            const skipBtn = this.add.text(width / 2, btnY + 50, 'Skip', {
+                fontSize: '14px',
+                color: '#AAAAAA',
+                backgroundColor: '#333333',
+                padding: { x: 30, y: 8 }
+            }).setOrigin(0.5).setDepth(202).setInteractive();
+
+            skipBtn.on('pointerdown', () => {
+                this.closeScene();
+            });
+
+            skipBtn.on('pointerover', () => skipBtn.setStyle({ backgroundColor: '#555555' }));
+            skipBtn.on('pointerout', () => skipBtn.setStyle({ backgroundColor: '#333333' }));
+        } else {
+            // Collection full message
+            this.add.text(width / 2, btnY, '⚠️ Creature collection is full!', {
+                fontSize: '14px',
+                color: '#FF6666'
+            }).setOrigin(0.5).setDepth(202);
+
+            // Continue button
+            const continueBtn = this.add.text(width / 2, btnY + 40, 'Continue', {
+                fontSize: '16px',
+                color: '#FFFFFF',
+                backgroundColor: '#4B0082',
+                padding: { x: 30, y: 10 }
+            }).setOrigin(0.5).setDepth(202).setInteractive();
+
+            continueBtn.on('pointerdown', () => {
+                this.closeScene();
+            });
+
+            continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: '#6B21A8' }));
+            continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: '#4B0082' }));
+        }
 
         // Play celebration sound
         window.AudioManager?.playLevelUp?.();
+    }
+
+    addOffspringToCollection(result) {
+        const { width, height } = this.scale;
+
+        // Create offspring creature data
+        const offspringGenes = result.offspringGenes || {};
+        const offspringData = result.offspringData || {};
+
+        // Generate a unique name for the offspring
+        const baseName = offspringData.species || 'Offspring';
+        const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+        const offspringName = `${baseName} Jr. ${randomSuffix}`;
+
+        // Create creature object for collection
+        const creatureData = {
+            id: `creature_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: offspringName,
+            genes: offspringGenes,
+            dna: offspringGenes,
+            personality: offspringData.personality || null,
+            personalityState: null,
+            stats: { happiness: 100, energy: 100, health: 100 },
+            level: 1,
+            experience: 0,
+            textureName: null, // Will be generated when creature is loaded
+            hatchTime: Date.now(),
+            cosmicAffinity: offspringGenes.cosmicAffinity?.element || null,
+            rarity: offspringGenes.rarity || offspringData.rarity || 'common',
+            addedAt: Date.now(),
+            isOffspring: true,
+            parentIds: [
+                getGameState().get('creature.genes')?.id || 'parent1',
+                this.partnerGenes?.id || 'partner'
+            ]
+        };
+
+        // Add to collection
+        const added = getGameState().addCreatureToCollection(creatureData);
+
+        if (added) {
+            // Show success message
+            const successMsg = this.add.text(width / 2, height / 2, `✅ ${offspringName} added to collection!`, {
+                fontSize: '18px',
+                color: '#00FF00',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(300);
+
+            // Play sound
+            window.AudioManager?.playPurchase?.();
+
+            // Particle burst
+            if (window.FXLibrary) {
+                window.FXLibrary.stardustBurst(this, width / 2, height / 2, {
+                    count: 15,
+                    color: [0x00FF00, 0xFFD700],
+                    duration: 1500
+                });
+            }
+
+            // Auto-close after showing success
+            this.time.delayedCall(2000, () => {
+                successMsg?.destroy?.();
+                this.closeScene();
+            });
+        } else {
+            // Collection full or error
+            const errorMsg = this.add.text(width / 2, height / 2, '❌ Failed to add to collection', {
+                fontSize: '16px',
+                color: '#FF6666'
+            }).setOrigin(0.5).setDepth(300);
+
+            window.AudioManager?.playError?.();
+
+            this.time.delayedCall(2000, () => {
+                errorMsg?.destroy?.();
+                this.closeScene();
+            });
+        }
     }
 
     showBreedingError(message) {

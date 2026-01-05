@@ -4,8 +4,20 @@
  */
 
 import hatchCinematicsConfig from '../config/hatch-cinematics.json';
+import evolutionConfig from '../config/evolution.json';
 import MobileHelpers from '../utils/mobile-helpers.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+
+// Make evolution config available globally for GraphicsEngine and other systems
+if (typeof window !== 'undefined') {
+    window.evolutionConfig = evolutionConfig;
+    console.log('[HatchingScene] Evolution config loaded globally:', {
+        visionEnabled: evolutionConfig?.hatching?.visionReveal?.enabled,
+        visionDuration: evolutionConfig?.hatching?.visionReveal?.visionDuration,
+        babyScale: evolutionConfig?.stages?.baby?.visual?.scale,
+        babySaturation: evolutionConfig?.stages?.baby?.visual?.colorSaturation
+    });
+}
 
 const cloneConfig = (config) => {
     try {
@@ -266,11 +278,17 @@ class HatchingScene extends Phaser.Scene {
             }
 
             const state = getGameState();
-            
+
             // Mark game as started
             state.set('session.gameStarted', true);
             console.log('✅ Set gameStarted to true');
-            
+
+            // CRITICAL: Reset creature collection to clear old test creatures
+            if (state.resetCreatureCollection) {
+                state.resetCreatureCollection();
+                console.log('✅ Reset creature collection for fresh start');
+            }
+
             // CRITICAL: Reset creature to unhatched state for fresh game flow
             state.set('creature.hatched', false);
             state.set('creature.name', 'Your Creature');
@@ -1322,16 +1340,21 @@ class HatchingScene extends Phaser.Scene {
                     console.log('hatch:info [HatchingScene] Step 1: Using pre-generated creature genetics');
                 }
 
-                console.log('hatch:info [HatchingScene] Step 2: Creating creature sprite...');
-                // Create the creature sprite using genetics
-                const creatureResult = this.createUniqueCreature();
+                // Check if vision reveal is enabled
+                const visionConfig = evolutionConfig?.hatching?.visionReveal;
+                const showVisionFirst = visionConfig?.enabled && visionConfig?.showAdultFirst;
 
-                // Hide loading overlay after generation
-                if (window.UXEnhancements) {
-                    window.UXEnhancements.hideLoading();
+                if (showVisionFirst) {
+                    console.log('hatch:info [HatchingScene] Step 2: Showing adult vision first...');
+                    this.showAdultVision(visionConfig);
+                } else {
+                    console.log('hatch:info [HatchingScene] Step 2: Creating creature sprite (no vision)...');
+                    const creatureResult = this.createUniqueCreature('baby');
+                    if (window.UXEnhancements) {
+                        window.UXEnhancements.hideLoading();
+                    }
+                    this.completeCreatureDisplay(creatureResult);
                 }
-
-                this.completeCreatureDisplay(creatureResult);
             } catch (error) {
                 console.error('hatch:error [HatchingScene] Error during creature generation:', error);
                 if (window.UXEnhancements) {
@@ -1340,6 +1363,249 @@ class HatchingScene extends Phaser.Scene {
                 this.showCriticalError('An error occurred during creature generation');
             }
         });
+    }
+
+    /**
+     * Show the adult vision of the creature before revealing the baby
+     */
+    showAdultVision(visionConfig) {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const creatureY = height * 0.45;
+        const targetScale = width < 600 ? Math.min(1.8, width / 250) : 1.8; // Larger for more impact
+
+        console.log('hatch:info [HatchingScene] ========================================');
+        console.log('hatch:info [HatchingScene] STARTING ADULT VISION REVEAL');
+        console.log('hatch:info [HatchingScene] Vision duration:', visionConfig.visionDuration, 'ms');
+        console.log('hatch:info [HatchingScene] ========================================');
+
+        // Create dark overlay for dramatic effect (more contrast)
+        this.visionOverlay = this.add.graphics();
+        this.visionOverlay.fillStyle(0x000033, 0.6);
+        this.visionOverlay.fillRect(0, 0, width, height);
+        this.visionOverlay.setDepth(10);
+        this.visionOverlay.setAlpha(0);
+
+        // Create the ADULT version of the creature
+        console.log('hatch:info [HatchingScene] Creating adult vision creature...');
+        const adultResult = this.createUniqueCreature('adult');
+
+        if (window.UXEnhancements) {
+            window.UXEnhancements.hideLoading();
+        }
+
+        if (!adultResult || !adultResult.textureName) {
+            console.error('hatch:error [HatchingScene] Failed to create adult vision');
+            if (this.visionOverlay) this.visionOverlay.destroy();
+            const babyResult = this.createUniqueCreature('baby');
+            this.completeCreatureDisplay(babyResult);
+            return;
+        }
+
+        console.log('hatch:info [HatchingScene] Adult creature created:', adultResult.textureName);
+
+        // Create ethereal glow behind the creature (more prominent)
+        const glowColor = visionConfig.visionEffects?.glowColor ?
+            parseInt(visionConfig.visionEffects.glowColor.replace('#', ''), 16) : 0xFFD700; // Gold glow
+        const glowIntensity = visionConfig.visionEffects?.glowIntensity || 1.0;
+
+        const glow = this.add.graphics();
+        // Much larger glow for dramatic effect
+        glow.fillStyle(glowColor, glowIntensity * 0.15);
+        glow.fillCircle(centerX, creatureY, 200);
+        glow.fillStyle(glowColor, glowIntensity * 0.3);
+        glow.fillCircle(centerX, creatureY, 150);
+        glow.fillStyle(glowColor, glowIntensity * 0.5);
+        glow.fillCircle(centerX, creatureY, 100);
+        glow.fillStyle(glowColor, glowIntensity * 0.7);
+        glow.fillCircle(centerX, creatureY, 60);
+        glow.setDepth(15);
+        glow.setAlpha(0);
+
+        // Create the adult creature sprite (vision)
+        this.visionCreature = this.add.image(centerX, creatureY, adultResult.textureName);
+        this.visionCreature.setScale(0.3);
+        this.visionCreature.setAlpha(0);
+        this.visionCreature.setDepth(20);
+        // Add slight golden tint for "destiny" effect
+        this.visionCreature.setTint(0xFFFACD);
+
+        // Create vision message with more emphasis
+        const visionMessage = this.add.text(centerX, height * 0.1, visionConfig.visionMessage || '✨ Behold their magnificent destiny... ✨', {
+            fontSize: width < 600 ? '20px' : '26px',
+            color: '#FFD700',
+            fontStyle: 'bold italic',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: width * 0.9 }
+        }).setOrigin(0.5).setDepth(25).setAlpha(0);
+
+        // Fade in dark overlay first
+        this.tweens.add({
+            targets: this.visionOverlay,
+            alpha: 1,
+            duration: 400,
+            ease: 'Sine.easeIn'
+        });
+
+        // Fade in glow
+        this.tweens.add({
+            targets: glow,
+            alpha: 1,
+            duration: 600,
+            ease: 'Sine.easeIn',
+            delay: 200
+        });
+
+        // Play mystical vision reveal sound
+        this.time.delayedCall(300, () => {
+            if (window.AudioManager) {
+                window.AudioManager.playVisionReveal();
+            }
+        });
+
+        // Fade in and scale up the adult vision with dramatic entrance
+        this.tweens.add({
+            targets: this.visionCreature,
+            alpha: 1,
+            scale: targetScale,
+            duration: 1200,
+            ease: 'Back.easeOut',
+            delay: 400
+        });
+
+        // Fade in message
+        this.tweens.add({
+            targets: visionMessage,
+            alpha: 1,
+            duration: 800,
+            delay: 600
+        });
+
+        // Add floating animation to vision
+        this.tweens.add({
+            targets: this.visionCreature,
+            y: creatureY - 20,
+            duration: 1800,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            delay: 1600
+        });
+
+        // Add destiny sparkles
+        if (visionConfig.visionEffects?.particles) {
+            this.createVisionParticles(centerX, creatureY);
+        }
+
+        // After vision duration, transition to baby
+        const visionDuration = visionConfig.visionDuration || 4000;
+
+        console.log('hatch:info [HatchingScene] Vision will transition in', visionDuration, 'ms');
+
+        this.time.delayedCall(visionDuration, () => {
+            console.log('hatch:info [HatchingScene] Starting transition from adult vision to baby...');
+
+            // Show transition message with baby reveal message
+            const transitionMsg = visionConfig.transitionMessage || 'Watch them grow into this incredible form!';
+            visionMessage.setText(transitionMsg);
+            visionMessage.setColor('#FFFFFF');
+
+            this.tweens.add({
+                targets: visionMessage,
+                alpha: { from: 1, to: 0.9 },
+                duration: 400,
+                yoyo: true,
+                onComplete: () => {
+                    // Fade out vision creature, glow, and overlay
+                    this.tweens.add({
+                        targets: [this.visionCreature, glow, this.visionOverlay],
+                        alpha: 0,
+                        duration: 1000,
+                        ease: 'Sine.easeIn',
+                        onComplete: () => {
+                            // Cleanup vision elements
+                            if (this.visionCreature) {
+                                this.visionCreature.destroy();
+                                this.visionCreature = null;
+                            }
+                            glow.destroy();
+                            if (this.visionOverlay) {
+                                this.visionOverlay.destroy();
+                                this.visionOverlay = null;
+                            }
+
+                            // Update message for baby reveal
+                            const babyMsg = visionConfig.babyRevealMessage || '🐣 Your journey together begins now!';
+                            visionMessage.setText(babyMsg);
+                            visionMessage.setColor('#98FB98');
+
+                            this.tweens.add({
+                                targets: visionMessage,
+                                alpha: { from: 0, to: 1 },
+                                duration: 500
+                            });
+
+                            // Fade out message after a moment
+                            this.time.delayedCall(2000, () => {
+                                this.tweens.add({
+                                    targets: visionMessage,
+                                    alpha: 0,
+                                    duration: 500,
+                                    onComplete: () => visionMessage.destroy()
+                                });
+                            });
+
+                            // Now show the baby version
+                            console.log('hatch:info [HatchingScene] Creating baby creature...');
+                            const babyResult = this.createUniqueCreature('baby');
+                            this.completeCreatureDisplay(babyResult);
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    /**
+     * Create destiny sparkle particles for vision reveal
+     */
+    createVisionParticles(centerX, centerY) {
+        const colors = [0xFFFFFF, 0xFFD700, 0xE6E6FA, 0x87CEEB];
+
+        for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2;
+            const distance = 80 + Math.random() * 60;
+            const x = centerX + Math.cos(angle) * distance;
+            const y = centerY + Math.sin(angle) * distance;
+
+            const particle = this.add.graphics();
+            particle.fillStyle(colors[i % colors.length], 0.8);
+            particle.fillCircle(0, 0, 2 + Math.random() * 2);
+            particle.setPosition(x, y);
+            particle.setDepth(22);
+            particle.setAlpha(0);
+
+            // Animate particles in a cosmic swirl
+            this.tweens.add({
+                targets: particle,
+                alpha: { from: 0, to: 0.8 },
+                duration: 500,
+                delay: i * 50,
+                onComplete: () => {
+                    this.tweens.add({
+                        targets: particle,
+                        x: centerX + Math.cos(angle + 0.5) * (distance - 20),
+                        y: centerY + Math.sin(angle + 0.5) * (distance - 20),
+                        alpha: 0,
+                        duration: 2000,
+                        ease: 'Sine.easeOut',
+                        onComplete: () => particle.destroy()
+                    });
+                }
+            });
+        }
     }
 
     completeCreatureDisplay(creatureResult) {
@@ -1381,6 +1647,14 @@ class HatchingScene extends Phaser.Scene {
                 ease: 'Back.easeOut',
                 onComplete: () => {
                     console.log('hatch:info [HatchingScene] Creature fade-in complete');
+
+                    // Add cute baby idle animations
+                    this.addCuteIdleAnimations(this.creature, targetScale);
+
+                    // Play cute baby sound
+                    if (window.AudioManager) {
+                        window.AudioManager.playBabyCoo();
+                    }
 
                     // Show post-hatch tutorial hint and mark tutorial as seen
                     if (!this.hasSeenTutorial()) {
@@ -1687,8 +1961,8 @@ class HatchingScene extends Phaser.Scene {
     /**
      * Create unique creature sprite using GraphicsEngine
      */
-    createUniqueCreature() {
-        console.log('hatch:debug [HatchingScene] createUniqueCreature() called');
+    createUniqueCreature(stage = 'adult') {
+        console.log('hatch:debug [HatchingScene] createUniqueCreature() called with stage:', stage);
 
         if (!this.graphicsEngine) {
             console.error('hatch:error [HatchingScene] No graphics engine available!');
@@ -1708,7 +1982,7 @@ class HatchingScene extends Phaser.Scene {
             });
 
             try {
-                const creatureResult = this.graphicsEngine.createCreatureFromDNA(this.creatureDNA, 0);
+                const creatureResult = this.graphicsEngine.createCreatureFromDNA(this.creatureDNA, 0, stage);
 
                 if (!creatureResult || !creatureResult.textureName) {
                     console.warn('hatch:warn [HatchingScene] DNA rendering failed, falling back to genetics');
@@ -1727,7 +2001,7 @@ class HatchingScene extends Phaser.Scene {
             return null;
         }
 
-        console.log('hatch:info [HatchingScene] Using genetics-based creature rendering');
+        console.log('hatch:info [HatchingScene] Using genetics-based creature rendering with stage:', stage);
         console.log('hatch:debug [HatchingScene] Genetics:', {
             id: this.creatureGenetics.id,
             species: this.creatureGenetics.species,
@@ -1743,12 +2017,13 @@ class HatchingScene extends Phaser.Scene {
                 return null;
             }
 
-            console.log('hatch:debug [HatchingScene] Calling createRandomizedSpaceMythicCreature...');
+            console.log('hatch:debug [HatchingScene] Calling createRandomizedSpaceMythicCreature with stage:', stage);
 
-            // Use the GraphicsEngine to create a randomized creature
+            // Use the GraphicsEngine to create a randomized creature with the specified stage
             const creatureResult = this.graphicsEngine.createRandomizedSpaceMythicCreature(
                 this.creatureGenetics,
-                0 // frame 0
+                0, // frame 0
+                stage // lifecycle stage (baby, juvenile, adult, elder)
             );
 
             console.log('hatch:debug [HatchingScene] createRandomizedSpaceMythicCreature returned:', creatureResult);
@@ -1766,6 +2041,102 @@ class HatchingScene extends Phaser.Scene {
             console.error('hatch:error [HatchingScene] Error message:', error.message);
             console.error('hatch:error [HatchingScene] Stack trace:', error.stack);
             return null;
+        }
+    }
+
+    /**
+     * Add cute idle animations for baby creatures
+     * Based on cartoon animation principles: breathing, bobbing, squash & stretch
+     * @param {Phaser.GameObjects.Image} creature - The creature sprite
+     * @param {number} baseScale - The base scale of the creature
+     */
+    addCuteIdleAnimations(creature, baseScale) {
+        if (!creature) return;
+
+        const stage = window.GameState?.get('creature.lifecycle.stage') || 'baby';
+
+        // Only add extra cute animations for babies
+        const isBaby = stage === 'baby';
+        const breathingIntensity = isBaby ? 0.05 : 0.02;
+        const bobbingAmplitude = isBaby ? 8 : 3;
+        const breathingDuration = isBaby ? 1500 : 2500;
+
+        console.log('hatch:info [HatchingScene] Adding cute idle animations for stage:', stage);
+
+        // Breathing animation - gentle scale oscillation (squash/stretch)
+        this.tweens.add({
+            targets: creature,
+            scaleX: baseScale * (1 + breathingIntensity),
+            scaleY: baseScale * (1 - breathingIntensity * 0.5),
+            duration: breathingDuration,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Bobbing animation - gentle up/down movement
+        this.tweens.add({
+            targets: creature,
+            y: creature.y - bobbingAmplitude,
+            duration: breathingDuration * 1.3,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            delay: 200 // Slight offset from breathing for natural feel
+        });
+
+        // For babies, add occasional cute reactions
+        if (isBaby) {
+            // Random "excited" bounce every 5-8 seconds
+            this.time.addEvent({
+                delay: 5000 + Math.random() * 3000,
+                callback: () => {
+                    if (!creature || !creature.active) return;
+
+                    // Quick excited bounce
+                    this.tweens.add({
+                        targets: creature,
+                        scaleX: baseScale * 1.15,
+                        scaleY: baseScale * 0.85,
+                        duration: 100,
+                        ease: 'Quad.easeOut',
+                        yoyo: true,
+                        onComplete: () => {
+                            // Rebound stretch
+                            this.tweens.add({
+                                targets: creature,
+                                scaleX: baseScale * 0.92,
+                                scaleY: baseScale * 1.08,
+                                duration: 100,
+                                ease: 'Quad.easeOut',
+                                yoyo: true
+                            });
+                        }
+                    });
+
+                    // Play cute sound
+                    if (window.AudioManager && Math.random() > 0.5) {
+                        window.AudioManager.playBabyChirp();
+                    }
+                },
+                loop: true
+            });
+
+            // Add sparkle particles around baby periodically
+            if (window.FXLibrary) {
+                this.time.addEvent({
+                    delay: 3000,
+                    callback: () => {
+                        if (!creature || !creature.active) return;
+                        window.FXLibrary.stardustBurst(this, creature.x, creature.y, {
+                            count: 3,
+                            color: [0xFFB6C1, 0xFFFFFF, 0x87CEEB],
+                            duration: 1500
+                        });
+                    },
+                    loop: true
+                });
+            }
         }
     }
 
@@ -2492,8 +2863,8 @@ class HatchingScene extends Phaser.Scene {
 
             console.log(`hatch:info [HatchingScene] New creature generated: ${this.creatureGenetics.rarity} ${this.creatureGenetics.species}`);
 
-            // Try to create the creature
-            creatureResult = this.createUniqueCreature();
+            // Try to create the creature (always baby when hatching)
+            creatureResult = this.createUniqueCreature('baby');
 
             if (!creatureResult || !creatureResult.textureName) {
                 console.warn(`hatch:warn [HatchingScene] Creature creation failed (attempt ${retryCount + 1}), retrying...`);
@@ -3340,6 +3711,12 @@ class HatchingScene extends Phaser.Scene {
         // Mark game as started - CRITICAL for game flow validation
         GameState.set('session.gameStarted', true);
         console.log('✅ Set gameStarted to true');
+
+        // CRITICAL: Reset creature collection to clear old test creatures
+        if (GameState.resetCreatureCollection) {
+            GameState.resetCreatureCollection();
+            console.log('✅ Reset creature collection for fresh start');
+        }
 
         // CRITICAL: Reset creature to unhatched state for fresh game flow
         GameState.set('creature.hatched', false);

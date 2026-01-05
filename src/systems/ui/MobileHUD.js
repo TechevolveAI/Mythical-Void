@@ -38,6 +38,11 @@ export default class MobileHUD {
         this.moodBg = null;
         this.lastMoodEmoji = null;
 
+        // Lifecycle stage indicator
+        this.stageIndicator = null;
+        this.stageBg = null;
+        this.lastStage = null;
+
         // Layout constants - optimized for mobile
         this.layout = {
             topBarHeight: 44,
@@ -116,11 +121,122 @@ export default class MobileHUD {
         // Create level indicator (left side)
         this.createLevelIndicator();
 
+        // Create stage indicator (after level/XP)
+        this.createStageIndicator();
+
         // Create coin display (center-right)
         this.createCoinDisplay();
 
         // Create mini stat indicators (right side)
         this.createMiniStatIndicators();
+    }
+
+    /**
+     * Create lifecycle stage indicator
+     */
+    createStageIndicator() {
+        const { width } = this.scene.scale;
+        const { topBarPadding, topBarHeight } = this.layout;
+        const centerY = topBarPadding + topBarHeight / 2;
+
+        // Stage icons mapping
+        const stageIcons = {
+            baby: '🐣',
+            juvenile: '🌱',
+            adult: '✨',
+            elder: '👑'
+        };
+
+        // Position after XP label - responsive to screen width
+        // On small screens (< 400px), use compact positioning
+        const stageX = width < 400 ? topBarPadding + 125 : topBarPadding + 150;
+
+        // Stage badge background
+        this.stageBg = this.scene.add.graphics();
+        this.stageBg.setScrollFactor(0);
+        this.stageBg.setDepth(1501);
+
+        // Draw pill-shaped badge
+        this.stageBg.fillStyle(0x3A3A6E, 0.9);
+        this.stageBg.fillRoundedRect(stageX, centerY - 10, 50, 20, 10);
+        this.stageBg.lineStyle(1, 0x7B68EE, 0.6);
+        this.stageBg.strokeRoundedRect(stageX, centerY - 10, 50, 20, 10);
+        this.elements.push(this.stageBg);
+
+        // Get current stage
+        const currentStage = window.GameState?.get('creature.lifecycle.stage') || 'baby';
+        const stageIcon = stageIcons[currentStage] || '🐣';
+
+        // Stage indicator text
+        this.stageIndicator = this.scene.add.text(
+            stageX + 25,
+            centerY,
+            stageIcon,
+            {
+                fontSize: '14px',
+                fontFamily: 'Arial, sans-serif'
+            }
+        );
+        this.stageIndicator.setOrigin(0.5);
+        this.stageIndicator.setScrollFactor(0);
+        this.stageIndicator.setDepth(1502);
+        this.elements.push(this.stageIndicator);
+
+        this.lastStage = currentStage;
+
+        // DEV ONLY: Make stage indicator clickable to cycle through stages for testing
+        if (import.meta.env.DEV) {
+            console.log('[MobileHUD] DEV mode detected - creating clickable stage indicator at:', stageX + 25, centerY);
+            const hitZone = this.scene.add.zone(stageX + 25, centerY, 50, 20);
+            hitZone.setInteractive({ useHandCursor: true });
+            hitZone.setScrollFactor(0);
+            hitZone.setDepth(1503);
+
+            hitZone.on('pointerdown', () => {
+                const stages = ['baby', 'juvenile', 'adult', 'elder'];
+                const currentStageIndex = stages.indexOf(window.GameState?.get('creature.lifecycle.stage') || 'baby');
+                const nextStageIndex = (currentStageIndex + 1) % stages.length;
+                const nextStage = stages[nextStageIndex];
+
+                console.log(`[MobileHUD] DEV: Cycling stage from ${stages[currentStageIndex]} to ${nextStage}`);
+
+                // Update GameState
+                window.GameState?.set('creature.lifecycle.stage', nextStage);
+
+                // Update visual days for testing (approximate)
+                const stageDays = { baby: 1, juvenile: 4, adult: 10, elder: 35 };
+                window.GameState?.set('creature.lifecycle.daysAlive', stageDays[nextStage]);
+
+                // Trigger creature re-render in GameScene
+                if (this.scene.scene.isActive('GameScene')) {
+                    this.scene.scene.get('GameScene').events.emit('forceCreatureRefresh');
+                }
+
+                // Play click sound
+                if (window.AudioManager) {
+                    window.AudioManager.playButtonClick();
+                }
+            });
+
+            // Hover effect
+            hitZone.on('pointerover', () => {
+                this.stageBg.clear();
+                this.stageBg.fillStyle(0x5A5A8E, 0.9);
+                this.stageBg.fillRoundedRect(stageX, centerY - 10, 50, 20, 10);
+                this.stageBg.lineStyle(1, 0xFFD700, 0.8);
+                this.stageBg.strokeRoundedRect(stageX, centerY - 10, 50, 20, 10);
+            });
+
+            hitZone.on('pointerout', () => {
+                this.stageBg.clear();
+                this.stageBg.fillStyle(0x3A3A6E, 0.9);
+                this.stageBg.fillRoundedRect(stageX, centerY - 10, 50, 20, 10);
+                this.stageBg.lineStyle(1, 0x7B68EE, 0.6);
+                this.stageBg.strokeRoundedRect(stageX, centerY - 10, 50, 20, 10);
+            });
+
+            this.elements.push(hitZone);
+        }
     }
 
     /**
@@ -210,8 +326,9 @@ export default class MobileHUD {
         const { topBarPadding, topBarHeight } = this.layout;
         const centerY = topBarPadding + topBarHeight / 2;
 
-        // Position coins in center-right area
-        const coinX = width / 2 + 20;
+        // Position coins in center-right area - responsive to screen width
+        // On small screens, shift coins slightly right to avoid stage/mood overlap
+        const coinX = width < 400 ? width / 2 + 10 : width / 2 + 20;
 
         // Coin icon (use existing texture or create simple one)
         if (this.scene.textures.exists('cosmicCoin')) {
@@ -260,9 +377,11 @@ export default class MobileHUD {
         const { topBarPadding, topBarHeight } = this.layout;
         const centerY = topBarPadding + topBarHeight / 2;
 
-        // Position mini stats on right side
-        const startX = width - topBarPadding - 90;
-        const spacing = 28;
+        // Position mini stats on right side - responsive to screen width
+        // On small screens, reduce spacing and move closer to edge
+        const isSmallScreen = width < 400;
+        const startX = isSmallScreen ? width - topBarPadding - 75 : width - topBarPadding - 90;
+        const spacing = isSmallScreen ? 24 : 28;
 
         const stats = [
             { key: 'health', icon: '❤️', color: 0xFF6B6B },
@@ -311,8 +430,9 @@ export default class MobileHUD {
         const { topBarPadding, topBarHeight } = this.layout;
         const centerY = topBarPadding + topBarHeight / 2;
 
-        // Position mood indicator to the left of coin display
-        const moodX = width / 2 - 30;
+        // Position mood indicator to the left of coin display - responsive
+        // On small screens, position closer to center to avoid overlap with stage indicator
+        const moodX = width < 400 ? width / 2 - 20 : width / 2 - 30;
 
         // Background circle with glow effect
         this.moodBg = this.scene.add.graphics();
@@ -521,15 +641,28 @@ export default class MobileHUD {
      * Setup event listeners for state changes
      */
     setupEventListeners() {
+        // Store bound handlers for proper cleanup
+        this.boundHandlers = {
+            updateStats: () => this.updateStats(),
+            updateLevel: () => this.updateLevel(),
+            updateXP: () => this.updateXP(),
+            updateStage: () => this.updateStage(),
+            updateCoins: () => this.updateCoins(),
+            updateMood: () => this.updateMood()
+        };
+
         if (window.GameState) {
-            window.GameState.on('changed:creature.stats', () => this.updateStats());
-            window.GameState.on('changed:creature.level', () => this.updateLevel());
-            window.GameState.on('changed:creature.experience', () => this.updateXP());
+            window.GameState.on('changed:creature.stats', this.boundHandlers.updateStats);
+            window.GameState.on('changed:creature.level', this.boundHandlers.updateLevel);
+            window.GameState.on('changed:creature.experience', this.boundHandlers.updateXP);
+            window.GameState.on('changed:creature.lifecycle.stage', this.boundHandlers.updateStage);
+            window.GameState.on('creature:evolved', this.boundHandlers.updateStage);
+            window.GameState.on('changed:creature.personalityState', this.boundHandlers.updateMood);
         }
 
         if (window.EconomyManager) {
-            window.EconomyManager.on('coins:added', () => this.updateCoins());
-            window.EconomyManager.on('coins:spent', () => this.updateCoins());
+            window.EconomyManager.on('coins:added', this.boundHandlers.updateCoins);
+            window.EconomyManager.on('coins:spent', this.boundHandlers.updateCoins);
         }
     }
 
@@ -544,6 +677,62 @@ export default class MobileHUD {
         this.updateXP();
         this.updateCoins();
         this.updateMood();
+        this.updateStage();
+    }
+
+    /**
+     * Update stage indicator based on lifecycle state
+     */
+    updateStage() {
+        if (!this.isVisible || !this.stageIndicator) return;
+
+        const currentStage = window.GameState?.get('creature.lifecycle.stage') || 'baby';
+
+        if (currentStage !== this.lastStage) {
+            // Stage icons mapping
+            const stageIcons = {
+                baby: '🐣',
+                juvenile: '🌱',
+                adult: '✨',
+                elder: '👑'
+            };
+
+            const stageIcon = stageIcons[currentStage] || '🐣';
+            this.stageIndicator.setText(stageIcon);
+            this.lastStage = currentStage;
+
+            // Evolution animation
+            this.scene.tweens.add({
+                targets: this.stageIndicator,
+                scale: { from: 1.5, to: 1 },
+                duration: 500,
+                ease: 'Back.easeOut'
+            });
+
+            // Flash the stage background
+            if (this.stageBg) {
+                const { width } = this.scene.scale;
+                const { topBarPadding, topBarHeight } = this.layout;
+                const centerY = topBarPadding + topBarHeight / 2;
+                // Use responsive positioning matching createStageIndicator
+                const stageX = width < 400 ? topBarPadding + 125 : topBarPadding + 150;
+
+                this.stageBg.clear();
+                this.stageBg.fillStyle(0xFFD700, 0.9);
+                this.stageBg.fillRoundedRect(stageX, centerY - 10, 50, 20, 10);
+
+                // Fade back to normal
+                this.scene.time.delayedCall(500, () => {
+                    if (this.stageBg) {
+                        this.stageBg.clear();
+                        this.stageBg.fillStyle(0x3A3A6E, 0.9);
+                        this.stageBg.fillRoundedRect(stageX, centerY - 10, 50, 20, 10);
+                        this.stageBg.lineStyle(1, 0x7B68EE, 0.6);
+                        this.stageBg.strokeRoundedRect(stageX, centerY - 10, 50, 20, 10);
+                    }
+                });
+            }
+        }
     }
 
     /**
@@ -712,17 +901,23 @@ export default class MobileHUD {
     destroy() {
         console.log('[MobileHUD] Destroying mobile HUD');
 
-        // Remove event listeners
-        if (window.GameState) {
-            window.GameState.off('changed:creature.stats');
-            window.GameState.off('changed:creature.level');
-            window.GameState.off('changed:creature.experience');
+        // Remove ALL event listeners using bound handlers
+        if (this.boundHandlers && window.GameState) {
+            window.GameState.off('changed:creature.stats', this.boundHandlers.updateStats);
+            window.GameState.off('changed:creature.level', this.boundHandlers.updateLevel);
+            window.GameState.off('changed:creature.experience', this.boundHandlers.updateXP);
+            window.GameState.off('changed:creature.lifecycle.stage', this.boundHandlers.updateStage);
+            window.GameState.off('creature:evolved', this.boundHandlers.updateStage);
+            window.GameState.off('changed:creature.personalityState', this.boundHandlers.updateMood);
         }
 
-        if (window.EconomyManager) {
-            window.EconomyManager.off('coins:added');
-            window.EconomyManager.off('coins:spent');
+        if (this.boundHandlers && window.EconomyManager) {
+            window.EconomyManager.off('coins:added', this.boundHandlers.updateCoins);
+            window.EconomyManager.off('coins:spent', this.boundHandlers.updateCoins);
         }
+
+        // Clear bound handlers
+        this.boundHandlers = null;
 
         // Destroy all elements
         this.elements.forEach((el) => {

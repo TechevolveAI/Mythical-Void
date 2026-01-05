@@ -307,6 +307,127 @@ class CreatureMemoryService {
         const entropy = Math.random().toString(16).slice(2, 8);
         return `mem_${creatureId}_${Date.now().toString(36)}_${entropy}`;
     }
+
+    // ===== Conversation Bridge Methods (routes to LongTermMemory) =====
+
+    /**
+     * Log a conversation message (bridges to LongTermMemory)
+     * @param {string} role - 'user', 'creature', or 'system'
+     * @param {string} content - Message content
+     * @param {Object} context - Optional context (mood, location, activity)
+     */
+    logConversation(role, content, creatureId = null, context = {}) {
+        if (!this.isTrackingEnabled()) {
+            console.info('memory:info [CreatureMemory] Skipping conversation log - tracking disabled');
+            return null;
+        }
+
+        // Route to LongTermMemory if available
+        if (window.LongTermMemory) {
+            return window.LongTermMemory.addConversation(role, content, creatureId, context);
+        }
+
+        // Fallback: log as diary entry
+        return this.logEntry({
+            creatureId,
+            type: 'conversation',
+            summary: `[${role}] ${content.slice(0, 100)}${content.length > 100 ? '...' : ''}`,
+            details: { role, content, context },
+            tags: ['chat', role],
+            source: 'conversation'
+        });
+    }
+
+    /**
+     * Get recent conversation history
+     * @param {string|null} creatureId - Creature ID or null for active
+     * @param {number} limit - Max messages to retrieve
+     */
+    getConversationHistory(creatureId = null, limit = 20) {
+        // Route to LongTermMemory if available
+        if (window.LongTermMemory) {
+            return window.LongTermMemory.getConversationHistory(creatureId, limit);
+        }
+
+        // Fallback: filter timeline for conversation entries
+        const timeline = this.getTimeline(creatureId, limit * 2);
+        return timeline
+            .filter(entry => entry.type === 'conversation')
+            .slice(0, limit)
+            .map(entry => ({
+                role: entry.details?.role || 'unknown',
+                content: entry.details?.content || entry.summary,
+                timestamp: entry.createdAt,
+                context: entry.details?.context || {}
+            }));
+    }
+
+    /**
+     * Get relationship data for a creature
+     */
+    getRelationship(creatureId = null) {
+        if (window.LongTermMemory) {
+            return window.LongTermMemory.getRelationship(creatureId);
+        }
+        return null;
+    }
+
+    /**
+     * Update relationship metrics
+     */
+    updateRelationship(creatureId = null, updates = {}) {
+        if (window.LongTermMemory) {
+            return window.LongTermMemory.updateRelationship(creatureId, updates);
+        }
+        return false;
+    }
+
+    /**
+     * Get relationship level description
+     */
+    getRelationshipLevel(creatureId = null) {
+        if (window.LongTermMemory) {
+            return window.LongTermMemory.getRelationshipLevel(creatureId);
+        }
+        return 'unknown';
+    }
+
+    /**
+     * Store a key-value in long-term memory
+     */
+    remember(key, value, creatureId = null) {
+        if (window.LongTermMemory) {
+            return window.LongTermMemory.store(key, value, creatureId);
+        }
+        return false;
+    }
+
+    /**
+     * Retrieve a value from long-term memory
+     */
+    recall(key, creatureId = null) {
+        if (window.LongTermMemory) {
+            return window.LongTermMemory.retrieve(key, creatureId);
+        }
+        return null;
+    }
+
+    /**
+     * Get memory context for LLM prompts
+     */
+    getContextForPrompt(creatureId = null, options = {}) {
+        if (window.LongTermMemory) {
+            return window.LongTermMemory.getContextForPrompt(creatureId, options);
+        }
+
+        // Fallback: return basic context from timeline
+        return {
+            conversationHistory: this.getConversationHistory(creatureId, 10),
+            relationship: null,
+            memories: {},
+            metadata: this.getTimelineSummary(creatureId)
+        };
+    }
 }
 
 // Singleton wiring

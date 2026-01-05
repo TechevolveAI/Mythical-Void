@@ -9,6 +9,10 @@ import GameScene from './scenes/GameScene.js';
 import ShopScene from './scenes/ShopScene.js';
 import InventoryScene from './scenes/InventoryScene.js';
 import BreedingShrineScene from './scenes/BreedingShrineScene.js';
+import HubWorldScene from './scenes/HubWorldScene.js';
+import CreatureProfileScene from './scenes/CreatureProfileScene.js';
+import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
+import CrystalCavesLevel from './scenes/levels/CrystalCavesLevel.js';
 import kidModeConfig from './config/kid-mode.json';
 import hatchCinematicsConfig from './config/hatch-cinematics.json';
 import biomesConfig from './config/biomes.json';
@@ -208,6 +212,42 @@ async function initializeGame() {
             console.error('❌ InventoryManager initialization failed:', inventoryError);
         }
 
+        // Initialize quest system
+        try {
+            if (window.QuestManager) {
+                window.QuestManager.init();
+                console.log('✅ QuestManager initialized successfully');
+            } else {
+                console.warn('⚠️ QuestManager not available');
+            }
+        } catch (questError) {
+            console.error('❌ QuestManager initialization failed:', questError);
+        }
+
+        // Initialize collectible system
+        try {
+            if (window.CollectibleManager) {
+                window.CollectibleManager.init();
+                console.log('✅ CollectibleManager initialized successfully');
+            } else {
+                console.warn('⚠️ CollectibleManager not available');
+            }
+        } catch (collectibleError) {
+            console.error('❌ CollectibleManager initialization failed:', collectibleError);
+        }
+
+        // Initialize creature skills system
+        try {
+            if (window.CreatureSkills) {
+                window.CreatureSkills.init();
+                console.log('✅ CreatureSkills initialized successfully');
+            } else {
+                console.warn('⚠️ CreatureSkills not available');
+            }
+        } catch (skillsError) {
+            console.error('❌ CreatureSkills initialization failed:', skillsError);
+        }
+
         // Set up GameState event listeners with error handling
         try {
             GameState.on('levelUp', (data) => {
@@ -266,7 +306,7 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, BreedingShrineScene],
+            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, BreedingShrineScene, HubWorldScene, CreatureProfileScene, PlatformerLevelScene, CrystalCavesLevel],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,

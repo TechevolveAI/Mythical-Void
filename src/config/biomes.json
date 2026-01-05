@@ -1,195 +1,352 @@
 {
-  "spaceCrashSite": {
+  "nebula": {
+    "id": "nebula",
     "name": "Cosmic Crash Site",
     "description": "A mystical crystalline biome where your ship landed among floating rocks and aurora streams",
+    "unlockCost": 0,
+    "palette": {
+      "skyTop": "#B39DDB",
+      "skyBottom": "#80CBC4",
+      "nebula": "#F48FB1",
+      "accent": "#FFD54F",
+      "flora": "#64B5F6",
+      "rocks": "#90A4AE"
+    },
     "layers": {
       "nebulaBackground": {
         "enabled": true,
-        "colors": ["hsl(280,60%,25%)", "hsl(320,45%,30%)", "hsl(260,55%,35%)"],
-        "gradient": {
-          "direction": "radial",
-          "centerX": 0.4,
-          "centerY": 0.3,
-          "radius": 0.8
-        },
+        "colors": ["#4A148C", "#7B1FA2", "#6A1B9A"],
         "scrollFactor": 0.1,
         "opacity": 0.8
       },
       "distantStars": {
         "enabled": true,
         "count": 40,
-        "twinkleProbability": 0.3,
-        "colors": ["#FFFFFF", "#F0F8FF", "#E6E6FA", "#FFE4E1"],
-        "sizeRange": { "min": 1, "max": 3 },
-        "scrollFactor": 0.2,
-        "animationSpeed": 0.02,
-        "layerDepth": 10
+        "colors": ["#FFFFFF", "#F0F8FF", "#E6E6FA"],
+        "scrollFactor": 0.2
       },
       "floatingRocks": {
         "enabled": true,
         "count": 8,
-        "sizes": ["large", "medium", "small"],
-        "colors": ["#708090", "#696969", "#778899", "#2F4F4F"],
-        "crystalGrowth": {
-          "enabled": true,
-          "colors": ["#9370DB", "#8A2BE2", "#DA70D6"],
-          "glowIntensity": 0.4
-        },
-        "scrollFactor": 0.4,
-        "driftSpeed": { "min": 0.1, "max": 0.3 },
-        "verticalFloat": {
-          "amplitude": 15,
-          "frequency": 0.01
-        }
+        "colors": ["#708090", "#696969", "#778899"],
+        "crystalGlow": ["#9370DB", "#8A2BE2"],
+        "scrollFactor": 0.4
       },
       "crystalFlora": {
         "enabled": true,
-        "groundCrystals": {
-          "count": 12,
-          "heights": { "min": 20, "max": 80 },
-          "colors": ["#40E0D0", "#48D1CC", "#20B2AA", "#008B8B"],
-          "glowPulse": {
-            "enabled": true,
-            "speed": 0.008,
-            "intensity": { "min": 0.3, "max": 0.7 }
-          }
-        },
-        "floatingSpores": {
-          "count": 15,
-          "colors": ["#98FB98", "#90EE90", "#00FA9A"],
-          "driftPattern": "gentle",
-          "lifecycle": 8000
-        },
+        "count": 12,
+        "colors": ["#40E0D0", "#48D1CC", "#20B2AA"],
         "scrollFactor": 0.6,
         "bioluminescence": true
       },
-      "atmosphericEffects": {
-        "auroraStreams": {
-          "enabled": true,
-          "count": 2,
-          "colors": ["#00CED1", "#4682B4", "#6A5ACD"],
-          "waveAmplitude": 25,
-          "scrollSpeed": 0.1,
-          "opacity": 0.4,
-          "blendMode": "ADD"
-        },
-        "energyRipples": {
-          "enabled": true,
-          "triggerDistance": 100,
-          "colors": ["#FFD700", "#FFA500"],
-          "expansionSpeed": 200,
-          "fadeTime": 1500
-        }
-      },
       "foregroundDust": {
         "enabled": true,
-        "particles": {
-          "count": 25,
-          "size": { "min": 0.5, "max": 2.0 },
-          "colors": ["#F5DEB3", "#DDDDDD"], 
-          "driftSpeed": { "min": 5, "max": 15 },
-          "fadeInOut": true,
-          "parallaxIntensity": 0.8
-        },
-        "scrollFactor": 0.9,
-        "opacity": 0.6
-      },
-      "gentleVignette": {
-        "enabled": true,
-        "color": "#1A0D2E",
-        "intensity": 0.15,
-        "radius": 0.85,
-        "featherEdge": 0.3
+        "count": 25,
+        "colors": ["#F5DEB3", "#DDDDDD"],
+        "scrollFactor": 0.9
       }
+    },
+    "enemies": {
+      "types": ["shadow_wisp", "crystal_shard"],
+      "spawnRate": 1.0,
+      "maxEnemies": 5
+    },
+    "collectibles": {
+      "types": ["nebula_crystal", "coin_pile", "energy_orb"],
+      "spawnCount": 15
+    }
+  },
+
+  "stellar_reef": {
+    "id": "stellar_reef",
+    "name": "Stellar Reef",
+    "description": "An underwater cosmic realm where star coral grows and celestial fish swim through space currents",
+    "unlockCost": 500,
+    "palette": {
+      "skyTop": "#1A237E",
+      "skyBottom": "#00838F",
+      "nebula": "#00BCD4",
+      "accent": "#FFF8E1",
+      "flora": "#4DD0E1",
+      "rocks": "#26A69A"
+    },
+    "layers": {
+      "nebulaBackground": {
+        "enabled": true,
+        "colors": ["#0D47A1", "#1565C0", "#006064"],
+        "scrollFactor": 0.1,
+        "opacity": 0.85
+      },
+      "distantStars": {
+        "enabled": true,
+        "count": 30,
+        "colors": ["#E0F7FA", "#B2EBF2", "#80DEEA"],
+        "scrollFactor": 0.15
+      },
+      "coralFormations": {
+        "enabled": true,
+        "count": 10,
+        "colors": ["#FF6B6B", "#FF8E8E", "#FFB3B3", "#E57373"],
+        "glowColors": ["#FFF59D", "#FFE082"],
+        "scrollFactor": 0.35
+      },
+      "floatingKelp": {
+        "enabled": true,
+        "count": 15,
+        "colors": ["#4DB6AC", "#26A69A", "#009688"],
+        "scrollFactor": 0.5,
+        "swayAnimation": true
+      },
+      "bubbles": {
+        "enabled": true,
+        "count": 35,
+        "colors": ["#E0F7FA", "#FFFFFF"],
+        "scrollFactor": 0.7,
+        "riseSpeed": 0.8
+      },
+      "bioluminescentParticles": {
+        "enabled": true,
+        "count": 20,
+        "colors": ["#00E5FF", "#18FFFF", "#84FFFF"],
+        "scrollFactor": 0.8
+      }
+    },
+    "enemies": {
+      "types": ["cosmic_jellyfish", "star_urchin", "void_eel"],
+      "spawnRate": 1.2,
+      "maxEnemies": 6
+    },
+    "collectibles": {
+      "types": ["stellar_pearl", "coral_shard", "treasure_chest"],
+      "spawnCount": 18
     },
     "ambientEffects": {
-      "crystalResonance": {
+      "waterCurrent": true,
+      "caustics": true,
+      "bubbleStreams": true
+    }
+  },
+
+  "crystal_caves": {
+    "id": "crystal_caves",
+    "name": "Crystal Caves",
+    "description": "Deep underground caverns filled with massive crystalline formations that pulse with ancient energy. Navigate narrow tunnels where only the glow of crystals lights your way.",
+    "unlockCost": 1000,
+    "palette": {
+      "skyTop": "#080510",
+      "skyBottom": "#0D0818",
+      "nebula": "#3D2B5D",
+      "accent": "#7B68EE",
+      "flora": "#5A4A8A",
+      "rocks": "#1A1025"
+    },
+    "layers": {
+      "caveBackground": {
         "enabled": true,
-        "triggerRadius": 80,
-        "rippleEffect": true,
-        "soundTrigger": "crystal_chime"
+        "colors": ["#050308", "#080510", "#0D0818"],
+        "scrollFactor": 0.05,
+        "opacity": 1.0
       },
-      "stardustFalls": {
+      "distantCrystals": {
         "enabled": true,
-        "interval": { "min": 15000, "max": 45000 },
-        "duration": 3000,
-        "intensity": "gentle"
+        "count": 15,
+        "colors": ["#7B68EE", "#9370DB", "#8A2BE2"],
+        "glowIntensity": 0.6,
+        "scrollFactor": 0.2
       },
-      "atmosphericHum": {
+      "stalactites": {
         "enabled": true,
-        "soundKey": "space_ambience",
-        "volume": 0.15,
-        "fadeInTime": 2000
+        "count": 12,
+        "colors": ["#34495E", "#2C3E50", "#1A252F"],
+        "scrollFactor": 0.3
+      },
+      "giantCrystals": {
+        "enabled": true,
+        "count": 8,
+        "colors": ["#00FFFF", "#00CED1", "#40E0D0"],
+        "glowPulse": true,
+        "scrollFactor": 0.45
+      },
+      "energyStreams": {
+        "enabled": true,
+        "count": 5,
+        "colors": ["#E040FB", "#EA80FC"],
+        "scrollFactor": 0.6,
+        "flowAnimation": true
+      },
+      "crystalDust": {
+        "enabled": true,
+        "count": 25,
+        "colors": ["#3D2B5D", "#2D1B3D", "#1A0A20"],
+        "scrollFactor": 0.85
       }
     },
-    "interactivity": {
-      "touchRipples": {
+    "enemies": {
+      "types": ["crystal_golem", "shadow_bat", "gem_spider"],
+      "spawnRate": 1.3,
+      "maxEnemies": 7
+    },
+    "collectibles": {
+      "types": ["cave_crystal", "ancient_relic", "cosmic_gem"],
+      "spawnCount": 20
+    },
+    "ambientEffects": {
+      "crystalResonance": true,
+      "echoSounds": true,
+      "drippingWater": true
+    }
+  },
+
+  "void_peaks": {
+    "id": "void_peaks",
+    "name": "Void Peaks",
+    "description": "Towering mountains at the edge of the void where reality bends and dark energy flows",
+    "unlockCost": 2000,
+    "palette": {
+      "skyTop": "#0D0D0D",
+      "skyBottom": "#1A1A2E",
+      "nebula": "#4B0082",
+      "accent": "#FF4500",
+      "flora": "#8B0000",
+      "rocks": "#2F2F4F"
+    },
+    "layers": {
+      "voidBackground": {
         "enabled": true,
-        "colors": ["#FFD700", "#87CEEB"],
-        "expandRadius": 120,
-        "duration": 800
+        "colors": ["#000000", "#0D0D0D", "#1A0A2E"],
+        "scrollFactor": 0.05,
+        "opacity": 1.0,
+        "voidRift": true
       },
-      "crystalReaction": {
+      "distortedStars": {
         "enabled": true,
-        "glowBoost": 0.3,
-        "duration": 1200,
-        "soundEffect": "crystal_activate"
+        "count": 25,
+        "colors": ["#8B0000", "#FF4500", "#DC143C"],
+        "scrollFactor": 0.1,
+        "distortion": true
       },
-      "floraResponse": {
+      "darkMountains": {
         "enabled": true,
-        "pulseIntensity": 1.4,
-        "cascadeDelay": 150,
-        "colorShift": true
+        "count": 6,
+        "colors": ["#1A1A2E", "#2F2F4F", "#483D8B"],
+        "scrollFactor": 0.25,
+        "jagged": true
+      },
+      "voidCracks": {
+        "enabled": true,
+        "count": 8,
+        "colors": ["#4B0082", "#8B008B", "#9400D3"],
+        "energyFlow": true,
+        "scrollFactor": 0.4
+      },
+      "floatingDebris": {
+        "enabled": true,
+        "count": 15,
+        "colors": ["#2F2F4F", "#483D8B"],
+        "scrollFactor": 0.55,
+        "rotation": true
+      },
+      "darkEnergy": {
+        "enabled": true,
+        "count": 30,
+        "colors": ["#4B0082", "#8B008B", "#FF4500"],
+        "scrollFactor": 0.75
       }
     },
-    "performance": {
-      "particleBudget": 100,
-      "lowEndOptimization": {
-        "reduceParticles": 0.6,
-        "disableGlow": false,
-        "simplifyEffects": true,
-        "reduceTwinkle": 0.5
+    "enemies": {
+      "types": ["void_wraith", "dark_sentinel", "shadow_beast"],
+      "spawnRate": 1.5,
+      "maxEnemies": 8
+    },
+    "collectibles": {
+      "types": ["void_essence", "ancient_relic", "legendary_artifact"],
+      "spawnCount": 15
+    },
+    "ambientEffects": {
+      "voidPulse": true,
+      "realityFlicker": true,
+      "darkWhispers": true
+    },
+    "hazards": {
+      "voidZones": true,
+      "darkEnergyBursts": true
+    }
+  },
+
+  "aurora_depths": {
+    "id": "aurora_depths",
+    "name": "Aurora Depths",
+    "description": "The deepest realm where auroras dance eternally and ancient light beings dwell",
+    "unlockCost": 5000,
+    "palette": {
+      "skyTop": "#0A192F",
+      "skyBottom": "#1B4332",
+      "nebula": "#00FF7F",
+      "accent": "#FFD700",
+      "flora": "#7FFFD4",
+      "rocks": "#2D6A4F"
+    },
+    "layers": {
+      "deepBackground": {
+        "enabled": true,
+        "colors": ["#0A192F", "#112D4E", "#1B4332"],
+        "scrollFactor": 0.05,
+        "opacity": 1.0
       },
-      "qualityLevels": {
-        "low": {
-          "particleCount": 0.4,
-          "effectComplexity": 0.3,
-          "layerCount": 0.6
-        },
-        "medium": {
-          "particleCount": 0.7,
-          "effectComplexity": 0.7,
-          "layerCount": 0.8
-        },
-        "high": {
-          "particleCount": 1.0,
-          "effectComplexity": 1.0,
-          "layerCount": 1.0
-        }
+      "auroraWaves": {
+        "enabled": true,
+        "count": 5,
+        "colors": ["#00FF7F", "#7FFFD4", "#40E0D0", "#00CED1"],
+        "scrollFactor": 0.15,
+        "waveAnimation": true,
+        "opacity": 0.6
+      },
+      "ancientStructures": {
+        "enabled": true,
+        "count": 4,
+        "colors": ["#2D6A4F", "#40916C", "#52B788"],
+        "glowColors": ["#FFD700", "#FFA500"],
+        "scrollFactor": 0.3
+      },
+      "luminousFlora": {
+        "enabled": true,
+        "count": 20,
+        "colors": ["#7FFFD4", "#98FB98", "#90EE90", "#00FA9A"],
+        "scrollFactor": 0.5,
+        "pulseGlow": true
+      },
+      "lightOrbs": {
+        "enabled": true,
+        "count": 25,
+        "colors": ["#FFD700", "#FFA500", "#FF8C00", "#FFFFFF"],
+        "scrollFactor": 0.65,
+        "floatPattern": "orbital"
+      },
+      "auroraParticles": {
+        "enabled": true,
+        "count": 50,
+        "colors": ["#00FF7F", "#7FFFD4", "#FFD700", "#FF69B4"],
+        "scrollFactor": 0.8,
+        "cascade": true
       }
     },
-    "accessibility": {
-      "reduceMotion": {
-        "disableFloating": true,
-        "disableTwinkle": true,
-        "staticBackgrounds": true
-      },
-      "colorBlindSupport": {
-        "alternativeIndicators": true,
-        "patternOverlays": false,
-        "contrastBoost": 1.2
-      },
-      "cognitiveLoad": {
-        "simplifiedEffects": false,
-        "reducedParticles": false,
-        "staticElements": false
-      }
+    "enemies": {
+      "types": ["light_guardian", "aurora_serpent", "ancient_warden"],
+      "spawnRate": 1.4,
+      "maxEnemies": 6
     },
-    "theme": {
-      "mood": "hopeful_discovery",
-      "energyLevel": "calm_wonder",
-      "colorTemperature": "cool_mystical",
-      "atmosphere": "magical_serenity"
+    "collectibles": {
+      "types": ["aurora_shard", "legendary_artifact", "ancient_relic"],
+      "spawnCount": 12
+    },
+    "ambientEffects": {
+      "auroraShimmer": true,
+      "ancientHum": true,
+      "lightCascade": true
+    },
+    "special": {
+      "healingZones": true,
+      "ancientSecrets": true
     }
   }
 }
