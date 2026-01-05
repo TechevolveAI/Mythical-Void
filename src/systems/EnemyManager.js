@@ -372,6 +372,16 @@ class EnemyManager {
             window.EconomyManager.addCoins(coinDrop, 'enemy_drop');
         }
 
+        // Track enemy defeat for quests
+        if (window.QuestManager) {
+            const currentBiome = this.scene?.currentBiome || 'nebula';
+            window.QuestManager.trackProgress('defeat_enemies', {
+                count: 1,
+                biome: currentBiome
+            });
+            window.QuestManager.trackProgress('collect_coins', { amount: coinDrop });
+        }
+
         // Death animation
         this.scene.tweens.add({
             targets: enemy,

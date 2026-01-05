@@ -1,0 +1,254 @@
+{
+  "version": "1.0.0",
+  "description": "Tool definitions for AI creature agents",
+
+  "toolCategories": {
+    "in_game": {
+      "name": "In-Game Actions",
+      "description": "Actions that affect the game world",
+      "enabled": true
+    },
+    "communication": {
+      "name": "Communication",
+      "description": "Tools for creature-player communication",
+      "enabled": true
+    },
+    "memory": {
+      "name": "Memory",
+      "description": "Tools for storing and retrieving information",
+      "enabled": true
+    },
+    "external": {
+      "name": "External APIs",
+      "description": "Tools that access external services",
+      "enabled": false,
+      "requiresOptIn": true
+    }
+  },
+
+  "tools": {
+    "collect_coins": {
+      "name": "Collect Coins",
+      "description": "Collect visible coins within range of the creature",
+      "category": "in_game",
+      "kidSafe": true,
+      "cooldown": 5000,
+      "parameters": {
+        "range": {
+          "type": "number",
+          "default": 150,
+          "min": 50,
+          "max": 300,
+          "description": "Search radius in pixels"
+        }
+      },
+      "successResponses": [
+        "Found {count} coins nearby!",
+        "Collected {count} shiny coins for you!",
+        "Gathered {count} coins from the area!"
+      ],
+      "failureResponses": [
+        "No coins visible right now",
+        "Couldn't find any coins nearby",
+        "The area seems empty of coins"
+      ]
+    },
+
+    "explore_area": {
+      "name": "Explore Area",
+      "description": "Move to and explore a specific area or biome",
+      "category": "in_game",
+      "kidSafe": true,
+      "cooldown": 10000,
+      "parameters": {
+        "direction": {
+          "type": "string",
+          "enum": ["north", "south", "east", "west", "random"],
+          "default": "random",
+          "description": "Direction to explore"
+        },
+        "distance": {
+          "type": "number",
+          "default": 200,
+          "min": 100,
+          "max": 500,
+          "description": "Distance to travel"
+        }
+      },
+      "successResponses": [
+        "Setting off to explore {direction}!",
+        "Let's see what's {direction} of here!",
+        "Adventure awaits to the {direction}!"
+      ]
+    },
+
+    "check_stats": {
+      "name": "Check Stats",
+      "description": "Check and report the creature's current stats",
+      "category": "in_game",
+      "kidSafe": true,
+      "cooldown": 2000,
+      "parameters": {}
+    },
+
+    "suggest_care": {
+      "name": "Suggest Care",
+      "description": "Analyze stats and suggest appropriate care actions",
+      "category": "in_game",
+      "kidSafe": true,
+      "cooldown": 3000,
+      "parameters": {}
+    },
+
+    "send_message": {
+      "name": "Send Message",
+      "description": "Send a chat message to the player",
+      "category": "communication",
+      "kidSafe": true,
+      "cooldown": 1000,
+      "parameters": {
+        "message": {
+          "type": "string",
+          "required": true,
+          "maxLength": 200,
+          "description": "Message content to send"
+        }
+      }
+    },
+
+    "remember": {
+      "name": "Remember",
+      "description": "Store important information in long-term memory",
+      "category": "memory",
+      "kidSafe": true,
+      "cooldown": 2000,
+      "parameters": {
+        "key": {
+          "type": "string",
+          "required": true,
+          "maxLength": 50,
+          "description": "Memory key/topic"
+        },
+        "value": {
+          "type": "string",
+          "required": true,
+          "maxLength": 500,
+          "description": "Information to remember"
+        }
+      }
+    },
+
+    "recall": {
+      "name": "Recall",
+      "description": "Retrieve information from long-term memory",
+      "category": "memory",
+      "kidSafe": true,
+      "cooldown": 1000,
+      "parameters": {
+        "key": {
+          "type": "string",
+          "required": true,
+          "description": "Memory key to retrieve"
+        }
+      }
+    }
+  },
+
+  "externalTools": {
+    "web_search": {
+      "name": "Web Search",
+      "description": "Search the web for information",
+      "category": "external",
+      "kidSafe": true,
+      "cooldown": 30000,
+      "requiresOptIn": true,
+      "rateLimit": {
+        "maxPerHour": 10,
+        "maxPerDay": 50
+      },
+      "parameters": {
+        "query": {
+          "type": "string",
+          "required": true,
+          "maxLength": 200,
+          "description": "Search query"
+        }
+      }
+    },
+
+    "get_weather": {
+      "name": "Get Weather",
+      "description": "Get current weather for a location",
+      "category": "external",
+      "kidSafe": true,
+      "cooldown": 60000,
+      "requiresOptIn": true,
+      "rateLimit": {
+        "maxPerHour": 5,
+        "maxPerDay": 20
+      },
+      "parameters": {
+        "location": {
+          "type": "string",
+          "required": true,
+          "maxLength": 100,
+          "description": "City or location name"
+        }
+      }
+    },
+
+    "create_reminder": {
+      "name": "Create Reminder",
+      "description": "Create a local reminder for the player",
+      "category": "external",
+      "kidSafe": true,
+      "cooldown": 5000,
+      "parameters": {
+        "message": {
+          "type": "string",
+          "required": true,
+          "maxLength": 200,
+          "description": "Reminder message"
+        },
+        "delayMinutes": {
+          "type": "number",
+          "default": 5,
+          "min": 1,
+          "max": 1440,
+          "description": "Delay in minutes before reminder"
+        }
+      }
+    },
+
+    "add_note": {
+      "name": "Add Note",
+      "description": "Save a note to memory for later reference",
+      "category": "external",
+      "kidSafe": true,
+      "cooldown": 2000,
+      "parameters": {
+        "title": {
+          "type": "string",
+          "required": true,
+          "maxLength": 50,
+          "description": "Note title"
+        },
+        "content": {
+          "type": "string",
+          "required": true,
+          "maxLength": 1000,
+          "description": "Note content"
+        }
+      }
+    }
+  },
+
+  "settings": {
+    "defaultCooldown": 5000,
+    "maxToolsPerRequest": 3,
+    "toolExecutionTimeout": 10000,
+    "enableDebugLogging": false,
+    "autoRetryOnFailure": true,
+    "maxRetries": 2
+  }
+}

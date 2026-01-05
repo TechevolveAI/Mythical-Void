@@ -55,8 +55,13 @@ class GraphicsEngine {
             console.error('graphics:error [GraphicsEngine] Failed to create scratch graphics:', error);
 
             // Emit error for ErrorHandler
-            if (typeof window !== 'undefined' && window.ErrorHandler) {
-                window.ErrorHandler.handleError(error, 'GraphicsEngine.createScratchGraphics', 'error');
+            if (typeof window !== 'undefined' && window.ErrorHandler && typeof window.ErrorHandler.handleError === 'function') {
+                window.ErrorHandler.handleError({
+                    message: error.message || 'Failed to create scratch graphics',
+                    type: 'GraphicsEngine.createScratchGraphics',
+                    severity: 'error',
+                    stack: error.stack
+                });
             }
 
             throw error; // Re-throw as this is critical
@@ -108,9 +113,23 @@ class GraphicsEngine {
             return { x: 1, y: 1 };
         }
 
+        // Support multiple property naming conventions
+        // Priority: x/y > scaleX/scaleY > width/height (normalized to base 50)
+        let x = bodyScale.x ?? bodyScale.scaleX;
+        let y = bodyScale.y ?? bodyScale.scaleY;
+
+        // If x/y not found, try width/height (normalize to scale factor)
+        // Base size is ~50, so width/height should be divided to get scale
+        if (x === undefined && bodyScale.width !== undefined) {
+            x = bodyScale.width / 50;
+        }
+        if (y === undefined && bodyScale.height !== undefined) {
+            y = bodyScale.height / 50;
+        }
+
         return {
-            x: bodyScale.x ?? bodyScale.scaleX ?? 1,
-            y: bodyScale.y ?? bodyScale.scaleY ?? 1
+            x: x ?? 1,
+            y: y ?? 1
         };
     }
 
@@ -263,12 +282,33 @@ class GraphicsEngine {
 
     /**
      * Render creature directly onto a graphics context (for genetic composition)
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {Object} center - Center point {x, y}
+     * @param {Object} size - Base size {width, height}
+     * @param {number} bodyColor - Body color hex
+     * @param {number} headColor - Head color hex
+     * @param {number} wingColor - Wing color hex
+     * @param {number} frame - Animation frame
+     * @param {Object} geneticTraits - Genetic trait modifiers
+     * @param {Object} stageConfig - Stage configuration with multipliers
      */
-    renderCreatureOnGraphics(graphics, center, size, bodyColor = 0x9370DB, headColor = 0xDDA0DD, wingColor = 0x8A2BE2, frame = 0, geneticTraits = null) {
+    renderCreatureOnGraphics(graphics, center, size, bodyColor = 0x9370DB, headColor = 0xDDA0DD, wingColor = 0x8A2BE2, frame = 0, geneticTraits = null, stageConfig = null) {
         const eyeColor = 0x4169E1;
         let modifiedBodyColor = bodyColor;
         let modifiedHeadColor = headColor;
-        
+
+        // Stage-based scaling multipliers (default to 1.0 for adult)
+        const eyeMultiplier = stageConfig?.eyeSizeMultiplier || 1.0;
+        const headMultiplier = stageConfig?.headSizeMultiplier || 1.0;
+        const baseScale = stageConfig?.scale || 1.0;
+
+        // Calculate scaled sizes - babies get BIGGER eyes relative to body
+        // Base eye size is 5px for adults, scale up for babies
+        const baseEyeSize = 5 * eyeMultiplier;
+        const baseHeadSize = 16 * headMultiplier;
+
+        console.log(`graphics:debug [GraphicsEngine] Stage scaling - eye: ${eyeMultiplier}x, head: ${headMultiplier}x, base: ${baseScale}x`);
+
         // Body scaling and positioning modifiers
         let bodyScale = { x: 1.0, y: 1.0 };
         let bodyOffset = { x: 0, y: 0 };
@@ -282,7 +322,7 @@ class GraphicsEngine {
                 bodyScale.y = bodyMods.scaleY || 1.0;
                 bodyOffset.x = bodyMods.offsetX || 0;
                 bodyOffset.y = bodyMods.offsetY || 0;
-                
+
                 this.currentBodyType = bodyMods.shape;
                 this.currentSpecialFeatures = bodyMods.specialFeatures || [];
             }
@@ -298,31 +338,44 @@ class GraphicsEngine {
         console.log(`graphics:debug [GraphicsEngine] Rendering body type: ${bodyType}`, { bodyScale, bodyOffset });
         this.renderBodyByType(graphics, center, bodyOffset, bodyScale, modifiedBodyColor, bodyType);
 
-        // Head with realistic shading
+        // Head with realistic shading - SCALED by headMultiplier
         const headShadow = this.darkenColor(headColor, 0.4);
         const headHighlight = this.lightenColor(headColor, 0.3);
 
-        // Head base (shadow side)
+        // Scale head position relative to body (babies have proportionally larger heads)
+        const headY = center.y - (10 * baseScale);
+
+        // Head base (shadow side) - SCALED
         graphics.fillStyle(headShadow);
-        graphics.fillCircle(center.x + 1, center.y - 8, 16);
+        graphics.fillCircle(center.x + 1, headY + 2, baseHeadSize);
 
-        // Head main color
+        // Head main color - SCALED
         graphics.fillStyle(headColor);
-        graphics.fillCircle(center.x - 1, center.y - 10, 15);
+        graphics.fillCircle(center.x - 1, headY, baseHeadSize * 0.94);
 
-        // Head highlight (lit side)
+        // Head highlight (lit side) - SCALED
         graphics.fillStyle(headHighlight, 0.9);
-        graphics.fillCircle(center.x - 4, center.y - 12, 10);
+        graphics.fillCircle(center.x - (4 * headMultiplier), headY - (2 * headMultiplier), baseHeadSize * 0.625);
 
-        // Head shine
+        // Head shine - SCALED
         graphics.fillStyle(0xFFFFFF, 0.4);
-        graphics.fillCircle(center.x - 6, center.y - 15, 5);
+        graphics.fillCircle(center.x - (6 * headMultiplier), headY - (5 * headMultiplier), baseHeadSize * 0.3);
 
-        // Eyes based on body type
+        // Eyes based on body type - SCALED with stage multipliers
+        // Eye positions scale with head, but eye SIZE gets the eyeMultiplier (bigger for babies)
+        const eyeY = headY - (2 * headMultiplier);
+        const eyeSpacing = 6 * headMultiplier;
+
         if (this.currentBodyType === 'cyclops') {
-            this.createCyclopsEye(graphics, center.x, center.y - 10, eyeColor);
+            this.createCyclopsEye(graphics, center.x, eyeY, eyeColor, baseEyeSize);
         } else {
-            this.createRealisticEyes(graphics, center.x - 6, center.y - 12, center.x + 6, center.y - 12, eyeColor);
+            this.createRealisticEyes(
+                graphics,
+                center.x - eyeSpacing, eyeY,
+                center.x + eyeSpacing, eyeY,
+                eyeColor,
+                baseEyeSize
+            );
         }
 
         // Genetic head modifications
@@ -333,111 +386,145 @@ class GraphicsEngine {
 
         // Chest highlight
         graphics.fillStyle(0xFFFFFF, 0.2);
-        graphics.fillEllipse(center.x - 2, center.y - 2, 8, 12);
+        graphics.fillEllipse(center.x - 2, center.y - 2, 8 * baseScale, 12 * baseScale);
     }
 
     /**
      * Create realistic eyes with proper depth and reflections
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {number} leftX - Left eye X position
+     * @param {number} leftY - Left eye Y position
+     * @param {number} rightX - Right eye X position
+     * @param {number} rightY - Right eye Y position
+     * @param {number} eyeColor - Eye color hex
+     * @param {number} baseSize - Base eye size (default 5, scaled by stage)
      */
-    createRealisticEyes(graphics, leftX, leftY, rightX, rightY, eyeColor = 0x4169E1) {
-        // Eye sockets (shadow)
+    createRealisticEyes(graphics, leftX, leftY, rightX, rightY, eyeColor = 0x4169E1, baseSize = 5) {
+        // Scale all eye components proportionally
+        const socketSize = baseSize * 1.2;      // Eye socket slightly larger
+        const whiteSize = baseSize;              // Eye white = base size
+        const irisSize = baseSize * 0.7;         // Iris ~70% of white
+        const innerIrisSize = baseSize * 0.5;    // Inner iris ~50%
+        const pupilSize = baseSize * 0.3;        // Pupil ~30%
+        const reflectionSize = baseSize * 0.2;   // Main reflection ~20%
+        const reflectionOffset = baseSize * 0.2; // Offset for sparkle position
+
+        // Eye sockets (shadow) - SCALED
         graphics.fillStyle(0x000000, 0.3);
-        graphics.fillCircle(leftX, leftY + 1, 6);
-        graphics.fillCircle(rightX, rightY + 1, 6);
+        graphics.fillCircle(leftX, leftY + 1, socketSize);
+        graphics.fillCircle(rightX, rightY + 1, socketSize);
 
-        // Eye whites
+        // Eye whites - SCALED
         graphics.fillStyle(0xFFFAF0);
-        graphics.fillCircle(leftX, leftY, 5);
-        graphics.fillCircle(rightX, rightY, 5);
+        graphics.fillCircle(leftX, leftY, whiteSize);
+        graphics.fillCircle(rightX, rightY, whiteSize);
 
-        // Iris with color variation
+        // Iris with color variation - SCALED
         graphics.fillStyle(eyeColor);
-        graphics.fillCircle(leftX, leftY, 3.5);
-        graphics.fillCircle(rightX, rightY, 3.5);
+        graphics.fillCircle(leftX, leftY, irisSize);
+        graphics.fillCircle(rightX, rightY, irisSize);
 
-        // Iris inner ring (adds depth)
+        // Iris inner ring (adds depth) - SCALED
         graphics.fillStyle(this.lightenColor(eyeColor, 0.2), 0.7);
-        graphics.fillCircle(leftX, leftY, 2.5);
-        graphics.fillCircle(rightX, rightY, 2.5);
+        graphics.fillCircle(leftX, leftY, innerIrisSize);
+        graphics.fillCircle(rightX, rightY, innerIrisSize);
 
-        // Pupils
+        // Pupils - SCALED
         graphics.fillStyle(0x000000);
-        graphics.fillCircle(leftX, leftY, 1.5);
-        graphics.fillCircle(rightX, rightY, 1.5);
+        graphics.fillCircle(leftX, leftY, pupilSize);
+        graphics.fillCircle(rightX, rightY, pupilSize);
 
-        // Eye reflections (brings them to life!)
-        graphics.fillStyle(0xFFFFFF, 0.9);
-        graphics.fillCircle(leftX - 1, leftY - 1, 1);
-        graphics.fillCircle(rightX - 1, rightY - 1, 1);
+        // Eye reflections (brings them to life!) - SCALED
+        // Main sparkle - upper left of each eye
+        graphics.fillStyle(0xFFFFFF, 0.95);
+        graphics.fillCircle(leftX - reflectionOffset, leftY - reflectionOffset, reflectionSize);
+        graphics.fillCircle(rightX - reflectionOffset, rightY - reflectionOffset, reflectionSize);
 
-        // Secondary reflection
-        graphics.fillStyle(0xFFFFFF, 0.5);
-        graphics.fillCircle(leftX + 1, leftY + 0.5, 0.5);
-        graphics.fillCircle(rightX + 1, rightY + 0.5, 0.5);
+        // Secondary reflection - smaller, lower right
+        graphics.fillStyle(0xFFFFFF, 0.6);
+        graphics.fillCircle(leftX + reflectionOffset * 0.5, leftY + reflectionOffset * 0.25, reflectionSize * 0.5);
+        graphics.fillCircle(rightX + reflectionOffset * 0.5, rightY + reflectionOffset * 0.25, reflectionSize * 0.5);
 
-        // Subtle eyelids for realism
-        graphics.lineStyle(1, 0x000000, 0.3);
-        graphics.strokeCircle(leftX, leftY - 0.5, 5);
-        graphics.strokeCircle(rightX, rightY - 0.5, 5);
+        // Subtle eyelids for realism - SCALED
+        graphics.lineStyle(Math.max(1, baseSize * 0.2), 0x000000, 0.3);
+        graphics.strokeCircle(leftX, leftY - (baseSize * 0.1), whiteSize);
+        graphics.strokeCircle(rightX, rightY - (baseSize * 0.1), whiteSize);
     }
 
     /**
      * Create single large cyclops eye with enhanced detail
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {number} centerX - Eye center X position
+     * @param {number} centerY - Eye center Y position
+     * @param {number} eyeColor - Eye color hex
+     * @param {number} baseSize - Base eye size (default 8, cyclops eyes are naturally larger)
      */
-    createCyclopsEye(graphics, centerX, centerY, eyeColor = 0x4169E1) {
-        // Eye socket (larger shadow for single eye)
+    createCyclopsEye(graphics, centerX, centerY, eyeColor = 0x4169E1, baseSize = 8) {
+        // Cyclops eye is inherently larger - scale all proportionally
+        const socketSize = baseSize * 1.25;      // Socket slightly larger than white
+        const browWidth = baseSize * 2.5;        // Brow ridge width
+        const browHeight = baseSize * 0.75;      // Brow ridge height
+        const whiteSize = baseSize;              // Eye white
+        const irisSize = baseSize * 0.75;        // Iris
+        const innerIrisSize = baseSize * 0.56;   // Inner iris
+        const pupilSize = baseSize * 0.31;       // Pupil
+        const reflectionSize = baseSize * 0.19;  // Main reflection
+        const irisLineStart = baseSize * 0.25;   // Iris texture start
+        const irisLineEnd = baseSize * 0.5;      // Iris texture end
+
+        // Eye socket (larger shadow for single eye) - SCALED
         graphics.fillStyle(0x000000, 0.4);
-        graphics.fillCircle(centerX, centerY + 1, 10);
+        graphics.fillCircle(centerX, centerY + 1, socketSize);
 
-        // Prominent brow ridge (cyclops characteristic)
+        // Prominent brow ridge (cyclops characteristic) - SCALED
         graphics.fillStyle(0x8B4513, 0.8);
-        graphics.fillEllipse(centerX, centerY - 6, 20, 6);
+        graphics.fillEllipse(centerX, centerY - (baseSize * 0.75), browWidth, browHeight);
 
-        // Eye white (larger than normal eyes)
+        // Eye white (larger than normal eyes) - SCALED
         graphics.fillStyle(0xFFFAF0);
-        graphics.fillCircle(centerX, centerY, 8);
+        graphics.fillCircle(centerX, centerY, whiteSize);
 
-        // Iris (proportionally larger)
+        // Iris (proportionally larger) - SCALED
         graphics.fillStyle(eyeColor);
-        graphics.fillCircle(centerX, centerY, 6);
+        graphics.fillCircle(centerX, centerY, irisSize);
 
-        // Iris inner ring with depth
+        // Iris inner ring with depth - SCALED
         graphics.fillStyle(this.lightenColor(eyeColor, 0.2), 0.8);
-        graphics.fillCircle(centerX, centerY, 4.5);
+        graphics.fillCircle(centerX, centerY, innerIrisSize);
 
-        // Iris texture lines for realism
-        graphics.lineStyle(0.5, this.darkenColor(eyeColor, 0.3), 0.6);
+        // Iris texture lines for realism - SCALED
+        graphics.lineStyle(Math.max(0.5, baseSize * 0.06), this.darkenColor(eyeColor, 0.3), 0.6);
         for (let i = 0; i < 8; i++) {
             const angle = (i * Math.PI) / 4;
-            const startX = centerX + Math.cos(angle) * 2;
-            const startY = centerY + Math.sin(angle) * 2;
-            const endX = centerX + Math.cos(angle) * 4;
-            const endY = centerY + Math.sin(angle) * 4;
+            const startX = centerX + Math.cos(angle) * irisLineStart;
+            const startY = centerY + Math.sin(angle) * irisLineStart;
+            const endX = centerX + Math.cos(angle) * irisLineEnd;
+            const endY = centerY + Math.sin(angle) * irisLineEnd;
             graphics.beginPath();
             graphics.moveTo(startX, startY);
             graphics.lineTo(endX, endY);
             graphics.strokePath();
         }
 
-        // Large pupil
+        // Large pupil - SCALED
         graphics.fillStyle(0x000000);
-        graphics.fillCircle(centerX, centerY, 2.5);
+        graphics.fillCircle(centerX, centerY, pupilSize);
 
-        // Primary reflection (more prominent on single eye)
-        graphics.fillStyle(0xFFFFFF, 0.9);
-        graphics.fillCircle(centerX - 2, centerY - 2, 1.5);
+        // Primary reflection (more prominent on single eye) - SCALED
+        graphics.fillStyle(0xFFFFFF, 0.95);
+        graphics.fillCircle(centerX - (baseSize * 0.25), centerY - (baseSize * 0.25), reflectionSize);
 
-        // Secondary reflection
+        // Secondary reflection - SCALED
         graphics.fillStyle(0xFFFFFF, 0.6);
-        graphics.fillCircle(centerX + 1.5, centerY + 1, 0.8);
+        graphics.fillCircle(centerX + (baseSize * 0.19), centerY + (baseSize * 0.125), reflectionSize * 0.5);
 
-        // Eyelid with more defined edge
-        graphics.lineStyle(1.5, 0x000000, 0.4);
-        graphics.strokeCircle(centerX, centerY - 1, 8);
+        // Eyelid with more defined edge - SCALED
+        graphics.lineStyle(Math.max(1.5, baseSize * 0.19), 0x000000, 0.4);
+        graphics.strokeCircle(centerX, centerY - (baseSize * 0.125), whiteSize);
 
-        // Lower eyelid shadow
+        // Lower eyelid shadow - SCALED
         graphics.fillStyle(0x000000, 0.2);
-        graphics.fillEllipse(centerX, centerY + 6, 16, 3);
+        graphics.fillEllipse(centerX, centerY + (baseSize * 0.75), browWidth, browHeight * 0.5);
     }
 
     /**
@@ -1351,6 +1438,392 @@ class GraphicsEngine {
     }
 
     /**
+     * Create Crashed Ship landmark for the Sanctuary
+     * The player's wrecked spacecraft - narrative anchor for the game
+     * @returns {string} Texture name
+     */
+    createCrashedShip() {
+        if (this.scene.textures.exists('crashedShip')) {
+            return 'crashedShip';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 220;
+        const height = 170;
+        const centerX = width / 2;
+
+        // Ground impact crater
+        graphics.fillStyle(0x1A0A2E, 0.6);
+        graphics.fillEllipse(centerX, height - 20, 100, 25);
+        graphics.fillStyle(0x0A0515, 0.8);
+        graphics.fillEllipse(centerX, height - 15, 80, 18);
+
+        // Scattered debris
+        const debrisColors = [0x4A5568, 0x2D3748, 0x718096];
+        for (let i = 0; i < 12; i++) {
+            const dx = Phaser.Math.Between(20, width - 20);
+            const dy = Phaser.Math.Between(height - 50, height - 10);
+            const size = Phaser.Math.Between(3, 8);
+            graphics.fillStyle(Phaser.Math.RND.pick(debrisColors), 0.7);
+            graphics.fillRect(dx, dy, size, size / 2);
+        }
+
+        // Main ship hull - tilted and damaged
+        // Hull base
+        graphics.fillStyle(0x4A5568, 1);
+        graphics.beginPath();
+        graphics.moveTo(30, height - 40);
+        graphics.lineTo(50, 60);
+        graphics.lineTo(180, 50);
+        graphics.lineTo(200, height - 35);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Hull panels
+        graphics.lineStyle(2, 0x2D3748, 0.8);
+        graphics.lineBetween(60, 65, 70, height - 45);
+        graphics.lineBetween(100, 55, 105, height - 40);
+        graphics.lineBetween(140, 52, 140, height - 38);
+
+        // Cockpit window - cracked
+        graphics.fillStyle(0x00CED1, 0.4);
+        graphics.fillEllipse(80, 75, 25, 15);
+        graphics.lineStyle(2, 0x00FFFF, 0.6);
+        graphics.strokeEllipse(80, 75, 25, 15);
+        // Crack lines
+        graphics.lineStyle(1, 0xFFFFFF, 0.5);
+        graphics.lineBetween(75, 70, 90, 80);
+        graphics.lineBetween(80, 68, 85, 82);
+
+        // Engine section - damaged and smoking
+        graphics.fillStyle(0x2D3748, 1);
+        graphics.fillRect(160, 55, 35, 70);
+
+        // Engine glow (damaged, flickering)
+        graphics.fillStyle(0xFF6B6B, 0.3);
+        graphics.fillCircle(177, 90, 20);
+        graphics.fillStyle(0xFF4444, 0.5);
+        graphics.fillCircle(177, 90, 12);
+
+        // Damage marks / burn marks
+        graphics.fillStyle(0x1A1A1A, 0.6);
+        graphics.fillEllipse(120, 80, 15, 8);
+        graphics.fillEllipse(150, 95, 12, 6);
+        graphics.fillEllipse(90, 100, 10, 5);
+
+        // Exposed wiring
+        graphics.lineStyle(2, 0xFFD700, 0.6);
+        graphics.lineBetween(130, 85, 145, 95);
+        graphics.lineStyle(2, 0x00FFFF, 0.6);
+        graphics.lineBetween(132, 88, 142, 100);
+
+        // Wing - broken off and nearby
+        graphics.fillStyle(0x4A5568, 0.8);
+        graphics.beginPath();
+        graphics.moveTo(15, height - 60);
+        graphics.lineTo(5, height - 80);
+        graphics.lineTo(40, height - 70);
+        graphics.lineTo(35, height - 50);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Alien plants growing on wreckage
+        graphics.fillStyle(0x7B68EE, 0.7);
+        graphics.fillCircle(45, height - 55, 6);
+        graphics.fillCircle(48, height - 62, 4);
+        graphics.fillStyle(0x9370DB, 0.6);
+        graphics.fillCircle(175, height - 50, 5);
+        graphics.fillCircle(180, height - 58, 3);
+
+        // Smoke particles
+        graphics.fillStyle(0x666666, 0.3);
+        graphics.fillCircle(175, 40, 15);
+        graphics.fillCircle(180, 25, 12);
+        graphics.fillCircle(170, 15, 8);
+
+        // Sparkle effects (functional parts still working)
+        graphics.fillStyle(0x00FFFF, 0.8);
+        graphics.fillCircle(80, 75, 2);
+        graphics.fillStyle(0xFFD700, 0.6);
+        graphics.fillCircle(177, 90, 3);
+
+        return this.finalizeTexture(graphics, 'crashedShip', width, height);
+    }
+
+    /**
+     * Create Hub Portal landmark for the Sanctuary
+     * A mystical portal that leads to other worlds
+     * @returns {string} Texture name
+     */
+    createHubPortal() {
+        if (this.scene.textures.exists('hubPortal')) {
+            return 'hubPortal';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 160;
+        const height = 180;
+        const centerX = width / 2;
+        const portalY = 90;
+
+        // Ground platform - ancient stone
+        graphics.fillStyle(0x2D2D4A, 1);
+        graphics.fillEllipse(centerX, height - 20, 70, 18);
+        graphics.fillStyle(0x1A1A3E, 1);
+        graphics.fillEllipse(centerX, height - 15, 60, 12);
+
+        // Stone pillars on sides
+        graphics.fillStyle(0x3D3D5C, 1);
+        graphics.fillRect(15, 50, 25, 110);
+        graphics.fillRect(120, 50, 25, 110);
+
+        // Pillar tops
+        graphics.fillStyle(0x4D4D6C, 1);
+        graphics.fillRect(10, 45, 35, 12);
+        graphics.fillRect(115, 45, 35, 12);
+
+        // Rune carvings on pillars
+        graphics.lineStyle(2, 0x9370DB, 0.6);
+        // Left pillar runes
+        graphics.lineBetween(22, 70, 32, 80);
+        graphics.lineBetween(32, 70, 22, 80);
+        graphics.strokeCircle(27, 100, 8);
+        graphics.lineBetween(22, 120, 32, 130);
+        // Right pillar runes
+        graphics.lineBetween(127, 70, 137, 80);
+        graphics.lineBetween(137, 70, 127, 80);
+        graphics.strokeCircle(132, 100, 8);
+        graphics.lineBetween(127, 120, 137, 130);
+
+        // Portal arch
+        graphics.lineStyle(6, 0x4B0082, 1);
+        graphics.beginPath();
+        graphics.arc(centerX, portalY + 20, 50, Math.PI, 0);
+        graphics.strokePath();
+
+        // Inner arch glow
+        graphics.lineStyle(3, 0x7B68EE, 0.8);
+        graphics.beginPath();
+        graphics.arc(centerX, portalY + 20, 45, Math.PI, 0);
+        graphics.strokePath();
+
+        // Portal energy field - outer glow
+        graphics.fillStyle(0x9370DB, 0.2);
+        graphics.fillCircle(centerX, portalY + 20, 48);
+        graphics.fillStyle(0x7B68EE, 0.3);
+        graphics.fillCircle(centerX, portalY + 20, 40);
+        graphics.fillStyle(0x6B5BD2, 0.4);
+        graphics.fillCircle(centerX, portalY + 20, 32);
+
+        // Portal swirl effect
+        graphics.lineStyle(3, 0x00CED1, 0.6);
+        graphics.beginPath();
+        graphics.arc(centerX, portalY + 20, 25, 0, Math.PI * 1.5);
+        graphics.strokePath();
+
+        graphics.lineStyle(2, 0x00FFFF, 0.5);
+        graphics.beginPath();
+        graphics.arc(centerX, portalY + 20, 18, Math.PI * 0.5, Math.PI * 2);
+        graphics.strokePath();
+
+        // Center star/core
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        this.drawStar(graphics, centerX, portalY + 20, 6, 5, 12);
+        graphics.fillStyle(0x00FFFF, 0.8);
+        this.drawStar(graphics, centerX, portalY + 20, 6, 3, 8);
+
+        // Floating energy particles
+        const particles = [
+            { x: centerX - 30, y: portalY },
+            { x: centerX + 30, y: portalY },
+            { x: centerX - 20, y: portalY + 40 },
+            { x: centerX + 20, y: portalY + 40 },
+            { x: centerX, y: portalY - 10 }
+        ];
+        particles.forEach(p => {
+            graphics.fillStyle(0x00FFFF, 0.7);
+            graphics.fillCircle(p.x, p.y, 3);
+            graphics.fillStyle(0xFFFFFF, 0.5);
+            graphics.fillCircle(p.x, p.y, 1.5);
+        });
+
+        // Top decoration - cosmic crystal
+        graphics.fillStyle(0x9370DB, 0.9);
+        graphics.fillTriangle(centerX, 15, centerX - 12, 45, centerX + 12, 45);
+        graphics.fillStyle(0xE0E0FF, 0.6);
+        graphics.fillTriangle(centerX, 20, centerX - 6, 40, centerX + 2, 40);
+
+        // Ground glow
+        graphics.fillStyle(0x7B68EE, 0.15);
+        graphics.fillEllipse(centerX, height - 10, 80, 20);
+
+        return this.finalizeTexture(graphics, 'hubPortal', width, height);
+    }
+
+    /**
+     * Create a return portal for traveling back to Sanctuary
+     * A smaller, home-themed portal with warm colors
+     * @returns {string} Texture name
+     */
+    createReturnPortal() {
+        if (this.scene.textures.exists('returnPortal')) {
+            return 'returnPortal';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 140;
+        const height = 160;
+        const centerX = width / 2;
+        const portalY = 80;
+
+        // Ground platform
+        graphics.fillStyle(0x2D4A3D, 1);
+        graphics.fillEllipse(centerX, height - 15, 55, 14);
+        graphics.fillStyle(0x1A3E2D, 1);
+        graphics.fillEllipse(centerX, height - 10, 45, 10);
+
+        // Vine-wrapped pillars
+        graphics.fillStyle(0x3D5C4D, 1);
+        graphics.fillRect(20, 45, 20, 95);
+        graphics.fillRect(100, 45, 20, 95);
+
+        // Pillar tops
+        graphics.fillStyle(0x4D6C5C, 1);
+        graphics.fillRect(15, 40, 30, 10);
+        graphics.fillRect(95, 40, 30, 10);
+
+        // Vine details on pillars (using line segments to approximate curves)
+        graphics.lineStyle(2, 0x4CAF50, 0.7);
+        // Left pillar vines - draw as connected line segments
+        graphics.beginPath();
+        graphics.moveTo(25, 50);
+        graphics.lineTo(30, 65);
+        graphics.lineTo(25, 80);
+        graphics.lineTo(30, 95);
+        graphics.lineTo(25, 110);
+        graphics.lineTo(35, 120);
+        graphics.strokePath();
+        // Right pillar vines
+        graphics.beginPath();
+        graphics.moveTo(115, 50);
+        graphics.lineTo(110, 65);
+        graphics.lineTo(115, 80);
+        graphics.lineTo(110, 95);
+        graphics.lineTo(115, 110);
+        graphics.lineTo(105, 120);
+        graphics.strokePath();
+
+        // Portal arch - natural stone
+        graphics.lineStyle(5, 0x4A6A5A, 1);
+        graphics.beginPath();
+        graphics.arc(centerX, portalY + 15, 40, Math.PI, 0);
+        graphics.strokePath();
+
+        // Inner arch glow (home warm tones)
+        graphics.lineStyle(3, 0xFFD700, 0.8);
+        graphics.beginPath();
+        graphics.arc(centerX, portalY + 15, 35, Math.PI, 0);
+        graphics.strokePath();
+
+        // Portal energy field - warm colors
+        graphics.fillStyle(0xFFA500, 0.2);
+        graphics.fillCircle(centerX, portalY + 15, 38);
+        graphics.fillStyle(0xFFD700, 0.3);
+        graphics.fillCircle(centerX, portalY + 15, 30);
+        graphics.fillStyle(0xFFFF00, 0.3);
+        graphics.fillCircle(centerX, portalY + 15, 22);
+
+        // Swirl effect
+        graphics.lineStyle(2, 0x7B68EE, 0.5);
+        graphics.beginPath();
+        graphics.arc(centerX, portalY + 15, 18, 0, Math.PI * 1.5);
+        graphics.strokePath();
+
+        // Home icon in center (simple house shape)
+        graphics.fillStyle(0xFFFFFF, 0.8);
+        // House body
+        graphics.fillTriangle(centerX, portalY - 5, centerX - 12, portalY + 15, centerX + 12, portalY + 15);
+        graphics.fillRect(centerX - 8, portalY + 15, 16, 15);
+        // Door
+        graphics.fillStyle(0xFFD700, 0.9);
+        graphics.fillRect(centerX - 3, portalY + 20, 6, 10);
+
+        // Small floating leaves
+        const leaves = [
+            { x: centerX - 25, y: portalY - 5 },
+            { x: centerX + 25, y: portalY },
+            { x: centerX - 15, y: portalY + 35 },
+            { x: centerX + 18, y: portalY + 30 }
+        ];
+        leaves.forEach(l => {
+            graphics.fillStyle(0x7CB342, 0.8);
+            graphics.fillEllipse(l.x, l.y, 4, 2);
+        });
+
+        // "Return Home" glow at base
+        graphics.fillStyle(0xFFD700, 0.2);
+        graphics.fillEllipse(centerX, height - 5, 60, 15);
+
+        // Sparkles
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        graphics.fillCircle(centerX - 20, portalY - 10, 2);
+        graphics.fillCircle(centerX + 22, portalY + 5, 2);
+        graphics.fillCircle(centerX, portalY + 40, 2);
+
+        return this.finalizeTexture(graphics, 'returnPortal', width, height);
+    }
+
+    /**
+     * Create a simple campfire for the living area
+     * @returns {string} Texture name
+     */
+    createCampfire() {
+        if (this.scene.textures.exists('campfire')) {
+            return 'campfire';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 60;
+        const height = 70;
+        const centerX = width / 2;
+
+        // Stone ring
+        graphics.fillStyle(0x4A4A4A, 1);
+        graphics.fillEllipse(centerX, height - 10, 28, 10);
+        graphics.fillStyle(0x3A3A3A, 1);
+        graphics.fillEllipse(centerX, height - 8, 22, 7);
+
+        // Logs
+        graphics.fillStyle(0x5D4037, 1);
+        graphics.fillRect(centerX - 18, height - 25, 36, 8);
+        graphics.fillStyle(0x4E342E, 1);
+        graphics.fillRect(centerX - 12, height - 32, 24, 7);
+
+        // Fire glow base
+        graphics.fillStyle(0xFF6600, 0.3);
+        graphics.fillCircle(centerX, height - 35, 25);
+        graphics.fillStyle(0xFF4400, 0.4);
+        graphics.fillCircle(centerX, height - 35, 18);
+
+        // Fire flames
+        graphics.fillStyle(0xFF6600, 0.9);
+        graphics.fillTriangle(centerX, height - 55, centerX - 10, height - 25, centerX + 8, height - 28);
+        graphics.fillStyle(0xFFAA00, 0.9);
+        graphics.fillTriangle(centerX - 5, height - 48, centerX - 12, height - 28, centerX + 2, height - 30);
+        graphics.fillTriangle(centerX + 5, height - 50, centerX - 2, height - 28, centerX + 12, height - 26);
+        graphics.fillStyle(0xFFDD00, 0.8);
+        graphics.fillTriangle(centerX, height - 42, centerX - 6, height - 30, centerX + 6, height - 30);
+
+        // Sparks
+        graphics.fillStyle(0xFFFF00, 0.8);
+        graphics.fillCircle(centerX - 8, height - 50, 2);
+        graphics.fillCircle(centerX + 10, height - 55, 1.5);
+        graphics.fillCircle(centerX + 3, height - 58, 1);
+
+        return this.finalizeTexture(graphics, 'campfire', width, height);
+    }
+
+    /**
      * Create animated Void Merchant shopkeeper sprite
      * @param {number} frame - Animation frame (0-3 for idle animation)
      * @returns {string} - Texture name
@@ -1774,7 +2247,9 @@ class GraphicsEngine {
      * @param {number} frame - Animation frame
      * @returns {Object} Texture info and metadata
      */
-    createRandomizedSpaceMythicCreature(genetics, frame = 0) {
+    createRandomizedSpaceMythicCreature(genetics, frame = 0, stage = 'adult') {
+        console.log(`graphics:debug [GraphicsEngine] createRandomizedSpaceMythicCreature called with stage: "${stage}"`);
+
         // Input validation
         if (!genetics || !genetics.traits) {
             console.warn('graphics:warn [GraphicsEngine] Invalid genetics provided, using defaults');
@@ -1784,20 +2259,59 @@ class GraphicsEngine {
         try {
             const startTime = Date.now();
 
+            // Get stage visual configuration
+            const stageConfig = this.getStageVisualConfig(stage);
+            console.log(`graphics:debug [GraphicsEngine] Stage config for "${stage}":`, stageConfig);
+
+            // USE STAGE VISUAL RESOLVER for dramatic stage-based transformations
+            // This creates completely different appearances per stage (baby blob -> adult form -> elder transcendence)
+            let resolvedTraits = null;
+            if (window.StageVisualResolver) {
+                const resolver = new window.StageVisualResolver();
+                resolvedTraits = resolver.resolveTraitsForStage(genetics, stage);
+                console.log(`graphics:debug [GraphicsEngine] Stage-resolved body type: "${resolvedTraits.bodyType}" (destiny: "${resolvedTraits.destinyBodyType}")`);
+            }
+
             // Convert genetic data to visual parameters
             const visualConfig = this.geneticsToVisualConfig(genetics);
 
-            // Apply body shape modifications
-            const bodyModifications = this.calculateBodyModifications(genetics.traits.bodyShape);
+            // Apply stage-based color modifications (use resolved colors if available)
+            const stageModifiedColors = resolvedTraits?.colors
+                ? resolvedTraits.colors
+                : this.applyStageColorModifications(visualConfig.colors, stageConfig);
+
+            // Determine body type - use resolved stage-aware type if available
+            const effectiveBodyType = resolvedTraits?.bodyType || genetics.traits.bodyShape?.type || 'balanced';
+            const destinyBodyType = genetics.traits.bodyShape?.type || 'balanced';
+
+            // Apply body shape modifications based on resolved or genetic body type
+            const bodyModifications = this.calculateBodyModifications({
+                type: effectiveBodyType.startsWith('baby_') || effectiveBodyType.startsWith('transitional_') || effectiveBodyType.startsWith('elder_')
+                    ? destinyBodyType // Use destiny for calculating mods
+                    : effectiveBodyType,
+                intensity: genetics.traits.bodyShape?.intensity || 0.5
+            });
 
             // Create enhanced creature with genetic modifications
             const enhancedTraits = {
                 ...genetics.traits.features,
-                bodyMods: bodyModifications
+                bodyMods: bodyModifications,
+                stageConfig: stageConfig,
+                resolvedBodyType: effectiveBodyType, // Stage-aware body type
+                destinyBodyType: destinyBodyType,    // What they'll become as adult
+                resolvedFeatures: resolvedTraits?.features // Stage-appropriate features
             };
 
-            // Create base creature
-            const baseSize = { width: 60, height: 80 };
+            // Create base creature with stage-based size
+            const baseSize = {
+                width: Math.round(60 * stageConfig.scale),
+                height: Math.round(80 * stageConfig.scale)
+            };
+            console.log(`graphics:debug [GraphicsEngine] Base size for stage "${stage}":`, baseSize, '(scale:', stageConfig.scale, ')');
+
+            // Adjust eye size based on stage (babies have proportionally larger eyes)
+            const eyeSizeMultiplier = stageConfig.eyeSizeMultiplier || 1.0;
+
             const metrics = this.getCreatureCanvasMetrics(enhancedTraits, baseSize);
 
             const graphics = this.createScratchGraphics();
@@ -1808,52 +2322,84 @@ class GraphicsEngine {
                 y: metrics.baseCenter.y + translation.centerShift.y
             };
 
-            // Create creature directly on the graphics context
-            this.renderCreatureOnGraphics(
+            // Render using stage-aware body type for dramatic transformation
+            this.renderStageAwareCreatureBody(
                 graphics,
                 center,
                 baseSize,
-                visualConfig.colors.body,
-                visualConfig.colors.head,
-                visualConfig.colors.wings,
+                stageModifiedColors,
                 frame,
-                enhancedTraits
+                enhancedTraits,
+                stageConfig,
+                resolvedTraits
             );
 
-            // Add enhanced markings based on genetics
-            this.addEnhancedMarkings(graphics, center, baseSize, genetics.traits.features.markings, genetics.traits.colorGenome);
+            // Add enhanced markings based on resolved complexity or genetics
+            const markingOpacity = resolvedTraits?.markings?.opacity ?? stageConfig.markingOpacity ?? 1.0;
+            if (markingOpacity > 0.1) {
+                const markingsToUse = resolvedTraits?.markings || genetics.traits.features.markings;
+                this.addEnhancedMarkings(
+                    graphics, center, baseSize,
+                    markingsToUse,
+                    genetics.traits.colorGenome,
+                    markingOpacity
+                );
+            }
 
-            // Add rarity-based special effects
-            this.addRarityEffects(graphics, genetics, center, {
-                width: metrics.width,
-                height: metrics.height
-            });
+            // Add rarity-based special effects (scaled by stage glow intensity)
+            const glowIntensity = stageConfig.glowIntensity || 1.0;
+            if (glowIntensity > 0.2) {
+                this.addRarityEffects(graphics, genetics, center, {
+                    width: metrics.width,
+                    height: metrics.height
+                }, glowIntensity);
+            }
 
-            // Add cosmic affinity effects
-            this.addCosmicAffinityEffects(graphics, genetics.cosmicAffinity, center);
+            // Add cosmic affinity effects (scaled by stage)
+            this.addCosmicAffinityEffects(graphics, genetics.cosmicAffinity, center, glowIntensity);
 
             // Add personality-based visual traits
             this.addPersonalityEffects(graphics, genetics.personality, center, baseSize);
 
+            // Add stage-specific effects (cute sparkles for baby, wisdom for elder, etc.)
+            this.addStageEffects(graphics, stage, stageConfig, center, baseSize, genetics);
+
+            // Add elder wisdom marks if applicable
+            if (stageConfig.hasWisdomMarks || stage === 'elder') {
+                this.addElderWisdomMarks(graphics, center, baseSize, stageConfig);
+            }
+
+            // Add wacky mutations if present
+            if (resolvedTraits?.wackyMutations && resolvedTraits.wackyMutations.length > 0) {
+                this.renderWackyMutations(graphics, center, baseSize, resolvedTraits.wackyMutations, stageModifiedColors);
+            }
+
             translation.restore();
 
-            const textureName = `creature_${genetics.id}_${frame}`;
+            const textureName = `creature_${genetics.id}_${stage}_${frame}`;
             const textureResult = this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
 
             const generationTime = Date.now() - startTime;
 
-            console.log(`graphics:debug [GraphicsEngine] Created ${genetics.rarity} ${genetics.species} in ${generationTime}ms`, {
+            console.log(`graphics:debug [GraphicsEngine] Created ${stage} ${genetics.rarity} ${genetics.species} in ${generationTime}ms`, {
                 textureId: textureName,
-                genetics: genetics.id
+                genetics: genetics.id,
+                stage: stage,
+                scale: stageConfig.scale,
+                bodyType: effectiveBodyType
             });
 
             return {
                 textureName,
                 genetics,
                 visualConfig,
+                stage,
+                stageConfig,
+                resolvedTraits,
                 metadata: {
                     generationTime,
                     frame,
+                    stage,
                     createdAt: Date.now()
                 }
             };
@@ -1861,14 +2407,412 @@ class GraphicsEngine {
             console.error('graphics:error [GraphicsEngine] Failed to create randomized creature:', error);
 
             // Emit error event for ErrorHandler
-            if (typeof window !== 'undefined' && window.ErrorHandler) {
-                window.ErrorHandler.handleError(error, 'GraphicsEngine.createRandomizedSpaceMythicCreature', 'warning');
+            if (typeof window !== 'undefined' && window.ErrorHandler && typeof window.ErrorHandler.handleError === 'function') {
+                window.ErrorHandler.handleError({
+                    message: error.message || 'Failed to create randomized creature',
+                    type: 'GraphicsEngine.createRandomizedSpaceMythicCreature',
+                    severity: 'warning',
+                    stack: error.stack
+                });
             }
 
             // Graceful fallback: create default creature
             console.warn('graphics:warn [GraphicsEngine] Falling back to default creature');
             return this.createSpaceMythicCreature({ frame });
         }
+    }
+
+    /**
+     * Get visual configuration for a creature stage
+     * @param {string} stage - Stage ID: 'baby', 'juvenile', 'adult', 'elder'
+     * @returns {Object} Stage visual configuration
+     */
+    getStageVisualConfig(stage) {
+        // Try to load from CreatureLifecycle first (recommended)
+        try {
+            if (window.CreatureLifecycle?.getStageVisualConfig) {
+                const configVisual = window.CreatureLifecycle.getStageVisualConfig(stage);
+                if (configVisual && Object.keys(configVisual).length > 0) {
+                    console.log(`graphics:debug [GraphicsEngine] Using CreatureLifecycle config for stage: ${stage}`);
+                    return {
+                        scale: configVisual.scale || 1.0,
+                        colorSaturation: configVisual.colorSaturation || 1.0,
+                        markingOpacity: configVisual.markingOpacity || 1.0,
+                        featureScale: configVisual.featureScale || 1.0,
+                        eyeSizeMultiplier: configVisual.eyeSizeMultiplier || 1.0,
+                        headSizeMultiplier: configVisual.headSizeMultiplier || 1.0,
+                        bodyRoundness: configVisual.bodyRoundness || 1.0,
+                        glowIntensity: configVisual.glowIntensity || 0.5,
+                        particleEffect: configVisual.particleEffect || 'none',
+                        hasWisdomMarks: configVisual.hasWisdomMarks || false,
+                        wisdomMarkColor: configVisual.wisdomMarkColor ? parseInt(configVisual.wisdomMarkColor.replace('#', ''), 16) : 0xFFD700,
+                        auraColor: configVisual.auraColor ? parseInt(configVisual.auraColor.replace('#', ''), 16) : 0xE6E6FA,
+                        cheekBlush: configVisual.cheekBlush || false,
+                        sparkleEyes: configVisual.sparkleEyes || false
+                    };
+                }
+            }
+        } catch (e) {
+            console.warn('graphics:warn [GraphicsEngine] Could not load from CreatureLifecycle');
+        }
+
+        // Fallback: Try to load from global evolution config
+        try {
+            const evolutionConfig = window.evolutionConfig;
+            if (evolutionConfig?.stages?.[stage]?.visual) {
+                const configVisual = evolutionConfig.stages[stage].visual;
+                console.log(`graphics:debug [GraphicsEngine] Using window.evolutionConfig for stage: ${stage}`);
+                return {
+                    scale: configVisual.scale || 1.0,
+                    colorSaturation: configVisual.colorSaturation || 1.0,
+                    markingOpacity: configVisual.markingOpacity || 1.0,
+                    featureScale: configVisual.featureScale || 1.0,
+                    eyeSizeMultiplier: configVisual.eyeSizeMultiplier || 1.0,
+                    headSizeMultiplier: configVisual.headSizeMultiplier || 1.0,
+                    bodyRoundness: configVisual.bodyRoundness || 1.0,
+                    glowIntensity: configVisual.glowIntensity || 0.5,
+                    particleEffect: configVisual.particleEffect || 'none',
+                    hasWisdomMarks: configVisual.hasWisdomMarks || false,
+                    wisdomMarkColor: configVisual.wisdomMarkColor ? parseInt(configVisual.wisdomMarkColor.replace('#', ''), 16) : 0xFFD700,
+                    auraColor: configVisual.auraColor ? parseInt(configVisual.auraColor.replace('#', ''), 16) : 0xE6E6FA,
+                    // Baby-specific cute features
+                    cheekBlush: configVisual.cheekBlush || false,
+                    sparkleEyes: configVisual.sparkleEyes || false
+                };
+            }
+        } catch (e) {
+            console.warn('graphics:warn [GraphicsEngine] Could not load evolution config, using defaults');
+        }
+
+        // Fallback to hardcoded defaults with improved baby settings
+        const configs = {
+            baby: {
+                scale: 0.6,
+                colorSaturation: 0.9,
+                markingOpacity: 0.5,
+                featureScale: 0.5,
+                eyeSizeMultiplier: 1.8,
+                headSizeMultiplier: 1.4,
+                bodyRoundness: 1.5,
+                glowIntensity: 0.5,
+                particleEffect: 'cute_sparkle',
+                hasWisdomMarks: false,
+                cheekBlush: true,
+                sparkleEyes: true
+            },
+            juvenile: {
+                scale: 0.75,
+                colorSaturation: 0.9,
+                markingOpacity: 0.7,
+                featureScale: 0.7,
+                eyeSizeMultiplier: 1.3,
+                headSizeMultiplier: 1.2,
+                bodyRoundness: 1.2,
+                glowIntensity: 0.6,
+                particleEffect: 'subtle_sparkle',
+                hasWisdomMarks: false,
+                cheekBlush: false,
+                sparkleEyes: false
+            },
+            adult: {
+                scale: 1.0,
+                colorSaturation: 1.0,
+                markingOpacity: 1.0,
+                featureScale: 1.0,
+                eyeSizeMultiplier: 1.0,
+                headSizeMultiplier: 1.0,
+                bodyRoundness: 1.0,
+                glowIntensity: 0.8,
+                particleEffect: 'standard_aura',
+                hasWisdomMarks: false,
+                cheekBlush: false,
+                sparkleEyes: false
+            },
+            elder: {
+                scale: 1.1,
+                colorSaturation: 1.0,
+                markingOpacity: 1.0,
+                featureScale: 1.0,
+                eyeSizeMultiplier: 1.0,
+                headSizeMultiplier: 1.0,
+                bodyRoundness: 1.0,
+                glowIntensity: 1.0,
+                particleEffect: 'ethereal_aura',
+                hasWisdomMarks: true,
+                wisdomMarkColor: 0xFFD700,
+                auraColor: 0xE6E6FA,
+                cheekBlush: false,
+                sparkleEyes: false
+            }
+        };
+
+        return configs[stage] || configs.adult;
+    }
+
+    /**
+     * Apply stage-based color modifications (saturation adjustment)
+     * @param {Object} colors - Original colors
+     * @param {Object} stageConfig - Stage configuration
+     * @returns {Object} Modified colors
+     */
+    applyStageColorModifications(colors, stageConfig) {
+        const saturation = stageConfig.colorSaturation || 1.0;
+
+        if (saturation >= 1.0) {
+            return colors;
+        }
+
+        const desaturateColor = (color) => {
+            const colorInt = typeof color === 'number' ? color : parseInt(color, 16);
+            const r = (colorInt >> 16) & 0xFF;
+            const g = (colorInt >> 8) & 0xFF;
+            const b = colorInt & 0xFF;
+
+            // Convert to HSL, adjust saturation, convert back
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const l = (max + min) / 2 / 255;
+
+            if (max === min) {
+                // Grayscale
+                return colorInt;
+            }
+
+            const d = (max - min) / 255;
+            const s = l > 0.5 ? d / (2 - max / 255 - min / 255) : d / (max / 255 + min / 255);
+
+            // Reduce saturation
+            const newS = s * saturation;
+
+            // Simplified desaturation - blend toward gray
+            const gray = Math.round((r + g + b) / 3);
+            const newR = Math.round(r + (gray - r) * (1 - saturation));
+            const newG = Math.round(g + (gray - g) * (1 - saturation));
+            const newB = Math.round(b + (gray - b) * (1 - saturation));
+
+            return (newR << 16) | (newG << 8) | newB;
+        };
+
+        return {
+            body: desaturateColor(colors.body),
+            head: desaturateColor(colors.head),
+            wings: desaturateColor(colors.wings),
+            eyes: colors.eyes, // Keep eyes vibrant
+            accent: colors.accent
+        };
+    }
+
+    /**
+     * Add stage-specific visual effects
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {string} stage - Current stage
+     * @param {Object} stageConfig - Stage configuration
+     * @param {Object} center - Center point
+     * @param {Object} size - Creature size
+     * @param {Object} genetics - Creature genetics
+     */
+    addStageEffects(graphics, stage, stageConfig, center, size, genetics) {
+        const particleEffect = stageConfig.particleEffect;
+        const glowIntensity = stageConfig.glowIntensity || 0.5;
+
+        // Add baby-specific cute features
+        if (stage === 'baby' || stageConfig.cheekBlush) {
+            this.addCheekBlush(graphics, center, size);
+        }
+
+        if (stage === 'baby' || stageConfig.sparkleEyes) {
+            this.addSparkleEyes(graphics, center, size);
+        }
+
+        if (!particleEffect || particleEffect === 'none') {
+            return;
+        }
+
+        switch (particleEffect) {
+            case 'cute_sparkle':
+                // Adorable sparkles around baby creature - more magical and cute
+                const sparkleColors = [0xFFFFFF, 0xFFB6C1, 0xFFD700, 0x87CEEB];
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i / 5) * Math.PI * 2 + Math.random() * 0.3;
+                    const dist = size.width * (0.5 + Math.random() * 0.3);
+                    const x = center.x + Math.cos(angle) * dist;
+                    const y = center.y + Math.sin(angle) * dist;
+
+                    // Star-shaped sparkle
+                    const sparkleColor = sparkleColors[i % sparkleColors.length];
+                    graphics.fillStyle(sparkleColor, 0.6 * glowIntensity);
+                    this.drawTinyStar(graphics, x, y, 2 + Math.random() * 2);
+                }
+
+                // Add a soft glow around the baby
+                graphics.fillStyle(0xFFB6C1, 0.08 * glowIntensity);
+                graphics.fillCircle(center.x, center.y, size.width * 0.7);
+                break;
+
+            case 'subtle_sparkle':
+                // Small sparkles around juvenile creature
+                for (let i = 0; i < 3; i++) {
+                    const angle = (i / 3) * Math.PI * 2;
+                    const dist = size.width * 0.6;
+                    const x = center.x + Math.cos(angle) * dist;
+                    const y = center.y + Math.sin(angle) * dist;
+
+                    graphics.fillStyle(0xFFFFFF, 0.4 * glowIntensity);
+                    graphics.fillCircle(x, y, 2);
+                }
+                break;
+
+            case 'standard_aura':
+                // Subtle glow around adult creature
+                graphics.fillStyle(genetics.cosmicAffinity?.color || 0xFFD700, 0.1 * glowIntensity);
+                graphics.fillCircle(center.x, center.y, size.width * 0.8);
+                break;
+
+            case 'ethereal_aura':
+                // Ethereal multi-layer glow for elder
+                const auraColor = stageConfig.auraColor || 0xE6E6FA;
+
+                for (let i = 0; i < 3; i++) {
+                    const radius = size.width * (0.9 + i * 0.2);
+                    const alpha = (0.15 - i * 0.04) * glowIntensity;
+                    graphics.fillStyle(auraColor, alpha);
+                    graphics.fillCircle(center.x, center.y, radius);
+                }
+                break;
+        }
+    }
+
+    /**
+     * Add cute rosy cheek blush for baby creatures
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {Object} center - Center point
+     * @param {Object} size - Creature size
+     */
+    addCheekBlush(graphics, center, size) {
+        const blushColor = 0xFFB6C1; // Light pink
+        const blushSize = Math.max(4, size.width * 0.15);
+        // Position blush on the HEAD (which is at ~35% above body center)
+        // Slightly below where eyes are drawn for cute kawaii look
+        const headY = center.y - size.height * 0.35;
+        const blushY = headY + size.width * 0.12; // Just below eye level on head
+        const blushSpacing = size.width * 0.18; // Closer together for cute look
+
+        // Left cheek - more visible pink blush
+        graphics.fillStyle(blushColor, 0.45);
+        graphics.fillCircle(center.x - blushSpacing, blushY, blushSize);
+        graphics.fillStyle(blushColor, 0.25);
+        graphics.fillCircle(center.x - blushSpacing, blushY, blushSize * 1.4);
+
+        // Right cheek
+        graphics.fillStyle(blushColor, 0.45);
+        graphics.fillCircle(center.x + blushSpacing, blushY, blushSize);
+        graphics.fillStyle(blushColor, 0.25);
+        graphics.fillCircle(center.x + blushSpacing, blushY, blushSize * 1.4);
+    }
+
+    /**
+     * Add extra sparkle highlights to eyes for baby cuteness
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {Object} center - Center point
+     * @param {Object} size - Creature size
+     */
+    addSparkleEyes(graphics, center, size) {
+        // Position sparkles on the HEAD (which is at ~35% above body center)
+        // Match the eye positions used in DNA head rendering
+        const headY = center.y - size.height * 0.35;
+        const headSize = size.width * 0.4; // Same as renderHeadArchetype
+        const eyeY = headY; // Eyes are roughly at head center
+        const eyeSpacing = headSize * 0.3; // Match DNA head eye spacing
+
+        // Extra large sparkle highlights in eyes - bigger for kawaii effect
+        const sparkleSize = Math.max(3, headSize * 0.15);
+
+        // Left eye sparkle (larger, more prominent) - upper-left position
+        graphics.fillStyle(0xFFFFFF, 0.98);
+        graphics.fillCircle(center.x - eyeSpacing - sparkleSize * 0.2, eyeY - sparkleSize * 0.3, sparkleSize);
+        graphics.fillStyle(0xFFFFFF, 0.75);
+        graphics.fillCircle(center.x - eyeSpacing + sparkleSize * 0.4, eyeY + sparkleSize * 0.4, sparkleSize * 0.5);
+
+        // Right eye sparkle
+        graphics.fillStyle(0xFFFFFF, 0.98);
+        graphics.fillCircle(center.x + eyeSpacing - sparkleSize * 0.2, eyeY - sparkleSize * 0.3, sparkleSize);
+        graphics.fillStyle(0xFFFFFF, 0.75);
+        graphics.fillCircle(center.x + eyeSpacing + sparkleSize * 0.4, eyeY + sparkleSize * 0.4, sparkleSize * 0.5);
+    }
+
+    /**
+     * Draw a tiny star shape for sparkle effects
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {number} x - Center X
+     * @param {number} y - Center Y
+     * @param {number} size - Star size
+     */
+    drawTinyStar(graphics, x, y, size) {
+        const points = 4;
+        const outerRadius = size;
+        const innerRadius = size * 0.4;
+
+        graphics.beginPath();
+        for (let i = 0; i < points * 2; i++) {
+            const radius = i % 2 === 0 ? outerRadius : innerRadius;
+            const angle = (i * Math.PI) / points - Math.PI / 2;
+            const px = x + Math.cos(angle) * radius;
+            const py = y + Math.sin(angle) * radius;
+
+            if (i === 0) {
+                graphics.moveTo(px, py);
+            } else {
+                graphics.lineTo(px, py);
+            }
+        }
+        graphics.closePath();
+        graphics.fill();
+    }
+
+    /**
+     * Add elder wisdom marks (special visual for elder stage)
+     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
+     * @param {Object} center - Center point
+     * @param {Object} size - Creature size
+     * @param {Object} stageConfig - Stage configuration
+     */
+    addElderWisdomMarks(graphics, center, size, stageConfig) {
+        const markColor = stageConfig.wisdomMarkColor || 0xFFD700;
+
+        // Forehead symbol
+        graphics.fillStyle(markColor, 0.8);
+        graphics.fillCircle(center.x, center.y - size.height * 0.35, 4);
+
+        // Small radiating lines from forehead
+        graphics.lineStyle(1.5, markColor, 0.6);
+        for (let i = 0; i < 3; i++) {
+            const angle = -Math.PI / 2 + (i - 1) * 0.3;
+            const startDist = 6;
+            const endDist = 12;
+
+            const x1 = center.x + Math.cos(angle) * startDist;
+            const y1 = center.y - size.height * 0.35 + Math.sin(angle) * startDist;
+            const x2 = center.x + Math.cos(angle) * endDist;
+            const y2 = center.y - size.height * 0.35 + Math.sin(angle) * endDist;
+
+            graphics.beginPath();
+            graphics.moveTo(x1, y1);
+            graphics.lineTo(x2, y2);
+            graphics.strokePath();
+        }
+
+        // Side wisdom marks (small dots along body)
+        graphics.fillStyle(markColor, 0.5);
+        const sidePositions = [
+            { x: -size.width * 0.3, y: 0 },
+            { x: size.width * 0.3, y: 0 },
+            { x: -size.width * 0.25, y: size.height * 0.15 },
+            { x: size.width * 0.25, y: size.height * 0.15 }
+        ];
+
+        sidePositions.forEach(pos => {
+            graphics.fillCircle(center.x + pos.x, center.y + pos.y, 2);
+        });
     }
 
     /**
@@ -2042,8 +2986,31 @@ class GraphicsEngine {
 
     /**
      * Render body based on genetic body type
+     * Supports stage-aware body types: baby_blob, transitional_*, elder_*
      */
-    renderBodyByType(graphics, center, bodyOffset, bodyScale, bodyColor, bodyType) {
+    renderBodyByType(graphics, center, bodyOffset, bodyScale, bodyColor, bodyType, destinyType = null) {
+        // Handle stage-aware body types
+        if (bodyType === 'baby_blob') {
+            this.renderBabyBlobBody(graphics, center, bodyOffset, bodyScale, bodyColor, destinyType);
+            return;
+        }
+
+        // Handle transitional bodies (juvenile stage)
+        if (bodyType && bodyType.startsWith('transitional_')) {
+            const targetType = bodyType.replace('transitional_', '');
+            this.renderTransitionalBody(graphics, center, bodyOffset, bodyScale, bodyColor, targetType, 0.4);
+            return;
+        }
+
+        // Handle elder bodies (elder stage with enhancements)
+        if (bodyType && bodyType.startsWith('elder_')) {
+            const baseType = bodyType.replace('elder_', '');
+            // Render base body then add elder enhancements
+            this.renderBodyByType(graphics, center, bodyOffset, bodyScale, bodyColor, baseType);
+            this.addElderBodyEnhancements(graphics, center, bodyOffset, bodyScale, bodyColor);
+            return;
+        }
+
         switch (bodyType) {
             case 'fish':
                 this.renderFishBody(graphics, center, bodyOffset, bodyScale, bodyColor);
@@ -2364,6 +3331,1456 @@ class GraphicsEngine {
     }
 
     /**
+     * Render baby blob body - ALL babies are adorable round blobs
+     * Maximum cuteness: huge shine, simple shape, optional destiny hints
+     */
+    renderBabyBlobBody(graphics, center, bodyOffset, bodyScale, bodyColor, destinyType = null) {
+        const scale = this.resolveScale(bodyScale);
+        const maxScale = Math.max(scale.x, scale.y);
+
+        // Ground shadow (soft, circular)
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillEllipse(center.x + 2, center.y + 28, 35 * maxScale, 12 * maxScale);
+
+        // Main blob body - extremely round and simple
+        // Dark base layer
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.25), 0.95);
+        graphics.fillCircle(center.x + bodyOffset.x, center.y + 12 + bodyOffset.y, 28 * maxScale);
+
+        // Main color layer
+        graphics.fillStyle(bodyColor, 0.98);
+        graphics.fillCircle(center.x - 2 + bodyOffset.x, center.y + 10 + bodyOffset.y, 26 * maxScale);
+
+        // Bright highlight for kawaii shine
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.45), 0.85);
+        graphics.fillCircle(center.x - 8 + bodyOffset.x, center.y + 4 + bodyOffset.y, 18 * maxScale);
+
+        // Super bright shine spot (maximum cuteness)
+        graphics.fillStyle(0xFFFFFF, 0.7);
+        graphics.fillCircle(center.x - 12 + bodyOffset.x, center.y - 2 + bodyOffset.y, 10 * maxScale);
+
+        // Secondary shine
+        graphics.fillStyle(0xFFFFFF, 0.4);
+        graphics.fillCircle(center.x + 8 + bodyOffset.x, center.y + 6 + bodyOffset.y, 5 * maxScale);
+
+        // Add destiny hints if enabled - tiny nubs showing what they'll become
+        if (destinyType) {
+            this.addBabyDestinyHints(graphics, center, bodyOffset, bodyScale, bodyColor, destinyType);
+        }
+    }
+
+    /**
+     * Add tiny hints of what the baby will become
+     */
+    addBabyDestinyHints(graphics, center, bodyOffset, bodyScale, bodyColor, destinyType) {
+        const scale = this.resolveScale(bodyScale);
+        const hintColor = this.darkenColor(bodyColor, 0.15);
+        const hintAlpha = 0.5;
+
+        switch (destinyType) {
+            case 'fish':
+                // Tiny tail bump
+                graphics.fillStyle(hintColor, hintAlpha);
+                graphics.fillEllipse(center.x + bodyOffset.x, center.y + 32 + bodyOffset.y, 8 * scale.x, 4 * scale.y);
+                break;
+
+            case 'avian':
+            case 'aurora':
+                // Tiny wing bumps on shoulders
+                graphics.fillStyle(hintColor, hintAlpha);
+                graphics.fillEllipse(center.x - 20 + bodyOffset.x, center.y + 8 + bodyOffset.y, 5 * scale.x, 3 * scale.y);
+                graphics.fillEllipse(center.x + 20 + bodyOffset.x, center.y + 8 + bodyOffset.y, 5 * scale.x, 3 * scale.y);
+                break;
+
+            case 'serpentine':
+                // Slight elongation hint at bottom
+                graphics.fillStyle(hintColor, hintAlpha);
+                graphics.fillEllipse(center.x + bodyOffset.x, center.y + 30 + bodyOffset.y, 6 * scale.x, 10 * scale.y);
+                break;
+
+            case 'quadruped':
+                // Four tiny leg bumps
+                graphics.fillStyle(hintColor, hintAlpha);
+                graphics.fillCircle(center.x - 12 + bodyOffset.x, center.y + 25 + bodyOffset.y, 3 * scale.x);
+                graphics.fillCircle(center.x + 12 + bodyOffset.x, center.y + 25 + bodyOffset.y, 3 * scale.x);
+                graphics.fillCircle(center.x - 8 + bodyOffset.x, center.y + 28 + bodyOffset.y, 3 * scale.x);
+                graphics.fillCircle(center.x + 8 + bodyOffset.x, center.y + 28 + bodyOffset.y, 3 * scale.x);
+                break;
+
+            case 'insectoid':
+                // Tiny antennae nubs
+                graphics.fillStyle(hintColor, hintAlpha);
+                graphics.fillCircle(center.x - 6 + bodyOffset.x, center.y - 18 + bodyOffset.y, 2 * scale.x);
+                graphics.fillCircle(center.x + 6 + bodyOffset.x, center.y - 18 + bodyOffset.y, 2 * scale.x);
+                break;
+
+            case 'crystal':
+            case 'guardian':
+                // Tiny crystal/armor bumps
+                graphics.fillStyle(this.lightenColor(bodyColor, 0.3), hintAlpha);
+                graphics.fillTriangle(
+                    center.x - 15 + bodyOffset.x, center.y + bodyOffset.y,
+                    center.x - 12 + bodyOffset.x, center.y - 5 + bodyOffset.y,
+                    center.x - 9 + bodyOffset.x, center.y + bodyOffset.y
+                );
+                graphics.fillTriangle(
+                    center.x + 15 + bodyOffset.x, center.y + bodyOffset.y,
+                    center.x + 12 + bodyOffset.x, center.y - 5 + bodyOffset.y,
+                    center.x + 9 + bodyOffset.x, center.y + bodyOffset.y
+                );
+                break;
+
+            case 'reptilian':
+                // Tiny scale pattern hint
+                graphics.lineStyle(1, hintColor, 0.3);
+                for (let i = 0; i < 3; i++) {
+                    const y = center.y + 5 + (i * 5) + bodyOffset.y;
+                    graphics.beginPath();
+                    graphics.moveTo(center.x - 5 + bodyOffset.x, y);
+                    graphics.lineTo(center.x + 5 + bodyOffset.x, y);
+                    graphics.strokePath();
+                }
+                break;
+        }
+    }
+
+    /**
+     * Render transitional body - blend between blob and genetic body type
+     * Used for juvenile stage (40% blob, 60% toward genetic type)
+     */
+    renderTransitionalBody(graphics, center, bodyOffset, bodyScale, bodyColor, targetType, transitionAmount = 0.4) {
+        const scale = this.resolveScale(bodyScale);
+        const maxScale = Math.max(scale.x, scale.y);
+
+        // Transitional bodies are rounder than adult but less blob-like
+        const roundness = 1.0 + (1.0 - transitionAmount) * 0.5; // 1.0 = adult, 1.5 = more blob-like
+
+        // Shadow
+        graphics.fillStyle(0x000000, 0.25);
+        graphics.fillEllipse(center.x + 2, center.y + 26, 32 * maxScale, 20 * maxScale);
+
+        // Base body - between blob and target shape
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.35), 0.95);
+
+        // Use modified ellipse based on target type but with blob influence
+        let bodyWidth = 30 * scale.x;
+        let bodyHeight = 40 * scale.y;
+
+        // Adjust shape based on target type (but keep some roundness)
+        switch (targetType) {
+            case 'fish':
+            case 'serpentine':
+                bodyHeight = 48 * scale.y * (0.5 + transitionAmount * 0.5);
+                bodyWidth = 26 * scale.x;
+                break;
+            case 'quadruped':
+                bodyWidth = 38 * scale.x * (0.5 + transitionAmount * 0.5);
+                bodyHeight = 32 * scale.y;
+                break;
+            case 'avian':
+                bodyHeight = 42 * scale.y;
+                break;
+            case 'blob':
+                // Blob stays blob-like
+                bodyWidth = 32 * scale.x;
+                bodyHeight = 32 * scale.y;
+                break;
+        }
+
+        // Apply roundness modifier
+        bodyWidth = bodyWidth * roundness;
+        bodyHeight = bodyHeight / roundness;
+
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 12 + bodyOffset.y, bodyWidth, bodyHeight);
+
+        // Main color layer
+        graphics.fillStyle(bodyColor);
+        graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 10 + bodyOffset.y, bodyWidth * 0.92, bodyHeight * 0.92);
+
+        // Highlight layer
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.35), 0.8);
+        graphics.fillEllipse(center.x - 6 + bodyOffset.x, center.y + 5 + bodyOffset.y, bodyWidth * 0.65, bodyHeight * 0.7);
+
+        // Shine
+        graphics.fillStyle(0xFFFFFF, 0.4);
+        graphics.fillCircle(center.x - 10 + bodyOffset.x, center.y + bodyOffset.y, 8 * maxScale);
+
+        // Add emerging features based on target type
+        this.addEmergingFeatures(graphics, center, bodyOffset, bodyScale, bodyColor, targetType, transitionAmount);
+    }
+
+    /**
+     * Add emerging features for transitional (juvenile) bodies
+     */
+    addEmergingFeatures(graphics, center, bodyOffset, bodyScale, bodyColor, targetType, emergence) {
+        const scale = this.resolveScale(bodyScale);
+        const featureColor = this.darkenColor(bodyColor, 0.2);
+        const featureAlpha = 0.6 + emergence * 0.3;
+
+        switch (targetType) {
+            case 'fish':
+                // Developing tail fin
+                graphics.fillStyle(featureColor, featureAlpha);
+                graphics.beginPath();
+                graphics.moveTo(center.x + bodyOffset.x, center.y + 35 + bodyOffset.y);
+                graphics.lineTo(center.x - 6 * emergence + bodyOffset.x, center.y + 42 + bodyOffset.y);
+                graphics.lineTo(center.x + 6 * emergence + bodyOffset.x, center.y + 42 + bodyOffset.y);
+                graphics.closePath();
+                graphics.fillPath();
+                // Small developing fins
+                graphics.fillEllipse(center.x - 14 + bodyOffset.x, center.y + 12 + bodyOffset.y, 5 * scale.x * emergence, 8 * scale.y * emergence);
+                graphics.fillEllipse(center.x + 14 + bodyOffset.x, center.y + 12 + bodyOffset.y, 5 * scale.x * emergence, 8 * scale.y * emergence);
+                break;
+
+            case 'quadruped':
+                // Developing legs (short stubs)
+                graphics.fillStyle(featureColor, featureAlpha);
+                const legLength = 10 * scale.y * emergence;
+                graphics.fillRect(center.x - 12 + bodyOffset.x, center.y + 22 + bodyOffset.y, 4 * scale.x, legLength);
+                graphics.fillRect(center.x + 8 + bodyOffset.x, center.y + 22 + bodyOffset.y, 4 * scale.x, legLength);
+                graphics.fillRect(center.x - 8 + bodyOffset.x, center.y + 20 + bodyOffset.y, 4 * scale.x, legLength);
+                graphics.fillRect(center.x + 4 + bodyOffset.x, center.y + 20 + bodyOffset.y, 4 * scale.x, legLength);
+                break;
+
+            case 'serpentine':
+                // Developing segments
+                graphics.fillStyle(featureColor, featureAlpha * 0.5);
+                for (let i = 1; i < 3; i++) {
+                    const segY = center.y + 20 + (i * 10 * emergence) + bodyOffset.y;
+                    graphics.fillEllipse(center.x + bodyOffset.x, segY, 18 * scale.x, 8 * scale.y);
+                }
+                break;
+
+            case 'avian':
+                // Developing tail feathers
+                graphics.fillStyle(featureColor, featureAlpha);
+                const tailY = center.y + 35 + bodyOffset.y;
+                graphics.beginPath();
+                graphics.moveTo(center.x + bodyOffset.x, tailY);
+                graphics.lineTo(center.x - 8 * emergence + bodyOffset.x, tailY + 12 * emergence);
+                graphics.lineTo(center.x + 8 * emergence + bodyOffset.x, tailY + 12 * emergence);
+                graphics.closePath();
+                graphics.fillPath();
+                break;
+
+            case 'insectoid':
+                // Developing antennae
+                graphics.fillStyle(featureColor, featureAlpha);
+                const antLength = 8 * scale.y * emergence;
+                graphics.lineStyle(2, featureColor, featureAlpha);
+                graphics.beginPath();
+                graphics.moveTo(center.x - 6 + bodyOffset.x, center.y - 15 + bodyOffset.y);
+                graphics.lineTo(center.x - 8 + bodyOffset.x, center.y - 15 - antLength + bodyOffset.y);
+                graphics.strokePath();
+                graphics.beginPath();
+                graphics.moveTo(center.x + 6 + bodyOffset.x, center.y - 15 + bodyOffset.y);
+                graphics.lineTo(center.x + 8 + bodyOffset.x, center.y - 15 - antLength + bodyOffset.y);
+                graphics.strokePath();
+                break;
+
+            case 'reptilian':
+                // Developing spinal ridges
+                graphics.fillStyle(this.lightenColor(bodyColor, 0.2), featureAlpha);
+                for (let i = 0; i < Math.floor(3 * emergence); i++) {
+                    const ridgeY = center.y + (i * 8) + bodyOffset.y;
+                    const ridgeSize = 3 * scale.x * emergence;
+                    graphics.beginPath();
+                    graphics.moveTo(center.x - 10 + bodyOffset.x, ridgeY);
+                    graphics.lineTo(center.x - 8 + bodyOffset.x, ridgeY - ridgeSize);
+                    graphics.lineTo(center.x - 6 + bodyOffset.x, ridgeY);
+                    graphics.closePath();
+                    graphics.fillPath();
+                }
+                break;
+        }
+    }
+
+    /**
+     * Add elder body enhancements - crystalline accents, weathered marks
+     */
+    addElderBodyEnhancements(graphics, center, bodyOffset, bodyScale, bodyColor) {
+        const scale = this.resolveScale(bodyScale);
+        const maxScale = Math.max(scale.x, scale.y);
+
+        // Crystalline accent color (light lavender/gold blend)
+        const crystalColor = 0xE6E6FA;
+        const wisdomGold = 0xFFD700;
+
+        // Add crystalline growths around the body
+        const numCrystals = 5 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < numCrystals; i++) {
+            const angle = (i / numCrystals) * Math.PI * 2;
+            const dist = 22 * maxScale + Math.random() * 8;
+            const x = center.x + Math.cos(angle) * dist + bodyOffset.x;
+            const y = center.y + 10 + Math.sin(angle) * dist * 0.7 + bodyOffset.y;
+
+            // Crystal formation
+            const size = 4 + Math.random() * 4;
+            graphics.fillStyle(crystalColor, 0.7);
+            graphics.fillTriangle(
+                x - size / 2, y + size,
+                x + size / 2, y + size,
+                x, y - size
+            );
+            // Crystal glow
+            graphics.fillStyle(crystalColor, 0.3);
+            graphics.fillCircle(x, y, size * 1.2);
+        }
+
+        // Add weathered wisdom marks (subtle lines on body)
+        graphics.lineStyle(1, wisdomGold, 0.4);
+
+        // Horizontal wisdom lines
+        for (let i = 0; i < 3; i++) {
+            const y = center.y + 5 + (i * 8) + bodyOffset.y;
+            const length = 12 - i * 2;
+            graphics.beginPath();
+            graphics.moveTo(center.x - length + bodyOffset.x, y);
+            graphics.lineTo(center.x + length + bodyOffset.x, y);
+            graphics.strokePath();
+        }
+
+        // Wisdom dots at key positions
+        graphics.fillStyle(wisdomGold, 0.5);
+        graphics.fillCircle(center.x - 15 + bodyOffset.x, center.y + 5 + bodyOffset.y, 2);
+        graphics.fillCircle(center.x + 15 + bodyOffset.x, center.y + 5 + bodyOffset.y, 2);
+        graphics.fillCircle(center.x + bodyOffset.x, center.y + 25 + bodyOffset.y, 2);
+
+        // Ethereal glow outline
+        graphics.lineStyle(2, crystalColor, 0.25);
+        graphics.strokeCircle(center.x + bodyOffset.x, center.y + 10 + bodyOffset.y, 35 * maxScale);
+    }
+
+    /**
+     * Render wing buds for juvenile stage - tiny bumps on shoulders
+     */
+    renderWingBuds(graphics, center, wingColor, destinyWingType = 'feathered') {
+        const budColor = this.lightenColor(wingColor, 0.2);
+
+        // Left wing bud
+        graphics.fillStyle(budColor, 0.8);
+        graphics.fillEllipse(center.x - 22, center.y - 5, 8, 5);
+
+        // Right wing bud
+        graphics.fillEllipse(center.x + 22, center.y - 5, 8, 5);
+
+        // Small highlight on buds
+        graphics.fillStyle(0xFFFFFF, 0.3);
+        graphics.fillCircle(center.x - 23, center.y - 6, 2);
+        graphics.fillCircle(center.x + 21, center.y - 6, 2);
+    }
+
+    /**
+     * Render horn nubs for juvenile stage - tiny protrusions
+     */
+    renderHornNubs(graphics, center, hornColor) {
+        const nubColor = this.darkenColor(hornColor, 0.1);
+
+        // Two small horn nubs
+        graphics.fillStyle(nubColor, 0.85);
+        graphics.fillCircle(center.x - 8, center.y - 28, 4);
+        graphics.fillCircle(center.x + 8, center.y - 28, 4);
+
+        // Tiny points
+        graphics.fillStyle(nubColor, 0.7);
+        graphics.fillTriangle(
+            center.x - 8 - 2, center.y - 28,
+            center.x - 8 + 2, center.y - 28,
+            center.x - 8, center.y - 33
+        );
+        graphics.fillTriangle(
+            center.x + 8 - 2, center.y - 28,
+            center.x + 8 + 2, center.y - 28,
+            center.x + 8, center.y - 33
+        );
+    }
+
+    /**
+     * Render tail bud for juvenile stage
+     */
+    renderTailBud(graphics, center, bodyColor) {
+        const budColor = this.darkenColor(bodyColor, 0.15);
+
+        graphics.fillStyle(budColor, 0.8);
+        graphics.fillEllipse(center.x, center.y + 38, 10, 6);
+
+        // Small highlight
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.2), 0.5);
+        graphics.fillCircle(center.x - 2, center.y + 37, 3);
+    }
+
+    /**
+     * Render stage-aware creature body - main entry point for stage-based rendering
+     * Uses resolved traits from StageVisualResolver for dramatic transformation
+     */
+    renderStageAwareCreatureBody(graphics, center, baseSize, colors, frame, traits, stageConfig, resolvedTraits) {
+        // Determine the body type and destiny
+        const bodyType = resolvedTraits?.bodyType || traits.resolvedBodyType || 'balanced';
+        const destinyType = resolvedTraits?.destinyBodyType || traits.destinyBodyType || 'balanced';
+        const bodyColor = colors.body || 0x9370DB;
+
+        // Calculate body positioning and scaling
+        const bodyOffset = {
+            x: (traits.bodyMods?.horizontalShift || 0) * baseSize.width * 0.1,
+            y: (traits.bodyMods?.verticalShift || 0) * baseSize.height * 0.1
+        };
+
+        const bodyScale = {
+            x: stageConfig.scale || 1.0,
+            y: stageConfig.scale || 1.0
+        };
+
+        // Render the body using the stage-aware body type
+        this.renderBodyByType(graphics, center, bodyOffset, bodyScale, bodyColor, bodyType, destinyType);
+
+        // Add stage-specific features
+        const resolvedFeatures = resolvedTraits?.features || {};
+
+        // Baby features: sparkles and cute effects
+        if (resolvedFeatures.sparkles) {
+            this.addBabySparkles(graphics, center, baseSize);
+        }
+        if (resolvedFeatures.cheekBlush) {
+            this.addBabyBlush(graphics, center);
+        }
+
+        // Juvenile features: Wing buds, horn nubs, tail buds
+        if (resolvedFeatures.showFeatureBuds) {
+            if (resolvedFeatures.wings) {
+                this.renderWingBuds(graphics, center, colors.wings || bodyColor, resolvedFeatures.wings.destinyType);
+            }
+            if (resolvedFeatures.horns) {
+                this.renderHornNubs(graphics, center, colors.accent || bodyColor);
+            }
+            if (resolvedFeatures.tail) {
+                this.renderTailBud(graphics, center, bodyColor);
+            }
+        }
+
+        // Adult/Elder full features
+        if (resolvedFeatures.wings && resolvedFeatures.wings.type !== 'bud') {
+            const wingType = traits.resolvedFeatures?.wings?.type || 'feathered';
+            this.renderWings(graphics, center, colors.wings || bodyColor, wingType, resolvedFeatures.wings?.enhanced);
+        }
+        if (resolvedFeatures.horns?.type === 'full' || resolvedFeatures.horns?.type === 'crystalline') {
+            this.renderHorns(graphics, center, colors.accent || bodyColor, resolvedFeatures.horns.type);
+        }
+
+        // Elder-specific features
+        if (resolvedFeatures.crystallineAccents) {
+            this.addCrystallineAccents(graphics, center, baseSize);
+        }
+        if (resolvedFeatures.cosmicAura) {
+            this.addCosmicAuraLayers(graphics, center, baseSize, resolvedFeatures.auraLayers || 3);
+        }
+
+        // Render head with stage-appropriate eye size
+        const headColor = colors.head || this.blendColors(bodyColor, colors.wings || bodyColor, 0.3);
+        const headScale = stageConfig.headSizeMultiplier || 1.0;
+        const eyeScale = stageConfig.eyeSizeMultiplier || 1.0;
+
+        this.renderHead(graphics, center, headScale, headColor, traits.eyes || {}, eyeScale);
+    }
+
+    /**
+     * Add baby sparkles - cute twinkling particles
+     */
+    addBabySparkles(graphics, center, baseSize) {
+        const sparklePositions = [
+            { x: -15, y: -20 },
+            { x: 18, y: -15 },
+            { x: -10, y: 25 },
+            { x: 12, y: 20 },
+            { x: 0, y: -25 }
+        ];
+
+        sparklePositions.forEach((pos, i) => {
+            const size = 2 + Math.random() * 2;
+            const alpha = 0.5 + Math.random() * 0.3;
+            graphics.fillStyle(0xFFFFFF, alpha);
+
+            // Star sparkle shape
+            const x = center.x + pos.x;
+            const y = center.y + pos.y;
+
+            graphics.fillCircle(x, y, size);
+
+            // Cross rays for sparkle
+            graphics.fillRect(x - size * 1.5, y - 0.5, size * 3, 1);
+            graphics.fillRect(x - 0.5, y - size * 1.5, 1, size * 3);
+        });
+    }
+
+    /**
+     * Add baby blush - pink cheeks for cuteness
+     */
+    addBabyBlush(graphics, center) {
+        const blushColor = 0xFF9999;
+
+        // Left cheek
+        graphics.fillStyle(blushColor, 0.35);
+        graphics.fillEllipse(center.x - 18, center.y - 8, 8, 5);
+
+        // Right cheek
+        graphics.fillEllipse(center.x + 18, center.y - 8, 8, 5);
+    }
+
+    /**
+     * Render horns based on type
+     */
+    renderHorns(graphics, center, hornColor, hornType = 'full') {
+        if (hornType === 'crystalline') {
+            // Elder crystalline horns
+            const crystalColor = this.lightenColor(hornColor, 0.3);
+
+            // Left horn
+            graphics.fillStyle(crystalColor, 0.9);
+            graphics.beginPath();
+            graphics.moveTo(center.x - 12, center.y - 30);
+            graphics.lineTo(center.x - 8, center.y - 50);
+            graphics.lineTo(center.x - 6, center.y - 30);
+            graphics.closePath();
+            graphics.fillPath();
+
+            // Right horn
+            graphics.beginPath();
+            graphics.moveTo(center.x + 12, center.y - 30);
+            graphics.lineTo(center.x + 8, center.y - 50);
+            graphics.lineTo(center.x + 6, center.y - 30);
+            graphics.closePath();
+            graphics.fillPath();
+
+            // Crystal tips glow
+            graphics.fillStyle(0xFFFFFF, 0.6);
+            graphics.fillCircle(center.x - 8, center.y - 48, 3);
+            graphics.fillCircle(center.x + 8, center.y - 48, 3);
+        } else {
+            // Full adult horns
+            graphics.fillStyle(hornColor, 0.9);
+
+            // Left horn
+            graphics.beginPath();
+            graphics.moveTo(center.x - 10, center.y - 28);
+            graphics.lineTo(center.x - 6, center.y - 45);
+            graphics.lineTo(center.x - 4, center.y - 28);
+            graphics.closePath();
+            graphics.fillPath();
+
+            // Right horn
+            graphics.beginPath();
+            graphics.moveTo(center.x + 10, center.y - 28);
+            graphics.lineTo(center.x + 6, center.y - 45);
+            graphics.lineTo(center.x + 4, center.y - 28);
+            graphics.closePath();
+            graphics.fillPath();
+        }
+    }
+
+    /**
+     * Render wings based on type and enhancement
+     */
+    renderWings(graphics, center, wingColor, wingType = 'feathered', enhanced = false) {
+        const wingAlpha = enhanced ? 0.95 : 0.85;
+        const wingGlow = enhanced ? 0.4 : 0.2;
+
+        // Wing shadow
+        graphics.fillStyle(0x000000, 0.2);
+        graphics.fillEllipse(center.x - 35, center.y + 5, 25, 18);
+        graphics.fillEllipse(center.x + 35, center.y + 5, 25, 18);
+
+        // Main wings
+        graphics.fillStyle(wingColor, wingAlpha);
+
+        if (wingType === 'ethereal' || enhanced) {
+            // Ethereal wings with multiple layers
+            for (let layer = 0; layer < 3; layer++) {
+                const offset = layer * 3;
+                const layerAlpha = wingAlpha - layer * 0.2;
+                graphics.fillStyle(this.lightenColor(wingColor, layer * 0.1), layerAlpha);
+
+                // Left wing
+                graphics.beginPath();
+                graphics.moveTo(center.x - 15, center.y);
+                graphics.lineTo(center.x - 45 - offset, center.y - 15 - offset);
+                graphics.lineTo(center.x - 50 - offset, center.y + 10);
+                graphics.lineTo(center.x - 30, center.y + 15);
+                graphics.closePath();
+                graphics.fillPath();
+
+                // Right wing
+                graphics.beginPath();
+                graphics.moveTo(center.x + 15, center.y);
+                graphics.lineTo(center.x + 45 + offset, center.y - 15 - offset);
+                graphics.lineTo(center.x + 50 + offset, center.y + 10);
+                graphics.lineTo(center.x + 30, center.y + 15);
+                graphics.closePath();
+                graphics.fillPath();
+            }
+        } else {
+            // Standard wings
+            // Left wing
+            graphics.beginPath();
+            graphics.moveTo(center.x - 15, center.y);
+            graphics.lineTo(center.x - 45, center.y - 15);
+            graphics.lineTo(center.x - 50, center.y + 10);
+            graphics.lineTo(center.x - 30, center.y + 15);
+            graphics.closePath();
+            graphics.fillPath();
+
+            // Right wing
+            graphics.beginPath();
+            graphics.moveTo(center.x + 15, center.y);
+            graphics.lineTo(center.x + 45, center.y - 15);
+            graphics.lineTo(center.x + 50, center.y + 10);
+            graphics.lineTo(center.x + 30, center.y + 15);
+            graphics.closePath();
+            graphics.fillPath();
+        }
+
+        // Wing highlights
+        graphics.fillStyle(0xFFFFFF, wingGlow);
+        graphics.fillEllipse(center.x - 35, center.y - 5, 10, 6);
+        graphics.fillEllipse(center.x + 35, center.y - 5, 10, 6);
+    }
+
+    /**
+     * Add crystalline accents for elder creatures
+     */
+    addCrystallineAccents(graphics, center, baseSize) {
+        const crystalColor = 0xE6E6FA;
+        const numCrystals = 6;
+
+        for (let i = 0; i < numCrystals; i++) {
+            const angle = (i / numCrystals) * Math.PI * 2 - Math.PI / 2;
+            const dist = 30 + Math.random() * 10;
+            const x = center.x + Math.cos(angle) * dist;
+            const y = center.y + Math.sin(angle) * dist * 0.6;
+            const size = 3 + Math.random() * 4;
+
+            // Crystal formation
+            graphics.fillStyle(crystalColor, 0.8);
+            graphics.beginPath();
+            graphics.moveTo(x, y - size * 2);
+            graphics.lineTo(x - size, y);
+            graphics.lineTo(x, y + size / 2);
+            graphics.lineTo(x + size, y);
+            graphics.closePath();
+            graphics.fillPath();
+
+            // Crystal glow
+            graphics.fillStyle(crystalColor, 0.3);
+            graphics.fillCircle(x, y - size, size);
+        }
+    }
+
+    /**
+     * Add cosmic aura layers for elder creatures
+     */
+    addCosmicAuraLayers(graphics, center, baseSize, numLayers = 3) {
+        const auraColor = 0xE6E6FA;
+
+        for (let i = numLayers - 1; i >= 0; i--) {
+            const layerRadius = 45 + i * 12;
+            const layerAlpha = 0.08 - i * 0.02;
+
+            graphics.fillStyle(auraColor, layerAlpha);
+            graphics.fillCircle(center.x, center.y + 5, layerRadius);
+        }
+
+        // Inner glow ring
+        graphics.lineStyle(1, auraColor, 0.3);
+        graphics.strokeCircle(center.x, center.y + 5, 40);
+    }
+
+    /**
+     * Render head with appropriate eye size
+     */
+    renderHead(graphics, center, headScale, headColor, eyeConfig, eyeSizeMultiplier = 1.0) {
+        // Head shape
+        const headRadius = 18 * headScale;
+
+        // Head shadow
+        graphics.fillStyle(0x000000, 0.2);
+        graphics.fillCircle(center.x + 2, center.y - 18, headRadius);
+
+        // Main head
+        graphics.fillStyle(headColor, 0.95);
+        graphics.fillCircle(center.x, center.y - 20, headRadius);
+
+        // Head highlight
+        graphics.fillStyle(this.lightenColor(headColor, 0.3), 0.7);
+        graphics.fillCircle(center.x - 5, center.y - 25, headRadius * 0.6);
+
+        // Eyes with multiplied size
+        const baseEyeSize = 6;
+        const eyeSize = baseEyeSize * eyeSizeMultiplier;
+        const eyeSpacing = 10 * (eyeSizeMultiplier > 1.5 ? 0.8 : 1.0); // Closer together for big baby eyes
+
+        // Eye whites
+        graphics.fillStyle(0xFFFFFF, 0.95);
+        graphics.fillCircle(center.x - eyeSpacing, center.y - 22, eyeSize);
+        graphics.fillCircle(center.x + eyeSpacing, center.y - 22, eyeSize);
+
+        // Eye color/iris
+        const eyeColor = eyeConfig.color || 0x4A148C;
+        graphics.fillStyle(eyeColor, 0.9);
+        graphics.fillCircle(center.x - eyeSpacing, center.y - 21, eyeSize * 0.6);
+        graphics.fillCircle(center.x + eyeSpacing, center.y - 21, eyeSize * 0.6);
+
+        // Pupils
+        graphics.fillStyle(0x000000, 0.95);
+        graphics.fillCircle(center.x - eyeSpacing, center.y - 21, eyeSize * 0.3);
+        graphics.fillCircle(center.x + eyeSpacing, center.y - 21, eyeSize * 0.3);
+
+        // Eye sparkles (bigger for baby stage)
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        const sparkleSize = eyeSizeMultiplier > 1.5 ? 2.5 : 1.5;
+        graphics.fillCircle(center.x - eyeSpacing - 1, center.y - 23, sparkleSize);
+        graphics.fillCircle(center.x + eyeSpacing - 1, center.y - 23, sparkleSize);
+    }
+
+    /**
+     * Render wacky mutations - surreal, unusual visual elements
+     * Creates unique, memorable creatures with inanimate object traits, extra eyes, etc.
+     */
+    renderWackyMutations(graphics, center, baseSize, mutations, colors) {
+        if (!mutations || mutations.length === 0) return;
+
+        mutations.forEach(mutation => {
+            switch (mutation.type) {
+                case 'rock_texture':
+                    this.renderRockTextureMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'gem_body':
+                    this.renderGemBodyMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'geometric_patterns':
+                    this.renderGeometricPatternsMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'extra_eyes':
+                    this.renderExtraEyesMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'floating_parts':
+                    this.renderFloatingPartsMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'crystal_growths':
+                    this.renderCrystalGrowthsMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'inanimate_markings':
+                    this.renderInanimateMarkingsMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'surreal_appendages':
+                    this.renderSurrealAppendagesMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'void_patches':
+                    this.renderVoidPatchesMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'prismatic_sheen':
+                    this.renderPrismaticSheenMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+            }
+        });
+    }
+
+    /**
+     * Rock texture mutation - craggy, stone-like appearance
+     */
+    renderRockTextureMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'rough';
+        const rockColor = this.darkenColor(colors.body || 0x808080, 0.3);
+
+        // Add rocky patches based on variant
+        const numPatches = Math.floor(5 * intensity) + 3;
+
+        for (let i = 0; i < numPatches; i++) {
+            const angle = (i / numPatches) * Math.PI * 2;
+            const dist = 15 + Math.random() * 15;
+            const x = center.x + Math.cos(angle) * dist;
+            const y = center.y + Math.sin(angle) * dist * 0.7;
+
+            graphics.fillStyle(rockColor, 0.6 * intensity);
+
+            if (variant === 'crystalline') {
+                // Angular crystal-like rocks
+                const size = 4 + Math.random() * 4;
+                graphics.beginPath();
+                graphics.moveTo(x, y - size);
+                graphics.lineTo(x - size, y);
+                graphics.lineTo(x - size / 2, y + size);
+                graphics.lineTo(x + size / 2, y + size);
+                graphics.lineTo(x + size, y);
+                graphics.closePath();
+                graphics.fillPath();
+            } else if (variant === 'volcanic') {
+                // Glowing cracks
+                graphics.fillStyle(0xFF4500, 0.4 * intensity);
+                graphics.lineStyle(2, 0xFF6600, 0.5 * intensity);
+                const size = 3 + Math.random() * 3;
+                graphics.fillCircle(x, y, size);
+                graphics.beginPath();
+                graphics.moveTo(x - size * 2, y);
+                graphics.lineTo(x + size * 2, y);
+                graphics.strokePath();
+            } else {
+                // Rough rounded rocks
+                const size = 3 + Math.random() * 5;
+                graphics.fillCircle(x, y, size);
+            }
+        }
+    }
+
+    /**
+     * Gem body mutation - faceted, crystalline appearance
+     */
+    renderGemBodyMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'amethyst';
+
+        const gemColors = {
+            ruby: 0xE91E63,
+            sapphire: 0x2196F3,
+            emerald: 0x4CAF50,
+            amethyst: 0x9C27B0,
+            diamond: 0xE0E0E0
+        };
+
+        const gemColor = gemColors[variant] || gemColors.amethyst;
+
+        // Add gem facets overlay
+        const numFacets = Math.floor(6 * intensity) + 4;
+
+        for (let i = 0; i < numFacets; i++) {
+            const angle = (i / numFacets) * Math.PI * 2;
+            const dist = 10 + Math.random() * 20;
+            const x = center.x + Math.cos(angle) * dist;
+            const y = center.y + Math.sin(angle) * dist * 0.6;
+            const size = 5 + Math.random() * 8;
+
+            // Gem facet
+            graphics.fillStyle(gemColor, 0.4 * intensity);
+            graphics.beginPath();
+            graphics.moveTo(x, y - size);
+            graphics.lineTo(x + size * 0.8, y);
+            graphics.lineTo(x, y + size * 0.5);
+            graphics.lineTo(x - size * 0.8, y);
+            graphics.closePath();
+            graphics.fillPath();
+
+            // Highlight
+            graphics.fillStyle(0xFFFFFF, 0.3 * intensity);
+            graphics.fillCircle(x - size * 0.3, y - size * 0.3, size * 0.3);
+        }
+    }
+
+    /**
+     * Geometric patterns mutation - angular impossible geometry
+     */
+    renderGeometricPatternsMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'triangles';
+        const patternColor = this.lightenColor(colors.accent || 0xFFD700, 0.2);
+
+        graphics.lineStyle(1.5, patternColor, 0.6 * intensity);
+
+        if (variant === 'hexagons') {
+            // Honeycomb pattern
+            for (let i = 0; i < 4; i++) {
+                const x = center.x + (Math.random() - 0.5) * 30;
+                const y = center.y + (Math.random() - 0.5) * 30;
+                const size = 6 + Math.random() * 4;
+                this.drawHexagon(graphics, x, y, size);
+            }
+        } else if (variant === 'fractals') {
+            // Recursive patterns
+            this.drawFractalPattern(graphics, center.x, center.y, 15, 3, intensity);
+        } else if (variant === 'spirals') {
+            // Sacred geometry spirals
+            graphics.beginPath();
+            for (let a = 0; a < Math.PI * 4; a += 0.2) {
+                const r = 5 + a * 3 * intensity;
+                const x = center.x + Math.cos(a) * r;
+                const y = center.y + Math.sin(a) * r * 0.6;
+                if (a === 0) {
+                    graphics.moveTo(x, y);
+                } else {
+                    graphics.lineTo(x, y);
+                }
+            }
+            graphics.strokePath();
+        } else {
+            // Triangle patterns
+            for (let i = 0; i < 5; i++) {
+                const x = center.x + (Math.random() - 0.5) * 35;
+                const y = center.y + (Math.random() - 0.5) * 35;
+                const size = 5 + Math.random() * 5;
+                graphics.strokeTriangle(x, y - size, x - size, y + size, x + size, y + size);
+            }
+        }
+    }
+
+    /**
+     * Draw a hexagon helper
+     */
+    drawHexagon(graphics, x, y, size) {
+        graphics.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            const px = x + Math.cos(angle) * size;
+            const py = y + Math.sin(angle) * size;
+            if (i === 0) {
+                graphics.moveTo(px, py);
+            } else {
+                graphics.lineTo(px, py);
+            }
+        }
+        graphics.closePath();
+        graphics.strokePath();
+    }
+
+    /**
+     * Draw fractal pattern helper
+     */
+    drawFractalPattern(graphics, x, y, size, depth, intensity) {
+        if (depth <= 0 || size < 3) return;
+
+        graphics.strokeTriangle(x, y - size, x - size, y + size, x + size, y + size);
+
+        // Recurse into corners
+        const nextSize = size * 0.5;
+        this.drawFractalPattern(graphics, x, y - size * 0.5, nextSize, depth - 1, intensity);
+        this.drawFractalPattern(graphics, x - size * 0.5, y + size * 0.3, nextSize, depth - 1, intensity);
+        this.drawFractalPattern(graphics, x + size * 0.5, y + size * 0.3, nextSize, depth - 1, intensity);
+    }
+
+    /**
+     * Extra eyes mutation - 1-3 additional eyes in unusual positions
+     */
+    renderExtraEyesMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'forehead';
+        const eyeColor = colors.accent || 0x9C27B0;
+
+        const eyePositions = {
+            forehead: [{ x: 0, y: -35 }],
+            sides: [{ x: -25, y: -5 }, { x: 25, y: -5 }],
+            back: [{ x: 0, y: 25 }],
+            floating: [
+                { x: -30, y: -30 },
+                { x: 30, y: -25 },
+                { x: 0, y: 35 }
+            ]
+        };
+
+        const positions = eyePositions[variant] || eyePositions.forehead;
+        const numEyes = Math.min(positions.length, Math.floor(intensity * 3) + 1);
+
+        for (let i = 0; i < numEyes; i++) {
+            const pos = positions[i];
+            const x = center.x + pos.x;
+            const y = center.y + pos.y;
+            const eyeSize = 4 + intensity * 2;
+
+            // Eye white
+            graphics.fillStyle(0xFFFFFF, 0.9);
+            graphics.fillCircle(x, y, eyeSize);
+
+            // Iris
+            graphics.fillStyle(eyeColor, 0.85);
+            graphics.fillCircle(x, y + 1, eyeSize * 0.6);
+
+            // Pupil
+            graphics.fillStyle(0x000000, 0.9);
+            graphics.fillCircle(x, y + 1, eyeSize * 0.3);
+
+            // Sparkle
+            graphics.fillStyle(0xFFFFFF, 0.8);
+            graphics.fillCircle(x - 1, y - 1, eyeSize * 0.2);
+
+            // Floating eyes have ethereal glow
+            if (variant === 'floating') {
+                graphics.fillStyle(eyeColor, 0.2);
+                graphics.fillCircle(x, y, eyeSize * 2);
+            }
+        }
+    }
+
+    /**
+     * Floating parts mutation - detached elements orbiting the creature
+     */
+    renderFloatingPartsMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'orbs';
+        const floatColor = colors.accent || 0xE6E6FA;
+
+        const numParts = Math.floor(intensity * 4) + 2;
+
+        for (let i = 0; i < numParts; i++) {
+            const angle = (i / numParts) * Math.PI * 2;
+            const dist = 35 + Math.random() * 15;
+            const x = center.x + Math.cos(angle) * dist;
+            const y = center.y + Math.sin(angle) * dist * 0.5;
+
+            if (variant === 'orbs') {
+                // Glowing orbs
+                const size = 4 + Math.random() * 4;
+                graphics.fillStyle(floatColor, 0.3);
+                graphics.fillCircle(x, y, size * 1.5);
+                graphics.fillStyle(floatColor, 0.7);
+                graphics.fillCircle(x, y, size);
+                graphics.fillStyle(0xFFFFFF, 0.5);
+                graphics.fillCircle(x - 1, y - 1, size * 0.4);
+            } else if (variant === 'fragments') {
+                // Broken fragments
+                const size = 3 + Math.random() * 4;
+                graphics.fillStyle(colors.body || floatColor, 0.6);
+                graphics.fillTriangle(
+                    x, y - size,
+                    x - size, y + size,
+                    x + size, y + size * 0.5
+                );
+            } else if (variant === 'rings') {
+                // Floating rings
+                const size = 6 + Math.random() * 4;
+                graphics.lineStyle(2, floatColor, 0.7);
+                graphics.strokeCircle(x, y, size);
+            } else if (variant === 'crystals') {
+                // Floating crystal shards
+                const size = 4 + Math.random() * 4;
+                graphics.fillStyle(floatColor, 0.75);
+                graphics.beginPath();
+                graphics.moveTo(x, y - size * 1.5);
+                graphics.lineTo(x - size * 0.6, y);
+                graphics.lineTo(x, y + size * 0.5);
+                graphics.lineTo(x + size * 0.6, y);
+                graphics.closePath();
+                graphics.fillPath();
+            }
+
+            // Connection line to body
+            graphics.lineStyle(1, floatColor, 0.15);
+            graphics.beginPath();
+            graphics.moveTo(center.x, center.y);
+            graphics.lineTo(x, y);
+            graphics.strokePath();
+        }
+    }
+
+    /**
+     * Crystal growths mutation - crystal formations on body
+     */
+    renderCrystalGrowthsMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'clusters';
+        const crystalColor = this.lightenColor(colors.accent || 0xE6E6FA, 0.2);
+
+        if (variant === 'crown') {
+            // Crystal crown on head
+            const crownY = center.y - 35;
+            for (let i = 0; i < 5; i++) {
+                const x = center.x + (i - 2) * 6;
+                const height = 8 + Math.random() * 8 * intensity;
+
+                graphics.fillStyle(crystalColor, 0.85);
+                graphics.beginPath();
+                graphics.moveTo(x - 3, crownY);
+                graphics.lineTo(x, crownY - height);
+                graphics.lineTo(x + 3, crownY);
+                graphics.closePath();
+                graphics.fillPath();
+            }
+        } else if (variant === 'spires') {
+            // Large crystal spires
+            const positions = [
+                { x: -20, y: -10 },
+                { x: 20, y: -5 },
+                { x: 0, y: 15 }
+            ];
+
+            positions.forEach(pos => {
+                const x = center.x + pos.x;
+                const y = center.y + pos.y;
+                const height = 15 + Math.random() * 10 * intensity;
+
+                graphics.fillStyle(crystalColor, 0.8);
+                graphics.beginPath();
+                graphics.moveTo(x - 4, y);
+                graphics.lineTo(x - 2, y - height);
+                graphics.lineTo(x + 2, y - height);
+                graphics.lineTo(x + 4, y);
+                graphics.closePath();
+                graphics.fillPath();
+
+                // Glow
+                graphics.fillStyle(crystalColor, 0.3);
+                graphics.fillCircle(x, y - height / 2, 6);
+            });
+        } else if (variant === 'embedded') {
+            // Crystals embedded in body
+            const numCrystals = Math.floor(6 * intensity) + 3;
+            for (let i = 0; i < numCrystals; i++) {
+                const angle = (i / numCrystals) * Math.PI * 2;
+                const dist = 12 + Math.random() * 10;
+                const x = center.x + Math.cos(angle) * dist;
+                const y = center.y + Math.sin(angle) * dist * 0.6;
+                const size = 3 + Math.random() * 3;
+
+                graphics.fillStyle(crystalColor, 0.7);
+                graphics.fillCircle(x, y, size);
+                graphics.fillStyle(0xFFFFFF, 0.4);
+                graphics.fillCircle(x - 1, y - 1, size * 0.4);
+            }
+        } else {
+            // Clusters
+            const clusterPositions = [
+                { x: -15, y: 5 },
+                { x: 15, y: 0 },
+                { x: 0, y: 20 }
+            ];
+
+            clusterPositions.forEach(pos => {
+                const baseX = center.x + pos.x;
+                const baseY = center.y + pos.y;
+
+                for (let j = 0; j < 3; j++) {
+                    const x = baseX + (Math.random() - 0.5) * 8;
+                    const y = baseY + (Math.random() - 0.5) * 8;
+                    const height = 6 + Math.random() * 6 * intensity;
+
+                    graphics.fillStyle(crystalColor, 0.75);
+                    graphics.beginPath();
+                    graphics.moveTo(x - 2, y);
+                    graphics.lineTo(x, y - height);
+                    graphics.lineTo(x + 2, y);
+                    graphics.closePath();
+                    graphics.fillPath();
+                }
+            });
+        }
+    }
+
+    /**
+     * Inanimate markings mutation - circuits, runes, gears, glyphs
+     */
+    renderInanimateMarkingsMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'circuits';
+        const markingColor = colors.accent || 0x00FFFF;
+
+        graphics.lineStyle(1.5, markingColor, 0.6 * intensity);
+
+        if (variant === 'circuits') {
+            // Circuit board patterns
+            const startPoints = [
+                { x: -20, y: -10 },
+                { x: 15, y: 5 },
+                { x: -5, y: 15 }
+            ];
+
+            startPoints.forEach(start => {
+                const x = center.x + start.x;
+                const y = center.y + start.y;
+
+                graphics.beginPath();
+                graphics.moveTo(x, y);
+                graphics.lineTo(x + 10, y);
+                graphics.lineTo(x + 10, y + 8);
+                graphics.lineTo(x + 18, y + 8);
+                graphics.strokePath();
+
+                // Connection nodes
+                graphics.fillStyle(markingColor, 0.8);
+                graphics.fillCircle(x, y, 2);
+                graphics.fillCircle(x + 10, y, 2);
+                graphics.fillCircle(x + 18, y + 8, 2);
+            });
+        } else if (variant === 'runes') {
+            // Mystical runes
+            graphics.fillStyle(markingColor, 0.5 * intensity);
+
+            const runePositions = [
+                { x: -12, y: 0 },
+                { x: 12, y: 5 },
+                { x: 0, y: -15 }
+            ];
+
+            runePositions.forEach(pos => {
+                const x = center.x + pos.x;
+                const y = center.y + pos.y;
+
+                // Simple rune shapes
+                graphics.strokeRect(x - 4, y - 6, 8, 12);
+                graphics.beginPath();
+                graphics.moveTo(x, y - 6);
+                graphics.lineTo(x, y + 6);
+                graphics.strokePath();
+            });
+        } else if (variant === 'gears') {
+            // Mechanical gears
+            [
+                { x: -15, y: 0, size: 8 },
+                { x: 12, y: 5, size: 6 },
+                { x: 0, y: -12, size: 5 }
+            ].forEach(gear => {
+                const x = center.x + gear.x;
+                const y = center.y + gear.y;
+
+                // Gear teeth
+                graphics.strokeCircle(x, y, gear.size);
+                for (let t = 0; t < 8; t++) {
+                    const angle = (t / 8) * Math.PI * 2;
+                    const innerX = x + Math.cos(angle) * gear.size;
+                    const innerY = y + Math.sin(angle) * gear.size;
+                    const outerX = x + Math.cos(angle) * (gear.size + 3);
+                    const outerY = y + Math.sin(angle) * (gear.size + 3);
+                    graphics.beginPath();
+                    graphics.moveTo(innerX, innerY);
+                    graphics.lineTo(outerX, outerY);
+                    graphics.strokePath();
+                }
+
+                // Center hole
+                graphics.fillStyle(markingColor, 0.3);
+                graphics.fillCircle(x, y, gear.size * 0.3);
+            });
+        } else {
+            // Ancient glyphs
+            graphics.fillStyle(markingColor, 0.5 * intensity);
+
+            // Glyph shapes
+            graphics.strokeTriangle(center.x - 10, center.y + 5, center.x - 5, center.y - 8, center.x, center.y + 5);
+            graphics.strokeCircle(center.x + 10, center.y, 5);
+            graphics.beginPath();
+            graphics.moveTo(center.x, center.y + 15);
+            graphics.lineTo(center.x - 5, center.y + 25);
+            graphics.lineTo(center.x + 5, center.y + 25);
+            graphics.closePath();
+            graphics.strokePath();
+        }
+    }
+
+    /**
+     * Surreal appendages mutation - tentacles, ribbons, flames, shadows
+     */
+    renderSurrealAppendagesMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'tentacles';
+        const appendageColor = colors.accent || 0x9C27B0;
+
+        if (variant === 'tentacles') {
+            // Ethereal tentacles
+            const numTentacles = Math.floor(3 * intensity) + 2;
+
+            for (let i = 0; i < numTentacles; i++) {
+                const angle = (i / numTentacles) * Math.PI + Math.PI / 2;
+                const startX = center.x + Math.cos(angle) * 15;
+                const startY = center.y + 20;
+
+                graphics.lineStyle(3, appendageColor, 0.7);
+                graphics.beginPath();
+                graphics.moveTo(startX, startY);
+
+                // Wavy tentacle
+                let x = startX;
+                let y = startY;
+                for (let j = 0; j < 5; j++) {
+                    x += Math.sin(j + i) * 8;
+                    y += 8;
+                    graphics.lineTo(x, y);
+                }
+                graphics.strokePath();
+
+                // Tip
+                graphics.fillStyle(appendageColor, 0.5);
+                graphics.fillCircle(x, y, 3);
+            }
+        } else if (variant === 'ribbons') {
+            // Flowing ribbons
+            const ribbonColor = this.lightenColor(appendageColor, 0.2);
+
+            for (let i = 0; i < 3; i++) {
+                const startAngle = (i / 3) * Math.PI * 2;
+                const startX = center.x + Math.cos(startAngle) * 20;
+                const startY = center.y + Math.sin(startAngle) * 15;
+
+                graphics.fillStyle(ribbonColor, 0.5);
+                graphics.beginPath();
+                graphics.moveTo(startX, startY);
+
+                for (let j = 0; j < 4; j++) {
+                    const wave = Math.sin(j * 1.5 + i) * 15;
+                    graphics.lineTo(startX + j * 12 + wave, startY + j * 5);
+                }
+
+                for (let j = 3; j >= 0; j--) {
+                    const wave = Math.sin(j * 1.5 + i) * 15;
+                    graphics.lineTo(startX + j * 12 + wave, startY + j * 5 + 4);
+                }
+
+                graphics.closePath();
+                graphics.fillPath();
+            }
+        } else if (variant === 'flames') {
+            // Ethereal flames
+            const flameColor = 0xE040FB; // Purple flame
+
+            for (let i = 0; i < 4; i++) {
+                const x = center.x + (i - 1.5) * 12;
+                const y = center.y + 25;
+                const height = 15 + Math.random() * 10 * intensity;
+
+                // Flame layers
+                for (let layer = 0; layer < 3; layer++) {
+                    const layerAlpha = 0.4 - layer * 0.1;
+                    const layerWidth = 6 - layer * 1.5;
+
+                    graphics.fillStyle(this.lightenColor(flameColor, layer * 0.15), layerAlpha);
+                    graphics.beginPath();
+                    graphics.moveTo(x - layerWidth, y);
+                    graphics.quadraticCurveTo(x - layerWidth / 2, y - height / 2, x, y - height);
+                    graphics.quadraticCurveTo(x + layerWidth / 2, y - height / 2, x + layerWidth, y);
+                    graphics.closePath();
+                    graphics.fillPath();
+                }
+            }
+        } else {
+            // Shadows
+            graphics.fillStyle(0x000000, 0.3 * intensity);
+
+            for (let i = 0; i < 3; i++) {
+                const x = center.x + (Math.random() - 0.5) * 40;
+                const y = center.y + (Math.random() - 0.5) * 40;
+                const size = 10 + Math.random() * 15;
+
+                // Irregular shadow blob
+                graphics.beginPath();
+                graphics.moveTo(x, y - size);
+                graphics.quadraticCurveTo(x + size, y - size / 2, x + size, y);
+                graphics.quadraticCurveTo(x + size / 2, y + size, x, y + size);
+                graphics.quadraticCurveTo(x - size, y + size / 2, x - size, y);
+                graphics.quadraticCurveTo(x - size / 2, y - size, x, y - size);
+                graphics.fillPath();
+            }
+        }
+    }
+
+    /**
+     * Void patches mutation - dark, starry void areas
+     */
+    renderVoidPatchesMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'small';
+
+        const sizes = {
+            small: { count: 3, size: 8 },
+            medium: { count: 2, size: 15 },
+            swirling: { count: 2, size: 12 },
+            crackling: { count: 4, size: 10 }
+        };
+
+        const config = sizes[variant] || sizes.small;
+
+        for (let i = 0; i < config.count; i++) {
+            const x = center.x + (Math.random() - 0.5) * 30;
+            const y = center.y + (Math.random() - 0.5) * 30;
+            const patchSize = config.size * (0.8 + Math.random() * 0.4);
+
+            // Dark void base
+            graphics.fillStyle(0x0D001A, 0.8 * intensity);
+            graphics.fillCircle(x, y, patchSize);
+
+            // Darker center
+            graphics.fillStyle(0x000000, 0.9);
+            graphics.fillCircle(x, y, patchSize * 0.6);
+
+            // Star-like sparkles within void
+            graphics.fillStyle(0xFFFFFF, 0.8);
+            for (let s = 0; s < 4; s++) {
+                const starX = x + (Math.random() - 0.5) * patchSize;
+                const starY = y + (Math.random() - 0.5) * patchSize;
+                graphics.fillCircle(starX, starY, 0.5 + Math.random());
+            }
+
+            if (variant === 'swirling') {
+                // Swirl effect
+                graphics.lineStyle(1, 0x4A148C, 0.5);
+                graphics.beginPath();
+                for (let a = 0; a < Math.PI * 2; a += 0.3) {
+                    const r = patchSize * (0.3 + a / (Math.PI * 4));
+                    const px = x + Math.cos(a) * r;
+                    const py = y + Math.sin(a) * r;
+                    if (a === 0) {
+                        graphics.moveTo(px, py);
+                    } else {
+                        graphics.lineTo(px, py);
+                    }
+                }
+                graphics.strokePath();
+            } else if (variant === 'crackling') {
+                // Energy crackling at edges
+                graphics.lineStyle(1, 0x7B1FA2, 0.6);
+                for (let c = 0; c < 4; c++) {
+                    const angle = (c / 4) * Math.PI * 2;
+                    const edgeX = x + Math.cos(angle) * patchSize;
+                    const edgeY = y + Math.sin(angle) * patchSize;
+                    const crackX = x + Math.cos(angle) * (patchSize + 5 + Math.random() * 5);
+                    const crackY = y + Math.sin(angle) * (patchSize + 5 + Math.random() * 5);
+
+                    graphics.beginPath();
+                    graphics.moveTo(edgeX, edgeY);
+                    graphics.lineTo(crackX, crackY);
+                    graphics.strokePath();
+                }
+            }
+        }
+    }
+
+    /**
+     * Prismatic sheen mutation - rainbow/iridescent effects
+     */
+    renderPrismaticSheenMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'rainbow';
+
+        const prismaticColors = {
+            rainbow: [0xFF0000, 0xFF7F00, 0xFFFF00, 0x00FF00, 0x0000FF, 0x8B00FF],
+            opalescent: [0xFFE4E1, 0xE6E6FA, 0xB0E0E6, 0xF0FFF0, 0xFFF0F5],
+            oil_slick: [0x4A148C, 0x1A237E, 0x006064, 0x1B5E20, 0x311B92],
+            aurora: [0x00FF7F, 0x00CED1, 0x9370DB, 0xFF69B4, 0x00FA9A]
+        };
+
+        const colorSet = prismaticColors[variant] || prismaticColors.rainbow;
+
+        // Overlapping color patches
+        colorSet.forEach((color, i) => {
+            const angle = (i / colorSet.length) * Math.PI * 2;
+            const dist = 5 + Math.random() * 10;
+            const x = center.x + Math.cos(angle) * dist;
+            const y = center.y + Math.sin(angle) * dist * 0.7;
+            const size = 20 + Math.random() * 15;
+
+            graphics.fillStyle(color, 0.15 * intensity);
+            graphics.fillEllipse(x, y, size, size * 0.8);
+        });
+
+        // Shimmer highlights
+        graphics.fillStyle(0xFFFFFF, 0.2 * intensity);
+        for (let i = 0; i < 5; i++) {
+            const x = center.x + (Math.random() - 0.5) * 30;
+            const y = center.y + (Math.random() - 0.5) * 25;
+            graphics.fillCircle(x, y, 2 + Math.random() * 3);
+        }
+
+        // Border shimmer
+        if (variant === 'aurora') {
+            graphics.lineStyle(2, 0x00FF7F, 0.3 * intensity);
+            graphics.strokeCircle(center.x, center.y + 5, 35);
+            graphics.lineStyle(2, 0x9370DB, 0.2 * intensity);
+            graphics.strokeCircle(center.x, center.y + 5, 38);
+        }
+    }
+
+    /**
      * Render reptilian body - scaled with ridges
      */
     renderReptilianBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
@@ -2625,8 +5042,13 @@ class GraphicsEngine {
 
     /**
      * Add rarity-based special effects
+     * @param {Phaser.Graphics} graphics - Graphics context
+     * @param {Object} genetics - Creature genetics data
+     * @param {Object} center - Center position {x, y}
+     * @param {Object} size - Size dimensions
+     * @param {number} stageGlowIntensity - Stage-specific glow intensity multiplier (1.0 for adult)
      */
-    addRarityEffects(graphics, genetics, center, size) {
+    addRarityEffects(graphics, genetics, center, size, stageGlowIntensity = 1.0) {
         const rarity = genetics.rarity;
         const specialFeatures = genetics.traits.features.specialFeatures || [];
 
@@ -2635,13 +5057,16 @@ class GraphicsEngine {
             return;
         }
 
-        // Uncommon and above get enhanced aura
+        // Uncommon and above get enhanced aura (scaled by stage glow intensity)
         if (rarity === 'uncommon' || rarity === 'rare' || rarity === 'legendary') {
-            const auraIntensity = {
+            const baseAuraIntensity = {
                 uncommon: 0.2,
                 rare: 0.4,
                 legendary: 0.6
             }[rarity];
+
+            // Apply stage-specific glow scaling
+            const auraIntensity = baseAuraIntensity * stageGlowIntensity;
 
             this.addCosmicAura(graphics, center, {
                 innerColor: genetics.traits.colorGenome.accent,
@@ -2655,8 +5080,8 @@ class GraphicsEngine {
             this.addSpecialFeatureEffect(graphics, feature, center, genetics);
         });
 
-        // Legendary creatures get extra sparkles
-        if (rarity === 'legendary') {
+        // Legendary creatures get extra sparkles (scaled by stage glow)
+        if (rarity === 'legendary' && stageGlowIntensity > 0.5) {
             this.addLegendaryEffects(graphics, genetics, center, size);
         }
     }
@@ -2748,14 +5173,22 @@ class GraphicsEngine {
 
     /**
      * Add enhanced markings to creature based on genetic pattern
+     * @param {Phaser.Graphics} graphics - Graphics context
+     * @param {Object} center - Center position {x, y}
+     * @param {number} size - Base size
+     * @param {Object} markings - Marking configuration
+     * @param {Object} colorGenome - Color genome for color calculations
+     * @param {number} stageOpacity - Stage-specific opacity multiplier (1.0 for adult)
      */
-    addEnhancedMarkings(graphics, center, size, markings, colorGenome) {
+    addEnhancedMarkings(graphics, center, size, markings, colorGenome, stageOpacity = 1.0) {
         if (!markings || markings.pattern === 'none' || markings.intensity === 0) {
             return;
         }
-        
+
         const baseColor = this.calculateMarkingColor(colorGenome, markings.colorVariant);
-        const alpha = markings.opacity || 0.6;
+        // Apply stage-specific opacity multiplier
+        const baseAlpha = markings.opacity || 0.6;
+        const alpha = baseAlpha * stageOpacity;
         const scale = markings.scale || 0.5;
         const intensity = markings.intensity;
         
@@ -3759,7 +6192,7 @@ class GraphicsEngine {
      * @param {number} frame - Animation frame (0-based)
      * @returns {Object} Creature render result with texture name
      */
-    createCreatureFromDNA(dna, frame = 0) {
+    createCreatureFromDNA(dna, frame = 0, stage = 'adult') {
         if (!dna) {
             console.warn('graphics:warn [GraphicsEngine] No DNA provided, using default creature');
             return this.createSpaceMythicCreature({ frame });
@@ -3774,6 +6207,9 @@ class GraphicsEngine {
             // Calculate canvas size based on body archetype
             const metrics = this.getDNACanvasMetrics(dna.bodyArchetype);
 
+            // Get lifecycle stage visual config
+            const stageConfig = window.CreatureLifecycle?.getStageVisualConfig(stage) || { scale: 1.0, colorSaturation: 1.0 };
+
             // Create graphics context
             const graphics = this.createScratchGraphics();
             const translation = this.safeGraphicsTranslate(graphics, metrics.padding);
@@ -3783,24 +6219,59 @@ class GraphicsEngine {
                 y: metrics.baseCenter.y + translation.centerShift.y
             };
 
-            // Render body based on DNA bodyArchetype
-            this.renderBodyArchetype(graphics, center, metrics.size, dna.bodyArchetype, colors);
+            // Apply stage-based size scaling
+            // metrics.size is an object {width, height}, so scale each dimension
+            const baseWidth = metrics.size.width || 50;
+            const baseHeight = metrics.size.height || 65;
+            const stageScale = stageConfig.scale || 1.0;
 
-            // Render head based on DNA headArchetype (with hybrid support)
-            this.renderHeadArchetype(graphics, center, metrics.size, dna.headArchetype, colors, dna.hybridTag);
+            // Create properly scaled size object for rendering
+            const sizeObj = {
+                width: baseWidth * stageScale,
+                height: baseHeight * stageScale
+            };
+            console.log('graphics:debug [GraphicsEngine] Size object for stage:', stage, sizeObj);
+
+            // Apply stage-based color saturation to colors (preserve color structure)
+            const stageColors = {
+                body: this.adjustColorSaturation(colors.body, stageConfig.colorSaturation),
+                head: this.adjustColorSaturation(colors.head, stageConfig.colorSaturation),
+                accent: this.adjustColorSaturation(colors.accent, stageConfig.colorSaturation),
+                eyes: colors.eyes // Eyes stay the same brightness
+            };
+            console.log('graphics:debug [GraphicsEngine] Stage colors applied:', stageColors);
+
+            // Get full stage config for baby enhancements BEFORE rendering
+            const fullStageConfig = this.getStageVisualConfig(stage);
+
+            // Render body based on DNA bodyArchetype with stage scaling
+            this.renderBodyArchetype(graphics, center, sizeObj, dna.bodyArchetype, stageColors);
+
+            // Render head based on DNA headArchetype (with hybrid support) with stage scaling
+            // Pass fullStageConfig for proper eye/head scaling at different lifecycle stages
+            this.renderHeadArchetype(graphics, center, sizeObj, dna.headArchetype, stageColors, dna.hybridTag, fullStageConfig);
 
             // Add elemental aura effects (drawn on graphics for texture)
-            this.addElementalAuraToGraphics(graphics, center, metrics.size, dna.elementalAura);
+            // Use average of width/height for aura radius
+            const auraSize = (sizeObj.width + sizeObj.height) / 2;
+            this.addElementalAuraToGraphics(graphics, center, auraSize, dna.elementalAura);
 
             // Add rarity enhancements for epic+
             if (this.isEpicOrHigher(dna.raritySignature)) {
-                this.addRarityEnhancements(graphics, center, metrics.size, dna.raritySignature);
+                this.addRarityEnhancements(graphics, center, auraSize, dna.raritySignature);
             }
+
+            // Add stage-specific effects (baby cute features, etc.)
+            // Use the same sizeObj for consistent positioning
+            const minimalGenetics = {
+                cosmicAffinity: { color: colors.accent }
+            };
+            this.addStageEffects(graphics, stage, fullStageConfig, center, sizeObj, minimalGenetics);
 
             translation.restore();
 
             // Generate texture
-            const textureName = `creature_dna_${dna.id}_${frame}`;
+            const textureName = `creature_dna_${dna.id}_${frame}_${stage}`;
             this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
 
             const generationTime = Date.now() - startTime;
@@ -3823,8 +6294,13 @@ class GraphicsEngine {
             };
         } catch (error) {
             console.error('graphics:error [GraphicsEngine] Failed to create DNA creature:', error);
-            if (typeof window !== 'undefined' && window.ErrorHandler) {
-                window.ErrorHandler.handleError(error, 'GraphicsEngine.createCreatureFromDNA', 'warning');
+            if (typeof window !== 'undefined' && window.ErrorHandler && typeof window.ErrorHandler.handleError === 'function') {
+                window.ErrorHandler.handleError({
+                    message: error.message || 'Failed to create DNA creature',
+                    type: 'GraphicsEngine.createCreatureFromDNA',
+                    severity: 'warning',
+                    stack: error.stack
+                });
             }
             return this.createSpaceMythicCreature({ frame });
         }
@@ -3935,33 +6411,39 @@ class GraphicsEngine {
      * @param {Object} colors - Color scheme
      * @param {string} hybridTag - Hybrid type (single-species, dual-hybrid, triple-hybrid, glitchy)
      */
-    renderHeadArchetype(graphics, center, size, headArchetype, colors, hybridTag) {
+    renderHeadArchetype(graphics, center, size, headArchetype, colors, hybridTag, stageConfig = null) {
         // Head position (top of body)
         const headY = center.y - size.height * 0.35;
-        const headSize = size.width * 0.4;
+
+        // Stage-based head size multiplier (babies have proportionally larger heads)
+        const headMultiplier = stageConfig?.headSizeMultiplier || 1.0;
+        const eyeMultiplier = stageConfig?.eyeSizeMultiplier || 1.0;
+        const headSize = size.width * 0.4 * headMultiplier;
+
+        console.log(`graphics:debug [GraphicsEngine] DNA Head rendering - headMultiplier: ${headMultiplier}, eyeMultiplier: ${eyeMultiplier}`);
 
         // For hybrids, blend features
         const isDualHybrid = hybridTag === 'dual-hybrid';
         const isTripleHybrid = hybridTag === 'triple-hybrid';
         const isGlitchy = hybridTag === 'glitchy';
 
-        // Main head features
-        this.drawHeadFeatures(graphics, center.x, headY, headSize, headArchetype, colors);
+        // Main head features - pass eye multiplier for proper scaling
+        this.drawHeadFeatures(graphics, center.x, headY, headSize, headArchetype, colors, eyeMultiplier);
 
         // Add hybrid features
         if (isDualHybrid || isTripleHybrid) {
             // Draw subtle second head features (smaller, offset)
             const secondHeadArchetype = this.getComplementaryHeadType(headArchetype);
             graphics.setAlpha(0.4);
-            this.drawHeadFeatures(graphics, center.x + headSize * 0.3, headY - 2, headSize * 0.7, secondHeadArchetype, colors);
+            this.drawHeadFeatures(graphics, center.x + headSize * 0.3, headY - 2, headSize * 0.7, secondHeadArchetype, colors, eyeMultiplier);
             graphics.setAlpha(1.0);
         }
 
         if (isGlitchy) {
             // Add glitch effect - offset RGB channels
             graphics.setAlpha(0.3);
-            this.drawHeadFeatures(graphics, center.x - 2, headY, headSize, headArchetype, { ...colors, head: 0x00FFFF });
-            this.drawHeadFeatures(graphics, center.x + 2, headY, headSize, headArchetype, { ...colors, head: 0xFF00FF });
+            this.drawHeadFeatures(graphics, center.x - 2, headY, headSize, headArchetype, { ...colors, head: 0x00FFFF }, eyeMultiplier);
+            this.drawHeadFeatures(graphics, center.x + 2, headY, headSize, headArchetype, { ...colors, head: 0xFF00FF }, eyeMultiplier);
             graphics.setAlpha(1.0);
         }
     }
@@ -3974,38 +6456,39 @@ class GraphicsEngine {
      * @param {number} size - Head size
      * @param {string} headArchetype - Head type
      * @param {Object} colors - Color scheme
+     * @param {number} eyeMultiplier - Eye size multiplier for stage scaling (babies get bigger eyes)
      */
-    drawHeadFeatures(graphics, x, y, size, headArchetype, colors) {
+    drawHeadFeatures(graphics, x, y, size, headArchetype, colors, eyeMultiplier = 1.0) {
         switch (headArchetype) {
             case 'feline':
-                this.drawFelineHead(graphics, x, y, size, colors);
+                this.drawFelineHead(graphics, x, y, size, colors, eyeMultiplier);
                 break;
             case 'canine':
-                this.drawCanineHead(graphics, x, y, size, colors);
+                this.drawCanineHead(graphics, x, y, size, colors, eyeMultiplier);
                 break;
             case 'avian':
-                this.drawAvianHead(graphics, x, y, size, colors);
+                this.drawAvianHead(graphics, x, y, size, colors, eyeMultiplier);
                 break;
             case 'reptile':
-                this.drawReptileHead(graphics, x, y, size, colors);
+                this.drawReptileHead(graphics, x, y, size, colors, eyeMultiplier);
                 break;
             case 'aquatic':
-                this.drawAquaticHead(graphics, x, y, size, colors);
+                this.drawAquaticHead(graphics, x, y, size, colors, eyeMultiplier);
                 break;
             case 'simian':
-                this.drawSimianHead(graphics, x, y, size, colors);
+                this.drawSimianHead(graphics, x, y, size, colors, eyeMultiplier);
                 break;
             case 'insectoid':
-                this.drawInsectoidHead(graphics, x, y, size, colors);
+                this.drawInsectoidHead(graphics, x, y, size, colors, eyeMultiplier);
                 break;
             case 'rodent':
-                this.drawRodentHead(graphics, x, y, size, colors);
+                this.drawRodentHead(graphics, x, y, size, colors, eyeMultiplier);
                 break;
             case 'cervine':
-                this.drawCervineHead(graphics, x, y, size, colors);
+                this.drawCervineHead(graphics, x, y, size, colors, eyeMultiplier);
                 break;
             default:
-                this.drawFelineHead(graphics, x, y, size, colors);
+                this.drawFelineHead(graphics, x, y, size, colors, eyeMultiplier);
         }
     }
 
@@ -4034,7 +6517,7 @@ class GraphicsEngine {
     // Individual head rendering methods for each archetype
     // ============================================================
 
-    drawFelineHead(graphics, x, y, size, colors) {
+    drawFelineHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Cat-like head - round with pointed ears
         graphics.fillStyle(colors.head);
         graphics.fillCircle(x, y, size);
@@ -4054,8 +6537,9 @@ class GraphicsEngine {
         graphics.closePath();
         graphics.fillPath();
 
-        // Eyes
-        this.createRealisticEyes(graphics, x - size * 0.3, y, x + size * 0.3, y, colors.eyes);
+        // Eyes - scaled by eyeMultiplier for baby cuteness
+        const baseEyeSize = size * 0.35 * eyeMultiplier;
+        this.createRealisticEyes(graphics, x - size * 0.3, y, x + size * 0.3, y, colors.eyes, baseEyeSize);
 
         // Whiskers
         graphics.lineStyle(1, colors.accent, 0.8);
@@ -4065,7 +6549,7 @@ class GraphicsEngine {
         graphics.lineBetween(x - size * 0.5, y + 3, x - size * 1.2, y + 3);
     }
 
-    drawCanineHead(graphics, x, y, size, colors) {
+    drawCanineHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Dog-like head - elongated snout
         graphics.fillStyle(colors.head);
         graphics.fillCircle(x, y, size);
@@ -4082,11 +6566,12 @@ class GraphicsEngine {
         graphics.fillStyle(0x000000);
         graphics.fillCircle(x, y + size * 0.5, size * 0.15);
 
-        // Eyes
-        this.createRealisticEyes(graphics, x - size * 0.3, y - size * 0.2, x + size * 0.3, y - size * 0.2, colors.eyes);
+        // Eyes - scaled by eyeMultiplier for baby cuteness
+        const baseEyeSize = size * 0.35 * eyeMultiplier;
+        this.createRealisticEyes(graphics, x - size * 0.3, y - size * 0.2, x + size * 0.3, y - size * 0.2, colors.eyes, baseEyeSize);
     }
 
-    drawAvianHead(graphics, x, y, size, colors) {
+    drawAvianHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Bird-like head - small with beak
         graphics.fillStyle(colors.head);
         graphics.fillCircle(x, y, size * 0.8);
@@ -4100,8 +6585,9 @@ class GraphicsEngine {
         graphics.closePath();
         graphics.fillPath();
 
-        // Eyes (larger for birds)
-        this.createRealisticEyes(graphics, x - size * 0.4, y - size * 0.1, x + size * 0.2, y - size * 0.1, colors.eyes);
+        // Eyes (larger for birds) - scaled by eyeMultiplier for baby cuteness
+        const baseEyeSize = size * 0.4 * eyeMultiplier;
+        this.createRealisticEyes(graphics, x - size * 0.4, y - size * 0.1, x + size * 0.2, y - size * 0.1, colors.eyes, baseEyeSize);
 
         // Crest feathers
         graphics.fillStyle(colors.accent);
@@ -4115,7 +6601,7 @@ class GraphicsEngine {
         }
     }
 
-    drawReptileHead(graphics, x, y, size, colors) {
+    drawReptileHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Reptile/dragon-like head - angular with scales
         graphics.fillStyle(colors.head);
 
@@ -4134,16 +6620,21 @@ class GraphicsEngine {
         graphics.fillTriangle(x - size * 0.4, y - size * 0.5, x - size * 0.6, y - size * 1.2, x - size * 0.2, y - size * 0.7);
         graphics.fillTriangle(x + size * 0.4, y - size * 0.5, x + size * 0.6, y - size * 1.2, x + size * 0.2, y - size * 0.7);
 
-        // Slit eyes (reptilian)
+        // Slit eyes (reptilian) - scaled by eyeMultiplier
+        const eyeWidth = size * 0.15 * eyeMultiplier;
+        const eyeHeight = size * 0.25 * eyeMultiplier;
         graphics.fillStyle(colors.eyes);
-        graphics.fillEllipse(x - size * 0.3, y - size * 0.2, size * 0.15, size * 0.25);
-        graphics.fillEllipse(x + size * 0.3, y - size * 0.2, size * 0.15, size * 0.25);
+        graphics.fillEllipse(x - size * 0.3, y - size * 0.2, eyeWidth, eyeHeight);
+        graphics.fillEllipse(x + size * 0.3, y - size * 0.2, eyeWidth, eyeHeight);
+        // Slit pupils
+        const pupilWidth = Math.max(2, 2 * eyeMultiplier);
+        const pupilHeight = size * 0.2 * eyeMultiplier;
         graphics.fillStyle(0x000000);
-        graphics.fillRect(x - size * 0.3 - 1, y - size * 0.3, 2, size * 0.2);
-        graphics.fillRect(x + size * 0.3 - 1, y - size * 0.3, 2, size * 0.2);
+        graphics.fillRect(x - size * 0.3 - pupilWidth/2, y - size * 0.3, pupilWidth, pupilHeight);
+        graphics.fillRect(x + size * 0.3 - pupilWidth/2, y - size * 0.3, pupilWidth, pupilHeight);
     }
 
-    drawAquaticHead(graphics, x, y, size, colors) {
+    drawAquaticHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Fish/dolphin-like head - streamlined
         graphics.fillStyle(colors.head);
         graphics.fillEllipse(x, y, size * 1.2, size * 0.9);
@@ -4153,8 +6644,9 @@ class GraphicsEngine {
         graphics.fillTriangle(x - size * 0.8, y - size * 0.3, x - size * 1.3, y - size * 0.6, x - size * 1.1, y);
         graphics.fillTriangle(x + size * 0.8, y - size * 0.3, x + size * 1.3, y - size * 0.6, x + size * 1.1, y);
 
-        // Large eyes (fish-like)
-        this.createRealisticEyes(graphics, x - size * 0.4, y - size * 0.2, x + size * 0.4, y - size * 0.2, colors.eyes);
+        // Large eyes (fish-like) - scaled by eyeMultiplier for baby cuteness
+        const baseEyeSize = size * 0.4 * eyeMultiplier;
+        this.createRealisticEyes(graphics, x - size * 0.4, y - size * 0.2, x + size * 0.4, y - size * 0.2, colors.eyes, baseEyeSize);
 
         // Bubbles
         graphics.fillStyle(0x87CEEB, 0.5);
@@ -4162,7 +6654,7 @@ class GraphicsEngine {
         graphics.fillCircle(x + size * 0.9, y - size * 0.7, size * 0.08);
     }
 
-    drawSimianHead(graphics, x, y, size, colors) {
+    drawSimianHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Monkey-like head - round with prominent features
         graphics.fillStyle(colors.head);
         graphics.fillCircle(x, y, size);
@@ -4175,37 +6667,41 @@ class GraphicsEngine {
         graphics.fillStyle(Phaser.Display.Color.ValueToColor(colors.head).lighten(20).color);
         graphics.fillEllipse(x, y + size * 0.2, size * 0.7, size * 0.8);
 
-        // Eyes
-        this.createRealisticEyes(graphics, x - size * 0.3, y, x + size * 0.3, y, colors.eyes);
+        // Eyes - scaled by eyeMultiplier for baby cuteness
+        const baseEyeSize = size * 0.35 * eyeMultiplier;
+        this.createRealisticEyes(graphics, x - size * 0.3, y, x + size * 0.3, y, colors.eyes, baseEyeSize);
 
         // Nose
         graphics.fillStyle(0x000000);
         graphics.fillTriangle(x, y + size * 0.3, x - size * 0.1, y + size * 0.5, x + size * 0.1, y + size * 0.5);
     }
 
-    drawInsectoidHead(graphics, x, y, size, colors) {
+    drawInsectoidHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Bug-like head - compact with antennae
         graphics.fillStyle(colors.head);
         graphics.fillEllipse(x, y, size * 0.9, size);
 
-        // Compound eyes (large)
+        // Compound eyes (large) - scaled by eyeMultiplier for baby cuteness
+        const compoundEyeSize = size * 0.4 * eyeMultiplier;
         graphics.fillStyle(colors.eyes);
-        graphics.fillCircle(x - size * 0.4, y - size * 0.2, size * 0.4);
-        graphics.fillCircle(x + size * 0.4, y - size * 0.2, size * 0.4);
+        graphics.fillCircle(x - size * 0.4, y - size * 0.2, compoundEyeSize);
+        graphics.fillCircle(x + size * 0.4, y - size * 0.2, compoundEyeSize);
 
-        // Eye facets
+        // Eye facets - scale with eye size
+        const facetRadius = compoundEyeSize * 0.375;
+        const facetDotSize = compoundEyeSize * 0.2;
         graphics.fillStyle(0x000000, 0.3);
         for (let i = 0; i < 6; i++) {
             const angle = (i / 6) * Math.PI * 2;
             graphics.fillCircle(
-                x - size * 0.4 + Math.cos(angle) * size * 0.15,
-                y - size * 0.2 + Math.sin(angle) * size * 0.15,
-                size * 0.08
+                x - size * 0.4 + Math.cos(angle) * facetRadius,
+                y - size * 0.2 + Math.sin(angle) * facetRadius,
+                facetDotSize
             );
             graphics.fillCircle(
-                x + size * 0.4 + Math.cos(angle) * size * 0.15,
-                y - size * 0.2 + Math.sin(angle) * size * 0.15,
-                size * 0.08
+                x + size * 0.4 + Math.cos(angle) * facetRadius,
+                y - size * 0.2 + Math.sin(angle) * facetRadius,
+                facetDotSize
             );
         }
 
@@ -4218,7 +6714,7 @@ class GraphicsEngine {
         graphics.fillCircle(x + size * 0.4, y - size * 1.5, size * 0.15);
     }
 
-    drawRodentHead(graphics, x, y, size, colors) {
+    drawRodentHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Mouse/rabbit-like head - small with large ears
         graphics.fillStyle(colors.head);
         graphics.fillCircle(x, y, size);
@@ -4232,8 +6728,9 @@ class GraphicsEngine {
         graphics.fillEllipse(x - size * 0.6, y - size * 0.7, size * 0.2, size * 0.8);
         graphics.fillEllipse(x + size * 0.6, y - size * 0.7, size * 0.2, size * 0.8);
 
-        // Large eyes
-        this.createRealisticEyes(graphics, x - size * 0.3, y - size * 0.1, x + size * 0.3, y - size * 0.1, colors.eyes);
+        // Large eyes - scaled by eyeMultiplier for baby cuteness
+        const baseEyeSize = size * 0.35 * eyeMultiplier;
+        this.createRealisticEyes(graphics, x - size * 0.3, y - size * 0.1, x + size * 0.3, y - size * 0.1, colors.eyes, baseEyeSize);
 
         // Nose
         graphics.fillStyle(0xFF69B4);
@@ -4247,7 +6744,7 @@ class GraphicsEngine {
         }
     }
 
-    drawCervineHead(graphics, x, y, size, colors) {
+    drawCervineHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Deer-like head - elegant with antlers
         graphics.fillStyle(colors.head);
         graphics.fillEllipse(x, y, size * 0.7, size * 1.1);
@@ -4260,8 +6757,9 @@ class GraphicsEngine {
         graphics.fillStyle(0x000000);
         graphics.fillCircle(x, y + size * 0.7, size * 0.12);
 
-        // Eyes (gentle, large)
-        this.createRealisticEyes(graphics, x - size * 0.3, y - size * 0.2, x + size * 0.3, y - size * 0.2, colors.eyes);
+        // Eyes (gentle, large) - scaled by eyeMultiplier for baby cuteness
+        const baseEyeSize = size * 0.35 * eyeMultiplier;
+        this.createRealisticEyes(graphics, x - size * 0.3, y - size * 0.2, x + size * 0.3, y - size * 0.2, colors.eyes, baseEyeSize);
 
         // Antlers
         graphics.lineStyle(3, colors.accent);
@@ -4531,14 +7029,57 @@ class GraphicsEngine {
             return null;
         }
 
-        // Priority 1: Try DNA-based rendering
+        // Get creature's current lifecycle stage
+        const lifecycle = gameState.get('creature.lifecycle');
+        const currentStage = lifecycle?.stage || 'baby';
+        console.log('graphics:debug [GraphicsEngine] loadCreatureFromGameState - lifecycle:', lifecycle, 'stage:', currentStage);
+
+        // CRITICAL: Check if we're in a hatching flow (creature.hatched but not yet named/added to collection)
+        // In this case, ALWAYS use creature.* slot instead of activeCreature from collection
+        const isHatchingFlow = gameState.get('creature.hatched') && !gameState.get('creature.named');
+
+        // Priority 0: Try active creature from collection (most reliable for roster sync)
+        // BUT skip this if we're in a hatching flow
+        const activeCreature = !isHatchingFlow ? gameState.getActiveCreature?.() : null;
+        if (activeCreature) {
+            // Try DNA first from active creature
+            if (activeCreature.dna) {
+                console.log('graphics:info [GraphicsEngine] Loading creature from active creature DNA:', activeCreature.dna.id);
+                try {
+                    const result = this.createCreatureFromDNA(activeCreature.dna, frame, currentStage);
+                    if (result && result.textureName) {
+                        console.log('graphics:info [GraphicsEngine] Successfully loaded creature from active creature DNA');
+                        return result;
+                    }
+                } catch (error) {
+                    console.warn('graphics:warn [GraphicsEngine] Active creature DNA rendering failed:', error);
+                }
+            }
+            // Try genes from active creature (stored as 'genes' in collection)
+            if (activeCreature.genes) {
+                console.log('graphics:info [GraphicsEngine] Loading creature from active creature genes:', activeCreature.genes.id);
+                try {
+                    if (typeof this.createRandomizedSpaceMythicCreature === 'function') {
+                        const result = this.createRandomizedSpaceMythicCreature(activeCreature.genes, frame, currentStage);
+                        if (result && result.textureName) {
+                            console.log('graphics:info [GraphicsEngine] Successfully loaded creature from active creature genes');
+                            return result;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('graphics:warn [GraphicsEngine] Active creature genes rendering failed:', error);
+                }
+            }
+        }
+
+        // Priority 1: Try DNA-based rendering from creature slot (backward compatibility + hatching flow)
         const dna = gameState.get('creature.dna');
         if (dna) {
-            console.log('graphics:info [GraphicsEngine] Loading creature from DNA:', dna.id);
+            console.log('graphics:info [GraphicsEngine] Loading creature from DNA slot:', dna.id);
             try {
-                const result = this.createCreatureFromDNA(dna, frame);
+                const result = this.createCreatureFromDNA(dna, frame, currentStage);
                 if (result && result.textureName) {
-                    console.log('graphics:info [GraphicsEngine] Successfully loaded creature from DNA');
+                    console.log('graphics:info [GraphicsEngine] Successfully loaded creature from DNA slot');
                     return result;
                 }
             } catch (error) {
@@ -4546,15 +7087,15 @@ class GraphicsEngine {
             }
         }
 
-        // Priority 2: Try genetics-based rendering
-        const genetics = gameState.get('creature.genetics');
+        // Priority 2: Try genetics-based rendering from creature slot
+        const genetics = gameState.get('creature.genetics') || gameState.get('creature.genes');
         if (genetics) {
-            console.log('graphics:info [GraphicsEngine] Loading creature from genetics:', genetics.id);
+            console.log('graphics:info [GraphicsEngine] Loading creature from genetics/genes slot:', genetics.id);
             try {
                 if (typeof this.createRandomizedSpaceMythicCreature === 'function') {
-                    const result = this.createRandomizedSpaceMythicCreature(genetics, frame);
+                    const result = this.createRandomizedSpaceMythicCreature(genetics, frame, currentStage);
                     if (result && result.textureName) {
-                        console.log('graphics:info [GraphicsEngine] Successfully loaded creature from genetics');
+                        console.log('graphics:info [GraphicsEngine] Successfully loaded creature from genetics/genes slot');
                         return result;
                     }
                 }
@@ -4588,6 +7129,31 @@ class GraphicsEngine {
 
         console.log('graphics:info [GraphicsEngine] Created animation frames:', frameNames);
         return frameNames;
+    }
+
+    /**
+     * Adjust color saturation for lifecycle stage visualization
+     * @param {number} colorValue - Hex color value
+     * @param {number} saturation - Saturation multiplier (0.0 to 1.0+)
+     * @returns {number} Adjusted hex color value
+     */
+    adjustColorSaturation(colorValue, saturation) {
+        if (!colorValue || saturation === 1.0) return colorValue;
+
+        // Convert to Phaser Color object
+        const color = Phaser.Display.Color.ValueToColor(colorValue);
+
+        // Get HSV values
+        const hsv = Phaser.Display.Color.RGBToHSV(color.r, color.g, color.b);
+
+        // Adjust saturation
+        hsv.s = Math.min(1.0, hsv.s * saturation);
+
+        // Convert back to RGB
+        const rgb = Phaser.Display.Color.HSVToRGB(hsv.h, hsv.s, hsv.v);
+
+        // Return as hex color value
+        return Phaser.Display.Color.GetColor(rgb.r, rgb.g, rgb.b);
     }
 }
 

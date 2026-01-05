@@ -1,0 +1,502 @@
+{
+  "version": "1.0.0",
+  "description": "Creature evolution stage configurations",
+
+  "stages": {
+    "baby": {
+      "id": "baby",
+      "name": "Baby",
+      "displayName": "Hatchling",
+      "icon": "🐣",
+      "dayRange": [0, 3],
+      "daysRequired": 0,
+      "description": "A newly hatched creature full of wonder and curiosity",
+
+      "visual": {
+        "scale": 0.6,
+        "colorSaturation": 0.9,
+        "markingOpacity": 0.5,
+        "featureScale": 0.5,
+        "eyeSizeMultiplier": 1.8,
+        "headSizeMultiplier": 1.4,
+        "bodyRoundness": 1.5,
+        "glowIntensity": 0.5,
+        "particleEffect": "cute_sparkle",
+        "hasWisdomMarks": false,
+        "cheekBlush": true,
+        "sparkleEyes": true
+      },
+
+      "stats": {
+        "happinessMax": 80,
+        "energyMax": 80,
+        "healthMax": 70,
+        "xpMultiplier": 1.5,
+        "combatDamage": 0.5,
+        "combatDefense": 0.5
+      },
+
+      "audio": {
+        "ambientTone": "gentle",
+        "voicePitch": 1.4,
+        "movementSound": "soft_patter"
+      }
+    },
+
+    "juvenile": {
+      "id": "juvenile",
+      "name": "Juvenile",
+      "displayName": "Youngling",
+      "icon": "🌱",
+      "dayRange": [3, 7],
+      "daysRequired": 3,
+      "description": "Growing stronger and developing their unique traits",
+
+      "visual": {
+        "scale": 0.75,
+        "colorSaturation": 0.85,
+        "markingOpacity": 0.6,
+        "featureScale": 0.6,
+        "eyeSizeMultiplier": 1.2,
+        "headSizeMultiplier": 1.2,
+        "bodyRoundness": 1.2,
+        "glowIntensity": 0.5,
+        "particleEffect": "subtle_sparkle",
+        "hasWisdomMarks": false
+      },
+
+      "stats": {
+        "happinessMax": 90,
+        "energyMax": 90,
+        "healthMax": 85,
+        "xpMultiplier": 1.25,
+        "combatDamage": 0.75,
+        "combatDefense": 0.75
+      },
+
+      "audio": {
+        "ambientTone": "curious",
+        "voicePitch": 1.2,
+        "movementSound": "light_step"
+      }
+    },
+
+    "adult": {
+      "id": "adult",
+      "name": "Adult",
+      "displayName": "Mature",
+      "icon": "✨",
+      "dayRange": [7, 30],
+      "daysRequired": 7,
+      "description": "A fully grown creature in the prime of their life",
+
+      "visual": {
+        "scale": 1.0,
+        "colorSaturation": 1.0,
+        "markingOpacity": 1.0,
+        "featureScale": 1.0,
+        "eyeSizeMultiplier": 1.0,
+        "glowIntensity": 0.8,
+        "particleEffect": "standard_aura",
+        "hasWisdomMarks": false
+      },
+
+      "stats": {
+        "happinessMax": 100,
+        "energyMax": 100,
+        "healthMax": 100,
+        "xpMultiplier": 1.0,
+        "combatDamage": 1.0,
+        "combatDefense": 1.0
+      },
+
+      "audio": {
+        "ambientTone": "confident",
+        "voicePitch": 1.0,
+        "movementSound": "normal_step"
+      }
+    },
+
+    "elder": {
+      "id": "elder",
+      "name": "Elder",
+      "displayName": "Elder",
+      "icon": "👑",
+      "dayRange": [30, 90],
+      "daysRequired": 30,
+      "description": "A wise elder creature, approaching their cosmic journey",
+
+      "visual": {
+        "scale": 1.1,
+        "colorSaturation": 1.0,
+        "markingOpacity": 1.0,
+        "featureScale": 1.0,
+        "eyeSizeMultiplier": 1.0,
+        "glowIntensity": 1.0,
+        "particleEffect": "ethereal_aura",
+        "hasWisdomMarks": true,
+        "wisdomMarkColor": "#FFD700",
+        "auraColor": "#E6E6FA"
+      },
+
+      "stats": {
+        "happinessMax": 100,
+        "energyMax": 90,
+        "healthMax": 95,
+        "xpMultiplier": 0.8,
+        "combatDamage": 1.2,
+        "combatDefense": 1.3
+      },
+
+      "audio": {
+        "ambientTone": "ethereal",
+        "voicePitch": 0.9,
+        "movementSound": "wise_glide"
+      }
+    }
+  },
+
+  "stageOrder": ["baby", "juvenile", "adult", "elder"],
+
+  "evolution": {
+    "requiresHappiness": true,
+    "minimumHappinessToEvolve": 50,
+    "maxOfflineEvolutions": 1,
+    "abandonmentThresholdDays": 3,
+
+    "celebrations": {
+      "baby_to_juvenile": {
+        "name": "First Growth",
+        "message": "Your creature is growing!",
+        "subMessage": "They're becoming stronger every day.",
+        "duration": 3000,
+        "effects": {
+          "screenGlow": true,
+          "glowColor": "#98FB98",
+          "particleBurst": true,
+          "particleCount": 30,
+          "particleColors": ["#98FB98", "#90EE90", "#00FA9A"],
+          "cameraShake": false,
+          "screenFlash": false
+        },
+        "audio": {
+          "fanfare": "evolution_small",
+          "notes": [523.25, 587.33, 659.25, 783.99],
+          "noteDuration": 0.2,
+          "noteVolume": 0.4
+        }
+      },
+
+      "juvenile_to_adult": {
+        "name": "Coming of Age",
+        "message": "Your creature has reached adulthood!",
+        "subMessage": "A new chapter of their journey begins.",
+        "duration": 4000,
+        "effects": {
+          "screenGlow": true,
+          "glowColor": "#FFD700",
+          "particleBurst": true,
+          "particleCount": 50,
+          "particleColors": ["#FFD700", "#FFA500", "#FF8C00", "#FFFFFF"],
+          "cameraShake": true,
+          "shakeIntensity": 0.005,
+          "screenFlash": true,
+          "flashColor": "#FFFFFF",
+          "flashDuration": 200
+        },
+        "audio": {
+          "fanfare": "evolution_major",
+          "notes": [523.25, 659.25, 783.99, 1046.50, 1318.51],
+          "noteDuration": 0.25,
+          "noteVolume": 0.5
+        }
+      },
+
+      "adult_to_elder": {
+        "name": "Ascension to Wisdom",
+        "message": "Your creature has become an Elder...",
+        "subMessage": "Ancient wisdom flows through them now.",
+        "duration": 5000,
+        "effects": {
+          "screenGlow": true,
+          "glowColor": "#E6E6FA",
+          "particleBurst": true,
+          "particleCount": 80,
+          "particleColors": ["#E6E6FA", "#DDA0DD", "#DA70D6", "#FFD700", "#FFFFFF"],
+          "cameraShake": false,
+          "screenFlash": true,
+          "flashColor": "#E6E6FA",
+          "flashDuration": 500,
+          "wisdomMarksAppear": true
+        },
+        "audio": {
+          "fanfare": "evolution_elder",
+          "notes": [392.00, 493.88, 587.33, 698.46, 783.99, 987.77],
+          "noteDuration": 0.4,
+          "noteVolume": 0.4,
+          "reverb": true
+        }
+      }
+    }
+  },
+
+  "departure": {
+    "totalLifespanDays": 90,
+    "warningDays": [85, 88, 89],
+
+    "warnings": {
+      "day85": {
+        "title": "A Distant Call",
+        "message": "Your creature senses their time in this realm is ending...",
+        "subMessage": "5 days remain. Have you prepared an heir?",
+        "icon": "🌌",
+        "tone": "gentle"
+      },
+      "day88": {
+        "title": "The Stars Beckon",
+        "message": "Only 2 days remain before your creature must depart.",
+        "subMessage": "Breed now to continue their legacy!",
+        "icon": "⭐",
+        "tone": "urgent"
+      },
+      "day89": {
+        "title": "Final Day",
+        "message": "Tomorrow, your creature will return to the cosmos...",
+        "subMessage": "Spend this last day together wisely.",
+        "icon": "💫",
+        "tone": "bittersweet"
+      }
+    },
+
+    "ceremony": {
+      "duration": 8000,
+      "phases": [
+        {
+          "name": "glow",
+          "duration": 2000,
+          "description": "Creature begins glowing with cosmic energy"
+        },
+        {
+          "name": "particles",
+          "duration": 2000,
+          "description": "Particles swirl around creature"
+        },
+        {
+          "name": "message",
+          "duration": 2000,
+          "description": "Final message displayed"
+        },
+        {
+          "name": "ascend",
+          "duration": 2000,
+          "description": "Creature transforms to light and ascends"
+        }
+      ],
+      "finalMessage": "Thank you for this beautiful journey together...",
+      "audio": {
+        "theme": "departure_theme",
+        "notes": [392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 783.99],
+        "style": "ascending_ethereal"
+      }
+    },
+
+    "legacy": {
+      "memorialCreated": true,
+      "statBonusToOffspring": 0.05,
+      "sharedMemoriesTransfer": true,
+      "blessingDuration": 7,
+      "blessingEffects": {
+        "xpBonus": 1.25,
+        "happinessDecayReduction": 0.5
+      }
+    }
+  },
+
+  "mood": {
+    "thresholds": {
+      "happy": { "minHappiness": 60, "color": "#98FB98" },
+      "neutral": { "minHappiness": 40, "color": "#FFE4B5" },
+      "sad": { "minHappiness": 20, "color": "#87CEEB" },
+      "abandoned": { "minHappiness": 0, "color": "#A9A9A9" }
+    },
+
+    "abandonmentRules": {
+      "daysOfflineToTrigger": 3,
+      "happinessDropPerDay": 15,
+      "minimumHappiness": 10,
+      "blocksEvolution": true,
+      "recoveryActionsRequired": 5
+    },
+
+    "visualEffects": {
+      "sad": {
+        "saturationMultiplier": 0.7,
+        "brightnessMultiplier": 0.8,
+        "particleEffect": "sad_droop"
+      },
+      "abandoned": {
+        "saturationMultiplier": 0.5,
+        "brightnessMultiplier": 0.6,
+        "particleEffect": "abandoned_gray"
+      }
+    }
+  },
+
+  "audio": {
+    "stageAmbience": {
+      "baby": {
+        "baseFrequency": 440,
+        "harmonics": [1, 1.5, 2],
+        "waveform": "sine",
+        "volume": 0.1,
+        "tempo": "slow"
+      },
+      "juvenile": {
+        "baseFrequency": 392,
+        "harmonics": [1, 1.33, 2, 2.5],
+        "waveform": "triangle",
+        "volume": 0.12,
+        "tempo": "moderate"
+      },
+      "adult": {
+        "baseFrequency": 349.23,
+        "harmonics": [1, 1.25, 1.5, 2, 2.5, 3],
+        "waveform": "sine",
+        "volume": 0.15,
+        "tempo": "moderate"
+      },
+      "elder": {
+        "baseFrequency": 293.66,
+        "harmonics": [1, 1.5, 2, 3, 4],
+        "waveform": "sine",
+        "volume": 0.12,
+        "tempo": "slow",
+        "reverb": true
+      }
+    },
+
+    "evolutionSounds": {
+      "preEvolution": {
+        "type": "shimmer",
+        "duration": 1500,
+        "ascending": true
+      },
+      "evolutionBurst": {
+        "type": "fanfare",
+        "duration": 500
+      },
+      "postEvolution": {
+        "type": "chime",
+        "duration": 2000
+      }
+    },
+
+    "moodSounds": {
+      "happy": {
+        "type": "bright_chirp",
+        "interval": 30000
+      },
+      "neutral": {
+        "type": "soft_hum",
+        "interval": 45000
+      },
+      "sad": {
+        "type": "melancholy_sigh",
+        "interval": 60000
+      },
+      "abandoned": {
+        "type": "lonely_whimper",
+        "interval": 120000
+      }
+    }
+  },
+
+  "hatching": {
+    "visionReveal": {
+      "enabled": true,
+      "showAdultFirst": true,
+      "visionDuration": 4000,
+      "visionMessage": "✨ Behold their magnificent destiny...",
+      "transitionMessage": "Watch them grow into this incredible form!",
+      "babyRevealMessage": "🐣 Your journey together begins now!",
+      "growthInfo": {
+        "title": "Growth Journey",
+        "stages": [
+          { "name": "Hatchling", "days": "0-3 days", "description": "Adorable & curious" },
+          { "name": "Youngling", "days": "3-7 days", "description": "Learning new skills" },
+          { "name": "Adult", "days": "7-30 days", "description": "Full potential unlocked" },
+          { "name": "Elder", "days": "30+ days", "description": "Ancient wisdom gained" }
+        ],
+        "teaser": "As they grow, they'll unlock new abilities and their colors will become more vibrant!"
+      },
+      "visionEffects": {
+        "glow": true,
+        "glowColor": "#FFFFFF",
+        "glowIntensity": 0.9,
+        "particles": true,
+        "particleType": "destiny_sparkle"
+      },
+      "transitionEffects": {
+        "fadeType": "cosmic_dissolve",
+        "duration": 1500
+      }
+    },
+    "babyAnimation": {
+      "enabled": true,
+      "breathing": {
+        "enabled": true,
+        "scaleMin": 0.95,
+        "scaleMax": 1.05,
+        "duration": 1500
+      },
+      "blinking": {
+        "enabled": true,
+        "interval": 3000,
+        "blinkDuration": 150,
+        "doubleBlinkChance": 0.3
+      },
+      "bobbing": {
+        "enabled": true,
+        "amplitude": 5,
+        "duration": 2000
+      },
+      "squashStretch": {
+        "enabled": true,
+        "onLand": { "scaleX": 1.1, "scaleY": 0.9 },
+        "onJump": { "scaleX": 0.9, "scaleY": 1.1 }
+      }
+    }
+  },
+
+  "babyEnhancements": {
+    "enabled": true,
+    "visual": {
+      "eyeSizeMultiplier": 1.8,
+      "eyeSpacingMultiplier": 1.3,
+      "headSizeMultiplier": 1.4,
+      "bodyRoundness": 1.5,
+      "limbShortening": 0.6,
+      "cheekBlush": {
+        "enabled": true,
+        "color": "#FFB6C1",
+        "opacity": 0.4,
+        "size": 8
+      },
+      "sparkleEyes": {
+        "enabled": true,
+        "color": "#FFFFFF",
+        "size": 3
+      }
+    },
+    "colorBoost": {
+      "saturationMin": 0.85,
+      "vibrancyBoost": 1.2
+    },
+    "sounds": {
+      "coo": { "frequency": 600, "duration": 0.2, "pitch": 1.5 },
+      "chirp": { "frequency": 800, "duration": 0.15, "pitch": 1.6 },
+      "yawn": { "frequency": 400, "duration": 0.4, "pitch": 1.3 },
+      "giggle": { "frequencies": [700, 750, 800], "duration": 0.1, "pitch": 1.5 }
+    }
+  }
+}

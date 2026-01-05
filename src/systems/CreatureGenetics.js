@@ -259,7 +259,9 @@ class CreatureGenetics {
                         shimmer: rarity === 'common' ? Math.random() * 0.5 : Math.random() * 0.8 + 0.2
                     },
                     markings: this.generateMarkings(rarity),
-                    specialFeatures: this.generateSpecialFeatures(rarity)
+                    specialFeatures: this.generateSpecialFeatures(rarity),
+                    // Wacky mutations - inheritable through breeding
+                    wackyMutations: this.generateWackyMutations(rarity)
                 }
             },
             personality: personality,
@@ -673,6 +675,167 @@ class CreatureGenetics {
         }
         
         return selectedFeatures;
+    }
+
+    /**
+     * Generate wacky mutations - inheritable surreal traits
+     * These create unique, memorable creatures and can be passed to offspring
+     * @param {string} rarity - Creature rarity tier
+     * @returns {Array} Array of wacky mutation objects
+     */
+    generateWackyMutations(rarity) {
+        // Wacky mutation types available
+        const wackyMutationTypes = [
+            'rock_texture',        // Craggy stone-like appearance
+            'gem_body',            // Faceted, crystalline appearance
+            'geometric_patterns',  // Angular impossible geometry
+            'extra_eyes',          // 1-3 additional eyes in unusual positions
+            'floating_parts',      // Detached elements orbiting creature
+            'crystal_growths',     // Crystal formations on body
+            'inanimate_markings',  // Circuits, runes, gears, glyphs
+            'surreal_appendages',  // Tentacles, ribbons, flames, shadows
+            'void_patches',        // Dark, starry void areas
+            'prismatic_sheen'      // Rainbow/iridescent effects
+        ];
+
+        // Variants for each mutation type
+        const mutationVariants = {
+            rock_texture: ['rough', 'smooth', 'crystalline', 'volcanic'],
+            gem_body: ['ruby', 'sapphire', 'emerald', 'amethyst', 'diamond'],
+            geometric_patterns: ['triangles', 'hexagons', 'fractals', 'spirals'],
+            extra_eyes: ['forehead', 'sides', 'back', 'floating'],
+            floating_parts: ['orbs', 'fragments', 'rings', 'crystals'],
+            crystal_growths: ['clusters', 'spires', 'embedded', 'crown'],
+            inanimate_markings: ['circuits', 'runes', 'gears', 'glyphs'],
+            surreal_appendages: ['tentacles', 'ribbons', 'flames', 'shadows'],
+            void_patches: ['small', 'medium', 'swirling', 'crackling'],
+            prismatic_sheen: ['rainbow', 'opalescent', 'oil_slick', 'aurora']
+        };
+
+        // Base chance increases with rarity
+        const baseMutationChance = {
+            common: 0.05,      // 5% chance
+            uncommon: 0.10,    // 10% chance
+            rare: 0.18,        // 18% chance
+            epic: 0.25,        // 25% chance
+            legendary: 0.35    // 35% chance
+        };
+
+        // Max mutations increases with rarity
+        const maxMutations = {
+            common: 1,
+            uncommon: 1,
+            rare: 2,
+            epic: 2,
+            legendary: 3
+        };
+
+        const mutations = [];
+        const chance = baseMutationChance[rarity] || 0.05;
+        const maxMuts = maxMutations[rarity] || 1;
+
+        // Roll for each potential mutation
+        for (let i = 0; i < maxMuts; i++) {
+            // Each subsequent mutation has lower chance
+            const adjustedChance = chance * Math.pow(0.6, i);
+
+            if (Math.random() < adjustedChance) {
+                // Select random mutation type not already selected
+                const availableTypes = wackyMutationTypes.filter(
+                    type => !mutations.some(m => m.type === type)
+                );
+
+                if (availableTypes.length > 0) {
+                    const selectedType = this.randomChoice(availableTypes);
+                    const variants = mutationVariants[selectedType] || ['default'];
+
+                    mutations.push({
+                        type: selectedType,
+                        variant: this.randomChoice(variants),
+                        intensity: 0.3 + Math.random() * 0.5, // 0.3-0.8 range
+                        inherited: false, // Will be true if from parent
+                        dominance: Math.random() * 0.6 + 0.3 // 0.3-0.9 dominance for breeding
+                    });
+                }
+            }
+        }
+
+        // Log significant mutations
+        if (mutations.length > 0) {
+            console.log(`genetics:info [CreatureGenetics] Generated ${mutations.length} wacky mutation(s):`,
+                mutations.map(m => `${m.type}:${m.variant}`).join(', ')
+            );
+        }
+
+        return mutations;
+    }
+
+    /**
+     * Inherit wacky mutations from parents during breeding
+     * Combines parent mutations with chance of inheritance and new mutations
+     * @param {Array} parent1Mutations - Mutations from first parent
+     * @param {Array} parent2Mutations - Mutations from second parent
+     * @param {string} offspringRarity - Rarity of the offspring
+     * @returns {Array} Inherited and new mutations for offspring
+     */
+    inheritWackyMutations(parent1Mutations = [], parent2Mutations = [], offspringRarity = 'common') {
+        const inheritedMutations = [];
+        const allParentMutations = [...(parent1Mutations || []), ...(parent2Mutations || [])];
+
+        // Remove duplicates (keep highest dominance)
+        const uniqueMutations = {};
+        allParentMutations.forEach(mutation => {
+            if (!uniqueMutations[mutation.type] ||
+                mutation.dominance > uniqueMutations[mutation.type].dominance) {
+                uniqueMutations[mutation.type] = mutation;
+            }
+        });
+
+        // Roll for inheritance of each unique mutation
+        Object.values(uniqueMutations).forEach(mutation => {
+            // Inheritance chance based on dominance
+            const inheritanceChance = mutation.dominance * 0.7; // Max 63% chance
+
+            if (Math.random() < inheritanceChance) {
+                inheritedMutations.push({
+                    ...mutation,
+                    inherited: true,
+                    // Slight variation in intensity from parent
+                    intensity: Math.min(0.9, Math.max(0.2,
+                        mutation.intensity + (Math.random() - 0.5) * 0.2
+                    )),
+                    // Dominance can shift slightly
+                    dominance: Math.min(0.95, Math.max(0.2,
+                        mutation.dominance + (Math.random() - 0.5) * 0.15
+                    ))
+                });
+            }
+        });
+
+        // Chance for new mutations (lower if inherited many)
+        const newMutationPenalty = inheritedMutations.length * 0.15;
+        const newMutations = this.generateWackyMutations(offspringRarity);
+
+        // Filter new mutations based on penalty and avoid duplicates
+        newMutations.forEach(newMut => {
+            const alreadyHas = inheritedMutations.some(m => m.type === newMut.type);
+            const passedPenaltyRoll = Math.random() > newMutationPenalty;
+
+            if (!alreadyHas && passedPenaltyRoll) {
+                inheritedMutations.push(newMut);
+            }
+        });
+
+        // Cap total mutations based on rarity
+        const maxTotal = {
+            common: 1,
+            uncommon: 2,
+            rare: 2,
+            epic: 3,
+            legendary: 4
+        };
+
+        return inheritedMutations.slice(0, maxTotal[offspringRarity] || 2);
     }
 
     /**

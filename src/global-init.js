@@ -30,6 +30,8 @@ import './systems/EnemyManager.js';
 import './systems/ProjectileManager.js';
 import './systems/InventoryManager.js';
 import './systems/CreatureMemory.js';
+import './systems/LongTermMemory.js';
+import './systems/AgentToolRegistry.js';
 import './systems/SafetyManager.js';
 import './systems/GraphicsEngine.js';
 import './systems/CreatureAI.js';
@@ -38,6 +40,11 @@ import './systems/AchievementSystem.js';
 import './systems/TutorialSystem.js';
 import './systems/MobileControls.js';
 import './systems/ChatManager.js';
+import './systems/QuestManager.js';
+import './systems/CollectibleManager.js';
+import './systems/CreatureLifecycle.js';
+import './systems/CreatureSkills.js';
+import './systems/StageVisualResolver.js';
 import './scenes/HatchingScene.js';
 import './scenes/PersonalityScene.js';
 import './scenes/NamingScene.js';
@@ -45,6 +52,11 @@ import './scenes/GameScene.js';
 import './scenes/ShopScene.js';
 import './scenes/InventoryScene.js';
 import './scenes/BreedingShrineScene.js';
+import './scenes/HubWorldScene.js';
+import './scenes/CreatureProfileScene.js';
+// Platformer scenes - loaded via main.js imports
+// import './scenes/PlatformerLevelScene.js';
+// import './scenes/levels/CrystalCavesLevel.js';
 
 if (typeof window !== 'undefined' && !window.Phaser) {
     window.Phaser = Phaser;

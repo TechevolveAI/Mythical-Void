@@ -8,6 +8,13 @@ import CarePanelManager from '../systems/ui/CarePanelManager.js';
 import WorldBuilder from '../systems/world/WorldBuilder.js';
 import ChatOverlay from '../ui/ChatOverlay.js';
 import MobileHUD from '../systems/ui/MobileHUD.js';
+import QuestTracker from '../systems/ui/QuestTracker.js';
+import ControlsTutorialOverlay from '../ui/ControlsTutorialOverlay.js';
+import ControlsHintPanel from '../ui/ControlsHintPanel.js';
+import FloatingChatBubble from '../ui/FloatingChatBubble.js';
+import CreatureSwitcherModal from '../ui/CreatureSwitcherModal.js';
+import HamburgerMenu from '../ui/HamburgerMenu.js';
+// MapNavigationButtons removed - redundant with HamburgerMenu navigation
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
@@ -51,8 +58,27 @@ class GameScene extends Phaser.Scene {
         this.projectiles = null;
         this.shop = null;
         this.nearShop = false;
+        this.crashedShip = null;
+        this.hubPortal = null;
+        this.campfire = null;
+        this.sanctuaryZones = null;
+        this.nearHubPortal = false;
+        this.nearCrashedShip = false;
+        this.nearReturnPortal = false;
+        this.returnPortal = null;
+        this.dailyGreetingShown = false;
         this.mobileControls = null;
         this.mobileHUD = null;
+        this.questTracker = null;
+        this.collectibles = [];
+        this.currentBiome = 'nebula';
+        this.controlsTutorial = null;
+        this.controlsHintPanel = null;
+        this.floatingChatBubble = null;
+        this.creatureSwitcher = null;
+        this.hamburgerMenu = null;
+        // mapNavButtons removed - redundant with hamburgerMenu
+        this.profileKey = null;
         this.economyHud = null;
         this.worldBuilder = null;
         this.currentCameraZoom = 1;
@@ -68,6 +94,8 @@ class GameScene extends Phaser.Scene {
         this.statsText = null;
         this.statsPulseAnimation = null;
         this.interactionText = null;
+        this.portalIndicator = null;
+        this.portalPulseAnim = null;
         this.cosmicMiniMap = null;
         this.miniMapPlayerDot = null;
         this.statBarGraphics = null;
@@ -84,6 +112,7 @@ class GameScene extends Phaser.Scene {
         this.dailyBonusGlow = null;
         this.isShowingTutorial = false;
         this.welcomeToastDisplayed = false;
+        this.shownDepartureWarning = false;
 
         // ParallaxBiome for layered space-fantasy backgrounds
         this.parallaxBiome = null;
@@ -106,6 +135,28 @@ class GameScene extends Phaser.Scene {
 
     preload() {
         // Sprites will be created in create() method
+    }
+
+    /**
+     * Receive data from scene transitions (e.g., from HubWorldScene)
+     * @param {object} data - Scene transition data
+     */
+    init(data) {
+        // Reset shutdown flag for fresh scene
+        this._isShuttingDown = false;
+
+        // Handle biome data from HubWorldScene
+        if (data?.biome) {
+            this.currentBiome = data.biome;
+            console.log(`[GameScene] Entering biome: ${this.currentBiome}`);
+        } else {
+            this.currentBiome = 'nebula'; // Default biome
+        }
+
+        // Store any spawn position data
+        if (data?.spawnPosition) {
+            this.spawnPosition = data.spawnPosition;
+        }
     }
 
     create() {
@@ -195,6 +246,24 @@ class GameScene extends Phaser.Scene {
             this.rocks = worldPieces.rocks;
             this.flowers = worldPieces.flowers;
             this.shop = worldPieces.shop;
+
+            // Sanctuary landmarks (only in nebula/main biome)
+            this.crashedShip = worldPieces.crashedShip || null;
+            this.hubPortal = worldPieces.hubPortal || null;
+            this.campfire = worldPieces.campfire || null;
+            this.sanctuaryZones = worldPieces.sanctuaryZones || null;
+
+            // Return portal (only in non-sanctuary biomes)
+            this.returnPortal = worldPieces.returnPortal || null;
+
+            // Cave-specific elements (Crystal Caves biome)
+            this.caveTunnels = worldPieces.caveTunnels || null;
+            this.caveElements = worldPieces.caveElements || null;
+
+            // Update spawn point for cave biome
+            if (this.caveTunnels && this.caveTunnels.spawnPoint) {
+                this.caveSpawnPoint = this.caveTunnels.spawnPoint;
+            }
             
             // Create the player (hatched creature)
             this.createPlayer();
@@ -212,7 +281,30 @@ class GameScene extends Phaser.Scene {
                 this.physics.add.collider(this.player, this.trees);
                 this.physics.add.collider(this.player, this.rocks);
                 this.physics.add.overlap(this.player, this.flowers, this.handleFlowerInteraction, null, this);
-                this.physics.add.overlap(this.player, this.shop, this.handleShopProximity, null, this);
+
+                // Shop only exists in non-cave biomes
+                if (this.shop) {
+                    this.physics.add.overlap(this.player, this.shop, this.handleShopProximity, null, this);
+                }
+
+                // Cave tunnel wall collisions (Crystal Caves)
+                if (this.caveTunnels && this.caveTunnels.walls) {
+                    this.physics.add.collider(this.player, this.caveTunnels.walls);
+                    console.log('[GameScene] Cave tunnel collisions enabled');
+                }
+
+                // Sanctuary landmark interactions
+                if (this.hubPortal) {
+                    this.physics.add.overlap(this.player, this.hubPortal, this.handleHubPortalProximity, null, this);
+                }
+                if (this.crashedShip) {
+                    this.physics.add.overlap(this.player, this.crashedShip, this.handleCrashedShipProximity, null, this);
+                }
+
+                // Return portal for non-sanctuary biomes
+                if (this.returnPortal) {
+                    this.physics.add.overlap(this.player, this.returnPortal, this.handleReturnPortalProximity, null, this);
+                }
             }
 
             // Create cosmic coins for collection
@@ -245,6 +337,54 @@ class GameScene extends Phaser.Scene {
                 this.hideDesktopUIOnMobile();
             }
 
+            // Initialize Quest Tracker UI
+            this.questTracker = new QuestTracker(this);
+            this.questTracker.create();
+            console.log('[GameScene] Quest Tracker initialized');
+
+            // Initialize floating chat bubble (follows player)
+            this.floatingChatBubble = new FloatingChatBubble(this);
+            this.floatingChatBubble.init(this.player);
+            this.events.on('openChat', () => this.openChat());
+            console.log('[GameScene] Floating chat bubble initialized');
+
+            // DEV ONLY: Listen for force creature refresh (from stage selector)
+            if (import.meta.env.DEV) {
+                this.events.on('forceCreatureRefresh', () => {
+                    console.log('[GameScene] DEV: Force refreshing creature display');
+                    this.refreshCreatureDisplay();
+                });
+            }
+
+            // Initialize hamburger menu for navigation
+            this.hamburgerMenu = new HamburgerMenu(this);
+            this.hamburgerMenu.create();
+            console.log('[GameScene] Hamburger menu initialized');
+
+            // MapNavigationButtons removed - redundant with HamburgerMenu
+            // Mobile users can access all navigation via the hamburger menu
+
+            // C key for Creature selection modal
+            this.input.keyboard?.on('keydown-C', () => {
+                if (!this.creatureSwitcher?.isVisible) {
+                    this.showCreatureSwitcher();
+                }
+            });
+
+            // Tab key for quick creature cycling (without modal)
+            this.input.keyboard?.on('keydown-TAB', (event) => {
+                event.preventDefault();
+                this.cycleToNextCreature();
+            });
+
+            // Set up profile keyboard shortcut (P key)
+            this.input.keyboard?.on('keydown-P', () => {
+                this.openCreatureProfile();
+            });
+
+            // Spawn collectibles in the world
+            this.spawnWorldCollectibles();
+
             // Initialize Kid Mode features if enabled
             this.initializeKidMode();
             
@@ -254,14 +394,36 @@ class GameScene extends Phaser.Scene {
             // Set up periodic timers for achievements and tutorials
             this.setupPeriodicTimers();
 
-            // Show controls hint for desktop users on first visit
-            this.showControlsHintIfNeeded();
+            // Show controls tutorial for first-time players
+            this.controlsTutorial = new ControlsTutorialOverlay(this);
+            this.controlsTutorial.show();
+
+            // Check for daily login greeting after a short delay
+            this.time.delayedCall(1500, () => this.checkDailyGreeting());
+
+            // Hide loading overlay (shown by HubWorldScene or other transition sources)
+            if (window.UXEnhancements) {
+                window.UXEnhancements.hideLoading();
+            }
+
+            // Controls hint panel (desktop helper - toggleable with H key)
+            this.controlsHintPanel = new ControlsHintPanel(this, {
+                showOnStart: true, // Show briefly on start
+                autoHideDelay: 8000 // Auto-hide after 8 seconds
+            });
+            this.controlsHintPanel.init();
+            console.log('[GameScene] Controls hint panel initialized');
 
             console.log('[GameScene] Scene created successfully');
         } catch (error) {
             console.error('[GameScene] Error during scene creation:', error);
             console.error('[GameScene] Error stack:', error.stack);
-            
+
+            // Hide loading overlay even on error
+            if (window.UXEnhancements) {
+                window.UXEnhancements.hideLoading();
+            }
+
             // Try to recover by showing a simple error message
             const errorText = this.add.text(400, 300, 'Error loading game scene.\nPlease refresh the page.', {
                 fontSize: '20px',
@@ -271,7 +433,7 @@ class GameScene extends Phaser.Scene {
                 align: 'center'
             });
             errorText.setOrigin(0.5);
-            
+
             // Still throw the error so it gets properly logged
             throw error;
         }
@@ -345,6 +507,7 @@ class GameScene extends Phaser.Scene {
 
     /**
      * Set up parallax background biome for immersive space-fantasy atmosphere
+     * Uses current biome from init() data or defaults to nebula
      */
     setupParallaxBiome() {
         if (!window.ParallaxBiome) {
@@ -355,14 +518,14 @@ class GameScene extends Phaser.Scene {
         try {
             this.parallaxBiome = window.ParallaxBiome;
 
-            // Re-initialize with this scene context (was initialized globally with no scene)
-            const config = this.parallaxBiome.getConfig?.() || null;
-            this.parallaxBiome.initialize(this, config);
+            // Initialize with current biome ID from scene data
+            const biomeId = this.currentBiome || 'nebula';
+            this.parallaxBiome.initialize(this, biomeId);
 
-            // Create all 5 biome layers: nebula, stars, rocks, flora, dust
+            // Create all biome layers with biome-specific visuals
             this.parallaxBiome.createBiome();
 
-            console.log('[GameScene] ParallaxBiome activated with', this.parallaxBiome.getLayerCount(), 'layers');
+            console.log(`[GameScene] ParallaxBiome activated for "${biomeId}" with`, this.parallaxBiome.getLayerCount(), 'layers');
         } catch (error) {
             console.error('[GameScene] Failed to setup ParallaxBiome:', error);
         }
@@ -543,6 +706,11 @@ class GameScene extends Phaser.Scene {
             // Use saved position
             startX = savedPos.x;
             startY = savedPos.y;
+        } else if (this.caveSpawnPoint) {
+            // Use cave tunnel spawn point for Crystal Caves biome
+            startX = this.caveSpawnPoint.x;
+            startY = this.caveSpawnPoint.y;
+            console.log('game:info [GameScene] Using cave spawn point:', this.caveSpawnPoint);
         } else {
             // Default to center of world
             startX = this.worldWidth / 2;
@@ -569,9 +737,17 @@ class GameScene extends Phaser.Scene {
         }
 
         // Store genetics reference for later use
-        const creatureData = getGameState().get('creature');
-        if (creatureData && creatureData.genetics) {
-            this.playerGenetics = creatureData.genetics;
+        // Priority: active creature from collection, then creature slot
+        const activeCreature = getGameState().getActiveCreature?.();
+        if (activeCreature && (activeCreature.genes || activeCreature.dna)) {
+            this.playerGenetics = activeCreature.genes || activeCreature.dna;
+            console.log('game:info [GameScene] Using genetics from active creature in collection');
+        } else {
+            const creatureData = getGameState().get('creature');
+            if (creatureData && (creatureData.genetics || creatureData.genes)) {
+                this.playerGenetics = creatureData.genetics || creatureData.genes;
+                console.log('game:info [GameScene] Using genetics from creature slot (fallback)');
+            }
         }
         
         // Create physics sprite with the first texture
@@ -867,9 +1043,9 @@ class GameScene extends Phaser.Scene {
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.wasdKeys = this.input.keyboard.addKeys('W,S,A,D');
-        this.chatKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
+        this.chatKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T); // T for Talk (AI chat)
         this.feedKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
-        this.playKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+        this.playKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Y); // Y for plaY (P is for Profile)
         this.restKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
         this.careKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
         this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -877,6 +1053,84 @@ class GameScene extends Phaser.Scene {
         this.combatKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         this.shopKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.breedingKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
+        this.hubKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H);
+
+        // DEV MODE: Add coins with backtick key (`) for testing
+        if (import.meta.env.DEV) {
+            this.input.keyboard.on('keydown-BACK_QUOTE', () => {
+                if (window.EconomyManager) {
+                    window.EconomyManager.addCoins(1000, 'dev_cheat');
+                    console.log('[DEV] Added 1000 coins for testing');
+                    // Show floating text near player
+                    const devText = this.add.text(this.player.x, this.player.y - 50, '+1000 DEV', {
+                        fontSize: '20px',
+                        color: '#00FF00',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 3
+                    }).setOrigin(0.5).setDepth(2000);
+                    this.tweens.add({
+                        targets: devText,
+                        y: devText.y - 60,
+                        alpha: 0,
+                        duration: 1500,
+                        onComplete: () => devText.destroy()
+                    });
+                }
+            });
+            // Also add with = key as backup
+            this.input.keyboard.on('keydown-PLUS', () => {
+                if (window.EconomyManager) {
+                    window.EconomyManager.addCoins(500, 'dev_cheat');
+                    console.log('[DEV] Added 500 coins for testing');
+                }
+            });
+
+            // DEV MODE: Cycle lifecycle stages with L key (QA tool for testing)
+            this.devStageIndex = 0;
+            const stageOrder = ['baby', 'juvenile', 'adult', 'elder'];
+            this.input.keyboard.on('keydown-L', () => {
+                // Cycle to next stage
+                this.devStageIndex = (this.devStageIndex + 1) % stageOrder.length;
+                const newStage = stageOrder[this.devStageIndex];
+
+                // Update GameState lifecycle stage
+                if (window.GameState) {
+                    window.GameState.set('creature.lifecycle.stage', newStage);
+                    window.GameState.set('creature.lifecycle.lastStageChange', Date.now());
+                    console.log(`[DEV QA] Switched lifecycle stage to: ${newStage}`);
+
+                    // Force creature refresh with new stage
+                    this.refreshCreatureDisplay();
+
+                    // Show visual feedback
+                    const stageIcons = { baby: '🐣', juvenile: '🌱', adult: '✨', elder: '👑' };
+                    const stageText = this.add.text(this.player.x, this.player.y - 60,
+                        `${stageIcons[newStage]} ${newStage.toUpperCase()}`, {
+                        fontSize: '24px',
+                        color: '#FFD700',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 4
+                    }).setOrigin(0.5).setDepth(2000);
+
+                    this.tweens.add({
+                        targets: stageText,
+                        y: stageText.y - 80,
+                        alpha: 0,
+                        scale: 1.5,
+                        duration: 2000,
+                        onComplete: () => stageText.destroy()
+                    });
+
+                    if (window.AudioManager) {
+                        window.AudioManager.playLevelUp?.();
+                    }
+                }
+            });
+
+            console.log('[DEV MODE] Press ` (backtick) for +1000 coins, + for +500 coins, L for lifecycle stage cycle');
+        }
 
         this.joystickX = 0;
         this.joystickY = 0;
@@ -968,7 +1222,591 @@ class GameScene extends Phaser.Scene {
         this.createCosmicMiniMap();
         this.createGlowingStatBars();
         this.createFloatingParticles();
-        this.createPersonalityDisplay();
+
+        // Only show personality display on mobile (desktop UI is simplified)
+        const isMobileDevice = 'ontouchstart' in window && window.innerWidth < 768;
+        if (isMobileDevice) {
+            this.createPersonalityDisplay();
+        }
+
+        // Create skill bar for creature abilities
+        this.createSkillBar();
+
+        // Create roster indicator
+        this.createRosterIndicator();
+    }
+
+    /**
+     * Create the skill bar UI for creature abilities
+     */
+    createSkillBar() {
+        if (!window.CreatureSkills) return;
+
+        const { width, height } = this.scale;
+        const skills = window.CreatureSkills.getCurrentCreatureSkills();
+
+        if (skills.length === 0) return;
+
+        // Position skill bar at bottom center
+        const barY = height - 100;
+        const skillSize = 50;
+        const spacing = 10;
+        const totalWidth = skills.length * (skillSize + spacing) - spacing;
+        const startX = (width - totalWidth) / 2;
+
+        this.skillBarElements = [];
+
+        skills.forEach((skill, index) => {
+            const x = startX + index * (skillSize + spacing) + skillSize / 2;
+
+            // Skill background
+            const bg = this.add.graphics();
+            bg.fillStyle(skill.isUnlocked ? 0x2A2A4E : 0x1A1A2E, 0.9);
+            bg.fillRoundedRect(x - skillSize / 2, barY - skillSize / 2, skillSize, skillSize, 8);
+            bg.lineStyle(2, skill.isUnlocked ? skill.affinityColor : 0x555555);
+            bg.strokeRoundedRect(x - skillSize / 2, barY - skillSize / 2, skillSize, skillSize, 8);
+            bg.setScrollFactor(0);
+            bg.setDepth(3500);
+
+            // Skill icon
+            const icon = this.add.text(x, barY - 5, skill.icon, {
+                fontSize: skill.isUnlocked ? '24px' : '18px',
+                color: skill.isUnlocked ? '#FFFFFF' : '#555555'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(3501);
+
+            // Key binding text (1, 2, 3)
+            const keyText = this.add.text(x, barY + 18, `${index + 1}`, {
+                fontSize: '12px',
+                color: skill.isUnlocked ? '#FFD700' : '#555555',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(3501);
+
+            // Cooldown overlay
+            const cooldownOverlay = this.add.graphics();
+            cooldownOverlay.setScrollFactor(0);
+            cooldownOverlay.setDepth(3502);
+            cooldownOverlay.setVisible(false);
+
+            // Lock icon for locked skills
+            let lockIcon = null;
+            if (!skill.isUnlocked) {
+                lockIcon = this.add.text(x, barY - 5, '🔒', {
+                    fontSize: '14px'
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(3503);
+            }
+
+            // Make interactive
+            const hitArea = this.add.zone(x, barY, skillSize, skillSize);
+            hitArea.setScrollFactor(0);
+            hitArea.setDepth(3504);
+            hitArea.setInteractive({ useHandCursor: skill.isUnlocked });
+
+            hitArea.on('pointerdown', () => {
+                if (skill.isUnlocked) {
+                    this.useSkill(skill.id);
+                } else {
+                    this.showInteractionHint(`🔒 Unlocks at Level ${skill.unlockLevel}`);
+                }
+            });
+
+            hitArea.on('pointerover', () => {
+                this.showSkillTooltip(skill, x, barY - skillSize);
+            });
+
+            hitArea.on('pointerout', () => {
+                this.hideSkillTooltip();
+            });
+
+            this.skillBarElements.push({
+                skill,
+                bg,
+                icon,
+                keyText,
+                cooldownOverlay,
+                lockIcon,
+                hitArea,
+                x,
+                y: barY
+            });
+        });
+
+        // Set up keyboard shortcuts (1, 2, 3)
+        this.input.keyboard.on('keydown-ONE', () => this.useSkillByIndex(0));
+        this.input.keyboard.on('keydown-TWO', () => this.useSkillByIndex(1));
+        this.input.keyboard.on('keydown-THREE', () => this.useSkillByIndex(2));
+    }
+
+    /**
+     * Use a skill by its index in the skill bar
+     */
+    useSkillByIndex(index) {
+        const skills = window.CreatureSkills?.getCurrentCreatureSkills();
+        if (!skills || index >= skills.length) return;
+
+        const skill = skills[index];
+        if (skill.isUnlocked) {
+            this.useSkill(skill.id);
+        } else {
+            this.showInteractionHint(`🔒 Unlocks at Level ${skill.unlockLevel}`);
+        }
+    }
+
+    /**
+     * Use a creature skill
+     */
+    useSkill(skillId) {
+        if (!window.CreatureSkills) return;
+
+        const result = window.CreatureSkills.useSkill(this, skillId);
+
+        if (result.success) {
+            this.showInteractionHint(result.message);
+            this.updateSkillBarCooldowns();
+        } else if (result.reason === 'cooldown') {
+            const seconds = Math.ceil(result.remaining / 1000);
+            this.showInteractionHint(`⏳ Skill on cooldown: ${seconds}s`);
+        }
+    }
+
+    /**
+     * Update skill bar cooldown displays
+     */
+    updateSkillBarCooldowns() {
+        if (!this.skillBarElements || !window.CreatureSkills) return;
+
+        this.skillBarElements.forEach(element => {
+            const remaining = window.CreatureSkills.getCooldownRemaining(element.skill.id);
+
+            if (remaining > 0) {
+                // Show cooldown overlay
+                const progress = remaining / element.skill.cooldown;
+                element.cooldownOverlay.clear();
+                element.cooldownOverlay.fillStyle(0x000000, 0.7);
+                element.cooldownOverlay.fillRect(
+                    element.x - 25,
+                    element.y - 25,
+                    50,
+                    50 * progress
+                );
+                element.cooldownOverlay.setVisible(true);
+            } else {
+                element.cooldownOverlay.setVisible(false);
+            }
+        });
+    }
+
+    /**
+     * Show skill tooltip
+     */
+    showSkillTooltip(skill, x, y) {
+        this.hideSkillTooltip();
+
+        const tooltipWidth = 200;
+        const tooltipHeight = 100;
+
+        this.skillTooltipBg = this.add.graphics();
+        this.skillTooltipBg.fillStyle(0x1A1A3E, 0.95);
+        this.skillTooltipBg.fillRoundedRect(x - tooltipWidth / 2, y - tooltipHeight - 10, tooltipWidth, tooltipHeight, 8);
+        this.skillTooltipBg.lineStyle(2, skill.affinityColor);
+        this.skillTooltipBg.strokeRoundedRect(x - tooltipWidth / 2, y - tooltipHeight - 10, tooltipWidth, tooltipHeight, 8);
+        this.skillTooltipBg.setScrollFactor(0);
+        this.skillTooltipBg.setDepth(4000);
+
+        this.skillTooltipText = this.add.text(x, y - tooltipHeight + 10,
+            `${skill.icon} ${skill.name}\n\n${skill.description}\n\nCooldown: ${skill.cooldown / 1000}s`, {
+            fontSize: '12px',
+            color: '#FFFFFF',
+            align: 'center',
+            wordWrap: { width: tooltipWidth - 20 }
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(4001);
+    }
+
+    /**
+     * Hide skill tooltip
+     */
+    hideSkillTooltip() {
+        this.skillTooltipBg?.destroy();
+        this.skillTooltipText?.destroy();
+        this.skillTooltipBg = null;
+        this.skillTooltipText = null;
+    }
+
+    /**
+     * Cleanup skill bar elements
+     */
+    cleanupSkillBar() {
+        if (this.skillBarElements) {
+            this.skillBarElements.forEach(element => {
+                element.bg?.destroy();
+                element.icon?.destroy();
+                element.keyText?.destroy();
+                element.cooldownOverlay?.destroy();
+                element.lockIcon?.destroy();
+                element.hitArea?.removeAllListeners();
+                element.hitArea?.destroy();
+            });
+            this.skillBarElements = null;
+        }
+        this.hideSkillTooltip();
+
+        // Remove keyboard listeners (will be re-added in createSkillBar)
+        if (this.input?.keyboard) {
+            this.input.keyboard.off('keydown-ONE');
+            this.input.keyboard.off('keydown-TWO');
+            this.input.keyboard.off('keydown-THREE');
+        }
+    }
+
+    /**
+     * Refresh skill bar (for creature switching)
+     */
+    refreshSkillBar() {
+        this.cleanupSkillBar();
+        this.createSkillBar();
+    }
+
+    /**
+     * Create roster indicator UI
+     */
+    createRosterIndicator() {
+        const { width } = this.scale;
+        const status = window.GameState?.getCollectionStatus() || { count: 1, max: 8, activeIndex: 0 };
+        const creatures = window.GameState?.getCreatureCollection() || [];
+        const isMobile = this.isMobile();
+
+        // Position: top-left area, below position text
+        const baseX = 16;
+        const baseY = 85;
+
+        this.rosterElements = [];
+
+        // Background panel
+        const panelWidth = isMobile ? 160 : 180;
+        const panelHeight = 32;
+        const rosterBg = this.add.graphics();
+        rosterBg.fillStyle(0x1A1A3E, 0.85);
+        rosterBg.fillRoundedRect(baseX, baseY, panelWidth, panelHeight, 8);
+        rosterBg.lineStyle(2, 0x7B68EE);
+        rosterBg.strokeRoundedRect(baseX, baseY, panelWidth, panelHeight, 8);
+        rosterBg.setScrollFactor(0);
+        rosterBg.setDepth(1000);
+        this.rosterElements.push(rosterBg);
+
+        // Creature icon
+        const creatureIcon = this.add.text(baseX + 12, baseY + 16, '🐾', {
+            fontSize: '16px'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
+        this.rosterElements.push(creatureIcon);
+
+        // Roster count text
+        this.rosterCountText = this.add.text(baseX + 35, baseY + 16, `${status.count}/${status.max}`, {
+            fontSize: '14px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
+        this.rosterElements.push(this.rosterCountText);
+
+        // Switch button (only show if more than 1 creature)
+        if (creatures.length > 1) {
+            const switchBtn = this.add.text(baseX + panelWidth - 10, baseY + 16, `[Tab] Switch`, {
+                fontSize: '11px',
+                color: '#88FFCC',
+                fontStyle: 'bold'
+            }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(1001);
+            this.rosterElements.push(switchBtn);
+
+            // Make the panel interactive
+            const hitArea = this.add.zone(baseX + panelWidth / 2, baseY + panelHeight / 2, panelWidth, panelHeight);
+            hitArea.setScrollFactor(0);
+            hitArea.setDepth(1002);
+            hitArea.setInteractive({ useHandCursor: true });
+            hitArea.on('pointerdown', () => this.showCreatureSwitcher());
+            hitArea.on('pointerover', () => {
+                rosterBg.clear();
+                rosterBg.fillStyle(0x2A2A5E, 0.95);
+                rosterBg.fillRoundedRect(baseX, baseY, panelWidth, panelHeight, 8);
+                rosterBg.lineStyle(2, 0xFFD700);
+                rosterBg.strokeRoundedRect(baseX, baseY, panelWidth, panelHeight, 8);
+            });
+            hitArea.on('pointerout', () => {
+                rosterBg.clear();
+                rosterBg.fillStyle(0x1A1A3E, 0.85);
+                rosterBg.fillRoundedRect(baseX, baseY, panelWidth, panelHeight, 8);
+                rosterBg.lineStyle(2, 0x7B68EE);
+                rosterBg.strokeRoundedRect(baseX, baseY, panelWidth, panelHeight, 8);
+            });
+            this.rosterElements.push(hitArea);
+        }
+    }
+
+    /**
+     * Refresh roster indicator display
+     */
+    refreshRosterIndicator() {
+        // Cleanup existing
+        if (this.rosterElements) {
+            this.rosterElements.forEach(el => {
+                el?.removeAllListeners?.();
+                el?.destroy?.();
+            });
+            this.rosterElements = null;
+        }
+        this.createRosterIndicator();
+    }
+
+    /**
+     * Helper to check if running on mobile device
+     */
+    isMobile() {
+        return 'ontouchstart' in window && window.innerWidth < 768;
+    }
+
+    /**
+     * Show creature switcher modal
+     */
+    showCreatureSwitcher() {
+        if (!this.creatureSwitcher) {
+            this.creatureSwitcher = new CreatureSwitcherModal(this);
+        }
+
+        this.creatureSwitcher.show((newIndex) => {
+            // Callback when creature is switched
+            this.refreshCreatureDisplay();
+            console.log('[GameScene] Switched to creature index:', newIndex);
+        });
+    }
+
+    /**
+     * Cycle to next creature in roster (Tab key)
+     */
+    cycleToNextCreature() {
+        const creatures = window.GameState?.getCreatureCollection() || [];
+        if (creatures.length <= 1) {
+            this.showInteractionHint('Only one creature in roster');
+            return;
+        }
+
+        const currentIndex = window.GameState?.get('activeCreatureIndex') || 0;
+        const nextIndex = (currentIndex + 1) % creatures.length;
+        const nextCreature = creatures[nextIndex];
+
+        if (window.GameState?.switchActiveCreature(nextIndex)) {
+            this.refreshCreatureDisplay();
+            this.showInteractionHint(`Switched to ${nextCreature.name}`);
+
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick?.();
+            }
+            console.log(`[GameScene] Cycled to creature ${nextIndex}: ${nextCreature.name}`);
+        }
+    }
+
+    /**
+     * Open the creature profile scene
+     */
+    openCreatureProfile() {
+        console.log('[GameScene] Opening Creature Profile');
+        // Check if CreatureProfileScene is registered
+        if (this.scene.get('CreatureProfileScene')) {
+            this.scene.start('CreatureProfileScene');
+        } else {
+            // Fallback: Show a temporary info toast until CreatureProfileScene is implemented
+            const { width, height } = this.scale;
+            const toast = this.add.text(width / 2, height / 2, 'Creature Profile coming soon!', {
+                fontSize: '20px',
+                color: '#FFD700',
+                backgroundColor: 'rgba(26, 26, 62, 0.95)',
+                padding: { x: 20, y: 15 }
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(5000);
+
+            this.tweens.add({
+                targets: toast,
+                alpha: { from: 1, to: 0 },
+                y: height / 2 - 30,
+                duration: 2000,
+                delay: 1000,
+                onComplete: () => toast.destroy()
+            });
+        }
+    }
+
+    /**
+     * Regenerate player texture if corrupted or missing
+     * @param {Object} genes - Creature genetics
+     * @param {Object} gameState - GameState instance
+     */
+    regeneratePlayerTexture(genes, gameState) {
+        if (!genes) {
+            console.error('[GameScene] Cannot regenerate texture without genes');
+            return;
+        }
+
+        console.log('[GameScene] Regenerating player texture...');
+
+        try {
+            // Use loadCreatureFromGameState for consistency
+            const result = this.graphicsEngine.loadCreatureFromGameState(0);
+
+            if (result && result.textureName && this.textures.exists(result.textureName)) {
+                this.player.setTexture(result.textureName);
+                console.log('[GameScene] Successfully regenerated texture:', result.textureName);
+                this.playerGenetics = genes;
+            } else {
+                console.error('[GameScene] Failed to regenerate texture');
+            }
+        } catch (error) {
+            console.error('[GameScene] Error during texture regeneration:', error);
+        }
+    }
+
+    /**
+     * Refresh creature display after switching
+     * Includes visual transition animation
+     */
+    refreshCreatureDisplay() {
+        const gameState = getGameState();
+
+        // Use getActiveCreature for reliable data from collection
+        const activeCreature = gameState.getActiveCreature?.();
+        const genes = activeCreature?.genes || activeCreature?.dna || gameState.get('creature.genes');
+        const creatureName = activeCreature?.name || gameState.get('creature.name');
+
+        console.log('[GameScene] refreshCreatureDisplay called for:', creatureName);
+
+        if (!this.player) {
+            console.warn('[GameScene] Cannot refresh - player sprite not found');
+            return;
+        }
+
+        if (!this.graphicsEngine) {
+            console.warn('[GameScene] Cannot refresh - graphicsEngine not available');
+            return;
+        }
+
+        // Store player position for animation
+        const playerX = this.player.x;
+        const playerY = this.player.y;
+
+        // Phase 1: Fade out old creature with shrink effect
+        this.tweens.add({
+            targets: this.player,
+            alpha: 0,
+            scaleX: 0.5,
+            scaleY: 0.5,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                // Generate new texture with CORRECT LIFECYCLE STAGE
+                let newTextureName = null;
+
+                // Get creature's current lifecycle stage (baby/juvenile/adult/elder)
+                const lifecycle = gameState.get('creature.lifecycle');
+                const currentStage = lifecycle?.stage || 'baby';
+
+                if (genes) {
+                    try {
+                        // Try DNA-based rendering first WITH STAGE
+                        if (activeCreature?.dna) {
+                            const result = this.graphicsEngine.createCreatureFromDNA(activeCreature.dna, 0, currentStage);
+                            if (result?.textureName) {
+                                newTextureName = result.textureName;
+                            }
+                        }
+                        // Fall back to genes-based rendering WITH STAGE
+                        if (!newTextureName) {
+                            const result = this.graphicsEngine.createRandomizedSpaceMythicCreature(genes, 0, currentStage);
+                            if (result?.textureName) {
+                                newTextureName = result.textureName;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('[GameScene] Error generating creature texture:', error);
+                    }
+                }
+
+                // Fallback to stored texture
+                if (!newTextureName) {
+                    const storedTexture = activeCreature?.textureName || gameState.get('creature.textureName');
+                    if (storedTexture && this.textures.exists(storedTexture)) {
+                        newTextureName = storedTexture;
+                    }
+                }
+
+                if (newTextureName) {
+                    // CRITICAL: Verify texture exists and is valid before setting
+                    if (this.textures.exists(newTextureName)) {
+                        try {
+                            const texture = this.textures.get(newTextureName);
+                            // Verify texture has valid source
+                            if (texture && texture.source && texture.source.length > 0) {
+                                this.player.setTexture(newTextureName);
+                                console.log('[GameScene] Creature texture updated to:', newTextureName);
+
+                                // Update stored genetics
+                                this.playerGenetics = genes;
+                            } else {
+                                console.error('[GameScene] Texture exists but has invalid source:', newTextureName);
+                                // Regenerate texture
+                                this.regeneratePlayerTexture(genes, gameState);
+                            }
+                        } catch (error) {
+                            console.error('[GameScene] Error setting texture:', error);
+                            this.regeneratePlayerTexture(genes, gameState);
+                        }
+                    } else {
+                        console.warn('[GameScene] Texture does not exist:', newTextureName);
+                        // Try to regenerate
+                        this.regeneratePlayerTexture(genes, gameState);
+                    }
+                } else {
+                    console.warn('[GameScene] No valid texture found for creature');
+                    this.regeneratePlayerTexture(genes, gameState);
+                }
+
+                // Phase 2: Fade in new creature with grow effect
+                this.player.setScale(0.5);
+                this.tweens.add({
+                    targets: this.player,
+                    alpha: 1,
+                    scaleX: 1,
+                    scaleY: 1,
+                    duration: 300,
+                    ease: 'Back.easeOut',
+                    onComplete: () => {
+                        // Create sparkle effect to celebrate the switch
+                        if (window.FXLibrary) {
+                            window.FXLibrary.stardustBurst(this, playerX, playerY - 30, {
+                                count: 15,
+                                color: [0x7B68EE, 0xFFD700, 0x00FFFF],
+                                duration: 1000
+                            });
+                        }
+                    }
+                });
+            }
+        });
+
+        // Update all displays (don't wait for animation)
+        this.updateStatsDisplay();
+        this.mobileHUD?.updateStats();
+
+        // Update creature name display if it exists
+        if (this.creatureNameText) {
+            this.creatureNameText.setText(creatureName || 'Your Creature');
+        }
+
+        // Refresh skill bar for new creature's abilities
+        this.refreshSkillBar();
+
+        // Refresh roster indicator
+        this.refreshRosterIndicator();
+
+        // Play switch sound
+        if (window.AudioManager) {
+            window.AudioManager.playLevelUp?.(); // Use level up sound for more celebratory feel
+        }
+
+        console.log('[GameScene] Creature display refreshed with animation - skills and roster updated');
     }
 
     /**
@@ -1104,6 +1942,156 @@ class GameScene extends Phaser.Scene {
     capitalizeFirst(str) {
         if (!str) return '';
         return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    /**
+     * Show floating text animation (for XP gains, level ups, etc.)
+     */
+    showFloatingText(text, x, y, color = '#FFD700') {
+        const floatingText = this.add.text(x, y, text, {
+            fontSize: '24px',
+            color: color,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(5000);
+
+        // Convert world position to screen position if player exists
+        if (this.player) {
+            const camera = this.cameras.main;
+            floatingText.setScrollFactor(0);
+            floatingText.setPosition(
+                x - camera.scrollX,
+                y - camera.scrollY
+            );
+        }
+
+        this.tweens.add({
+            targets: floatingText,
+            y: floatingText.y - 80,
+            alpha: { from: 1, to: 0 },
+            scale: { from: 1, to: 1.5 },
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => floatingText.destroy()
+        });
+    }
+
+    /**
+     * Show level up celebration with visual effects
+     */
+    showLevelUpCelebration(data) {
+        const { width, height } = this.scale;
+        const newLevel = data?.newLevel || window.GameState?.get('creature.level') || 1;
+        const creatureName = window.GameState?.get('creature.name') || 'Your creature';
+
+        // Screen flash
+        const flash = this.add.graphics();
+        flash.fillStyle(0xFFD700, 0.4);
+        flash.fillRect(0, 0, width, height);
+        flash.setScrollFactor(0);
+        flash.setDepth(4500);
+
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 600,
+            onComplete: () => flash.destroy()
+        });
+
+        // Level up text
+        const levelText = this.add.text(width / 2, height / 2 - 50, `⭐ LEVEL UP! ⭐`, {
+            fontSize: '36px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(4600).setAlpha(0).setScale(0.5);
+
+        const detailText = this.add.text(width / 2, height / 2 + 10, `${creatureName} is now Level ${newLevel}!`, {
+            fontSize: '20px',
+            color: '#FFFFFF',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(4600).setAlpha(0);
+
+        // Check for newly unlocked skills
+        const skills = window.CreatureSkills?.getCurrentCreatureSkills() || [];
+        const newSkills = skills.filter(s => s.unlockLevel === newLevel);
+        let skillUnlockText = null;
+
+        if (newSkills.length > 0) {
+            const skillNames = newSkills.map(s => `${s.icon} ${s.name}`).join(', ');
+            skillUnlockText = this.add.text(width / 2, height / 2 + 50, `🔓 New Skill: ${skillNames}`, {
+                fontSize: '18px',
+                color: '#88FFCC',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(4600).setAlpha(0);
+        }
+
+        // Animate in
+        this.tweens.add({
+            targets: levelText,
+            alpha: 1,
+            scale: 1,
+            duration: 400,
+            ease: 'Back.easeOut'
+        });
+
+        this.tweens.add({
+            targets: detailText,
+            alpha: 1,
+            duration: 400,
+            delay: 200
+        });
+
+        if (skillUnlockText) {
+            this.tweens.add({
+                targets: skillUnlockText,
+                alpha: 1,
+                duration: 400,
+                delay: 400
+            });
+        }
+
+        // Particle burst effect
+        if (window.FXLibrary) {
+            const playerX = this.player?.x || width / 2;
+            const playerY = this.player?.y || height / 2;
+            window.FXLibrary.stardustBurst?.(this, playerX, playerY, {
+                count: 30,
+                color: [0xFFD700, 0xFFA500, 0xFFFFFF],
+                duration: 2000
+            });
+        }
+
+        // Play sound
+        if (window.AudioManager) {
+            window.AudioManager.playLevelUp?.();
+        }
+
+        // Refresh skill bar to show newly unlocked skills
+        this.refreshSkillBar();
+
+        // Fade out after 3 seconds
+        this.time.delayedCall(3000, () => {
+            const elementsToFade = [levelText, detailText];
+            if (skillUnlockText) elementsToFade.push(skillUnlockText);
+
+            this.tweens.add({
+                targets: elementsToFade,
+                alpha: 0,
+                duration: 500,
+                onComplete: () => {
+                    levelText.destroy();
+                    detailText.destroy();
+                    skillUnlockText?.destroy();
+                }
+            });
+        });
+
+        console.log(`[GameScene] Level up celebration shown for level ${newLevel}`);
     }
 
     /**
@@ -1382,11 +2370,21 @@ class GameScene extends Phaser.Scene {
         this.statBarGraphics = this.add.graphics();
         this.statBarGraphics.setScrollFactor(0);
         this.statBarGraphics.setDepth(1400);
+
+        // Simplified: Only Health and Energy (removed happiness per UI cleanup)
         this.statBars = [
-            { key: 'health', color: 0xFF6B6B, x: 16, y: this.scale.height - 90, width: 200, height: 12 },
-            { key: 'happiness', color: 0xFFD166, x: 16, y: this.scale.height - 70, width: 200, height: 12 },
-            { key: 'energy', color: 0x4ECDC4, x: 16, y: this.scale.height - 50, width: 200, height: 12 }
+            { key: 'health', color: 0xFF6B6B, label: '❤️', x: 16, y: this.scale.height - 70, width: 180, height: 14 },
+            { key: 'energy', color: 0x4ECDC4, label: '⚡', x: 16, y: this.scale.height - 50, width: 180, height: 14 }
         ];
+
+        // Add labels for stat bars
+        this.statBarLabels?.forEach(l => l.destroy());
+        this.statBarLabels = this.statBars.map(bar => {
+            return this.add.text(bar.x + bar.width + 8, bar.y + bar.height / 2, bar.label, {
+                fontSize: '14px'
+            }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1401);
+        });
+
         this.updateGlowingStatBars();
     }
 
@@ -1620,6 +2618,395 @@ class GameScene extends Phaser.Scene {
         this.scene.launch('ShopScene');
     }
 
+    /**
+     * Handle player proximity to Hub Portal
+     */
+    handleHubPortalProximity(player, portal) {
+        if (!this.nearHubPortal) {
+            this.nearHubPortal = true;
+            console.log('[GameScene] Player near Hub Portal');
+
+            this.showInteractionHint('Press SPACE to travel to other worlds ⭐');
+
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('⭐');
+            }
+
+            // Add pulsing visual indicator around portal
+            if (!this.portalIndicator && portal) {
+                this.portalIndicator = this.add.graphics();
+                this.portalIndicator.setDepth(portal.depth - 1);
+
+                const pulseAnim = this.tweens.add({
+                    targets: { scale: 1 },
+                    scale: 1.15,
+                    duration: 800,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut',
+                    onUpdate: (tween, target) => {
+                        if (this.portalIndicator && portal) {
+                            this.portalIndicator.clear();
+                            this.portalIndicator.lineStyle(4, 0xFFD700, 0.8);
+                            const radius = 100 * target.scale;
+                            this.portalIndicator.strokeCircle(portal.x, portal.y, radius);
+                        }
+                    }
+                });
+                this.portalPulseAnim = pulseAnim;
+            }
+        }
+    }
+
+    /**
+     * Enter the Hub World for gate selection
+     */
+    enterHubWorld() {
+        console.log('[GameScene] Entering Hub World');
+
+        if (this.hubEntryCooldown) {
+            console.log('[GameScene] Hub entry on cooldown');
+            return;
+        }
+
+        this.hubEntryCooldown = true;
+        this.time.delayedCall(1000, () => {
+            this.hubEntryCooldown = false;
+        });
+
+        this.nearHubPortal = false;
+
+        // Save player position
+        getGameState().set('world.lastPosition', {
+            x: this.player.x,
+            y: this.player.y
+        });
+
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Opening Hub Gate...');
+        }
+
+        // Transition to Hub World scene
+        this.scene.start('HubWorldScene');
+    }
+
+    /**
+     * Handle player proximity to Crashed Ship
+     */
+    handleCrashedShipProximity(player, ship) {
+        if (!this.nearCrashedShip) {
+            this.nearCrashedShip = true;
+            console.log('[GameScene] Player near Crashed Ship');
+
+            this.showInteractionHint('Press SPACE to examine your ship 🚀');
+
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('🚀');
+            }
+        }
+    }
+
+    /**
+     * Handle player proximity to Return Portal
+     */
+    handleReturnPortalProximity(player, portal) {
+        if (!this.nearReturnPortal) {
+            this.nearReturnPortal = true;
+            console.log('[GameScene] Player near Return Portal');
+
+            this.showInteractionHint('Press SPACE to return home 🏠');
+
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('🏠');
+            }
+        }
+    }
+
+    /**
+     * Return to Sanctuary from another biome
+     */
+    returnToSanctuary() {
+        console.log('[GameScene] Returning to Sanctuary');
+
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Returning home...');
+        }
+
+        if (window.AudioManager) {
+            window.AudioManager.playPurchase();
+        }
+
+        // Flash transition effect
+        const { width, height } = this.scale;
+        const flash = this.add.graphics();
+        flash.fillStyle(0xFFD700, 0);
+        flash.fillRect(0, 0, width, height);
+        flash.setScrollFactor(0);
+        flash.setDepth(5000);
+
+        this.tweens.add({
+            targets: flash,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2',
+            onComplete: () => {
+                // Return to nebula biome (Sanctuary)
+                this.scene.start('GameScene', { biome: 'nebula' });
+            }
+        });
+    }
+
+    /**
+     * Show ship memories/narrative when interacting with crashed ship
+     */
+    showShipMemories() {
+        console.log('[GameScene] Showing ship memories');
+
+        const { width, height } = this.scale;
+
+        // Create overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.8);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(5000);
+
+        // Memory panel
+        const panelWidth = Math.min(500, width - 40);
+        const panelHeight = 300;
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 0.95);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.lineStyle(3, 0x4A90A4);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.setScrollFactor(0);
+        panel.setDepth(5001);
+
+        // Title
+        const title = this.add.text(width / 2, panelY + 30, '🚀 The Wanderer', {
+            fontSize: '24px',
+            color: '#4A90A4',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+
+        // Memory text
+        const memoryText = this.add.text(width / 2, panelY + 90,
+            'Your research vessel. The engines failed over this\nuncharted world. You crash-landed in a place\nyour broken sensors call "The Void".\n\nBut you found something unexpected here.\nAn egg. And when it hatched...\n\nThis became home.',
+            {
+                fontSize: '16px',
+                color: '#FFFFFF',
+                align: 'center',
+                lineSpacing: 8
+            }
+        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
+
+        // Close button
+        const closeBtn = this.add.text(width / 2, panelY + panelHeight - 40, 'Close', {
+            fontSize: '18px',
+            color: '#FFFFFF',
+            backgroundColor: '#4A4A8E',
+            padding: { x: 25, y: 10 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+        closeBtn.setInteractive({ useHandCursor: true });
+
+        const elements = [overlay, panel, title, memoryText, closeBtn];
+
+        closeBtn.on('pointerdown', () => {
+            elements.forEach(el => el.destroy());
+            this.nearCrashedShip = false;
+        });
+
+        // ESC to close
+        const escHandler = (event) => {
+            if (event.key === 'Escape') {
+                elements.forEach(el => el.destroy());
+                this.nearCrashedShip = false;
+                this.input.keyboard.off('keydown', escHandler);
+            }
+        };
+        this.input.keyboard.on('keydown', escHandler);
+
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+    }
+
+    /**
+     * Check if this is a new day and show creature greeting
+     */
+    checkDailyGreeting() {
+        const gameState = getGameState();
+        if (!gameState) return;
+
+        // Check if daily bonus is available
+        const dailyBonus = gameState.getDailyLoginBonus();
+        const creatureName = gameState.get('creature.name') || 'Your creature';
+        const creatureHatched = gameState.get('creature.hatched');
+
+        // Only show greeting if creature is hatched
+        if (!creatureHatched) return;
+
+        // Check if we've shown the greeting this session
+        if (this.dailyGreetingShown) return;
+        this.dailyGreetingShown = true;
+
+        console.log('[GameScene] Checking daily greeting. Bonus available:', dailyBonus.available);
+
+        // Show the greeting overlay
+        this.showDailyGreetingOverlay(creatureName, dailyBonus);
+    }
+
+    /**
+     * Display the daily greeting overlay
+     */
+    showDailyGreetingOverlay(creatureName, dailyBonus) {
+        const { width, height } = this.scale;
+
+        // Create overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(5000);
+
+        // Greeting panel
+        const panelWidth = Math.min(400, width - 40);
+        const panelHeight = dailyBonus.available ? 280 : 200;
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 0.95);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.lineStyle(3, 0x7B68EE);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.setScrollFactor(0);
+        panel.setDepth(5001);
+
+        // Greeting messages based on time of day
+        const hour = new Date().getHours();
+        let timeGreeting;
+        if (hour < 12) {
+            timeGreeting = 'Good morning!';
+        } else if (hour < 17) {
+            timeGreeting = 'Good afternoon!';
+        } else {
+            timeGreeting = 'Good evening!';
+        }
+
+        // Random greeting variations
+        const greetings = [
+            `${timeGreeting}\n${creatureName} bounces excitedly to see you!`,
+            `${timeGreeting}\n${creatureName} was waiting for you!`,
+            `${timeGreeting}\n${creatureName}'s eyes light up!`,
+            `${timeGreeting}\n${creatureName} does a happy wiggle!`,
+            `${timeGreeting}\n${creatureName} chirps with joy!`
+        ];
+        const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+
+        // Title
+        const title = this.add.text(width / 2, panelY + 25, '✨ Welcome Back! ✨', {
+            fontSize: '22px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+
+        // Greeting text
+        const greetingText = this.add.text(width / 2, panelY + 70, greeting, {
+            fontSize: '16px',
+            color: '#FFFFFF',
+            align: 'center',
+            lineSpacing: 6
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
+
+        const elements = [overlay, panel, title, greetingText];
+
+        // If daily bonus available, show it
+        if (dailyBonus.available) {
+            const bonusText = this.add.text(width / 2, panelY + 130,
+                `🎁 Daily Login Bonus: Day ${dailyBonus.streak}\n+${dailyBonus.rewards.xp} XP  +${dailyBonus.rewards.stardust} Stardust`,
+                {
+                    fontSize: '15px',
+                    color: '#90EE90',
+                    align: 'center',
+                    lineSpacing: 4
+                }
+            ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
+            elements.push(bonusText);
+
+            // Claim button
+            const claimBtn = this.add.text(width / 2, panelY + panelHeight - 45, '🎁 Claim Bonus!', {
+                fontSize: '18px',
+                color: '#FFFFFF',
+                backgroundColor: '#4CAF50',
+                padding: { x: 20, y: 10 }
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+            claimBtn.setInteractive({ useHandCursor: true });
+            elements.push(claimBtn);
+
+            claimBtn.on('pointerdown', () => {
+                const claimed = getGameState().claimDailyLoginBonus();
+                if (claimed) {
+                    // Play celebration
+                    if (window.AudioManager) {
+                        window.AudioManager.playLevelUp();
+                    }
+
+                    // Update stats display
+                    this.updateStatsDisplay();
+
+                    // Show floating text
+                    this.showFloatingText(`+${dailyBonus.rewards.xp} XP!`, this.player.x, this.player.y - 60, '#90EE90');
+                }
+                elements.forEach(el => el.destroy());
+            });
+
+            claimBtn.on('pointerover', () => claimBtn.setStyle({ backgroundColor: '#45a049' }));
+            claimBtn.on('pointerout', () => claimBtn.setStyle({ backgroundColor: '#4CAF50' }));
+        } else {
+            // Just show a close button
+            const closeBtn = this.add.text(width / 2, panelY + panelHeight - 35, 'Continue', {
+                fontSize: '18px',
+                color: '#FFFFFF',
+                backgroundColor: '#7B68EE',
+                padding: { x: 25, y: 10 }
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+            closeBtn.setInteractive({ useHandCursor: true });
+            elements.push(closeBtn);
+
+            closeBtn.on('pointerdown', () => {
+                elements.forEach(el => el.destroy());
+            });
+
+            closeBtn.on('pointerover', () => closeBtn.setStyle({ backgroundColor: '#6a5acd' }));
+            closeBtn.on('pointerout', () => closeBtn.setStyle({ backgroundColor: '#7B68EE' }));
+        }
+
+        // Play sound
+        if (window.AudioManager) {
+            window.AudioManager.playPet();
+        }
+
+        // Creature bounce animation on player sprite
+        if (this.player) {
+            this.tweens.add({
+                targets: this.player,
+                scaleX: { from: 1, to: 1.15 },
+                scaleY: { from: 1, to: 1.15 },
+                duration: 300,
+                yoyo: true,
+                ease: 'Bounce.easeOut'
+            });
+        }
+    }
+
     openInventory() {
         console.log('[GameScene] Opening Inventory');
 
@@ -1639,6 +3026,12 @@ class GameScene extends Phaser.Scene {
     }
 
     openBreedingShrine() {
+        // Guard against multiple calls while shrine is loading/open
+        if (this._breedingShrineOpening || this.scene.isActive('BreedingShrineScene')) {
+            console.log('[GameScene] Breeding shrine already opening or open, ignoring');
+            return;
+        }
+
         // Check if breeding shrine is unlocked (level 5+)
         const shrineStatus = getGameState().getBreedingShrineStatus?.();
 
@@ -1648,6 +3041,9 @@ class GameScene extends Phaser.Scene {
             window.AudioManager?.playError?.();
             return;
         }
+
+        // Set guard flag
+        this._breedingShrineOpening = true;
 
         console.log('[GameScene] Opening Breeding Shrine');
 
@@ -1665,12 +3061,87 @@ class GameScene extends Phaser.Scene {
         this.scene.pause();
         this.scene.launch('BreedingShrineScene');
 
-        // Hide loading after short delay
-        this.time.delayedCall(500, () => {
-            if (window.UXEnhancements) {
-                window.UXEnhancements.hideLoading();
-            }
+        // Clear guard flag after a delay (BreedingShrineScene.create() will hide loading)
+        this.time.delayedCall(1000, () => {
+            this._breedingShrineOpening = false;
         });
+    }
+
+    openHubWorld() {
+        console.log('[GameScene] Opening Hub World');
+
+        // Play button click sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Show loading overlay
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Traveling to Hub World...');
+        }
+
+        // Transition to Hub World scene
+        this.scene.start('HubWorldScene');
+    }
+
+    /**
+     * Spawn collectibles in the game world
+     */
+    spawnWorldCollectibles() {
+        if (!window.CollectibleManager) {
+            console.warn('[GameScene] CollectibleManager not available');
+            return;
+        }
+
+        // Clear existing collectibles
+        window.CollectibleManager.clearCollectibles();
+
+        // Get current biome (from scene data or default)
+        const biome = this.currentBiome || 'nebula';
+
+        // Spawn collectibles based on world size
+        const collectibleCount = 15; // Base number of collectibles
+
+        this.collectibles = window.CollectibleManager.spawnCollectibles(
+            this,
+            biome,
+            collectibleCount
+        );
+
+        console.log(`[GameScene] Spawned ${this.collectibles.length} collectibles in ${biome} biome`);
+    }
+
+    /**
+     * Check proximity to collectibles for auto-collection
+     */
+    checkCollectibleProximity() {
+        if (!window.CollectibleManager || !this.creature) return;
+
+        const creatureX = this.creature.x;
+        const creatureY = this.creature.y;
+
+        window.CollectibleManager.checkProximityCollection(
+            this,
+            creatureX,
+            creatureY,
+            60 // Collection radius
+        );
+    }
+
+    /**
+     * Track enemy defeat for quests
+     */
+    onEnemyDefeated(enemyData = {}) {
+        if (!window.QuestManager) return;
+
+        // Track for quest progress
+        window.QuestManager.trackProgress('defeat_enemies', {
+            count: 1,
+            biome: this.currentBiome || 'nebula'
+        });
+
+        // Also grant some XP for quests
+        window.QuestManager.trackProgress('gain_xp', { amount: 10 });
     }
 
     openChat() {
@@ -1741,13 +3212,62 @@ class GameScene extends Phaser.Scene {
     }
 
     handleSpaceInteraction() {
-        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearbyFlower:', !!this.nearbyFlower);
+        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
+
+        // Distance-based fallback for portals (in case overlap detection missed)
+        const PORTAL_INTERACT_DISTANCE = 150;
+
+        if (!this.nearHubPortal && this.hubPortal && this.player) {
+            const distToHub = Phaser.Math.Distance.Between(
+                this.player.x, this.player.y,
+                this.hubPortal.x, this.hubPortal.y
+            );
+            if (distToHub <= PORTAL_INTERACT_DISTANCE) {
+                console.log('[GameScene] Distance fallback: Player within range of hub portal');
+                this.nearHubPortal = true;
+            }
+        }
+
+        if (!this.nearReturnPortal && this.returnPortal && this.player) {
+            const distToReturn = Phaser.Math.Distance.Between(
+                this.player.x, this.player.y,
+                this.returnPortal.x, this.returnPortal.y
+            );
+            if (distToReturn <= PORTAL_INTERACT_DISTANCE) {
+                console.log('[GameScene] Distance fallback: Player within range of return portal');
+                this.nearReturnPortal = true;
+            }
+        }
 
         // Check for shop entry first
         if (this.nearShop) {
             console.log('[GameScene] Entering shop from SPACE handler');
             this.enterShop();
             this.nearShop = false;
+            return;
+        }
+
+        // Check for hub portal entry
+        if (this.nearHubPortal) {
+            console.log('[GameScene] Entering hub world from SPACE handler');
+            this.enterHubWorld();
+            this.nearHubPortal = false;
+            return;
+        }
+
+        // Check for crashed ship interaction
+        if (this.nearCrashedShip) {
+            console.log('[GameScene] Viewing ship memories from SPACE handler');
+            this.showShipMemories();
+            this.nearCrashedShip = false;
+            return;
+        }
+
+        // Check for return portal interaction
+        if (this.nearReturnPortal) {
+            console.log('[GameScene] Returning to Sanctuary from SPACE handler');
+            this.returnToSanctuary();
+            this.nearReturnPortal = false;
             return;
         }
 
@@ -1857,6 +3377,11 @@ class GameScene extends Phaser.Scene {
     }
 
     update() {
+        // Guard: Skip update if scene is shutting down or not ready
+        if (this._isShuttingDown || !this.player) {
+            return;
+        }
+
         // Handle player movement
         this.handleMovement();
 
@@ -1866,6 +3391,9 @@ class GameScene extends Phaser.Scene {
         // Update cosmic UI elements
         this.updateCosmicMiniMap();
         this.updateGlowingStatBars();
+
+        // Update floating chat bubble position
+        this.floatingChatBubble?.update();
 
         // Update enemy AI
         if (this.enemies && window.EnemyManager) {
@@ -1878,6 +3406,9 @@ class GameScene extends Phaser.Scene {
 
         // Update combat cooldown
         this.updateCombatCooldown(this.game.loop.delta);
+
+        // Check collectible proximity for auto-collection
+        this.checkCollectibleProximity();
 
         // Check shop proximity distance
         if (this.nearShop && this.shop && this.player) {
@@ -1896,6 +3427,79 @@ class GameScene extends Phaser.Scene {
 
                 // Reset mobile interact button icon to default
                 if (this.mobileControls && !this.nearbyFlower) {
+                    this.mobileControls.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        // Check hub portal proximity distance
+        if (this.nearHubPortal && this.hubPortal && this.player) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.hubPortal.x,
+                this.hubPortal.y
+            );
+
+            // Reset nearHubPortal flag if player moved away (> 150 pixels)
+            if (distance > 150) {
+                console.log('[GameScene] Player moved away from hub portal, distance:', distance);
+                this.nearHubPortal = false;
+                this.hideInteractionHint();
+
+                // Clean up portal indicator
+                if (this.portalIndicator) {
+                    if (this.portalPulseAnim) {
+                        this.portalPulseAnim.stop();
+                        this.portalPulseAnim = null;
+                    }
+                    this.portalIndicator.destroy();
+                    this.portalIndicator = null;
+                }
+
+                if (this.mobileControls && !this.nearbyFlower && !this.nearShop) {
+                    this.mobileControls.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        // Check crashed ship proximity distance
+        if (this.nearCrashedShip && this.crashedShip && this.player) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.crashedShip.x,
+                this.crashedShip.y
+            );
+
+            // Reset nearCrashedShip flag if player moved away (> 200 pixels)
+            if (distance > 200) {
+                console.log('[GameScene] Player moved away from crashed ship, distance:', distance);
+                this.nearCrashedShip = false;
+                this.hideInteractionHint();
+
+                if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal) {
+                    this.mobileControls.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        // Check return portal proximity distance
+        if (this.nearReturnPortal && this.returnPortal && this.player) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.returnPortal.x,
+                this.returnPortal.y
+            );
+
+            // Reset nearReturnPortal flag if player moved away (> 150 pixels)
+            if (distance > 150) {
+                console.log('[GameScene] Player moved away from return portal, distance:', distance);
+                this.nearReturnPortal = false;
+                this.hideInteractionHint();
+
+                if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal && !this.nearCrashedShip) {
                     this.mobileControls.updateInteractIcon('👆');
                 }
             }
@@ -1937,12 +3541,17 @@ class GameScene extends Phaser.Scene {
             this.openBreedingShrine();
         }
 
+        // Handle H key for Hub World
+        if (this.hubKey && Phaser.Input.Keyboard.JustDown(this.hubKey)) {
+            this.openHubWorld();
+        }
+
         // Handle M key for combat (desktop)
         if (Phaser.Input.Keyboard.JustDown(this.combatKey)) {
             this.fireCombatProjectile();
         }
 
-        // Handle C key for chat (desktop)
+        // Handle T key for Talk/AI chat (desktop)
         if (Phaser.Input.Keyboard.JustDown(this.chatKey)) {
             this.openChat();
         }
@@ -1964,6 +3573,11 @@ class GameScene extends Phaser.Scene {
     }
 
     handleMovement() {
+        // Guard: Ensure player and cursors exist
+        if (!this.player || !this.cursors || !this.wasdKeys) {
+            return;
+        }
+
         const speed = 200;
         let velocityX = 0;
         let velocityY = 0;
@@ -2003,11 +3617,19 @@ class GameScene extends Phaser.Scene {
         // Apply velocity to player
         this.player.setVelocity(velocityX, velocityY);
 
-        // Handle animations
-        if (isMoving) {
-            this.player.anims.play('walk', true);
-        } else {
-            this.player.anims.play('idle', true);
+        // Handle animations (with fallback if animations not created)
+        try {
+            if (isMoving) {
+                if (this.anims.exists('walk')) {
+                    this.player.anims.play('walk', true);
+                }
+            } else {
+                if (this.anims.exists('idle')) {
+                    this.player.anims.play('idle', true);
+                }
+            }
+        } catch (e) {
+            // Animations not available - sprite will use static texture
         }
 
         // Flip player sprite based on movement direction
@@ -2019,6 +3641,8 @@ class GameScene extends Phaser.Scene {
     }
 
     updatePositionDisplay() {
+        if (!this.player || !this.positionText) return;
+
         const x = Math.round(this.player.x);
         const y = Math.round(this.player.y);
         this.positionText.setText(`Position: (${x}, ${y})`);
@@ -2035,6 +3659,8 @@ class GameScene extends Phaser.Scene {
 
     updateStatsDisplay() {
         const creature = getGameState().get('creature');
+        if (!creature || !creature.stats) return;
+
         const stats = creature.stats;
 
         let careStatus = null;
@@ -2420,7 +4046,355 @@ class GameScene extends Phaser.Scene {
             loop: true
         });
 
+        // Check creature lifecycle (evolution, warnings, etc) every 10 seconds
+        this.time.addEvent({
+            delay: 10000,
+            callback: () => this.checkCreatureLifecycle(),
+            loop: true
+        });
+
+        // Also check lifecycle immediately on scene start
+        this.time.delayedCall(1000, () => this.checkCreatureLifecycle());
+
+        // Update skill cooldown displays every 500ms
+        this.time.addEvent({
+            delay: 500,
+            callback: () => this.updateSkillBarCooldowns(),
+            loop: true
+        });
+
         console.log('[GameScene] Periodic timers set up');
+    }
+
+    /**
+     * Check creature lifecycle for evolution, abandonment, and departure warnings
+     */
+    checkCreatureLifecycle() {
+        if (!window.CreatureLifecycle || !window.GameState) {
+            return;
+        }
+
+        const lifecycle = window.CreatureLifecycle;
+
+        // Check for abandonment first (player was away)
+        const abandonmentResult = lifecycle.checkForAbandonment();
+        if (abandonmentResult.wasAbandoned) {
+            this.handleReturnFromAbandonment(abandonmentResult);
+            return;
+        }
+
+        // Check for evolution
+        const evolutionResult = lifecycle.checkForEvolution();
+        if (evolutionResult.shouldEvolve) {
+            this.handleEvolution(evolutionResult);
+            return;
+        }
+
+        // Check for departure warnings
+        const status = lifecycle.getLifecycleStatus();
+        if (status.departureWarning && !this.shownDepartureWarning) {
+            this.showDepartureWarning(status.departureWarning);
+            this.shownDepartureWarning = true;
+        }
+    }
+
+    /**
+     * Handle creature evolution - update visuals and play celebration
+     */
+    handleEvolution(evolutionResult) {
+        console.log('[GameScene] Evolution triggered:', evolutionResult);
+
+        const { fromStage, toStage, celebrationConfig } = evolutionResult;
+
+        // Update GameState with new stage
+        const now = Date.now();
+        window.GameState.set('creature.lifecycle.stage', toStage);
+        window.GameState.set('creature.lifecycle.lastStageChange', now);
+
+        // Add to evolution history
+        const history = window.GameState.get('creature.lifecycle.evolutionHistory') || [];
+        history.push({
+            from: fromStage,
+            to: toStage,
+            timestamp: now
+        });
+        window.GameState.set('creature.lifecycle.evolutionHistory', history);
+
+        // Emit evolution event for other systems
+        window.GameState.emit('creature:evolved', { fromStage, toStage });
+
+        // Play evolution celebration
+        this.playEvolutionCelebration(fromStage, toStage, celebrationConfig);
+
+        // Regenerate creature texture with new stage
+        this.regenerateCreatureTexture(toStage);
+    }
+
+    /**
+     * Play evolution celebration sequence
+     */
+    playEvolutionCelebration(fromStage, toStage, config) {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        // Screen glow effect
+        if (config?.effects?.screenGlow) {
+            const glowColor = config.effects.glowColor ?
+                parseInt(config.effects.glowColor.replace('#', ''), 16) : 0xFFD700;
+
+            const glow = this.add.graphics();
+            glow.fillStyle(glowColor, 0.3);
+            glow.fillRect(0, 0, width, height);
+            glow.setScrollFactor(0);
+            glow.setDepth(4500);
+            glow.setAlpha(0);
+
+            this.tweens.add({
+                targets: glow,
+                alpha: 1,
+                duration: 500,
+                yoyo: true,
+                onComplete: () => glow.destroy()
+            });
+        }
+
+        // Particle burst
+        if (config?.effects?.particleBurst && window.FXLibrary) {
+            const colors = (config.effects.particleColors || ['#FFD700', '#FFFFFF']).map(c =>
+                parseInt(c.replace('#', ''), 16)
+            );
+            window.FXLibrary.stardustBurst(this, this.player?.x || centerX, this.player?.y || centerY, {
+                count: config.effects.particleCount || 30,
+                color: colors,
+                duration: 2000
+            });
+        }
+
+        // Camera shake
+        if (config?.effects?.cameraShake) {
+            const intensity = config.effects.shakeIntensity || 0.005;
+            this.cameras.main.shake(500, intensity);
+        }
+
+        // Screen flash
+        if (config?.effects?.screenFlash) {
+            const flashColor = config.effects.flashColor ?
+                parseInt(config.effects.flashColor.replace('#', ''), 16) : 0xFFFFFF;
+            this.cameras.main.flash(config.effects.flashDuration || 200, (flashColor >> 16) & 0xFF, (flashColor >> 8) & 0xFF, flashColor & 0xFF);
+        }
+
+        // Show celebration message
+        const message = this.add.text(centerX, height * 0.2, config?.message || `Your creature evolved!`, {
+            fontSize: '28px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(4600).setAlpha(0).setScale(0.5);
+
+        const subMessage = this.add.text(centerX, height * 0.2 + 40, config?.subMessage || '', {
+            fontSize: '16px',
+            color: '#FFFFFF',
+            stroke: '#000000',
+            strokeThickness: 2,
+            align: 'center'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(4600).setAlpha(0);
+
+        // Animate messages
+        this.tweens.add({
+            targets: message,
+            alpha: 1,
+            scale: 1,
+            duration: 500,
+            ease: 'Back.easeOut'
+        });
+
+        this.tweens.add({
+            targets: subMessage,
+            alpha: 1,
+            duration: 500,
+            delay: 300
+        });
+
+        // Play stage-specific evolution audio
+        if (window.AudioManager) {
+            switch (toStage) {
+                case 'juvenile':
+                    window.AudioManager.playEvolutionSmall();
+                    break;
+                case 'adult':
+                    window.AudioManager.playEvolutionMajor();
+                    break;
+                case 'elder':
+                    window.AudioManager.playEvolutionElder();
+                    break;
+                default:
+                    window.AudioManager.playLevelUp();
+            }
+        }
+
+        // Auto-dismiss celebration after duration
+        const duration = config?.duration || 3000;
+        this.time.delayedCall(duration, () => {
+            this.tweens.add({
+                targets: [message, subMessage],
+                alpha: 0,
+                y: '-=30',
+                duration: 500,
+                onComplete: () => {
+                    message.destroy();
+                    subMessage.destroy();
+                }
+            });
+        });
+    }
+
+    /**
+     * Regenerate creature texture with new lifecycle stage
+     */
+    regenerateCreatureTexture(stage) {
+        if (!this.graphicsEngine || !this.player) {
+            console.warn('[GameScene] Cannot regenerate creature - missing graphics engine or player');
+            return;
+        }
+
+        const genes = window.GameState?.get('creature.genes');
+        if (!genes) {
+            console.warn('[GameScene] Cannot regenerate creature - no genetics');
+            return;
+        }
+
+        try {
+            // Generate new texture with the new stage
+            const result = this.graphicsEngine.createRandomizedSpaceMythicCreature(genes, 0, stage);
+
+            if (result?.textureName && this.textures.exists(result.textureName)) {
+                // Update player texture
+                this.player.setTexture(result.textureName);
+
+                // Store new texture name
+                window.GameState.set('creature.textureName', result.textureName);
+
+                console.log('[GameScene] Creature texture regenerated for stage:', stage);
+            }
+        } catch (error) {
+            console.error('[GameScene] Error regenerating creature texture:', error);
+        }
+    }
+
+    /**
+     * Handle return from abandonment
+     */
+    handleReturnFromAbandonment(result) {
+        console.log('[GameScene] Handling return from abandonment:', result);
+
+        // Show welcome back message with sad creature
+        const { width, height } = this.scale;
+
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(5000);
+
+        const creatureName = window.GameState?.get('creature.name') || 'Your creature';
+        const daysAway = result.daysAway;
+
+        const title = this.add.text(width / 2, height * 0.25, 'Welcome Back...', {
+            fontSize: '32px',
+            color: '#87CEEB',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
+
+        const message = this.add.text(width / 2, height * 0.4, `${creatureName} missed you!\nYou were away for ${daysAway} day${daysAway > 1 ? 's' : ''}.`, {
+            fontSize: '18px',
+            color: '#FFFFFF',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
+
+        const hint = this.add.text(width / 2, height * 0.55, 'Care for your creature to make them happy again!', {
+            fontSize: '14px',
+            color: '#FFD700',
+            align: 'center'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
+
+        // Close button
+        const closeBtn = this.add.text(width / 2, height * 0.7, 'OK', {
+            fontSize: '20px',
+            color: '#FFFFFF',
+            backgroundColor: '#4A4A8E',
+            padding: { x: 30, y: 12 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
+
+        closeBtn.setInteractive({ useHandCursor: true });
+        closeBtn.on('pointerdown', () => {
+            // Play hopeful welcome back sound when dismissing
+            if (window.AudioManager) {
+                window.AudioManager.playReturnWelcome();
+            }
+            overlay.destroy();
+            title.destroy();
+            message.destroy();
+            hint.destroy();
+            closeBtn.destroy();
+        });
+
+        // Play sad sound when showing the return message
+        if (window.AudioManager) {
+            window.AudioManager.playSad();
+        }
+    }
+
+    /**
+     * Show departure warning
+     */
+    showDepartureWarning(warning) {
+        const { width, height } = this.scale;
+
+        const warningText = this.add.text(width / 2, height * 0.15, `${warning.icon} ${warning.title}`, {
+            fontSize: '20px',
+            color: '#E6E6FA',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3,
+            align: 'center'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(4500).setAlpha(0);
+
+        const messageText = this.add.text(width / 2, height * 0.15 + 30, warning.message, {
+            fontSize: '14px',
+            color: '#FFFFFF',
+            align: 'center',
+            wordWrap: { width: width * 0.8 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(4500).setAlpha(0);
+
+        this.tweens.add({
+            targets: [warningText, messageText],
+            alpha: 1,
+            duration: 1000,
+            hold: 5000,
+            onComplete: () => {
+                this.tweens.add({
+                    targets: [warningText, messageText],
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => {
+                        warningText.destroy();
+                        messageText.destroy();
+                    }
+                });
+            }
+        });
+
+        // Play gentle sad sound for departure warning
+        if (window.AudioManager) {
+            window.AudioManager.playSad();
+        }
     }
 
     /**
@@ -2907,6 +4881,14 @@ class GameScene extends Phaser.Scene {
             this.gameStateUnsubscribers = [];
         }
 
+        // Remove scene event listeners
+        if (this.events) {
+            this.events.off('openChat');
+            if (import.meta.env.DEV) {
+                this.events.off('forceCreatureRefresh');
+            }
+        }
+
         // Remove game event listeners
         if (this.game && this.game.events) {
             if (this.virtualJoystickHandler) {
@@ -2933,6 +4915,16 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        // Clean up portal indicator
+        if (this.portalPulseAnim) {
+            this.portalPulseAnim.stop();
+            this.portalPulseAnim = null;
+        }
+        if (this.portalIndicator) {
+            this.portalIndicator.destroy();
+            this.portalIndicator = null;
+        }
+
         this.economyHud?.destroy();
         this.economyHud = null;
         this.mobileHUD?.destroy();
@@ -2943,9 +4935,46 @@ class GameScene extends Phaser.Scene {
         this.chatOverlay = null;
         this.worldBuilder?.destroy();
         this.worldBuilder = null;
+        this.questTracker?.destroy();
+        this.questTracker = null;
+        this.controlsTutorial?.cleanup();
+        this.controlsTutorial = null;
+        this.controlsHintPanel?.cleanup();
+        this.controlsHintPanel = null;
+        this.floatingChatBubble?.destroy();
+        this.floatingChatBubble = null;
+        this.creatureSwitcher?.cleanup();
+        this.creatureSwitcher = null;
+
+        // Cleanup skill bar
+        this.cleanupSkillBar();
+
+        // Cleanup roster indicator
+        if (this.rosterElements) {
+            this.rosterElements.forEach(el => {
+                el?.removeAllListeners?.();
+                el?.destroy?.();
+            });
+            this.rosterElements = null;
+        }
+
+        this.hamburgerMenu?.destroy();
+        this.hamburgerMenu = null;
+        // mapNavButtons removed - was redundant with hamburgerMenu
+
+        // Clear collectibles
+        if (Array.isArray(this.collectibles)) {
+            this.collectibles.forEach(c => c?.destroy?.());
+            this.collectibles = [];
+        }
+
         if (this.statBarGraphics) {
             this.statBarGraphics.destroy();
             this.statBarGraphics = null;
+        }
+        if (this.statBarLabels) {
+            this.statBarLabels.forEach(l => l?.destroy());
+            this.statBarLabels = null;
         }
         if (this.cosmicMiniMap?.background) {
             this.cosmicMiniMap.background.destroy();

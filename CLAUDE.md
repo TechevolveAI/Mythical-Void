@@ -329,6 +329,73 @@ Genetics objects contain:
 - `personality` - Core trait and attributes
 - `metadata` - Generation timestamp, lineage
 
+## Creature Lifecycle System
+
+### Lifecycle Stages
+
+Creatures progress through four distinct life stages, each with unique visual characteristics:
+
+| Stage | Days | Visual Features |
+|-------|------|-----------------|
+| **Baby** | 0-3 | Smaller size (0.6x), larger eyes (1.8x), rosy cheek blush, sparkle eyes, cute_sparkle particles |
+| **Juvenile** | 3-7 | Growing size (0.75x), moderate eye size (1.2x), subtle_sparkle particles |
+| **Adult** | 7-30 | Full size (1.0x), normal proportions, standard_aura particles |
+| **Elder** | 30+ | Slightly larger (1.1x), wisdom marks, ethereal_aura, golden wisdom mark color |
+
+### Configuration
+
+Lifecycle stages are configured in `src/config/evolution.json`:
+- `stages.*` - Visual, stat, and audio configurations per stage
+- `hatching.visionReveal` - Adult vision reveal during hatching
+- `hatching.babyAnimation` - Cute animations for babies (breathing, blinking, bobbing)
+- `babyEnhancements` - Baby-specific visual features (cheek blush, sparkle eyes)
+
+### Hatching Vision Reveal
+
+During hatching, the game can show a dramatic "vision" of the creature's adult form before revealing the baby:
+
+```javascript
+// Configured in evolution.json
+"hatching": {
+    "visionReveal": {
+        "enabled": true,           // Enable adult vision reveal
+        "showAdultFirst": true,    // Show adult before baby
+        "visionDuration": 4000,    // Duration in ms before transitioning to baby
+        "visionMessage": "✨ Behold their magnificent destiny...",
+        "transitionMessage": "Watch them grow into this incredible form!",
+        "babyRevealMessage": "🐣 Your journey together begins now!"
+    }
+}
+```
+
+**Flow**: Adult appears (gold glow + particles) → 4 second display → Transition message → Baby appears with cute animations
+
+### Baby Visual Enhancements
+
+Baby creatures automatically receive cute visual features:
+- **Cheek Blush**: Pink circular blush on both cheeks (via `addCheekBlush()`)
+- **Sparkle Eyes**: Extra white sparkle highlights in eyes (via `addSparkleEyes()`)
+- **Cute Particles**: Star-shaped sparkles around the creature
+- **Idle Animations**: Breathing (squash/stretch), bobbing, occasional excited bounce
+
+### Creating Stage-Specific Creatures
+
+```javascript
+// The 'stage' parameter controls visual appearance
+const { textureName } = graphicsEngine.createRandomizedSpaceMythicCreature(
+    genetics,
+    0,        // frame
+    'baby'    // stage: 'baby', 'juvenile', 'adult', 'elder'
+);
+
+// Or with DNA
+const { textureName } = graphicsEngine.createCreatureFromDNA(
+    dna,
+    0,        // frame
+    'baby'    // stage
+);
+```
+
 ## Critical Code Sections
 
 ### Protected Game Flow Logic
@@ -358,6 +425,7 @@ The `scripts/validate-game-flow.js` script enforces integrity of critical code s
 - `src/config/kid-mode.json` - Kid mode behavior settings
 - `src/config/hatch-cinematics.json` - Cinematic sequence definitions
 - `src/config/biomes.json` - Parallax biome configurations
+- `src/config/evolution.json` - Creature lifecycle stages, hatching vision reveal, baby enhancements
 
 **Pattern**: Systems load configs via `cloneConfig()` helper in main.js to prevent mutation.
 
@@ -789,6 +857,12 @@ performAction(actionType) {
 - `playPet()` - Warm, gentle tone
 - `playFeed()` - Satisfying munch sound (3 notes)
 - `playPlay()` - Playful bounce (4 notes)
+- `playVisionReveal()` - Mystical shimmer for adult vision during hatching
+- `playBabyCoo()` - Soft, warm, content baby sound
+- `playBabyChirp()` - Short, happy baby chirp
+- `playBabyGiggle()` - Multi-note playful giggle
+- `playBabyYawn()` - Cute yawning sound
+- `playBabyHappy()` - Excited, bouncy happy sound
 
 **Audio system notes**:
 - All sounds are procedurally generated (no audio files required)

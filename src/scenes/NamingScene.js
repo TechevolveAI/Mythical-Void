@@ -734,6 +734,18 @@ class NamingScene extends Phaser.Scene {
 
         // Set up keyboard input for naming
         this.input.keyboard.on('keydown', (event) => {
+            // Safety check: ensure scene is still active and not transitioning
+            if (this.isTransitioning || !this.scene.isActive()) {
+                console.log('[NamingScene] Key ignored - scene transitioning or inactive');
+                return;
+            }
+
+            // Safety check: ensure nameText exists
+            if (!this.nameText || !this.nameText.active) {
+                console.log('[NamingScene] Key ignored - nameText not available');
+                return;
+            }
+
             console.log('[NamingScene] Key pressed:', event.key);
 
             if (event.key === 'Enter') {
@@ -786,23 +798,37 @@ class NamingScene extends Phaser.Scene {
     }
     
     validateName() {
+        // Safety check: ensure scene is still active
+        if (this.isTransitioning || !this.scene.isActive()) {
+            return true;
+        }
+
         // Real-time validation feedback
         if (!window.InputValidator) return true;
-        
+
         const validation = window.InputValidator.validate(this.nameInput, 'username', {
             minLength: 1,
             maxLength: this.maxNameLength
         });
-        
-        // Update visual feedback
-        if (!this.validationText) {
-            this.validationText = this.add.text(400, 475, '', {
-                fontSize: '12px',
-                color: '#FF0000',
-                align: 'center'
-            }).setOrigin(0.5);
+
+        // Update visual feedback - only create if scene is active
+        if (!this.validationText && this.add) {
+            try {
+                this.validationText = this.add.text(400, 475, '', {
+                    fontSize: '12px',
+                    color: '#FF0000',
+                    align: 'center'
+                }).setOrigin(0.5);
+            } catch (e) {
+                // Scene may be shutting down
+                return validation.isValid;
+            }
         }
-        
+
+        if (!this.validationText || !this.validationText.active) {
+            return validation.isValid;
+        }
+
         if (!validation.isValid && this.nameInput.length > 0) {
             this.validationText.setText(validation.errors[0] || '');
             this.validationText.setColor('#FF0000');
@@ -828,6 +854,11 @@ class NamingScene extends Phaser.Scene {
     }
 
     updateNameDisplay() {
+        // Safety check: ensure nameText exists and is active
+        if (!this.nameText || !this.nameText.active) {
+            return;
+        }
+
         const displayName = this.nameInput || 'Enter name';
         const cursor = this.cursorBlink ? '|' : '';
         this.nameText.setText(displayName + cursor);
@@ -845,6 +876,16 @@ class NamingScene extends Phaser.Scene {
                 state.set('creature.named', true);
                 state.set('session.showWelcomeToast', true);
                 state.set('session.pendingWelcomeName', this.nameInput.trim());
+
+                // Add the new creature to the collection
+                const collectionStatus = state.getCollectionStatus?.() || { hasSpace: true };
+                if (collectionStatus.hasSpace) {
+                    const added = state.addCreatureToCollection();
+                    if (added) {
+                        console.log('[NamingScene] Creature added to collection successfully');
+                    }
+                }
+
                 state.save();
                 console.log('[NamingScene] Name saved to GameState');
             } catch (error) {
@@ -940,6 +981,17 @@ class NamingScene extends Phaser.Scene {
                 }
             } catch (resizeError) {
                 console.warn('[NamingScene] Error removing resize listener (continuing):', resizeError.message);
+            }
+
+            // Clean up DOM click handler (CRITICAL - prevents memory leak and stale handlers)
+            try {
+                if (this.domClickHandler && this.game.canvas) {
+                    this.game.canvas.removeEventListener('click', this.domClickHandler);
+                    this.domClickHandler = null;
+                    console.log('[NamingScene] DOM click handler removed');
+                }
+            } catch (domError) {
+                console.warn('[NamingScene] Error removing DOM click handler (continuing):', domError.message);
             }
 
             console.log('[NamingScene] Creating fade effect...');

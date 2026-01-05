@@ -127,6 +127,31 @@ class GameStateManager {
                         restCount: 0,
                         lastReset: null
                     }
+                },
+                // Lifecycle system - Evolution stages and aging
+                lifecycle: {
+                    birthDate: null,              // Timestamp when creature was hatched
+                    stage: 'baby',                // Current stage: baby, juvenile, adult, elder
+                    lastStageChange: null,        // Timestamp of last evolution
+                    evolutionHistory: [],         // Array of {stage, timestamp} for each evolution
+                    departureDate: null,          // Calculated: birthDate + 90 days
+                    isStuck: false,               // Evolution blocked due to abandonment/sadness
+                    stuckReason: null,            // Why evolution is stuck: 'abandoned', 'sad', null
+                    // Departure warnings
+                    warnings: {
+                        day85Shown: false,
+                        day88Shown: false,
+                        day89Shown: false
+                    },
+                    // Departure status
+                    hasDeparted: false,
+                    departureTimestamp: null
+                },
+                // Mood system - Affects evolution and gameplay
+                mood: {
+                    current: 'happy',             // happy, neutral, sad, abandoned
+                    lastMoodChange: null,
+                    moodHistory: []               // Track mood changes over time
                 }
             },
             world: {
@@ -187,7 +212,9 @@ class GameStateManager {
                 rerollHistory: [],
                 lastRerollTime: null
             },
-            creatures: [],  // Collection of all hatched creatures
+            creatures: [],  // Collection of all hatched creatures (max 8)
+            activeCreatureIndex: 0,  // Index of currently active creature in collection
+            maxCreatures: 8,  // Maximum creatures in collection
             codex: {
                 discovered: 0,
                 total: 50,
@@ -205,6 +232,43 @@ class GameStateManager {
                 lastPurge: null,
                 deletionLog: [],
                 creatures: {}
+            },
+            longTermMemory: {
+                creatures: {},
+                global: {
+                    keyValue: {},
+                    lastUpdated: null
+                }
+            },
+            agent: {
+                enabled: true,
+                tasks: {
+                    active: [],      // Currently executing tasks
+                    pending: [],     // Queued tasks
+                    history: []      // Completed tasks (max 50)
+                },
+                reminders: [],       // Player reminders set by creature
+                toolUsage: {},       // Tool execution stats
+                pendingExploration: null,  // Movement intent from explore tool
+                settings: {
+                    allowExternalAPIs: false,
+                    backgroundTasksEnabled: true,
+                    maxActiveTools: 3,
+                    toolCooldownMultiplier: 1.0
+                },
+                lastActivity: null
+            },
+            hubWorld: {
+                currentGate: 'main',  // Which gate player is at
+                gates: {
+                    main: { unlocked: true, name: 'Main World', biome: 'nebula', visits: 0 },
+                    stellar_reef: { unlocked: false, name: 'Stellar Reef', biome: 'stellar_reef', visits: 0, unlockCost: 500 },
+                    crystal_caves: { unlocked: false, name: 'Crystal Caves', biome: 'crystal_caves', visits: 0, unlockCost: 1000 },
+                    void_peaks: { unlocked: false, name: 'Void Peaks', biome: 'void_peaks', visits: 0, unlockCost: 2000 },
+                    aurora_depths: { unlocked: false, name: 'Aurora Depths', biome: 'aurora_depths', visits: 0, unlockCost: 5000 }
+                },
+                mapsOwned: [],  // Map items purchased from shop
+                lastVisitedGate: 'main'
             },
             safety: {
                 kidProfile: {
@@ -232,7 +296,17 @@ class GameStateManager {
                 sessionStart: now,
                 currentScene: 'HatchingScene',
                 debugMode: false,
-                gameStarted: false
+                gameStarted: false,
+                lastSessionEnd: null,           // Timestamp when last session ended
+                lastActiveDate: null,           // Date string of last activity (for abandonment)
+                totalSessionsPlayed: 0
+            },
+            // Tutorial tracking
+            tutorial: {
+                profileSeen: false,
+                evolutionSeen: false,
+                departureSeen: false,
+                abandonmentSeen: false
             }
         };
     }
@@ -454,16 +528,391 @@ class GameStateManager {
      */
     completeHatching() {
         if (!this.get('creature.hatched')) {
+            const now = Date.now();
             this.set('creature.hatched', true);
-            this.set('creature.hatchTime', Date.now());
+            this.set('creature.hatchTime', now);
             this.unlock('scenes', 'GameScene');
             this.updateCreature({ experience: 50 }); // Bonus XP for hatching
+
+            // Initialize lifecycle for the newly hatched creature
+            this.set('creature.lifecycle.birthDate', now);
+            this.set('creature.lifecycle.stage', 'baby');
+            this.set('creature.lifecycle.lastStageChange', now);
+            this.set('creature.lifecycle.evolutionHistory', []);
+            this.set('creature.lifecycle.isStuck', false);
+            this.set('creature.lifecycle.stuckReason', null);
+            this.set('creature.lifecycle.hasDeparted', false);
+            console.log('[GameState] Initialized lifecycle for newly hatched creature - stage set to: baby');
+
+            // Initialize mood as happy for newly hatched creature
+            this.set('creature.mood.current', 'happy');
+            this.set('creature.mood.lastMoodChange', now);
 
             // Initialize care system for the new creature
             this.initializeCareSystem();
 
-            console.log('[GameState] Creature hatching completed!');
+            console.log('[GameState] Creature hatching completed with lifecycle initialized!');
         }
+    }
+
+    // ==========================================
+    // MULTI-CREATURE COLLECTION MANAGEMENT
+    // ==========================================
+
+    /**
+     * Add current creature to the collection
+     * Called when hatching a new creature or saving an offspring from breeding
+     * @returns {boolean} Whether creature was added successfully
+     */
+    addCreatureToCollection(creatureData = null) {
+        const creatures = this.get('creatures') || [];
+        const maxCreatures = this.get('maxCreatures') || 8;
+
+        if (creatures.length >= maxCreatures) {
+            console.warn('[GameState] Creature collection is full!');
+            this.emit('collectionFull', { max: maxCreatures, current: creatures.length });
+            return false;
+        }
+
+        // If no creature data provided, use current active creature
+        const creature = creatureData || {
+            id: `creature_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: this.get('creature.name') || 'Unnamed',
+            genes: this.get('creature.genes'),
+            dna: this.get('creature.dna'),
+            personality: this.get('creature.personality'),
+            personalityState: this.get('creature.personalityState'),
+            stats: { ...this.get('creature.stats') },
+            level: this.get('creature.level') || 1,
+            experience: this.get('creature.experience') || 0,
+            textureName: this.get('creature.textureName'),
+            hatchTime: this.get('creature.hatchTime') || Date.now(),
+            cosmicAffinity: this.get('creature.genes')?.cosmicAffinity?.element || null,
+            rarity: this.get('creature.genes')?.rarity || 'common',
+            addedAt: Date.now()
+        };
+
+        // Check for duplicates by genes.id or textureName + name combination
+        const genesId = creature.genes?.id;
+        const textureName = creature.textureName;
+
+        const isDuplicate = creatures.some(existing => {
+            // Check by genes.id first (most reliable)
+            if (genesId && existing.genes?.id === genesId) {
+                return true;
+            }
+            // Fallback: check by texture AND name combination
+            if (textureName && existing.textureName === textureName &&
+                existing.name === creature.name) {
+                return true;
+            }
+            return false;
+        });
+
+        if (isDuplicate) {
+            console.warn(`[GameState] Creature "${creature.name}" already exists in collection, skipping duplicate`);
+            this.emit('duplicateCreature', { creature });
+            return false;
+        }
+
+        creatures.push(creature);
+        this.set('creatures', creatures);
+        this.set('activeCreatureIndex', creatures.length - 1);
+
+        this.emit('creatureAddedToCollection', { creature, index: creatures.length - 1 });
+        console.log(`[GameState] Creature "${creature.name}" added to collection (${creatures.length}/${maxCreatures})`);
+
+        return true;
+    }
+
+    /**
+     * Get the currently active creature from collection
+     * @returns {Object|null} The active creature or null if none
+     */
+    getActiveCreature() {
+        const creatures = this.get('creatures') || [];
+        const activeIndex = this.get('activeCreatureIndex') || 0;
+
+        if (creatures.length === 0) {
+            // Fall back to current creature state (for backward compatibility)
+            if (this.get('creature.hatched')) {
+                return {
+                    name: this.get('creature.name'),
+                    genes: this.get('creature.genes'),
+                    stats: this.get('creature.stats'),
+                    level: this.get('creature.level'),
+                    textureName: this.get('creature.textureName')
+                };
+            }
+            return null;
+        }
+
+        return creatures[activeIndex] || creatures[0];
+    }
+
+    /**
+     * Switch to a different creature in the collection
+     * @param {number} index - Index of creature to switch to
+     * @returns {boolean} Whether switch was successful
+     */
+    switchActiveCreature(index) {
+        const creatures = this.get('creatures') || [];
+
+        if (index < 0 || index >= creatures.length) {
+            console.warn(`[GameState] Invalid creature index: ${index}`);
+            return false;
+        }
+
+        const previousIndex = this.get('activeCreatureIndex');
+        const previousCreature = creatures[previousIndex];
+        const newCreature = creatures[index];
+
+        // Save current creature's state back to collection before switching
+        if (previousCreature) {
+            previousCreature.stats = { ...this.get('creature.stats') };
+            previousCreature.level = this.get('creature.level');
+            previousCreature.experience = this.get('creature.experience');
+            previousCreature.personalityState = this.get('creature.personalityState');
+            creatures[previousIndex] = previousCreature;
+        }
+
+        // Update active index
+        this.set('activeCreatureIndex', index);
+
+        // Load new creature's state into active creature slot
+        this.set('creature.name', newCreature.name);
+        this.set('creature.genes', newCreature.genes);
+        this.set('creature.dna', newCreature.dna);
+        this.set('creature.personality', newCreature.personality);
+        this.set('creature.personalityState', newCreature.personalityState);
+        this.set('creature.stats', { ...newCreature.stats });
+        this.set('creature.level', newCreature.level);
+        this.set('creature.experience', newCreature.experience);
+        this.set('creature.textureName', newCreature.textureName);
+        this.set('creature.hatched', true);
+        this.set('creature.named', true);
+
+        this.set('creatures', creatures);
+
+        this.emit('creatureSwitched', {
+            previousIndex,
+            newIndex: index,
+            previousCreature,
+            newCreature
+        });
+
+        console.log(`[GameState] Switched to creature "${newCreature.name}" (index ${index})`);
+        return true;
+    }
+
+    /**
+     * Get all creatures in collection
+     * @returns {Array} Array of creatures
+     */
+    getCreatureCollection() {
+        return this.get('creatures') || [];
+    }
+
+    /**
+     * Get collection status
+     * @returns {Object} Collection stats
+     */
+    getCollectionStatus() {
+        const creatures = this.get('creatures') || [];
+        const maxCreatures = this.get('maxCreatures') || 8;
+
+        return {
+            count: creatures.length,
+            max: maxCreatures,
+            isFull: creatures.length >= maxCreatures,
+            hasSpace: creatures.length < maxCreatures,
+            activeIndex: this.get('activeCreatureIndex') || 0
+        };
+    }
+
+    /**
+     * Reset the creatures collection for a fresh game start
+     * Clears all old/test creatures from previous sessions
+     * @returns {boolean} Whether reset was successful
+     */
+    resetCreatureCollection() {
+        console.log('[GameState] Resetting creature collection for fresh start');
+
+        // Clear the creatures array
+        this.set('creatures', []);
+        this.set('activeCreatureIndex', 0);
+
+        // Also clear the creature slot to ensure clean state
+        this.set('creature.hatched', false);
+        this.set('creature.named', false);
+        this.set('creature.name', null);
+        this.set('creature.genes', null);
+        this.set('creature.genetics', null);
+        this.set('creature.dna', null);
+        this.set('creature.personality', null);
+        this.set('creature.personalityState', null);
+        this.set('creature.textureName', null);
+        this.set('creature.stats', { happiness: 100, energy: 100, health: 100 });
+        this.set('creature.level', 1);
+        this.set('creature.experience', 0);
+
+        this.emit('creatureCollectionReset');
+        console.log('[GameState] Creature collection has been reset');
+        return true;
+    }
+
+    /**
+     * Remove a creature from the collection
+     * @param {number} index - Index of creature to remove
+     * @returns {Object|null} Removed creature or null if failed
+     */
+    removeCreatureFromCollection(index) {
+        const creatures = this.get('creatures') || [];
+
+        if (creatures.length <= 1) {
+            console.warn('[GameState] Cannot remove last creature from collection');
+            return null;
+        }
+
+        if (index < 0 || index >= creatures.length) {
+            console.warn(`[GameState] Invalid creature index: ${index}`);
+            return null;
+        }
+
+        const removed = creatures.splice(index, 1)[0];
+        this.set('creatures', creatures);
+
+        // Adjust active index if needed
+        const activeIndex = this.get('activeCreatureIndex');
+        if (activeIndex >= creatures.length) {
+            this.switchActiveCreature(creatures.length - 1);
+        } else if (activeIndex === index) {
+            this.switchActiveCreature(Math.max(0, activeIndex - 1));
+        }
+
+        this.emit('creatureRemovedFromCollection', { creature: removed, index });
+        console.log(`[GameState] Creature "${removed.name}" removed from collection`);
+
+        return removed;
+    }
+
+    // ==========================================
+    // HUB WORLD GATE MANAGEMENT
+    // ==========================================
+
+    /**
+     * Check if a gate is unlocked
+     * @param {string} gateId - ID of the gate
+     * @returns {boolean} Whether gate is unlocked
+     */
+    isGateUnlocked(gateId) {
+        const gates = this.get('hubWorld.gates') || {};
+        return gates[gateId]?.unlocked || false;
+    }
+
+    /**
+     * Attempt to unlock a gate
+     * @param {string} gateId - ID of the gate to unlock
+     * @param {boolean} useCoins - Whether to spend coins for unlock
+     * @returns {Object} Result of unlock attempt
+     */
+    unlockGate(gateId, useCoins = true) {
+        const gates = this.get('hubWorld.gates') || {};
+        const gate = gates[gateId];
+
+        if (!gate) {
+            return { success: false, reason: 'Gate not found' };
+        }
+
+        if (gate.unlocked) {
+            return { success: true, reason: 'Already unlocked' };
+        }
+
+        // Check if player has the map for this gate
+        const mapsOwned = this.get('hubWorld.mapsOwned') || [];
+        const hasMap = mapsOwned.includes(gateId);
+
+        if (hasMap) {
+            // Unlock with map (free)
+            gate.unlocked = true;
+            this.set(`hubWorld.gates.${gateId}`, gate);
+            this.emit('gateUnlocked', { gateId, method: 'map' });
+            console.log(`[GameState] Gate "${gateId}" unlocked with map`);
+            return { success: true, method: 'map' };
+        }
+
+        if (useCoins) {
+            const currentCoins = this.get('player.cosmicCoins') || 0;
+            const cost = gate.unlockCost || 500;
+
+            if (currentCoins < cost) {
+                return { success: false, reason: 'Not enough coins', cost, current: currentCoins };
+            }
+
+            // Spend coins and unlock
+            this.set('player.cosmicCoins', currentCoins - cost);
+            gate.unlocked = true;
+            this.set(`hubWorld.gates.${gateId}`, gate);
+            this.emit('gateUnlocked', { gateId, method: 'coins', cost });
+            console.log(`[GameState] Gate "${gateId}" unlocked with ${cost} coins`);
+            return { success: true, method: 'coins', cost };
+        }
+
+        return { success: false, reason: 'No map and coins not used' };
+    }
+
+    /**
+     * Add a map to player's collection (called when purchasing from shop)
+     * @param {string} gateId - ID of the gate the map unlocks
+     */
+    addMapToCollection(gateId) {
+        const mapsOwned = this.get('hubWorld.mapsOwned') || [];
+
+        if (!mapsOwned.includes(gateId)) {
+            mapsOwned.push(gateId);
+            this.set('hubWorld.mapsOwned', mapsOwned);
+            this.emit('mapAcquired', { gateId });
+            console.log(`[GameState] Map for gate "${gateId}" added to collection`);
+
+            // Auto-unlock the gate now that player owns the map
+            const unlockResult = this.unlockGate(gateId, false); // false = don't try to use coins
+            if (unlockResult.success) {
+                console.log(`[GameState] Gate "${gateId}" auto-unlocked with map purchase`);
+            }
+        }
+    }
+
+    /**
+     * Enter a gate (travel to biome)
+     * @param {string} gateId - ID of the gate to enter
+     * @returns {Object} Result of enter attempt
+     */
+    enterGate(gateId) {
+        if (!this.isGateUnlocked(gateId)) {
+            return { success: false, reason: 'Gate is locked' };
+        }
+
+        const gates = this.get('hubWorld.gates') || {};
+        const gate = gates[gateId];
+
+        // Update visit count
+        gate.visits = (gate.visits || 0) + 1;
+        this.set(`hubWorld.gates.${gateId}`, gate);
+        this.set('hubWorld.currentGate', gateId);
+        this.set('hubWorld.lastVisitedGate', gateId);
+
+        this.emit('gateEntered', { gateId, biome: gate.biome, visits: gate.visits });
+        console.log(`[GameState] Entered gate "${gateId}" (visit #${gate.visits})`);
+
+        return { success: true, biome: gate.biome, gate };
+    }
+
+    /**
+     * Get all gates and their status
+     * @returns {Object} All gates with status
+     */
+    getAllGates() {
+        return this.get('hubWorld.gates') || {};
     }
 
     /**

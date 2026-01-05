@@ -1053,6 +1053,13 @@ export default class ShopScene extends Phaser.Scene {
 
                         if (itemAdded) {
                             console.log(`[ShopScene] Purchase successful: ${item.name}`);
+
+                            // Special handling for map items - unlock gates
+                            if (item.type === 'map' && item.gateId && window.GameState) {
+                                window.GameState.addMapToCollection(item.gateId);
+                                console.log(`[ShopScene] Map acquired for gate: ${item.gateId}`);
+                            }
+
                             this.hideLoadingOverlay();
                             this.showPurchaseSuccess(item);
 
@@ -1500,12 +1507,44 @@ export default class ShopScene extends Phaser.Scene {
                     type: 'utility'
                 },
                 {
-                    id: 'star_map',
-                    name: 'Star Map',
-                    description: 'Points to gentle new nooks to explore',
+                    id: 'map_stellar_reef',
+                    name: 'Stellar Reef Map',
+                    description: 'Unlocks the Stellar Reef gate in the Hub World',
                     icon: '🗺️',
-                    price: 200,
-                    type: 'utility'
+                    price: 400,
+                    type: 'map',
+                    gateId: 'stellar_reef',
+                    effect: 'Unlocks Stellar Reef biome'
+                },
+                {
+                    id: 'map_crystal_caves',
+                    name: 'Crystal Caves Map',
+                    description: 'Unlocks the Crystal Caves gate in the Hub World',
+                    icon: '🗺️',
+                    price: 800,
+                    type: 'map',
+                    gateId: 'crystal_caves',
+                    effect: 'Unlocks Crystal Caves biome'
+                },
+                {
+                    id: 'map_void_peaks',
+                    name: 'Void Peaks Map',
+                    description: 'Unlocks the Void Peaks gate in the Hub World',
+                    icon: '🗺️',
+                    price: 1500,
+                    type: 'map',
+                    gateId: 'void_peaks',
+                    effect: 'Unlocks Void Peaks biome'
+                },
+                {
+                    id: 'map_aurora_depths',
+                    name: 'Aurora Depths Map',
+                    description: 'Unlocks the Aurora Depths gate - the rarest biome!',
+                    icon: '🗺️',
+                    price: 4000,
+                    type: 'map',
+                    gateId: 'aurora_depths',
+                    effect: 'Unlocks Aurora Depths biome'
                 }
             ]
         };

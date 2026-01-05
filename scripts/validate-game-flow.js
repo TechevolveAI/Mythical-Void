@@ -34,7 +34,7 @@ const CRITICAL_PATTERNS = {
         // Save/load methods
         'localStorage.setItem(this.saveKey',
         'localStorage.getItem(this.saveKey)',
-        'this.state = this.deepMerge(this.state, parsed);'
+        'this.state = this.deepMerge(this.state, migrated);'
     ],
     'src/systems/KidMode.js': [
         // Kid Mode core functions

@@ -213,6 +213,106 @@ class AudioManager {
             { frequency: 293.66, duration: 0.4, volume: 0.12 }  // D4
         ]);
 
+        // ==========================================
+        // EVOLUTION SOUNDS
+        // ==========================================
+
+        // Baby to Juvenile evolution - gentle growth fanfare
+        this.createToneSequence('evolution_small', [
+            { frequency: 523.25, duration: 0.2, volume: 0.25 },  // C5
+            { frequency: 587.33, duration: 0.2, volume: 0.25 },  // D5
+            { frequency: 659.25, duration: 0.2, volume: 0.3 },   // E5
+            { frequency: 783.99, duration: 0.3, volume: 0.35 }   // G5
+        ]);
+
+        // Juvenile to Adult evolution - major triumphant fanfare
+        this.createToneSequence('evolution_major', [
+            { frequency: 523.25, duration: 0.15, volume: 0.3 },   // C5
+            { frequency: 659.25, duration: 0.15, volume: 0.3 },   // E5
+            { frequency: 783.99, duration: 0.15, volume: 0.35 },  // G5
+            { frequency: 1046.50, duration: 0.2, volume: 0.4 },   // C6
+            { frequency: 1318.51, duration: 0.3, volume: 0.35 }   // E6
+        ]);
+
+        // Adult to Elder evolution - ethereal ascending sequence
+        this.createToneSequence('evolution_elder', [
+            { frequency: 392.00, duration: 0.3, volume: 0.25 },   // G4
+            { frequency: 493.88, duration: 0.3, volume: 0.25 },   // B4
+            { frequency: 587.33, duration: 0.3, volume: 0.3 },    // D5
+            { frequency: 698.46, duration: 0.3, volume: 0.3 },    // F5
+            { frequency: 783.99, duration: 0.35, volume: 0.35 },  // G5
+            { frequency: 987.77, duration: 0.4, volume: 0.3 }     // B5
+        ]);
+
+        // Departure ceremony - ethereal ascending to fade
+        this.createToneSequence('departure', [
+            { frequency: 392.00, duration: 0.4, volume: 0.25 },   // G4
+            { frequency: 440.00, duration: 0.4, volume: 0.25 },   // A4
+            { frequency: 493.88, duration: 0.4, volume: 0.25 },   // B4
+            { frequency: 523.25, duration: 0.5, volume: 0.3 },    // C5
+            { frequency: 587.33, duration: 0.5, volume: 0.25 },   // D5
+            { frequency: 659.25, duration: 0.6, volume: 0.2 },    // E5
+            { frequency: 783.99, duration: 0.8, volume: 0.15 }    // G5 fade
+        ]);
+
+        // Sad/abandoned creature sound
+        this.createToneSequence('sad', [
+            { frequency: 392.00, duration: 0.3, volume: 0.2 },    // G4
+            { frequency: 349.23, duration: 0.3, volume: 0.18 },   // F4
+            { frequency: 329.63, duration: 0.4, volume: 0.15 }    // E4
+        ]);
+
+        // Return from abandonment - hopeful but subdued
+        this.createToneSequence('return_welcome', [
+            { frequency: 329.63, duration: 0.2, volume: 0.2 },    // E4
+            { frequency: 392.00, duration: 0.2, volume: 0.22 },   // G4
+            { frequency: 440.00, duration: 0.25, volume: 0.25 }   // A4
+        ]);
+
+        // Vision reveal sound - mystical shimmer for adult vision during hatching
+        this.createToneSequence('vision_reveal', [
+            { frequency: 523.25, duration: 0.15, volume: 0.2 },   // C5
+            { frequency: 783.99, duration: 0.15, volume: 0.22 },  // G5
+            { frequency: 987.77, duration: 0.2, volume: 0.25 },   // B5
+            { frequency: 1046.50, duration: 0.25, volume: 0.25 }, // C6
+            { frequency: 1318.51, duration: 0.3, volume: 0.22 },  // E6
+            { frequency: 1567.98, duration: 0.4, volume: 0.18 }   // G6 - sparkle fade
+        ]);
+
+        // Baby creature sounds - cute and high-pitched
+        this.createToneSequence('baby_coo', [
+            { frequency: 600, duration: 0.15, volume: 0.18, waveform: 'sine' },
+            { frequency: 650, duration: 0.2, volume: 0.2, waveform: 'sine' },
+            { frequency: 580, duration: 0.25, volume: 0.15, waveform: 'sine' }
+        ]);
+
+        this.createToneSequence('baby_chirp', [
+            { frequency: 800, duration: 0.08, volume: 0.15, waveform: 'sine' },
+            { frequency: 900, duration: 0.1, volume: 0.18, waveform: 'sine' },
+            { frequency: 850, duration: 0.08, volume: 0.12, waveform: 'sine' }
+        ]);
+
+        this.createToneSequence('baby_giggle', [
+            { frequency: 700, duration: 0.06, volume: 0.15, waveform: 'sine' },
+            { frequency: 750, duration: 0.06, volume: 0.18, waveform: 'sine' },
+            { frequency: 800, duration: 0.06, volume: 0.2, waveform: 'sine' },
+            { frequency: 750, duration: 0.06, volume: 0.15, waveform: 'sine' },
+            { frequency: 800, duration: 0.08, volume: 0.18, waveform: 'sine' }
+        ]);
+
+        this.createToneSequence('baby_yawn', [
+            { frequency: 500, duration: 0.2, volume: 0.12, waveform: 'sine' },
+            { frequency: 450, duration: 0.3, volume: 0.1, waveform: 'sine' },
+            { frequency: 400, duration: 0.35, volume: 0.08, waveform: 'sine' }
+        ]);
+
+        this.createToneSequence('baby_happy', [
+            { frequency: 650, duration: 0.1, volume: 0.18, waveform: 'sine' },
+            { frequency: 750, duration: 0.12, volume: 0.2, waveform: 'sine' },
+            { frequency: 850, duration: 0.15, volume: 0.22, waveform: 'sine' },
+            { frequency: 900, duration: 0.1, volume: 0.18, waveform: 'sine' }
+        ]);
+
         console.log('[AudioManager] Generated', this.generatedSounds.size, 'procedural sounds');
     }
 
@@ -358,6 +458,45 @@ class AudioManager {
         this.playSound('play');
     }
 
+    // ==========================================
+    // BABY CREATURE SOUND PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play baby coo sound - soft, warm, content
+     */
+    playBabyCoo() {
+        this.playSound('baby_coo');
+    }
+
+    /**
+     * Play baby chirp sound - short, happy
+     */
+    playBabyChirp() {
+        this.playSound('baby_chirp');
+    }
+
+    /**
+     * Play baby giggle sound - quick, playful
+     */
+    playBabyGiggle() {
+        this.playSound('baby_giggle');
+    }
+
+    /**
+     * Play baby yawn sound - sleepy, cute
+     */
+    playBabyYawn() {
+        this.playSound('baby_yawn');
+    }
+
+    /**
+     * Play baby happy sound - excited, joyful
+     */
+    playBabyHappy() {
+        this.playSound('baby_happy');
+    }
+
     /**
      * Play egg crack sound effect
      */
@@ -377,6 +516,59 @@ class AudioManager {
      */
     playSuspenseAmbient() {
         this.playSound('suspense_ambient');
+    }
+
+    // ==========================================
+    // EVOLUTION SOUND PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play baby to juvenile evolution sound - gentle growth fanfare
+     */
+    playEvolutionSmall() {
+        this.playSound('evolution_small');
+    }
+
+    /**
+     * Play juvenile to adult evolution sound - major triumphant fanfare
+     */
+    playEvolutionMajor() {
+        this.playSound('evolution_major');
+    }
+
+    /**
+     * Play adult to elder evolution sound - ethereal ascending sequence
+     */
+    playEvolutionElder() {
+        this.playSound('evolution_elder');
+    }
+
+    /**
+     * Play departure ceremony sound - ethereal ascending to fade
+     */
+    playDeparture() {
+        this.playSound('departure');
+    }
+
+    /**
+     * Play vision reveal sound - mystical shimmer for adult vision during hatching
+     */
+    playVisionReveal() {
+        this.playSound('vision_reveal');
+    }
+
+    /**
+     * Play sad/abandoned creature sound
+     */
+    playSad() {
+        this.playSound('sad');
+    }
+
+    /**
+     * Play return welcome sound - hopeful sound when returning from abandonment
+     */
+    playReturnWelcome() {
+        this.playSound('return_welcome');
     }
 
     /**
