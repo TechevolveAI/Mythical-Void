@@ -1531,6 +1531,11 @@ class GameScene extends Phaser.Scene {
             console.log('[DEV MODE] Press ` (backtick) for +1000 coins, + for +500 coins, L for lifecycle stage cycle');
         }
 
+        // === SECRET OWNER CHEATS (work in production) ===
+        // These are hidden cheats for game owners/testers - not documented publicly
+        // Key combos are obscure enough that players won't accidentally trigger them
+        this.setupSecretCheats();
+
         this.joystickX = 0;
         this.joystickY = 0;
 
@@ -6607,6 +6612,107 @@ class GameScene extends Phaser.Scene {
         this._sceneLifecycleRegistered = false;
 
         console.log('[GameScene] Cleanup complete');
+    }
+
+    /**
+     * Setup secret owner cheats that work in production
+     * These are hidden key combinations for game owners/testers
+     * Players may discover them as easter eggs - that's part of the fun!
+     */
+    setupSecretCheats() {
+        // Track modifier keys
+        let shiftHeld = false;
+        let ctrlHeld = false;
+
+        // Owner cheat stage index for lifecycle cycling
+        this.ownerStageIndex = 0;
+
+        // Listen for modifier keys
+        this.input.keyboard.on('keydown-SHIFT', () => { shiftHeld = true; });
+        this.input.keyboard.on('keyup-SHIFT', () => { shiftHeld = false; });
+        this.input.keyboard.on('keydown-CTRL', () => { ctrlHeld = true; });
+        this.input.keyboard.on('keyup-CTRL', () => { ctrlHeld = false; });
+
+        // SECRET: Shift+Ctrl+C = Add 500 coins
+        this.input.keyboard.on('keydown-C', () => {
+            if (shiftHeld && ctrlHeld && window.EconomyManager) {
+                window.EconomyManager.addCoins(500, 'owner_gift');
+                this.showSecretCheatFeedback('💰 +500', '#FFD700');
+            }
+        });
+
+        // SECRET: Shift+Ctrl+L = Cycle lifecycle stages
+        this.input.keyboard.on('keydown-L', () => {
+            if (shiftHeld && ctrlHeld && window.GameState) {
+                const stageOrder = ['baby', 'juvenile', 'adult', 'elder'];
+                this.ownerStageIndex = (this.ownerStageIndex + 1) % stageOrder.length;
+                const newStage = stageOrder[this.ownerStageIndex];
+
+                window.GameState.set('creature.lifecycle.stage', newStage);
+                window.GameState.set('creature.lifecycle.lastStageChange', Date.now());
+                this.refreshCreatureDisplay();
+
+                const stageIcons = { baby: '🐣', juvenile: '🌱', adult: '✨', elder: '👑' };
+                this.showSecretCheatFeedback(`${stageIcons[newStage]} ${newStage}`, '#E040FB');
+                window.AudioManager?.playLevelUp?.();
+            }
+        });
+
+        // SECRET: Shift+Ctrl+H = Max all stats (Happiness, Energy, Health)
+        this.input.keyboard.on('keydown-H', () => {
+            if (shiftHeld && ctrlHeld && window.GameState) {
+                window.GameState.set('creature.stats.happiness', 100);
+                window.GameState.set('creature.stats.energy', 100);
+                window.GameState.set('creature.stats.health', 100);
+                this.showSecretCheatFeedback('💖 MAX STATS', '#FF69B4');
+                window.AudioManager?.playAchievement?.();
+            }
+        });
+
+        // SECRET: Shift+Ctrl+E = Add experience/level up
+        this.input.keyboard.on('keydown-E', () => {
+            if (shiftHeld && ctrlHeld && window.GameState) {
+                const currentExp = window.GameState.get('creature.experience') || 0;
+                const currentLevel = window.GameState.get('creature.level') || 1;
+                window.GameState.set('creature.experience', currentExp + 100);
+                window.GameState.set('creature.level', currentLevel + 1);
+                this.showSecretCheatFeedback(`⬆️ LVL ${currentLevel + 1}`, '#00FF00');
+                window.AudioManager?.playLevelUp?.();
+            }
+        });
+
+        // SECRET: Shift+Ctrl+R = Unlock time-slow ability
+        this.input.keyboard.on('keydown-R', () => {
+            if (shiftHeld && ctrlHeld && window.GameState) {
+                window.GameState.set('abilities.timeSlowUnlocked', true);
+                this.showSecretCheatFeedback('⏱️ TIME SLOW', '#00BFFF');
+                window.AudioManager?.playAchievement?.();
+            }
+        });
+    }
+
+    /**
+     * Show subtle visual feedback for secret cheats
+     */
+    showSecretCheatFeedback(text, color) {
+        if (!this.player) return;
+
+        const feedbackText = this.add.text(this.player.x, this.player.y - 50, text, {
+            fontSize: '18px',
+            color: color,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(2000).setAlpha(0.9);
+
+        this.tweens.add({
+            targets: feedbackText,
+            y: feedbackText.y - 60,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Power2',
+            onComplete: () => feedbackText.destroy()
+        });
     }
 }
 
