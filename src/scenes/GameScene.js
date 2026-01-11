@@ -6689,6 +6689,229 @@ class GameScene extends Phaser.Scene {
                 window.AudioManager?.playAchievement?.();
             }
         });
+
+        // === MOBILE SECRET: Triple-tap top-right corner to open cheat menu ===
+        this.setupMobileSecretCheats();
+    }
+
+    /**
+     * Setup mobile-friendly secret cheats
+     * Triple-tap the top-right corner to open hidden cheat menu
+     */
+    setupMobileSecretCheats() {
+        const { width, height } = this.scale;
+
+        // Secret zone in top-right corner (80x80 area)
+        const zoneSize = 80;
+        const secretZone = this.add.zone(width - zoneSize / 2, zoneSize / 2, zoneSize, zoneSize)
+            .setScrollFactor(0)
+            .setInteractive()
+            .setDepth(9999);
+
+        // Track taps for triple-tap detection
+        let tapCount = 0;
+        let lastTapTime = 0;
+        const tapTimeout = 500; // 500ms between taps
+
+        secretZone.on('pointerdown', () => {
+            const now = Date.now();
+
+            if (now - lastTapTime < tapTimeout) {
+                tapCount++;
+            } else {
+                tapCount = 1;
+            }
+            lastTapTime = now;
+
+            // Triple-tap detected!
+            if (tapCount >= 3) {
+                tapCount = 0;
+                this.toggleSecretCheatMenu();
+            }
+        });
+
+        // Store reference for cleanup
+        this.secretZone = secretZone;
+        this.secretCheatMenu = null;
+    }
+
+    /**
+     * Toggle the secret cheat menu visibility
+     */
+    toggleSecretCheatMenu() {
+        if (this.secretCheatMenu) {
+            this.closeSecretCheatMenu();
+        } else {
+            this.openSecretCheatMenu();
+        }
+    }
+
+    /**
+     * Open the secret owner cheat menu
+     */
+    openSecretCheatMenu() {
+        const { width, height } = this.scale;
+
+        // Create menu container
+        this.secretCheatMenu = this.add.container(width / 2, height / 2)
+            .setScrollFactor(0)
+            .setDepth(10000);
+
+        // Dark backdrop
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x000000, 0.85);
+        backdrop.fillRoundedRect(-160, -200, 320, 400, 20);
+        backdrop.lineStyle(3, 0xFFD700, 0.8);
+        backdrop.strokeRoundedRect(-160, -200, 320, 400, 20);
+        this.secretCheatMenu.add(backdrop);
+
+        // Title
+        const title = this.add.text(0, -170, '🔮 Owner Mode 🔮', {
+            fontSize: '22px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.secretCheatMenu.add(title);
+
+        // Cheat buttons
+        const cheats = [
+            { label: '💰 +500 Coins', action: () => this.cheatAddCoins() },
+            { label: '💖 Max Stats', action: () => this.cheatMaxStats() },
+            { label: '🐣 Cycle Stage', action: () => this.cheatCycleStage() },
+            { label: '⬆️ Level Up', action: () => this.cheatLevelUp() },
+            { label: '⏱️ Unlock Slow-Mo', action: () => this.cheatUnlockTimeSlow() },
+            { label: '❌ Close', action: () => this.closeSecretCheatMenu() }
+        ];
+
+        cheats.forEach((cheat, index) => {
+            const y = -110 + index * 55;
+
+            // Button background
+            const btnBg = this.add.graphics();
+            btnBg.fillStyle(index === 5 ? 0x8B0000 : 0x4B0082, 0.9);
+            btnBg.fillRoundedRect(-130, y - 20, 260, 45, 10);
+            btnBg.lineStyle(2, 0xFFD700, 0.6);
+            btnBg.strokeRoundedRect(-130, y - 20, 260, 45, 10);
+            this.secretCheatMenu.add(btnBg);
+
+            // Button text
+            const btnText = this.add.text(0, y, cheat.label, {
+                fontSize: '18px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            this.secretCheatMenu.add(btnText);
+
+            // Interactive zone
+            const btnZone = this.add.zone(0, y, 260, 45)
+                .setScrollFactor(0)
+                .setInteractive({ cursor: 'pointer' });
+
+            btnZone.on('pointerdown', () => {
+                cheat.action();
+                window.AudioManager?.playButtonClick?.();
+            });
+
+            btnZone.on('pointerover', () => {
+                btnBg.clear();
+                btnBg.fillStyle(index === 5 ? 0xB22222 : 0x6B238E, 0.95);
+                btnBg.fillRoundedRect(-130, y - 20, 260, 45, 10);
+                btnBg.lineStyle(2, 0xFFD700, 1);
+                btnBg.strokeRoundedRect(-130, y - 20, 260, 45, 10);
+            });
+
+            btnZone.on('pointerout', () => {
+                btnBg.clear();
+                btnBg.fillStyle(index === 5 ? 0x8B0000 : 0x4B0082, 0.9);
+                btnBg.fillRoundedRect(-130, y - 20, 260, 45, 10);
+                btnBg.lineStyle(2, 0xFFD700, 0.6);
+                btnBg.strokeRoundedRect(-130, y - 20, 260, 45, 10);
+            });
+
+            this.secretCheatMenu.add(btnZone);
+        });
+
+        // Entrance animation
+        this.secretCheatMenu.setScale(0.5).setAlpha(0);
+        this.tweens.add({
+            targets: this.secretCheatMenu,
+            scale: 1,
+            alpha: 1,
+            duration: 200,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    /**
+     * Close the secret cheat menu
+     */
+    closeSecretCheatMenu() {
+        if (!this.secretCheatMenu) return;
+
+        this.tweens.add({
+            targets: this.secretCheatMenu,
+            scale: 0.5,
+            alpha: 0,
+            duration: 150,
+            ease: 'Power2',
+            onComplete: () => {
+                this.secretCheatMenu?.destroy();
+                this.secretCheatMenu = null;
+            }
+        });
+    }
+
+    // === CHEAT ACTIONS ===
+    cheatAddCoins() {
+        if (window.EconomyManager) {
+            window.EconomyManager.addCoins(500, 'owner_gift');
+            this.showSecretCheatFeedback('💰 +500', '#FFD700');
+        }
+    }
+
+    cheatMaxStats() {
+        if (window.GameState) {
+            window.GameState.set('creature.stats.happiness', 100);
+            window.GameState.set('creature.stats.energy', 100);
+            window.GameState.set('creature.stats.health', 100);
+            this.showSecretCheatFeedback('💖 MAX STATS', '#FF69B4');
+            window.AudioManager?.playAchievement?.();
+        }
+    }
+
+    cheatCycleStage() {
+        if (window.GameState) {
+            const stageOrder = ['baby', 'juvenile', 'adult', 'elder'];
+            this.ownerStageIndex = ((this.ownerStageIndex || 0) + 1) % stageOrder.length;
+            const newStage = stageOrder[this.ownerStageIndex];
+
+            window.GameState.set('creature.lifecycle.stage', newStage);
+            window.GameState.set('creature.lifecycle.lastStageChange', Date.now());
+            this.refreshCreatureDisplay();
+
+            const stageIcons = { baby: '🐣', juvenile: '🌱', adult: '✨', elder: '👑' };
+            this.showSecretCheatFeedback(`${stageIcons[newStage]} ${newStage}`, '#E040FB');
+            window.AudioManager?.playLevelUp?.();
+        }
+    }
+
+    cheatLevelUp() {
+        if (window.GameState) {
+            const currentExp = window.GameState.get('creature.experience') || 0;
+            const currentLevel = window.GameState.get('creature.level') || 1;
+            window.GameState.set('creature.experience', currentExp + 100);
+            window.GameState.set('creature.level', currentLevel + 1);
+            this.showSecretCheatFeedback(`⬆️ LVL ${currentLevel + 1}`, '#00FF00');
+            window.AudioManager?.playLevelUp?.();
+        }
+    }
+
+    cheatUnlockTimeSlow() {
+        if (window.GameState) {
+            window.GameState.set('abilities.timeSlowUnlocked', true);
+            this.showSecretCheatFeedback('⏱️ TIME SLOW', '#00BFFF');
+            window.AudioManager?.playAchievement?.();
+        }
     }
 
     /**
