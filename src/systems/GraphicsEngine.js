@@ -1376,12 +1376,18 @@ class GraphicsEngine {
         graphics.fillStyle(0x5D4037, 0.95);
         graphics.fillRoundedRect(center.x - 12, center.y - 2, 24, 14, 2);
 
-        // Chest lid (lighter wood)
+        // Chest lid (lighter wood) - curved top using line segments
         graphics.fillStyle(0x795548, 0.95);
         graphics.beginPath();
         graphics.moveTo(center.x - 12, center.y - 2);
-        graphics.lineTo(center.x - 12, center.y - 8);
-        graphics.quadraticCurveTo(center.x, center.y - 14, center.x + 12, center.y - 8);
+        graphics.lineTo(center.x - 12, center.y - 6);
+        // Approximate quadratic curve with line segments for domed lid
+        graphics.lineTo(center.x - 8, center.y - 10);
+        graphics.lineTo(center.x - 4, center.y - 12);
+        graphics.lineTo(center.x, center.y - 13);
+        graphics.lineTo(center.x + 4, center.y - 12);
+        graphics.lineTo(center.x + 8, center.y - 10);
+        graphics.lineTo(center.x + 12, center.y - 6);
         graphics.lineTo(center.x + 12, center.y - 2);
         graphics.closePath();
         graphics.fillPath();
@@ -5933,7 +5939,7 @@ class GraphicsEngine {
                 const y = center.y + 25;
                 const height = 15 + Math.random() * 10 * intensity;
 
-                // Flame layers
+                // Flame layers - using triangle approximation for flames
                 for (let layer = 0; layer < 3; layer++) {
                     const layerAlpha = 0.4 - layer * 0.1;
                     const layerWidth = 6 - layer * 1.5;
@@ -5941,14 +5947,17 @@ class GraphicsEngine {
                     graphics.fillStyle(this.lightenColor(flameColor, layer * 0.15), layerAlpha);
                     graphics.beginPath();
                     graphics.moveTo(x - layerWidth, y);
-                    graphics.quadraticCurveTo(x - layerWidth / 2, y - height / 2, x, y - height);
-                    graphics.quadraticCurveTo(x + layerWidth / 2, y - height / 2, x + layerWidth, y);
+                    // Approximate flame curve with line segments
+                    graphics.lineTo(x - layerWidth * 0.6, y - height * 0.4);
+                    graphics.lineTo(x, y - height);
+                    graphics.lineTo(x + layerWidth * 0.6, y - height * 0.4);
+                    graphics.lineTo(x + layerWidth, y);
                     graphics.closePath();
                     graphics.fillPath();
                 }
             }
         } else {
-            // Shadows
+            // Shadows - use ellipses instead of complex curves
             graphics.fillStyle(0x000000, 0.3 * intensity);
 
             for (let i = 0; i < 3; i++) {
@@ -5956,14 +5965,8 @@ class GraphicsEngine {
                 const y = center.y + (Math.random() - 0.5) * 40;
                 const size = 10 + Math.random() * 15;
 
-                // Irregular shadow blob
-                graphics.beginPath();
-                graphics.moveTo(x, y - size);
-                graphics.quadraticCurveTo(x + size, y - size / 2, x + size, y);
-                graphics.quadraticCurveTo(x + size / 2, y + size, x, y + size);
-                graphics.quadraticCurveTo(x - size, y + size / 2, x - size, y);
-                graphics.quadraticCurveTo(x - size / 2, y - size, x, y - size);
-                graphics.fillPath();
+                // Shadow blob as ellipse (simpler and Phaser-compatible)
+                graphics.fillEllipse(x, y, size, size * 0.8);
             }
         }
     }
