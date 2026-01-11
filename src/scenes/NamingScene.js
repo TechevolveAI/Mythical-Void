@@ -28,6 +28,14 @@ class NamingScene extends Phaser.Scene {
         this.cursorBlink = true;
         this.isTransitioning = false;  // CRITICAL: Initialize to prevent stuck state
         this.domClickHandler = null;   // Store reference for cleanup
+
+        // Store references to HTML input event handlers for proper cleanup
+        this.mobileInputHandlers = {
+            input: null,
+            keydown: null,
+            touchstart: null,
+            click: null
+        };
     }
 
     preload() {
@@ -537,8 +545,11 @@ class NamingScene extends Phaser.Scene {
         window.addEventListener('resize', updateInputPosition);
         this.inputResizeHandler = updateInputPosition;
 
-        // Sync HTML input with game state
-        htmlInput.addEventListener('input', (e) => {
+        // Store reference for cleanup BEFORE adding listeners
+        this.mobileInput = htmlInput;
+
+        // Create named handler functions for proper cleanup (prevents memory leaks)
+        this.mobileInputHandlers.input = (e) => {
             const value = e.target.value;
 
             // Validate input
@@ -563,32 +574,33 @@ class NamingScene extends Phaser.Scene {
 
             this.updateNameDisplay();
             this.validateName();
-        });
+        };
 
-        // Handle Enter key on mobile keyboard
-        htmlInput.addEventListener('keydown', (e) => {
+        this.mobileInputHandlers.keydown = (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 htmlInput.blur(); // Hide keyboard
                 this.finalizeName();
             }
-        });
+        };
 
-        // Focus when tapped (handle both touch and click)
-        htmlInput.addEventListener('touchstart', (e) => {
+        this.mobileInputHandlers.touchstart = (e) => {
             e.stopPropagation();
             htmlInput.focus();
             console.log('[NamingScene] HTML input touched');
-        });
+        };
 
-        htmlInput.addEventListener('click', (e) => {
+        this.mobileInputHandlers.click = (e) => {
             e.stopPropagation();
             htmlInput.focus();
             console.log('[NamingScene] HTML input clicked');
-        });
+        };
 
-        // Store reference for cleanup
-        this.mobileInput = htmlInput;
+        // Sync HTML input with game state - use stored handlers
+        htmlInput.addEventListener('input', this.mobileInputHandlers.input);
+        htmlInput.addEventListener('keydown', this.mobileInputHandlers.keydown);
+        htmlInput.addEventListener('touchstart', this.mobileInputHandlers.touchstart);
+        htmlInput.addEventListener('click', this.mobileInputHandlers.click);
 
         // CRITICAL iOS FIX: Create a Phaser interactive zone that forwards touches to HTML input
         // iOS requires focus() to be called directly from a user event, not programmatically
@@ -877,6 +889,41 @@ class NamingScene extends Phaser.Scene {
                 state.set('session.showWelcomeToast', true);
                 state.set('session.pendingWelcomeName', this.nameInput.trim());
 
+                // CRITICAL: Handle fresh-hatched creatures vs breeding offspring
+                if (!state.get('creature.isOffspring')) {
+                    // Check for Ancient Lineage Easter egg (0.5% chance)
+                    let ancientLineage = null;
+                    if (window.BirthEventSystem) {
+                        ancientLineage = window.BirthEventSystem.rollAncientLineage();
+                    }
+
+                    if (ancientLineage && ancientLineage.triggered) {
+                        // Ancient Lineage triggered - set mysterious ancestry
+                        console.log('[NamingScene] 🌌 ANCIENT LINEAGE triggered! Gen:', ancientLineage.generation);
+                        state.set('creature.generation', ancientLineage.generation);
+                        state.set('creature.isOffspring', true);
+                        state.set('creature.parentIds', ancientLineage.parentIds);
+                        state.set('creature.offspringBonus', ancientLineage.offspringBonus);
+                        state.set('creature.hasAncientLineage', true);
+                        state.set('creature.ancientProphecy', ancientLineage.prophecy);
+
+                        // Store the ancient lineage message to show after transition
+                        state.set('session.pendingAncientLineage', {
+                            message: ancientLineage.message,
+                            prophecy: ancientLineage.prophecy,
+                            generation: ancientLineage.generation
+                        });
+                    } else {
+                        // Normal fresh hatch - reset breeding fields
+                        state.set('creature.generation', 1);
+                        state.set('creature.isOffspring', false);
+                        state.set('creature.parentIds', []);
+                        state.set('creature.offspringBonus', null);
+                        state.set('creature.hasAncientLineage', false);
+                        state.set('creature.ancientProphecy', null);
+                    }
+                }
+
                 // Add the new creature to the collection
                 const collectionStatus = state.getCollectionStatus?.() || { hasSpace: true };
                 if (collectionStatus.hasSpace) {
@@ -1048,7 +1095,27 @@ class NamingScene extends Phaser.Scene {
     shutdown() {
         console.log('[NamingScene] Shutting down - cleaning up resources');
 
-        // Clean up mobile HTML input if it exists
+        // Clean up mobile HTML input event listeners BEFORE removing from DOM (prevents memory leaks)
+        if (this.mobileInput && this.mobileInputHandlers) {
+            if (this.mobileInputHandlers.input) {
+                this.mobileInput.removeEventListener('input', this.mobileInputHandlers.input);
+            }
+            if (this.mobileInputHandlers.keydown) {
+                this.mobileInput.removeEventListener('keydown', this.mobileInputHandlers.keydown);
+            }
+            if (this.mobileInputHandlers.touchstart) {
+                this.mobileInput.removeEventListener('touchstart', this.mobileInputHandlers.touchstart);
+            }
+            if (this.mobileInputHandlers.click) {
+                this.mobileInput.removeEventListener('click', this.mobileInputHandlers.click);
+            }
+            console.log('[NamingScene] Mobile input event listeners removed');
+
+            // Reset handler references
+            this.mobileInputHandlers = { input: null, keydown: null, touchstart: null, click: null };
+        }
+
+        // Now remove the HTML input from DOM
         if (this.mobileInput) {
             if (this.mobileInput.parentElement) {
                 this.mobileInput.parentElement.removeChild(this.mobileInput);
@@ -1117,6 +1184,23 @@ class NamingScene extends Phaser.Scene {
             this.game.canvas.removeEventListener('click', this.domClickHandler);
             this.domClickHandler = null;
             console.log('[NamingScene] DOM click handler cleaned up in destroy');
+        }
+
+        // Clean up mobile HTML input event listeners BEFORE removing from DOM
+        if (this.mobileInput && this.mobileInputHandlers) {
+            if (this.mobileInputHandlers.input) {
+                this.mobileInput.removeEventListener('input', this.mobileInputHandlers.input);
+            }
+            if (this.mobileInputHandlers.keydown) {
+                this.mobileInput.removeEventListener('keydown', this.mobileInputHandlers.keydown);
+            }
+            if (this.mobileInputHandlers.touchstart) {
+                this.mobileInput.removeEventListener('touchstart', this.mobileInputHandlers.touchstart);
+            }
+            if (this.mobileInputHandlers.click) {
+                this.mobileInput.removeEventListener('click', this.mobileInputHandlers.click);
+            }
+            this.mobileInputHandlers = { input: null, keydown: null, touchstart: null, click: null };
         }
 
         // Clean up mobile HTML input if it exists

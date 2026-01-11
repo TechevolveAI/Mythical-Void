@@ -649,12 +649,812 @@ class AudioManager {
         }
     }
 
+    // ==========================================
+    // PROCEDURAL BACKGROUND MUSIC SYSTEM
+    // ==========================================
+
+    /**
+     * Area music configurations
+     * Each area has unique musical character via base frequency, scale, tempo, and layers
+     */
+    get areaConfigs() {
+        return {
+            home: {
+                baseFreq: 220,      // A3 - warm, comfortable
+                scale: 'major',
+                tempo: 60,          // BPM - relaxed
+                layers: ['pad', 'arpeggio', 'bells'],
+                colors: {
+                    pad: [1, 1.25, 1.5],      // Major chord intervals
+                    arpeggio: [1, 1.125, 1.25, 1.5, 1.25, 1.125], // Major scale pattern
+                    bells: [2, 2.5, 3]
+                }
+            },
+            void: {
+                baseFreq: 110,      // A2 - deep, mysterious
+                scale: 'harmonic_minor',
+                tempo: 45,          // Slow, ethereal
+                layers: ['drone', 'whispers', 'sparkles'],
+                colors: {
+                    drone: [1, 1.5],
+                    whispers: [3, 3.5, 4],
+                    sparkles: [6, 7, 8]
+                }
+            },
+            gathering: {
+                baseFreq: 196,      // G3 - welcoming
+                scale: 'pentatonic',
+                tempo: 75,          // Upbeat, social
+                layers: ['strings', 'chimes', 'heartbeat'],
+                colors: {
+                    strings: [1, 1.25, 1.5],
+                    chimes: [2, 2.5, 3],
+                    heartbeat: [0.5]
+                }
+            },
+            breeding: {
+                baseFreq: 262,      // C4 - magical
+                scale: 'minor_pent',
+                tempo: 55,          // Mystical, anticipatory
+                layers: ['shimmer', 'pulse', 'celestial'],
+                colors: {
+                    shimmer: [1, 1.2, 1.5],
+                    pulse: [0.5, 1],
+                    celestial: [2, 2.4, 3]
+                }
+            },
+            meditation: {
+                baseFreq: 174.61,   // F3 - calming, grounding frequency
+                scale: 'pentatonic',
+                tempo: 30,          // Very slow, breathing-paced
+                layers: ['singingBowl', 'breathPad', 'windChimes', 'deepDrone'],
+                colors: {
+                    singingBowl: [1, 1.5, 2],         // Perfect intervals - resonant
+                    breathPad: [1, 1.25, 1.5],        // Gentle major chord
+                    windChimes: [3, 4, 5, 6],         // High overtones
+                    deepDrone: [0.5, 1]               // Sub-bass grounding
+                }
+            }
+        };
+    }
+
+    /**
+     * Initialize music system state
+     */
+    initMusicSystem() {
+        this.musicNodes = {
+            gainNode: null,
+            oscillators: [],
+            lfoNodes: []
+        };
+        this.currentArea = null;
+        this.musicPlaying = false;
+        this.arpeggioInterval = null;
+    }
+
+    /**
+     * Play procedural background music for a specific area
+     * @param {string} area - Area name: 'home', 'void', 'gathering', 'breeding'
+     */
+    playAreaMusic(area) {
+        if (!this.audioContext || this.muted) return;
+
+        // Resume audio context if suspended
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+
+        // Stop any currently playing music
+        if (this.musicPlaying) {
+            this.stopMusic(false); // Don't fade for immediate transition
+        }
+
+        const config = this.areaConfigs[area];
+        if (!config) {
+            console.warn(`[AudioManager] Unknown music area: ${area}`);
+            return;
+        }
+
+        console.log(`[AudioManager] 🎵 Playing ${area} music`);
+
+        // Initialize music nodes
+        this.initMusicSystem();
+        this.currentArea = area;
+        this.musicPlaying = true;
+
+        // Create master gain node for music
+        this.musicNodes.gainNode = this.audioContext.createGain();
+        this.musicNodes.gainNode.gain.value = 0;
+        this.musicNodes.gainNode.connect(this.audioContext.destination);
+
+        // Create layers based on configuration
+        config.layers.forEach(layerType => {
+            this.createMusicLayer(layerType, config);
+        });
+
+        // Fade in
+        this.musicNodes.gainNode.gain.linearRampToValueAtTime(
+            this.musicVolume * 0.3,
+            this.audioContext.currentTime + 1
+        );
+    }
+
+    /**
+     * Create a music layer based on type
+     * @param {string} layerType - Layer type: 'pad', 'drone', 'arpeggio', etc.
+     * @param {object} config - Area music configuration
+     */
+    createMusicLayer(layerType, config) {
+        const baseFreq = config.baseFreq;
+        const intervals = config.colors[layerType] || [1];
+
+        switch (layerType) {
+            case 'pad':
+            case 'drone':
+                this.createPadLayer(baseFreq, intervals, layerType === 'drone');
+                break;
+            case 'arpeggio':
+                this.createArpeggioLayer(baseFreq, intervals, config.tempo);
+                break;
+            case 'bells':
+            case 'chimes':
+            case 'sparkles':
+                this.createBellsLayer(baseFreq, intervals);
+                break;
+            case 'strings':
+                this.createStringsLayer(baseFreq, intervals);
+                break;
+            case 'whispers':
+                this.createWhispersLayer(baseFreq, intervals);
+                break;
+            case 'heartbeat':
+            case 'pulse':
+                this.createPulseLayer(baseFreq, config.tempo);
+                break;
+            case 'shimmer':
+            case 'celestial':
+                this.createShimmerLayer(baseFreq, intervals);
+                break;
+            // Meditation-specific layers
+            case 'singingBowl':
+                this.createSingingBowlLayer(baseFreq, intervals);
+                break;
+            case 'breathPad':
+                this.createBreathPadLayer(baseFreq, intervals, config.tempo);
+                break;
+            case 'windChimes':
+                this.createWindChimesLayer(baseFreq, intervals);
+                break;
+            case 'deepDrone':
+                this.createDeepDroneLayer(baseFreq, intervals);
+                break;
+        }
+    }
+
+    /**
+     * Create pad/drone layer - sustained chord oscillators with LFO
+     */
+    createPadLayer(baseFreq, intervals, isDrone = false) {
+        const now = this.audioContext.currentTime;
+
+        intervals.forEach((interval, i) => {
+            const freq = baseFreq * interval;
+
+            // Main oscillator
+            const osc = this.audioContext.createOscillator();
+            osc.type = isDrone ? 'sawtooth' : 'sine';
+            osc.frequency.value = freq;
+
+            // Slight detune for richness
+            osc.detune.value = (i - 1) * 5;
+
+            // Individual gain
+            const oscGain = this.audioContext.createGain();
+            oscGain.gain.value = 0.15;
+
+            // LFO for subtle movement
+            const lfo = this.audioContext.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.1 + (i * 0.02); // Slow wobble
+
+            const lfoGain = this.audioContext.createGain();
+            lfoGain.gain.value = isDrone ? 0.02 : 0.01;
+
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+
+            // For drone, add filter sweep
+            if (isDrone) {
+                const filter = this.audioContext.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 400;
+                filter.Q.value = 1;
+
+                // Slow filter sweep
+                filter.frequency.setValueAtTime(200, now);
+                filter.frequency.linearRampToValueAtTime(600, now + 8);
+                filter.frequency.linearRampToValueAtTime(200, now + 16);
+
+                osc.connect(filter);
+                filter.connect(oscGain);
+            } else {
+                osc.connect(oscGain);
+            }
+
+            oscGain.connect(this.musicNodes.gainNode);
+
+            osc.start(now);
+            lfo.start(now);
+
+            this.musicNodes.oscillators.push(osc, lfo);
+            this.musicNodes.lfoNodes.push(oscGain);
+        });
+    }
+
+    /**
+     * Create arpeggio layer - scheduled note sequence
+     */
+    createArpeggioLayer(baseFreq, intervals, tempo) {
+        const beatDuration = 60 / tempo; // Seconds per beat
+        const noteLength = beatDuration * 0.8;
+        let currentNote = 0;
+
+        const playArpeggioNote = () => {
+            if (!this.musicPlaying) return;
+
+            const now = this.audioContext.currentTime;
+            const interval = intervals[currentNote % intervals.length];
+            const freq = baseFreq * interval;
+
+            // Create oscillator for single note
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.value = freq * 2; // Octave up
+
+            const gain = this.audioContext.createGain();
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + noteLength);
+
+            osc.connect(gain);
+            gain.connect(this.musicNodes.gainNode);
+
+            osc.start(now);
+            osc.stop(now + noteLength);
+
+            currentNote++;
+        };
+
+        // Start arpeggio loop
+        this.arpeggioInterval = setInterval(playArpeggioNote, beatDuration * 1000);
+    }
+
+    /**
+     * Create bells/chimes layer - high sine tones with fast decay
+     */
+    createBellsLayer(baseFreq, intervals) {
+        const now = this.audioContext.currentTime;
+
+        // Random bell strikes every few seconds
+        const playBell = () => {
+            if (!this.musicPlaying) return;
+
+            const interval = intervals[Math.floor(Math.random() * intervals.length)];
+            const freq = baseFreq * interval;
+
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            const gain = this.audioContext.createGain();
+            gain.gain.setValueAtTime(0.08, this.audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 2);
+
+            osc.connect(gain);
+            gain.connect(this.musicNodes.gainNode);
+
+            osc.start();
+            osc.stop(this.audioContext.currentTime + 2);
+
+            // Schedule next bell at random interval
+            if (this.musicPlaying) {
+                setTimeout(playBell, 2000 + Math.random() * 4000);
+            }
+        };
+
+        setTimeout(playBell, 1000);
+    }
+
+    /**
+     * Create strings layer - sustained harmonics
+     */
+    createStringsLayer(baseFreq, intervals) {
+        intervals.forEach((interval, i) => {
+            const freq = baseFreq * interval;
+
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'sawtooth';
+            osc.frequency.value = freq;
+
+            // Filter for smoother tone
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 1000;
+            filter.Q.value = 0.5;
+
+            const gain = this.audioContext.createGain();
+            gain.gain.value = 0.05;
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.musicNodes.gainNode);
+
+            osc.start();
+            this.musicNodes.oscillators.push(osc);
+        });
+    }
+
+    /**
+     * Create whispers layer - filtered noise with movement
+     */
+    createWhispersLayer(baseFreq, intervals) {
+        // Create white noise via buffer
+        const bufferSize = 2 * this.audioContext.sampleRate;
+        const noiseBuffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.audioContext.createBufferSource();
+        noise.buffer = noiseBuffer;
+        noise.loop = true;
+
+        // Band-pass filter for whisper effect
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = baseFreq * 8;
+        filter.Q.value = 2;
+
+        const gain = this.audioContext.createGain();
+        gain.gain.value = 0.03;
+
+        // Slow LFO on filter frequency
+        const lfo = this.audioContext.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.05;
+
+        const lfoGain = this.audioContext.createGain();
+        lfoGain.gain.value = baseFreq * 2;
+
+        lfo.connect(lfoGain);
+        lfoGain.connect(filter.frequency);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.musicNodes.gainNode);
+
+        noise.start();
+        lfo.start();
+
+        this.musicNodes.oscillators.push(noise, lfo);
+    }
+
+    /**
+     * Create pulse/heartbeat layer - rhythmic low tones
+     */
+    createPulseLayer(baseFreq, tempo) {
+        const beatDuration = 60 / tempo;
+
+        const playPulse = () => {
+            if (!this.musicPlaying) return;
+
+            const now = this.audioContext.currentTime;
+
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = baseFreq * 0.5;
+
+            const gain = this.audioContext.createGain();
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+            osc.connect(gain);
+            gain.connect(this.musicNodes.gainNode);
+
+            osc.start(now);
+            osc.stop(now + 0.5);
+
+            if (this.musicPlaying) {
+                setTimeout(playPulse, beatDuration * 2000); // Every 2 beats
+            }
+        };
+
+        setTimeout(playPulse, 500);
+    }
+
+    /**
+     * Create shimmer/celestial layer - harmonics with movement
+     */
+    createShimmerLayer(baseFreq, intervals) {
+        const now = this.audioContext.currentTime;
+
+        intervals.forEach((interval, i) => {
+            const freq = baseFreq * interval;
+
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            // Tremolo LFO
+            const lfo = this.audioContext.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 2 + (i * 0.5);
+
+            const lfoGain = this.audioContext.createGain();
+            lfoGain.gain.value = 0.03;
+
+            const mainGain = this.audioContext.createGain();
+            mainGain.gain.value = 0.04;
+
+            lfo.connect(lfoGain);
+            lfoGain.connect(mainGain.gain);
+
+            osc.connect(mainGain);
+            mainGain.connect(this.musicNodes.gainNode);
+
+            osc.start();
+            lfo.start();
+
+            this.musicNodes.oscillators.push(osc, lfo);
+        });
+    }
+
+    // ==========================================
+    // MEDITATION MUSIC LAYERS
+    // ==========================================
+
+    /**
+     * Create singing bowl layer - resonant, bell-like tones with long decay
+     * Emulates Tibetan singing bowls with rich harmonics
+     */
+    createSingingBowlLayer(baseFreq, intervals) {
+        const now = this.audioContext.currentTime;
+        let noteIndex = 0;
+
+        // Play a singing bowl tone every 8 seconds
+        const playBowlNote = () => {
+            if (!this.musicPlaying) return;
+
+            const currentTime = this.audioContext.currentTime;
+            const interval = intervals[noteIndex % intervals.length];
+            const freq = baseFreq * interval;
+
+            // Main tone oscillator
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            // Add harmonic overtones (characteristic of singing bowls)
+            const osc2 = this.audioContext.createOscillator();
+            osc2.type = 'sine';
+            osc2.frequency.value = freq * 2.76; // Characteristic overtone ratio
+
+            const osc3 = this.audioContext.createOscillator();
+            osc3.type = 'sine';
+            osc3.frequency.value = freq * 5.4; // Higher partial
+
+            // Gain nodes with long decay envelope
+            const mainGain = this.audioContext.createGain();
+            const harm2Gain = this.audioContext.createGain();
+            const harm3Gain = this.audioContext.createGain();
+
+            // Attack and long decay (8 second ring)
+            mainGain.gain.setValueAtTime(0, currentTime);
+            mainGain.gain.linearRampToValueAtTime(0.15, currentTime + 0.5);
+            mainGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 8);
+
+            harm2Gain.gain.setValueAtTime(0, currentTime);
+            harm2Gain.gain.linearRampToValueAtTime(0.08, currentTime + 0.3);
+            harm2Gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 6);
+
+            harm3Gain.gain.setValueAtTime(0, currentTime);
+            harm3Gain.gain.linearRampToValueAtTime(0.04, currentTime + 0.2);
+            harm3Gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 4);
+
+            osc.connect(mainGain);
+            osc2.connect(harm2Gain);
+            osc3.connect(harm3Gain);
+
+            mainGain.connect(this.musicNodes.gainNode);
+            harm2Gain.connect(this.musicNodes.gainNode);
+            harm3Gain.connect(this.musicNodes.gainNode);
+
+            osc.start(currentTime);
+            osc2.start(currentTime);
+            osc3.start(currentTime);
+
+            osc.stop(currentTime + 8.5);
+            osc2.stop(currentTime + 6.5);
+            osc3.stop(currentTime + 4.5);
+
+            noteIndex++;
+        };
+
+        // Play first bowl immediately
+        playBowlNote();
+
+        // Schedule subsequent bowl strikes
+        this.bowlInterval = setInterval(() => {
+            if (this.musicPlaying) {
+                playBowlNote();
+            } else {
+                clearInterval(this.bowlInterval);
+            }
+        }, 8000);
+    }
+
+    /**
+     * Create breath pad layer - slowly modulating pad that follows breathing rhythm
+     * Rises and falls with a 14-second cycle (matching box breathing)
+     */
+    createBreathPadLayer(baseFreq, intervals, tempo) {
+        const now = this.audioContext.currentTime;
+        const breathCycleTime = 14; // 4s inhale + 4s hold + 4s exhale + 2s pause
+
+        intervals.forEach((interval, i) => {
+            const freq = baseFreq * interval;
+
+            // Oscillator with gentle waveform
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            osc.detune.value = (i - 1) * 3; // Slight detune for warmth
+
+            // Gain node for breath-synced volume
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = 0.08;
+
+            // LFO for breath-synced pulsing
+            const lfo = this.audioContext.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 1 / breathCycleTime; // One cycle per breath
+
+            const lfoGain = this.audioContext.createGain();
+            lfoGain.gain.value = 0.04; // Subtle volume modulation
+
+            lfo.connect(lfoGain);
+            lfoGain.connect(gainNode.gain);
+
+            osc.connect(gainNode);
+            gainNode.connect(this.musicNodes.gainNode);
+
+            osc.start(now);
+            lfo.start(now);
+
+            this.musicNodes.oscillators.push(osc, lfo);
+        });
+    }
+
+    /**
+     * Create wind chimes layer - random, delicate high-pitched notes
+     * Soft, occasional chime sounds for ambient texture
+     */
+    createWindChimesLayer(baseFreq, intervals) {
+        const playChime = () => {
+            if (!this.musicPlaying) return;
+
+            const currentTime = this.audioContext.currentTime;
+            const interval = intervals[Math.floor(Math.random() * intervals.length)];
+            const freq = baseFreq * interval;
+
+            // High-pitched sine tone
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            // Quick attack, medium decay envelope
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.setValueAtTime(0, currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.06, currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + 2);
+
+            osc.connect(gainNode);
+            gainNode.connect(this.musicNodes.gainNode);
+
+            osc.start(currentTime);
+            osc.stop(currentTime + 2.1);
+        };
+
+        // Play chimes at random intervals (3-7 seconds)
+        const scheduleNextChime = () => {
+            if (!this.musicPlaying) return;
+
+            const delay = 3000 + Math.random() * 4000;
+            setTimeout(() => {
+                if (this.musicPlaying) {
+                    playChime();
+                    scheduleNextChime();
+                }
+            }, delay);
+        };
+
+        // Start chime sequence
+        setTimeout(playChime, 1000);
+        scheduleNextChime();
+    }
+
+    /**
+     * Create deep drone layer - sub-bass grounding tone
+     * Very low frequency drone for grounding effect
+     */
+    createDeepDroneLayer(baseFreq, intervals) {
+        const now = this.audioContext.currentTime;
+
+        intervals.forEach((interval, i) => {
+            const freq = baseFreq * interval; // Will be around 87Hz and 174Hz
+
+            // Low sine wave
+            const osc = this.audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            // Slow LFO for subtle movement
+            const lfo = this.audioContext.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.03; // Very slow wobble
+
+            const lfoGain = this.audioContext.createGain();
+            lfoGain.gain.value = 3; // Subtle frequency variation
+
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+
+            // Low-pass filter to smooth the drone
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 200;
+            filter.Q.value = 0.5;
+
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = 0.1;
+
+            osc.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(this.musicNodes.gainNode);
+
+            osc.start(now);
+            lfo.start(now);
+
+            this.musicNodes.oscillators.push(osc, lfo);
+        });
+    }
+
+    /**
+     * Play meditation music for campfire rest
+     */
+    playMeditationMusic() {
+        this.playAreaMusic('meditation');
+    }
+
+    /**
+     * Stop meditation music
+     */
+    stopMeditationMusic() {
+        if (this.bowlInterval) {
+            clearInterval(this.bowlInterval);
+            this.bowlInterval = null;
+        }
+        this.stopMusic(true);
+    }
+
+    /**
+     * Stop background music
+     * @param {boolean} fade - Whether to fade out (default true)
+     */
+    stopMusic(fade = true) {
+        if (!this.musicPlaying) return;
+
+        console.log('[AudioManager] 🔇 Stopping music');
+
+        // Clear arpeggio interval
+        if (this.arpeggioInterval) {
+            clearInterval(this.arpeggioInterval);
+            this.arpeggioInterval = null;
+        }
+
+        this.musicPlaying = false;
+
+        if (this.musicNodes.gainNode) {
+            if (fade) {
+                // Fade out over 1 second
+                this.musicNodes.gainNode.gain.linearRampToValueAtTime(
+                    0,
+                    this.audioContext.currentTime + 1
+                );
+
+                // Stop oscillators after fade
+                setTimeout(() => {
+                    this.stopMusicOscillators();
+                }, 1100);
+            } else {
+                // Immediate stop
+                this.stopMusicOscillators();
+            }
+        }
+
+        this.currentArea = null;
+    }
+
+    /**
+     * Stop all music oscillators
+     */
+    stopMusicOscillators() {
+        if (this.musicNodes) {
+            this.musicNodes.oscillators.forEach(osc => {
+                try {
+                    osc.stop();
+                    osc.disconnect();
+                } catch (e) {
+                    // Oscillator already stopped
+                }
+            });
+            this.musicNodes.oscillators = [];
+
+            this.musicNodes.lfoNodes.forEach(node => {
+                try {
+                    node.disconnect();
+                } catch (e) {}
+            });
+            this.musicNodes.lfoNodes = [];
+
+            if (this.musicNodes.gainNode) {
+                this.musicNodes.gainNode.disconnect();
+                this.musicNodes.gainNode = null;
+            }
+        }
+    }
+
+    /**
+     * Set music volume
+     * @param {number} volume - Volume level 0-1
+     */
+    setMusicVolume(volume) {
+        this.musicVolume = Math.max(0, Math.min(1, volume));
+
+        if (this.musicNodes?.gainNode && this.musicPlaying) {
+            this.musicNodes.gainNode.gain.linearRampToValueAtTime(
+                this.musicVolume * 0.3,
+                this.audioContext.currentTime + 0.1
+            );
+        }
+
+        console.log(`[AudioManager] Music volume set to ${Math.round(this.musicVolume * 100)}%`);
+    }
+
+    /**
+     * Get currently playing area music
+     * @returns {string|null} Current area or null
+     */
+    getCurrentMusicArea() {
+        return this.currentArea;
+    }
+
     /**
      * Clean up audio resources
      */
     destroy() {
+        // Stop any playing music
+        if (this.musicPlaying) {
+            this.stopMusic(false);
+        }
+
         // Remove mobile audio unlock listeners
         this.removeUnlockListeners();
+
+        // Clear music nodes
+        this.musicNodes = null;
+        this.currentArea = null;
+        this.musicPlaying = false;
 
         if (this.audioContext) {
             this.audioContext.close();

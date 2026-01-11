@@ -3,6 +3,9 @@ import Phaser from 'phaser';
 // Import Logger first (other systems may use it)
 import './utils/Logger.js';
 
+// Import DevTools for development testing
+import './utils/DevTools.js';
+
 // Static imports for proper bundling in production
 import './config/env-loader.js';
 import './config/api-config.js';
@@ -42,9 +45,18 @@ import './systems/MobileControls.js';
 import './systems/ChatManager.js';
 import './systems/QuestManager.js';
 import './systems/CollectibleManager.js';
+import './systems/ui/ToastNotificationSystem.js';
+import './systems/CampfireRestSystem.js';
+import './systems/NatureAttunementSystem.js';
 import './systems/CreatureLifecycle.js';
 import './systems/CreatureSkills.js';
 import './systems/StageVisualResolver.js';
+import './systems/EvolutionCelebration.js';
+import './systems/CreatureAgent.js';
+import './systems/FeedbackManager.js';
+import './systems/CreatureAnimationController.js';
+import './systems/BirthEventSystem.js';
+import './systems/SecretAbilityManager.js';
 import './scenes/HatchingScene.js';
 import './scenes/PersonalityScene.js';
 import './scenes/NamingScene.js';
@@ -52,8 +64,12 @@ import './scenes/GameScene.js';
 import './scenes/ShopScene.js';
 import './scenes/InventoryScene.js';
 import './scenes/BreedingShrineScene.js';
+import './scenes/BreedingHatchScene.js';
 import './scenes/HubWorldScene.js';
 import './scenes/CreatureProfileScene.js';
+import './scenes/WelcomeBackScene.js';
+import './scenes/VoidMiniGameScene.js';
+import './scenes/CreatureGatheringScene.js';
 // Platformer scenes - loaded via main.js imports
 // import './scenes/PlatformerLevelScene.js';
 // import './scenes/levels/CrystalCavesLevel.js';

@@ -1,6 +1,7 @@
 /**
  * CollectibleManager - Handles exploration collectibles, treasures, and discoveries
  * Spawns collectibles in the game world and tracks collection progress
+ * Updated to use programmatic sprites and ToastNotificationSystem
  */
 
 class CollectibleManager {
@@ -10,6 +11,28 @@ class CollectibleManager {
         this.collectedItems = {};
         this.discoveryLog = [];
         this.eventListeners = new Map();
+
+        // Sprite texture mapping for collectible types
+        this.spriteTextureMap = {
+            'coin_pile': 'coinPile',
+            'small_chest': 'treasureChestCollectible',
+            'energy_orb': 'energyOrbCollectible',
+            'treasure_chest': 'treasureChestCollectible',
+            'star_fragment': 'starFragment',
+            'ancient_relic': 'ancientRelic',
+            'cosmic_gem': 'cosmicGemCollectible',
+            'legendary_artifact': 'ancientRelic',  // Use relic sprite for legendary
+            'lore_crash_origin': 'loreFragment',
+            'lore_first_egg': 'loreFragment',
+            'lore_reef_ancient': 'loreFragment',
+            'lore_reef_harmony': 'loreFragment',
+            'lore_cave_energy': 'loreFragment',
+            'lore_cave_builders': 'loreFragment',
+            'lore_void_warning': 'loreFragment',
+            'lore_void_truth': 'loreFragment',
+            'lore_aurora_truth': 'loreFragment',
+            'lore_aurora_destiny': 'loreFragment'
+        };
 
         // Collectible definitions per biome
         this.collectibleTypes = this.defineCollectibleTypes();
@@ -468,6 +491,7 @@ class CollectibleManager {
 
     /**
      * Create a single collectible in the scene
+     * Now uses programmatic sprites instead of emoji icons
      */
     createCollectible(scene, type, x, y, biome) {
         const collectibleId = `collectible_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -476,37 +500,61 @@ class CollectibleManager {
         const container = scene.add.container(x, y);
         container.setDepth(15);
 
+        // Standard rarity colors (white/green/blue/purple/gold)
+        const rarityColors = {
+            common: 0x9E9E9E,
+            uncommon: 0x4CAF50,
+            rare: 0x2196F3,
+            epic: 0x9C27B0,
+            biome: 0x9C27B0,
+            legendary: 0xFFD700,
+            lore: 0x00BCD4
+        };
+
+        const rarityColor = rarityColors[type.rarity] || 0x9E9E9E;
+
+        // Outer glow effect based on rarity
+        const outerGlow = scene.add.graphics();
+        outerGlow.fillStyle(rarityColor, 0.2);
+        outerGlow.fillCircle(0, 0, 35);
+        container.add(outerGlow);
+
         // Glow effect
         const glow = scene.add.graphics();
         glow.fillStyle(type.glowColor, 0.3);
         glow.fillCircle(0, 0, 25);
         container.add(glow);
 
-        // Main collectible circle
-        const main = scene.add.graphics();
-        main.fillStyle(type.color, 1);
-        main.fillCircle(0, 0, 15);
-        main.lineStyle(2, 0xFFFFFF, 0.8);
-        main.strokeCircle(0, 0, 15);
-        container.add(main);
+        // Try to use programmatic sprite texture
+        const textureName = this.spriteTextureMap[type.id];
+        let hasSprite = false;
 
-        // Icon
-        const icon = scene.add.text(0, 0, type.icon, {
-            fontSize: '20px'
-        }).setOrigin(0.5);
-        container.add(icon);
+        if (textureName && scene.textures.exists(textureName)) {
+            // Use programmatic sprite
+            const sprite = scene.add.image(0, 0, textureName);
+            sprite.setScale(0.6);
+            container.add(sprite);
+            hasSprite = true;
+        } else {
+            // Fallback: draw a colored circle with glow
+            const main = scene.add.graphics();
+            main.fillStyle(type.color, 1);
+            main.fillCircle(0, 0, 15);
+            main.lineStyle(2, 0xFFFFFF, 0.8);
+            main.strokeCircle(0, 0, 15);
+            container.add(main);
 
-        // Rarity indicator (colored ring)
-        const rarityColors = {
-            common: 0xAAAAAA,
-            uncommon: 0x00FF00,
-            rare: 0x0088FF,
-            biome: 0xFF00FF,
-            legendary: 0xFFD700
-        };
+            // Small inner highlight
+            const highlight = scene.add.graphics();
+            highlight.fillStyle(0xFFFFFF, 0.4);
+            highlight.fillCircle(-4, -4, 5);
+            container.add(highlight);
+        }
+
+        // Rarity indicator (colored ring) - always show
         const rarityRing = scene.add.graphics();
-        rarityRing.lineStyle(3, rarityColors[type.rarity] || 0xFFFFFF, 0.8);
-        rarityRing.strokeCircle(0, 0, 20);
+        rarityRing.lineStyle(3, rarityColor, 0.9);
+        rarityRing.strokeCircle(0, 0, hasSprite ? 24 : 20);
         container.add(rarityRing);
 
         // Floating animation
@@ -521,17 +569,28 @@ class CollectibleManager {
 
         // Glow pulse animation
         scene.tweens.add({
-            targets: glow,
+            targets: [glow, outerGlow],
             alpha: { from: 0.3, to: 0.6 },
-            scaleX: { from: 1, to: 1.2 },
-            scaleY: { from: 1, to: 1.2 },
+            scaleX: { from: 1, to: 1.15 },
+            scaleY: { from: 1, to: 1.15 },
             duration: 1000,
             yoyo: true,
             repeat: -1
         });
 
+        // Rarity ring pulse for rare+ items
+        if (type.rarity === 'rare' || type.rarity === 'epic' || type.rarity === 'legendary') {
+            scene.tweens.add({
+                targets: rarityRing,
+                alpha: { from: 0.9, to: 0.5 },
+                duration: 600,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
         // Interactive zone
-        const hitArea = scene.add.zone(0, 0, 50, 50);
+        const hitArea = scene.add.zone(0, 0, 60, 60);
         hitArea.setInteractive({ useHandCursor: true });
         container.add(hitArea);
 
@@ -548,7 +607,8 @@ class CollectibleManager {
             x: x,
             y: y,
             container: container,
-            collected: false
+            collected: false,
+            textureName: textureName // Store for toast notification
         };
 
         return collectibleData;
@@ -556,6 +616,7 @@ class CollectibleManager {
 
     /**
      * Collect an item
+     * Now uses ToastNotificationSystem for pickup feedback
      */
     collectItem(scene, collectible) {
         if (!collectible || collectible.collected) return;
@@ -604,7 +665,7 @@ class CollectibleManager {
 
         // First discovery bonus!
         if (isFirstDiscovery) {
-            const discoveryBonus = Math.floor(rewards.coins * 0.5) + 10;
+            const discoveryBonus = Math.floor((rewards.coins || 0) * 0.5) + 10;
             if (window.EconomyManager) {
                 window.EconomyManager.addCoins(discoveryBonus, `discovery_bonus_${type.id}`);
             }
@@ -636,8 +697,21 @@ class CollectibleManager {
         // Save state
         this.saveCollectionState();
 
-        // Visual feedback
-        this.showCollectionEffect(scene, collectible, rewards);
+        // Visual feedback - collection effect on the item
+        this.showCollectionEffect(scene, collectible, rewards, isFirstDiscovery);
+
+        // Show toast notification using ToastNotificationSystem
+        if (window.ToastNotificationSystem) {
+            window.ToastNotificationSystem.showPickupToast(scene, {
+                itemName: type.name,
+                itemId: type.id,
+                rarity: type.rarity,
+                rewards: rewards,
+                description: type.description || '',
+                isFirstDiscovery: isFirstDiscovery,
+                textureName: collectible.textureName
+            });
+        }
 
         // Emit event
         this.emit('itemCollected', {
@@ -646,18 +720,12 @@ class CollectibleManager {
             totalCollected: this.collectedItems[type.id]
         });
 
-        // Play sound
-        if (window.AudioManager) {
-            if (type.rarity === 'rare' || type.rarity === 'legendary' || type.isLore) {
-                window.AudioManager.playLevelUp?.();
-            } else {
-                window.AudioManager.playCoinCollect?.();
-            }
-        }
-
         // Special handling for lore fragments
         if (type.isLore && isFirstDiscovery) {
-            this.showLorePopup(scene, type);
+            // Delay lore popup so toast can be seen first
+            scene.time.delayedCall(800, () => {
+                this.showLorePopup(scene, type);
+            });
         }
 
         console.log(`[CollectibleManager] Collected ${type.name}:`, rewards);
@@ -749,13 +817,24 @@ class CollectibleManager {
     }
 
     /**
-     * Show collection visual effect
+     * Show collection visual effect on the item itself
+     * Toast notification handles the main pickup feedback
      */
-    showCollectionEffect(scene, collectible, rewards) {
+    showCollectionEffect(scene, collectible, rewards, isFirstDiscovery = false) {
         const { container, type } = collectible;
         const { x, y } = container;
 
-        // Burst animation
+        // Standard rarity colors for particle effects
+        const rarityColors = {
+            common: 0x9E9E9E,
+            uncommon: 0x4CAF50,
+            rare: 0x2196F3,
+            epic: 0x9C27B0,
+            legendary: 0xFFD700
+        };
+        const rarityColor = rarityColors[type.rarity] || 0x9E9E9E;
+
+        // Burst animation on the collectible
         scene.tweens.add({
             targets: container,
             scaleX: 1.5,
@@ -768,22 +847,23 @@ class CollectibleManager {
             }
         });
 
-        // Particle burst
+        // Particle burst with rarity-appropriate colors
         if (window.FXLibrary) {
+            const particleCount = isFirstDiscovery ? 20 : 10;
             window.FXLibrary.stardustBurst(scene, x, y, {
-                count: 10,
-                color: [type.color, type.glowColor, 0xFFFFFF],
+                count: particleCount,
+                color: [rarityColor, type.glowColor, 0xFFFFFF],
                 duration: 1000
             });
         }
 
-        // Floating reward text
+        // Simple floating reward indicator at pickup location
         let rewardText = '';
-        if (rewards.coins) rewardText += `+${rewards.coins} 🪙 `;
-        if (rewards.xp) rewardText += `+${rewards.xp} XP`;
+        if (rewards.coins) rewardText += `+${rewards.coins}`;
+        if (rewards.xp) rewardText += ` +${rewards.xp}XP`;
 
-        const floatingText = scene.add.text(x, y - 30, rewardText.trim(), {
-            fontSize: '18px',
+        const floatingText = scene.add.text(x, y - 20, rewardText.trim(), {
+            fontSize: '16px',
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#000000',
@@ -792,16 +872,16 @@ class CollectibleManager {
 
         scene.tweens.add({
             targets: floatingText,
-            y: y - 80,
+            y: y - 60,
             alpha: 0,
-            duration: 1500,
+            duration: 1000,
             onComplete: () => floatingText.destroy()
         });
 
-        // First discovery bonus text (appears below main reward text)
-        if (rewards.discoveryBonus) {
-            const bonusText = scene.add.text(x, y, `NEW! +${rewards.discoveryBonus} 🪙 Bonus`, {
-                fontSize: '16px',
+        // Extra sparkle for first discoveries
+        if (isFirstDiscovery) {
+            const newText = scene.add.text(x, y + 10, 'NEW!', {
+                fontSize: '14px',
                 color: '#00FF88',
                 fontStyle: 'bold',
                 stroke: '#000000',
@@ -809,19 +889,13 @@ class CollectibleManager {
             }).setOrigin(0.5).setDepth(100);
 
             scene.tweens.add({
-                targets: bonusText,
-                y: y - 50,
+                targets: newText,
+                y: y - 30,
                 alpha: 0,
-                duration: 2000,
-                delay: 300,
-                onComplete: () => bonusText.destroy()
+                duration: 1200,
+                delay: 200,
+                onComplete: () => newText.destroy()
             });
-
-            // Show discovery notification for first-time discoveries
-            this.showDiscoveryNotification(scene, type);
-        } else if (type.rarity === 'rare' || type.rarity === 'legendary' || type.isSecret) {
-            // Discovery notification for rare items
-            this.showDiscoveryNotification(scene, type);
         }
     }
 

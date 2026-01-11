@@ -43,6 +43,18 @@ export default class MobileHUD {
         this.stageBg = null;
         this.lastStage = null;
 
+        // Streak display
+        this.streakIcon = null;
+        this.streakText = null;
+        this.streakGlow = null;
+        this.lastStreak = 0;
+
+        // Daily surprise box
+        this.giftBox = null;
+        this.giftGlow = null;
+        this.giftBadge = null;
+        this.dailyRewardElements = [];
+
         // Layout constants - optimized for mobile
         this.layout = {
             topBarHeight: 44,
@@ -126,6 +138,12 @@ export default class MobileHUD {
 
         // Create coin display (center-right)
         this.createCoinDisplay();
+
+        // Create streak display (after coins)
+        this.createStreakDisplay();
+
+        // Create daily surprise box (far right)
+        this.createDailySurpriseBox();
 
         // Create mini stat indicators (right side)
         this.createMiniStatIndicators();
@@ -370,56 +388,709 @@ export default class MobileHUD {
     }
 
     /**
-     * Create mini stat indicators (colored dots with values)
+     * Create streak display with flame icon
      */
-    createMiniStatIndicators() {
+    createStreakDisplay() {
         const { width } = this.scene.scale;
         const { topBarPadding, topBarHeight } = this.layout;
         const centerY = topBarPadding + topBarHeight / 2;
 
-        // Position mini stats on right side - responsive to screen width
-        // On small screens, reduce spacing and move closer to edge
-        const isSmallScreen = width < 400;
-        const startX = isSmallScreen ? width - topBarPadding - 75 : width - topBarPadding - 90;
-        const spacing = isSmallScreen ? 24 : 28;
+        // Position after coins - adaptive based on screen width
+        const streakX = width < 400 ? width / 2 + 55 : width / 2 + 70;
 
+        const streak = window.GameState?.get('dailyBonus.streak') || 0;
+        const colors = this.getStreakColors(streak);
+
+        // Draw flame icon
+        this.streakIcon = this.scene.add.graphics();
+        this.streakIcon.setScrollFactor(0);
+        this.streakIcon.setDepth(1501);
+        this.drawFlameIcon(this.streakIcon, streakX, centerY, colors.flame);
+        this.elements.push(this.streakIcon);
+
+        // Streak number
+        this.streakText = this.scene.add.text(
+            streakX + 14,
+            centerY,
+            streak > 0 ? `${streak}` : '-',
+            {
+                fontSize: '14px',
+                fontFamily: 'Arial, sans-serif',
+                color: colors.text,
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }
+        );
+        this.streakText.setOrigin(0, 0.5);
+        this.streakText.setScrollFactor(0);
+        this.streakText.setDepth(1501);
+        this.elements.push(this.streakText);
+
+        this.lastStreak = streak;
+        this.streakX = streakX;
+
+        // Add pulsing animation for active streaks (3+ days)
+        if (streak >= 3) {
+            this.scene.tweens.add({
+                targets: [this.streakIcon, this.streakText],
+                scale: { from: 1, to: 1.1 },
+                duration: 800,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+    }
+
+    /**
+     * Get streak display colors based on streak count
+     */
+    getStreakColors(streak) {
+        if (streak >= 30) return { flame: 0xFFD700, text: '#FFD700' }; // Gold
+        if (streak >= 14) return { flame: 0xFF6B35, text: '#FF6B35' }; // Orange
+        if (streak >= 7) return { flame: 0xFF4444, text: '#FF4444' };  // Red
+        if (streak >= 3) return { flame: 0xFFAA00, text: '#FFAA00' };  // Yellow
+        return { flame: 0x888888, text: '#AAAAAA' };  // Gray (no streak)
+    }
+
+    /**
+     * Draw flame icon for streak display
+     */
+    drawFlameIcon(graphics, x, y, color) {
+        graphics.clear();
+        graphics.fillStyle(color, 1);
+
+        // Simple flame shape
+        graphics.beginPath();
+        graphics.moveTo(x, y + 8);       // Bottom center
+        graphics.lineTo(x - 5, y + 2);   // Bottom left
+        graphics.lineTo(x - 3, y - 2);   // Mid left
+        graphics.lineTo(x - 4, y - 6);   // Upper left
+        graphics.lineTo(x, y - 4);       // Top inner
+        graphics.lineTo(x + 4, y - 6);   // Upper right
+        graphics.lineTo(x + 3, y - 2);   // Mid right
+        graphics.lineTo(x + 5, y + 2);   // Bottom right
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Inner brighter flame
+        graphics.fillStyle(this.lightenColor(color), 0.8);
+        graphics.beginPath();
+        graphics.moveTo(x, y + 4);
+        graphics.lineTo(x - 2, y);
+        graphics.lineTo(x, y - 3);
+        graphics.lineTo(x + 2, y);
+        graphics.closePath();
+        graphics.fillPath();
+    }
+
+    /**
+     * Lighten a color for inner flame effect
+     */
+    lightenColor(color) {
+        const r = Math.min(255, ((color >> 16) & 0xFF) + 60);
+        const g = Math.min(255, ((color >> 8) & 0xFF) + 60);
+        const b = Math.min(255, (color & 0xFF) + 60);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Update streak display
+     */
+    updateStreak() {
+        if (!this.isVisible || !this.streakText) return;
+
+        const streak = window.GameState?.get('dailyBonus.streak') || 0;
+
+        if (streak !== this.lastStreak) {
+            const colors = this.getStreakColors(streak);
+            const { topBarPadding, topBarHeight } = this.layout;
+            const centerY = topBarPadding + topBarHeight / 2;
+
+            // Update flame icon
+            if (this.streakIcon) {
+                this.drawFlameIcon(this.streakIcon, this.streakX, centerY, colors.flame);
+            }
+
+            // Update text
+            this.streakText.setText(streak > 0 ? `${streak}` : '-');
+            this.streakText.setColor(colors.text);
+
+            // Animation on increase
+            if (streak > this.lastStreak) {
+                this.scene.tweens.add({
+                    targets: [this.streakIcon, this.streakText],
+                    scale: { from: 1.5, to: 1 },
+                    duration: 400,
+                    ease: 'Back.easeOut'
+                });
+
+                // Check for milestone
+                if ([7, 14, 30].includes(streak)) {
+                    this.celebrateStreakMilestone(streak);
+                }
+            }
+
+            this.lastStreak = streak;
+        }
+    }
+
+    /**
+     * Celebrate streak milestones with effects
+     */
+    celebrateStreakMilestone(streak) {
+        const { width } = this.scene.scale;
+        const { topBarPadding, topBarHeight } = this.layout;
+        const centerY = topBarPadding + topBarHeight / 2;
+
+        // Particle burst at streak location
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this.scene, this.streakX, centerY, {
+                count: 15,
+                color: [0xFFD700, 0xFF6B35, 0xFFFFFF],
+                duration: 1500
+            });
+        }
+
+        // Haptic feedback
+        if (window.FeedbackManager) {
+            window.FeedbackManager.onStreakMilestone(this.scene);
+        }
+
+        // Sound effect
+        if (window.AudioManager) {
+            window.AudioManager.playAchievement();
+        }
+
+        // Show milestone message
+        const milestoneMessages = {
+            7: '1 Week Streak!',
+            14: '2 Week Streak!',
+            30: '1 Month Streak!'
+        };
+
+        const message = this.scene.add.text(
+            width / 2,
+            centerY + 50,
+            milestoneMessages[streak] || `${streak} Day Streak!`,
+            {
+                fontSize: '20px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }
+        );
+        message.setOrigin(0.5);
+        message.setScrollFactor(0);
+        message.setDepth(2000);
+
+        // Animate and fade out
+        this.scene.tweens.add({
+            targets: message,
+            y: centerY + 30,
+            alpha: { from: 1, to: 0 },
+            scale: { from: 1, to: 1.3 },
+            duration: 2000,
+            ease: 'Sine.easeOut',
+            onComplete: () => message.destroy()
+        });
+    }
+
+    /**
+     * Create daily surprise box
+     */
+    createDailySurpriseBox() {
+        const { width } = this.scene.scale;
+        const { topBarPadding, topBarHeight } = this.layout;
+        const centerY = topBarPadding + topBarHeight / 2;
+
+        // Position on far right side of top bar
+        const boxX = width - topBarPadding - 25;
+
+        const dailyBonus = window.GameState?.get('dailyBonus') || {};
+        const today = new Date().toDateString();
+        const canClaim = dailyBonus.lastClaim !== today;
+
+        // Create gift box graphics
+        this.giftBox = this.scene.add.graphics();
+        this.giftBox.setScrollFactor(0);
+        this.giftBox.setDepth(1501);
+        this.drawGiftBox(this.giftBox, boxX, centerY, canClaim);
+        this.elements.push(this.giftBox);
+
+        // Make interactive
+        const hitArea = new Phaser.Geom.Rectangle(boxX - 15, centerY - 15, 30, 30);
+        this.giftBox.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+        if (canClaim) {
+            // Pulsing glow for unclaimed
+            this.giftGlow = this.scene.add.graphics();
+            this.giftGlow.fillStyle(0xFFD700, 0.3);
+            this.giftGlow.fillCircle(boxX, centerY, 20);
+            this.giftGlow.setScrollFactor(0);
+            this.giftGlow.setDepth(1500);
+            this.elements.push(this.giftGlow);
+
+            this.scene.tweens.add({
+                targets: this.giftGlow,
+                alpha: { from: 0.6, to: 0.2 },
+                scale: { from: 1, to: 1.2 },
+                duration: 1000,
+                yoyo: true,
+                repeat: -1
+            });
+
+            // Notification badge
+            this.giftBadge = this.scene.add.circle(boxX + 8, centerY - 8, 5, 0xFF4444);
+            this.giftBadge.setScrollFactor(0);
+            this.giftBadge.setDepth(1502);
+            this.elements.push(this.giftBadge);
+        }
+
+        // Click handler
+        this.giftBox.on('pointerdown', () => this.openDailySurprise());
+
+        // Hover effects
+        this.giftBox.on('pointerover', () => {
+            this.scene.tweens.add({
+                targets: this.giftBox,
+                scale: 1.15,
+                duration: 100
+            });
+        });
+
+        this.giftBox.on('pointerout', () => {
+            this.scene.tweens.add({
+                targets: this.giftBox,
+                scale: 1,
+                duration: 100
+            });
+        });
+
+        this.giftBoxX = boxX;
+    }
+
+    /**
+     * Draw gift box icon
+     */
+    drawGiftBox(graphics, x, y, isAvailable) {
+        graphics.clear();
+
+        const boxColor = isAvailable ? 0x9C27B0 : 0x666666;
+        const ribbonColor = isAvailable ? 0xFFD700 : 0x888888;
+
+        // Box base
+        graphics.fillStyle(boxColor, 1);
+        graphics.fillRoundedRect(x - 10, y - 6, 20, 16, 3);
+
+        // Box lid
+        graphics.fillStyle(this.darkenColor(boxColor), 1);
+        graphics.fillRoundedRect(x - 11, y - 10, 22, 6, 2);
+
+        // Ribbon horizontal
+        graphics.fillStyle(ribbonColor, 1);
+        graphics.fillRect(x - 10, y - 1, 20, 3);
+
+        // Ribbon vertical
+        graphics.fillRect(x - 1.5, y - 10, 3, 20);
+
+        // Bow loops
+        graphics.fillStyle(ribbonColor, 1);
+        graphics.fillCircle(x - 4, y - 12, 3);
+        graphics.fillCircle(x + 4, y - 12, 3);
+        graphics.fillCircle(x, y - 12, 2);
+    }
+
+    /**
+     * Darken a color for shadows
+     */
+    darkenColor(color) {
+        const r = Math.max(0, ((color >> 16) & 0xFF) - 30);
+        const g = Math.max(0, ((color >> 8) & 0xFF) - 30);
+        const b = Math.max(0, (color & 0xFF) - 30);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Open daily surprise box
+     */
+    openDailySurprise() {
+        const dailyBonus = window.GameState?.get('dailyBonus') || {};
+        const today = new Date().toDateString();
+
+        if (dailyBonus.lastClaim === today) {
+            this.showAlreadyClaimedMessage();
+            return;
+        }
+
+        // Calculate reward based on streak
+        const streak = dailyBonus.streak || 0;
+        const reward = this.calculateDailyReward(streak);
+
+        // Update state
+        window.GameState?.set('dailyBonus.lastClaim', today);
+        window.GameState?.set('dailyBonus.streak', streak + 1);
+        window.GameState?.save();
+
+        // Grant rewards
+        if (window.EconomyManager && reward.coins) {
+            window.EconomyManager.addCoins(reward.coins, 'daily_reward');
+        }
+
+        if (window.InventoryManager && reward.item) {
+            window.InventoryManager.addItem(reward.item.type, 1, { rarity: reward.item.rarity });
+        }
+
+        // Show celebration
+        this.showRewardCelebration(reward);
+
+        // Refresh gift box visuals
+        this.refreshDailyBox();
+
+        // Update streak display
+        this.updateStreak();
+    }
+
+    /**
+     * Calculate daily reward based on streak
+     */
+    calculateDailyReward(streak) {
+        const baseCoins = 50;
+        const streakMultiplier = 1 + (Math.min(streak, 30) * 0.1); // Up to 4x at 30 days
+        const coins = Math.floor(baseCoins * streakMultiplier);
+
+        const reward = { coins };
+
+        // Milestone bonus items
+        if (streak === 6) reward.item = { type: 'egg', rarity: 'uncommon' };  // Day 7
+        if (streak === 13) reward.item = { type: 'egg', rarity: 'rare' };     // Day 14
+        if (streak === 29) reward.item = { type: 'egg', rarity: 'epic' };     // Day 30
+
+        // Random bonus (15% chance)
+        if (Math.random() < 0.15) {
+            reward.bonus = { type: 'crystals', amount: 5 };
+        }
+
+        return reward;
+    }
+
+    /**
+     * Show reward celebration overlay
+     */
+    showRewardCelebration(reward) {
+        const { width, height } = this.scene.scale;
+
+        // Dark overlay
+        const overlay = this.scene.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(2000);
+        this.dailyRewardElements.push(overlay);
+
+        // Reward panel
+        const panelWidth = 240;
+        const panelHeight = reward.item ? 220 : 180;
+        const panelX = width / 2 - panelWidth / 2;
+        const panelY = height / 2 - panelHeight / 2;
+
+        const panel = this.scene.add.graphics();
+        panel.fillStyle(0x1A1A3E, 1);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.lineStyle(3, 0xFFD700);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.setScrollFactor(0);
+        panel.setDepth(2001);
+        this.dailyRewardElements.push(panel);
+
+        // Title
+        const title = this.scene.add.text(width / 2, panelY + 30, 'Daily Reward!', {
+            fontSize: '22px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        });
+        title.setOrigin(0.5);
+        title.setScrollFactor(0);
+        title.setDepth(2002);
+        this.dailyRewardElements.push(title);
+
+        // Coin reward
+        const coinText = this.scene.add.text(width / 2, panelY + 70, `+${reward.coins} Coins`, {
+            fontSize: '28px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        });
+        coinText.setOrigin(0.5);
+        coinText.setScrollFactor(0);
+        coinText.setDepth(2002);
+        this.dailyRewardElements.push(coinText);
+
+        // Bonus item if present
+        if (reward.item) {
+            const itemText = this.scene.add.text(width / 2, panelY + 110, `+ ${reward.item.rarity.toUpperCase()} Egg!`, {
+                fontSize: '18px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#9C27B0',
+                fontStyle: 'bold'
+            });
+            itemText.setOrigin(0.5);
+            itemText.setScrollFactor(0);
+            itemText.setDepth(2002);
+            this.dailyRewardElements.push(itemText);
+        }
+
+        // Bonus crystals if present
+        if (reward.bonus) {
+            const bonusText = this.scene.add.text(width / 2, panelY + (reward.item ? 140 : 110), `+ ${reward.bonus.amount} Bonus Crystals!`, {
+                fontSize: '16px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#00BCD4'
+            });
+            bonusText.setOrigin(0.5);
+            bonusText.setScrollFactor(0);
+            bonusText.setDepth(2002);
+            this.dailyRewardElements.push(bonusText);
+        }
+
+        // Celebration effects
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this.scene, width / 2, height / 2, {
+                count: 30,
+                color: [0xFFD700, 0xFF6B35, 0xFFFFFF],
+                duration: 2000
+            });
+        }
+
+        // Haptic feedback
+        if (window.FeedbackManager) {
+            window.FeedbackManager.vibrate('success');
+        }
+
+        // Sound effect
+        if (window.AudioManager) {
+            window.AudioManager.playAchievement();
+        }
+
+        // Collect button
+        const btnY = panelY + panelHeight - 40;
+        const collectBtn = this.scene.add.graphics();
+        collectBtn.fillStyle(0x4CAF50, 1);
+        collectBtn.fillRoundedRect(width / 2 - 50, btnY - 15, 100, 30, 8);
+        collectBtn.setScrollFactor(0);
+        collectBtn.setDepth(2002);
+        this.dailyRewardElements.push(collectBtn);
+
+        const collectText = this.scene.add.text(width / 2, btnY, 'Collect!', {
+            fontSize: '16px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        });
+        collectText.setOrigin(0.5);
+        collectText.setScrollFactor(0);
+        collectText.setDepth(2003);
+        this.dailyRewardElements.push(collectText);
+
+        // Make button interactive
+        const btnHitArea = this.scene.add.zone(width / 2, btnY, 100, 30);
+        btnHitArea.setInteractive();
+        btnHitArea.setScrollFactor(0);
+        btnHitArea.setDepth(2004);
+        this.dailyRewardElements.push(btnHitArea);
+
+        btnHitArea.on('pointerdown', () => {
+            this.closeDailyRewardOverlay();
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+        });
+    }
+
+    /**
+     * Close daily reward overlay
+     */
+    closeDailyRewardOverlay() {
+        this.dailyRewardElements.forEach(el => {
+            if (el && el.destroy) {
+                el.destroy();
+            }
+        });
+        this.dailyRewardElements = [];
+    }
+
+    /**
+     * Show already claimed message
+     */
+    showAlreadyClaimedMessage() {
+        const { width } = this.scene.scale;
+        const { topBarPadding, topBarHeight } = this.layout;
+
+        const message = this.scene.add.text(
+            width / 2,
+            topBarPadding + topBarHeight + 20,
+            'Come back tomorrow!',
+            {
+                fontSize: '14px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#AAAAAA',
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                padding: { x: 10, y: 5 }
+            }
+        );
+        message.setOrigin(0.5);
+        message.setScrollFactor(0);
+        message.setDepth(2000);
+
+        // Fade out
+        this.scene.tweens.add({
+            targets: message,
+            alpha: 0,
+            y: message.y - 20,
+            duration: 1500,
+            delay: 1000,
+            onComplete: () => message.destroy()
+        });
+    }
+
+    /**
+     * Refresh daily box visuals after claiming
+     */
+    refreshDailyBox() {
+        const { topBarPadding, topBarHeight } = this.layout;
+        const centerY = topBarPadding + topBarHeight / 2;
+
+        // Remove glow and badge
+        if (this.giftGlow) {
+            this.giftGlow.destroy();
+            this.giftGlow = null;
+        }
+        if (this.giftBadge) {
+            this.giftBadge.destroy();
+            this.giftBadge = null;
+        }
+
+        // Redraw gift box as claimed
+        if (this.giftBox) {
+            this.drawGiftBox(this.giftBox, this.giftBoxX, centerY, false);
+        }
+    }
+
+    /**
+     * Create mini stat indicators (colored dots with values)
+     */
+    createMiniStatIndicators() {
+        const { width, height } = this.scene.scale;
+        const { topBarPadding, topBarHeight } = this.layout;
+
+        // Position compact stats below top bar
+        const statsY = topBarPadding + topBarHeight + 8;
+        const barWidth = 40;
+        const barHeight = 6;
+        const spacing = 55; // Space for icon + bar
+        const startX = topBarPadding + 10;
+
+        // Compact stat bar config - color-coded per plan
         const stats = [
-            { key: 'health', icon: '❤️', color: 0xFF6B6B },
-            { key: 'happiness', icon: '😊', color: 0xFFD166 },
-            { key: 'energy', icon: '⚡', color: 0x4ECDC4 }
+            { key: 'happiness', icon: '💕', color: 0xFF69B4, name: 'Happiness' }, // Pink
+            { key: 'energy', icon: '✨', color: 0xFFD700, name: 'Energy' },       // Gold
+            { key: 'health', icon: '❤️', color: 0xFF4444, name: 'Health' }        // Red
         ];
 
         stats.forEach((stat, index) => {
             const x = startX + index * spacing;
 
-            // Create stat indicator
+            // Create stat indicator with bar
             const indicator = {
                 key: stat.key,
                 color: stat.color,
+                name: stat.name,
                 x: x,
-                y: centerY
+                y: statsY,
+                barWidth: barWidth,
+                barHeight: barHeight,
+                visible: false, // Start hidden, show based on threshold
+                isCritical: false,
+                criticalTween: null
             };
 
-            // Background circle
-            indicator.bg = this.scene.add.graphics();
-            indicator.bg.setScrollFactor(0);
-            indicator.bg.setDepth(1501);
+            // Container background (semi-transparent pill)
+            indicator.container = this.scene.add.graphics();
+            indicator.container.setScrollFactor(0);
+            indicator.container.setDepth(1501);
+            indicator.container.setVisible(false);
 
             // Icon text
-            indicator.icon = this.scene.add.text(x, centerY, stat.icon, {
-                fontSize: '14px'
+            indicator.icon = this.scene.add.text(x, statsY, stat.icon, {
+                fontSize: '12px'
             });
-            indicator.icon.setOrigin(0.5);
+            indicator.icon.setOrigin(0, 0.5);
             indicator.icon.setScrollFactor(0);
             indicator.icon.setDepth(1502);
+            indicator.icon.setVisible(false);
+
+            // Progress bar background
+            indicator.barBg = this.scene.add.graphics();
+            indicator.barBg.setScrollFactor(0);
+            indicator.barBg.setDepth(1501);
+            indicator.barBg.setVisible(false);
+
+            // Progress bar fill
+            indicator.barFill = this.scene.add.graphics();
+            indicator.barFill.setScrollFactor(0);
+            indicator.barFill.setDepth(1502);
+            indicator.barFill.setVisible(false);
 
             this.statIndicators.push(indicator);
-            this.elements.push(indicator.bg);
+            this.elements.push(indicator.container);
             this.elements.push(indicator.icon);
+            this.elements.push(indicator.barBg);
+            this.elements.push(indicator.barFill);
         });
+
+        // Create "Happy!" indicator for when all stats are good
+        this.createHappyIndicator(startX, statsY);
 
         // Create mood indicator after stats
         this.createMoodIndicator();
+    }
+
+    /**
+     * Create the "Happy!" indicator shown when all stats are above threshold
+     */
+    createHappyIndicator(x, y) {
+        // Container for happy indicator
+        this.happyContainer = this.scene.add.graphics();
+        this.happyContainer.setScrollFactor(0);
+        this.happyContainer.setDepth(1501);
+
+        // Draw pill background
+        this.happyContainer.fillStyle(0x2A2A4E, 0.9);
+        this.happyContainer.fillRoundedRect(x - 5, y - 10, 75, 20, 10);
+        this.happyContainer.lineStyle(2, 0x4CAF50, 0.8);
+        this.happyContainer.strokeRoundedRect(x - 5, y - 10, 75, 20, 10);
+
+        this.elements.push(this.happyContainer);
+
+        // Happy text with sparkle
+        this.happyText = this.scene.add.text(x + 32, y, '✨ Happy!', {
+            fontSize: '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#4CAF50',
+            fontStyle: 'bold'
+        });
+        this.happyText.setOrigin(0.5, 0.5);
+        this.happyText.setScrollFactor(0);
+        this.happyText.setDepth(1502);
+
+        this.elements.push(this.happyText);
+
+        // Initially visible (will be hidden when stats drop)
+        this.happyIndicatorVisible = true;
     }
 
     /**
@@ -678,6 +1349,7 @@ export default class MobileHUD {
         this.updateCoins();
         this.updateMood();
         this.updateStage();
+        this.updateStreak();
     }
 
     /**
@@ -736,39 +1408,141 @@ export default class MobileHUD {
     }
 
     /**
-     * Update stat displays
+     * Update stat displays - compact view with threshold-based visibility
      */
     updateStats() {
         if (!this.isVisible) return;
 
         const stats = window.GameState?.get('creature.stats') || { health: 100, happiness: 100, energy: 100 };
+        const SHOW_THRESHOLD = 50;  // Show stat if below 50%
+        const CRITICAL_THRESHOLD = 25; // Pulse animation if below 25%
 
-        // Update mini stat indicators in top bar
+        let anyStatLow = false;
+
+        // Update compact stat indicators - only show below threshold
         this.statIndicators.forEach((indicator) => {
             const value = stats[indicator.key] || 0;
-            const percentage = value / 100;
+            const percentage = value; // Stats are 0-100
+            const shouldShow = percentage < SHOW_THRESHOLD;
+            const isCritical = percentage < CRITICAL_THRESHOLD;
 
-            // Determine color based on level
-            let bgAlpha = 0.3;
-            let ringColor = indicator.color;
-
-            if (percentage <= 0.2) {
-                bgAlpha = 0.8;
-                ringColor = 0xFF0000; // Critical - red
-            } else if (percentage <= 0.4) {
-                bgAlpha = 0.5;
-                ringColor = 0xFFAA00; // Warning - orange
+            if (shouldShow) {
+                anyStatLow = true;
             }
 
-            // Redraw background circle
-            indicator.bg.clear();
-            indicator.bg.fillStyle(0x1A1A2E, bgAlpha);
-            indicator.bg.fillCircle(indicator.x, indicator.y, 11);
-            indicator.bg.lineStyle(2, ringColor, percentage);
-            indicator.bg.strokeCircle(indicator.x, indicator.y, 11);
+            // Show/hide based on threshold
+            if (shouldShow !== indicator.visible) {
+                indicator.visible = shouldShow;
+                indicator.container?.setVisible(shouldShow);
+                indicator.icon?.setVisible(shouldShow);
+                indicator.barBg?.setVisible(shouldShow);
+                indicator.barFill?.setVisible(shouldShow);
+            }
+
+            // Update visuals if visible
+            if (shouldShow) {
+                const barX = indicator.x + 16; // After icon
+                const barY = indicator.y;
+
+                // Clear and redraw container background
+                indicator.container.clear();
+                indicator.container.fillStyle(0x1A1A2E, 0.9);
+                indicator.container.fillRoundedRect(
+                    indicator.x - 4, barY - 8,
+                    indicator.barWidth + 24, 16,
+                    8
+                );
+
+                // Draw bar background
+                indicator.barBg.clear();
+                indicator.barBg.fillStyle(0x333333, 0.8);
+                indicator.barBg.fillRoundedRect(
+                    barX, barY - indicator.barHeight / 2,
+                    indicator.barWidth, indicator.barHeight,
+                    3
+                );
+
+                // Draw bar fill
+                const fillWidth = (percentage / 100) * indicator.barWidth;
+                indicator.barFill.clear();
+
+                if (fillWidth > 0) {
+                    // Color intensifies as stat drops
+                    const fillColor = isCritical ? 0xFF0000 : indicator.color;
+                    indicator.barFill.fillStyle(fillColor, 0.9);
+                    indicator.barFill.fillRoundedRect(
+                        barX, barY - indicator.barHeight / 2,
+                        Math.max(2, fillWidth), indicator.barHeight,
+                        3
+                    );
+                }
+
+                // Add border with warning color
+                const borderColor = isCritical ? 0xFF0000 : (percentage < 35 ? 0xFFAA00 : indicator.color);
+                indicator.container.lineStyle(1, borderColor, 0.8);
+                indicator.container.strokeRoundedRect(
+                    indicator.x - 4, barY - 8,
+                    indicator.barWidth + 24, 16,
+                    8
+                );
+
+                // Handle critical pulsing animation
+                if (isCritical && !indicator.isCritical) {
+                    // Start pulsing
+                    indicator.isCritical = true;
+                    indicator.criticalTween = this.scene.tweens.add({
+                        targets: indicator.icon,
+                        scale: { from: 1, to: 1.3 },
+                        alpha: { from: 1, to: 0.6 },
+                        duration: 400,
+                        yoyo: true,
+                        repeat: -1,
+                        ease: 'Sine.easeInOut'
+                    });
+                } else if (!isCritical && indicator.isCritical) {
+                    // Stop pulsing
+                    indicator.isCritical = false;
+                    if (indicator.criticalTween) {
+                        indicator.criticalTween.stop();
+                        indicator.criticalTween = null;
+                    }
+                    indicator.icon?.setScale(1);
+                    indicator.icon?.setAlpha(1);
+                }
+            } else {
+                // Stop any pulsing when hidden
+                if (indicator.isCritical) {
+                    indicator.isCritical = false;
+                    if (indicator.criticalTween) {
+                        indicator.criticalTween.stop();
+                        indicator.criticalTween = null;
+                    }
+                }
+            }
         });
 
-        // Update bottom stat bars
+        // Show/hide "Happy!" indicator based on whether all stats are good
+        if (this.happyContainer && this.happyText) {
+            const shouldShowHappy = !anyStatLow;
+            if (shouldShowHappy !== this.happyIndicatorVisible) {
+                this.happyIndicatorVisible = shouldShowHappy;
+                this.happyContainer.setVisible(shouldShowHappy);
+                this.happyText.setVisible(shouldShowHappy);
+
+                // Animate in/out
+                if (shouldShowHappy) {
+                    this.scene.tweens.add({
+                        targets: [this.happyContainer, this.happyText],
+                        alpha: { from: 0, to: 1 },
+                        scale: { from: 0.8, to: 1 },
+                        duration: 300,
+                        ease: 'Back.easeOut'
+                    });
+                }
+            }
+        }
+
+        // Update bottom stat bars (legacy support)
         Object.keys(this.statBars).forEach((key) => {
             const bar = this.statBars[key];
             const value = stats[key] || 0;
@@ -919,12 +1693,25 @@ export default class MobileHUD {
         // Clear bound handlers
         this.boundHandlers = null;
 
+        // Stop any critical stat tweens
+        this.statIndicators.forEach((indicator) => {
+            if (indicator.criticalTween) {
+                indicator.criticalTween.stop();
+                indicator.criticalTween = null;
+            }
+        });
+
         // Destroy all elements
         this.elements.forEach((el) => {
             if (el && el.destroy) {
                 el.destroy();
             }
         });
+
+        // Clear happy indicator references
+        this.happyContainer = null;
+        this.happyText = null;
+        this.happyIndicatorVisible = false;
 
         this.elements = [];
         this.statIndicators = [];

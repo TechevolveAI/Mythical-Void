@@ -314,6 +314,137 @@ class BreedingEngine {
             }
         };
     }
+
+    /**
+     * Convert Mendelian phenotype to visual configuration for GraphicsEngine
+     * This connects breeding outcomes to creature appearance
+     * @param {Object} phenotype - Phenotype from getPhenotype()
+     * @param {Object} parentGenetics - Parent genetics for mutation inheritance
+     * @returns {Object} Visual configuration for GraphicsEngine
+     */
+    getVisualConfigFromPhenotype(phenotype, parentGenetics = null) {
+        return {
+            headMods: {
+                horns: this.mapHornsTrait(phenotype.horns),
+                ears: this.mapEarsTrait(phenotype.earShape),
+                mane: this.mapManeTrait(phenotype.maneLength)
+            },
+            bodyMods: {
+                shape: this.mapBodyShape(phenotype.bodyShape),
+                tail: this.mapTailTrait(phenotype.tail),
+                pattern: this.mapPatternTrait(phenotype.pattern)
+            },
+            eyeColor: this.traitDefinitions.eyeColor.variations[phenotype.eyeColor]?.color || 0x4169E1,
+            inheritedMutations: this.inheritMutationsFromParents(parentGenetics)
+        };
+    }
+
+    /**
+     * Map horns phenotype to visual configuration
+     */
+    mapHornsTrait(hornVariation) {
+        const hornStyles = {
+            none: { type: 'none', size: 0 },
+            small: { type: 'curved', size: 0.5 },
+            large: { type: 'spiral', size: 1.0 }
+        };
+        return hornStyles[hornVariation] || hornStyles.none;
+    }
+
+    /**
+     * Map ear shape phenotype to visual configuration
+     */
+    mapEarsTrait(earVariation) {
+        const earStyles = {
+            rounded: { type: 'rounded', size: 1.0 },
+            pointed: { type: 'pointed', size: 1.0 }
+        };
+        return earStyles[earVariation] || earStyles.rounded;
+    }
+
+    /**
+     * Map mane length phenotype to visual configuration
+     */
+    mapManeTrait(maneVariation) {
+        const maneStyles = {
+            short: { type: 'short', length: 0.3 },
+            medium: { type: 'medium', length: 0.6 },
+            long: { type: 'flowing', length: 1.0 }
+        };
+        return maneStyles[maneVariation] || maneStyles.medium;
+    }
+
+    /**
+     * Map body shape phenotype to visual configuration
+     */
+    mapBodyShape(bodyVariation) {
+        const bodyScales = {
+            slender: { scaleX: 0.8, scaleY: 1.1, type: 'slender' },
+            normal: { scaleX: 1.0, scaleY: 1.0, type: 'balanced' },
+            stocky: { scaleX: 1.2, scaleY: 0.9, type: 'sturdy' }
+        };
+        return bodyScales[bodyVariation] || bodyScales.normal;
+    }
+
+    /**
+     * Map tail phenotype to visual configuration
+     */
+    mapTailTrait(tailVariation) {
+        const tailStyles = {
+            short: { type: 'short', length: 0.4 },
+            medium: { type: 'medium', length: 0.7 },
+            long: { type: 'flowing', length: 1.0 }
+        };
+        return tailStyles[tailVariation] || tailStyles.medium;
+    }
+
+    /**
+     * Map pattern phenotype to visual configuration
+     */
+    mapPatternTrait(patternVariation) {
+        const patternTypes = {
+            solid: { type: 'solid', intensity: 0 },
+            spotted: { type: 'spots', intensity: 0.7 },
+            striped: { type: 'stripes', intensity: 0.7 }
+        };
+        return patternTypes[patternVariation] || patternTypes.solid;
+    }
+
+    /**
+     * Inherit mutations from parent genetics
+     * @param {Object} parentGenetics - Object containing parent1 and parent2 genetics
+     * @returns {Array} Inherited mutations for offspring
+     */
+    inheritMutationsFromParents(parentGenetics) {
+        if (!parentGenetics) return [];
+
+        const parent1Mutations = parentGenetics.parent1?.traits?.features?.wackyMutations || [];
+        const parent2Mutations = parentGenetics.parent2?.traits?.features?.wackyMutations || [];
+
+        // Use CreatureGenetics inheritance if available
+        if (window.CreatureGenetics?.inheritWackyMutations) {
+            return window.CreatureGenetics.inheritWackyMutations(
+                parent1Mutations,
+                parent2Mutations,
+                'common' // Default rarity, can be overridden
+            );
+        }
+
+        // Fallback: simple inheritance - 50% chance to inherit each mutation
+        const inheritedMutations = [];
+        const allParentMutations = [...parent1Mutations, ...parent2Mutations];
+
+        allParentMutations.forEach(mutation => {
+            if (Math.random() < 0.5 && !inheritedMutations.some(m => m.type === mutation.type)) {
+                inheritedMutations.push({
+                    ...mutation,
+                    inherited: true
+                });
+            }
+        });
+
+        return inheritedMutations;
+    }
 }
 
 // Export for use in other modules

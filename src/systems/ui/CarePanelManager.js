@@ -315,16 +315,37 @@ class CarePanelManager {
     }
 
     destroy() {
-        this.panelElements.forEach(el => el.destroy());
+        console.log('[CarePanelManager] Destroying - cleaning up event listeners');
+
+        // Remove listeners from panel elements BEFORE destroying (prevents memory leaks)
+        this.panelElements.forEach(el => {
+            // Check if element has listeners (interactive elements like closeButton)
+            if (el && el.removeAllListeners) {
+                el.removeAllListeners();
+            }
+            if (el && el.destroy) {
+                el.destroy();
+            }
+        });
         this.panelElements = [];
+
+        // Remove listeners from care button zones BEFORE destroying
         Object.values(this.careButtons).forEach(({ bg, text, zone }) => {
-            bg.destroy();
-            text.destroy();
-            zone.destroy();
+            if (zone && zone.removeAllListeners) {
+                zone.removeAllListeners();
+            }
+            if (bg && bg.destroy) bg.destroy();
+            if (text && text.destroy) text.destroy();
+            if (zone && zone.destroy) zone.destroy();
         });
         this.careButtons = {};
-        this.hintText?.destroy();
-        this.hintText = null;
+
+        if (this.hintText) {
+            this.hintText.destroy();
+            this.hintText = null;
+        }
+
+        console.log('[CarePanelManager] Cleanup complete');
     }
 }
 

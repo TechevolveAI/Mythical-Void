@@ -109,44 +109,91 @@ class WorldBuilder {
         const physics = this.scene.physics;
         const landmarks = this.sanctuaryZones.landmarks;
 
-        // Create crashed ship
+        // Create crashed ship (futuristic spacecraft, 220x160 texture - horizontal layout)
         this.graphicsEngine.createCrashedShip();
         const crashedShip = physics.add.staticSprite(
             landmarks.crashedShip.position.x,
             landmarks.crashedShip.position.y,
             'crashedShip'
         );
-        crashedShip.setScale(1.2);
+        crashedShip.setScale(1.0);
         crashedShip.setDepth(landmarks.crashedShip.position.y);
-        crashedShip.body.setSize(180, 120);
-        crashedShip.body.setOffset(20, 50);
+        // Collision body sized for fuselage (220x160 texture, horizontal orientation)
+        crashedShip.body.setSize(180, 80);
+        crashedShip.body.setOffset(20, 40);
         crashedShip.landmarkId = 'crashedShip';
         crashedShip.landmarkData = landmarks.crashedShip;
 
-        // Create hub portal
+        // Create hub portal (mystical gate to other worlds) at the bottom
         this.graphicsEngine.createHubPortal();
         const hubPortal = physics.add.staticSprite(
             landmarks.hubPortal.position.x,
             landmarks.hubPortal.position.y,
             'hubPortal'
         );
-        hubPortal.setScale(1.1);
+        hubPortal.setScale(1.0);
         hubPortal.setDepth(landmarks.hubPortal.position.y);
-        // Increased collision body to match texture size better for reliable interaction
-        hubPortal.body.setSize(160, 180);
-        hubPortal.body.setOffset(0, 0);
+        hubPortal.body.setSize(120, 160);
+        hubPortal.body.setOffset(20, 10);
         hubPortal.landmarkId = 'hubPortal';
         hubPortal.landmarkData = landmarks.hubPortal;
+        hubPortal.setInteractive();
 
-        // Add portal glow animation
+        // Add gentle pulsing animation for the mystical gate
         this.scene.tweens.add({
             targets: hubPortal,
-            alpha: { from: 0.85, to: 1 },
-            duration: 1500,
+            alpha: { from: 0.95, to: 1 },
+            scaleX: { from: 0.98, to: 1.02 },
+            scaleY: { from: 0.98, to: 1.02 },
+            duration: 2500,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+
+        // Create void portal (black hole for void mini-game) directly under the spaceship
+        // This replaces the visual shadow/crater under the ship
+        this.graphicsEngine.createVoidPortal();
+        const voidPortal = physics.add.staticSprite(
+            landmarks.voidPortal.position.x,
+            landmarks.voidPortal.position.y,
+            'voidPortal'
+        );
+        voidPortal.setScale(0.5); // Slightly smaller to fit under ship
+        voidPortal.setDepth(landmarks.crashedShip.position.y - 10); // Just below ship
+        voidPortal.body.setSize(70, 70);
+        voidPortal.body.setOffset(65, 65); // Adjusted for scale
+        voidPortal.landmarkId = 'voidPortal';
+        voidPortal.landmarkData = landmarks.voidPortal;
+        voidPortal.setInteractive();
+
+        // Add ominous pulsing animation for the black hole
+        this.scene.tweens.add({
+            targets: voidPortal,
+            alpha: { from: 0.85, to: 1 },
+            scaleX: { from: 0.45, to: 0.55 },
+            scaleY: { from: 0.45, to: 0.55 },
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Add slow rotation to give swirling black hole effect
+        this.scene.tweens.add({
+            targets: voidPortal,
+            angle: 360,
+            duration: 25000,
+            repeat: -1,
+            ease: 'Linear'
+        });
+
+        // Create warning signs around the void portal
+        const warningSigns = this.createVoidWarningSigns(
+            landmarks.voidPortal.position.x,
+            landmarks.voidPortal.position.y,
+            voidPortal.depth - 5
+        );
 
         // Create campfire
         this.graphicsEngine.createCampfire();
@@ -172,11 +219,12 @@ class WorldBuilder {
             ease: 'Sine.easeInOut'
         });
 
-        console.log('[WorldBuilder] Created Sanctuary landmarks: crashedShip, hubPortal, campfire');
+        console.log('[WorldBuilder] Created Sanctuary landmarks: crashedShip, hubPortal, voidPortal, campfire');
 
         return {
             crashedShip,
             hubPortal,
+            voidPortal,
             campfire
         };
     }
@@ -1116,6 +1164,133 @@ class WorldBuilder {
 
         // Start patrol after random delay
         this.scene.time.delayedCall(Phaser.Math.Between(0, 2000), moveToNewPosition);
+    }
+
+    /**
+     * Create warning signs around the void portal
+     * Caution triangles and danger text to warn players
+     */
+    createVoidWarningSigns(centerX, centerY, depth) {
+        const signs = [];
+
+        // Create warning triangle texture if it doesn't exist
+        if (!this.scene.textures.exists('warningTriangle')) {
+            const graphics = this.scene.make.graphics({ add: false });
+
+            // Yellow warning triangle with black border
+            const size = 32;
+
+            // Outer black border
+            graphics.fillStyle(0x000000, 1);
+            graphics.fillTriangle(size/2, 2, 2, size - 2, size - 2, size - 2);
+
+            // Yellow fill
+            graphics.fillStyle(0xFFD700, 1);
+            graphics.fillTriangle(size/2, 6, 6, size - 5, size - 6, size - 5);
+
+            // Exclamation mark
+            graphics.fillStyle(0x000000, 1);
+            graphics.fillRect(size/2 - 2, 12, 4, 10);
+            graphics.fillCircle(size/2, 26, 2);
+
+            graphics.generateTexture('warningTriangle', size, size);
+            graphics.destroy();
+        }
+
+        // Create caution tape texture if it doesn't exist
+        if (!this.scene.textures.exists('cautionStripe')) {
+            const graphics = this.scene.make.graphics({ add: false });
+            const stripeWidth = 60;
+            const stripeHeight = 8;
+
+            // Yellow and black diagonal stripes
+            graphics.fillStyle(0xFFD700, 1);
+            graphics.fillRect(0, 0, stripeWidth, stripeHeight);
+
+            graphics.fillStyle(0x000000, 1);
+            for (let i = -stripeHeight; i < stripeWidth; i += 12) {
+                graphics.beginPath();
+                graphics.moveTo(i, 0);
+                graphics.lineTo(i + stripeHeight, stripeHeight);
+                graphics.lineTo(i + stripeHeight + 6, stripeHeight);
+                graphics.lineTo(i + 6, 0);
+                graphics.closePath();
+                graphics.fillPath();
+            }
+
+            graphics.generateTexture('cautionStripe', stripeWidth, stripeHeight);
+            graphics.destroy();
+        }
+
+        // Place warning triangles around the portal
+        const radius = 65;
+        const angles = [
+            Math.PI * 0.75,   // Top-left
+            Math.PI * 0.25,   // Top-right
+            Math.PI * 1.25,   // Bottom-left
+            Math.PI * 1.75    // Bottom-right
+        ];
+
+        angles.forEach((angle, i) => {
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+
+            const triangle = this.scene.add.sprite(x, y, 'warningTriangle');
+            triangle.setDepth(depth);
+            triangle.setScale(0.8);
+
+            // Pulsing animation for urgency
+            this.scene.tweens.add({
+                targets: triangle,
+                alpha: { from: 0.7, to: 1 },
+                scaleX: { from: 0.75, to: 0.85 },
+                scaleY: { from: 0.75, to: 0.85 },
+                duration: 800 + i * 100, // Staggered timing
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            signs.push(triangle);
+        });
+
+        // Add "DANGER" text above the portal
+        const dangerText = this.scene.add.text(centerX, centerY - 55, '⚠️ DANGER', {
+            fontSize: '14px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(depth + 1);
+
+        // Flashing danger text
+        this.scene.tweens.add({
+            targets: dangerText,
+            alpha: { from: 0.6, to: 1 },
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+
+        signs.push(dangerText);
+
+        // Add small caution stripes on sides
+        const leftStripe = this.scene.add.sprite(centerX - 55, centerY, 'cautionStripe');
+        leftStripe.setDepth(depth);
+        leftStripe.setAngle(90);
+        leftStripe.setScale(0.8);
+        signs.push(leftStripe);
+
+        const rightStripe = this.scene.add.sprite(centerX + 55, centerY, 'cautionStripe');
+        rightStripe.setDepth(depth);
+        rightStripe.setAngle(90);
+        rightStripe.setScale(0.8);
+        signs.push(rightStripe);
+
+        console.log('[WorldBuilder] Created warning signs around void portal');
+
+        return signs;
     }
 
     destroy() {

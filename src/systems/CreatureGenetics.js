@@ -50,12 +50,12 @@ class CreatureGenetics {
                 wingType: 'feathered',
                 personalityTendencies: ['curious', 'wise', 'gentle'],
                 cosmicAffinities: ['star', 'nebula'],
-                rarity: 0.4 // 40% of all creatures
+                rarity: 0.20 // Adjusted from 0.40 to accommodate new species
             },
-            
+
             crystalDrake: {
                 baseColors: {
-                    body: [0xB39DDB, 0x81C784, 0x80CBC4], // Crystal Lilac, Cosmic Green, Aurora Teal  
+                    body: [0xB39DDB, 0x81C784, 0x80CBC4], // Crystal Lilac, Cosmic Green, Aurora Teal
                     wings: [0xB39DDB, 0xFFD54F, 0x64B5F6], // Crystal Lilac, Star Gold, Comet Blue
                     eyes: [0x81C784, 0xFFD54F, 0xF48FB1]   // Cosmic Green, Star Gold, Nebula Pink
                 },
@@ -63,7 +63,7 @@ class CreatureGenetics {
                 wingType: 'crystal',
                 personalityTendencies: ['gentle', 'wise', 'playful'],
                 cosmicAffinities: ['crystal', 'moon'],
-                rarity: 0.35 // 35% of all creatures
+                rarity: 0.20 // Adjusted from 0.35 to accommodate new species
             },
             
             nebulaSprite: {
@@ -76,7 +76,63 @@ class CreatureGenetics {
                 wingType: 'ethereal',
                 personalityTendencies: ['playful', 'energetic', 'curious'],
                 cosmicAffinities: ['nebula', 'void'],
-                rarity: 0.25 // 25% of all creatures
+                rarity: 0.15 // Adjusted from 0.25 to accommodate new species
+            },
+
+            // New species - VoidStalker
+            voidStalker: {
+                baseColors: {
+                    body: [0x4A148C, 0x6A1B9A, 0x311B92], // Deep void purples
+                    wings: [0x7B1FA2, 0x9C27B0, 0x6A1B9A], // Dark purple wings
+                    eyes: [0xD500F9, 0xAA00FF, 0xE040FB]   // Glowing magenta eyes
+                },
+                bodyShape: { preferred: 'serpentine', variance: 0.4 },
+                wingType: 'ethereal',
+                personalityTendencies: ['wise', 'curious', 'gentle'],
+                cosmicAffinities: ['void', 'nebula'],
+                rarity: 0.15 // 15% of all creatures
+            },
+
+            // New species - CosmicGuardian
+            cosmicGuardian: {
+                baseColors: {
+                    body: [0x1A237E, 0x283593, 0x3949AB], // Deep cosmic blues
+                    wings: [0x5C6BC0, 0x7986CB, 0x9FA8DA], // Lighter blue wings
+                    eyes: [0xFFD54F, 0xFFB300, 0xFFA000]   // Golden guardian eyes
+                },
+                bodyShape: { preferred: 'quadruped', variance: 0.25 },
+                wingType: 'armored',
+                personalityTendencies: ['gentle', 'wise', 'energetic'],
+                cosmicAffinities: ['star', 'crystal'],
+                rarity: 0.12 // 12% of all creatures
+            },
+
+            // New species - AuroraPhoenix
+            auroraPhoenix: {
+                baseColors: {
+                    body: [0xFF6F00, 0xFF8F00, 0xFFB300], // Warm aurora oranges
+                    wings: [0xE91E63, 0xF06292, 0xF48FB1], // Pink fire wings
+                    eyes: [0x00BCD4, 0x00ACC1, 0x0097A7]   // Cool cyan eyes
+                },
+                bodyShape: { preferred: 'avian', variance: 0.35 },
+                wingType: 'flaming',
+                personalityTendencies: ['energetic', 'playful', 'curious'],
+                cosmicAffinities: ['star', 'nebula'],
+                rarity: 0.10 // 10% of all creatures
+            },
+
+            // New species - CrystalElemental
+            crystalElemental: {
+                baseColors: {
+                    body: [0x00BFA5, 0x1DE9B6, 0x64FFDA], // Teal crystal
+                    wings: [0xB2EBF2, 0xE0F7FA, 0xE1F5FE], // Icy wings
+                    eyes: [0xE040FB, 0xEA80FC, 0xCE93D8]   // Purple crystal eyes
+                },
+                bodyShape: { preferred: 'insectoid', variance: 0.3 },
+                wingType: 'crystal',
+                personalityTendencies: ['gentle', 'curious', 'wise'],
+                cosmicAffinities: ['crystal', 'moon'],
+                rarity: 0.08 // 8% of all creatures
             }
         };
         
@@ -148,13 +204,13 @@ class CreatureGenetics {
             }
         };
         
-        // Rarity distribution
+        // Rarity distribution - adjusted for more variety
         this.rarityWeights = {
-            common: 0.70,    // Standard variations
-            uncommon: 0.20,  // Enhanced features
-            rare: 0.07,      // Special markings  
-            epic: 0.02,      // High-tier variants
-            legendary: 0.01  // Unique variants
+            common: 0.45,    // Reduced from 0.70 - fewer plain creatures
+            uncommon: 0.30,  // Increased from 0.20 - more enhanced features
+            rare: 0.15,      // Increased from 0.07 - more special markings
+            epic: 0.07,      // Increased from 0.02 - more high-tier variants
+            legendary: 0.03  // Increased from 0.01 - more unique variants
         };
     }
 
@@ -281,12 +337,18 @@ class CreatureGenetics {
                 generation: 0,
                 familyTree: []
             },
+            // Shiny variant data (generated below)
+            isShiny: false,
+            shinyType: null,
             metadata: {
                 generationTime: Date.now() - startTime,
                 version: '1.0.0'
             }
         };
-        
+
+        // 7. Check for shiny variant (10% chance for testing)
+        this.applyShinyVariant(genetics);
+
         // Log genetics creation
         this.logGeneticsCreation(genetics);
         
@@ -400,10 +462,14 @@ class CreatureGenetics {
             accentColor = this.applyColorMutation(accentColor, rarity);
         }
 
-        // Final clamp ensures palette alignment after all mixes
-        primaryColor = this.clampToRarityPalette(primaryColor, rarityAnchors.swatchPool.primary, rarity);
-        secondaryColor = this.clampToRarityPalette(secondaryColor, rarityAnchors.swatchPool.secondary, rarity);
-        accentColor = this.clampToRarityPalette(accentColor, rarityAnchors.swatchPool.accent, rarity);
+        // Final clamp - only apply for common creatures to preserve unique colors in higher rarities
+        // This allows uncommon+ creatures to maintain their species-specific color variety
+        if (rarity === 'common') {
+            primaryColor = this.clampToRarityPalette(primaryColor, rarityAnchors.swatchPool.primary, rarity);
+            secondaryColor = this.clampToRarityPalette(secondaryColor, rarityAnchors.swatchPool.secondary, rarity);
+            accentColor = this.clampToRarityPalette(accentColor, rarityAnchors.swatchPool.accent, rarity);
+        }
+        // Higher rarities keep their unique, vibrant species colors
 
         const rarityEnhancement = this.getRarityColorEnhancement(rarity);
 
@@ -523,15 +589,16 @@ class CreatureGenetics {
     }
 
     getPaletteBlendRatio(rarity) {
+        // Increased ratios to let species colors show through more (more color variety)
         const ratios = {
-            common: 0.35,
-            uncommon: 0.3,
-            rare: 0.25,
-            epic: 0.22,
-            legendary: 0.18
+            common: 0.55,     // Was 0.35 - more species color influence
+            uncommon: 0.50,   // Was 0.30 - species colors more visible
+            rare: 0.45,       // Was 0.25 - nice balance of rarity + species
+            epic: 0.40,       // Was 0.22 - epic creatures show species traits
+            legendary: 0.35   // Was 0.18 - legendary still shows species identity
         };
 
-        return ratios[rarity] ?? 0.3;
+        return ratios[rarity] ?? 0.45;
     }
 
     clampToRarityPalette(color, palette, rarity) {
@@ -684,8 +751,9 @@ class CreatureGenetics {
      * @returns {Array} Array of wacky mutation objects
      */
     generateWackyMutations(rarity) {
-        // Wacky mutation types available
+        // Wacky mutation types available - expanded for more variety
         const wackyMutationTypes = [
+            // Original inanimate/surreal mutations
             'rock_texture',        // Craggy stone-like appearance
             'gem_body',            // Faceted, crystalline appearance
             'geometric_patterns',  // Angular impossible geometry
@@ -695,11 +763,30 @@ class CreatureGenetics {
             'inanimate_markings',  // Circuits, runes, gears, glyphs
             'surreal_appendages',  // Tentacles, ribbons, flames, shadows
             'void_patches',        // Dark, starry void areas
-            'prismatic_sheen'      // Rainbow/iridescent effects
+            'prismatic_sheen',     // Rainbow/iridescent effects
+
+            // New mechanical/steampunk mutations
+            'mechanical_parts',    // Visible gears, pistons, clockwork
+            'circuit_veins',       // Glowing circuit-like patterns
+
+            // New elemental/nature mutations
+            'elemental_aura',      // Fire, ice, or lightning aura effects
+            'plant_growth',        // Vines, flowers, moss growing on body
+            'bioluminescence',     // Glowing patches and spots
+
+            // New cosmic/ethereal mutations
+            'phantom_limbs',       // Ghostly translucent extra limbs
+            'cosmic_horns',        // Unique star/crystal horn formations
+            'nebula_trails',       // Trailing mist/nebula effects
+
+            // New creature enhancement mutations
+            'scale_armor',         // Visible armored scales
+            'feather_mane'         // Feathered crest or mane
         ];
 
-        // Variants for each mutation type
+        // Variants for each mutation type - expanded with new types
         const mutationVariants = {
+            // Original mutations
             rock_texture: ['rough', 'smooth', 'crystalline', 'volcanic'],
             gem_body: ['ruby', 'sapphire', 'emerald', 'amethyst', 'diamond'],
             geometric_patterns: ['triangles', 'hexagons', 'fractals', 'spirals'],
@@ -709,16 +796,34 @@ class CreatureGenetics {
             inanimate_markings: ['circuits', 'runes', 'gears', 'glyphs'],
             surreal_appendages: ['tentacles', 'ribbons', 'flames', 'shadows'],
             void_patches: ['small', 'medium', 'swirling', 'crackling'],
-            prismatic_sheen: ['rainbow', 'opalescent', 'oil_slick', 'aurora']
+            prismatic_sheen: ['rainbow', 'opalescent', 'oil_slick', 'aurora'],
+
+            // New mechanical mutations
+            mechanical_parts: ['gears', 'pistons', 'clockwork', 'pipes'],
+            circuit_veins: ['blue_glow', 'green_glow', 'gold_glow', 'pulsing'],
+
+            // New elemental mutations
+            elemental_aura: ['fire', 'ice', 'lightning', 'wind'],
+            plant_growth: ['vines', 'flowers', 'moss', 'leaves'],
+            bioluminescence: ['spots', 'stripes', 'patches', 'veins'],
+
+            // New cosmic mutations
+            phantom_limbs: ['arms', 'wings', 'tail', 'tendrils'],
+            cosmic_horns: ['star_tipped', 'crystal', 'spiral', 'branching'],
+            nebula_trails: ['misty', 'sparkling', 'flowing', 'swirling'],
+
+            // New creature mutations
+            scale_armor: ['dragon', 'fish', 'reptile', 'metallic'],
+            feather_mane: ['mohawk', 'flowing', 'spiked', 'royal']
         };
 
-        // Base chance increases with rarity
+        // Base chance increases with rarity - INCREASED for more variety
         const baseMutationChance = {
-            common: 0.05,      // 5% chance
-            uncommon: 0.10,    // 10% chance
-            rare: 0.18,        // 18% chance
-            epic: 0.25,        // 25% chance
-            legendary: 0.35    // 35% chance
+            common: 0.15,      // Was 0.05 - 3x increase for visible mutations
+            uncommon: 0.25,    // Was 0.10 - 2.5x increase
+            rare: 0.35,        // Was 0.18 - ~2x increase
+            epic: 0.45,        // Was 0.25 - ~2x increase
+            legendary: 0.55    // Was 0.35 - ~1.6x increase, guaranteed interesting
         };
 
         // Max mutations increases with rarity
@@ -1290,6 +1395,165 @@ class CreatureGenetics {
     validateGenetics(genetics) {
         const required = ['id', 'species', 'rarity', 'traits', 'personality', 'cosmicAffinity'];
         return required.every(field => genetics.hasOwnProperty(field));
+    }
+
+    /**
+     * Apply shiny variant to creature genetics (10% chance for testing)
+     * Creates visually distinct creatures with special effects
+     * @param {Object} genetics - The genetics object to potentially modify
+     */
+    applyShinyVariant(genetics) {
+        // 10% shiny chance (high for testing, reduce to 1-2% for production)
+        const SHINY_CHANCE = 0.10;
+
+        if (Math.random() > SHINY_CHANCE) {
+            return; // Not shiny
+        }
+
+        // Weighted shiny type selection
+        const shinyTypes = [
+            { type: 'sparkle', weight: 40 },    // Sparkle particle overlay
+            { type: 'chromatic', weight: 30 },  // 180deg hue shift + rainbow shimmer
+            { type: 'inverted', weight: 20 },   // Inverted color palette
+            { type: 'golden', weight: 10 }      // Gold overlay at 30% alpha
+        ];
+
+        const totalWeight = shinyTypes.reduce((sum, s) => sum + s.weight, 0);
+        let random = Math.random() * totalWeight;
+        let selectedType = 'sparkle'; // Default
+
+        for (const shinyType of shinyTypes) {
+            if (random < shinyType.weight) {
+                selectedType = shinyType.type;
+                break;
+            }
+            random -= shinyType.weight;
+        }
+
+        // Set shiny flags
+        genetics.isShiny = true;
+        genetics.shinyType = selectedType;
+
+        // Apply color modifications based on shiny type
+        const colorGenome = genetics.traits.colorGenome;
+
+        switch (selectedType) {
+            case 'sparkle':
+                // Sparkle: Increase shimmer, add sparkle flag
+                colorGenome.shimmerIntensity = Math.min(1.0, colorGenome.shimmerIntensity + 0.4);
+                colorGenome.hasSparkle = true;
+                colorGenome.sparkleColor = 0xFFFFFF; // White sparkles
+                colorGenome.sparkleIntensity = 0.8;
+                break;
+
+            case 'chromatic':
+                // Chromatic: 180° hue shift on all colors + rainbow shimmer
+                colorGenome.primary = this.shiftHue(colorGenome.primary, 180);
+                colorGenome.secondary = this.shiftHue(colorGenome.secondary, 180);
+                colorGenome.accent = this.shiftHue(colorGenome.accent, 180);
+                colorGenome.hasRainbowShimmer = true;
+                colorGenome.rainbowSpeed = 0.5 + Math.random() * 0.5; // 0.5-1.0
+                colorGenome.shimmerIntensity = Math.min(1.0, colorGenome.shimmerIntensity + 0.3);
+                break;
+
+            case 'inverted':
+                // Inverted: Invert all color values
+                colorGenome.primary = this.invertColor(colorGenome.primary);
+                colorGenome.secondary = this.invertColor(colorGenome.secondary);
+                colorGenome.accent = this.invertColor(colorGenome.accent);
+                colorGenome.isInverted = true;
+                colorGenome.shimmerIntensity = Math.min(1.0, colorGenome.shimmerIntensity + 0.2);
+                break;
+
+            case 'golden':
+                // Golden: Blend all colors toward gold with 30% alpha overlay
+                const goldColor = 0xFFD700;
+                colorGenome.primary = this.blendColors(colorGenome.primary, goldColor, 0.3);
+                colorGenome.secondary = this.blendColors(colorGenome.secondary, goldColor, 0.3);
+                colorGenome.accent = this.blendColors(colorGenome.accent, 0xFFF8DC, 0.25); // Lighter gold for accent
+                colorGenome.overlay = {
+                    color: goldColor,
+                    alpha: 0.3,
+                    type: 'golden'
+                };
+                colorGenome.shimmerIntensity = Math.min(1.0, colorGenome.shimmerIntensity + 0.35);
+                break;
+        }
+
+        // Log shiny generation
+        console.log(`genetics:info [CreatureGenetics] ✨ SHINY ${selectedType.toUpperCase()} creature generated!`, {
+            species: genetics.species,
+            rarity: genetics.rarity,
+            shinyType: selectedType
+        });
+
+        // Emit shiny event for celebrations/achievements
+        if (window.GameState && typeof window.GameState.emit === 'function') {
+            window.GameState.emit('creature/shiny_generated', {
+                species: genetics.species,
+                rarity: genetics.rarity,
+                shinyType: selectedType,
+                timestamp: Date.now()
+            });
+        }
+    }
+
+    /**
+     * Shift hue of a color by specified degrees
+     * @param {number} color - RGB color as integer
+     * @param {number} degrees - Degrees to shift (0-360)
+     * @returns {number} New color with shifted hue
+     */
+    shiftHue(color, degrees) {
+        const hsl = this.rgbToHsl(color);
+        hsl.h = (hsl.h + degrees) % 360;
+        if (hsl.h < 0) hsl.h += 360;
+        return this.hslToRgb(hsl.h, hsl.s, hsl.l);
+    }
+
+    /**
+     * Invert a color (255 - each channel)
+     * @param {number} color - RGB color as integer
+     * @returns {number} Inverted color
+     */
+    invertColor(color) {
+        const r = 255 - ((color >> 16) & 0xFF);
+        const g = 255 - ((color >> 8) & 0xFF);
+        const b = 255 - (color & 0xFF);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    /**
+     * Convert HSL to RGB
+     * @param {number} h - Hue (0-360)
+     * @param {number} s - Saturation (0-1)
+     * @param {number} l - Lightness (0-1)
+     * @returns {number} RGB color as integer
+     */
+    hslToRgb(h, s, l) {
+        h = h / 360;
+        let r, g, b;
+
+        if (s === 0) {
+            r = g = b = l;
+        } else {
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1;
+                if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1/3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1/3);
+        }
+
+        return (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
     }
 }
 
