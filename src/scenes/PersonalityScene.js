@@ -898,6 +898,59 @@ class PersonalityScene extends Phaser.Scene {
             this.revealed = true;
         }
     }
+
+    /**
+     * Clean up resources when scene shuts down
+     * Prevents memory leaks by removing all event listeners and references
+     */
+    shutdown() {
+        console.log('[PersonalityScene] Shutting down - cleaning up resources');
+
+        // Remove keyboard listeners
+        if (this.input && this.input.keyboard) {
+            this.input.keyboard.removeKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+            this.input.keyboard.removeKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+        }
+
+        // Clear all timers
+        if (this.time) {
+            this.time.removeAllEvents();
+        }
+
+        // Destroy all tweens
+        if (this.tweens) {
+            this.tweens.killAll();
+        }
+
+        // Clean up tutorial hint if exists
+        if (this.tutorialHintText) {
+            this.tutorialHintText.destroy();
+            this.tutorialHintText = null;
+        }
+
+        // Clean up UI elements
+        if (this.creature) {
+            this.creature.destroy();
+            this.creature = null;
+        }
+
+        // Null out references
+        this.graphicsEngine = null;
+        this.creatureGenetics = null;
+        this.creatureDNA = null;
+        this.creatureData = null;
+        this.panel = null;
+        this.titleText = null;
+        this.rarityBadge = null;
+        this.soulTitle = null;
+        this.soulDesc = null;
+        this.cosmicTitle = null;
+        this.cosmicDesc = null;
+        this.formTitle = null;
+        this.formDesc = null;
+
+        console.log('[PersonalityScene] Cleanup complete');
+    }
 }
 
 export default PersonalityScene;

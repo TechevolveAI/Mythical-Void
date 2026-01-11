@@ -346,24 +346,6 @@ class ResponsiveManager {
     // The legacy DOM-based virtual control methods have been removed.
 
     /**
-     * Emit joystick event
-     */
-    emitJoystickEvent(x, y) {
-        if (!this.game || !this.game.events) return;
-        
-        this.game.events.emit('virtual-joystick', { x, y });
-    }
-
-    /**
-     * Emit virtual key event
-     */
-    emitKeyEvent(key, type) {
-        if (!this.game || !this.game.events) return;
-        
-        this.game.events.emit('virtual-key', { key, type });
-    }
-
-    /**
      * Set up touch to mouse event mapping
      */
     setupTouchToMouse() {
