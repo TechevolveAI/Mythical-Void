@@ -6643,18 +6643,8 @@ class GameScene extends Phaser.Scene {
 
         // SECRET: Shift+Ctrl+L = Cycle lifecycle stages
         this.input.keyboard.on('keydown-L', () => {
-            if (shiftHeld && ctrlHeld && window.GameState) {
-                const stageOrder = ['baby', 'juvenile', 'adult', 'elder'];
-                this.ownerStageIndex = (this.ownerStageIndex + 1) % stageOrder.length;
-                const newStage = stageOrder[this.ownerStageIndex];
-
-                window.GameState.set('creature.lifecycle.stage', newStage);
-                window.GameState.set('creature.lifecycle.lastStageChange', Date.now());
-                this.refreshCreatureDisplay();
-
-                const stageIcons = { baby: '🐣', juvenile: '🌱', adult: '✨', elder: '👑' };
-                this.showSecretCheatFeedback(`${stageIcons[newStage]} ${newStage}`, '#E040FB');
-                window.AudioManager?.playLevelUp?.();
+            if (shiftHeld && ctrlHeld) {
+                this.cheatCycleStage(); // Use shared method that updates creatures array
             }
         });
 
@@ -6885,8 +6875,22 @@ class GameScene extends Phaser.Scene {
             this.ownerStageIndex = ((this.ownerStageIndex || 0) + 1) % stageOrder.length;
             const newStage = stageOrder[this.ownerStageIndex];
 
+            // Update active creature slot
             window.GameState.set('creature.lifecycle.stage', newStage);
             window.GameState.set('creature.lifecycle.lastStageChange', Date.now());
+
+            // ALSO update the creature in the creatures array (for breeding eligibility)
+            const creatures = window.GameState.get('creatures') || [];
+            const activeIndex = window.GameState.get('activeCreatureIndex') || 0;
+            if (creatures[activeIndex]) {
+                if (!creatures[activeIndex].lifecycle) {
+                    creatures[activeIndex].lifecycle = {};
+                }
+                creatures[activeIndex].lifecycle.stage = newStage;
+                creatures[activeIndex].lifecycle.lastStageChange = Date.now();
+                window.GameState.set('creatures', creatures);
+            }
+
             this.refreshCreatureDisplay();
 
             const stageIcons = { baby: '🐣', juvenile: '🌱', adult: '✨', elder: '👑' };

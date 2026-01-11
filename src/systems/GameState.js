@@ -589,6 +589,7 @@ class GameStateManager {
             hatchTime: this.get('creature.hatchTime') || Date.now(),
             cosmicAffinity: this.get('creature.genes')?.cosmicAffinity?.element || null,
             rarity: this.get('creature.genes')?.rarity || 'common',
+            lifecycle: { ...this.get('creature.lifecycle') }, // Include lifecycle for breeding eligibility
             addedAt: Date.now()
         };
 
