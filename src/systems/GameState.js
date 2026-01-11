@@ -622,6 +622,15 @@ class GameStateManager {
         this.emit('creatureAddedToCollection', { creature, index: creatures.length - 1 });
         console.log(`[GameState] Creature "${creature.name}" added to collection (${creatures.length}/${maxCreatures})`);
 
+        // Check if breeding just became unlocked (2+ creatures)
+        if (creatures.length === 2 && !this.get('tutorial.breedingUnlockSeen')) {
+            console.log('[GameState] Breeding unlocked! Player now has 2 creatures.');
+            this.emit('breedingUnlocked', {
+                creatureCount: creatures.length,
+                creatures: creatures.map(c => ({ name: c.name, id: c.id }))
+            });
+        }
+
         return true;
     }
 

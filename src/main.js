@@ -9,8 +9,11 @@ import GameScene from './scenes/GameScene.js';
 import ShopScene from './scenes/ShopScene.js';
 import InventoryScene from './scenes/InventoryScene.js';
 import BreedingShrineScene from './scenes/BreedingShrineScene.js';
+import BreedingHatchScene from './scenes/BreedingHatchScene.js';
 import HubWorldScene from './scenes/HubWorldScene.js';
 import CreatureProfileScene from './scenes/CreatureProfileScene.js';
+import WelcomeBackScene from './scenes/WelcomeBackScene.js';
+import VoidMiniGameScene from './scenes/VoidMiniGameScene.js';
 import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
 import CrystalCavesLevel from './scenes/levels/CrystalCavesLevel.js';
 import kidModeConfig from './config/kid-mode.json';
@@ -306,7 +309,7 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, BreedingShrineScene, HubWorldScene, CreatureProfileScene, PlatformerLevelScene, CrystalCavesLevel],
+            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, BreedingShrineScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, PlatformerLevelScene, CrystalCavesLevel],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,

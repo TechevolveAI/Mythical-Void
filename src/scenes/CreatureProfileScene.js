@@ -147,10 +147,16 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
         // Create info sections
         currentY = this.createBasicInfoSection(creatureData, currentY);
+        currentY = this.createHeritageSection(creatureData, currentY);
         currentY = this.createLifecycleSection(creatureData, currentY);
         currentY = this.createStatsSection(creatureData, currentY);
         currentY = this.createPersonalitySection(creatureData, currentY);
         currentY = this.createEvolutionHistorySection(creatureData, currentY);
+
+        // Dev tools section (only in development mode)
+        if (import.meta.env.DEV) {
+            currentY = this.createDevToolsSection(creatureData, currentY);
+        }
 
         // Calculate max scroll
         this.maxScroll = Math.max(0, currentY - height + 100);
@@ -198,7 +204,24 @@ export default class CreatureProfileScene extends Phaser.Scene {
             mood: gs.get('creature.mood.current') || 'happy',
 
             // Texture
-            textureName: gs.get('creature.textureName')
+            textureName: gs.get('creature.textureName'),
+
+            // Heritage/Lineage (for bred creatures)
+            isOffspring: gs.get('creature.isOffspring') || false,
+            generation: gs.get('creature.generation') || 1,
+            parentIds: gs.get('creature.parentIds') || [],
+            offspringBonus: gs.get('creature.offspringBonus'),
+
+            // Birth events and secret abilities
+            birthEvents: gs.get('creature.birthEvents') || [],
+            secretAbilities: gs.get('creature.secretAbilities') || [],
+            isShiny: gs.get('creature.isShiny') || false,
+            hasDualAffinity: gs.get('creature.hasDualAffinity') || false,
+            dualAffinity: gs.get('creature.dualAffinity') || null,
+
+            // Ancient Lineage
+            hasAncientLineage: gs.get('creature.hasAncientLineage') || false,
+            ancientProphecy: gs.get('creature.ancientProphecy') || null
         };
     }
 
@@ -343,6 +366,490 @@ export default class CreatureProfileScene extends Phaser.Scene {
         });
 
         return startY + Math.ceil(infoItems.length / itemsPerRow) * 50 + 10;
+    }
+
+    /**
+     * Create heritage/lineage section for bred creatures
+     * Shows family tree, parents, generation, and bloodline bonuses
+     */
+    createHeritageSection(data, startY) {
+        const { width } = this.scale;
+        const padding = this.isMobile ? 16 : 24;
+
+        // Only show if creature is an offspring or generation > 1
+        if (!data.isOffspring && data.generation <= 1) {
+            return startY;
+        }
+
+        startY += 20;
+
+        const header = this.createSectionHeader('🧬 Heritage & Bloodline', startY);
+        startY = header.y + 30;
+
+        // Generation badge (prominent)
+        const genBadgeWidth = 120;
+        const genBadgeHeight = 40;
+        const genBadgeX = width / 2 - genBadgeWidth / 2;
+
+        const genBadge = this.add.graphics();
+        genBadge.fillStyle(0x4B0082, 0.9);
+        genBadge.fillRoundedRect(genBadgeX, startY, genBadgeWidth, genBadgeHeight, 10);
+        genBadge.lineStyle(2, 0xFFD700, 1);
+        genBadge.strokeRoundedRect(genBadgeX, startY, genBadgeWidth, genBadgeHeight, 10);
+        genBadge.setDepth(11);
+        this.elements.push(genBadge);
+
+        const genText = this.add.text(width / 2, startY + genBadgeHeight / 2, `Generation ${data.generation}`, {
+            fontSize: this.isMobile ? '16px' : '18px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(12);
+        this.elements.push(genText);
+
+        startY += genBadgeHeight + 20;
+
+        // Family Tree Visualization
+        startY = this.createFamilyTreeDisplay(data, startY, padding, width);
+
+        // Bloodline Bonuses (if any)
+        if (data.offspringBonus) {
+            startY += 15;
+
+            const bonusHeader = this.add.text(padding, startY, '✨ Bloodline Bonuses', {
+                fontSize: this.isMobile ? '14px' : '16px',
+                color: '#88FF88',
+                fontStyle: 'bold'
+            }).setDepth(11);
+            this.elements.push(bonusHeader);
+
+            startY += 25;
+
+            // Cosmic Power bonus
+            if (data.offspringBonus.cosmicPower && data.offspringBonus.cosmicPower > 1) {
+                const powerBonus = Math.round((data.offspringBonus.cosmicPower - 1) * 100);
+                const bonusText = this.add.text(padding + 15, startY, `💫 +${powerBonus}% Cosmic Power`, {
+                    fontSize: '14px',
+                    color: '#AAFFAA'
+                }).setDepth(11);
+                this.elements.push(bonusText);
+                startY += 22;
+            }
+
+            // Description
+            if (data.offspringBonus.description) {
+                const descText = this.add.text(padding + 15, startY, `🎖️ ${data.offspringBonus.description}`, {
+                    fontSize: '14px',
+                    color: '#88CCFF'
+                }).setDepth(11);
+                this.elements.push(descText);
+                startY += 22;
+            }
+        }
+
+        // Generation benefits explanation
+        startY += 10;
+        const benefitText = this.add.text(padding, startY,
+            `Higher generations gain stronger cosmic abilities!\nGen ${data.generation} creatures earn +${(data.generation - 1) * 5}% experience.`, {
+            fontSize: '12px',
+            color: '#888888',
+            wordWrap: { width: width - padding * 2 }
+        }).setDepth(11);
+        this.elements.push(benefitText);
+        startY += 45;
+
+        // BIRTH EVENTS: Display special events that occurred at birth
+        if (data.birthEvents && data.birthEvents.length > 0) {
+            const eventHeader = this.add.text(padding, startY, '🎊 Birth Events', {
+                fontSize: this.isMobile ? '14px' : '16px',
+                color: '#FFD700',
+                fontStyle: 'bold'
+            }).setDepth(11);
+            this.elements.push(eventHeader);
+            startY += 25;
+
+            data.birthEvents.forEach(event => {
+                const eventText = this.add.text(padding + 15, startY, event.message || event.name, {
+                    fontSize: '13px',
+                    color: this.getBirthEventColor(event.rarity)
+                }).setDepth(11);
+                this.elements.push(eventText);
+                startY += 20;
+            });
+
+            startY += 10;
+        }
+
+        // SECRET ABILITIES: Display unlocked special abilities
+        if (data.secretAbilities && data.secretAbilities.length > 0) {
+            const abilityHeader = this.add.text(padding, startY, '🌟 Secret Abilities', {
+                fontSize: this.isMobile ? '14px' : '16px',
+                color: '#FF69B4',
+                fontStyle: 'bold'
+            }).setDepth(11);
+            this.elements.push(abilityHeader);
+            startY += 25;
+
+            data.secretAbilities.forEach(ability => {
+                const abilityRow = this.add.text(padding + 15, startY, `${ability.icon || '⭐'} ${ability.name}`, {
+                    fontSize: '13px',
+                    color: '#E0BBE4',
+                    fontStyle: 'bold'
+                }).setDepth(11);
+                this.elements.push(abilityRow);
+                startY += 18;
+
+                // Show ability description
+                if (ability.description) {
+                    const descText = this.add.text(padding + 30, startY, ability.description, {
+                        fontSize: '11px',
+                        color: '#AAAAAA',
+                        wordWrap: { width: width - padding * 2 - 30 }
+                    }).setDepth(11);
+                    this.elements.push(descText);
+                    startY += 18;
+                }
+            });
+
+            startY += 10;
+        }
+
+        // ANCIENT LINEAGE: Show prophecy for ancient creatures
+        if (data.hasAncientLineage && data.ancientProphecy) {
+            startY += 5;
+            const ancientHeader = this.add.text(padding, startY, '🌌 Ancient Lineage', {
+                fontSize: this.isMobile ? '14px' : '16px',
+                color: '#9B59B6',
+                fontStyle: 'bold'
+            }).setDepth(11);
+            this.elements.push(ancientHeader);
+            startY += 25;
+
+            const prophecyText = this.add.text(padding + 15, startY, `"${data.ancientProphecy}"`, {
+                fontSize: '12px',
+                color: '#DDA0DD',
+                fontStyle: 'italic',
+                wordWrap: { width: width - padding * 2 - 30 }
+            }).setDepth(11);
+            this.elements.push(prophecyText);
+            startY += prophecyText.height + 15;
+        }
+
+        // SHINY indicator
+        if (data.isShiny) {
+            const shinyBadge = this.add.text(padding, startY, '✨ SHINY CREATURE ✨', {
+                fontSize: '14px',
+                color: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setDepth(11);
+            this.elements.push(shinyBadge);
+            startY += 25;
+        }
+
+        // DUAL AFFINITY display
+        if (data.hasDualAffinity && data.dualAffinity) {
+            const affinityIcons = {
+                star: '⭐', moon: '🌙', nebula: '🌌', crystal: '💎', void: '🕳️'
+            };
+            const icon1 = affinityIcons[data.dualAffinity.primary] || '✨';
+            const icon2 = affinityIcons[data.dualAffinity.secondary] || '✨';
+
+            const dualText = this.add.text(padding, startY,
+                `${icon1} ${icon2} Dual Affinity: ${data.dualAffinity.primary} + ${data.dualAffinity.secondary}`, {
+                fontSize: '14px',
+                color: '#88CCFF',
+                fontStyle: 'bold'
+            }).setDepth(11);
+            this.elements.push(dualText);
+            startY += 25;
+        }
+
+        return startY + 10;
+    }
+
+    /**
+     * Get color for birth event based on rarity
+     */
+    getBirthEventColor(rarity) {
+        const colors = {
+            common: '#AAAAAA',
+            uncommon: '#00FF00',
+            rare: '#0088FF',
+            ultraRare: '#FF00FF',
+            legendary: '#FFD700'
+        };
+        return colors[rarity] || '#FFFFFF';
+    }
+
+    /**
+     * Create family tree visualization showing parents and lineage
+     */
+    createFamilyTreeDisplay(data, startY, padding, width) {
+        // Get parent data from collection
+        const collection = window.GameState?.get('creatures') || [];
+        const parentIds = data.parentIds || [];
+
+        // Find parent creatures in collection
+        const parent1 = parentIds[0] ? this.findCreatureById(parentIds[0], collection) : null;
+        const parent2 = parentIds[1] ? parentIds[1] !== parentIds[0] ? this.findCreatureById(parentIds[1], collection) : null : null;
+
+        if (!parent1 && !parent2 && parentIds.length === 0) {
+            // No parent info available - show origin info
+            const originText = this.add.text(width / 2, startY, '🥚 Hatched from Egg', {
+                fontSize: '14px',
+                color: '#AAAAAA'
+            }).setOrigin(0.5).setDepth(11);
+            this.elements.push(originText);
+            return startY + 30;
+        }
+
+        // Family tree header
+        const treeHeader = this.add.text(width / 2, startY, '👪 Family Tree', {
+            fontSize: this.isMobile ? '14px' : '16px',
+            color: '#E6E6FA',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(11);
+        this.elements.push(treeHeader);
+
+        startY += 30;
+
+        // Parents row
+        const parentWidth = (width - padding * 3) / 2;
+        const parentHeight = 80;
+
+        // Draw connecting lines (family tree structure)
+        const lineGraphics = this.add.graphics();
+        lineGraphics.lineStyle(2, 0x7B68EE, 0.6);
+
+        // Parent 1 card
+        const p1X = padding;
+        this.createParentCard(p1X, startY, parentWidth, parentHeight, parent1, parentIds[0], '💜');
+
+        // Parent 2 card
+        const p2X = width - padding - parentWidth;
+        this.createParentCard(p2X, startY, parentWidth, parentHeight, parent2, parentIds[1], '💙');
+
+        // Draw connecting lines
+        const centerX = width / 2;
+        const connectY = startY + parentHeight + 10;
+
+        // Lines from parents to center
+        lineGraphics.lineBetween(p1X + parentWidth / 2, startY + parentHeight, centerX, connectY);
+        lineGraphics.lineBetween(p2X + parentWidth / 2, startY + parentHeight, centerX, connectY);
+
+        // Line from center down to "You" indicator
+        lineGraphics.lineBetween(centerX, connectY, centerX, connectY + 25);
+
+        lineGraphics.setDepth(10);
+        this.elements.push(lineGraphics);
+
+        startY += parentHeight + 15;
+
+        // "You" indicator (offspring - current creature) with gold border
+        const youPortraitRadius = 20;
+        const youPortraitY = startY + 25;
+
+        // Gold portrait circle background for current creature
+        const youPortraitBg = this.add.graphics();
+        youPortraitBg.fillStyle(0x1A1A3E, 0.9);
+        youPortraitBg.fillCircle(centerX, youPortraitY, youPortraitRadius + 4);
+        youPortraitBg.lineStyle(3, 0xFFD700, 1); // Gold border for current creature
+        youPortraitBg.strokeCircle(centerX, youPortraitY, youPortraitRadius + 4);
+        youPortraitBg.setDepth(11);
+        this.elements.push(youPortraitBg);
+
+        // Render mini creature portrait
+        if (data.genes && this.graphicsEngine) {
+            try {
+                const textureName = data.textureName || window.GameState?.get('creature.textureName');
+                if (textureName && this.textures.exists(textureName)) {
+                    const portrait = this.add.sprite(centerX, youPortraitY, textureName);
+                    portrait.setScale(0.3);
+                    portrait.setDepth(12);
+                    this.elements.push(portrait);
+                } else {
+                    // Generate texture
+                    const { textureName: newTexture } = this.graphicsEngine.createRandomizedSpaceMythicCreature(
+                        data.genes, 0, data.stage || 'adult'
+                    );
+                    const portrait = this.add.sprite(centerX, youPortraitY, newTexture);
+                    portrait.setScale(0.3);
+                    portrait.setDepth(12);
+                    this.elements.push(portrait);
+                }
+            } catch (e) {
+                // Fallback to star emoji
+                const youEmoji = this.add.text(centerX, youPortraitY, '⭐', {
+                    fontSize: '18px'
+                }).setOrigin(0.5).setDepth(12);
+                this.elements.push(youEmoji);
+            }
+        } else {
+            const youEmoji = this.add.text(centerX, youPortraitY, '⭐', {
+                fontSize: '18px'
+            }).setOrigin(0.5).setDepth(12);
+            this.elements.push(youEmoji);
+        }
+
+        // "You" label with name
+        const youText = this.add.text(centerX, youPortraitY + youPortraitRadius + 12, data.name, {
+            fontSize: '12px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(12);
+        this.elements.push(youText);
+
+        // Current creature badge
+        const currentBadge = this.add.text(centerX, youPortraitY + youPortraitRadius + 26, '(You)', {
+            fontSize: '10px',
+            color: '#88FF88'
+        }).setOrigin(0.5).setDepth(12);
+        this.elements.push(currentBadge);
+
+        return startY + 70;
+    }
+
+    /**
+     * Create a parent card for the family tree with mini creature portrait
+     */
+    createParentCard(x, y, width, height, parentData, parentId, emoji) {
+        // Card background
+        const cardBg = this.add.graphics();
+        cardBg.fillStyle(0x2A1A4E, 0.9);
+        cardBg.fillRoundedRect(x, y, width, height, 10);
+        cardBg.lineStyle(1, 0x7B68EE, 0.6);
+        cardBg.strokeRoundedRect(x, y, width, height, 10);
+        cardBg.setDepth(11);
+        this.elements.push(cardBg);
+
+        const centerX = x + width / 2;
+        const portraitRadius = 22;
+
+        if (parentData) {
+            // Parent found - show details
+            const rarity = parentData.rarity || parentData.genes?.rarity || 'common';
+            const rarityColor = this.getRarityColorHex(rarity);
+            const rarityColorNum = this.getRarityColor(rarity);
+
+            // Mini creature portrait circle
+            const portraitY = y + 28;
+            const portraitBg = this.add.graphics();
+            portraitBg.fillStyle(0x1A1A3E, 0.9);
+            portraitBg.fillCircle(centerX, portraitY, portraitRadius + 3);
+            portraitBg.lineStyle(2, rarityColorNum, 0.9); // Rarity-colored border
+            portraitBg.strokeCircle(centerX, portraitY, portraitRadius + 3);
+            portraitBg.setDepth(12);
+            this.elements.push(portraitBg);
+
+            // Try to render mini creature if we have genetics
+            if (parentData.genes && this.graphicsEngine) {
+                try {
+                    const { textureName } = this.graphicsEngine.createRandomizedSpaceMythicCreature(
+                        parentData.genes, 0, 'adult'
+                    );
+                    const portrait = this.add.sprite(centerX, portraitY, textureName);
+                    portrait.setScale(0.35);
+                    portrait.setDepth(13);
+                    this.elements.push(portrait);
+                } catch (e) {
+                    // Fallback to emoji
+                    const emojiText = this.add.text(centerX, portraitY, emoji, {
+                        fontSize: '20px'
+                    }).setOrigin(0.5).setDepth(13);
+                    this.elements.push(emojiText);
+                }
+            } else {
+                // Emoji fallback when no genetics
+                const emojiText = this.add.text(centerX, portraitY, emoji, {
+                    fontSize: '20px'
+                }).setOrigin(0.5).setDepth(13);
+                this.elements.push(emojiText);
+            }
+
+            // Rarity dot indicator
+            const dotX = centerX + portraitRadius;
+            const dotY = portraitY - portraitRadius + 5;
+            const dotBg = this.add.graphics();
+            dotBg.fillStyle(rarityColorNum, 1);
+            dotBg.fillCircle(dotX, dotY, 6);
+            dotBg.lineStyle(1, 0xFFFFFF, 0.8);
+            dotBg.strokeCircle(dotX, dotY, 6);
+            dotBg.setDepth(14);
+            this.elements.push(dotBg);
+
+            // Parent name (below portrait)
+            const nameText = this.add.text(centerX, y + 55, parentData.name || 'Unknown', {
+                fontSize: '12px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(12);
+            this.elements.push(nameText);
+
+            // Rarity + Generation
+            const gen = parentData.generation || 1;
+            const infoText = this.add.text(centerX, y + 70, `${rarity.charAt(0).toUpperCase() + rarity.slice(1)} • Gen ${gen}`, {
+                fontSize: '9px',
+                color: rarityColor
+            }).setOrigin(0.5).setDepth(12);
+            this.elements.push(infoText);
+        } else {
+            // Parent not found (may have been released or data lost)
+            const portraitY = y + 28;
+            const portraitBg = this.add.graphics();
+            portraitBg.fillStyle(0x1A1A3E, 0.9);
+            portraitBg.fillCircle(centerX, portraitY, portraitRadius + 3);
+            portraitBg.lineStyle(2, 0x444444, 0.6);
+            portraitBg.strokeCircle(centerX, portraitY, portraitRadius + 3);
+            portraitBg.setDepth(12);
+            this.elements.push(portraitBg);
+
+            const unknownEmoji = this.add.text(centerX, portraitY, '❓', {
+                fontSize: '22px'
+            }).setOrigin(0.5).setDepth(13);
+            this.elements.push(unknownEmoji);
+
+            const unknownText = this.add.text(centerX, y + 55, 'Unknown', {
+                fontSize: '11px',
+                color: '#666666'
+            }).setOrigin(0.5).setDepth(12);
+            this.elements.push(unknownText);
+
+            if (parentId) {
+                const idText = this.add.text(centerX, y + 70, `ID: ${parentId.slice(-6)}`, {
+                    fontSize: '8px',
+                    color: '#444444'
+                }).setOrigin(0.5).setDepth(12);
+                this.elements.push(idText);
+            }
+        }
+    }
+
+    /**
+     * Get rarity color as number (for graphics)
+     */
+    getRarityColor(rarity) {
+        const colors = {
+            common: 0x4CAF50,
+            uncommon: 0x03A9F4,
+            rare: 0xE91E63,
+            epic: 0x9C27B0,
+            legendary: 0xFFD700
+        };
+        return colors[rarity] || colors.common;
+    }
+
+    /**
+     * Find a creature by ID in the collection
+     */
+    findCreatureById(id, collection) {
+        if (!id || !collection) return null;
+
+        return collection.find(c =>
+            c.id === id ||
+            c.genes?.id === id ||
+            c.dna?.id === id
+        );
     }
 
     createLifecycleSection(data, startY) {
@@ -499,15 +1006,52 @@ export default class CreatureProfileScene extends Phaser.Scene {
                     window.AudioManager.playButtonClick();
                 }
 
-                // Update GameState
+                // Calculate birth date for this stage
+                const stageDays = { baby: 0, juvenile: 1, adult: 3, elder: 10 };
+                const daysNeeded = stageDays[stage] || 0;
+                const newBirthDate = Date.now() - (daysNeeded * 24 * 60 * 60 * 1000);
+
+                // Update active creature's GameState
                 window.GameState?.set('creature.lifecycle.stage', stage);
+                window.GameState?.set('creature.lifecycle.birthDate', newBirthDate);
+                window.GameState?.set('creature.lifecycle.lastStageChange', Date.now());
 
                 // Update visual days (approximate for each stage)
-                const stageDays = { baby: 1, juvenile: 4, adult: 10, elder: 35 };
-                window.GameState?.set('creature.lifecycle.daysAlive', stageDays[stage]);
+                const visualDays = { baby: 1, juvenile: 4, adult: 10, elder: 35 };
+                window.GameState?.set('creature.lifecycle.daysAlive', visualDays[stage]);
 
                 // Clear cached texture to force regeneration
                 window.GameState?.set('creature.textureName', null);
+
+                // CRITICAL: Also sync to creatures collection for breeding system
+                const activeCreatureId = window.GameState?.get('creature.genes.id') ||
+                                         window.GameState?.get('creature.dna.id');
+                const collection = window.GameState?.get('creatures') || [];
+
+                if (activeCreatureId && collection.length > 0) {
+                    // Find and update the creature in collection
+                    const creatureIndex = collection.findIndex(c =>
+                        c.id === activeCreatureId ||
+                        c.genes?.id === activeCreatureId ||
+                        c.dna?.id === activeCreatureId
+                    );
+
+                    if (creatureIndex >= 0) {
+                        // Update lifecycle in collection
+                        if (!collection[creatureIndex].lifecycle) {
+                            collection[creatureIndex].lifecycle = { evolutionHistory: [] };
+                        }
+                        collection[creatureIndex].lifecycle.stage = stage;
+                        collection[creatureIndex].lifecycle.birthDate = newBirthDate;
+                        collection[creatureIndex].lifecycle.lastStageChange = Date.now();
+
+                        window.GameState?.set('creatures', collection);
+                        console.log(`[CreatureProfileScene] DEV: Synced stage to collection creature at index ${creatureIndex}`);
+                    }
+                }
+
+                // Save and restart
+                window.GameState?.save?.();
 
                 // Slight delay to prevent sticky pointer state, then restart
                 this.time.delayedCall(50, () => {
@@ -679,6 +1223,157 @@ export default class CreatureProfileScene extends Phaser.Scene {
         });
 
         return startY + history.length * 25 + 20;
+    }
+
+    /**
+     * Create dev tools section for testing (only visible in dev mode)
+     * Allows quick age advancement for breeding testing
+     */
+    createDevToolsSection(data, startY) {
+        const { width } = this.scale;
+        const padding = this.isMobile ? 16 : 24;
+
+        startY += 30;
+
+        // Header with warning styling
+        const header = this.add.text(width / 2, startY, '🔧 DEV TOOLS', {
+            fontSize: '16px',
+            color: '#FF6B6B',
+            fontStyle: 'bold',
+            backgroundColor: '#2A1A1A',
+            padding: { x: 15, y: 5 }
+        }).setOrigin(0.5).setDepth(11);
+        this.elements.push(header);
+
+        startY += 40;
+
+        // Current stage display
+        const currentStage = data.lifecycle?.stage || 'unknown';
+        const stageText = this.add.text(width / 2, startY, `Current Stage: ${currentStage.toUpperCase()}`, {
+            fontSize: '14px',
+            color: '#AAAAAA'
+        }).setOrigin(0.5).setDepth(11);
+        this.elements.push(stageText);
+
+        startY += 30;
+
+        // Age buttons
+        const stages = ['baby', 'juvenile', 'adult', 'elder'];
+        const buttonWidth = 70;
+        const buttonSpacing = 10;
+        const totalWidth = (buttonWidth * 4) + (buttonSpacing * 3);
+        let buttonX = (width - totalWidth) / 2;
+
+        stages.forEach(stage => {
+            const isCurrentStage = stage === currentStage;
+            const buttonColor = isCurrentStage ? 0x228B22 : 0x4A4A6E;
+            const textColor = isCurrentStage ? '#00FF00' : '#FFFFFF';
+
+            const btn = this.add.graphics();
+            btn.fillStyle(buttonColor, 0.9);
+            btn.fillRoundedRect(buttonX, startY, buttonWidth, 35, 8);
+            btn.lineStyle(2, isCurrentStage ? 0x00FF00 : 0x7B68EE, 0.8);
+            btn.strokeRoundedRect(buttonX, startY, buttonWidth, 35, 8);
+            btn.setDepth(11);
+            this.elements.push(btn);
+
+            const btnText = this.add.text(buttonX + buttonWidth / 2, startY + 17, stage.charAt(0).toUpperCase() + stage.slice(1), {
+                fontSize: '12px',
+                color: textColor,
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(12);
+            this.elements.push(btnText);
+
+            // Make interactive
+            const hitZone = this.add.zone(buttonX + buttonWidth / 2, startY + 17, buttonWidth, 35);
+            hitZone.setInteractive({ useHandCursor: true });
+            hitZone.setDepth(13);
+
+            hitZone.on('pointerdown', () => {
+                if (window.DevTools) {
+                    window.DevTools.ageCreature(stage);
+                    // Play feedback sound
+                    window.AudioManager?.playButtonClick?.();
+                    // Refresh the profile
+                    this.scene.restart();
+                }
+            });
+
+            hitZone.on('pointerover', () => {
+                btn.clear();
+                btn.fillStyle(0x6B6B9E, 0.9);
+                btn.fillRoundedRect(buttonX, startY, buttonWidth, 35, 8);
+                btn.lineStyle(2, 0xFFD700, 1);
+                btn.strokeRoundedRect(buttonX, startY, buttonWidth, 35, 8);
+            });
+
+            hitZone.on('pointerout', () => {
+                btn.clear();
+                btn.fillStyle(buttonColor, 0.9);
+                btn.fillRoundedRect(buttonX, startY, buttonWidth, 35, 8);
+                btn.lineStyle(2, isCurrentStage ? 0x00FF00 : 0x7B68EE, 0.8);
+                btn.strokeRoundedRect(buttonX, startY, buttonWidth, 35, 8);
+            });
+
+            this.elements.push(hitZone);
+            buttonX += buttonWidth + buttonSpacing;
+        });
+
+        startY += 55;
+
+        // Additional dev buttons row
+        const devActions = [
+            { label: '➕ Add Test Creature', action: () => window.DevTools?.addTestCreature() },
+            { label: '⏭️ Skip 7 Days', action: () => window.DevTools?.skipDays(7) },
+            { label: '🧪 Setup Breeding', action: () => window.DevTools?.setupBreedingTest() }
+        ];
+
+        const actionBtnWidth = (width - padding * 2 - 20) / 3;
+        let actionX = padding;
+
+        devActions.forEach(action => {
+            const actionBtn = this.add.graphics();
+            actionBtn.fillStyle(0x1A3A5C, 0.9);
+            actionBtn.fillRoundedRect(actionX, startY, actionBtnWidth, 30, 6);
+            actionBtn.lineStyle(1, 0x4ECDC4, 0.6);
+            actionBtn.strokeRoundedRect(actionX, startY, actionBtnWidth, 30, 6);
+            actionBtn.setDepth(11);
+            this.elements.push(actionBtn);
+
+            const actionText = this.add.text(actionX + actionBtnWidth / 2, startY + 15, action.label, {
+                fontSize: '11px',
+                color: '#4ECDC4'
+            }).setOrigin(0.5).setDepth(12);
+            this.elements.push(actionText);
+
+            const actionZone = this.add.zone(actionX + actionBtnWidth / 2, startY + 15, actionBtnWidth, 30);
+            actionZone.setInteractive({ useHandCursor: true });
+            actionZone.setDepth(13);
+
+            actionZone.on('pointerdown', () => {
+                action.action();
+                window.AudioManager?.playButtonClick?.();
+                // Show feedback
+                actionText.setColor('#FFD700');
+                this.time.delayedCall(200, () => {
+                    actionText.setColor('#4ECDC4');
+                });
+            });
+
+            this.elements.push(actionZone);
+            actionX += actionBtnWidth + 10;
+        });
+
+        startY += 50;
+
+        // Info text
+        const infoText = this.add.text(width / 2, startY, 'Dev tools only visible in development mode', {
+            fontSize: '10px',
+            color: '#666666'
+        }).setOrigin(0.5).setDepth(11);
+        this.elements.push(infoText);
+
+        return startY + 30;
     }
 
     createSectionHeader(title, y) {

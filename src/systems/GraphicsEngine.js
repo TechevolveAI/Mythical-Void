@@ -1004,6 +1004,11 @@ class GraphicsEngine {
      * Create advanced magical sparkle effects
      */
     createMagicalSparkle(color = 0xFFD700, size = 1.0) {
+        // Check if texture already exists
+        if (this.scene.textures.exists('magicalSparkle')) {
+            return 'magicalSparkle';
+        }
+
         const graphics = this.createScratchGraphics();
         const center = { x: 15, y: 15 };
 
@@ -1114,6 +1119,451 @@ class GraphicsEngine {
         });
 
         return this.finalizeTexture(graphics, 'cosmicCoin', 32, 32);
+    }
+
+    /**
+     * Create Star Fragment collectible - crystalline star shard with blue glow
+     * Rarity: Rare (Blue)
+     */
+    createStarFragment() {
+        if (this.scene.textures.exists('starFragment')) {
+            return 'starFragment';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 20, y: 20 };
+        const size = 40;
+
+        // Outer glow layers (blue cosmic energy)
+        const glowColors = [
+            { color: 0x1E90FF, alpha: 0.2, radius: 18 },
+            { color: 0x00BFFF, alpha: 0.3, radius: 14 },
+            { color: 0x87CEEB, alpha: 0.4, radius: 10 }
+        ];
+
+        glowColors.forEach(glow => {
+            graphics.fillStyle(glow.color, glow.alpha);
+            graphics.fillCircle(center.x, center.y, glow.radius);
+        });
+
+        // Main crystal body - faceted star shape
+        graphics.fillStyle(0x4169E1, 0.9); // Royal blue
+        this.drawStar(graphics, center.x, center.y, 5, 4, 12);
+
+        // Inner facet highlights
+        graphics.fillStyle(0x87CEEB, 0.7);
+        this.drawStar(graphics, center.x, center.y, 5, 2, 6);
+
+        // Central bright core
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        graphics.fillCircle(center.x, center.y, 3);
+
+        // Sparkle points around the star
+        graphics.fillStyle(0xFFFFFF, 0.8);
+        for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI / 4) + (i * Math.PI / 2);
+            const x = center.x + Math.cos(angle) * 16;
+            const y = center.y + Math.sin(angle) * 16;
+            graphics.fillCircle(x, y, 1.5);
+        }
+
+        return this.finalizeTexture(graphics, 'starFragment', size, size);
+    }
+
+    /**
+     * Create Cosmic Gem collectible - faceted gem with purple shimmer
+     * Rarity: Epic (Purple)
+     */
+    createCosmicGemCollectible() {
+        if (this.scene.textures.exists('cosmicGemCollectible')) {
+            return 'cosmicGemCollectible';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 20, y: 22 };
+        const size = 40;
+
+        // Outer glow (purple cosmic energy)
+        graphics.fillStyle(0x9C27B0, 0.25);
+        graphics.fillCircle(center.x, center.y - 2, 18);
+
+        // Gem body - hexagonal shape with facets
+        const gemPoints = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 6) + (i * Math.PI / 3);
+            gemPoints.push({
+                x: center.x + Math.cos(angle) * 12,
+                y: center.y - 2 + Math.sin(angle) * 10
+            });
+        }
+
+        // Main gem fill
+        graphics.fillStyle(0x7B1FA2, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(gemPoints[0].x, gemPoints[0].y);
+        gemPoints.forEach(p => graphics.lineTo(p.x, p.y));
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Facet highlights (left side)
+        graphics.fillStyle(0xBA68C8, 0.7);
+        graphics.beginPath();
+        graphics.moveTo(center.x, center.y - 12);
+        graphics.lineTo(gemPoints[0].x, gemPoints[0].y);
+        graphics.lineTo(center.x, center.y);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Bright highlight (top)
+        graphics.fillStyle(0xE1BEE7, 0.8);
+        graphics.beginPath();
+        graphics.moveTo(center.x, center.y - 12);
+        graphics.lineTo(center.x + 4, center.y - 6);
+        graphics.lineTo(center.x - 2, center.y - 4);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Central sparkle
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        graphics.fillCircle(center.x - 2, center.y - 5, 2);
+
+        // Bottom point
+        graphics.fillStyle(0x4A148C, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(gemPoints[3].x, gemPoints[3].y);
+        graphics.lineTo(center.x, center.y + 12);
+        graphics.lineTo(gemPoints[4].x, gemPoints[4].y);
+        graphics.closePath();
+        graphics.fillPath();
+
+        return this.finalizeTexture(graphics, 'cosmicGemCollectible', size, size);
+    }
+
+    /**
+     * Create Ancient Relic collectible - ornate vessel with energy wisps
+     * Rarity: Epic (Purple/Gold)
+     */
+    createAncientRelic() {
+        if (this.scene.textures.exists('ancientRelic')) {
+            return 'ancientRelic';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 20, y: 22 };
+        const size = 40;
+
+        // Mystical energy aura
+        graphics.fillStyle(0x9C27B0, 0.2);
+        graphics.fillCircle(center.x, center.y, 18);
+        graphics.fillStyle(0xFFD700, 0.15);
+        graphics.fillCircle(center.x, center.y, 14);
+
+        // Vessel body (vase shape)
+        graphics.fillStyle(0x8D6E63, 0.95); // Bronze/brown
+        graphics.beginPath();
+        graphics.moveTo(center.x - 8, center.y + 10); // Bottom left
+        graphics.lineTo(center.x - 10, center.y); // Left side
+        graphics.lineTo(center.x - 6, center.y - 8); // Neck left
+        graphics.lineTo(center.x - 4, center.y - 12); // Rim left
+        graphics.lineTo(center.x + 4, center.y - 12); // Rim right
+        graphics.lineTo(center.x + 6, center.y - 8); // Neck right
+        graphics.lineTo(center.x + 10, center.y); // Right side
+        graphics.lineTo(center.x + 8, center.y + 10); // Bottom right
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Golden trim lines
+        graphics.lineStyle(2, 0xFFD700, 0.9);
+        graphics.strokeCircle(center.x, center.y - 10, 5); // Rim
+        graphics.beginPath();
+        graphics.moveTo(center.x - 10, center.y + 2);
+        graphics.lineTo(center.x + 10, center.y + 2);
+        graphics.strokePath();
+
+        // Glowing rune symbols
+        graphics.fillStyle(0x9C27B0, 0.8);
+        graphics.fillCircle(center.x, center.y, 3);
+        graphics.fillStyle(0xE040FB, 0.6);
+        graphics.fillCircle(center.x - 5, center.y + 4, 1.5);
+        graphics.fillCircle(center.x + 5, center.y + 4, 1.5);
+
+        // Energy wisps floating up
+        graphics.fillStyle(0xE1BEE7, 0.6);
+        graphics.fillCircle(center.x - 3, center.y - 16, 2);
+        graphics.fillCircle(center.x + 4, center.y - 18, 1.5);
+        graphics.fillStyle(0xFFFFFF, 0.5);
+        graphics.fillCircle(center.x, center.y - 20, 1);
+
+        return this.finalizeTexture(graphics, 'ancientRelic', size, size);
+    }
+
+    /**
+     * Create Energy Orb collectible - swirling cyan sphere with particle trails
+     * Rarity: Uncommon (Green/Cyan)
+     */
+    createEnergyOrbCollectible() {
+        if (this.scene.textures.exists('energyOrbCollectible')) {
+            return 'energyOrbCollectible';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 18, y: 18 };
+        const size = 36;
+
+        // Outer energy field
+        graphics.fillStyle(0x00BFA5, 0.2);
+        graphics.fillCircle(center.x, center.y, 16);
+        graphics.fillStyle(0x00E5CC, 0.3);
+        graphics.fillCircle(center.x, center.y, 12);
+
+        // Main orb body - gradient layers
+        for (let i = 0; i < 6; i++) {
+            const t = i / 5;
+            const radius = 10 - i * 1.2;
+            const alpha = 0.8 - t * 0.3;
+            // Cyan to white gradient
+            const r = Math.floor(0 + (255 - 0) * t);
+            const g = Math.floor(206 + (255 - 206) * t);
+            const b = Math.floor(209 + (255 - 209) * t);
+            const color = (r << 16) | (g << 8) | b;
+            graphics.fillStyle(color, alpha);
+            graphics.fillCircle(center.x, center.y, radius);
+        }
+
+        // Swirl effect (curved lines inside orb)
+        graphics.lineStyle(1.5, 0xFFFFFF, 0.4);
+        graphics.beginPath();
+        graphics.arc(center.x - 2, center.y, 5, 0, Math.PI, false);
+        graphics.strokePath();
+        graphics.beginPath();
+        graphics.arc(center.x + 2, center.y, 4, Math.PI, 0, false);
+        graphics.strokePath();
+
+        // Central bright core
+        graphics.fillStyle(0xFFFFFF, 0.95);
+        graphics.fillCircle(center.x, center.y, 3);
+
+        // Particle trail dots
+        graphics.fillStyle(0x00CED1, 0.6);
+        graphics.fillCircle(center.x - 10, center.y + 8, 2);
+        graphics.fillCircle(center.x - 12, center.y + 12, 1.5);
+        graphics.fillStyle(0x00E5CC, 0.4);
+        graphics.fillCircle(center.x - 14, center.y + 14, 1);
+
+        return this.finalizeTexture(graphics, 'energyOrbCollectible', size, size);
+    }
+
+    /**
+     * Create Treasure Chest collectible - wooden chest with golden glow
+     * Rarity: Uncommon (Green)
+     */
+    createTreasureChestCollectible() {
+        if (this.scene.textures.exists('treasureChestCollectible')) {
+            return 'treasureChestCollectible';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 20, y: 20 };
+        const size = 40;
+
+        // Golden glow behind chest
+        graphics.fillStyle(0xFFD700, 0.2);
+        graphics.fillCircle(center.x, center.y, 18);
+        graphics.fillStyle(0xFFA000, 0.15);
+        graphics.fillCircle(center.x, center.y, 14);
+
+        // Chest body (darker wood)
+        graphics.fillStyle(0x5D4037, 0.95);
+        graphics.fillRoundedRect(center.x - 12, center.y - 2, 24, 14, 2);
+
+        // Chest lid (lighter wood)
+        graphics.fillStyle(0x795548, 0.95);
+        graphics.beginPath();
+        graphics.moveTo(center.x - 12, center.y - 2);
+        graphics.lineTo(center.x - 12, center.y - 8);
+        graphics.quadraticCurveTo(center.x, center.y - 14, center.x + 12, center.y - 8);
+        graphics.lineTo(center.x + 12, center.y - 2);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Wood grain lines
+        graphics.lineStyle(1, 0x4E342E, 0.4);
+        graphics.beginPath();
+        graphics.moveTo(center.x - 10, center.y + 4);
+        graphics.lineTo(center.x + 10, center.y + 4);
+        graphics.moveTo(center.x - 10, center.y + 8);
+        graphics.lineTo(center.x + 10, center.y + 8);
+        graphics.strokePath();
+
+        // Golden trim and lock
+        graphics.fillStyle(0xFFD700, 0.9);
+        graphics.fillRect(center.x - 12, center.y - 3, 24, 2); // Rim
+        graphics.fillRoundedRect(center.x - 4, center.y - 6, 8, 8, 2); // Lock plate
+
+        // Lock keyhole
+        graphics.fillStyle(0x5D4037, 0.9);
+        graphics.fillCircle(center.x, center.y - 3, 2);
+        graphics.fillRect(center.x - 1, center.y - 3, 2, 3);
+
+        // Glow from inside (slightly open)
+        graphics.fillStyle(0xFFEB3B, 0.6);
+        graphics.fillRect(center.x - 8, center.y - 9, 16, 2);
+
+        // Corner reinforcements
+        graphics.fillStyle(0xB8860B, 0.8);
+        graphics.fillCircle(center.x - 10, center.y - 1, 2);
+        graphics.fillCircle(center.x + 10, center.y - 1, 2);
+
+        return this.finalizeTexture(graphics, 'treasureChestCollectible', size, size);
+    }
+
+    /**
+     * Create Lore Fragment collectible - glowing scroll/page
+     * Rarity: Uncommon (narrative reward)
+     */
+    createLoreFragment() {
+        if (this.scene.textures.exists('loreFragment')) {
+            return 'loreFragment';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 18, y: 20 };
+        const size = 36;
+
+        // Mystical glow
+        graphics.fillStyle(0xFFD54F, 0.2);
+        graphics.fillCircle(center.x, center.y, 16);
+
+        // Scroll background
+        graphics.fillStyle(0xFFF8E1, 0.95);
+        graphics.beginPath();
+        graphics.moveTo(center.x - 10, center.y - 12);
+        graphics.lineTo(center.x + 8, center.y - 12);
+        graphics.lineTo(center.x + 10, center.y - 10);
+        graphics.lineTo(center.x + 10, center.y + 10);
+        graphics.lineTo(center.x - 10, center.y + 10);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Scroll edge shadow
+        graphics.fillStyle(0xD7CCC8, 0.8);
+        graphics.beginPath();
+        graphics.moveTo(center.x + 8, center.y - 12);
+        graphics.lineTo(center.x + 10, center.y - 10);
+        graphics.lineTo(center.x + 8, center.y - 10);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Text lines (mystical writing)
+        graphics.lineStyle(1, 0x5D4037, 0.5);
+        for (let i = 0; i < 4; i++) {
+            const y = center.y - 6 + i * 4;
+            const width = 12 - (i % 2) * 4;
+            graphics.beginPath();
+            graphics.moveTo(center.x - 6, y);
+            graphics.lineTo(center.x - 6 + width, y);
+            graphics.strokePath();
+        }
+
+        // Glowing rune symbol
+        graphics.fillStyle(0x9C27B0, 0.7);
+        this.drawStar(graphics, center.x + 4, center.y - 2, 4, 1.5, 3);
+
+        // Sparkle
+        graphics.fillStyle(0xFFFFFF, 0.8);
+        graphics.fillCircle(center.x + 8, center.y - 10, 1.5);
+
+        return this.finalizeTexture(graphics, 'loreFragment', size, size);
+    }
+
+    /**
+     * Create Coin Pile collectible - stack of gold coins
+     * Rarity: Common (Gray/White border)
+     */
+    createCoinPile() {
+        if (this.scene.textures.exists('coinPile')) {
+            return 'coinPile';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const center = { x: 20, y: 22 };
+        const size = 40;
+
+        // Soft golden glow
+        graphics.fillStyle(0xFFD700, 0.2);
+        graphics.fillCircle(center.x, center.y, 16);
+
+        // Draw stacked coins (bottom to top)
+        const coinColors = [
+            { fill: 0xDAA520, edge: 0xB8860B }, // Bottom coins (darker gold)
+            { fill: 0xFFD700, edge: 0xDAA520 }, // Middle coins
+            { fill: 0xFFE135, edge: 0xFFD700 }  // Top coins (brightest)
+        ];
+
+        // Bottom layer (3 coins spread out)
+        const bottomCoins = [
+            { x: center.x - 6, y: center.y + 6 },
+            { x: center.x + 6, y: center.y + 6 },
+            { x: center.x, y: center.y + 8 }
+        ];
+
+        bottomCoins.forEach(pos => {
+            // Coin edge (3D effect)
+            graphics.fillStyle(coinColors[0].edge, 0.9);
+            graphics.fillEllipse(pos.x, pos.y + 2, 7, 3);
+            // Coin face
+            graphics.fillStyle(coinColors[0].fill, 1);
+            graphics.fillEllipse(pos.x, pos.y, 7, 3);
+        });
+
+        // Middle layer (2 coins)
+        const middleCoins = [
+            { x: center.x - 3, y: center.y + 2 },
+            { x: center.x + 4, y: center.y + 3 }
+        ];
+
+        middleCoins.forEach(pos => {
+            graphics.fillStyle(coinColors[1].edge, 0.9);
+            graphics.fillEllipse(pos.x, pos.y + 2, 7, 3);
+            graphics.fillStyle(coinColors[1].fill, 1);
+            graphics.fillEllipse(pos.x, pos.y, 7, 3);
+        });
+
+        // Top coin (main focus)
+        graphics.fillStyle(coinColors[2].edge, 0.9);
+        graphics.fillEllipse(center.x, center.y - 2, 8, 4);
+        graphics.fillStyle(coinColors[2].fill, 1);
+        graphics.fillEllipse(center.x, center.y - 4, 8, 4);
+
+        // Star emblem on top coin
+        graphics.fillStyle(0xFFFFFF, 0.6);
+        this.drawStar(graphics, center.x, center.y - 4, 4, 1.5, 3);
+
+        // Highlight on top coin
+        graphics.fillStyle(0xFFFFFF, 0.5);
+        graphics.fillEllipse(center.x - 2, center.y - 5, 2, 1);
+
+        // Sparkle effect
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        graphics.fillCircle(center.x + 6, center.y - 6, 1.5);
+
+        return this.finalizeTexture(graphics, 'coinPile', size, size);
+    }
+
+    /**
+     * Create all collectible textures at once
+     * Call this in scene create() to pre-generate all collectible sprites
+     */
+    createAllCollectibleSprites() {
+        this.createCosmicCoin();
+        this.createCoinPile();
+        this.createStarFragment();
+        this.createCosmicGemCollectible();
+        this.createAncientRelic();
+        this.createEnergyOrbCollectible();
+        this.createTreasureChestCollectible();
+        this.createLoreFragment();
+        console.log('[GraphicsEngine] All collectible sprites created');
     }
 
     // === UTILITY METHODS ===
@@ -1439,7 +1889,9 @@ class GraphicsEngine {
 
     /**
      * Create Crashed Ship landmark for the Sanctuary
-     * The player's wrecked spacecraft - narrative anchor for the game
+     * The player's wrecked spacecraft "The Wanderer" - narrative anchor for the game
+     * Futuristic horizontal spacecraft design inspired by modern space vehicles
+     * Features: stainless steel fuselage, delta wings, Raptor-style engines, heat shield tiles
      * @returns {string} Texture name
      */
     createCrashedShip() {
@@ -1449,103 +1901,291 @@ class GraphicsEngine {
 
         const graphics = this.createScratchGraphics();
         const width = 220;
-        const height = 170;
+        const height = 160;
         const centerX = width / 2;
+        const centerY = height / 2;
 
-        // Ground impact crater
-        graphics.fillStyle(0x1A0A2E, 0.6);
-        graphics.fillEllipse(centerX, height - 20, 100, 25);
+        // === IMPACT CRATER AND GROUND ===
         graphics.fillStyle(0x0A0515, 0.8);
-        graphics.fillEllipse(centerX, height - 15, 80, 18);
+        graphics.fillEllipse(centerX, height - 15, 160, 30);
+        graphics.fillStyle(0x1A0A2E, 0.5);
+        graphics.fillEllipse(centerX, height - 18, 130, 22);
 
         // Scattered debris
-        const debrisColors = [0x4A5568, 0x2D3748, 0x718096];
-        for (let i = 0; i < 12; i++) {
-            const dx = Phaser.Math.Between(20, width - 20);
-            const dy = Phaser.Math.Between(height - 50, height - 10);
-            const size = Phaser.Math.Between(3, 8);
-            graphics.fillStyle(Phaser.Math.RND.pick(debrisColors), 0.7);
-            graphics.fillRect(dx, dy, size, size / 2);
+        const debrisColors = [0x4A5568, 0x718096, 0x22D3EE, 0x3B82F6];
+        for (let i = 0; i < 15; i++) {
+            const dx = centerX + Phaser.Math.Between(-85, 85);
+            const dy = height - Phaser.Math.Between(5, 35);
+            graphics.fillStyle(Phaser.Math.RND.pick(debrisColors), 0.5);
+            graphics.fillRect(dx, dy, Phaser.Math.Between(2, 6), Phaser.Math.Between(2, 4));
         }
 
-        // Main ship hull - tilted and damaged
-        // Hull base
-        graphics.fillStyle(0x4A5568, 1);
+        // === MAIN FUSELAGE ===
+        // Sleek, aerodynamic body - horizontal orientation, tilted from crash
+        const tilt = -3; // Slight nose-down tilt
+        const fuselageLength = 140;
+        const fuselageHeight = 35;
+        const noseX = 35;
+        const tailX = noseX + fuselageLength;
+
+        // Main hull - stainless steel look with gradient
+        // Dark underside
+        graphics.fillStyle(0x78909C, 1);
         graphics.beginPath();
-        graphics.moveTo(30, height - 40);
-        graphics.lineTo(50, 60);
-        graphics.lineTo(180, 50);
-        graphics.lineTo(200, height - 35);
+        graphics.moveTo(noseX, centerY + tilt);
+        graphics.lineTo(noseX + 25, centerY + fuselageHeight / 2 + tilt);
+        graphics.lineTo(tailX - 10, centerY + fuselageHeight / 2);
+        graphics.lineTo(tailX, centerY + 5);
+        graphics.lineTo(tailX, centerY - 5);
+        graphics.lineTo(tailX - 10, centerY - fuselageHeight / 2);
+        graphics.lineTo(noseX + 25, centerY - fuselageHeight / 2 + tilt);
         graphics.closePath();
         graphics.fillPath();
 
-        // Hull panels
-        graphics.lineStyle(2, 0x2D3748, 0.8);
-        graphics.lineBetween(60, 65, 70, height - 45);
-        graphics.lineBetween(100, 55, 105, height - 40);
-        graphics.lineBetween(140, 52, 140, height - 38);
-
-        // Cockpit window - cracked
-        graphics.fillStyle(0x00CED1, 0.4);
-        graphics.fillEllipse(80, 75, 25, 15);
-        graphics.lineStyle(2, 0x00FFFF, 0.6);
-        graphics.strokeEllipse(80, 75, 25, 15);
-        // Crack lines
-        graphics.lineStyle(1, 0xFFFFFF, 0.5);
-        graphics.lineBetween(75, 70, 90, 80);
-        graphics.lineBetween(80, 68, 85, 82);
-
-        // Engine section - damaged and smoking
-        graphics.fillStyle(0x2D3748, 1);
-        graphics.fillRect(160, 55, 35, 70);
-
-        // Engine glow (damaged, flickering)
-        graphics.fillStyle(0xFF6B6B, 0.3);
-        graphics.fillCircle(177, 90, 20);
-        graphics.fillStyle(0xFF4444, 0.5);
-        graphics.fillCircle(177, 90, 12);
-
-        // Damage marks / burn marks
-        graphics.fillStyle(0x1A1A1A, 0.6);
-        graphics.fillEllipse(120, 80, 15, 8);
-        graphics.fillEllipse(150, 95, 12, 6);
-        graphics.fillEllipse(90, 100, 10, 5);
-
-        // Exposed wiring
-        graphics.lineStyle(2, 0xFFD700, 0.6);
-        graphics.lineBetween(130, 85, 145, 95);
-        graphics.lineStyle(2, 0x00FFFF, 0.6);
-        graphics.lineBetween(132, 88, 142, 100);
-
-        // Wing - broken off and nearby
-        graphics.fillStyle(0x4A5568, 0.8);
+        // Light upper hull - brushed metal appearance
+        graphics.fillStyle(0xCFD8DC, 1);
         graphics.beginPath();
-        graphics.moveTo(15, height - 60);
-        graphics.lineTo(5, height - 80);
-        graphics.lineTo(40, height - 70);
-        graphics.lineTo(35, height - 50);
+        graphics.moveTo(noseX, centerY + tilt);
+        graphics.lineTo(noseX + 25, centerY - fuselageHeight / 2 + tilt);
+        graphics.lineTo(tailX - 10, centerY - fuselageHeight / 2);
+        graphics.lineTo(tailX, centerY - 5);
+        graphics.lineTo(tailX, centerY + 5);
+        // Smooth curve back to nose (using line segments instead of quadratic curve)
+        graphics.lineTo(tailX - 15, centerY + 3);
+        graphics.lineTo(tailX - 40, centerY + tilt);
+        graphics.lineTo(noseX, centerY + tilt);
         graphics.closePath();
         graphics.fillPath();
 
-        // Alien plants growing on wreckage
-        graphics.fillStyle(0x7B68EE, 0.7);
-        graphics.fillCircle(45, height - 55, 6);
-        graphics.fillCircle(48, height - 62, 4);
-        graphics.fillStyle(0x9370DB, 0.6);
-        graphics.fillCircle(175, height - 50, 5);
-        graphics.fillCircle(180, height - 58, 3);
+        // Nose highlight
+        graphics.fillStyle(0xECEFF1, 0.8);
+        graphics.beginPath();
+        graphics.moveTo(noseX, centerY + tilt);
+        graphics.lineTo(noseX + 15, centerY - 10 + tilt);
+        graphics.lineTo(noseX + 40, centerY - 8 + tilt);
+        // Smooth curve back (using line segments)
+        graphics.lineTo(noseX + 30, centerY - 2 + tilt);
+        graphics.lineTo(noseX + 15, centerY + tilt);
+        graphics.lineTo(noseX, centerY + tilt);
+        graphics.closePath();
+        graphics.fillPath();
 
-        // Smoke particles
-        graphics.fillStyle(0x666666, 0.3);
-        graphics.fillCircle(175, 40, 15);
-        graphics.fillCircle(180, 25, 12);
-        graphics.fillCircle(170, 15, 8);
+        // === HEAT SHIELD TILES ===
+        // Hexagonal pattern on underside (visible damage)
+        graphics.lineStyle(1, 0x546E7A, 0.4);
+        for (let i = 0; i < 8; i++) {
+            const tileX = noseX + 30 + i * 15;
+            const tileY = centerY + fuselageHeight / 3;
+            graphics.strokeRect(tileX, tileY, 12, 8);
+        }
 
-        // Sparkle effects (functional parts still working)
-        graphics.fillStyle(0x00FFFF, 0.8);
-        graphics.fillCircle(80, 75, 2);
-        graphics.fillStyle(0xFFD700, 0.6);
-        graphics.fillCircle(177, 90, 3);
+        // Missing/damaged tiles
+        graphics.fillStyle(0x37474F, 0.8);
+        graphics.fillRect(noseX + 60, centerY + fuselageHeight / 3, 12, 8);
+        graphics.fillRect(noseX + 90, centerY + fuselageHeight / 3 + 2, 12, 8);
+
+        // === COCKPIT CANOPY ===
+        // Wraparound glass canopy - modern fighter-style
+        const canopyX = noseX + 20;
+        const canopyY = centerY - 12 + tilt;
+
+        // Canopy frame
+        graphics.fillStyle(0x1A237E, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(canopyX, canopyY + 5);
+        graphics.lineTo(canopyX + 10, canopyY - 8);
+        graphics.lineTo(canopyX + 50, canopyY - 10);
+        graphics.lineTo(canopyX + 55, canopyY + 2);
+        graphics.lineTo(canopyX + 50, canopyY + 8);
+        graphics.lineTo(canopyX + 10, canopyY + 8);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Glass with cyan tint
+        graphics.fillStyle(0x00BCD4, 0.6);
+        graphics.beginPath();
+        graphics.moveTo(canopyX + 3, canopyY + 3);
+        graphics.lineTo(canopyX + 12, canopyY - 5);
+        graphics.lineTo(canopyX + 47, canopyY - 7);
+        graphics.lineTo(canopyX + 50, canopyY + 2);
+        graphics.lineTo(canopyX + 47, canopyY + 5);
+        graphics.lineTo(canopyX + 12, canopyY + 5);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Cracks in canopy
+        graphics.lineStyle(1, 0xFFFFFF, 0.8);
+        graphics.lineBetween(canopyX + 25, canopyY - 5, canopyX + 35, canopyY + 4);
+        graphics.lineBetween(canopyX + 30, canopyY - 3, canopyX + 28, canopyY + 5);
+        graphics.lineBetween(canopyX + 40, canopyY - 6, canopyX + 45, canopyY);
+
+        // Canopy reflection
+        graphics.fillStyle(0xFFFFFF, 0.3);
+        graphics.fillEllipse(canopyX + 20, canopyY - 2, 8, 3);
+
+        // === DELTA WINGS ===
+        // Swept-back wings - one damaged
+
+        // Upper wing (intact) - angular stealth design
+        graphics.fillStyle(0x90A4AE, 1);
+        graphics.beginPath();
+        graphics.moveTo(centerX - 15, centerY - fuselageHeight / 2);
+        graphics.lineTo(centerX - 50, centerY - 55);
+        graphics.lineTo(centerX + 30, centerY - 45);
+        graphics.lineTo(centerX + 40, centerY - fuselageHeight / 2);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Wing edge highlight
+        graphics.lineStyle(2, 0xB0BEC5, 0.8);
+        graphics.lineBetween(centerX - 50, centerY - 55, centerX + 30, centerY - 45);
+
+        // Lower wing (damaged - broken off)
+        graphics.fillStyle(0x78909C, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(centerX - 10, centerY + fuselageHeight / 2);
+        graphics.lineTo(centerX - 30, centerY + 50);
+        graphics.lineTo(centerX + 10, centerY + 45);
+        graphics.lineTo(centerX + 20, centerY + fuselageHeight / 2);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Broken wing edge - jagged
+        graphics.lineStyle(2, 0x546E7A, 1);
+        graphics.beginPath();
+        graphics.moveTo(centerX - 30, centerY + 50);
+        graphics.lineTo(centerX - 25, centerY + 48);
+        graphics.lineTo(centerX - 20, centerY + 52);
+        graphics.lineTo(centerX - 10, centerY + 47);
+        graphics.lineTo(centerX + 10, centerY + 45);
+        graphics.strokePath();
+
+        // === ENGINE SECTION ===
+        // Three Raptor-style engines at rear
+        const engineY = centerY;
+        const engineStartX = tailX - 15;
+
+        // Engine housings
+        graphics.fillStyle(0x37474F, 1);
+        graphics.fillEllipse(engineStartX, engineY - 12, 12, 8);
+        graphics.fillEllipse(engineStartX, engineY, 14, 10);
+        graphics.fillEllipse(engineStartX, engineY + 12, 12, 8);
+
+        // Engine bells (dark interior)
+        graphics.fillStyle(0x1A1A2E, 1);
+        graphics.fillEllipse(engineStartX + 5, engineY - 12, 8, 5);
+        graphics.fillEllipse(engineStartX + 5, engineY, 10, 7);
+        graphics.fillEllipse(engineStartX + 5, engineY + 12, 8, 5);
+
+        // Engine glow (damaged, flickering cyan)
+        graphics.fillStyle(0x00BCD4, 0.4);
+        graphics.fillEllipse(engineStartX + 10, engineY, 15, 12);
+        graphics.fillStyle(0x26C6DA, 0.6);
+        graphics.fillEllipse(engineStartX + 8, engineY, 8, 6);
+        // Top engine has no glow (damaged)
+        graphics.fillStyle(0x00BCD4, 0.2);
+        graphics.fillEllipse(engineStartX + 8, engineY + 12, 6, 4);
+
+        // === CONTROL SURFACES ===
+        // Tail fins (vertical stabilizers)
+        graphics.fillStyle(0x78909C, 1);
+        // Upper fin
+        graphics.beginPath();
+        graphics.moveTo(tailX - 25, centerY - fuselageHeight / 2 + 5);
+        graphics.lineTo(tailX - 35, centerY - 45);
+        graphics.lineTo(tailX - 15, centerY - 38);
+        graphics.lineTo(tailX - 10, centerY - fuselageHeight / 2 + 5);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Lower fin (bent from crash)
+        graphics.fillStyle(0x607D8B, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(tailX - 25, centerY + fuselageHeight / 2 - 5);
+        graphics.lineTo(tailX - 30, centerY + 38);
+        graphics.lineTo(tailX - 20, centerY + 42);
+        graphics.lineTo(tailX - 10, centerY + fuselageHeight / 2 - 5);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // === DAMAGE DETAILS ===
+        // Scorch marks from re-entry/crash
+        graphics.fillStyle(0x1F1F1F, 0.6);
+        graphics.fillEllipse(centerX + 20, centerY + 5, 15, 8);
+        graphics.fillEllipse(noseX + 50, centerY + 8, 10, 5);
+
+        // Hull breach with sparks
+        graphics.fillStyle(0x0F0F0F, 0.9);
+        graphics.fillEllipse(centerX - 20, centerY + 10, 10, 6);
+        // Sparking wires
+        graphics.lineStyle(1, 0xFBBF24, 0.8);
+        graphics.lineBetween(centerX - 22, centerY + 8, centerX - 30, centerY + 15);
+        graphics.lineStyle(1, 0x22D3EE, 0.8);
+        graphics.lineBetween(centerX - 18, centerY + 12, centerX - 12, centerY + 22);
+        graphics.lineStyle(1, 0xEF4444, 0.7);
+        graphics.lineBetween(centerX - 20, centerY + 10, centerX - 25, centerY + 20);
+
+        // === PANEL SEAMS ===
+        graphics.lineStyle(1, 0x546E7A, 0.5);
+        // Longitudinal seams
+        graphics.lineBetween(noseX + 30, centerY - 8 + tilt, tailX - 20, centerY - 8);
+        graphics.lineBetween(noseX + 35, centerY + 10 + tilt, tailX - 20, centerY + 10);
+        // Transverse seams
+        graphics.lineBetween(centerX - 30, centerY - 15, centerX - 30, centerY + 15);
+        graphics.lineBetween(centerX + 20, centerY - 15, centerX + 20, centerY + 15);
+
+        // === ALIEN MOSS/VOID GROWTH ===
+        graphics.fillStyle(0x8B5CF6, 0.7);
+        graphics.fillCircle(noseX + 10, centerY + 20, 5);
+        graphics.fillCircle(noseX + 5, centerY + 15, 3);
+        graphics.fillStyle(0xA78BFA, 0.6);
+        graphics.fillCircle(tailX - 30, centerY + 25, 4);
+        graphics.fillCircle(centerX - 40, centerY + 55, 6);
+
+        // === SMOKE/STEAM WISPS ===
+        graphics.fillStyle(0x6B7280, 0.25);
+        graphics.fillCircle(centerX - 15, centerY - 50, 10);
+        graphics.fillCircle(centerX - 25, centerY - 60, 7);
+        graphics.fillCircle(centerX - 10, centerY - 65, 5);
+        // Engine smoke
+        graphics.fillCircle(tailX + 5, engineY + 5, 12);
+        graphics.fillCircle(tailX + 15, engineY - 5, 8);
+
+        // === IDENTIFICATION MARKINGS ===
+        // "V-01" designation on hull
+        graphics.fillStyle(0x263238, 0.8);
+        graphics.fillRect(centerX - 5, centerY - 13, 25, 10);
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        // Simplified text representation with lines
+        graphics.lineStyle(2, 0xFFFFFF, 0.9);
+        // "V"
+        graphics.lineBetween(centerX - 2, centerY - 11, centerX + 2, centerY - 5);
+        graphics.lineBetween(centerX + 2, centerY - 5, centerX + 6, centerY - 11);
+        // "-"
+        graphics.lineBetween(centerX + 9, centerY - 8, centerX + 13, centerY - 8);
+        // "0"
+        graphics.strokeCircle(centerX + 17, centerY - 8, 2.5);
+
+        // === STATUS LIGHTS ===
+        // Power still flickering
+        graphics.fillStyle(0x22C55E, 0.9);
+        graphics.fillCircle(canopyX + 55, canopyY + 3, 2);
+        graphics.fillStyle(0x4ADE80, 0.4);
+        graphics.fillCircle(canopyX + 55, canopyY + 3, 4);
+        // Warning light (red, blinking)
+        graphics.fillStyle(0xEF4444, 1);
+        graphics.fillCircle(tailX - 30, centerY - 20, 2);
+        graphics.fillStyle(0xF87171, 0.4);
+        graphics.fillCircle(tailX - 30, centerY - 20, 5);
+
+        // === LANDING GEAR (deployed/damaged) ===
+        graphics.fillStyle(0x37474F, 1);
+        // Front gear strut
+        graphics.fillRect(noseX + 30, centerY + fuselageHeight / 2 + 5, 4, 15);
+        graphics.fillCircle(noseX + 32, centerY + fuselageHeight / 2 + 20, 4);
+        // Rear gear (bent)
+        graphics.fillRect(tailX - 40, centerY + fuselageHeight / 2 + 5, 4, 12);
+        graphics.fillCircle(tailX - 38, centerY + fuselageHeight / 2 + 18, 4);
 
         return this.finalizeTexture(graphics, 'crashedShip', width, height);
     }
@@ -1658,6 +2298,144 @@ class GraphicsEngine {
         graphics.fillEllipse(centerX, height - 10, 80, 20);
 
         return this.finalizeTexture(graphics, 'hubPortal', width, height);
+    }
+
+    /**
+     * Create Void Portal - An ominous black hole that pulls creatures in
+     * Features: gravitational lensing effect, swirling accretion disk, dark center
+     * Used for the void mini-game entrance
+     * @returns {string} Texture name
+     */
+    createVoidPortal() {
+        if (this.scene.textures.exists('voidPortal')) {
+            return 'voidPortal';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 200;
+        const height = 200;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const blackHoleRadius = 35;
+
+        // === GRAVITATIONAL LENSING EFFECT ===
+        // Outer distortion rings (warped starlight)
+        for (let i = 8; i >= 1; i--) {
+            const ringRadius = blackHoleRadius + (i * 12);
+            const alpha = 0.15 - (i * 0.015);
+
+            // Distorted light ring (bluish-white on one side, reddish on other - doppler effect)
+            graphics.lineStyle(2, 0x6699FF, alpha);
+            graphics.beginPath();
+            graphics.arc(centerX, centerY, ringRadius, Math.PI * 0.2, Math.PI * 1.3);
+            graphics.strokePath();
+
+            graphics.lineStyle(2, 0xFF6644, alpha * 0.7);
+            graphics.beginPath();
+            graphics.arc(centerX, centerY, ringRadius, Math.PI * 1.3, Math.PI * 2.2);
+            graphics.strokePath();
+        }
+
+        // === ACCRETION DISK ===
+        // Swirling matter being pulled into the black hole
+
+        // Outer accretion disk glow (orange/yellow - hot matter)
+        graphics.fillStyle(0xFF6600, 0.15);
+        graphics.fillEllipse(centerX, centerY, 75, 30);
+        graphics.fillStyle(0xFF9900, 0.2);
+        graphics.fillEllipse(centerX, centerY, 65, 25);
+        graphics.fillStyle(0xFFCC00, 0.25);
+        graphics.fillEllipse(centerX, centerY, 55, 20);
+
+        // Inner accretion disk (brighter, more intense)
+        graphics.fillStyle(0xFFFF66, 0.3);
+        graphics.fillEllipse(centerX, centerY, 48, 16);
+        graphics.fillStyle(0xFFFFCC, 0.35);
+        graphics.fillEllipse(centerX, centerY, 42, 12);
+
+        // Spiral arms in the accretion disk
+        graphics.lineStyle(3, 0xFFAA00, 0.4);
+        for (let arm = 0; arm < 3; arm++) {
+            const startAngle = (arm * Math.PI * 2 / 3);
+            graphics.beginPath();
+            for (let t = 0; t < 1; t += 0.05) {
+                const angle = startAngle + (t * Math.PI * 1.5);
+                const r = blackHoleRadius + 10 + (t * 35);
+                const x = centerX + Math.cos(angle) * r;
+                const y = centerY + Math.sin(angle) * r * 0.35; // Flattened for disk perspective
+                if (t === 0) {
+                    graphics.moveTo(x, y);
+                } else {
+                    graphics.lineTo(x, y);
+                }
+            }
+            graphics.strokePath();
+        }
+
+        // === EVENT HORIZON ===
+        // The point of no return - gradient to pure black
+
+        // Outer event horizon glow
+        graphics.fillStyle(0x1A0033, 0.9);
+        graphics.fillCircle(centerX, centerY, blackHoleRadius + 8);
+        graphics.fillStyle(0x0D001A, 0.95);
+        graphics.fillCircle(centerX, centerY, blackHoleRadius + 4);
+
+        // The black hole center - absolute void
+        graphics.fillStyle(0x000000, 1);
+        graphics.fillCircle(centerX, centerY, blackHoleRadius);
+
+        // Subtle inner ring (photon sphere)
+        graphics.lineStyle(1, 0x330066, 0.5);
+        graphics.strokeCircle(centerX, centerY, blackHoleRadius - 2);
+
+        // === HAWKING RADIATION PARTICLES ===
+        // Tiny particles escaping near the event horizon
+        const particles = [
+            { x: centerX - 42, y: centerY - 15, size: 2 },
+            { x: centerX + 45, y: centerY + 10, size: 1.5 },
+            { x: centerX - 38, y: centerY + 20, size: 2 },
+            { x: centerX + 40, y: centerY - 18, size: 1.5 },
+            { x: centerX - 50, y: centerY - 5, size: 1 },
+            { x: centerX + 48, y: centerY + 2, size: 1 },
+            { x: centerX, y: centerY - 45, size: 2 },
+            { x: centerX + 5, y: centerY + 42, size: 1.5 }
+        ];
+
+        particles.forEach(p => {
+            // Particle glow
+            graphics.fillStyle(0x9966FF, 0.4);
+            graphics.fillCircle(p.x, p.y, p.size + 2);
+            // Particle core
+            graphics.fillStyle(0xCC99FF, 0.8);
+            graphics.fillCircle(p.x, p.y, p.size);
+            // Bright center
+            graphics.fillStyle(0xFFFFFF, 0.6);
+            graphics.fillCircle(p.x, p.y, p.size * 0.4);
+        });
+
+        // === GRAVITATIONAL PULL INDICATOR ===
+        // Subtle arrows/lines showing matter being pulled in
+        graphics.lineStyle(1, 0x666699, 0.3);
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const startR = blackHoleRadius + 60;
+            const endR = blackHoleRadius + 25;
+            const startX = centerX + Math.cos(angle) * startR;
+            const startY = centerY + Math.sin(angle) * startR;
+            const endX = centerX + Math.cos(angle) * endR;
+            const endY = centerY + Math.sin(angle) * endR;
+            graphics.lineBetween(startX, startY, endX, endY);
+        }
+
+        // === OMINOUS OUTER GLOW ===
+        // Deep purple/void glow around the entire structure
+        graphics.fillStyle(0x1A0033, 0.1);
+        graphics.fillCircle(centerX, centerY, 95);
+        graphics.fillStyle(0x0D001A, 0.08);
+        graphics.fillCircle(centerX, centerY, 98);
+
+        return this.finalizeTexture(graphics, 'voidPortal', width, height);
     }
 
     /**
@@ -2369,9 +3147,31 @@ class GraphicsEngine {
                 this.addElderWisdomMarks(graphics, center, baseSize, stageConfig);
             }
 
-            // Add wacky mutations if present
-            if (resolvedTraits?.wackyMutations && resolvedTraits.wackyMutations.length > 0) {
-                this.renderWackyMutations(graphics, center, baseSize, resolvedTraits.wackyMutations, stageModifiedColors);
+            // Add wacky mutations if present (includes inherited mutations from breeding)
+            let allMutations = resolvedTraits?.wackyMutations || [];
+
+            // Check for inherited mutations from breeding visual config
+            const breedingVisuals = genetics.traits?.breedingVisuals;
+            if (breedingVisuals?.inheritedMutations && breedingVisuals.inheritedMutations.length > 0) {
+                allMutations = [...allMutations, ...breedingVisuals.inheritedMutations];
+                console.log(`graphics:debug [GraphicsEngine] Added ${breedingVisuals.inheritedMutations.length} inherited mutations from breeding`);
+            }
+
+            if (allMutations.length > 0) {
+                this.renderWackyMutations(graphics, center, baseSize, allMutations, stageModifiedColors);
+            }
+
+            // Apply breeding-based horn type if available
+            if (breedingVisuals?.headMods?.horns?.type && breedingVisuals.headMods.horns.type !== 'none') {
+                const hornConfig = breedingVisuals.headMods.horns;
+                const hornColor = stageModifiedColors.accent || stageModifiedColors.primary || 0x9370DB;
+                this.renderHorns(graphics, center, hornColor, hornConfig.type, hornConfig.size || 1.0);
+                console.log(`graphics:debug [GraphicsEngine] Rendered breeding-inherited horns: ${hornConfig.type}`);
+            }
+
+            // Apply shiny effects if creature is shiny
+            if (genetics.isShiny && genetics.shinyType) {
+                this.applyShinyEffects(graphics, center, baseSize, genetics.shinyType, genetics.traits.colorGenome);
             }
 
             translation.restore();
@@ -3774,12 +4574,15 @@ class GraphicsEngine {
             this.addCosmicAuraLayers(graphics, center, baseSize, resolvedFeatures.auraLayers || 3);
         }
 
-        // Render head with stage-appropriate eye size
+        // Render head with stage-appropriate eye size and mood expression
         const headColor = colors.head || this.blendColors(bodyColor, colors.wings || bodyColor, 0.3);
         const headScale = stageConfig.headSizeMultiplier || 1.0;
         const eyeScale = stageConfig.eyeSizeMultiplier || 1.0;
 
-        this.renderHead(graphics, center, headScale, headColor, traits.eyes || {}, eyeScale);
+        // Get mood from traits or calculate from current stats
+        const mood = traits.mood || stageConfig.mood || 'content';
+
+        this.renderHead(graphics, center, headScale, headColor, traits.eyes || {}, eyeScale, mood);
     }
 
     /**
@@ -3826,54 +4629,230 @@ class GraphicsEngine {
     }
 
     /**
-     * Render horns based on type
+     * Render horns based on type - expanded with more styles
+     * @param {Object} graphics - Graphics context
+     * @param {Object} center - Center position
+     * @param {number} hornColor - Horn color
+     * @param {string} hornType - Horn type: 'full', 'crystalline', 'curved', 'spiral', 'antlers', 'cosmic'
+     * @param {number} hornSize - Size multiplier (default 1.0)
      */
-    renderHorns(graphics, center, hornColor, hornType = 'full') {
-        if (hornType === 'crystalline') {
-            // Elder crystalline horns
-            const crystalColor = this.lightenColor(hornColor, 0.3);
-
-            // Left horn
-            graphics.fillStyle(crystalColor, 0.9);
-            graphics.beginPath();
-            graphics.moveTo(center.x - 12, center.y - 30);
-            graphics.lineTo(center.x - 8, center.y - 50);
-            graphics.lineTo(center.x - 6, center.y - 30);
-            graphics.closePath();
-            graphics.fillPath();
-
-            // Right horn
-            graphics.beginPath();
-            graphics.moveTo(center.x + 12, center.y - 30);
-            graphics.lineTo(center.x + 8, center.y - 50);
-            graphics.lineTo(center.x + 6, center.y - 30);
-            graphics.closePath();
-            graphics.fillPath();
-
-            // Crystal tips glow
-            graphics.fillStyle(0xFFFFFF, 0.6);
-            graphics.fillCircle(center.x - 8, center.y - 48, 3);
-            graphics.fillCircle(center.x + 8, center.y - 48, 3);
-        } else {
-            // Full adult horns
-            graphics.fillStyle(hornColor, 0.9);
-
-            // Left horn
-            graphics.beginPath();
-            graphics.moveTo(center.x - 10, center.y - 28);
-            graphics.lineTo(center.x - 6, center.y - 45);
-            graphics.lineTo(center.x - 4, center.y - 28);
-            graphics.closePath();
-            graphics.fillPath();
-
-            // Right horn
-            graphics.beginPath();
-            graphics.moveTo(center.x + 10, center.y - 28);
-            graphics.lineTo(center.x + 6, center.y - 45);
-            graphics.lineTo(center.x + 4, center.y - 28);
-            graphics.closePath();
-            graphics.fillPath();
+    renderHorns(graphics, center, hornColor, hornType = 'full', hornSize = 1.0) {
+        switch (hornType) {
+            case 'crystalline':
+                this.renderCrystallineHorns(graphics, center, hornColor, hornSize);
+                break;
+            case 'curved':
+                this.renderCurvedHorns(graphics, center, hornColor, hornSize);
+                break;
+            case 'spiral':
+                this.renderSpiralHorns(graphics, center, hornColor, hornSize);
+                break;
+            case 'antlers':
+                this.renderAntlers(graphics, center, hornColor, hornSize);
+                break;
+            case 'cosmic':
+                this.renderCosmicHornsVariant(graphics, center, hornColor, hornSize);
+                break;
+            default:
+                this.renderStandardHorns(graphics, center, hornColor, hornSize);
+                break;
         }
+    }
+
+    /**
+     * Render standard pointed horns
+     */
+    renderStandardHorns(graphics, center, hornColor, hornSize = 1.0) {
+        graphics.fillStyle(hornColor, 0.9);
+
+        // Left horn
+        graphics.beginPath();
+        graphics.moveTo(center.x - 10, center.y - 28);
+        graphics.lineTo(center.x - 6, center.y - (28 + 17 * hornSize));
+        graphics.lineTo(center.x - 4, center.y - 28);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Right horn
+        graphics.beginPath();
+        graphics.moveTo(center.x + 10, center.y - 28);
+        graphics.lineTo(center.x + 6, center.y - (28 + 17 * hornSize));
+        graphics.lineTo(center.x + 4, center.y - 28);
+        graphics.closePath();
+        graphics.fillPath();
+    }
+
+    /**
+     * Render crystalline elder horns with glow
+     */
+    renderCrystallineHorns(graphics, center, hornColor, hornSize = 1.0) {
+        const crystalColor = this.lightenColor(hornColor, 0.3);
+
+        // Left horn
+        graphics.fillStyle(crystalColor, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(center.x - 12, center.y - 30);
+        graphics.lineTo(center.x - 8, center.y - (30 + 20 * hornSize));
+        graphics.lineTo(center.x - 6, center.y - 30);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Right horn
+        graphics.beginPath();
+        graphics.moveTo(center.x + 12, center.y - 30);
+        graphics.lineTo(center.x + 8, center.y - (30 + 20 * hornSize));
+        graphics.lineTo(center.x + 6, center.y - 30);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Crystal tips glow
+        graphics.fillStyle(0xFFFFFF, 0.6);
+        graphics.fillCircle(center.x - 8, center.y - (28 + 20 * hornSize), 3);
+        graphics.fillCircle(center.x + 8, center.y - (28 + 20 * hornSize), 3);
+    }
+
+    /**
+     * Render curved horns (rams horn style)
+     */
+    renderCurvedHorns(graphics, center, hornColor, hornSize = 1.0) {
+        graphics.fillStyle(hornColor, 0.9);
+
+        // Left curved horn
+        const leftBaseX = center.x - 12;
+        const leftBaseY = center.y - 25;
+        const curveRadius = 15 * hornSize;
+
+        graphics.beginPath();
+        graphics.arc(leftBaseX - curveRadius, leftBaseY, curveRadius, 0, Math.PI * 0.6, false);
+        graphics.lineStyle(5, hornColor, 0.9);
+        graphics.strokePath();
+
+        // Right curved horn (mirrored)
+        const rightBaseX = center.x + 12;
+        graphics.beginPath();
+        graphics.arc(rightBaseX + curveRadius, leftBaseY, curveRadius, Math.PI, Math.PI * 0.4, true);
+        graphics.strokePath();
+
+        // Horn tips
+        graphics.fillStyle(this.darkenColor(hornColor, 0.2), 0.9);
+        graphics.fillCircle(leftBaseX - curveRadius * 1.5, leftBaseY + curveRadius * 0.3, 3);
+        graphics.fillCircle(rightBaseX + curveRadius * 1.5, leftBaseY + curveRadius * 0.3, 3);
+    }
+
+    /**
+     * Render spiral horns (unicorn-like)
+     */
+    renderSpiralHorns(graphics, center, hornColor, hornSize = 1.0) {
+        const hornHeight = 25 * hornSize;
+        const spirals = 4;
+
+        // Left spiral horn
+        for (let i = 0; i < spirals; i++) {
+            const y = center.y - 28 - (i / spirals) * hornHeight;
+            const width = 6 - (i / spirals) * 4;
+            const xOffset = Math.sin(i * 0.8) * 2;
+
+            graphics.fillStyle(i % 2 === 0 ? hornColor : this.lightenColor(hornColor, 0.2), 0.9);
+            graphics.fillEllipse(center.x - 10 + xOffset, y, width, hornHeight / spirals);
+        }
+
+        // Right spiral horn
+        for (let i = 0; i < spirals; i++) {
+            const y = center.y - 28 - (i / spirals) * hornHeight;
+            const width = 6 - (i / spirals) * 4;
+            const xOffset = Math.sin(i * 0.8) * 2;
+
+            graphics.fillStyle(i % 2 === 0 ? hornColor : this.lightenColor(hornColor, 0.2), 0.9);
+            graphics.fillEllipse(center.x + 10 - xOffset, y, width, hornHeight / spirals);
+        }
+
+        // Tips
+        graphics.fillStyle(0xFFFFFF, 0.8);
+        graphics.fillCircle(center.x - 10, center.y - 28 - hornHeight, 2);
+        graphics.fillCircle(center.x + 10, center.y - 28 - hornHeight, 2);
+    }
+
+    /**
+     * Render antlers (branching)
+     */
+    renderAntlers(graphics, center, hornColor, hornSize = 1.0) {
+        graphics.fillStyle(hornColor, 0.9);
+        graphics.lineStyle(3, hornColor, 0.9);
+
+        const baseY = center.y - 28;
+        const height = 20 * hornSize;
+
+        // Left antler - main beam
+        graphics.beginPath();
+        graphics.moveTo(center.x - 10, baseY);
+        graphics.lineTo(center.x - 15, baseY - height);
+        graphics.strokePath();
+
+        // Left antler - branches
+        graphics.beginPath();
+        graphics.moveTo(center.x - 12, baseY - height * 0.4);
+        graphics.lineTo(center.x - 20, baseY - height * 0.6);
+        graphics.strokePath();
+
+        graphics.beginPath();
+        graphics.moveTo(center.x - 14, baseY - height * 0.7);
+        graphics.lineTo(center.x - 22, baseY - height * 0.85);
+        graphics.strokePath();
+
+        // Right antler - main beam
+        graphics.beginPath();
+        graphics.moveTo(center.x + 10, baseY);
+        graphics.lineTo(center.x + 15, baseY - height);
+        graphics.strokePath();
+
+        // Right antler - branches
+        graphics.beginPath();
+        graphics.moveTo(center.x + 12, baseY - height * 0.4);
+        graphics.lineTo(center.x + 20, baseY - height * 0.6);
+        graphics.strokePath();
+
+        graphics.beginPath();
+        graphics.moveTo(center.x + 14, baseY - height * 0.7);
+        graphics.lineTo(center.x + 22, baseY - height * 0.85);
+        graphics.strokePath();
+
+        // Tips glow
+        graphics.fillStyle(this.lightenColor(hornColor, 0.4), 0.6);
+        graphics.fillCircle(center.x - 15, baseY - height, 2);
+        graphics.fillCircle(center.x + 15, baseY - height, 2);
+    }
+
+    /**
+     * Render cosmic horns with star/crystal effects
+     */
+    renderCosmicHornsVariant(graphics, center, hornColor, hornSize = 1.0) {
+        const hornHeight = 22 * hornSize;
+
+        // Left cosmic horn - ethereal, semi-transparent
+        graphics.fillStyle(hornColor, 0.7);
+        graphics.beginPath();
+        graphics.moveTo(center.x - 12, center.y - 28);
+        graphics.lineTo(center.x - 8, center.y - 28 - hornHeight);
+        graphics.lineTo(center.x - 5, center.y - 28);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Right cosmic horn
+        graphics.beginPath();
+        graphics.moveTo(center.x + 12, center.y - 28);
+        graphics.lineTo(center.x + 8, center.y - 28 - hornHeight);
+        graphics.lineTo(center.x + 5, center.y - 28);
+        graphics.closePath();
+        graphics.fillPath();
+
+        // Cosmic glow aura
+        graphics.fillStyle(0xFFFFFF, 0.3);
+        graphics.fillCircle(center.x - 8, center.y - 28 - hornHeight * 0.5, 8);
+        graphics.fillCircle(center.x + 8, center.y - 28 - hornHeight * 0.5, 8);
+
+        // Star tips
+        this.drawStar(graphics, center.x - 8, center.y - 28 - hornHeight, 5, 2, 4);
+        this.drawStar(graphics, center.x + 8, center.y - 28 - hornHeight, 5, 2, 4);
     }
 
     /**
@@ -3995,7 +4974,7 @@ class GraphicsEngine {
     /**
      * Render head with appropriate eye size
      */
-    renderHead(graphics, center, headScale, headColor, eyeConfig, eyeSizeMultiplier = 1.0) {
+    renderHead(graphics, center, headScale, headColor, eyeConfig, eyeSizeMultiplier = 1.0, mood = 'content') {
         // Head shape
         const headRadius = 18 * headScale;
 
@@ -4011,32 +4990,325 @@ class GraphicsEngine {
         graphics.fillStyle(this.lightenColor(headColor, 0.3), 0.7);
         graphics.fillCircle(center.x - 5, center.y - 25, headRadius * 0.6);
 
-        // Eyes with multiplied size
+        // Eyes with multiplied size - now mood-aware
         const baseEyeSize = 6;
         const eyeSize = baseEyeSize * eyeSizeMultiplier;
-        const eyeSpacing = 10 * (eyeSizeMultiplier > 1.5 ? 0.8 : 1.0); // Closer together for big baby eyes
-
-        // Eye whites
-        graphics.fillStyle(0xFFFFFF, 0.95);
-        graphics.fillCircle(center.x - eyeSpacing, center.y - 22, eyeSize);
-        graphics.fillCircle(center.x + eyeSpacing, center.y - 22, eyeSize);
-
-        // Eye color/iris
+        const eyeSpacing = 10 * (eyeSizeMultiplier > 1.5 ? 0.8 : 1.0);
+        const eyeY = center.y - 22;
         const eyeColor = eyeConfig.color || 0x4A148C;
-        graphics.fillStyle(eyeColor, 0.9);
-        graphics.fillCircle(center.x - eyeSpacing, center.y - 21, eyeSize * 0.6);
-        graphics.fillCircle(center.x + eyeSpacing, center.y - 21, eyeSize * 0.6);
 
-        // Pupils
-        graphics.fillStyle(0x000000, 0.95);
-        graphics.fillCircle(center.x - eyeSpacing, center.y - 21, eyeSize * 0.3);
-        graphics.fillCircle(center.x + eyeSpacing, center.y - 21, eyeSize * 0.3);
+        // Render mood-specific eyes
+        this.renderMoodEyes(graphics, center, eyeSpacing, eyeY, eyeSize, eyeColor, mood, eyeSizeMultiplier);
 
-        // Eye sparkles (bigger for baby stage)
-        graphics.fillStyle(0xFFFFFF, 0.9);
+        // Add mood extras (blush, tears, etc.)
+        this.renderMoodExtras(graphics, center, mood, eyeY, eyeSpacing);
+    }
+
+    /**
+     * Get mood configuration for visual rendering
+     * @param {string} mood - Mood state
+     * @returns {Object} Mood visual configuration
+     */
+    getMoodConfig(mood) {
+        const configs = {
+            ecstatic: {
+                eyeShape: 'happy_closed',
+                blush: true,
+                blushColor: 0xFFB6C1,
+                blushIntensity: 0.4,
+                hearts: true,
+                pupilSize: 1.2
+            },
+            happy: {
+                eyeShape: 'curved_happy',
+                blush: true,
+                blushColor: 0xFFCCCC,
+                blushIntensity: 0.25,
+                pupilSize: 1.1
+            },
+            content: {
+                eyeShape: 'normal',
+                pupilSize: 1.0
+            },
+            neutral: {
+                eyeShape: 'normal',
+                pupilSize: 0.95
+            },
+            tired: {
+                eyeShape: 'droopy',
+                pupilSize: 0.85
+            },
+            sad: {
+                eyeShape: 'sad',
+                tears: true,
+                pupilSize: 0.9
+            },
+            distressed: {
+                eyeShape: 'worried',
+                tears: true,
+                sweat: true,
+                pupilSize: 0.8
+            }
+        };
+        return configs[mood] || configs.content;
+    }
+
+    /**
+     * Render mood-specific eye shapes
+     */
+    renderMoodEyes(graphics, center, eyeSpacing, eyeY, eyeSize, eyeColor, mood, eyeSizeMultiplier) {
+        const moodConfig = this.getMoodConfig(mood);
         const sparkleSize = eyeSizeMultiplier > 1.5 ? 2.5 : 1.5;
-        graphics.fillCircle(center.x - eyeSpacing - 1, center.y - 23, sparkleSize);
-        graphics.fillCircle(center.x + eyeSpacing - 1, center.y - 23, sparkleSize);
+
+        const leftEyeX = center.x - eyeSpacing;
+        const rightEyeX = center.x + eyeSpacing;
+
+        switch (moodConfig.eyeShape) {
+            case 'happy_closed':
+                // ^_^ style closed happy eyes
+                graphics.lineStyle(2.5, 0x000000, 0.9);
+                // Left eye arc
+                graphics.beginPath();
+                graphics.arc(leftEyeX, eyeY, eyeSize * 0.7, Math.PI * 0.2, Math.PI * 0.8, false);
+                graphics.strokePath();
+                // Right eye arc
+                graphics.beginPath();
+                graphics.arc(rightEyeX, eyeY, eyeSize * 0.7, Math.PI * 0.2, Math.PI * 0.8, false);
+                graphics.strokePath();
+                break;
+
+            case 'curved_happy':
+                // Slightly squinted happy eyes
+                graphics.fillStyle(0xFFFFFF, 0.95);
+                graphics.fillEllipse(leftEyeX, eyeY, eyeSize, eyeSize * 0.75);
+                graphics.fillEllipse(rightEyeX, eyeY, eyeSize, eyeSize * 0.75);
+
+                // Iris (slightly raised, looking up slightly)
+                graphics.fillStyle(eyeColor, 0.9);
+                graphics.fillCircle(leftEyeX, eyeY - 1, eyeSize * 0.5 * moodConfig.pupilSize);
+                graphics.fillCircle(rightEyeX, eyeY - 1, eyeSize * 0.5 * moodConfig.pupilSize);
+
+                // Pupils
+                graphics.fillStyle(0x000000, 0.95);
+                graphics.fillCircle(leftEyeX, eyeY - 1, eyeSize * 0.25);
+                graphics.fillCircle(rightEyeX, eyeY - 1, eyeSize * 0.25);
+
+                // Extra sparkles for happy mood
+                graphics.fillStyle(0xFFFFFF, 0.95);
+                graphics.fillCircle(leftEyeX - 1.5, eyeY - 2.5, sparkleSize);
+                graphics.fillCircle(rightEyeX - 1.5, eyeY - 2.5, sparkleSize);
+                graphics.fillCircle(leftEyeX + 1, eyeY, sparkleSize * 0.5);
+                graphics.fillCircle(rightEyeX + 1, eyeY, sparkleSize * 0.5);
+                break;
+
+            case 'droopy':
+                // Half-lidded tired eyes
+                graphics.fillStyle(0xFFFFFF, 0.95);
+                graphics.fillEllipse(leftEyeX, eyeY + 1, eyeSize, eyeSize * 0.55);
+                graphics.fillEllipse(rightEyeX, eyeY + 1, eyeSize, eyeSize * 0.55);
+
+                // Iris (slightly drooped)
+                graphics.fillStyle(eyeColor, 0.7);
+                graphics.fillCircle(leftEyeX, eyeY + 2, eyeSize * 0.4);
+                graphics.fillCircle(rightEyeX, eyeY + 2, eyeSize * 0.4);
+
+                // Pupils
+                graphics.fillStyle(0x000000, 0.8);
+                graphics.fillCircle(leftEyeX, eyeY + 2, eyeSize * 0.2);
+                graphics.fillCircle(rightEyeX, eyeY + 2, eyeSize * 0.2);
+
+                // Heavy eyelids
+                graphics.fillStyle(0x000000, 0.25);
+                graphics.fillRect(leftEyeX - eyeSize, eyeY - eyeSize * 0.5, eyeSize * 2, eyeSize * 0.6);
+                graphics.fillRect(rightEyeX - eyeSize, eyeY - eyeSize * 0.5, eyeSize * 2, eyeSize * 0.6);
+
+                // Small sparkle
+                graphics.fillStyle(0xFFFFFF, 0.6);
+                graphics.fillCircle(leftEyeX - 1, eyeY, sparkleSize * 0.7);
+                graphics.fillCircle(rightEyeX - 1, eyeY, sparkleSize * 0.7);
+                break;
+
+            case 'sad':
+                // Downward-curved sad eyes
+                graphics.fillStyle(0xFFFFFF, 0.95);
+                graphics.fillCircle(leftEyeX, eyeY, eyeSize);
+                graphics.fillCircle(rightEyeX, eyeY, eyeSize);
+
+                // Iris (looking down)
+                graphics.fillStyle(eyeColor, 0.9);
+                graphics.fillCircle(leftEyeX, eyeY + 2, eyeSize * 0.5 * moodConfig.pupilSize);
+                graphics.fillCircle(rightEyeX, eyeY + 2, eyeSize * 0.5 * moodConfig.pupilSize);
+
+                // Pupils
+                graphics.fillStyle(0x000000, 0.95);
+                graphics.fillCircle(leftEyeX, eyeY + 2, eyeSize * 0.25);
+                graphics.fillCircle(rightEyeX, eyeY + 2, eyeSize * 0.25);
+
+                // Sad eyebrow curves
+                graphics.lineStyle(1.5, 0x000000, 0.5);
+                graphics.beginPath();
+                graphics.moveTo(leftEyeX - eyeSize, eyeY - eyeSize - 1);
+                graphics.lineTo(leftEyeX + eyeSize, eyeY - eyeSize + 2);
+                graphics.strokePath();
+                graphics.beginPath();
+                graphics.moveTo(rightEyeX - eyeSize, eyeY - eyeSize + 2);
+                graphics.lineTo(rightEyeX + eyeSize, eyeY - eyeSize - 1);
+                graphics.strokePath();
+
+                // Dim sparkle
+                graphics.fillStyle(0xFFFFFF, 0.5);
+                graphics.fillCircle(leftEyeX - 1, eyeY - 1, sparkleSize * 0.8);
+                graphics.fillCircle(rightEyeX - 1, eyeY - 1, sparkleSize * 0.8);
+                break;
+
+            case 'worried':
+                // Uneven worried eyes
+                graphics.fillStyle(0xFFFFFF, 0.95);
+                graphics.fillCircle(leftEyeX, eyeY, eyeSize);
+                graphics.fillCircle(rightEyeX, eyeY, eyeSize);
+
+                // Iris (looking to the side slightly, uneven)
+                graphics.fillStyle(eyeColor, 0.9);
+                graphics.fillCircle(leftEyeX + 1, eyeY, eyeSize * 0.45 * moodConfig.pupilSize);
+                graphics.fillCircle(rightEyeX - 1, eyeY + 1, eyeSize * 0.45 * moodConfig.pupilSize);
+
+                // Pupils
+                graphics.fillStyle(0x000000, 0.95);
+                graphics.fillCircle(leftEyeX + 1, eyeY, eyeSize * 0.22);
+                graphics.fillCircle(rightEyeX - 1, eyeY + 1, eyeSize * 0.22);
+
+                // Worried eyebrows (uneven)
+                graphics.lineStyle(1.5, 0x000000, 0.6);
+                graphics.beginPath();
+                graphics.moveTo(leftEyeX - eyeSize, eyeY - eyeSize + 2);
+                graphics.lineTo(leftEyeX + eyeSize, eyeY - eyeSize - 2);
+                graphics.strokePath();
+                graphics.beginPath();
+                graphics.moveTo(rightEyeX - eyeSize, eyeY - eyeSize - 2);
+                graphics.lineTo(rightEyeX + eyeSize, eyeY - eyeSize + 2);
+                graphics.strokePath();
+
+                // Small sparkles
+                graphics.fillStyle(0xFFFFFF, 0.7);
+                graphics.fillCircle(leftEyeX - 1, eyeY - 2, sparkleSize * 0.6);
+                graphics.fillCircle(rightEyeX - 2, eyeY - 1, sparkleSize * 0.6);
+                break;
+
+            default:
+                // Normal eyes (content/neutral)
+                graphics.fillStyle(0xFFFFFF, 0.95);
+                graphics.fillCircle(leftEyeX, eyeY, eyeSize);
+                graphics.fillCircle(rightEyeX, eyeY, eyeSize);
+
+                // Iris
+                graphics.fillStyle(eyeColor, 0.9);
+                graphics.fillCircle(leftEyeX, eyeY + 1, eyeSize * 0.6 * moodConfig.pupilSize);
+                graphics.fillCircle(rightEyeX, eyeY + 1, eyeSize * 0.6 * moodConfig.pupilSize);
+
+                // Pupils
+                graphics.fillStyle(0x000000, 0.95);
+                graphics.fillCircle(leftEyeX, eyeY + 1, eyeSize * 0.3);
+                graphics.fillCircle(rightEyeX, eyeY + 1, eyeSize * 0.3);
+
+                // Standard sparkles
+                graphics.fillStyle(0xFFFFFF, 0.9);
+                graphics.fillCircle(leftEyeX - 1, eyeY - 1, sparkleSize);
+                graphics.fillCircle(rightEyeX - 1, eyeY - 1, sparkleSize);
+                break;
+        }
+    }
+
+    /**
+     * Render mood extras (blush, tears, sweat, hearts)
+     */
+    renderMoodExtras(graphics, center, mood, eyeY, eyeSpacing) {
+        const moodConfig = this.getMoodConfig(mood);
+
+        // Blush
+        if (moodConfig.blush) {
+            graphics.fillStyle(moodConfig.blushColor, moodConfig.blushIntensity || 0.3);
+            graphics.fillEllipse(center.x - eyeSpacing - 5, eyeY + 8, 6, 4);
+            graphics.fillEllipse(center.x + eyeSpacing + 5, eyeY + 8, 6, 4);
+        }
+
+        // Tears
+        if (moodConfig.tears) {
+            graphics.fillStyle(0x87CEEB, 0.7);
+            // Left tear
+            graphics.beginPath();
+            graphics.moveTo(center.x - eyeSpacing - 2, eyeY + 6);
+            graphics.lineTo(center.x - eyeSpacing - 4, eyeY + 12);
+            graphics.lineTo(center.x - eyeSpacing, eyeY + 12);
+            graphics.closePath();
+            graphics.fillPath();
+            graphics.fillCircle(center.x - eyeSpacing - 2, eyeY + 13, 2);
+
+            // Right tear
+            graphics.beginPath();
+            graphics.moveTo(center.x + eyeSpacing + 2, eyeY + 6);
+            graphics.lineTo(center.x + eyeSpacing, eyeY + 12);
+            graphics.lineTo(center.x + eyeSpacing + 4, eyeY + 12);
+            graphics.closePath();
+            graphics.fillPath();
+            graphics.fillCircle(center.x + eyeSpacing + 2, eyeY + 13, 2);
+        }
+
+        // Sweat drop
+        if (moodConfig.sweat) {
+            graphics.fillStyle(0x87CEEB, 0.6);
+            // Sweat drop shape
+            graphics.beginPath();
+            graphics.moveTo(center.x + 20, eyeY - 15);
+            graphics.lineTo(center.x + 23, eyeY - 7);
+            graphics.lineTo(center.x + 17, eyeY - 7);
+            graphics.closePath();
+            graphics.fillPath();
+            graphics.fillCircle(center.x + 20, eyeY - 5, 3);
+        }
+
+        // Hearts for ecstatic
+        if (moodConfig.hearts) {
+            graphics.fillStyle(0xFF69B4, 0.8);
+            // Small floating hearts
+            this.drawMiniHeart(graphics, center.x - 25, eyeY - 10, 3);
+            this.drawMiniHeart(graphics, center.x + 25, eyeY - 5, 2.5);
+        }
+    }
+
+    /**
+     * Draw a mini heart shape
+     */
+    drawMiniHeart(graphics, x, y, size) {
+        // Simple heart shape using circles and triangle
+        graphics.fillCircle(x - size * 0.5, y - size * 0.3, size * 0.5);
+        graphics.fillCircle(x + size * 0.5, y - size * 0.3, size * 0.5);
+        graphics.beginPath();
+        graphics.moveTo(x - size, y);
+        graphics.lineTo(x, y + size);
+        graphics.lineTo(x + size, y);
+        graphics.closePath();
+        graphics.fillPath();
+    }
+
+    /**
+     * Calculate mood from creature stats
+     * @param {Object} stats - Creature stats { happiness, energy, health }
+     * @returns {string} Mood state
+     */
+    static calculateMood(stats) {
+        if (!stats) return 'content';
+
+        const { happiness = 100, energy = 100, health = 100 } = stats;
+        const avg = (happiness + energy + health) / 3;
+
+        if (avg >= 90 && happiness >= 95) return 'ecstatic';
+        if (avg >= 75) return 'happy';
+        if (avg >= 55) return 'content';
+        if (avg >= 40) return 'neutral';
+        if (energy < 30) return 'tired';
+        if (happiness < 30) return 'sad';
+        if (avg < 25) return 'distressed';
+        return 'neutral';
     }
 
     /**
@@ -4077,6 +5349,38 @@ class GraphicsEngine {
                     break;
                 case 'prismatic_sheen':
                     this.renderPrismaticSheenMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+
+                // New mutation types
+                case 'mechanical_parts':
+                    this.renderMechanicalPartsMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'circuit_veins':
+                    this.renderCircuitVeinsMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'elemental_aura':
+                    this.renderElementalAuraMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'plant_growth':
+                    this.renderPlantGrowthMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'bioluminescence':
+                    this.renderBioluminescenceMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'phantom_limbs':
+                    this.renderPhantomLimbsMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'cosmic_horns':
+                    this.renderCosmicHornsMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'nebula_trails':
+                    this.renderNebulaTrailsMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'scale_armor':
+                    this.renderScaleArmorMutation(graphics, center, baseSize, mutation, colors);
+                    break;
+                case 'feather_mane':
+                    this.renderFeatherManeMutation(graphics, center, baseSize, mutation, colors);
                     break;
             }
         });
@@ -4779,6 +6083,434 @@ class GraphicsEngine {
             graphics.strokeCircle(center.x, center.y + 5, 38);
         }
     }
+
+    // ==================== NEW MUTATION RENDERERS ====================
+
+    /**
+     * Mechanical parts mutation - gears, pistons, clockwork
+     */
+    renderMechanicalPartsMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'gears';
+        const metalColor = 0x78909C; // Steel gray
+
+        const numParts = Math.floor(3 * intensity) + 2;
+
+        for (let i = 0; i < numParts; i++) {
+            const angle = (i / numParts) * Math.PI * 2;
+            const dist = 15 + Math.random() * 10;
+            const x = center.x + Math.cos(angle) * dist;
+            const y = center.y + Math.sin(angle) * dist * 0.7;
+            const size = 6 + Math.random() * 4;
+
+            if (variant === 'gears') {
+                // Gear teeth
+                graphics.fillStyle(metalColor, 0.8 * intensity);
+                for (let t = 0; t < 8; t++) {
+                    const toothAngle = (t / 8) * Math.PI * 2;
+                    const toothX = x + Math.cos(toothAngle) * size;
+                    const toothY = y + Math.sin(toothAngle) * size;
+                    graphics.fillRect(toothX - 1.5, toothY - 1.5, 3, 3);
+                }
+                // Gear center
+                graphics.fillStyle(this.darkenColor(metalColor, 0.3));
+                graphics.fillCircle(x, y, size * 0.6);
+                graphics.fillStyle(0x455A64);
+                graphics.fillCircle(x, y, size * 0.2);
+            } else if (variant === 'pistons') {
+                // Piston cylinder
+                graphics.fillStyle(metalColor, 0.8 * intensity);
+                graphics.fillRect(x - 2, y - size, 4, size * 2);
+                graphics.fillStyle(0xB0BEC5, 0.9);
+                graphics.fillRect(x - 1.5, y - size * 0.5, 3, size);
+            } else {
+                // Clockwork - small circles and connectors
+                graphics.fillStyle(0xFFD700, 0.6 * intensity);
+                graphics.fillCircle(x, y, size * 0.4);
+                graphics.lineStyle(1, metalColor, 0.7);
+                graphics.strokeCircle(x, y, size * 0.6);
+            }
+        }
+    }
+
+    /**
+     * Circuit veins mutation - glowing circuit-like patterns
+     */
+    renderCircuitVeinsMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'blue_glow';
+
+        const glowColors = {
+            blue_glow: 0x00BCD4,
+            green_glow: 0x4CAF50,
+            gold_glow: 0xFFD700,
+            pulsing: 0xFF4081
+        };
+
+        const glowColor = glowColors[variant] || glowColors.blue_glow;
+
+        // Draw circuit paths
+        graphics.lineStyle(1.5, glowColor, 0.7 * intensity);
+
+        for (let i = 0; i < 4; i++) {
+            const startAngle = (i / 4) * Math.PI * 2;
+            const startX = center.x + Math.cos(startAngle) * 10;
+            const startY = center.y + Math.sin(startAngle) * 8;
+
+            graphics.beginPath();
+            graphics.moveTo(startX, startY);
+
+            // Create angular circuit path
+            let currentX = startX;
+            let currentY = startY;
+            for (let j = 0; j < 3; j++) {
+                if (j % 2 === 0) {
+                    currentX += (Math.random() - 0.5) * 20;
+                } else {
+                    currentY += (Math.random() - 0.5) * 15;
+                }
+                graphics.lineTo(currentX, currentY);
+            }
+            graphics.strokePath();
+
+            // Node points
+            graphics.fillStyle(glowColor, 0.9 * intensity);
+            graphics.fillCircle(currentX, currentY, 2);
+        }
+
+        // Glow effect around center
+        graphics.fillStyle(glowColor, 0.15 * intensity);
+        graphics.fillCircle(center.x, center.y + 5, 25);
+    }
+
+    /**
+     * Elemental aura mutation - fire, ice, lightning effects
+     */
+    renderElementalAuraMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'fire';
+
+        if (variant === 'fire') {
+            // Fire flames
+            const flameColors = [0xFF6B35, 0xFF9500, 0xFFD93D];
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const x = center.x + Math.cos(angle) * 25;
+                const y = center.y + Math.sin(angle) * 20;
+
+                flameColors.forEach((color, ci) => {
+                    graphics.fillStyle(color, (0.5 - ci * 0.15) * intensity);
+                    graphics.beginPath();
+                    graphics.moveTo(x, y);
+                    graphics.lineTo(x - 4, y + 10 - ci * 2);
+                    graphics.lineTo(x + 4, y + 10 - ci * 2);
+                    graphics.closePath();
+                    graphics.fillPath();
+                });
+            }
+        } else if (variant === 'ice') {
+            // Ice crystals
+            graphics.fillStyle(0xB2EBF2, 0.6 * intensity);
+            for (let i = 0; i < 5; i++) {
+                const x = center.x + (Math.random() - 0.5) * 40;
+                const y = center.y + (Math.random() - 0.5) * 35;
+                const size = 3 + Math.random() * 4;
+
+                graphics.beginPath();
+                graphics.moveTo(x, y - size);
+                graphics.lineTo(x - size * 0.5, y);
+                graphics.lineTo(x, y + size);
+                graphics.lineTo(x + size * 0.5, y);
+                graphics.closePath();
+                graphics.fillPath();
+            }
+            // Cold mist
+            graphics.fillStyle(0xE0F7FA, 0.2 * intensity);
+            graphics.fillCircle(center.x, center.y + 5, 30);
+        } else if (variant === 'lightning') {
+            // Lightning bolts
+            graphics.lineStyle(2, 0xFFEB3B, 0.8 * intensity);
+            for (let i = 0; i < 3; i++) {
+                const startX = center.x + (Math.random() - 0.5) * 20;
+                const startY = center.y - 20;
+
+                graphics.beginPath();
+                graphics.moveTo(startX, startY);
+
+                let cx = startX, cy = startY;
+                for (let j = 0; j < 4; j++) {
+                    cx += (Math.random() - 0.5) * 15;
+                    cy += 8;
+                    graphics.lineTo(cx, cy);
+                }
+                graphics.strokePath();
+            }
+        }
+    }
+
+    /**
+     * Plant growth mutation - vines, flowers, moss
+     */
+    renderPlantGrowthMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'vines';
+
+        const plantColor = 0x4CAF50;
+
+        if (variant === 'vines') {
+            graphics.lineStyle(2, plantColor, 0.7 * intensity);
+            for (let i = 0; i < 4; i++) {
+                const startAngle = (i / 4) * Math.PI * 2;
+                const startX = center.x + Math.cos(startAngle) * 15;
+                const startY = center.y + Math.sin(startAngle) * 12;
+
+                graphics.beginPath();
+                graphics.moveTo(startX, startY);
+
+                for (let j = 0; j < 3; j++) {
+                    const cx = startX + Math.cos(startAngle + j * 0.3) * (10 + j * 5);
+                    const cy = startY + Math.sin(startAngle + j * 0.3) * (8 + j * 4);
+                    graphics.lineTo(cx, cy);
+
+                    // Small leaves
+                    graphics.fillStyle(0x81C784, 0.6 * intensity);
+                    graphics.fillEllipse(cx, cy, 3, 2);
+                }
+                graphics.strokePath();
+            }
+        } else if (variant === 'flowers') {
+            for (let i = 0; i < 4; i++) {
+                const x = center.x + (Math.random() - 0.5) * 35;
+                const y = center.y + (Math.random() - 0.5) * 30;
+
+                // Flower petals
+                const petalColor = [0xE91E63, 0xFFEB3B, 0x9C27B0, 0xFF5722][i];
+                for (let p = 0; p < 5; p++) {
+                    const pAngle = (p / 5) * Math.PI * 2;
+                    graphics.fillStyle(petalColor, 0.6 * intensity);
+                    graphics.fillEllipse(x + Math.cos(pAngle) * 4, y + Math.sin(pAngle) * 4, 3, 5);
+                }
+                // Flower center
+                graphics.fillStyle(0xFFEB3B, 0.9);
+                graphics.fillCircle(x, y, 2);
+            }
+        } else if (variant === 'moss') {
+            graphics.fillStyle(0x558B2F, 0.5 * intensity);
+            for (let i = 0; i < 8; i++) {
+                const x = center.x + (Math.random() - 0.5) * 40;
+                const y = center.y + (Math.random() - 0.5) * 35;
+                graphics.fillCircle(x, y, 2 + Math.random() * 3);
+            }
+        }
+    }
+
+    /**
+     * Bioluminescence mutation - glowing patches
+     */
+    renderBioluminescenceMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'spots';
+
+        const glowColor = colors.accent || 0x00BCD4;
+
+        if (variant === 'spots') {
+            for (let i = 0; i < 6; i++) {
+                const x = center.x + (Math.random() - 0.5) * 35;
+                const y = center.y + (Math.random() - 0.5) * 30;
+                const size = 3 + Math.random() * 4;
+
+                // Glow
+                graphics.fillStyle(glowColor, 0.3 * intensity);
+                graphics.fillCircle(x, y, size * 2);
+                // Core
+                graphics.fillStyle(glowColor, 0.8 * intensity);
+                graphics.fillCircle(x, y, size);
+                // Bright center
+                graphics.fillStyle(0xFFFFFF, 0.6 * intensity);
+                graphics.fillCircle(x, y, size * 0.4);
+            }
+        } else if (variant === 'stripes') {
+            graphics.lineStyle(3, glowColor, 0.4 * intensity);
+            for (let i = 0; i < 4; i++) {
+                const y = center.y - 10 + i * 8;
+                graphics.beginPath();
+                graphics.moveTo(center.x - 20, y);
+                graphics.lineTo(center.x + 20, y);
+                graphics.strokePath();
+            }
+        }
+    }
+
+    /**
+     * Phantom limbs mutation - ghostly translucent extra limbs
+     */
+    renderPhantomLimbsMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'arms';
+
+        const phantomColor = colors.body || 0x9370DB;
+
+        if (variant === 'arms') {
+            // Ghostly arms
+            graphics.fillStyle(phantomColor, 0.25 * intensity);
+            // Left phantom arm
+            graphics.fillEllipse(center.x - 30, center.y, 8, 20);
+            graphics.fillEllipse(center.x - 35, center.y + 15, 5, 8);
+            // Right phantom arm
+            graphics.fillEllipse(center.x + 30, center.y, 8, 20);
+            graphics.fillEllipse(center.x + 35, center.y + 15, 5, 8);
+        } else if (variant === 'wings') {
+            graphics.fillStyle(phantomColor, 0.2 * intensity);
+            // Phantom wings
+            graphics.fillEllipse(center.x - 35, center.y - 10, 15, 25);
+            graphics.fillEllipse(center.x + 35, center.y - 10, 15, 25);
+        } else if (variant === 'tail') {
+            graphics.fillStyle(phantomColor, 0.25 * intensity);
+            // Flowing phantom tail
+            for (let i = 0; i < 5; i++) {
+                graphics.fillEllipse(center.x + i * 8, center.y + 30 + i * 3, 6 - i, 8 - i);
+            }
+        }
+    }
+
+    /**
+     * Cosmic horns mutation - star/crystal horn formations
+     */
+    renderCosmicHornsMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'star_tipped';
+
+        const hornColor = colors.accent || 0xFFD700;
+
+        if (variant === 'star_tipped') {
+            // Horns with stars at tips
+            this.renderHorns(graphics, center, hornColor, 'cosmic', intensity);
+        } else if (variant === 'crystal') {
+            // Crystal horns
+            this.renderHorns(graphics, center, 0x00BCD4, 'crystalline', intensity);
+        } else if (variant === 'spiral') {
+            this.renderHorns(graphics, center, hornColor, 'spiral', intensity);
+        } else {
+            this.renderHorns(graphics, center, hornColor, 'antlers', intensity);
+        }
+    }
+
+    /**
+     * Nebula trails mutation - trailing mist effects
+     */
+    renderNebulaTrailsMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'misty';
+
+        const nebulaColors = [0x9C27B0, 0xE91E63, 0x3F51B5, 0x00BCD4];
+
+        for (let i = 0; i < 5; i++) {
+            const x = center.x + (Math.random() - 0.5) * 20;
+            const y = center.y + 20 + i * 8;
+            const size = 15 - i * 2;
+            const color = nebulaColors[i % nebulaColors.length];
+
+            graphics.fillStyle(color, (0.3 - i * 0.05) * intensity);
+            graphics.fillEllipse(x, y, size, size * 0.6);
+        }
+
+        if (variant === 'sparkling') {
+            graphics.fillStyle(0xFFFFFF, 0.8 * intensity);
+            for (let i = 0; i < 5; i++) {
+                const x = center.x + (Math.random() - 0.5) * 25;
+                const y = center.y + 15 + Math.random() * 30;
+                graphics.fillCircle(x, y, 1.5);
+            }
+        }
+    }
+
+    /**
+     * Scale armor mutation - visible armored scales
+     */
+    renderScaleArmorMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'dragon';
+
+        const scaleColor = this.darkenColor(colors.body || 0x4A148C, 0.2);
+
+        const rows = 4;
+        const scalesPerRow = 6;
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < scalesPerRow; col++) {
+                const x = center.x - 15 + col * 6 + (row % 2) * 3;
+                const y = center.y - 5 + row * 7;
+
+                graphics.fillStyle(scaleColor, 0.6 * intensity);
+                graphics.beginPath();
+                graphics.moveTo(x, y - 3);
+                graphics.lineTo(x + 3, y);
+                graphics.lineTo(x, y + 3);
+                graphics.lineTo(x - 3, y);
+                graphics.closePath();
+                graphics.fillPath();
+
+                // Scale highlight
+                graphics.fillStyle(0xFFFFFF, 0.15 * intensity);
+                graphics.fillCircle(x - 0.5, y - 1, 1);
+            }
+        }
+    }
+
+    /**
+     * Feather mane mutation - feathered crest/mane
+     */
+    renderFeatherManeMutation(graphics, center, baseSize, mutation, colors) {
+        const intensity = mutation.intensity || 0.5;
+        const variant = mutation.variant || 'mohawk';
+
+        const featherColor = colors.wings || colors.accent || 0xE91E63;
+
+        if (variant === 'mohawk') {
+            // Central crest
+            for (let i = 0; i < 5; i++) {
+                const x = center.x;
+                const y = center.y - 30 - i * 5;
+                const height = 12 - i * 2;
+
+                graphics.fillStyle(featherColor, (0.8 - i * 0.1) * intensity);
+                graphics.beginPath();
+                graphics.moveTo(x, y - height);
+                graphics.lineTo(x - 3, y);
+                graphics.lineTo(x + 3, y);
+                graphics.closePath();
+                graphics.fillPath();
+            }
+        } else if (variant === 'flowing') {
+            // Side flowing feathers
+            for (let side = -1; side <= 1; side += 2) {
+                for (let i = 0; i < 4; i++) {
+                    const x = center.x + side * (8 + i * 3);
+                    const y = center.y - 25 + i * 3;
+                    const height = 10 - i;
+
+                    graphics.fillStyle(featherColor, (0.7 - i * 0.1) * intensity);
+                    graphics.fillEllipse(x, y, 3, height);
+                }
+            }
+        } else {
+            // Royal plume
+            for (let i = 0; i < 3; i++) {
+                const angle = (i - 1) * 0.3;
+                const x = center.x + Math.sin(angle) * 10;
+                const y = center.y - 35 - Math.cos(angle) * 5;
+
+                graphics.fillStyle(featherColor, 0.7 * intensity);
+                graphics.fillEllipse(x, y, 4, 15);
+
+                // Feather tip
+                graphics.fillStyle(0xFFD700, 0.6 * intensity);
+                graphics.fillCircle(x, y - 12, 2);
+            }
+        }
+    }
+
+    // ==================== END NEW MUTATION RENDERERS ====================
 
     /**
      * Render reptilian body - scaled with ridges
@@ -5942,6 +7674,194 @@ class GraphicsEngine {
                 }
                 break;
         }
+    }
+
+    /**
+     * Apply shiny visual effects based on shiny type
+     * Called for creatures with genetics.isShiny = true
+     * @param {Phaser.Graphics} graphics - Graphics context
+     * @param {Object} center - Center position {x, y}
+     * @param {Object} size - Creature size {width, height}
+     * @param {string} shinyType - Type: 'sparkle', 'chromatic', 'inverted', 'golden'
+     * @param {Object} colorGenome - Color genome with shiny modifications
+     */
+    applyShinyEffects(graphics, center, size, shinyType, colorGenome) {
+        console.log(`graphics:debug [GraphicsEngine] Applying shiny effects: ${shinyType}`);
+
+        switch (shinyType) {
+            case 'sparkle':
+                this.renderSparkleShiny(graphics, center, size, colorGenome);
+                break;
+
+            case 'chromatic':
+                this.renderChromaticShiny(graphics, center, size, colorGenome);
+                break;
+
+            case 'inverted':
+                this.renderInvertedShiny(graphics, center, size, colorGenome);
+                break;
+
+            case 'golden':
+                this.renderGoldenShiny(graphics, center, size, colorGenome);
+                break;
+
+            default:
+                // Fallback to sparkle
+                this.renderSparkleShiny(graphics, center, size, colorGenome);
+        }
+    }
+
+    /**
+     * Sparkle shiny: 8 sparkle points around creature
+     */
+    renderSparkleShiny(graphics, center, size, colorGenome) {
+        const sparkleColor = colorGenome.sparkleColor || 0xFFFFFF;
+        const intensity = colorGenome.sparkleIntensity || 0.8;
+        const radius = Math.max(size.width, size.height) * 0.5 + 5;
+
+        // Draw 8 sparkle points around creature
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = radius + Math.sin(i * 1.5) * 5; // Slight variation
+            const x = center.x + Math.cos(angle) * distance;
+            const y = center.y + Math.sin(angle) * distance;
+
+            // Draw 4-point star sparkle
+            this.drawSparkle(graphics, x, y, 4 + (i % 2) * 2, sparkleColor, intensity);
+        }
+
+        // Add inner sparkle ring
+        for (let i = 0; i < 4; i++) {
+            const angle = (i / 4) * Math.PI * 2 + Math.PI / 8; // Offset from outer ring
+            const x = center.x + Math.cos(angle) * (radius * 0.6);
+            const y = center.y + Math.sin(angle) * (radius * 0.6);
+            this.drawSparkle(graphics, x, y, 3, sparkleColor, intensity * 0.7);
+        }
+    }
+
+    /**
+     * Draw a 4-point sparkle/star
+     */
+    drawSparkle(graphics, x, y, size, color, alpha = 1) {
+        graphics.fillStyle(color, alpha);
+
+        // Horizontal diamond
+        graphics.fillTriangle(x - size, y, x, y - size * 0.4, x + size, y);
+        graphics.fillTriangle(x - size, y, x, y + size * 0.4, x + size, y);
+
+        // Vertical diamond
+        graphics.fillTriangle(x, y - size, x - size * 0.4, y, x, y + size);
+        graphics.fillTriangle(x, y - size, x + size * 0.4, y, x, y + size);
+
+        // Center glow
+        graphics.fillStyle(0xFFFFFF, alpha * 0.8);
+        graphics.fillCircle(x, y, size * 0.3);
+    }
+
+    /**
+     * Chromatic shiny: Rainbow outline with RGB offset circles
+     */
+    renderChromaticShiny(graphics, center, size, colorGenome) {
+        const radius = Math.max(size.width, size.height) * 0.55;
+        const offset = 3; // RGB offset amount
+
+        // Red channel outline (offset left)
+        graphics.lineStyle(2, 0xFF0000, 0.3);
+        graphics.strokeCircle(center.x - offset, center.y, radius);
+
+        // Green channel outline (centered)
+        graphics.lineStyle(2, 0x00FF00, 0.3);
+        graphics.strokeCircle(center.x, center.y - offset, radius);
+
+        // Blue channel outline (offset right)
+        graphics.lineStyle(2, 0x0000FF, 0.3);
+        graphics.strokeCircle(center.x + offset, center.y, radius);
+
+        // Add rainbow shimmer dots around perimeter
+        if (colorGenome.hasRainbowShimmer) {
+            const rainbowColors = [0xFF0000, 0xFF7F00, 0xFFFF00, 0x00FF00, 0x0000FF, 0x4B0082, 0x9400D3];
+            for (let i = 0; i < 14; i++) {
+                const angle = (i / 14) * Math.PI * 2;
+                const x = center.x + Math.cos(angle) * (radius + 8);
+                const y = center.y + Math.sin(angle) * (radius + 8);
+                const color = rainbowColors[i % rainbowColors.length];
+                graphics.fillStyle(color, 0.6);
+                graphics.fillCircle(x, y, 2);
+            }
+        }
+    }
+
+    /**
+     * Inverted shiny: Subtle inversion indicator with contrast rings
+     */
+    renderInvertedShiny(graphics, center, size, colorGenome) {
+        const radius = Math.max(size.width, size.height) * 0.5;
+
+        // Add dark/light contrast rings to indicate inversion
+        graphics.lineStyle(2, 0x000000, 0.4);
+        graphics.strokeCircle(center.x, center.y, radius + 2);
+
+        graphics.lineStyle(2, 0xFFFFFF, 0.4);
+        graphics.strokeCircle(center.x, center.y, radius + 5);
+
+        // Add inverted corner markers
+        const corners = [
+            { x: center.x - radius * 0.7, y: center.y - radius * 0.7 },
+            { x: center.x + radius * 0.7, y: center.y - radius * 0.7 },
+            { x: center.x - radius * 0.7, y: center.y + radius * 0.7 },
+            { x: center.x + radius * 0.7, y: center.y + radius * 0.7 }
+        ];
+
+        corners.forEach(corner => {
+            // Yin-yang style small circles
+            graphics.fillStyle(0x000000, 0.5);
+            graphics.fillCircle(corner.x - 1, corner.y, 3);
+            graphics.fillStyle(0xFFFFFF, 0.5);
+            graphics.fillCircle(corner.x + 1, corner.y, 3);
+        });
+    }
+
+    /**
+     * Golden shiny: Gold-tinted glow circle
+     */
+    renderGoldenShiny(graphics, center, size, colorGenome) {
+        const goldColor = colorGenome.overlay?.color || 0xFFD700;
+        const radius = Math.max(size.width, size.height) * 0.6;
+
+        // Outer golden glow (largest, most transparent)
+        graphics.fillStyle(goldColor, 0.15);
+        graphics.fillCircle(center.x, center.y, radius + 15);
+
+        // Middle golden glow
+        graphics.fillStyle(goldColor, 0.2);
+        graphics.fillCircle(center.x, center.y, radius + 8);
+
+        // Inner golden ring
+        graphics.lineStyle(3, goldColor, 0.5);
+        graphics.strokeCircle(center.x, center.y, radius);
+
+        // Add golden sparkle points
+        const sparklePositions = [
+            { angle: 0, dist: radius + 12 },
+            { angle: Math.PI / 2, dist: radius + 10 },
+            { angle: Math.PI, dist: radius + 12 },
+            { angle: Math.PI * 1.5, dist: radius + 10 }
+        ];
+
+        sparklePositions.forEach(pos => {
+            const x = center.x + Math.cos(pos.angle) * pos.dist;
+            const y = center.y + Math.sin(pos.angle) * pos.dist;
+            this.drawSparkle(graphics, x, y, 4, goldColor, 0.8);
+        });
+
+        // Golden crown indicator at top
+        graphics.fillStyle(goldColor, 0.7);
+        const crownY = center.y - radius - 5;
+        graphics.fillTriangle(
+            center.x - 6, crownY + 4,
+            center.x, crownY - 4,
+            center.x + 6, crownY + 4
+        );
     }
 
     /**

@@ -60,9 +60,24 @@ class GameScene extends Phaser.Scene {
         this.nearShop = false;
         this.crashedShip = null;
         this.hubPortal = null;
+        this.voidPortal = null;
         this.campfire = null;
         this.sanctuaryZones = null;
         this.nearHubPortal = false;
+        this.nearVoidPortal = false;
+        this.nearCampfire = false;
+        // Time-slow tool state (unlocked after 3 campfire rest sessions)
+        this.timeSlowActive = false;
+        this.timeSlowCooldown = false;
+        this.timeSlowDuration = 5000; // 5 seconds of slow-mo
+        this.timeSlowCooldownTime = 30000; // 30 second cooldown
+        this.timeSlowFactor = 0.3; // 30% speed
+        this.timeSlowOverlay = null;
+        this.voidPullActive = false;
+        this.voidPullProgress = 0;
+        this.voidPullTimer = null;
+        this.voidPullBar = null;
+        this.voidPullText = null;
         this.nearCrashedShip = false;
         this.nearReturnPortal = false;
         this.returnPortal = null;
@@ -113,6 +128,7 @@ class GameScene extends Phaser.Scene {
         this.isShowingTutorial = false;
         this.welcomeToastDisplayed = false;
         this.shownDepartureWarning = false;
+        this.welcomeBackChecked = false;
 
         // ParallaxBiome for layered space-fantasy backgrounds
         this.parallaxBiome = null;
@@ -175,6 +191,11 @@ class GameScene extends Phaser.Scene {
                 scene: 'GameScene',
                 timestamp: Date.now()
             });
+
+            // Check for offline activities (Welcome Back feature)
+            if (!this.welcomeBackChecked) {
+                this.checkOfflineActivities();
+            }
 
             // Initialize CreatureAI for chat functionality
             const CreatureAI = getCreatureAI();
@@ -250,6 +271,7 @@ class GameScene extends Phaser.Scene {
             // Sanctuary landmarks (only in nebula/main biome)
             this.crashedShip = worldPieces.crashedShip || null;
             this.hubPortal = worldPieces.hubPortal || null;
+            this.voidPortal = worldPieces.voidPortal || null;
             this.campfire = worldPieces.campfire || null;
             this.sanctuaryZones = worldPieces.sanctuaryZones || null;
 
@@ -297,8 +319,14 @@ class GameScene extends Phaser.Scene {
                 if (this.hubPortal) {
                     this.physics.add.overlap(this.player, this.hubPortal, this.handleHubPortalProximity, null, this);
                 }
+                if (this.voidPortal) {
+                    this.physics.add.overlap(this.player, this.voidPortal, this.handleVoidPortalProximity, null, this);
+                }
                 if (this.crashedShip) {
                     this.physics.add.overlap(this.player, this.crashedShip, this.handleCrashedShipProximity, null, this);
+                }
+                if (this.campfire) {
+                    this.physics.add.overlap(this.player, this.campfire, this.handleCampfireProximity, null, this);
                 }
 
                 // Return portal for non-sanctuary biomes
@@ -401,6 +429,12 @@ class GameScene extends Phaser.Scene {
             // Check for daily login greeting after a short delay
             this.time.delayedCall(1500, () => this.checkDailyGreeting());
 
+            // Initialize Secret Abilities for current creature
+            this.initializeSecretAbilities();
+
+            // Check for Ancient Lineage reveal
+            this.time.delayedCall(2000, () => this.checkAncientLineageReveal());
+
             // Hide loading overlay (shown by HubWorldScene or other transition sources)
             if (window.UXEnhancements) {
                 window.UXEnhancements.hideLoading();
@@ -413,6 +447,27 @@ class GameScene extends Phaser.Scene {
             });
             this.controlsHintPanel.init();
             console.log('[GameScene] Controls hint panel initialized');
+
+            // Initialize FeedbackManager for haptics and screen shake
+            if (window.FeedbackManager) {
+                this.feedbackManager = window.FeedbackManager;
+                console.log('[GameScene] FeedbackManager ready');
+            }
+
+            // Initialize CreatureAnimationController for idle animations
+            if (window.CreatureAnimationController && this.player) {
+                // Get genetics from active creature in collection or from creature.genes
+                const genetics = getGameState().get('creature.genes') ||
+                                getGameState().getActiveCreature()?.genes ||
+                                { personality: { core: 'curious' } };
+                this.creatureAnimationController = new window.CreatureAnimationController(this, this.player, genetics);
+                console.log('[GameScene] CreatureAnimationController initialized');
+            }
+
+            // Play home area background music
+            if (window.AudioManager?.playAreaMusic) {
+                window.AudioManager.playAreaMusic('home');
+            }
 
             console.log('[GameScene] Scene created successfully');
         } catch (error) {
@@ -529,6 +584,274 @@ class GameScene extends Phaser.Scene {
         } catch (error) {
             console.error('[GameScene] Failed to setup ParallaxBiome:', error);
         }
+    }
+
+    /**
+     * Initialize secret abilities for the current creature
+     * Applies passive abilities and sets up combat/utility modifiers
+     */
+    initializeSecretAbilities() {
+        const genes = getGameState().get('creature.genes');
+        const creature = {
+            x: this.player?.x,
+            y: this.player?.y,
+            generation: genes?.metadata?.generation || 1,
+            secretAbilities: genes?.secretAbilities || []
+        };
+
+        if (window.SecretAbilityManager) {
+            const activeAbilities = window.SecretAbilityManager.initializeForCreature(creature, this);
+
+            if (activeAbilities.length > 0) {
+                console.log(`[GameScene] Initialized ${activeAbilities.length} secret abilities`);
+
+                // Show ability notification after a short delay
+                this.time.delayedCall(3000, () => {
+                    activeAbilities.forEach((ability, index) => {
+                        this.time.delayedCall(index * 1500, () => {
+                            this.showAbilityNotification(ability);
+                        });
+                    });
+                });
+            }
+        }
+    }
+
+    /**
+     * Show notification for an active secret ability
+     */
+    showAbilityNotification(ability) {
+        const width = this.scale.width;
+        const height = this.scale.height;
+
+        // Create notification panel
+        const panelX = width / 2;
+        const panelY = height * 0.2;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 0.9);
+        panel.fillRoundedRect(panelX - 150, panelY - 30, 300, 60, 10);
+        panel.lineStyle(2, 0x9C27B0);
+        panel.strokeRoundedRect(panelX - 150, panelY - 30, 300, 60, 10);
+        panel.setDepth(1500);
+        panel.setScrollFactor(0);
+
+        const text = this.add.text(panelX, panelY,
+            `${ability.icon || '✨'} ${ability.name}\n${ability.handler?.getDescription?.() || ''}`, {
+            fontSize: '14px',
+            color: '#FFFFFF',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(1501).setScrollFactor(0);
+
+        // Animate in and out
+        panel.setAlpha(0);
+        text.setAlpha(0);
+
+        this.tweens.add({
+            targets: [panel, text],
+            alpha: 1,
+            duration: 500,
+            onComplete: () => {
+                this.time.delayedCall(2500, () => {
+                    this.tweens.add({
+                        targets: [panel, text],
+                        alpha: 0,
+                        duration: 500,
+                        onComplete: () => {
+                            panel.destroy();
+                            text.destroy();
+                        }
+                    });
+                });
+            }
+        });
+
+        // Sound effect
+        window.AudioManager?.playAchievement?.();
+    }
+
+    /**
+     * Check for pending Ancient Lineage reveal and show dramatic notification
+     * Ancient Lineage is an extremely rare birth event for max generation creatures
+     */
+    checkAncientLineageReveal() {
+        const pendingLineage = getGameState().get('session.pendingAncientLineage');
+
+        if (!pendingLineage) return;
+
+        console.log('[GameScene] Ancient Lineage reveal triggered!');
+
+        // Clear the pending flag
+        getGameState().set('session.pendingAncientLineage', null);
+
+        // Show dramatic Ancient Lineage reveal
+        this.showAncientLineageReveal(pendingLineage);
+    }
+
+    /**
+     * Show dramatic Ancient Lineage reveal with full-screen celebration
+     */
+    showAncientLineageReveal(lineageData) {
+        const width = this.scale.width;
+        const height = this.scale.height;
+
+        // Create dark overlay for dramatic effect
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(2000);
+        overlay.setScrollFactor(0);
+
+        // Fade to dark
+        this.tweens.add({
+            targets: overlay,
+            fillStyle: { value: 0.8 },
+            duration: 1000,
+            onUpdate: () => {
+                overlay.clear();
+                overlay.fillStyle(0x000000, overlay.alpha);
+                overlay.fillRect(0, 0, width, height);
+            }
+        });
+
+        // Create golden border effect
+        const border = this.add.graphics();
+        border.setDepth(2001);
+        border.setScrollFactor(0);
+        border.setAlpha(0);
+
+        this.time.delayedCall(1000, () => {
+            // Draw ornate golden border
+            border.lineStyle(4, 0xFFD700);
+            border.strokeRoundedRect(width * 0.1, height * 0.15, width * 0.8, height * 0.7, 20);
+            border.lineStyle(2, 0xFFA500);
+            border.strokeRoundedRect(width * 0.1 + 5, height * 0.15 + 5, width * 0.8 - 10, height * 0.7 - 10, 18);
+
+            this.tweens.add({
+                targets: border,
+                alpha: 1,
+                duration: 500
+            });
+        });
+
+        // Title text - "ANCIENT LINEAGE"
+        const titleText = this.add.text(width / 2, height * 0.25, '👑 ANCIENT LINEAGE 👑', {
+            fontSize: '32px',
+            fontFamily: 'Georgia, serif',
+            color: '#FFD700',
+            stroke: '#8B4513',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(2002).setScrollFactor(0).setAlpha(0);
+
+        // Subtitle
+        const subtitleText = this.add.text(width / 2, height * 0.35,
+            `Generation ${lineageData.generation} • ${lineageData.ancestors} Ancestral Spirits`, {
+            fontSize: '18px',
+            color: '#FFA500',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(2002).setScrollFactor(0).setAlpha(0);
+
+        // Lore text
+        const loreText = this.add.text(width / 2, height * 0.48,
+            '"Through countless generations,\nancient wisdom flows through this creature.\nThe ancestors have blessed this birth\nwith powers beyond mortal comprehension."', {
+            fontSize: '14px',
+            fontStyle: 'italic',
+            color: '#E0E0E0',
+            align: 'center',
+            lineSpacing: 8
+        }).setOrigin(0.5).setDepth(2002).setScrollFactor(0).setAlpha(0);
+
+        // Bonus text
+        const bonusText = this.add.text(width / 2, height * 0.68,
+            `✨ All Stats +${lineageData.statBonus}%\n🛡️ Ancient Protection Active\n⚡ ${lineageData.uniqueAbility || 'Ancestral Blessing'} Unlocked`, {
+            fontSize: '16px',
+            color: '#90EE90',
+            align: 'center',
+            lineSpacing: 6
+        }).setOrigin(0.5).setDepth(2002).setScrollFactor(0).setAlpha(0);
+
+        // Animate text reveals
+        this.time.delayedCall(1500, () => {
+            // Play dramatic sound
+            window.AudioManager?.playVisionReveal?.();
+
+            this.tweens.add({ targets: titleText, alpha: 1, scale: { from: 0.5, to: 1 }, duration: 800, ease: 'Back.easeOut' });
+        });
+
+        this.time.delayedCall(2300, () => {
+            this.tweens.add({ targets: subtitleText, alpha: 1, y: { from: height * 0.32, to: height * 0.35 }, duration: 600 });
+        });
+
+        this.time.delayedCall(3000, () => {
+            this.tweens.add({ targets: loreText, alpha: 1, duration: 800 });
+        });
+
+        this.time.delayedCall(4000, () => {
+            window.AudioManager?.playLevelUp?.();
+            this.tweens.add({ targets: bonusText, alpha: 1, scale: { from: 0.8, to: 1 }, duration: 600, ease: 'Back.easeOut' });
+        });
+
+        // Golden particle effects
+        this.time.delayedCall(1500, () => {
+            if (window.FXLibrary) {
+                // Continuous golden particles
+                const particleTimer = this.time.addEvent({
+                    delay: 200,
+                    callback: () => {
+                        const px = Phaser.Math.Between(width * 0.15, width * 0.85);
+                        const py = Phaser.Math.Between(height * 0.2, height * 0.8);
+                        window.FXLibrary.stardustBurst(this, px, py, {
+                            count: 5,
+                            color: [0xFFD700, 0xFFA500, 0xFFFF00],
+                            duration: 1500
+                        });
+                    },
+                    repeat: 20
+                });
+            }
+        });
+
+        // Close button after animation
+        this.time.delayedCall(5500, () => {
+            const closeBtn = this.add.text(width / 2, height * 0.82, '[ Acknowledge Your Destiny ]', {
+                fontSize: '18px',
+                color: '#FFD700',
+                backgroundColor: 'rgba(26, 26, 62, 0.9)',
+                padding: { x: 20, y: 10 }
+            }).setOrigin(0.5).setDepth(2003).setScrollFactor(0).setInteractive({ useHandCursor: true });
+
+            closeBtn.on('pointerover', () => closeBtn.setColor('#FFFFFF'));
+            closeBtn.on('pointerout', () => closeBtn.setColor('#FFD700'));
+            closeBtn.on('pointerdown', () => {
+                window.AudioManager?.playButtonClick?.();
+
+                // Fade out everything
+                this.tweens.add({
+                    targets: [overlay, border, titleText, subtitleText, loreText, bonusText, closeBtn],
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: () => {
+                        overlay.destroy();
+                        border.destroy();
+                        titleText.destroy();
+                        subtitleText.destroy();
+                        loreText.destroy();
+                        bonusText.destroy();
+                        closeBtn.destroy();
+                    }
+                });
+            });
+
+            // Pulsing animation on button
+            this.tweens.add({
+                targets: closeBtn,
+                scale: { from: 1, to: 1.05 },
+                duration: 800,
+                yoyo: true,
+                repeat: -1
+            });
+        });
     }
 
     /**
@@ -768,6 +1091,80 @@ class GameScene extends Phaser.Scene {
         this.player.on('pointerdown', () => {
             this.openChat();
         });
+
+        // Add breathing/idle animation to make creature feel alive
+        this.addBreathingAnimation(this.player, 1.0);
+    }
+
+    /**
+     * Add breathing/idle animation to make creature feel alive
+     * Based on cartoon animation principles: subtle breathing effect
+     * @param {Phaser.GameObjects.Sprite} creature - The creature sprite
+     * @param {number} baseScale - The base scale of the creature
+     */
+    addBreathingAnimation(creature, baseScale) {
+        if (!creature) return;
+
+        // Clean up any existing breathing tweens before adding new ones
+        if (this.breathingTweens) {
+            this.breathingTweens.forEach(tween => {
+                if (tween && tween.isPlaying) {
+                    tween.stop();
+                }
+            });
+        }
+        this.breathingTweens = [];
+
+        // Get lifecycle stage for animation intensity
+        const stage = window.GameState?.get('creature.lifecycle.stage') || 'adult';
+        const isBaby = stage === 'baby';
+        const isJuvenile = stage === 'juvenile';
+
+        // Babies breathe faster and more noticeably, adults are subtler
+        const breathingIntensity = isBaby ? 0.04 : (isJuvenile ? 0.03 : 0.02);
+        const breathingDuration = isBaby ? 1600 : (isJuvenile ? 2000 : 2500);
+
+        console.log('game:info [GameScene] Adding breathing animation for stage:', stage);
+
+        // Store the base Y position for bobbing
+        const baseY = creature.y;
+
+        // Breathing animation - gentle scale oscillation (squash/stretch)
+        const breathingTween = this.tweens.add({
+            targets: creature,
+            scaleX: baseScale * (1 + breathingIntensity),
+            scaleY: baseScale * (1 - breathingIntensity * 0.5),
+            duration: breathingDuration,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1
+        });
+        this.breathingTweens.push(breathingTween);
+
+        // Subtle bobbing animation - only when not moving
+        const bobbingAmplitude = isBaby ? 4 : (isJuvenile ? 3 : 2);
+        const bobbingTween = this.tweens.add({
+            targets: creature,
+            y: baseY - bobbingAmplitude,
+            duration: breathingDuration * 1.2,
+            ease: 'Sine.easeInOut',
+            yoyo: true,
+            repeat: -1,
+            delay: 150, // Slight offset from breathing for natural feel
+            onUpdate: () => {
+                // Pause bobbing if player is moving significantly
+                if (creature.body && (Math.abs(creature.body.velocity.x) > 10 || Math.abs(creature.body.velocity.y) > 10)) {
+                    if (bobbingTween.isPlaying()) {
+                        bobbingTween.pause();
+                    }
+                } else {
+                    if (bobbingTween.isPaused()) {
+                        bobbingTween.resume();
+                    }
+                }
+            }
+        });
+        this.breathingTweens.push(bobbingTween);
     }
 
     createCosmicCoins() {
@@ -880,6 +1277,7 @@ class GameScene extends Phaser.Scene {
                 window.EconomyManager?.addCoins?.(coinValue, 'collection');
                 this.createCollectionParticles(coin.x, coin.y);
                 window.AudioManager?.playCoinCollect?.();
+                window.FeedbackManager?.trigger?.('coin', this);
 
                 coin.setActive(false);
                 coin.setVisible(false);
@@ -1054,6 +1452,7 @@ class GameScene extends Phaser.Scene {
         this.shopKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.breedingKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
         this.hubKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H);
+        this.timeSlowKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q); // Q for time-slow ability
 
         // DEV MODE: Add coins with backtick key (`) for testing
         if (import.meta.env.DEV) {
@@ -1985,6 +2384,11 @@ class GameScene extends Phaser.Scene {
         const newLevel = data?.newLevel || window.GameState?.get('creature.level') || 1;
         const creatureName = window.GameState?.get('creature.name') || 'Your creature';
 
+        // Trigger haptic feedback and screen shake
+        if (window.FeedbackManager) {
+            window.FeedbackManager.trigger('levelUp', this);
+        }
+
         // Screen flash
         const flash = this.add.graphics();
         flash.fillStyle(0xFFD700, 0.4);
@@ -2443,6 +2847,37 @@ class GameScene extends Phaser.Scene {
         const genes = getGameState().get('creature.genes');
         const rarity = genes?.rarity || 'common';
 
+        // Check for Nova Blast ability (AOE attack)
+        if (window.SecretAbilityManager?.hasAbility('novaBlast')) {
+            const novaResult = window.SecretAbilityManager.triggerAbility(
+                'novaBlast',
+                { x: this.player.x, y: this.player.y },
+                this,
+                nearestEnemy.x,
+                nearestEnemy.y
+            );
+            if (novaResult) {
+                // Nova blast triggered, skip normal projectile
+                this.combatCooldown = this.combatCooldownMax;
+                getGameState().emit('combatEngaged', {
+                    targetX: nearestEnemy.x,
+                    targetY: nearestEnemy.y,
+                    timestamp: Date.now(),
+                    ability: 'novaBlast'
+                });
+                return;
+            }
+        }
+
+        // Check for Crystal Shield ability (defensive trigger on combat)
+        if (window.SecretAbilityManager?.hasAbility('crystalShield')) {
+            window.SecretAbilityManager.triggerAbility(
+                'crystalShield',
+                this.player,
+                this
+            );
+        }
+
         window.AudioManager?.playAttack?.();
         window.ProjectileManager?.fireProjectile(
             this,
@@ -2460,7 +2895,13 @@ class GameScene extends Phaser.Scene {
             timestamp: Date.now()
         });
 
-        this.combatCooldown = this.combatCooldownMax;
+        // Apply cooldown with potential reduction from abilities
+        let cooldown = this.combatCooldownMax;
+        if (window.SecretAbilityManager) {
+            const passiveMods = window.SecretAbilityManager.getPassiveModifiers();
+            cooldown = cooldown * (passiveMods.cooldownReduction || 1);
+        }
+        this.combatCooldown = cooldown;
         if (this.combatText) {
             this.tweens.add({
                 targets: this.combatText,
@@ -2619,7 +3060,7 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
-     * Handle player proximity to Hub Portal
+     * Handle player proximity to Hub Portal (mystical gate to other worlds)
      */
     handleHubPortalProximity(player, portal) {
         if (!this.nearHubPortal) {
@@ -2632,7 +3073,7 @@ class GameScene extends Phaser.Scene {
                 this.mobileControls.updateInteractIcon('⭐');
             }
 
-            // Add pulsing visual indicator around portal
+            // Add mystical pulsing visual indicator around the hub gate
             if (!this.portalIndicator && portal) {
                 this.portalIndicator = this.add.graphics();
                 this.portalIndicator.setDepth(portal.depth - 1);
@@ -2640,16 +3081,20 @@ class GameScene extends Phaser.Scene {
                 const pulseAnim = this.tweens.add({
                     targets: { scale: 1 },
                     scale: 1.15,
-                    duration: 800,
+                    duration: 1500,
                     yoyo: true,
                     repeat: -1,
                     ease: 'Sine.easeInOut',
                     onUpdate: (tween, target) => {
                         if (this.portalIndicator && portal) {
                             this.portalIndicator.clear();
-                            this.portalIndicator.lineStyle(4, 0xFFD700, 0.8);
-                            const radius = 100 * target.scale;
+                            // Mystical purple/cyan glow
+                            this.portalIndicator.lineStyle(3, 0x9370DB, 0.5);
+                            const radius = 90 * target.scale;
                             this.portalIndicator.strokeCircle(portal.x, portal.y, radius);
+                            // Inner glow
+                            this.portalIndicator.lineStyle(2, 0x00CED1, 0.4);
+                            this.portalIndicator.strokeCircle(portal.x, portal.y, radius * 0.75);
                         }
                     }
                 });
@@ -2659,7 +3104,502 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
-     * Enter the Hub World for gate selection
+     * Handle player proximity to Campfire (rest and bonding)
+     */
+    handleCampfireProximity(player, campfire) {
+        if (!this.nearCampfire) {
+            this.nearCampfire = true;
+            console.log('[GameScene] Player near Campfire');
+
+            this.showInteractionHint('Press SPACE to rest by the fire 🔥');
+
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('🔥');
+            }
+
+            // Add warm glow indicator around campfire
+            if (!this.campfireIndicator && campfire) {
+                this.campfireIndicator = this.add.graphics();
+                this.campfireIndicator.setDepth(campfire.depth - 1);
+
+                const glowAnim = this.tweens.add({
+                    targets: { intensity: 1 },
+                    intensity: 1.2,
+                    duration: 1000,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut',
+                    onUpdate: (tween, target) => {
+                        if (this.campfireIndicator && campfire) {
+                            this.campfireIndicator.clear();
+                            // Warm orange glow
+                            this.campfireIndicator.lineStyle(3, 0xFF6600, 0.4 * target.intensity);
+                            const radius = 60 * target.intensity;
+                            this.campfireIndicator.strokeCircle(campfire.x, campfire.y, radius);
+                            // Inner warm glow
+                            this.campfireIndicator.lineStyle(2, 0xFFAA00, 0.3 * target.intensity);
+                            this.campfireIndicator.strokeCircle(campfire.x, campfire.y, radius * 0.6);
+                        }
+                    }
+                });
+                this.campfireGlowAnim = glowAnim;
+            }
+        }
+    }
+
+    /**
+     * Start the campfire rest experience
+     * Opens the CampfireRestSystem overlay for meditation and stat recovery
+     */
+    startCampfireRest() {
+        if (window.CampfireRestSystem) {
+            // Get creature genetics for rendering
+            const creatureGenes = window.GameState?.get('creature.genes') ||
+                                  window.GameState?.get('creature.genetics');
+
+            // Get campfire position for the overlay
+            const campfirePos = this.campfire
+                ? { x: this.campfire.x, y: this.campfire.y }
+                : { x: this.scale.width / 2, y: this.scale.height / 2 };
+
+            // Start the rest session
+            window.CampfireRestSystem.startRest(this, campfirePos, creatureGenes);
+
+            // Clear proximity state
+            this.nearCampfire = false;
+
+            // Clean up glow indicator
+            if (this.campfireIndicator) {
+                this.campfireIndicator.destroy();
+                this.campfireIndicator = null;
+            }
+            if (this.campfireGlowAnim) {
+                this.campfireGlowAnim.stop();
+                this.campfireGlowAnim = null;
+            }
+
+            // Hide interaction hint
+            this.hideInteractionHint();
+
+            // Reset mobile controls interact icon
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('👆');
+            }
+
+            console.log('[GameScene] Started campfire rest session');
+        } else {
+            console.warn('[GameScene] CampfireRestSystem not available');
+        }
+    }
+
+    /**
+     * Activate time-slow ability (unlocked via campfire bonding sessions)
+     * Slows game time to 30% for 5 seconds, with 30-second cooldown
+     */
+    activateTimeSlow() {
+        // Check if ability is unlocked
+        const isUnlocked = window.GameState?.get('bonding.timeSlowUnlocked') || false;
+
+        if (!isUnlocked) {
+            // Show hint that ability isn't unlocked yet
+            this.showFloatingText('Rest by the campfire to unlock!', this.player.x, this.player.y - 50, '#FFAA00');
+            if (window.AudioManager) {
+                window.AudioManager.playError?.();
+            }
+            return;
+        }
+
+        // Check cooldown
+        if (this.timeSlowCooldown) {
+            this.showFloatingText('Time-Slow recharging...', this.player.x, this.player.y - 50, '#888888');
+            return;
+        }
+
+        // Check if already active
+        if (this.timeSlowActive) {
+            return;
+        }
+
+        console.log('[GameScene] Activating time-slow ability');
+        this.timeSlowActive = true;
+
+        // Play activation sound
+        if (window.AudioManager) {
+            window.AudioManager.playVisionReveal?.();
+        }
+
+        // Visual effect - purple overlay with time ripple
+        this.createTimeSlowOverlay();
+
+        // Slow down game physics
+        const originalTimeScale = this.physics.world.timeScale;
+        this.physics.world.timeScale = 1 / this.timeSlowFactor; // Inverse because timeScale > 1 means slower
+
+        // Slow down tweens
+        this.tweens.timeScale = this.timeSlowFactor;
+
+        // Show activation text
+        this.showFloatingText('⏱️ TIME SLOW', this.player.x, this.player.y - 80, '#AA00FF');
+
+        // End time-slow after duration
+        this.time.delayedCall(this.timeSlowDuration, () => {
+            this.deactivateTimeSlow(originalTimeScale);
+        });
+    }
+
+    /**
+     * Create visual overlay for time-slow effect
+     */
+    createTimeSlowOverlay() {
+        const { width, height } = this.scale;
+
+        // Purple tinted overlay
+        this.timeSlowOverlay = this.add.graphics();
+        this.timeSlowOverlay.fillStyle(0x6600AA, 0.15);
+        this.timeSlowOverlay.fillRect(0, 0, width, height);
+        this.timeSlowOverlay.setScrollFactor(0);
+        this.timeSlowOverlay.setDepth(500);
+
+        // Ripple effect from player position
+        const ripple = this.add.graphics();
+        ripple.setScrollFactor(0);
+        ripple.setDepth(499);
+        this.timeSlowOverlay.ripple = ripple;
+
+        // Animate ripple expanding
+        let rippleSize = 0;
+        const rippleAnim = this.tweens.add({
+            targets: { size: 0 },
+            size: Math.max(width, height),
+            duration: 2000,
+            repeat: -1,
+            onUpdate: (tween, target) => {
+                if (!ripple.active) return;
+                ripple.clear();
+                ripple.lineStyle(3, 0xAA00FF, Math.max(0, 0.5 - target.size / Math.max(width, height) * 0.5));
+                const centerX = width / 2;
+                const centerY = height / 2;
+                ripple.strokeCircle(centerX, centerY, target.size);
+            }
+        });
+        this.timeSlowOverlay.rippleAnim = rippleAnim;
+
+        // Edge vignette effect
+        const vignette = this.add.graphics();
+        const vignetteGradient = vignette.createGeometryMask ? null : null; // Simplified
+        for (let i = 0; i < 5; i++) {
+            const alpha = 0.1 - i * 0.02;
+            const offset = i * 30;
+            vignette.lineStyle(30, 0x6600AA, alpha);
+            vignette.strokeRect(offset, offset, width - offset * 2, height - offset * 2);
+        }
+        vignette.setScrollFactor(0);
+        vignette.setDepth(501);
+        this.timeSlowOverlay.vignette = vignette;
+
+        // Pulsing glow animation on overlay
+        this.tweens.add({
+            targets: this.timeSlowOverlay,
+            alpha: { from: 1, to: 0.6 },
+            duration: 500,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * Deactivate time-slow and restore normal speed
+     */
+    deactivateTimeSlow(originalTimeScale = 1) {
+        console.log('[GameScene] Deactivating time-slow');
+        this.timeSlowActive = false;
+
+        // Restore physics speed
+        this.physics.world.timeScale = originalTimeScale;
+        this.tweens.timeScale = 1;
+
+        // Clean up overlay
+        if (this.timeSlowOverlay) {
+            if (this.timeSlowOverlay.rippleAnim) {
+                this.timeSlowOverlay.rippleAnim.stop();
+            }
+            if (this.timeSlowOverlay.ripple) {
+                this.timeSlowOverlay.ripple.destroy();
+            }
+            if (this.timeSlowOverlay.vignette) {
+                this.timeSlowOverlay.vignette.destroy();
+            }
+            this.tweens.killTweensOf(this.timeSlowOverlay);
+            this.timeSlowOverlay.destroy();
+            this.timeSlowOverlay = null;
+        }
+
+        // Start cooldown
+        this.timeSlowCooldown = true;
+        this.showFloatingText('Time-Slow ended', this.player.x, this.player.y - 50, '#888888');
+
+        // Reset cooldown after cooldown period
+        this.time.delayedCall(this.timeSlowCooldownTime, () => {
+            this.timeSlowCooldown = false;
+            this.showFloatingText('⏱️ Time-Slow ready!', this.player.x, this.player.y - 50, '#AA00FF');
+        });
+    }
+
+    /**
+     * Handle void portal proximity - automatic pull-in mechanic
+     * Player gets sucked in after being too close for too long
+     * This creates a clear distinction from spacebar-based ship interaction
+     *
+     * IMPORTANT: Ship interaction takes priority over void pull.
+     * If player is near the ship, they can safely examine it with spacebar.
+     */
+    handleVoidPortalProximity(player, portal) {
+        // Calculate distance to void portal
+        const distToPortal = portal && player
+            ? Phaser.Math.Distance.Between(player.x, player.y, portal.x, portal.y)
+            : Infinity;
+
+        // If player is DIRECTLY on the void portal (within 70px), void pull activates
+        // regardless of ship proximity - this is intentional dangerous territory
+        const onVoidPortal = distToPortal <= 70;
+
+        // PRIORITY CHECK: If player is near the crashed ship AND not directly on void portal
+        // This allows safe ship examination with spacebar while avoiding accidental void pulls
+        if (!onVoidPortal && this.nearCrashedShip) {
+            // Player is examining the ship - void pull deferred
+            return;
+        }
+
+        // Also check distance to ship as a safety measure (only if not on void portal)
+        if (!onVoidPortal && this.crashedShip && player) {
+            const distToShip = Phaser.Math.Distance.Between(
+                player.x, player.y,
+                this.crashedShip.x, this.crashedShip.y
+            );
+            // If within ship interaction range (100px, reduced from 150 to allow void portal access),
+            // don't start void pull
+            if (distToShip <= 100) {
+                return;
+            }
+        }
+
+        if (!this.nearVoidPortal) {
+            this.nearVoidPortal = true;
+            console.log('[GameScene] Player entering void portal danger zone');
+
+            // Show warning instead of interaction hint - no spacebar needed!
+            this.showInteractionHint('⚠️ DANGER! Move away! ⚠️');
+
+            // Start the pull-in sequence
+            this.startVoidPullSequence(portal);
+        }
+    }
+
+    /**
+     * Start the void portal pull-in sequence
+     * Player has ~2 seconds to escape before being pulled in
+     */
+    startVoidPullSequence(portal) {
+        // Don't start if already in sequence or on cooldown
+        if (this.voidPullActive || this.voidEntryCooldown) {
+            return;
+        }
+
+        this.voidPullActive = true;
+        this.voidPullProgress = 0;
+
+        // Create visual pull effect
+        if (!this.voidPortalIndicator && portal) {
+            this.voidPortalIndicator = this.add.graphics();
+            this.voidPortalIndicator.setDepth(portal.depth + 100);
+        }
+
+        // Create pull progress bar above player
+        if (!this.voidPullBar) {
+            this.voidPullBar = this.add.graphics();
+            this.voidPullBar.setDepth(2000);
+        }
+
+        // Create "Being pulled in!" text
+        if (!this.voidPullText) {
+            this.voidPullText = this.add.text(portal.x, portal.y - 80, '🌀 BEING PULLED IN! 🌀', {
+                fontSize: '14px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#FF4444',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(2001);
+
+            // Pulsing warning text
+            this.tweens.add({
+                targets: this.voidPullText,
+                scale: { from: 1, to: 1.15 },
+                alpha: { from: 1, to: 0.7 },
+                duration: 300,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        // Haptic warning
+        if (window.FeedbackManager) {
+            window.FeedbackManager.vibrate('error');
+        }
+
+        // Sound warning
+        if (window.AudioManager) {
+            window.AudioManager.playError();
+        }
+
+        // Pull timer - 2 seconds to escape
+        const PULL_DURATION = 2000;
+        const startTime = this.time.now;
+
+        // Create the pull animation/timer
+        this.voidPullTimer = this.time.addEvent({
+            delay: 50, // Update every 50ms
+            callback: () => {
+                if (!this.voidPullActive) {
+                    return;
+                }
+
+                const elapsed = this.time.now - startTime;
+                this.voidPullProgress = Math.min(elapsed / PULL_DURATION, 1);
+
+                // Update visual effects
+                this.updateVoidPullEffects(portal);
+
+                // Check if player escaped (moved far enough away)
+                if (this.player && portal) {
+                    const distance = Phaser.Math.Distance.Between(
+                        this.player.x, this.player.y,
+                        portal.x, portal.y
+                    );
+
+                    // Escape threshold - player must move > 120 pixels away
+                    if (distance > 120) {
+                        console.log('[GameScene] Player escaped void pull!');
+                        this.cancelVoidPull();
+                        this.showInteractionHint('💨 Escaped the void!');
+                        return;
+                    }
+
+                    // Pull player toward the void center slightly
+                    const pullStrength = 0.3 + (this.voidPullProgress * 0.5); // Increases as time runs out
+                    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, portal.x, portal.y);
+                    this.player.x += Math.cos(angle) * pullStrength;
+                    this.player.y += Math.sin(angle) * pullStrength;
+                }
+
+                // Time's up - enter the void!
+                if (this.voidPullProgress >= 1) {
+                    console.log('[GameScene] Player pulled into the void!');
+                    this.cancelVoidPull();
+                    this.enterVoidMiniGame();
+                }
+            },
+            loop: true
+        });
+    }
+
+    /**
+     * Update void pull visual effects
+     */
+    updateVoidPullEffects(portal) {
+        if (!portal) return;
+
+        // Update pull indicator circles (swirling effect)
+        if (this.voidPortalIndicator) {
+            this.voidPortalIndicator.clear();
+
+            // Outer danger zone - pulsing red
+            const outerRadius = 80 - (this.voidPullProgress * 20);
+            this.voidPortalIndicator.lineStyle(3, 0xFF0000, 0.5 + this.voidPullProgress * 0.3);
+            this.voidPortalIndicator.strokeCircle(portal.x, portal.y, outerRadius);
+
+            // Inner pull spiral - purple, rotating
+            const rotation = this.time.now * 0.005;
+            for (let i = 0; i < 4; i++) {
+                const spiralAngle = rotation + (i * Math.PI / 2);
+                const spiralRadius = 40 * (1 - this.voidPullProgress * 0.3);
+                const sx = portal.x + Math.cos(spiralAngle) * spiralRadius;
+                const sy = portal.y + Math.sin(spiralAngle) * spiralRadius;
+                this.voidPortalIndicator.fillStyle(0x9900FF, 0.6);
+                this.voidPortalIndicator.fillCircle(sx, sy, 5);
+            }
+
+            // Event horizon - shrinking as player gets pulled in
+            this.voidPortalIndicator.lineStyle(2, 0x6600FF, 0.8);
+            this.voidPortalIndicator.strokeCircle(portal.x, portal.y, 30 * (1 - this.voidPullProgress * 0.5));
+        }
+
+        // Update progress bar above player
+        if (this.voidPullBar && this.player) {
+            this.voidPullBar.clear();
+
+            const barWidth = 60;
+            const barHeight = 8;
+            const barX = this.player.x - barWidth / 2;
+            const barY = this.player.y - 50;
+
+            // Background
+            this.voidPullBar.fillStyle(0x333333, 0.8);
+            this.voidPullBar.fillRoundedRect(barX, barY, barWidth, barHeight, 4);
+
+            // Fill - red, fills as player is being pulled
+            const fillWidth = barWidth * this.voidPullProgress;
+            if (fillWidth > 0) {
+                // Color transitions from yellow to red
+                const color = this.voidPullProgress > 0.6 ? 0xFF0000 : 0xFFAA00;
+                this.voidPullBar.fillStyle(color, 1);
+                this.voidPullBar.fillRoundedRect(barX, barY, fillWidth, barHeight, 4);
+            }
+
+            // Border
+            this.voidPullBar.lineStyle(2, 0xFF0000, 0.8);
+            this.voidPullBar.strokeRoundedRect(barX, barY, barWidth, barHeight, 4);
+        }
+    }
+
+    /**
+     * Cancel void pull sequence (player escaped or scene changing)
+     */
+    cancelVoidPull() {
+        this.voidPullActive = false;
+        this.voidPullProgress = 0;
+        this.nearVoidPortal = false;
+
+        // Stop pull timer
+        if (this.voidPullTimer) {
+            this.voidPullTimer.destroy();
+            this.voidPullTimer = null;
+        }
+
+        // Clean up visuals
+        if (this.voidPortalIndicator) {
+            this.voidPortalIndicator.clear();
+            this.voidPortalIndicator.destroy();
+            this.voidPortalIndicator = null;
+        }
+
+        if (this.voidPullBar) {
+            this.voidPullBar.clear();
+            this.voidPullBar.destroy();
+            this.voidPullBar = null;
+        }
+
+        if (this.voidPullText) {
+            this.voidPullText.destroy();
+            this.voidPullText = null;
+        }
+
+        // Hide the interaction hint
+        this.hideInteractionHint();
+    }
+
+    /**
+     * Enter the Hub World - Travel to other worlds/levels
      */
     enterHubWorld() {
         console.log('[GameScene] Entering Hub World');
@@ -2676,22 +3616,97 @@ class GameScene extends Phaser.Scene {
 
         this.nearHubPortal = false;
 
-        // Save player position
+        // Save player position for return
         getGameState().set('world.lastPosition', {
             x: this.player.x,
             y: this.player.y
         });
 
+        // Play mystical portal sound
         if (window.AudioManager) {
-            window.AudioManager.playButtonClick();
+            window.AudioManager.playVisionReveal();
         }
 
+        // Show loading screen
         if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Opening Hub Gate...');
+            window.UXEnhancements.showLoading('Traveling to the Hub...');
         }
 
-        // Transition to Hub World scene
-        this.scene.start('HubWorldScene');
+        // Screen effect - magical transition
+        this.cameras.main.flash(300, 147, 112, 219); // Purple flash
+
+        // Fade out and transition to hub
+        this.cameras.main.fadeOut(500, 0, 0, 0);
+
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            // Get the current creature texture for the hub
+            const creatureTexture = this.creatureTextureName || getGameState().get('creature.textureName');
+
+            // Start hub world scene
+            this.scene.start('HubWorldScene', {
+                creatureTexture: creatureTexture,
+                returnPosition: {
+                    x: this.player.x,
+                    y: this.player.y
+                }
+            });
+        });
+    }
+
+    /**
+     * Enter the Void Mini-Game
+     * Player enters the black hole for a coin collection challenge
+     */
+    enterVoidMiniGame() {
+        console.log('[GameScene] Entering Void Mini-Game');
+
+        if (this.voidEntryCooldown) {
+            console.log('[GameScene] Void entry on cooldown');
+            return;
+        }
+
+        this.voidEntryCooldown = true;
+        this.time.delayedCall(1000, () => {
+            this.voidEntryCooldown = false;
+        });
+
+        this.nearVoidPortal = false;
+
+        // Save player position for return
+        getGameState().set('world.lastPosition', {
+            x: this.player.x,
+            y: this.player.y
+        });
+
+        // Play dramatic void entry sound
+        if (window.AudioManager) {
+            window.AudioManager.playVisionReveal();
+        }
+
+        // Show loading screen with void theme
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Entering the Void...');
+        }
+
+        // Screen effect - get sucked into the void
+        this.cameras.main.shake(500, 0.015);
+
+        // Fade to black and start void mini-game
+        this.cameras.main.fadeOut(600, 0, 0, 0);
+
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            // Get the current creature texture for the mini-game
+            const creatureTexture = this.creatureTextureName || getGameState().get('creature.textureName');
+
+            // Start void mini-game scene
+            this.scene.start('VoidMiniGameScene', {
+                creatureTexture: creatureTexture,
+                returnPosition: {
+                    x: this.player.x,
+                    y: this.player.y
+                }
+            });
+        });
     }
 
     /**
@@ -2762,66 +3777,250 @@ class GameScene extends Phaser.Scene {
 
     /**
      * Show ship memories/narrative when interacting with crashed ship
+     * Enhanced with multi-page storyline and repair progress
      */
     showShipMemories() {
         console.log('[GameScene] Showing ship memories');
 
         const { width, height } = this.scale;
+        const elements = [];
+
+        // Story pages
+        const storyPages = [
+            {
+                title: '🚀 The Wanderer',
+                subtitle: 'Your Research Vessel',
+                icon: '🛸',
+                content: 'The Wanderer-7 was a state-of-the-art research vessel,\ndesigned for deep space exploration and the study\nof anomalous cosmic phenomena.\n\nYou were part of a crew of scientists investigating\nstrange energy readings at the edge of known space.',
+                color: '#4A90A4'
+            },
+            {
+                title: '⚠️ The Incident',
+                subtitle: 'Day 847 of Mission',
+                icon: '💥',
+                content: 'Your instruments detected something impossible:\na tear in the fabric of reality itself.\n\nAs you approached to investigate, the void\nreached back. Gravitational waves pulled the ship\nthrough the rift before you could react.',
+                color: '#FF6B6B'
+            },
+            {
+                title: '🌌 The Void',
+                subtitle: 'An Uncharted Realm',
+                icon: '🕳️',
+                content: 'You crash-landed in this strange dimension.\nYour sensors struggled to comprehend this place.\nTime flows differently here. Stars shine in impossible colors.\n\nThe crew was scattered. You were alone.',
+                color: '#9966FF'
+            },
+            {
+                title: '🥚 The Discovery',
+                subtitle: 'Hope Among the Stars',
+                icon: '✨',
+                content: 'Among the wreckage, you found something unexpected:\nan egg, pulsing with ethereal light.\n\nIt called to you. And when it hatched,\nyou realized you weren\'t alone anymore.\n\nThis strange creature became your companion.',
+                color: '#FFD700'
+            },
+            {
+                title: '🏠 A New Beginning',
+                subtitle: 'The Sanctuary',
+                icon: '💜',
+                content: 'The Void isn\'t hostile—it\'s alive.\nOther creatures dwell here. Eggs can be found.\nPerhaps you were meant to discover this place.\n\nNow you raise and nurture these mythical beings.\nPerhaps one day, you\'ll repair the ship...\nBut for now, this is home.',
+                color: '#7B68EE'
+            }
+        ];
+
+        let currentPage = 0;
 
         // Create overlay
         const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.8);
+        overlay.fillStyle(0x000000, 0.85);
         overlay.fillRect(0, 0, width, height);
         overlay.setScrollFactor(0);
         overlay.setDepth(5000);
+        elements.push(overlay);
 
         // Memory panel
-        const panelWidth = Math.min(500, width - 40);
-        const panelHeight = 300;
+        const panelWidth = Math.min(550, width - 30);
+        const panelHeight = Math.min(420, height - 60);
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
 
         const panel = this.add.graphics();
-        panel.fillStyle(0x1A1A3E, 0.95);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
-        panel.lineStyle(3, 0x4A90A4);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.fillStyle(0x0D0D1E, 0.98);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.lineStyle(2, 0x4A90A4);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
         panel.setScrollFactor(0);
         panel.setDepth(5001);
+        elements.push(panel);
 
-        // Title
-        const title = this.add.text(width / 2, panelY + 30, '🚀 The Wanderer', {
-            fontSize: '24px',
-            color: '#4A90A4',
+        // Header background
+        const headerBg = this.add.graphics();
+        headerBg.fillStyle(0x1A2040, 1);
+        headerBg.fillRoundedRect(panelX, panelY, panelWidth, 70, { tl: 20, tr: 20, bl: 0, br: 0 });
+        headerBg.setScrollFactor(0);
+        headerBg.setDepth(5001);
+        elements.push(headerBg);
+
+        // Dynamic content elements
+        const iconText = this.add.text(panelX + 25, panelY + 35, storyPages[0].icon, {
+            fontSize: '36px'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+        elements.push(iconText);
+
+        const titleText = this.add.text(panelX + 75, panelY + 25, storyPages[0].title, {
+            fontSize: '22px',
+            color: storyPages[0].color,
             fontStyle: 'bold'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+        elements.push(titleText);
+
+        const subtitleText = this.add.text(panelX + 75, panelY + 50, storyPages[0].subtitle, {
+            fontSize: '14px',
+            color: '#888888',
+            fontStyle: 'italic'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+        elements.push(subtitleText);
+
+        const contentText = this.add.text(width / 2, panelY + 120, storyPages[0].content, {
+            fontSize: '15px',
+            color: '#CCCCCC',
+            align: 'center',
+            lineSpacing: 10,
+            wordWrap: { width: panelWidth - 60 }
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
+        elements.push(contentText);
+
+        // Page indicator
+        const pageIndicator = this.add.text(width / 2, panelY + panelHeight - 85,
+            `Page ${currentPage + 1} of ${storyPages.length}`, {
+            fontSize: '12px',
+            color: '#666666'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+        elements.push(pageIndicator);
 
-        // Memory text
-        const memoryText = this.add.text(width / 2, panelY + 90,
-            'Your research vessel. The engines failed over this\nuncharted world. You crash-landed in a place\nyour broken sensors call "The Void".\n\nBut you found something unexpected here.\nAn egg. And when it hatched...\n\nThis became home.',
-            {
-                fontSize: '16px',
-                color: '#FFFFFF',
-                align: 'center',
-                lineSpacing: 8
-            }
-        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
+        // Navigation dots
+        const dotsY = panelY + panelHeight - 110;
+        const dots = [];
+        for (let i = 0; i < storyPages.length; i++) {
+            const dot = this.add.graphics();
+            const dotX = width / 2 + (i - (storyPages.length - 1) / 2) * 18;
+            dot.fillStyle(i === 0 ? 0x4A90A4 : 0x444444, 1);
+            dot.fillCircle(dotX, dotsY, 5);
+            dot.setScrollFactor(0);
+            dot.setDepth(5002);
+            dots.push(dot);
+            elements.push(dot);
+        }
 
-        // Close button
-        const closeBtn = this.add.text(width / 2, panelY + panelHeight - 40, 'Close', {
-            fontSize: '18px',
-            color: '#FFFFFF',
-            backgroundColor: '#4A4A8E',
-            padding: { x: 25, y: 10 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
-        closeBtn.setInteractive({ useHandCursor: true });
+        // Update page function
+        const updatePage = (pageIndex) => {
+            const page = storyPages[pageIndex];
+            iconText.setText(page.icon);
+            titleText.setText(page.title);
+            titleText.setColor(page.color);
+            subtitleText.setText(page.subtitle);
+            contentText.setText(page.content);
+            pageIndicator.setText(`Page ${pageIndex + 1} of ${storyPages.length}`);
 
-        const elements = [overlay, panel, title, memoryText, closeBtn];
+            // Update dots
+            dots.forEach((dot, i) => {
+                dot.clear();
+                const dotX = width / 2 + (i - (storyPages.length - 1) / 2) * 18;
+                dot.fillStyle(i === pageIndex ? 0x4A90A4 : 0x444444, 1);
+                dot.fillCircle(dotX, dotsY, 5);
+            });
 
-        closeBtn.on('pointerdown', () => {
-            elements.forEach(el => el.destroy());
-            this.nearCrashedShip = false;
+            // Update button visibility
+            prevBtn.setAlpha(pageIndex > 0 ? 1 : 0.3);
+            nextBtn.setText(pageIndex === storyPages.length - 1 ? 'Close' : 'Next →');
+        };
+
+        // Previous button
+        const prevBtn = this.add.text(panelX + 30, panelY + panelHeight - 45, '← Previous', {
+            fontSize: '16px',
+            color: '#AAAAAA',
+            backgroundColor: '#2A2A4E',
+            padding: { x: 15, y: 8 }
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+        prevBtn.setInteractive({ useHandCursor: true });
+        prevBtn.setAlpha(0.3);
+        elements.push(prevBtn);
+
+        prevBtn.on('pointerover', () => {
+            if (currentPage > 0) prevBtn.setColor('#FFFFFF');
         });
+        prevBtn.on('pointerout', () => prevBtn.setColor('#AAAAAA'));
+        prevBtn.on('pointerdown', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                updatePage(currentPage);
+                if (window.AudioManager) window.AudioManager.playButtonClick();
+            }
+        });
+
+        // Next/Close button
+        const nextBtn = this.add.text(panelX + panelWidth - 30, panelY + panelHeight - 45, 'Next →', {
+            fontSize: '16px',
+            color: '#FFFFFF',
+            backgroundColor: '#4A90A4',
+            padding: { x: 15, y: 8 }
+        }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(5002);
+        nextBtn.setInteractive({ useHandCursor: true });
+        elements.push(nextBtn);
+
+        nextBtn.on('pointerover', () => nextBtn.setStyle({ backgroundColor: '#5AA0B4' }));
+        nextBtn.on('pointerout', () => nextBtn.setStyle({ backgroundColor: '#4A90A4' }));
+        nextBtn.on('pointerdown', () => {
+            if (currentPage < storyPages.length - 1) {
+                currentPage++;
+                updatePage(currentPage);
+                if (window.AudioManager) window.AudioManager.playButtonClick();
+            } else {
+                // Close
+                elements.forEach(el => el.destroy());
+                this.nearCrashedShip = false;
+                this.input.keyboard.off('keydown', escHandler);
+            }
+        });
+
+        // Repair progress section (future feature placeholder)
+        const repairY = panelY + panelHeight - 155;
+        const repairBg = this.add.graphics();
+        repairBg.fillStyle(0x1A1A3E, 0.8);
+        repairBg.fillRoundedRect(panelX + 20, repairY, panelWidth - 40, 35, 8);
+        repairBg.setScrollFactor(0);
+        repairBg.setDepth(5001);
+        elements.push(repairBg);
+
+        const repairLabel = this.add.text(panelX + 35, repairY + 17, '🔧 Ship Repair Progress:', {
+            fontSize: '12px',
+            color: '#888888'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+        elements.push(repairLabel);
+
+        // Progress bar
+        const progressBarX = panelX + 185;
+        const progressBarWidth = panelWidth - 230;
+        const progressBarBg = this.add.graphics();
+        progressBarBg.fillStyle(0x333344, 1);
+        progressBarBg.fillRoundedRect(progressBarX, repairY + 10, progressBarWidth, 14, 4);
+        progressBarBg.setScrollFactor(0);
+        progressBarBg.setDepth(5002);
+        elements.push(progressBarBg);
+
+        const repairProgress = 0; // Future: get from GameState
+        const progressBarFill = this.add.graphics();
+        if (repairProgress > 0) {
+            progressBarFill.fillStyle(0x4CAF50, 1);
+            progressBarFill.fillRoundedRect(progressBarX, repairY + 10, progressBarWidth * (repairProgress / 100), 14, 4);
+        }
+        progressBarFill.setScrollFactor(0);
+        progressBarFill.setDepth(5003);
+        elements.push(progressBarFill);
+
+        const progressText = this.add.text(progressBarX + progressBarWidth + 10, repairY + 17,
+            repairProgress > 0 ? `${repairProgress}%` : 'Coming Soon', {
+            fontSize: '11px',
+            color: repairProgress > 0 ? '#4CAF50' : '#666666',
+            fontStyle: 'italic'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+        elements.push(progressText);
 
         // ESC to close
         const escHandler = (event) => {
@@ -2833,8 +4032,31 @@ class GameScene extends Phaser.Scene {
         };
         this.input.keyboard.on('keydown', escHandler);
 
+        // Left/Right arrow navigation
+        const arrowHandler = (event) => {
+            if (event.key === 'ArrowRight' && currentPage < storyPages.length - 1) {
+                currentPage++;
+                updatePage(currentPage);
+                if (window.AudioManager) window.AudioManager.playButtonClick();
+            } else if (event.key === 'ArrowLeft' && currentPage > 0) {
+                currentPage--;
+                updatePage(currentPage);
+                if (window.AudioManager) window.AudioManager.playButtonClick();
+            }
+        };
+        this.input.keyboard.on('keydown', arrowHandler);
+
+        // Clean up arrow handler when closing
+        const originalEscHandler = escHandler;
+        const cleanupHandler = (event) => {
+            if (event.key === 'Escape') {
+                this.input.keyboard.off('keydown', arrowHandler);
+            }
+        };
+        this.input.keyboard.on('keydown', cleanupHandler);
+
         if (window.AudioManager) {
-            window.AudioManager.playButtonClick();
+            window.AudioManager.playVisionReveal();
         }
     }
 
@@ -3093,6 +4315,11 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
+        // Pre-generate all collectible sprite textures
+        if (this.graphicsEngine) {
+            this.graphicsEngine.createAllCollectibleSprites();
+        }
+
         // Clear existing collectibles
         window.CollectibleManager.clearCollectibles();
 
@@ -3215,6 +4442,7 @@ class GameScene extends Phaser.Scene {
         console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
 
         // Distance-based fallback for portals (in case overlap detection missed)
+        // Note: Void portal uses automatic pull-in, not spacebar - so no check needed here
         const PORTAL_INTERACT_DISTANCE = 150;
 
         if (!this.nearHubPortal && this.hubPortal && this.player) {
@@ -3247,11 +4475,20 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        // Check for hub portal entry
+        // Note: Void portal entry is now automatic (pull-in mechanic) - no spacebar interaction
+
+        // Check for hub portal entry (travel to other worlds)
         if (this.nearHubPortal) {
             console.log('[GameScene] Entering hub world from SPACE handler');
             this.enterHubWorld();
             this.nearHubPortal = false;
+            return;
+        }
+
+        // Check for campfire rest interaction
+        if (this.nearCampfire) {
+            console.log('[GameScene] Starting campfire rest from SPACE handler');
+            this.startCampfireRest();
             return;
         }
 
@@ -3272,57 +4509,94 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.nearbyFlower) {
-            // Track interaction in GameState
-            getGameState().updateWorldExploration(
-                { x: this.player.x, y: this.player.y }, 
-                'flowers'
-            );
-            
-            // Create a magical sparkle effect on the flower
-            const sparkle = this.add.image(this.nearbyFlower.x, this.nearbyFlower.y - 20, 'magicalSparkle');
-            sparkle.setScale(0.6);
-            
-            // Animate the sparkle
-            this.tweens.add({
-                targets: sparkle,
-                y: sparkle.y - 30,
-                alpha: { from: 1, to: 0 },
-                scale: { from: 0.5, to: 1 },
-                duration: 1000,
-                onComplete: () => sparkle.destroy()
-            });
-            
-            // Update creature happiness
-            getGameState().updateCreature({
-                stats: { happiness: getGameState().get('creature.stats.happiness') + 2 }
-            });
+            // Use Nature Attunement System for flower interaction
+            if (window.NatureAttunementSystem) {
+                const result = window.NatureAttunementSystem.recordInteraction(
+                    'flower',
+                    this,
+                    this.nearbyFlower.x,
+                    this.nearbyFlower.y
+                );
 
-            // Show interaction message
-            this.showInteractionHint('*sniff* What a lovely smell! (+2 Happiness, +5 XP)');
+                if (result.success) {
+                    // Track interaction in GameState
+                    getGameState().updateWorldExploration(
+                        { x: this.player.x, y: this.player.y },
+                        'flowers'
+                    );
+
+                    // Create a magical sparkle effect on the flower (with defensive texture check)
+                    if (this.textures.exists('magicalSparkle')) {
+                        const sparkle = this.add.image(this.nearbyFlower.x, this.nearbyFlower.y - 20, 'magicalSparkle');
+                        sparkle.setScale(0.6);
+
+                        // Animate the sparkle
+                        this.tweens.add({
+                            targets: sparkle,
+                            y: sparkle.y - 30,
+                            alpha: { from: 1, to: 0 },
+                            scale: { from: 0.5, to: 1 },
+                            duration: 1000,
+                            onComplete: () => sparkle.destroy()
+                        });
+                    } else {
+                        // Texture not available - try to recreate it for future use
+                        console.warn('[GameScene] magicalSparkle texture not found, recreating');
+                        if (this.graphicsEngine) {
+                            this.graphicsEngine.createMagicalSparkle(0x00FFFF, 0.8);
+                        }
+                    }
+
+                    // Update creature happiness (with nature bonus)
+                    const natureBonus = window.NatureAttunementSystem.getStatBonus('happiness');
+                    const happinessGain = Math.round(2 * (1 + natureBonus / 100));
+                    getGameState().updateCreature({
+                        stats: { happiness: getGameState().get('creature.stats.happiness') + happinessGain }
+                    });
+
+                    // Show interaction message with attunement info
+                    const dailyLeft = result.dailyRemaining;
+                    this.showInteractionHint(`*sniff* Nature attunement +${result.pointsEarned}! (${dailyLeft} flowers left today)`);
+
+                    // Show milestone unlock if applicable
+                    if (result.milestoneUnlocked) {
+                        console.log(`[GameScene] Nature milestone unlocked: ${result.milestoneName}`);
+                    }
+
+                    // Update stats display
+                    this.updateStatsDisplay();
+
+                    // INTEGRATION: Get creature's response via CreatureAIController
+                    if (window.CreatureAIController) {
+                        window.CreatureAIController.respondToExploration('flower')
+                            .then(response => {
+                                this.showCreatureResponse(response);
+                            })
+                            .catch(error => {
+                                console.warn('[GameScene] AI response failed:', error);
+                            });
+                    }
+
+                    // Check achievements after flower interaction
+                    this.time.delayedCall(500, () => this.checkAndUnlockAchievements());
+                } else {
+                    // Daily limit reached
+                    this.showInteractionHint(result.message || 'You\'ve enjoyed enough flowers today!');
+                }
+            } else {
+                // Fallback if NatureAttunementSystem not available
+                getGameState().updateCreature({
+                    stats: { happiness: getGameState().get('creature.stats.happiness') + 2 }
+                });
+                this.showInteractionHint('*sniff* What a lovely smell! (+2 Happiness)');
+            }
+
             this.nearbyFlower = null;
 
             // Reset mobile interact button icon to default (unless near shop)
             if (this.mobileControls && !this.nearShop) {
                 this.mobileControls.updateInteractIcon('👆');
             }
-
-            // Update stats display
-            this.updateStatsDisplay();
-
-            // INTEGRATION EXAMPLE 2: Get creature's response via CreatureAIController
-            if (window.CreatureAIController) {
-                window.CreatureAIController.respondToExploration('flower')
-                    .then(response => {
-                        this.showCreatureResponse(response);
-                    })
-                    .catch(error => {
-                        console.warn('[GameScene] AI response failed:', error);
-                        // Fail silently - flower interaction still succeeded
-                    });
-            }
-
-            // Check achievements after flower interaction
-            this.time.delayedCall(500, () => this.checkAndUnlockAchievements());
         }
     }
 
@@ -3463,6 +4737,9 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        // Note: Void portal proximity is now handled by the automatic pull-in sequence
+        // The startVoidPullSequence() and cancelVoidPull() methods manage escape detection
+
         // Check crashed ship proximity distance
         if (this.nearCrashedShip && this.crashedShip && this.player) {
             const distance = Phaser.Math.Distance.Between(
@@ -3500,6 +4777,37 @@ class GameScene extends Phaser.Scene {
                 this.hideInteractionHint();
 
                 if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal && !this.nearCrashedShip) {
+                    this.mobileControls.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        // Check campfire proximity distance
+        if (this.nearCampfire && this.campfire && this.player) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.campfire.x,
+                this.campfire.y
+            );
+
+            // Reset nearCampfire flag if player moved away (> 100 pixels)
+            if (distance > 100) {
+                console.log('[GameScene] Player moved away from campfire, distance:', distance);
+                this.nearCampfire = false;
+                this.hideInteractionHint();
+
+                // Clean up campfire indicator
+                if (this.campfireIndicator) {
+                    this.campfireIndicator.destroy();
+                    this.campfireIndicator = null;
+                }
+                if (this.campfireGlowAnim) {
+                    this.campfireGlowAnim.stop();
+                    this.campfireGlowAnim = null;
+                }
+
+                if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal && !this.nearCrashedShip && !this.nearReturnPortal) {
                     this.mobileControls.updateInteractIcon('👆');
                 }
             }
@@ -3556,6 +4864,11 @@ class GameScene extends Phaser.Scene {
             this.openChat();
         }
 
+        // Handle Q key for time-slow ability (unlocked via campfire bonding)
+        if (this.timeSlowKey && Phaser.Input.Keyboard.JustDown(this.timeSlowKey)) {
+            this.activateTimeSlow();
+        }
+
         // Periodic checks for achievements and tutorials are now handled by timers
         // in setupPeriodicTimers() to improve performance
 
@@ -3578,7 +4891,11 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        const speed = 200;
+        // Base speed with ability modifiers (Swift Paws, etc.)
+        let speed = 200;
+        if (window.SecretAbilityManager) {
+            speed = window.SecretAbilityManager.getModifiedSpeed(200);
+        }
         let velocityX = 0;
         let velocityY = 0;
         let isMoving = false;
@@ -3800,6 +5117,10 @@ class GameScene extends Phaser.Scene {
 
     showAchievementToast(achievement) {
         if (!achievement) return;
+
+        // Trigger haptic feedback for achievement
+        window.FeedbackManager?.trigger?.('success', this);
+
         const toast = this.add.text(this.scale.width / 2, 180, `⭐ Achievement: ${achievement.name}`, {
             fontSize: '18px',
             color: '#FFD700',
@@ -3985,6 +5306,8 @@ class GameScene extends Phaser.Scene {
 
         // Listen for care action events
         this.registerGameStateListener('careActionPerformed', (data) => {
+            // Trigger haptic feedback for care actions
+            window.FeedbackManager?.trigger?.('tap', this);
             this.carePanelManager?.handleCareEvent(data);
             this.updateStatsDisplay();
             this.time.delayedCall(500, () => this.checkAndUnlockAchievements());
@@ -3992,6 +5315,8 @@ class GameScene extends Phaser.Scene {
 
         // Listen for daily bonus events
         this.registerGameStateListener('dailyBonusClaimed', () => {
+            // Trigger haptic feedback for bonus claim
+            window.FeedbackManager?.trigger?.('success', this);
             this.showBonusClaimedMessage();
             this.updateDailyBonusButton();
         });
@@ -4012,6 +5337,11 @@ class GameScene extends Phaser.Scene {
         // Listen for personality shift events
         this.registerGameStateListener('personality/shift', (data) => {
             this.showPersonalityShiftCelebration(data);
+        });
+
+        // Listen for breeding unlock event (when player gets 2nd creature)
+        this.registerGameStateListener('breedingUnlocked', (data) => {
+            this.showBreedingUnlockTutorial(data);
         });
 
         // Listen for scene events from MobileHUD
@@ -4131,58 +5461,47 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
-     * Play evolution celebration sequence
+     * Play evolution celebration sequence - spectacular celebration with modal
      */
-    playEvolutionCelebration(fromStage, toStage, config) {
+    async playEvolutionCelebration(fromStage, toStage, config) {
+        console.log(`[GameScene] Playing spectacular evolution celebration: ${fromStage} → ${toStage}`);
+
+        // Use the dedicated EvolutionCelebration system for full spectacle
+        if (window.EvolutionCelebration) {
+            const creatureData = window.GameState?.get('creature');
+            await window.EvolutionCelebration.playCelebration(this, fromStage, toStage, creatureData);
+        } else {
+            // Fallback to basic celebration if system not loaded
+            this.playBasicEvolutionCelebration(fromStage, toStage, config);
+        }
+    }
+
+    /**
+     * Basic fallback evolution celebration (if EvolutionCelebration system unavailable)
+     */
+    playBasicEvolutionCelebration(fromStage, toStage, config) {
         const { width, height } = this.scale;
         const centerX = width / 2;
-        const centerY = height / 2;
 
-        // Screen glow effect
-        if (config?.effects?.screenGlow) {
-            const glowColor = config.effects.glowColor ?
-                parseInt(config.effects.glowColor.replace('#', ''), 16) : 0xFFD700;
-
-            const glow = this.add.graphics();
-            glow.fillStyle(glowColor, 0.3);
-            glow.fillRect(0, 0, width, height);
-            glow.setScrollFactor(0);
-            glow.setDepth(4500);
-            glow.setAlpha(0);
-
-            this.tweens.add({
-                targets: glow,
-                alpha: 1,
-                duration: 500,
-                yoyo: true,
-                onComplete: () => glow.destroy()
-            });
-        }
-
-        // Particle burst
-        if (config?.effects?.particleBurst && window.FXLibrary) {
-            const colors = (config.effects.particleColors || ['#FFD700', '#FFFFFF']).map(c =>
-                parseInt(c.replace('#', ''), 16)
-            );
-            window.FXLibrary.stardustBurst(this, this.player?.x || centerX, this.player?.y || centerY, {
-                count: config.effects.particleCount || 30,
-                color: colors,
-                duration: 2000
-            });
-        }
-
-        // Camera shake
-        if (config?.effects?.cameraShake) {
-            const intensity = config.effects.shakeIntensity || 0.005;
-            this.cameras.main.shake(500, intensity);
+        // Play stage-specific evolution audio
+        if (window.AudioManager) {
+            switch (toStage) {
+                case 'juvenile':
+                    window.AudioManager.playEvolutionSmall?.();
+                    break;
+                case 'adult':
+                    window.AudioManager.playEvolutionMajor?.();
+                    break;
+                case 'elder':
+                    window.AudioManager.playEvolutionElder?.();
+                    break;
+                default:
+                    window.AudioManager.playLevelUp?.();
+            }
         }
 
         // Screen flash
-        if (config?.effects?.screenFlash) {
-            const flashColor = config.effects.flashColor ?
-                parseInt(config.effects.flashColor.replace('#', ''), 16) : 0xFFFFFF;
-            this.cameras.main.flash(config.effects.flashDuration || 200, (flashColor >> 16) & 0xFF, (flashColor >> 8) & 0xFF, flashColor & 0xFF);
-        }
+        this.cameras.main.flash(300, 255, 215, 0);
 
         // Show celebration message
         const message = this.add.text(centerX, height * 0.2, config?.message || `Your creature evolved!`, {
@@ -4194,15 +5513,7 @@ class GameScene extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(4600).setAlpha(0).setScale(0.5);
 
-        const subMessage = this.add.text(centerX, height * 0.2 + 40, config?.subMessage || '', {
-            fontSize: '16px',
-            color: '#FFFFFF',
-            stroke: '#000000',
-            strokeThickness: 2,
-            align: 'center'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(4600).setAlpha(0);
-
-        // Animate messages
+        // Animate message
         this.tweens.add({
             targets: message,
             alpha: 1,
@@ -4211,42 +5522,14 @@ class GameScene extends Phaser.Scene {
             ease: 'Back.easeOut'
         });
 
-        this.tweens.add({
-            targets: subMessage,
-            alpha: 1,
-            duration: 500,
-            delay: 300
-        });
-
-        // Play stage-specific evolution audio
-        if (window.AudioManager) {
-            switch (toStage) {
-                case 'juvenile':
-                    window.AudioManager.playEvolutionSmall();
-                    break;
-                case 'adult':
-                    window.AudioManager.playEvolutionMajor();
-                    break;
-                case 'elder':
-                    window.AudioManager.playEvolutionElder();
-                    break;
-                default:
-                    window.AudioManager.playLevelUp();
-            }
-        }
-
-        // Auto-dismiss celebration after duration
-        const duration = config?.duration || 3000;
-        this.time.delayedCall(duration, () => {
+        // Auto-dismiss
+        this.time.delayedCall(3000, () => {
             this.tweens.add({
-                targets: [message, subMessage],
+                targets: message,
                 alpha: 0,
                 y: '-=30',
                 duration: 500,
-                onComplete: () => {
-                    message.destroy();
-                    subMessage.destroy();
-                }
+                onComplete: () => message.destroy()
             });
         });
     }
@@ -4612,6 +5895,143 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
+     * Show breeding unlock tutorial when player gets their second creature
+     * @param {Object} data - Event data with creature info
+     */
+    showBreedingUnlockTutorial(data) {
+        // Check if already seen
+        if (window.GameState?.get('tutorial.breedingUnlockSeen')) {
+            return;
+        }
+
+        console.log('[GameScene] Showing breeding unlock tutorial');
+
+        const { width, height } = this.cameras.main;
+
+        // Create dark overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0).setDepth(3000);
+
+        // Modal panel
+        const panelWidth = Math.min(350, width - 40);
+        const panelHeight = 380;
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 0.98);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.lineStyle(3, 0xFFD700, 1);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.setScrollFactor(0).setDepth(3001);
+
+        // Title
+        const title = this.add.text(width / 2, panelY + 35, '🧬 Breeding Unlocked! 🧬', {
+            fontSize: '22px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        // Explanation
+        let y = panelY + 80;
+
+        const intro = this.add.text(width / 2, y, 'You now have 2 creatures!', {
+            fontSize: '16px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        y += 35;
+
+        const description = this.add.text(width / 2, y,
+            'Visit the Breeding Shrine to combine\nyour creatures and create offspring\nwith traits from both parents!', {
+                fontSize: '13px',
+                color: '#CCCCCC',
+                align: 'center'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        y += 70;
+
+        // How it works section
+        const howItWorks = this.add.text(width / 2, y, 'How Breeding Works:', {
+            fontSize: '14px',
+            color: '#88CCFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        y += 25;
+
+        const steps = [
+            '1. Both creatures must be Adults (Day 3+)',
+            '2. Select two different creatures',
+            '3. Higher compatibility = better offspring!',
+            '4. Offspring inherit traits from both parents'
+        ];
+
+        const stepTexts = [];
+        steps.forEach(step => {
+            const stepText = this.add.text(width / 2, y, step, {
+                fontSize: '11px',
+                color: '#AAAAAA'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+            stepTexts.push(stepText);
+            y += 20;
+        });
+
+        y += 15;
+
+        // Bonus info
+        const bonusText = this.add.text(width / 2, y, '✨ Offspring get bonus Cosmic Power!', {
+            fontSize: '12px',
+            color: '#88FF88'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        // Got it button
+        const btnY = panelY + panelHeight - 50;
+        const btn = this.add.text(width / 2, btnY, 'Got it!', {
+            fontSize: '18px',
+            color: '#FFFFFF',
+            backgroundColor: '#4B0082',
+            padding: { x: 40, y: 12 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive();
+
+        btn.on('pointerdown', () => {
+            // Mark tutorial as seen
+            window.GameState?.set('tutorial.breedingUnlockSeen', true);
+
+            // Cleanup
+            overlay.destroy();
+            panel.destroy();
+            title.destroy();
+            intro.destroy();
+            description.destroy();
+            howItWorks.destroy();
+            stepTexts.forEach(t => t.destroy());
+            bonusText.destroy();
+            btn.destroy();
+
+            // Play confirmation sound
+            window.AudioManager?.playButtonClick?.();
+        });
+
+        btn.on('pointerover', () => btn.setStyle({ backgroundColor: '#6B21A8' }));
+        btn.on('pointerout', () => btn.setStyle({ backgroundColor: '#4B0082' }));
+
+        // Play celebration sound
+        window.AudioManager?.playLevelUp?.();
+
+        // Particle burst
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, width / 2, height / 2, {
+                count: 25,
+                color: [0xFFD700, 0x9370DB, 0xFF69B4],
+                duration: 2000
+            });
+        }
+    }
+
+    /**
      * Initialize Kid Mode UI components
      */
     initializeKidMode() {
@@ -4834,6 +6254,56 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
+     * Check for offline activities when returning to game
+     * Shows WelcomeBackScene if significant offline time passed
+     */
+    checkOfflineActivities() {
+        this.welcomeBackChecked = true;
+
+        try {
+            // Get last session timestamp
+            const lastSession = window.GameState?.get('session.lastActivityTime') || Date.now();
+            const now = Date.now();
+            const offlineMs = now - lastSession;
+            const offlineMinutes = offlineMs / (1000 * 60);
+
+            // Only show welcome back if offline for more than 30 minutes
+            // and creature has been hatched
+            const creatureHatched = window.GameState?.get('creature.hatched');
+            const minOfflineMinutes = 30;
+
+            console.log(`[GameScene] Offline time: ${Math.round(offlineMinutes)} minutes`);
+
+            if (offlineMinutes >= minOfflineMinutes && creatureHatched && window.CreatureAgent) {
+                console.log('[GameScene] Significant offline time detected, simulating activities...');
+
+                // Run offline simulation
+                const results = window.CreatureAgent.simulateOfflineActivities(offlineMinutes);
+
+                // Only show WelcomeBackScene if there were notable events
+                if (results.events && results.events.length > 0) {
+                    console.log(`[GameScene] ${results.events.length} events occurred while away, showing welcome back screen`);
+
+                    // Stop this scene and show WelcomeBackScene
+                    this.scene.stop('GameScene');
+                    this.scene.start('WelcomeBackScene', {
+                        events: results.events,
+                        offlineMinutes: offlineMinutes,
+                        returnScene: 'GameScene'
+                    });
+                    return;
+                }
+            }
+
+            // Update last activity time
+            window.GameState?.set('session.lastActivityTime', now);
+
+        } catch (error) {
+            console.error('[GameScene] Error checking offline activities:', error);
+        }
+    }
+
+    /**
      * Shutdown and cleanup
      * Called when scene is stopped/destroyed
      */
@@ -4915,6 +6385,20 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        // Clean up breathing animation tweens
+        if (this.breathingTweens && Array.isArray(this.breathingTweens)) {
+            this.breathingTweens.forEach(tween => {
+                try {
+                    if (tween && tween.stop) {
+                        tween.stop();
+                    }
+                } catch (e) {
+                    // Tween may already be destroyed
+                }
+            });
+            this.breathingTweens = [];
+        }
+
         // Clean up portal indicator
         if (this.portalPulseAnim) {
             this.portalPulseAnim.stop();
@@ -4924,6 +6408,9 @@ class GameScene extends Phaser.Scene {
             this.portalIndicator.destroy();
             this.portalIndicator = null;
         }
+
+        // Clean up void pull sequence if active
+        this.cancelVoidPull();
 
         this.economyHud?.destroy();
         this.economyHud = null;
@@ -4945,6 +6432,20 @@ class GameScene extends Phaser.Scene {
         this.floatingChatBubble = null;
         this.creatureSwitcher?.cleanup();
         this.creatureSwitcher = null;
+
+        // Cleanup CreatureAnimationController
+        if (this.creatureAnimationController) {
+            this.creatureAnimationController.destroy();
+            this.creatureAnimationController = null;
+        }
+
+        // Stop background music
+        if (window.AudioManager?.stopMusic) {
+            window.AudioManager.stopMusic();
+        }
+
+        // Clear FeedbackManager reference
+        this.feedbackManager = null;
 
         // Cleanup skill bar
         this.cleanupSkillBar();

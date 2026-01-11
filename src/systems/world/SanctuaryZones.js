@@ -124,6 +124,17 @@ class SanctuaryZones {
                 interactable: false,
                 name: 'Campfire',
                 description: 'A warm gathering spot.'
+            },
+            voidPortal: {
+                zone: 'crashSite',
+                // Position directly under the ship where the impact crater/shadow is
+                position: { x: zones.crashSite.center.x, y: zones.crashSite.center.y + 65 },
+                size: { width: 100, height: 100 },
+                interactable: true,
+                interactRadius: 70,
+                name: 'Void Rift',
+                description: '⚠️ DANGER! A mysterious tear in spacetime. Enter at your own risk!',
+                onInteract: 'enterVoidMiniGame'
             }
         };
     }

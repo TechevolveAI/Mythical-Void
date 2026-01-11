@@ -12,11 +12,18 @@ class MobileControls {
         // Joystick state
         this.joystickBase = null;
         this.joystickThumb = null;
+        this.joystickGlow = null; // Glow ring shown when active
         this.joystickZone = null;
         this.joystickActive = false;
         this.joystickStartX = 0;
         this.joystickStartY = 0;
         this.joystickMaxDistance = 50;
+        this.deadZone = 0.15; // 15% dead zone - movements within this range return 0
+        this.activePointerId = null; // Track which pointer activated joystick
+
+        // Scene-level event handlers (stored for cleanup)
+        this.scenePointerUpHandler = null;
+        this.scenePointerOutHandler = null;
 
         // Action buttons
         this.actionButtons = {};
@@ -42,6 +49,38 @@ class MobileControls {
     }
 
     /**
+     * Calculate scale factor based on screen width
+     * Base size designed for 768px width, scales down proportionally
+     */
+    getScaleFactor() {
+        const width = Math.min(this.scene.scale.width, 768);
+        return Math.max(0.7, width / 768); // Min 70% scale
+    }
+
+    /**
+     * Get layout configuration with all scaled values
+     * Edge-anchored positioning with proportional scaling
+     */
+    getLayoutConfig() {
+        const scale = this.getScaleFactor();
+        return {
+            // Joystick sizes
+            joystickBaseRadius: Math.round(60 * scale),
+            joystickThumbRadius: Math.round(30 * scale),
+            joystickGlowRadius: Math.round(68 * scale),
+            joystickMaxDistance: Math.round(50 * scale),
+            // Button sizes
+            buttonSize: Math.round(56 * scale),
+            primaryButtonSize: Math.round(62 * scale),
+            // Margins and spacing
+            margin: Math.round(16 * scale),
+            spacing: Math.round(12 * scale),
+            // Minimum margins for touch safety
+            minEdgeMargin: 12
+        };
+    }
+
+    /**
      * Create and show mobile controls
      */
     show() {
@@ -55,8 +94,35 @@ class MobileControls {
         // Create action buttons (right side)
         this.createActionButtons();
 
+        // Set up resize handler for screen rotation/resize
+        this.resizeHandler = () => this.handleResize();
+        this.scene.scale.on('resize', this.resizeHandler);
+
         this.isVisible = true;
         console.log('[MobileControls] Mobile controls visible');
+    }
+
+    /**
+     * Handle screen resize (rotation, window resize, etc.)
+     * Recreates controls at new scaled positions
+     */
+    handleResize() {
+        if (!this.isVisible) return;
+
+        // Check if still mobile after resize
+        this.isMobile = this.detectMobile();
+        if (!this.isMobile) {
+            this.hide();
+            return;
+        }
+
+        console.log('[MobileControls] Resizing controls for new screen dimensions');
+
+        // Recreate controls with new scaled positions
+        // Store visibility state, hide, then show again
+        this.hide();
+        this.isVisible = false; // Reset to allow show()
+        this.show();
     }
 
     /**
@@ -65,7 +131,28 @@ class MobileControls {
     hide() {
         if (!this.isVisible) return;
 
+        // Clean up resize handler
+        if (this.resizeHandler) {
+            this.scene.scale.off('resize', this.resizeHandler);
+            this.resizeHandler = null;
+        }
+
+        // Clean up scene-level event listeners FIRST (prevents memory leaks)
+        if (this.scenePointerUpHandler) {
+            this.scene.input.off('pointerup', this.scenePointerUpHandler);
+            this.scenePointerUpHandler = null;
+        }
+        if (this.scenePointerOutHandler) {
+            this.scene.input.off('pointerout', this.scenePointerOutHandler);
+            this.scenePointerOutHandler = null;
+        }
+
+        // Reset joystick state
+        this.joystickActive = false;
+        this.activePointerId = null;
+
         // Destroy joystick
+        if (this.joystickGlow) this.joystickGlow.destroy();
         if (this.joystickBase) this.joystickBase.destroy();
         if (this.joystickThumb) this.joystickThumb.destroy();
         if (this.joystickZone) this.joystickZone.destroy();
@@ -94,31 +181,47 @@ class MobileControls {
      */
     createVirtualJoystick() {
         const { width, height } = this.scene.scale;
+        const config = this.getLayoutConfig();
 
-        // Position joystick in bottom-left
-        const joystickX = 100;
-        const joystickY = height - 100;
+        // Edge-anchored positioning: bottom-left corner
+        const joystickX = Math.max(config.margin + config.joystickBaseRadius, config.minEdgeMargin + config.joystickBaseRadius);
+        const joystickY = height - Math.max(config.margin + config.joystickBaseRadius, config.minEdgeMargin + config.joystickBaseRadius);
+
+        // Store scaled max distance for movement calculations
+        this.joystickMaxDistance = config.joystickMaxDistance;
+
+        // Create glow ring (initially invisible, shown when active)
+        this.joystickGlow = this.scene.add.graphics();
+        this.joystickGlow.setScrollFactor(0);
+        this.joystickGlow.setDepth(9999); // Behind base
+        this.joystickGlow.lineStyle(6, 0x00CED1, 0.6);
+        this.joystickGlow.strokeCircle(joystickX, joystickY, config.joystickGlowRadius);
+        this.joystickGlow.setAlpha(0); // Start invisible
 
         // Create base circle
         this.joystickBase = this.scene.add.graphics();
         this.joystickBase.setScrollFactor(0);
         this.joystickBase.setDepth(10000);
         this.joystickBase.fillStyle(0x000000, 0.3);
-        this.joystickBase.fillCircle(joystickX, joystickY, 60);
+        this.joystickBase.fillCircle(joystickX, joystickY, config.joystickBaseRadius);
         this.joystickBase.lineStyle(3, 0xFFFFFF, 0.5);
-        this.joystickBase.strokeCircle(joystickX, joystickY, 60);
+        this.joystickBase.strokeCircle(joystickX, joystickY, config.joystickBaseRadius);
 
         // Create thumb (moveable part)
         this.joystickThumb = this.scene.add.graphics();
         this.joystickThumb.setScrollFactor(0);
         this.joystickThumb.setDepth(10001);
         this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-        this.joystickThumb.fillCircle(joystickX, joystickY, 30);
+        this.joystickThumb.fillCircle(joystickX, joystickY, config.joystickThumbRadius);
         this.joystickThumb.lineStyle(2, 0x00CED1, 1);
-        this.joystickThumb.strokeCircle(joystickX, joystickY, 30);
+        this.joystickThumb.strokeCircle(joystickX, joystickY, config.joystickThumbRadius);
+
+        // Store thumb radius for movement updates
+        this.joystickThumbRadius = config.joystickThumbRadius;
 
         // Create invisible zone for touch handling (larger than visual)
-        this.joystickZone = this.scene.add.zone(joystickX, joystickY, 200, 200)
+        const zoneSize = config.joystickBaseRadius * 3; // Touch zone 3x the base radius
+        this.joystickZone = this.scene.add.zone(joystickX, joystickY, zoneSize, zoneSize)
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setInteractive({ draggable: true });
@@ -130,16 +233,32 @@ class MobileControls {
         // Handle touch/drag events
         this.joystickZone.on('pointerdown', (pointer) => {
             this.joystickActive = true;
+            this.activePointerId = pointer.id; // Track which pointer activated joystick
             this.joystickStartX = pointer.x;
             this.joystickStartY = pointer.y;
 
-            // Add subtle pulse effect
+            // Add subtle pulse effect to base
             this.scene.tweens.add({
                 targets: this.joystickBase,
                 alpha: 0.5,
                 duration: 100,
                 yoyo: true
             });
+
+            // Show glow ring with fade-in animation
+            if (this.joystickGlow) {
+                this.scene.tweens.add({
+                    targets: this.joystickGlow,
+                    alpha: 1,
+                    duration: 150,
+                    ease: 'Power2'
+                });
+            }
+
+            // Trigger haptic feedback if available
+            if (window.FeedbackManager) {
+                window.FeedbackManager.vibrate('tap');
+            }
         });
 
         this.joystickZone.on('pointermove', (pointer) => {
@@ -162,13 +281,27 @@ class MobileControls {
 
             this.joystickThumb.clear();
             this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-            this.joystickThumb.fillCircle(thumbX, thumbY, 30);
+            this.joystickThumb.fillCircle(thumbX, thumbY, this.joystickThumbRadius);
             this.joystickThumb.lineStyle(2, 0x00CED1, 1);
-            this.joystickThumb.strokeCircle(thumbX, thumbY, 30);
+            this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
 
-            // Calculate normalized direction (-1 to 1)
-            const normalizedX = (distance > 5) ? (Math.cos(angle) * (clampedDistance / this.joystickMaxDistance)) : 0;
-            const normalizedY = (distance > 5) ? (Math.sin(angle) * (clampedDistance / this.joystickMaxDistance)) : 0;
+            // Calculate dead zone in pixels (percentage-based for consistency)
+            const deadZonePixels = this.joystickMaxDistance * this.deadZone;
+
+            // Calculate normalized direction (-1 to 1) with dead zone
+            let normalizedX = 0;
+            let normalizedY = 0;
+
+            if (distance > deadZonePixels) {
+                // Remap the remaining range (deadZone to max) to (0 to 1)
+                // This gives smooth 0-1 output after passing the dead zone
+                const effectiveDistance = clampedDistance - deadZonePixels;
+                const effectiveMax = this.joystickMaxDistance - deadZonePixels;
+                const magnitude = effectiveDistance / effectiveMax;
+
+                normalizedX = Math.cos(angle) * magnitude;
+                normalizedY = Math.sin(angle) * magnitude;
+            }
 
             // Emit virtual joystick event
             this.scene.game.events.emit('virtual-joystick', {
@@ -177,33 +310,65 @@ class MobileControls {
             });
         });
 
-        this.joystickZone.on('pointerup', () => {
-            this.joystickActive = false;
-
-            // Reset thumb to center with tween
-            this.scene.tweens.add({
-                targets: this.joystickThumb,
-                alpha: 1,
-                duration: 150,
-                ease: 'Back.easeOut',
-                onUpdate: (tween) => {
-                    const progress = tween.progress;
-                    const currentX = this.joystickCenterX;
-                    const currentY = this.joystickCenterY;
-
-                    this.joystickThumb.clear();
-                    this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-                    this.joystickThumb.fillCircle(currentX, currentY, 30);
-                    this.joystickThumb.lineStyle(2, 0x00CED1, 1);
-                    this.joystickThumb.strokeCircle(currentX, currentY, 30);
-                }
-            });
-
-            // Emit zero movement
-            this.scene.game.events.emit('virtual-joystick', { x: 0, y: 0 });
+        // Zone-level pointerup (fires when released within zone)
+        this.joystickZone.on('pointerup', (pointer) => {
+            if (pointer.id === this.activePointerId) {
+                this.resetJoystick();
+            }
         });
 
+        // CRITICAL: Scene-level listeners catch pointer releases ANYWHERE on screen
+        // This fixes the "sticky joystick" bug where releasing outside the zone
+        // would leave the joystick active and the character moving forever
+        this.scenePointerUpHandler = (pointer) => {
+            if (this.joystickActive && pointer.id === this.activePointerId) {
+                this.resetJoystick();
+            }
+        };
+        this.scene.input.on('pointerup', this.scenePointerUpHandler);
+
+        // Also handle pointer leaving the game canvas entirely
+        this.scenePointerOutHandler = (pointer) => {
+            if (this.joystickActive && pointer.id === this.activePointerId) {
+                this.resetJoystick();
+            }
+        };
+        this.scene.input.on('pointerout', this.scenePointerOutHandler);
+
         console.log('[MobileControls] Virtual joystick created at', joystickX, joystickY);
+    }
+
+    /**
+     * Reset joystick to center position immediately
+     * Called when pointer is released (anywhere on screen or outside canvas)
+     */
+    resetJoystick() {
+        if (!this.joystickActive) return;
+
+        this.joystickActive = false;
+        this.activePointerId = null;
+
+        // Immediately snap thumb back to center (no tween for responsiveness)
+        if (this.joystickThumb) {
+            this.joystickThumb.clear();
+            this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
+            this.joystickThumb.fillCircle(this.joystickCenterX, this.joystickCenterY, this.joystickThumbRadius);
+            this.joystickThumb.lineStyle(2, 0x00CED1, 1);
+            this.joystickThumb.strokeCircle(this.joystickCenterX, this.joystickCenterY, this.joystickThumbRadius);
+        }
+
+        // Hide glow ring with fade-out animation
+        if (this.joystickGlow) {
+            this.scene.tweens.add({
+                targets: this.joystickGlow,
+                alpha: 0,
+                duration: 200,
+                ease: 'Power2'
+            });
+        }
+
+        // Emit zero movement immediately
+        this.scene.game.events.emit('virtual-joystick', { x: 0, y: 0 });
     }
 
     /**
@@ -214,15 +379,16 @@ class MobileControls {
      */
     createActionButtons() {
         const { width, height } = this.scene.scale;
+        const config = this.getLayoutConfig();
 
-        // Layout constants - optimized for mobile touch
-        const buttonSize = 56; // Uniform size for consistency
-        const primarySize = 62; // Slightly larger for primary actions
-        const spacing = 12; // Gap between buttons
-        const marginRight = 20; // Distance from right edge
-        const marginBottom = 28; // Distance from bottom edge
+        // Layout constants - scaled for screen size
+        const buttonSize = config.buttonSize;
+        const primarySize = config.primaryButtonSize;
+        const spacing = config.spacing;
+        const marginRight = Math.max(config.margin, config.minEdgeMargin);
+        const marginBottom = Math.max(config.margin + 12, config.minEdgeMargin + 12);
 
-        // Calculate grid positions
+        // Edge-anchored positioning: bottom-right corner
         // Right column X (primary actions - Attack, Inventory)
         const rightColX = width - marginRight - buttonSize / 2;
         // Left column X (secondary actions - Chat, Action)

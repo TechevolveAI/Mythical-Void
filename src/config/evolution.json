@@ -8,7 +8,7 @@
       "name": "Baby",
       "displayName": "Hatchling",
       "icon": "🐣",
-      "dayRange": [0, 3],
+      "dayRange": [0, 1],
       "daysRequired": 0,
       "description": "A newly hatched creature full of wonder and curiosity",
 
@@ -48,8 +48,8 @@
       "name": "Juvenile",
       "displayName": "Youngling",
       "icon": "🌱",
-      "dayRange": [3, 7],
-      "daysRequired": 3,
+      "dayRange": [1, 2],
+      "daysRequired": 1,
       "description": "Growing stronger and developing their unique traits",
 
       "visual": {
@@ -86,9 +86,9 @@
       "name": "Adult",
       "displayName": "Mature",
       "icon": "✨",
-      "dayRange": [7, 30],
-      "daysRequired": 7,
-      "description": "A fully grown creature in the prime of their life",
+      "dayRange": [2, 9],
+      "daysRequired": 2,
+      "description": "A fully grown creature in the prime of their life - can now breed!",
 
       "visual": {
         "scale": 1.0,
@@ -122,8 +122,8 @@
       "name": "Elder",
       "displayName": "Elder",
       "icon": "👑",
-      "dayRange": [30, 90],
-      "daysRequired": 30,
+      "dayRange": [9, 90],
+      "daysRequired": 9,
       "description": "A wise elder creature, approaching their cosmic journey",
 
       "visual": {
@@ -422,12 +422,12 @@
       "growthInfo": {
         "title": "Growth Journey",
         "stages": [
-          { "name": "Hatchling", "days": "0-3 days", "description": "Adorable & curious" },
-          { "name": "Youngling", "days": "3-7 days", "description": "Learning new skills" },
-          { "name": "Adult", "days": "7-30 days", "description": "Full potential unlocked" },
-          { "name": "Elder", "days": "30+ days", "description": "Ancient wisdom gained" }
+          { "name": "Hatchling", "days": "Day 1", "description": "Adorable & curious" },
+          { "name": "Youngling", "days": "Day 2", "description": "Learning new skills" },
+          { "name": "Adult", "days": "Day 3+", "description": "Can breed & full potential" },
+          { "name": "Elder", "days": "Day 10+", "description": "Ancient wisdom gained" }
         ],
-        "teaser": "As they grow, they'll unlock new abilities and their colors will become more vibrant!"
+        "teaser": "Space-time magic accelerates growth! Adults can breed to create offspring."
       },
       "visionEffects": {
         "glow": true,

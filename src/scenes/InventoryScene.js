@@ -14,6 +14,11 @@ export default class InventoryScene extends Phaser.Scene {
         this.inventorySlots = [];
         this.itemSprites = [];
 
+        // Tab state: 'items' or 'collection'
+        this.currentTab = 'items';
+        this.tabButtons = [];
+        this.collectionElements = []; // Track collection tab UI elements
+
         // Sort and filter state
         this.currentSort = 'none'; // none, name, type, price
         this.currentFilter = 'all'; // all, food, accessories, consumables
@@ -23,6 +28,9 @@ export default class InventoryScene extends Phaser.Scene {
         this.sortButtons = [];
         this.filterButtons = [];
         this._isShuttingDown = false;
+
+        // Track setTimeout IDs for proper cleanup (prevents memory leaks)
+        this.pendingTimeouts = [];
     }
 
     create() {
@@ -55,6 +63,10 @@ export default class InventoryScene extends Phaser.Scene {
             console.log('[InventoryScene] Creating header...');
             this.createHeader();
             console.log('[InventoryScene] ✅ Header created');
+
+            console.log('[InventoryScene] Creating tab buttons...');
+            this.createTabButtons();
+            console.log('[InventoryScene] ✅ Tab buttons created');
 
             console.log('[InventoryScene] Creating sort/filter controls...');
             this.createSortFilterControls();
@@ -250,7 +262,7 @@ export default class InventoryScene extends Phaser.Scene {
         });
         title.setOrigin(0.5, 0.5);
 
-        // Stats panel
+        // Stats panel (will be updated based on active tab)
         const stats = window.InventoryManager?.getStats();
         const statsText = `${stats?.totalItems || 0} / ${stats?.maxSlots || 30} Items`;
 
@@ -261,6 +273,472 @@ export default class InventoryScene extends Phaser.Scene {
             align: 'center'
         });
         this.statsText.setOrigin(0.5, 0.5);
+    }
+
+    /**
+     * Create tab buttons for Items/Collection
+     */
+    createTabButtons() {
+        const { width, isMobile } = this.dims;
+
+        const tabWidth = isMobile ? 100 : 120;
+        const tabHeight = 36;
+        const tabSpacing = 10;
+        const startX = (width - (tabWidth * 2 + tabSpacing)) / 2;
+        const y = 52;
+
+        const tabs = [
+            { key: 'items', label: 'Items' },
+            { key: 'collection', label: 'Collection' }
+        ];
+
+        tabs.forEach((tab, index) => {
+            const x = startX + index * (tabWidth + tabSpacing);
+            const isActive = this.currentTab === tab.key;
+
+            // Tab background
+            const bg = this.add.graphics();
+            this.drawTabButton(bg, x, y, tabWidth, tabHeight, isActive);
+
+            // Tab label
+            const label = this.add.text(x + tabWidth / 2, y + tabHeight / 2, tab.label, {
+                fontSize: isMobile ? '14px' : '16px',
+                fontFamily: 'Arial',
+                color: isActive ? '#FFD700' : '#AAAAAA',
+                fontStyle: isActive ? 'bold' : 'normal'
+            }).setOrigin(0.5);
+
+            // Interactive zone
+            const zone = this.add.zone(x, y, tabWidth, tabHeight).setOrigin(0, 0);
+            zone.setInteractive({ useHandCursor: true });
+
+            zone.on('pointerdown', () => {
+                this.switchTab(tab.key);
+            });
+
+            zone.on('pointerover', () => {
+                if (this.currentTab !== tab.key) {
+                    this.drawTabButton(bg, x, y, tabWidth, tabHeight, false, true);
+                    label.setColor('#FFFFFF');
+                }
+            });
+
+            zone.on('pointerout', () => {
+                if (this.currentTab !== tab.key) {
+                    this.drawTabButton(bg, x, y, tabWidth, tabHeight, false, false);
+                    label.setColor('#AAAAAA');
+                }
+            });
+
+            this.tabButtons.push({ key: tab.key, bg, label, zone, x, y, width: tabWidth, height: tabHeight });
+        });
+    }
+
+    /**
+     * Draw tab button graphics
+     */
+    drawTabButton(graphics, x, y, width, height, isActive, isHover = false) {
+        graphics.clear();
+        if (isActive) {
+            graphics.fillStyle(0x4A0080, 1);
+            graphics.lineStyle(2, 0xFFD700);
+        } else if (isHover) {
+            graphics.fillStyle(0x3A0060, 1);
+            graphics.lineStyle(2, 0x8B00D9);
+        } else {
+            graphics.fillStyle(0x2A0040, 0.8);
+            graphics.lineStyle(1, 0x6B00B3);
+        }
+        graphics.fillRoundedRect(x, y, width, height, 8);
+        graphics.strokeRoundedRect(x, y, width, height, 8);
+    }
+
+    /**
+     * Switch between tabs
+     */
+    switchTab(tabKey) {
+        if (this.currentTab === tabKey) return;
+
+        this.currentTab = tabKey;
+
+        // Update tab button visuals
+        this.tabButtons.forEach(tab => {
+            const isActive = tab.key === tabKey;
+            this.drawTabButton(tab.bg, tab.x, tab.y, tab.width, tab.height, isActive);
+            tab.label.setColor(isActive ? '#FFD700' : '#AAAAAA');
+            tab.label.setFontStyle(isActive ? 'bold' : 'normal');
+        });
+
+        // Hide/show appropriate content
+        if (tabKey === 'items') {
+            this.showItemsTab();
+        } else {
+            this.showCollectionTab();
+        }
+
+        // Play sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+    }
+
+    /**
+     * Show items tab (inventory)
+     */
+    showItemsTab() {
+        // Show inventory elements
+        this.inventorySlots.forEach(slot => {
+            if (slot.graphics) slot.graphics.setVisible(true);
+            if (slot.zone) slot.zone.setActive(true).setVisible(true);
+            if (slot.slotNum) slot.slotNum.setVisible(true);
+            if (slot.itemIcon) slot.itemIcon.setVisible(true);
+            if (slot.itemQuantity) slot.itemQuantity.setVisible(true);
+        });
+
+        // Show sort/filter controls
+        this.sortButtons.forEach(btn => {
+            btn.button?.setVisible(true);
+            btn.text?.setVisible(true);
+            btn.zone?.setActive(true);
+        });
+        this.filterButtons.forEach(btn => {
+            btn.button?.setVisible(true);
+            btn.text?.setVisible(true);
+            btn.zone?.setActive(true);
+        });
+
+        // Hide collection elements
+        this.clearCollectionElements();
+
+        // Update stats text
+        const stats = window.InventoryManager?.getStats();
+        if (this.statsText) {
+            this.statsText.setText(`${stats?.totalItems || 0} / ${stats?.maxSlots || 30} Items`);
+        }
+    }
+
+    /**
+     * Show collection tab
+     */
+    showCollectionTab() {
+        // Hide inventory elements
+        this.inventorySlots.forEach(slot => {
+            if (slot.graphics) slot.graphics.setVisible(false);
+            if (slot.zone) slot.zone.setActive(false).setVisible(false);
+            if (slot.slotNum) slot.slotNum.setVisible(false);
+            if (slot.itemIcon) slot.itemIcon.setVisible(false);
+            if (slot.itemQuantity) slot.itemQuantity.setVisible(false);
+        });
+
+        // Hide sort/filter controls (not needed for collection)
+        this.sortButtons.forEach(btn => {
+            btn.button?.setVisible(false);
+            btn.text?.setVisible(false);
+            btn.zone?.setActive(false);
+        });
+        this.filterButtons.forEach(btn => {
+            btn.button?.setVisible(false);
+            btn.text?.setVisible(false);
+            btn.zone?.setActive(false);
+        });
+
+        // Create collection display
+        this.createCollectionDisplay();
+
+        // Update stats text
+        const collectionStats = window.CollectibleManager?.getCollectionStats();
+        if (this.statsText) {
+            this.statsText.setText(`${collectionStats?.uniqueTypes || 0} Discovered`);
+        }
+    }
+
+    /**
+     * Create collection display showing discovered items
+     */
+    createCollectionDisplay() {
+        this.clearCollectionElements();
+
+        const { width, height, isMobile, margin } = this.dims;
+        const collectionStats = window.CollectibleManager?.getCollectionStats();
+        const collectedItems = window.CollectibleManager?.collectedItems || {};
+        const allTypes = window.CollectibleManager?.collectibleTypes;
+
+        if (!allTypes) {
+            const noDataText = this.add.text(width / 2, 200, 'Collection data not available', {
+                fontSize: '16px',
+                color: '#888888'
+            }).setOrigin(0.5);
+            this.collectionElements.push(noDataText);
+            return;
+        }
+
+        // Create scrollable area
+        const startY = 115;
+        let currentY = startY;
+
+        // Rarity colors for display
+        const rarityColors = {
+            common: { color: '#9E9E9E', name: 'Common' },
+            uncommon: { color: '#4CAF50', name: 'Uncommon' },
+            rare: { color: '#2196F3', name: 'Rare' },
+            epic: { color: '#9C27B0', name: 'Epic' },
+            legendary: { color: '#FFD700', name: 'Legendary' },
+            biome: { color: '#9C27B0', name: 'Biome Special' },
+            lore: { color: '#00BCD4', name: 'Lore Fragment' }
+        };
+
+        // Section: Collection Summary
+        const summaryBg = this.add.graphics();
+        summaryBg.fillStyle(0x1A0A2E, 0.8);
+        summaryBg.fillRoundedRect(margin, currentY, width - margin * 2, 60, 10);
+        summaryBg.lineStyle(2, 0x6B00B3);
+        summaryBg.strokeRoundedRect(margin, currentY, width - margin * 2, 60, 10);
+        this.collectionElements.push(summaryBg);
+
+        const summaryTitle = this.add.text(width / 2, currentY + 15, 'Collection Summary', {
+            fontSize: '16px',
+            color: '#00FFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.collectionElements.push(summaryTitle);
+
+        const totalText = `Total: ${collectionStats?.total || 0}  |  Unique: ${collectionStats?.uniqueTypes || 0}`;
+        const summaryStats = this.add.text(width / 2, currentY + 40, totalText, {
+            fontSize: '14px',
+            color: '#FFFFFF'
+        }).setOrigin(0.5);
+        this.collectionElements.push(summaryStats);
+
+        currentY += 75;
+
+        // Section: By Rarity
+        const rarityTitle = this.add.text(margin + 10, currentY, 'By Rarity:', {
+            fontSize: '14px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        });
+        this.collectionElements.push(rarityTitle);
+        currentY += 25;
+
+        const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+        const rarityStartX = margin + 10;
+        const raritySpacing = isMobile ? 60 : 80;
+
+        rarityOrder.forEach((rarity, index) => {
+            const count = collectionStats?.byRarity?.[rarity] || 0;
+            const x = rarityStartX + index * raritySpacing;
+
+            const rarityBadge = this.add.graphics();
+            rarityBadge.fillStyle(parseInt(rarityColors[rarity].color.replace('#', '0x')), 0.3);
+            rarityBadge.fillRoundedRect(x, currentY, 50, 35, 5);
+            rarityBadge.lineStyle(2, parseInt(rarityColors[rarity].color.replace('#', '0x')));
+            rarityBadge.strokeRoundedRect(x, currentY, 50, 35, 5);
+            this.collectionElements.push(rarityBadge);
+
+            const countText = this.add.text(x + 25, currentY + 10, count.toString(), {
+                fontSize: '16px',
+                color: rarityColors[rarity].color,
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            this.collectionElements.push(countText);
+
+            const nameText = this.add.text(x + 25, currentY + 25, rarity.charAt(0).toUpperCase(), {
+                fontSize: '10px',
+                color: '#AAAAAA'
+            }).setOrigin(0.5);
+            this.collectionElements.push(nameText);
+        });
+
+        currentY += 55;
+
+        // Section: Discovered Items List
+        const discoveredTitle = this.add.text(margin + 10, currentY, 'Discovered Items:', {
+            fontSize: '14px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        });
+        this.collectionElements.push(discoveredTitle);
+        currentY += 25;
+
+        // Get all collectible types and show which are discovered
+        const allCollectibles = [
+            ...(allTypes.common || []),
+            ...(allTypes.uncommon || []),
+            ...(allTypes.rare || []),
+            ...(allTypes.secret || [])
+        ];
+
+        const itemsPerRow = isMobile ? 4 : 5;
+        const itemSize = isMobile ? 55 : 60;
+        const itemSpacing = 8;
+        const gridWidth = itemsPerRow * (itemSize + itemSpacing) - itemSpacing;
+        const gridStartX = (width - gridWidth) / 2;
+
+        allCollectibles.forEach((item, index) => {
+            const row = Math.floor(index / itemsPerRow);
+            const col = index % itemsPerRow;
+            const x = gridStartX + col * (itemSize + itemSpacing);
+            const y = currentY + row * (itemSize + itemSpacing);
+
+            const isDiscovered = collectedItems[item.id] > 0;
+            const count = collectedItems[item.id] || 0;
+
+            // Item slot background
+            const slotBg = this.add.graphics();
+            if (isDiscovered) {
+                const rarityColor = parseInt((rarityColors[item.rarity]?.color || '#9E9E9E').replace('#', '0x'));
+                slotBg.fillStyle(0x2A0040, 0.8);
+                slotBg.lineStyle(2, rarityColor);
+            } else {
+                slotBg.fillStyle(0x1A0A2E, 0.5);
+                slotBg.lineStyle(1, 0x333333);
+            }
+            slotBg.fillRoundedRect(x, y, itemSize, itemSize, 6);
+            slotBg.strokeRoundedRect(x, y, itemSize, itemSize, 6);
+            this.collectionElements.push(slotBg);
+
+            // Item icon or question mark
+            if (isDiscovered) {
+                // Try to use programmatic sprite
+                const textureName = window.CollectibleManager?.spriteTextureMap?.[item.id];
+                if (textureName && this.textures.exists(textureName)) {
+                    const sprite = this.add.image(x + itemSize / 2, y + itemSize / 2 - 5, textureName);
+                    sprite.setScale(0.5);
+                    this.collectionElements.push(sprite);
+                } else {
+                    // Fallback to emoji icon
+                    const icon = this.add.text(x + itemSize / 2, y + itemSize / 2 - 5, item.icon || '?', {
+                        fontSize: '24px'
+                    }).setOrigin(0.5);
+                    this.collectionElements.push(icon);
+                }
+
+                // Count badge
+                if (count > 0) {
+                    const countBadge = this.add.text(x + itemSize - 8, y + itemSize - 10, `x${count}`, {
+                        fontSize: '10px',
+                        color: '#FFFFFF',
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 2
+                    }).setOrigin(1, 1);
+                    this.collectionElements.push(countBadge);
+                }
+            } else {
+                // Undiscovered - show question mark
+                const mystery = this.add.text(x + itemSize / 2, y + itemSize / 2, '?', {
+                    fontSize: '28px',
+                    color: '#333333',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+                this.collectionElements.push(mystery);
+            }
+
+            // Tooltip on hover (show item name)
+            const hoverZone = this.add.zone(x, y, itemSize, itemSize).setOrigin(0, 0);
+            hoverZone.setInteractive({ useHandCursor: isDiscovered });
+            this.collectionElements.push(hoverZone);
+
+            if (isDiscovered) {
+                hoverZone.on('pointerover', () => {
+                    this.showCollectionTooltip(item, x + itemSize / 2, y - 10);
+                });
+                hoverZone.on('pointerout', () => {
+                    this.hideCollectionTooltip();
+                });
+            }
+        });
+
+        // Update current Y for any elements below
+        const totalRows = Math.ceil(allCollectibles.length / itemsPerRow);
+        currentY += totalRows * (itemSize + itemSpacing) + 20;
+
+        // Section: Recent Discoveries
+        if (collectionStats?.recentDiscoveries?.length > 0) {
+            const recentTitle = this.add.text(margin + 10, currentY, 'Recent Discoveries:', {
+                fontSize: '14px',
+                color: '#FFD700',
+                fontStyle: 'bold'
+            });
+            this.collectionElements.push(recentTitle);
+            currentY += 25;
+
+            const recentList = collectionStats.recentDiscoveries.slice(-5).reverse();
+            recentList.forEach((discovery, index) => {
+                const timestamp = new Date(discovery.timestamp).toLocaleDateString();
+                const rewardStr = [];
+                if (discovery.rewards?.coins) rewardStr.push(`+${discovery.rewards.coins} coins`);
+                if (discovery.rewards?.xp) rewardStr.push(`+${discovery.rewards.xp} XP`);
+
+                const recentText = this.add.text(margin + 20, currentY + index * 22,
+                    `• ${discovery.name} (${timestamp}) ${rewardStr.join(' ')}`, {
+                    fontSize: '12px',
+                    color: '#CCCCCC'
+                });
+                this.collectionElements.push(recentText);
+            });
+        }
+    }
+
+    /**
+     * Show tooltip for collection item
+     */
+    showCollectionTooltip(item, x, y) {
+        this.hideCollectionTooltip();
+
+        const rarityColors = {
+            common: '#9E9E9E',
+            uncommon: '#4CAF50',
+            rare: '#2196F3',
+            epic: '#9C27B0',
+            legendary: '#FFD700'
+        };
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x1A1A3E, 0.95);
+        bg.fillRoundedRect(x - 80, y - 50, 160, 45, 8);
+        bg.lineStyle(2, parseInt((rarityColors[item.rarity] || '#9E9E9E').replace('#', '0x')));
+        bg.strokeRoundedRect(x - 80, y - 50, 160, 45, 8);
+        bg.setDepth(500);
+
+        const nameText = this.add.text(x, y - 38, item.name, {
+            fontSize: '14px',
+            color: rarityColors[item.rarity] || '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(501);
+
+        const rarityText = this.add.text(x, y - 20, item.rarity.toUpperCase(), {
+            fontSize: '10px',
+            color: '#AAAAAA'
+        }).setOrigin(0.5).setDepth(501);
+
+        this.collectionTooltip = { bg, nameText, rarityText };
+    }
+
+    /**
+     * Hide collection tooltip
+     */
+    hideCollectionTooltip() {
+        if (this.collectionTooltip) {
+            this.collectionTooltip.bg?.destroy();
+            this.collectionTooltip.nameText?.destroy();
+            this.collectionTooltip.rarityText?.destroy();
+            this.collectionTooltip = null;
+        }
+    }
+
+    /**
+     * Clear collection tab elements
+     */
+    clearCollectionElements() {
+        this.hideCollectionTooltip();
+        this.collectionElements.forEach(el => {
+            if (el && el.destroy) {
+                if (el.removeAllListeners) el.removeAllListeners();
+                el.destroy();
+            }
+        });
+        this.collectionElements = [];
     }
 
     /**
@@ -1223,11 +1701,13 @@ export default class InventoryScene extends Phaser.Scene {
         const creatureName = window.GameState?.get('creature.name') || 'your creature';
         const isStellar = item.eggType === 'stellar';
 
-        // Create dark overlay
+        // Create dark overlay - MOBILE FIX: Disable input on overlay so touches pass through to buttons
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.8);
         overlay.fillRect(0, 0, width, height);
         overlay.setDepth(200);
+        // Prevent overlay from intercepting touch events meant for buttons
+        overlay.disableInteractive();
 
         // Create confirmation panel
         const panelWidth = isMobile ? width * 0.95 : 450;
@@ -1316,9 +1796,10 @@ export default class InventoryScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
+        // MOBILE FIX: Set zone depth higher than everything else and use proper touch handling
         const hatchZone = this.add.zone(hatchBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
-        hatchZone.setInteractive({ useHandCursor: true });
-        hatchZone.setDepth(202);
+        hatchZone.setInteractive({ useHandCursor: true, draggable: false });
+        hatchZone.setDepth(210); // Higher depth to ensure it receives touch events above overlay
 
         // Cancel button (red)
         const cancelBtnX = width / 2 + btnSpacing / 2;
@@ -1335,16 +1816,22 @@ export default class InventoryScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
+        // MOBILE FIX: Set zone depth higher than everything else
         const cancelZone = this.add.zone(cancelBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
-        cancelZone.setInteractive({ useHandCursor: true });
-        cancelZone.setDepth(202);
+        cancelZone.setInteractive({ useHandCursor: true, draggable: false });
+        cancelZone.setDepth(210); // Higher depth to ensure it receives touch events above overlay
 
         // Store elements for cleanup
         const dialogElements = [overlay, panel, title, warning, oddsTitle, odds, info, confirm,
             hatchBtn, hatchLabel, hatchZone, cancelBtn, cancelLabel, cancelZone];
 
-        // Hatch handler
-        hatchZone.on('pointerdown', () => {
+        // MOBILE FIX: Track if hatch action was triggered to prevent double-firing
+        let hatchTriggered = false;
+
+        // Hatch handler - using function to share between pointerdown and pointerup
+        const handleHatch = () => {
+            if (hatchTriggered) return; // Prevent double-trigger
+            hatchTriggered = true;
             try {
                 console.log('[InventoryScene] ========================================');
                 console.log('[InventoryScene] Hatch It! button clicked');
@@ -1399,7 +1886,11 @@ export default class InventoryScene extends Phaser.Scene {
                     console.error('[InventoryScene] Fallback also failed:', fallbackErr);
                 }
             }
-        });
+        };
+
+        // Bind handleHatch to both pointerdown and pointerup for better mobile compatibility
+        hatchZone.on('pointerdown', handleHatch);
+        hatchZone.on('pointerup', handleHatch);
 
         // Hover effects for hatch button
         hatchZone.on('pointerover', () => {
@@ -1418,13 +1909,22 @@ export default class InventoryScene extends Phaser.Scene {
             hatchBtn.strokeRoundedRect(hatchBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
+        // MOBILE FIX: Track if cancel was triggered to prevent double-firing
+        let cancelTriggered = false;
+
         // Cancel handler
-        cancelZone.on('pointerdown', () => {
+        const handleCancel = () => {
+            if (cancelTriggered) return;
+            cancelTriggered = true;
             if (window.AudioManager) {
                 window.AudioManager.playButtonClick();
             }
             dialogElements.forEach(el => el.destroy());
-        });
+        };
+
+        // Bind handleCancel to both pointerdown and pointerup for better mobile compatibility
+        cancelZone.on('pointerdown', handleCancel);
+        cancelZone.on('pointerup', handleCancel);
 
         // Hover effects for cancel button
         cancelZone.on('pointerover', () => {
@@ -1674,9 +2174,11 @@ export default class InventoryScene extends Phaser.Scene {
                 sceneManager.stop('InventoryScene');
 
                 // Use setTimeout to ensure scenes are fully stopped before starting new one
-                setTimeout(() => {
+                // Track timeout ID for cleanup (prevents memory leaks)
+                const timeoutId = setTimeout(() => {
                     sceneManager.start('HatchingScene', hatchData);
                 }, 100);
+                this.pendingTimeouts.push(timeoutId);
 
             } catch (err) {
                 console.error('[InventoryScene] Error during scene transition:', err);
@@ -1689,13 +2191,15 @@ export default class InventoryScene extends Phaser.Scene {
                         sceneManager.stop('GameScene');
                         sceneManager.stop('InventoryScene');
 
-                        setTimeout(() => {
+                        // Track timeout ID for cleanup (prevents memory leaks)
+                        const fallbackTimeoutId = setTimeout(() => {
                             sceneManager.start('HatchingScene', {
                                 isEggHatch: true,
                                 eggType: eggType,
                                 spawnPosition: { x: 400, y: 300 }
                             });
                         }, 100);
+                        this.pendingTimeouts.push(fallbackTimeoutId);
                     }
                 } catch (fallbackErr) {
                     console.error('[InventoryScene] Fallback transition also failed:', fallbackErr);
@@ -1729,13 +2233,15 @@ export default class InventoryScene extends Phaser.Scene {
                     sceneManager.stop('GameScene');
                     sceneManager.stop('InventoryScene');
 
-                    setTimeout(() => {
+                    // Track timeout ID for cleanup (prevents memory leaks)
+                    const emergencyTimeoutId = setTimeout(() => {
                         sceneManager.start('HatchingScene', {
                             isEggHatch: true,
                             eggType: eggType || 'cosmic',
                             spawnPosition: { x: 400, y: 300 }
                         });
                     }, 100);
+                    this.pendingTimeouts.push(emergencyTimeoutId);
                 }
             } catch (fallbackErr) {
                 console.error('[InventoryScene] Emergency fallback also failed:', fallbackErr);
@@ -1859,6 +2365,15 @@ export default class InventoryScene extends Phaser.Scene {
             });
         }
 
+        // Remove listeners from tab buttons
+        if (this.tabButtons && Array.isArray(this.tabButtons)) {
+            this.tabButtons.forEach(btn => {
+                if (btn && btn.zone && btn.zone.removeAllListeners) {
+                    btn.zone.removeAllListeners();
+                }
+            });
+        }
+
         // Remove listeners from sort/filter buttons
         if (this.sortButtons && Array.isArray(this.sortButtons)) {
             this.sortButtons.forEach(btn => {
@@ -1876,6 +2391,9 @@ export default class InventoryScene extends Phaser.Scene {
             });
         }
 
+        // Clear collection elements
+        this.clearCollectionElements();
+
         // Remove listeners from close button zone
         if (this.closeButtonZone && this.closeButtonZone.removeAllListeners) {
             this.closeButtonZone.removeAllListeners();
@@ -1884,6 +2402,17 @@ export default class InventoryScene extends Phaser.Scene {
         // Clear all timers
         if (this.time) {
             this.time.removeAllEvents();
+        }
+
+        // Clear pending setTimeout calls (prevents memory leaks from delayed transitions)
+        if (this.pendingTimeouts && Array.isArray(this.pendingTimeouts)) {
+            this.pendingTimeouts.forEach(timeoutId => {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
+            });
+            this.pendingTimeouts = [];
+            console.log('[InventoryScene] Pending timeouts cleared');
         }
 
         // Clear references

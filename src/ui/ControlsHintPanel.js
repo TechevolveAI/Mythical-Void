@@ -93,9 +93,14 @@ export default class ControlsHintPanel {
         // Create help icon button in corner
         this.createHelpIcon();
 
-        // Show on start if configured
-        if (this.showOnStart) {
+        // Show on start if configured AND not already seen
+        // Only show controls on first ever visit to prevent annoyance
+        const hasSeenControls = window.GameState?.get('tutorial.controlsSeen');
+        if (this.showOnStart && !hasSeenControls) {
             this.show(true); // true = auto-hide
+            // Mark as seen when shown
+            window.GameState?.set('tutorial.controlsSeen', true);
+            window.GameState?.save?.();
         }
 
         devLog('[ControlsHintPanel] Initialized');
