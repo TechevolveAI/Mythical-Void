@@ -337,4 +337,9 @@ class RaritySystem {
 window.RaritySystem = RaritySystem;
 window.raritySystem = new RaritySystem();
 
+// Export for Jest testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = RaritySystem;
+}
+
 console.log('✅ [RaritySystem] Rarity system with pity mechanism loaded');

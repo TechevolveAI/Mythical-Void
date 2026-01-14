@@ -1643,7 +1643,9 @@ class BreedingHatchScene extends Phaser.Scene {
             window.GameState?.set('creature.stats', creatureData.stats);
             window.GameState?.set('creature.level', creatureData.level);
             window.GameState?.set('creature.experience', creatureData.experience);
-            window.GameState?.set('creature.textureName', null); // Force regeneration
+            // CRITICAL: Preserve the rendered texture name so the creature looks the same
+            // Setting to null would cause regeneration with different random values
+            window.GameState?.set('creature.textureName', this.offspringTextureName || null);
             window.GameState?.set('creature.lifecycle', creatureData.lifecycle);
             window.GameState?.set('creature.rarity', creatureData.rarity);
             window.GameState?.set('creature.cosmicAffinity', creatureData.cosmicAffinity);

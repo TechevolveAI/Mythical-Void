@@ -1,0 +1,513 @@
+{
+    "meta": {
+        "version": "1.0.0",
+        "description": "Boss configurations for each level"
+    },
+
+    "crystalGolem": {
+        "id": "crystal_golem",
+        "name": "CRYSTAL GOLEM",
+        "level": "crystal_caves",
+        "description": "Ancient guardian of the Crystal Caves, awakened to protect the Crystal Heart.",
+
+        "stats": {
+            "maxHealth": 8,
+            "baseSpeed": 80,
+            "baseDamage": 1,
+            "bodySize": { "width": 80, "height": 100 },
+            "bodyOffset": { "x": 20, "y": 20 }
+        },
+
+        "phases": [
+            {
+                "threshold": 1.0,
+                "speed": 80,
+                "attackDelay": 2500,
+                "tint": null,
+                "message": null
+            },
+            {
+                "threshold": 0.5,
+                "speed": 120,
+                "attackDelay": 1800,
+                "tint": "0xFF6B6B",
+                "message": "GOLEM ENRAGED!"
+            }
+        ],
+
+        "attacks": [
+            {
+                "id": "ground_slam",
+                "name": "Ground Slam",
+                "weight": 3,
+                "minPhase": 0,
+                "telegraph": "ground",
+                "telegraphDuration": 400,
+                "areaWidth": 300,
+                "areaHeight": 30,
+                "cooldown": 1200,
+                "damage": 1,
+                "description": "Slams the ground creating a shockwave that damages grounded players"
+            },
+            {
+                "id": "crystal_barrage",
+                "name": "Crystal Barrage",
+                "weight": 2,
+                "minPhase": 0,
+                "telegraph": "flash",
+                "telegraphDuration": 300,
+                "cooldown": 1200,
+                "projectileCount": 3,
+                "projectileCountPhase2": 5,
+                "projectileSpeed": 300,
+                "spread": 0.3,
+                "damage": 1,
+                "description": "Fires crystal projectiles at the player"
+            },
+            {
+                "id": "charge_attack",
+                "name": "Charge Attack",
+                "weight": 2,
+                "minPhase": 1,
+                "telegraph": "flash",
+                "telegraphDuration": 500,
+                "cooldown": 1500,
+                "chargeSpeed": 400,
+                "chargeDuration": 600,
+                "damage": 1,
+                "description": "Charges rapidly toward the player (Phase 2 only)"
+            }
+        ],
+
+        "visual": {
+            "textureSize": 120,
+            "colors": {
+                "body": "0x2D1B4E",
+                "glow": "0x8B008B",
+                "crystals": ["0x7B68EE", "0x9370DB", "0xE040FB", "0x00FFFF"],
+                "eyes": "0xFF4500",
+                "eyeGlow": "0xFF6B00"
+            },
+            "particleColors": ["0x7B68EE", "0xE040FB", "0x00FFFF", "0xFFD700"]
+        },
+
+        "audio": {
+            "intro": "bossRoar",
+            "attack": "playAttack",
+            "hit": "playEnemyHit",
+            "phaseChange": "playError",
+            "defeat": "playLevelUp"
+        },
+
+        "messages": {
+            "intro": "⚠ THE GUARDIAN AWAKENS ⚠",
+            "defeat": "💎 CRYSTAL GOLEM DEFEATED 💎"
+        },
+
+        "rewards": {
+            "baseCoins": 500,
+            "bonusPerRelic": 100,
+            "items": ["rocket_part_engine_core"]
+        },
+
+        "lore": "The Crystal Golem was once a protector created by ancient miners to guard their most precious discovery - the Crystal Heart. Centuries of solitude in the abandoned caves have corrupted its purpose, and now it attacks all who dare approach the relic it was sworn to protect."
+    },
+
+    "voidSerpent": {
+        "id": "void_serpent",
+        "name": "VOID SERPENT",
+        "level": "stellar_reef",
+        "description": "A massive cosmic serpent that dwells in the deepest parts of the Stellar Reef.",
+
+        "stats": {
+            "maxHealth": 10,
+            "baseSpeed": 100,
+            "baseDamage": 1,
+            "bodySize": { "width": 100, "height": 60 },
+            "bodyOffset": { "x": 25, "y": 20 }
+        },
+
+        "phases": [
+            {
+                "threshold": 1.0,
+                "speed": 100,
+                "attackDelay": 2200,
+                "tint": null,
+                "message": null
+            },
+            {
+                "threshold": 0.6,
+                "speed": 130,
+                "attackDelay": 1800,
+                "tint": "0x4169E1",
+                "message": "SERPENT AWAKENS!"
+            },
+            {
+                "threshold": 0.3,
+                "speed": 160,
+                "attackDelay": 1400,
+                "tint": "0x00BFFF",
+                "message": "COSMIC FURY!"
+            }
+        ],
+
+        "attacks": [
+            {
+                "id": "tail_swipe",
+                "name": "Tail Swipe",
+                "weight": 3,
+                "minPhase": 0,
+                "telegraph": "line",
+                "telegraphDuration": 400,
+                "cooldown": 1000,
+                "damage": 1
+            },
+            {
+                "id": "void_beam",
+                "name": "Void Beam",
+                "weight": 2,
+                "minPhase": 0,
+                "telegraph": "line",
+                "telegraphDuration": 600,
+                "cooldown": 1500,
+                "beamDuration": 1000,
+                "damage": 2
+            },
+            {
+                "id": "cosmic_coil",
+                "name": "Cosmic Coil",
+                "weight": 2,
+                "minPhase": 1,
+                "telegraph": "ground",
+                "telegraphDuration": 500,
+                "cooldown": 1800,
+                "damage": 1
+            }
+        ],
+
+        "visual": {
+            "textureSize": 150,
+            "colors": {
+                "body": "0x1A237E",
+                "scales": "0x283593",
+                "glow": "0x00BCD4",
+                "eyes": "0x00FFFF"
+            },
+            "particleColors": ["0x00BCD4", "0x4169E1", "0x00FFFF", "0x7B68EE"]
+        },
+
+        "messages": {
+            "intro": "⚠ THE VOID STIRS ⚠",
+            "defeat": "🌟 VOID SERPENT VANQUISHED 🌟"
+        },
+
+        "rewards": {
+            "baseCoins": 750,
+            "items": ["rocket_part_navigation_core"]
+        }
+    },
+
+    "shadowPhoenix": {
+        "id": "shadow_phoenix",
+        "name": "SHADOW PHOENIX",
+        "level": "aurora_depths",
+        "description": "A dark phoenix reborn from the shadows of the Aurora Depths.",
+
+        "stats": {
+            "maxHealth": 12,
+            "baseSpeed": 120,
+            "baseDamage": 1,
+            "bodySize": { "width": 90, "height": 80 },
+            "bodyOffset": { "x": 20, "y": 15 }
+        },
+
+        "phases": [
+            {
+                "threshold": 1.0,
+                "speed": 120,
+                "attackDelay": 2000,
+                "tint": null,
+                "message": null
+            },
+            {
+                "threshold": 0.5,
+                "speed": 150,
+                "attackDelay": 1500,
+                "tint": "0x8B0000",
+                "message": "PHOENIX IGNITES!"
+            },
+            {
+                "threshold": 0.25,
+                "speed": 180,
+                "attackDelay": 1200,
+                "tint": "0xFF4500",
+                "message": "REBIRTH FLAMES!"
+            }
+        ],
+
+        "attacks": [
+            {
+                "id": "flame_dive",
+                "name": "Flame Dive",
+                "weight": 3,
+                "minPhase": 0,
+                "telegraph": "line",
+                "telegraphDuration": 500,
+                "cooldown": 1200,
+                "damage": 1
+            },
+            {
+                "id": "shadow_feathers",
+                "name": "Shadow Feathers",
+                "weight": 2,
+                "minPhase": 0,
+                "telegraph": "flash",
+                "telegraphDuration": 300,
+                "cooldown": 1000,
+                "projectileCount": 5,
+                "damage": 1
+            },
+            {
+                "id": "rebirth_nova",
+                "name": "Rebirth Nova",
+                "weight": 1,
+                "minPhase": 2,
+                "telegraph": "ground",
+                "telegraphDuration": 800,
+                "cooldown": 2000,
+                "areaWidth": 400,
+                "damage": 2
+            }
+        ],
+
+        "messages": {
+            "intro": "⚠ FROM ASHES, IT RISES ⚠",
+            "defeat": "🔥 SHADOW PHOENIX EXTINGUISHED 🔥"
+        },
+
+        "rewards": {
+            "baseCoins": 1000,
+            "items": ["rocket_part_fuel_cell"]
+        }
+    },
+
+    "cosmicTitan": {
+        "id": "cosmic_titan",
+        "name": "COSMIC TITAN",
+        "level": "void_peaks",
+        "description": "An ancient being from beyond the void, the final guardian before the stars.",
+
+        "stats": {
+            "maxHealth": 15,
+            "baseSpeed": 60,
+            "baseDamage": 2,
+            "bodySize": { "width": 120, "height": 140 },
+            "bodyOffset": { "x": 30, "y": 20 }
+        },
+
+        "phases": [
+            {
+                "threshold": 1.0,
+                "speed": 60,
+                "attackDelay": 3000,
+                "tint": null,
+                "message": null
+            },
+            {
+                "threshold": 0.7,
+                "speed": 80,
+                "attackDelay": 2500,
+                "tint": "0x4B0082",
+                "message": "TITAN AWAKENS!"
+            },
+            {
+                "threshold": 0.4,
+                "speed": 100,
+                "attackDelay": 2000,
+                "tint": "0x8B008B",
+                "message": "COSMIC WRATH!"
+            },
+            {
+                "threshold": 0.15,
+                "speed": 120,
+                "attackDelay": 1500,
+                "tint": "0xFF00FF",
+                "message": "FINAL FORM!"
+            }
+        ],
+
+        "attacks": [
+            {
+                "id": "gravity_crush",
+                "name": "Gravity Crush",
+                "weight": 2,
+                "minPhase": 0,
+                "telegraph": "ground",
+                "telegraphDuration": 600,
+                "cooldown": 1500,
+                "damage": 2
+            },
+            {
+                "id": "star_rain",
+                "name": "Star Rain",
+                "weight": 2,
+                "minPhase": 0,
+                "telegraph": "flash",
+                "telegraphDuration": 500,
+                "cooldown": 1200,
+                "projectileCount": 8,
+                "damage": 1
+            },
+            {
+                "id": "void_punch",
+                "name": "Void Punch",
+                "weight": 3,
+                "minPhase": 1,
+                "telegraph": "line",
+                "telegraphDuration": 400,
+                "cooldown": 1000,
+                "damage": 2
+            },
+            {
+                "id": "singularity",
+                "name": "Singularity",
+                "weight": 1,
+                "minPhase": 3,
+                "telegraph": "ground",
+                "telegraphDuration": 1000,
+                "cooldown": 3000,
+                "areaWidth": 500,
+                "damage": 3
+            }
+        ],
+
+        "messages": {
+            "intro": "⚠ THE COSMOS TREMBLES ⚠",
+            "defeat": "✨ COSMIC TITAN CONQUERED ✨"
+        },
+
+        "rewards": {
+            "baseCoins": 1500,
+            "items": ["rocket_part_hull_plating"]
+        }
+    },
+
+    "voidEmpress": {
+        "id": "void_empress",
+        "name": "VOID EMPRESS",
+        "level": "final_void",
+        "description": "The ultimate guardian of the Void, keeper of the final rocket component.",
+
+        "stats": {
+            "maxHealth": 20,
+            "baseSpeed": 100,
+            "baseDamage": 2,
+            "bodySize": { "width": 100, "height": 120 },
+            "bodyOffset": { "x": 25, "y": 20 }
+        },
+
+        "phases": [
+            {
+                "threshold": 1.0,
+                "speed": 100,
+                "attackDelay": 2500,
+                "tint": null,
+                "message": null
+            },
+            {
+                "threshold": 0.75,
+                "speed": 120,
+                "attackDelay": 2200,
+                "tint": "0x4B0082",
+                "message": "EMPRESS AWAKENS!"
+            },
+            {
+                "threshold": 0.5,
+                "speed": 140,
+                "attackDelay": 1800,
+                "tint": "0x9400D3",
+                "message": "VOID CHANNELING!"
+            },
+            {
+                "threshold": 0.25,
+                "speed": 160,
+                "attackDelay": 1400,
+                "tint": "0xFF00FF",
+                "message": "ULTIMATE POWER!"
+            },
+            {
+                "threshold": 0.1,
+                "speed": 180,
+                "attackDelay": 1000,
+                "tint": "0xFFFFFF",
+                "message": "FINAL DESPERATION!"
+            }
+        ],
+
+        "attacks": [
+            {
+                "id": "void_tendrils",
+                "name": "Void Tendrils",
+                "weight": 2,
+                "minPhase": 0,
+                "telegraph": "ground",
+                "telegraphDuration": 500,
+                "cooldown": 1200,
+                "damage": 1
+            },
+            {
+                "id": "dark_nova",
+                "name": "Dark Nova",
+                "weight": 2,
+                "minPhase": 0,
+                "telegraph": "flash",
+                "telegraphDuration": 400,
+                "cooldown": 1500,
+                "damage": 2
+            },
+            {
+                "id": "shadow_clones",
+                "name": "Shadow Clones",
+                "weight": 1,
+                "minPhase": 1,
+                "telegraph": "flash",
+                "telegraphDuration": 600,
+                "cooldown": 2000,
+                "cloneCount": 2,
+                "damage": 1
+            },
+            {
+                "id": "dimension_rift",
+                "name": "Dimension Rift",
+                "weight": 1,
+                "minPhase": 2,
+                "telegraph": "ground",
+                "telegraphDuration": 800,
+                "cooldown": 2500,
+                "damage": 2
+            },
+            {
+                "id": "oblivion",
+                "name": "Oblivion",
+                "weight": 1,
+                "minPhase": 4,
+                "telegraph": "ground",
+                "telegraphDuration": 1200,
+                "cooldown": 4000,
+                "areaWidth": 600,
+                "damage": 4
+            }
+        ],
+
+        "messages": {
+            "intro": "⚠ THE VOID EMPRESS DESCENDS ⚠",
+            "defeat": "👑 VOID EMPRESS DETHRONED 👑"
+        },
+
+        "rewards": {
+            "baseCoins": 2500,
+            "items": ["rocket_part_command_module"],
+            "unlocks": ["space_travel"]
+        }
+    }
+}

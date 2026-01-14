@@ -41,11 +41,26 @@ class MobileControls {
 
     /**
      * Detect if device is mobile or touch-capable
+     * More inclusive: shows controls on any touch device OR small screen
+     * This ensures tablet users and mobile emulation work correctly
      */
     detectMobile() {
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const isSmallScreen = window.innerWidth < 768;
-        return isTouchDevice && isSmallScreen;
+        const isSmallScreen = window.innerWidth < 1024; // Increased threshold for tablets
+        const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // Show mobile controls if: touch device with small-ish screen, OR mobile user agent
+        const result = (isTouchDevice && isSmallScreen) || isMobileUserAgent;
+
+        console.log('[MobileControls] detectMobile:', {
+            isTouchDevice,
+            isSmallScreen,
+            isMobileUserAgent,
+            screenWidth: window.innerWidth,
+            result
+        });
+
+        return result;
     }
 
     /**
@@ -82,11 +97,28 @@ class MobileControls {
 
     /**
      * Create and show mobile controls
+     * @param {boolean} force - Force show even on non-mobile devices (for testing)
      */
-    show() {
-        if (!this.isMobile || this.isVisible) return;
+    show(force = false) {
+        // Re-check mobile detection each time show is called
+        this.isMobile = this.detectMobile();
 
-        console.log('[MobileControls] Creating mobile UI');
+        if (!this.isMobile && !force) {
+            console.log('[MobileControls] Not showing - device not detected as mobile. Use show(true) to force.');
+            return;
+        }
+
+        if (this.isVisible) {
+            console.log('[MobileControls] Already visible');
+            return;
+        }
+
+        console.log('[MobileControls] Creating mobile UI', {
+            isMobile: this.isMobile,
+            forced: force,
+            screenWidth: this.scene.scale.width,
+            screenHeight: this.scene.scale.height
+        });
 
         // Create virtual joystick (left side)
         this.createVirtualJoystick();
@@ -99,7 +131,10 @@ class MobileControls {
         this.scene.scale.on('resize', this.resizeHandler);
 
         this.isVisible = true;
-        console.log('[MobileControls] Mobile controls visible');
+        console.log('[MobileControls] Mobile controls visible at positions:', {
+            joystick: { x: this.joystickCenterX, y: this.joystickCenterY },
+            buttonCount: Object.keys(this.actionButtons).length
+        });
     }
 
     /**
@@ -138,6 +173,10 @@ class MobileControls {
         }
 
         // Clean up scene-level event listeners FIRST (prevents memory leaks)
+        if (this.scenePointerMoveHandler) {
+            this.scene.input.off('pointermove', this.scenePointerMoveHandler);
+            this.scenePointerMoveHandler = null;
+        }
         if (this.scenePointerUpHandler) {
             this.scene.input.off('pointerup', this.scenePointerUpHandler);
             this.scenePointerUpHandler = null;
@@ -316,6 +355,58 @@ class MobileControls {
                 this.resetJoystick();
             }
         });
+
+        // CRITICAL: Scene-level pointermove handler for joystick tracking
+        // This allows the joystick to track finger movement even when the finger
+        // moves outside the joystick zone (which is common during fast movements)
+        this.scenePointerMoveHandler = (pointer) => {
+            if (!this.joystickActive || pointer.id !== this.activePointerId) return;
+
+            // Calculate offset from center
+            const offsetX = pointer.x - this.joystickCenterX;
+            const offsetY = pointer.y - this.joystickCenterY;
+
+            // Calculate distance and angle
+            const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+            const angle = Math.atan2(offsetY, offsetX);
+
+            // Clamp distance to max
+            const clampedDistance = Math.min(distance, this.joystickMaxDistance);
+
+            // Update thumb position
+            const thumbX = this.joystickCenterX + Math.cos(angle) * clampedDistance;
+            const thumbY = this.joystickCenterY + Math.sin(angle) * clampedDistance;
+
+            this.joystickThumb.clear();
+            this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
+            this.joystickThumb.fillCircle(thumbX, thumbY, this.joystickThumbRadius);
+            this.joystickThumb.lineStyle(2, 0x00CED1, 1);
+            this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
+
+            // Calculate dead zone in pixels (percentage-based for consistency)
+            const deadZonePixels = this.joystickMaxDistance * this.deadZone;
+
+            // Calculate normalized direction (-1 to 1) with dead zone
+            let normalizedX = 0;
+            let normalizedY = 0;
+
+            if (distance > deadZonePixels) {
+                // Remap the remaining range (deadZone to max) to (0 to 1)
+                const effectiveDistance = clampedDistance - deadZonePixels;
+                const effectiveMax = this.joystickMaxDistance - deadZonePixels;
+                const magnitude = effectiveDistance / effectiveMax;
+
+                normalizedX = Math.cos(angle) * magnitude;
+                normalizedY = Math.sin(angle) * magnitude;
+            }
+
+            // Emit virtual joystick event
+            this.scene.game.events.emit('virtual-joystick', {
+                x: normalizedX,
+                y: normalizedY
+            });
+        };
+        this.scene.input.on('pointermove', this.scenePointerMoveHandler);
 
         // CRITICAL: Scene-level listeners catch pointer releases ANYWHERE on screen
         // This fixes the "sticky joystick" bug where releasing outside the zone
@@ -656,7 +747,7 @@ class MobileControls {
      * Handle action button press
      */
     handleButtonPress(buttonId) {
-        console.log('[MobileControls] Button pressed:', buttonId);
+        console.log('[MobileControls] Button pressed:', buttonId, 'Scene:', this.scene?.scene?.key);
 
         // Play sound feedback
         if (window.AudioManager) {
@@ -667,30 +758,46 @@ class MobileControls {
         switch (buttonId) {
             case 'attack':
                 // Trigger combat projectile
-                if (this.scene.fireCombatProjectile) {
+                if (typeof this.scene.fireCombatProjectile === 'function') {
+                    console.log('[MobileControls] Firing combat projectile');
                     this.scene.fireCombatProjectile();
+                } else {
+                    console.warn('[MobileControls] fireCombatProjectile not found on scene');
+                    // Try emitting as virtual key as fallback
+                    this.scene.game?.events?.emit('virtual-key', { key: 'attack', type: 'down' });
                 }
                 break;
 
             case 'interact':
                 // Trigger space interaction (shop, flowers, etc.)
-                this.scene.game.events.emit('virtual-key', {
-                    key: 'space',
-                    type: 'down'
-                });
+                console.log('[MobileControls] Triggering space interaction');
+                if (typeof this.scene.handleSpaceInteraction === 'function') {
+                    this.scene.handleSpaceInteraction();
+                } else {
+                    this.scene.game?.events?.emit('virtual-key', {
+                        key: 'space',
+                        type: 'down'
+                    });
+                }
                 break;
 
             case 'inventory':
                 // Open inventory
-                if (this.scene.openInventory) {
+                console.log('[MobileControls] Opening inventory');
+                if (typeof this.scene.openInventory === 'function') {
                     this.scene.openInventory();
+                } else {
+                    console.warn('[MobileControls] openInventory not found on scene');
                 }
                 break;
 
             case 'chat':
                 // Open chat overlay
-                if (this.scene.openChat) {
+                console.log('[MobileControls] Opening chat');
+                if (typeof this.scene.openChat === 'function') {
                     this.scene.openChat();
+                } else {
+                    console.warn('[MobileControls] openChat not found on scene');
                 }
                 break;
         }

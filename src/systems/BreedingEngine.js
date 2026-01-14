@@ -129,27 +129,52 @@ class BreedingEngine {
 
     /**
      * Get expressed phenotype from genotype
+     * Handles missing/malformed genes gracefully
      */
     getPhenotype(genes) {
         const phenotype = {};
 
-        Object.keys(genes).forEach(traitKey => {
-            const [allele1, allele2] = genes[traitKey];
+        // Handle null/undefined genes
+        if (!genes || typeof genes !== 'object') {
+            console.warn('[BreedingEngine] getPhenotype called with invalid genes, using defaults');
+            const defaultGenes = this.generateInitialGenes();
+            return this.getPhenotype(defaultGenes);
+        }
+
+        Object.keys(this.traitDefinitions).forEach(traitKey => {
             const traitDef = this.traitDefinitions[traitKey];
+            const variations = Object.keys(traitDef.variations);
+            const defaultVariation = variations[0];
+
+            // Safely get alleles, using defaults if missing
+            const alleles = genes[traitKey];
+            if (!Array.isArray(alleles) || alleles.length < 2) {
+                phenotype[traitKey] = defaultVariation;
+                return;
+            }
+
+            const [allele1, allele2] = alleles;
+
+            // Validate alleles exist in trait definition
+            const validAllele1 = variations.includes(allele1) ? allele1 : defaultVariation;
+            const validAllele2 = variations.includes(allele2) ? allele2 : defaultVariation;
 
             // Determine which allele is expressed based on dominance
             let expressedAllele;
 
-            if (traitDef.variations[allele1].dominant && traitDef.variations[allele2].dominant) {
+            const allele1Info = traitDef.variations[validAllele1];
+            const allele2Info = traitDef.variations[validAllele2];
+
+            if (allele1Info?.dominant && allele2Info?.dominant) {
                 // Both dominant - could be either, but we'll take the first one
-                expressedAllele = allele1;
-            } else if (traitDef.variations[allele1].dominant) {
-                expressedAllele = allele1;
-            } else if (traitDef.variations[allele2].dominant) {
-                expressedAllele = allele2;
+                expressedAllele = validAllele1;
+            } else if (allele1Info?.dominant) {
+                expressedAllele = validAllele1;
+            } else if (allele2Info?.dominant) {
+                expressedAllele = validAllele2;
             } else {
                 // Both recessive - take the first one
-                expressedAllele = allele1;
+                expressedAllele = validAllele1;
             }
 
             phenotype[traitKey] = expressedAllele;
@@ -160,19 +185,47 @@ class BreedingEngine {
 
     /**
      * Breed two creatures and return offspring genes
+     * Now handles missing/null genes gracefully by generating defaults
      */
     breedCreatures(parent1Genes, parent2Genes) {
         const offspringGenes = {};
 
+        // Ensure we have valid gene objects - generate defaults if needed
+        const safeParent1Genes = parent1Genes && typeof parent1Genes === 'object'
+            ? parent1Genes
+            : this.generateInitialGenes();
+        const safeParent2Genes = parent2Genes && typeof parent2Genes === 'object'
+            ? parent2Genes
+            : this.generateInitialGenes();
+
         Object.keys(this.traitDefinitions).forEach(traitKey => {
-            const parent1Alleles = [...parent1Genes[traitKey]];
-            const parent2Alleles = [...parent2Genes[traitKey]];
+            // Get alleles from each parent, using generated defaults if missing
+            const variations = Object.keys(this.traitDefinitions[traitKey].variations);
+
+            // Safely get parent alleles - generate random if missing for this trait
+            let parent1Alleles = safeParent1Genes[traitKey];
+            if (!Array.isArray(parent1Alleles) || parent1Alleles.length < 2) {
+                const a1 = variations[Math.floor(Math.random() * variations.length)];
+                const a2 = variations[Math.floor(Math.random() * variations.length)];
+                parent1Alleles = [a1, a2];
+            }
+
+            let parent2Alleles = safeParent2Genes[traitKey];
+            if (!Array.isArray(parent2Alleles) || parent2Alleles.length < 2) {
+                const a1 = variations[Math.floor(Math.random() * variations.length)];
+                const a2 = variations[Math.floor(Math.random() * variations.length)];
+                parent2Alleles = [a1, a2];
+            }
 
             // Each parent contributes one allele randomly
             const alleleFromParent1 = parent1Alleles[Math.floor(Math.random() * parent1Alleles.length)];
             const alleleFromParent2 = parent2Alleles[Math.floor(Math.random() * parent2Alleles.length)];
 
-            offspringGenes[traitKey] = [alleleFromParent1, alleleFromParent2].sort();
+            // Validate alleles are valid variations, fallback to first variation if not
+            const validAllele1 = variations.includes(alleleFromParent1) ? alleleFromParent1 : variations[0];
+            const validAllele2 = variations.includes(alleleFromParent2) ? alleleFromParent2 : variations[0];
+
+            offspringGenes[traitKey] = [validAllele1, validAllele2].sort();
         });
 
         return offspringGenes;
@@ -180,6 +233,7 @@ class BreedingEngine {
 
     /**
      * Get visual trait data for rendering
+     * Handles missing traits gracefully
      */
     getVisualTraits(phenotype) {
         const visualData = {
@@ -189,16 +243,24 @@ class BreedingEngine {
             pattern: null
         };
 
+        // Handle null/undefined phenotype
+        if (!phenotype || typeof phenotype !== 'object') {
+            return visualData;
+        }
+
         Object.entries(phenotype).forEach(([traitKey, variation]) => {
             const traitDef = this.traitDefinitions[traitKey];
+            if (!traitDef) return; // Skip unknown traits
+
             const variationDef = traitDef.variations[variation];
+            if (!variationDef) return; // Skip unknown variations
 
             switch (traitKey) {
                 case 'bodyShape':
                     visualData.bodyMods.shape = variation;
                     break;
                 case 'eyeColor':
-                    visualData.eyeColor = variationDef.color;
+                    visualData.eyeColor = variationDef.color || 0x4169E1;
                     break;
                 case 'pattern':
                     visualData.pattern = variation;
@@ -223,10 +285,28 @@ class BreedingEngine {
 
     /**
      * Get trait description for UI
+     * Handles missing/invalid traits gracefully
      */
     getTraitDescription(traitKey, variation) {
         const traitDef = this.traitDefinitions[traitKey];
+        if (!traitDef) {
+            return {
+                trait: traitKey || 'Unknown',
+                variation: variation || 'Unknown',
+                dominant: false,
+                visualImpact: 'body'
+            };
+        }
+
         const variationDef = traitDef.variations[variation];
+        if (!variationDef) {
+            return {
+                trait: traitDef.name,
+                variation: variation || 'Unknown',
+                dominant: false,
+                visualImpact: 'body'
+            };
+        }
 
         return {
             trait: traitDef.name,
@@ -323,18 +403,21 @@ class BreedingEngine {
      * @returns {Object} Visual configuration for GraphicsEngine
      */
     getVisualConfigFromPhenotype(phenotype, parentGenetics = null) {
+        // Handle null/undefined phenotype
+        const safePhenotype = phenotype || {};
+
         return {
             headMods: {
-                horns: this.mapHornsTrait(phenotype.horns),
-                ears: this.mapEarsTrait(phenotype.earShape),
-                mane: this.mapManeTrait(phenotype.maneLength)
+                horns: this.mapHornsTrait(safePhenotype.horns),
+                ears: this.mapEarsTrait(safePhenotype.earShape),
+                mane: this.mapManeTrait(safePhenotype.maneLength)
             },
             bodyMods: {
-                shape: this.mapBodyShape(phenotype.bodyShape),
-                tail: this.mapTailTrait(phenotype.tail),
-                pattern: this.mapPatternTrait(phenotype.pattern)
+                shape: this.mapBodyShape(safePhenotype.bodyShape),
+                tail: this.mapTailTrait(safePhenotype.tail),
+                pattern: this.mapPatternTrait(safePhenotype.pattern)
             },
-            eyeColor: this.traitDefinitions.eyeColor.variations[phenotype.eyeColor]?.color || 0x4169E1,
+            eyeColor: this.traitDefinitions.eyeColor?.variations[safePhenotype.eyeColor]?.color || 0x4169E1,
             inheritedMutations: this.inheritMutationsFromParents(parentGenetics)
         };
     }

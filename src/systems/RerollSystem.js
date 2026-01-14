@@ -236,4 +236,9 @@ class RerollSystem {
 window.RerollSystem = RerollSystem;
 window.rerollSystem = new RerollSystem();
 
+// Export for Jest testing
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = RerollSystem;
+}
+
 console.log('✅ [RerollSystem] Reroll system loaded');

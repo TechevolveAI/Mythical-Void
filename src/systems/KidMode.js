@@ -588,6 +588,16 @@ class KidModeManager {
     }
 
     /**
+     * Show contextual help message (alias for showSpaceHelpMessage)
+     * @param {Phaser.Scene} scene - The Phaser scene
+     * @param {string} message - Message to display
+     * @param {number} duration - Display duration in ms
+     */
+    showHelpMessage(scene, message, duration = 3000) {
+        return this.showSpaceHelpMessage(scene, message, duration);
+    }
+
+    /**
      * Show contextual space-themed help message
      */
     showSpaceHelpMessage(scene, message, duration = 3000) {
