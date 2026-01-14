@@ -469,6 +469,9 @@ class GameScene extends Phaser.Scene {
                 window.AudioManager.playAreaMusic('home');
             }
 
+            // Start creature idle sounds based on stage and personality
+            this.startCreatureIdleSounds();
+
             console.log('[GameScene] Scene created successfully');
         } catch (error) {
             console.error('[GameScene] Error during scene creation:', error);
@@ -1165,6 +1168,248 @@ class GameScene extends Phaser.Scene {
             }
         });
         this.breathingTweens.push(bobbingTween);
+
+        // Setup generation-based visual effects for bred creatures
+        this.setupGenerationEffects();
+    }
+
+    /**
+     * Setup generation-based visual effects for bred creatures
+     * Higher generation creatures get progressively more impressive effects
+     * Gen 1: No effects (normal hatched)
+     * Gen 2: Subtle aura glow
+     * Gen 3: Stronger glow + particle trail
+     * Gen 4+: Prismatic shimmer + orbiting cosmic particles
+     */
+    setupGenerationEffects() {
+        // Clean up any existing generation effects
+        this.cleanupGenerationEffects();
+
+        // Get creature generation
+        const generation = getGameState().get('creature.generation') || 1;
+        const isOffspring = getGameState().get('creature.isOffspring') || false;
+
+        // Only apply effects to bred creatures (gen 2+)
+        if (generation < 2 || !isOffspring) {
+            console.log('game:debug [GameScene] No generation effects for gen', generation);
+            return;
+        }
+
+        console.log('game:info [GameScene] Setting up generation effects for Gen', generation, 'creature');
+
+        // Get creature's cosmic affinity for color theming
+        const affinity = getGameState().get('creature.cosmicAffinity');
+        const affinityColors = {
+            star: { primary: 0xFFD700, secondary: 0xFFA500 },
+            moon: { primary: 0xC0C0C0, secondary: 0x87CEEB },
+            nebula: { primary: 0xFF69B4, secondary: 0x9370DB },
+            crystal: { primary: 0x00CED1, secondary: 0x40E0D0 },
+            void: { primary: 0x8B00FF, secondary: 0x4B0082 }
+        };
+        const colors = affinityColors[affinity?.element] || affinityColors.star;
+
+        // Create aura glow (Gen 2+)
+        this.createGenerationAura(generation, colors);
+
+        // Create particle effects (Gen 3+)
+        if (generation >= 3) {
+            this.createGenerationParticles(generation, colors);
+        }
+
+        // Create orbiting particles (Gen 4+)
+        if (generation >= 4) {
+            this.createOrbitingParticles(generation, colors);
+        }
+    }
+
+    /**
+     * Create aura glow effect around creature
+     */
+    createGenerationAura(generation, colors) {
+        if (!this.player) return;
+
+        // Aura intensity scales with generation
+        const intensity = Math.min(0.15 + (generation - 2) * 0.1, 0.5);
+        const size = 40 + (generation - 2) * 10;
+
+        // Create aura graphics
+        this.generationAura = this.add.graphics();
+        this.generationAura.setDepth(this.player.depth - 1);
+
+        // Update aura position to follow player
+        this.generationAuraTimer = this.time.addEvent({
+            delay: 16, // ~60fps
+            callback: () => {
+                if (!this.player || !this.generationAura) return;
+
+                this.generationAura.clear();
+
+                // Pulsing effect
+                const pulse = Math.sin(this.time.now / 500) * 0.1 + 1;
+                const currentSize = size * pulse;
+
+                // Outer glow
+                this.generationAura.fillStyle(colors.primary, intensity * 0.3);
+                this.generationAura.fillCircle(this.player.x, this.player.y + 10, currentSize * 1.5);
+
+                // Inner glow
+                this.generationAura.fillStyle(colors.secondary, intensity * 0.5);
+                this.generationAura.fillCircle(this.player.x, this.player.y + 10, currentSize);
+
+                // Core glow (Gen 4+ gets extra bright core)
+                if (generation >= 4) {
+                    this.generationAura.fillStyle(0xFFFFFF, intensity * 0.3);
+                    this.generationAura.fillCircle(this.player.x, this.player.y + 10, currentSize * 0.5);
+                }
+            },
+            loop: true
+        });
+    }
+
+    /**
+     * Create trailing particle effect for moving creatures (Gen 3+)
+     */
+    createGenerationParticles(generation, colors) {
+        if (!this.player) return;
+
+        this.generationParticles = [];
+        const particleCount = 3 + (generation - 3) * 2; // More particles for higher gen
+
+        this.generationParticleTimer = this.time.addEvent({
+            delay: 100, // Spawn particle every 100ms when moving
+            callback: () => {
+                if (!this.player || !this.player.body) return;
+
+                // Only spawn particles when moving
+                const isMoving = Math.abs(this.player.body.velocity.x) > 20 ||
+                                Math.abs(this.player.body.velocity.y) > 20;
+
+                if (!isMoving) return;
+
+                // Create trailing particle
+                const particle = this.add.graphics();
+                const offsetX = (Math.random() - 0.5) * 20;
+                const offsetY = (Math.random() - 0.5) * 20;
+                const size = 3 + Math.random() * 4;
+                const color = Math.random() > 0.5 ? colors.primary : colors.secondary;
+
+                particle.fillStyle(color, 0.8);
+                particle.fillCircle(this.player.x + offsetX, this.player.y + 20 + offsetY, size);
+                particle.setDepth(this.player.depth - 2);
+
+                this.generationParticles.push(particle);
+
+                // Fade out and remove
+                this.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    scale: 0.5,
+                    duration: 500,
+                    onComplete: () => {
+                        const idx = this.generationParticles.indexOf(particle);
+                        if (idx > -1) this.generationParticles.splice(idx, 1);
+                        particle.destroy();
+                    }
+                });
+
+                // Limit active particles
+                while (this.generationParticles.length > particleCount * 3) {
+                    const old = this.generationParticles.shift();
+                    if (old) old.destroy();
+                }
+            },
+            loop: true
+        });
+    }
+
+    /**
+     * Create orbiting cosmic particles (Gen 4+)
+     */
+    createOrbitingParticles(generation, colors) {
+        if (!this.player) return;
+
+        const orbitCount = Math.min(generation - 3, 4); // 1-4 orbiting particles
+        this.orbitingParticles = [];
+
+        for (let i = 0; i < orbitCount; i++) {
+            const orbit = {
+                graphics: this.add.graphics(),
+                angle: (i / orbitCount) * Math.PI * 2,
+                radius: 35 + i * 8,
+                speed: 0.02 + (i * 0.005),
+                size: 4 + i,
+                color: i % 2 === 0 ? colors.primary : colors.secondary
+            };
+            orbit.graphics.setDepth(this.player.depth + 1);
+            this.orbitingParticles.push(orbit);
+        }
+
+        // Prismatic color shift for very high gen
+        const isPrismatic = generation >= 5;
+        let hueShift = 0;
+
+        this.orbitingParticleTimer = this.time.addEvent({
+            delay: 16,
+            callback: () => {
+                if (!this.player) return;
+
+                if (isPrismatic) hueShift = (hueShift + 2) % 360;
+
+                this.orbitingParticles.forEach((orbit, idx) => {
+                    orbit.angle += orbit.speed;
+                    const x = this.player.x + Math.cos(orbit.angle) * orbit.radius;
+                    const y = this.player.y + Math.sin(orbit.angle) * orbit.radius * 0.6; // Slight ellipse
+
+                    orbit.graphics.clear();
+
+                    // Prismatic color effect for gen 5+
+                    let color = orbit.color;
+                    if (isPrismatic) {
+                        const h = (hueShift + idx * 60) % 360;
+                        color = Phaser.Display.Color.HSLToColor(h / 360, 0.8, 0.6).color;
+                    }
+
+                    // Glowing orb
+                    orbit.graphics.fillStyle(color, 0.4);
+                    orbit.graphics.fillCircle(x, y, orbit.size * 1.5);
+                    orbit.graphics.fillStyle(color, 0.8);
+                    orbit.graphics.fillCircle(x, y, orbit.size);
+                    orbit.graphics.fillStyle(0xFFFFFF, 0.5);
+                    orbit.graphics.fillCircle(x, y, orbit.size * 0.4);
+                });
+            },
+            loop: true
+        });
+    }
+
+    /**
+     * Clean up generation effects
+     */
+    cleanupGenerationEffects() {
+        if (this.generationAuraTimer) {
+            this.generationAuraTimer.destroy();
+            this.generationAuraTimer = null;
+        }
+        if (this.generationAura) {
+            this.generationAura.destroy();
+            this.generationAura = null;
+        }
+        if (this.generationParticleTimer) {
+            this.generationParticleTimer.destroy();
+            this.generationParticleTimer = null;
+        }
+        if (this.generationParticles) {
+            this.generationParticles.forEach(p => p.destroy());
+            this.generationParticles = [];
+        }
+        if (this.orbitingParticleTimer) {
+            this.orbitingParticleTimer.destroy();
+            this.orbitingParticleTimer = null;
+        }
+        if (this.orbitingParticles) {
+            this.orbitingParticles.forEach(o => o.graphics.destroy());
+            this.orbitingParticles = [];
+        }
     }
 
     createCosmicCoins() {
@@ -2391,7 +2636,7 @@ class GameScene extends Phaser.Scene {
 
         // Trigger haptic feedback and screen shake
         if (window.FeedbackManager) {
-            window.FeedbackManager.trigger('levelUp', this);
+            window.FeedbackManager.vibrate('levelUp');
         }
 
         // Screen flash
@@ -4252,6 +4497,24 @@ class GameScene extends Phaser.Scene {
         this.scene.launch('InventoryScene');
     }
 
+    openShop() {
+        console.log('[GameScene] Opening Shop via keyboard');
+
+        // Play button click sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Show loading overlay
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Opening Cosmic Shop...');
+        }
+
+        // Pause this scene and launch ShopScene on top
+        this.scene.pause();
+        this.scene.launch('ShopScene');
+    }
+
     openBreedingShrine() {
         // Guard against multiple calls while shrine is loading/open
         if (this._breedingShrineOpening || this.scene.isActive('BreedingShrineScene')) {
@@ -6037,6 +6300,29 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
+     * Start periodic creature idle sounds
+     * Sound varies based on creature stage and personality
+     */
+    startCreatureIdleSounds() {
+        if (!window.AudioManager?.startCreatureIdleSounds) {
+            return;
+        }
+
+        // Get creature stage and personality
+        const stage = getGameState().get('creature.lifecycle.stage') || 'adult';
+        const personality = getGameState().get('creature.personality') || 'playful';
+
+        console.log(`[GameScene] Starting idle sounds for ${stage} ${personality} creature`);
+
+        // Start idle sounds and store controller for cleanup
+        this.creatureIdleSoundsController = window.AudioManager.startCreatureIdleSounds(
+            this,
+            stage,
+            personality
+        );
+    }
+
+    /**
      * Initialize Kid Mode UI components
      */
     initializeKidMode() {
@@ -6408,6 +6694,12 @@ class GameScene extends Phaser.Scene {
         if (this.portalPulseAnim) {
             this.portalPulseAnim.stop();
             this.portalPulseAnim = null;
+        }
+
+        // Stop creature idle sounds
+        if (this.creatureIdleSoundsController?.stop) {
+            this.creatureIdleSoundsController.stop();
+            this.creatureIdleSoundsController = null;
         }
         if (this.portalIndicator) {
             this.portalIndicator.destroy();

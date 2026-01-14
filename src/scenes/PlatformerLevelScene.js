@@ -24,8 +24,10 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Physics settings
         this.gravityY = 500;
-        this.playerSpeed = 250;
+        this.playerSpeed = 180;         // Reduced from 250 for less sensitive movement
         this.jumpVelocity = -420;
+        this.playerAcceleration = 0.15; // Smooth acceleration factor
+        this.playerDeceleration = 0.75; // Slower deceleration for precise control
 
         // State
         this.player = null;
@@ -35,6 +37,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isGrounded = false;
         this.canJump = true;
         this.jumpCooldown = 100; // ms between jumps
+        this.isDucking = false;  // Crouch/duck state
+        this.normalBodyHeight = 55; // Normal collision height
+        this.duckBodyHeight = 30;   // Ducking collision height
 
         // Combat
         this.crystalEnergy = 5;
@@ -50,6 +55,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.jumpKey = null;
         this.attackKey = null;
         this.specialKey = null;
+        this.rangedKey = null;  // M key for ranged attack
+        this.duckKey = null;    // Down arrow/S for ducking
 
         // Graphics
         this.graphicsEngine = null;
@@ -87,6 +94,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.canJump = true;
         this.isPlayerDead = false;
         this.isRestarting = false;
+        this.isDucking = false;
 
         // Clear references (will be recreated in create())
         this.player = null;
@@ -474,18 +482,22 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Jump key (Space or W or Up)
         this.jumpKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
-        // Attack key (X)
+        // Attack key (X) - melee attack
         this.attackKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
         this.attackKey.on('down', () => this.performAttack());
 
-        // Special attack key (Z)
+        // Special attack key (Z) - AoE attack
         this.specialKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
         this.specialKey.on('down', () => this.performSpecialAttack());
+
+        // Ranged attack key (M) - projectile attack
+        this.rangedKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+        this.rangedKey.on('down', () => this.performRangedAttack());
 
         // ESC to pause/return
         this.input.keyboard.on('keydown-ESC', () => this.showPauseMenu());
 
-        console.log('[PlatformerLevel] Input set up: Arrows/WASD, Space=Jump, X=Attack, Z=Special');
+        console.log('[PlatformerLevel] Input set up: Arrows/WASD, Space=Jump, X=Melee, Z=Special, M=Ranged, Down=Duck');
     }
 
     /**
@@ -611,32 +623,95 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Check if grounded
         this.isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
 
-        // Handle movement
+        // Handle ducking (must check before movement)
+        this.handleDuck();
+
+        // Handle movement (with smooth acceleration)
         this.handleMovement();
 
-        // Handle jumping
-        this.handleJump();
+        // Handle jumping (only if not ducking)
+        if (!this.isDucking) {
+            this.handleJump();
+        }
 
         // Update player facing direction
         this.updatePlayerFacing();
     }
 
     /**
-     * Handle horizontal movement
+     * Handle horizontal movement with smooth acceleration
+     * More responsive but less twitchy than instant velocity
      */
     handleMovement() {
         const leftPressed = this.cursors.left.isDown || this.wasdKeys.A.isDown;
         const rightPressed = this.cursors.right.isDown || this.wasdKeys.D.isDown;
 
+        // Reduce speed while ducking
+        const currentMaxSpeed = this.isDucking ? this.playerSpeed * 0.4 : this.playerSpeed;
+
         if (leftPressed) {
-            this.player.setVelocityX(-this.playerSpeed);
+            // Smooth acceleration towards target speed
+            const targetVel = -currentMaxSpeed;
+            const currentVel = this.player.body.velocity.x;
+            const newVel = currentVel + (targetVel - currentVel) * this.playerAcceleration;
+            this.player.setVelocityX(newVel);
             this.player.facingRight = false;
         } else if (rightPressed) {
-            this.player.setVelocityX(this.playerSpeed);
+            // Smooth acceleration towards target speed
+            const targetVel = currentMaxSpeed;
+            const currentVel = this.player.body.velocity.x;
+            const newVel = currentVel + (targetVel - currentVel) * this.playerAcceleration;
+            this.player.setVelocityX(newVel);
             this.player.facingRight = true;
         } else {
-            // Decelerate when no input
-            this.player.setVelocityX(this.player.body.velocity.x * 0.85);
+            // Smooth deceleration when no input
+            this.player.setVelocityX(this.player.body.velocity.x * this.playerDeceleration);
+
+            // Stop completely if very slow (prevents sliding)
+            if (Math.abs(this.player.body.velocity.x) < 5) {
+                this.player.setVelocityX(0);
+            }
+        }
+    }
+
+    /**
+     * Handle duck/crouch mechanic
+     * Down arrow or S key to duck - reduces hitbox and slows movement
+     * Note: Only requires grounded to START ducking, stays ducked while key held
+     */
+    handleDuck() {
+        const duckPressed = this.cursors.down.isDown || this.wasdKeys.S.isDown;
+
+        if (duckPressed) {
+            // Can only START ducking while grounded, but STAY ducked while key held
+            if (!this.isDucking && this.isGrounded) {
+                this.isDucking = true;
+
+                // Shrink hitbox (lower height, keeping feet planted)
+                this.player.body.setSize(40, this.duckBodyHeight);
+                this.player.body.setOffset(10, 15 + (this.normalBodyHeight - this.duckBodyHeight));
+
+                // Visual squash for duck
+                this.player.setScale(1, 0.6);
+
+                // Play duck sound
+                if (window.AudioManager) {
+                    window.AudioManager.playButtonClick();
+                }
+            }
+            // If already ducking, stay ducked (don't check grounded again)
+        } else {
+            // Only stand up when key is released
+            if (this.isDucking) {
+                this.isDucking = false;
+
+                // Restore normal hitbox
+                this.player.body.setSize(40, this.normalBodyHeight);
+                this.player.body.setOffset(10, 15);
+
+                // Restore normal scale
+                this.player.setScale(1, 1);
+            }
         }
     }
 
@@ -677,31 +752,45 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     /**
-     * Perform basic attack - override in subclass for creature-specific attacks
+     * Perform basic melee attack - override in subclass for creature-specific attacks
+     * Checks both regular enemies AND boss (if present)
      */
     performAttack() {
-        console.log('[PlatformerLevel] Attack performed');
+        console.log('[PlatformerLevel] Melee attack performed');
 
         // Create basic attack effect
         const attackX = this.player.facingRight ?
                         this.player.x + 50 :
                         this.player.x - 50;
 
-        // Visual effect
+        // Visual effect - melee slash
         const attackEffect = this.add.graphics();
         attackEffect.fillStyle(0x7B68EE, 0.8);
-        attackEffect.fillCircle(0, 0, 20);
+        attackEffect.fillCircle(0, 0, 25);
         attackEffect.setPosition(attackX, this.player.y);
-        attackEffect.setDepth(899); // Just below player depth (900)
+        attackEffect.setDepth(899);
+
+        // Arc slash effect
+        const slash = this.add.graphics();
+        slash.lineStyle(4, 0xE040FB, 1);
+        slash.beginPath();
+        const startAngle = this.player.facingRight ? -Math.PI / 2 : Math.PI / 2;
+        slash.arc(0, 0, 40, startAngle - 0.5, startAngle + 1, false);
+        slash.strokePath();
+        slash.setPosition(attackX, this.player.y);
+        slash.setDepth(899);
 
         // Animate and destroy
         this.tweens.add({
-            targets: attackEffect,
-            scaleX: 2,
-            scaleY: 2,
+            targets: [attackEffect, slash],
+            scaleX: 1.5,
+            scaleY: 1.5,
             alpha: 0,
             duration: 200,
-            onComplete: () => attackEffect.destroy()
+            onComplete: () => {
+                attackEffect.destroy();
+                slash.destroy();
+            }
         });
 
         // Check enemy hits
@@ -711,15 +800,159 @@ class PlatformerLevelScene extends Phaser.Scene {
                     attackX, this.player.y,
                     enemy.x, enemy.y
                 );
-                if (dist < 60) {
+                if (dist < 70) {
                     this.damageEnemy(enemy, 1);
                 }
             });
         }
 
+        // Check boss hit (if boss exists and is active)
+        if (this.boss && this.boss.active) {
+            const dist = Phaser.Math.Distance.Between(
+                attackX, this.player.y,
+                this.boss.x, this.boss.y
+            );
+            if (dist < 80) {
+                // Call damageBoss if it exists (implemented in subclass)
+                if (typeof this.damageBoss === 'function') {
+                    this.damageBoss(1);
+                    console.log('[PlatformerLevel] Boss hit by melee attack!');
+                }
+            }
+        }
+
         // Play attack sound
         if (window.AudioManager) {
             window.AudioManager.playAttack();
+        }
+    }
+
+    /**
+     * Perform ranged attack (M key) - fires a projectile
+     * Uses 1 crystal energy per shot
+     */
+    performRangedAttack() {
+        if (this.crystalEnergy < 1) {
+            console.log('[PlatformerLevel] Not enough crystal energy for ranged attack');
+            if (window.AudioManager) {
+                window.AudioManager.playError();
+            }
+            return;
+        }
+
+        console.log('[PlatformerLevel] Ranged attack performed');
+
+        // Use energy
+        this.crystalEnergy -= 1;
+        this.updateEnergyDisplay();
+
+        // Create projectile
+        const startX = this.player.x;
+        const startY = this.player.y - 10;
+        const direction = this.player.facingRight ? 1 : -1;
+
+        // Projectile visual (energy bolt)
+        const projectile = this.add.graphics();
+        projectile.fillStyle(0x00FFFF, 1);
+        // Bolt shape
+        projectile.fillTriangle(0, 5, 20, 0, 0, -5);
+        projectile.fillStyle(0xFFFFFF, 0.8);
+        projectile.fillCircle(5, 0, 4);
+        projectile.setPosition(startX, startY);
+        projectile.setDepth(898);
+        projectile.setRotation(direction > 0 ? 0 : Math.PI);
+
+        // Add physics body
+        this.physics.add.existing(projectile);
+        projectile.body.setAllowGravity(false);
+        projectile.body.setSize(20, 10);
+        projectile.body.setVelocityX(400 * direction);
+
+        // Trail effect
+        const trailInterval = this.time.addEvent({
+            delay: 30,
+            callback: () => {
+                if (!projectile.active) return;
+                const trail = this.add.graphics();
+                trail.fillStyle(0x00FFFF, 0.4);
+                trail.fillCircle(0, 0, 5);
+                trail.setPosition(projectile.x, projectile.y);
+                trail.setDepth(897);
+                this.tweens.add({
+                    targets: trail,
+                    alpha: 0,
+                    scaleX: 0.3,
+                    scaleY: 0.3,
+                    duration: 150,
+                    onComplete: () => trail.destroy()
+                });
+            },
+            repeat: 15
+        });
+
+        // Check collisions with enemies
+        if (this.enemies) {
+            this.physics.add.overlap(projectile, this.enemies, (proj, enemy) => {
+                this.damageEnemy(enemy, 1);
+                this.createProjectileImpact(proj.x, proj.y);
+                trailInterval.remove();
+                proj.destroy();
+            });
+        }
+
+        // Check collision with boss
+        if (this.boss && this.boss.active) {
+            this.physics.add.overlap(projectile, this.boss, (proj, boss) => {
+                if (typeof this.damageBoss === 'function') {
+                    this.damageBoss(1);
+                    console.log('[PlatformerLevel] Boss hit by ranged attack!');
+                }
+                this.createProjectileImpact(proj.x, proj.y);
+                trailInterval.remove();
+                proj.destroy();
+            });
+        }
+
+        // Destroy after time/distance
+        this.time.delayedCall(1500, () => {
+            if (projectile.active) {
+                trailInterval.remove();
+                projectile.destroy();
+            }
+        });
+
+        // Play ranged attack sound (use a crystal-like sound)
+        if (window.AudioManager) {
+            window.AudioManager.playBossProjectile(); // Reuse this sound
+        }
+    }
+
+    /**
+     * Create impact effect when projectile hits
+     */
+    createProjectileImpact(x, y) {
+        const impact = this.add.graphics();
+        impact.fillStyle(0x00FFFF, 0.8);
+        impact.fillCircle(0, 0, 10);
+        impact.setPosition(x, y);
+        impact.setDepth(898);
+
+        this.tweens.add({
+            targets: impact,
+            scaleX: 2.5,
+            scaleY: 2.5,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => impact.destroy()
+        });
+
+        // Particle burst
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, x, y, {
+                count: 8,
+                color: [0x00FFFF, 0x7B68EE],
+                duration: 500
+            });
         }
     }
 
@@ -1001,6 +1234,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.input.keyboard.off('keydown-ESC');
             if (this.attackKey) this.attackKey.off('down');
             if (this.specialKey) this.specialKey.off('down');
+            if (this.rangedKey) this.rangedKey.off('down');
         }
 
         // Clear timers

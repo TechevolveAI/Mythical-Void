@@ -1021,8 +1021,9 @@ export default class ShopScene extends Phaser.Scene {
             this.showPurchaseError('Not enough cosmic coins!');
             this.isPurchasing = false;
 
+            // Play insufficient funds sound
             if (window.AudioManager) {
-                window.AudioManager.playError();
+                window.AudioManager.playShopInsufficient?.() || window.AudioManager.playError();
             }
             return;
         }
@@ -1067,7 +1068,7 @@ export default class ShopScene extends Phaser.Scene {
                             this.updateCoinDisplay();
 
                             if (window.AudioManager) {
-                                window.AudioManager.playPurchase();
+                                window.AudioManager.playShopPurchase?.(item.price) || window.AudioManager.playPurchase();
                             }
 
                             this.isPurchasing = false;

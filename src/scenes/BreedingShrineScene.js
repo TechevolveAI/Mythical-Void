@@ -82,8 +82,11 @@ class BreedingShrineScene extends Phaser.Scene {
         this.createBreedButton(width, height);
         this.createCloseButton(width);
 
-        // Play ambient sound
-        window.AudioManager?.playButtonClick?.();
+        // Play shrine ambient sound and start breeding music
+        if (window.AudioManager) {
+            window.AudioManager.playShrineAmbient?.();
+            window.AudioManager.playAreaMusic?.('breeding');
+        }
 
         // Hide loading overlay
         if (window.UXEnhancements) {
@@ -583,7 +586,8 @@ class BreedingShrineScene extends Phaser.Scene {
             this.calculateCompatibility();
         }
 
-        window.AudioManager?.playButtonClick?.();
+        // Play parent selection sound
+        window.AudioManager?.playShrineSelect?.();
     }
 
     refreshUI() {
@@ -640,6 +644,10 @@ class BreedingShrineScene extends Phaser.Scene {
         }
 
         console.log('[BreedingShrineScene] Compatibility:', this.compatibility);
+
+        // Play compatibility sound based on result
+        const isGoodCompatibility = this.compatibility.percentage >= 70 || this.compatibility.score >= 70;
+        window.AudioManager?.playShrineCompatibility?.(isGoodCompatibility);
     }
 
     createCompatibilityDisplay(width, height) {
@@ -1024,8 +1032,8 @@ class BreedingShrineScene extends Phaser.Scene {
             window.UXEnhancements.showLoading('Creating new life...');
         }
 
-        // Play mystical sound
-        window.AudioManager?.playAchievement?.();
+        // Play egg creation sound sequence
+        window.AudioManager?.playShrineCreateEgg?.();
 
         // Particle effect
         const { width, height } = this.scale;
@@ -1180,10 +1188,13 @@ class BreedingShrineScene extends Phaser.Scene {
 
             } catch (error) {
                 console.error('[BreedingShrineScene] Breeding error:', error);
+                console.error('[BreedingShrineScene] Error stack:', error?.stack);
                 if (window.UXEnhancements) {
                     window.UXEnhancements.hideLoading();
                 }
-                this.showBreedingError('Breeding failed due to an error.');
+                // Show more helpful error message
+                const errorMsg = error?.message || 'Unknown error';
+                this.showBreedingError(`Breeding failed: ${errorMsg.substring(0, 50)}`);
             }
 
             this.breedingInProgress = false;
@@ -1227,10 +1238,8 @@ class BreedingShrineScene extends Phaser.Scene {
         // structure needed by GraphicsEngine (colorGenome, bodyShape, features)
         let baseGenes = null;
         if (window.CreatureGenetics) {
-            baseGenes = window.CreatureGenetics.generateCreature({
-                rarity: offspringRarity,
-                cosmicAffinity: this.blendCosmicAffinity()?.element
-            });
+            // generateCreatureGenetics takes rarity string directly (not an object)
+            baseGenes = window.CreatureGenetics.generateCreatureGenetics(offspringRarity);
         }
 
         // Create full creature genetics by merging base genetics with breeding traits
@@ -1688,6 +1697,9 @@ class BreedingShrineScene extends Phaser.Scene {
 
     shutdown() {
         console.log('[BreedingShrineScene] Shutting down...');
+
+        // Stop breeding music
+        window.AudioManager?.stopMusic?.();
 
         this.closeSelectionModal();
 

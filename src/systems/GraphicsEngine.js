@@ -8957,6 +8957,17 @@ class GraphicsEngine {
         const currentStage = lifecycle?.stage || 'baby';
         console.log('graphics:debug [GraphicsEngine] loadCreatureFromGameState - lifecycle:', lifecycle, 'stage:', currentStage);
 
+        // CRITICAL: Check if texture already exists to preserve visual consistency
+        // This prevents re-randomization of visual elements between scenes
+        const genes = gameState.get('creature.genes') || gameState.getActiveCreature?.()?.genes;
+        if (genes?.id) {
+            const existingTextureName = `creature_${genes.id}_${currentStage}_${frame}`;
+            if (this.scene?.textures?.exists(existingTextureName)) {
+                console.log('graphics:info [GraphicsEngine] Using existing creature texture:', existingTextureName);
+                return { textureName: existingTextureName, genetics: genes, stage: currentStage };
+            }
+        }
+
         // CRITICAL: Check if we're in a hatching flow (creature.hatched but not yet named/added to collection)
         // In this case, ALWAYS use creature.* slot instead of activeCreature from collection
         const isHatchingFlow = gameState.get('creature.hatched') && !gameState.get('creature.named');

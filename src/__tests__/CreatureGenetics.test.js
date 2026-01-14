@@ -18,22 +18,40 @@ const createPhaserStub = () => ({
     BlendModes: { ADD: 'ADD' }
 });
 
+const phaserStub = createPhaserStub();
+
+// Create reusable GameState mock
+const createGameStateMock = () => ({
+    emit: jest.fn(),
+    get: jest.fn(),
+    set: jest.fn()
+});
+
+// Set up global Phaser (used by the system directly)
+global.Phaser = phaserStub;
+
 global.window = {
-    GameState: {
-        emit: jest.fn(),
-        get: jest.fn(),
-        set: jest.fn()
-    },
-    Phaser: createPhaserStub()
+    GameState: createGameStateMock(),
+    Phaser: phaserStub
 };
 
 const CreatureGenetics = require('../systems/CreatureGenetics.js');
+
+// Re-establish window mock after require (module may modify window)
+beforeAll(() => {
+    global.window = {
+        GameState: createGameStateMock(),
+        Phaser: phaserStub
+    };
+});
 
 describe('CreatureGenetics System', () => {
     let genetics;
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        // Re-establish GameState mock before each test
+        global.window.GameState = createGameStateMock();
+
         genetics = new CreatureGenetics();
         genetics.initialize();
     });
@@ -48,10 +66,12 @@ describe('CreatureGenetics System', () => {
         });
 
         test('should have species templates defined', () => {
-            expect(Object.keys(genetics.speciesTemplates).length).toBe(3);
+            // 7 species: stellarWyrm, crystalDrake, nebulaSprite, voidStalker, solarPhoenix, lunarDrake, auroraSeraph
+            expect(Object.keys(genetics.speciesTemplates).length).toBe(7);
             expect(genetics.speciesTemplates.stellarWyrm).toBeDefined();
             expect(genetics.speciesTemplates.crystalDrake).toBeDefined();
             expect(genetics.speciesTemplates.nebulaSprite).toBeDefined();
+            expect(genetics.speciesTemplates.voidStalker).toBeDefined();
         });
 
         test('should have personality traits defined', () => {
@@ -454,7 +474,7 @@ describe('CreatureGenetics System', () => {
             const stats = genetics.getSystemStats();
 
             expect(stats.initialized).toBe(true);
-            expect(stats.speciesCount).toBe(3);
+            expect(stats.speciesCount).toBe(7); // Updated to reflect new species
             expect(stats.personalityCount).toBe(5);
             expect(stats.affinityCount).toBe(5);
             expect(stats.rarityLevels).toEqual(['common', 'uncommon', 'rare', 'epic', 'legendary']);

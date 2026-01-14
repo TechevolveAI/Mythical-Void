@@ -2143,6 +2143,13 @@ export default class InventoryScene extends Phaser.Scene {
                 });
                 window.GameState?.set('creature.level', 1);
                 window.GameState?.set('creature.experience', 0);
+                // CRITICAL: Reset breeding/lineage fields to prevent old data persisting
+                window.GameState?.set('creature.isOffspring', false);
+                window.GameState?.set('creature.generation', null);
+                window.GameState?.set('creature.parentIds', null);
+                window.GameState?.set('creature.offspringBonus', null);
+                window.GameState?.set('creature.hasAncientLineage', false);
+                window.GameState?.set('creature.ancientProphecy', null);
 
                 // Store spawn position for new creature
                 window.GameState?.set('creature.spawnPosition', oldPosition);

@@ -313,6 +313,592 @@ class AudioManager {
             { frequency: 900, duration: 0.1, volume: 0.18, waveform: 'sine' }
         ]);
 
+        // ==========================================
+        // BOSS FIGHT SOUNDS
+        // ==========================================
+
+        // Boss roar - deep, menacing rumble with power buildup
+        this.createToneSequence('boss_roar', [
+            { frequency: 80, duration: 0.15, volume: 0.35 },
+            { frequency: 60, duration: 0.2, volume: 0.4 },
+            { frequency: 100, duration: 0.25, volume: 0.35 },
+            { frequency: 70, duration: 0.3, volume: 0.3 },
+            { frequency: 50, duration: 0.4, volume: 0.25 }
+        ]);
+
+        // Boss warning - ominous alert before attack
+        this.createToneSequence('boss_warning', [
+            { frequency: 200, duration: 0.15, volume: 0.25 },
+            { frequency: 180, duration: 0.15, volume: 0.3 },
+            { frequency: 200, duration: 0.15, volume: 0.25 }
+        ]);
+
+        // Boss ground slam - heavy impact with rumble
+        this.createToneSequence('boss_slam', [
+            { frequency: 120, duration: 0.08, volume: 0.4 },
+            { frequency: 80, duration: 0.15, volume: 0.35 },
+            { frequency: 50, duration: 0.2, volume: 0.3 },
+            { frequency: 40, duration: 0.25, volume: 0.2 }
+        ]);
+
+        // Boss projectile fire - sharp crystal sound
+        this.createToneSequence('boss_projectile', [
+            { frequency: 600, duration: 0.05, volume: 0.25 },
+            { frequency: 800, duration: 0.08, volume: 0.2 },
+            { frequency: 500, duration: 0.1, volume: 0.15 }
+        ]);
+
+        // Boss charge attack - whoosh with power
+        this.createToneSequence('boss_charge', [
+            { frequency: 150, duration: 0.1, volume: 0.25 },
+            { frequency: 200, duration: 0.15, volume: 0.3 },
+            { frequency: 250, duration: 0.2, volume: 0.35 },
+            { frequency: 300, duration: 0.15, volume: 0.25 }
+        ]);
+
+        // Boss phase transition - dramatic power surge
+        this.createToneSequence('boss_phase', [
+            { frequency: 100, duration: 0.2, volume: 0.3 },
+            { frequency: 150, duration: 0.2, volume: 0.35 },
+            { frequency: 200, duration: 0.25, volume: 0.4 },
+            { frequency: 300, duration: 0.3, volume: 0.35 },
+            { frequency: 400, duration: 0.4, volume: 0.3 }
+        ]);
+
+        // Boss hit - solid impact when boss takes damage
+        this.createToneSequence('boss_hit', [
+            { frequency: 150, duration: 0.08, volume: 0.35 },
+            { frequency: 100, duration: 0.1, volume: 0.3 },
+            { frequency: 80, duration: 0.08, volume: 0.2 }
+        ]);
+
+        // Boss defeated - triumphant explosion
+        this.createToneSequence('boss_defeated', [
+            { frequency: 200, duration: 0.15, volume: 0.3 },
+            { frequency: 300, duration: 0.15, volume: 0.35 },
+            { frequency: 400, duration: 0.2, volume: 0.4 },
+            { frequency: 523.25, duration: 0.2, volume: 0.4 },  // C5
+            { frequency: 659.25, duration: 0.2, volume: 0.35 }, // E5
+            { frequency: 783.99, duration: 0.25, volume: 0.35 }, // G5
+            { frequency: 1046.50, duration: 0.3, volume: 0.3 }   // C6
+        ]);
+
+        // Boss intro - dramatic awakening
+        this.createToneSequence('boss_intro', [
+            { frequency: 80, duration: 0.3, volume: 0.2 },
+            { frequency: 100, duration: 0.3, volume: 0.25 },
+            { frequency: 120, duration: 0.3, volume: 0.3 },
+            { frequency: 150, duration: 0.4, volume: 0.35 }
+        ]);
+
+        // ==========================================
+        // CRYSTAL CAVE AMBIENT SOUNDS
+        // ==========================================
+
+        // Crystal chime - high frequency resonant tone
+        this.createToneSequence('crystal_chime', [
+            { frequency: 1046.50, duration: 0.1, volume: 0.12 },   // C6
+            { frequency: 1318.51, duration: 0.15, volume: 0.15 },  // E6
+            { frequency: 1567.98, duration: 0.3, volume: 0.12 },   // G6
+            { frequency: 2093.00, duration: 0.5, volume: 0.08 }    // C7 - sparkle
+        ]);
+
+        // Crystal chime variant 2 - descending
+        this.createToneSequence('crystal_chime_2', [
+            { frequency: 1567.98, duration: 0.12, volume: 0.12 },  // G6
+            { frequency: 1318.51, duration: 0.15, volume: 0.14 },  // E6
+            { frequency: 1046.50, duration: 0.25, volume: 0.1 },   // C6
+            { frequency: 783.99, duration: 0.4, volume: 0.06 }     // G5 - fade
+        ]);
+
+        // Crystal chime variant 3 - ethereal high
+        this.createToneSequence('crystal_chime_3', [
+            { frequency: 2637.02, duration: 0.08, volume: 0.08 },  // E7
+            { frequency: 3135.96, duration: 0.1, volume: 0.1 },    // G7
+            { frequency: 2637.02, duration: 0.15, volume: 0.08 },  // E7
+            { frequency: 2093.00, duration: 0.3, volume: 0.05 }    // C7
+        ]);
+
+        // Deep gong - resonant low bell
+        this.createToneSequence('cave_gong', [
+            { frequency: 65.41, duration: 0.2, volume: 0.2 },      // C2 - deep impact
+            { frequency: 130.81, duration: 0.4, volume: 0.18 },    // C3 - resonance
+            { frequency: 98.00, duration: 0.6, volume: 0.15 },     // G2
+            { frequency: 65.41, duration: 1.0, volume: 0.1 }       // C2 - decay
+        ]);
+
+        // Medium gong - mid-range bell
+        this.createToneSequence('cave_gong_medium', [
+            { frequency: 130.81, duration: 0.15, volume: 0.18 },   // C3
+            { frequency: 196.00, duration: 0.3, volume: 0.16 },    // G3
+            { frequency: 261.63, duration: 0.5, volume: 0.12 },    // C4
+            { frequency: 196.00, duration: 0.8, volume: 0.08 }     // G3 - resonance
+        ]);
+
+        // Eerie whistle - high sustained tone
+        this.createToneSequence('cave_whistle', [
+            { frequency: 880.00, duration: 0.3, volume: 0.06 },    // A5
+            { frequency: 932.33, duration: 0.4, volume: 0.08 },    // Bb5 - dissonant
+            { frequency: 880.00, duration: 0.5, volume: 0.06 },    // A5
+            { frequency: 830.61, duration: 0.6, volume: 0.04 }     // Ab5 - descend
+        ]);
+
+        // Crystal resonance - shimmer effect
+        this.createToneSequence('crystal_resonance', [
+            { frequency: 523.25, duration: 0.2, volume: 0.08 },    // C5
+            { frequency: 659.25, duration: 0.2, volume: 0.1 },     // E5
+            { frequency: 783.99, duration: 0.3, volume: 0.12 },    // G5
+            { frequency: 987.77, duration: 0.4, volume: 0.1 },     // B5
+            { frequency: 1046.50, duration: 0.5, volume: 0.08 }    // C6
+        ]);
+
+        // Cave drip - water drop sound
+        this.createToneSequence('cave_drip', [
+            { frequency: 2000, duration: 0.02, volume: 0.15 },
+            { frequency: 1500, duration: 0.03, volume: 0.1 },
+            { frequency: 1000, duration: 0.05, volume: 0.05 }
+        ]);
+
+        // Eerie drone - low sustained atmosphere
+        this.createToneSequence('cave_drone', [
+            { frequency: 55, duration: 0.5, volume: 0.08 },        // A1 - sub bass
+            { frequency: 82.41, duration: 0.5, volume: 0.1 },      // E2
+            { frequency: 73.42, duration: 0.6, volume: 0.08 },     // D2 - tension
+            { frequency: 55, duration: 0.8, volume: 0.06 }         // A1
+        ]);
+
+        // ==========================================
+        // CREATURE IDLE SOUNDS (Stage & Personality)
+        // ==========================================
+
+        // Adult creature sounds - varied based on personality
+        this.createToneSequence('creature_hum', [
+            { frequency: 220, duration: 0.3, volume: 0.12 },
+            { frequency: 246.94, duration: 0.35, volume: 0.14 },
+            { frequency: 220, duration: 0.4, volume: 0.1 }
+        ]);
+
+        this.createToneSequence('creature_purr', [
+            { frequency: 180, duration: 0.15, volume: 0.1 },
+            { frequency: 190, duration: 0.15, volume: 0.12 },
+            { frequency: 175, duration: 0.15, volume: 0.1 },
+            { frequency: 185, duration: 0.15, volume: 0.12 },
+            { frequency: 180, duration: 0.2, volume: 0.08 }
+        ]);
+
+        this.createToneSequence('creature_trill', [
+            { frequency: 500, duration: 0.08, volume: 0.15 },
+            { frequency: 600, duration: 0.08, volume: 0.18 },
+            { frequency: 550, duration: 0.08, volume: 0.16 },
+            { frequency: 650, duration: 0.1, volume: 0.14 }
+        ]);
+
+        this.createToneSequence('creature_curious', [
+            { frequency: 400, duration: 0.1, volume: 0.12 },
+            { frequency: 500, duration: 0.15, volume: 0.15 },
+            { frequency: 550, duration: 0.12, volume: 0.12 }
+        ]);
+
+        // Juvenile sounds - playful, energetic
+        this.createToneSequence('juvenile_squeak', [
+            { frequency: 700, duration: 0.06, volume: 0.15 },
+            { frequency: 800, duration: 0.08, volume: 0.18 },
+            { frequency: 750, duration: 0.06, volume: 0.12 }
+        ]);
+
+        this.createToneSequence('juvenile_bounce', [
+            { frequency: 550, duration: 0.08, volume: 0.14 },
+            { frequency: 650, duration: 0.08, volume: 0.16 },
+            { frequency: 600, duration: 0.1, volume: 0.12 }
+        ]);
+
+        // Elder sounds - wise, resonant
+        this.createToneSequence('elder_sigh', [
+            { frequency: 150, duration: 0.4, volume: 0.12 },
+            { frequency: 130, duration: 0.5, volume: 0.1 },
+            { frequency: 120, duration: 0.6, volume: 0.08 }
+        ]);
+
+        this.createToneSequence('elder_wisdom', [
+            { frequency: 200, duration: 0.3, volume: 0.12 },
+            { frequency: 250, duration: 0.35, volume: 0.14 },
+            { frequency: 300, duration: 0.4, volume: 0.12 },
+            { frequency: 250, duration: 0.5, volume: 0.08 }
+        ]);
+
+        // ==========================================
+        // MOOD-BASED SOUNDS
+        // ==========================================
+
+        // Happy mood - bright, uplifting
+        this.createToneSequence('mood_happy', [
+            { frequency: 523.25, duration: 0.1, volume: 0.08 },
+            { frequency: 659.25, duration: 0.1, volume: 0.1 },
+            { frequency: 783.99, duration: 0.15, volume: 0.08 }
+        ]);
+
+        // Content mood - gentle, warm
+        this.createToneSequence('mood_content', [
+            { frequency: 392, duration: 0.2, volume: 0.08 },
+            { frequency: 440, duration: 0.25, volume: 0.08 }
+        ]);
+
+        // Sad mood - minor key, descending
+        this.createToneSequence('mood_sad', [
+            { frequency: 392, duration: 0.25, volume: 0.08 },
+            { frequency: 349.23, duration: 0.25, volume: 0.07 },
+            { frequency: 329.63, duration: 0.3, volume: 0.06 }
+        ]);
+
+        // Critical mood - urgent, concerned
+        this.createToneSequence('mood_critical', [
+            { frequency: 300, duration: 0.1, volume: 0.12 },
+            { frequency: 280, duration: 0.1, volume: 0.1 },
+            { frequency: 300, duration: 0.15, volume: 0.12 }
+        ]);
+
+        // ==========================================
+        // BREEDING SHRINE SOUNDS
+        // ==========================================
+
+        // Mystical ambient drone for shrine
+        this.createToneSequence('shrine_ambient', [
+            { frequency: 174.61, duration: 0.5, volume: 0.06 },
+            { frequency: 220, duration: 0.5, volume: 0.08 },
+            { frequency: 261.63, duration: 0.6, volume: 0.06 }
+        ]);
+
+        // Parent selection confirmation
+        this.createToneSequence('shrine_select', [
+            { frequency: 523.25, duration: 0.1, volume: 0.15 },
+            { frequency: 659.25, duration: 0.12, volume: 0.18 },
+            { frequency: 783.99, duration: 0.15, volume: 0.15 }
+        ]);
+
+        // Compatibility check - harmonious (compatible)
+        this.createToneSequence('shrine_compatible', [
+            { frequency: 261.63, duration: 0.15, volume: 0.15 },
+            { frequency: 329.63, duration: 0.15, volume: 0.18 },
+            { frequency: 392, duration: 0.15, volume: 0.2 },
+            { frequency: 523.25, duration: 0.2, volume: 0.18 }
+        ]);
+
+        // Compatibility check - dissonant (incompatible)
+        this.createToneSequence('shrine_incompatible', [
+            { frequency: 261.63, duration: 0.15, volume: 0.12 },
+            { frequency: 277.18, duration: 0.15, volume: 0.1 },
+            { frequency: 246.94, duration: 0.2, volume: 0.08 }
+        ]);
+
+        // Egg creation - magical building sequence
+        this.createToneSequence('shrine_create_egg', [
+            { frequency: 261.63, duration: 0.15, volume: 0.15 },
+            { frequency: 329.63, duration: 0.15, volume: 0.18 },
+            { frequency: 392, duration: 0.15, volume: 0.2 },
+            { frequency: 523.25, duration: 0.15, volume: 0.22 },
+            { frequency: 659.25, duration: 0.15, volume: 0.25 },
+            { frequency: 783.99, duration: 0.2, volume: 0.28 },
+            { frequency: 1046.50, duration: 0.3, volume: 0.25 }
+        ]);
+
+        // Offspring reveal - triumphant with rarity scaling
+        this.createToneSequence('shrine_reveal_common', [
+            { frequency: 392, duration: 0.15, volume: 0.2 },
+            { frequency: 523.25, duration: 0.2, volume: 0.22 }
+        ]);
+
+        this.createToneSequence('shrine_reveal_rare', [
+            { frequency: 392, duration: 0.12, volume: 0.22 },
+            { frequency: 523.25, duration: 0.12, volume: 0.25 },
+            { frequency: 659.25, duration: 0.15, volume: 0.28 },
+            { frequency: 783.99, duration: 0.2, volume: 0.25 }
+        ]);
+
+        this.createToneSequence('shrine_reveal_epic', [
+            { frequency: 392, duration: 0.1, volume: 0.25 },
+            { frequency: 523.25, duration: 0.1, volume: 0.28 },
+            { frequency: 659.25, duration: 0.1, volume: 0.3 },
+            { frequency: 783.99, duration: 0.12, volume: 0.32 },
+            { frequency: 1046.50, duration: 0.15, volume: 0.35 },
+            { frequency: 1318.51, duration: 0.2, volume: 0.3 }
+        ]);
+
+        this.createToneSequence('shrine_reveal_legendary', [
+            { frequency: 392, duration: 0.08, volume: 0.28 },
+            { frequency: 523.25, duration: 0.08, volume: 0.3 },
+            { frequency: 659.25, duration: 0.08, volume: 0.32 },
+            { frequency: 783.99, duration: 0.1, volume: 0.35 },
+            { frequency: 1046.50, duration: 0.1, volume: 0.38 },
+            { frequency: 1318.51, duration: 0.12, volume: 0.4 },
+            { frequency: 1567.98, duration: 0.15, volume: 0.38 },
+            { frequency: 2093, duration: 0.25, volume: 0.35 }
+        ]);
+
+        // ==========================================
+        // PORTAL / TELEPORTATION SOUNDS
+        // ==========================================
+
+        // Portal approach - growing otherworldly hum
+        this.createToneSequence('portal_approach', [
+            { frequency: 150, duration: 0.15, volume: 0.1 },
+            { frequency: 200, duration: 0.15, volume: 0.12 },
+            { frequency: 250, duration: 0.15, volume: 0.15 },
+            { frequency: 300, duration: 0.2, volume: 0.18 }
+        ]);
+
+        // Portal entry - whooshing dimensional shift
+        this.createToneSequence('portal_enter', [
+            { frequency: 100, duration: 0.1, volume: 0.2 },
+            { frequency: 200, duration: 0.1, volume: 0.25 },
+            { frequency: 400, duration: 0.1, volume: 0.3 },
+            { frequency: 800, duration: 0.15, volume: 0.25 },
+            { frequency: 1200, duration: 0.2, volume: 0.15 }
+        ]);
+
+        // Portal travel - ethereal passage
+        this.createToneSequence('portal_travel', [
+            { frequency: 300, duration: 0.2, volume: 0.15 },
+            { frequency: 350, duration: 0.2, volume: 0.18 },
+            { frequency: 400, duration: 0.2, volume: 0.15 },
+            { frequency: 350, duration: 0.2, volume: 0.12 }
+        ]);
+
+        // Portal arrival - materialization shimmer
+        this.createToneSequence('portal_arrive', [
+            { frequency: 1200, duration: 0.1, volume: 0.15 },
+            { frequency: 800, duration: 0.1, volume: 0.2 },
+            { frequency: 500, duration: 0.12, volume: 0.22 },
+            { frequency: 300, duration: 0.15, volume: 0.18 },
+            { frequency: 200, duration: 0.2, volume: 0.12 }
+        ]);
+
+        // ==========================================
+        // SHOP & ECONOMY SOUNDS
+        // ==========================================
+
+        // Item hover - soft tone shift
+        this.createToneSequence('shop_hover', [
+            { frequency: 600, duration: 0.05, volume: 0.08 }
+        ]);
+
+        // Insufficient funds - gentle denial
+        this.createToneSequence('shop_insufficient', [
+            { frequency: 350, duration: 0.1, volume: 0.15 },
+            { frequency: 300, duration: 0.15, volume: 0.12 }
+        ]);
+
+        // Purchase tier: cheap (<50 coins)
+        this.createToneSequence('shop_purchase_small', [
+            { frequency: 523.25, duration: 0.1, volume: 0.2 },
+            { frequency: 659.25, duration: 0.12, volume: 0.22 }
+        ]);
+
+        // Purchase tier: medium (50-200 coins)
+        this.createToneSequence('shop_purchase_medium', [
+            { frequency: 523.25, duration: 0.08, volume: 0.22 },
+            { frequency: 659.25, duration: 0.08, volume: 0.25 },
+            { frequency: 783.99, duration: 0.1, volume: 0.28 },
+            { frequency: 1046.50, duration: 0.15, volume: 0.25 }
+        ]);
+
+        // Purchase tier: expensive (>200 coins)
+        this.createToneSequence('shop_purchase_large', [
+            { frequency: 523.25, duration: 0.08, volume: 0.25 },
+            { frequency: 659.25, duration: 0.08, volume: 0.28 },
+            { frequency: 783.99, duration: 0.08, volume: 0.3 },
+            { frequency: 1046.50, duration: 0.1, volume: 0.32 },
+            { frequency: 1318.51, duration: 0.15, volume: 0.3 }
+        ]);
+
+        // Rare item reveal
+        this.createToneSequence('shop_rare_reveal', [
+            { frequency: 783.99, duration: 0.1, volume: 0.2 },
+            { frequency: 987.77, duration: 0.1, volume: 0.25 },
+            { frequency: 1174.66, duration: 0.1, volume: 0.28 },
+            { frequency: 1318.51, duration: 0.15, volume: 0.3 },
+            { frequency: 1567.98, duration: 0.2, volume: 0.25 }
+        ]);
+
+        // ==========================================
+        // ENHANCED CARE ACTION SOUNDS
+        // ==========================================
+
+        // Feed with creature response
+        this.createToneSequence('feed_response', [
+            { frequency: 500, duration: 0.1, volume: 0.15 },
+            { frequency: 550, duration: 0.12, volume: 0.18 },
+            { frequency: 600, duration: 0.15, volume: 0.15 }
+        ]);
+
+        // Pet with creature purr
+        this.createToneSequence('pet_response', [
+            { frequency: 250, duration: 0.2, volume: 0.12 },
+            { frequency: 260, duration: 0.2, volume: 0.14 },
+            { frequency: 250, duration: 0.25, volume: 0.1 }
+        ]);
+
+        // Play with excited sound
+        this.createToneSequence('play_response', [
+            { frequency: 600, duration: 0.08, volume: 0.15 },
+            { frequency: 700, duration: 0.08, volume: 0.18 },
+            { frequency: 800, duration: 0.1, volume: 0.15 }
+        ]);
+
+        // Rest with peaceful sound
+        this.createToneSequence('rest_start', [
+            { frequency: 392, duration: 0.3, volume: 0.12 },
+            { frequency: 349.23, duration: 0.35, volume: 0.1 },
+            { frequency: 329.63, duration: 0.4, volume: 0.08 }
+        ]);
+
+        this.createToneSequence('rest_breathing', [
+            { frequency: 200, duration: 0.5, volume: 0.06 },
+            { frequency: 180, duration: 0.6, volume: 0.05 }
+        ]);
+
+        // ==========================================
+        // TIERED ACHIEVEMENT FANFARES
+        // ==========================================
+
+        // Minor achievement - quick satisfying chime
+        this.createToneSequence('achievement_minor', [
+            { frequency: 523.25, duration: 0.1, volume: 0.2 },
+            { frequency: 659.25, duration: 0.12, volume: 0.22 },
+            { frequency: 783.99, duration: 0.15, volume: 0.2 }
+        ]);
+
+        // Major achievement - full musical phrase
+        this.createToneSequence('achievement_major', [
+            { frequency: 392, duration: 0.12, volume: 0.22 },
+            { frequency: 523.25, duration: 0.12, volume: 0.25 },
+            { frequency: 659.25, duration: 0.12, volume: 0.28 },
+            { frequency: 783.99, duration: 0.15, volume: 0.3 },
+            { frequency: 1046.50, duration: 0.2, volume: 0.28 }
+        ]);
+
+        // Epic achievement - triumphant orchestral hit
+        this.createToneSequence('achievement_epic', [
+            { frequency: 261.63, duration: 0.1, volume: 0.25 },
+            { frequency: 392, duration: 0.1, volume: 0.28 },
+            { frequency: 523.25, duration: 0.1, volume: 0.3 },
+            { frequency: 659.25, duration: 0.12, volume: 0.32 },
+            { frequency: 783.99, duration: 0.12, volume: 0.35 },
+            { frequency: 1046.50, duration: 0.15, volume: 0.38 },
+            { frequency: 1318.51, duration: 0.2, volume: 0.35 },
+            { frequency: 1567.98, duration: 0.3, volume: 0.3 }
+        ]);
+
+        // Secret discovery - mysterious wonder-filled reveal
+        this.createToneSequence('achievement_secret', [
+            { frequency: 440, duration: 0.15, volume: 0.18 },
+            { frequency: 554.37, duration: 0.15, volume: 0.2 },
+            { frequency: 659.25, duration: 0.15, volume: 0.22 },
+            { frequency: 880, duration: 0.2, volume: 0.25 },
+            { frequency: 1108.73, duration: 0.25, volume: 0.22 },
+            { frequency: 1318.51, duration: 0.3, volume: 0.18 }
+        ]);
+
+        // ==========================================
+        // CAMPFIRE / REST AREA SOUNDS
+        // ==========================================
+
+        // Fire crackle - random pops
+        this.createToneSequence('fire_crackle_1', [
+            { frequency: 100, duration: 0.02, volume: 0.15 },
+            { frequency: 150, duration: 0.03, volume: 0.12 }
+        ]);
+
+        this.createToneSequence('fire_crackle_2', [
+            { frequency: 120, duration: 0.03, volume: 0.12 },
+            { frequency: 80, duration: 0.02, volume: 0.1 }
+        ]);
+
+        this.createToneSequence('fire_crackle_3', [
+            { frequency: 90, duration: 0.02, volume: 0.1 },
+            { frequency: 130, duration: 0.03, volume: 0.14 },
+            { frequency: 100, duration: 0.02, volume: 0.08 }
+        ]);
+
+        // Creature settling - content sounds at campfire
+        this.createToneSequence('creature_settle', [
+            { frequency: 300, duration: 0.2, volume: 0.1 },
+            { frequency: 280, duration: 0.25, volume: 0.08 },
+            { frequency: 260, duration: 0.3, volume: 0.06 }
+        ]);
+
+        // Nature ambient - distant sounds
+        this.createToneSequence('nature_wind', [
+            { frequency: 150, duration: 0.4, volume: 0.04 },
+            { frequency: 180, duration: 0.5, volume: 0.05 },
+            { frequency: 160, duration: 0.6, volume: 0.04 }
+        ]);
+
+        this.createToneSequence('nature_cricket', [
+            { frequency: 4000, duration: 0.02, volume: 0.03 },
+            { frequency: 4200, duration: 0.02, volume: 0.04 },
+            { frequency: 4000, duration: 0.02, volume: 0.03 }
+        ]);
+
+        // ==========================================
+        // UI MICROINTERACTION SOUNDS
+        // ==========================================
+
+        // Hover - very soft tone shift
+        this.createToneSequence('ui_hover', [
+            { frequency: 800, duration: 0.03, volume: 0.06 }
+        ]);
+
+        // Tab switch - soft whoosh
+        this.createToneSequence('ui_tab', [
+            { frequency: 500, duration: 0.04, volume: 0.1 },
+            { frequency: 600, duration: 0.05, volume: 0.08 }
+        ]);
+
+        // Sort/filter - quick organizational
+        this.createToneSequence('ui_sort', [
+            { frequency: 700, duration: 0.03, volume: 0.1 },
+            { frequency: 800, duration: 0.04, volume: 0.08 }
+        ]);
+
+        // Tooltip appear - gentle pop
+        this.createToneSequence('ui_tooltip', [
+            { frequency: 900, duration: 0.04, volume: 0.08 }
+        ]);
+
+        // Modal open - smooth transition
+        this.createToneSequence('ui_modal_open', [
+            { frequency: 400, duration: 0.06, volume: 0.12 },
+            { frequency: 500, duration: 0.08, volume: 0.15 },
+            { frequency: 600, duration: 0.1, volume: 0.12 }
+        ]);
+
+        // Modal close - reverse smooth transition
+        this.createToneSequence('ui_modal_close', [
+            { frequency: 600, duration: 0.06, volume: 0.12 },
+            { frequency: 500, duration: 0.08, volume: 0.1 },
+            { frequency: 400, duration: 0.1, volume: 0.08 }
+        ]);
+
+        // Success state - bright confirmation
+        this.createToneSequence('ui_success', [
+            { frequency: 523.25, duration: 0.08, volume: 0.15 },
+            { frequency: 659.25, duration: 0.1, volume: 0.18 },
+            { frequency: 783.99, duration: 0.12, volume: 0.15 }
+        ]);
+
+        // Denial state - gentle (not harsh)
+        this.createToneSequence('ui_deny', [
+            { frequency: 400, duration: 0.08, volume: 0.12 },
+            { frequency: 350, duration: 0.1, volume: 0.1 }
+        ]);
+
+        // Notification - attention-getting but not jarring
+        this.createToneSequence('ui_notification', [
+            { frequency: 659.25, duration: 0.08, volume: 0.15 },
+            { frequency: 783.99, duration: 0.1, volume: 0.18 },
+            { frequency: 659.25, duration: 0.08, volume: 0.12 }
+        ]);
+
         console.log('[AudioManager] Generated', this.generatedSounds.size, 'procedural sounds');
     }
 
@@ -357,8 +943,11 @@ class AudioManager {
                 const oscillator = this.audioContext.createOscillator();
                 const gainNode = this.audioContext.createGain();
 
-                oscillator.connect(gainNode);
-                gainNode.connect(this.audioContext.destination);
+                // Use safe connect to prevent errors
+                if (!this.safeConnect(oscillator, gainNode) ||
+                    !this.safeConnect(gainNode, this.audioContext?.destination)) {
+                    return; // Skip this tone if connection failed
+                }
 
                 oscillator.frequency.value = tone.frequency;
                 oscillator.type = 'sine'; // Smooth sine wave
@@ -456,6 +1045,73 @@ class AudioManager {
      */
     playPlay() {
         this.playSound('play');
+    }
+
+    // ==========================================
+    // BOSS FIGHT SOUND PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play boss roar - deep, menacing sound for boss spawn
+     */
+    playBossRoar() {
+        this.playSound('boss_roar');
+    }
+
+    /**
+     * Play boss warning - ominous alert before attack
+     */
+    playBossWarning() {
+        this.playSound('boss_warning');
+    }
+
+    /**
+     * Play boss ground slam - heavy impact with rumble
+     */
+    playBossSlam() {
+        this.playSound('boss_slam');
+    }
+
+    /**
+     * Play boss projectile fire - sharp crystal sound
+     */
+    playBossProjectile() {
+        this.playSound('boss_projectile');
+    }
+
+    /**
+     * Play boss charge attack - whoosh with power
+     */
+    playBossCharge() {
+        this.playSound('boss_charge');
+    }
+
+    /**
+     * Play boss phase transition - dramatic power surge
+     */
+    playBossPhase() {
+        this.playSound('boss_phase');
+    }
+
+    /**
+     * Play boss hit - solid impact when boss takes damage
+     */
+    playBossHit() {
+        this.playSound('boss_hit');
+    }
+
+    /**
+     * Play boss defeated - triumphant explosion
+     */
+    playBossDefeated() {
+        this.playSound('boss_defeated');
+    }
+
+    /**
+     * Play boss intro - dramatic awakening
+     */
+    playBossIntro() {
+        this.playSound('boss_intro');
     }
 
     // ==========================================
@@ -569,6 +1225,613 @@ class AudioManager {
      */
     playReturnWelcome() {
         this.playSound('return_welcome');
+    }
+
+    // ==========================================
+    // CREATURE IDLE SOUND PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play creature idle sound based on stage and personality
+     * @param {string} stage - 'baby', 'juvenile', 'adult', 'elder'
+     * @param {string} personality - 'curious', 'playful', 'gentle', 'wise', 'energetic'
+     */
+    playCreatureIdleSound(stage = 'adult', personality = 'playful') {
+        const sounds = this.getIdleSoundsForStage(stage, personality);
+        if (sounds.length > 0) {
+            const randomSound = sounds[Math.floor(Math.random() * sounds.length)];
+            this.playSound(randomSound);
+        }
+    }
+
+    /**
+     * Get appropriate idle sounds for creature stage and personality
+     */
+    getIdleSoundsForStage(stage, personality) {
+        switch (stage) {
+            case 'baby':
+                return ['baby_coo', 'baby_chirp', 'baby_giggle', 'baby_happy'];
+            case 'juvenile':
+                return ['juvenile_squeak', 'juvenile_bounce', 'baby_chirp'];
+            case 'elder':
+                return ['elder_sigh', 'elder_wisdom', 'creature_hum'];
+            case 'adult':
+            default:
+                // Vary by personality
+                switch (personality) {
+                    case 'curious':
+                        return ['creature_curious', 'creature_trill'];
+                    case 'playful':
+                        return ['creature_trill', 'juvenile_bounce'];
+                    case 'gentle':
+                        return ['creature_purr', 'creature_hum'];
+                    case 'wise':
+                        return ['creature_hum', 'elder_wisdom'];
+                    case 'energetic':
+                        return ['creature_trill', 'juvenile_squeak'];
+                    default:
+                        return ['creature_hum', 'creature_purr', 'creature_trill'];
+                }
+        }
+    }
+
+    /**
+     * Play creature hum
+     */
+    playCreatureHum() {
+        this.playSound('creature_hum');
+    }
+
+    /**
+     * Play creature purr
+     */
+    playCreaturePurr() {
+        this.playSound('creature_purr');
+    }
+
+    /**
+     * Play creature trill
+     */
+    playCreatureTrill() {
+        this.playSound('creature_trill');
+    }
+
+    /**
+     * Play curious creature sound
+     */
+    playCreatureCurious() {
+        this.playSound('creature_curious');
+    }
+
+    /**
+     * Play juvenile squeak
+     */
+    playJuvenileSqueak() {
+        this.playSound('juvenile_squeak');
+    }
+
+    /**
+     * Play juvenile bounce sound
+     */
+    playJuvenileBounce() {
+        this.playSound('juvenile_bounce');
+    }
+
+    /**
+     * Play elder sigh
+     */
+    playElderSigh() {
+        this.playSound('elder_sigh');
+    }
+
+    /**
+     * Play elder wisdom sound
+     */
+    playElderWisdom() {
+        this.playSound('elder_wisdom');
+    }
+
+    // ==========================================
+    // MOOD-BASED SOUND PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play mood sound based on happiness percentage
+     * @param {number} happinessPercent - 0-100
+     */
+    playMoodSound(happinessPercent) {
+        if (happinessPercent >= 80) {
+            this.playSound('mood_happy');
+        } else if (happinessPercent >= 50) {
+            this.playSound('mood_content');
+        } else if (happinessPercent >= 20) {
+            this.playSound('mood_sad');
+        } else {
+            this.playSound('mood_critical');
+        }
+    }
+
+    /**
+     * Play happy mood sound
+     */
+    playMoodHappy() {
+        this.playSound('mood_happy');
+    }
+
+    /**
+     * Play content mood sound
+     */
+    playMoodContent() {
+        this.playSound('mood_content');
+    }
+
+    /**
+     * Play sad mood sound
+     */
+    playMoodSad() {
+        this.playSound('mood_sad');
+    }
+
+    /**
+     * Play critical mood sound
+     */
+    playMoodCritical() {
+        this.playSound('mood_critical');
+    }
+
+    // ==========================================
+    // BREEDING SHRINE SOUND PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play shrine ambient sound
+     */
+    playShrineAmbient() {
+        this.playSound('shrine_ambient');
+    }
+
+    /**
+     * Play parent selection sound
+     */
+    playShrineSelect() {
+        this.playSound('shrine_select');
+    }
+
+    /**
+     * Play compatibility check result
+     * @param {boolean} compatible - Whether parents are compatible
+     */
+    playShrineCompatibility(compatible) {
+        if (compatible) {
+            this.playSound('shrine_compatible');
+        } else {
+            this.playSound('shrine_incompatible');
+        }
+    }
+
+    /**
+     * Play egg creation sound
+     */
+    playShrineCreateEgg() {
+        this.playSound('shrine_create_egg');
+    }
+
+    /**
+     * Play offspring reveal sound based on rarity
+     * @param {string} rarity - 'common', 'uncommon', 'rare', 'epic', 'legendary'
+     */
+    playShrineReveal(rarity = 'common') {
+        switch (rarity) {
+            case 'legendary':
+                this.playSound('shrine_reveal_legendary');
+                break;
+            case 'epic':
+                this.playSound('shrine_reveal_epic');
+                break;
+            case 'rare':
+            case 'uncommon':
+                this.playSound('shrine_reveal_rare');
+                break;
+            default:
+                this.playSound('shrine_reveal_common');
+        }
+    }
+
+    // ==========================================
+    // PORTAL SOUND PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play portal approach sound
+     */
+    playPortalApproach() {
+        this.playSound('portal_approach');
+    }
+
+    /**
+     * Play portal enter sound
+     */
+    playPortalEnter() {
+        this.playSound('portal_enter');
+    }
+
+    /**
+     * Play portal travel sound
+     */
+    playPortalTravel() {
+        this.playSound('portal_travel');
+    }
+
+    /**
+     * Play portal arrive sound
+     */
+    playPortalArrive() {
+        this.playSound('portal_arrive');
+    }
+
+    // ==========================================
+    // SHOP SOUND PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play shop item hover sound
+     */
+    playShopHover() {
+        this.playSound('shop_hover');
+    }
+
+    /**
+     * Play insufficient funds sound
+     */
+    playShopInsufficient() {
+        this.playSound('shop_insufficient');
+    }
+
+    /**
+     * Play purchase sound based on price tier
+     * @param {number} price - Item price in coins
+     */
+    playShopPurchase(price = 0) {
+        if (price > 200) {
+            this.playSound('shop_purchase_large');
+        } else if (price > 50) {
+            this.playSound('shop_purchase_medium');
+        } else {
+            this.playSound('shop_purchase_small');
+        }
+    }
+
+    /**
+     * Play rare item reveal sound
+     */
+    playShopRareReveal() {
+        this.playSound('shop_rare_reveal');
+    }
+
+    // ==========================================
+    // ENHANCED CARE ACTION PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play feed action with creature response
+     */
+    playFeedWithResponse() {
+        this.playSound('feed');
+        // Play creature response after brief delay
+        setTimeout(() => this.playSound('feed_response'), 300);
+    }
+
+    /**
+     * Play pet action with creature purr response
+     */
+    playPetWithResponse() {
+        this.playSound('pet');
+        setTimeout(() => this.playSound('pet_response'), 250);
+    }
+
+    /**
+     * Play play action with excited response
+     */
+    playPlayWithResponse() {
+        this.playSound('play');
+        setTimeout(() => this.playSound('play_response'), 350);
+    }
+
+    /**
+     * Play rest start sound
+     */
+    playRestStart() {
+        this.playSound('rest_start');
+    }
+
+    /**
+     * Play rest breathing sound
+     */
+    playRestBreathing() {
+        this.playSound('rest_breathing');
+    }
+
+    // ==========================================
+    // TIERED ACHIEVEMENT PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play achievement sound based on tier
+     * @param {string} tier - 'minor', 'major', 'epic', 'secret'
+     */
+    playAchievementTiered(tier = 'minor') {
+        switch (tier) {
+            case 'epic':
+                this.playSound('achievement_epic');
+                break;
+            case 'secret':
+                this.playSound('achievement_secret');
+                break;
+            case 'major':
+                this.playSound('achievement_major');
+                break;
+            case 'minor':
+            default:
+                this.playSound('achievement_minor');
+        }
+    }
+
+    /**
+     * Play minor achievement sound
+     */
+    playAchievementMinor() {
+        this.playSound('achievement_minor');
+    }
+
+    /**
+     * Play major achievement sound
+     */
+    playAchievementMajor() {
+        this.playSound('achievement_major');
+    }
+
+    /**
+     * Play epic achievement sound
+     */
+    playAchievementEpic() {
+        this.playSound('achievement_epic');
+    }
+
+    /**
+     * Play secret discovery sound
+     */
+    playAchievementSecret() {
+        this.playSound('achievement_secret');
+    }
+
+    // ==========================================
+    // CAMPFIRE / REST AREA PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play random fire crackle sound
+     */
+    playFireCrackle() {
+        const variants = ['fire_crackle_1', 'fire_crackle_2', 'fire_crackle_3'];
+        const variant = variants[Math.floor(Math.random() * variants.length)];
+        this.playSound(variant);
+    }
+
+    /**
+     * Play creature settling sound
+     */
+    playCreatureSettle() {
+        this.playSound('creature_settle');
+    }
+
+    /**
+     * Play nature wind sound
+     */
+    playNatureWind() {
+        this.playSound('nature_wind');
+    }
+
+    /**
+     * Play cricket sound
+     */
+    playNatureCricket() {
+        this.playSound('nature_cricket');
+    }
+
+    /**
+     * Start campfire ambient atmosphere
+     * @param {Phaser.Scene} scene - The scene to bind timers to
+     * @returns {object} Controller with stop() method
+     */
+    startCampfireAmbient(scene) {
+        if (!this.audioContext || this.muted) return { stop: () => {} };
+
+        console.log('[AudioManager] 🔥 Starting campfire ambient');
+
+        const ambientState = {
+            active: true,
+            timers: []
+        };
+
+        // Start meditation music
+        this.playMeditationMusic();
+
+        // Fire crackles - every 0.5-2 seconds
+        const scheduleCrackle = () => {
+            if (!ambientState.active) return;
+            const delay = 500 + Math.random() * 1500;
+            const timer = scene.time.delayedCall(delay, () => {
+                if (ambientState.active) {
+                    this.playFireCrackle();
+                    scheduleCrackle();
+                }
+            });
+            ambientState.timers.push(timer);
+        };
+
+        // Nature sounds - every 8-15 seconds
+        const scheduleNature = () => {
+            if (!ambientState.active) return;
+            const delay = 8000 + Math.random() * 7000;
+            const timer = scene.time.delayedCall(delay, () => {
+                if (ambientState.active) {
+                    if (Math.random() > 0.5) {
+                        this.playNatureWind();
+                    } else {
+                        this.playNatureCricket();
+                    }
+                    scheduleNature();
+                }
+            });
+            ambientState.timers.push(timer);
+        };
+
+        // Start schedulers
+        scene.time.delayedCall(500, scheduleCrackle);
+        scene.time.delayedCall(2000, scheduleNature);
+
+        // Initial creature settle sound
+        scene.time.delayedCall(1000, () => {
+            if (ambientState.active) {
+                this.playCreatureSettle();
+            }
+        });
+
+        return {
+            stop: () => {
+                console.log('[AudioManager] 🔇 Stopping campfire ambient');
+                ambientState.active = false;
+                ambientState.timers.forEach(timer => {
+                    if (timer && timer.remove) {
+                        timer.remove();
+                    }
+                });
+                ambientState.timers = [];
+                this.stopMeditationMusic();
+            }
+        };
+    }
+
+    // ==========================================
+    // UI MICROINTERACTION PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play UI hover sound
+     */
+    playUIHover() {
+        this.playSound('ui_hover');
+    }
+
+    /**
+     * Play tab switch sound
+     */
+    playUITab() {
+        this.playSound('ui_tab');
+    }
+
+    /**
+     * Play sort/filter sound
+     */
+    playUISort() {
+        this.playSound('ui_sort');
+    }
+
+    /**
+     * Play tooltip appear sound
+     */
+    playUITooltip() {
+        this.playSound('ui_tooltip');
+    }
+
+    /**
+     * Play modal open sound
+     */
+    playUIModalOpen() {
+        this.playSound('ui_modal_open');
+    }
+
+    /**
+     * Play modal close sound
+     */
+    playUIModalClose() {
+        this.playSound('ui_modal_close');
+    }
+
+    /**
+     * Play UI success sound
+     */
+    playUISuccess() {
+        this.playSound('ui_success');
+    }
+
+    /**
+     * Play UI denial sound
+     */
+    playUIDeny() {
+        this.playSound('ui_deny');
+    }
+
+    /**
+     * Play notification sound
+     */
+    playUINotification() {
+        this.playSound('ui_notification');
+    }
+
+    // ==========================================
+    // CREATURE IDLE SOUND SYSTEM
+    // ==========================================
+
+    /**
+     * Start periodic creature idle sounds
+     * @param {Phaser.Scene} scene - The scene to bind timers to
+     * @param {string} stage - Creature stage
+     * @param {string} personality - Creature personality
+     * @returns {object} Controller with stop() method
+     */
+    startCreatureIdleSounds(scene, stage = 'adult', personality = 'playful') {
+        if (!this.audioContext || this.muted) return { stop: () => {} };
+
+        console.log(`[AudioManager] 🐾 Starting idle sounds for ${stage} ${personality} creature`);
+
+        const idleState = {
+            active: true,
+            timer: null
+        };
+
+        const scheduleNextSound = () => {
+            if (!idleState.active) return;
+
+            // Random interval between 8-20 seconds
+            const delay = 8000 + Math.random() * 12000;
+
+            idleState.timer = scene.time.delayedCall(delay, () => {
+                if (idleState.active) {
+                    this.playCreatureIdleSound(stage, personality);
+                    scheduleNextSound();
+                }
+            });
+        };
+
+        // Start after initial delay
+        scene.time.delayedCall(5000, scheduleNextSound);
+
+        return {
+            stop: () => {
+                console.log('[AudioManager] 🔇 Stopping creature idle sounds');
+                idleState.active = false;
+                if (idleState.timer && idleState.timer.remove) {
+                    idleState.timer.remove();
+                }
+            },
+            updateStage: (newStage) => {
+                stage = newStage;
+            },
+            updatePersonality: (newPersonality) => {
+                personality = newPersonality;
+            }
+        };
     }
 
     /**
@@ -765,7 +2028,12 @@ class AudioManager {
         // Create master gain node for music
         this.musicNodes.gainNode = this.audioContext.createGain();
         this.musicNodes.gainNode.gain.value = 0;
-        this.musicNodes.gainNode.connect(this.audioContext.destination);
+
+        // Safe connect to destination
+        if (!this.safeConnect(this.musicNodes.gainNode, this.audioContext?.destination)) {
+            console.warn('[AudioManager] Failed to connect music gain node');
+            return;
+        }
 
         // Create layers based on configuration
         config.layers.forEach(layerType => {
@@ -777,6 +2045,26 @@ class AudioManager {
             this.musicVolume * 0.3,
             this.audioContext.currentTime + 1
         );
+    }
+
+    /**
+     * Safely connect an audio node to a destination
+     * Prevents errors when destination is null or invalid
+     * @param {AudioNode} source - Source audio node
+     * @param {AudioNode|AudioParam} destination - Destination node or param
+     * @returns {boolean} True if connection successful
+     */
+    safeConnect(source, destination) {
+        try {
+            if (!source || !destination) {
+                return false;
+            }
+            source.connect(destination);
+            return true;
+        } catch (error) {
+            console.warn('[AudioManager] Safe connect failed:', error.message);
+            return false;
+        }
     }
 
     /**
@@ -860,8 +2148,8 @@ class AudioManager {
             const lfoGain = this.audioContext.createGain();
             lfoGain.gain.value = isDrone ? 0.02 : 0.01;
 
-            lfo.connect(lfoGain);
-            lfoGain.connect(osc.frequency);
+            this.safeConnect(lfo, lfoGain);
+            this.safeConnect(lfoGain, osc.frequency);
 
             // For drone, add filter sweep
             if (isDrone) {
@@ -875,13 +2163,13 @@ class AudioManager {
                 filter.frequency.linearRampToValueAtTime(600, now + 8);
                 filter.frequency.linearRampToValueAtTime(200, now + 16);
 
-                osc.connect(filter);
-                filter.connect(oscGain);
+                this.safeConnect(osc, filter);
+                this.safeConnect(filter, oscGain);
             } else {
-                osc.connect(oscGain);
+                this.safeConnect(osc, oscGain);
             }
 
-            oscGain.connect(this.musicNodes.gainNode);
+            this.safeConnect(oscGain, this.musicNodes?.gainNode);
 
             osc.start(now);
             lfo.start(now);
@@ -915,8 +2203,8 @@ class AudioManager {
             gain.gain.setValueAtTime(0.1, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + noteLength);
 
-            osc.connect(gain);
-            gain.connect(this.musicNodes.gainNode);
+            this.safeConnect(osc, gain);
+            this.safeConnect(gain, this.musicNodes?.gainNode);
 
             osc.start(now);
             osc.stop(now + noteLength);
@@ -949,8 +2237,8 @@ class AudioManager {
             gain.gain.setValueAtTime(0.08, this.audioContext.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 2);
 
-            osc.connect(gain);
-            gain.connect(this.musicNodes.gainNode);
+            this.safeConnect(osc, gain);
+            this.safeConnect(gain, this.musicNodes?.gainNode);
 
             osc.start();
             osc.stop(this.audioContext.currentTime + 2);
@@ -984,9 +2272,9 @@ class AudioManager {
             const gain = this.audioContext.createGain();
             gain.gain.value = 0.05;
 
-            osc.connect(filter);
-            filter.connect(gain);
-            gain.connect(this.musicNodes.gainNode);
+            this.safeConnect(osc, filter);
+            this.safeConnect(filter, gain);
+            this.safeConnect(gain, this.musicNodes?.gainNode);
 
             osc.start();
             this.musicNodes.oscillators.push(osc);
@@ -1026,12 +2314,12 @@ class AudioManager {
         const lfoGain = this.audioContext.createGain();
         lfoGain.gain.value = baseFreq * 2;
 
-        lfo.connect(lfoGain);
-        lfoGain.connect(filter.frequency);
+        this.safeConnect(lfo, lfoGain);
+        this.safeConnect(lfoGain, filter.frequency);
 
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.musicNodes.gainNode);
+        this.safeConnect(noise, filter);
+        this.safeConnect(filter, gain);
+        this.safeConnect(gain, this.musicNodes?.gainNode);
 
         noise.start();
         lfo.start();
@@ -1058,8 +2346,8 @@ class AudioManager {
             gain.gain.setValueAtTime(0.15, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
 
-            osc.connect(gain);
-            gain.connect(this.musicNodes.gainNode);
+            this.safeConnect(osc, gain);
+            this.safeConnect(gain, this.musicNodes?.gainNode);
 
             osc.start(now);
             osc.stop(now + 0.5);
@@ -1096,11 +2384,11 @@ class AudioManager {
             const mainGain = this.audioContext.createGain();
             mainGain.gain.value = 0.04;
 
-            lfo.connect(lfoGain);
-            lfoGain.connect(mainGain.gain);
+            this.safeConnect(lfo, lfoGain);
+            this.safeConnect(lfoGain, mainGain.gain);
 
-            osc.connect(mainGain);
-            mainGain.connect(this.musicNodes.gainNode);
+            this.safeConnect(osc, mainGain);
+            this.safeConnect(mainGain, this.musicNodes?.gainNode);
 
             osc.start();
             lfo.start();
@@ -1161,13 +2449,13 @@ class AudioManager {
             harm3Gain.gain.linearRampToValueAtTime(0.04, currentTime + 0.2);
             harm3Gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 4);
 
-            osc.connect(mainGain);
-            osc2.connect(harm2Gain);
-            osc3.connect(harm3Gain);
+            this.safeConnect(osc, mainGain);
+            this.safeConnect(osc2, harm2Gain);
+            this.safeConnect(osc3, harm3Gain);
 
-            mainGain.connect(this.musicNodes.gainNode);
-            harm2Gain.connect(this.musicNodes.gainNode);
-            harm3Gain.connect(this.musicNodes.gainNode);
+            this.safeConnect(mainGain, this.musicNodes?.gainNode);
+            this.safeConnect(harm2Gain, this.musicNodes?.gainNode);
+            this.safeConnect(harm3Gain, this.musicNodes?.gainNode);
 
             osc.start(currentTime);
             osc2.start(currentTime);
@@ -1222,11 +2510,11 @@ class AudioManager {
             const lfoGain = this.audioContext.createGain();
             lfoGain.gain.value = 0.04; // Subtle volume modulation
 
-            lfo.connect(lfoGain);
-            lfoGain.connect(gainNode.gain);
+            this.safeConnect(lfo, lfoGain);
+            this.safeConnect(lfoGain, gainNode.gain);
 
-            osc.connect(gainNode);
-            gainNode.connect(this.musicNodes.gainNode);
+            this.safeConnect(osc, gainNode);
+            this.safeConnect(gainNode, this.musicNodes?.gainNode);
 
             osc.start(now);
             lfo.start(now);
@@ -1258,8 +2546,8 @@ class AudioManager {
             gainNode.gain.linearRampToValueAtTime(0.06, currentTime + 0.02);
             gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + 2);
 
-            osc.connect(gainNode);
-            gainNode.connect(this.musicNodes.gainNode);
+            this.safeConnect(osc, gainNode);
+            this.safeConnect(gainNode, this.musicNodes?.gainNode);
 
             osc.start(currentTime);
             osc.stop(currentTime + 2.1);
@@ -1306,8 +2594,8 @@ class AudioManager {
             const lfoGain = this.audioContext.createGain();
             lfoGain.gain.value = 3; // Subtle frequency variation
 
-            lfo.connect(lfoGain);
-            lfoGain.connect(osc.frequency);
+            this.safeConnect(lfo, lfoGain);
+            this.safeConnect(lfoGain, osc.frequency);
 
             // Low-pass filter to smooth the drone
             const filter = this.audioContext.createBiquadFilter();
@@ -1318,9 +2606,9 @@ class AudioManager {
             const gainNode = this.audioContext.createGain();
             gainNode.gain.value = 0.1;
 
-            osc.connect(filter);
-            filter.connect(gainNode);
-            gainNode.connect(this.musicNodes.gainNode);
+            this.safeConnect(osc, filter);
+            this.safeConnect(filter, gainNode);
+            this.safeConnect(gainNode, this.musicNodes?.gainNode);
 
             osc.start(now);
             lfo.start(now);
@@ -1334,6 +2622,176 @@ class AudioManager {
      */
     playMeditationMusic() {
         this.playAreaMusic('meditation');
+    }
+
+    // ==========================================
+    // CRYSTAL CAVE AMBIENT SYSTEM
+    // ==========================================
+
+    /**
+     * Play crystal chime sound - random variant
+     */
+    playCrystalChime() {
+        const variants = ['crystal_chime', 'crystal_chime_2', 'crystal_chime_3'];
+        const variant = variants[Math.floor(Math.random() * variants.length)];
+        this.playSound(variant);
+    }
+
+    /**
+     * Play cave gong sound - random depth
+     */
+    playCaveGong() {
+        const variants = ['cave_gong', 'cave_gong_medium'];
+        const variant = variants[Math.floor(Math.random() * variants.length)];
+        this.playSound(variant);
+    }
+
+    /**
+     * Play cave whistle - eerie high tone
+     */
+    playCaveWhistle() {
+        this.playSound('cave_whistle');
+    }
+
+    /**
+     * Play crystal resonance - shimmer effect
+     */
+    playCrystalResonance() {
+        this.playSound('crystal_resonance');
+    }
+
+    /**
+     * Play cave drip - water drop
+     */
+    playCaveDrip() {
+        this.playSound('cave_drip');
+    }
+
+    /**
+     * Play cave drone - eerie atmospheric
+     */
+    playCaveDrone() {
+        this.playSound('cave_drone');
+    }
+
+    /**
+     * Start crystal cave ambient atmosphere
+     * Plays random ambient sounds at intervals for eerie atmosphere
+     * @param {Phaser.Scene} scene - The scene to bind timers to
+     * @returns {object} Controller with stop() method
+     */
+    startCrystalCaveAmbient(scene) {
+        if (!this.audioContext || this.muted) return { stop: () => {} };
+
+        console.log('[AudioManager] 🔮 Starting crystal cave ambient');
+
+        const ambientState = {
+            active: true,
+            timers: []
+        };
+
+        // Play initial drone for atmosphere
+        this.playCaveDrone();
+
+        // Crystal chimes - every 4-8 seconds
+        const scheduleChime = () => {
+            if (!ambientState.active) return;
+            const delay = 4000 + Math.random() * 4000;
+            const timer = scene.time.delayedCall(delay, () => {
+                if (ambientState.active) {
+                    this.playCrystalChime();
+                    scheduleChime();
+                }
+            });
+            ambientState.timers.push(timer);
+        };
+
+        // Gongs - every 15-25 seconds
+        const scheduleGong = () => {
+            if (!ambientState.active) return;
+            const delay = 15000 + Math.random() * 10000;
+            const timer = scene.time.delayedCall(delay, () => {
+                if (ambientState.active) {
+                    this.playCaveGong();
+                    scheduleGong();
+                }
+            });
+            ambientState.timers.push(timer);
+        };
+
+        // Eerie whistle - every 20-40 seconds
+        const scheduleWhistle = () => {
+            if (!ambientState.active) return;
+            const delay = 20000 + Math.random() * 20000;
+            const timer = scene.time.delayedCall(delay, () => {
+                if (ambientState.active) {
+                    this.playCaveWhistle();
+                    scheduleWhistle();
+                }
+            });
+            ambientState.timers.push(timer);
+        };
+
+        // Cave drips - every 3-7 seconds
+        const scheduleDrip = () => {
+            if (!ambientState.active) return;
+            const delay = 3000 + Math.random() * 4000;
+            const timer = scene.time.delayedCall(delay, () => {
+                if (ambientState.active) {
+                    this.playCaveDrip();
+                    scheduleDrip();
+                }
+            });
+            ambientState.timers.push(timer);
+        };
+
+        // Crystal resonance - every 12-20 seconds
+        const scheduleResonance = () => {
+            if (!ambientState.active) return;
+            const delay = 12000 + Math.random() * 8000;
+            const timer = scene.time.delayedCall(delay, () => {
+                if (ambientState.active) {
+                    this.playCrystalResonance();
+                    scheduleResonance();
+                }
+            });
+            ambientState.timers.push(timer);
+        };
+
+        // Drone loop - every 8-12 seconds
+        const scheduleDrone = () => {
+            if (!ambientState.active) return;
+            const delay = 8000 + Math.random() * 4000;
+            const timer = scene.time.delayedCall(delay, () => {
+                if (ambientState.active) {
+                    this.playCaveDrone();
+                    scheduleDrone();
+                }
+            });
+            ambientState.timers.push(timer);
+        };
+
+        // Start all schedulers with slight offsets
+        scene.time.delayedCall(500, scheduleChime);
+        scene.time.delayedCall(1000, scheduleDrip);
+        scene.time.delayedCall(2000, scheduleGong);
+        scene.time.delayedCall(3000, scheduleWhistle);
+        scene.time.delayedCall(4000, scheduleResonance);
+        scene.time.delayedCall(5000, scheduleDrone);
+
+        // Return controller
+        return {
+            stop: () => {
+                console.log('[AudioManager] 🔇 Stopping crystal cave ambient');
+                ambientState.active = false;
+                ambientState.timers.forEach(timer => {
+                    if (timer && timer.remove) {
+                        timer.remove();
+                    }
+                });
+                ambientState.timers = [];
+            }
+        };
     }
 
     /**

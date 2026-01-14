@@ -57,6 +57,7 @@ import './systems/FeedbackManager.js';
 import './systems/CreatureAnimationController.js';
 import './systems/BirthEventSystem.js';
 import './systems/SecretAbilityManager.js';
+import './systems/BossFightManager.js';
 import './scenes/HatchingScene.js';
 import './scenes/PersonalityScene.js';
 import './scenes/NamingScene.js';

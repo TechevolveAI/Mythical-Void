@@ -309,7 +309,15 @@ class HatchingScene extends Phaser.Scene {
             state.set('creature.genes', null);
             state.set('creature.dna', null);
             state.set('creature.personalityState', null);
-            
+
+            // CRITICAL: Reset breeding/lineage fields to prevent old data persisting
+            state.set('creature.isOffspring', false);
+            state.set('creature.generation', null);
+            state.set('creature.parentIds', null);
+            state.set('creature.offspringBonus', null);
+            state.set('creature.hasAncientLineage', false);
+            state.set('creature.ancientProphecy', null);
+
             console.log('🔄 Creature reset complete - forcing save before scene transition...');
             
             // CRITICAL: Force immediate save to localStorage before scene restart
@@ -3738,6 +3746,14 @@ class HatchingScene extends Phaser.Scene {
         GameState.set('creature.genes', null);
         GameState.set('creature.dna', null);
         GameState.set('creature.personalityState', null);
+
+        // CRITICAL: Reset breeding/lineage fields to prevent old data persisting
+        GameState.set('creature.isOffspring', false);
+        GameState.set('creature.generation', null);
+        GameState.set('creature.parentIds', null);
+        GameState.set('creature.offspringBonus', null);
+        GameState.set('creature.hasAncientLineage', false);
+        GameState.set('creature.ancientProphecy', null);
 
         console.log('🔄 Creature reset complete - forcing save before scene transition...');
 
