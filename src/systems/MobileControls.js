@@ -41,22 +41,50 @@ class MobileControls {
 
     /**
      * Detect if device is mobile or touch-capable
-     * More inclusive: shows controls on any touch device OR small screen
-     * This ensures tablet users and mobile emulation work correctly
+     * IMPORTANT: This detection is intentionally permissive to ensure mobile controls
+     * appear on all devices that could benefit from them, including:
+     * - Mobile phones (all sizes)
+     * - Tablets (iPad, Android tablets)
+     * - Touch-enabled laptops/desktops when using touch
+     * - Browser dev tools mobile emulation
      */
     detectMobile() {
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const isSmallScreen = window.innerWidth < 1024; // Increased threshold for tablets
-        const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // Check for touch capability using multiple methods for maximum compatibility
+        const hasTouch = 'ontouchstart' in window ||
+                        navigator.maxTouchPoints > 0 ||
+                        navigator.msMaxTouchPoints > 0 ||
+                        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 
-        // Show mobile controls if: touch device with small-ish screen, OR mobile user agent
-        const result = (isTouchDevice && isSmallScreen) || isMobileUserAgent;
+        // Screen size check - consider anything under 1280px as potentially mobile
+        // This catches tablets in landscape and large phones
+        const isSmallishScreen = window.innerWidth < 1280;
+
+        // User agent check - expanded to catch more modern devices
+        // Note: iPadOS 13+ reports as desktop Safari, so we also check for "Macintosh" with touch
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent);
+
+        // Special case: iPad running iPadOS 13+ identifies as Mac but has touch
+        const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+
+        // PERMISSIVE LOGIC: Show controls if ANY of these are true:
+        // 1. Touch device with a reasonably small screen (catches most mobile/tablet)
+        // 2. Mobile user agent detected
+        // 3. iPadOS device (new iPads)
+        // 4. Touch device with coarse pointer (touchscreen primary input)
+        const hasTouchWithSmallScreen = hasTouch && isSmallishScreen;
+        const hasCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+        const result = hasTouchWithSmallScreen || isMobileUA || isIPadOS || (hasTouch && hasCoarsePointer);
 
         console.log('[MobileControls] detectMobile:', {
-            isTouchDevice,
-            isSmallScreen,
-            isMobileUserAgent,
+            hasTouch,
+            isSmallishScreen,
+            isMobileUA,
+            isIPadOS,
+            hasCoarsePointer,
             screenWidth: window.innerWidth,
+            maxTouchPoints: navigator.maxTouchPoints,
+            platform: navigator.platform,
             result
         });
 

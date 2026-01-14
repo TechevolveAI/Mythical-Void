@@ -68,17 +68,35 @@ export default class MobileHUD {
     }
 
     /**
-     * Detect if device is mobile
-     * More inclusive: shows HUD on any touch device OR small screen
-     * This ensures tablet users and mobile emulation work correctly
+     * Detect if device is mobile or touch-capable
+     * IMPORTANT: This detection is intentionally permissive to ensure mobile HUD
+     * appears on all devices that could benefit from it, including:
+     * - Mobile phones (all sizes)
+     * - Tablets (iPad, Android tablets)
+     * - Touch-enabled laptops/desktops when using touch
+     * - Browser dev tools mobile emulation
      */
     isMobile() {
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const isSmallScreen = window.innerWidth < 1024; // Increased threshold for tablets
-        const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // Check for touch capability using multiple methods for maximum compatibility
+        const hasTouch = 'ontouchstart' in window ||
+                        navigator.maxTouchPoints > 0 ||
+                        navigator.msMaxTouchPoints > 0 ||
+                        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 
-        // Show mobile HUD if: touch device with small-ish screen, OR mobile user agent
-        return (isTouchDevice && isSmallScreen) || isMobileUserAgent;
+        // Screen size check - consider anything under 1280px as potentially mobile
+        const isSmallishScreen = window.innerWidth < 1280;
+
+        // User agent check - expanded to catch more modern devices
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent);
+
+        // Special case: iPad running iPadOS 13+ identifies as Mac but has touch
+        const isIPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+
+        // PERMISSIVE LOGIC: Show HUD if ANY of these are true
+        const hasTouchWithSmallScreen = hasTouch && isSmallishScreen;
+        const hasCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+        return hasTouchWithSmallScreen || isMobileUA || isIPadOS || (hasTouch && hasCoarsePointer);
     }
 
     /**

@@ -354,6 +354,22 @@ class GameScene extends Phaser.Scene {
                 this.mobileControls = new window.MobileControls(this);
                 this.mobileControls.show();
                 console.log('[GameScene] Mobile controls initialized');
+
+                // FAILSAFE: If mobile controls didn't show initially but user touches the screen,
+                // force-show them. This catches edge cases where detection failed.
+                if (!this.mobileControls.isVisible) {
+                    this.touchFailsafeHandler = () => {
+                        if (this.mobileControls && !this.mobileControls.isVisible) {
+                            console.log('[GameScene] Touch detected but mobile controls not visible - forcing show');
+                            this.mobileControls.show(true); // Force show
+                        }
+                        // Remove this handler after first touch - no longer needed
+                        if (this.input) {
+                            this.input.off('pointerdown', this.touchFailsafeHandler);
+                        }
+                    };
+                    this.input.once('pointerdown', this.touchFailsafeHandler);
+                }
             }
 
             // Initialize mobile-optimized HUD
@@ -6868,6 +6884,12 @@ class GameScene extends Phaser.Scene {
             }
         });
         this.floatingParticles = [];
+
+        // Clean up mobile controls touch failsafe handler
+        if (this.touchFailsafeHandler && this.input) {
+            this.input.off('pointerdown', this.touchFailsafeHandler);
+            this.touchFailsafeHandler = null;
+        }
 
         // Clean up mobile controls
         if (this.mobileControls) {
