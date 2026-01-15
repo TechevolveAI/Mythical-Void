@@ -41,22 +41,56 @@ class MobileControls {
 
     /**
      * Detect if device is mobile or touch-capable
-     * More inclusive: shows controls on any touch device OR small screen
-     * This ensures tablet users and mobile emulation work correctly
+     * AGGRESSIVE detection: shows controls on ANY touch-capable device
+     * Better to show controls unnecessarily than to not show them when needed
      */
     detectMobile() {
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        const isSmallScreen = window.innerWidth < 1024; // Increased threshold for tablets
-        const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // Check multiple touch indicators
+        const hasOnTouchStart = 'ontouchstart' in window;
+        const hasTouchPoints = navigator.maxTouchPoints > 0;
+        const hasDocumentTouch = 'ontouchstart' in document.documentElement;
+        const hasTouchEvent = 'TouchEvent' in window;
 
-        // Show mobile controls if: touch device with small-ish screen, OR mobile user agent
-        const result = (isTouchDevice && isSmallScreen) || isMobileUserAgent;
+        // Check user agent for mobile platforms
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera || '';
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS|FxiOS/i.test(userAgent);
 
-        console.log('[MobileControls] detectMobile:', {
-            isTouchDevice,
+        // Check for tablet-specific indicators
+        const isTablet = /iPad|Android(?!.*Mobile)|Tablet/i.test(userAgent);
+
+        // Check screen characteristics (but don't require small screen)
+        const isSmallScreen = window.innerWidth <= 1366 || window.innerHeight <= 1024;
+        const isPortrait = window.innerHeight > window.innerWidth;
+
+        // Check for touch-primary input
+        const isTouchPrimary = window.matchMedia?.('(pointer: coarse)')?.matches;
+        const isHoverNone = window.matchMedia?.('(hover: none)')?.matches;
+
+        // AGGRESSIVE: Show controls if ANY touch indicator is true
+        const isTouchDevice = hasOnTouchStart || hasTouchPoints || hasDocumentTouch || hasTouchEvent;
+
+        // Show controls if:
+        // 1. Device has touch capability AND (small screen OR touch is primary input)
+        // 2. OR mobile/tablet user agent detected
+        // 3. OR pointer is coarse (touch) AND no hover (mobile)
+        const result = (isTouchDevice && (isSmallScreen || isTouchPrimary)) ||
+                       isMobileUA ||
+                       isTablet ||
+                       (isTouchPrimary && isHoverNone);
+
+        console.log('[MobileControls] detectMobile - AGGRESSIVE CHECK:', {
+            hasOnTouchStart,
+            hasTouchPoints,
+            hasDocumentTouch,
+            hasTouchEvent,
+            isMobileUA,
+            isTablet,
             isSmallScreen,
-            isMobileUserAgent,
+            isTouchPrimary,
+            isHoverNone,
             screenWidth: window.innerWidth,
+            screenHeight: window.innerHeight,
+            userAgent: userAgent.substring(0, 100),
             result
         });
 
@@ -73,11 +107,44 @@ class MobileControls {
     }
 
     /**
+     * Get safe area insets for devices with notches, home indicators, etc.
+     * Uses CSS environment variables when available
+     */
+    getSafeAreaInsets() {
+        const computedStyle = getComputedStyle(document.documentElement);
+
+        // Try to get CSS env() values for safe areas
+        const safeTop = parseInt(computedStyle.getPropertyValue('--sat') || '0') ||
+                       parseInt(computedStyle.getPropertyValue('env(safe-area-inset-top)') || '0') || 0;
+        const safeBottom = parseInt(computedStyle.getPropertyValue('--sab') || '0') ||
+                          parseInt(computedStyle.getPropertyValue('env(safe-area-inset-bottom)') || '0') || 0;
+        const safeLeft = parseInt(computedStyle.getPropertyValue('--sal') || '0') ||
+                        parseInt(computedStyle.getPropertyValue('env(safe-area-inset-left)') || '0') || 0;
+        const safeRight = parseInt(computedStyle.getPropertyValue('--sar') || '0') ||
+                         parseInt(computedStyle.getPropertyValue('env(safe-area-inset-right)') || '0') || 0;
+
+        // Fallback: detect if likely an iPhone with notch/dynamic island
+        const isIPhoneWithNotch = /iPhone/.test(navigator.userAgent) &&
+                                  window.screen.height >= 812 &&
+                                  window.devicePixelRatio >= 2;
+
+        // Apply minimum safe areas for known devices
+        return {
+            top: Math.max(safeTop, isIPhoneWithNotch ? 44 : 0),
+            bottom: Math.max(safeBottom, isIPhoneWithNotch ? 34 : 20), // Always add some bottom padding
+            left: Math.max(safeLeft, 0),
+            right: Math.max(safeRight, 0)
+        };
+    }
+
+    /**
      * Get layout configuration with all scaled values
-     * Edge-anchored positioning with proportional scaling
+     * Edge-anchored positioning with proportional scaling and safe area support
      */
     getLayoutConfig() {
         const scale = this.getScaleFactor();
+        const safeArea = this.getSafeAreaInsets();
+
         return {
             // Joystick sizes
             joystickBaseRadius: Math.round(60 * scale),
@@ -87,12 +154,44 @@ class MobileControls {
             // Button sizes
             buttonSize: Math.round(56 * scale),
             primaryButtonSize: Math.round(62 * scale),
-            // Margins and spacing
-            margin: Math.round(16 * scale),
-            spacing: Math.round(12 * scale),
+            // Margins and spacing (include safe area)
+            margin: Math.round(20 * scale),
+            spacing: Math.round(14 * scale),
+            // Safe area insets
+            safeBottom: safeArea.bottom,
+            safeLeft: safeArea.left,
+            safeRight: safeArea.right,
             // Minimum margins for touch safety
-            minEdgeMargin: 12
+            minEdgeMargin: 16
         };
+    }
+
+    /**
+     * Setup fallback touch listener that will show controls on first touch
+     * This catches cases where initial detection failed
+     */
+    setupFallbackTouchListener() {
+        if (this.fallbackTouchListenerSetup) return;
+        this.fallbackTouchListenerSetup = true;
+
+        const showOnTouch = (e) => {
+            console.log('[MobileControls] FALLBACK: Touch detected, forcing controls visible');
+            // Remove this listener after first touch
+            document.removeEventListener('touchstart', showOnTouch, { passive: true });
+            window.removeEventListener('touchstart', showOnTouch, { passive: true });
+
+            // Force show controls
+            if (!this.isVisible) {
+                this.isMobile = true;
+                this.show(true);
+            }
+        };
+
+        // Add to both document and window for maximum coverage
+        document.addEventListener('touchstart', showOnTouch, { passive: true, once: true });
+        window.addEventListener('touchstart', showOnTouch, { passive: true, once: true });
+
+        console.log('[MobileControls] Fallback touch listener installed');
     }
 
     /**
@@ -103,8 +202,10 @@ class MobileControls {
         // Re-check mobile detection each time show is called
         this.isMobile = this.detectMobile();
 
+        // If not detected as mobile, setup fallback listener for first touch
         if (!this.isMobile && !force) {
-            console.log('[MobileControls] Not showing - device not detected as mobile. Use show(true) to force.');
+            console.log('[MobileControls] Not detected as mobile initially. Installing fallback touch listener.');
+            this.setupFallbackTouchListener();
             return;
         }
 
@@ -219,12 +320,15 @@ class MobileControls {
      * Create virtual joystick for movement
      */
     createVirtualJoystick() {
-        const { width, height } = this.scene.scale;
+        const { height } = this.scene.scale;
         const config = this.getLayoutConfig();
 
-        // Edge-anchored positioning: bottom-left corner
-        const joystickX = Math.max(config.margin + config.joystickBaseRadius, config.minEdgeMargin + config.joystickBaseRadius);
-        const joystickY = height - Math.max(config.margin + config.joystickBaseRadius, config.minEdgeMargin + config.joystickBaseRadius);
+        // Edge-anchored positioning: bottom-left corner with safe area
+        const leftMargin = Math.max(config.margin, config.minEdgeMargin) + config.safeLeft;
+        const bottomMargin = Math.max(config.margin, config.minEdgeMargin) + config.safeBottom;
+
+        const joystickX = leftMargin + config.joystickBaseRadius;
+        const joystickY = height - bottomMargin - config.joystickBaseRadius;
 
         // Store scaled max distance for movement calculations
         this.joystickMaxDistance = config.joystickMaxDistance;
@@ -472,18 +576,18 @@ class MobileControls {
         const { width, height } = this.scene.scale;
         const config = this.getLayoutConfig();
 
-        // Layout constants - scaled for screen size
+        // Layout constants - scaled for screen size with safe area
         const buttonSize = config.buttonSize;
         const primarySize = config.primaryButtonSize;
         const spacing = config.spacing;
-        const marginRight = Math.max(config.margin, config.minEdgeMargin);
-        const marginBottom = Math.max(config.margin + 12, config.minEdgeMargin + 12);
+        const marginRight = Math.max(config.margin, config.minEdgeMargin) + config.safeRight;
+        const marginBottom = Math.max(config.margin, config.minEdgeMargin) + config.safeBottom;
 
-        // Edge-anchored positioning: bottom-right corner
+        // Edge-anchored positioning: bottom-right corner with safe area
         // Right column X (primary actions - Attack, Inventory)
-        const rightColX = width - marginRight - buttonSize / 2;
+        const rightColX = width - marginRight - primarySize / 2;
         // Left column X (secondary actions - Chat, Action)
-        const leftColX = rightColX - buttonSize - spacing;
+        const leftColX = rightColX - primarySize - spacing;
 
         // Bottom row Y (Attack, Action)
         const bottomRowY = height - marginBottom - primarySize / 2;
