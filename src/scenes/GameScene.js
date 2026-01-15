@@ -4713,7 +4713,7 @@ class GameScene extends Phaser.Scene {
     }
 
     handleSpaceInteraction() {
-        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
+        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCampfire:', this.nearCampfire, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
 
         // Distance-based fallback for portals (in case overlap detection missed)
         // Note: Void portal uses automatic pull-in, not spacebar - so no check needed here
@@ -4738,6 +4738,19 @@ class GameScene extends Phaser.Scene {
             if (distToReturn <= PORTAL_INTERACT_DISTANCE) {
                 console.log('[GameScene] Distance fallback: Player within range of return portal');
                 this.nearReturnPortal = true;
+            }
+        }
+
+        // Distance-based fallback for campfire (CRITICAL for mobile touch input)
+        const CAMPFIRE_INTERACT_DISTANCE = 120;
+        if (!this.nearCampfire && this.campfire && this.player) {
+            const distToCampfire = Phaser.Math.Distance.Between(
+                this.player.x, this.player.y,
+                this.campfire.x, this.campfire.y
+            );
+            if (distToCampfire <= CAMPFIRE_INTERACT_DISTANCE) {
+                console.log('[GameScene] Distance fallback: Player within range of campfire, distance:', distToCampfire);
+                this.nearCampfire = true;
             }
         }
 

@@ -64,6 +64,13 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // UI
         this.hud = null;
+
+        // Mobile controls for platformer
+        this.mobileControls = null;
+        this.isMobile = false;
+        this.virtualJoystickX = 0;  // -1 to 1 from virtual joystick
+        this.virtualJumpPressed = false;
+        this.mobileControlElements = []; // Track all mobile UI elements for cleanup
     }
 
     init(data) {
@@ -95,6 +102,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isPlayerDead = false;
         this.isRestarting = false;
         this.isDucking = false;
+
+        // Reset mobile control state
+        this.virtualJoystickX = 0;
+        this.virtualJumpPressed = false;
 
         // Clear references (will be recreated in create())
         this.player = null;
@@ -498,6 +509,358 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.input.keyboard.on('keydown-ESC', () => this.showPauseMenu());
 
         console.log('[PlatformerLevel] Input set up: Arrows/WASD, Space=Jump, X=Melee, Z=Special, M=Ranged, Down=Duck');
+
+        // Set up mobile controls for touch devices
+        this.setupPlatformerMobileControls();
+    }
+
+    /**
+     * Detect if device is mobile/touch-capable
+     */
+    detectMobile() {
+        const hasOnTouchStart = 'ontouchstart' in window;
+        const hasTouchPoints = navigator.maxTouchPoints > 0;
+        const isTouchPrimary = window.matchMedia?.('(pointer: coarse)')?.matches;
+        const isHoverNone = window.matchMedia?.('(hover: none)')?.matches;
+        const userAgent = navigator.userAgent || '';
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile/i.test(userAgent);
+
+        return (hasOnTouchStart || hasTouchPoints) && (isTouchPrimary || isMobileUA || isHoverNone);
+    }
+
+    /**
+     * Get safe area insets for devices with notches/home indicators
+     */
+    getSafeAreaInsets() {
+        const computedStyle = getComputedStyle(document.documentElement);
+        return {
+            top: parseInt(computedStyle.getPropertyValue('--sat') || '0', 10),
+            bottom: parseInt(computedStyle.getPropertyValue('--sab') || '0', 10) || 20,
+            left: parseInt(computedStyle.getPropertyValue('--sal') || '0', 10),
+            right: parseInt(computedStyle.getPropertyValue('--sar') || '0', 10)
+        };
+    }
+
+    /**
+     * Set up platformer-specific mobile controls
+     * Layout:
+     *   [Special Z]    [Attack X]     <- Top row (secondary attacks)
+     *   [Jump]         [Attack]       <- Bottom row (primary actions)
+     *   [Joystick]                    <- Movement
+     */
+    setupPlatformerMobileControls() {
+        this.isMobile = this.detectMobile();
+
+        if (!this.isMobile) {
+            console.log('[PlatformerLevel] Not mobile device, skipping mobile controls');
+            return;
+        }
+
+        console.log('[PlatformerLevel] Setting up platformer mobile controls');
+
+        const { width, height } = this.scale;
+        const safeArea = this.getSafeAreaInsets();
+
+        // Layout configuration
+        const buttonSize = 70;
+        const primarySize = 80;
+        const spacing = 15;
+        const marginBottom = Math.max(20, safeArea.bottom);
+        const marginRight = Math.max(15, safeArea.right);
+        const marginLeft = Math.max(15, safeArea.left);
+
+        // ============ JOYSTICK (bottom-left) ============
+        const joystickX = marginLeft + 70;
+        const joystickY = height - marginBottom - 80;
+        const joystickBaseRadius = 55;
+        const joystickThumbRadius = 25;
+
+        // Joystick base
+        const joystickBase = this.add.graphics();
+        joystickBase.setScrollFactor(0);
+        joystickBase.setDepth(10000);
+        joystickBase.fillStyle(0x000000, 0.4);
+        joystickBase.fillCircle(joystickX, joystickY, joystickBaseRadius);
+        joystickBase.lineStyle(3, 0xFFFFFF, 0.5);
+        joystickBase.strokeCircle(joystickX, joystickY, joystickBaseRadius);
+        this.mobileControlElements.push(joystickBase);
+
+        // Joystick thumb
+        const joystickThumb = this.add.graphics();
+        joystickThumb.setScrollFactor(0);
+        joystickThumb.setDepth(10001);
+        joystickThumb.fillStyle(0xFFFFFF, 0.8);
+        joystickThumb.fillCircle(joystickX, joystickY, joystickThumbRadius);
+        joystickThumb.lineStyle(2, 0x00CED1, 1);
+        joystickThumb.strokeCircle(joystickX, joystickY, joystickThumbRadius);
+        this.mobileControlElements.push(joystickThumb);
+
+        // Store joystick state
+        this.joystickCenterX = joystickX;
+        this.joystickCenterY = joystickY;
+        this.joystickMaxDistance = 45;
+        this.joystickActive = false;
+        this.joystickPointerId = null;
+        this.joystickThumb = joystickThumb;
+        this.joystickThumbRadius = joystickThumbRadius;
+
+        // Joystick touch zone (larger for easier use)
+        const joystickZone = this.add.zone(joystickX, joystickY, joystickBaseRadius * 4, joystickBaseRadius * 4)
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10002)
+            .setInteractive({ draggable: true });
+        this.mobileControlElements.push(joystickZone);
+
+        joystickZone.on('pointerdown', (pointer) => {
+            this.joystickActive = true;
+            this.joystickPointerId = pointer.id;
+        });
+
+        joystickZone.on('pointermove', (pointer) => {
+            if (!this.joystickActive) return;
+            this.updateJoystick(pointer);
+        });
+
+        joystickZone.on('pointerup', (pointer) => {
+            if (pointer.id === this.joystickPointerId) {
+                this.resetJoystick();
+            }
+        });
+
+        // Scene-level pointer tracking for joystick
+        this.input.on('pointermove', (pointer) => {
+            if (this.joystickActive && pointer.id === this.joystickPointerId) {
+                this.updateJoystick(pointer);
+            }
+        });
+
+        this.input.on('pointerup', (pointer) => {
+            if (this.joystickActive && pointer.id === this.joystickPointerId) {
+                this.resetJoystick();
+            }
+        });
+
+        // Native touch end handler for reliability
+        this.game.canvas.addEventListener('touchend', () => {
+            if (this.joystickActive) {
+                this.resetJoystick();
+            }
+        }, { passive: true });
+
+        // ============ ACTION BUTTONS (right side) ============
+        const rightColX = width - marginRight - primarySize / 2;
+        const leftColX = rightColX - primarySize - spacing;
+        const bottomRowY = height - marginBottom - primarySize / 2;
+        const topRowY = bottomRowY - primarySize - spacing;
+
+        // Button configs for platformer
+        const buttons = [
+            {
+                id: 'special',
+                label: '⚡',
+                x: leftColX,
+                y: topRowY,
+                size: buttonSize,
+                color: 0x9B59B6, // Purple - special
+                action: () => this.performSpecialAttack()
+            },
+            {
+                id: 'attack2',
+                label: '🗡️',
+                x: rightColX,
+                y: topRowY,
+                size: buttonSize,
+                color: 0xE67E22, // Orange - secondary attack
+                action: () => this.performAttack()
+            },
+            {
+                id: 'jump',
+                label: '⬆️',
+                x: leftColX,
+                y: bottomRowY,
+                size: primarySize,
+                color: 0x27AE60, // Green - jump
+                action: () => { this.virtualJumpPressed = true; },
+                onRelease: () => { this.virtualJumpPressed = false; }
+            },
+            {
+                id: 'attack',
+                label: '⚔️',
+                x: rightColX,
+                y: bottomRowY,
+                size: primarySize,
+                color: 0xE74C3C, // Red - attack
+                action: () => this.performAttack()
+            }
+        ];
+
+        // Create button container background
+        const containerPadding = 12;
+        const containerX = leftColX - buttonSize / 2 - containerPadding;
+        const containerY = topRowY - buttonSize / 2 - containerPadding;
+        const containerWidth = (rightColX - leftColX) + primarySize + containerPadding * 2;
+        const containerHeight = (bottomRowY - topRowY) + primarySize + containerPadding * 2;
+
+        const buttonContainer = this.add.graphics();
+        buttonContainer.setScrollFactor(0);
+        buttonContainer.setDepth(9999);
+        buttonContainer.fillStyle(0x0D0D1A, 0.4);
+        buttonContainer.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 16);
+        buttonContainer.lineStyle(1, 0xFFFFFF, 0.15);
+        buttonContainer.strokeRoundedRect(containerX, containerY, containerWidth, containerHeight, 16);
+        this.mobileControlElements.push(buttonContainer);
+
+        // Create each button
+        buttons.forEach(config => {
+            this.createPlatformerButton(config);
+        });
+
+        console.log('[PlatformerLevel] Mobile controls created: Joystick + 4 action buttons');
+    }
+
+    /**
+     * Create a platformer action button
+     */
+    createPlatformerButton(config) {
+        const { id, label, x, y, size, color, action, onRelease } = config;
+        const radius = size / 2;
+
+        // Button background
+        const bg = this.add.graphics();
+        bg.setScrollFactor(0);
+        bg.setDepth(10000);
+        this.drawPlatformerButton(bg, x, y, radius, color, false);
+        this.mobileControlElements.push(bg);
+
+        // Button icon
+        const icon = this.add.text(x, y, label, {
+            fontSize: `${size * 0.45}px`,
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
+        this.mobileControlElements.push(icon);
+
+        // Interactive zone
+        const zone = this.add.zone(x, y, size + 10, size + 10)
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10002)
+            .setInteractive({ useHandCursor: false });
+        this.mobileControlElements.push(zone);
+
+        zone.on('pointerdown', () => {
+            this.drawPlatformerButton(bg, x, y, radius, color, true);
+            this.tweens.add({
+                targets: icon,
+                scaleX: 0.85,
+                scaleY: 0.85,
+                duration: 60
+            });
+
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+
+            action();
+        });
+
+        zone.on('pointerup', () => {
+            this.drawPlatformerButton(bg, x, y, radius, color, false);
+            this.tweens.add({
+                targets: icon,
+                scaleX: 1,
+                scaleY: 1,
+                duration: 100,
+                ease: 'Back.easeOut'
+            });
+
+            if (onRelease) {
+                onRelease();
+            }
+        });
+
+        zone.on('pointerout', () => {
+            this.drawPlatformerButton(bg, x, y, radius, color, false);
+            icon.setScale(1);
+
+            if (onRelease) {
+                onRelease();
+            }
+        });
+    }
+
+    /**
+     * Draw a platformer button with glass effect
+     */
+    drawPlatformerButton(graphics, x, y, radius, color, pressed) {
+        graphics.clear();
+
+        // Outer shadow
+        graphics.fillStyle(0x000000, pressed ? 0.3 : 0.4);
+        graphics.fillCircle(x + 2, y + 2, radius);
+
+        // Main button
+        graphics.fillStyle(color, pressed ? 0.9 : 0.7);
+        graphics.fillCircle(x, y, radius);
+
+        // Inner highlight
+        graphics.fillStyle(0xFFFFFF, pressed ? 0.1 : 0.2);
+        graphics.fillCircle(x, y - radius * 0.2, radius * 0.7);
+
+        // Border
+        graphics.lineStyle(2, 0xFFFFFF, pressed ? 0.3 : 0.5);
+        graphics.strokeCircle(x, y, radius);
+    }
+
+    /**
+     * Update joystick thumb position and calculate input
+     */
+    updateJoystick(pointer) {
+        const offsetX = pointer.x - this.joystickCenterX;
+        const offsetY = pointer.y - this.joystickCenterY;
+        const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+        const angle = Math.atan2(offsetY, offsetX);
+
+        const clampedDistance = Math.min(distance, this.joystickMaxDistance);
+        const thumbX = this.joystickCenterX + Math.cos(angle) * clampedDistance;
+        const thumbY = this.joystickCenterY + Math.sin(angle) * clampedDistance;
+
+        // Update thumb visual
+        this.joystickThumb.clear();
+        this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
+        this.joystickThumb.fillCircle(thumbX, thumbY, this.joystickThumbRadius);
+        this.joystickThumb.lineStyle(2, 0x00CED1, 1);
+        this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
+
+        // Calculate normalized X input (-1 to 1) with dead zone
+        const deadZone = this.joystickMaxDistance * 0.15;
+        if (distance > deadZone) {
+            const effectiveDistance = clampedDistance - deadZone;
+            const effectiveMax = this.joystickMaxDistance - deadZone;
+            const magnitude = effectiveDistance / effectiveMax;
+            this.virtualJoystickX = Math.cos(angle) * magnitude;
+        } else {
+            this.virtualJoystickX = 0;
+        }
+    }
+
+    /**
+     * Reset joystick to center
+     */
+    resetJoystick() {
+        this.joystickActive = false;
+        this.joystickPointerId = null;
+        this.virtualJoystickX = 0;
+
+        // Reset thumb to center
+        if (this.joystickThumb) {
+            this.joystickThumb.clear();
+            this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
+            this.joystickThumb.fillCircle(this.joystickCenterX, this.joystickCenterY, this.joystickThumbRadius);
+            this.joystickThumb.lineStyle(2, 0x00CED1, 1);
+            this.joystickThumb.strokeCircle(this.joystickCenterX, this.joystickCenterY, this.joystickThumbRadius);
+        }
     }
 
     /**
@@ -641,24 +1004,31 @@ class PlatformerLevelScene extends Phaser.Scene {
     /**
      * Handle horizontal movement with smooth acceleration
      * More responsive but less twitchy than instant velocity
+     * Supports both keyboard and virtual joystick input
      */
     handleMovement() {
         const leftPressed = this.cursors.left.isDown || this.wasdKeys.A.isDown;
         const rightPressed = this.cursors.right.isDown || this.wasdKeys.D.isDown;
 
+        // Check virtual joystick input (threshold for direction)
+        const virtualLeft = this.virtualJoystickX < -0.2;
+        const virtualRight = this.virtualJoystickX > 0.2;
+
         // Reduce speed while ducking
         const currentMaxSpeed = this.isDucking ? this.playerSpeed * 0.4 : this.playerSpeed;
 
-        if (leftPressed) {
-            // Smooth acceleration towards target speed
-            const targetVel = -currentMaxSpeed;
+        if (leftPressed || virtualLeft) {
+            // For virtual input, scale speed by joystick magnitude
+            const speedMultiplier = virtualLeft ? Math.min(1, Math.abs(this.virtualJoystickX) * 1.5) : 1;
+            const targetVel = -currentMaxSpeed * speedMultiplier;
             const currentVel = this.player.body.velocity.x;
             const newVel = currentVel + (targetVel - currentVel) * this.playerAcceleration;
             this.player.setVelocityX(newVel);
             this.player.facingRight = false;
-        } else if (rightPressed) {
-            // Smooth acceleration towards target speed
-            const targetVel = currentMaxSpeed;
+        } else if (rightPressed || virtualRight) {
+            // For virtual input, scale speed by joystick magnitude
+            const speedMultiplier = virtualRight ? Math.min(1, Math.abs(this.virtualJoystickX) * 1.5) : 1;
+            const targetVel = currentMaxSpeed * speedMultiplier;
             const currentVel = this.player.body.velocity.x;
             const newVel = currentVel + (targetVel - currentVel) * this.playerAcceleration;
             this.player.setVelocityX(newVel);
@@ -717,16 +1087,21 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     /**
      * Handle jump input
+     * Supports both keyboard and virtual jump button
      */
     handleJump() {
         const jumpPressed = this.jumpKey.isDown ||
                            this.cursors.up.isDown ||
-                           this.wasdKeys.W.isDown;
+                           this.wasdKeys.W.isDown ||
+                           this.virtualJumpPressed;  // Mobile virtual jump button
 
         if (jumpPressed && this.isGrounded && this.canJump) {
             this.player.setVelocityY(this.jumpVelocity);
             this.canJump = false;
             this.isGrounded = false;
+
+            // Reset virtual jump to prevent continuous jumping
+            this.virtualJumpPressed = false;
 
             // Play jump sound
             if (window.AudioManager) {
@@ -1236,6 +1611,25 @@ class PlatformerLevelScene extends Phaser.Scene {
             if (this.specialKey) this.specialKey.off('down');
             if (this.rangedKey) this.rangedKey.off('down');
         }
+
+        // Clean up mobile controls
+        if (this.mobileControlElements && this.mobileControlElements.length > 0) {
+            this.mobileControlElements.forEach(element => {
+                try {
+                    element?.removeAllListeners?.();
+                    element?.destroy?.();
+                } catch (e) {
+                    // Element may already be destroyed
+                }
+            });
+            this.mobileControlElements = [];
+        }
+
+        // Reset mobile control state
+        this.joystickActive = false;
+        this.virtualJoystickX = 0;
+        this.virtualJumpPressed = false;
+        this.joystickThumb = null;
 
         // Clear timers
         if (this.time) {

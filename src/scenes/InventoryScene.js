@@ -81,13 +81,12 @@ export default class InventoryScene extends Phaser.Scene {
                 console.log('[InventoryScene] Creating item details (desktop only)...');
                 this.createItemDetails();
                 console.log('[InventoryScene] ✅ Item details created');
-
-                console.log('[InventoryScene] Creating action buttons (desktop only)...');
-                this.createActionButtons();
-                console.log('[InventoryScene] ✅ Action buttons created');
-            } else {
-                console.log('[InventoryScene] ⚠️ Skipping desktop-only UI (mobile mode)');
             }
+
+            // Create action buttons for ALL devices (mobile and desktop)
+            console.log('[InventoryScene] Creating action buttons...');
+            this.createActionButtons();
+            console.log('[InventoryScene] ✅ Action buttons created');
 
             console.log('[InventoryScene] Creating exit button...');
             this.createExitButton();
@@ -1097,7 +1096,7 @@ export default class InventoryScene extends Phaser.Scene {
     }
 
     /**
-     * Create button helper
+     * Create button helper - with proper depth for visibility
      */
     createButton(x, y, width, height, label, color, callback) {
         const button = this.add.graphics();
@@ -1105,18 +1104,24 @@ export default class InventoryScene extends Phaser.Scene {
         button.fillRoundedRect(x, y, width, height, 8);
         button.lineStyle(2, color + 0x003300);
         button.strokeRoundedRect(x, y, width, height, 8);
+        button.setDepth(100); // Ensure visibility above grid items
 
         const text = this.add.text(x + width / 2, y + height / 2, label, {
-            fontSize: '16px',
+            fontSize: this.dims.isMobile ? '14px' : '16px',
             fontFamily: 'Arial Black',
             color: '#FFFFFF'
         });
         text.setOrigin(0.5, 0.5);
+        text.setDepth(101);
 
         const zone = this.add.zone(x, y, width, height).setOrigin(0, 0);
-        zone.setInteractive({ useHandCursor: true });
+        zone.setDepth(102);
+        zone.setInteractive({ useHandCursor: false }); // No cursor for mobile
 
-        zone.on('pointerdown', callback);
+        zone.on('pointerdown', () => {
+            console.log('[InventoryScene] Button pressed:', label);
+            callback();
+        });
 
         zone.on('pointerover', () => {
             button.clear();

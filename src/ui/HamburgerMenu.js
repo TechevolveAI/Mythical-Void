@@ -30,7 +30,11 @@ export default class HamburgerMenu {
      */
     create() {
         const { width, height } = this.scene.scale;
-        const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+
+        // More aggressive mobile detection
+        const isMobile = 'ontouchstart' in window ||
+                         navigator.maxTouchPoints > 0 ||
+                         window.innerWidth < 768;
 
         // Hamburger button size and position
         // On mobile, position BELOW the MobileHUD top bar (which ends at ~56px)
@@ -39,6 +43,8 @@ export default class HamburgerMenu {
         const marginY = isMobile ? 60 : 16; // Below MobileHUD on mobile
         const buttonX = marginX + buttonSize / 2;
         const buttonY = marginY + buttonSize / 2;
+
+        console.log('[HamburgerMenu] Creating at position:', buttonX, buttonY, 'isMobile:', isMobile);
 
         // Create hamburger button background
         const buttonBg = this.scene.add.graphics();
@@ -71,13 +77,15 @@ export default class HamburgerMenu {
         iconGraphics.setDepth(4001);
         this.elements.push(iconGraphics);
 
-        // Create interactive zone
-        const hitZone = this.scene.add.zone(buttonX, buttonY, buttonSize, buttonSize);
+        // Create interactive zone - LARGER for easier touch targeting
+        // Using higher depth to ensure it's above other UI elements
+        const hitZone = this.scene.add.zone(buttonX, buttonY, buttonSize + 20, buttonSize + 20);
         hitZone.setScrollFactor(0);
-        hitZone.setDepth(4002);
-        hitZone.setInteractive({ useHandCursor: true });
+        hitZone.setDepth(5000); // High depth to ensure it's touchable
+        hitZone.setInteractive({ useHandCursor: false }); // No cursor for mobile
 
         hitZone.on('pointerdown', () => {
+            console.log('[HamburgerMenu] Button tapped!');
             this.toggle();
         });
 
@@ -121,8 +129,12 @@ export default class HamburgerMenu {
         if (this.isOpen) return;
         this.isOpen = true;
 
+        console.log('[HamburgerMenu] Opening menu panel');
+
         const { width, height } = this.scene.scale;
-        const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+        const isMobile = 'ontouchstart' in window ||
+                         navigator.maxTouchPoints > 0 ||
+                         window.innerWidth < 768;
 
         // Panel dimensions - position below the hamburger button
         const panelWidth = isMobile ? Math.min(280, width - 40) : 260;
