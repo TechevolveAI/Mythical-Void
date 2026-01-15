@@ -636,6 +636,9 @@ export default class HubWorldScene extends Phaser.Scene {
                 } else if (gate.id === 'crystal_caves') {
                     // Crystal Caves - side-scrolling platformer level
                     this.scene.start('CrystalCavesLevel');
+                } else if (gate.id === 'stellar_reef') {
+                    // Stellar Reef - underwater swimming platformer level
+                    this.scene.start('ReefLevel');
                 } else {
                     // Other biomes - top-down for now (will become platformer levels)
                     this.scene.start('GameScene', { biome: gate.data.biome });
