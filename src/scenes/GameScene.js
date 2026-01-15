@@ -2118,14 +2118,15 @@ class GameScene extends Phaser.Scene {
      * Create roster indicator UI
      */
     createRosterIndicator() {
-        const { width } = this.scale;
+        const { width, height } = this.scale;
         const status = window.GameState?.getCollectionStatus() || { count: 1, max: 8, activeIndex: 0 };
         const creatures = window.GameState?.getCreatureCollection() || [];
         const isMobile = this.isMobile();
 
-        // Position: top-left area, below position text
+        // Position: On mobile, position below hamburger menu area (~120px from top)
+        // On desktop, position in top-left below header
         const baseX = 16;
-        const baseY = 85;
+        const baseY = isMobile ? 120 : 85;
 
         this.rosterElements = [];
 
@@ -2464,15 +2465,20 @@ class GameScene extends Phaser.Scene {
      */
     createPersonalityDisplay() {
         const { width } = this.scale;
+        const isMobile = this.isMobile();
 
-        // Create compact personality panel (upper right, below stats)
-        this.personalityText = this.add.text(width - 16, 100, '', {
-            fontSize: '12px',
+        // On mobile, position below top bar and right-aligned
+        // On desktop, position in upper right
+        const yPos = isMobile ? 65 : 100;
+
+        // Create compact personality panel
+        this.personalityText = this.add.text(width - 16, yPos, '', {
+            fontSize: isMobile ? '11px' : '12px',
             color: '#88FFCC',
             stroke: '#000000',
             strokeThickness: 2,
             backgroundColor: 'rgba(0, 30, 30, 0.75)',
-            padding: { x: 8, y: 4 },
+            padding: { x: 6, y: 3 },
             align: 'right',
             lineSpacing: 2
         });

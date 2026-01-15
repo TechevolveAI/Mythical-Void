@@ -282,9 +282,11 @@ class MobileControls {
             this.scene.input.off('pointerup', this.scenePointerUpHandler);
             this.scenePointerUpHandler = null;
         }
-        if (this.scenePointerOutHandler) {
-            this.scene.input.off('pointerout', this.scenePointerOutHandler);
-            this.scenePointerOutHandler = null;
+        // Clean up native touch listeners
+        if (this.sceneTouchCancelHandler && this.scene.game?.canvas) {
+            this.scene.game.canvas.removeEventListener('touchend', this.sceneTouchCancelHandler);
+            this.scene.game.canvas.removeEventListener('touchcancel', this.sceneTouchCancelHandler);
+            this.sceneTouchCancelHandler = null;
         }
 
         // Reset joystick state
@@ -324,7 +326,8 @@ class MobileControls {
         const config = this.getLayoutConfig();
 
         // Edge-anchored positioning: bottom-left corner with safe area
-        const leftMargin = Math.max(config.margin, config.minEdgeMargin) + config.safeLeft;
+        // Use minimal left margin for edge-hugging placement
+        const leftMargin = config.safeLeft + 8; // Minimal margin, just safe area + tiny buffer
         const bottomMargin = Math.max(config.margin, config.minEdgeMargin) + config.safeBottom;
 
         const joystickX = leftMargin + config.joystickBaseRadius;
@@ -362,8 +365,8 @@ class MobileControls {
         // Store thumb radius for movement updates
         this.joystickThumbRadius = config.joystickThumbRadius;
 
-        // Create invisible zone for touch handling (larger than visual)
-        const zoneSize = config.joystickBaseRadius * 3; // Touch zone 3x the base radius
+        // Create invisible zone for touch handling (MUCH larger than visual for reliable tracking)
+        const zoneSize = config.joystickBaseRadius * 5; // Touch zone 5x the base radius for smooth dragging
         this.joystickZone = this.scene.add.zone(joystickX, joystickY, zoneSize, zoneSize)
             .setOrigin(0.5)
             .setScrollFactor(0)
@@ -522,13 +525,21 @@ class MobileControls {
         };
         this.scene.input.on('pointerup', this.scenePointerUpHandler);
 
-        // Also handle pointer leaving the game canvas entirely
-        this.scenePointerOutHandler = (pointer) => {
-            if (this.joystickActive && pointer.id === this.activePointerId) {
+        // Handle touch cancel (when browser cancels touch, e.g., palm rejection)
+        this.sceneTouchCancelHandler = () => {
+            if (this.joystickActive) {
                 this.resetJoystick();
             }
         };
-        this.scene.input.on('pointerout', this.scenePointerOutHandler);
+
+        // Use native touchend/touchcancel for more reliable detection on mobile
+        if (this.scene.game.canvas) {
+            this.scene.game.canvas.addEventListener('touchend', this.sceneTouchCancelHandler, { passive: true });
+            this.scene.game.canvas.addEventListener('touchcancel', this.sceneTouchCancelHandler, { passive: true });
+        }
+
+        // NOTE: Removed pointerout handler - it was causing false resets on mobile
+        // when finger moved between interactive elements
 
         console.log('[MobileControls] Virtual joystick created at', joystickX, joystickY);
     }

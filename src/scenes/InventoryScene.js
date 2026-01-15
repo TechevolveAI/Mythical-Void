@@ -1069,17 +1069,23 @@ export default class InventoryScene extends Phaser.Scene {
     }
 
     /**
-     * Create action buttons
+     * Create action buttons - mobile responsive positioning
      */
     createActionButtons() {
-        const x = 510;
-        const y = 520;
-        const buttonWidth = 120;
-        const buttonHeight = 40;
-        const spacing = 15;
+        const { width, height, isMobile, margin } = this.dims;
+
+        // Responsive positioning - center buttons on mobile, side panel on desktop
+        const buttonWidth = isMobile ? 100 : 120;
+        const buttonHeight = isMobile ? 44 : 40;
+        const spacing = isMobile ? 10 : 15;
+
+        // Position at bottom center on mobile, or side panel on desktop
+        const totalWidth = buttonWidth * 2 + spacing;
+        const x = isMobile ? (width - totalWidth) / 2 : 510;
+        const y = isMobile ? height - buttonHeight - margin - 60 : 520;
 
         // Use button
-        this.createButton(x, y, buttonWidth, buttonHeight, 'USE', 0x00AA00, () => {
+        this.useButton = this.createButton(x, y, buttonWidth, buttonHeight, 'USE', 0x00AA00, () => {
             this.useSelectedItem();
         });
 

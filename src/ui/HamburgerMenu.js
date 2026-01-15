@@ -33,10 +33,12 @@ export default class HamburgerMenu {
         const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
 
         // Hamburger button size and position
+        // On mobile, position BELOW the MobileHUD top bar (which ends at ~56px)
         const buttonSize = isMobile ? 48 : 44;
-        const margin = isMobile ? 16 : 20;
-        const buttonX = margin + buttonSize / 2;
-        const buttonY = margin + buttonSize / 2;
+        const marginX = isMobile ? 8 : 16;
+        const marginY = isMobile ? 60 : 16; // Below MobileHUD on mobile
+        const buttonX = marginX + buttonSize / 2;
+        const buttonY = marginY + buttonSize / 2;
 
         // Create hamburger button background
         const buttonBg = this.scene.add.graphics();
@@ -122,12 +124,14 @@ export default class HamburgerMenu {
         const { width, height } = this.scene.scale;
         const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
 
-        // Panel dimensions
+        // Panel dimensions - position below the hamburger button
         const panelWidth = isMobile ? Math.min(280, width - 40) : 260;
         const itemHeight = isMobile ? 52 : 48;
         const panelHeight = this.menuItems.length * itemHeight + 30;
-        const panelX = 16;
-        const panelY = (this.menuButton?.size || 44) + 30;
+        const panelX = 8;
+        // Panel appears below the button (button Y + button size + small gap)
+        const buttonBottomY = this.menuButton?.y + (this.menuButton?.size || 44) / 2 || 100;
+        const panelY = buttonBottomY + 10;
 
         // Create dark overlay
         const overlay = this.scene.add.graphics();
