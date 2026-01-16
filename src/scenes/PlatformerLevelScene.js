@@ -71,6 +71,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.virtualJoystickX = 0;  // -1 to 1 from virtual joystick
         this.virtualJumpPressed = false;
         this.mobileControlElements = []; // Track all mobile UI elements for cleanup
+
+        // Pause menu state
+        this.pauseMenuActive = false;
+        this.pauseMenuElements = [];
+        this.pauseEscHandler = null;
     }
 
     init(data) {
@@ -106,6 +111,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Reset mobile control state
         this.virtualJoystickX = 0;
         this.virtualJumpPressed = false;
+
+        // Reset pause menu state
+        this.pauseMenuActive = false;
+        this.pauseMenuElements = [];
+        if (this.pauseEscHandler) {
+            window.removeEventListener('keydown', this.pauseEscHandler);
+            this.pauseEscHandler = null;
+        }
 
         // Clear references (will be recreated in create())
         this.player = null;
@@ -716,7 +729,64 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.createPlatformerButton(config);
         });
 
-        console.log('[PlatformerLevel] Mobile controls created: Joystick + 4 action buttons');
+        // ============ MENU BUTTON (top-left) ============
+        this.createMenuButton(marginLeft + 30, Math.max(40, safeArea.top + 20));
+
+        console.log('[PlatformerLevel] Mobile controls created: Joystick + 4 action buttons + menu');
+    }
+
+    /**
+     * Create the menu/pause button for mobile
+     */
+    createMenuButton(x, y) {
+        const size = 50;
+
+        // Button background
+        const bg = this.add.graphics();
+        bg.setScrollFactor(0);
+        bg.setDepth(10000);
+        bg.fillStyle(0x0D0D1A, 0.7);
+        bg.fillCircle(x, y, size / 2);
+        bg.lineStyle(2, 0xFFFFFF, 0.4);
+        bg.strokeCircle(x, y, size / 2);
+        this.mobileControlElements.push(bg);
+
+        // Hamburger icon (three lines)
+        const icon = this.add.text(x, y, '☰', {
+            fontSize: '28px',
+            color: '#FFFFFF'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
+        this.mobileControlElements.push(icon);
+
+        // Interactive zone
+        const zone = this.add.zone(x, y, size + 20, size + 20)
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10002)
+            .setInteractive({ useHandCursor: false });
+        this.mobileControlElements.push(zone);
+
+        zone.on('pointerdown', () => {
+            bg.clear();
+            bg.fillStyle(0x4B0082, 0.8);
+            bg.fillCircle(x, y, size / 2);
+            bg.lineStyle(2, 0xE066FF, 0.8);
+            bg.strokeCircle(x, y, size / 2);
+
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+
+            this.showPauseMenu();
+        });
+
+        zone.on('pointerup', () => {
+            bg.clear();
+            bg.fillStyle(0x0D0D1A, 0.7);
+            bg.fillCircle(x, y, size / 2);
+            bg.lineStyle(2, 0xFFFFFF, 0.4);
+            bg.strokeCircle(x, y, size / 2);
+        });
     }
 
     /**
@@ -1577,14 +1647,141 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     /**
-     * Show pause menu
+     * Show pause menu with resume and exit options
      */
     showPauseMenu() {
-        // Simple pause - can be expanded
-        this.scene.pause();
+        // Prevent multiple pause menus
+        if (this.pauseMenuActive) return;
+        this.pauseMenuActive = true;
 
-        // TODO: Create proper pause overlay scene
-        console.log('[PlatformerLevel] Game paused');
+        // Pause physics but keep rendering
+        this.physics.pause();
+
+        const { width, height } = this.cameras.main;
+        this.pauseMenuElements = [];
+
+        // Dark overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.8);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(5000);
+        this.pauseMenuElements.push(overlay);
+
+        // Panel
+        const panelWidth = Math.min(350, width - 60);
+        const panelHeight = 280;
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1025, 0.98);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.lineStyle(3, 0x9B30FF, 0.8);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.setScrollFactor(0);
+        panel.setDepth(5001);
+        this.pauseMenuElements.push(panel);
+
+        // Title
+        const title = this.add.text(width / 2, panelY + 40, '⏸️ PAUSED', {
+            fontSize: '32px',
+            color: '#E066FF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+        this.pauseMenuElements.push(title);
+
+        // Resume button
+        const resumeBtn = this.add.text(width / 2, panelY + 110, '▶️  RESUME', {
+            fontSize: '22px',
+            color: '#00FF88',
+            backgroundColor: '#1A3D1A',
+            padding: { x: 30, y: 15 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002).setInteractive({ useHandCursor: true });
+        this.pauseMenuElements.push(resumeBtn);
+
+        resumeBtn.on('pointerover', () => resumeBtn.setColor('#88FF88').setScale(1.05));
+        resumeBtn.on('pointerout', () => resumeBtn.setColor('#00FF88').setScale(1.0));
+        resumeBtn.on('pointerdown', () => {
+            if (window.AudioManager) window.AudioManager.playButtonClick();
+            this.hidePauseMenu();
+        });
+
+        // Exit to Hub button
+        const exitBtn = this.add.text(width / 2, panelY + 175, '🚪  EXIT TO HUB', {
+            fontSize: '22px',
+            color: '#FF6666',
+            backgroundColor: '#3D1A1A',
+            padding: { x: 30, y: 15 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002).setInteractive({ useHandCursor: true });
+        this.pauseMenuElements.push(exitBtn);
+
+        exitBtn.on('pointerover', () => exitBtn.setColor('#FF9999').setScale(1.05));
+        exitBtn.on('pointerout', () => exitBtn.setColor('#FF6666').setScale(1.0));
+        exitBtn.on('pointerdown', () => {
+            if (window.AudioManager) window.AudioManager.playButtonClick();
+            this.hidePauseMenu();
+            this.returnToHub();
+        });
+
+        // Hint text
+        const hint = this.add.text(width / 2, panelY + panelHeight - 30, 'Press ESC to resume', {
+            fontSize: '12px',
+            color: '#888888'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+        this.pauseMenuElements.push(hint);
+
+        // ESC to resume while paused
+        this.pauseEscHandler = (event) => {
+            if (event.key === 'Escape') {
+                this.hidePauseMenu();
+            }
+        };
+        window.addEventListener('keydown', this.pauseEscHandler);
+
+        console.log('[PlatformerLevel] Pause menu shown');
+    }
+
+    /**
+     * Hide the pause menu and resume game
+     */
+    hidePauseMenu() {
+        if (!this.pauseMenuActive) return;
+
+        // Remove ESC listener
+        if (this.pauseEscHandler) {
+            window.removeEventListener('keydown', this.pauseEscHandler);
+            this.pauseEscHandler = null;
+        }
+
+        // Destroy menu elements
+        if (this.pauseMenuElements) {
+            this.pauseMenuElements.forEach(el => {
+                try {
+                    el?.removeAllListeners?.();
+                    el?.destroy?.();
+                } catch (e) {}
+            });
+            this.pauseMenuElements = [];
+        }
+
+        this.pauseMenuActive = false;
+
+        // Resume physics
+        this.physics.resume();
+
+        console.log('[PlatformerLevel] Game resumed');
+    }
+
+    /**
+     * Return to hub world
+     */
+    returnToHub() {
+        // Reset physics for hub (top-down)
+        this.physics.world.gravity.y = 0;
+
+        // Go to HubWorldScene
+        this.scene.start('HubWorldScene');
     }
 
     /**
@@ -1630,6 +1827,22 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.virtualJoystickX = 0;
         this.virtualJumpPressed = false;
         this.joystickThumb = null;
+
+        // Clean up pause menu
+        if (this.pauseEscHandler) {
+            window.removeEventListener('keydown', this.pauseEscHandler);
+            this.pauseEscHandler = null;
+        }
+        if (this.pauseMenuElements && this.pauseMenuElements.length > 0) {
+            this.pauseMenuElements.forEach(el => {
+                try {
+                    el?.removeAllListeners?.();
+                    el?.destroy?.();
+                } catch (e) {}
+            });
+            this.pauseMenuElements = [];
+        }
+        this.pauseMenuActive = false;
 
         // Clear timers
         if (this.time) {

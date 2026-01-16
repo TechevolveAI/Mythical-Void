@@ -5179,9 +5179,10 @@ class GameScene extends Phaser.Scene {
         }
 
         // Base speed with ability modifiers (Swift Paws, etc.)
-        let speed = 200;
+        // Increased from 200 to 320 for smoother, faster movement across sanctuary
+        let speed = 320;
         if (window.SecretAbilityManager) {
-            speed = window.SecretAbilityManager.getModifiedSpeed(200);
+            speed = window.SecretAbilityManager.getModifiedSpeed(320);
         }
         let velocityX = 0;
         let velocityY = 0;

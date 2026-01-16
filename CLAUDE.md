@@ -528,6 +528,61 @@ this.scene.restart();
 - Includes farewell animation when replacing creature
 - Keyboard: `I` to open from GameScene
 
+### Platformer Levels (Side-Scrolling)
+
+Platformer levels extend `PlatformerLevelScene` base class which provides different gameplay mechanics from sanctuary-style scenes:
+
+**Key Differences from Sanctuary (Top-Down):**
+- Uses gravity-based physics (`gravityY = 500` default, or lower for swimming levels)
+- Side-scrolling camera following
+- Jump mechanics with grounded detection
+- Combat system with melee, ranged, and special attacks
+
+**Required Mobile Controls:**
+All platformer levels MUST have mobile controls that include:
+1. **Joystick** (bottom-left) - Horizontal movement
+2. **Action Buttons** (bottom-right) - Jump, Attack, Special, Ranged
+3. **Menu Button** (top-left) - Opens pause menu with Exit to Hub option
+
+**Pause Menu Requirements:**
+- ESC key on desktop opens pause menu
+- Menu button on mobile opens pause menu
+- Pause menu MUST include:
+  - Resume button
+  - Exit to Hub button (returns to HubWorldScene)
+
+**Extending PlatformerLevelScene:**
+```javascript
+class MyLevel extends PlatformerLevelScene {
+    constructor() {
+        super({
+            key: 'MyLevel',
+            levelId: 'my_level_1',
+            biomeId: 'my_biome',
+            levelWidth: 5000,
+            levelHeight: 800
+        });
+
+        // Override physics for special mechanics (e.g., swimming)
+        this.gravityY = 60;  // Lower gravity for swimming
+        this.playerSpeed = 170;
+    }
+
+    create() {
+        super.create();  // Sets up physics, player, input, HUD, mobile controls
+        this.showLevelEntry();  // Show level intro screen
+    }
+
+    createLevelContent() {
+        // Override to add level-specific enemies, collectibles, etc.
+    }
+}
+```
+
+**Current Platformer Levels:**
+- `CrystalCavesLevel` - Crystal-themed cave platformer with Crystal Golem boss
+- `ReefLevel` - Cosmic void swimming level with Nyx'voral boss
+
 ## Performance Considerations & Best Practices
 
 ### Core Performance Rules
