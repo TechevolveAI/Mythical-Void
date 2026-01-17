@@ -46,14 +46,14 @@ export default class HamburgerMenu {
 
         console.log('[HamburgerMenu] Creating at position:', buttonX, buttonY, 'isMobile:', isMobile);
 
-        // Create hamburger button background
+        // Create hamburger button background - high depth to be above most UI
         const buttonBg = this.scene.add.graphics();
-        buttonBg.fillStyle(0x1A1A3E, 0.9);
+        buttonBg.fillStyle(0x1A1A3E, 0.95);
         buttonBg.fillRoundedRect(buttonX - buttonSize/2, buttonY - buttonSize/2, buttonSize, buttonSize, 8);
         buttonBg.lineStyle(2, 0x7B68EE, 0.8);
         buttonBg.strokeRoundedRect(buttonX - buttonSize/2, buttonY - buttonSize/2, buttonSize, buttonSize, 8);
         buttonBg.setScrollFactor(0);
-        buttonBg.setDepth(4000);
+        buttonBg.setDepth(14998); // Just below hitZone
         this.elements.push(buttonBg);
 
         // Create hamburger icon (three lines)
@@ -74,18 +74,24 @@ export default class HamburgerMenu {
             );
         }
         iconGraphics.setScrollFactor(0);
-        iconGraphics.setDepth(4001);
+        iconGraphics.setDepth(14999); // Just below hitZone, above background
         this.elements.push(iconGraphics);
 
         // Create interactive zone - LARGER for easier touch targeting
-        // Using higher depth to ensure it's above other UI elements
-        const hitZone = this.scene.add.zone(buttonX, buttonY, buttonSize + 20, buttonSize + 20);
+        // Using very high depth to ensure it's above ALL other UI elements (MobileHUD, MobileControls, etc.)
+        const touchPadding = isMobile ? 30 : 20; // Extra padding on mobile for easier tapping
+        const hitZone = this.scene.add.zone(buttonX, buttonY, buttonSize + touchPadding, buttonSize + touchPadding);
         hitZone.setScrollFactor(0);
-        hitZone.setDepth(5000); // High depth to ensure it's touchable
+        hitZone.setDepth(15000); // Higher than MobileControls (10000) to ensure it's touchable
         hitZone.setInteractive({ useHandCursor: false }); // No cursor for mobile
 
+        // Handle both pointerdown and pointerup for better mobile compatibility
         hitZone.on('pointerdown', () => {
-            console.log('[HamburgerMenu] Button tapped!');
+            console.log('[HamburgerMenu] Button tapped! (pointerdown)');
+        });
+
+        hitZone.on('pointerup', () => {
+            console.log('[HamburgerMenu] Button released! (pointerup) - toggling menu');
             this.toggle();
         });
 

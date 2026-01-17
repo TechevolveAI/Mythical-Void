@@ -700,21 +700,17 @@ class GameScene extends Phaser.Scene {
 
         // Create dark overlay for dramatic effect
         const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0);
+        overlay.fillStyle(0x000000, 0.8);
         overlay.fillRect(0, 0, width, height);
         overlay.setDepth(2000);
         overlay.setScrollFactor(0);
+        overlay.setAlpha(0);
 
-        // Fade to dark
+        // Fade in the overlay
         this.tweens.add({
             targets: overlay,
-            fillStyle: { value: 0.8 },
-            duration: 1000,
-            onUpdate: () => {
-                overlay.clear();
-                overlay.fillStyle(0x000000, overlay.alpha);
-                overlay.fillRect(0, 0, width, height);
-            }
+            alpha: 0.9,
+            duration: 1000
         });
 
         // Create golden border effect

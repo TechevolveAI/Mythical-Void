@@ -464,6 +464,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         const camera = this.cameras.main;
         const screenHeight = camera.height;
 
+        // Detect if mobile for camera offset adjustment
+        const isMobileDevice = this.detectMobile();
+
         // Calculate camera bounds based on screen vs level height
         // If screen is taller than level, clamp camera so ground stays at bottom
         const effectiveLevelHeight = Math.max(this.levelHeight, screenHeight);
@@ -485,14 +488,25 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Larger vertical deadzone so camera doesn't bounce on every small jump
         camera.setDeadzone(camera.width * 0.2, camera.height * 0.4);
 
-        // Offset camera to prefer showing more above the player (ground is reference)
-        // This helps keep ground visible when player is near it
-        camera.setFollowOffset(0, screenHeight * 0.1);
+        // Camera follow offset - on mobile, push player UP on screen to leave room
+        // for controls at the bottom (controls take ~200px, offset compensates)
+        // Positive Y offset = camera looks lower = player appears HIGHER on screen
+        let followOffsetY;
+        if (isMobileDevice) {
+            // Mobile: significant offset to keep player in upper 60% of screen
+            // This leaves the bottom 40% for controls without obscuring gameplay
+            followOffsetY = screenHeight * 0.25;
+            console.log(`[PlatformerLevel] Mobile detected - applying camera offset for controls`);
+        } else {
+            // Desktop: slight offset for better ground visibility
+            followOffsetY = screenHeight * 0.1;
+        }
+        camera.setFollowOffset(0, followOffsetY);
 
         // Zoom for better view
         camera.setZoom(1.0);
 
-        console.log(`[PlatformerLevel] Camera set up: ${this.levelWidth}x${boundsHeight}, screen: ${camera.width}x${screenHeight}`);
+        console.log(`[PlatformerLevel] Camera set up: ${this.levelWidth}x${boundsHeight}, screen: ${camera.width}x${screenHeight}, offsetY: ${followOffsetY}`);
     }
 
     /**
