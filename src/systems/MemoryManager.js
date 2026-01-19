@@ -116,10 +116,13 @@ class MemoryManager {
         }
 
         window.setInterval = (handler, delay = 0, ...args) => {
-            const wrappedHandler = typeof handler === 'function'
-                ? (...cbArgs) => handler(...cbArgs)
-                : handler;
+            // Only track function handlers - string handlers would require eval (blocked by CSP)
+            if (typeof handler !== 'function') {
+                console.warn('[MemoryManager] setInterval called with non-function handler, skipping tracking');
+                return this.originalSetInterval(handler, delay, ...args);
+            }
 
+            const wrappedHandler = (...cbArgs) => handler(...cbArgs);
             const intervalId = this.originalSetInterval(wrappedHandler, delay, ...args);
             this.intervals.add(intervalId);
             return intervalId;
@@ -131,7 +134,9 @@ class MemoryManager {
         };
 
         window.setTimeout = (handler, delay = 0, ...args) => {
+            // Only track function handlers - string handlers would require eval (blocked by CSP)
             if (typeof handler !== 'function') {
+                console.warn('[MemoryManager] setTimeout called with non-function handler, skipping tracking');
                 return this.originalSetTimeout(handler, delay, ...args);
             }
 

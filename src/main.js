@@ -8,7 +8,7 @@ import NamingScene from './scenes/NamingScene.js';
 import GameScene from './scenes/GameScene.js';
 import ShopScene from './scenes/ShopScene.js';
 import InventoryScene from './scenes/InventoryScene.js';
-import BreedingShrineScene from './scenes/BreedingShrineScene.js';
+import FusionPodScene from './scenes/FusionPodScene.js';
 import BreedingHatchScene from './scenes/BreedingHatchScene.js';
 import HubWorldScene from './scenes/HubWorldScene.js';
 import CreatureProfileScene from './scenes/CreatureProfileScene.js';
@@ -310,7 +310,7 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, BreedingShrineScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel],
+            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,

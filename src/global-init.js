@@ -64,7 +64,7 @@ import './scenes/NamingScene.js';
 import './scenes/GameScene.js';
 import './scenes/ShopScene.js';
 import './scenes/InventoryScene.js';
-import './scenes/BreedingShrineScene.js';
+import './scenes/FusionPodScene.js';
 import './scenes/BreedingHatchScene.js';
 import './scenes/HubWorldScene.js';
 import './scenes/CreatureProfileScene.js';

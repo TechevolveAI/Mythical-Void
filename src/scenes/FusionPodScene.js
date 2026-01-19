@@ -1,12 +1,12 @@
 /**
- * BreedingShrineScene - Cosmic breeding shrine for creature breeding
- * Allows players to breed TWO of their own creatures to create offspring
+ * FusionPodScene - Cosmic fusion pod for creature fusion
+ * Allows players to fuse TWO of their own creatures to create offspring
  *
  * Features:
  * - Two-creature selection from player's collection
- * - Adult-only breeding requirement
+ * - Adult-only fusion requirement
  * - Compatibility calculation and display
- * - Breeding cooldown management
+ * - Fusion cooldown management
  * - Offspring trait preview with parent inheritance display
  * - Generation tracking for lineage
  */
@@ -20,9 +20,9 @@ function getGameState() {
     return window.GameState;
 }
 
-class BreedingShrineScene extends Phaser.Scene {
+class FusionPodScene extends Phaser.Scene {
     constructor() {
-        super({ key: 'BreedingShrineScene' });
+        super({ key: 'FusionPodScene' });
 
         // Selected parents (from player's collection)
         this.parent1Index = null;
@@ -42,7 +42,7 @@ class BreedingShrineScene extends Phaser.Scene {
     }
 
     create() {
-        console.log('[BreedingShrineScene] Creating breeding shrine...');
+        console.log('[FusionPodScene] Creating fusion pod...');
 
         const { width, height } = this.scale;
 
@@ -82,10 +82,10 @@ class BreedingShrineScene extends Phaser.Scene {
         this.createBreedButton(width, height);
         this.createCloseButton(width);
 
-        // Play shrine ambient sound and start breeding music
+        // Play fusion pod ambient sound and start fusion music
         if (window.AudioManager) {
-            window.AudioManager.playShrineAmbient?.();
-            window.AudioManager.playAreaMusic?.('breeding');
+            window.AudioManager.playFusionAmbient?.();
+            window.AudioManager.playAreaMusic?.('fusion');
         }
 
         // Hide loading overlay
@@ -93,7 +93,7 @@ class BreedingShrineScene extends Phaser.Scene {
             window.UXEnhancements.hideLoading();
         }
 
-        console.log('[BreedingShrineScene] Breeding shrine created');
+        console.log('[FusionPodScene] Fusion pod created');
     }
 
     /**
@@ -172,11 +172,11 @@ class BreedingShrineScene extends Phaser.Scene {
         if (reason === 'need_creatures') {
             icon = '🥚';
             title = 'More Creatures Needed';
-            message = `You need at least 2 creatures to breed.\n\nYou have: ${count}/2 creatures\n\nHatch another egg to unlock breeding!`;
+            message = `You need at least 2 creatures to fuse.\n\nYou have: ${count}/2 creatures\n\nHatch another egg to unlock fusion!`;
         } else {
             icon = '⏳';
             title = 'Adults Required';
-            message = `Both creatures must be adults to breed.\n\nAdult creatures: ${count}/2\n\nCreatures become adults on Day 3.\nKeep caring for them!`;
+            message = `Both creatures must be adults to fuse.\n\nAdult creatures: ${count}/2\n\nCreatures become adults on Day 3.\nKeep caring for them!`;
         }
 
         this.add.text(width / 2, panelY + 40, `${icon} ${title}`, {
@@ -257,7 +257,7 @@ class BreedingShrineScene extends Phaser.Scene {
     }
 
     createTitle(width) {
-        const titleText = this.add.text(width / 2, this.panelBounds.y + 30, '🧬 Breeding Shrine 🧬', {
+        const titleText = this.add.text(width / 2, this.panelBounds.y + 30, '🧬 Fusion Pod 🧬', {
             fontSize: '22px',
             color: '#FFD700',
             fontStyle: 'bold',
@@ -265,7 +265,7 @@ class BreedingShrineScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5).setDepth(201);
 
-        const subtitleText = this.add.text(width / 2, this.panelBounds.y + 55, 'Select two adult creatures to breed', {
+        const subtitleText = this.add.text(width / 2, this.panelBounds.y + 55, 'Select two adult creatures to fuse', {
             fontSize: '12px',
             color: '#AAAAAA'
         }).setOrigin(0.5).setDepth(201);
@@ -435,7 +435,7 @@ class BreedingShrineScene extends Phaser.Scene {
     }
 
     openCreatureSelector(slotNum) {
-        console.log(`[BreedingShrineScene] Opening creature selector for slot ${slotNum}`);
+        console.log(`[FusionPodScene] Opening creature selector for slot ${slotNum}`);
 
         const { width, height } = this.scale;
         const collection = getGameState().getCreatureCollection?.() || [];
@@ -471,7 +471,7 @@ class BreedingShrineScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(302);
 
-        const modalSubtitle = this.add.text(width / 2, modalY + 48, 'Only adult creatures can breed', {
+        const modalSubtitle = this.add.text(width / 2, modalY + 48, 'Only adult creatures can fuse', {
             fontSize: '11px',
             color: '#888888'
         }).setOrigin(0.5).setDepth(302);
@@ -525,7 +525,7 @@ class BreedingShrineScene extends Phaser.Scene {
 
                 selectBtn.on('pointerdown', () => {
                     this.selectCreatureForSlot(slotNum, creature.collectionIndex, creature);
-                    this.closeSelectionModal();
+                    // Note: closeSelectionModal is now called inside selectCreatureForSlot
                 });
 
                 selectBtn.on('pointerover', () => selectBtn.setStyle({ backgroundColor: '#2A5A2A' }));
@@ -568,7 +568,7 @@ class BreedingShrineScene extends Phaser.Scene {
     }
 
     selectCreatureForSlot(slotNum, collectionIndex, creature) {
-        console.log(`[BreedingShrineScene] Selected creature ${creature.name} for slot ${slotNum}`);
+        console.log(`[FusionPodScene] Selected creature ${creature.name} for slot ${slotNum}`);
 
         if (slotNum === 1) {
             this.parent1Index = collectionIndex;
@@ -578,16 +578,22 @@ class BreedingShrineScene extends Phaser.Scene {
             this.parent2Data = creature;
         }
 
-        // Refresh the UI
-        this.refreshUI();
+        // Close modal FIRST to avoid input conflicts during UI refresh
+        this.closeSelectionModal();
 
-        // Calculate compatibility if both selected
-        if (this.parent1Data && this.parent2Data) {
-            this.calculateCompatibility();
-        }
+        // Small delay to let Phaser process the modal cleanup before refreshing
+        this.time.delayedCall(50, () => {
+            // Refresh the UI
+            this.refreshUI();
 
-        // Play parent selection sound
-        window.AudioManager?.playShrineSelect?.();
+            // Calculate compatibility if both selected
+            if (this.parent1Data && this.parent2Data) {
+                this.calculateCompatibility();
+            }
+
+            // Play parent selection sound
+            window.AudioManager?.playFusionSelect?.();
+        });
     }
 
     refreshUI() {
@@ -643,11 +649,11 @@ class BreedingShrineScene extends Phaser.Scene {
             };
         }
 
-        console.log('[BreedingShrineScene] Compatibility:', this.compatibility);
+        console.log('[FusionPodScene] Compatibility:', this.compatibility);
 
         // Play compatibility sound based on result
         const isGoodCompatibility = this.compatibility.percentage >= 70 || this.compatibility.score >= 70;
-        window.AudioManager?.playShrineCompatibility?.(isGoodCompatibility);
+        window.AudioManager?.playFusionCompatibility?.(isGoodCompatibility);
     }
 
     createCompatibilityDisplay(width, height) {
@@ -774,6 +780,12 @@ class BreedingShrineScene extends Phaser.Scene {
         const barWidth = 200;
         const barX = centerX - barWidth / 2;
         const barY = this.panelBounds.y + 320;
+
+        // Stop any running bonus tween before clearing predictions
+        if (this.bonusLineTween) {
+            this.bonusLineTween.stop();
+            this.bonusLineTween = null;
+        }
 
         // Clear previous predictions
         if (this.predictionsContainer) {
@@ -917,8 +929,11 @@ class BreedingShrineScene extends Phaser.Scene {
                 }).setOrigin(0.5, 0);
             this.predictionsContainer.add(bonusLine);
 
-            // Sparkle effect
-            this.tweens.add({
+            // Sparkle effect - track the tween for cleanup
+            if (this.bonusLineTween) {
+                this.bonusLineTween.stop();
+            }
+            this.bonusLineTween = this.tweens.add({
                 targets: bonusLine,
                 alpha: { from: 1, to: 0.6 },
                 duration: 800,
@@ -968,7 +983,7 @@ class BreedingShrineScene extends Phaser.Scene {
             this.breedButtonBg.lineStyle(2, 0xFFD700, 1);
             this.breedButtonBg.strokeRoundedRect(x, y, btnWidth, btnHeight, 10);
 
-            this.breedButton.setText('🥚 Begin Breeding 🥚');
+            this.breedButton.setText('🥚 Begin Fusion 🥚');
             this.breedButton.setColor('#FFFFFF');
 
             // Make interactive - CRITICAL: Rectangle must use LOCAL coordinates relative to text origin (0.5, 0.5)
@@ -979,7 +994,7 @@ class BreedingShrineScene extends Phaser.Scene {
                 );
 
                 this.breedButton.on('pointerdown', () => {
-                    console.log('[BreedingShrineScene] Begin Breeding button clicked!');
+                    console.log('[FusionPodScene] Begin Fusion button clicked!');
                     this.attemptBreeding();
                 });
                 this.breedButton.on('pointerover', () => {
@@ -1021,7 +1036,7 @@ class BreedingShrineScene extends Phaser.Scene {
     attemptBreeding() {
         if (this.breedingInProgress || !this.parent1Data || !this.parent2Data) return;
 
-        console.log('[BreedingShrineScene] Attempting breeding...');
+        console.log('[FusionPodScene] Attempting fusion...');
         console.log('Parent 1:', this.parent1Data.name);
         console.log('Parent 2:', this.parent2Data.name);
 
@@ -1033,7 +1048,7 @@ class BreedingShrineScene extends Phaser.Scene {
         }
 
         // Play egg creation sound sequence
-        window.AudioManager?.playShrineCreateEgg?.();
+        window.AudioManager?.playFusionCreateEgg?.();
 
         // Particle effect
         const { width, height } = this.scale;
@@ -1077,7 +1092,7 @@ class BreedingShrineScene extends Phaser.Scene {
                 const isTwinBirth = birthResult.events.some(e => e.id === 'twinBirth');
 
                 if (isTwinBirth) {
-                    console.log('[BreedingShrineScene] 👯 TWIN BIRTH! Creating two creatures...');
+                    console.log('[FusionPodScene] 👯 TWIN BIRTH! Creating two creatures...');
 
                     // Create TWO separate offspring with individual characteristics
                     const twin1Result = this.createOffspringData(offspringGenes);
@@ -1100,7 +1115,7 @@ class BreedingShrineScene extends Phaser.Scene {
 
                     // Apply birth events to both twins
                     if (birthResult.events.length > 0) {
-                        console.log('[BreedingShrineScene] 🎉 Birth events for twins:', birthResult.events.map(e => e.name));
+                        console.log('[FusionPodScene] 🎉 Birth events for twins:', birthResult.events.map(e => e.name));
                         window.BirthEventSystem?.applyBirthEffects(twin1Result.offspringData, birthResult, this.parent1Data, this.parent2Data);
                         window.BirthEventSystem?.applyBirthEffects(twin2Result.offspringData, birthResult, this.parent1Data, this.parent2Data);
                     }
@@ -1116,7 +1131,7 @@ class BreedingShrineScene extends Phaser.Scene {
                         };
                         const unlockedAbilities = window.BirthEventSystem?.checkSecretAbilities(abilityCheckData) || [];
                         if (unlockedAbilities.length > 0) {
-                            console.log(`[BreedingShrineScene] 🌟 Twin ${idx + 1} abilities:`, unlockedAbilities.map(a => a.name));
+                            console.log(`[FusionPodScene] 🌟 Twin ${idx + 1} abilities:`, unlockedAbilities.map(a => a.name));
                             twinResult.offspringData.secretAbilities = unlockedAbilities;
                         }
                     });
@@ -1148,7 +1163,7 @@ class BreedingShrineScene extends Phaser.Scene {
 
                     // Apply birth event effects to offspring
                     if (birthResult.events.length > 0) {
-                        console.log('[BreedingShrineScene] 🎉 Birth events triggered:', birthResult.events.map(e => e.name));
+                        console.log('[FusionPodScene] 🎉 Birth events triggered:', birthResult.events.map(e => e.name));
                         window.BirthEventSystem?.applyBirthEffects(
                             result.offspringData,
                             birthResult,
@@ -1167,7 +1182,7 @@ class BreedingShrineScene extends Phaser.Scene {
                     };
                     const unlockedAbilities = window.BirthEventSystem?.checkSecretAbilities(abilityCheckData) || [];
                     if (unlockedAbilities.length > 0) {
-                        console.log('[BreedingShrineScene] 🌟 Secret abilities unlocked:', unlockedAbilities.map(a => a.name));
+                        console.log('[FusionPodScene] 🌟 Secret abilities unlocked:', unlockedAbilities.map(a => a.name));
                         result.offspringData.secretAbilities = unlockedAbilities;
                     }
 
@@ -1187,14 +1202,14 @@ class BreedingShrineScene extends Phaser.Scene {
                 }
 
             } catch (error) {
-                console.error('[BreedingShrineScene] Breeding error:', error);
-                console.error('[BreedingShrineScene] Error stack:', error?.stack);
+                console.error('[FusionPodScene] Fusion error:', error);
+                console.error('[FusionPodScene] Error stack:', error?.stack);
                 if (window.UXEnhancements) {
                     window.UXEnhancements.hideLoading();
                 }
                 // Show more helpful error message
                 const errorMsg = error?.message || 'Unknown error';
-                this.showBreedingError(`Breeding failed: ${errorMsg.substring(0, 50)}`);
+                this.showBreedingError(`Fusion failed: ${errorMsg.substring(0, 50)}`);
             }
 
             this.breedingInProgress = false;
@@ -1655,21 +1670,21 @@ class BreedingShrineScene extends Phaser.Scene {
     }
 
     closeScene() {
-        console.log('[BreedingShrineScene] Closing and returning to GameScene');
+        console.log('[FusionPodScene] Closing and returning to GameScene');
 
         // Stop this scene first
-        this.scene.stop('BreedingShrineScene');
+        this.scene.stop('FusionPodScene');
 
         // Start GameScene fresh (it was stopped, not paused)
         try {
             this.scene.start('GameScene');
         } catch (e) {
-            console.error('[BreedingShrineScene] Failed to start GameScene:', e);
+            console.error('[FusionPodScene] Failed to start GameScene:', e);
             // Fallback: try to resume if it was paused
             try {
                 this.scene.resume('GameScene');
             } catch (e2) {
-                console.error('[BreedingShrineScene] Also failed to resume:', e2);
+                console.error('[FusionPodScene] Also failed to resume:', e2);
             }
         }
     }
@@ -1696,9 +1711,9 @@ class BreedingShrineScene extends Phaser.Scene {
     }
 
     shutdown() {
-        console.log('[BreedingShrineScene] Shutting down...');
+        console.log('[FusionPodScene] Shutting down...');
 
-        // Stop breeding music
+        // Stop fusion music
         window.AudioManager?.stopMusic?.();
 
         this.closeSelectionModal();
@@ -1720,6 +1735,12 @@ class BreedingShrineScene extends Phaser.Scene {
             this.tweens.killAll();
         }
 
+        // Clear bonus tween reference
+        if (this.bonusLineTween) {
+            this.bonusLineTween.stop();
+            this.bonusLineTween = null;
+        }
+
         // Clear state
         this.parent1Index = null;
         this.parent1Data = null;
@@ -1727,9 +1748,9 @@ class BreedingShrineScene extends Phaser.Scene {
         this.parent2Data = null;
         this.compatibility = null;
 
-        console.log('[BreedingShrineScene] Cleanup complete');
+        console.log('[FusionPodScene] Cleanup complete');
     }
 }
 
 // Export for module systems
-export default BreedingShrineScene;
+export default FusionPodScene;

@@ -20,7 +20,7 @@ export default class HamburgerMenu {
             { key: 'inventory', label: 'Inventory', icon: '🎒', shortcut: 'I', action: () => this.navigateToInventory() },
             { key: 'shop', label: 'Shop', icon: '🛒', shortcut: 'S', action: () => this.navigateToShop() },
             { key: 'hub', label: 'Hub World', icon: '🌌', shortcut: 'H', action: () => this.navigateToHub() },
-            { key: 'breeding', label: 'Breeding Shrine', icon: '💫', shortcut: 'B', action: () => this.navigateToBreeding() },
+            { key: 'fusion', label: 'Fusion Pod', icon: '🧬', shortcut: 'F', action: () => this.navigateToFusion() },
             { key: 'collection', label: 'Switch Creature', icon: '🔄', shortcut: 'C', action: () => this.showCreatureSwitcher() }
         ];
     }
@@ -308,9 +308,9 @@ export default class HamburgerMenu {
         this.scene.scene.start('HubWorldScene');
     }
 
-    navigateToBreeding() {
-        devLog('[HamburgerMenu] Navigate to Breeding');
-        this.scene.scene.start('BreedingShrineScene');
+    navigateToFusion() {
+        devLog('[HamburgerMenu] Navigate to Fusion Pod');
+        this.scene.scene.start('FusionPodScene');
     }
 
     showCreatureSwitcher() {

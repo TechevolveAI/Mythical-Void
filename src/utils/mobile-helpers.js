@@ -171,10 +171,15 @@ export class MobileHelpers {
 
     /**
      * Enable haptic feedback on mobile (if supported)
+     * Wrapped in try-catch to handle browser security restrictions
      */
     static vibrate(duration = 50) {
-        if (this.isMobile() && navigator.vibrate) {
-            navigator.vibrate(duration);
+        try {
+            if (this.isMobile() && navigator.vibrate) {
+                navigator.vibrate(duration);
+            }
+        } catch (e) {
+            // Silently ignore - browser may block vibration before user gesture
         }
     }
 }

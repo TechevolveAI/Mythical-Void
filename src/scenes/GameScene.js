@@ -4517,27 +4517,27 @@ class GameScene extends Phaser.Scene {
         this.scene.launch('ShopScene');
     }
 
-    openBreedingShrine() {
-        // Guard against multiple calls while shrine is loading/open
-        if (this._breedingShrineOpening || this.scene.isActive('BreedingShrineScene')) {
-            console.log('[GameScene] Breeding shrine already opening or open, ignoring');
+    openFusionPod() {
+        // Guard against multiple calls while fusion pod is loading/open
+        if (this._fusionPodOpening || this.scene.isActive('FusionPodScene')) {
+            console.log('[GameScene] Fusion pod already opening or open, ignoring');
             return;
         }
 
-        // Check if breeding shrine is unlocked (level 5+)
-        const shrineStatus = getGameState().getBreedingShrineStatus?.();
+        // Check if fusion pod is unlocked (level 5+)
+        const fusionStatus = getGameState().getBreedingShrineStatus?.();
 
-        if (!shrineStatus?.unlocked) {
+        if (!fusionStatus?.unlocked) {
             const creatureLevel = getGameState().get('creature.level') || 1;
-            this.showInteractionHint(`Breeding Shrine unlocks at Level 5 (Current: ${creatureLevel})`);
+            this.showInteractionHint(`Fusion Pod unlocks at Level 5 (Current: ${creatureLevel})`);
             window.AudioManager?.playError?.();
             return;
         }
 
         // Set guard flag
-        this._breedingShrineOpening = true;
+        this._fusionPodOpening = true;
 
-        console.log('[GameScene] Opening Breeding Shrine');
+        console.log('[GameScene] Opening Fusion Pod');
 
         // Play button click sound
         if (window.AudioManager) {
@@ -4546,16 +4546,16 @@ class GameScene extends Phaser.Scene {
 
         // Show loading overlay
         if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Opening Breeding Shrine...');
+            window.UXEnhancements.showLoading('Opening Fusion Pod...');
         }
 
-        // Pause this scene and launch BreedingShrineScene on top
+        // Pause this scene and launch FusionPodScene on top
         this.scene.pause();
-        this.scene.launch('BreedingShrineScene');
+        this.scene.launch('FusionPodScene');
 
-        // Clear guard flag after a delay (BreedingShrineScene.create() will hide loading)
+        // Clear guard flag after a delay (FusionPodScene.create() will hide loading)
         this.time.delayedCall(1000, () => {
-            this._breedingShrineOpening = false;
+            this._fusionPodOpening = false;
         });
     }
 

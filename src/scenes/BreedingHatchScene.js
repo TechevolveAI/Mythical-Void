@@ -58,7 +58,7 @@ class BreedingHatchScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         // Stop other scenes
-        ['GameScene', 'BreedingShrineScene'].forEach(sceneKey => {
+        ['GameScene', 'FusionPodScene'].forEach(sceneKey => {
             try {
                 this.scene.stop(sceneKey);
             } catch (e) {

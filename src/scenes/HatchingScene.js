@@ -5,6 +5,7 @@
 
 import hatchCinematicsConfig from '../config/hatch-cinematics.json';
 import evolutionConfig from '../config/evolution.json';
+import rarityConfig from '../config/rarity-config.json';
 import MobileHelpers from '../utils/mobile-helpers.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
@@ -399,14 +400,9 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createEnhancedEgg(rarityKey = 'common') {
-        // Load rarity config if not already loaded
+        // Use pre-imported rarity config
         if (!this.rarityConfig) {
-            try {
-                this.rarityConfig = require('../config/rarity-config.json');
-            } catch (error) {
-                console.warn('hatching:warn [HatchingScene] Could not load rarity config, using defaults');
-                this.rarityConfig = {};
-            }
+            this.rarityConfig = rarityConfig || {};
         }
 
         // Get rarity-specific egg configuration
