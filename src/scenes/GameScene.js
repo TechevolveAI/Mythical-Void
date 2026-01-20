@@ -173,6 +173,16 @@ class GameScene extends Phaser.Scene {
         if (data?.spawnPosition) {
             this.spawnPosition = data.spawnPosition;
         }
+
+        // Handle return from Void mini-game
+        if (data?.returnFromVoid) {
+            this.returningFromVoid = true;
+            this.voidScore = data.voidScore || 0;
+            console.log(`[GameScene] Returning from Void with score: ${this.voidScore}`);
+        } else {
+            this.returningFromVoid = false;
+            this.voidScore = 0;
+        }
     }
 
     create() {
@@ -467,10 +477,19 @@ class GameScene extends Phaser.Scene {
             // Play home area background music
             if (window.AudioManager?.playAreaMusic) {
                 window.AudioManager.playAreaMusic('home');
+                console.log('[GameScene] Started sanctuary music');
             }
 
             // Start creature idle sounds based on stage and personality
             this.startCreatureIdleSounds();
+
+            // Show Void return feedback if applicable
+            if (this.returningFromVoid) {
+                this.time.delayedCall(500, () => {
+                    this.showVoidReturnToast(this.voidScore);
+                });
+                this.returningFromVoid = false;
+            }
 
             console.log('[GameScene] Scene created successfully');
         } catch (error) {
@@ -2452,6 +2471,12 @@ class GameScene extends Phaser.Scene {
             window.AudioManager.playLevelUp?.(); // Use level up sound for more celebratory feel
         }
 
+        // CRITICAL: Refresh mobile controls to fix joystick responsiveness after creature switch
+        // This recreates event handlers that may have become orphaned
+        if (this.mobileControls) {
+            this.mobileControls.refresh();
+        }
+
         console.log('[GameScene] Creature display refreshed with animation - skills and roster updated');
     }
 
@@ -2985,6 +3010,46 @@ class GameScene extends Phaser.Scene {
         gameState.set('session.showWelcomeToast', false);
         gameState.set('session.pendingWelcomeName', null);
         this.welcomeToastDisplayed = true;
+    }
+
+    showVoidReturnToast(voidScore) {
+        const { width } = this.scale;
+
+        // Create toast container
+        const toast = this.add.text(width / 2, 120, `🌌 Returned from the Void! +${voidScore} coins collected`, {
+            fontSize: '18px',
+            color: '#E6E6FA',
+            backgroundColor: 'rgba(75, 0, 130, 0.85)',
+            padding: { x: 20, y: 12 },
+            align: 'center'
+        }).setOrigin(0.5);
+        toast.setScrollFactor(0);
+        toast.setDepth(4000);
+
+        // Slide in from top
+        toast.y = -50;
+        this.tweens.add({
+            targets: toast,
+            y: 120,
+            duration: 400,
+            ease: 'Back.easeOut'
+        });
+
+        // Fade out after delay
+        this.tweens.add({
+            targets: toast,
+            alpha: 0,
+            delay: 3000,
+            duration: 600,
+            onComplete: () => toast.destroy()
+        });
+
+        // Play celebration sound
+        if (window.AudioManager) {
+            window.AudioManager.playLevelUp?.();
+        }
+
+        console.log(`[GameScene] Void return toast shown for ${voidScore} coins`);
     }
 
     createCosmicMiniMap() {
@@ -7180,12 +7245,21 @@ class GameScene extends Phaser.Scene {
     cheatCycleStage() {
         if (window.GameState) {
             const stageOrder = ['baby', 'juvenile', 'adult', 'elder'];
+            // Days needed to reach each stage (used to calculate birthDate)
+            const stageDays = { baby: 0, juvenile: 1, adult: 3, elder: 10 };
+
             this.ownerStageIndex = ((this.ownerStageIndex || 0) + 1) % stageOrder.length;
             const newStage = stageOrder[this.ownerStageIndex];
 
-            // Update active creature slot
+            // Calculate birthDate to match the stage (so Fusion Pod's fallback calculation works)
+            const daysNeeded = stageDays[newStage];
+            const newBirthDate = Date.now() - (daysNeeded * 24 * 60 * 60 * 1000);
+            const now = Date.now();
+
+            // Update active creature slot with all required lifecycle fields
             window.GameState.set('creature.lifecycle.stage', newStage);
-            window.GameState.set('creature.lifecycle.lastStageChange', Date.now());
+            window.GameState.set('creature.lifecycle.birthDate', newBirthDate);
+            window.GameState.set('creature.lifecycle.lastStageChange', now);
 
             // ALSO update the creature in the creatures array (for breeding eligibility)
             const creatures = window.GameState.get('creatures') || [];
@@ -7195,15 +7269,21 @@ class GameScene extends Phaser.Scene {
                     creatures[activeIndex].lifecycle = {};
                 }
                 creatures[activeIndex].lifecycle.stage = newStage;
-                creatures[activeIndex].lifecycle.lastStageChange = Date.now();
+                creatures[activeIndex].lifecycle.birthDate = newBirthDate;
+                creatures[activeIndex].lifecycle.lastStageChange = now;
                 window.GameState.set('creatures', creatures);
             }
+
+            // Force save to persist changes
+            window.GameState.save?.();
 
             this.refreshCreatureDisplay();
 
             const stageIcons = { baby: '🐣', juvenile: '🌱', adult: '✨', elder: '👑' };
             this.showSecretCheatFeedback(`${stageIcons[newStage]} ${newStage}`, '#E040FB');
             window.AudioManager?.playLevelUp?.();
+
+            console.log(`[GameScene] Cheat: Stage cycled to ${newStage}, birthDate set to ${daysNeeded} days ago`);
         }
     }
 

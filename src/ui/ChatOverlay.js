@@ -1,5 +1,11 @@
 /**
- * ChatOverlay - Mobile-optimized chat UI overlay for creature conversations
+ * ChatOverlay - Modern mobile-optimized chat UI with creature avatar and message bubbles
+ *
+ * Features:
+ * - Creature avatar display in header
+ * - Message bubbles with distinct player/creature styling
+ * - Scrollable message history
+ * - Quick response buttons in compact grid
  */
 
 import { devLog } from '../utils/devLogger.js';
@@ -11,6 +17,7 @@ class ChatOverlay {
         this.elements = [];
         this.responseButtons = [];
         this.messageElements = [];
+        this.messages = []; // Store message data
     }
 
     /**
@@ -27,37 +34,30 @@ class ChatOverlay {
         this.isVisible = true;
         const { width, height } = this.scene.scale;
 
-        // Create dark overlay background
+        // Create semi-transparent overlay - not as dark
         this.overlay = this.scene.add.graphics();
-        this.overlay.fillStyle(0x000000, 0.75);
+        this.overlay.fillStyle(0x000000, 0.6);
         this.overlay.fillRect(0, 0, width, height);
         this.overlay.setDepth(5000);
         this.overlay.setScrollFactor(0);
         this.elements.push(this.overlay);
 
-        // Calculate panel dimensions - centered at bottom
-        const panelWidth = Math.min(width - 40, 420);
-        const panelHeight = Math.min(height * 0.6, 450);
+        // Calculate panel dimensions - more compact, bottom-centered
+        const panelWidth = Math.min(width - 30, 380);
+        const panelHeight = Math.min(height * 0.55, 420);
         const panelX = (width - panelWidth) / 2;
-        const panelY = height - panelHeight - 30;
+        const panelY = height - panelHeight - 25;
 
         // Store for positioning
         this.panelBounds = { x: panelX, y: panelY, width: panelWidth, height: panelHeight };
 
-        // Create main panel
-        this.panel = this.scene.add.graphics();
-        this.panel.fillStyle(0x1A1A3E, 0.95);
-        this.panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
-        this.panel.lineStyle(3, 0x7B68EE);
-        this.panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
-        this.panel.setDepth(5001);
-        this.panel.setScrollFactor(0);
-        this.elements.push(this.panel);
+        // Create main panel with gradient effect
+        this.createPanel();
 
-        // Create header
+        // Create header with avatar
         this.createHeader();
 
-        // Create message area
+        // Create message area with bubbles
         this.createMessageArea();
 
         // Get greeting and show it
@@ -66,9 +66,9 @@ class ChatOverlay {
 
         // Create response buttons
         const options = window.ChatManager?.getResponseOptions('general') || [
-            'How are you feeling?',
-            'Want to play?',
-            'Tell me about your day',
+            'How are you?',
+            'Let\'s play!',
+            'Tell me something',
             'I love you!'
         ];
         this.createResponseButtons(options);
@@ -76,7 +76,6 @@ class ChatOverlay {
         // Make overlay close on tap outside panel
         this.overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
         this.overlay.on('pointerdown', (pointer) => {
-            // Check if click is outside panel
             if (pointer.x < panelX || pointer.x > panelX + panelWidth ||
                 pointer.y < panelY || pointer.y > panelY + panelHeight) {
                 this.hide();
@@ -91,26 +90,89 @@ class ChatOverlay {
             this.scene.input.keyboard.on('keydown', this.escHandler);
         }
 
-        // Play sound
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
         }
 
-        devLog('[ChatOverlay] Shown');
+        devLog('[ChatOverlay] Shown with enhanced UI');
     }
 
     /**
-     * Create header with title and close button
+     * Create main panel with modern styling
+     */
+    createPanel() {
+        const { x, y, width, height } = this.panelBounds;
+
+        // Outer glow effect
+        const glow = this.scene.add.graphics();
+        glow.fillStyle(0x7B68EE, 0.15);
+        glow.fillRoundedRect(x - 4, y - 4, width + 8, height + 8, 20);
+        glow.setDepth(5000);
+        glow.setScrollFactor(0);
+        this.elements.push(glow);
+
+        // Main panel
+        this.panel = this.scene.add.graphics();
+        // Gradient-like effect with layers
+        this.panel.fillStyle(0x1A1A3E, 0.98);
+        this.panel.fillRoundedRect(x, y, width, height, 16);
+        // Top highlight
+        this.panel.fillStyle(0x2D2D5E, 0.5);
+        this.panel.fillRoundedRect(x + 2, y + 2, width - 4, 40, { tl: 14, tr: 14, bl: 0, br: 0 });
+        // Border
+        this.panel.lineStyle(2, 0x9B7FEE, 0.8);
+        this.panel.strokeRoundedRect(x, y, width, height, 16);
+        this.panel.setDepth(5001);
+        this.panel.setScrollFactor(0);
+        this.elements.push(this.panel);
+    }
+
+    /**
+     * Create header with avatar and creature name
      */
     createHeader() {
         const { x, y, width } = this.panelBounds;
         const creatureName = window.GameState?.get('creature.name') || 'Creature';
+        const personality = window.GameState?.get('creature.personality')?.core || 'curious';
 
-        // Title
-        this.title = this.scene.add.text(
-            x + 20,
-            y + 15,
-            `Chat with ${creatureName}`,
+        // Avatar container (circular)
+        const avatarSize = 50;
+        const avatarX = x + 35;
+        const avatarY = y + 35;
+
+        // Avatar background circle
+        const avatarBg = this.scene.add.graphics();
+        avatarBg.fillStyle(0x2D2D5E, 1);
+        avatarBg.fillCircle(avatarX, avatarY, avatarSize / 2 + 3);
+        avatarBg.lineStyle(2, 0x9B7FEE, 1);
+        avatarBg.strokeCircle(avatarX, avatarY, avatarSize / 2 + 3);
+        avatarBg.setDepth(5002);
+        avatarBg.setScrollFactor(0);
+        this.elements.push(avatarBg);
+
+        // Try to get creature texture
+        const creatureTexture = window.GameState?.get('creature.textureName');
+        if (creatureTexture && this.scene.textures.exists(creatureTexture)) {
+            const avatar = this.scene.add.sprite(avatarX, avatarY, creatureTexture);
+            const maxDim = Math.max(avatar.width, avatar.height);
+            const scale = (avatarSize - 6) / maxDim;
+            avatar.setScale(scale);
+            avatar.setDepth(5003);
+            avatar.setScrollFactor(0);
+            this.elements.push(avatar);
+        } else {
+            // Fallback: emoji avatar
+            const emojiAvatar = this.scene.add.text(avatarX, avatarY, '🐾', {
+                fontSize: '28px'
+            }).setOrigin(0.5).setDepth(5003).setScrollFactor(0);
+            this.elements.push(emojiAvatar);
+        }
+
+        // Name and personality
+        const nameText = this.scene.add.text(
+            avatarX + avatarSize / 2 + 12,
+            y + 20,
+            creatureName,
             {
                 fontSize: '18px',
                 fontFamily: 'Arial',
@@ -118,30 +180,49 @@ class ChatOverlay {
                 fontStyle: 'bold'
             }
         ).setDepth(5002).setScrollFactor(0);
-        this.elements.push(this.title);
+        this.elements.push(nameText);
 
-        // Close button
-        const btnSize = 32;
-        const btnX = x + width - btnSize - 10;
-        const btnY = y + 10;
+        // Personality badge
+        const personalityEmojis = {
+            curious: '🔍',
+            playful: '🎮',
+            gentle: '💫',
+            wise: '📚',
+            energetic: '⚡'
+        };
+        const personalityBadge = this.scene.add.text(
+            avatarX + avatarSize / 2 + 12,
+            y + 42,
+            `${personalityEmojis[personality] || '✨'} ${personality}`,
+            {
+                fontSize: '12px',
+                fontFamily: 'Arial',
+                color: '#9B7FEE'
+            }
+        ).setDepth(5002).setScrollFactor(0);
+        this.elements.push(personalityBadge);
+
+        // Close button (top right)
+        const closeSize = 30;
+        const closeX = x + width - closeSize - 12;
+        const closeY = y + 12;
 
         const closeBtn = this.scene.add.graphics();
-        closeBtn.fillStyle(0xFF6B6B, 1);
-        closeBtn.fillCircle(btnX + btnSize/2, btnY + btnSize/2, btnSize/2);
+        closeBtn.fillStyle(0x3D3D6E, 1);
+        closeBtn.fillCircle(closeX + closeSize/2, closeY + closeSize/2, closeSize/2);
         closeBtn.setDepth(5003);
         closeBtn.setScrollFactor(0);
         this.elements.push(closeBtn);
 
         const closeText = this.scene.add.text(
-            btnX + btnSize/2,
-            btnY + btnSize/2,
+            closeX + closeSize/2,
+            closeY + closeSize/2,
             '✕',
-            { fontSize: '18px', color: '#FFFFFF', fontStyle: 'bold' }
+            { fontSize: '16px', color: '#AAAAAA', fontStyle: 'bold' }
         ).setOrigin(0.5).setDepth(5004).setScrollFactor(0);
         this.elements.push(closeText);
 
-        // Make close button interactive
-        const closeZone = this.scene.add.zone(btnX + btnSize/2, btnY + btnSize/2, btnSize, btnSize)
+        const closeZone = this.scene.add.zone(closeX + closeSize/2, closeY + closeSize/2, closeSize + 10, closeSize + 10)
             .setInteractive()
             .setDepth(5005)
             .setScrollFactor(0);
@@ -149,13 +230,15 @@ class ChatOverlay {
         closeZone.on('pointerdown', () => this.hide());
         closeZone.on('pointerover', () => {
             closeBtn.clear();
-            closeBtn.fillStyle(0xFF8888, 1);
-            closeBtn.fillCircle(btnX + btnSize/2, btnY + btnSize/2, btnSize/2);
+            closeBtn.fillStyle(0x6B5B95, 1);
+            closeBtn.fillCircle(closeX + closeSize/2, closeY + closeSize/2, closeSize/2);
+            closeText.setColor('#FFFFFF');
         });
         closeZone.on('pointerout', () => {
             closeBtn.clear();
-            closeBtn.fillStyle(0xFF6B6B, 1);
-            closeBtn.fillCircle(btnX + btnSize/2, btnY + btnSize/2, btnSize/2);
+            closeBtn.fillStyle(0x3D3D6E, 1);
+            closeBtn.fillCircle(closeX + closeSize/2, closeY + closeSize/2, closeSize/2);
+            closeText.setColor('#AAAAAA');
         });
         this.elements.push(closeZone);
     }
@@ -166,56 +249,125 @@ class ChatOverlay {
     createMessageArea() {
         const { x, y, width, height } = this.panelBounds;
 
-        // Message area background
-        const msgAreaY = y + 55;
-        const msgAreaHeight = height - 200; // Leave room for buttons
+        // Message area starts below header
+        const msgAreaY = y + 70;
+        const msgAreaHeight = height - 185; // Leave room for buttons
 
+        // Message area background
         const msgBg = this.scene.add.graphics();
-        msgBg.fillStyle(0x0D0D1F, 0.8);
-        msgBg.fillRoundedRect(x + 15, msgAreaY, width - 30, msgAreaHeight, 10);
+        msgBg.fillStyle(0x12122A, 0.9);
+        msgBg.fillRoundedRect(x + 10, msgAreaY, width - 20, msgAreaHeight, 10);
         msgBg.setDepth(5002);
         msgBg.setScrollFactor(0);
         this.elements.push(msgBg);
 
         // Store message area bounds
         this.messageArea = {
-            x: x + 25,
+            x: x + 18,
             y: msgAreaY + 10,
-            width: width - 50,
+            width: width - 36,
             height: msgAreaHeight - 20,
-            currentY: msgAreaY + 10
+            currentY: msgAreaY + 10,
+            maxY: msgAreaY + msgAreaHeight - 20
         };
     }
 
     /**
-     * Add a message bubble
+     * Add a message bubble with proper styling
      */
     addMessage(speaker, text) {
-        const { x, width, currentY } = this.messageArea;
+        const { x, width, currentY, maxY } = this.messageArea;
         const isCreature = speaker === 'creature';
 
-        // Create message text to measure
+        // Calculate bubble dimensions
+        const maxBubbleWidth = width * 0.85;
+        const padding = 10;
+
+        // Create temporary text to measure
+        const tempText = this.scene.add.text(0, 0, text, {
+            fontSize: '13px',
+            fontFamily: 'Arial',
+            wordWrap: { width: maxBubbleWidth - padding * 2 }
+        });
+        const textHeight = tempText.height;
+        const textWidth = Math.min(tempText.width, maxBubbleWidth - padding * 2);
+        tempText.destroy();
+
+        const bubbleWidth = textWidth + padding * 2 + 8;
+        const bubbleHeight = textHeight + padding * 2;
+
+        // Check if we need to scroll/clear old messages
+        if (currentY + bubbleHeight > maxY) {
+            // Remove oldest message if too many
+            if (this.messageElements.length > 4) {
+                const toRemove = this.messageElements.shift();
+                if (toRemove) {
+                    if (toRemove.bubble) toRemove.bubble.destroy();
+                    if (toRemove.text) toRemove.text.destroy();
+                }
+                // Shift remaining messages up
+                this.messageArea.currentY = this.messageArea.y;
+                this.messageElements.forEach(el => {
+                    if (el.bubble) el.bubble.y -= bubbleHeight + 8;
+                    if (el.text) el.text.y -= bubbleHeight + 8;
+                });
+            }
+        }
+
+        // Calculate bubble position
+        const bubbleX = isCreature ? x : x + width - bubbleWidth;
+        const bubbleY = this.messageArea.currentY;
+
+        // Create bubble background
+        const bubble = this.scene.add.graphics();
+        if (isCreature) {
+            // Creature bubble - purple gradient
+            bubble.fillStyle(0x4A3A7A, 1);
+            bubble.fillRoundedRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 12);
+            // Small tail on left
+            bubble.fillTriangle(
+                bubbleX + 8, bubbleY + bubbleHeight - 5,
+                bubbleX - 5, bubbleY + bubbleHeight,
+                bubbleX + 8, bubbleY + bubbleHeight
+            );
+        } else {
+            // Player bubble - teal/cyan
+            bubble.fillStyle(0x2A5A6A, 1);
+            bubble.fillRoundedRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 12);
+            // Small tail on right
+            bubble.fillTriangle(
+                bubbleX + bubbleWidth - 8, bubbleY + bubbleHeight - 5,
+                bubbleX + bubbleWidth + 5, bubbleY + bubbleHeight,
+                bubbleX + bubbleWidth - 8, bubbleY + bubbleHeight
+            );
+        }
+        bubble.setDepth(5003);
+        bubble.setScrollFactor(0);
+        this.elements.push(bubble);
+
+        // Create message text
         const msgText = this.scene.add.text(
-            isCreature ? x : x + width,
-            currentY,
+            bubbleX + padding + 4,
+            bubbleY + padding,
             text,
             {
-                fontSize: '14px',
+                fontSize: '13px',
                 fontFamily: 'Arial',
                 color: '#FFFFFF',
-                wordWrap: { width: width - 20 }
+                wordWrap: { width: maxBubbleWidth - padding * 2 }
             }
-        ).setOrigin(isCreature ? 0 : 1, 0).setDepth(5003).setScrollFactor(0);
-
+        ).setDepth(5004).setScrollFactor(0);
         this.elements.push(msgText);
-        this.messageElements.push(msgText);
+
+        // Store message elements
+        this.messageElements.push({ bubble, text: msgText });
 
         // Update Y position for next message
-        this.messageArea.currentY = currentY + msgText.height + 15;
+        this.messageArea.currentY = bubbleY + bubbleHeight + 8;
     }
 
     /**
-     * Create response buttons in 2x2 grid
+     * Create response buttons in 2x2 grid with compact styling
      */
     createResponseButtons(options) {
         // Clear existing buttons
@@ -227,10 +379,10 @@ class ChatOverlay {
         this.responseButtons = [];
 
         const { x, y, width, height } = this.panelBounds;
-        const buttonAreaY = y + height - 135;
-        const buttonWidth = (width - 50) / 2;
-        const buttonHeight = 50;
-        const gap = 10;
+        const buttonAreaY = y + height - 105;
+        const buttonWidth = (width - 40) / 2;
+        const buttonHeight = 42;
+        const gap = 8;
 
         // Take up to 4 options
         const displayOptions = options.slice(0, 4);
@@ -239,33 +391,37 @@ class ChatOverlay {
             const col = index % 2;
             const row = Math.floor(index / 2);
 
-            const btnX = x + 15 + col * (buttonWidth + gap);
+            const btnX = x + 12 + col * (buttonWidth + gap);
             const btnY = buttonAreaY + row * (buttonHeight + gap);
 
-            // Button background
+            // Button background with gradient effect
             const btnBg = this.scene.add.graphics();
-            btnBg.fillStyle(0x6B5B95, 1);
+            btnBg.fillStyle(0x5B4B85, 1);
             btnBg.fillRoundedRect(btnX, btnY, buttonWidth, buttonHeight, 8);
+            // Top highlight
+            btnBg.fillStyle(0x6B5B95, 0.5);
+            btnBg.fillRoundedRect(btnX + 1, btnY + 1, buttonWidth - 2, buttonHeight / 2, { tl: 7, tr: 7, bl: 0, br: 0 });
             btnBg.setDepth(5002);
             btnBg.setScrollFactor(0);
             this.elements.push(btnBg);
 
-            // Button text
+            // Truncate long options
+            const displayText = option.length > 20 ? option.substring(0, 18) + '...' : option;
+
             const btnText = this.scene.add.text(
                 btnX + buttonWidth / 2,
                 btnY + buttonHeight / 2,
-                option,
+                displayText,
                 {
-                    fontSize: '13px',
+                    fontSize: '12px',
                     fontFamily: 'Arial',
                     color: '#FFFFFF',
                     align: 'center',
-                    wordWrap: { width: buttonWidth - 10 }
+                    wordWrap: { width: buttonWidth - 12 }
                 }
             ).setOrigin(0.5).setDepth(5003).setScrollFactor(0);
             this.elements.push(btnText);
 
-            // Interactive zone
             const zone = this.scene.add.zone(btnX + buttonWidth/2, btnY + buttonHeight/2, buttonWidth, buttonHeight)
                 .setInteractive()
                 .setDepth(5004)
@@ -274,13 +430,17 @@ class ChatOverlay {
             zone.on('pointerdown', () => this.onOptionSelected(option));
             zone.on('pointerover', () => {
                 btnBg.clear();
-                btnBg.fillStyle(0x8B7BB5, 1);
+                btnBg.fillStyle(0x7B6BA5, 1);
                 btnBg.fillRoundedRect(btnX, btnY, buttonWidth, buttonHeight, 8);
+                btnBg.fillStyle(0x8B7BB5, 0.5);
+                btnBg.fillRoundedRect(btnX + 1, btnY + 1, buttonWidth - 2, buttonHeight / 2, { tl: 7, tr: 7, bl: 0, br: 0 });
             });
             zone.on('pointerout', () => {
                 btnBg.clear();
-                btnBg.fillStyle(0x6B5B95, 1);
+                btnBg.fillStyle(0x5B4B85, 1);
                 btnBg.fillRoundedRect(btnX, btnY, buttonWidth, buttonHeight, 8);
+                btnBg.fillStyle(0x6B5B95, 0.5);
+                btnBg.fillRoundedRect(btnX + 1, btnY + 1, buttonWidth - 2, buttonHeight / 2, { tl: 7, tr: 7, bl: 0, br: 0 });
             });
 
             this.elements.push(zone);
@@ -292,7 +452,6 @@ class ChatOverlay {
      * Handle option selection
      */
     onOptionSelected(option) {
-        // Play sound
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
         }
@@ -304,8 +463,8 @@ class ChatOverlay {
         const response = window.ChatManager?.getCreatureResponse(option);
         if (!response) return;
 
-        // Add creature response with slight delay
-        this.scene.time.delayedCall(300, () => {
+        // Add creature response with slight delay for realism
+        this.scene.time.delayedCall(400, () => {
             this.addMessage('creature', response.text);
 
             // Apply mood boost
@@ -320,30 +479,32 @@ class ChatOverlay {
     }
 
     /**
-     * Show mood boost feedback
+     * Show mood boost feedback with animation
      */
     showMoodBoostFeedback(amount) {
-        const { width, height } = this.scene.scale;
+        const { x, y, width } = this.panelBounds;
 
         const feedback = this.scene.add.text(
-            width / 2,
-            height / 2 - 50,
-            `+${amount} 💬`,
+            x + width / 2,
+            y - 20,
+            `+${amount} 💜`,
             {
-                fontSize: '24px',
+                fontSize: '22px',
                 fontFamily: 'Arial',
-                color: '#FFD700',
+                color: '#E066FF',
                 fontStyle: 'bold',
-                stroke: '#000000',
-                strokeThickness: 4
+                stroke: '#2D1B4E',
+                strokeThickness: 3
             }
         ).setOrigin(0.5).setDepth(5100).setScrollFactor(0);
 
         this.scene.tweens.add({
             targets: feedback,
-            y: feedback.y - 60,
-            alpha: 0,
-            duration: 1500,
+            y: feedback.y - 50,
+            alpha: { from: 1, to: 0 },
+            scale: { from: 1, to: 1.3 },
+            duration: 1200,
+            ease: 'Power2',
             onComplete: () => feedback.destroy()
         });
     }
@@ -357,7 +518,6 @@ class ChatOverlay {
         this.cleanup();
         this.isVisible = false;
 
-        // Play sound
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
         }
@@ -369,13 +529,11 @@ class ChatOverlay {
      * Cleanup all elements
      */
     cleanup() {
-        // Remove keyboard listener
         if (this.escHandler && this.scene.input?.keyboard) {
             this.scene.input.keyboard.off('keydown', this.escHandler);
             this.escHandler = null;
         }
 
-        // Destroy all elements
         this.elements.forEach(el => {
             if (el && el.destroy) {
                 el.destroy();
@@ -387,7 +545,6 @@ class ChatOverlay {
         this.messageElements = [];
         this.overlay = null;
         this.panel = null;
-        this.title = null;
     }
 
     /**

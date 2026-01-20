@@ -197,6 +197,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
                     // Resume game
                     this.physics.resume();
+                    // Show mobile controls now that intro is dismissed
+                    this.showPlatformerMobileControls();
                 }
             });
         });
@@ -1055,58 +1057,79 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Create boss health bar UI
+     * Create boss health bar UI with enhanced visibility
      */
     createBossHealthBar() {
-        const { width } = this.cameras.main;
-        const barWidth = 300;
-        const barHeight = 20;
-        const barX = (width - barWidth) / 2;
-        const barY = 80;
+        const screenWidth = this.cameras.main.width;
+        const barWidth = Math.min(320, screenWidth - 60);
+        const barHeight = 26;
+        const barX = (screenWidth - barWidth) / 2;
+        const barY = 55;
+
+        // Store for updateBossHealthBar
+        this.bossBarConfig = { x: barX, y: barY, width: barWidth, height: barHeight };
 
         // Container for boss UI
         this.bossUI = this.add.container(0, 0);
         this.bossUI.setScrollFactor(0);
         this.bossUI.setDepth(1500);
 
-        // Boss name
-        this.bossNameText = this.add.text(width / 2, barY - 25, 'CRYSTAL GOLEM', {
-            fontSize: '18px',
-            color: '#FF4500',
+        // Boss name with enhanced visibility
+        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, '⚔️ CRYSTAL GOLEM ⚔️', {
+            fontSize: '22px',
+            color: '#FF6B4A',
             fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 2
+            stroke: '#2D1B4E',
+            strokeThickness: 4
         }).setOrigin(0.5);
         this.bossUI.add(this.bossNameText);
 
-        // Health bar background
+        // Subtitle
+        const subtitle = this.add.text(screenWidth / 2, barY - 8, 'Guardian of the Caves', {
+            fontSize: '11px',
+            color: '#9B7FEE'
+        }).setOrigin(0.5);
+        this.bossUI.add(subtitle);
+
+        // Health bar background with glow
         const barBg = this.add.graphics();
-        barBg.fillStyle(0x1A1025, 1);
-        barBg.fillRoundedRect(barX, barY, barWidth, barHeight, 5);
-        barBg.lineStyle(2, 0x7B68EE, 1);
-        barBg.strokeRoundedRect(barX, barY, barWidth, barHeight, 5);
+        // Glow layer
+        barBg.fillStyle(0x7B68EE, 0.2);
+        barBg.fillRoundedRect(barX - 6, barY - 2, barWidth + 12, barHeight + 14, 10);
+        // Main background
+        barBg.fillStyle(0x1A1025, 0.95);
+        barBg.fillRoundedRect(barX - 2, barY + 2, barWidth + 4, barHeight + 4, 6);
+        barBg.lineStyle(3, 0x7B68EE, 0.9);
+        barBg.strokeRoundedRect(barX - 2, barY + 2, barWidth + 4, barHeight + 4, 6);
         this.bossUI.add(barBg);
 
         // Health bar fill
         this.bossHealthBar = this.add.graphics();
-        this.updateBossHealthBar();
         this.bossUI.add(this.bossHealthBar);
+
+        this.updateBossHealthBar();
+
+        // Camera zoom out for better boss visibility
+        this.tweens.add({
+            targets: this.cameras.main,
+            zoom: 0.92,
+            duration: 800,
+            ease: 'Power2'
+        });
+
+        // Start off-screen boss indicator
+        this.startBossIndicator();
     }
 
     /**
      * Update boss health bar display
      */
     updateBossHealthBar() {
-        if (!this.bossHealthBar) return;
+        if (!this.bossHealthBar || !this.bossBarConfig) return;
 
-        const { width } = this.cameras.main;
-        const barWidth = 300;
-        const barHeight = 20;
-        const barX = (width - barWidth) / 2;
-        const barY = 80;
-
+        const { x, y, width, height } = this.bossBarConfig;
         const healthPercent = this.bossHealth / this.bossMaxHealth;
-        const fillWidth = (barWidth - 6) * healthPercent;
+        const fillWidth = (width - 4) * healthPercent;
 
         this.bossHealthBar.clear();
 
@@ -1118,8 +1141,84 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             fillColor = 0xFFA500; // Orange when damaged
         }
 
+        // Health fill
         this.bossHealthBar.fillStyle(fillColor, 1);
-        this.bossHealthBar.fillRoundedRect(barX + 3, barY + 3, fillWidth, barHeight - 6, 3);
+        this.bossHealthBar.fillRoundedRect(x, y + 4, fillWidth, height, 4);
+
+        // Inner highlight
+        if (healthPercent > 0.1) {
+            this.bossHealthBar.fillStyle(0xFFFFFF, 0.2);
+            this.bossHealthBar.fillRoundedRect(x + 2, y + 6, fillWidth - 4, height / 3, 2);
+        }
+    }
+
+    /**
+     * Off-screen boss indicator
+     */
+    startBossIndicator() {
+        this.bossIndicator = this.add.graphics();
+        this.bossIndicator.setScrollFactor(0);
+        this.bossIndicator.setDepth(1499);
+        this.bossIndicator.setAlpha(0);
+
+        this.bossIndicatorTimer = this.time.addEvent({
+            delay: 50,
+            callback: () => this.updateBossIndicator(),
+            loop: true
+        });
+    }
+
+    updateBossIndicator() {
+        if (!this.boss || !this.bossIndicator || this.bossDefeated) return;
+
+        const camera = this.cameras.main;
+        const screenWidth = camera.width;
+        const screenHeight = camera.height;
+
+        const bossScreenX = this.boss.x - camera.scrollX;
+        const bossScreenY = this.boss.y - camera.scrollY;
+
+        const padding = 80;
+        const isOffScreen = bossScreenX < -padding || bossScreenX > screenWidth + padding ||
+                           bossScreenY < -padding || bossScreenY > screenHeight + padding;
+
+        if (isOffScreen && this.bossFightActive) {
+            this.bossIndicator.setAlpha(0.9);
+            this.bossIndicator.clear();
+
+            const playerScreenX = this.player.x - camera.scrollX;
+            const playerScreenY = this.player.y - camera.scrollY;
+            const angle = Math.atan2(bossScreenY - playerScreenY, bossScreenX - playerScreenX);
+
+            const indicatorDist = Math.min(screenWidth, screenHeight) * 0.35;
+            let indicatorX = playerScreenX + Math.cos(angle) * indicatorDist;
+            let indicatorY = playerScreenY + Math.sin(angle) * indicatorDist;
+
+            indicatorX = Phaser.Math.Clamp(indicatorX, 50, screenWidth - 50);
+            indicatorY = Phaser.Math.Clamp(indicatorY, 100, screenHeight - 150);
+
+            // Arrow pointing to boss
+            this.bossIndicator.fillStyle(0xFF6B4A, 1);
+            const arrowSize = 18;
+
+            this.bossIndicator.save();
+            this.bossIndicator.translateCanvas(indicatorX, indicatorY);
+            this.bossIndicator.rotateCanvas(angle);
+
+            this.bossIndicator.fillTriangle(
+                arrowSize, 0,
+                -arrowSize / 2, -arrowSize / 2,
+                -arrowSize / 2, arrowSize / 2
+            );
+
+            const pulseSize = 7 + Math.sin(this.time.now / 200) * 3;
+            this.bossIndicator.fillStyle(0xFF4500, 0.6);
+            this.bossIndicator.fillCircle(-arrowSize, 0, pulseSize);
+
+            this.bossIndicator.restore();
+        } else {
+            this.bossIndicator.setAlpha(0);
+        }
     }
 
     /**
@@ -1791,6 +1890,21 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.bossAttackTimer) {
             this.bossAttackTimer.remove();
             this.bossAttackTimer = null;
+        }
+
+        // Clean up boss indicator
+        if (this.bossIndicatorTimer) {
+            this.bossIndicatorTimer.remove();
+            this.bossIndicatorTimer = null;
+        }
+        if (this.bossIndicator) {
+            this.bossIndicator.destroy();
+            this.bossIndicator = null;
+        }
+
+        // Reset camera zoom
+        if (this.cameras?.main) {
+            this.cameras.main.setZoom(1.0);
         }
 
         // Destroy boss

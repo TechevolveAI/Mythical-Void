@@ -209,8 +209,14 @@ class MobileControls {
             return;
         }
 
+        // ALWAYS clean up existing event handlers first to prevent duplicates
+        // This is critical when show() is called multiple times (e.g., after creature switch)
+        this.cleanupEventHandlers();
+
         if (this.isVisible) {
-            console.log('[MobileControls] Already visible');
+            console.log('[MobileControls] Already visible, refreshing handlers');
+            // Even if visible, we've cleaned up handlers, so recreate joystick handlers
+            this.createVirtualJoystick();
             return;
         }
 
@@ -262,28 +268,21 @@ class MobileControls {
     }
 
     /**
-     * Hide mobile controls
+     * Clean up all event handlers (can be called independently)
+     * This ensures handlers are removed even if isVisible is out of sync
      */
-    hide() {
-        if (!this.isVisible) return;
-
-        // Clean up resize handler
-        if (this.resizeHandler) {
-            this.scene.scale.off('resize', this.resizeHandler);
-            this.resizeHandler = null;
-        }
-
-        // Clean up scene-level event listeners FIRST (prevents memory leaks)
-        if (this.scenePointerMoveHandler) {
+    cleanupEventHandlers() {
+        // Clean up scene-level event listeners
+        if (this.scenePointerMoveHandler && this.scene?.input) {
             this.scene.input.off('pointermove', this.scenePointerMoveHandler);
             this.scenePointerMoveHandler = null;
         }
-        if (this.scenePointerUpHandler) {
+        if (this.scenePointerUpHandler && this.scene?.input) {
             this.scene.input.off('pointerup', this.scenePointerUpHandler);
             this.scenePointerUpHandler = null;
         }
         // Clean up native touch listeners
-        if (this.sceneTouchCancelHandler && this.scene.game?.canvas) {
+        if (this.sceneTouchCancelHandler && this.scene?.game?.canvas) {
             this.scene.game.canvas.removeEventListener('touchend', this.sceneTouchCancelHandler);
             this.scene.game.canvas.removeEventListener('touchcancel', this.sceneTouchCancelHandler);
             this.sceneTouchCancelHandler = null;
@@ -292,6 +291,23 @@ class MobileControls {
         // Reset joystick state
         this.joystickActive = false;
         this.activePointerId = null;
+    }
+
+    /**
+     * Hide mobile controls
+     */
+    hide() {
+        // ALWAYS clean up event handlers first (even if not visible)
+        // This prevents orphaned handlers when state gets out of sync
+        this.cleanupEventHandlers();
+
+        if (!this.isVisible) return;
+
+        // Clean up resize handler
+        if (this.resizeHandler) {
+            this.scene.scale.off('resize', this.resizeHandler);
+            this.resizeHandler = null;
+        }
 
         // Destroy joystick
         if (this.joystickGlow) this.joystickGlow.destroy();
@@ -932,6 +948,34 @@ class MobileControls {
         const icon = this.actionButtons.interact.icon;
         icon.setText(newIcon);
         console.log('[MobileControls] Interact icon updated to:', newIcon);
+    }
+
+    /**
+     * Refresh mobile controls - resets joystick and ensures handlers are properly attached
+     * Call this when game state changes (e.g., creature switching) to ensure responsiveness
+     */
+    refresh() {
+        if (!this.isVisible) return;
+
+        console.log('[MobileControls] Refreshing controls');
+
+        // Reset joystick to center
+        this.resetJoystick();
+
+        // Clean up and recreate handlers to ensure they're properly attached
+        this.cleanupEventHandlers();
+
+        // Recreate the joystick with fresh handlers
+        // First destroy the old visual elements
+        if (this.joystickGlow) this.joystickGlow.destroy();
+        if (this.joystickBase) this.joystickBase.destroy();
+        if (this.joystickThumb) this.joystickThumb.destroy();
+        if (this.joystickZone) this.joystickZone.destroy();
+
+        // Recreate the joystick
+        this.createVirtualJoystick();
+
+        console.log('[MobileControls] Refresh complete - joystick reset and handlers recreated');
     }
 
     /**

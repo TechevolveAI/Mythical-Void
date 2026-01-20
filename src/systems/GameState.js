@@ -683,6 +683,8 @@ class GameStateManager {
             previousCreature.level = this.get('creature.level');
             previousCreature.experience = this.get('creature.experience');
             previousCreature.personalityState = this.get('creature.personalityState');
+            // Save lifecycle state back to collection (critical for stage cycling)
+            previousCreature.lifecycle = { ...this.get('creature.lifecycle') };
             creatures[previousIndex] = previousCreature;
         }
 
@@ -701,6 +703,12 @@ class GameStateManager {
         this.set('creature.textureName', newCreature.textureName);
         this.set('creature.hatched', true);
         this.set('creature.named', true);
+        // Load lifecycle from collection (critical for Fusion Pod to recognize stage)
+        this.set('creature.lifecycle', newCreature.lifecycle || {
+            stage: 'baby',
+            birthDate: Date.now(),
+            lastStageChange: Date.now()
+        });
 
         this.set('creatures', creatures);
 

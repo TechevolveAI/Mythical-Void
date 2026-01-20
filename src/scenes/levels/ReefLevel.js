@@ -262,6 +262,8 @@ class ReefLevel extends PlatformerLevelScene {
                     allElements.forEach(el => el.destroy());
                     this.physics.resume();
                     this.startCosmicAmbience();
+                    // Show mobile controls now that intro is dismissed
+                    this.showPlatformerMobileControls();
                 }
             });
         });
@@ -1577,50 +1579,173 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     createBossHealthBar() {
-        const barWidth = 350;
-        const barHeight = 25;
-        const x = 5600 - barWidth / 2;
-        const y = 60;
+        // Use SCREEN coordinates (center of camera view)
+        const screenWidth = this.cameras.main.width;
+        const barWidth = Math.min(350, screenWidth - 60);
+        const barHeight = 28;
+        const x = (screenWidth - barWidth) / 2;
+        const y = 55;
 
-        this.bossHealthBg = this.add.graphics();
-        this.bossHealthBg.setScrollFactor(0);
-        this.bossHealthBg.setDepth(1000);
-        this.bossHealthBg.fillStyle(0x1A0030, 0.9);
-        this.bossHealthBg.fillRoundedRect(x - 5, y - 5, barWidth + 10, barHeight + 10, 8);
-        this.bossHealthBg.lineStyle(2, 0x9B30FF, 0.8);
-        this.bossHealthBg.strokeRoundedRect(x - 5, y - 5, barWidth + 10, barHeight + 10, 8);
+        // Boss UI container for all elements
+        this.bossUI = this.add.container(0, 0);
+        this.bossUI.setScrollFactor(0);
+        this.bossUI.setDepth(1500); // Higher depth for visibility
 
-        this.bossHealthBar = this.add.graphics();
-        this.bossHealthBar.setScrollFactor(0);
-        this.bossHealthBar.setDepth(1001);
-
-        this.bossNameText = this.add.text(5600, y - 30, 'NYX\'VORAL', {
-            fontSize: '22px',
+        // Boss name with enhanced visibility
+        this.bossNameText = this.add.text(screenWidth / 2, y - 28, '⚔️ NYX\'VORAL ⚔️', {
+            fontSize: '24px',
             color: '#E066FF',
             fontStyle: 'bold',
-            stroke: '#4B0082',
-            strokeThickness: 4
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+            stroke: '#2D0050',
+            strokeThickness: 5
+        }).setOrigin(0.5).setScrollFactor(0);
+        this.bossUI.add(this.bossNameText);
+
+        // Subtitle
+        this.bossSubtitle = this.add.text(screenWidth / 2, y - 8, 'Void Serpent', {
+            fontSize: '12px',
+            color: '#9B7FEE'
+        }).setOrigin(0.5).setScrollFactor(0);
+        this.bossUI.add(this.bossSubtitle);
+
+        // Health bar background with glow
+        this.bossHealthBg = this.add.graphics();
+        this.bossHealthBg.setScrollFactor(0);
+        // Glow layer
+        this.bossHealthBg.fillStyle(0x9B30FF, 0.2);
+        this.bossHealthBg.fillRoundedRect(x - 8, y - 3, barWidth + 16, barHeight + 16, 12);
+        // Main background
+        this.bossHealthBg.fillStyle(0x1A0030, 0.95);
+        this.bossHealthBg.fillRoundedRect(x - 3, y + 2, barWidth + 6, barHeight + 6, 8);
+        this.bossHealthBg.lineStyle(3, 0x9B30FF, 0.9);
+        this.bossHealthBg.strokeRoundedRect(x - 3, y + 2, barWidth + 6, barHeight + 6, 8);
+        this.bossUI.add(this.bossHealthBg);
+
+        // Health bar fill
+        this.bossHealthBar = this.add.graphics();
+        this.bossHealthBar.setScrollFactor(0);
+        this.bossUI.add(this.bossHealthBar);
+
+        // Store dimensions for updateBossHealthBar
+        this.bossBarConfig = { x, y: y + 5, width: barWidth, height: barHeight };
+
+        // Camera zoom out for better boss visibility
+        this.tweens.add({
+            targets: this.cameras.main,
+            zoom: 0.9,
+            duration: 1000,
+            ease: 'Power2'
+        });
 
         this.updateBossHealthBar();
+
+        // Start off-screen boss indicator updates
+        this.startBossIndicator();
     }
 
     updateBossHealthBar() {
-        const barWidth = 350;
-        const barHeight = 25;
-        const x = 5600 - barWidth / 2;
-        const y = 60;
+        if (!this.bossHealthBar || !this.bossBarConfig) return;
 
+        const { x, y, width, height } = this.bossBarConfig;
         this.bossHealthBar.clear();
 
         const healthPercent = this.bossHealth / this.bossMaxHealth;
 
+        // Color gradient based on health
         let color = 0xE066FF;
-        if (healthPercent < 0.3) color = 0xFF0066;
-        else if (healthPercent < 0.6) color = 0xFF69B4;
+        if (healthPercent < 0.25) color = 0xFF0066;
+        else if (healthPercent < 0.5) color = 0xFF69B4;
 
+        // Health fill
         this.bossHealthBar.fillStyle(color, 1);
-        this.bossHealthBar.fillRoundedRect(x, y, barWidth * healthPercent, barHeight, 5);
+        this.bossHealthBar.fillRoundedRect(x, y, width * healthPercent, height, 5);
+
+        // Inner highlight for depth
+        if (healthPercent > 0.1) {
+            this.bossHealthBar.fillStyle(0xFFFFFF, 0.2);
+            this.bossHealthBar.fillRoundedRect(x + 2, y + 2, (width * healthPercent) - 4, height / 3, 3);
+        }
+    }
+
+    /**
+     * Off-screen boss indicator - shows arrow pointing to boss when off-screen
+     */
+    startBossIndicator() {
+        // Create indicator arrow
+        this.bossIndicator = this.add.graphics();
+        this.bossIndicator.setScrollFactor(0);
+        this.bossIndicator.setDepth(1499);
+        this.bossIndicator.setAlpha(0);
+
+        // Update indicator position every frame
+        this.bossIndicatorTimer = this.time.addEvent({
+            delay: 50,
+            callback: () => this.updateBossIndicator(),
+            loop: true
+        });
+    }
+
+    updateBossIndicator() {
+        if (!this.boss || !this.bossIndicator || this.bossDefeated) return;
+
+        const camera = this.cameras.main;
+        const screenWidth = camera.width;
+        const screenHeight = camera.height;
+
+        // Get boss position relative to camera
+        const bossScreenX = this.boss.x - camera.scrollX;
+        const bossScreenY = this.boss.y - camera.scrollY;
+
+        // Check if boss is off-screen
+        const padding = 100;
+        const isOffScreen = bossScreenX < -padding || bossScreenX > screenWidth + padding ||
+                           bossScreenY < -padding || bossScreenY > screenHeight + padding;
+
+        if (isOffScreen && this.bossFightActive) {
+            // Show indicator pointing to boss
+            this.bossIndicator.setAlpha(0.9);
+            this.bossIndicator.clear();
+
+            // Calculate angle to boss
+            const playerScreenX = this.player.x - camera.scrollX;
+            const playerScreenY = this.player.y - camera.scrollY;
+            const angle = Math.atan2(bossScreenY - playerScreenY, bossScreenX - playerScreenX);
+
+            // Position indicator at edge of screen
+            const indicatorDist = Math.min(screenWidth, screenHeight) * 0.35;
+            let indicatorX = playerScreenX + Math.cos(angle) * indicatorDist;
+            let indicatorY = playerScreenY + Math.sin(angle) * indicatorDist;
+
+            // Clamp to screen bounds
+            indicatorX = Phaser.Math.Clamp(indicatorX, 50, screenWidth - 50);
+            indicatorY = Phaser.Math.Clamp(indicatorY, 100, screenHeight - 150);
+
+            // Draw arrow pointing to boss
+            this.bossIndicator.fillStyle(0xE066FF, 1);
+            const arrowSize = 20;
+
+            // Rotate arrow to point at boss
+            this.bossIndicator.save();
+            this.bossIndicator.translateCanvas(indicatorX, indicatorY);
+            this.bossIndicator.rotateCanvas(angle);
+
+            // Arrow shape
+            this.bossIndicator.fillTriangle(
+                arrowSize, 0,
+                -arrowSize / 2, -arrowSize / 2,
+                -arrowSize / 2, arrowSize / 2
+            );
+
+            // Pulsing circle behind
+            const pulseSize = 8 + Math.sin(this.time.now / 200) * 3;
+            this.bossIndicator.fillStyle(0xFF0066, 0.6);
+            this.bossIndicator.fillCircle(-arrowSize, 0, pulseSize);
+
+            this.bossIndicator.restore();
+        } else {
+            // Hide indicator when boss is on-screen
+            this.bossIndicator.setAlpha(0);
+        }
     }
 
     startBossAI() {
@@ -2079,6 +2204,25 @@ class ReefLevel extends PlatformerLevelScene {
 
         if (this.bossAttackTimer) {
             this.bossAttackTimer.remove();
+        }
+
+        // Clean up boss indicator
+        if (this.bossIndicatorTimer) {
+            this.bossIndicatorTimer.remove();
+            this.bossIndicatorTimer = null;
+        }
+        if (this.bossIndicator) {
+            this.bossIndicator.destroy();
+            this.bossIndicator = null;
+        }
+        if (this.bossUI) {
+            this.bossUI.destroy();
+            this.bossUI = null;
+        }
+
+        // Reset camera zoom
+        if (this.cameras?.main) {
+            this.cameras.main.setZoom(1.0);
         }
 
         this.nebulaParticles.forEach(p => p?.destroy());

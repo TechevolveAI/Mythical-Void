@@ -489,14 +489,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         camera.setDeadzone(camera.width * 0.2, camera.height * 0.4);
 
         // Camera follow offset - on mobile, push player UP on screen to leave room
-        // for controls at the bottom (controls take ~200px, offset compensates)
+        // for controls at the bottom (controls take ~200-250px, offset compensates)
         // Positive Y offset = camera looks lower = player appears HIGHER on screen
         let followOffsetY;
         if (isMobileDevice) {
-            // Mobile: significant offset to keep player in upper 60% of screen
-            // This leaves the bottom 40% for controls without obscuring gameplay
-            followOffsetY = screenHeight * 0.25;
-            console.log(`[PlatformerLevel] Mobile detected - applying camera offset for controls`);
+            // Mobile: larger offset to keep player in upper 55% of screen
+            // Controls (joystick + buttons) take ~200-250px from bottom
+            // Using 35% offset (increased from 25%) to prevent overlap
+            followOffsetY = screenHeight * 0.35;
+            console.log(`[PlatformerLevel] Mobile detected - applying enhanced camera offset for controls (35%)`);
         } else {
             // Desktop: slight offset for better ground visibility
             followOffsetY = screenHeight * 0.1;
@@ -747,6 +748,47 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.createMenuButton(marginLeft + 30, Math.max(40, safeArea.top + 20));
 
         console.log('[PlatformerLevel] Mobile controls created: Joystick + 4 action buttons + menu');
+
+        // CRITICAL: Hide controls initially - they'll be shown when intro screen is dismissed
+        // This prevents controls from being visible during level entry screens
+        this.hidePlatformerMobileControls();
+    }
+
+    /**
+     * Hide platformer mobile controls (during intro screens)
+     */
+    hidePlatformerMobileControls() {
+        if (!this.mobileControlElements || this.mobileControlElements.length === 0) return;
+
+        this.mobileControlElements.forEach(element => {
+            if (element && typeof element.setAlpha === 'function') {
+                element.setAlpha(0);
+            } else if (element && element.visible !== undefined) {
+                element.visible = false;
+            }
+        });
+
+        this.platformerControlsVisible = false;
+        console.log('[PlatformerLevel] Mobile controls hidden (for intro screen)');
+    }
+
+    /**
+     * Show platformer mobile controls (after intro screen is dismissed)
+     * Call this from subclass when level entry is dismissed
+     */
+    showPlatformerMobileControls() {
+        if (!this.isMobile || !this.mobileControlElements || this.mobileControlElements.length === 0) return;
+
+        this.mobileControlElements.forEach(element => {
+            if (element && typeof element.setAlpha === 'function') {
+                element.setAlpha(1);
+            } else if (element && element.visible !== undefined) {
+                element.visible = true;
+            }
+        });
+
+        this.platformerControlsVisible = true;
+        console.log('[PlatformerLevel] Mobile controls shown (intro dismissed)');
     }
 
     /**

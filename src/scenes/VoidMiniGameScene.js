@@ -98,12 +98,14 @@ class VoidMiniGameScene extends Phaser.Scene {
         // Create particle effects
         this.createVoidParticles(width, height);
 
-        // Show ad overlay first (60 seconds before playing)
+        // Start game IMMEDIATELY - gameplay runs in background
+        this.startGame();
+
+        // Show ad overlay ON TOP (semi-transparent so player can see gameplay)
+        // When ad completes, it just closes - game is already running
         this.showAdOverlay(() => {
-            // After ad completes, start countdown
-            this.showCountdown(() => {
-                this.startGame();
-            });
+            // Ad complete - award bonus for watching
+            this.awardAdCompletionBonus();
         });
 
         // Add resize handler
@@ -583,11 +585,12 @@ class VoidMiniGameScene extends Phaser.Scene {
     showAdOverlay(callback) {
         const { width, height } = this.scale;
 
-        console.log('[VoidMiniGameScene] Showing ad overlay for 60 seconds...');
+        console.log('[VoidMiniGameScene] Showing ad overlay (gameplay continues underneath)...');
 
-        // Semi-transparent dark overlay
+        // Semi-transparent overlay - reduced opacity so gameplay visible underneath
+        // NO setInteractive on overlay - allow click-through to gameplay
         const adOverlay = this.add.graphics();
-        adOverlay.fillStyle(0x000000, 0.85);
+        adOverlay.fillStyle(0x000000, 0.5);  // Reduced from 0.85 to 0.5 for visibility
         adOverlay.fillRect(0, 0, width, height);
         adOverlay.setDepth(1000);
         this.adOverlayElements.push(adOverlay);
@@ -758,6 +761,39 @@ class VoidMiniGameScene extends Phaser.Scene {
                 this.adOverlayElements = [];
             }
         });
+    }
+
+    awardAdCompletionBonus() {
+        // Award bonus coins for watching the full ad
+        const bonusCoins = 10;
+        this.score += bonusCoins;
+        this.scoreText?.setText(this.score.toString());
+
+        // Show floating bonus text
+        const { width, height } = this.scale;
+        const bonusText = this.add.text(width / 2, height / 2 - 50, `+${bonusCoins} Ad Bonus!`, {
+            fontSize: '24px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#00FF00',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(500);
+
+        this.tweens.add({
+            targets: bonusText,
+            y: bonusText.y - 80,
+            alpha: { from: 1, to: 0 },
+            duration: 2000,
+            onComplete: () => bonusText.destroy()
+        });
+
+        // Play reward sound
+        if (window.AudioManager) {
+            window.AudioManager.playCoinCollect?.();
+        }
+
+        console.log('[VoidMiniGameScene] Ad completion bonus awarded:', bonusCoins);
     }
 
     showCountdown(callback) {
