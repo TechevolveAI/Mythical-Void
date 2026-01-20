@@ -733,11 +733,13 @@ class MobileControls {
         icon.setDepth(10001);
 
         // Create larger interactive zone for easier touch
+        // CRITICAL: Zone needs high depth to stay above all game elements (campfire glow, etc.)
         const touchPadding = 8;
         const zone = this.scene.add.zone(x, y, size + touchPadding, size + touchPadding)
             .setOrigin(0.5)
             .setScrollFactor(0)
-            .setInteractive();
+            .setDepth(10002)
+            .setInteractive({ useHandCursor: false });
 
         // Handle touch events with enhanced feedback
         zone.on('pointerdown', () => {

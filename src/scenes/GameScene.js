@@ -700,21 +700,17 @@ class GameScene extends Phaser.Scene {
 
         // Create dark overlay for dramatic effect
         const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0);
+        overlay.fillStyle(0x000000, 0.8);
         overlay.fillRect(0, 0, width, height);
         overlay.setDepth(2000);
         overlay.setScrollFactor(0);
+        overlay.setAlpha(0);
 
-        // Fade to dark
+        // Fade in the overlay
         this.tweens.add({
             targets: overlay,
-            fillStyle: { value: 0.8 },
-            duration: 1000,
-            onUpdate: () => {
-                overlay.clear();
-                overlay.fillStyle(0x000000, overlay.alpha);
-                overlay.fillRect(0, 0, width, height);
-            }
+            alpha: 0.9,
+            duration: 1000
         });
 
         // Create golden border effect
@@ -4521,27 +4517,27 @@ class GameScene extends Phaser.Scene {
         this.scene.launch('ShopScene');
     }
 
-    openBreedingShrine() {
-        // Guard against multiple calls while shrine is loading/open
-        if (this._breedingShrineOpening || this.scene.isActive('BreedingShrineScene')) {
-            console.log('[GameScene] Breeding shrine already opening or open, ignoring');
+    openFusionPod() {
+        // Guard against multiple calls while fusion pod is loading/open
+        if (this._fusionPodOpening || this.scene.isActive('FusionPodScene')) {
+            console.log('[GameScene] Fusion pod already opening or open, ignoring');
             return;
         }
 
-        // Check if breeding shrine is unlocked (level 5+)
-        const shrineStatus = getGameState().getBreedingShrineStatus?.();
+        // Check if fusion pod is unlocked (level 5+)
+        const fusionStatus = getGameState().getBreedingShrineStatus?.();
 
-        if (!shrineStatus?.unlocked) {
+        if (!fusionStatus?.unlocked) {
             const creatureLevel = getGameState().get('creature.level') || 1;
-            this.showInteractionHint(`Breeding Shrine unlocks at Level 5 (Current: ${creatureLevel})`);
+            this.showInteractionHint(`Fusion Pod unlocks at Level 5 (Current: ${creatureLevel})`);
             window.AudioManager?.playError?.();
             return;
         }
 
         // Set guard flag
-        this._breedingShrineOpening = true;
+        this._fusionPodOpening = true;
 
-        console.log('[GameScene] Opening Breeding Shrine');
+        console.log('[GameScene] Opening Fusion Pod');
 
         // Play button click sound
         if (window.AudioManager) {
@@ -4550,16 +4546,16 @@ class GameScene extends Phaser.Scene {
 
         // Show loading overlay
         if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Opening Breeding Shrine...');
+            window.UXEnhancements.showLoading('Opening Fusion Pod...');
         }
 
-        // Pause this scene and launch BreedingShrineScene on top
+        // Pause this scene and launch FusionPodScene on top
         this.scene.pause();
-        this.scene.launch('BreedingShrineScene');
+        this.scene.launch('FusionPodScene');
 
-        // Clear guard flag after a delay (BreedingShrineScene.create() will hide loading)
+        // Clear guard flag after a delay (FusionPodScene.create() will hide loading)
         this.time.delayedCall(1000, () => {
-            this._breedingShrineOpening = false;
+            this._fusionPodOpening = false;
         });
     }
 
@@ -4713,7 +4709,7 @@ class GameScene extends Phaser.Scene {
     }
 
     handleSpaceInteraction() {
-        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
+        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCampfire:', this.nearCampfire, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
 
         // Distance-based fallback for portals (in case overlap detection missed)
         // Note: Void portal uses automatic pull-in, not spacebar - so no check needed here
@@ -4738,6 +4734,19 @@ class GameScene extends Phaser.Scene {
             if (distToReturn <= PORTAL_INTERACT_DISTANCE) {
                 console.log('[GameScene] Distance fallback: Player within range of return portal');
                 this.nearReturnPortal = true;
+            }
+        }
+
+        // Distance-based fallback for campfire (CRITICAL for mobile touch input)
+        const CAMPFIRE_INTERACT_DISTANCE = 120;
+        if (!this.nearCampfire && this.campfire && this.player) {
+            const distToCampfire = Phaser.Math.Distance.Between(
+                this.player.x, this.player.y,
+                this.campfire.x, this.campfire.y
+            );
+            if (distToCampfire <= CAMPFIRE_INTERACT_DISTANCE) {
+                console.log('[GameScene] Distance fallback: Player within range of campfire, distance:', distToCampfire);
+                this.nearCampfire = true;
             }
         }
 
@@ -5166,9 +5175,10 @@ class GameScene extends Phaser.Scene {
         }
 
         // Base speed with ability modifiers (Swift Paws, etc.)
-        let speed = 200;
+        // Increased from 200 to 320 for smoother, faster movement across sanctuary
+        let speed = 320;
         if (window.SecretAbilityManager) {
-            speed = window.SecretAbilityManager.getModifiedSpeed(200);
+            speed = window.SecretAbilityManager.getModifiedSpeed(320);
         }
         let velocityX = 0;
         let velocityY = 0;

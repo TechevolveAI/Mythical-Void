@@ -8,7 +8,7 @@ import NamingScene from './scenes/NamingScene.js';
 import GameScene from './scenes/GameScene.js';
 import ShopScene from './scenes/ShopScene.js';
 import InventoryScene from './scenes/InventoryScene.js';
-import BreedingShrineScene from './scenes/BreedingShrineScene.js';
+import FusionPodScene from './scenes/FusionPodScene.js';
 import BreedingHatchScene from './scenes/BreedingHatchScene.js';
 import HubWorldScene from './scenes/HubWorldScene.js';
 import CreatureProfileScene from './scenes/CreatureProfileScene.js';
@@ -16,6 +16,7 @@ import WelcomeBackScene from './scenes/WelcomeBackScene.js';
 import VoidMiniGameScene from './scenes/VoidMiniGameScene.js';
 import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
 import CrystalCavesLevel from './scenes/levels/CrystalCavesLevel.js';
+import ReefLevel from './scenes/levels/ReefLevel.js';
 import kidModeConfig from './config/kid-mode.json';
 import hatchCinematicsConfig from './config/hatch-cinematics.json';
 import biomesConfig from './config/biomes.json';
@@ -309,7 +310,7 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, BreedingShrineScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, PlatformerLevelScene, CrystalCavesLevel],
+            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,

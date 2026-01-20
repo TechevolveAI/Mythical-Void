@@ -19,10 +19,26 @@ export default class HubWorldScene extends Phaser.Scene {
         this._isShuttingDown = false;
     }
 
+    /**
+     * Reset state on scene start - called before create()
+     */
+    init() {
+        // CRITICAL: Reset all state flags on scene start
+        this.isTransitioning = false;
+        this._isShuttingDown = false;
+        this.selectedGateIndex = 0;
+        this.gates = [];
+        this.gateElements = [];
+        this.creatureSprite = null;
+        this.graphicsEngine = null;
+        console.log('[HubWorldScene] State reset in init()');
+    }
+
     create() {
         console.log('[HubWorldScene] Initializing Hub World');
 
         this._isShuttingDown = false;
+        this.isTransitioning = false; // CRITICAL: Reset transition flag on scene start
 
         // Initialize graphics engine
         if (window.GraphicsEngine) {
@@ -636,6 +652,9 @@ export default class HubWorldScene extends Phaser.Scene {
                 } else if (gate.id === 'crystal_caves') {
                     // Crystal Caves - side-scrolling platformer level
                     this.scene.start('CrystalCavesLevel');
+                } else if (gate.id === 'stellar_reef') {
+                    // Stellar Reef - underwater swimming platformer level
+                    this.scene.start('ReefLevel');
                 } else {
                     // Other biomes - top-down for now (will become platformer levels)
                     this.scene.start('GameScene', { biome: gate.data.biome });
