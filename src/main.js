@@ -5,6 +5,7 @@ import { Phaser, preloadModulesReady } from './global-init.js';
 import HatchingScene from './scenes/HatchingScene.js';
 import PersonalityScene from './scenes/PersonalityScene.js';
 import NamingScene from './scenes/NamingScene.js';
+import SoulRevealScene from './scenes/SoulRevealScene.js';
 import GameScene from './scenes/GameScene.js';
 import ShopScene from './scenes/ShopScene.js';
 import InventoryScene from './scenes/InventoryScene.js';
@@ -310,7 +311,7 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel],
+            scene: [HatchingScene, PersonalityScene, NamingScene, SoulRevealScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,

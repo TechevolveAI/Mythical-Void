@@ -132,8 +132,8 @@ class HatchingScene extends Phaser.Scene {
             // Game started but creature not hatched - show hatching process
             this.showHatchingScreen();
         } else if (gameStarted && creatureHatched && !creatureNamed) {
-            // Hatched but not named - go to personality scene
-            this.scene.start('PersonalityScene');
+            // Hatched but not named - go to soul reveal scene
+            this.scene.start('SoulRevealScene');
             return;
         } else if (gameStarted && creatureHatched && creatureNamed) {
             // Fully set up - go to game scene
@@ -2302,7 +2302,7 @@ class HatchingScene extends Phaser.Scene {
             alpha: 1,
             duration: 1000,
             onComplete: () => {
-                this.scene.start('PersonalityScene');
+                this.scene.start('SoulRevealScene');
             }
         });
     }
