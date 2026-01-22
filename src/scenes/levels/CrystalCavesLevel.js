@@ -4,12 +4,19 @@ import PlatformerLevelScene from '../PlatformerLevelScene.js';
  * CrystalCavesLevel - Crystal Caves platformer level
  *
  * Story: "Ancient miners once harvested the mystical crystals that glow in these depths.
- * Now abandoned, the caves are home to shadow bats and crystal golems.
- * Deep within lies the Crystal Heart - a legendary artifact that pulses with ancient energy."
+ * Now abandoned, the caves are home to shadow bats, crystal spiders, and the ancient Crystal Golem.
+ * Deep within lies the Crystal Core Engine - a ship part needed to repair your crashed vessel."
+ *
+ * Features:
+ * - Dynamic lighting: Player glow + crystal proximity activation
+ * - Crystal Spider miniboss: Mid-level challenge with web/pounce attacks
+ * - Secret slide: Hidden path to Crystal Shield power-up (15s invincibility)
+ * - Boss arena: Crystal Pillars (cover), Stalactites (hazard), Power Well (energy regen)
  *
  * Objectives:
- * - Primary: Reach the Crystal Heart at the end
- * - Secondary: Collect 5 Ancient Relics, Defeat Crystal Golem boss
+ * - Primary: Find the Crystal Core Engine (ship part)
+ * - Secondary: Collect 5 Star Fragments, Defeat Crystal Golem boss
+ * - Bonus: Collect all Star Fragments for a special Cosmic Egg reward!
  */
 class CrystalCavesLevel extends PlatformerLevelScene {
     constructor() {
@@ -22,10 +29,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         });
 
         // Level-specific state
-        this.relicsCollected = 0;
-        this.totalRelics = 5;
+        this.starFragmentsCollected = 0;
+        this.totalStarFragments = 5;
+        this.cosmicEggAwarded = false;
         this.bossDefeated = false;
-        this.crystalHeartFound = false;
+        this.crystalCoreFound = false;  // Renamed from crystalHeartFound
         this.bossFightActive = false;
 
         // Boss state
@@ -42,6 +50,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Ambient audio controller
         this.ambientAudio = null;
+
+        // Dynamic lighting system
+        this.playerGlow = null;
+        this.playerGlowRadius = 150;
+        this.backgroundCrystals = []; // Track crystals for proximity activation
+        this.crystalProximityDistance = 200;
     }
 
     /**
@@ -52,9 +66,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         super.init(data);
 
         // Reset level-specific state
-        this.relicsCollected = 0;
+        this.starFragmentsCollected = 0;
+        this.cosmicEggAwarded = false;
         this.bossDefeated = false;
-        this.crystalHeartFound = false;
+        this.crystalCoreFound = false;  // Renamed from crystalHeartFound
         this.bossFightActive = false;
         this.enemySpawns = [];
 
@@ -68,6 +83,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Reset ambient audio
         this.ambientAudio = null;
+
+        // Reset lighting
+        this.playerGlow = null;
+        this.backgroundCrystals = [];
 
         console.log('[CrystalCavesLevel] Level-specific state reset for restart');
     }
@@ -142,15 +161,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Main objective
-        const mainObj = this.add.text(width / 2, panelY + 175, 'Find the Crystal Heart', {
-            fontSize: '22px',
+        const mainObj = this.add.text(width / 2, panelY + 175, 'Find the Crystal Core Engine', {
+            fontSize: '20px',
             color: '#00FFFF',
             fontStyle: 'bold'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Secondary objectives
         const secondaryY = panelY + 220;
-        const relic = this.add.text(panelX + 60, secondaryY, '[ ] Collect Ancient Relics (0/5)', {
+        const relic = this.add.text(panelX + 60, secondaryY, '[ ] Collect Star Fragments (0/5)', {
             fontSize: '16px',
             color: '#AAAAAA'
         }).setScrollFactor(0).setDepth(3002);
@@ -237,85 +256,548 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     createPlatforms() {
         this.platforms = this.physics.add.staticGroup();
 
-        // ===== GROUND SECTIONS (with jumpable gaps) =====
-        // Gap widths: ~200px (safe jumps)
-        this.createPlatform(0, this.levelHeight - 50, 900, 80, 'solid');      // Start area
-        this.createPlatform(1100, this.levelHeight - 50, 700, 80, 'solid');   // After first gap (200px gap)
-        this.createPlatform(2000, this.levelHeight - 50, 600, 80, 'solid');   // Mid section (200px gap)
-        this.createPlatform(2800, this.levelHeight - 50, 500, 80, 'solid');   // Pre-climb (200px gap)
-        this.createPlatform(3500, this.levelHeight - 50, 1500, 80, 'solid');  // Boss arena (200px gap)
+        // ===== SIMPLIFIED GROUND - ONLY 2 GAPS with clear bridge routes =====
+        // Gap 1: At x=1400-1600 (200px) - Optional challenge with bridge above
+        // Gap 2: At x=3200-3400 (200px) - Before boss with bridge
 
-        // ===== SECTION 1: Tutorial Zone (0-900px) =====
-        // Teach basic mechanics - low risk, clear progression
-        this.createPlatform(150, this.levelHeight - 150, 200, 25, 'solid');   // First platform (100px up)
-        this.createPlatform(400, this.levelHeight - 150, 180, 25, 'solid');   // Same height (easy hop)
-        this.createPlatform(630, this.levelHeight - 230, 200, 25, 'solid');   // Slightly higher (80px up)
+        this.createPlatform(0, this.levelHeight - 50, 1400, 80, 'solid');      // Start to first gap (continuous)
+        this.createPlatform(1600, this.levelHeight - 50, 1600, 80, 'solid');   // After gap 1 to gap 2
+        this.createPlatform(3400, this.levelHeight - 50, 1600, 80, 'solid');   // Boss arena (continuous)
 
-        // Optional upper path (teaches vertical exploration)
-        this.createPlatform(300, this.levelHeight - 300, 150, 20, 'one-way'); // 70px up from 630 platform
+        // ===== SECTION 1: Tutorial Zone (0-800px) =====
+        // Simple introductory platforms - no danger, learn jumping
+        this.createPlatform(200, this.levelHeight - 150, 220, 25, 'solid');   // First platform
+        this.createPlatform(500, this.levelHeight - 150, 200, 25, 'solid');   // Same height (easy hop)
+        this.createPlatform(780, this.levelHeight - 220, 180, 25, 'solid');   // Slight elevation
 
-        // ===== SECTION 2: First Challenge (900-1800px) =====
-        // Over the first ground gap - multiple solutions
+        // ===== SECTION 2: Exploration Zone (800-1400px) =====
+        // Optional vertical exploration before first gap
+        this.createPlatform(950, this.levelHeight - 150, 180, 25, 'solid');   // Ground level step
+        this.createPlatform(1150, this.levelHeight - 220, 200, 25, 'solid');  // Medium height
 
-        // LOW PATH (safe, longer)
-        this.createPlatform(850, this.levelHeight - 180, 180, 25, 'solid');   // Jump from ground
-        this.createPlatform(1080, this.levelHeight - 180, 150, 25, 'solid');  // 230px gap (safe)
+        // Upper path for collectibles (optional)
+        this.createPlatform(1000, this.levelHeight - 350, 150, 20, 'one-way'); // Upper exploration
+        this.createPlatform(1200, this.levelHeight - 420, 140, 20, 'one-way'); // Secret area access
 
-        // HIGH PATH (risky, faster) - requires good timing
-        this.createPlatform(900, this.levelHeight - 320, 140, 20, 'one-way'); // 140px up
-        this.createPlatform(1100, this.levelHeight - 400, 160, 25, 'solid');  // 80px up, 200px gap
+        // ===== GAP 1 BRIDGE (x=1400-1600) - Easy to cross =====
+        // Wide, obvious bridge platform over the gap
+        this.createPlatform(1350, this.levelHeight - 130, 300, 25, 'solid');  // Main bridge (overlaps gap)
 
-        // Converging platforms
-        this.createPlatform(1350, this.levelHeight - 280, 200, 25, 'solid');  // Both paths can reach
-        this.createPlatform(1600, this.levelHeight - 200, 180, 25, 'solid');  // Descent to ground
+        // ===== SECTION 3: Crystal Chamber (1600-2400px) =====
+        // Interesting vertical platforming - all optional, ground is continuous
+        this.createPlatform(1700, this.levelHeight - 170, 180, 25, 'solid');  // Entry step
+        this.createPlatform(1950, this.levelHeight - 280, 200, 25, 'solid');  // Mid level
+        this.createPlatform(2150, this.levelHeight - 380, 180, 25, 'solid');  // Upper level
+        this.createPlatform(2350, this.levelHeight - 280, 180, 25, 'solid');  // Descent path
 
-        // SECRET: Upper alcove with relic (accessible from high path)
-        this.createPlatform(1200, this.levelHeight - 520, 150, 25, 'solid');  // 120px above high path
+        // Crystal Spider miniboss area (elevated)
+        this.createPlatform(2100, this.levelHeight - 520, 250, 30, 'solid');  // Spider arena
 
-        // ===== SECTION 3: Vertical Chamber (1800-2800px) =====
-        // Climbing section - zigzag pattern for clear visual flow
+        // ===== SECRET SLIDE (accessible from Crystal Chamber) =====
+        // Hidden slide entrance from upper platforming
+        this.slidePlatforms = [];
+        this.createPlatform(1800, this.levelHeight - 520, 100, 20, 'one-way');  // Secret entrance
 
-        // Entry platforms
-        this.createPlatform(1900, this.levelHeight - 150, 180, 25, 'solid');  // From ground
+        // Crystal Slide segments
+        this.createSlidePlatform(1750, this.levelHeight - 560, 120, 15, -0.4);
+        this.createSlidePlatform(1670, this.levelHeight - 500, 100, 15, -0.35);
+        this.createSlidePlatform(1600, this.levelHeight - 450, 100, 15, -0.3);
 
-        // Zigzag ascent (alternating left-right, 100-120px vertical gaps)
-        this.createPlatform(2100, this.levelHeight - 250, 180, 25, 'solid');  // 100px up
-        this.createPlatform(2350, this.levelHeight - 350, 180, 25, 'solid');  // 100px up, 250px right
-        this.createPlatform(2150, this.levelHeight - 450, 180, 25, 'solid');  // 100px up, 200px left
-        this.createPlatform(2400, this.levelHeight - 530, 180, 25, 'solid');  // 80px up, 250px right
-        this.createPlatform(2200, this.levelHeight - 620, 180, 25, 'solid');  // 90px up (top of chamber)
+        // Secret alcove with Crystal Shield
+        this.createPlatform(1500, this.levelHeight - 400, 180, 25, 'solid');  // Shield landing
 
-        // Alternative side path (for exploration)
-        this.createPlatform(2600, this.levelHeight - 200, 160, 25, 'solid');  // From ground
-        this.createPlatform(2650, this.levelHeight - 340, 160, 25, 'solid');  // 140px up
-        this.createPlatform(2600, this.levelHeight - 470, 180, 25, 'solid');  // Relic platform
+        // ===== SECTION 4: Approach to Boss (2400-3200px) =====
+        // Build tension - platforms lead naturally to arena
+        this.createPlatform(2550, this.levelHeight - 170, 200, 25, 'solid');  // Low step
+        this.createPlatform(2800, this.levelHeight - 250, 200, 25, 'solid');  // Rising
+        this.createPlatform(3050, this.levelHeight - 180, 200, 25, 'solid');  // Descending
 
-        // ===== SECTION 4: Descent to Arena (2800-3500px) =====
-        // Controlled descent - can't go too fast or you'll miss platforms
+        // Star Fragment platform (optional side path)
+        this.createPlatform(2900, this.levelHeight - 400, 150, 25, 'solid');  // Relic alcove
 
-        this.createPlatform(2850, this.levelHeight - 550, 160, 25, 'solid');  // High start
-        this.createPlatform(3050, this.levelHeight - 450, 180, 25, 'solid');  // 100px down
-        this.createPlatform(3280, this.levelHeight - 350, 180, 25, 'solid');  // 100px down
-        this.createPlatform(3100, this.levelHeight - 250, 180, 25, 'solid');  // 100px down
-        this.createPlatform(3350, this.levelHeight - 150, 200, 25, 'solid');  // Near ground level
+        // ===== GAP 2 BRIDGE (x=3200-3400) =====
+        // Final bridge before boss arena
+        this.createPlatform(3150, this.levelHeight - 130, 300, 25, 'solid');  // Main bridge
 
-        // ===== SECTION 5: Boss Arena (3500-5000px) =====
-        // Open arena with tactical elevation options
+        // ===== SECTION 5: Boss Arena (3400-5000px) =====
+        // Open arena with tactical platforms
+        this.createPlatform(3600, this.levelHeight - 180, 220, 25, 'solid');  // Left platform
+        this.createPlatform(3900, this.levelHeight - 300, 250, 25, 'solid');  // Center platform
+        this.createPlatform(4200, this.levelHeight - 180, 220, 25, 'solid');  // Right platform
+        this.createPlatform(4050, this.levelHeight - 450, 200, 20, 'one-way'); // High refuge
 
-        // Tactical platforms (for dodging boss attacks)
-        this.createPlatform(3700, this.levelHeight - 180, 200, 25, 'solid');  // Low left
-        this.createPlatform(4000, this.levelHeight - 280, 220, 25, 'solid');  // Mid center
-        this.createPlatform(4350, this.levelHeight - 180, 200, 25, 'solid');  // Low right
-        this.createPlatform(4150, this.levelHeight - 400, 180, 20, 'one-way'); // High center (refuge)
+        // Path to Crystal Core Engine (boss reward)
+        this.createPlatform(4450, this.levelHeight - 280, 180, 25, 'solid');  // Step 1
+        this.createPlatform(4600, this.levelHeight - 380, 180, 25, 'solid');  // Step 2
+        this.createPlatform(4700, this.levelHeight - 480, 200, 30, 'solid');  // Final platform
 
-        // Path to Crystal Heart (stepped approach - 100px vertical gaps)
-        this.createPlatform(4550, this.levelHeight - 280, 180, 25, 'solid');  // Step 1
-        this.createPlatform(4700, this.levelHeight - 380, 180, 25, 'solid');  // Step 2 (100px up)
+        // Boss arena interactive elements
+        this.createBossArenaElements();
 
-        // Crystal Heart platform (final goal)
-        this.createPlatform(4750, this.levelHeight - 480, 200, 30, 'solid');  // Step 3 (100px up)
+        console.log(`[CrystalCavesLevel] Created ${this.platforms.getLength()} platforms (including ${this.slidePlatforms?.length || 0} slide segments)`);
+    }
 
-        console.log(`[CrystalCavesLevel] Created ${this.platforms.getLength()} platforms`);
+    /**
+     * Create an angled slide platform
+     * Players slide down these with reduced friction
+     */
+    createSlidePlatform(x, y, width, height, angle) {
+        // Generate slide texture
+        const textureKey = `slideplatform_${width}_${height}_${Math.abs(angle * 100).toFixed(0)}`;
+
+        if (!this.textures.exists(textureKey)) {
+            const graphics = this.make.graphics({ add: false });
+
+            // Crystal slide gradient (purple to cyan)
+            graphics.fillStyle(0x7B68EE, 1);
+            graphics.fillRoundedRect(0, 0, width, height, 8);
+
+            // Sparkle highlights
+            graphics.fillStyle(0x00FFFF, 0.5);
+            for (let i = 0; i < 5; i++) {
+                const sx = Phaser.Math.Between(5, width - 5);
+                graphics.fillCircle(sx, height / 2, 3);
+            }
+
+            // Top shine
+            graphics.fillStyle(0xFFFFFF, 0.3);
+            graphics.fillRect(5, 2, width - 10, 4);
+
+            graphics.generateTexture(textureKey, width, height);
+            graphics.destroy();
+        }
+
+        const platform = this.platforms.create(x + width / 2, y + height / 2, textureKey);
+        platform.setImmovable(true);
+        platform.body.setSize(width, height);
+        platform.body.setOffset(-width / 2 + (platform.width / 2), -height / 2 + (platform.height / 2));
+        platform.setDepth(y);
+        platform.setRotation(angle);
+        platform.platformType = 'slide';
+        platform.slideAngle = angle;
+        platform.slideDirection = angle < 0 ? -1 : 1; // -1 = slide left, 1 = slide right
+
+        // One-way for slides (can jump through from below)
+        platform.body.checkCollision.down = false;
+        platform.body.checkCollision.left = false;
+        platform.body.checkCollision.right = false;
+
+        // Store for slide physics
+        if (!this.slidePlatforms) this.slidePlatforms = [];
+        this.slidePlatforms.push(platform);
+
+        return platform;
+    }
+
+    /**
+     * Create boss arena interactive elements
+     * - Crystal Power Well (energy regen)
+     * - Destructible Crystal Pillars (cover)
+     * - Stalactites (triggered by boss slam)
+     */
+    createBossArenaElements() {
+        // Initialize arena element arrays
+        this.crystalPillars = [];
+        this.stalactites = [];
+        this.powerWell = null;
+
+        // === CRYSTAL POWER WELL ===
+        // Positioned on ground in boss arena - standing on it doubles energy regen
+        this.createCrystalPowerWell(4050, this.levelHeight - 80);
+
+        // === DESTRUCTIBLE CRYSTAL PILLARS (3 total) ===
+        // Provide temporary cover from projectiles
+        this.createCrystalPillar(3800, this.levelHeight - 150, 0);
+        this.createCrystalPillar(4200, this.levelHeight - 150, 1);
+        this.createCrystalPillar(4450, this.levelHeight - 150, 2);
+
+        // === STALACTITES ===
+        // Fall when boss does ground slam (visual warning first)
+        this.createStalactite(3700, 100);
+        this.createStalactite(3950, 120);
+        this.createStalactite(4200, 90);
+        this.createStalactite(4400, 110);
+
+        console.log('[CrystalCavesLevel] Boss arena elements created: Power Well, 3 Pillars, 4 Stalactites');
+    }
+
+    /**
+     * Create Crystal Power Well - energy regenerates 2x faster when standing on it
+     */
+    createCrystalPowerWell(x, y) {
+        // Create well texture
+        const textureKey = 'crystalPowerWell';
+        if (!this.textures.exists(textureKey)) {
+            const graphics = this.make.graphics({ add: false });
+
+            // Base circle with glow
+            graphics.fillStyle(0x7B68EE, 0.3);
+            graphics.fillCircle(40, 40, 38);
+
+            // Inner circles
+            graphics.fillStyle(0x9370DB, 0.5);
+            graphics.fillCircle(40, 40, 30);
+
+            graphics.fillStyle(0xE040FB, 0.6);
+            graphics.fillCircle(40, 40, 20);
+
+            // Center glow
+            graphics.fillStyle(0xFFFFFF, 0.4);
+            graphics.fillCircle(40, 40, 10);
+
+            // Rune symbols
+            graphics.lineStyle(2, 0x00FFFF, 0.8);
+            graphics.strokeCircle(40, 40, 25);
+
+            graphics.generateTexture(textureKey, 80, 80);
+            graphics.destroy();
+        }
+
+        // Create well sprite
+        this.powerWell = this.add.image(x, y, textureKey);
+        this.powerWell.setDepth(-5);
+
+        // Store position for overlap check
+        this.powerWell.wellX = x;
+        this.powerWell.wellY = y;
+        this.powerWell.wellRadius = 35;
+
+        // Pulsing animation
+        this.tweens.add({
+            targets: this.powerWell,
+            alpha: { from: 0.7, to: 1 },
+            scaleX: { from: 0.95, to: 1.05 },
+            scaleY: { from: 0.95, to: 1.05 },
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Particle effect
+        this.time.addEvent({
+            delay: 500,
+            callback: () => {
+                if (this.powerWell && window.FXLibrary) {
+                    window.FXLibrary.stardustBurst(this, this.powerWell.wellX, this.powerWell.wellY - 10, {
+                        count: 3,
+                        color: [0xE040FB, 0x7B68EE],
+                        duration: 800
+                    });
+                }
+            },
+            loop: true
+        });
+
+        // Set up energy regen check timer
+        this.powerWellTimer = this.time.addEvent({
+            delay: 2000, // Energy regen every 2s (1s when on well)
+            callback: () => this.checkPowerWellEffect(),
+            loop: true
+        });
+    }
+
+    /**
+     * Check if player is on power well and apply effect
+     */
+    checkPowerWellEffect() {
+        if (!this.player || !this.powerWell || this.isPlayerDead || !this.bossFightActive) return;
+
+        const dist = Phaser.Math.Distance.Between(
+            this.player.x, this.player.y,
+            this.powerWell.wellX, this.powerWell.wellY
+        );
+
+        if (dist < this.powerWell.wellRadius && this.crystalEnergy < this.maxCrystalEnergy) {
+            // On power well - regen 1 energy (2x rate since timer fires every 2s)
+            this.crystalEnergy = Math.min(this.crystalEnergy + 1, this.maxCrystalEnergy);
+            this.updateEnergyDisplay();
+
+            // Visual feedback
+            this.showFloatingText('+1⚡', this.player.x, this.player.y - 30, '#E040FB');
+
+            if (window.FXLibrary) {
+                window.FXLibrary.stardustBurst(this, this.player.x, this.player.y, {
+                    count: 5,
+                    color: [0xE040FB, 0xFFFFFF],
+                    duration: 400
+                });
+            }
+        }
+    }
+
+    /**
+     * Create a destructible crystal pillar
+     */
+    createCrystalPillar(x, y, index) {
+        // Create pillar texture
+        const textureKey = 'crystalPillar';
+        if (!this.textures.exists(textureKey)) {
+            const graphics = this.make.graphics({ add: false });
+
+            // Pillar body
+            graphics.fillStyle(0x4B0082, 1);
+            graphics.fillRect(10, 0, 30, 100);
+
+            // Crystal formations on pillar
+            graphics.fillStyle(0x7B68EE, 0.9);
+            graphics.fillTriangle(5, 100, 25, 100, 15, 70);
+            graphics.fillTriangle(25, 100, 45, 100, 35, 75);
+            graphics.fillTriangle(15, 50, 35, 50, 25, 20);
+
+            // Glowing tips
+            graphics.fillStyle(0x00FFFF, 0.6);
+            graphics.fillCircle(15, 70, 5);
+            graphics.fillCircle(35, 75, 5);
+            graphics.fillCircle(25, 20, 6);
+
+            graphics.generateTexture(textureKey, 50, 100);
+            graphics.destroy();
+        }
+
+        // Create pillar as physics body
+        const pillar = this.physics.add.staticSprite(x, y, textureKey);
+        pillar.setDepth(50);
+        pillar.body.setSize(30, 90);
+        pillar.body.setOffset(10, 5);
+
+        // Pillar properties
+        pillar.pillarIndex = index;
+        pillar.pillarHealth = 2; // Takes 2 hits from boss to destroy
+        pillar.isDestroyed = false;
+
+        // Add to physics collision (blocks projectiles)
+        this.crystalPillars.push(pillar);
+
+        return pillar;
+    }
+
+    /**
+     * Damage a crystal pillar (called by boss attacks)
+     */
+    damageCrystalPillar(pillar) {
+        if (!pillar || pillar.isDestroyed) return;
+
+        pillar.pillarHealth--;
+
+        // Flash effect
+        pillar.setTint(0xFFFFFF);
+        this.time.delayedCall(100, () => {
+            if (pillar.active) pillar.clearTint();
+        });
+
+        // Crack particles
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, pillar.x, pillar.y, {
+                count: 8,
+                color: [0x7B68EE, 0x4B0082],
+                duration: 500
+            });
+        }
+
+        if (pillar.pillarHealth <= 0) {
+            this.destroyCrystalPillar(pillar);
+        }
+    }
+
+    /**
+     * Destroy a crystal pillar
+     */
+    destroyCrystalPillar(pillar) {
+        if (!pillar || pillar.isDestroyed) return;
+
+        pillar.isDestroyed = true;
+
+        // Destruction particles
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, pillar.x, pillar.y, {
+                count: 20,
+                color: [0x7B68EE, 0x4B0082, 0x00FFFF],
+                duration: 1000
+            });
+        }
+
+        // Sound
+        if (window.AudioManager) {
+            window.AudioManager.playEnemyHit();
+        }
+
+        // Fade and destroy
+        this.tweens.add({
+            targets: pillar,
+            alpha: 0,
+            scaleX: 1.2,
+            scaleY: 0.3,
+            duration: 300,
+            onComplete: () => {
+                pillar.destroy();
+            }
+        });
+
+        // Regenerate after 30 seconds
+        const pillarX = pillar.x;
+        const pillarY = pillar.y;
+        const pillarIndex = pillar.pillarIndex;
+
+        this.time.delayedCall(30000, () => {
+            if (this.bossFightActive && !this.bossDefeated) {
+                this.crystalPillars[pillarIndex] = this.createCrystalPillar(pillarX, pillarY, pillarIndex);
+            }
+        });
+    }
+
+    /**
+     * Create a stalactite (falls when boss slams)
+     */
+    createStalactite(x, y) {
+        // Create stalactite texture
+        const textureKey = 'stalactite';
+        if (!this.textures.exists(textureKey)) {
+            const graphics = this.make.graphics({ add: false });
+
+            // Rocky stalactite
+            graphics.fillStyle(0x2D1B4E, 1);
+            graphics.fillTriangle(0, 0, 40, 0, 20, 80);
+
+            // Crystal vein
+            graphics.fillStyle(0x7B68EE, 0.7);
+            graphics.fillTriangle(15, 10, 25, 10, 20, 60);
+
+            graphics.generateTexture(textureKey, 40, 80);
+            graphics.destroy();
+        }
+
+        // Create stalactite data (not physics yet - activated on slam)
+        const stalactite = {
+            x: x,
+            y: y,
+            active: true,
+            falling: false,
+            sprite: null,
+            shadow: null
+        };
+
+        // Create visual sprite
+        stalactite.sprite = this.add.image(x, y, textureKey);
+        stalactite.sprite.setDepth(-20);
+        stalactite.sprite.setOrigin(0.5, 0);
+
+        this.stalactites.push(stalactite);
+
+        return stalactite;
+    }
+
+    /**
+     * Trigger stalactites to fall (called by boss ground slam in Phase 2)
+     */
+    triggerStalactiteFall() {
+        if (this.bossPhase < 2) return;
+
+        // Random 2-3 stalactites fall
+        const availableStalactites = this.stalactites.filter(s => s.active && !s.falling);
+        const fallCount = Math.min(Phaser.Math.Between(2, 3), availableStalactites.length);
+
+        const toFall = Phaser.Utils.Array.Shuffle(availableStalactites).slice(0, fallCount);
+
+        toFall.forEach((stalactite, index) => {
+            this.time.delayedCall(index * 200, () => {
+                this.dropStalactite(stalactite);
+            });
+        });
+    }
+
+    /**
+     * Drop a single stalactite
+     */
+    dropStalactite(stalactite) {
+        if (!stalactite || stalactite.falling || !stalactite.active) return;
+
+        stalactite.falling = true;
+
+        // Warning shadow on ground
+        stalactite.shadow = this.add.graphics();
+        stalactite.shadow.fillStyle(0xFF0000, 0.3);
+        stalactite.shadow.fillEllipse(stalactite.x, this.levelHeight - 60, 50, 15);
+        stalactite.shadow.setDepth(49);
+
+        // Pulse warning
+        this.tweens.add({
+            targets: stalactite.shadow,
+            alpha: { from: 0.3, to: 0.7 },
+            scaleX: { from: 1, to: 1.3 },
+            scaleY: { from: 1, to: 1.3 },
+            duration: 300,
+            yoyo: true,
+            repeat: 1
+        });
+
+        // Shake before falling
+        this.tweens.add({
+            targets: stalactite.sprite,
+            x: { from: stalactite.x - 3, to: stalactite.x + 3 },
+            duration: 50,
+            yoyo: true,
+            repeat: 8,
+            onComplete: () => {
+                // Actually fall
+                this.tweens.add({
+                    targets: stalactite.sprite,
+                    y: this.levelHeight - 80,
+                    duration: 400,
+                    ease: 'Quad.easeIn',
+                    onComplete: () => {
+                        this.onStalactiteImpact(stalactite);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Handle stalactite impact
+     */
+    onStalactiteImpact(stalactite) {
+        if (!stalactite) return;
+
+        const impactX = stalactite.x;
+        const impactY = this.levelHeight - 80;
+
+        // Impact particles
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, impactX, impactY, {
+                count: 15,
+                color: [0x2D1B4E, 0x7B68EE],
+                duration: 800
+            });
+        }
+
+        // Screen shake
+        this.cameras.main.shake(200, 0.01);
+
+        // Sound
+        if (window.AudioManager) {
+            window.AudioManager.playAttack();
+        }
+
+        // Check if hit player
+        const playerDist = Phaser.Math.Distance.Between(this.player.x, this.player.y, impactX, impactY);
+        if (playerDist < 40) {
+            this.takeDamage(1);
+        }
+
+        // Check if hit boss
+        if (this.boss && this.boss.active) {
+            const bossDist = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, impactX, impactY);
+            if (bossDist < 60) {
+                this.damageBoss(1);
+                console.log('[CrystalCavesLevel] Boss hit by stalactite!');
+            }
+        }
+
+        // Clean up
+        stalactite.shadow?.destroy();
+        stalactite.sprite?.destroy();
+        stalactite.active = false;
     }
 
     /**
@@ -331,8 +813,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Create atmospheric elements
         this.createAtmosphere();
 
-        // Create the Crystal Heart goal
-        this.createCrystalHeart();
+        // Create the Crystal Core Engine goal (ship part)
+        this.createCrystalCoreEngine();
     }
 
     /**
@@ -342,25 +824,582 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     createEnemies() {
         this.enemies = this.physics.add.group();
 
-        // Shadow Bats - flutter patrol (positioned near platform routes)
-        this.createShadowBat(500, this.levelHeight - 280);    // Tutorial area - above platforms
-        this.createShadowBat(1000, this.levelHeight - 350);   // Over first gap - challenge
-        this.createShadowBat(1450, this.levelHeight - 380);   // Near converging platform
-        this.createShadowBat(2300, this.levelHeight - 450);   // Vertical chamber
-        this.createShadowBat(3150, this.levelHeight - 400);   // Descent section
+        // PURPOSEFUL ENEMY PLACEMENT - Each enemy has a clear role
+        // Total: 2 bats + 2 crawlers + 1 miniboss = 5 enemies (reduced from 11)
 
-        // Cave Crawlers - ground patrol (on ground sections)
-        this.createCaveCrawler(600, this.levelHeight - 100);   // Tutorial ground
-        this.createCaveCrawler(1300, this.levelHeight - 100);  // Second ground section
-        this.createCaveCrawler(2200, this.levelHeight - 100);  // Mid ground
-        this.createCaveCrawler(3000, this.levelHeight - 100);  // Pre-climb ground
-        this.createCaveCrawler(4100, this.levelHeight - 100);  // Boss arena
+        // Shadow Bats - Guard optional exploration paths
+        this.createShadowBat(1100, this.levelHeight - 380);   // Guards upper exploration area
+        this.createShadowBat(2900, this.levelHeight - 350);   // Warns of approaching boss area
+
+        // Cave Crawlers - Ground threats in key areas
+        this.createCaveCrawler(800, this.levelHeight - 100);   // Tutorial - teaches stomping
+        this.createCaveCrawler(3800, this.levelHeight - 100);  // Boss arena - adds arena tension
+
+        // Crystal Spider Miniboss - Guards Crystal Chamber
+        this.createCrystalSpider(2100, this.levelHeight - 560); // On the elevated spider arena platform
 
         // Set up enemy collisions
         this.physics.add.collider(this.enemies, this.platforms);
         this.physics.add.collider(this.player, this.enemies, this.onEnemyCollision, null, this);
 
-        console.log(`[CrystalCavesLevel] Created ${this.enemies.getLength()} enemies`);
+        console.log(`[CrystalCavesLevel] Created ${this.enemies.getLength()} enemies (including Crystal Spider miniboss)`);
+    }
+
+    /**
+     * Create the Crystal Spider miniboss
+     * A mid-level challenge that blocks the path until defeated
+     */
+    createCrystalSpider(x, y) {
+        // Create spider texture
+        const textureKey = 'crystalSpider';
+        if (!this.textures.exists(textureKey)) {
+            const graphics = this.make.graphics({ add: false });
+
+            // Body (crystalline purple)
+            graphics.fillStyle(0x4B0082, 1);
+            graphics.fillEllipse(30, 25, 50, 40);
+
+            // Crystal growths on body
+            graphics.fillStyle(0x9370DB, 0.9);
+            graphics.fillTriangle(20, 15, 15, 5, 25, 15);
+            graphics.fillTriangle(40, 15, 35, 5, 45, 15);
+
+            // Legs (8 legs - crystal-tipped)
+            graphics.lineStyle(3, 0x6A0DAD, 1);
+            // Left side
+            graphics.lineBetween(10, 20, 0, 10);
+            graphics.lineBetween(8, 25, -5, 20);
+            graphics.lineBetween(8, 30, -5, 35);
+            graphics.lineBetween(10, 35, 0, 45);
+            // Right side
+            graphics.lineBetween(50, 20, 60, 10);
+            graphics.lineBetween(52, 25, 65, 20);
+            graphics.lineBetween(52, 30, 65, 35);
+            graphics.lineBetween(50, 35, 60, 45);
+
+            // Eyes (multiple, glowing red-purple)
+            graphics.fillStyle(0xFF00FF, 1);
+            graphics.fillCircle(22, 28, 5);
+            graphics.fillCircle(38, 28, 5);
+            graphics.fillStyle(0xE040FB, 1);
+            graphics.fillCircle(27, 22, 3);
+            graphics.fillCircle(33, 22, 3);
+            graphics.fillCircle(30, 32, 3);
+
+            // Eye highlights
+            graphics.fillStyle(0xFFFFFF, 0.6);
+            graphics.fillCircle(23, 27, 2);
+            graphics.fillCircle(39, 27, 2);
+
+            // Fangs
+            graphics.fillStyle(0xE0E0E0, 1);
+            graphics.fillTriangle(25, 38, 28, 38, 26, 48);
+            graphics.fillTriangle(32, 38, 35, 38, 34, 48);
+
+            graphics.generateTexture(textureKey, 65, 50);
+            graphics.destroy();
+        }
+
+        // Create spider sprite
+        this.crystalSpider = this.enemies.create(x, y, textureKey);
+        this.crystalSpider.setCollideWorldBounds(true);
+        this.crystalSpider.setBounce(0);
+        this.crystalSpider.setDepth(860);
+        this.crystalSpider.health = 4;
+        this.crystalSpider.maxHealth = 4;
+        this.crystalSpider.enemyType = 'crystalSpider';
+        this.crystalSpider.isMiniboss = true;
+
+        // Spider-specific state
+        this.crystalSpider.isOnCeiling = true;
+        this.crystalSpider.attackCooldown = 0;
+        this.crystalSpider.patrolDirection = 1;
+        this.crystalSpider.patrolStartX = x - 150;
+        this.crystalSpider.patrolEndX = x + 150;
+        this.crystalSpider.homeY = y;
+        this.crystalSpider.isAttacking = false;
+        this.crystalSpider.defeated = false;
+
+        // Make it hang upside down initially
+        this.crystalSpider.setFlipY(true);
+        this.crystalSpider.body.setAllowGravity(false);
+
+        // Create miniboss health bar
+        this.createSpiderHealthBar();
+
+        // Start spider AI
+        this.spiderAITimer = this.time.addEvent({
+            delay: 50,
+            callback: () => this.updateCrystalSpiderAI(),
+            loop: true
+        });
+
+        // Attack timer
+        this.spiderAttackTimer = this.time.addEvent({
+            delay: 3000,
+            callback: () => this.spiderPerformAttack(),
+            loop: true
+        });
+
+        console.log('[CrystalCavesLevel] Crystal Spider miniboss created at', x, y);
+
+        return this.crystalSpider;
+    }
+
+    /**
+     * Create spider miniboss health bar (smaller than boss)
+     */
+    createSpiderHealthBar() {
+        if (!this.crystalSpider) return;
+
+        // Container for spider UI (follows spider)
+        this.spiderUI = this.add.container(0, 0);
+        this.spiderUI.setDepth(1400);
+
+        // Name text
+        this.spiderNameText = this.add.text(0, -50, '🕷️ Crystal Spider', {
+            fontSize: '14px',
+            color: '#E040FB',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        this.spiderUI.add(this.spiderNameText);
+
+        // Health bar background
+        const barWidth = 80;
+        const barHeight = 8;
+
+        this.spiderHealthBarBg = this.add.graphics();
+        this.spiderHealthBarBg.fillStyle(0x2D1B4E, 0.8);
+        this.spiderHealthBarBg.fillRoundedRect(-barWidth / 2, -35, barWidth, barHeight, 3);
+        this.spiderHealthBarBg.lineStyle(1, 0x9370DB, 0.8);
+        this.spiderHealthBarBg.strokeRoundedRect(-barWidth / 2, -35, barWidth, barHeight, 3);
+        this.spiderUI.add(this.spiderHealthBarBg);
+
+        // Health bar fill
+        this.spiderHealthBar = this.add.graphics();
+        this.spiderUI.add(this.spiderHealthBar);
+
+        this.updateSpiderHealthBar();
+    }
+
+    /**
+     * Update spider health bar
+     */
+    updateSpiderHealthBar() {
+        if (!this.spiderHealthBar || !this.crystalSpider) return;
+
+        const barWidth = 76;
+        const barHeight = 6;
+        const healthPercent = this.crystalSpider.health / this.crystalSpider.maxHealth;
+        const fillWidth = barWidth * healthPercent;
+
+        this.spiderHealthBar.clear();
+        this.spiderHealthBar.fillStyle(0xE040FB, 1);
+        this.spiderHealthBar.fillRoundedRect(-barWidth / 2, -34, fillWidth, barHeight, 2);
+    }
+
+    /**
+     * Update Crystal Spider AI
+     */
+    updateCrystalSpiderAI() {
+        if (!this.crystalSpider || !this.crystalSpider.active || this.crystalSpider.defeated) return;
+        if (!this.player) return;
+
+        const spider = this.crystalSpider;
+        const distToPlayer = Phaser.Math.Distance.Between(
+            spider.x, spider.y,
+            this.player.x, this.player.y
+        );
+
+        // Update health bar position
+        if (this.spiderUI) {
+            this.spiderUI.setPosition(spider.x, spider.y);
+        }
+
+        // Face player
+        if (this.player.x < spider.x) {
+            spider.setFlipX(true);
+        } else {
+            spider.setFlipX(false);
+        }
+
+        // Movement behavior
+        if (!spider.isAttacking) {
+            if (spider.isOnCeiling) {
+                // Patrol on ceiling
+                const speed = 60;
+                spider.setVelocityX(speed * spider.patrolDirection);
+
+                if (spider.x >= spider.patrolEndX) {
+                    spider.patrolDirection = -1;
+                } else if (spider.x <= spider.patrolStartX) {
+                    spider.patrolDirection = 1;
+                }
+
+                // Drop down if player is close
+                if (distToPlayer < 200 && this.player.y > spider.y) {
+                    this.spiderDropDown();
+                }
+            } else {
+                // On ground, chase player if close
+                if (distToPlayer < 250) {
+                    const direction = this.player.x < spider.x ? -1 : 1;
+                    spider.setVelocityX(80 * direction);
+                } else {
+                    // Return to ceiling
+                    this.spiderClimbUp();
+                }
+            }
+        }
+    }
+
+    /**
+     * Spider drops from ceiling to attack
+     */
+    spiderDropDown() {
+        if (!this.crystalSpider || this.crystalSpider.isAttacking) return;
+
+        const spider = this.crystalSpider;
+        spider.isOnCeiling = false;
+        spider.isAttacking = true;
+        spider.setFlipY(false);
+        spider.body.setAllowGravity(true);
+
+        // Warning hiss
+        if (window.AudioManager) {
+            window.AudioManager.playError();
+        }
+
+        // After landing, reset attack state
+        this.time.delayedCall(800, () => {
+            if (spider.active) {
+                spider.isAttacking = false;
+            }
+        });
+    }
+
+    /**
+     * Spider climbs back to ceiling
+     */
+    spiderClimbUp() {
+        if (!this.crystalSpider || this.crystalSpider.isOnCeiling) return;
+
+        const spider = this.crystalSpider;
+        spider.isAttacking = true;
+
+        // Animate climbing up
+        spider.body.setAllowGravity(false);
+        this.tweens.add({
+            targets: spider,
+            y: spider.homeY,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+                spider.isOnCeiling = true;
+                spider.isAttacking = false;
+                spider.setFlipY(true);
+            }
+        });
+    }
+
+    /**
+     * Spider performs an attack
+     */
+    spiderPerformAttack() {
+        if (!this.crystalSpider || !this.crystalSpider.active || this.crystalSpider.isAttacking || this.crystalSpider.defeated) return;
+        if (!this.player) return;
+
+        const spider = this.crystalSpider;
+        const distToPlayer = Phaser.Math.Distance.Between(spider.x, spider.y, this.player.x, this.player.y);
+
+        if (distToPlayer > 350) return; // Too far to attack
+
+        // Choose attack based on position
+        if (spider.isOnCeiling) {
+            this.spiderDropDown();
+        } else if (distToPlayer < 200) {
+            // Pounce attack
+            this.spiderPounce();
+        } else {
+            // Web shot
+            this.spiderWebShot();
+        }
+    }
+
+    /**
+     * Spider pounce attack - jumps at player
+     */
+    spiderPounce() {
+        if (!this.crystalSpider) return;
+
+        const spider = this.crystalSpider;
+        spider.isAttacking = true;
+
+        // Telegraph with color flash
+        spider.setTint(0xFF0000);
+
+        // Wind-up
+        this.time.delayedCall(400, () => {
+            if (!spider.active) return;
+
+            spider.clearTint();
+
+            // Jump towards player
+            const angle = Phaser.Math.Angle.Between(spider.x, spider.y, this.player.x, this.player.y);
+            const jumpSpeed = 350;
+
+            spider.setVelocity(
+                Math.cos(angle) * jumpSpeed,
+                Math.sin(angle) * jumpSpeed - 200
+            );
+
+            // Sound
+            if (window.AudioManager) {
+                window.AudioManager.playAttack();
+            }
+
+            // Reset after pounce
+            this.time.delayedCall(800, () => {
+                if (spider.active) {
+                    spider.isAttacking = false;
+                }
+            });
+        });
+    }
+
+    /**
+     * Spider web shot - slows player if hit
+     */
+    spiderWebShot() {
+        if (!this.crystalSpider || !this.player) return;
+
+        const spider = this.crystalSpider;
+
+        // Create web projectile
+        const web = this.add.graphics();
+        web.fillStyle(0xDDDDDD, 0.8);
+        web.fillCircle(0, 0, 10);
+        // Web pattern
+        web.lineStyle(1, 0xFFFFFF, 0.6);
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            web.lineBetween(0, 0, Math.cos(angle) * 10, Math.sin(angle) * 10);
+        }
+
+        web.setPosition(spider.x, spider.y);
+        web.setDepth(855);
+
+        // Add physics
+        this.physics.add.existing(web);
+        web.body.setAllowGravity(false);
+        web.body.setCircle(10);
+
+        // Aim at player
+        const angle = Phaser.Math.Angle.Between(spider.x, spider.y, this.player.x, this.player.y);
+        const speed = 200;
+        web.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+
+        // Player collision - slow effect
+        this.physics.add.overlap(this.player, web, () => {
+            this.applyWebSlow();
+            web.destroy();
+        });
+
+        // Destroy after time
+        this.time.delayedCall(2500, () => {
+            if (web.active) web.destroy();
+        });
+
+        // Sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+    }
+
+    /**
+     * Apply web slow effect to player
+     */
+    applyWebSlow() {
+        if (this.isWebbed) return;
+
+        console.log('[CrystalCavesLevel] Player webbed!');
+        this.isWebbed = true;
+
+        // Slow player movement
+        const originalSpeed = this.playerSpeed;
+        this.playerSpeed = originalSpeed * 0.5;
+
+        // Visual effect - white tint
+        this.player.setTint(0xCCCCCC);
+
+        // Floating text
+        this.showFloatingText('SLOWED!', this.player.x, this.player.y - 40, '#AAAAAA');
+
+        // Remove after 2 seconds
+        this.time.delayedCall(2000, () => {
+            this.playerSpeed = originalSpeed;
+            this.player.clearTint();
+            this.isWebbed = false;
+        });
+    }
+
+    /**
+     * Override enemy collision to handle spider miniboss
+     */
+    onEnemyCollision(player, enemy) {
+        // Special handling for Crystal Spider
+        if (enemy.isMiniboss && enemy.enemyType === 'crystalSpider') {
+            this.onSpiderCollision(player, enemy);
+            return;
+        }
+
+        // Call parent for regular enemies
+        super.onEnemyCollision(player, enemy);
+    }
+
+    /**
+     * Handle collision with Crystal Spider
+     */
+    onSpiderCollision(player, spider) {
+        if (!spider.active || spider.defeated) return;
+
+        const playerBottom = player.body.bottom;
+        const spiderTop = spider.body.top;
+        const spiderHeight = spider.body.height;
+
+        // Stomp detection - more generous for miniboss
+        const isStomping = player.body.velocity.y > 0 &&
+                          playerBottom <= spiderTop + (spiderHeight * 0.6);
+
+        if (isStomping) {
+            this.damageSpider(1);
+            player.setVelocityY(this.jumpVelocity * 0.7);
+
+            if (window.AudioManager) {
+                window.AudioManager.playEnemyHit();
+            }
+        } else {
+            // Player takes damage
+            this.takeDamage(1);
+        }
+    }
+
+    /**
+     * Damage the Crystal Spider
+     */
+    damageSpider(amount) {
+        if (!this.crystalSpider || !this.crystalSpider.active || this.crystalSpider.defeated) return;
+
+        this.crystalSpider.health -= amount;
+        this.updateSpiderHealthBar();
+
+        // Flash effect
+        this.crystalSpider.setTint(0xFFFFFF);
+        this.time.delayedCall(100, () => {
+            if (this.crystalSpider && this.crystalSpider.active) {
+                this.crystalSpider.clearTint();
+            }
+        });
+
+        // Particles
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, this.crystalSpider.x, this.crystalSpider.y, {
+                count: 8,
+                color: [0xE040FB, 0x9370DB],
+                duration: 600
+            });
+        }
+
+        console.log(`[CrystalCavesLevel] Spider health: ${this.crystalSpider.health}/${this.crystalSpider.maxHealth}`);
+
+        // Check defeat
+        if (this.crystalSpider.health <= 0) {
+            this.onSpiderDefeated();
+        }
+    }
+
+    /**
+     * Handle Spider defeat
+     */
+    onSpiderDefeated() {
+        console.log('[CrystalCavesLevel] Crystal Spider defeated!');
+
+        const spider = this.crystalSpider;
+        spider.defeated = true;
+
+        // Stop AI timers
+        if (this.spiderAITimer) {
+            this.spiderAITimer.remove();
+        }
+        if (this.spiderAttackTimer) {
+            this.spiderAttackTimer.remove();
+        }
+
+        // Death animation
+        spider.setVelocity(0, 0);
+        spider.body.setAllowGravity(false);
+
+        // Explosion particles
+        for (let i = 0; i < 5; i++) {
+            this.time.delayedCall(i * 100, () => {
+                if (window.FXLibrary) {
+                    window.FXLibrary.stardustBurst(this, spider.x + Phaser.Math.Between(-20, 20), spider.y + Phaser.Math.Between(-20, 20), {
+                        count: 12,
+                        color: [0xE040FB, 0x9370DB, 0x7B68EE],
+                        duration: 1000
+                    });
+                }
+            });
+        }
+
+        // Fade out
+        this.tweens.add({
+            targets: spider,
+            alpha: 0,
+            scaleX: 1.3,
+            scaleY: 1.3,
+            duration: 800,
+            onComplete: () => {
+                spider.destroy();
+            }
+        });
+
+        // Hide spider UI
+        if (this.spiderUI) {
+            this.tweens.add({
+                targets: this.spiderUI,
+                alpha: 0,
+                duration: 500,
+                onComplete: () => {
+                    this.spiderUI.destroy();
+                }
+            });
+        }
+
+        // Victory effects
+        this.showFloatingText('MINIBOSS DEFEATED!', spider.x, spider.y - 60, '#FFD700');
+
+        if (window.AudioManager) {
+            window.AudioManager.playLevelUp();
+        }
+
+        // Rewards
+        this.time.delayedCall(500, () => {
+            // Full energy refill
+            this.crystalEnergy = this.maxCrystalEnergy;
+            this.updateEnergyDisplay();
+            this.showFloatingText('Energy Restored!', this.player.x, this.player.y - 40, '#7B68EE');
+
+            // Award coins
+            const currentCoins = window.GameState?.get('player.cosmicCoins') || 0;
+            window.GameState?.set('player.cosmicCoins', currentCoins + 50);
+            this.showFloatingText('+50 Coins', this.player.x, this.player.y - 80, '#FFD700');
+
+            // Set checkpoint
+            this.setCheckpoint(spider.x, spider.y);
+        });
     }
 
     /**
@@ -522,47 +1561,191 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     createCollectibles() {
         this.collectibles = this.physics.add.group();
 
-        // Cosmic coins throughout level - guide player along routes
+        // Cosmic coins - Guide player along main path (updated for new layout)
         const coinPositions = [
-            // Tutorial area
-            { x: 250, y: this.levelHeight - 190 },   // Above first platform
-            { x: 500, y: this.levelHeight - 190 },   // Between tutorial platforms
-            { x: 720, y: this.levelHeight - 280 },   // Above 3rd tutorial platform
-            // First challenge
-            { x: 950, y: this.levelHeight - 230 },   // Low path marker
-            { x: 1000, y: this.levelHeight - 370 },  // High path marker
-            // Vertical chamber
-            { x: 2250, y: this.levelHeight - 400 },  // Zigzag climb
-            { x: 2500, y: this.levelHeight - 570 },  // Upper climb
-            // Descent
-            { x: 2950, y: this.levelHeight - 500 },  // Descent path
-            { x: 3200, y: this.levelHeight - 300 },  // Mid descent
-            // Boss arena
-            { x: 4100, y: this.levelHeight - 330 },  // Above tactical platform
+            // Tutorial zone (0-800)
+            { x: 300, y: this.levelHeight - 190 },   // Above first platform
+            { x: 600, y: this.levelHeight - 190 },   // Between tutorial platforms
+            { x: 870, y: this.levelHeight - 260 },   // Above elevated platform
+            // Exploration zone (800-1400)
+            { x: 1050, y: this.levelHeight - 260 },  // Ground level path
+            { x: 1300, y: this.levelHeight - 260 },  // Near bridge
+            // Crystal Chamber (1600-2400)
+            { x: 1800, y: this.levelHeight - 210 },  // Entry area
+            { x: 2050, y: this.levelHeight - 320 },  // Mid level
+            { x: 2250, y: this.levelHeight - 420 },  // Upper platforms
+            // Approach to Boss (2400-3200)
+            { x: 2650, y: this.levelHeight - 210 },  // Low step
+            { x: 2900, y: this.levelHeight - 290 },  // Rising path
+            // Boss arena (3400+)
+            { x: 4000, y: this.levelHeight - 340 },  // Above center platform
         ];
 
         coinPositions.forEach(pos => {
             this.createCoin(pos.x, pos.y);
         });
 
-        // Ancient Relics (5 total for secondary objective)
-        // Placed in slightly hidden or challenging spots
+        // Star Fragments (5 total) - Reward exploration
         const relicPositions = [
-            { x: 370, y: this.levelHeight - 340 },   // Optional upper path (tutorial secret)
-            { x: 1270, y: this.levelHeight - 560 },  // Secret alcove above high path
-            { x: 2290, y: this.levelHeight - 660 },  // Top of vertical chamber
-            { x: 2680, y: this.levelHeight - 510 },  // Alternative side path
-            { x: 4900, y: this.levelHeight - 200 }   // After boss (reward on ground)
+            { x: 1100, y: this.levelHeight - 460 },  // Upper exploration path
+            { x: 1550, y: this.levelHeight - 440 },  // Secret slide reward area
+            { x: 2100, y: this.levelHeight - 560 },  // Above spider arena
+            { x: 2900, y: this.levelHeight - 440 },  // Relic alcove
+            { x: 4850, y: this.levelHeight - 200 }   // After boss (victory reward)
         ];
 
         relicPositions.forEach(pos => {
-            this.createRelic(pos.x, pos.y);
+            this.createStarFragment(pos.x, pos.y);
         });
+
+        // Crystal Shield power-up (at end of secret slide - updated position)
+        this.createCrystalShield(1550, this.levelHeight - 440);
+
+        // Hint crystal near slide entrance (extra bright to draw attention)
+        this.createHintCrystal(1750, this.levelHeight - 560);
 
         // Set up collectible overlaps
         this.physics.add.overlap(this.player, this.collectibles, this.collectItem, null, this);
 
-        console.log(`[CrystalCavesLevel] Created ${this.collectibles.getLength()} collectibles`);
+        console.log(`[CrystalCavesLevel] Created ${this.collectibles.getLength()} collectibles (including Crystal Shield)`);
+    }
+
+    /**
+     * Create the Crystal Shield power-up
+     */
+    createCrystalShield(x, y) {
+        const textureKey = 'crystalShieldPowerup';
+        if (!this.textures.exists(textureKey)) {
+            const graphics = this.make.graphics({ add: false });
+
+            // Outer glow (pulsing cyan)
+            graphics.fillStyle(0x00FFFF, 0.3);
+            graphics.fillCircle(30, 30, 28);
+
+            // Shield body (hexagonal shape)
+            graphics.fillStyle(0x00FFFF, 0.9);
+            // Shield outline
+            graphics.beginPath();
+            graphics.moveTo(30, 5);   // Top
+            graphics.lineTo(50, 15);  // Top right
+            graphics.lineTo(50, 40);  // Bottom right
+            graphics.lineTo(30, 55);  // Bottom
+            graphics.lineTo(10, 40);  // Bottom left
+            graphics.lineTo(10, 15);  // Top left
+            graphics.closePath();
+            graphics.fill();
+
+            // Inner shield highlight
+            graphics.fillStyle(0xFFFFFF, 0.5);
+            graphics.beginPath();
+            graphics.moveTo(30, 12);
+            graphics.lineTo(42, 18);
+            graphics.lineTo(42, 35);
+            graphics.lineTo(30, 45);
+            graphics.lineTo(18, 35);
+            graphics.lineTo(18, 18);
+            graphics.closePath();
+            graphics.fill();
+
+            // Star symbol in center (drawn manually - 5-pointed star)
+            graphics.fillStyle(0x00FFFF, 1);
+            const centerX = 30, centerY = 30;
+            const outerRadius = 8, innerRadius = 4;
+            for (let i = 0; i < 5; i++) {
+                const outerAngle = (i * Math.PI * 2 / 5) - Math.PI / 2;
+                const innerAngle = outerAngle + Math.PI / 5;
+                const outerX = centerX + Math.cos(outerAngle) * outerRadius;
+                const outerY = centerY + Math.sin(outerAngle) * outerRadius;
+                const innerX = centerX + Math.cos(innerAngle) * innerRadius;
+                const innerY = centerY + Math.sin(innerAngle) * innerRadius;
+                graphics.fillTriangle(centerX, centerY, outerX, outerY, innerX, innerY);
+            }
+
+            graphics.generateTexture(textureKey, 60, 60);
+            graphics.destroy();
+        }
+
+        const shield = this.collectibles.create(x, y, textureKey);
+        shield.body.setAllowGravity(false);
+        shield.collectibleType = 'crystalShield';
+
+        // Pulsing glow animation
+        this.tweens.add({
+            targets: shield,
+            alpha: { from: 0.8, to: 1 },
+            scaleX: { from: 1, to: 1.15 },
+            scaleY: { from: 1, to: 1.15 },
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Rotating shine effect
+        this.tweens.add({
+            targets: shield,
+            angle: { from: -5, to: 5 },
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        return shield;
+    }
+
+    /**
+     * Create a hint crystal (extra bright) near secret areas
+     */
+    createHintCrystal(x, y) {
+        const crystal = this.add.graphics();
+
+        // Extra bright outer glow
+        crystal.fillStyle(0x00FFFF, 0.4);
+        crystal.fillCircle(0, 0, 35);
+
+        // Middle bright glow
+        crystal.fillStyle(0x00FFFF, 0.6);
+        crystal.fillCircle(0, 0, 25);
+
+        // Inner bright core
+        crystal.fillStyle(0xFFFFFF, 0.5);
+        crystal.fillCircle(0, 0, 15);
+
+        // Crystal shape
+        crystal.fillStyle(0x00FFFF, 1);
+        crystal.fillTriangle(-12, 20, 12, 20, 0, -25);
+
+        // White highlight
+        crystal.fillStyle(0xFFFFFF, 0.8);
+        crystal.fillTriangle(-6, 12, 6, 12, 0, -15);
+
+        crystal.setPosition(x, y);
+        crystal.setDepth(-5);
+
+        // Prominent pulse animation
+        this.tweens.add({
+            targets: crystal,
+            alpha: { from: 0.7, to: 1 },
+            scaleX: { from: 1, to: 1.2 },
+            scaleY: { from: 1, to: 1.2 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Store as background crystal for proximity lighting too
+        crystal.crystalColor = 0x00FFFF;
+        crystal.crystalSize = 25;
+        crystal.crystalX = x;
+        crystal.crystalY = y;
+        crystal.baseAlpha = 0.7;  // Already bright
+        crystal.activeAlpha = 1.0;
+        crystal.currentAlpha = 0.7;
+        this.backgroundCrystals.push(crystal);
+
+        return crystal;
     }
 
     /**
@@ -607,8 +1790,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     /**
      * Create an ancient relic
      */
-    createRelic(x, y) {
-        const textureKey = 'ancientRelic';
+    createStarFragment(x, y) {
+        const textureKey = 'starFragment';
         if (!this.textures.exists(textureKey)) {
             const graphics = this.make.graphics({ add: false });
 
@@ -630,7 +1813,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         const relic = this.collectibles.create(x, y, textureKey);
         relic.body.setAllowGravity(false);
-        relic.collectibleType = 'relic';
+        relic.collectibleType = 'starFragment';
 
         // Pulsing glow animation
         this.tweens.add({
@@ -664,11 +1847,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 window.AudioManager.playCoinCollect();
             }
 
-        } else if (item.collectibleType === 'relic') {
-            this.relicsCollected++;
+        } else if (item.collectibleType === 'starFragment') {
+            this.starFragmentsCollected++;
 
             // Celebration effect
-            this.showFloatingText(`Relic ${this.relicsCollected}/${this.totalRelics}`, item.x, item.y - 30, '#E040FB');
+            this.showFloatingText(`⭐ Fragment ${this.starFragmentsCollected}/${this.totalStarFragments}`, item.x, item.y - 30, '#FFD700');
 
             // Particle burst
             if (window.FXLibrary) {
@@ -684,10 +1867,43 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 window.AudioManager.playAchievement();
             }
 
-            // Check if all relics collected
-            if (this.relicsCollected >= this.totalRelics) {
-                this.showFloatingText('All Relics Found!', player.x, player.y - 80, '#00FFFF');
+            // Check if all Star Fragments collected - award Cosmic Egg!
+            if (this.starFragmentsCollected >= this.totalStarFragments) {
+                this.showFloatingText('All Star Fragments! 🥚 Cosmic Egg Earned!', player.x, player.y - 80, '#00FFFF');
+
+                // Award Cosmic Egg to inventory
+                if (window.InventoryManager && !this.cosmicEggAwarded) {
+                    this.cosmicEggAwarded = true;
+                    window.InventoryManager.addItem({
+                        id: 'cosmic_egg',
+                        name: 'Cosmic Egg',
+                        type: 'egg',
+                        rarity: 'rare',
+                        description: 'A mysterious egg infused with Star Fragment energy. What creature awaits within?',
+                        icon: '🥚✨'
+                    });
+                    console.log('[CrystalCavesLevel] Cosmic Egg awarded for collecting all Star Fragments!');
+                }
             }
+
+        } else if (item.collectibleType === 'crystalShield') {
+            // Crystal Shield power-up!
+            console.log('[CrystalCavesLevel] Crystal Shield collected!');
+
+            // Activate shield in player (method from PlatformerLevelScene)
+            this.activateShield();
+
+            // Major celebration effect
+            if (window.FXLibrary) {
+                window.FXLibrary.stardustBurst(this, item.x, item.y, {
+                    count: 30,
+                    color: [0x00FFFF, 0xFFFFFF, 0x7B68EE],
+                    duration: 2000
+                });
+            }
+
+            // Camera flash
+            this.cameras.main.flash(300, 0, 255, 255);
         }
 
         // Destroy collected item
@@ -725,6 +1941,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             console.log('[CrystalCavesLevel] Started eerie crystal cave ambient audio');
         }
 
+        // Create parallax background layers
+        this.createParallaxLayers();
+
+        // Create environmental storytelling elements
+        this.createStorytellingElements();
+
+        // Create player glow for dynamic lighting
+        this.createPlayerGlow();
+
         // Glowing crystals in background
         const crystalPositions = [
             { x: 200, y: this.levelHeight - 400, size: 40 },
@@ -743,34 +1968,326 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         crystalPositions.forEach(pos => {
             this.createBackgroundCrystal(pos.x, pos.y, pos.size);
         });
+
+        console.log('[CrystalCavesLevel] Dynamic lighting initialized with', this.backgroundCrystals.length, 'crystals');
     }
 
     /**
-     * Create a glowing background crystal
+     * Create parallax background layers for depth
+     */
+    createParallaxLayers() {
+        // Far background layer (distant crystal formations) - 0.2 scroll factor
+        this.createParallaxLayer(0.2, [
+            { x: 500, type: 'crystalCluster', size: 80 },
+            { x: 1200, type: 'crystalCluster', size: 100 },
+            { x: 2000, type: 'stalactites', size: 120 },
+            { x: 2800, type: 'crystalCluster', size: 90 },
+            { x: 3600, type: 'stalactites', size: 110 },
+            { x: 4400, type: 'crystalCluster', size: 150 }
+        ], -50);
+
+        // Mid background layer (cave walls) - 0.5 scroll factor
+        this.createParallaxLayer(0.5, [
+            { x: 300, type: 'caveWall', size: 200 },
+            { x: 900, type: 'caveWall', size: 180 },
+            { x: 1600, type: 'caveWall', size: 220 },
+            { x: 2400, type: 'caveWall', size: 190 },
+            { x: 3200, type: 'caveWall', size: 210 },
+            { x: 4100, type: 'caveWall', size: 200 }
+        ], -40);
+
+        console.log('[CrystalCavesLevel] Parallax layers created');
+    }
+
+    /**
+     * Create a parallax background layer
+     */
+    createParallaxLayer(scrollFactor, elements, depth) {
+        elements.forEach(element => {
+            const graphics = this.add.graphics();
+
+            if (element.type === 'crystalCluster') {
+                // Distant crystal cluster
+                const baseAlpha = 0.2 + (scrollFactor * 0.2);
+                graphics.fillStyle(0x7B68EE, baseAlpha);
+
+                // Multiple overlapping crystals
+                for (let i = 0; i < 5; i++) {
+                    const offsetX = Phaser.Math.Between(-element.size / 2, element.size / 2);
+                    const height = Phaser.Math.Between(element.size * 0.5, element.size);
+                    graphics.fillTriangle(
+                        offsetX - 15, 0,
+                        offsetX + 15, 0,
+                        offsetX, -height
+                    );
+                }
+            } else if (element.type === 'stalactites') {
+                // Stalactite formations
+                graphics.fillStyle(0x2D1B4E, 0.3);
+
+                for (let i = 0; i < 7; i++) {
+                    const offsetX = (i - 3) * 20;
+                    const height = Phaser.Math.Between(40, element.size);
+                    graphics.fillTriangle(
+                        offsetX - 8, 0,
+                        offsetX + 8, 0,
+                        offsetX, height
+                    );
+                }
+            } else if (element.type === 'caveWall') {
+                // Cave wall formation
+                graphics.fillStyle(0x1A1025, 0.4);
+                graphics.fillRect(-element.size / 2, -100, element.size, 300);
+
+                // Add some texture
+                graphics.fillStyle(0x2D1B4E, 0.3);
+                for (let i = 0; i < 8; i++) {
+                    const x = Phaser.Math.Between(-element.size / 2, element.size / 2);
+                    const y = Phaser.Math.Between(-80, 180);
+                    graphics.fillCircle(x, y, Phaser.Math.Between(5, 20));
+                }
+            }
+
+            graphics.setPosition(element.x, this.levelHeight - 300);
+            graphics.setScrollFactor(scrollFactor, 1);
+            graphics.setDepth(depth);
+        });
+    }
+
+    /**
+     * Create environmental storytelling elements
+     */
+    createStorytellingElements() {
+        // Abandoned minecart near level start (tutorial area)
+        this.createMinecart(350, this.levelHeight - 75);
+
+        // Broken lanterns on key platforms (updated for new layout)
+        this.createBrokenLantern(600, this.levelHeight - 170);  // Tutorial platform
+        this.createBrokenLantern(2000, this.levelHeight - 320); // Crystal chamber
+
+        // Ancient runes on walls (glow when player is near)
+        this.createAncientRune(700, this.levelHeight - 300, 'left');   // Exploration zone
+        this.createAncientRune(1900, this.levelHeight - 450, 'right'); // Crystal chamber
+        this.createAncientRune(3100, this.levelHeight - 350, 'left');  // Pre-boss area
+
+        // Miner skeleton near secret slide area
+        this.createMinerSkeleton(1550, this.levelHeight - 480);
+
+        console.log('[CrystalCavesLevel] Storytelling elements created');
+    }
+
+    /**
+     * Create abandoned minecart decoration
+     */
+    createMinecart(x, y) {
+        const graphics = this.add.graphics();
+
+        // Cart body
+        graphics.fillStyle(0x4A3B2A, 1);
+        graphics.fillRect(-25, -20, 50, 25);
+
+        // Cart wheels
+        graphics.fillStyle(0x333333, 1);
+        graphics.fillCircle(-15, 10, 8);
+        graphics.fillCircle(15, 10, 8);
+
+        // Wheel spokes
+        graphics.lineStyle(1, 0x555555, 1);
+        graphics.strokeCircle(-15, 10, 6);
+        graphics.strokeCircle(15, 10, 6);
+
+        // Rust spots
+        graphics.fillStyle(0x8B4513, 0.5);
+        graphics.fillCircle(-10, -10, 4);
+        graphics.fillCircle(8, -5, 3);
+
+        graphics.setPosition(x, y);
+        graphics.setDepth(15);
+    }
+
+    /**
+     * Create broken lantern decoration
+     */
+    createBrokenLantern(x, y) {
+        const graphics = this.add.graphics();
+
+        // Lantern base (broken)
+        graphics.fillStyle(0x654321, 1);
+        graphics.fillRect(-8, 0, 16, 5);
+
+        // Lantern cage (partially)
+        graphics.lineStyle(2, 0x8B7355, 0.8);
+        graphics.lineBetween(-6, -15, -6, 0);
+        graphics.lineBetween(6, -10, 6, 0);
+
+        // Broken glass shards
+        graphics.fillStyle(0xFFFFCC, 0.3);
+        graphics.fillTriangle(-4, -8, 0, -5, 2, -10);
+
+        // Faint glow (dying light)
+        graphics.fillStyle(0xFFAA00, 0.1);
+        graphics.fillCircle(0, -5, 12);
+
+        graphics.setPosition(x, y);
+        graphics.setDepth(20);
+
+        // Subtle flicker
+        this.tweens.add({
+            targets: graphics,
+            alpha: { from: 0.6, to: 0.9 },
+            duration: Phaser.Math.Between(200, 400),
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * Create ancient rune on wall (glows when player is near)
+     */
+    createAncientRune(x, y, side) {
+        const graphics = this.add.graphics();
+
+        // Rune symbol (mystical shape)
+        graphics.lineStyle(2, 0x7B68EE, 0.3);
+
+        // Draw a mystical rune pattern
+        graphics.lineBetween(-15, -20, 0, -30);
+        graphics.lineBetween(0, -30, 15, -20);
+        graphics.lineBetween(-15, -20, -15, 10);
+        graphics.lineBetween(15, -20, 15, 10);
+        graphics.lineBetween(-15, 10, 0, 20);
+        graphics.lineBetween(15, 10, 0, 20);
+        graphics.lineBetween(-10, -10, 10, -10);
+        graphics.lineBetween(0, -20, 0, 10);
+
+        graphics.setPosition(x, y);
+        graphics.setDepth(5);
+
+        // Store for proximity check
+        graphics.runeX = x;
+        graphics.runeY = y;
+        graphics.baseAlpha = 0.3;
+        graphics.activeAlpha = 1.0;
+        graphics.currentAlpha = 0.3;
+
+        // Add to background crystals array for proximity lighting
+        this.backgroundCrystals.push(graphics);
+    }
+
+    /**
+     * Create miner skeleton decoration (tells the story)
+     */
+    createMinerSkeleton(x, y) {
+        const graphics = this.add.graphics();
+
+        // Skull
+        graphics.fillStyle(0xE8E8E8, 0.8);
+        graphics.fillCircle(0, -15, 10);
+
+        // Eye sockets
+        graphics.fillStyle(0x333333, 1);
+        graphics.fillCircle(-4, -17, 3);
+        graphics.fillCircle(4, -17, 3);
+
+        // Jaw
+        graphics.fillStyle(0xD8D8D8, 0.7);
+        graphics.fillRect(-6, -8, 12, 5);
+
+        // Ribcage
+        graphics.lineStyle(2, 0xCCCCCC, 0.6);
+        for (let i = 0; i < 4; i++) {
+            graphics.lineBetween(-8, i * 6, 8, i * 6);
+        }
+
+        // Arm bones (reaching toward crystal)
+        graphics.lineBetween(8, 0, 25, -10);
+        graphics.lineBetween(25, -10, 35, -5);
+
+        // Pickaxe nearby
+        graphics.fillStyle(0x4A4A4A, 1);
+        graphics.fillRect(40, -15, 4, 25);
+        graphics.fillStyle(0x6B6B6B, 1);
+        graphics.fillRect(35, -18, 15, 5);
+
+        // Old miner's helmet
+        graphics.fillStyle(0x8B4513, 0.6);
+        graphics.fillRect(-12, -28, 24, 8);
+
+        graphics.setPosition(x, y);
+        graphics.setDepth(10);
+
+        // Subtle ambient movement (settling dust)
+        this.tweens.add({
+            targets: graphics,
+            alpha: { from: 0.8, to: 0.9 },
+            duration: 3000,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * Create soft glow around player for cave atmosphere
+     */
+    createPlayerGlow() {
+        // Create glow texture if it doesn't exist
+        const textureKey = 'playerGlow';
+        if (!this.textures.exists(textureKey)) {
+            const graphics = this.make.graphics({ add: false });
+            const size = this.playerGlowRadius * 2;
+
+            // Create radial gradient effect
+            for (let r = this.playerGlowRadius; r > 0; r -= 5) {
+                const alpha = 0.3 * (r / this.playerGlowRadius);
+                graphics.fillStyle(0x7B68EE, alpha);
+                graphics.fillCircle(size / 2, size / 2, r);
+            }
+
+            // Add warm inner glow
+            for (let r = 60; r > 0; r -= 5) {
+                const alpha = 0.2 * (r / 60);
+                graphics.fillStyle(0xFFFFFF, alpha);
+                graphics.fillCircle(size / 2, size / 2, r);
+            }
+
+            graphics.generateTexture(textureKey, size, size);
+            graphics.destroy();
+        }
+
+        // Create the glow sprite
+        this.playerGlow = this.add.image(0, 0, textureKey);
+        this.playerGlow.setBlendMode(Phaser.BlendModes.ADD);
+        this.playerGlow.setDepth(this.player.depth - 1);
+        this.playerGlow.setAlpha(0.5);
+
+        console.log('[CrystalCavesLevel] Player glow created');
+    }
+
+    /**
+     * Create a glowing background crystal with proximity lighting
      */
     createBackgroundCrystal(x, y, size) {
         const crystal = this.add.graphics();
         const color = Phaser.Math.RND.pick([0x7B68EE, 0x00FFFF, 0xE040FB]);
 
-        // Outer glow
-        crystal.fillStyle(color, 0.2);
-        crystal.fillCircle(0, 0, size * 1.5);
+        // Store crystal info for proximity updates
+        crystal.crystalColor = color;
+        crystal.crystalSize = size;
+        crystal.crystalX = x;
+        crystal.crystalY = y;
+        crystal.baseAlpha = 0.3; // Dimmer when far from player
+        crystal.activeAlpha = 0.9; // Brighter when player is near
+        crystal.currentAlpha = 0.3;
 
-        // Middle glow
-        crystal.fillStyle(color, 0.4);
-        crystal.fillCircle(0, 0, size);
-
-        // Crystal shape
-        crystal.fillStyle(color, 0.8);
-        crystal.fillTriangle(-size / 3, size / 2, size / 3, size / 2, 0, -size / 2);
+        // Initial draw (dim)
+        this.drawCrystal(crystal, color, size, crystal.baseAlpha);
 
         crystal.setPosition(x, y);
         crystal.setDepth(-10);  // Behind platforms
 
-        // Pulse animation
+        // Subtle pulse animation
         this.tweens.add({
             targets: crystal,
-            alpha: { from: 0.5, to: 0.9 },
             scaleX: { from: 0.95, to: 1.05 },
             scaleY: { from: 0.95, to: 1.05 },
             duration: Phaser.Math.Between(2000, 3500),
@@ -778,58 +2295,234 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+
+        // Store for proximity updates
+        this.backgroundCrystals.push(crystal);
     }
 
     /**
-     * Create the Crystal Heart (level goal)
+     * Draw crystal graphics with specified intensity
      */
-    createCrystalHeart() {
-        // Position above the final stepped platform (4750, levelHeight - 480)
-        const heartX = 4850;
-        const heartY = this.levelHeight - 530;
+    drawCrystal(crystal, color, size, intensity) {
+        crystal.clear();
 
-        // Create heart texture
-        const textureKey = 'crystalHeart';
+        // Outer glow (scales with intensity)
+        crystal.fillStyle(color, 0.15 * intensity);
+        crystal.fillCircle(0, 0, size * 1.8);
+
+        // Middle glow
+        crystal.fillStyle(color, 0.3 * intensity);
+        crystal.fillCircle(0, 0, size * 1.2);
+
+        // Inner glow
+        crystal.fillStyle(color, 0.5 * intensity);
+        crystal.fillCircle(0, 0, size);
+
+        // Crystal shape (always somewhat visible)
+        crystal.fillStyle(color, 0.3 + (0.6 * intensity));
+        crystal.fillTriangle(-size / 3, size / 2, size / 3, size / 2, 0, -size / 2);
+
+        // Bright highlight when active
+        if (intensity > 0.6) {
+            crystal.fillStyle(0xFFFFFF, 0.3 * intensity);
+            crystal.fillTriangle(-size / 6, size / 4, size / 6, size / 4, 0, -size / 4);
+        }
+    }
+
+    /**
+     * Update dynamic lighting each frame
+     */
+    updateLighting() {
+        if (!this.player) return;
+
+        // Update player glow position
+        if (this.playerGlow) {
+            this.playerGlow.setPosition(this.player.x, this.player.y);
+        }
+
+        // Update crystal proximity lighting
+        this.backgroundCrystals.forEach(crystal => {
+            if (!crystal.active) return;
+
+            const dist = Phaser.Math.Distance.Between(
+                this.player.x, this.player.y,
+                crystal.crystalX, crystal.crystalY
+            );
+
+            // Calculate target alpha based on distance
+            let targetAlpha;
+            if (dist < this.crystalProximityDistance) {
+                // Within range - interpolate from base to active
+                const proximity = 1 - (dist / this.crystalProximityDistance);
+                targetAlpha = crystal.baseAlpha + (crystal.activeAlpha - crystal.baseAlpha) * proximity;
+            } else {
+                targetAlpha = crystal.baseAlpha;
+            }
+
+            // Smooth transition
+            crystal.currentAlpha += (targetAlpha - crystal.currentAlpha) * 0.1;
+
+            // Only redraw if alpha changed significantly
+            if (Math.abs(crystal.currentAlpha - crystal.lastDrawnAlpha) > 0.02) {
+                this.drawCrystal(crystal, crystal.crystalColor, crystal.crystalSize, crystal.currentAlpha);
+                crystal.lastDrawnAlpha = crystal.currentAlpha;
+            }
+        });
+    }
+
+    /**
+     * Create the Crystal Core Engine (ship part - level goal)
+     * Hexagonal core with rotating crystal rings
+     */
+    createCrystalCoreEngine() {
+        // Position above the final stepped platform (4750, levelHeight - 480)
+        const coreX = 4850;
+        const coreY = this.levelHeight - 530;
+
+        // Create core engine texture
+        const textureKey = 'crystalCoreEngine';
         if (!this.textures.exists(textureKey)) {
             const graphics = this.make.graphics({ add: false });
+            const size = 80;
+            const center = size / 2;
 
-            // Outer glow
-            graphics.fillStyle(0x00FFFF, 0.3);
-            graphics.fillCircle(40, 40, 35);
+            // Outer glow ring
+            graphics.fillStyle(0x00FFFF, 0.2);
+            graphics.fillCircle(center, center, 38);
 
-            // Heart shape (stylized crystal heart)
+            // Middle energy ring
+            graphics.lineStyle(3, 0x7B68EE, 0.8);
+            graphics.strokeCircle(center, center, 32);
+
+            // Hexagonal core body
+            graphics.fillStyle(0x2D1B4E, 1);
+            const hexRadius = 22;
+            graphics.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i - Math.PI / 6;
+                const x = center + Math.cos(angle) * hexRadius;
+                const y = center + Math.sin(angle) * hexRadius;
+                if (i === 0) graphics.moveTo(x, y);
+                else graphics.lineTo(x, y);
+            }
+            graphics.closePath();
+            graphics.fill();
+
+            // Hexagon outline
+            graphics.lineStyle(2, 0x00FFFF, 1);
+            graphics.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i - Math.PI / 6;
+                const x = center + Math.cos(angle) * hexRadius;
+                const y = center + Math.sin(angle) * hexRadius;
+                if (i === 0) graphics.moveTo(x, y);
+                else graphics.lineTo(x, y);
+            }
+            graphics.closePath();
+            graphics.stroke();
+
+            // Inner crystal core (glowing)
             graphics.fillStyle(0x00FFFF, 0.9);
-            graphics.fillCircle(30, 30, 15);
-            graphics.fillCircle(50, 30, 15);
-            graphics.fillTriangle(15, 35, 65, 35, 40, 70);
+            graphics.fillCircle(center, center, 12);
 
-            // Inner glow
-            graphics.fillStyle(0xFFFFFF, 0.6);
-            graphics.fillCircle(35, 35, 8);
+            // Core highlight
+            graphics.fillStyle(0xFFFFFF, 0.7);
+            graphics.fillCircle(center - 3, center - 3, 5);
 
-            graphics.generateTexture(textureKey, 80, 80);
+            // Energy lines radiating out
+            graphics.lineStyle(1, 0xE040FB, 0.6);
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                const x1 = center + Math.cos(angle) * 14;
+                const y1 = center + Math.sin(angle) * 14;
+                const x2 = center + Math.cos(angle) * 30;
+                const y2 = center + Math.sin(angle) * 30;
+                graphics.lineBetween(x1, y1, x2, y2);
+            }
+
+            graphics.generateTexture(textureKey, size, size);
             graphics.destroy();
         }
 
-        this.crystalHeart = this.physics.add.staticSprite(heartX, heartY, textureKey);
-        this.crystalHeart.setDepth(50);
+        this.crystalCore = this.physics.add.staticSprite(coreX, coreY, textureKey);
+        this.crystalCore.setDepth(50);
 
         // Pulsing animation
         this.tweens.add({
-            targets: this.crystalHeart,
-            scaleX: { from: 1, to: 1.2 },
-            scaleY: { from: 1, to: 1.2 },
+            targets: this.crystalCore,
+            scaleX: { from: 1, to: 1.15 },
+            scaleY: { from: 1, to: 1.15 },
             alpha: { from: 0.8, to: 1 },
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Slow rotation
+        this.tweens.add({
+            targets: this.crystalCore,
+            angle: 360,
+            duration: 8000,
+            repeat: -1,
+            ease: 'Linear'
+        });
+
+        // Add floating label above the Crystal Core
+        this.crystalCoreLabel = this.add.text(coreX, coreY - 70, '⬇ CRYSTAL CORE ENGINE ⬇', {
+            fontSize: '16px',
+            color: '#00FFFF',
+            fontStyle: 'bold',
+            stroke: '#1A0A2E',
+            strokeThickness: 3,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(60);
+
+        // Label hint text
+        this.crystalCoreHint = this.add.text(coreX, coreY - 50, 'Touch to Activate!', {
+            fontSize: '12px',
+            color: '#E040FB',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(60);
+
+        // Pulsing animation for label
+        this.tweens.add({
+            targets: [this.crystalCoreLabel, this.crystalCoreHint],
+            alpha: { from: 0.6, to: 1 },
+            y: '-=5',
             duration: 1000,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
 
+        // Beacon effect - vertical light beam
+        const beacon = this.add.graphics();
+        beacon.setDepth(45);
+        beacon.fillStyle(0x00FFFF, 0.15);
+        beacon.fillRect(coreX - 15, 0, 30, coreY);
+        beacon.fillStyle(0x00FFFF, 0.25);
+        beacon.fillRect(coreX - 8, 0, 16, coreY);
+
+        // Pulsing beacon
+        this.tweens.add({
+            targets: beacon,
+            alpha: { from: 0.3, to: 0.8 },
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
         // Overlap for collection - triggers boss fight
-        this.physics.add.overlap(this.player, this.crystalHeart, () => {
-            if (!this.crystalHeartFound && !this.bossFightActive) {
-                this.crystalHeartFound = true;
+        this.physics.add.overlap(this.player, this.crystalCore, () => {
+            if (!this.crystalCoreFound && !this.bossFightActive) {
+                this.crystalCoreFound = true;
+                // Hide labels when boss fight starts
+                this.crystalCoreLabel?.destroy();
+                this.crystalCoreHint?.destroy();
+                beacon?.destroy();
                 this.startBossFight();
             }
         });
@@ -1396,6 +3089,21 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                     }
                 }
 
+                // Trigger stalactites in Phase 2
+                if (this.bossPhase >= 2) {
+                    this.triggerStalactiteFall();
+                }
+
+                // Damage nearby pillars
+                this.crystalPillars.forEach(pillar => {
+                    if (pillar && !pillar.isDestroyed) {
+                        const pillarDist = Math.abs(pillar.x - this.boss.x);
+                        if (pillarDist < 150) {
+                            this.damageCrystalPillar(pillar);
+                        }
+                    }
+                });
+
                 // Sound
                 if (window.AudioManager) {
                     window.AudioManager.playAttack();
@@ -1723,10 +3431,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Celebration effects
         this.cameras.main.flash(500, 0, 255, 255);
 
-        if (window.FXLibrary) {
+        if (window.FXLibrary && this.crystalCore) {
             for (let i = 0; i < 5; i++) {
                 this.time.delayedCall(i * 200, () => {
-                    window.FXLibrary.stardustBurst(this, this.crystalHeart.x, this.crystalHeart.y, {
+                    window.FXLibrary.stardustBurst(this, this.crystalCore.x, this.crystalCore.y, {
                         count: 30,
                         color: [0x00FFFF, 0x7B68EE, 0xE040FB, 0xFFD700],
                         duration: 2000
@@ -1789,10 +3497,18 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Results
         const resultY = panelY + 120;
         const results = [
-            { text: 'Crystal Heart Found', done: true },
-            { text: `Ancient Relics: ${this.relicsCollected}/${this.totalRelics}`, done: this.relicsCollected >= this.totalRelics },
+            { text: 'Crystal Core Engine Found', done: true },
+            { text: `Star Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}`, done: this.starFragmentsCollected >= this.totalStarFragments },
             { text: 'Crystal Golem Defeated', done: this.bossDefeated }
         ];
+
+        // Save ship part to GameState
+        const shipParts = window.GameState?.get('shipParts') || [];
+        if (!shipParts.includes('crystal_core_engine')) {
+            shipParts.push('crystal_core_engine');
+            window.GameState?.set('shipParts', shipParts);
+            console.log('[CrystalCavesLevel] Ship part acquired: Crystal Core Engine. Total parts:', shipParts.length);
+        }
 
         results.forEach((result, i) => {
             const icon = result.done ? '[x]' : '[ ]';
@@ -1810,11 +3526,24 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             color: '#888888'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
-        const coins = 500 + (this.relicsCollected * 100);
+        const coins = 500 + (this.starFragmentsCollected * 100);
         this.add.text(width / 2, rewardY + 30, `+ ${coins} Cosmic Coins`, {
             fontSize: '22px',
             color: '#FFD700',
             fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        // Ship part notification
+        const currentShipParts = window.GameState?.get('shipParts') || [];
+        this.add.text(width / 2, rewardY + 60, `🔧 Ship Part Acquired: Crystal Core Engine`, {
+            fontSize: '16px',
+            color: '#00FFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+
+        this.add.text(width / 2, rewardY + 85, `Ship Repair Progress: ${currentShipParts.length}/5 parts`, {
+            fontSize: '14px',
+            color: '#9370DB'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Award coins
@@ -1850,7 +3579,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Objective display (bottom right)
         const { width, height } = this.cameras.main;
-        this.objectiveDisplay = this.add.text(width - 20, height - 30, `Relics: ${this.relicsCollected}/${this.totalRelics}`, {
+        this.objectiveDisplay = this.add.text(width - 20, height - 30, `⭐ Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}`, {
             fontSize: '16px',
             color: '#9370DB',
             backgroundColor: 'rgba(26, 16, 37, 0.7)',
@@ -1859,14 +3588,65 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Override update to refresh objective display
+     * Override update to refresh objective display, lighting, and slide physics
      */
     update(time, delta) {
         super.update(time, delta);
 
         // Update objective display
         if (this.objectiveDisplay) {
-            this.objectiveDisplay.setText(`Relics: ${this.relicsCollected}/${this.totalRelics}`);
+            this.objectiveDisplay.setText(`⭐ Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}`);
+        }
+
+        // Update dynamic lighting
+        this.updateLighting();
+
+        // Update slide physics
+        this.updateSlidePhysics();
+    }
+
+    /**
+     * Apply slide physics when player is on slide platforms
+     */
+    updateSlidePhysics() {
+        if (!this.player || !this.slidePlatforms || this.slidePlatforms.length === 0) return;
+
+        // Check if player is on any slide platform
+        let isOnSlide = false;
+        let slideDirection = 0;
+
+        this.slidePlatforms.forEach(slidePlatform => {
+            if (!slidePlatform.active) return;
+
+            // Check if player is touching this slide platform
+            if (this.physics.world.overlap(this.player, slidePlatform)) {
+                isOnSlide = true;
+                slideDirection = slidePlatform.slideDirection;
+            }
+        });
+
+        if (isOnSlide && this.isGrounded) {
+            // Apply slide velocity
+            const slideSpeed = 220;
+            this.player.setVelocityX(slideSpeed * slideDirection);
+
+            // Reduce gravity while sliding for smooth motion
+            this.player.body.setAllowGravity(true);
+
+            // Slide particles (occasional sparkles)
+            if (!this.slideParticleThrottle) {
+                if (window.FXLibrary) {
+                    window.FXLibrary.speedLines(this, this.player.x, this.player.y, -slideDirection, {
+                        count: 3,
+                        color: 0x00FFFF,
+                        alpha: { start: 0.7, end: 0 }
+                    });
+                }
+                this.slideParticleThrottle = true;
+                this.time.delayedCall(100, () => {
+                    this.slideParticleThrottle = false;
+                });
+            }
         }
     }
 
@@ -1880,6 +3660,53 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.ambientAudio && this.ambientAudio.stop) {
             this.ambientAudio.stop();
             this.ambientAudio = null;
+        }
+
+        // Clean up lighting
+        if (this.playerGlow) {
+            this.playerGlow.destroy();
+            this.playerGlow = null;
+        }
+        this.backgroundCrystals = [];
+
+        // Clean up Crystal Spider miniboss
+        if (this.spiderAITimer) {
+            this.spiderAITimer.remove();
+            this.spiderAITimer = null;
+        }
+        if (this.spiderAttackTimer) {
+            this.spiderAttackTimer.remove();
+            this.spiderAttackTimer = null;
+        }
+        if (this.crystalSpider) {
+            this.crystalSpider.destroy();
+            this.crystalSpider = null;
+        }
+        if (this.spiderUI) {
+            this.spiderUI.destroy();
+            this.spiderUI = null;
+        }
+        this.slidePlatforms = [];
+
+        // Clean up boss arena elements
+        if (this.powerWellTimer) {
+            this.powerWellTimer.remove();
+            this.powerWellTimer = null;
+        }
+        if (this.powerWell) {
+            this.powerWell.destroy();
+            this.powerWell = null;
+        }
+        if (this.crystalPillars) {
+            this.crystalPillars.forEach(p => p?.destroy());
+            this.crystalPillars = [];
+        }
+        if (this.stalactites) {
+            this.stalactites.forEach(s => {
+                s.sprite?.destroy();
+                s.shadow?.destroy();
+            });
+            this.stalactites = [];
         }
 
         // Stop boss AI timers
@@ -1933,10 +3760,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.bossOverlay = null;
         }
 
-        // Destroy crystal heart
-        if (this.crystalHeart) {
-            this.crystalHeart.destroy();
-            this.crystalHeart = null;
+        // Destroy crystal core engine
+        if (this.crystalCore) {
+            this.crystalCore.destroy();
+            this.crystalCore = null;
         }
 
         // Destroy objective display

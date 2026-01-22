@@ -439,6 +439,225 @@ class FXLibrary {
     }
 
     /**
+     * Create landing dust effect when player lands from height
+     * @param {Phaser.Scene} scene - The Phaser scene
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate (ground level)
+     * @param {Object} options - Effect options
+     */
+    landingDust(scene, x, y, options = {}) {
+        const opts = {
+            count: 10,
+            speed: { min: 40, max: 100 },
+            scale: { start: 0.6, end: 0.1 },
+            duration: 500,
+            color: [0xA0826D, 0xD2B48C, 0xC4A878, 0x8B7355], // Brown/tan dust colors
+            spread: 160, // Upward arc (not full 360)
+            gravity: { x: 0, y: 80 }, // Falls back down
+            alpha: { start: 0.7, end: 0 },
+            ...options
+        };
+
+        const effectId = `dust_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const particles = [];
+
+        for (let i = 0; i < opts.count; i++) {
+            // Spread from -80 to 80 degrees (upward arc centered at -90)
+            const baseAngle = -90; // Straight up
+            const spreadHalf = opts.spread / 2;
+            const angle = baseAngle + (Math.random() * opts.spread) - spreadHalf;
+            const speed = Phaser.Math.Between(opts.speed.min, opts.speed.max);
+            const color = Array.isArray(opts.color) ?
+                opts.color[Math.floor(Math.random() * opts.color.length)] : opts.color;
+
+            const particle = this.createDustParticle(scene, x, y, {
+                color,
+                scale: opts.scale,
+                alpha: opts.alpha
+            });
+
+            particles.push(particle);
+
+            // Animate opacity and scale
+            scene.tweens.add({
+                targets: particle,
+                scale: opts.scale.end,
+                alpha: opts.alpha.end,
+                duration: opts.duration,
+                ease: 'Quad.easeOut',
+                onComplete: () => {
+                    this.destroyParticle(particle);
+                }
+            });
+
+            // Physics movement with gravity
+            const velocityX = Math.cos(Phaser.Math.DegToRad(angle)) * speed;
+            const velocityY = Math.sin(Phaser.Math.DegToRad(angle)) * speed;
+
+            scene.tweens.add({
+                targets: particle,
+                x: particle.x + velocityX * (opts.duration / 1000),
+                y: particle.y + velocityY * (opts.duration / 1000) + opts.gravity.y * (opts.duration / 1000) * 0.5,
+                duration: opts.duration,
+                ease: 'Quad.easeOut'
+            });
+        }
+
+        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
+        this.logEffect('landing_dust', { x, y, count: opts.count });
+
+        return effectId;
+    }
+
+    /**
+     * Create individual dust particle (small cloud puff)
+     */
+    createDustParticle(scene, x, y, options) {
+        const particle = scene.add.graphics();
+        particle.setPosition(x, y);
+        particle.setScale(options.scale.start);
+        particle.setAlpha(options.alpha.start);
+
+        // Create small cloud/puff shape
+        particle.fillStyle(options.color, 1.0);
+        particle.fillCircle(0, 0, 4);
+        particle.fillCircle(2, -1, 3);
+        particle.fillCircle(-2, -1, 3);
+
+        return particle;
+    }
+
+    /**
+     * Create speed lines effect when player moves fast
+     * @param {Phaser.Scene} scene - The Phaser scene
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {number} direction - Movement direction (-1 left, 1 right)
+     * @param {Object} options - Effect options
+     */
+    speedLines(scene, x, y, direction, options = {}) {
+        const opts = {
+            count: 5,
+            length: { min: 15, max: 35 },
+            duration: 250,
+            color: 0xFFFFFF,
+            alpha: { start: 0.5, end: 0 },
+            spread: 40, // Vertical spread
+            ...options
+        };
+
+        const effectId = `speed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const particles = [];
+
+        for (let i = 0; i < opts.count; i++) {
+            const offsetY = (Math.random() * opts.spread) - (opts.spread / 2);
+            const length = Phaser.Math.Between(opts.length.min, opts.length.max);
+
+            const line = scene.add.graphics();
+            line.setPosition(x, y + offsetY);
+            line.setAlpha(opts.alpha.start);
+
+            // Draw horizontal speed line
+            line.lineStyle(2, opts.color, 1.0);
+            line.beginPath();
+            line.moveTo(0, 0);
+            line.lineTo(-direction * length, 0); // Trail behind movement
+            line.strokePath();
+
+            particles.push(line);
+
+            // Fade out and move
+            scene.tweens.add({
+                targets: line,
+                alpha: opts.alpha.end,
+                x: line.x - (direction * 30), // Move in opposite direction of player
+                duration: opts.duration,
+                ease: 'Linear',
+                onComplete: () => {
+                    this.destroyParticle(line);
+                }
+            });
+        }
+
+        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
+
+        return effectId;
+    }
+
+    /**
+     * Create shield aura effect around player
+     * @param {Phaser.Scene} scene - The Phaser scene
+     * @param {Phaser.GameObjects.Sprite} target - Target sprite to follow
+     * @param {Object} options - Effect options
+     * @returns {Object} Controller with update() and destroy() methods
+     */
+    shieldAura(scene, target, options = {}) {
+        const opts = {
+            color: 0x00FFFF,
+            radius: 50,
+            alpha: 0.4,
+            pulseSpeed: 800,
+            ...options
+        };
+
+        // Create aura graphics
+        const aura = scene.add.graphics();
+        aura.setDepth(target.depth - 1);
+        aura.setBlendMode(Phaser.BlendModes.ADD);
+
+        // Draw initial aura
+        const drawAura = () => {
+            aura.clear();
+
+            // Outer glow
+            aura.fillStyle(opts.color, opts.alpha * 0.3);
+            aura.fillCircle(0, 0, opts.radius + 10);
+
+            // Middle ring
+            aura.fillStyle(opts.color, opts.alpha * 0.5);
+            aura.fillCircle(0, 0, opts.radius);
+
+            // Inner bright core
+            aura.fillStyle(opts.color, opts.alpha);
+            aura.fillCircle(0, 0, opts.radius - 15);
+
+            // Ring outline
+            aura.lineStyle(2, 0xFFFFFF, opts.alpha * 0.8);
+            aura.strokeCircle(0, 0, opts.radius);
+        };
+
+        drawAura();
+        aura.setPosition(target.x, target.y);
+
+        // Pulsing animation
+        const pulseTween = scene.tweens.add({
+            targets: aura,
+            scaleX: { from: 1, to: 1.15 },
+            scaleY: { from: 1, to: 1.15 },
+            alpha: { from: 1, to: 0.7 },
+            duration: opts.pulseSpeed,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Return controller object
+        return {
+            aura,
+            pulseTween,
+            update: () => {
+                if (target && target.active) {
+                    aura.setPosition(target.x, target.y);
+                }
+            },
+            destroy: () => {
+                if (pulseTween) pulseTween.stop();
+                if (aura) aura.destroy();
+            }
+        };
+    }
+
+    /**
      * Create preset effect combinations
      */
     presets = {

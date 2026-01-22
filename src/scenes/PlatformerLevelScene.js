@@ -48,7 +48,30 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.maxHealth = 4;
         this.isPlayerDead = false; // Debounce flag for death handling
         this.isRestarting = false; // Debounce flag for restart handling
+        this.isInvincible = false; // Invincibility frames after taking damage
+        this.isRespawning = false; // Debounce flag for pit respawn
+        this.invincibilityDuration = 1500; // 1.5 seconds of invincibility
+        this.invincibilityTween = null; // Reference to flashing tween
         this.deathScreenElements = null; // Track death screen UI for cleanup
+
+        // Checkpoint system
+        this.lastSafePosition = null; // Last ground position for respawn
+        this.checkpointPosition = null; // Explicit checkpoint if set
+
+        // Movement feel enhancements
+        this.coyoteTime = 100; // ms grace period to jump after leaving platform
+        this.lastGroundedTime = 0; // Timestamp when last grounded
+        this.jumpBufferTime = 100; // ms to buffer jump input before landing
+        this.jumpBufferPressed = false; // Whether jump was pressed recently (for buffering)
+        this.jumpBufferTimestamp = 0; // When jump buffer was activated
+        this.wasGrounded = false; // Track previous grounded state for landing detection
+        this.lastLandingY = 0; // Track Y position to calculate fall distance for dust
+
+        // Crystal Shield power-up
+        this.hasShield = false; // Whether player has active shield
+        this.shieldTimeRemaining = 0; // Time left on shield
+        this.shieldDuration = 15000; // 15 seconds of shield
+        this.shieldAuraController = null; // FXLibrary shield aura controller
 
         // Input
         this.cursors = null;
@@ -107,6 +130,13 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isPlayerDead = false;
         this.isRestarting = false;
         this.isDucking = false;
+        this.isInvincible = false;
+        this.isRespawning = false;
+        this.invincibilityTween = null;
+
+        // Reset checkpoint data
+        this.lastSafePosition = null;
+        this.checkpointPosition = null;
 
         // Reset mobile control state
         this.virtualJoystickX = 0;
@@ -118,6 +148,21 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.pauseEscHandler) {
             window.removeEventListener('keydown', this.pauseEscHandler);
             this.pauseEscHandler = null;
+        }
+
+        // Reset movement feel state
+        this.lastGroundedTime = 0;
+        this.jumpBufferPressed = false;
+        this.jumpBufferTimestamp = 0;
+        this.wasGrounded = false;
+        this.lastLandingY = 0;
+
+        // Reset Crystal Shield state
+        this.hasShield = false;
+        this.shieldTimeRemaining = 0;
+        if (this.shieldAuraController) {
+            this.shieldAuraController.destroy();
+            this.shieldAuraController = null;
         }
 
         // Clear references (will be recreated in create())
@@ -393,10 +438,11 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     createPlayer() {
         const startX = 200;
-        // Spawn player above the ground (ground is at levelHeight - 50, ground surface is ~levelHeight - 90)
-        // Player body is ~55px tall, so spawn them so their feet are just above ground
-        const groundSurfaceY = this.levelHeight - 90;
-        const startY = groundSurfaceY - 30; // Player center 30px above ground surface
+        // Ground platform starts at y = levelHeight - 50, with height 80
+        // So ground TOP surface is at y = levelHeight - 50
+        // Player body is ~55px tall, spawn player well above ground to ensure visibility
+        const groundTopY = this.levelHeight - 50;
+        const startY = groundTopY - 80; // Player center 80px above ground top (generous buffer)
 
         // Generate creature texture using existing system
         let textureName = 'platformerCreature';
@@ -422,8 +468,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.player.setDrag(100, 0);
 
         // Set body size for better collision
+        // Body offset Y reduced to 5 so creature's visual feet align with physics body bottom
         this.player.body.setSize(40, 55);
-        this.player.body.setOffset(10, 15);
+        this.player.body.setOffset(10, 5);
 
         // Player properties - depth must be higher than platforms (which use Y position as depth)
         // Platforms at Y=750 (ground) have depth 750, so player needs depth > 800
@@ -683,24 +730,28 @@ class PlatformerLevelScene extends Phaser.Scene {
         const topRowY = bottomRowY - primarySize - spacing;
 
         // Button configs for platformer
+        // Layout: [Special] [Ranged]
+        //         [Jump]    [Melee]
         const buttons = [
             {
                 id: 'special',
-                label: '⚡',
+                label: '💥',
                 x: leftColX,
                 y: topRowY,
                 size: buttonSize,
-                color: 0x9B59B6, // Purple - special
-                action: () => this.performSpecialAttack()
+                color: 0x9B59B6, // Purple - special (costs 3 energy)
+                action: () => this.performSpecialAttack(),
+                energyCost: 3
             },
             {
-                id: 'attack2',
-                label: '🗡️',
+                id: 'ranged',
+                label: '🔫',
                 x: rightColX,
                 y: topRowY,
                 size: buttonSize,
-                color: 0xE67E22, // Orange - secondary attack
-                action: () => this.performAttack()
+                color: 0x00CED1, // Cyan - ranged attack (costs 1 energy)
+                action: () => this.performRangedAttack(),
+                energyCost: 1
             },
             {
                 id: 'jump',
@@ -708,18 +759,20 @@ class PlatformerLevelScene extends Phaser.Scene {
                 x: leftColX,
                 y: bottomRowY,
                 size: primarySize,
-                color: 0x27AE60, // Green - jump
+                color: 0x27AE60, // Green - jump (free)
                 action: () => { this.virtualJumpPressed = true; },
-                onRelease: () => { this.virtualJumpPressed = false; }
+                onRelease: () => { this.virtualJumpPressed = false; },
+                energyCost: 0
             },
             {
-                id: 'attack',
-                label: '⚔️',
+                id: 'melee',
+                label: '👊',
                 x: rightColX,
                 y: bottomRowY,
                 size: primarySize,
-                color: 0xE74C3C, // Red - attack
-                action: () => this.performAttack()
+                color: 0xE74C3C, // Red - melee attack (free)
+                action: () => this.performAttack(),
+                energyCost: 0
             }
         ];
 
@@ -849,8 +902,24 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Create a platformer action button
      */
     createPlatformerButton(config) {
-        const { id, label, x, y, size, color, action, onRelease } = config;
+        const { id, label, x, y, size, color, action, onRelease, energyCost = 0 } = config;
         const radius = size / 2;
+
+        // Energy ring (for buttons that cost energy)
+        let energyRing = null;
+        if (energyCost > 0) {
+            energyRing = this.add.graphics();
+            energyRing.setScrollFactor(0);
+            energyRing.setDepth(9999); // Below button
+            this.mobileControlElements.push(energyRing);
+
+            // Store reference for updating
+            if (!this.energyRingButtons) this.energyRingButtons = {};
+            this.energyRingButtons[id] = { ring: energyRing, x, y, radius: radius + 6, cost: energyCost };
+
+            // Initial draw
+            this.drawEnergyRing(energyRing, x, y, radius + 6, energyCost);
+        }
 
         // Button background
         const bg = this.add.graphics();
@@ -940,6 +1009,70 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     /**
+     * Draw energy ring around a button
+     * Shows how much energy is available vs required
+     */
+    drawEnergyRing(graphics, x, y, radius, energyCost) {
+        graphics.clear();
+
+        const hasEnough = this.crystalEnergy >= energyCost;
+        const energyPercent = Math.min(this.crystalEnergy / energyCost, 1);
+
+        // Background ring (dark, shows what's missing)
+        graphics.lineStyle(4, 0x2D2D4D, 0.6);
+        graphics.beginPath();
+        graphics.arc(x, y, radius, 0, Math.PI * 2);
+        graphics.strokePath();
+
+        if (hasEnough) {
+            // Full ring when ready (bright cyan glow)
+            graphics.lineStyle(4, 0x00FFFF, 0.9);
+            graphics.beginPath();
+            graphics.arc(x, y, radius, -Math.PI / 2, Math.PI * 1.5);
+            graphics.strokePath();
+
+            // Pulsing glow effect
+            graphics.lineStyle(8, 0x00FFFF, 0.2);
+            graphics.beginPath();
+            graphics.arc(x, y, radius, -Math.PI / 2, Math.PI * 1.5);
+            graphics.strokePath();
+        } else {
+            // Partial ring showing energy progress (yellow/orange)
+            const angle = -Math.PI / 2 + (Math.PI * 2 * energyPercent);
+            graphics.lineStyle(4, 0xFFAA00, 0.8);
+            graphics.beginPath();
+            graphics.arc(x, y, radius, -Math.PI / 2, angle);
+            graphics.strokePath();
+
+            // Small indicator for required energy
+            const costText = this.add.text(x + radius - 2, y - radius + 2, `${energyCost}⚡`, {
+                fontSize: '10px',
+                color: hasEnough ? '#00FFFF' : '#FF6B6B',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(10003);
+            this.mobileControlElements.push(costText);
+
+            // Store for cleanup on redraw
+            if (!this.energyCostLabels) this.energyCostLabels = {};
+            if (this.energyCostLabels[`${x}_${y}`]) {
+                this.energyCostLabels[`${x}_${y}`].destroy();
+            }
+            this.energyCostLabels[`${x}_${y}`] = costText;
+        }
+    }
+
+    /**
+     * Update all energy ring indicators
+     */
+    updateEnergyRings() {
+        if (!this.energyRingButtons) return;
+
+        Object.values(this.energyRingButtons).forEach(btn => {
+            this.drawEnergyRing(btn.ring, btn.x, btn.y, btn.radius, btn.cost);
+        });
+    }
+
+    /**
      * Update joystick thumb position and calculate input
      */
     updateJoystick(pointer) {
@@ -1018,11 +1151,38 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Handle enemy collision (override in subclass)
      */
     onEnemyCollision(player, enemy) {
-        // Check if jumping on enemy (Mario-style)
-        if (player.body.velocity.y > 0 && player.y < enemy.y - 20) {
+        // Skip if enemy is already defeated
+        if (!enemy.active) return;
+
+        // Get collision info
+        const playerCenterY = player.body.center.y;
+        const playerBottom = player.body.bottom;
+        const playerVelocityY = player.body.velocity.y;
+        const enemyCenterY = enemy.body.center.y;
+        const enemyTop = enemy.body.top;
+
+        // Mario-style stomp detection - GENEROUS for better game feel:
+        // 1. Player must be falling (positive Y velocity) OR just landed (velocity near 0 but was falling)
+        // 2. Player's CENTER must be above enemy's CENTER (player approaching from above)
+        // 3. Player's BOTTOM must be in upper portion of enemy (feet hitting head)
+        const isFalling = playerVelocityY > -50; // Allow small upward velocity (just bounced)
+        const isAboveEnemy = playerCenterY < enemyCenterY; // Player center is higher (lower Y)
+        const feetNearTop = playerBottom <= enemyTop + (enemy.body.height * 0.6); // Generous 60%
+
+        const isStomping = isFalling && isAboveEnemy && feetNearTop;
+
+        if (isStomping) {
+            console.log('[PlatformerLevel] Enemy stomped! Player Y:', playerCenterY, 'Enemy Y:', enemyCenterY);
             this.defeatEnemy(enemy);
-            player.setVelocityY(this.jumpVelocity * 0.6); // Bounce
+            player.setVelocityY(this.jumpVelocity * 0.6); // Bounce up
+
+            // Satisfying stomp sound
+            if (window.AudioManager) {
+                window.AudioManager.playEnemyHit();
+            }
         } else {
+            // Player touched enemy from side/below - take damage
+            console.log('[PlatformerLevel] Enemy collision - damage! Player Y:', playerCenterY, 'Enemy Y:', enemyCenterY);
             this.takeDamage(1);
         }
     }
@@ -1089,6 +1249,9 @@ class PlatformerLevelScene extends Phaser.Scene {
             crystal.setPosition(i * 28, 0);
             this.energyDisplay.add(crystal);
         }
+
+        // Also update mobile button energy rings
+        this.updateEnergyRings();
     }
 
     /**
@@ -1107,10 +1270,29 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Main update loop
      */
     update(time, delta) {
-        if (!this.player) return;
+        if (!this.player || this.isPlayerDead) return;
 
         // Check if grounded
         this.isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
+
+        // Track coyote time - record when we were last grounded
+        if (this.isGrounded) {
+            this.lastGroundedTime = time;
+        }
+
+        // Detect landing (transition from air to ground) for dust effect
+        if (this.isGrounded && !this.wasGrounded) {
+            this.onLanding(time);
+        }
+        this.wasGrounded = this.isGrounded;
+
+        // Track last safe position when grounded (for respawn after pit falls)
+        if (this.isGrounded && !this.isInvincible) {
+            this.updateLastSafePosition();
+        }
+
+        // Check for fall out of bounds (kill zone)
+        this.checkFallOutOfBounds();
 
         // Handle ducking (must check before movement)
         this.handleDuck();
@@ -1120,11 +1302,133 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Handle jumping (only if not ducking)
         if (!this.isDucking) {
-            this.handleJump();
+            this.handleJump(time);
         }
 
         // Update player facing direction
         this.updatePlayerFacing();
+
+        // Update Crystal Shield if active
+        if (this.hasShield) {
+            this.updateShield(delta);
+        }
+    }
+
+    /**
+     * Called when player lands on ground
+     * Triggers landing dust effect if falling from height
+     */
+    onLanding(time) {
+        const fallDistance = this.player.y - this.lastLandingY;
+
+        // Only show dust if fell a significant distance (not just stepping down)
+        if (fallDistance > 50 && window.FXLibrary) {
+            window.FXLibrary.landingDust(this, this.player.x, this.player.body.bottom, {
+                count: Math.min(15, Math.floor(fallDistance / 30) + 5)
+            });
+        }
+
+        // Update last landing Y for next comparison
+        this.lastLandingY = this.player.y;
+
+        // Check for jump buffer - if player pressed jump while in air near landing
+        if (this.jumpBufferPressed && (time - this.jumpBufferTimestamp) < this.jumpBufferTime) {
+            // Execute buffered jump immediately
+            this.time.delayedCall(20, () => {
+                if (this.isGrounded && this.canJump && !this.isDucking) {
+                    this.executeJump();
+                }
+            });
+        }
+    }
+
+    /**
+     * Update Crystal Shield power-up
+     */
+    updateShield(delta) {
+        this.shieldTimeRemaining -= delta;
+
+        // Update shield aura visual
+        if (this.shieldAuraController) {
+            this.shieldAuraController.update(this.player.x, this.player.y);
+        }
+
+        // Shield expired
+        if (this.shieldTimeRemaining <= 0) {
+            this.deactivateShield();
+        }
+    }
+
+    /**
+     * Activate Crystal Shield power-up
+     */
+    activateShield() {
+        console.log('[PlatformerLevel] Crystal Shield activated!');
+
+        this.hasShield = true;
+        this.shieldTimeRemaining = this.shieldDuration;
+
+        // Create shield aura visual
+        if (window.FXLibrary) {
+            this.shieldAuraController = window.FXLibrary.shieldAura(this, this.player, {
+                radius: 45,
+                color: 0x00FFFF
+            });
+        }
+
+        // Play activation sound
+        if (window.AudioManager) {
+            window.AudioManager.playLevelUp();
+        }
+
+        // Show floating text
+        this.showFloatingText('SHIELD ACTIVE!', this.player.x, this.player.y - 60, '#00FFFF');
+    }
+
+    /**
+     * Deactivate Crystal Shield
+     */
+    deactivateShield() {
+        console.log('[PlatformerLevel] Crystal Shield expired');
+
+        this.hasShield = false;
+        this.shieldTimeRemaining = 0;
+
+        // Destroy shield aura
+        if (this.shieldAuraController) {
+            this.shieldAuraController.destroy();
+            this.shieldAuraController = null;
+        }
+
+        // Play expiration sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Show floating text
+        this.showFloatingText('Shield Faded', this.player.x, this.player.y - 60, '#888888');
+    }
+
+    /**
+     * Show floating text that rises and fades
+     */
+    showFloatingText(text, x, y, color = '#FFD700') {
+        const floatingText = this.add.text(x, y, text, {
+            fontSize: '20px',
+            color: color,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(950);
+
+        this.tweens.add({
+            targets: floatingText,
+            y: y - 60,
+            alpha: { from: 1, to: 0 },
+            scale: { from: 1, to: 1.3 },
+            duration: 1200,
+            onComplete: () => floatingText.destroy()
+        });
     }
 
     /**
@@ -1167,6 +1471,19 @@ class PlatformerLevelScene extends Phaser.Scene {
             if (Math.abs(this.player.body.velocity.x) < 5) {
                 this.player.setVelocityX(0);
             }
+        }
+
+        // Speed lines when moving fast (velocity > 150)
+        const speed = Math.abs(this.player.body.velocity.x);
+        if (speed > 150 && window.FXLibrary && !this.speedLineThrottle) {
+            const direction = this.player.body.velocity.x > 0 ? -1 : 1;
+            window.FXLibrary.speedLines(this, this.player.x, this.player.y, direction);
+
+            // Throttle speed lines to prevent too many particles
+            this.speedLineThrottle = true;
+            this.time.delayedCall(80, () => {
+                this.speedLineThrottle = false;
+            });
         }
     }
 
@@ -1212,33 +1529,65 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     /**
-     * Handle jump input
+     * Handle jump input with coyote time and jump buffering
+     * - Coyote time: 100ms grace period after leaving platform
+     * - Jump buffering: Accept jump input 100ms before landing
      * Supports both keyboard and virtual jump button
      */
-    handleJump() {
+    handleJump(time) {
         const jumpPressed = this.jumpKey.isDown ||
                            this.cursors.up.isDown ||
                            this.wasdKeys.W.isDown ||
                            this.virtualJumpPressed;  // Mobile virtual jump button
 
-        if (jumpPressed && this.isGrounded && this.canJump) {
-            this.player.setVelocityY(this.jumpVelocity);
-            this.canJump = false;
-            this.isGrounded = false;
+        // Calculate if within coyote time (recently was grounded)
+        const timeSinceGrounded = time - this.lastGroundedTime;
+        const canCoyoteJump = timeSinceGrounded < this.coyoteTime;
 
-            // Reset virtual jump to prevent continuous jumping
-            this.virtualJumpPressed = false;
+        // Determine if we can jump (grounded OR within coyote time)
+        const canJumpNow = (this.isGrounded || canCoyoteJump) && this.canJump;
 
-            // Play jump sound
-            if (window.AudioManager) {
-                window.AudioManager.playButtonClick();
-            }
-
-            // Jump cooldown
-            this.time.delayedCall(this.jumpCooldown, () => {
-                this.canJump = true;
-            });
+        if (jumpPressed && canJumpNow) {
+            this.executeJump();
+        } else if (jumpPressed && !this.isGrounded) {
+            // Player pressed jump while in air - buffer it for landing
+            this.jumpBufferPressed = true;
+            this.jumpBufferTimestamp = time;
         }
+
+        // Clear jump buffer if grounded and no jump pressed
+        if (this.isGrounded && !jumpPressed) {
+            this.jumpBufferPressed = false;
+        }
+    }
+
+    /**
+     * Execute the actual jump
+     * Separated to allow calling from handleJump and jump buffer
+     */
+    executeJump() {
+        // Track Y position before jump for landing dust calculation
+        this.lastLandingY = this.player.y;
+
+        this.player.setVelocityY(this.jumpVelocity);
+        this.canJump = false;
+        this.isGrounded = false;
+
+        // Reset virtual jump to prevent continuous jumping
+        this.virtualJumpPressed = false;
+
+        // Clear jump buffer since we just jumped
+        this.jumpBufferPressed = false;
+
+        // Play jump sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Jump cooldown
+        this.time.delayedCall(this.jumpCooldown, () => {
+            this.canJump = true;
+        });
     }
 
     /**
@@ -1557,12 +1906,49 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     /**
      * Player takes damage
+     * @param {number} amount - Damage amount (1 = 1 heart)
+     * @param {boolean} bypassInvincibility - If true, ignore invincibility (for pit falls)
      */
-    takeDamage(amount) {
+    takeDamage(amount, bypassInvincibility = false) {
+        // Crystal Shield blocks all damage
+        if (this.hasShield) {
+            console.log('[PlatformerLevel] Damage blocked by Crystal Shield!');
+            // Visual feedback - shield absorb effect
+            if (window.FXLibrary) {
+                window.FXLibrary.stardustBurst(this, this.player.x, this.player.y, {
+                    count: 8,
+                    color: [0x00FFFF, 0xFFFFFF],
+                    duration: 400
+                });
+            }
+            return;
+        }
+
+        // Check invincibility - prevents multi-hit from overlapping enemies
+        if (this.isInvincible && !bypassInvincibility) {
+            return;
+        }
+
+        // Check if already dead
+        if (this.isPlayerDead) {
+            return;
+        }
+
         this.health -= amount;
         this.updateHealthDisplay();
 
-        // Flash and knockback
+        console.log(`[PlatformerLevel] Player took ${amount} damage, health: ${this.health}/${this.maxHealth}`);
+
+        // Check for death first
+        if (this.health <= 0) {
+            this.onPlayerDeath();
+            return;
+        }
+
+        // Start invincibility period
+        this.isInvincible = true;
+
+        // Flash red initially
         this.player.setTint(0xFF0000);
         this.time.delayedCall(200, () => {
             if (this.player) this.player.clearTint();
@@ -1572,21 +1958,168 @@ class PlatformerLevelScene extends Phaser.Scene {
         const knockbackX = this.player.facingRight ? -200 : 200;
         this.player.setVelocity(knockbackX, -150);
 
-        // Invincibility frames
-        this.player.setAlpha(0.5);
-        this.time.delayedCall(1000, () => {
-            if (this.player) this.player.setAlpha(1);
-        });
+        // Flashing effect during invincibility
+        this.startInvincibilityFlash();
 
         // Sound
         if (window.AudioManager) {
             window.AudioManager.playError();
         }
 
+        // End invincibility after duration
+        this.time.delayedCall(this.invincibilityDuration, () => {
+            this.endInvincibility();
+        });
+    }
+
+    /**
+     * Start flashing effect during invincibility
+     */
+    startInvincibilityFlash() {
+        if (!this.player) return;
+
+        // Create flashing tween
+        this.invincibilityTween = this.tweens.add({
+            targets: this.player,
+            alpha: { from: 1, to: 0.3 },
+            duration: 100,
+            yoyo: true,
+            repeat: -1 // Repeat until stopped
+        });
+    }
+
+    /**
+     * End invincibility period
+     */
+    endInvincibility() {
+        this.isInvincible = false;
+
+        // Stop flashing
+        if (this.invincibilityTween) {
+            this.invincibilityTween.stop();
+            this.invincibilityTween = null;
+        }
+
+        // Reset alpha
+        if (this.player) {
+            this.player.setAlpha(1);
+        }
+    }
+
+    /**
+     * Update last safe position (called when grounded)
+     * Only updates if player has moved significantly from last position
+     */
+    updateLastSafePosition() {
+        const currentPos = { x: this.player.x, y: this.player.y };
+
+        // Only update if moved more than 50px from last safe position
+        // This prevents constant updates while standing still
+        if (!this.lastSafePosition ||
+            Math.abs(currentPos.x - this.lastSafePosition.x) > 50 ||
+            Math.abs(currentPos.y - this.lastSafePosition.y) > 50) {
+            this.lastSafePosition = currentPos;
+        }
+    }
+
+    /**
+     * Set an explicit checkpoint (for mid-level checkpoints)
+     */
+    setCheckpoint(x, y) {
+        this.checkpointPosition = { x, y };
+        console.log(`[PlatformerLevel] Checkpoint set at (${x}, ${y})`);
+
+        // Visual feedback
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, x, y, {
+                count: 15,
+                color: [0x00FF00, 0x7CFC00],
+                duration: 1000
+            });
+        }
+    }
+
+    /**
+     * Check if player has fallen out of bounds (below level)
+     */
+    checkFallOutOfBounds() {
+        if (!this.player || this.isPlayerDead) return;
+
+        // Fall threshold: below level height + buffer
+        const fallThreshold = this.levelHeight + 200;
+
+        if (this.player.y > fallThreshold) {
+            console.log('[PlatformerLevel] Player fell out of bounds');
+            this.onPitFall();
+        }
+    }
+
+    /**
+     * Handle falling into a pit
+     * Takes 1 heart of damage and respawns at checkpoint
+     */
+    onPitFall() {
+        // Prevent multiple pit fall triggers
+        if (this.isRespawning) return;
+        this.isRespawning = true;
+
+        // Take 1 heart damage (bypass invincibility since it's a pit)
+        this.health -= 1;
+        this.updateHealthDisplay();
+
+        console.log(`[PlatformerLevel] Pit fall! Health: ${this.health}/${this.maxHealth}`);
+
         // Check for death
         if (this.health <= 0) {
+            this.isRespawning = false;
             this.onPlayerDeath();
+            return;
         }
+
+        // Play fall sound
+        if (window.AudioManager) {
+            window.AudioManager.playError();
+        }
+
+        // Brief screen effect
+        const flash = this.add.graphics();
+        flash.fillStyle(0x000000, 0.8);
+        flash.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
+        flash.setScrollFactor(0);
+        flash.setDepth(1500);
+
+        // Respawn after short delay
+        this.time.delayedCall(300, () => {
+            this.respawnAtCheckpoint();
+            flash.destroy();
+        });
+    }
+
+    /**
+     * Respawn player at last checkpoint or safe position
+     */
+    respawnAtCheckpoint() {
+        // Use explicit checkpoint if set, otherwise last safe position, otherwise level start
+        const respawnPos = this.checkpointPosition ||
+                          this.lastSafePosition ||
+                          { x: 150, y: this.levelHeight - 200 };
+
+        console.log(`[PlatformerLevel] Respawning at (${respawnPos.x}, ${respawnPos.y})`);
+
+        // Teleport player
+        this.player.setPosition(respawnPos.x, respawnPos.y);
+        this.player.setVelocity(0, 0);
+
+        // Brief invincibility after respawn
+        this.isInvincible = true;
+        this.startInvincibilityFlash();
+
+        this.time.delayedCall(this.invincibilityDuration, () => {
+            this.endInvincibility();
+        });
+
+        // Reset respawning flag
+        this.isRespawning = false;
     }
 
     /**

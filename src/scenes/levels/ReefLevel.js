@@ -10,13 +10,13 @@ import PlatformerLevelScene from '../PlatformerLevelScene.js';
  * energy - has become corrupted, blocking passage through this critical route.
  *
  * A piece of your crashed ship's Dimensional Drive lies somewhere in this realm.
- * Recover it, collect the Ancient Star Relics, and defeat Nyx'voral to restore
+ * Recover it, collect the Star Fragments, and defeat Nyx'voral to restore
  * the cosmic passage."
  *
  * Objectives:
  * - Primary: Defeat Nyx'voral the Void Serpent
  * - Critical: Recover the Dimensional Drive Fragment (ship part)
- * - Secondary: Collect 5 Ancient Star Relics
+ * - Secondary: Collect 5 Star Fragments
  */
 class ReefLevel extends PlatformerLevelScene {
     constructor() {
@@ -41,8 +41,8 @@ class ReefLevel extends PlatformerLevelScene {
         this.maxSinkSpeed = 100;
 
         // Level-specific state
-        this.relicsCollected = 0;
-        this.totalRelics = 5;
+        this.starFragmentsCollected = 0;
+        this.totalStarFragments = 5;
         this.shipPartCollected = false;
         this.bossDefeated = false;
         this.bossFightActive = false;
@@ -64,8 +64,9 @@ class ReefLevel extends PlatformerLevelScene {
         this.lureWraiths = [];     // Replaces anglerfish - void predators
 
         // Collectibles
-        this.relics = [];
+        this.starFragments = [];
         this.shipPart = null;
+        this.cosmicEggAwarded = false;
 
         // Cosmic effects
         this.nebulaParticles = [];
@@ -77,10 +78,11 @@ class ReefLevel extends PlatformerLevelScene {
         super.init(data);
 
         // Reset level state
-        this.relicsCollected = 0;
+        this.starFragmentsCollected = 0;
         this.shipPartCollected = false;
         this.bossDefeated = false;
         this.bossFightActive = false;
+        this.cosmicEggAwarded = false;
 
         // Reset boss
         this.boss = null;
@@ -98,7 +100,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.lureWraiths = [];
 
         // Reset collectibles
-        this.relics = [];
+        this.starFragments = [];
         this.shipPart = null;
 
         console.log('[ReefLevel] Cosmic Abyss state reset');
@@ -222,7 +224,7 @@ class ReefLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Secondary objectives
-        const relicObj = this.add.text(panelX + 60, panelY + 330, '✧ Collect Ancient Star Relics (0/5)', {
+        const relicObj = this.add.text(panelX + 60, panelY + 330, '✧ Collect Star Fragments (0/5)', {
             fontSize: '13px',
             color: '#AAAACC'
         }).setScrollFactor(0).setDepth(3002);
@@ -718,7 +720,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.spawnLureWraiths();
 
         // Collectibles
-        this.spawnStarRelics();
+        this.spawnStarFragments();
         this.spawnShipPart();
 
         // Boss trigger
@@ -1164,9 +1166,9 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Spawn Ancient Star Relics
+     * Spawn Star Fragments
      */
-    spawnStarRelics() {
+    spawnStarFragments() {
         const positions = [
             { x: 500, y: this.levelHeight - 450 },
             { x: 1300, y: this.levelHeight - 750 },
@@ -1176,21 +1178,21 @@ class ReefLevel extends PlatformerLevelScene {
         ];
 
         positions.forEach((pos, index) => {
-            const relic = this.createStarRelic(pos.x, pos.y, index);
-            this.relics.push(relic);
+            const fragment = this.createStarFragment(pos.x, pos.y, index);
+            this.starFragments.push(fragment);
         });
     }
 
-    createStarRelic(x, y, index) {
-        const relic = this.add.graphics();
-        relic.setDepth(250);
+    createStarFragment(x, y, index) {
+        const fragment = this.add.graphics();
+        fragment.setDepth(250);
 
         // Outer cosmic glow
-        relic.fillStyle(0xFFD700, 0.2);
-        relic.fillCircle(x, y, 30);
+        fragment.fillStyle(0xFFD700, 0.2);
+        fragment.fillCircle(x, y, 30);
 
         // Star shape
-        relic.fillStyle(0xFFD700, 0.8);
+        fragment.fillStyle(0xFFD700, 0.8);
         for (let i = 0; i < 5; i++) {
             const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
             const innerAngle = angle + Math.PI / 5;
@@ -1199,26 +1201,26 @@ class ReefLevel extends PlatformerLevelScene {
             const innerX = x + Math.cos(innerAngle) * 8;
             const innerY = y + Math.sin(innerAngle) * 8;
 
-            relic.fillTriangle(x, y, outerX, outerY, innerX, innerY);
+            fragment.fillTriangle(x, y, outerX, outerY, innerX, innerY);
         }
 
         // Bright center
-        relic.fillStyle(0xFFFFFF, 0.9);
-        relic.fillCircle(x, y, 6);
+        fragment.fillStyle(0xFFFFFF, 0.9);
+        fragment.fillCircle(x, y, 6);
 
         // Physics
         const body = this.physics.add.sprite(x, y, null);
         body.setVisible(false);
         body.body.setSize(40, 40);
         body.body.setAllowGravity(false);
-        body.graphics = relic;
-        body.relicIndex = index;
+        body.graphics = fragment;
+        body.fragmentIndex = index;
 
-        this.physics.add.overlap(this.player, body, () => this.collectRelic(body));
+        this.physics.add.overlap(this.player, body, () => this.collectStarFragment(body));
 
         // Pulse animation
         this.tweens.add({
-            targets: relic,
+            targets: fragment,
             alpha: 0.6,
             scaleX: 1.15,
             scaleY: 1.15,
@@ -1230,14 +1232,14 @@ class ReefLevel extends PlatformerLevelScene {
         return body;
     }
 
-    collectRelic(relic) {
-        if (!relic.active) return;
+    collectStarFragment(fragment) {
+        if (!fragment.active) return;
 
-        relic.active = false;
-        this.relicsCollected++;
+        fragment.active = false;
+        this.starFragmentsCollected++;
 
         if (window.FXLibrary) {
-            window.FXLibrary.stardustBurst(this, relic.x, relic.y, {
+            window.FXLibrary.stardustBurst(this, fragment.x, fragment.y, {
                 count: 20,
                 color: [0xFFD700, 0xFFFFFF, 0xE066FF],
                 duration: 1200
@@ -1248,12 +1250,39 @@ class ReefLevel extends PlatformerLevelScene {
             window.AudioManager.playCoinCollect();
         }
 
-        relic.graphics?.destroy();
-        relic.destroy();
+        const collectX = fragment.x;
+        const collectY = fragment.y;
 
-        this.showFloatingText(`✧ Star Relic ${this.relicsCollected}/${this.totalRelics}`, relic.x, relic.y - 30, '#FFD700');
+        fragment.graphics?.destroy();
+        fragment.destroy();
 
-        console.log(`[ReefLevel] Collected relic ${this.relicsCollected}/${this.totalRelics}`);
+        this.showFloatingText(`✧ Star Fragment ${this.starFragmentsCollected}/${this.totalStarFragments}`, collectX, collectY - 30, '#FFD700');
+
+        console.log(`[ReefLevel] Collected Star Fragment ${this.starFragmentsCollected}/${this.totalStarFragments}`);
+
+        // Award Cosmic Egg when all fragments collected
+        if (this.starFragmentsCollected >= this.totalStarFragments && !this.cosmicEggAwarded) {
+            this.cosmicEggAwarded = true;
+
+            this.time.delayedCall(500, () => {
+                this.showFloatingText('✨ All Star Fragments! 🥚 Cosmic Egg Earned!', collectX, collectY - 80, '#00FFFF');
+
+                if (window.InventoryManager) {
+                    window.InventoryManager.addItem({
+                        id: 'cosmic_egg_reef',
+                        name: 'Void Cosmic Egg',
+                        type: 'egg',
+                        rarity: 'rare',
+                        description: 'A mysterious egg infused with void energy from the Cosmic Abyss.',
+                        icon: '🥚🌌'
+                    });
+                }
+
+                if (window.AudioManager) {
+                    window.AudioManager.playAchievement();
+                }
+            });
+        }
     }
 
     /**
@@ -2068,7 +2097,7 @@ class ReefLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
         const statsText = this.add.text(width / 2, height / 2,
-            `Star Relics: ${this.relicsCollected}/${this.totalRelics}\n` +
+            `Star Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}\n` +
             `Ship Part: ${this.shipPartCollected ? '✓ Dimensional Drive Fragment' : '✗ Not Found'}\n` +
             `Nyx'voral Defeated: ✓`, {
             fontSize: '18px',

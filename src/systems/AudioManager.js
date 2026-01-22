@@ -392,79 +392,90 @@ class AudioManager {
         ]);
 
         // ==========================================
-        // CRYSTAL CAVE AMBIENT SOUNDS
+        // COSMIC CRYSTAL CAVE AMBIENT SOUNDS
         // ==========================================
+        // High-frequency mystical chimes, resonant gongs, ethereal atmosphere
 
-        // Crystal chime - high frequency resonant tone
+        // Crystal chime - ENHANCED cosmic sparkle (very high frequency)
         this.createToneSequence('crystal_chime', [
-            { frequency: 1046.50, duration: 0.1, volume: 0.12 },   // C6
-            { frequency: 1318.51, duration: 0.15, volume: 0.15 },  // E6
-            { frequency: 1567.98, duration: 0.3, volume: 0.12 },   // G6
-            { frequency: 2093.00, duration: 0.5, volume: 0.08 }    // C7 - sparkle
+            { frequency: 2093.00, duration: 0.08, volume: 0.1 },   // C7 - bright attack
+            { frequency: 2637.02, duration: 0.1, volume: 0.12 },   // E7 - sparkle
+            { frequency: 3135.96, duration: 0.15, volume: 0.1 },   // G7 - ethereal
+            { frequency: 4186.01, duration: 0.25, volume: 0.06 },  // C8 - cosmic shimmer
+            { frequency: 3135.96, duration: 0.4, volume: 0.04 }    // G7 - decay
         ]);
 
-        // Crystal chime variant 2 - descending
+        // Crystal chime variant 2 - cosmic cascade (descending sparkles)
         this.createToneSequence('crystal_chime_2', [
-            { frequency: 1567.98, duration: 0.12, volume: 0.12 },  // G6
-            { frequency: 1318.51, duration: 0.15, volume: 0.14 },  // E6
-            { frequency: 1046.50, duration: 0.25, volume: 0.1 },   // C6
-            { frequency: 783.99, duration: 0.4, volume: 0.06 }     // G5 - fade
-        ]);
-
-        // Crystal chime variant 3 - ethereal high
-        this.createToneSequence('crystal_chime_3', [
-            { frequency: 2637.02, duration: 0.08, volume: 0.08 },  // E7
+            { frequency: 3951.07, duration: 0.06, volume: 0.08 },  // B7 - high start
             { frequency: 3135.96, duration: 0.1, volume: 0.1 },    // G7
-            { frequency: 2637.02, duration: 0.15, volume: 0.08 },  // E7
-            { frequency: 2093.00, duration: 0.3, volume: 0.05 }    // C7
+            { frequency: 2637.02, duration: 0.12, volume: 0.09 },  // E7
+            { frequency: 2093.00, duration: 0.2, volume: 0.07 },   // C7
+            { frequency: 1567.98, duration: 0.35, volume: 0.05 }   // G6 - fade into void
         ]);
 
-        // Deep gong - resonant low bell
+        // Crystal chime variant 3 - celestial bells (ultra high)
+        this.createToneSequence('crystal_chime_3', [
+            { frequency: 4186.01, duration: 0.05, volume: 0.06 },  // C8 - angelic
+            { frequency: 4698.63, duration: 0.08, volume: 0.08 },  // D8
+            { frequency: 5274.04, duration: 0.1, volume: 0.06 },   // E8 - celestial peak
+            { frequency: 4186.01, duration: 0.15, volume: 0.05 },  // C8
+            { frequency: 3135.96, duration: 0.3, volume: 0.03 }    // G7 - ethereal trail
+        ]);
+
+        // Cosmic gong - deep resonant with mystical overtones
         this.createToneSequence('cave_gong', [
-            { frequency: 65.41, duration: 0.2, volume: 0.2 },      // C2 - deep impact
-            { frequency: 130.81, duration: 0.4, volume: 0.18 },    // C3 - resonance
-            { frequency: 98.00, duration: 0.6, volume: 0.15 },     // G2
-            { frequency: 65.41, duration: 1.0, volume: 0.1 }       // C2 - decay
+            { frequency: 55.00, duration: 0.15, volume: 0.15 },    // A1 - primordial impact
+            { frequency: 110.00, duration: 0.3, volume: 0.18 },    // A2 - resonance builds
+            { frequency: 220.00, duration: 0.4, volume: 0.15 },    // A3 - overtone
+            { frequency: 440.00, duration: 0.5, volume: 0.1 },     // A4 - harmonic bloom
+            { frequency: 880.00, duration: 0.6, volume: 0.06 },    // A5 - mystical shimmer
+            { frequency: 110.00, duration: 1.2, volume: 0.08 }     // A2 - long resonant decay
         ]);
 
-        // Medium gong - mid-range bell
+        // Singing bowl gong - meditative cosmic tone
         this.createToneSequence('cave_gong_medium', [
-            { frequency: 130.81, duration: 0.15, volume: 0.18 },   // C3
-            { frequency: 196.00, duration: 0.3, volume: 0.16 },    // G3
-            { frequency: 261.63, duration: 0.5, volume: 0.12 },    // C4
-            { frequency: 196.00, duration: 0.8, volume: 0.08 }     // G3 - resonance
+            { frequency: 174.61, duration: 0.1, volume: 0.14 },    // F3 - bowl strike
+            { frequency: 349.23, duration: 0.25, volume: 0.16 },   // F4 - primary tone
+            { frequency: 698.46, duration: 0.4, volume: 0.12 },    // F5 - overtone
+            { frequency: 1396.91, duration: 0.5, volume: 0.08 },   // F6 - high shimmer
+            { frequency: 349.23, duration: 0.9, volume: 0.06 }     // F4 - singing sustain
         ]);
 
-        // Eerie whistle - high sustained tone
+        // Cosmic whistle - ethereal void wind
         this.createToneSequence('cave_whistle', [
-            { frequency: 880.00, duration: 0.3, volume: 0.06 },    // A5
-            { frequency: 932.33, duration: 0.4, volume: 0.08 },    // Bb5 - dissonant
-            { frequency: 880.00, duration: 0.5, volume: 0.06 },    // A5
-            { frequency: 830.61, duration: 0.6, volume: 0.04 }     // Ab5 - descend
+            { frequency: 1760.00, duration: 0.2, volume: 0.04 },   // A6 - high entry
+            { frequency: 1864.66, duration: 0.3, volume: 0.06 },   // Bb6 - otherworldly
+            { frequency: 1975.53, duration: 0.35, volume: 0.05 },  // B6 - cosmic drift
+            { frequency: 1760.00, duration: 0.4, volume: 0.04 },   // A6 - return
+            { frequency: 1567.98, duration: 0.5, volume: 0.03 }    // G6 - fade to void
         ]);
 
-        // Crystal resonance - shimmer effect
+        // Crystal resonance - ascending cosmic shimmer
         this.createToneSequence('crystal_resonance', [
-            { frequency: 523.25, duration: 0.2, volume: 0.08 },    // C5
-            { frequency: 659.25, duration: 0.2, volume: 0.1 },     // E5
-            { frequency: 783.99, duration: 0.3, volume: 0.12 },    // G5
-            { frequency: 987.77, duration: 0.4, volume: 0.1 },     // B5
-            { frequency: 1046.50, duration: 0.5, volume: 0.08 }    // C6
+            { frequency: 783.99, duration: 0.15, volume: 0.07 },   // G5 - base
+            { frequency: 987.77, duration: 0.15, volume: 0.09 },   // B5
+            { frequency: 1174.66, duration: 0.2, volume: 0.1 },    // D6
+            { frequency: 1567.98, duration: 0.25, volume: 0.1 },   // G6
+            { frequency: 1975.53, duration: 0.3, volume: 0.08 },   // B6 - peak shimmer
+            { frequency: 2349.32, duration: 0.4, volume: 0.05 }    // D7 - cosmic trail
         ]);
 
-        // Cave drip - water drop sound
+        // Cave drip - crystalline water drop (higher, more magical)
         this.createToneSequence('cave_drip', [
-            { frequency: 2000, duration: 0.02, volume: 0.15 },
-            { frequency: 1500, duration: 0.03, volume: 0.1 },
-            { frequency: 1000, duration: 0.05, volume: 0.05 }
+            { frequency: 3500, duration: 0.015, volume: 0.12 },    // Bright impact
+            { frequency: 2500, duration: 0.025, volume: 0.08 },    // Resonance
+            { frequency: 1800, duration: 0.04, volume: 0.05 }      // Fade
         ]);
 
-        // Eerie drone - low sustained atmosphere
+        // Cosmic drone - deep space atmosphere with harmonic layers
         this.createToneSequence('cave_drone', [
-            { frequency: 55, duration: 0.5, volume: 0.08 },        // A1 - sub bass
-            { frequency: 82.41, duration: 0.5, volume: 0.1 },      // E2
-            { frequency: 73.42, duration: 0.6, volume: 0.08 },     // D2 - tension
-            { frequency: 55, duration: 0.8, volume: 0.06 }         // A1
+            { frequency: 36.71, duration: 0.4, volume: 0.06 },     // D1 - subterranean rumble
+            { frequency: 55.00, duration: 0.5, volume: 0.08 },     // A1 - void bass
+            { frequency: 73.42, duration: 0.5, volume: 0.07 },     // D2 - cosmic hum
+            { frequency: 110.00, duration: 0.6, volume: 0.06 },    // A2 - resonance
+            { frequency: 146.83, duration: 0.5, volume: 0.05 },    // D3 - harmonic float
+            { frequency: 55.00, duration: 1.0, volume: 0.04 }      // A1 - return to void
         ]);
 
         // ==========================================
@@ -899,6 +910,91 @@ class AudioManager {
             { frequency: 659.25, duration: 0.08, volume: 0.12 }
         ]);
 
+        // ==========================================
+        // CRYSTAL CAVES SOUNDS
+        // ==========================================
+
+        // Shield activate - magical protection rising
+        this.createToneSequence('shield_activate', [
+            { frequency: 523.25, duration: 0.1, volume: 0.25 },   // C5
+            { frequency: 783.99, duration: 0.1, volume: 0.28 },   // G5
+            { frequency: 1046.50, duration: 0.12, volume: 0.3 },  // C6
+            { frequency: 1567.98, duration: 0.15, volume: 0.28 }, // G6
+            { frequency: 2093.00, duration: 0.2, volume: 0.22 }   // C7 - sparkle
+        ]);
+
+        // Shield expire - fading away
+        this.createToneSequence('shield_expire', [
+            { frequency: 1046.50, duration: 0.15, volume: 0.15 },
+            { frequency: 783.99, duration: 0.15, volume: 0.12 },
+            { frequency: 523.25, duration: 0.2, volume: 0.08 }
+        ]);
+
+        // Crystal slide - smooth crystalline glide
+        this.createToneSequence('crystal_slide', [
+            { frequency: 800, duration: 0.1, volume: 0.12 },
+            { frequency: 1000, duration: 0.1, volume: 0.15 },
+            { frequency: 1200, duration: 0.1, volume: 0.12 },
+            { frequency: 1000, duration: 0.15, volume: 0.1 }
+        ]);
+
+        // Spider hiss - warning sound
+        this.createToneSequence('spider_hiss', [
+            { frequency: 2000, duration: 0.1, volume: 0.2 },
+            { frequency: 2500, duration: 0.12, volume: 0.18 },
+            { frequency: 1800, duration: 0.15, volume: 0.15 },
+            { frequency: 2200, duration: 0.1, volume: 0.12 }
+        ]);
+
+        // Spider pounce - aggressive attack leap
+        this.createToneSequence('spider_pounce', [
+            { frequency: 200, duration: 0.05, volume: 0.25 },
+            { frequency: 300, duration: 0.05, volume: 0.3 },
+            { frequency: 400, duration: 0.08, volume: 0.28 },
+            { frequency: 600, duration: 0.1, volume: 0.2 }
+        ]);
+
+        // Web shoot - sticky projectile
+        this.createToneSequence('web_shoot', [
+            { frequency: 400, duration: 0.04, volume: 0.15 },
+            { frequency: 500, duration: 0.06, volume: 0.18 },
+            { frequency: 300, duration: 0.08, volume: 0.12 }
+        ]);
+
+        // Stalactite fall - crashing from ceiling
+        this.createToneSequence('stalactite_fall', [
+            { frequency: 150, duration: 0.08, volume: 0.3 },
+            { frequency: 100, duration: 0.1, volume: 0.35 },
+            { frequency: 60, duration: 0.15, volume: 0.4 },
+            { frequency: 40, duration: 0.2, volume: 0.25 }
+        ]);
+
+        // Crystal pillar break - shattering crystal
+        this.createToneSequence('pillar_break', [
+            { frequency: 800, duration: 0.05, volume: 0.25 },
+            { frequency: 600, duration: 0.05, volume: 0.28 },
+            { frequency: 400, duration: 0.08, volume: 0.3 },
+            { frequency: 200, duration: 0.12, volume: 0.22 }
+        ]);
+
+        // Power well active - energy gathering
+        this.createToneSequence('power_well', [
+            { frequency: 300, duration: 0.15, volume: 0.1 },
+            { frequency: 400, duration: 0.15, volume: 0.12 },
+            { frequency: 500, duration: 0.2, volume: 0.1 }
+        ]);
+
+        // Ship part acquired - triumphant discovery
+        this.createToneSequence('ship_part', [
+            { frequency: 392.00, duration: 0.12, volume: 0.25 },   // G4
+            { frequency: 523.25, duration: 0.12, volume: 0.28 },   // C5
+            { frequency: 659.25, duration: 0.12, volume: 0.3 },    // E5
+            { frequency: 783.99, duration: 0.15, volume: 0.32 },   // G5
+            { frequency: 1046.50, duration: 0.15, volume: 0.35 },  // C6
+            { frequency: 1318.51, duration: 0.2, volume: 0.32 },   // E6
+            { frequency: 1567.98, duration: 0.25, volume: 0.28 }   // G6
+        ]);
+
         console.log('[AudioManager] Generated', this.generatedSounds.size, 'procedural sounds');
     }
 
@@ -1112,6 +1208,80 @@ class AudioManager {
      */
     playBossIntro() {
         this.playSound('boss_intro');
+    }
+
+    // ==========================================
+    // CRYSTAL CAVES SOUNDS
+    // ==========================================
+
+    /**
+     * Play shield activation sound
+     */
+    playShieldActivate() {
+        this.playSound('shield_activate');
+    }
+
+    /**
+     * Play shield expire sound
+     */
+    playShieldExpire() {
+        this.playSound('shield_expire');
+    }
+
+    /**
+     * Play crystal slide sound
+     */
+    playCrystalSlide() {
+        this.playSound('crystal_slide');
+    }
+
+    /**
+     * Play spider hiss sound
+     */
+    playSpiderHiss() {
+        this.playSound('spider_hiss');
+    }
+
+    /**
+     * Play spider pounce sound
+     */
+    playSpiderPounce() {
+        this.playSound('spider_pounce');
+    }
+
+    /**
+     * Play web shoot sound
+     */
+    playWebShoot() {
+        this.playSound('web_shoot');
+    }
+
+    /**
+     * Play stalactite fall sound
+     */
+    playStalactiteFall() {
+        this.playSound('stalactite_fall');
+    }
+
+    /**
+     * Play pillar break sound
+     */
+    playPillarBreak() {
+        this.playSound('pillar_break');
+    }
+
+    /**
+     * Play power well sound
+     */
+    playPowerWell() {
+        this.playSound('power_well');
+    }
+
+    /**
+     * Play ship part acquired sound
+     */
+    playShipPart() {
+        this.playSound('ship_part');
     }
 
     // ==========================================
