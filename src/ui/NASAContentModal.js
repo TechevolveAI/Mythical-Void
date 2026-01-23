@@ -1,0 +1,314 @@
+/**
+ * NASAContentModal - Display NASA daily content (APOD, Mars photos)
+ *
+ * Shows beautiful modals with space imagery and creature commentary
+ * Dismissible by clicking button or background
+ */
+
+class NASAContentModal {
+    constructor(scene) {
+        this.scene = scene;
+        this.isVisible = false;
+        this.elements = [];
+        this.htmlElements = []; // Track HTML elements separately
+        this.currentContentIndex = 0;
+        this.contentQueue = [];
+        this.onComplete = null;
+    }
+
+    /**
+     * Show NASA content modal with queue of content
+     * @param {Array} contentQueue - Array of content objects
+     * @param {Function} onComplete - Callback when all content dismissed
+     */
+    async show(contentQueue, onComplete = null) {
+        if (!contentQueue || contentQueue.length === 0) return;
+
+        this.contentQueue = contentQueue;
+        this.currentContentIndex = 0;
+        this.onComplete = onComplete;
+
+        try {
+            await this.showCurrentContent();
+        } catch (error) {
+            console.error('[NASAContentModal] Error displaying content:', error);
+            this.cleanup();
+        }
+    }
+
+    /**
+     * Show the current content item
+     */
+    async showCurrentContent() {
+        if (this.currentContentIndex >= this.contentQueue.length) {
+            this.complete();
+            return;
+        }
+
+        const content = this.contentQueue[this.currentContentIndex];
+        await this.displayContent(content);
+    }
+
+    /**
+     * Display a single content item
+     */
+    async displayContent(content) {
+        this.cleanup();
+        this.isVisible = true;
+
+        const { width, height } = this.scene.cameras.main;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        // Dark overlay - depth must be above HamburgerMenu (15000) and MobileControls (10000)
+        const overlay = this.scene.add.graphics();
+        overlay.fillStyle(0x000000, 0.85);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(16000);
+        overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        this.elements.push(overlay);
+
+        // Modal panel
+        const panelWidth = Math.min(500, width - 40);
+        const panelHeight = Math.min(600, height - 60);
+        const panelX = centerX - panelWidth / 2;
+        const panelY = centerY - panelHeight / 2;
+
+        const panel = this.scene.add.graphics();
+        panel.fillStyle(0x0D0D2B, 1);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.lineStyle(3, 0x7B68EE);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.setScrollFactor(0);
+        panel.setDepth(16001);
+        this.elements.push(panel);
+
+        // Type indicator (Star for APOD, Mars icon for Mars)
+        const typeIcon = content.type === 'apod' ? '⭐' : '🔴';
+        const typeColor = content.type === 'apod' ? '#FFD700' : '#FF6B35';
+
+        // Title
+        const title = this.scene.add.text(centerX, panelY + 25, `${typeIcon} ${content.title}`, {
+            fontSize: '20px',
+            fontFamily: 'Arial, sans-serif',
+            color: typeColor,
+            fontStyle: 'bold'
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(16002);
+        this.elements.push(title);
+
+        // Subtitle
+        const subtitle = this.scene.add.text(centerX, panelY + 55, content.subtitle, {
+            fontSize: '14px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#AAAAFF',
+            fontStyle: 'italic'
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(16002);
+        this.elements.push(subtitle);
+
+        // Image container
+        const imageY = panelY + 85;
+        const imageMaxWidth = panelWidth - 40;
+        const imageMaxHeight = panelHeight - 250;
+
+        // Load and display image
+        try {
+            await this.loadAndDisplayImage(content.imageUrl, centerX, imageY, imageMaxWidth, imageMaxHeight);
+        } catch (e) {
+            // Show placeholder on error
+            const placeholder = this.scene.add.text(centerX, imageY + imageMaxHeight / 2,
+                '🌌 Image loading...', {
+                    fontSize: '18px',
+                    color: '#666666'
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(16002);
+            this.elements.push(placeholder);
+        }
+
+        // Description
+        const descY = imageY + imageMaxHeight + 15;
+        const description = this.scene.add.text(centerX, descY, content.description, {
+            fontSize: '13px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#CCCCCC',
+            wordWrap: { width: panelWidth - 40 },
+            align: 'center'
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(16002);
+        this.elements.push(description);
+
+        // Creature comment bubble
+        const commentY = panelY + panelHeight - 80;
+        const commentBg = this.scene.add.graphics();
+        commentBg.fillStyle(0x4B0082, 0.8);
+        commentBg.fillRoundedRect(panelX + 20, commentY - 10, panelWidth - 40, 45, 10);
+        commentBg.setScrollFactor(0).setDepth(16002);
+        this.elements.push(commentBg);
+
+        const comment = this.scene.add.text(centerX, commentY + 12, `💬 "${content.creatureComment}"`, {
+            fontSize: '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'italic',
+            wordWrap: { width: panelWidth - 60 },
+            align: 'center'
+        }).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(16003);
+        this.elements.push(comment);
+
+        // Dismiss button
+        const buttonY = panelY + panelHeight - 25;
+        const buttonText = this.currentContentIndex < this.contentQueue.length - 1 ? 'Next ➡️' : 'Amazing! ✨';
+
+        const button = this.scene.add.text(centerX, buttonY, buttonText, {
+            fontSize: '16px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            backgroundColor: '#7B68EE',
+            padding: { x: 25, y: 10 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(16003);
+        button.setInteractive({ useHandCursor: true });
+
+        button.on('pointerover', () => button.setStyle({ backgroundColor: '#9B88FF' }));
+        button.on('pointerout', () => button.setStyle({ backgroundColor: '#7B68EE' }));
+        button.on('pointerdown', () => this.next());
+
+        this.elements.push(button);
+
+        // Click overlay to dismiss
+        overlay.on('pointerdown', () => this.next());
+
+        // Play reveal sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+    }
+
+    /**
+     * Load and display image using HTML img element to bypass CORS
+     * Note: We don't use crossOrigin since we only need to display, not read pixels
+     */
+    async loadAndDisplayImage(url, x, y, maxWidth, maxHeight) {
+        return new Promise((resolve, reject) => {
+            console.log('[NASAModal] Loading image:', url);
+
+            // Create HTML img element (no crossOrigin = can display any image)
+            const img = document.createElement('img');
+            img.referrerPolicy = 'no-referrer';
+
+            // Use simpler viewport-centered positioning
+            img.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -40%);
+                max-width: ${Math.min(maxWidth, window.innerWidth - 60)}px;
+                max-height: ${Math.min(maxHeight, window.innerHeight * 0.4)}px;
+                width: auto;
+                height: auto;
+                object-fit: contain;
+                z-index: 10002;
+                border-radius: 10px;
+                box-shadow: 0 4px 20px rgba(123, 104, 238, 0.5);
+                background-color: #1A1A3E;
+                pointer-events: none;
+            `;
+
+            // Append to DOM immediately to show placeholder
+            document.body.appendChild(img);
+            this.htmlElements.push(img);
+
+            img.onload = () => {
+                console.log('[NASAModal] Image loaded! Size:', img.naturalWidth, 'x', img.naturalHeight);
+                img.style.backgroundColor = 'transparent';
+                resolve();
+            };
+
+            img.onerror = (e) => {
+                console.error('[NASAModal] Image FAILED to load!');
+                console.error('[NASAModal] URL:', url);
+                console.error('[NASAModal] Error event:', e);
+
+                // Show URL in placeholder for debugging
+                img.style.display = 'none';
+
+                // Create a text placeholder showing what went wrong
+                const placeholder = document.createElement('div');
+                placeholder.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -40%);
+                    width: ${maxWidth}px;
+                    height: ${maxHeight}px;
+                    background-color: #1A1A3E;
+                    border-radius: 10px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    color: #888;
+                    font-family: Arial, sans-serif;
+                    font-size: 14px;
+                    text-align: center;
+                    padding: 20px;
+                    box-sizing: border-box;
+                    z-index: 10002;
+                `;
+                placeholder.innerHTML = `
+                    <div style="font-size: 48px; margin-bottom: 10px;">🌌</div>
+                    <div>Image couldn't load</div>
+                    <div style="font-size: 10px; color: #666; margin-top: 10px; word-break: break-all; max-width: 90%;">${url.substring(0, 100)}...</div>
+                `;
+                document.body.appendChild(placeholder);
+                this.htmlElements.push(placeholder);
+
+                reject(new Error('Failed to load image'));
+            };
+
+            // Set src to start loading
+            img.src = url;
+        });
+    }
+
+    /**
+     * Go to next content or close
+     */
+    next() {
+        this.currentContentIndex++;
+        this.showCurrentContent();
+    }
+
+    /**
+     * Complete and close modal
+     */
+    complete() {
+        this.cleanup();
+
+        if (this.onComplete) {
+            this.onComplete();
+        }
+    }
+
+    /**
+     * Cleanup all elements
+     */
+    cleanup() {
+        // Cleanup Phaser elements
+        this.elements.forEach(el => {
+            if (el && el.destroy) {
+                el.destroy();
+            }
+        });
+        this.elements = [];
+
+        // Cleanup HTML elements
+        this.htmlElements.forEach(el => {
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+        this.htmlElements = [];
+
+        this.isVisible = false;
+    }
+}
+
+export default NASAContentModal;

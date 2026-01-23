@@ -50,7 +50,7 @@ The game uses a **centralized preload system** via `src/global-init.js`:
 1. ErrorHandler → MemoryManager → UITheme
 2. KidMode → HatchCinematics → FXLibrary → ParallaxBiome
 3. RaritySystem → RerollSystem → CreatureGenetics
-4. GameState → SafetyManager → GraphicsEngine → CreatureAI
+4. GameState → GraphicsEngine → CreatureAI
 5. Finally: All scenes (HatchingScene → PersonalityScene → NamingScene → GameScene)
 
 ### Core Systems Architecture
@@ -103,6 +103,78 @@ Key state paths:
 - Provides next-best-action suggestions for young players
 - Configurable via `src/config/kid-mode.json`
 - Integrates with SafetyManager for parental controls
+
+#### CreatureAnimationController System (`src/systems/CreatureAnimationController.js`)
+- **State-driven idle animation system** - creates lively, personality-influenced creature behaviors
+- **Emotion system**: Tracks 7 emotion states (happy, curious, shy, excited, tired, scared, content)
+- **Stat-based emotion updates**: Automatically sets emotion based on happiness/energy/health stats
+- **Emotion particle effects**: Triggers FXLibrary emotion particles on emotion changes
+- **Environmental reactions**: Responds to biomes, space weather, time of day, player return
+- **Game event reactions**: Responds to level_complete, level_failed, boss_defeated, etc.
+- **Thought bubble integration**: Triggers ThoughtBubbleSystem for contextual creature thoughts
+
+Key methods:
+```javascript
+controller.setEmotion('happy', 0.8);           // Set emotion with intensity (0-1)
+controller.reactToBiome('crystal');            // React to environment
+controller.reactToGameEvent('level_complete'); // React to game events
+controller.setThoughtBubbleHandler(callback);  // Set thought callback
+```
+
+Emotion-to-behavior mapping:
+- `happy`: bounce, spin, wiggle (frequency: 0.8)
+- `curious`: look_around, head_tilt, sniff (frequency: 0.7)
+- `excited`: excited_bounce, vibrate, quick_hop (frequency: 1.0)
+- `tired`: yawn, sigh, slow_blink (frequency: 0.2)
+- `scared`: shiver, look_around (frequency: 0.5)
+
+#### ThoughtBubbleSystem (`src/systems/ThoughtBubbleSystem.js`)
+- **Pre-written thought library** - ALL thoughts are pre-written, NO AI-generated text shown to children
+- **Contextual awareness**: Tracks player struggle state (consecutive failures, recent failures)
+- **Struggling player support**: Automatically shows encouraging thoughts when player fails repeatedly
+- **Personality-aware**: Selects thoughts based on creature personality
+- Access: `window.ThoughtBubbleSystem`
+
+Key methods:
+```javascript
+system.recordFailure('level_1');     // Track level failure
+system.recordSuccess('level_1');     // Track level success
+system.isPlayerStruggling();         // Check if player needs encouragement
+system.getThought('idle_thought', { personality: 'curious' });
+system.getSuccessThought(context);   // Get appropriate success message
+```
+
+Thought categories:
+- `idle_thought` - Random observations
+- `biome_*` - Environment reactions (biome_cave, biome_crystal, biome_reef)
+- `space_weather_*` - NASA space weather reactions
+- `event_*` - Game event reactions (event_level_complete, event_level_failed)
+- `struggling_encouragement` - Extra encouragement after multiple failures
+- `post_struggle_success` - Celebration after overcoming difficulty
+
+State paths:
+- `thoughtContext.consecutiveFailures` - Failures on same level
+- `thoughtContext.playerStruggling` - True after 3+ consecutive failures
+
+#### FXLibrary Emotion Effects (`src/systems/FXLibrary.js`)
+In addition to standard particle effects, FXLibrary provides 7 emotion-specific effects:
+
+| Method | Visual Effect | Colors |
+|--------|---------------|--------|
+| `emotionHappy(scene, x, y)` | Rising hearts and sparkles | Pink, gold, white |
+| `emotionCurious(scene, x, y)` | Question marks, swirling dots | Sky blue |
+| `emotionShy(scene, x, y)` | Retreating particles, blush | Plum, light pink |
+| `emotionExcited(scene, x, y)` | Bursting stars, exclamation marks | Gold, orange, yellow |
+| `emotionTired(scene, x, y)` | Floating Z's, dim sparkles | Muted blue |
+| `emotionScared(scene, x, y)` | Trembling lines, dark wisps | Indigo, dark slate |
+| `emotionContent(scene, x, y)` | Soft glow, gentle sparkles | Pale green, light blue |
+
+Usage:
+```javascript
+if (window.FXLibrary) {
+    window.FXLibrary.emotionHappy(scene, creature.x, creature.y);
+}
+```
 
 ### Scene Flow Architecture
 
@@ -1032,10 +1104,9 @@ The following keyboard shortcuts are available globally (defined in `main.js`):
 ## Security & Safety
 
 - Follows **Vibe Coding Playbook** security standards (see VIBE_CODING_COMPLIANCE.md)
-- **SafetyManager** handles parental controls and kid profiles
+- **KidMode** provides family-friendly content filtering (always enabled)
 - **Input validation** via InputValidator system
 - **No hardcoded secrets** - use environment variables with VITE_ prefix
-- **Audit logging** for sensitive operations (parental controls, data deletion)
 
 ## Deployment
 
@@ -1108,7 +1179,6 @@ main.js (entry point)
             ├─> MemoryManager (resource tracking)
             ├─> GameState (state management)
             ├─> GraphicsEngine (sprite generation)
-            ├─> SafetyManager (parental controls)
             └─> InputValidator (input validation)
        └─> Creature Systems:
             ├─> CreatureGenetics (procedural genetics)

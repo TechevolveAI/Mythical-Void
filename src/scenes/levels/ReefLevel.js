@@ -906,8 +906,12 @@ class ReefLevel extends PlatformerLevelScene {
             const tendrilX = x - 15 + i * 8;
             drifter.beginPath();
             drifter.moveTo(tendrilX, y + 15);
-            drifter.quadraticCurveTo(tendrilX + 10, y + 40, tendrilX - 5, y + 70);
-            drifter.quadraticCurveTo(tendrilX + 5, y + 90, tendrilX, y + 110);
+            // Approximate curve with line segments
+            drifter.lineTo(tendrilX + 5, y + 30);
+            drifter.lineTo(tendrilX + 8, y + 50);
+            drifter.lineTo(tendrilX, y + 70);
+            drifter.lineTo(tendrilX + 3, y + 90);
+            drifter.lineTo(tendrilX, y + 110);
             drifter.strokePath();
         }
 
@@ -992,11 +996,13 @@ class ReefLevel extends PlatformerLevelScene {
         const lureX = x + 70;
         const lureY = y - 40;
 
-        // Lure tendril
+        // Lure tendril - approximate curve with line segments
         wraith.lineStyle(4, 0x4B0082, 0.8);
         wraith.beginPath();
         wraith.moveTo(x + 20, y - 30);
-        wraith.quadraticCurveTo(x + 50, y - 60, lureX, lureY);
+        wraith.lineTo(x + 35, y - 45);
+        wraith.lineTo(x + 50, y - 50);
+        wraith.lineTo(lureX, lureY);
         wraith.strokePath();
 
         // Lure orb - mesmerizing
@@ -2080,6 +2086,9 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     showVictoryScreen() {
+        // Record success for contextual thoughts (enables special encouragement if struggled)
+        this.recordLevelSuccess();
+
         const { width, height } = this.cameras.main;
 
         const overlay = this.add.graphics();

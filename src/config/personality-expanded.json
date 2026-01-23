@@ -1,0 +1,176 @@
+{
+  "_description": "Expanded personality system - 5 core types with sub-flavors and 50+ quirks",
+  "_version": "2.0",
+
+  "coreTypes": {
+    "curious": {
+      "description": "Loves to explore and discover new things",
+      "childAppeal": "The explorer who finds wonder in everything",
+      "subFlavors": [
+        { "id": "curious_adventurer", "label": "Adventurer", "trait": "Seeks out new places and hidden spots" },
+        { "id": "curious_collector", "label": "Collector", "trait": "Gathers interesting objects and treasures" },
+        { "id": "curious_thinker", "label": "Thinker", "trait": "Asks lots of questions and ponders mysteries" },
+        { "id": "curious_watcher", "label": "Watcher", "trait": "Observes everything carefully before acting" }
+      ],
+      "emotionModifiers": { "bored": -0.3, "excited": 0.2 },
+      "carePreferences": { "photo": 1.2, "play": 1.1, "rest": 0.8 }
+    },
+
+    "playful": {
+      "description": "Full of energy and loves games",
+      "childAppeal": "The fun friend who makes everything a game",
+      "subFlavors": [
+        { "id": "playful_silly", "label": "Silly", "trait": "Makes funny faces and does goofy things" },
+        { "id": "playful_bouncy", "label": "Bouncy", "trait": "Can't stop hopping and jumping around" },
+        { "id": "playful_mischief", "label": "Mischief-Maker", "trait": "Loves harmless pranks and surprises" },
+        { "id": "playful_performer", "label": "Performer", "trait": "Loves showing off tricks and talents" }
+      ],
+      "emotionModifiers": { "happy": 0.2, "bored": -0.2 },
+      "carePreferences": { "play": 1.3, "feed": 1.0, "rest": 0.7 }
+    },
+
+    "gentle": {
+      "description": "Calm and caring, loves peaceful moments",
+      "childAppeal": "The comforting friend who's always there for you",
+      "subFlavors": [
+        { "id": "gentle_snuggler", "label": "Snuggler", "trait": "Loves being close and cozy" },
+        { "id": "gentle_helper", "label": "Helper", "trait": "Always tries to help others feel better" },
+        { "id": "gentle_dreamer", "label": "Dreamer", "trait": "Has a rich imagination and peaceful thoughts" },
+        { "id": "gentle_listener", "label": "Listener", "trait": "Pays close attention and remembers everything" }
+      ],
+      "emotionModifiers": { "stressed": -0.3, "content": 0.2 },
+      "carePreferences": { "pet": 1.3, "clean": 1.1, "play": 0.8 }
+    },
+
+    "wise": {
+      "description": "Thoughtful and perceptive",
+      "childAppeal": "The thoughtful friend with ancient knowledge",
+      "subFlavors": [
+        { "id": "wise_elder", "label": "Elder Soul", "trait": "Seems to know things from long ago" },
+        { "id": "wise_teacher", "label": "Teacher", "trait": "Loves to share knowledge and guide others" },
+        { "id": "wise_patient", "label": "Patient One", "trait": "Never rushes, thinks before acting" },
+        { "id": "wise_mystical", "label": "Mystical", "trait": "Seems connected to something magical" }
+      ],
+      "emotionModifiers": { "confused": -0.2, "contemplative": 0.3 },
+      "carePreferences": { "rest": 1.2, "pet": 1.1, "play": 0.9 }
+    },
+
+    "energetic": {
+      "description": "Always active and enthusiastic",
+      "childAppeal": "The high-energy friend who's always ready to go",
+      "subFlavors": [
+        { "id": "energetic_zoomer", "label": "Zoomer", "trait": "Moves at top speed everywhere" },
+        { "id": "energetic_cheerleader", "label": "Cheerleader", "trait": "Encourages and motivates everyone" },
+        { "id": "energetic_early_bird", "label": "Early Bird", "trait": "Full of energy first thing in the morning" },
+        { "id": "energetic_unstoppable", "label": "Unstoppable", "trait": "Never seems to run out of energy" }
+      ],
+      "emotionModifiers": { "excited": 0.3, "sleepy": -0.2 },
+      "carePreferences": { "play": 1.4, "feed": 1.1, "rest": 0.6 }
+    }
+  },
+
+  "quirks": {
+    "_description": "50+ unique behavioral quirks - visual/behavioral variety without affecting core systems",
+
+    "movement": [
+      { "id": "head_tilter", "label": "Head Tilter", "animation": "tilt_head", "description": "Tilts head when curious" },
+      { "id": "bouncy_walker", "label": "Bouncy Walker", "animation": "bounce_walk", "description": "Bounces with each step" },
+      { "id": "tail_swisher", "label": "Tail Swisher", "animation": "swish_tail", "description": "Swishes tail when happy" },
+      { "id": "spinner", "label": "Spinner", "animation": "spin", "description": "Does happy spins" },
+      { "id": "wiggler", "label": "Wiggler", "animation": "wiggle", "description": "Wiggles when excited" },
+      { "id": "tippy_toes", "label": "Tippy Toes", "animation": "tiptoe", "description": "Walks on tippy toes sometimes" },
+      { "id": "backwards_walker", "label": "Backwards Walker", "animation": "walk_back", "description": "Sometimes walks backwards" },
+      { "id": "hopper", "label": "Hopper", "animation": "hop", "description": "Prefers hopping to walking" }
+    ],
+
+    "expressions": [
+      { "id": "big_blinker", "label": "Big Blinker", "animation": "big_blink", "description": "Does big slow blinks" },
+      { "id": "eye_sparkler", "label": "Eye Sparkler", "animation": "sparkle_eyes", "description": "Eyes sparkle when happy" },
+      { "id": "nose_wiggler", "label": "Nose Wiggler", "animation": "wiggle_nose", "description": "Wiggles nose to smell things" },
+      { "id": "ear_perker", "label": "Ear Perker", "animation": "perk_ears", "description": "Perks ears at sounds" },
+      { "id": "smile_holder", "label": "Smile Holder", "animation": "hold_smile", "description": "Holds smiles extra long" },
+      { "id": "tongue_blep", "label": "Tongue Blep", "animation": "blep", "description": "Sometimes sticks tongue out slightly" }
+    ],
+
+    "sounds": [
+      { "id": "soft_hummer", "label": "Soft Hummer", "sound": "hum", "description": "Hums softly when content" },
+      { "id": "chirper", "label": "Chirper", "sound": "chirp", "description": "Makes happy chirping sounds" },
+      { "id": "purrer", "label": "Purrer", "sound": "purr", "description": "Purrs when comfortable" },
+      { "id": "squeaker", "label": "Squeaker", "sound": "squeak", "description": "Makes tiny squeak sounds" },
+      { "id": "singer", "label": "Singer", "sound": "sing", "description": "Sings little melodies" },
+      { "id": "giggler", "label": "Giggler", "sound": "giggle", "description": "Giggles at funny things" }
+    ],
+
+    "habits": [
+      { "id": "star_gazer", "label": "Star Gazer", "trigger": "night", "description": "Loves watching stars at night" },
+      { "id": "cloud_watcher", "label": "Cloud Watcher", "trigger": "sky", "description": "Watches clouds go by" },
+      { "id": "puddle_jumper", "label": "Puddle Jumper", "trigger": "water", "description": "Can't resist jumping in puddles" },
+      { "id": "flower_sniffer", "label": "Flower Sniffer", "trigger": "flowers", "description": "Stops to smell every flower" },
+      { "id": "rock_collector", "label": "Rock Collector", "trigger": "exploring", "description": "Collects interesting rocks" },
+      { "id": "leaf_cruncher", "label": "Leaf Cruncher", "trigger": "autumn", "description": "Loves crunching fallen leaves" },
+      { "id": "shadow_chaser", "label": "Shadow Chaser", "trigger": "sunny", "description": "Chases shadows for fun" },
+      { "id": "dawn_waker", "label": "Dawn Waker", "trigger": "morning", "description": "Extra energetic at dawn" },
+      { "id": "sunset_watcher", "label": "Sunset Watcher", "trigger": "evening", "description": "Loves watching sunsets" },
+      { "id": "night_owl", "label": "Night Owl", "trigger": "night", "description": "Most active after dark" }
+    ],
+
+    "social": [
+      { "id": "greeter", "label": "Greeter", "trigger": "player_return", "description": "Always greets player excitedly" },
+      { "id": "follower", "label": "Follower", "trigger": "movement", "description": "Likes to follow close behind" },
+      { "id": "space_giver", "label": "Space Giver", "trigger": "movement", "description": "Gives personal space but stays near" },
+      { "id": "attention_seeker", "label": "Attention Seeker", "trigger": "idle", "description": "Does things to get attention" },
+      { "id": "gift_bringer", "label": "Gift Bringer", "trigger": "return", "description": "Brings small gifts to player" },
+      { "id": "show_off", "label": "Show Off", "trigger": "achievement", "description": "Shows off new skills proudly" },
+      { "id": "encourager", "label": "Encourager", "trigger": "failure", "description": "Tries to cheer player up" },
+      { "id": "celebrator", "label": "Celebrator", "trigger": "success", "description": "Celebrates victories enthusiastically" }
+    ],
+
+    "comfort": [
+      { "id": "nest_builder", "label": "Nest Builder", "trigger": "rest", "description": "Makes cozy nests to rest in" },
+      { "id": "sunbeam_seeker", "label": "Sunbeam Seeker", "trigger": "sunny", "description": "Finds sunny spots to rest" },
+      { "id": "blanket_lover", "label": "Blanket Lover", "trigger": "cold", "description": "Loves anything soft and warm" },
+      { "id": "corner_cuddler", "label": "Corner Cuddler", "trigger": "rest", "description": "Likes cozy corners" },
+      { "id": "stretch_master", "label": "Stretch Master", "trigger": "wake", "description": "Does big stretches after resting" },
+      { "id": "yawner", "label": "Big Yawner", "trigger": "sleepy", "description": "Does big adorable yawns" }
+    ],
+
+    "food": [
+      { "id": "fast_eater", "label": "Fast Eater", "trigger": "feed", "description": "Eats really quickly" },
+      { "id": "slow_savorer", "label": "Slow Savorer", "trigger": "feed", "description": "Takes time to enjoy food" },
+      { "id": "messy_eater", "label": "Messy Eater", "trigger": "feed", "description": "Gets food everywhere" },
+      { "id": "food_sharer", "label": "Food Sharer", "trigger": "feed", "description": "Tries to share food with player" },
+      { "id": "treat_lover", "label": "Treat Lover", "trigger": "special_food", "description": "Gets extra excited for treats" },
+      { "id": "picky_eater", "label": "Picky Eater", "trigger": "feed", "description": "Has strong food preferences" }
+    ],
+
+    "special": [
+      { "id": "crystal_investigator", "label": "Crystal Investigator", "trigger": "crystals", "description": "Fascinated by crystals" },
+      { "id": "constellation_reader", "label": "Constellation Reader", "trigger": "night", "description": "Seems to read the stars" },
+      { "id": "weather_predictor", "label": "Weather Predictor", "trigger": "weather_change", "description": "Senses weather changes" },
+      { "id": "treasure_finder", "label": "Treasure Finder", "trigger": "exploring", "description": "Has a knack for finding hidden things" },
+      { "id": "music_lover", "label": "Music Lover", "trigger": "music", "description": "Reacts happily to music" },
+      { "id": "rainbow_chaser", "label": "Rainbow Chaser", "trigger": "rainbow", "description": "Gets excited by rainbows" }
+    ]
+  },
+
+  "secondaryTraits": {
+    "_description": "Optional secondary influence - adds depth without complexity",
+    "traits": [
+      { "id": "brave", "label": "Brave", "description": "Faces challenges without fear" },
+      { "id": "shy", "label": "Shy", "description": "Takes time to warm up to new things" },
+      { "id": "stubborn", "label": "Determined", "description": "Doesn't give up easily" },
+      { "id": "goofy", "label": "Goofy", "description": "Has a silly side" },
+      { "id": "dramatic", "label": "Dramatic", "description": "Has big reactions to things" },
+      { "id": "chill", "label": "Chill", "description": "Stays relaxed in any situation" },
+      { "id": "loyal", "label": "Loyal", "description": "Forms strong bonds" },
+      { "id": "independent", "label": "Independent", "description": "Likes doing things their own way" }
+    ]
+  },
+
+  "generationRules": {
+    "quirksPerCreature": { "min": 2, "max": 4 },
+    "subFlavorChance": 1.0,
+    "secondaryTraitChance": 0.7,
+    "quirkCategoryDistribution": "one_per_category_minimum"
+  }
+}

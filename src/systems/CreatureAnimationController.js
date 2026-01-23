@@ -1,6 +1,11 @@
 /**
  * CreatureAnimationController - State-driven idle animation system
  * Creates lively, personality-influenced creature behaviors based on stats and traits
+ *
+ * Enhanced with:
+ * - Emotion particle effects (via FXLibrary)
+ * - Movement pattern modifiers based on emotional state
+ * - Thought bubble trigger callbacks
  */
 
 class CreatureAnimationController {
@@ -28,6 +33,17 @@ class CreatureAnimationController {
         this.breathTween = null;
         this.behaviorCheckTimer = null;
         this.randomBehaviorTimer = null;
+
+        // Emotion state tracking
+        this.currentEmotion = 'content';
+        this.emotionIntensity = 0.5; // 0-1 scale
+        this.lastEmotionParticleTime = 0;
+        this.emotionParticleCooldown = 5000; // 5 seconds between particle bursts
+
+        // Thought bubble callback (set by scene)
+        this.onThoughtBubble = null;
+        this.lastThoughtTime = 0;
+        this.thoughtCooldown = 15000; // 15 seconds between thoughts
 
         // Initialize
         this.initializeAnimations();
@@ -96,11 +112,15 @@ class CreatureAnimationController {
 
     /**
      * Check creature stats and trigger appropriate behaviors
+     * Also updates emotional state based on stats
      */
     checkForStateBehavior() {
         if (this.isDestroyed || this.currentState !== 'idle') return;
 
         const stats = window.GameState?.get('creature.stats') || { happiness: 100, energy: 100, health: 100 };
+
+        // Update emotion based on stats
+        this.updateEmotionFromStats(stats);
 
         // State-driven behavior triggers
         if (stats.energy < 30 && Math.random() < 0.4) {
@@ -115,14 +135,68 @@ class CreatureAnimationController {
     }
 
     /**
+     * Automatically update emotion based on creature stats
+     */
+    updateEmotionFromStats(stats) {
+        const happiness = stats.happiness || 50;
+        const energy = stats.energy || 50;
+        const health = stats.health || 50;
+
+        let emotion = 'content';
+        let intensity = 0.5;
+
+        // Determine primary emotion from stats
+        if (health < 30) {
+            emotion = 'scared';
+            intensity = (30 - health) / 30;
+        } else if (energy < 30) {
+            emotion = 'tired';
+            intensity = (30 - energy) / 30;
+        } else if (happiness > 80 && energy > 60) {
+            emotion = 'excited';
+            intensity = (happiness - 80) / 20;
+        } else if (happiness > 65) {
+            emotion = 'happy';
+            intensity = (happiness - 65) / 35;
+        } else if (happiness < 35) {
+            emotion = 'shy'; // Using shy for unhappy/withdrawn
+            intensity = (35 - happiness) / 35;
+        } else {
+            // Default content state
+            emotion = 'content';
+            intensity = 0.5;
+        }
+
+        // Only update if emotion changed significantly
+        if (emotion !== this.currentEmotion || Math.abs(intensity - this.emotionIntensity) > 0.2) {
+            this.setEmotion(emotion, intensity);
+        }
+    }
+
+    /**
      * Trigger random personality-influenced behavior
+     * Now also considers current emotional state
      */
     triggerRandomBehavior() {
         if (this.isDestroyed || this.currentState !== 'idle') return;
 
-        const behaviors = this.getPersonalityBehaviors();
+        // Check emotion frequency modifier
+        const frequencyMod = this.emotionBehaviorBias?.frequency || 0.5;
+        if (Math.random() > frequencyMod) {
+            return; // Skip this behavior based on emotion (tired = less frequent)
+        }
+
+        // Get emotion-influenced behaviors
+        const behaviors = this.getEmotionInfluencedBehaviors();
         const randomBehavior = behaviors[Math.floor(Math.random() * behaviors.length)];
         this.triggerBehavior(randomBehavior);
+
+        // Occasionally trigger a thought after behavior
+        if (Math.random() < 0.15) { // 15% chance
+            this.scene.time.delayedCall(1500, () => {
+                this.triggerThought('idle_thought', { afterBehavior: randomBehavior });
+            });
+        }
     }
 
     /**
@@ -533,6 +607,297 @@ class CreatureAnimationController {
     }
 
     // ==========================================
+    // EMOTION SYSTEM
+    // ==========================================
+
+    /**
+     * Update creature's current emotional state
+     * This affects movement patterns and can trigger particles/thoughts
+     * @param {string} emotion - 'happy', 'curious', 'shy', 'excited', 'tired', 'scared', 'content'
+     * @param {number} intensity - 0-1 intensity of emotion
+     */
+    setEmotion(emotion, intensity = 0.5) {
+        const previousEmotion = this.currentEmotion;
+        this.currentEmotion = emotion;
+        this.emotionIntensity = Math.max(0, Math.min(1, intensity));
+
+        // Only trigger particles on emotion change or high intensity
+        const emotionChanged = previousEmotion !== emotion;
+        const shouldShowParticles = emotionChanged || intensity > 0.7;
+
+        if (shouldShowParticles) {
+            this.maybeShowEmotionParticles();
+        }
+
+        // Adjust movement behavior based on emotion
+        this.applyEmotionMovementModifier();
+
+        console.log(`[CreatureAnimationController] Emotion set: ${emotion} (${Math.round(intensity * 100)}%)`);
+    }
+
+    /**
+     * Show emotion particles if cooldown has passed
+     */
+    maybeShowEmotionParticles() {
+        const now = Date.now();
+        if (now - this.lastEmotionParticleTime < this.emotionParticleCooldown) {
+            return; // On cooldown
+        }
+
+        if (!window.FXLibrary || !this.sprite) return;
+
+        const x = this.sprite.x;
+        const y = this.sprite.y;
+
+        // Trigger appropriate emotion particle effect
+        switch (this.currentEmotion) {
+            case 'happy':
+                window.FXLibrary.emotionHappy(this.scene, x, y);
+                break;
+            case 'curious':
+                window.FXLibrary.emotionCurious(this.scene, x, y);
+                break;
+            case 'shy':
+                window.FXLibrary.emotionShy(this.scene, x, y);
+                break;
+            case 'excited':
+                window.FXLibrary.emotionExcited(this.scene, x, y);
+                break;
+            case 'tired':
+                window.FXLibrary.emotionTired(this.scene, x, y);
+                break;
+            case 'scared':
+                window.FXLibrary.emotionScared(this.scene, x, y);
+                break;
+            case 'content':
+                // Content only shows particles at high intensity
+                if (this.emotionIntensity > 0.7) {
+                    window.FXLibrary.emotionContent(this.scene, x, y);
+                }
+                break;
+        }
+
+        this.lastEmotionParticleTime = now;
+    }
+
+    /**
+     * Apply movement modifier based on current emotion
+     * This changes how the creature moves/animates
+     */
+    applyEmotionMovementModifier() {
+        // Emotion affects behavior frequency and type
+        const emotionBehaviorBias = {
+            happy: { behaviors: ['bounce', 'spin', 'wiggle'], frequency: 0.8 },
+            curious: { behaviors: ['look_around', 'head_tilt', 'sniff'], frequency: 0.7 },
+            shy: { behaviors: ['slow_blink', 'nuzzle'], frequency: 0.3 },
+            excited: { behaviors: ['excited_bounce', 'vibrate', 'quick_hop'], frequency: 1.0 },
+            tired: { behaviors: ['yawn', 'sigh', 'slow_blink'], frequency: 0.2 },
+            scared: { behaviors: ['shiver', 'look_around'], frequency: 0.5 },
+            content: { behaviors: ['stretch', 'slow_nod', 'contemplate'], frequency: 0.4 }
+        };
+
+        this.emotionBehaviorBias = emotionBehaviorBias[this.currentEmotion] || emotionBehaviorBias.content;
+    }
+
+    /**
+     * Get current emotion-influenced behaviors
+     * Blends personality behaviors with emotion behaviors
+     */
+    getEmotionInfluencedBehaviors() {
+        const personalityBehaviors = this.getPersonalityBehaviors();
+        const emotionBehaviors = this.emotionBehaviorBias?.behaviors || [];
+
+        // 70% emotion, 30% personality when emotion is strong
+        if (this.emotionIntensity > 0.6 && emotionBehaviors.length > 0) {
+            const combined = [...emotionBehaviors, ...emotionBehaviors, ...personalityBehaviors];
+            return combined;
+        }
+
+        // 50/50 blend for moderate emotion
+        return [...personalityBehaviors, ...emotionBehaviors];
+    }
+
+    /**
+     * Trigger a thought bubble with content
+     * @param {string} thoughtType - Type of thought for categorization
+     * @param {Object} context - Context data for thought generation
+     */
+    triggerThought(thoughtType, context = {}) {
+        const now = Date.now();
+        if (now - this.lastThoughtTime < this.thoughtCooldown) {
+            return false; // On cooldown
+        }
+
+        if (this.onThoughtBubble) {
+            this.onThoughtBubble(thoughtType, {
+                emotion: this.currentEmotion,
+                emotionIntensity: this.emotionIntensity,
+                personality: this.personality,
+                stage: this.stage,
+                ...context
+            });
+            this.lastThoughtTime = now;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Set the thought bubble callback handler
+     * @param {Function} callback - Function(thoughtType, context) to call
+     */
+    setThoughtBubbleHandler(callback) {
+        this.onThoughtBubble = callback;
+    }
+
+    // ==========================================
+    // ENVIRONMENTAL REACTIONS
+    // ==========================================
+
+    /**
+     * React to entering a new biome/environment
+     * @param {string} biomeType - 'cave', 'water', 'crystal', 'forest', 'void', 'reef'
+     */
+    reactToBiome(biomeType) {
+        if (this.isDestroyed) return;
+
+        console.log(`[CreatureAnimationController] Reacting to biome: ${biomeType}`);
+
+        // Biome-specific reactions
+        const biomeReactions = {
+            cave: { emotion: 'curious', behavior: 'look_around', thoughtType: 'biome_cave' },
+            water: { emotion: 'excited', behavior: 'wiggle', thoughtType: 'biome_water' },
+            crystal: { emotion: 'curious', behavior: 'head_tilt', thoughtType: 'biome_crystal' },
+            forest: { emotion: 'content', behavior: 'stretch', thoughtType: 'biome_forest' },
+            void: { emotion: 'curious', behavior: 'contemplate', thoughtType: 'biome_void' },
+            reef: { emotion: 'excited', behavior: 'spin', thoughtType: 'biome_reef' }
+        };
+
+        const reaction = biomeReactions[biomeType] || biomeReactions.forest;
+
+        // Set emotion
+        this.setEmotion(reaction.emotion, 0.7);
+
+        // Play reaction behavior
+        this.scene.time.delayedCall(500, () => {
+            this.triggerBehavior(reaction.behavior);
+        });
+
+        // Trigger thought about the environment
+        this.scene.time.delayedCall(2000, () => {
+            this.triggerThought(reaction.thoughtType, { biome: biomeType });
+        });
+    }
+
+    /**
+     * React to space weather changes (aurora, solar flares)
+     * @param {Object} weatherData - From SpaceWeatherSystem
+     */
+    reactToSpaceWeather(weatherData) {
+        if (this.isDestroyed) return;
+
+        console.log(`[CreatureAnimationController] Reacting to space weather:`, weatherData);
+
+        if (weatherData.auroraActive) {
+            // Aurora reaction - look up in wonder
+            this.setEmotion('curious', 0.8);
+            this.triggerBehavior('gaze_up');
+
+            this.scene.time.delayedCall(2000, () => {
+                this.triggerThought('space_weather_aurora', {
+                    auroraIntensity: weatherData.auroraIntensity
+                });
+            });
+        } else if (weatherData.solarActivity === 'intense' || weatherData.solarActivity === 'active') {
+            // Solar flare reaction - feel energized
+            this.setEmotion('excited', 0.9);
+            this.triggerBehavior('vibrate');
+
+            this.scene.time.delayedCall(1500, () => {
+                this.triggerThought('space_weather_solar', {
+                    solarActivity: weatherData.solarActivity
+                });
+            });
+        }
+    }
+
+    /**
+     * React to time of day changes
+     * @param {string} timeOfDay - 'morning', 'day', 'evening', 'night'
+     */
+    reactToTimeOfDay(timeOfDay) {
+        if (this.isDestroyed) return;
+
+        const timeReactions = {
+            morning: { emotion: 'happy', behavior: 'stretch', intensity: 0.6 },
+            day: { emotion: 'content', behavior: 'look_around', intensity: 0.5 },
+            evening: { emotion: 'content', behavior: 'slow_blink', intensity: 0.5 },
+            night: { emotion: 'tired', behavior: 'yawn', intensity: 0.6 }
+        };
+
+        const reaction = timeReactions[timeOfDay] || timeReactions.day;
+
+        this.setEmotion(reaction.emotion, reaction.intensity);
+
+        // Occasional behavior when time changes
+        if (Math.random() < 0.4) {
+            this.triggerBehavior(reaction.behavior);
+        }
+
+        // Occasional thought about time
+        if (Math.random() < 0.2) {
+            this.triggerThought('time_of_day', { timeOfDay });
+        }
+    }
+
+    /**
+     * React to player returning after being away
+     * @param {number} awayMinutes - How long player was away
+     */
+    reactToPlayerReturn(awayMinutes) {
+        if (this.isDestroyed) return;
+
+        if (awayMinutes > 60) {
+            // Long absence - excited to see player
+            this.setEmotion('excited', 0.9);
+            this.triggerBehavior('excited_bounce');
+            this.triggerThought('welcome_back_long', { awayMinutes });
+        } else if (awayMinutes > 15) {
+            // Short absence - happy to see player
+            this.setEmotion('happy', 0.7);
+            this.triggerBehavior('bounce');
+            this.triggerThought('welcome_back_short', { awayMinutes });
+        }
+    }
+
+    /**
+     * React to game events (level completion, failure, etc.)
+     * @param {string} eventType - 'level_complete', 'level_failed', 'boss_defeated', 'collectible_found'
+     * @param {Object} eventData - Additional event data
+     */
+    reactToGameEvent(eventType, eventData = {}) {
+        if (this.isDestroyed) return;
+
+        console.log(`[CreatureAnimationController] Reacting to game event: ${eventType}`);
+
+        const eventReactions = {
+            level_complete: { emotion: 'excited', behavior: 'excited_bounce', intensity: 1.0 },
+            level_failed: { emotion: 'shy', behavior: 'sad_droop', intensity: 0.6 }, // shy=withdrawn
+            boss_defeated: { emotion: 'excited', behavior: 'spin', intensity: 1.0 },
+            collectible_found: { emotion: 'happy', behavior: 'bounce', intensity: 0.8 },
+            player_hurt: { emotion: 'scared', behavior: 'shiver', intensity: 0.7 },
+            low_health: { emotion: 'scared', behavior: 'look_around', intensity: 0.6 }
+        };
+
+        const reaction = eventReactions[eventType];
+        if (reaction) {
+            this.setEmotion(reaction.emotion, reaction.intensity);
+            this.triggerBehavior(reaction.behavior);
+            this.triggerThought(`event_${eventType}`, eventData);
+        }
+    }
+
+    // ==========================================
     // Public Methods
     // ==========================================
 
@@ -673,6 +1038,11 @@ class CreatureAnimationController {
 // Export to window for global access
 if (typeof window !== 'undefined') {
     window.CreatureAnimationController = CreatureAnimationController;
+}
+
+// Export for module systems (CommonJS for Jest)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = CreatureAnimationController;
 }
 
 export default CreatureAnimationController;

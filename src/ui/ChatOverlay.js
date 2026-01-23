@@ -69,7 +69,7 @@ class ChatOverlay {
             'How are you?',
             'Let\'s play!',
             'Tell me something',
-            'I love you!'
+            'You\'re my best friend!'
         ];
         this.createResponseButtons(options);
 

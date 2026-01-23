@@ -44,7 +44,7 @@
     "gentle": {
       "happy": [
         "*{name} nuzzles you warmly and purrs*",
-        "*{name} approaches with a soft, loving gaze*",
+        "*{name} approaches with a soft, caring gaze*",
         "*{name} gently brushes against you*"
       ],
       "neutral": [
@@ -102,12 +102,13 @@
       ]
     }
   },
+
   "playerOptions": {
     "general": [
       "How are you feeling?",
       "Want to play?",
       "Tell me about your day",
-      "I love you!",
+      "You're my best friend!",
       "Are you hungry?",
       "Let's go on an adventure!",
       "What's on your mind?",
@@ -128,8 +129,15 @@
       "I'll take care of you",
       "Let's make you feel better",
       "You're safe with me"
+    ],
+    "encouragement": [
+      "You can do it!",
+      "I believe in you!",
+      "We're a great team!",
+      "Together we're unstoppable!"
     ]
   },
+
   "creatureResponses": {
     "feelings": {
       "curious": [
@@ -158,6 +166,7 @@
         "*{name} spins rapidly* Ready for anything!"
       ]
     },
+
     "play": {
       "curious": [
         "*{name} perks up* Ooh, what kind of game? Something new?",
@@ -185,15 +194,16 @@
         "*{name} can't contain themselves* FINALLY!"
       ]
     },
+
     "adventure": {
       "curious": [
         "*{name}'s eyes widen* An adventure?! What will we find?",
         "*{name} bounces eagerly* New places to explore!",
-        "*{name} chirps excitedly* I love discovering new things!"
+        "*{name} chirps excitedly* I wonder what's out there!"
       ],
       "playful": [
         "*{name} tumbles forward* Adventure means fun!",
-        "*{name} bounces* Let's go find trouble!",
+        "*{name} bounces* Let's go find excitement!",
         "*{name} grins* This is gonna be great!"
       ],
       "gentle": [
@@ -212,6 +222,7 @@
         "*{name} zooms ahead* Try to keep up!"
       ]
     },
+
     "food": {
       "curious": [
         "*{name} sniffs the air* What kind of food? Something new?",
@@ -239,37 +250,39 @@
         "*{name} can't wait* Nom nom nom!"
       ]
     },
-    "affection": {
+
+    "friendship": {
       "curious": [
-        "*{name} tilts head happily* I love you too! Why does love feel so warm?",
-        "*{name} nuzzles close* Your love makes me curious about everything!",
-        "*{name} chirps* Being loved is the best feeling!"
+        "*{name} tilts head happily* We're the best team! I wonder what we'll discover next!",
+        "*{name} nuzzles close* Being friends with you makes everything exciting!",
+        "*{name} chirps* Having a friend like you is the best feeling!"
       ],
       "playful": [
-        "*{name} tackles you with love* Right back at you, best friend!",
-        "*{name} bounces joyfully* Love love love!",
+        "*{name} tackles you playfully* Right back at you, best buddy!",
+        "*{name} bounces joyfully* Best friends forever!",
         "*{name} spins happily* You make everything fun!"
       ],
       "gentle": [
-        "*{name} nuzzles warmly* And I love you, with all my heart",
-        "*{name} purrs deeply* Your love means everything to me",
+        "*{name} nuzzles warmly* And you're my best friend too",
+        "*{name} purrs deeply* Our friendship means everything to me",
         "*{name} settles close* I feel so safe with you"
       ],
       "wise": [
-        "*{name} gazes warmly* Love is the truest wisdom",
-        "*{name} nods* And I cherish you beyond words",
-        "*{name} radiates calm* Our bond transcends all"
+        "*{name} gazes warmly* Friendship is the truest treasure",
+        "*{name} nods* And I cherish our bond deeply",
+        "*{name} radiates calm* Our friendship is special"
       ],
       "energetic": [
-        "*{name} zooms around you excitedly* LOVE YOU TOO!!!",
-        "*{name} bounces with joy* So! Much! Love!",
+        "*{name} zooms around you excitedly* BEST FRIENDS!!!",
+        "*{name} bounces with joy* We're the greatest team!",
         "*{name} can't contain happiness* You're the BEST!"
       ]
     },
+
     "story": {
       "curious": [
         "*{name} settles in eagerly* Ooh, what kind of story? Tell me everything!",
-        "*{name}'s eyes widen* I love learning new things through stories!",
+        "*{name}'s eyes widen* I can't wait to hear this!",
         "*{name} listens intently* What happens next?!"
       ],
       "playful": [
@@ -278,13 +291,13 @@
         "*{name} grins* Does it have a happy ending?"
       ],
       "gentle": [
-        "*{name} settles close* I'd love to hear your story",
+        "*{name} settles close* I'd enjoy hearing your story",
         "*{name} purrs* Your voice is so soothing",
         "*{name} listens peacefully* Please, go on"
       ],
       "wise": [
         "*{name} listens thoughtfully* Stories carry ancient wisdom",
-        "*{name} nods* I am ready to receive your tale",
+        "*{name} nods* I am ready to hear your tale",
         "*{name} considers* What truth does it reveal?"
       ],
       "energetic": [
@@ -293,6 +306,7 @@
         "*{name} zooms then stops* Okay okay I'm listening!"
       ]
     },
+
     "general": {
       "curious": [
         "*{name} chirps happily and looks around with wonder*",

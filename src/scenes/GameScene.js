@@ -14,6 +14,7 @@ import ControlsHintPanel from '../ui/ControlsHintPanel.js';
 import FloatingChatBubble from '../ui/FloatingChatBubble.js';
 import CreatureSwitcherModal from '../ui/CreatureSwitcherModal.js';
 import HamburgerMenu from '../ui/HamburgerMenu.js';
+import NASAContentModal from '../ui/NASAContentModal.js';
 // MapNavigationButtons removed - redundant with HamburgerMenu navigation
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
@@ -306,6 +307,9 @@ class GameScene extends Phaser.Scene {
             // Set up parallax background layers (after camera setup)
             this.setupParallaxBiome();
 
+            // Initialize space weather effects (real NASA data)
+            this.setupSpaceWeather();
+
             // Apply cosmic affinity passive effects
             this.applyCosmicAffinityEffects();
 
@@ -385,6 +389,9 @@ class GameScene extends Phaser.Scene {
             this.floatingChatBubble.init(this.player);
             this.events.on('openChat', () => this.openChat());
             console.log('[GameScene] Floating chat bubble initialized');
+
+            // Initialize NASA content system for daily space content
+            this.setupNASAContent();
 
             // DEV ONLY: Listen for force creature refresh (from stage selector)
             if (import.meta.env.DEV) {
@@ -472,6 +479,9 @@ class GameScene extends Phaser.Scene {
                                 { personality: { core: 'curious' } };
                 this.creatureAnimationController = new window.CreatureAnimationController(this, this.player, genetics);
                 console.log('[GameScene] CreatureAnimationController initialized');
+
+                // Set up creature intelligence integrations
+                this.setupCreatureIntelligence();
             }
 
             // Play home area background music
@@ -538,6 +548,188 @@ class GameScene extends Phaser.Scene {
             this.events.off('kid_mode_action', this.kidModeActionHandler, this);
         }
         this.kidModeActionHandler = null;
+
+        // Creature intelligence integrations
+        this.spaceWeatherHandler = null;
+        this.lastSpaceWeatherCheck = 0;
+        this.currentTimeOfDay = null;
+    }
+
+    /**
+     * Set up creature intelligence integrations
+     * Connects CreatureAnimationController with:
+     * - ThoughtBubbleSystem for visual thoughts
+     * - SpaceWeatherSystem for NASA weather reactions
+     * - Time-of-day awareness
+     * - Game event reactions
+     */
+    setupCreatureIntelligence() {
+        if (!this.creatureAnimationController) {
+            console.warn('[GameScene] Cannot setup creature intelligence - no animation controller');
+            return;
+        }
+
+        console.log('[GameScene] Setting up creature intelligence integrations');
+
+        // 1. Set up thought bubble handler
+        if (window.ThoughtBubbleSystem) {
+            window.ThoughtBubbleSystem.initialize();
+
+            this.creatureAnimationController.setThoughtBubbleHandler((thoughtType, context) => {
+                if (this.player && !this._isShuttingDown) {
+                    window.ThoughtBubbleSystem.showThoughtBubble(
+                        this,
+                        this.player,
+                        thoughtType,
+                        context,
+                        { duration: 4000 }
+                    );
+                }
+            });
+
+            console.log('[GameScene] ThoughtBubbleSystem connected');
+        }
+
+        // 2. Set up space weather reactions
+        if (window.SpaceWeatherSystem) {
+            this.spaceWeatherHandler = (weatherData) => {
+                if (this.creatureAnimationController && !this._isShuttingDown) {
+                    this.creatureAnimationController.reactToSpaceWeather(weatherData);
+
+                    // Also apply visual effects
+                    this.applySpaceWeatherVisuals(weatherData);
+                }
+            };
+
+            window.SpaceWeatherSystem.on('weatherUpdated', this.spaceWeatherHandler);
+
+            // Apply current weather immediately
+            const currentWeather = window.SpaceWeatherSystem.getWeather();
+            if (currentWeather) {
+                this.applySpaceWeatherVisuals(currentWeather);
+            }
+
+            console.log('[GameScene] SpaceWeatherSystem connected');
+        }
+
+        // 3. Set up time-of-day awareness
+        this.setupTimeOfDayAwareness();
+
+        // 4. Listen for game state events that should trigger creature reactions
+        this.setupCreatureEventListeners();
+
+        console.log('[GameScene] Creature intelligence setup complete');
+    }
+
+    /**
+     * Apply visual effects based on space weather
+     */
+    applySpaceWeatherVisuals(weatherData) {
+        if (!weatherData || this._isShuttingDown) return;
+
+        // Aurora effect
+        if (weatherData.auroraActive && window.FXLibrary) {
+            // Only create aurora if we don't have one
+            if (!this.activeAuroraEffect) {
+                this.activeAuroraEffect = window.FXLibrary.createAurora(
+                    this,
+                    weatherData.auroraIntensity,
+                    { colors: [0x00FF88, 0x88FF00, 0x00FFCC] }
+                );
+                console.log('[GameScene] Aurora effect activated, intensity:', weatherData.auroraIntensity);
+            }
+        } else if (this.activeAuroraEffect) {
+            this.activeAuroraEffect.destroy();
+            this.activeAuroraEffect = null;
+        }
+
+        // Sky tint for solar activity
+        if (weatherData.skyTint && window.FXLibrary) {
+            if (!this.activeSkyTint) {
+                const tintAlpha = weatherData.solarActivity === 'intense' ? 0.2 : 0.12;
+                this.activeSkyTint = window.FXLibrary.createSkyTint(this, weatherData.skyTint, tintAlpha);
+                console.log('[GameScene] Sky tint activated');
+            }
+        } else if (this.activeSkyTint) {
+            this.activeSkyTint.destroy();
+            this.activeSkyTint = null;
+        }
+    }
+
+    /**
+     * Set up time-of-day awareness for creature reactions
+     */
+    setupTimeOfDayAwareness() {
+        // Check time of day every 5 minutes
+        this.time.addEvent({
+            delay: 5 * 60 * 1000,
+            callback: () => this.checkTimeOfDay(),
+            loop: true
+        });
+
+        // Initial check
+        this.checkTimeOfDay();
+    }
+
+    /**
+     * Check current time of day and notify creature
+     */
+    checkTimeOfDay() {
+        const hour = new Date().getHours();
+        let timeOfDay;
+
+        if (hour >= 5 && hour < 12) {
+            timeOfDay = 'morning';
+        } else if (hour >= 12 && hour < 17) {
+            timeOfDay = 'day';
+        } else if (hour >= 17 && hour < 21) {
+            timeOfDay = 'evening';
+        } else {
+            timeOfDay = 'night';
+        }
+
+        // Only notify if time changed
+        if (timeOfDay !== this.currentTimeOfDay) {
+            this.currentTimeOfDay = timeOfDay;
+
+            if (this.creatureAnimationController) {
+                this.creatureAnimationController.reactToTimeOfDay(timeOfDay);
+            }
+        }
+    }
+
+    /**
+     * Set up listeners for game events that should trigger creature reactions
+     */
+    setupCreatureEventListeners() {
+        // Listen for stat changes
+        if (window.GameState) {
+            const happinessHandler = (happiness) => {
+                if (happiness > 85 && this.creatureAnimationController) {
+                    this.creatureAnimationController.setEmotion('happy', 0.8);
+                } else if (happiness < 30 && this.creatureAnimationController) {
+                    this.creatureAnimationController.setEmotion('shy', 0.6);
+                }
+            };
+
+            window.GameState.on('changed:creature.stats.happiness', happinessHandler);
+
+            // Store for cleanup
+            this.gameStateUnsubscribers.push(() => {
+                window.GameState?.off('changed:creature.stats.happiness', happinessHandler);
+            });
+        }
+    }
+
+    /**
+     * Notify creature of game events (call from other systems)
+     * @param {string} eventType - 'level_complete', 'level_failed', 'boss_defeated', etc.
+     * @param {Object} eventData - Event-specific data
+     */
+    notifyCreatureOfEvent(eventType, eventData = {}) {
+        if (this.creatureAnimationController && !this._isShuttingDown) {
+            this.creatureAnimationController.reactToGameEvent(eventType, eventData);
+        }
     }
 
     registerSceneLifecycleEvents() {
@@ -606,6 +798,276 @@ class GameScene extends Phaser.Scene {
         } catch (error) {
             console.error('[GameScene] Failed to setup ParallaxBiome:', error);
         }
+    }
+
+    /**
+     * Set up space weather effects based on real NASA data
+     * Creates aurora and sky tint when geomagnetic storms or solar flares are active
+     */
+    async setupSpaceWeather() {
+        if (!window.SpaceWeatherSystem) {
+            console.warn('[GameScene] SpaceWeatherSystem not available');
+            return;
+        }
+
+        try {
+            // Initialize space weather system if not already done
+            if (!window.SpaceWeatherSystem.isInitialized) {
+                await window.SpaceWeatherSystem.initialize();
+            }
+
+            // Apply current space weather effects
+            this.applySpaceWeatherEffects();
+
+            // Listen for weather updates
+            window.SpaceWeatherSystem.on('weatherUpdated', (weather) => {
+                this.applySpaceWeatherEffects(weather);
+            });
+
+            console.log('[GameScene] Space weather system connected');
+        } catch (error) {
+            console.warn('[GameScene] Failed to setup space weather:', error.message);
+        }
+    }
+
+    /**
+     * Apply visual effects based on current space weather
+     */
+    applySpaceWeatherEffects(weather = null) {
+        if (!window.SpaceWeatherSystem || !window.FXLibrary) return;
+
+        weather = weather || window.SpaceWeatherSystem.getWeather();
+
+        // Clean up existing effects
+        if (this.auroraEffect) {
+            this.auroraEffect.destroy();
+            this.auroraEffect = null;
+        }
+        if (this.skyTintEffect) {
+            this.skyTintEffect.destroy();
+            this.skyTintEffect = null;
+        }
+
+        // Apply aurora if geomagnetic storm is active
+        if (weather.auroraActive && weather.auroraIntensity > 0) {
+            this.auroraEffect = window.FXLibrary.createAurora(
+                this,
+                weather.auroraIntensity,
+                { alpha: weather.auroraIntensity * 0.5 }
+            );
+            console.log('[GameScene] Aurora effect active, intensity:', weather.auroraIntensity);
+        }
+
+        // Apply sky tint for solar flares
+        if (weather.skyTint) {
+            this.skyTintEffect = window.FXLibrary.createSkyTint(
+                this,
+                weather.skyTint,
+                weather.solarActivity === 'intense' ? 0.2 : 0.1
+            );
+            console.log('[GameScene] Sky tint active for solar activity:', weather.solarActivity);
+        }
+
+        // Store cosmic energy for creature mood effects
+        this.cosmicEnergyLevel = weather.cosmicEnergy;
+    }
+
+    /**
+     * Set up NASA daily content system
+     * Shows APOD and Mars photos on first daily login, ISS alerts during gameplay
+     */
+    async setupNASAContent() {
+        if (!window.NASAContentSystem) {
+            console.warn('[GameScene] NASAContentSystem not available');
+            return;
+        }
+
+        try {
+            // Initialize NASA content system if not already done
+            if (!window.NASAContentSystem.isInitialized) {
+                await window.NASAContentSystem.initialize();
+            }
+
+            // Set up ISS overhead alert listener
+            window.NASAContentSystem.on('issOverhead', (data) => {
+                this.showCreatureSpeechBubble(data.message, 8000);
+            });
+
+            // Try to get player's approximate location for ISS tracking
+            this.requestLocationForISS();
+
+            // Check for daily content after a short delay (let scene settle)
+            this.time.delayedCall(2000, () => {
+                this.checkAndShowDailyNASAContent();
+            });
+
+            console.log('[GameScene] NASA content system connected');
+        } catch (error) {
+            console.warn('[GameScene] Failed to setup NASA content:', error.message);
+        }
+    }
+
+    /**
+     * Request location permission for ISS tracking
+     */
+    requestLocationForISS() {
+        if (!navigator.geolocation) return;
+
+        // Check if we already have stored location
+        const storedLat = localStorage.getItem('player_lat');
+        const storedLon = localStorage.getItem('player_lon');
+
+        if (storedLat && storedLon) {
+            window.NASAContentSystem?.setPlayerLocation(
+                parseFloat(storedLat),
+                parseFloat(storedLon)
+            );
+            return;
+        }
+
+        // Request location (non-blocking, user can decline)
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                localStorage.setItem('player_lat', latitude.toString());
+                localStorage.setItem('player_lon', longitude.toString());
+                window.NASAContentSystem?.setPlayerLocation(latitude, longitude);
+                console.log('[GameScene] Location set for ISS tracking');
+            },
+            () => {
+                // User declined - that's fine, ISS alerts just won't work
+                console.log('[GameScene] Location permission declined, ISS alerts disabled');
+            },
+            { enableHighAccuracy: false, timeout: 10000 }
+        );
+    }
+
+    /**
+     * Check and show daily NASA content (APOD, Mars postcards)
+     */
+    async checkAndShowDailyNASAContent() {
+        console.log('[GameScene] Checking NASA daily content...');
+
+        if (!window.NASAContentSystem?.shouldShowDailyContent()) {
+            console.log('[GameScene] NASA content already shown today - to reset, run: window.NASAContentSystem.resetDailyContent()');
+            return;
+        }
+
+        try {
+            const contentQueue = await window.NASAContentSystem.getDailyContentQueue();
+            console.log('[GameScene] NASA content queue:', contentQueue.length, 'items');
+
+            if (contentQueue.length > 0) {
+                // Create and show modal
+                console.log('[GameScene] Showing NASA content modal');
+                this.nasaModal = new NASAContentModal(this);
+                this.nasaModal.show(contentQueue, () => {
+                    // Mark content as shown when user dismisses
+                    window.NASAContentSystem?.markDailyContentShown();
+                    this.nasaModal = null;
+                });
+            } else {
+                console.log('[GameScene] No NASA content available in queue');
+            }
+        } catch (error) {
+            console.warn('[GameScene] Failed to show NASA content:', error.message);
+        }
+    }
+
+    /**
+     * Show temporary speech bubble from creature
+     * Used for ISS alerts and other creature announcements
+     */
+    showCreatureSpeechBubble(message, duration = 5000) {
+        if (!this.player) return;
+
+        // Clean up existing bubble
+        if (this.creatureSpeechBubble) {
+            this.creatureSpeechBubble.forEach(el => el?.destroy());
+        }
+        this.creatureSpeechBubble = [];
+
+        const { width } = this.cameras.main;
+        const bubbleWidth = Math.min(350, width - 40);
+        const padding = 15;
+
+        // Position above player
+        const bubbleX = this.player.x;
+        const bubbleY = this.player.y - 120;
+
+        // Create bubble background
+        const bubble = this.add.graphics();
+        bubble.setDepth(3000);
+
+        // Measure text to size bubble
+        const tempText = this.add.text(0, 0, message, {
+            fontSize: '14px',
+            wordWrap: { width: bubbleWidth - padding * 2 }
+        });
+        const textHeight = tempText.height;
+        tempText.destroy();
+
+        const bubbleHeight = textHeight + padding * 2;
+
+        // Draw speech bubble with pointer
+        bubble.fillStyle(0xFFFFFF, 0.95);
+        bubble.fillRoundedRect(
+            bubbleX - bubbleWidth / 2,
+            bubbleY - bubbleHeight,
+            bubbleWidth,
+            bubbleHeight,
+            12
+        );
+
+        // Pointer triangle
+        bubble.fillTriangle(
+            bubbleX - 10, bubbleY,
+            bubbleX + 10, bubbleY,
+            bubbleX, bubbleY + 15
+        );
+
+        // Border
+        bubble.lineStyle(2, 0x7B68EE);
+        bubble.strokeRoundedRect(
+            bubbleX - bubbleWidth / 2,
+            bubbleY - bubbleHeight,
+            bubbleWidth,
+            bubbleHeight,
+            12
+        );
+
+        this.creatureSpeechBubble.push(bubble);
+
+        // Add text
+        const text = this.add.text(bubbleX, bubbleY - bubbleHeight / 2, message, {
+            fontSize: '14px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#333333',
+            wordWrap: { width: bubbleWidth - padding * 2 },
+            align: 'center'
+        }).setOrigin(0.5).setDepth(3001);
+
+        this.creatureSpeechBubble.push(text);
+
+        // Play sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Auto-dismiss after duration
+        this.time.delayedCall(duration, () => {
+            this.creatureSpeechBubble?.forEach(el => {
+                if (el && el.destroy) {
+                    this.tweens.add({
+                        targets: el,
+                        alpha: 0,
+                        duration: 500,
+                        onComplete: () => el.destroy()
+                    });
+                }
+            });
+            this.creatureSpeechBubble = null;
+        });
     }
 
     /**
@@ -1748,15 +2210,33 @@ class GameScene extends Phaser.Scene {
             // DEV MODE: Cycle lifecycle stages with L key (QA tool for testing)
             this.devStageIndex = 0;
             const stageOrder = ['baby', 'juvenile', 'adult', 'elder'];
+            const stageDaysL = { baby: 0, juvenile: 1, adult: 3, elder: 10 };
             this.input.keyboard.on('keydown-L', () => {
                 // Cycle to next stage
                 this.devStageIndex = (this.devStageIndex + 1) % stageOrder.length;
                 const newStage = stageOrder[this.devStageIndex];
+                const now = Date.now();
+                const newBirthDate = now - (stageDaysL[newStage] * 24 * 60 * 60 * 1000);
 
                 // Update GameState lifecycle stage
                 if (window.GameState) {
                     window.GameState.set('creature.lifecycle.stage', newStage);
-                    window.GameState.set('creature.lifecycle.lastStageChange', Date.now());
+                    window.GameState.set('creature.lifecycle.birthDate', newBirthDate);
+                    window.GameState.set('creature.lifecycle.lastStageChange', now);
+
+                    // ALSO update the creature in the creatures array (for FusionPod eligibility)
+                    const creatures = window.GameState.get('creatures') || [];
+                    const activeIndex = window.GameState.get('activeCreatureIndex') || 0;
+                    if (creatures[activeIndex]) {
+                        if (!creatures[activeIndex].lifecycle) {
+                            creatures[activeIndex].lifecycle = { evolutionHistory: [] };
+                        }
+                        creatures[activeIndex].lifecycle.stage = newStage;
+                        creatures[activeIndex].lifecycle.birthDate = newBirthDate;
+                        creatures[activeIndex].lifecycle.lastStageChange = now;
+                        window.GameState.set('creatures', creatures);
+                    }
+
                     console.log(`[DEV QA] Switched lifecycle stage to: ${newStage}`);
 
                     // Force creature refresh with new stage
@@ -1843,6 +2323,7 @@ class GameScene extends Phaser.Scene {
             padding: { x: 6, y: 3 }
         });
         this.positionText.setScrollFactor(0);
+        this.positionText.setDepth(2000);
 
         this.statsText = this.add.text(width - 16, 16, '', {
             fontSize: '14px',
@@ -1855,6 +2336,7 @@ class GameScene extends Phaser.Scene {
         });
         this.statsText.setOrigin(1, 0);
         this.statsText.setScrollFactor(0);
+        this.statsText.setDepth(2000);
         this.updateStatsDisplay();
 
         this.interactionText = this.add.text(width / 2, height - 40, '', {
@@ -2897,6 +3379,7 @@ class GameScene extends Phaser.Scene {
         });
         button.setScrollFactor(0);
         button.setOrigin(0.5, 0);
+        button.setDepth(2000);
         button.setInteractive({ useHandCursor: true });
         button.on('pointerdown', () => this.claimDailyBonus());
         this.dailyBonusButton = button;
@@ -3090,7 +3573,7 @@ class GameScene extends Phaser.Scene {
         this.statBarGraphics?.destroy();
         this.statBarGraphics = this.add.graphics();
         this.statBarGraphics.setScrollFactor(0);
-        this.statBarGraphics.setDepth(1400);
+        this.statBarGraphics.setDepth(2000);
 
         // Simplified: Only Health and Energy (removed happiness per UI cleanup)
         this.statBars = [
@@ -3103,7 +3586,7 @@ class GameScene extends Phaser.Scene {
         this.statBarLabels = this.statBars.map(bar => {
             return this.add.text(bar.x + bar.width + 8, bar.y + bar.height / 2, bar.label, {
                 fontSize: '14px'
-            }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1401);
+            }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(2001);
         });
 
         this.updateGlowingStatBars();
@@ -5799,6 +6282,20 @@ class GameScene extends Phaser.Scene {
         });
         window.GameState.set('creature.lifecycle.evolutionHistory', history);
 
+        // ALSO update the creature in the creatures array (for FusionPod eligibility)
+        const creatures = window.GameState.get('creatures') || [];
+        const activeIndex = window.GameState.get('activeCreatureIndex') || 0;
+        if (creatures[activeIndex]) {
+            if (!creatures[activeIndex].lifecycle) {
+                creatures[activeIndex].lifecycle = { evolutionHistory: [] };
+            }
+            creatures[activeIndex].lifecycle.stage = toStage;
+            creatures[activeIndex].lifecycle.lastStageChange = now;
+            creatures[activeIndex].lifecycle.evolutionHistory = [...history];
+            window.GameState.set('creatures', creatures);
+            console.log(`[GameScene] Evolution: Synced stage '${toStage}' to collection index ${activeIndex}`);
+        }
+
         // Emit evolution event for other systems
         window.GameState.emit('creature:evolved', { fromStage, toStage });
 
@@ -6445,15 +6942,6 @@ class GameScene extends Phaser.Scene {
         const bestAction = window.KidMode.getNextBestAction(emotion);
         const secondaryActions = window.KidMode.getSecondaryActions(bestAction.action);
 
-        // Create CTA bar at bottom - DISABLED FOR MOBILE SIMPLICITY
-        // if (window.responsiveManager) {
-        //     this.kidModeCTABar = window.responsiveManager.createKidModeCTABar(this, {
-        //         primaryAction: bestAction,
-        //         secondaryActions: secondaryActions.slice(0, 2), // Limit to 2 secondary
-        //         showPhoto: true
-        //     });
-        // }
-
         // Show contextual help message
         if (bestAction.message && window.KidMode && window.KidMode.showSpaceHelpMessage) {
             window.KidMode.showSpaceHelpMessage(this, bestAction.message);
@@ -6580,12 +7068,6 @@ class GameScene extends Phaser.Scene {
         // Determine new best action
         const emotion = this.determineCreatureEmotion(creatureStats);
         const bestAction = window.KidMode.getNextBestAction(emotion);
-
-        // Update CTA bar primary button
-        if (this.kidModeCTABar) {
-            // This is a simplified update - in practice you'd rebuild or update specific elements
-            console.log(`ui:debug [GameScene] Updating Kid Mode HUD, new primary action: ${bestAction.action}`);
-        }
 
         // Show new contextual message if emotion changed
         if (this.lastEmotion !== emotion) {
@@ -6749,6 +7231,32 @@ class GameScene extends Phaser.Scene {
             this.kidModeActionHandler = null;
         }
 
+        // Clean up space weather effects
+        if (this.auroraEffect) {
+            this.auroraEffect.destroy();
+            this.auroraEffect = null;
+        }
+        if (this.skyTintEffect) {
+            this.skyTintEffect.destroy();
+            this.skyTintEffect = null;
+        }
+        if (window.SpaceWeatherSystem) {
+            window.SpaceWeatherSystem.off('weatherUpdated', this.applySpaceWeatherEffects);
+        }
+
+        // Clean up NASA content
+        if (window.NASAContentSystem) {
+            window.NASAContentSystem.off('issOverhead');
+        }
+        if (this.nasaModal) {
+            this.nasaModal.cleanup();
+            this.nasaModal = null;
+        }
+        if (this.creatureSpeechBubble) {
+            this.creatureSpeechBubble.forEach(el => el?.destroy());
+            this.creatureSpeechBubble = null;
+        }
+
         // Remove input event listeners
         if (this.input) {
             this.input.off('pointerdown');
@@ -6815,6 +7323,26 @@ class GameScene extends Phaser.Scene {
         if (this.creatureAnimationController) {
             this.creatureAnimationController.destroy();
             this.creatureAnimationController = null;
+        }
+
+        // Cleanup creature intelligence integrations
+        if (this.spaceWeatherHandler && window.SpaceWeatherSystem) {
+            window.SpaceWeatherSystem.off('weatherUpdated', this.spaceWeatherHandler);
+            this.spaceWeatherHandler = null;
+        }
+
+        if (this.activeAuroraEffect) {
+            this.activeAuroraEffect.destroy();
+            this.activeAuroraEffect = null;
+        }
+
+        if (this.activeSkyTint) {
+            this.activeSkyTint.destroy();
+            this.activeSkyTint = null;
+        }
+
+        if (window.ThoughtBubbleSystem) {
+            window.ThoughtBubbleSystem.hideThoughtBubble();
         }
 
         // Stop background music

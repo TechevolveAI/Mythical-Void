@@ -35,16 +35,31 @@ class DevTools {
         const daysNeeded = stageDays[targetStage] || 3;
         const newBirthDate = Date.now() - (daysNeeded * 24 * 60 * 60 * 1000);
 
-        // Update active creature
+        // Update active creature slot
         const lifecycle = window.GameState?.get('creature.lifecycle') || {};
         lifecycle.birthDate = newBirthDate;
         lifecycle.stage = targetStage;
         lifecycle.lastStageChange = Date.now();
 
         window.GameState?.set('creature.lifecycle', lifecycle);
+
+        // ALSO update the creature in the collection (critical for FusionPod eligibility)
+        const creatures = window.GameState?.get('creatures') || [];
+        const activeIndex = window.GameState?.get('activeCreatureIndex') || 0;
+        if (creatures[activeIndex]) {
+            if (!creatures[activeIndex].lifecycle) {
+                creatures[activeIndex].lifecycle = { evolutionHistory: [] };
+            }
+            creatures[activeIndex].lifecycle.birthDate = newBirthDate;
+            creatures[activeIndex].lifecycle.stage = targetStage;
+            creatures[activeIndex].lifecycle.lastStageChange = Date.now();
+            window.GameState?.set('creatures', creatures);
+        }
+
         window.GameState?.save?.();
 
         console.log(`✅ [DevTools] Active creature aged to ${targetStage} (birthDate set to ${daysNeeded} days ago)`);
+        console.log(`✅ [DevTools] Updated both active slot AND collection index ${activeIndex}`);
         return { stage: targetStage, birthDate: new Date(newBirthDate).toISOString() };
     }
 

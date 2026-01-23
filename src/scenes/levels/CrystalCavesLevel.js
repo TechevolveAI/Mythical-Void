@@ -3425,6 +3425,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     onLevelComplete() {
         console.log('[CrystalCavesLevel] Level complete!');
 
+        // Record success for contextual thoughts (enables special encouragement if struggled)
+        this.recordLevelSuccess();
+
         // Pause gameplay
         this.physics.pause();
 

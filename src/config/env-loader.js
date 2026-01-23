@@ -30,7 +30,8 @@ class EnvironmentLoader {
             CORS_ORIGINS: envSource.VITE_CORS_ORIGINS,
             XAI_API_KEY: envSource.VITE_XAI_API_KEY,
             XAI_ENDPOINT: envSource.VITE_XAI_ENDPOINT,
-            XAI_MODEL: envSource.VITE_XAI_MODEL
+            XAI_MODEL: envSource.VITE_XAI_MODEL,
+            NASA_API_KEY: envSource.VITE_NASA_API_KEY // For space weather features
         };
 
         for (const [key, value] of Object.entries(mappings)) {

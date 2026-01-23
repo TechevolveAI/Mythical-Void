@@ -109,9 +109,10 @@ export default class MobileHUD {
         const { topBarHeight, topBarPadding, cornerRadius } = this.layout;
 
         // Create semi-transparent top bar background
+        // Use high depth (2000+) to ensure it's above ALL background effects (aurora, particles, etc.)
         this.topBarBg = this.scene.add.graphics();
         this.topBarBg.setScrollFactor(0);
-        this.topBarBg.setDepth(1500);
+        this.topBarBg.setDepth(2000);
 
         // Draw gradient background
         this.topBarBg.fillStyle(0x0D0D1A, 0.85);
@@ -177,7 +178,7 @@ export default class MobileHUD {
         // Stage badge background
         this.stageBg = this.scene.add.graphics();
         this.stageBg.setScrollFactor(0);
-        this.stageBg.setDepth(1501);
+        this.stageBg.setDepth(2001);
 
         // Draw pill-shaped badge
         this.stageBg.fillStyle(0x3A3A6E, 0.9);
@@ -202,7 +203,7 @@ export default class MobileHUD {
         );
         this.stageIndicator.setOrigin(0.5);
         this.stageIndicator.setScrollFactor(0);
-        this.stageIndicator.setDepth(1502);
+        this.stageIndicator.setDepth(2002);
         this.elements.push(this.stageIndicator);
 
         this.lastStage = currentStage;
@@ -213,7 +214,7 @@ export default class MobileHUD {
             const hitZone = this.scene.add.zone(stageX + 25, centerY, 50, 20);
             hitZone.setInteractive({ useHandCursor: true });
             hitZone.setScrollFactor(0);
-            hitZone.setDepth(1503);
+            hitZone.setDepth(2003);
 
             hitZone.on('pointerdown', () => {
                 const stages = ['baby', 'juvenile', 'adult', 'elder'];
@@ -223,12 +224,32 @@ export default class MobileHUD {
 
                 console.log(`[MobileHUD] DEV: Cycling stage from ${stages[currentStageIndex]} to ${nextStage}`);
 
-                // Update GameState
+                // Update GameState - active creature slot
                 window.GameState?.set('creature.lifecycle.stage', nextStage);
 
                 // Update visual days for testing (approximate)
                 const stageDays = { baby: 1, juvenile: 4, adult: 10, elder: 35 };
+                const stageDaysBirth = { baby: 0, juvenile: 1, adult: 3, elder: 10 };
                 window.GameState?.set('creature.lifecycle.daysAlive', stageDays[nextStage]);
+
+                // Set birthDate for proper eligibility checks
+                const newBirthDate = Date.now() - (stageDaysBirth[nextStage] * 24 * 60 * 60 * 1000);
+                window.GameState?.set('creature.lifecycle.birthDate', newBirthDate);
+
+                // ALSO update the creature in the collection (critical for FusionPod eligibility)
+                const creatures = window.GameState?.get('creatures') || [];
+                const activeIndex = window.GameState?.get('activeCreatureIndex') || 0;
+                if (creatures[activeIndex]) {
+                    if (!creatures[activeIndex].lifecycle) {
+                        creatures[activeIndex].lifecycle = { evolutionHistory: [] };
+                    }
+                    creatures[activeIndex].lifecycle.stage = nextStage;
+                    creatures[activeIndex].lifecycle.daysAlive = stageDays[nextStage];
+                    creatures[activeIndex].lifecycle.birthDate = newBirthDate;
+                    creatures[activeIndex].lifecycle.lastStageChange = Date.now();
+                    window.GameState?.set('creatures', creatures);
+                    console.log(`[MobileHUD] DEV: Also updated creature in collection at index ${activeIndex}`);
+                }
 
                 // Trigger creature re-render in GameScene
                 if (this.scene.scene.isActive('GameScene')) {
@@ -273,7 +294,7 @@ export default class MobileHUD {
         const badgeSize = 28;
         this.levelBadge = this.scene.add.graphics();
         this.levelBadge.setScrollFactor(0);
-        this.levelBadge.setDepth(1501);
+        this.levelBadge.setDepth(2001);
 
         // Draw circular badge
         this.levelBadge.fillStyle(0x7B68EE, 0.9);
@@ -297,7 +318,7 @@ export default class MobileHUD {
         );
         this.levelText.setOrigin(0.5);
         this.levelText.setScrollFactor(0);
-        this.levelText.setDepth(1502);
+        this.levelText.setDepth(2002);
         this.elements.push(this.levelText);
 
         // XP bar (horizontal progress bar next to level)
@@ -308,7 +329,7 @@ export default class MobileHUD {
         // XP bar background
         this.xpBarBg = this.scene.add.graphics();
         this.xpBarBg.setScrollFactor(0);
-        this.xpBarBg.setDepth(1501);
+        this.xpBarBg.setDepth(2001);
         this.xpBarBg.fillStyle(0x1A1A2E, 0.9);
         this.xpBarBg.fillRoundedRect(xpBarX, centerY - xpBarHeight / 2, xpBarWidth, xpBarHeight, 4);
         this.elements.push(this.xpBarBg);
@@ -316,7 +337,7 @@ export default class MobileHUD {
         // XP bar fill
         this.xpBarFill = this.scene.add.graphics();
         this.xpBarFill.setScrollFactor(0);
-        this.xpBarFill.setDepth(1502);
+        this.xpBarFill.setDepth(2002);
         this.xpBarX = xpBarX;
         this.xpBarY = centerY - xpBarHeight / 2;
         this.xpBarWidth = xpBarWidth;
@@ -337,7 +358,7 @@ export default class MobileHUD {
         );
         this.xpLabel.setOrigin(0, 0.5);
         this.xpLabel.setScrollFactor(0);
-        this.xpLabel.setDepth(1501);
+        this.xpLabel.setDepth(2001);
         this.elements.push(this.xpLabel);
     }
 
@@ -368,7 +389,7 @@ export default class MobileHUD {
 
         if (this.coinIcon.setScrollFactor) {
             this.coinIcon.setScrollFactor(0);
-            this.coinIcon.setDepth(1501);
+            this.coinIcon.setDepth(2001);
         }
         this.elements.push(this.coinIcon);
 
@@ -388,7 +409,7 @@ export default class MobileHUD {
         );
         this.coinText.setOrigin(0, 0.5);
         this.coinText.setScrollFactor(0);
-        this.coinText.setDepth(1501);
+        this.coinText.setDepth(2001);
         this.elements.push(this.coinText);
     }
 
@@ -409,7 +430,7 @@ export default class MobileHUD {
         // Draw flame icon
         this.streakIcon = this.scene.add.graphics();
         this.streakIcon.setScrollFactor(0);
-        this.streakIcon.setDepth(1501);
+        this.streakIcon.setDepth(2001);
         this.drawFlameIcon(this.streakIcon, streakX, centerY, colors.flame);
         this.elements.push(this.streakIcon);
 
@@ -429,7 +450,7 @@ export default class MobileHUD {
         );
         this.streakText.setOrigin(0, 0.5);
         this.streakText.setScrollFactor(0);
-        this.streakText.setDepth(1501);
+        this.streakText.setDepth(2001);
         this.elements.push(this.streakText);
 
         this.lastStreak = streak;
@@ -622,13 +643,9 @@ export default class MobileHUD {
         // Create gift box graphics
         this.giftBox = this.scene.add.graphics();
         this.giftBox.setScrollFactor(0);
-        this.giftBox.setDepth(1501);
+        this.giftBox.setDepth(2001);
         this.drawGiftBox(this.giftBox, boxX, centerY, canClaim);
         this.elements.push(this.giftBox);
-
-        // Make interactive
-        const hitArea = new Phaser.Geom.Rectangle(boxX - 15, centerY - 15, 30, 30);
-        this.giftBox.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
 
         if (canClaim) {
             // Pulsing glow for unclaimed
@@ -636,7 +653,7 @@ export default class MobileHUD {
             this.giftGlow.fillStyle(0xFFD700, 0.3);
             this.giftGlow.fillCircle(boxX, centerY, 20);
             this.giftGlow.setScrollFactor(0);
-            this.giftGlow.setDepth(1500);
+            this.giftGlow.setDepth(2000);
             this.elements.push(this.giftGlow);
 
             this.scene.tweens.add({
@@ -651,15 +668,26 @@ export default class MobileHUD {
             // Notification badge
             this.giftBadge = this.scene.add.circle(boxX + 8, centerY - 8, 5, 0xFF4444);
             this.giftBadge.setScrollFactor(0);
-            this.giftBadge.setDepth(1502);
+            this.giftBadge.setDepth(2002);
             this.elements.push(this.giftBadge);
         }
 
-        // Click handler
-        this.giftBox.on('pointerdown', () => this.openDailySurprise());
+        // Create dedicated hit zone for reliable touch handling (like hamburger menu)
+        const hitZoneSize = 50; // Larger touch target
+        this.giftHitZone = this.scene.add.zone(boxX, centerY, hitZoneSize, hitZoneSize);
+        this.giftHitZone.setScrollFactor(0);
+        this.giftHitZone.setDepth(2010); // Above gift box graphics
+        this.giftHitZone.setInteractive({ useHandCursor: true });
+        this.elements.push(this.giftHitZone);
+
+        // Click handler on zone
+        this.giftHitZone.on('pointerdown', () => {
+            console.log('[MobileHUD] Gift box tapped');
+            this.openDailySurprise();
+        });
 
         // Hover effects
-        this.giftBox.on('pointerover', () => {
+        this.giftHitZone.on('pointerover', () => {
             this.scene.tweens.add({
                 targets: this.giftBox,
                 scale: 1.15,
@@ -667,7 +695,7 @@ export default class MobileHUD {
             });
         });
 
-        this.giftBox.on('pointerout', () => {
+        this.giftHitZone.on('pointerout', () => {
             this.scene.tweens.add({
                 targets: this.giftBox,
                 scale: 1,
@@ -1026,7 +1054,7 @@ export default class MobileHUD {
             // Container background (semi-transparent pill)
             indicator.container = this.scene.add.graphics();
             indicator.container.setScrollFactor(0);
-            indicator.container.setDepth(1501);
+            indicator.container.setDepth(2001);
             indicator.container.setVisible(false);
 
             // Icon text
@@ -1035,19 +1063,19 @@ export default class MobileHUD {
             });
             indicator.icon.setOrigin(0, 0.5);
             indicator.icon.setScrollFactor(0);
-            indicator.icon.setDepth(1502);
+            indicator.icon.setDepth(2002);
             indicator.icon.setVisible(false);
 
             // Progress bar background
             indicator.barBg = this.scene.add.graphics();
             indicator.barBg.setScrollFactor(0);
-            indicator.barBg.setDepth(1501);
+            indicator.barBg.setDepth(2001);
             indicator.barBg.setVisible(false);
 
             // Progress bar fill
             indicator.barFill = this.scene.add.graphics();
             indicator.barFill.setScrollFactor(0);
-            indicator.barFill.setDepth(1502);
+            indicator.barFill.setDepth(2002);
             indicator.barFill.setVisible(false);
 
             this.statIndicators.push(indicator);
@@ -1071,7 +1099,7 @@ export default class MobileHUD {
         // Container for happy indicator
         this.happyContainer = this.scene.add.graphics();
         this.happyContainer.setScrollFactor(0);
-        this.happyContainer.setDepth(1501);
+        this.happyContainer.setDepth(2001);
 
         // Draw pill background
         this.happyContainer.fillStyle(0x2A2A4E, 0.9);
@@ -1090,7 +1118,7 @@ export default class MobileHUD {
         });
         this.happyText.setOrigin(0.5, 0.5);
         this.happyText.setScrollFactor(0);
-        this.happyText.setDepth(1502);
+        this.happyText.setDepth(2002);
 
         this.elements.push(this.happyText);
 
@@ -1113,7 +1141,7 @@ export default class MobileHUD {
         // Background circle with glow effect
         this.moodBg = this.scene.add.graphics();
         this.moodBg.setScrollFactor(0);
-        this.moodBg.setDepth(1501);
+        this.moodBg.setDepth(2001);
 
         // Draw background
         this.moodBg.fillStyle(0x1A1A2E, 0.8);
@@ -1129,7 +1157,7 @@ export default class MobileHUD {
         });
         this.moodIndicator.setOrigin(0.5);
         this.moodIndicator.setScrollFactor(0);
-        this.moodIndicator.setDepth(1502);
+        this.moodIndicator.setDepth(2002);
 
         // Make tappable to show personality panel
         this.moodIndicator.setInteractive();
@@ -1253,7 +1281,7 @@ export default class MobileHUD {
         // Container for stat bars
         this.statBarContainer = this.scene.add.graphics();
         this.statBarContainer.setScrollFactor(0);
-        this.statBarContainer.setDepth(1500);
+        this.statBarContainer.setDepth(2000);
 
         // Semi-transparent background
         this.statBarContainer.fillStyle(0x0D0D1A, 0.7);
@@ -1283,13 +1311,13 @@ export default class MobileHUD {
             });
             label.setOrigin(1, 0.5);
             label.setScrollFactor(0);
-            label.setDepth(1501);
+            label.setDepth(2001);
             this.elements.push(label);
 
             // Bar background
             const barBg = this.scene.add.graphics();
             barBg.setScrollFactor(0);
-            barBg.setDepth(1501);
+            barBg.setDepth(2001);
             barBg.fillStyle(0x1A1A2E, 0.9);
             barBg.fillRoundedRect(barX + 4, y, barWidth - 8, statBarHeight, 3);
             this.elements.push(barBg);
@@ -1297,7 +1325,7 @@ export default class MobileHUD {
             // Bar fill
             const barFill = this.scene.add.graphics();
             barFill.setScrollFactor(0);
-            barFill.setDepth(1502);
+            barFill.setDepth(2002);
 
             this.statBars[stat.key] = {
                 x: barX + 4,

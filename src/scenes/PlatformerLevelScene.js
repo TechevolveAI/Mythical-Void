@@ -467,10 +467,22 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.player.setBounce(0.1);
         this.player.setDrag(100, 0);
 
+        // Get actual texture dimensions for proper physics body sizing
+        const textureWidth = this.player.width;
+        const textureHeight = this.player.height;
+
         // Set body size for better collision
-        // Body offset Y reduced to 5 so creature's visual feet align with physics body bottom
-        this.player.body.setSize(40, 55);
-        this.player.body.setOffset(10, 5);
+        // Body should be smaller than visual, centered horizontally, aligned to bottom
+        // DNA creature textures are typically 80-110px wide, 85-110px tall
+        const bodyWidth = Math.min(30, textureWidth * 0.4);  // 40% of texture width, max 30
+        const bodyHeight = Math.min(45, textureHeight * 0.45); // 45% of texture height, max 45
+
+        // Center body horizontally, align to bottom with small margin
+        const offsetX = (textureWidth - bodyWidth) / 2;
+        const offsetY = textureHeight - bodyHeight - 5; // 5px margin from bottom
+
+        this.player.body.setSize(bodyWidth, bodyHeight);
+        this.player.body.setOffset(offsetX, offsetY);
 
         // Player properties - depth must be higher than platforms (which use Y position as depth)
         // Platforms at Y=750 (ground) have depth 750, so player needs depth > 800
@@ -478,6 +490,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.player.facingRight = true;
 
         console.log(`[PlatformerLevel] Player created at (${startX}, ${startY})`);
+        console.log(`[PlatformerLevel] Texture size: ${textureWidth}x${textureHeight}, Body: ${bodyWidth}x${bodyHeight}, Offset: (${offsetX}, ${offsetY})`);
     }
 
     /**
@@ -2134,6 +2147,11 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         console.log('[PlatformerLevel] Player died');
 
+        // Record failure for contextual thoughts
+        if (window.ThoughtBubbleSystem) {
+            window.ThoughtBubbleSystem.recordFailure(this.levelId || this.scene.key);
+        }
+
         // Disable input
         this.input.keyboard.enabled = false;
 
@@ -2475,6 +2493,30 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isRestarting = false;
 
         console.log('[PlatformerLevel] Cleanup complete');
+    }
+
+    // ==========================================
+    // CREATURE INTELLIGENCE HOOKS
+    // ==========================================
+
+    /**
+     * Record level success for contextual thoughts
+     * Call from child classes when level is completed
+     */
+    recordLevelSuccess() {
+        if (window.ThoughtBubbleSystem) {
+            window.ThoughtBubbleSystem.recordSuccess(this.levelId || this.scene.key);
+        }
+    }
+
+    /**
+     * Notify thought system of current biome
+     * Call from child classes in create()
+     */
+    notifyBiomeEntered(biomeType) {
+        if (window.ThoughtBubbleSystem) {
+            window.ThoughtBubbleSystem.setBiome(biomeType);
+        }
     }
 }
 

@@ -3,6 +3,8 @@
  * Provides touch-based controls for mobile devices while maintaining desktop keyboard controls
  */
 
+import { devLog } from '../utils/devLogger.js';
+
 class MobileControls {
     constructor(scene) {
         this.scene = scene;
@@ -36,7 +38,7 @@ class MobileControls {
             care: false
         };
 
-        console.log('[MobileControls] Initialized, isMobile:', this.isMobile);
+        devLog('[MobileControls] Initialized, isMobile:', this.isMobile);
     }
 
     /**
@@ -78,7 +80,7 @@ class MobileControls {
                        isTablet ||
                        (isTouchPrimary && isHoverNone);
 
-        console.log('[MobileControls] detectMobile - AGGRESSIVE CHECK:', {
+        devLog('[MobileControls] detectMobile - AGGRESSIVE CHECK:', {
             hasOnTouchStart,
             hasTouchPoints,
             hasDocumentTouch,
@@ -175,7 +177,7 @@ class MobileControls {
         this.fallbackTouchListenerSetup = true;
 
         const showOnTouch = (e) => {
-            console.log('[MobileControls] FALLBACK: Touch detected, forcing controls visible');
+            devLog('[MobileControls] FALLBACK: Touch detected, forcing controls visible');
             // Remove this listener after first touch
             document.removeEventListener('touchstart', showOnTouch, { passive: true });
             window.removeEventListener('touchstart', showOnTouch, { passive: true });
@@ -191,7 +193,7 @@ class MobileControls {
         document.addEventListener('touchstart', showOnTouch, { passive: true, once: true });
         window.addEventListener('touchstart', showOnTouch, { passive: true, once: true });
 
-        console.log('[MobileControls] Fallback touch listener installed');
+        devLog('[MobileControls] Fallback touch listener installed');
     }
 
     /**
@@ -204,7 +206,7 @@ class MobileControls {
 
         // If not detected as mobile, setup fallback listener for first touch
         if (!this.isMobile && !force) {
-            console.log('[MobileControls] Not detected as mobile initially. Installing fallback touch listener.');
+            devLog('[MobileControls] Not detected as mobile initially. Installing fallback touch listener.');
             this.setupFallbackTouchListener();
             return;
         }
@@ -214,13 +216,13 @@ class MobileControls {
         this.cleanupEventHandlers();
 
         if (this.isVisible) {
-            console.log('[MobileControls] Already visible, refreshing handlers');
+            devLog('[MobileControls] Already visible, refreshing handlers');
             // Even if visible, we've cleaned up handlers, so recreate joystick handlers
             this.createVirtualJoystick();
             return;
         }
 
-        console.log('[MobileControls] Creating mobile UI', {
+        devLog('[MobileControls] Creating mobile UI', {
             isMobile: this.isMobile,
             forced: force,
             screenWidth: this.scene.scale.width,
@@ -238,7 +240,7 @@ class MobileControls {
         this.scene.scale.on('resize', this.resizeHandler);
 
         this.isVisible = true;
-        console.log('[MobileControls] Mobile controls visible at positions:', {
+        devLog('[MobileControls] Mobile controls visible at positions:', {
             joystick: { x: this.joystickCenterX, y: this.joystickCenterY },
             buttonCount: Object.keys(this.actionButtons).length
         });
@@ -258,7 +260,7 @@ class MobileControls {
             return;
         }
 
-        console.log('[MobileControls] Resizing controls for new screen dimensions');
+        devLog('[MobileControls] Resizing controls for new screen dimensions');
 
         // Recreate controls with new scaled positions
         // Store visibility state, hide, then show again
@@ -331,7 +333,7 @@ class MobileControls {
 
         this.actionButtons = {};
         this.isVisible = false;
-        console.log('[MobileControls] Mobile controls hidden');
+        devLog('[MobileControls] Mobile controls hidden');
     }
 
     /**
@@ -557,7 +559,7 @@ class MobileControls {
         // NOTE: Removed pointerout handler - it was causing false resets on mobile
         // when finger moved between interactive elements
 
-        console.log('[MobileControls] Virtual joystick created at', joystickX, joystickY);
+        devLog('[MobileControls] Virtual joystick created at', joystickX, joystickY);
     }
 
     /**
@@ -680,7 +682,7 @@ class MobileControls {
             this.createActionButton(config);
         });
 
-        console.log('[MobileControls] Created', buttons.length, 'action buttons in optimized 2x2 grid');
+        devLog('[MobileControls] Created', buttons.length, 'action buttons in optimized 2x2 grid');
     }
 
     /**
@@ -880,7 +882,7 @@ class MobileControls {
      * Handle action button press
      */
     handleButtonPress(buttonId) {
-        console.log('[MobileControls] Button pressed:', buttonId, 'Scene:', this.scene?.scene?.key);
+        devLog('[MobileControls] Button pressed:', buttonId, 'Scene:', this.scene?.scene?.key);
 
         // Play sound feedback
         if (window.AudioManager) {
@@ -892,7 +894,7 @@ class MobileControls {
             case 'attack':
                 // Trigger combat projectile
                 if (typeof this.scene.fireCombatProjectile === 'function') {
-                    console.log('[MobileControls] Firing combat projectile');
+                    devLog('[MobileControls] Firing combat projectile');
                     this.scene.fireCombatProjectile();
                 } else {
                     console.warn('[MobileControls] fireCombatProjectile not found on scene');
@@ -903,7 +905,7 @@ class MobileControls {
 
             case 'interact':
                 // Trigger space interaction (shop, flowers, etc.)
-                console.log('[MobileControls] Triggering space interaction');
+                devLog('[MobileControls] Triggering space interaction');
                 if (typeof this.scene.handleSpaceInteraction === 'function') {
                     this.scene.handleSpaceInteraction();
                 } else {
@@ -916,7 +918,7 @@ class MobileControls {
 
             case 'inventory':
                 // Open inventory
-                console.log('[MobileControls] Opening inventory');
+                devLog('[MobileControls] Opening inventory');
                 if (typeof this.scene.openInventory === 'function') {
                     this.scene.openInventory();
                 } else {
@@ -926,7 +928,7 @@ class MobileControls {
 
             case 'chat':
                 // Open chat overlay
-                console.log('[MobileControls] Opening chat');
+                devLog('[MobileControls] Opening chat');
                 if (typeof this.scene.openChat === 'function') {
                     this.scene.openChat();
                 } else {
@@ -947,7 +949,7 @@ class MobileControls {
 
         const icon = this.actionButtons.interact.icon;
         icon.setText(newIcon);
-        console.log('[MobileControls] Interact icon updated to:', newIcon);
+        devLog('[MobileControls] Interact icon updated to:', newIcon);
     }
 
     /**
@@ -957,7 +959,7 @@ class MobileControls {
     refresh() {
         if (!this.isVisible) return;
 
-        console.log('[MobileControls] Refreshing controls');
+        devLog('[MobileControls] Refreshing controls');
 
         // Reset joystick to center
         this.resetJoystick();
@@ -975,7 +977,7 @@ class MobileControls {
         // Recreate the joystick
         this.createVirtualJoystick();
 
-        console.log('[MobileControls] Refresh complete - joystick reset and handlers recreated');
+        devLog('[MobileControls] Refresh complete - joystick reset and handlers recreated');
     }
 
     /**
@@ -990,7 +992,7 @@ class MobileControls {
      * Clean up mobile controls
      */
     destroy() {
-        console.log('[MobileControls] Destroying mobile controls');
+        devLog('[MobileControls] Destroying mobile controls');
         this.hide();
     }
 }

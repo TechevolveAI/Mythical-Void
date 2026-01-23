@@ -21,7 +21,8 @@ export default class HamburgerMenu {
             { key: 'shop', label: 'Shop', icon: '🛒', shortcut: 'S', action: () => this.navigateToShop() },
             { key: 'hub', label: 'Hub World', icon: '🌌', shortcut: 'H', action: () => this.navigateToHub() },
             { key: 'fusion', label: 'Fusion Pod', icon: '🧬', shortcut: 'F', action: () => this.navigateToFusion() },
-            { key: 'collection', label: 'Switch Creature', icon: '🔄', shortcut: 'C', action: () => this.showCreatureSwitcher() }
+            { key: 'collection', label: 'Switch Creature', icon: '🔄', shortcut: 'C', action: () => this.showCreatureSwitcher() },
+            { key: 'spacenews', label: 'Space News', icon: '🚀', shortcut: 'N', action: () => this.showSpaceNews() }
         ];
     }
 
@@ -44,7 +45,7 @@ export default class HamburgerMenu {
         const buttonX = marginX + buttonSize / 2;
         const buttonY = marginY + buttonSize / 2;
 
-        console.log('[HamburgerMenu] Creating at position:', buttonX, buttonY, 'isMobile:', isMobile);
+        devLog('[HamburgerMenu] Creating at position:', buttonX, buttonY, 'isMobile:', isMobile);
 
         // Create hamburger button background - high depth to be above most UI
         const buttonBg = this.scene.add.graphics();
@@ -87,11 +88,11 @@ export default class HamburgerMenu {
 
         // Handle both pointerdown and pointerup for better mobile compatibility
         hitZone.on('pointerdown', () => {
-            console.log('[HamburgerMenu] Button tapped! (pointerdown)');
+            devLog('[HamburgerMenu] Button tapped! (pointerdown)');
         });
 
         hitZone.on('pointerup', () => {
-            console.log('[HamburgerMenu] Button released! (pointerup) - toggling menu');
+            devLog('[HamburgerMenu] Button released! (pointerup) - toggling menu');
             this.toggle();
         });
 
@@ -135,7 +136,7 @@ export default class HamburgerMenu {
         if (this.isOpen) return;
         this.isOpen = true;
 
-        console.log('[HamburgerMenu] Opening menu panel');
+        devLog('[HamburgerMenu] Opening menu panel');
 
         const { width, height } = this.scene.scale;
         const isMobile = 'ontouchstart' in window ||
@@ -320,6 +321,105 @@ export default class HamburgerMenu {
         } else if (this.scene.creatureSwitcher) {
             this.scene.creatureSwitcher.show();
         }
+    }
+
+    /**
+     * Show NASA Space News content
+     * Forces display regardless of daily limit for testing
+     */
+    async showSpaceNews() {
+        devLog('[HamburgerMenu] Show Space News');
+
+        if (!window.NASAContentSystem) {
+            console.warn('[HamburgerMenu] NASAContentSystem not available');
+            return;
+        }
+
+        try {
+            // Initialize if needed
+            if (!window.NASAContentSystem.isInitialized) {
+                await window.NASAContentSystem.initialize();
+            }
+
+            // Force fetch fresh content (bypass daily check)
+            const apod = await window.NASAContentSystem.fetchAPOD();
+            const queue = [];
+
+            if (apod) {
+                queue.push({
+                    type: 'apod',
+                    title: 'Astronomy Picture of the Day',
+                    subtitle: apod.title,
+                    imageUrl: window.NASAContentSystem.ensureHttps(apod.url),
+                    hdUrl: window.NASAContentSystem.ensureHttps(apod.hdurl),
+                    description: window.NASAContentSystem.simplifyDescription(apod.explanation),
+                    date: apod.date,
+                    creatureComment: window.NASAContentSystem.getCreatureAPODComment(apod.title)
+                });
+            }
+
+            // Try to get Mars photo too
+            const mars = await window.NASAContentSystem.fetchMarsPhoto();
+            if (mars) {
+                queue.push({
+                    type: 'mars',
+                    title: 'Postcard from Mars',
+                    subtitle: `${mars.rover.name} Rover - ${mars.camera.full_name}`,
+                    imageUrl: window.NASAContentSystem.ensureHttps(mars.img_src),
+                    description: `This photo was taken on Mars by the ${mars.rover.name} rover on Sol ${mars.sol}.`,
+                    date: mars.earth_date,
+                    creatureComment: window.NASAContentSystem.getCreatureMarsComment()
+                });
+            }
+
+            if (queue.length > 0 && this.scene.nasaModal) {
+                // Use existing modal from scene
+                this.scene.nasaModal.show(queue);
+            } else if (queue.length > 0) {
+                // Import and create modal
+                const NASAContentModal = (await import('./NASAContentModal.js')).default;
+                const modal = new NASAContentModal(this.scene);
+                modal.show(queue);
+            } else {
+                devLog('[HamburgerMenu] No NASA content available');
+                // Show a brief message
+                this.showToast('🌌 NASA content loading... try again in a moment!');
+            }
+        } catch (error) {
+            console.warn('[HamburgerMenu] Failed to load space news:', error.message);
+            this.showToast('🚀 Space news unavailable right now');
+        }
+    }
+
+    /**
+     * Show a brief toast message
+     */
+    showToast(message) {
+        const { width, height } = this.scene.scale;
+        const toast = this.scene.add.text(width / 2, height - 100, message, {
+            fontSize: '16px',
+            color: '#FFFFFF',
+            backgroundColor: '#1A1A3E',
+            padding: { x: 20, y: 12 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
+
+        this.scene.tweens.add({
+            targets: toast,
+            alpha: 1,
+            y: height - 120,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.scene.time.delayedCall(2500, () => {
+                    this.scene.tweens.add({
+                        targets: toast,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => toast.destroy()
+                    });
+                });
+            }
+        });
     }
 
     /**

@@ -657,6 +657,563 @@ class FXLibrary {
         };
     }
 
+// =============================================================
+    // EMOTION PARTICLE EFFECTS
+    // These communicate creature emotions without facial expressions
+    // =============================================================
+
+    /**
+     * Happy emotion - Rising hearts and sparkles
+     * @param {Phaser.Scene} scene
+     * @param {number} x - Center X position
+     * @param {number} y - Center Y position
+     * @param {Object} options
+     */
+    emotionHappy(scene, x, y, options = {}) {
+        const opts = {
+            count: 6,
+            duration: 1500,
+            colors: [0xFF69B4, 0xFFD700, 0xFFFFFF], // Pink, gold, white
+            ...options
+        };
+
+        const effectId = `emotion_happy_${Date.now()}`;
+        const particles = [];
+
+        for (let i = 0; i < opts.count; i++) {
+            const isHeart = i % 2 === 0;
+            const offsetX = (Math.random() * 60) - 30;
+            const delay = i * 150;
+
+            scene.time.delayedCall(delay, () => {
+                const particle = scene.add.graphics();
+                particle.setPosition(x + offsetX, y);
+                const color = opts.colors[Math.floor(Math.random() * opts.colors.length)];
+
+                if (isHeart) {
+                    // Draw heart shape
+                    particle.fillStyle(color, 1);
+                    this.drawHeart(particle, 0, 0, 6);
+                } else {
+                    // Draw sparkle
+                    particle.fillStyle(color, 1);
+                    this.drawStar(particle, 0, 0, 4, 2, 5);
+                }
+
+                particle.setScale(0.5);
+                particle.setAlpha(0);
+
+                particles.push(particle);
+
+                // Float up and fade
+                scene.tweens.add({
+                    targets: particle,
+                    y: y - 80 - (Math.random() * 40),
+                    alpha: { from: 0.8, to: 0 },
+                    scale: { from: 0.5, to: 1 },
+                    duration: opts.duration,
+                    ease: 'Quad.easeOut',
+                    onComplete: () => this.destroyParticle(particle)
+                });
+
+                // Gentle sideways drift
+                scene.tweens.add({
+                    targets: particle,
+                    x: particle.x + (Math.random() * 30 - 15),
+                    duration: opts.duration,
+                    ease: 'Sine.easeInOut'
+                });
+            });
+        }
+
+        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
+        return effectId;
+    }
+
+    /**
+     * Draw heart shape on graphics using Phaser-compatible methods
+     * Uses two circles for the top bumps and a triangle for the bottom
+     */
+    drawHeart(graphics, x, y, size) {
+        const radius = size * 0.4;
+
+        // Left bump (circle)
+        graphics.fillCircle(x - radius * 0.7, y - radius * 0.3, radius);
+
+        // Right bump (circle)
+        graphics.fillCircle(x + radius * 0.7, y - radius * 0.3, radius);
+
+        // Bottom triangle point
+        graphics.fillTriangle(
+            x - size * 0.85, y,           // Left point
+            x + size * 0.85, y,           // Right point
+            x, y + size * 1.1             // Bottom point
+        );
+    }
+
+    /**
+     * Curious emotion - Question marks and swirling dots
+     */
+    emotionCurious(scene, x, y, options = {}) {
+        const opts = {
+            duration: 2000,
+            color: 0x87CEEB, // Sky blue
+            ...options
+        };
+
+        const effectId = `emotion_curious_${Date.now()}`;
+        const particles = [];
+
+        // Main question mark
+        const questionMark = scene.add.text(x + 20, y - 40, '?', {
+            fontSize: '28px',
+            fontFamily: 'Arial',
+            color: '#' + opts.color.toString(16).padStart(6, '0'),
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setAlpha(0);
+
+        particles.push(questionMark);
+
+        // Pop in animation
+        scene.tweens.add({
+            targets: questionMark,
+            alpha: 1,
+            scale: { from: 0.3, to: 1.2 },
+            duration: 300,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Gentle bob
+                scene.tweens.add({
+                    targets: questionMark,
+                    y: questionMark.y - 8,
+                    duration: 500,
+                    yoyo: true,
+                    repeat: 2,
+                    ease: 'Sine.easeInOut',
+                    onComplete: () => {
+                        scene.tweens.add({
+                            targets: questionMark,
+                            alpha: 0,
+                            duration: 300,
+                            onComplete: () => questionMark.destroy()
+                        });
+                    }
+                });
+            }
+        });
+
+        // Swirling dots
+        for (let i = 0; i < 3; i++) {
+            const dot = scene.add.graphics();
+            dot.fillStyle(opts.color, 0.6);
+            dot.fillCircle(0, 0, 3);
+            dot.setPosition(x, y - 20);
+            dot.setAlpha(0);
+            particles.push(dot);
+
+            const angle = (i / 3) * Math.PI * 2;
+            const radius = 25;
+
+            scene.time.delayedCall(i * 200, () => {
+                dot.setAlpha(0.7);
+                let currentAngle = angle;
+
+                // Orbit animation
+                scene.time.addEvent({
+                    delay: 50,
+                    repeat: (opts.duration - 600) / 50,
+                    callback: () => {
+                        currentAngle += 0.15;
+                        dot.setPosition(
+                            x + Math.cos(currentAngle) * radius,
+                            y - 20 + Math.sin(currentAngle) * (radius * 0.5)
+                        );
+                    }
+                });
+
+                scene.time.delayedCall(opts.duration - 500, () => {
+                    scene.tweens.add({
+                        targets: dot,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => this.destroyParticle(dot)
+                    });
+                });
+            });
+        }
+
+        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
+        return effectId;
+    }
+
+    /**
+     * Shy emotion - Small retreating particles, creature shrinks slightly
+     */
+    emotionShy(scene, x, y, options = {}) {
+        const opts = {
+            duration: 1200,
+            color: 0xDDA0DD, // Plum/soft purple
+            ...options
+        };
+
+        const effectId = `emotion_shy_${Date.now()}`;
+        const particles = [];
+
+        // Small fading particles that retreat inward
+        for (let i = 0; i < 5; i++) {
+            const particle = scene.add.graphics();
+            const startX = x + (Math.random() * 40 - 20);
+            const startY = y - 20 + (Math.random() * 20 - 10);
+
+            particle.fillStyle(opts.color, 0.5);
+            particle.fillCircle(0, 0, 4);
+            particle.setPosition(startX, startY);
+            particle.setAlpha(0.6);
+
+            particles.push(particle);
+
+            // Retreat toward center and fade
+            scene.tweens.add({
+                targets: particle,
+                x: x + (startX - x) * 0.3,
+                y: y + (startY - y) * 0.3,
+                alpha: 0,
+                scale: 0.3,
+                duration: opts.duration,
+                delay: i * 100,
+                ease: 'Sine.easeIn',
+                onComplete: () => this.destroyParticle(particle)
+            });
+        }
+
+        // Soft blush effect
+        const blush = scene.add.graphics();
+        blush.fillStyle(0xFFB6C1, 0.3); // Light pink
+        blush.fillCircle(0, 0, 15);
+        blush.setPosition(x, y - 5);
+        blush.setAlpha(0);
+        particles.push(blush);
+
+        scene.tweens.add({
+            targets: blush,
+            alpha: { from: 0, to: 0.4 },
+            duration: 400,
+            yoyo: true,
+            hold: opts.duration - 800,
+            onComplete: () => this.destroyParticle(blush)
+        });
+
+        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
+        return effectId;
+    }
+
+    /**
+     * Excited emotion - Bursting stars and rapid bouncing particles
+     */
+    emotionExcited(scene, x, y, options = {}) {
+        const opts = {
+            count: 12,
+            duration: 1000,
+            colors: [0xFFD700, 0xFFA500, 0xFF6347, 0xFFFF00], // Gold, orange, tomato, yellow
+            ...options
+        };
+
+        const effectId = `emotion_excited_${Date.now()}`;
+        const particles = [];
+
+        // Rapid burst of stars
+        for (let i = 0; i < opts.count; i++) {
+            const angle = (i / opts.count) * 360;
+            const speed = 80 + Math.random() * 60;
+            const color = opts.colors[Math.floor(Math.random() * opts.colors.length)];
+
+            const particle = scene.add.graphics();
+            particle.fillStyle(color, 1);
+            this.drawStar(particle, 0, 0, 4, 2, 5);
+            particle.setPosition(x, y - 20);
+            particle.setScale(0.3);
+            particle.setBlendMode(Phaser.BlendModes.ADD);
+
+            particles.push(particle);
+
+            const velocityX = Math.cos(Phaser.Math.DegToRad(angle)) * speed;
+            const velocityY = Math.sin(Phaser.Math.DegToRad(angle)) * speed;
+
+            scene.tweens.add({
+                targets: particle,
+                x: particle.x + velocityX * 0.8,
+                y: particle.y + velocityY * 0.8,
+                scale: { from: 0.3, to: 0.8 },
+                alpha: { from: 1, to: 0 },
+                duration: opts.duration,
+                ease: 'Cubic.easeOut',
+                onComplete: () => this.destroyParticle(particle)
+            });
+        }
+
+        // Exclamation marks
+        for (let i = 0; i < 2; i++) {
+            const exclaim = scene.add.text(
+                x + (i === 0 ? -25 : 25),
+                y - 50,
+                '!',
+                {
+                    fontSize: '24px',
+                    fontFamily: 'Arial',
+                    color: '#FFD700',
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5).setAlpha(0);
+
+            particles.push(exclaim);
+
+            scene.tweens.add({
+                targets: exclaim,
+                alpha: 1,
+                y: exclaim.y - 15,
+                scale: { from: 0.5, to: 1.3 },
+                duration: 400,
+                ease: 'Back.easeOut',
+                delay: i * 150,
+                onComplete: () => {
+                    scene.tweens.add({
+                        targets: exclaim,
+                        alpha: 0,
+                        duration: 300,
+                        delay: 300,
+                        onComplete: () => exclaim.destroy()
+                    });
+                }
+            });
+        }
+
+        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
+        return effectId;
+    }
+
+    /**
+     * Tired emotion - Floating Z's and dim, slow particles
+     */
+    emotionTired(scene, x, y, options = {}) {
+        const opts = {
+            duration: 3000,
+            color: 0x6B6BA0, // Muted blue
+            ...options
+        };
+
+        const effectId = `emotion_tired_${Date.now()}`;
+        const particles = [];
+
+        // Floating Z's
+        const zPositions = [
+            { x: x + 15, y: y - 35, size: '14px', delay: 0 },
+            { x: x + 25, y: y - 50, size: '18px', delay: 500 },
+            { x: x + 35, y: y - 70, size: '22px', delay: 1000 }
+        ];
+
+        zPositions.forEach(pos => {
+            scene.time.delayedCall(pos.delay, () => {
+                const z = scene.add.text(pos.x, pos.y, 'z', {
+                    fontSize: pos.size,
+                    fontFamily: 'Arial',
+                    color: '#' + opts.color.toString(16).padStart(6, '0'),
+                    fontStyle: 'italic'
+                }).setOrigin(0.5).setAlpha(0);
+
+                particles.push(z);
+
+                scene.tweens.add({
+                    targets: z,
+                    alpha: { from: 0, to: 0.7 },
+                    y: z.y - 30,
+                    x: z.x + 10,
+                    duration: opts.duration - pos.delay,
+                    ease: 'Sine.easeOut',
+                    onComplete: () => {
+                        scene.tweens.add({
+                            targets: z,
+                            alpha: 0,
+                            duration: 400,
+                            onComplete: () => z.destroy()
+                        });
+                    }
+                });
+            });
+        });
+
+        // Slow, dim sparkles
+        for (let i = 0; i < 3; i++) {
+            const sparkle = scene.add.graphics();
+            sparkle.fillStyle(opts.color, 0.4);
+            sparkle.fillCircle(0, 0, 3);
+            sparkle.setPosition(x + (Math.random() * 40 - 20), y - 10);
+            sparkle.setAlpha(0);
+
+            particles.push(sparkle);
+
+            scene.time.delayedCall(i * 400, () => {
+                scene.tweens.add({
+                    targets: sparkle,
+                    alpha: { from: 0, to: 0.5 },
+                    y: sparkle.y - 40,
+                    duration: opts.duration - (i * 400),
+                    ease: 'Sine.easeOut',
+                    onComplete: () => this.destroyParticle(sparkle)
+                });
+            });
+        }
+
+        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
+        return effectId;
+    }
+
+    /**
+     * Scared emotion - Trembling lines and dark wisps
+     */
+    emotionScared(scene, x, y, options = {}) {
+        const opts = {
+            duration: 1500,
+            colors: [0x4B0082, 0x2F2F4F, 0x483D8B], // Indigo, dark slate, dark slate blue
+            ...options
+        };
+
+        const effectId = `emotion_scared_${Date.now()}`;
+        const particles = [];
+
+        // Trembling lines around creature
+        for (let i = 0; i < 6; i++) {
+            const line = scene.add.graphics();
+            const angle = (i / 6) * Math.PI * 2;
+            const dist = 30;
+
+            const startX = x + Math.cos(angle) * dist;
+            const startY = y - 15 + Math.sin(angle) * (dist * 0.6);
+
+            line.lineStyle(2, opts.colors[i % opts.colors.length], 0.7);
+            line.beginPath();
+            line.moveTo(0, -8);
+            line.lineTo(0, 8);
+            line.strokePath();
+            line.setPosition(startX, startY);
+
+            particles.push(line);
+
+            // Rapid trembling
+            scene.tweens.add({
+                targets: line,
+                x: startX + (Math.random() * 6 - 3),
+                duration: 50,
+                yoyo: true,
+                repeat: (opts.duration / 100),
+                ease: 'Sine.easeInOut'
+            });
+
+            // Fade out
+            scene.tweens.add({
+                targets: line,
+                alpha: 0,
+                duration: opts.duration,
+                delay: 500,
+                onComplete: () => this.destroyParticle(line)
+            });
+        }
+
+        // Dark wisps drifting away
+        for (let i = 0; i < 4; i++) {
+            const wisp = scene.add.graphics();
+            wisp.fillStyle(opts.colors[0], 0.4);
+            wisp.fillEllipse(0, 0, 12, 6);
+            wisp.setPosition(x + (Math.random() * 30 - 15), y - 10);
+            wisp.setAlpha(0);
+
+            particles.push(wisp);
+
+            scene.time.delayedCall(i * 200, () => {
+                scene.tweens.add({
+                    targets: wisp,
+                    alpha: { from: 0.5, to: 0 },
+                    x: wisp.x + (Math.random() > 0.5 ? 40 : -40),
+                    y: wisp.y - 30,
+                    scaleX: 2,
+                    duration: opts.duration - (i * 200),
+                    ease: 'Sine.easeOut',
+                    onComplete: () => this.destroyParticle(wisp)
+                });
+            });
+        }
+
+        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
+        return effectId;
+    }
+
+    /**
+     * Content/peaceful emotion - Soft floating sparkles with gentle glow
+     */
+    emotionContent(scene, x, y, options = {}) {
+        const opts = {
+            duration: 2500,
+            colors: [0x98FB98, 0xADD8E6, 0xFFE4E1], // Pale green, light blue, misty rose
+            ...options
+        };
+
+        const effectId = `emotion_content_${Date.now()}`;
+        const particles = [];
+
+        // Soft glow underneath
+        const glow = scene.add.graphics();
+        glow.fillStyle(opts.colors[0], 0.2);
+        glow.fillCircle(0, 0, 40);
+        glow.setPosition(x, y);
+        glow.setBlendMode(Phaser.BlendModes.ADD);
+        glow.setAlpha(0);
+        particles.push(glow);
+
+        scene.tweens.add({
+            targets: glow,
+            alpha: { from: 0, to: 0.5 },
+            scale: { from: 0.8, to: 1.1 },
+            duration: opts.duration * 0.4,
+            yoyo: true,
+            hold: opts.duration * 0.2,
+            onComplete: () => this.destroyParticle(glow)
+        });
+
+        // Gentle floating sparkles
+        for (let i = 0; i < 5; i++) {
+            const sparkle = scene.add.graphics();
+            const color = opts.colors[i % opts.colors.length];
+            sparkle.fillStyle(color, 0.6);
+            this.drawStar(sparkle, 0, 0, 4, 1.5, 3.5);
+            sparkle.setPosition(
+                x + (Math.random() * 50 - 25),
+                y + (Math.random() * 30 - 15)
+            );
+            sparkle.setAlpha(0);
+            sparkle.setScale(0.4);
+
+            particles.push(sparkle);
+
+            scene.time.delayedCall(i * 300, () => {
+                scene.tweens.add({
+                    targets: sparkle,
+                    alpha: { from: 0, to: 0.7 },
+                    y: sparkle.y - 50,
+                    scale: { from: 0.4, to: 0.8 },
+                    duration: opts.duration - (i * 300),
+                    ease: 'Sine.easeInOut',
+                    onComplete: () => this.destroyParticle(sparkle)
+                });
+            });
+        }
+
+        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
+        return effectId;
+    }
+
+    // =============================================================
+    // END EMOTION PARTICLE EFFECTS
+    // =============================================================
+
     /**
      * Create preset effect combinations
      */
@@ -723,6 +1280,159 @@ class FXLibrary {
             return burst1;
         }
     };
+
+    /**
+     * Create aurora borealis effect across the top of screen
+     * Used when real space weather indicates geomagnetic activity
+     * @param {Phaser.Scene} scene - The Phaser scene
+     * @param {number} intensity - Aurora intensity 0-1
+     * @param {Object} options - Effect options
+     * @returns {Object} Aurora controller with update/destroy methods
+     */
+    createAurora(scene, intensity = 0.5, options = {}) {
+        const opts = {
+            colors: [0x00FF88, 0x88FF00, 0x00FFCC, 0xFF00FF, 0x8800FF],
+            height: 150,
+            waveSpeed: 0.002,
+            shimmerSpeed: 0.01,
+            alpha: Math.min(0.6, intensity * 0.8),
+            ...options
+        };
+
+        const width = scene.cameras.main.width;
+        const effectId = `aurora_${Date.now()}`;
+
+        // Create aurora graphics container
+        const auroraContainer = scene.add.container(0, 0);
+        auroraContainer.setDepth(1); // Very low depth - below ALL UI elements (MobileHUD is 1500+)
+        auroraContainer.setScrollFactor(0); // Fixed to camera
+
+        // Create multiple aurora bands
+        const bands = [];
+        const numBands = 5;
+
+        for (let i = 0; i < numBands; i++) {
+            const band = scene.add.graphics();
+            band.phase = Math.random() * Math.PI * 2;
+            band.color = opts.colors[i % opts.colors.length];
+            band.yOffset = i * 25;
+            bands.push(band);
+            auroraContainer.add(band);
+        }
+
+        // Aurora update function
+        let time = 0;
+        const updateAurora = () => {
+            time += 16; // ~60fps
+
+            bands.forEach((band, index) => {
+                band.clear();
+
+                // Vertical gradient with wave
+                for (let x = 0; x < width; x += 8) {
+                    const wave = Math.sin((x * 0.01) + (time * opts.waveSpeed) + band.phase);
+                    const shimmer = Math.sin((x * 0.03) + (time * opts.shimmerSpeed) + index);
+                    const heightMod = (wave * 0.3 + shimmer * 0.2 + 0.5) * opts.height * intensity;
+
+                    const alpha = opts.alpha * (0.5 + shimmer * 0.3) * (1 - (band.yOffset / 150));
+
+                    band.fillStyle(band.color, alpha);
+                    band.fillRect(x, band.yOffset + wave * 20, 10, heightMod);
+                }
+            });
+        };
+
+        // Start update loop
+        const updateTimer = scene.time.addEvent({
+            delay: 50,
+            callback: updateAurora,
+            loop: true
+        });
+
+        // Initial draw
+        updateAurora();
+
+        // Store effect
+        this.activeEffects.set(effectId, {
+            container: auroraContainer,
+            bands,
+            timer: updateTimer,
+            startTime: Date.now()
+        });
+
+        this.logEffect('aurora', { intensity, width });
+
+        // Return controller
+        return {
+            id: effectId,
+            setIntensity: (newIntensity) => {
+                opts.alpha = Math.min(0.6, newIntensity * 0.8);
+            },
+            destroy: () => {
+                updateTimer.remove();
+                auroraContainer.destroy();
+                this.activeEffects.delete(effectId);
+            }
+        };
+    }
+
+    /**
+     * Apply sky tint overlay for solar flare effects
+     * @param {Phaser.Scene} scene - The Phaser scene
+     * @param {number} tintColor - Hex color for tint
+     * @param {number} alpha - Tint intensity 0-1
+     * @returns {Object} Tint controller with update/destroy methods
+     */
+    createSkyTint(scene, tintColor = 0xFFD700, alpha = 0.15) {
+        const effectId = `skytint_${Date.now()}`;
+
+        const tintOverlay = scene.add.graphics();
+        tintOverlay.setDepth(4); // Behind aurora
+        tintOverlay.setScrollFactor(0);
+
+        const width = scene.cameras.main.width;
+        const height = scene.cameras.main.height;
+
+        // Create gradient from top
+        tintOverlay.fillStyle(tintColor, alpha);
+        tintOverlay.fillRect(0, 0, width, height * 0.4);
+
+        // Fade gradient
+        for (let i = 0; i < 10; i++) {
+            const gradientAlpha = alpha * (1 - i / 10);
+            tintOverlay.fillStyle(tintColor, gradientAlpha);
+            tintOverlay.fillRect(0, height * 0.4 + (i * height * 0.06), width, height * 0.06);
+        }
+
+        // Subtle pulse animation
+        scene.tweens.add({
+            targets: tintOverlay,
+            alpha: { from: 1, to: 0.7 },
+            duration: 3000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        this.activeEffects.set(effectId, {
+            overlay: tintOverlay,
+            startTime: Date.now()
+        });
+
+        this.logEffect('sky_tint', { color: tintColor.toString(16), alpha });
+
+        return {
+            id: effectId,
+            setAlpha: (newAlpha) => {
+                tintOverlay.setAlpha(newAlpha);
+            },
+            destroy: () => {
+                scene.tweens.killTweensOf(tintOverlay);
+                tintOverlay.destroy();
+                this.activeEffects.delete(effectId);
+            }
+        };
+    }
 }
 
 // Create singleton instance

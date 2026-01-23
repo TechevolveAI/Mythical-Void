@@ -38,6 +38,7 @@ class ChatManager {
 
     /**
      * Get greeting based on creature personality and mood
+     * May include space weather comments if exciting cosmic events are happening
      */
     getGreeting() {
         const genetics = window.GameState?.get('creature.genes');
@@ -55,9 +56,34 @@ class ChatManager {
             || this.responses.greetings?.curious?.neutral
             || [`*${name} acknowledges you*`];
 
-        const text = this.randomChoice(greetings).replace('{name}', name);
+        let text = this.randomChoice(greetings).replace('{name}', name);
+
+        // 40% chance to mention exciting space weather if available
+        if (Math.random() < 0.4) {
+            const spaceComment = this.getSpaceWeatherComment();
+            if (spaceComment) {
+                text = spaceComment;
+            }
+        }
 
         return { text, mood, personality };
+    }
+
+    /**
+     * Get a space weather comment if exciting cosmic events are happening
+     * Uses real NASA data from SpaceWeatherSystem
+     */
+    getSpaceWeatherComment() {
+        if (!window.SpaceWeatherSystem?.isInitialized) {
+            return null;
+        }
+
+        // Only comment if there's exciting space weather
+        if (!window.SpaceWeatherSystem.hasExcitingNews()) {
+            return null;
+        }
+
+        return window.SpaceWeatherSystem.getCreatureComment();
     }
 
     /**
@@ -228,7 +254,7 @@ class ChatManager {
                     'How are you feeling?',
                     'Want to play?',
                     'Tell me about your day',
-                    'I love you!'
+                    'You\'re my best friend!'
                 ],
                 followup: [
                     'That sounds fun!',
@@ -257,7 +283,7 @@ class ChatManager {
             'How are you feeling?',
             'Want to play?',
             'Tell me about your day',
-            'I love you!'
+            'You\'re my best friend!'
         ];
     }
 

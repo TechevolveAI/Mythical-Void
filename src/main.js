@@ -564,18 +564,44 @@ async function initializeGame() {
         // Handle visibility change (tab switching, minimize)
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                // Pause game when hidden
+                // Pause only running scenes when hidden
                 if (game && game.scene) {
-                    game.scene.pause();
+                    try {
+                        const activeScenes = game.scene.getScenes(true);
+                        activeScenes.forEach(scene => {
+                            try {
+                                if (scene.scene.isActive() && !scene.scene.isPaused()) {
+                                    scene.scene.pause();
+                                }
+                            } catch (e) {
+                                // Scene might be transitioning, ignore
+                            }
+                        });
+                    } catch (e) {
+                        // Ignore errors during tab switching
+                    }
                 }
                 // Save state
                 if (GameState) {
                     GameState.save();
                 }
             } else {
-                // Resume game when visible
+                // Resume paused scenes when visible
                 if (game && game.scene) {
-                    game.scene.resume();
+                    try {
+                        const scenes = game.scene.getScenes(false);
+                        scenes.forEach(scene => {
+                            try {
+                                if (scene.scene.isPaused()) {
+                                    scene.scene.resume();
+                                }
+                            } catch (e) {
+                                // Scene might be transitioning, ignore
+                            }
+                        });
+                    } catch (e) {
+                        // Ignore errors during tab switching
+                    }
                 }
             }
         });
@@ -669,13 +695,17 @@ function setupKeyboardShortcuts(game) {
         // Escape to pause/unpause
         if (event.key === 'Escape') {
             if (game && game.scene) {
-                const activeScene = game.scene.getScenes(true)[0];
-                if (activeScene) {
-                    if (activeScene.scene.isPaused()) {
-                        activeScene.scene.resume();
-                    } else {
-                        activeScene.scene.pause();
+                try {
+                    const activeScene = game.scene.getScenes(true)[0];
+                    if (activeScene && activeScene.scene.isActive()) {
+                        if (activeScene.scene.isPaused()) {
+                            activeScene.scene.resume();
+                        } else {
+                            activeScene.scene.pause();
+                        }
                     }
+                } catch (e) {
+                    // Scene might be transitioning, ignore pause request
                 }
             }
         }
