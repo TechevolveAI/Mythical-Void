@@ -1,0 +1,110 @@
+{
+  "company": {
+    "name": "Tech Evolve AI",
+    "email": "techevolveai@gmail.com",
+    "year": 2026
+  },
+  "copyright": {
+    "notice": "© 2026 Tech Evolve AI. All rights reserved.",
+    "shortNotice": "© 2026 Tech Evolve AI"
+  },
+  "privacyPolicy": {
+    "lastUpdated": "2026-01-23",
+    "title": "Privacy Policy",
+    "sections": [
+      {
+        "heading": "Information We Collect",
+        "content": "Mythical Void does not collect any personal information. All game data including your creatures, progress, and preferences are stored locally on your device using browser localStorage. This data never leaves your device and is not transmitted to our servers or any third party."
+      },
+      {
+        "heading": "Local Storage",
+        "content": "Your game saves are stored in your browser's localStorage. This means:\n• Your data stays on YOUR device only\n• Clearing browser data will delete your saves\n• We cannot access or recover your game data\n• No account or login is required"
+      },
+      {
+        "heading": "Third-Party Services",
+        "content": "Mythical Void uses the following external services:\n• NASA APIs: We fetch publicly available astronomical images and data. No personal information is sent to NASA.\n• Netlify/Vercel: Our game is hosted on static hosting services that maintain standard server access logs (IP addresses, timestamps). We do not access or analyze these logs."
+      },
+      {
+        "heading": "Children's Privacy",
+        "content": "Mythical Void is designed for players of all ages, including children. We are committed to protecting children's privacy:\n• We do NOT collect personal information from anyone, including children\n• No account creation is required\n• No email, name, or location data is collected\n• All gameplay is entirely offline and local"
+      },
+      {
+        "heading": "Data Security",
+        "content": "Since all data is stored locally on your device, you maintain full control over your game data. We recommend:\n• Regularly backing up important browser data\n• Being aware that clearing browser cache will delete saves\n• Not sharing your device with untrusted individuals"
+      },
+      {
+        "heading": "Changes to This Policy",
+        "content": "We may update this Privacy Policy from time to time. Any changes will be reflected in the 'Last Updated' date. Continued use of Mythical Void after changes constitutes acceptance of the updated policy."
+      },
+      {
+        "heading": "Contact Us",
+        "content": "If you have questions about this Privacy Policy, please contact us at: techevolveai@gmail.com"
+      }
+    ]
+  },
+  "termsOfService": {
+    "lastUpdated": "2026-01-23",
+    "title": "Terms of Service",
+    "sections": [
+      {
+        "heading": "Acceptance of Terms",
+        "content": "By playing Mythical Void, you agree to these Terms of Service. If you do not agree, please do not use the game."
+      },
+      {
+        "heading": "Description of Service",
+        "content": "Mythical Void is a free-to-play browser-based game where players hatch, raise, and explore with mythical creatures in a cosmic universe. The game is provided 'as is' for entertainment purposes."
+      },
+      {
+        "heading": "Intellectual Property",
+        "content": "All content in Mythical Void, including but not limited to:\n• Game code and software\n• Creature designs and artwork\n• Music and sound effects\n• Story, dialogue, and world-building\n• User interface and visual design\n\n...is owned by Tech Evolve AI and protected by copyright law. You may not copy, modify, distribute, sell, or create derivative works without explicit written permission."
+      },
+      {
+        "heading": "Permitted Use",
+        "content": "You are granted a limited, non-exclusive license to:\n• Play Mythical Void for personal, non-commercial entertainment\n• Share screenshots and videos of your gameplay (with credit to Mythical Void)\n• Stream or create content featuring the game"
+      },
+      {
+        "heading": "Prohibited Conduct",
+        "content": "You agree NOT to:\n• Reverse engineer, decompile, or extract game code\n• Use automated scripts, bots, or cheats\n• Attempt to exploit bugs or glitches\n• Redistribute the game or its assets\n• Use the game for any illegal purpose\n• Misrepresent affiliation with Tech Evolve AI"
+      },
+      {
+        "heading": "Disclaimer of Warranties",
+        "content": "Mythical Void is provided 'AS IS' without warranties of any kind. We do not guarantee:\n• Uninterrupted or error-free gameplay\n• Compatibility with all devices or browsers\n• Preservation of game data (local storage may be cleared)\n• Availability of the game at all times"
+      },
+      {
+        "heading": "Limitation of Liability",
+        "content": "To the maximum extent permitted by law, Tech Evolve AI shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of Mythical Void, including loss of game data."
+      },
+      {
+        "heading": "Changes to Terms",
+        "content": "We reserve the right to modify these Terms at any time. Continued use of Mythical Void after changes constitutes acceptance of the updated Terms."
+      },
+      {
+        "heading": "Governing Law",
+        "content": "These Terms shall be governed by the laws of the jurisdiction in which Tech Evolve AI operates, without regard to conflict of law provisions."
+      },
+      {
+        "heading": "Contact",
+        "content": "For questions about these Terms, contact: techevolveai@gmail.com"
+      }
+    ]
+  },
+  "ageGate": {
+    "enabled": true,
+    "title": "Welcome to Mythical Void!",
+    "subtitle": "Before we begin, please confirm:",
+    "options": [
+      {
+        "label": "I am 13 years or older",
+        "action": "continue",
+        "storeAs": "age_13_plus"
+      },
+      {
+        "label": "I am under 13 years old",
+        "action": "continue_with_notice",
+        "storeAs": "age_under_13",
+        "notice": "That's great! Mythical Void is designed to be safe and fun for players of all ages. All your game data stays on your device only. Have fun exploring the cosmos with your creature!"
+      }
+    ],
+    "footer": "This helps us provide the best experience for you."
+  }
+}

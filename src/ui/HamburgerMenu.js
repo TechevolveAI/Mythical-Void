@@ -4,6 +4,7 @@
  */
 
 import { devLog } from '../utils/devLogger.js';
+import LegalDocumentsModal from './LegalDocumentsModal.js';
 
 export default class HamburgerMenu {
     constructor(scene) {
@@ -22,8 +23,12 @@ export default class HamburgerMenu {
             { key: 'hub', label: 'Hub World', icon: '🌌', shortcut: 'H', action: () => this.navigateToHub() },
             { key: 'fusion', label: 'Fusion Pod', icon: '🧬', shortcut: 'F', action: () => this.navigateToFusion() },
             { key: 'collection', label: 'Switch Creature', icon: '🔄', shortcut: 'C', action: () => this.showCreatureSwitcher() },
-            { key: 'spacenews', label: 'Space News', icon: '🚀', shortcut: 'N', action: () => this.showSpaceNews() }
+            { key: 'spacenews', label: 'Space News', icon: '🚀', shortcut: 'N', action: () => this.showSpaceNews() },
+            { key: 'legal', label: 'Legal & About', icon: '📜', shortcut: 'L', action: () => this.showLegalDocuments() }
         ];
+
+        // Legal documents modal
+        this.legalModal = null;
     }
 
     /**
@@ -389,6 +394,18 @@ export default class HamburgerMenu {
             console.warn('[HamburgerMenu] Failed to load space news:', error.message);
             this.showToast('🚀 Space news unavailable right now');
         }
+    }
+
+    /**
+     * Show Legal Documents modal (Privacy Policy, Terms of Service)
+     */
+    showLegalDocuments() {
+        devLog('[HamburgerMenu] Show Legal Documents');
+
+        if (!this.legalModal) {
+            this.legalModal = new LegalDocumentsModal(this.scene);
+        }
+        this.legalModal.show();
     }
 
     /**

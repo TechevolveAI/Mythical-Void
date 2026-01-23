@@ -6,6 +6,7 @@
 import hatchCinematicsConfig from '../config/hatch-cinematics.json';
 import evolutionConfig from '../config/evolution.json';
 import rarityConfig from '../config/rarity-config.json';
+import legalConfig from '../config/legal.json';
 import MobileHelpers from '../utils/mobile-helpers.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
@@ -166,6 +167,17 @@ class HatchingScene extends Phaser.Scene {
         // Create animated stardust particles
         this.createStardustParticles();
 
+        // Check age gate on first launch
+        this.checkAgeGate(() => {
+            // After age gate completed (or already confirmed), show home content
+            this.showHomeContent();
+        });
+    }
+
+    /**
+     * Show home screen content after age gate check
+     */
+    showHomeContent() {
         // Main title with glow effect
         this.createEnhancedTitle();
 
@@ -177,6 +189,104 @@ class HatchingScene extends Phaser.Scene {
 
         // Bottom hint text
         this.createBottomHints();
+
+        // Check for storage issues (incognito mode, etc.)
+        this.checkStorageAndWarn();
+    }
+
+    /**
+     * Check storage availability and show warning if needed
+     */
+    checkStorageAndWarn() {
+        const GameState = getGameState();
+
+        // Check if in memory-only mode (incognito/storage unavailable)
+        if (GameState.storageMode === 'memory') {
+            this.showStorageWarningBanner('Playing in private mode - your progress won\'t be saved when you close this tab.');
+        }
+
+        // Listen for future storage warnings
+        GameState.on('storageWarning', (data) => {
+            this.showStorageWarningBanner(data.message);
+        });
+    }
+
+    /**
+     * Show a warning banner at the top of the screen
+     */
+    showStorageWarningBanner(message) {
+        const { width } = this.scale;
+
+        // Create warning banner
+        const bannerHeight = 50;
+        const banner = this.add.graphics();
+        banner.fillStyle(0xFF6B35, 0.95);
+        banner.fillRect(0, 0, width, bannerHeight);
+        banner.setScrollFactor(0);
+        banner.setDepth(19000);
+
+        // Warning icon and text
+        const warningText = this.add.text(width / 2, bannerHeight / 2, `⚠️ ${message}`, {
+            fontSize: '14px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            wordWrap: { width: width - 40 },
+            align: 'center'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(19001);
+
+        // Close button
+        const closeBtn = this.add.text(width - 20, bannerHeight / 2, '✕', {
+            fontSize: '18px',
+            color: '#FFFFFF'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(19001);
+        closeBtn.setInteractive({ useHandCursor: true });
+        closeBtn.on('pointerdown', () => {
+            banner.destroy();
+            warningText.destroy();
+            closeBtn.destroy();
+        });
+
+        // Auto-hide after 10 seconds
+        this.time.delayedCall(10000, () => {
+            if (banner.active) {
+                this.tweens.add({
+                    targets: [banner, warningText, closeBtn],
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: () => {
+                        banner.destroy();
+                        warningText.destroy();
+                        closeBtn.destroy();
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Check if age gate needs to be shown
+     */
+    async checkAgeGate(onComplete) {
+        // Check if age gate already confirmed
+        const hasConfirmed = localStorage.getItem('mythical_void_age_confirmed') === 'true';
+
+        if (hasConfirmed) {
+            // Already confirmed, proceed
+            onComplete();
+            return;
+        }
+
+        // Show age gate modal
+        try {
+            const AgeGateModal = (await import('../ui/AgeGateModal.js')).default;
+            this.ageGateModal = new AgeGateModal(this);
+            this.ageGateModal.show(onComplete);
+        } catch (error) {
+            console.warn('[HatchingScene] Failed to load age gate:', error);
+            // Proceed anyway if modal fails to load
+            onComplete();
+        }
     }
 
     showHatchingScreen() {
@@ -3587,7 +3697,7 @@ class HatchingScene extends Phaser.Scene {
      */
     createBottomHints() {
         const { width, height } = this.scale;
-        const hintText = this.add.text(width / 2, height - 30, 'Click BEGIN ADVENTURE to start your cosmic journey!', {
+        const hintText = this.add.text(width / 2, height - 50, 'Click BEGIN ADVENTURE to start your cosmic journey!', {
             fontSize: '16px',
             color: '#000000',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
@@ -3603,6 +3713,61 @@ class HatchingScene extends Phaser.Scene {
             yoyo: true,
             repeat: -1
         });
+
+        // Copyright footer
+        this.createCopyrightFooter();
+    }
+
+    /**
+     * Create copyright footer with legal links
+     */
+    createCopyrightFooter() {
+        const { width, height } = this.scale;
+
+        // Get copyright text from legal config
+        const copyrightText = legalConfig?.copyright?.notice || '© 2026 Tech Evolve AI. All rights reserved.';
+
+        // Copyright text
+        const copyright = this.add.text(width / 2 - 40, height - 18, copyrightText, {
+            fontSize: '11px',
+            color: '#666666',
+            fontFamily: 'Arial, sans-serif'
+        }).setOrigin(0.5).setAlpha(0.8);
+
+        // Legal link (clickable)
+        const legalLink = this.add.text(width / 2 + 80, height - 18, '📜 Legal', {
+            fontSize: '11px',
+            color: '#7B68EE',
+            fontFamily: 'Arial, sans-serif'
+        }).setOrigin(0.5).setAlpha(0.9);
+        legalLink.setInteractive({ useHandCursor: true });
+
+        legalLink.on('pointerover', () => {
+            legalLink.setColor('#9B88FF');
+            legalLink.setAlpha(1);
+        });
+        legalLink.on('pointerout', () => {
+            legalLink.setColor('#7B68EE');
+            legalLink.setAlpha(0.9);
+        });
+        legalLink.on('pointerdown', () => {
+            this.showLegalDocuments();
+        });
+    }
+
+    /**
+     * Show legal documents modal
+     */
+    async showLegalDocuments() {
+        try {
+            const LegalDocumentsModal = (await import('../ui/LegalDocumentsModal.js')).default;
+            if (!this.legalModal) {
+                this.legalModal = new LegalDocumentsModal(this);
+            }
+            this.legalModal.show();
+        } catch (error) {
+            console.warn('[HatchingScene] Failed to load legal documents:', error);
+        }
     }
 
     /**
