@@ -61,7 +61,21 @@ class FusionPodScene extends Phaser.Scene {
 
         // Check breeding requirements
         const collection = getGameState().getCreatureCollection?.() || [];
+
+        // DEBUG: Log collection details
+        console.log('[FusionPodScene] ========== COLLECTION DEBUG ==========');
+        console.log(`[FusionPodScene] Total creatures in collection: ${collection.length}`);
+        collection.forEach((creature, idx) => {
+            const lifecycle = creature.lifecycle || {};
+            console.log(`[FusionPodScene] [${idx}] "${creature.name}" - stage: ${lifecycle.stage || 'UNKNOWN'}, birthDate: ${lifecycle.birthDate || 'NONE'}`);
+        });
+
         const adultCreatures = this.getAdultCreatures(collection);
+        console.log(`[FusionPodScene] Adult creatures found: ${adultCreatures.length}`);
+        adultCreatures.forEach((creature, idx) => {
+            console.log(`[FusionPodScene] Adult [${idx}]: "${creature.name}"`);
+        });
+        console.log('[FusionPodScene] =====================================');
 
         if (collection.length < 2) {
             this.showRequirementNotMet(width, height, 'need_creatures', collection.length);

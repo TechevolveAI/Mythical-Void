@@ -597,14 +597,19 @@ class GameStateManager {
         const genesId = creature.genes?.id;
         const textureName = creature.textureName;
 
+        console.log(`[GameState] Checking duplicates for "${creature.name}" (genesId: ${genesId}, texture: ${textureName})`);
+        console.log(`[GameState] Current collection has ${creatures.length} creatures`);
+
         const isDuplicate = creatures.some(existing => {
             // Check by genes.id first (most reliable)
             if (genesId && existing.genes?.id === genesId) {
+                console.log(`[GameState] Duplicate found by genesId: ${genesId}`);
                 return true;
             }
             // Fallback: check by texture AND name combination
             if (textureName && existing.textureName === textureName &&
                 existing.name === creature.name) {
+                console.log(`[GameState] Duplicate found by texture+name: ${textureName} + ${creature.name}`);
                 return true;
             }
             return false;
@@ -621,7 +626,8 @@ class GameStateManager {
         this.set('activeCreatureIndex', creatures.length - 1);
 
         this.emit('creatureAddedToCollection', { creature, index: creatures.length - 1 });
-        console.log(`[GameState] Creature "${creature.name}" added to collection (${creatures.length}/${maxCreatures})`);
+        console.log(`[GameState] ✅ Creature "${creature.name}" added to collection (${creatures.length}/${maxCreatures})`);
+        console.log(`[GameState] Creature lifecycle stage: ${creature.lifecycle?.stage || 'unknown'}`);
 
         // Check if breeding just became unlocked (2+ creatures)
         if (creatures.length === 2 && !this.get('tutorial.breedingUnlockSeen')) {
@@ -746,6 +752,79 @@ class GameStateManager {
             hasSpace: creatures.length < maxCreatures,
             activeIndex: this.get('activeCreatureIndex') || 0
         };
+    }
+
+    /**
+     * Debug helper: Print full collection status with lifecycle info
+     * Call from browser console: window.GameState.debugCollection()
+     */
+    debugCollection() {
+        const creatures = this.get('creatures') || [];
+        const activeIndex = this.get('activeCreatureIndex') || 0;
+        const activeCreatureLifecycle = this.get('creature.lifecycle');
+
+        console.log('========== CREATURE COLLECTION DEBUG ==========');
+        console.log(`Total creatures: ${creatures.length}`);
+        console.log(`Active index: ${activeIndex}`);
+        console.log('');
+
+        creatures.forEach((creature, index) => {
+            const isActive = index === activeIndex;
+            const lifecycle = creature.lifecycle || {};
+            console.log(`[${index}]${isActive ? ' (ACTIVE)' : ''} ${creature.name}`);
+            console.log(`    Stage: ${lifecycle.stage || 'UNKNOWN'}`);
+            console.log(`    Birth: ${lifecycle.birthDate ? new Date(lifecycle.birthDate).toISOString() : 'UNKNOWN'}`);
+            console.log(`    Rarity: ${creature.rarity || creature.genes?.rarity || 'UNKNOWN'}`);
+            console.log(`    GenesId: ${creature.genes?.id || 'NONE'}`);
+        });
+
+        console.log('');
+        console.log('Active creature slot (creature.lifecycle):');
+        console.log(`    Stage: ${activeCreatureLifecycle?.stage || 'UNKNOWN'}`);
+        console.log('===============================================');
+
+        return { creatures, activeIndex, activeCreatureLifecycle };
+    }
+
+    /**
+     * Sync the current active creature's state back to the collection
+     * CRITICAL: Call this before resetting creature state (e.g., when hatching new egg)
+     * This ensures lifecycle, stats, and other data are preserved in the collection
+     * @returns {boolean} Whether sync was successful
+     */
+    syncActiveCreatureToCollection() {
+        const creatures = this.get('creatures') || [];
+        const activeIndex = this.get('activeCreatureIndex') || 0;
+
+        if (creatures.length === 0 || !creatures[activeIndex]) {
+            console.log('[GameState] No creature in collection to sync');
+            return false;
+        }
+
+        const activeCreature = creatures[activeIndex];
+
+        // Sync all mutable data from active slot to collection
+        activeCreature.name = this.get('creature.name') || activeCreature.name;
+        activeCreature.stats = { ...this.get('creature.stats') };
+        activeCreature.level = this.get('creature.level') || activeCreature.level;
+        activeCreature.experience = this.get('creature.experience') || activeCreature.experience;
+        activeCreature.personalityState = this.get('creature.personalityState');
+        activeCreature.textureName = this.get('creature.textureName') || activeCreature.textureName;
+
+        // CRITICAL: Sync lifecycle data (stage, birthDate, etc.)
+        const currentLifecycle = this.get('creature.lifecycle');
+        if (currentLifecycle) {
+            activeCreature.lifecycle = { ...currentLifecycle };
+        }
+
+        // Update the collection with synced data
+        creatures[activeIndex] = activeCreature;
+        this.set('creatures', creatures);
+
+        console.log(`[GameState] Synced active creature "${activeCreature.name}" to collection at index ${activeIndex}`);
+        console.log(`[GameState] Synced lifecycle stage: ${activeCreature.lifecycle?.stage || 'unknown'}`);
+
+        return true;
     }
 
     /**
