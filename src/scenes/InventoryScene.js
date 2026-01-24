@@ -1881,6 +1881,12 @@ export default class InventoryScene extends Phaser.Scene {
                 // Emergency fallback - try to transition directly
                 console.log('[InventoryScene] Attempting emergency fallback transition...');
                 try {
+                    // CRITICAL FIX: Sync current creature's state to collection before replacing
+                    if (window.GameState?.get('creature.hatched') && window.GameState?.get('creature.name')) {
+                        window.GameState?.syncActiveCreatureToCollection?.();
+                        console.log('[InventoryScene] Emergency fallback: Synced creature state to collection');
+                    }
+
                     window.GameState?.set('creature.hatched', false);
                     window.GameState?.set('creature.named', false);
                     window.GameState?.save();
@@ -2137,6 +2143,26 @@ export default class InventoryScene extends Phaser.Scene {
                     y: savedPos?.y || 300
                 };
 
+                // CRITICAL FIX: Sync current creature's state to collection BEFORE resetting
+                // This ensures lifecycle stage, stats, and other data are preserved
+                if (window.GameState?.get('creature.hatched') && window.GameState?.get('creature.name')) {
+                    // First sync the active creature's current state to collection
+                    const synced = window.GameState?.syncActiveCreatureToCollection?.();
+                    if (synced) {
+                        console.log('[InventoryScene] Synced current creature state to collection before replacement');
+                    } else {
+                        console.log('[InventoryScene] No creature in collection to sync (first creature)');
+                        // If creature is not in collection yet, add it
+                        const collectionStatus = window.GameState?.getCollectionStatus?.() || { hasSpace: true };
+                        if (collectionStatus.hasSpace) {
+                            const added = window.GameState?.addCreatureToCollection?.();
+                            if (added) {
+                                console.log('[InventoryScene] First creature added to collection');
+                            }
+                        }
+                    }
+                }
+
                 // Reset creature state COMPLETELY for new hatching
                 window.GameState?.set('creature.hatched', false);
                 window.GameState?.set('creature.named', false);
@@ -2230,6 +2256,12 @@ export default class InventoryScene extends Phaser.Scene {
 
             // Emergency fallback - skip animation and go directly to HatchingScene
             try {
+                // CRITICAL FIX: Sync current creature's state to collection before replacing
+                if (window.GameState?.get('creature.hatched') && window.GameState?.get('creature.name')) {
+                    window.GameState?.syncActiveCreatureToCollection?.();
+                    console.log('[InventoryScene] Fallback: Synced creature state to collection');
+                }
+
                 // Complete state reset
                 window.GameState?.set('creature.hatched', false);
                 window.GameState?.set('creature.named', false);

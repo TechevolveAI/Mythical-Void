@@ -2,9 +2,51 @@
  * CreatureGenetics - Dynamic creature randomization system for Space-Mythic theme
  * Generates unique genetic profiles combining appearance, personality, and cosmic affinity
  * Kid-friendly design emphasizing wonder and discovery over complexity
+ *
+ * v2.0 - HSL-based color generation for TRUE uniqueness
+ * Every creature now has genuinely unique colors that can be inherited through breeding
  */
 
-// Global rarity color anchors keep palettes consistent across generation paths
+// Rarity influences color characteristics but doesn't limit to fixed palettes
+const RARITY_COLOR_PROFILES = Object.freeze({
+    common: {
+        // Earth tones - greens, browns, natural colors
+        hueRanges: [[80, 160], [30, 60]], // Greens and earth tones
+        saturation: { min: 0.35, max: 0.65 },
+        lightness: { min: 0.35, max: 0.55 },
+        hueVariation: 40 // How much hue can vary from base
+    },
+    uncommon: {
+        // Warm tones - oranges, ambers, warm yellows
+        hueRanges: [[15, 50], [35, 65]], // Orange-amber range
+        saturation: { min: 0.50, max: 0.75 },
+        lightness: { min: 0.40, max: 0.60 },
+        hueVariation: 50
+    },
+    rare: {
+        // Cool tones - pinks, magentas, reds
+        hueRanges: [[320, 360], [0, 30], [280, 320]], // Pinks, reds, magentas
+        saturation: { min: 0.55, max: 0.85 },
+        lightness: { min: 0.40, max: 0.60 },
+        hueVariation: 60
+    },
+    epic: {
+        // Royal tones - purples, deep blues
+        hueRanges: [[240, 290], [260, 310]], // Purples and deep blues
+        saturation: { min: 0.60, max: 0.90 },
+        lightness: { min: 0.35, max: 0.55 },
+        hueVariation: 70
+    },
+    legendary: {
+        // Precious tones - golds, silvers, iridescent
+        hueRanges: [[40, 60], [0, 360]], // Gold primary, any hue for shimmer
+        saturation: { min: 0.70, max: 1.0 },
+        lightness: { min: 0.45, max: 0.70 },
+        hueVariation: 90 // Maximum variation for legendary
+    }
+});
+
+// Legacy palette for backwards compatibility (used only for fallback)
 const RARITY_COLOR_FAMILIES = Object.freeze({
     common: {
         primary: [0x1B5E20, 0x2E7D32, 0x33691E, 0x388E3C, 0x43A047, 0x4CAF50, 0x558B2F],
@@ -410,40 +452,33 @@ class CreatureGenetics {
     }
 
     /**
-     * Generate color genome with Space-Mythic palette and advanced mixing
+     * Generate color genome using HSL-based unique color system (v2.0)
+     * Every creature gets truly unique colors - no more limited palettes!
+     * Colors are generated using HSL for infinite variation while maintaining
+     * rarity-appropriate characteristics (saturation, lightness ranges)
      */
     generateColorGenome(template, rarity) {
-        const rarityAnchors = this.getRarityAnchors(rarity);
-        const paletteBlendRatio = this.getPaletteBlendRatio(rarity);
-        const mutationChance = this.config?.mutationChance || 0.15;
-        const colorMixingStrength = Math.random() * 0.4 + 0.1; // 0.1-0.5 range
+        // Generate unique colors using the new HSL system
+        const colorGenes = this.generateColorGenes(rarity, template);
 
-        // Start with rarity-aligned colors so each tier stays within its family
-        let primaryColor = rarityAnchors.primary;
-        let secondaryColor = rarityAnchors.secondary;
-        let accentColor = rarityAnchors.accent;
+        // Extract hex colors from genes
+        let primaryColor = colorGenes.primary.hex;
+        let secondaryColor = colorGenes.secondary.hex;
+        let accentColor = colorGenes.accent.hex;
 
-        // Blend with species palettes to keep subtle species identity without breaking rarity family
-        const templateBodyColor = this.selectFromPalette(template.baseColors.body);
-        const templateWingColor = this.selectFromPalette(template.baseColors.wings);
-        const templateEyeColor = this.selectFromPalette(template.baseColors.eyes);
-
-        primaryColor = this.blendColors(primaryColor, templateBodyColor, paletteBlendRatio);
-        secondaryColor = this.blendColors(secondaryColor, templateWingColor, paletteBlendRatio);
-        accentColor = this.blendColors(accentColor, templateEyeColor, Math.min(0.35, paletteBlendRatio + 0.05));
-
-        // Additional mixing stays within the rarity palette family for variation
-        if (Math.random() < colorMixingStrength) {
-            const alternatePrimary = this.randomChoice(rarityAnchors.swatchPool.primary);
-            primaryColor = this.blendColors(primaryColor, alternatePrimary, 0.4);
+        // Optional: Subtle species influence (20% blend) - keeps some species identity
+        // without limiting uniqueness
+        if (Math.random() < 0.4) {
+            const templateBodyColor = this.selectFromPalette(template.baseColors.body);
+            primaryColor = this.blendColors(primaryColor, templateBodyColor, 0.15);
         }
-        if (Math.random() < colorMixingStrength) {
-            const alternateSecondary = this.randomChoice(rarityAnchors.swatchPool.secondary);
-            secondaryColor = this.blendColors(secondaryColor, alternateSecondary, 0.35);
+        if (Math.random() < 0.3) {
+            const templateWingColor = this.selectFromPalette(template.baseColors.wings);
+            secondaryColor = this.blendColors(secondaryColor, templateWingColor, 0.12);
         }
 
-        // Allow cosmic accents but keep final clamp to rarity palette
-        if (Math.random() < 0.3) { // 30% chance for cosmic influence
+        // Cosmic affinity influence (for thematic creatures)
+        if (Math.random() < 0.25) {
             const cosmicColors = this.getCosmicColorPalette(template.cosmicAffinities);
             if (cosmicColors.length > 0) {
                 const cosmicColor = this.randomChoice(cosmicColors);
@@ -451,32 +486,15 @@ class CreatureGenetics {
             }
         }
 
-        // Color mutations provide subtle brightness shifts without leaving the family
-        if (Math.random() < mutationChance) {
-            primaryColor = this.applyColorMutation(primaryColor, rarity);
-        }
-        if (Math.random() < mutationChance * 0.7) {
-            secondaryColor = this.applyColorMutation(secondaryColor, rarity);
-        }
-        if (Math.random() < mutationChance * 0.6) {
-            accentColor = this.applyColorMutation(accentColor, rarity);
-        }
-
-        // Final clamp - only apply for common creatures to preserve unique colors in higher rarities
-        // This allows uncommon+ creatures to maintain their species-specific color variety
-        if (rarity === 'common') {
-            primaryColor = this.clampToRarityPalette(primaryColor, rarityAnchors.swatchPool.primary, rarity);
-            secondaryColor = this.clampToRarityPalette(secondaryColor, rarityAnchors.swatchPool.secondary, rarity);
-            accentColor = this.clampToRarityPalette(accentColor, rarityAnchors.swatchPool.accent, rarity);
-        }
-        // Higher rarities keep their unique, vibrant species colors
-
         const rarityEnhancement = this.getRarityColorEnhancement(rarity);
 
         return {
+            // Main colors
             primary: this.enhanceColor(primaryColor, rarityEnhancement.intensity),
             secondary: this.enhanceColor(secondaryColor, rarityEnhancement.intensity),
             accent: this.enhanceColor(accentColor, rarityEnhancement.intensity),
+
+            // Color metadata for rendering
             gradient: this.generateColorGradient(primaryColor, secondaryColor, rarity),
             shimmerIntensity: rarityEnhancement.shimmer,
             colorComplexity: this.calculateColorComplexity(primaryColor, secondaryColor, accentColor),
@@ -484,7 +502,10 @@ class CreatureGenetics {
             mixingPattern: this.determineMixingPattern(rarity),
             dominantHue: this.extractDominantHue(primaryColor),
             saturationLevel: this.calculateSaturationLevel([primaryColor, secondaryColor, accentColor]),
-            mutationFlags: this.generateMutationFlags(rarity)
+            mutationFlags: this.generateMutationFlags(rarity),
+
+            // NEW: Inheritable color genes for breeding
+            colorGenes: colorGenes
         };
     }
 
@@ -643,40 +664,73 @@ class CreatureGenetics {
     }
 
     generateMarkings(rarity) {
+        // EXPANDED: Many more marking patterns for visual variety
         const patternsByRarity = {
-            common: ['spots', 'stripes', 'simple_sparkles'],
-            uncommon: ['spots', 'stripes', 'sparkles', 'swirls', 'crescents'],
-            rare: ['complex_spots', 'galaxy_swirls', 'constellation_dots', 'aurora_stripes', 'crystal_facets'],
-            epic: ['galaxy_swirls', 'nebula_trail', 'aurora_stripes', 'stellar_mandala', 'crystal_facets', 'twilight_rings'],
-            legendary: ['stellar_mandala', 'cosmic_fractals', 'reality_rifts', 'time_spirals', 'void_portals']
+            common: [
+                'spots', 'stripes', 'simple_sparkles', 'dapples', 'freckles',
+                'rings', 'patches', 'speckles', 'mottled', 'brindled',
+                'marbled_light', 'gradient_fade', 'belly_splash'
+            ],
+            uncommon: [
+                'spots', 'stripes', 'sparkles', 'swirls', 'crescents',
+                'diamonds', 'zigzag', 'waves', 'clouds', 'feather_marks',
+                'scale_pattern', 'honeycomb', 'leopard_rosettes', 'tiger_stripes',
+                'marble_veins', 'sunset_gradient', 'biolum_dots'
+            ],
+            rare: [
+                'complex_spots', 'galaxy_swirls', 'constellation_dots', 'aurora_stripes',
+                'crystal_facets', 'flame_licks', 'lightning_bolts', 'tribal_marks',
+                'circuit_lines', 'dragon_scales', 'phoenix_feathers', 'cosmic_dust',
+                'starfield_scatter', 'nebula_wisps', 'prismatic_bands'
+            ],
+            epic: [
+                'galaxy_swirls', 'nebula_trail', 'aurora_stripes', 'stellar_mandala',
+                'crystal_facets', 'twilight_rings', 'cosmic_web', 'void_cracks',
+                'dimensional_tears', 'quantum_fractals', 'plasma_streams',
+                'black_hole_accretion', 'pulsar_beams', 'supernova_remnants'
+            ],
+            legendary: [
+                'stellar_mandala', 'cosmic_fractals', 'reality_rifts', 'time_spirals',
+                'void_portals', 'multiverse_echoes', 'big_bang_ripples', 'entropy_decay',
+                'singularity_glow', 'event_horizon', 'dark_matter_threads',
+                'cosmic_string_vibrations', 'primordial_chaos'
+            ]
         };
-        
+
         const rarityPatternChance = {
-            common: 0.6,     // 60% chance for markings
-            uncommon: 0.8,   // 80% chance for markings
+            common: 0.75,    // 75% chance for markings (was 60%)
+            uncommon: 0.85,  // 85% chance for markings
             rare: 0.95,      // 95% chance for markings
             epic: 1.0,       // Always has markings
             legendary: 1.0   // Always has markings
         };
-        
+
         if (Math.random() > rarityPatternChance[rarity]) {
-            return { 
-                pattern: 'none', 
+            return {
+                pattern: 'none',
                 intensity: 0,
                 distribution: 'none',
                 colorVariant: 'none'
             };
         }
-        
+
         const availablePatterns = patternsByRarity[rarity] || patternsByRarity.common;
         const selectedPattern = this.randomChoice(availablePatterns);
-        
-        // Generate pattern distribution
-        const distributions = ['scattered', 'clustered', 'symmetrical', 'flowing'];
+
+        // EXPANDED: More distribution options
+        const distributions = [
+            'scattered', 'clustered', 'symmetrical', 'flowing',
+            'radial', 'spiral', 'linear', 'random', 'gradient',
+            'concentrated_top', 'concentrated_bottom', 'edge_focused'
+        ];
         const distribution = this.randomChoice(distributions);
-        
-        // Generate color variant for markings
-        const colorVariants = ['darker', 'lighter', 'complementary', 'cosmic'];
+
+        // EXPANDED: More color variants
+        const colorVariants = [
+            'darker', 'lighter', 'complementary', 'cosmic',
+            'iridescent', 'metallic', 'neon', 'pastel', 'saturated',
+            'desaturated', 'warm_shift', 'cool_shift'
+        ];
         const colorVariant = this.randomChoice(colorVariants);
         
         return {
@@ -1060,16 +1114,239 @@ class CreatureGenetics {
         const r1 = (color1 >> 16) & 0xFF;
         const g1 = (color1 >> 8) & 0xFF;
         const b1 = color1 & 0xFF;
-        
+
         const r2 = (color2 >> 16) & 0xFF;
         const g2 = (color2 >> 8) & 0xFF;
         const b2 = color2 & 0xFF;
-        
+
         const r = Math.round(r1 * (1 - ratio) + r2 * ratio);
         const g = Math.round(g1 * (1 - ratio) + g2 * ratio);
         const b = Math.round(b1 * (1 - ratio) + b2 * ratio);
-        
+
         return (r << 16) | (g << 8) | b;
+    }
+
+    // ========================================
+    // HSL-BASED UNIQUE COLOR GENERATION (v2.0)
+    // ========================================
+
+    /**
+     * Convert HSL to RGB hex color
+     * @param {number} h - Hue (0-360)
+     * @param {number} s - Saturation (0-1)
+     * @param {number} l - Lightness (0-1)
+     * @returns {number} RGB hex color
+     */
+    hslToHex(h, s, l) {
+        h = ((h % 360) + 360) % 360; // Normalize hue to 0-360
+        s = Math.max(0, Math.min(1, s));
+        l = Math.max(0, Math.min(1, l));
+
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+
+        let r, g, b;
+        if (h < 60) { r = c; g = x; b = 0; }
+        else if (h < 120) { r = x; g = c; b = 0; }
+        else if (h < 180) { r = 0; g = c; b = x; }
+        else if (h < 240) { r = 0; g = x; b = c; }
+        else if (h < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+
+        const R = Math.round((r + m) * 255);
+        const G = Math.round((g + m) * 255);
+        const B = Math.round((b + m) * 255);
+
+        return (R << 16) | (G << 8) | B;
+    }
+
+    /**
+     * Convert RGB hex to HSL
+     * @param {number} hex - RGB hex color
+     * @returns {object} {h, s, l}
+     */
+    hexToHsl(hex) {
+        const r = ((hex >> 16) & 0xFF) / 255;
+        const g = ((hex >> 8) & 0xFF) / 255;
+        const b = (hex & 0xFF) / 255;
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const l = (max + min) / 2;
+
+        if (max === min) {
+            return { h: 0, s: 0, l };
+        }
+
+        const d = max - min;
+        const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+        let h;
+        switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) * 60; break;
+            case g: h = ((b - r) / d + 2) * 60; break;
+            case b: h = ((r - g) / d + 4) * 60; break;
+        }
+
+        return { h, s, l };
+    }
+
+    /**
+     * Generate a truly unique color using HSL with rarity-influenced characteristics
+     * @param {string} rarity - Creature rarity tier
+     * @param {string} colorRole - 'primary', 'secondary', or 'accent'
+     * @returns {object} {hex, hsl} - Color in both formats for inheritance
+     */
+    generateUniqueColor(rarity, colorRole = 'primary') {
+        const profile = RARITY_COLOR_PROFILES[rarity] || RARITY_COLOR_PROFILES.common;
+
+        // Pick a random hue range for this rarity, or go fully random with small chance
+        let hue;
+        if (Math.random() < 0.15) {
+            // 15% chance for wild card - any hue (creates rare unique colors)
+            hue = Math.random() * 360;
+        } else {
+            // Pick from rarity's hue ranges
+            const range = profile.hueRanges[Math.floor(Math.random() * profile.hueRanges.length)];
+            hue = range[0] + Math.random() * (range[1] - range[0]);
+        }
+
+        // Add variation based on color role
+        if (colorRole === 'secondary') {
+            // Secondary is complementary or analogous
+            const shift = Math.random() < 0.5
+                ? (30 + Math.random() * 60)  // Analogous (30-90 degrees)
+                : (150 + Math.random() * 60); // Complementary-ish (150-210)
+            hue = (hue + shift) % 360;
+        } else if (colorRole === 'accent') {
+            // Accent is triadic or split-complementary
+            const shift = 120 + Math.random() * 120; // 120-240 degrees
+            hue = (hue + shift) % 360;
+        }
+
+        // Saturation and lightness from rarity profile with random variation
+        const saturation = profile.saturation.min +
+            Math.random() * (profile.saturation.max - profile.saturation.min);
+        const lightness = profile.lightness.min +
+            Math.random() * (profile.lightness.max - profile.lightness.min);
+
+        const hex = this.hslToHex(hue, saturation, lightness);
+
+        return {
+            hex,
+            hsl: { h: hue, s: saturation, l: lightness }
+        };
+    }
+
+    /**
+     * Generate inheritable color genes for a creature
+     * These genes determine the creature's colors and can be passed to offspring
+     * @param {string} rarity - Creature rarity
+     * @param {object} template - Species template
+     * @returns {object} Color genes with inheritance data
+     */
+    generateColorGenes(rarity, template) {
+        const primary = this.generateUniqueColor(rarity, 'primary');
+        const secondary = this.generateUniqueColor(rarity, 'secondary');
+        const accent = this.generateUniqueColor(rarity, 'accent');
+
+        // Each color gene has dominance for breeding inheritance
+        return {
+            primary: {
+                ...primary,
+                dominance: 0.4 + Math.random() * 0.4, // 0.4-0.8
+                mutationRate: 0.1 + Math.random() * 0.1 // 0.1-0.2
+            },
+            secondary: {
+                ...secondary,
+                dominance: 0.3 + Math.random() * 0.4, // 0.3-0.7
+                mutationRate: 0.12 + Math.random() * 0.1
+            },
+            accent: {
+                ...accent,
+                dominance: 0.25 + Math.random() * 0.35, // 0.25-0.6
+                mutationRate: 0.15 + Math.random() * 0.1
+            },
+            // Genetic markers for breeding
+            hueShiftTendency: (Math.random() - 0.5) * 30, // -15 to +15 degree tendency
+            saturationTendency: (Math.random() - 0.5) * 0.2, // -0.1 to +0.1
+            lightnessTendency: (Math.random() - 0.5) * 0.15 // -0.075 to +0.075
+        };
+    }
+
+    /**
+     * Inherit color genes from two parents
+     * Creates offspring colors by blending parent genes with mutations
+     * @param {object} parent1Genes - Color genes from parent 1
+     * @param {object} parent2Genes - Color genes from parent 2
+     * @param {string} offspringRarity - Rarity of the offspring
+     * @returns {object} Inherited color genes for offspring
+     */
+    inheritColorGenes(parent1Genes, parent2Genes, offspringRarity) {
+        const inheritColor = (p1Color, p2Color, role) => {
+            // Determine which parent's color dominates
+            const p1Dominance = p1Color?.dominance || 0.5;
+            const p2Dominance = p2Color?.dominance || 0.5;
+            const totalDominance = p1Dominance + p2Dominance;
+
+            const p1Weight = p1Dominance / totalDominance;
+
+            // Get HSL values from both parents
+            const p1Hsl = p1Color?.hsl || { h: 180, s: 0.5, l: 0.5 };
+            const p2Hsl = p2Color?.hsl || { h: 180, s: 0.5, l: 0.5 };
+
+            // Blend hues (handle wraparound at 360)
+            let hueDiff = p2Hsl.h - p1Hsl.h;
+            if (hueDiff > 180) hueDiff -= 360;
+            if (hueDiff < -180) hueDiff += 360;
+            let newHue = (p1Hsl.h + hueDiff * (1 - p1Weight) + 360) % 360;
+
+            // Apply genetic tendencies from parents
+            const hueTendency = (parent1Genes.hueShiftTendency + parent2Genes.hueShiftTendency) / 2;
+            newHue = (newHue + hueTendency + 360) % 360;
+
+            // Blend saturation and lightness
+            let newSat = p1Hsl.s * p1Weight + p2Hsl.s * (1 - p1Weight);
+            let newLight = p1Hsl.l * p1Weight + p2Hsl.l * (1 - p1Weight);
+
+            // Apply mutations
+            const mutationRate = (p1Color?.mutationRate || 0.15) + (p2Color?.mutationRate || 0.15) / 2;
+            if (Math.random() < mutationRate) {
+                newHue = (newHue + (Math.random() - 0.5) * 60 + 360) % 360; // ±30 degree mutation
+                newSat = Math.max(0.2, Math.min(1, newSat + (Math.random() - 0.5) * 0.3));
+                newLight = Math.max(0.25, Math.min(0.75, newLight + (Math.random() - 0.5) * 0.2));
+            }
+
+            // Small random variation always
+            newHue = (newHue + (Math.random() - 0.5) * 15 + 360) % 360;
+            newSat = Math.max(0.2, Math.min(1, newSat + (Math.random() - 0.5) * 0.1));
+            newLight = Math.max(0.25, Math.min(0.75, newLight + (Math.random() - 0.5) * 0.08));
+
+            const hex = this.hslToHex(newHue, newSat, newLight);
+
+            return {
+                hex,
+                hsl: { h: newHue, s: newSat, l: newLight },
+                dominance: (p1Dominance + p2Dominance) / 2 + (Math.random() - 0.5) * 0.1,
+                mutationRate: mutationRate * (0.9 + Math.random() * 0.2)
+            };
+        };
+
+        return {
+            primary: inheritColor(parent1Genes?.primary, parent2Genes?.primary, 'primary'),
+            secondary: inheritColor(parent1Genes?.secondary, parent2Genes?.secondary, 'secondary'),
+            accent: inheritColor(parent1Genes?.accent, parent2Genes?.accent, 'accent'),
+            hueShiftTendency: (parent1Genes?.hueShiftTendency || 0) * 0.5 +
+                              (parent2Genes?.hueShiftTendency || 0) * 0.5 +
+                              (Math.random() - 0.5) * 10,
+            saturationTendency: (parent1Genes?.saturationTendency || 0) * 0.5 +
+                                (parent2Genes?.saturationTendency || 0) * 0.5 +
+                                (Math.random() - 0.5) * 0.05,
+            lightnessTendency: (parent1Genes?.lightnessTendency || 0) * 0.5 +
+                               (parent2Genes?.lightnessTendency || 0) * 0.5 +
+                               (Math.random() - 0.5) * 0.04
+        };
     }
 
     /**

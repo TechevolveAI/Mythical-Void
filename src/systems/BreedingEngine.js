@@ -528,6 +528,118 @@ class BreedingEngine {
 
         return inheritedMutations;
     }
+
+    // ========================================
+    // COLOR GENE INHERITANCE (v2.0)
+    // ========================================
+
+    /**
+     * Inherit color genes from two parent creatures
+     * Uses the new HSL-based color inheritance system from CreatureGenetics
+     * @param {Object} parent1Genetics - Full genetics from parent 1
+     * @param {Object} parent2Genetics - Full genetics from parent 2
+     * @param {string} offspringRarity - Rarity tier of the offspring
+     * @returns {Object} Inherited color genome for offspring
+     */
+    inheritColorGenes(parent1Genetics, parent2Genetics, offspringRarity = 'common') {
+        // Get color genes from parents
+        const p1ColorGenes = parent1Genetics?.traits?.colorGenome?.colorGenes;
+        const p2ColorGenes = parent2Genetics?.traits?.colorGenome?.colorGenes;
+
+        // Use CreatureGenetics color inheritance if available
+        if (window.CreatureGenetics?.inheritColorGenes && p1ColorGenes && p2ColorGenes) {
+            return window.CreatureGenetics.inheritColorGenes(p1ColorGenes, p2ColorGenes, offspringRarity);
+        }
+
+        // Fallback: Simple blending if new system not available
+        return this.fallbackColorInheritance(parent1Genetics, parent2Genetics);
+    }
+
+    /**
+     * Fallback color inheritance for backwards compatibility
+     * Blends parent colors directly without HSL-based genetics
+     */
+    fallbackColorInheritance(parent1Genetics, parent2Genetics) {
+        const p1Colors = parent1Genetics?.traits?.colorGenome || {};
+        const p2Colors = parent2Genetics?.traits?.colorGenome || {};
+
+        const blendColors = (c1, c2) => {
+            if (!c1 && !c2) return 0x808080; // Default gray
+            if (!c1) return c2;
+            if (!c2) return c1;
+
+            // Simple RGB averaging
+            const r1 = (c1 >> 16) & 0xFF, g1 = (c1 >> 8) & 0xFF, b1 = c1 & 0xFF;
+            const r2 = (c2 >> 16) & 0xFF, g2 = (c2 >> 8) & 0xFF, b2 = c2 & 0xFF;
+
+            // Random blend ratio for variation
+            const ratio = 0.3 + Math.random() * 0.4; // 0.3-0.7
+            const r = Math.round(r1 * ratio + r2 * (1 - ratio));
+            const g = Math.round(g1 * ratio + g2 * (1 - ratio));
+            const b = Math.round(b1 * ratio + b2 * (1 - ratio));
+
+            // Small mutation chance
+            if (Math.random() < 0.15) {
+                const mutate = (v) => Math.max(0, Math.min(255, v + Math.floor((Math.random() - 0.5) * 50)));
+                return (mutate(r) << 16) | (mutate(g) << 8) | mutate(b);
+            }
+
+            return (r << 16) | (g << 8) | b;
+        };
+
+        return {
+            primary: { hex: blendColors(p1Colors.primary, p2Colors.primary) },
+            secondary: { hex: blendColors(p1Colors.secondary, p2Colors.secondary) },
+            accent: { hex: blendColors(p1Colors.accent, p2Colors.accent) }
+        };
+    }
+
+    /**
+     * Generate full offspring genetics by combining parent genetics
+     * This is the main method for creating offspring from breeding
+     * @param {Object} parent1 - Full parent 1 creature data
+     * @param {Object} parent2 - Full parent 2 creature data
+     * @param {string} offspringRarity - Determined rarity for offspring
+     * @returns {Object} Complete offspring genetics package
+     */
+    generateOffspringGenetics(parent1, parent2, offspringRarity = 'common') {
+        // Breed Mendelian trait genes
+        const traitGenes = this.breedCreatures(
+            parent1?.breedingGenes || parent1?.genes,
+            parent2?.breedingGenes || parent2?.genes
+        );
+
+        // Get phenotype from trait genes
+        const phenotype = this.getPhenotype(traitGenes);
+
+        // Inherit color genes using new HSL system
+        const inheritedColorGenes = this.inheritColorGenes(
+            parent1?.genetics || parent1,
+            parent2?.genetics || parent2,
+            offspringRarity
+        );
+
+        // Inherit wacky mutations
+        const inheritedMutations = this.inheritMutationsFromParents({
+            parent1: parent1?.genetics || parent1,
+            parent2: parent2?.genetics || parent2
+        });
+
+        return {
+            traitGenes,
+            phenotype,
+            colorGenes: inheritedColorGenes,
+            mutations: inheritedMutations,
+            lineage: {
+                parent1Id: parent1?.id || parent1?.genetics?.id,
+                parent2Id: parent2?.id || parent2?.genetics?.id,
+                generation: Math.max(
+                    (parent1?.genetics?.lineage?.generation || 0),
+                    (parent2?.genetics?.lineage?.generation || 0)
+                ) + 1
+            }
+        };
+    }
 }
 
 // Export for use in other modules
