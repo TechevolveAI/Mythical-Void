@@ -2,8 +2,8 @@
 # Following 12-factor app principles and Vibe Coding Playbook best practices
 
 [build]
-  # Build command - delete Mac package-lock and regenerate for Linux
-  command = "rm -f package-lock.json && npm install --ignore-scripts=false && npm run build"
+  # Build command - use npm ci for clean CI install
+  command = "npm ci && npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"
