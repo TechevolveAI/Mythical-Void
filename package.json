@@ -19,6 +19,7 @@
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.21.0",
     "@tailwindcss/postcss": "^4.1.17",
     "autoprefixer": "^10.4.21",
     "http-server": "^14.1.1",
