@@ -31,6 +31,61 @@ class GraphicsEngine {
     }
 
     /**
+     * Extract a hex color value from potentially nested color objects
+     *
+     * CRITICAL: This method prevents "Maximum call stack size exceeded" errors
+     * in Phaser's Color system by ensuring we always pass plain hex numbers
+     * instead of complex objects to Phaser color methods.
+     *
+     * Handles these formats:
+     * - Plain hex number: 0xFF0000 → 0xFF0000
+     * - Object with color property: {color: 0xFF0000, saturation: 0.8} → 0xFF0000
+     * - Object with hex property: {hex: 0xFF0000} → 0xFF0000
+     * - Object with value property: {value: 0xFF0000} → 0xFF0000
+     * - Object with primary property: {primary: 0xFF0000, secondary: ...} → 0xFF0000
+     *
+     * @param {number|Object} colorValue - Color value (hex number or object)
+     * @param {number} fallback - Fallback hex color if extraction fails
+     * @returns {number} Plain hex color value
+     */
+    extractHexColor(colorValue, fallback = 0x808080) {
+        // Already a valid hex number
+        if (typeof colorValue === 'number' && !isNaN(colorValue)) {
+            return colorValue;
+        }
+
+        // Handle null/undefined
+        if (colorValue === null || colorValue === undefined) {
+            return fallback;
+        }
+
+        // Handle objects with nested color properties
+        if (typeof colorValue === 'object') {
+            // Try common property names for hex color values
+            if (typeof colorValue.color === 'number' && !isNaN(colorValue.color)) {
+                return colorValue.color;
+            }
+            if (typeof colorValue.hex === 'number' && !isNaN(colorValue.hex)) {
+                return colorValue.hex;
+            }
+            if (typeof colorValue.value === 'number' && !isNaN(colorValue.value)) {
+                return colorValue.value;
+            }
+            if (typeof colorValue.primary === 'number' && !isNaN(colorValue.primary)) {
+                return colorValue.primary;
+            }
+
+            // Recursively extract from nested objects (but limit depth to prevent loops)
+            if (typeof colorValue.color === 'object' && colorValue.color !== null) {
+                return this.extractHexColor(colorValue.color, fallback);
+            }
+        }
+
+        // Fallback for any other case
+        return fallback;
+    }
+
+    /**
      * Create a scratch graphics instance that never flashes on screen while generating textures
      * With error handling for missing scene or graphics factory
      */

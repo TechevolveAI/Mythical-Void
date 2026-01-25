@@ -1341,6 +1341,10 @@ class FusionPodScene extends Phaser.Scene {
     /**
      * Generate fallback color genome when CreatureGenetics is unavailable
      * Blends colors from parents for visual inheritance
+     *
+     * CRITICAL: Must return plain hex numbers, NOT objects with nested properties!
+     * GraphicsEngine expects: { primary: 0x4CAF50, secondary: 0x8BC34A, accent: 0xFFEB3B }
+     * Returning objects causes "Maximum call stack size exceeded" in Phaser's Color system.
      */
     generateFallbackColorGenome(rarity) {
         // Get parent colors if available
@@ -1349,7 +1353,7 @@ class FusionPodScene extends Phaser.Scene {
         const p2Colors = this.parent2Data.genes?.traits?.colorGenome ||
             this.parent2Data.dna?.traits?.colorGenome;
 
-        // Rarity-based fallback colors
+        // Rarity-based fallback colors (plain hex numbers)
         const rarityColors = {
             common: { primary: 0x4CAF50, secondary: 0x8BC34A, accent: 0xFFEB3B },
             uncommon: { primary: 0x2196F3, secondary: 0x03A9F4, accent: 0xE1F5FE },
@@ -1360,22 +1364,29 @@ class FusionPodScene extends Phaser.Scene {
 
         const baseColors = rarityColors[rarity] || rarityColors.common;
 
-        return {
-            primary: {
-                color: p1Colors?.primary || baseColors.primary,
-                saturation: 0.8,
-                brightness: 0.7
-            },
-            secondary: {
-                color: p2Colors?.secondary || baseColors.secondary,
-                saturation: 0.7,
-                brightness: 0.8
-            },
-            accent: {
-                color: baseColors.accent,
-                saturation: 0.9,
-                brightness: 0.9
+        // Helper to extract hex from potentially nested color objects
+        const extractHex = (colorValue, fallback) => {
+            if (typeof colorValue === 'number' && !isNaN(colorValue)) {
+                return colorValue;
             }
+            if (typeof colorValue === 'object' && colorValue !== null) {
+                // Handle nested formats: {color: hex}, {hex: hex}, {value: hex}, {primary: hex}
+                if (typeof colorValue.color === 'number') return colorValue.color;
+                if (typeof colorValue.hex === 'number') return colorValue.hex;
+                if (typeof colorValue.value === 'number') return colorValue.value;
+                if (typeof colorValue.primary === 'number') return colorValue.primary;
+            }
+            return fallback;
+        };
+
+        // Return PLAIN HEX NUMBERS - not objects!
+        return {
+            primary: extractHex(p1Colors?.primary, baseColors.primary),
+            secondary: extractHex(p2Colors?.secondary, baseColors.secondary),
+            accent: extractHex(p1Colors?.accent || p2Colors?.accent, baseColors.accent),
+            // Include additional properties expected by GraphicsEngine
+            shimmerIntensity: 0.5,
+            colorComplexity: 0.5
         };
     }
 
