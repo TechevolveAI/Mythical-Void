@@ -16,6 +16,24 @@ class HatchCinematicsManager {
     }
 
     /**
+     * Safely extract hex color value from various color formats
+     * Prevents stack overflow when colorGenome objects are passed
+     */
+    extractHexColor(colorValue, fallback = 0x808080) {
+        if (colorValue === null || colorValue === undefined) {
+            return fallback;
+        }
+        if (typeof colorValue === 'number') {
+            return colorValue;
+        }
+        if (typeof colorValue === 'object') {
+            if (colorValue.hex !== undefined) return colorValue.hex;
+            if (colorValue.color !== undefined) return colorValue.color;
+        }
+        return fallback;
+    }
+
+    /**
      * Initialize the space-themed cinematics system
      */
     initialize(config = null) {
@@ -415,12 +433,15 @@ class HatchCinematicsManager {
      */
     createCreatureEmergence(scene, config) {
         const creature = scene.children.getByName('creature') || this.assets.creature;
-        
+
         if (creature) {
+            // Extract hex color safely to prevent stack overflow
+            const particleHex = this.extractHexColor(config.colors.particles, 0x80CBC4);
+
             // Magical emergence from stardust
             creature.setAlpha(0);
-            creature.setTint(config.colors.particles);
-            
+            creature.setTint(particleHex);
+
             scene.tweens.add({
                 targets: creature,
                 alpha: 1,
@@ -429,20 +450,23 @@ class HatchCinematicsManager {
                 ease: 'Back.easeOut'
             });
 
-            // Clear tint to show true colors
+            // Clear tint to show true colors - using safe color interpolation
+            // Extract RGB components for manual interpolation (avoids ValueToColor)
+            const r1 = (particleHex >> 16) & 0xFF;
+            const g1 = (particleHex >> 8) & 0xFF;
+            const b1 = particleHex & 0xFF;
+
             scene.tweens.add({
                 targets: creature,
                 duration: config.timings.creatureBlink * 400,
                 delay: config.timings.creatureBlink * 300,
                 onUpdate: (tween) => {
                     const progress = tween.progress;
-                    const tintValue = Phaser.Display.Color.Interpolate.ColorWithColor(
-                        Phaser.Display.Color.ValueToColor(config.colors.particles),
-                        Phaser.Display.Color.ValueToColor(0xFFFFFF),
-                        1,
-                        progress
-                    );
-                    creature.setTint(Phaser.Display.Color.GetColor(tintValue.r, tintValue.g, tintValue.b));
+                    // Interpolate towards white (255, 255, 255) manually
+                    const r = Math.round(r1 + (255 - r1) * progress);
+                    const g = Math.round(g1 + (255 - g1) * progress);
+                    const b = Math.round(b1 + (255 - b1) * progress);
+                    creature.setTint(Phaser.Display.Color.GetColor(r, g, b));
                 }
             });
 

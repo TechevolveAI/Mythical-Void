@@ -8481,8 +8481,9 @@ class GraphicsEngine {
         graphics.fillEllipse(x - size * 0.8, y + size * 0.2, size * 0.4, size * 0.8);
         graphics.fillEllipse(x + size * 0.8, y + size * 0.2, size * 0.4, size * 0.8);
 
-        // Snout
-        graphics.fillStyle(Phaser.Display.Color.ValueToColor(colors.head).darken(10).color);
+        // Snout - use safe darkenColor instead of Phaser.Display.Color.ValueToColor
+        const headColor = this.extractHexColor(colors.head, 0x808080);
+        graphics.fillStyle(this.darkenColor(headColor, 0.1));
         graphics.fillEllipse(x, y + size * 0.4, size * 0.6, size * 0.4);
 
         // Nose
@@ -8496,7 +8497,8 @@ class GraphicsEngine {
 
     drawAvianHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Bird-like head - small with beak
-        graphics.fillStyle(colors.head);
+        const safeHeadColor = this.extractHexColor(colors.head, 0x808080);
+        graphics.fillStyle(safeHeadColor);
         graphics.fillCircle(x, y, size * 0.8);
 
         // Beak
@@ -8579,15 +8581,16 @@ class GraphicsEngine {
 
     drawSimianHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Monkey-like head - round with prominent features
-        graphics.fillStyle(colors.head);
+        const headColor = this.extractHexColor(colors.head, 0x808080);
+        graphics.fillStyle(headColor);
         graphics.fillCircle(x, y, size);
 
         // Large ears
         graphics.fillCircle(x - size * 0.9, y, size * 0.5);
         graphics.fillCircle(x + size * 0.9, y, size * 0.5);
 
-        // Face (lighter)
-        graphics.fillStyle(Phaser.Display.Color.ValueToColor(colors.head).lighten(20).color);
+        // Face (lighter) - use safe lightenColor instead of Phaser.Display.Color.ValueToColor
+        graphics.fillStyle(this.lightenColor(headColor, 0.2));
         graphics.fillEllipse(x, y + size * 0.2, size * 0.7, size * 0.8);
 
         // Eyes - scaled by eyeMultiplier for baby cuteness
@@ -8669,11 +8672,12 @@ class GraphicsEngine {
 
     drawCervineHead(graphics, x, y, size, colors, eyeMultiplier = 1.0) {
         // Deer-like head - elegant with antlers
-        graphics.fillStyle(colors.head);
+        const headColor = this.extractHexColor(colors.head, 0x808080);
+        graphics.fillStyle(headColor);
         graphics.fillEllipse(x, y, size * 0.7, size * 1.1);
 
-        // Snout
-        graphics.fillStyle(Phaser.Display.Color.ValueToColor(colors.head).darken(10).color);
+        // Snout - use safe darkenColor instead of Phaser.Display.Color.ValueToColor
+        graphics.fillStyle(this.darkenColor(headColor, 0.1));
         graphics.fillEllipse(x, y + size * 0.5, size * 0.5, size * 0.4);
 
         // Nose
@@ -9072,13 +9076,17 @@ class GraphicsEngine {
      * @returns {number} Adjusted hex color value
      */
     adjustColorSaturation(colorValue, saturation) {
-        if (!colorValue || saturation === 1.0) return colorValue;
+        // Extract hex value if colorValue is an object
+        const hexColor = this.extractHexColor(colorValue, 0x808080);
+        if (!hexColor || saturation === 1.0) return hexColor;
 
-        // Convert to Phaser Color object
-        const color = Phaser.Display.Color.ValueToColor(colorValue);
+        // Extract RGB using bit manipulation (safe - no Phaser Color class)
+        const r = (hexColor >> 16) & 0xFF;
+        const g = (hexColor >> 8) & 0xFF;
+        const b = hexColor & 0xFF;
 
-        // Get HSV values
-        const hsv = Phaser.Display.Color.RGBToHSV(color.r, color.g, color.b);
+        // Get HSV values using static method (no Color object needed)
+        const hsv = Phaser.Display.Color.RGBToHSV(r, g, b);
 
         // Adjust saturation
         hsv.s = Math.min(1.0, hsv.s * saturation);

@@ -14,6 +14,33 @@ class FXLibrary {
     }
 
     /**
+     * Safely extract hex color value from various color formats
+     * Prevents stack overflow when colorGenome objects are passed
+     * @param {*} colorValue - Color value (hex number, object with hex property, etc.)
+     * @param {number} fallback - Fallback color if extraction fails
+     * @returns {number} Hex color value
+     */
+    extractHexColor(colorValue, fallback = 0x808080) {
+        if (colorValue === null || colorValue === undefined) {
+            return fallback;
+        }
+        // Already a hex number
+        if (typeof colorValue === 'number') {
+            return colorValue;
+        }
+        // Object with 'hex' property (from colorGenome)
+        if (typeof colorValue === 'object') {
+            if (colorValue.hex !== undefined) {
+                return colorValue.hex;
+            }
+            if (colorValue.color !== undefined) {
+                return colorValue.color;
+            }
+        }
+        return fallback;
+    }
+
+    /**
      * Initialize the FX library with configuration
      */
     initialize(config = {}) {
@@ -195,10 +222,10 @@ class FXLibrary {
         // Create glow effect around sprite
         const glow = sprite.scene.add.graphics();
         glow.setPosition(sprite.x, sprite.y);
-        
-        // Create glowing circle
-        const glowColor = Phaser.Display.Color.ValueToColor(opts.color);
-        glow.fillGradientStyle(opts.color, opts.color, opts.color, opts.color, 1, 1, 0, 0);
+
+        // Create glowing circle - extract hex to prevent stack overflow with object colors
+        const safeColor = this.extractHexColor(opts.color, 0x98FB98);
+        glow.fillGradientStyle(safeColor, safeColor, safeColor, safeColor, 1, 1, 0, 0);
         glow.fillCircle(0, 0, opts.glowRadius);
         glow.setAlpha(opts.intensity.min);
         glow.setBlendMode(Phaser.BlendModes.ADD);
@@ -310,18 +337,22 @@ class FXLibrary {
 
         // Create gradient-like effect with multiple strips
         const stripHeight = options.height / 3;
+        // Extract hex color safely to prevent stack overflow
+        const safeBaseColor = this.extractHexColor(options.color, 0x87CEEB);
+        const baseR = (safeBaseColor >> 16) & 0xFF;
+        const baseG = (safeBaseColor >> 8) & 0xFF;
+        const baseB = safeBaseColor & 0xFF;
+
         for (let layer = 0; layer < 3; layer++) {
             const alpha = 1.0 - (layer * 0.3);
-            const baseColor = Phaser.Display.Color.ValueToColor(options.color);
             const lightenAmount = layer * 20;
-            const color = Phaser.Display.Color.Interpolate.ColorWithColor(
-                baseColor,
-                Phaser.Display.Color.ValueToColor(0xFFFFFF),
-                100,
-                lightenAmount
-            );
+            // Manual interpolation towards white (255, 255, 255) - avoids ValueToColor
+            const progress = lightenAmount / 100;
+            const r = Math.round(baseR + (255 - baseR) * progress);
+            const g = Math.round(baseG + (255 - baseG) * progress);
+            const b = Math.round(baseB + (255 - baseB) * progress);
 
-            strip.fillStyle(Phaser.Display.Color.GetColor(color.r, color.g, color.b), alpha);
+            strip.fillStyle(Phaser.Display.Color.GetColor(r, g, b), alpha);
             strip.beginPath();
             strip.moveTo(points[0].x, points[0].y - stripHeight * layer);
             

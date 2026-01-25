@@ -540,12 +540,26 @@ class HatchingScene extends Phaser.Scene {
 
         // === RARITY-ENHANCED EGG WITH REALISTIC SHADING ===
 
+        // Safe color manipulation helpers (avoid Phaser.Display.Color.ValueToColor stack overflow)
+        const darkenColorSafe = (color, percent) => {
+            const r = Math.floor(((color >> 16) & 0xFF) * (1 - percent));
+            const g = Math.floor(((color >> 8) & 0xFF) * (1 - percent));
+            const b = Math.floor((color & 0xFF) * (1 - percent));
+            return (r << 16) | (g << 8) | b;
+        };
+        const lightenColorSafe = (color, percent) => {
+            const r = Math.min(255, Math.floor(((color >> 16) & 0xFF) * (1 + percent)));
+            const g = Math.min(255, Math.floor(((color >> 8) & 0xFF) * (1 + percent)));
+            const b = Math.min(255, Math.floor((color & 0xFF) * (1 + percent)));
+            return (r << 16) | (g << 8) | b;
+        };
+
         // Egg shadow on ground
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillEllipse(center.x + 3, center.y + 25, 85, 45);
 
-        // Egg base layer (darkest) - using rarity color darkened
-        const darkBase = Phaser.Display.Color.ValueToColor(baseColor).darken(30).color;
+        // Egg base layer (darkest) - using rarity color darkened (safe method)
+        const darkBase = darkenColorSafe(baseColor, 0.3);
         graphics.fillStyle(darkBase);
         graphics.fillEllipse(center.x, center.y, 84, 104);
 
@@ -553,8 +567,8 @@ class HatchingScene extends Phaser.Scene {
         graphics.fillStyle(baseColor);
         graphics.fillEllipse(center.x - 2, center.y - 2, 80, 100);
 
-        // Egg highlight (creates 3D roundness) - lighter version of base
-        const lightBase = Phaser.Display.Color.ValueToColor(baseColor).lighten(20).color;
+        // Egg highlight (creates 3D roundness) - lighter version of base (safe method)
+        const lightBase = lightenColorSafe(baseColor, 0.2);
         graphics.fillStyle(lightBase);
         graphics.fillEllipse(center.x - 8, center.y - 8, 65, 85);
 
