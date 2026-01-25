@@ -2,8 +2,8 @@
 # Following 12-factor app principles and Vibe Coding Playbook best practices
 
 [build]
-  # Build command - Vite production build
-  command = "npm run build"
+  # Build command - Vite production build (npm ci with dev deps for Vite)
+  command = "npm ci && npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"
@@ -13,6 +13,7 @@
 
 [build.environment]
   # Build-time environment variables
+  NPM_CONFIG_PRODUCTION = "false"
   ENABLE_API_FEATURES = "false"
 
 # Redirect rules for single-page application behavior
