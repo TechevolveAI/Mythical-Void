@@ -3404,8 +3404,8 @@ class GraphicsEngine {
             body: desaturateColor(colors.body),
             head: desaturateColor(colors.head),
             wings: desaturateColor(colors.wings),
-            eyes: colors.eyes, // Keep eyes vibrant
-            accent: colors.accent
+            eyes: this.extractHexColor(colors.eyes, 0x4169E1), // Keep eyes vibrant
+            accent: this.extractHexColor(colors.accent, 0xFFD700)
         };
     }
 
@@ -6975,7 +6975,10 @@ class GraphicsEngine {
                 this.addStellarMandala(graphics, center, baseColor, scale, intensity);
                 break;
             case 'cosmic_fractals':
-                this.addCosmicFractals(graphics, center, [colorGenome.primary, colorGenome.secondary], scale, intensity);
+                this.addCosmicFractals(graphics, center, [
+                    this.extractHexColor(colorGenome.primary, 0x9370DB),
+                    this.extractHexColor(colorGenome.secondary, 0x8A2BE2)
+                ], scale, intensity);
                 break;
             case 'reality_rifts':
                 this.addRealityRifts(graphics, center, baseColor, scale, intensity);
@@ -7603,8 +7606,8 @@ class GraphicsEngine {
      * Add prestige stage special effects
      */
     addPrestigeEffects(graphics, center, size, genetics) {
-        // Legendary aura
-        const auraColor = genetics.traits.colorGenome.accent;
+        // Legendary aura - extract safe hex color
+        const auraColor = this.extractHexColor(genetics.traits.colorGenome.accent, 0xFFD700);
         graphics.lineStyle(3, this.lightenColor(auraColor, 0.4), 0.4);
         graphics.strokeCircle(center.x, center.y, 45);
         graphics.strokeCircle(center.x, center.y, 50);
@@ -7956,13 +7959,13 @@ class GraphicsEngine {
     }
 
     addLegendaryEffects(graphics, genetics, center, size) {
-        // Extra sparkles for legendary creatures
+        // Extra sparkles for legendary creatures - extract safe hex colors
         this.addStellarSparkles(graphics, size, {
             count: 8,
             colors: [
-                genetics.traits.colorGenome.primary,
-                genetics.traits.colorGenome.secondary,
-                genetics.traits.colorGenome.accent
+                this.extractHexColor(genetics.traits.colorGenome.primary, 0x9370DB),
+                this.extractHexColor(genetics.traits.colorGenome.secondary, 0x8A2BE2),
+                this.extractHexColor(genetics.traits.colorGenome.accent, 0xFFD700)
             ]
         });
     }
@@ -8396,36 +8399,45 @@ class GraphicsEngine {
      * @param {number} eyeMultiplier - Eye size multiplier for stage scaling (babies get bigger eyes)
      */
     drawHeadFeatures(graphics, x, y, size, headArchetype, colors, eyeMultiplier = 1.0) {
+        // Extract safe hex colors to prevent stack overflow
+        const safeColors = {
+            head: this.extractHexColor(colors.head, 0x808080),
+            eyes: this.extractHexColor(colors.eyes, 0x4169E1),
+            accent: this.extractHexColor(colors.accent, 0xFFD700),
+            body: this.extractHexColor(colors.body, 0x9370DB),
+            wings: this.extractHexColor(colors.wings, 0x8A2BE2)
+        };
+
         switch (headArchetype) {
             case 'feline':
-                this.drawFelineHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawFelineHead(graphics, x, y, size, safeColors, eyeMultiplier);
                 break;
             case 'canine':
-                this.drawCanineHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawCanineHead(graphics, x, y, size, safeColors, eyeMultiplier);
                 break;
             case 'avian':
-                this.drawAvianHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawAvianHead(graphics, x, y, size, safeColors, eyeMultiplier);
                 break;
             case 'reptile':
-                this.drawReptileHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawReptileHead(graphics, x, y, size, safeColors, eyeMultiplier);
                 break;
             case 'aquatic':
-                this.drawAquaticHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawAquaticHead(graphics, x, y, size, safeColors, eyeMultiplier);
                 break;
             case 'simian':
-                this.drawSimianHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawSimianHead(graphics, x, y, size, safeColors, eyeMultiplier);
                 break;
             case 'insectoid':
-                this.drawInsectoidHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawInsectoidHead(graphics, x, y, size, safeColors, eyeMultiplier);
                 break;
             case 'rodent':
-                this.drawRodentHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawRodentHead(graphics, x, y, size, safeColors, eyeMultiplier);
                 break;
             case 'cervine':
-                this.drawCervineHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawCervineHead(graphics, x, y, size, safeColors, eyeMultiplier);
                 break;
             default:
-                this.drawFelineHead(graphics, x, y, size, colors, eyeMultiplier);
+                this.drawFelineHead(graphics, x, y, size, safeColors, eyeMultiplier);
         }
     }
 
