@@ -1358,6 +1358,80 @@ if (window.AudioManager) {
 }
 ```
 
+## Git Workflow - CRITICAL
+
+### NEVER Deploy Directly from Main
+
+**All development work MUST happen on feature branches.** Main branch deploys automatically to production.
+
+```bash
+# Create feature branch BEFORE making changes
+git checkout -b feature/my-feature
+
+# Make changes, test locally
+npm run dev
+npm run build
+
+# Push to feature branch (NOT main!)
+git push -u origin feature/my-feature
+
+# Create PR, test deploy preview, THEN merge to main
+```
+
+### Pre-Push Checklist
+
+Before pushing ANY code changes:
+1. [ ] `npm run dev` - Game loads without errors
+2. [ ] `npm run build` - Production build succeeds
+3. [ ] `npm run validate-flow` - Critical sections intact
+4. [ ] Test creature rendering - Creatures appear with correct colors
+
+## Color Handling - CRITICAL
+
+### Always Use extractHexColor()
+
+**NEVER** access colorGenome properties directly. Always use the safe extraction helper:
+
+```javascript
+// WRONG - Can crash if colorGenome has nested objects
+const color = colorGenome.primary;
+
+// CORRECT - Safe extraction with fallback
+const color = this.extractHexColor(colorGenome.primary, 0x9370DB);
+```
+
+### colorGenome Must Be Plain Hex Numbers
+
+```javascript
+// CORRECT format - plain integers
+{ primary: 0x9370DB, secondary: 0x8A2BE2, accent: 0xFFD700 }
+
+// WRONG format - nested objects cause stack overflow
+{ primary: { color: 0x9370DB, saturation: 0.8 } }  // NEVER DO THIS
+```
+
+## Netlify Deployment
+
+### Required Build Configuration
+
+```toml
+[build.environment]
+  NODE_VERSION = "20"           # Pin to LTS (Node 22 has npm bugs)
+  NODE_ENV = "development"      # Allows devDependencies to install
+```
+
+### Build Command Must Delete Lock File
+
+```toml
+command = "rm -rf node_modules package-lock.json && npm install && npm run build"
+```
+
+This ensures Linux-specific optional dependencies are installed correctly.
+
+### Minification
+
+Use **esbuild** (Vite's default), NOT Terser. Terser's aggressive optimization breaks Phaser.
+
 ## Resources
 
 - **Technical specs**: `docs/TECHNICAL_IMPLEMENTATION.md`
@@ -1365,6 +1439,8 @@ if (window.AudioManager) {
 - **Tuning guide**: `docs/TUNING_GUIDE.md`
 - **Security docs**: `docs/SECURITY.md`
 - **Deployment**: `docs/DEPLOYMENT.md`
+- **Deployment lessons**: `docs/DEPLOYMENT_LESSONS.md` (CRITICAL - read before deploying!)
+- **Color system**: `docs/COLOR_SYSTEM_ANALYSIS.md` (color variety, fallbacks, improvements)
 - **Game flow**: `docs/GAME_FLOW_DOCUMENTATION.md`
 - **Development guide**: `docs/DEVELOPMENT_GUIDE.md`
 - **Future plans**: `docs/archive/planning/` (roadmaps, implementation plans)
