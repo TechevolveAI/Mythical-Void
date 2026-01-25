@@ -2,8 +2,9 @@
 # Following 12-factor app principles and Vibe Coding Playbook best practices
 
 [build]
-  # Build command - Vite production build (npm ci with dev deps for Vite)
-  command = "npm ci && npm run build"
+  # Build command - Vite production build
+  # Using npm install instead of npm ci to resolve platform-specific optional deps
+  command = "npm install && npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"
