@@ -6806,8 +6806,8 @@ class GraphicsEngine {
             const auraIntensity = baseAuraIntensity * stageGlowIntensity;
 
             this.addCosmicAura(graphics, center, {
-                innerColor: genetics.traits.colorGenome.accent,
-                outerColor: genetics.traits.colorGenome.secondary,
+                innerColor: this.extractHexColor(genetics.traits.colorGenome.accent, this.spaceMythicPalette.starGold),
+                outerColor: this.extractHexColor(genetics.traits.colorGenome.secondary, this.spaceMythicPalette.crystalLilac),
                 intensity: auraIntensity
             });
         }
@@ -6827,8 +6827,15 @@ class GraphicsEngine {
      * Add special feature visual effects with enhanced complexity
      */
     addSpecialFeatureEffect(graphics, feature, center, genetics) {
-        const colors = genetics.traits.colorGenome;
-        
+        const colorGenome = genetics.traits.colorGenome;
+
+        // Extract safe hex colors to prevent stack overflow with colorGenome objects
+        const colors = {
+            primary: this.extractHexColor(colorGenome.primary, 0x9370DB),
+            secondary: this.extractHexColor(colorGenome.secondary, 0x8A2BE2),
+            accent: this.extractHexColor(colorGenome.accent, 0xFFD700)
+        };
+
         // Handle both old string format and new object format
         const featureType = typeof feature === 'string' ? feature : feature.type;
         const featureIntensity = typeof feature === 'object' ? feature.intensity : 0.5;

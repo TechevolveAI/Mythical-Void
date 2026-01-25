@@ -97,6 +97,24 @@ class StageVisualResolver {
     }
 
     /**
+     * Safely extract hex color from potentially complex colorGenome values
+     * Prevents stack overflow when colorGenome objects are passed to Phaser color methods
+     */
+    extractHexColor(colorValue, fallback = 0x808080) {
+        if (typeof colorValue === 'number' && !isNaN(colorValue)) {
+            return colorValue;
+        }
+        if (typeof colorValue === 'object' && colorValue !== null) {
+            // Try common color property names
+            if (typeof colorValue.hex === 'number') return colorValue.hex;
+            if (typeof colorValue.color === 'number') return colorValue.color;
+            if (typeof colorValue.value === 'number') return colorValue.value;
+            if (typeof colorValue.primary === 'number') return colorValue.primary;
+        }
+        return fallback;
+    }
+
+    /**
      * Main entry point - resolve all traits for a given stage
      * @param {Object} genetics - The creature's genetic data (destiny)
      * @param {string} stage - Current lifecycle stage
@@ -296,10 +314,11 @@ class StageVisualResolver {
         const mode = config.colorMode;
         const saturation = config.colorSaturation;
 
+        // Extract safe hex colors to prevent stack overflow with colorGenome objects
         const baseColors = {
-            primary: colorGenome.primary || 0x9370DB,
-            secondary: colorGenome.secondary || 0x87CEEB,
-            accent: colorGenome.accent || 0xFFD700
+            primary: this.extractHexColor(colorGenome.primary, 0x9370DB),
+            secondary: this.extractHexColor(colorGenome.secondary, 0x87CEEB),
+            accent: this.extractHexColor(colorGenome.accent, 0xFFD700)
         };
 
         // Apply saturation adjustment
