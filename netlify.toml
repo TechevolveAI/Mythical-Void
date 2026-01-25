@@ -2,8 +2,8 @@
 # Following 12-factor app principles and Vibe Coding Playbook best practices
 
 [build]
-  # Build command - remove cached deps to fix Rollup native binaries, then build
-  command = "rm -rf node_modules package-lock.json && npm install && npm run build"
+  # Build command - clean install with dev deps for Vite, then build
+  command = "rm -rf node_modules && npm install --include=dev && npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"
