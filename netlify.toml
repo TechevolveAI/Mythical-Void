@@ -111,11 +111,6 @@
 [forms]
   # Enable Netlify Forms
   
-# Edge functions directory (future use)
-[edge_functions]
-  # Directory for edge functions
-  directory = "netlify/edge-functions"
-
 # Development settings
 [dev]
   # Local development server settings
