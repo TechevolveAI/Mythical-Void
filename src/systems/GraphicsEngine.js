@@ -3369,7 +3369,8 @@ class GraphicsEngine {
         }
 
         const desaturateColor = (color) => {
-            const colorInt = typeof color === 'number' ? color : parseInt(color, 16);
+            // Safely extract hex color to prevent stack overflow
+            const colorInt = this.extractHexColor(color, 0x808080);
             const r = (colorInt >> 16) & 0xFF;
             const g = (colorInt >> 8) & 0xFF;
             const b = colorInt & 0xFF;
@@ -3636,8 +3637,8 @@ class GraphicsEngine {
                 body: processedColors.body,
                 head: processedColors.head,
                 wings: processedColors.wings,
-                eyes: features.eyes.color,
-                accent: colorGenome.accent,
+                eyes: this.extractHexColor(features.eyes.color, 0x4169E1),
+                accent: this.extractHexColor(colorGenome.accent, 0xFFD700),
                 
                 // Advanced color properties
                 gradient: colorGenome.gradient,
@@ -3675,8 +3676,9 @@ class GraphicsEngine {
      * Process enhanced color genome for visual application
      */
     processEnhancedColorGenome(colorGenome) {
-        let bodyColor = colorGenome.primary;
-        let wingsColor = colorGenome.secondary;
+        // Safely extract hex colors to prevent stack overflow from colorGenome objects
+        let bodyColor = this.extractHexColor(colorGenome.primary, 0x9370DB);
+        let wingsColor = this.extractHexColor(colorGenome.secondary, 0x8A2BE2);
         
         // Apply gradient effects if present
         if (colorGenome.gradient && colorGenome.gradient.type !== 'linear') {
@@ -6954,7 +6956,10 @@ class GraphicsEngine {
                 this.addConstellationDots(graphics, center, baseColor, scale, intensity);
                 break;
             case 'aurora_stripes':
-                this.addAuroraStripes(graphics, center, size, [colorGenome.primary, colorGenome.secondary], scale, intensity);
+                this.addAuroraStripes(graphics, center, size, [
+                    this.extractHexColor(colorGenome.primary, 0x9370DB),
+                    this.extractHexColor(colorGenome.secondary, 0x8A2BE2)
+                ], scale, intensity);
                 break;
             case 'crystal_facets':
                 this.addCrystalFacets(graphics, center, baseColor, scale, intensity);
@@ -6986,8 +6991,10 @@ class GraphicsEngine {
      * Calculate marking color based on base color and variant
      */
     calculateMarkingColor(colorGenome, colorVariant) {
-        const baseColor = colorGenome.primary;
-        
+        // Safely extract colors to prevent stack overflow
+        const baseColor = this.extractHexColor(colorGenome.primary, 0x9370DB);
+        const accentColor = this.extractHexColor(colorGenome.accent, 0xFFD700);
+
         switch (colorVariant) {
             case 'darker':
                 return this.darkenColor(baseColor, 0.3);
@@ -6997,7 +7004,7 @@ class GraphicsEngine {
                 return this.getComplementaryColor(baseColor);
             case 'cosmic':
                 // Use accent color with slight enhancement
-                return this.lightenColor(colorGenome.accent, 0.1);
+                return this.lightenColor(accentColor, 0.1);
             default:
                 return this.darkenColor(baseColor, 0.2);
         }
