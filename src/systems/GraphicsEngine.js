@@ -202,9 +202,9 @@ class GraphicsEngine {
         let bodyOffset = { x: 0, y: 0 };
 
         if (geneticTraits) {
-            // Apply eye color from genetics
+            // Apply eye color from genetics - extract safe hex color
             if (geneticTraits.eyeColor) {
-                eyeColor = geneticTraits.eyeColor;
+                eyeColor = this.extractHexColor(geneticTraits.eyeColor, 0x4169E1);
             }
 
             // Apply body shape modifications
