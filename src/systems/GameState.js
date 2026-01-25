@@ -1501,13 +1501,81 @@ class GameStateManager {
     migrateSaveData(saveData, fromVersion) {
         const migrated = { ...saveData };
 
-        // Example migration for v1.0.0 → v1.1.0
-        // if (fromVersion === '1.0.0') {
-        //     migrated.newField = 'default value';
-        // }
+        // CRITICAL: Sanitize colorGenome data to fix nested objects
+        // Old buggy code returned {primary: {color: hex, saturation, brightness}}
+        // New format should be {primary: hex, secondary: hex, accent: hex}
+        this.sanitizeColorGenome(migrated);
 
         console.log(`[GameState] Migration complete: ${fromVersion} → ${GAME_VERSION}`);
         return migrated;
+    }
+
+    /**
+     * Sanitize colorGenome data to fix nested color objects
+     *
+     * CRITICAL: This fixes "Maximum call stack size exceeded" errors in Phaser's Color
+     * system caused by passing objects instead of hex numbers to color methods.
+     *
+     * Fixes this structure:
+     *   { primary: { color: 0xFF0000, saturation: 0.8 } }  →  { primary: 0xFF0000 }
+     *
+     * @param {Object} data - Save data to sanitize (mutates in place)
+     */
+    sanitizeColorGenome(data) {
+        if (!data) return;
+
+        // Helper to extract hex from potentially nested color
+        const extractHex = (colorValue, fallback = 0x808080) => {
+            if (typeof colorValue === 'number' && !isNaN(colorValue)) {
+                return colorValue;
+            }
+            if (typeof colorValue === 'object' && colorValue !== null) {
+                if (typeof colorValue.color === 'number') return colorValue.color;
+                if (typeof colorValue.hex === 'number') return colorValue.hex;
+                if (typeof colorValue.value === 'number') return colorValue.value;
+                if (typeof colorValue.primary === 'number') return colorValue.primary;
+            }
+            return fallback;
+        };
+
+        // Sanitize colorGenome in a genes object
+        const sanitizeGenes = (genes) => {
+            if (!genes?.traits?.colorGenome) return;
+
+            const cg = genes.traits.colorGenome;
+
+            // Fix primary/secondary/accent if they're objects
+            if (cg.primary && typeof cg.primary === 'object') {
+                console.log('[GameState] Fixing nested colorGenome.primary');
+                cg.primary = extractHex(cg.primary, 0x9370DB);
+            }
+            if (cg.secondary && typeof cg.secondary === 'object') {
+                console.log('[GameState] Fixing nested colorGenome.secondary');
+                cg.secondary = extractHex(cg.secondary, 0x8A2BE2);
+            }
+            if (cg.accent && typeof cg.accent === 'object') {
+                console.log('[GameState] Fixing nested colorGenome.accent');
+                cg.accent = extractHex(cg.accent, 0xFFD700);
+            }
+        };
+
+        // Sanitize creature.genes
+        if (data.creature?.genes) {
+            sanitizeGenes(data.creature.genes);
+        }
+
+        // Sanitize creature.dna if it has colorGenome
+        if (data.creature?.dna?.traits?.colorGenome) {
+            sanitizeGenes(data.creature.dna);
+        }
+
+        // Sanitize creatures in collection
+        if (data.collection?.creatures && Array.isArray(data.collection.creatures)) {
+            data.collection.creatures.forEach(creature => {
+                if (creature.genes) sanitizeGenes(creature.genes);
+                if (creature.dna) sanitizeGenes(creature.dna);
+            });
+        }
     }
 
     /**
