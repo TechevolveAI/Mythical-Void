@@ -3,8 +3,8 @@
 
 [build]
   # Build command - Vite production build
-  # Remove cached node_modules, then fresh install to get platform-specific deps
-  command = "rm -rf node_modules && npm install && npm run build"
+  # Fresh install with optional deps for platform-specific binaries (Rollup, LightningCSS)
+  command = "rm -rf node_modules && npm install --include=optional && npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"
