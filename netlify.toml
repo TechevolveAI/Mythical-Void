@@ -2,8 +2,8 @@
 # Following 12-factor app principles and Vibe Coding Playbook best practices
 
 [build]
-  # Build command - Vite production build (explicit install to handle cache issues)
-  command = "npm install && npm run build"
+  # Build command - Vite production build (--include=dev needed because NODE_ENV=production skips devDeps)
+  command = "npm install --include=dev && npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"
