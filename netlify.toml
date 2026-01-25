@@ -3,8 +3,8 @@
 
 [build]
   # Build command - Vite production build
-  # Using npm install instead of npm ci to resolve platform-specific optional deps
-  command = "npm install && npm run build"
+  # Clean npm cache first, then install (resolves platform-specific optional deps)
+  command = "npm cache clean --force && npm install && npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"
