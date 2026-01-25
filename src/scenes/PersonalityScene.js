@@ -237,7 +237,7 @@ class PersonalityScene extends Phaser.Scene {
         return {
             size: bodyShapeToSize[genetics.traits.bodyShape.type] || 'medium',
             pattern: markingsToPattern[genetics.traits.features.markings?.type] || 'solid',
-            eyeColor: genetics.traits.colorGenome.eyeColor || 0x4169E1,
+            eyeColor: genetics.traits.colorGenome.accent || 0x4169E1,
             temperament: personalityToTemperament[genetics.personality.core] || 'gentle',
             specialTrait: genetics.traits.features.specialFeatures?.length > 0 ? 
                 genetics.traits.features.specialFeatures[0] : 'none'

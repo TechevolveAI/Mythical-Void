@@ -1362,12 +1362,12 @@ class FusionPodScene extends Phaser.Scene {
 
         return {
             primary: {
-                color: p1Colors?.primary?.color || baseColors.primary,
+                color: p1Colors?.primary || baseColors.primary,
                 saturation: 0.8,
                 brightness: 0.7
             },
             secondary: {
-                color: p2Colors?.secondary?.color || baseColors.secondary,
+                color: p2Colors?.secondary || baseColors.secondary,
                 saturation: 0.7,
                 brightness: 0.8
             },
