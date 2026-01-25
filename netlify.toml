@@ -13,6 +13,7 @@
 
 [build.environment]
   # Build-time environment variables
+  NODE_VERSION = "20"
   NODE_ENV = "production"
   ENABLE_API_FEATURES = "false"
 
