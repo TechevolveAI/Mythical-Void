@@ -654,18 +654,62 @@ class FusionPodScene extends Phaser.Scene {
         // Close modal FIRST to avoid input conflicts during UI refresh
         this.closeSelectionModal();
 
+        // Show visual confirmation immediately
+        this.showSelectionConfirmation(creature.name, slotNum);
+
+        // Play selection sound immediately
+        window.AudioManager?.playButtonClick?.();
+
         // Small delay to let Phaser process the modal cleanup before refreshing
-        this.time.delayedCall(50, () => {
+        this.time.delayedCall(100, () => {
             // Refresh the UI
             this.refreshUI();
 
             // Calculate compatibility if both selected
             if (this.parent1Data && this.parent2Data) {
                 this.calculateCompatibility();
+                // Play success sound when both parents selected
+                window.AudioManager?.playLevelUp?.();
             }
+        });
+    }
 
-            // Play parent selection sound
-            window.AudioManager?.playFusionSelect?.();
+    /**
+     * Show a brief confirmation toast when a parent is selected
+     */
+    showSelectionConfirmation(creatureName, slotNum) {
+        const { width, height } = this.scale;
+
+        // Create confirmation toast
+        const toast = this.add.text(width / 2, height / 2 - 50, `✓ ${creatureName} selected for Parent ${slotNum}!`, {
+            fontSize: '18px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#00FF00',
+            backgroundColor: 'rgba(0, 50, 0, 0.9)',
+            padding: { x: 20, y: 12 },
+            stroke: '#00AA00',
+            strokeThickness: 1
+        }).setOrigin(0.5).setDepth(500).setScrollFactor(0).setAlpha(0);
+
+        // Animate in
+        this.tweens.add({
+            targets: toast,
+            alpha: 1,
+            y: height / 2 - 70,
+            duration: 200,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Hold for a moment then fade out
+                this.time.delayedCall(1200, () => {
+                    this.tweens.add({
+                        targets: toast,
+                        alpha: 0,
+                        y: height / 2 - 100,
+                        duration: 300,
+                        onComplete: () => toast.destroy()
+                    });
+                });
+            }
         });
     }
 

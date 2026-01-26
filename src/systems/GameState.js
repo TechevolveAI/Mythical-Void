@@ -585,7 +585,10 @@ class GameStateManager {
     /**
      * Add current creature to the collection
      * Called when hatching a new creature or saving an offspring from breeding
-     * @returns {boolean} Whether creature was added successfully
+     * @returns {Object} Result object with success status and reason
+     *   - success: boolean - Whether creature was added
+     *   - reason: string - 'added', 'full', or 'duplicate'
+     *   - creature: object - The creature data (if added)
      */
     addCreatureToCollection(creatureData = null) {
         const creatures = this.get('creatures') || [];
@@ -594,7 +597,7 @@ class GameStateManager {
         if (creatures.length >= maxCreatures) {
             console.warn('[GameState] Creature collection is full!');
             this.emit('collectionFull', { max: maxCreatures, current: creatures.length });
-            return false;
+            return { success: false, reason: 'full' };
         }
 
         // If no creature data provided, use current active creature
@@ -636,7 +639,7 @@ class GameStateManager {
         if (isDuplicate) {
             console.warn(`[GameState] Creature "${creature.name}" already exists in collection, skipping duplicate`);
             this.emit('duplicateCreature', { creature });
-            return false;
+            return { success: false, reason: 'duplicate', creature };
         }
 
         creatures.push(creature);
@@ -655,7 +658,9 @@ class GameStateManager {
             });
         }
 
-        return true;
+        // Return object for new callers, but also truthy for backward compatibility
+        const result = { success: true, reason: 'added', creature, index: creatures.length - 1 };
+        return result;
     }
 
     /**

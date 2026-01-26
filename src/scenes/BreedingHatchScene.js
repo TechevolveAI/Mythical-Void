@@ -1252,10 +1252,14 @@ class BreedingHatchScene extends Phaser.Scene {
                 secretAbilities: twin.data?.offspringData?.secretAbilities || []
             };
 
-            const added = window.GameState?.addCreatureToCollection?.(creatureData);
-            if (added) {
+            // Handle both old boolean return and new object return for backward compatibility
+            const result = window.GameState?.addCreatureToCollection?.(creatureData);
+            const isSuccess = result === true || (result && result.success);
+            if (isSuccess) {
                 addedCreatures.push(creatureData);
                 console.log(`[BreedingHatchScene] Twin ${twin.index} added:`, twin.name);
+            } else {
+                console.log(`[BreedingHatchScene] Twin ${twin.index} failed:`, result?.reason || 'unknown');
             }
         });
 
@@ -1624,12 +1628,16 @@ class BreedingHatchScene extends Phaser.Scene {
             dualAffinity: this.offspringData?.dualAffinity || null
         };
 
-        // Add to collection
-        const added = window.GameState?.addCreatureToCollection?.(creatureData);
+        // Add to collection - returns object with { success, reason, creature }
+        const result = window.GameState?.addCreatureToCollection?.(creatureData);
+
+        // Handle both old boolean return and new object return for backward compatibility
+        const isSuccess = result === true || (result && result.success);
+        const failureReason = result?.reason || 'unknown';
 
         const { width, height } = this.scale;
 
-        if (added) {
+        if (isSuccess) {
             // CRITICAL: Set the new baby as the active creature
             // This ensures the player sees their new baby when returning to GameScene
             console.log('[BreedingHatchScene] Setting new baby as active creature');
@@ -1686,17 +1694,29 @@ class BreedingHatchScene extends Phaser.Scene {
                 this.returnToGame();
             });
         } else {
-            // Collection full or error
-            const errorText = this.add.text(width / 2, height / 2, '❌ Collection is full!', {
+            // Show appropriate error message based on failure reason
+            let errorMessage = '❌ Something went wrong!';
+            if (failureReason === 'full') {
+                errorMessage = '❌ Collection is full (8/8)!\nRelease a creature to make room.';
+            } else if (failureReason === 'duplicate') {
+                // This shouldn't happen for bred offspring, but handle it gracefully
+                console.warn('[BreedingHatchScene] Duplicate creature detected - this is unusual for breeding');
+                errorMessage = '⚠️ Creature already exists!\nPlease try breeding again.';
+            }
+
+            console.log('[BreedingHatchScene] Failed to add creature:', failureReason);
+
+            const errorText = this.add.text(width / 2, height / 2, errorMessage, {
                 fontSize: '18px',
                 color: '#FF6666',
                 stroke: '#000000',
-                strokeThickness: 3
+                strokeThickness: 3,
+                align: 'center'
             }).setOrigin(0.5).setDepth(300);
 
             window.AudioManager?.playError?.();
 
-            this.time.delayedCall(2000, () => {
+            this.time.delayedCall(2500, () => {
                 this.returnToGame();
             });
         }

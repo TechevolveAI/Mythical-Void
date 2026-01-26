@@ -339,21 +339,29 @@ export default class HamburgerMenu {
      * Forces display regardless of daily limit for testing
      */
     async showSpaceNews() {
-        devLog('[HamburgerMenu] Show Space News');
+        devLog('[HamburgerMenu] Show Space News - starting');
+
+        // Show loading indicator immediately
+        this.showToast('🚀 Loading space news...');
 
         if (!window.NASAContentSystem) {
-            console.warn('[HamburgerMenu] NASAContentSystem not available');
+            console.warn('[HamburgerMenu] NASAContentSystem not available - check global-init.js');
+            this.showToast('⚠️ NASA system not loaded');
             return;
         }
 
         try {
             // Initialize if needed
             if (!window.NASAContentSystem.isInitialized) {
+                devLog('[HamburgerMenu] Initializing NASA system...');
                 await window.NASAContentSystem.initialize();
             }
 
+            devLog('[HamburgerMenu] Fetching APOD...');
             // Force fetch fresh content (bypass daily check)
             const apod = await window.NASAContentSystem.fetchAPOD();
+            devLog('[HamburgerMenu] APOD result:', apod ? 'success' : 'failed/null');
+
             const queue = [];
 
             if (apod) {
@@ -369,8 +377,11 @@ export default class HamburgerMenu {
                 });
             }
 
+            devLog('[HamburgerMenu] Fetching Mars photo...');
             // Try to get Mars photo too
             const mars = await window.NASAContentSystem.fetchMarsPhoto();
+            devLog('[HamburgerMenu] Mars result:', mars ? 'success' : 'failed/null');
+
             if (mars) {
                 queue.push({
                     type: 'mars',
@@ -383,22 +394,27 @@ export default class HamburgerMenu {
                 });
             }
 
-            if (queue.length > 0 && this.scene.nasaModal) {
-                // Use existing modal from scene
-                this.scene.nasaModal.show(queue);
-            } else if (queue.length > 0) {
+            devLog('[HamburgerMenu] Content queue length:', queue.length);
+
+            if (queue.length > 0) {
                 // Import and create modal
-                const NASAContentModal = (await import('./NASAContentModal.js')).default;
-                const modal = new NASAContentModal(this.scene);
-                modal.show(queue);
+                try {
+                    const NASAContentModal = (await import('./NASAContentModal.js')).default;
+                    const modal = new NASAContentModal(this.scene);
+                    modal.show(queue);
+                    devLog('[HamburgerMenu] NASA modal displayed');
+                } catch (modalError) {
+                    console.error('[HamburgerMenu] Failed to create NASA modal:', modalError);
+                    this.showToast('⚠️ Could not display content');
+                }
             } else {
-                devLog('[HamburgerMenu] No NASA content available');
-                // Show a brief message
-                this.showToast('🌌 NASA content loading... try again in a moment!');
+                devLog('[HamburgerMenu] No NASA content available - API may be rate limited');
+                // Show a more helpful message
+                this.showToast('🌌 NASA API rate limited - try again later');
             }
         } catch (error) {
-            console.warn('[HamburgerMenu] Failed to load space news:', error.message);
-            this.showToast('🚀 Space news unavailable right now');
+            console.error('[HamburgerMenu] Failed to load space news:', error);
+            this.showToast('⚠️ Space news unavailable: ' + (error.message || 'Network error'));
         }
     }
 
