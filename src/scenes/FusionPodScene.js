@@ -456,6 +456,10 @@ class FusionPodScene extends Phaser.Scene {
     openCreatureSelector(slotNum) {
         console.log(`[FusionPodScene] Opening creature selector for slot ${slotNum}`);
 
+        // CRITICAL: Enable topOnly mode so only the topmost interactive object receives touch events
+        // This prevents the overlay from blocking touches on buttons above it
+        this.input.topOnly = true;
+
         const { width, height } = this.scale;
         const collection = getGameState().getCreatureCollection?.() || [];
 
@@ -463,12 +467,12 @@ class FusionPodScene extends Phaser.Scene {
         const adultCreatures = collection.map((creature, index) => ({ ...creature, collectionIndex: index }))
             .filter(creature => this.isCreatureAdult(creature));
 
-        // Create modal overlay
+        // Create modal overlay (visual only - NOT interactive to prevent blocking button touches on mobile)
         const modalOverlay = this.add.graphics();
         modalOverlay.fillStyle(0x000000, 0.7);
         modalOverlay.fillRect(0, 0, width, height);
         modalOverlay.setDepth(300);
-        modalOverlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        // NOTE: Overlay is NOT made interactive - use Cancel button to close instead
 
         // Modal panel
         const modalWidth = Math.min(340, width - 40);
@@ -512,6 +516,32 @@ class FusionPodScene extends Phaser.Scene {
             rowBg.fillRoundedRect(modalX + 15, rowY, modalWidth - 30, rowHeight - 5, 8);
             rowBg.setDepth(302);
 
+            // Make entire row tappable on mobile (if not selected elsewhere)
+            if (!isSelectedElsewhere) {
+                const rowZone = this.add.zone(modalX + 15 + (modalWidth - 30) / 2, rowY + (rowHeight - 5) / 2, modalWidth - 30, rowHeight - 5);
+                rowZone.setInteractive({ useHandCursor: true });
+                rowZone.setDepth(304);  // Above the row elements
+
+                rowZone.on('pointerdown', () => {
+                    console.log(`[FusionPodScene] Row tapped for ${creature.name}`);
+                    this.selectCreatureForSlot(slotNum, creature.collectionIndex, creature);
+                });
+
+                rowZone.on('pointerover', () => {
+                    rowBg.clear();
+                    rowBg.fillStyle(0x3A2A6E, 0.9);
+                    rowBg.fillRoundedRect(modalX + 15, rowY, modalWidth - 30, rowHeight - 5, 8);
+                });
+
+                rowZone.on('pointerout', () => {
+                    rowBg.clear();
+                    rowBg.fillStyle(0x2A1A4E, 0.8);
+                    rowBg.fillRoundedRect(modalX + 15, rowY, modalWidth - 30, rowHeight - 5, 8);
+                });
+
+                this.selectionModalElements.push(rowZone);
+            }
+
             // Creature icon
             const iconColor = this.getCreatureColor(creature.genes || creature.dna);
             const icon = this.add.graphics();
@@ -536,13 +566,22 @@ class FusionPodScene extends Phaser.Scene {
             // Select button (if not selected elsewhere)
             if (!isSelectedElsewhere) {
                 const selectBtn = this.add.text(modalX + modalWidth - 60, rowY + 18, 'SELECT', {
-                    fontSize: '11px',
+                    fontSize: '12px',
                     color: '#00FF00',
                     backgroundColor: '#1A3A1A',
-                    padding: { x: 8, y: 4 }
-                }).setOrigin(0.5).setDepth(303).setInteractive();
+                    padding: { x: 12, y: 8 }  // Larger padding for easier mobile tapping
+                }).setOrigin(0.5).setDepth(303);
+
+                // Create larger hit area for mobile touch (44x44 minimum recommended)
+                const hitWidth = Math.max(selectBtn.width + 20, 60);
+                const hitHeight = Math.max(selectBtn.height + 16, 44);
+                selectBtn.setInteractive(
+                    new Phaser.Geom.Rectangle(-hitWidth/2, -hitHeight/2, hitWidth, hitHeight),
+                    Phaser.Geom.Rectangle.Contains
+                );
 
                 selectBtn.on('pointerdown', () => {
+                    console.log(`[FusionPodScene] SELECT button tapped for ${creature.name}`);
                     this.selectCreatureForSlot(slotNum, creature.collectionIndex, creature);
                     // Note: closeSelectionModal is now called inside selectCreatureForSlot
                 });
@@ -563,22 +602,33 @@ class FusionPodScene extends Phaser.Scene {
             rowY += rowHeight;
         });
 
-        // Close button
+        // Close button with larger touch target for mobile
         const closeBtn = this.add.text(width / 2, modalY + modalHeight - 30, 'Cancel', {
-            fontSize: '14px',
-            color: '#AAAAAA',
-            backgroundColor: '#333333',
-            padding: { x: 20, y: 8 }
-        }).setOrigin(0.5).setDepth(302).setInteractive();
+            fontSize: '16px',
+            color: '#FFFFFF',
+            backgroundColor: '#555555',
+            padding: { x: 30, y: 12 }  // Larger padding for mobile
+        }).setOrigin(0.5).setDepth(302);
 
-        closeBtn.on('pointerdown', () => this.closeSelectionModal());
-        closeBtn.on('pointerover', () => closeBtn.setStyle({ backgroundColor: '#555555' }));
-        closeBtn.on('pointerout', () => closeBtn.setStyle({ backgroundColor: '#333333' }));
+        // Create larger hit area for mobile (minimum 44x44 recommended)
+        const cancelHitWidth = Math.max(closeBtn.width + 20, 100);
+        const cancelHitHeight = Math.max(closeBtn.height + 16, 48);
+        closeBtn.setInteractive(
+            new Phaser.Geom.Rectangle(-cancelHitWidth/2, -cancelHitHeight/2, cancelHitWidth, cancelHitHeight),
+            Phaser.Geom.Rectangle.Contains
+        );
+
+        closeBtn.on('pointerdown', () => {
+            console.log('[FusionPodScene] Cancel button tapped');
+            this.closeSelectionModal();
+        });
+        closeBtn.on('pointerover', () => closeBtn.setStyle({ backgroundColor: '#777777' }));
+        closeBtn.on('pointerout', () => closeBtn.setStyle({ backgroundColor: '#555555' }));
 
         this.selectionModalElements.push(closeBtn);
 
-        // Close on overlay click
-        modalOverlay.on('pointerdown', () => this.closeSelectionModal());
+        // NOTE: Overlay is NOT interactive - use Cancel button to close the modal
+        // This prevents touch events from being blocked on mobile devices
     }
 
     closeSelectionModal() {

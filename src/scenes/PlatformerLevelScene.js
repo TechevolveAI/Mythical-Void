@@ -555,18 +555,25 @@ class PlatformerLevelScene extends Phaser.Scene {
         camera.setDeadzone(screenWidth * 0.1, screenHeight * 0.35);
 
         // MOBILE UX: Calculate vertical offset for control safe zone
-        // Controls are positioned at VERY BOTTOM of screen
-        // Camera offset pushes gameplay UP so ground level appears ABOVE controls
+        // Controls are overlaid at bottom of screen
+        // NEGATIVE camera offset = camera ABOVE player = shows more BELOW = player appears HIGHER on screen
         if (this.isMobileDevice) {
-            // Mobile: push gameplay to upper portion of screen
-            // Controls occupy bottom ~15% of screen
-            // Camera offset of 45% ensures ground level is well above control zone
-            this.mobileControlZoneHeight = screenHeight * 0.15; // 15% of screen for controls
-            this.cameraBaseOffsetY = screenHeight * 0.45; // 45% offset - gameplay appears in upper half
-            console.log(`[PlatformerLevel] Mobile camera: controlZone=${this.mobileControlZoneHeight}px, offsetY=${this.cameraBaseOffsetY}px`);
+            // Get actual safe area for this device (iPhone notch, home indicator, etc.)
+            const safeArea = this.getSafeAreaInsets();
+
+            // Mobile control zone is a fixed 120px + bottom safe area
+            // This ensures controls don't overlap with home indicator
+            this.mobileControlZoneHeight = 120 + safeArea.bottom;
+
+            // NEGATIVE offset pushes gameplay UP (player appears higher on screen)
+            // This leaves room for controls at bottom without obscuring gameplay
+            // Use 15% of screen height as offset (not 45% which was way too much)
+            this.cameraBaseOffsetY = -screenHeight * 0.12;
+
+            console.log(`[PlatformerLevel] Mobile camera: controlZone=${this.mobileControlZoneHeight}px, offsetY=${this.cameraBaseOffsetY}px, safeBottom=${safeArea.bottom}px`);
         } else {
             this.mobileControlZoneHeight = 0;
-            this.cameraBaseOffsetY = screenHeight * 0.1;
+            this.cameraBaseOffsetY = screenHeight * 0.05; // Slight offset for desktop
         }
 
         // DIRECTIONAL LEAD: Offset camera based on player facing
@@ -578,8 +585,18 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Initial camera offset
         camera.setFollowOffset(0, this.cameraBaseOffsetY);
 
-        // Zoom slightly out on mobile for better visibility
-        camera.setZoom(this.isMobileDevice ? 0.95 : 1.0);
+        // Zoom out on mobile for better visibility of the level
+        // More zoom out = see more of the level = easier to play
+        if (this.isMobileDevice) {
+            // Calculate appropriate zoom based on screen size
+            const screenAspect = screenWidth / screenHeight;
+            // Portrait mode needs more zoom out, landscape less
+            const zoomFactor = screenAspect < 1 ? 0.75 : 0.85;
+            camera.setZoom(zoomFactor);
+            console.log(`[PlatformerLevel] Mobile zoom: ${zoomFactor} (aspect: ${screenAspect.toFixed(2)})`);
+        } else {
+            camera.setZoom(1.0);
+        }
 
         console.log(`[PlatformerLevel] Camera: bounds ${this.levelWidth}x${boundsHeight}, lead=${this.cameraLeadAmount}px, zoom=${camera.zoom}`);
     }
@@ -693,27 +710,35 @@ class PlatformerLevelScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const safeArea = this.getSafeAreaInsets();
 
-        // MOBILE UX: Controls at VERY BOTTOM of screen
-        // This zone is BELOW the gameplay area (camera pushes gameplay UP)
-        const controlZoneBottom = Math.max(20, safeArea.bottom + 10);
-        const controlZoneTop = height * 0.85; // Controls start at 85% down (at very bottom)
+        // MOBILE UX: Controls positioned ABOVE the bottom safe area
+        // iPhone 12: home indicator is ~34pt, so safeArea.bottom should be around 34
+        // Controls should be positioned ABOVE this safe area, not inside it
+        const bottomSafeMargin = Math.max(25, safeArea.bottom + 5); // Space above home indicator
+        const sideSafeMargin = Math.max(15, Math.max(safeArea.left, safeArea.right));
 
-        // Smaller, more compact controls
-        const buttonSize = 58; // Reduced from 70
-        const primarySize = 65; // Reduced from 80
-        const spacing = 10; // Reduced from 15
-        const marginRight = Math.max(12, safeArea.right);
-        const marginLeft = Math.max(12, safeArea.left);
+        // Control zone: Fixed 110px tall, positioned above bottom safe area
+        const controlZoneHeight = 110;
+        const controlZoneTop = height - bottomSafeMargin - controlZoneHeight;
+
+        console.log(`[PlatformerLevel] Mobile controls: height=${height}, safeBottom=${safeArea.bottom}, controlZoneTop=${controlZoneTop}`);
+
+        // Responsive button sizes based on screen width
+        const isSmallScreen = width < 400;
+        const buttonSize = isSmallScreen ? 50 : 56;
+        const primarySize = isSmallScreen ? 58 : 64;
+        const spacing = isSmallScreen ? 8 : 10;
+        const marginRight = sideSafeMargin + 5;
+        const marginLeft = sideSafeMargin + 5;
 
         // Control opacity - semi-transparent to not fully obscure gameplay
-        const controlOpacity = 0.7;
-        const containerOpacity = 0.35;
+        const controlOpacity = 0.8;
+        const containerOpacity = 0.4;
 
-        // ============ JOYSTICK (left side, at bottom) ============
-        const joystickX = marginLeft + 60;
-        const joystickY = controlZoneTop + 35; // Positioned within bottom control zone
-        const joystickBaseRadius = 45; // Smaller base
-        const joystickThumbRadius = 20; // Smaller thumb
+        // ============ JOYSTICK (left side, centered in control zone) ============
+        const joystickBaseRadius = isSmallScreen ? 40 : 45;
+        const joystickThumbRadius = isSmallScreen ? 18 : 20;
+        const joystickX = marginLeft + joystickBaseRadius + 15;
+        const joystickY = controlZoneTop + controlZoneHeight / 2; // Centered vertically in control zone
 
         // Joystick base - semi-transparent for better gameplay visibility
         const joystickBase = this.add.graphics();
@@ -750,14 +775,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Store joystick state
         this.joystickCenterX = joystickX;
         this.joystickCenterY = joystickY;
-        this.joystickMaxDistance = 35; // Reduced for more compact control
+        this.joystickMaxDistance = joystickBaseRadius - 5; // Max distance based on base size
         this.joystickActive = false;
         this.joystickPointerId = null;
         this.joystickThumb = joystickThumb;
         this.joystickThumbRadius = joystickThumbRadius;
 
-        // Joystick touch zone (larger for easier use)
-        const joystickZone = this.add.zone(joystickX, joystickY, joystickBaseRadius * 4, joystickBaseRadius * 4)
+        // Joystick touch zone (larger for easier use - covers whole left side of control zone)
+        const joystickZoneWidth = width * 0.4; // Left 40% of screen
+        const joystickZone = this.add.zone(joystickZoneWidth / 2, controlZoneTop + controlZoneHeight / 2, joystickZoneWidth, controlZoneHeight)
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(10002)
@@ -800,14 +826,17 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         }, { passive: true });
 
-        // ============ ACTION BUTTONS (right side, at BOTTOM) ============
-        // Button layout at very bottom of screen
+        // ============ ACTION BUTTONS (right side, in control zone) ============
+        // 2x2 grid of buttons on right side
         const rightColX = width - marginRight - primarySize / 2;
         const leftColX = rightColX - primarySize - spacing;
-        // Compact positions within bottom control zone - avoid safe area
-        const availableHeight = height - controlZoneTop - controlZoneBottom;
-        const topRowY = controlZoneTop + 5; // Secondary buttons near top of control zone
-        const bottomRowY = controlZoneTop + Math.min(60, availableHeight - primarySize / 2 - 5); // Primary buttons
+
+        // Position buttons within the control zone (centered vertically)
+        const buttonPadding = 5;
+        const totalButtonHeight = buttonSize + spacing + primarySize;
+        const buttonStartY = controlZoneTop + (controlZoneHeight - totalButtonHeight) / 2;
+        const topRowY = buttonStartY + buttonSize / 2; // Center of top row buttons
+        const bottomRowY = buttonStartY + buttonSize + spacing + primarySize / 2; // Center of bottom row buttons
 
         // Button configs for platformer - compact layout
         // Layout: [Special] [Ranged]  <- smaller secondary actions
@@ -860,20 +889,31 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         ];
 
-        // Create button container background - semi-transparent
-        const containerPadding = 10;
-        const containerX = leftColX - buttonSize / 2 - containerPadding;
-        const containerY = topRowY - buttonSize / 2 - containerPadding;
+        // Create full-width control zone background - semi-transparent
+        const controlBg = this.add.graphics();
+        controlBg.setScrollFactor(0);
+        controlBg.setDepth(9998);
+        controlBg.fillStyle(0x0D0D1A, containerOpacity * 0.8);
+        controlBg.fillRect(0, controlZoneTop, width, controlZoneHeight + bottomSafeMargin);
+        // Subtle top border
+        controlBg.lineStyle(1, 0xFFFFFF, 0.15);
+        controlBg.lineBetween(0, controlZoneTop, width, controlZoneTop);
+        this.mobileControlElements.push(controlBg);
+
+        // Button container background (right side)
+        const containerPadding = 8;
+        const containerX = leftColX - primarySize / 2 - containerPadding;
+        const containerY = controlZoneTop + containerPadding;
         const containerWidth = (rightColX - leftColX) + primarySize + containerPadding * 2;
-        const containerHeight = (bottomRowY - topRowY) + primarySize + containerPadding * 2;
+        const containerHeight = controlZoneHeight - containerPadding * 2;
 
         const buttonContainer = this.add.graphics();
         buttonContainer.setScrollFactor(0);
         buttonContainer.setDepth(9999);
-        buttonContainer.fillStyle(0x0D0D1A, containerOpacity);
-        buttonContainer.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 14);
-        buttonContainer.lineStyle(1, 0xFFFFFF, 0.1);
-        buttonContainer.strokeRoundedRect(containerX, containerY, containerWidth, containerHeight, 14);
+        buttonContainer.fillStyle(0x1A1A3E, containerOpacity);
+        buttonContainer.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 12);
+        buttonContainer.lineStyle(1, 0x9370DB, 0.3);
+        buttonContainer.strokeRoundedRect(containerX, containerY, containerWidth, containerHeight, 12);
         this.mobileControlElements.push(buttonContainer);
 
         // Create each button
