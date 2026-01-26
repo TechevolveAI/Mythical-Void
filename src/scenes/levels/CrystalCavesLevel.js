@@ -28,6 +28,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             levelHeight: 800
         });
 
+        // MOBILE-OPTIMIZED PHYSICS: More responsive controls
+        this.playerSpeed = 220;           // Faster movement (was 180 default)
+        this.jumpVelocity = -460;         // Higher jumps (was -420 default)
+        this.playerAcceleration = 0.22;   // Faster acceleration (was 0.15 default)
+        this.playerDeceleration = 0.68;   // Quicker stops (was 0.75 default)
+        this.coyoteTime = 150;            // More forgiving jump timing (was 100ms)
+        this.jumpBufferTime = 150;        // More forgiving jump buffer (was 100ms)
+
         // Level-specific state
         this.starFragmentsCollected = 0;
         this.totalStarFragments = 5;

@@ -735,9 +735,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         const containerOpacity = 0.4;
 
         // ============ JOYSTICK (left side, centered in control zone) ============
-        const joystickBaseRadius = isSmallScreen ? 40 : 45;
-        const joystickThumbRadius = isSmallScreen ? 18 : 20;
-        const joystickX = marginLeft + joystickBaseRadius + 15;
+        // IMPROVED: Larger joystick for better mobile control
+        const joystickBaseRadius = isSmallScreen ? 52 : 60;  // +30% larger
+        const joystickThumbRadius = isSmallScreen ? 22 : 26; // +20% larger
+        const joystickX = marginLeft + joystickBaseRadius + 10;
         const joystickY = controlZoneTop + controlZoneHeight / 2; // Centered vertically in control zone
 
         // Joystick base - semi-transparent for better gameplay visibility
@@ -781,18 +782,56 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.joystickThumb = joystickThumb;
         this.joystickThumbRadius = joystickThumbRadius;
 
-        // Joystick touch zone (larger for easier use - covers whole left side of control zone)
-        const joystickZoneWidth = width * 0.4; // Left 40% of screen
-        const joystickZone = this.add.zone(joystickZoneWidth / 2, controlZoneTop + controlZoneHeight / 2, joystickZoneWidth, controlZoneHeight)
+        // Joystick touch zone - IMPROVED: larger zone that extends higher for easier reach
+        const joystickZoneWidth = width * 0.45; // Left 45% of screen (was 40%)
+        const joystickZoneHeight = controlZoneHeight + 40; // Extend above control zone for easier reach
+        const joystickZone = this.add.zone(joystickZoneWidth / 2, controlZoneTop + controlZoneHeight / 2 - 15, joystickZoneWidth, joystickZoneHeight)
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(10002)
             .setInteractive({ draggable: true });
         this.mobileControlElements.push(joystickZone);
 
+        // Store joystick base reference for floating joystick feature
+        this.joystickBase = joystickBase;
+        this.joystickBaseRadius = joystickBaseRadius;
+        this.originalJoystickX = joystickX;
+        this.originalJoystickY = joystickY;
+
         joystickZone.on('pointerdown', (pointer) => {
             this.joystickActive = true;
             this.joystickPointerId = pointer.id;
+
+            // FLOATING JOYSTICK: Move joystick to where finger touches (within bounds)
+            const touchX = Math.max(marginLeft + joystickBaseRadius, Math.min(pointer.x, joystickZoneWidth - joystickBaseRadius));
+            const touchY = Math.max(controlZoneTop + joystickBaseRadius / 2, Math.min(pointer.y, height - bottomSafeMargin - joystickBaseRadius / 2));
+
+            // Only move if touch is reasonably close to joystick area
+            const distFromOriginal = Math.sqrt(Math.pow(pointer.x - joystickX, 2) + Math.pow(pointer.y - joystickY, 2));
+            if (distFromOriginal > joystickBaseRadius * 1.5) {
+                // Move joystick center to touch position
+                this.joystickCenterX = touchX;
+                this.joystickCenterY = touchY;
+
+                // Redraw joystick base at new position
+                this.joystickBase.clear();
+                this.joystickBase.fillStyle(0x000000, containerOpacity);
+                this.joystickBase.fillCircle(touchX, touchY, joystickBaseRadius);
+                this.joystickBase.lineStyle(3, 0x00CED1, 0.7); // Brighter border when active
+                this.joystickBase.strokeCircle(touchX, touchY, joystickBaseRadius);
+                // Redraw directional arrows
+                this.joystickBase.fillStyle(0xFFFFFF, 0.4);
+                this.joystickBase.fillTriangle(
+                    touchX - joystickBaseRadius + 12, touchY,
+                    touchX - joystickBaseRadius + 26, touchY - 10,
+                    touchX - joystickBaseRadius + 26, touchY + 10
+                );
+                this.joystickBase.fillTriangle(
+                    touchX + joystickBaseRadius - 12, touchY,
+                    touchX + joystickBaseRadius - 26, touchY - 10,
+                    touchX + joystickBaseRadius - 26, touchY + 10
+                );
+            }
         });
 
         joystickZone.on('pointermove', (pointer) => {
@@ -1198,50 +1237,109 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     /**
      * Update joystick thumb position and calculate input
+     * IMPROVED: Larger dead zone, horizontal lock for platformers, better visual feedback
      */
     updateJoystick(pointer) {
         const offsetX = pointer.x - this.joystickCenterX;
         const offsetY = pointer.y - this.joystickCenterY;
         const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
-        const angle = Math.atan2(offsetY, offsetX);
+        let angle = Math.atan2(offsetY, offsetX);
+
+        // HORIZONTAL LOCK: For platformers, strongly favor horizontal movement
+        // If moving mostly horizontal (within 35 degrees of horizontal), snap to pure horizontal
+        const angleDeg = Math.abs(angle * 180 / Math.PI);
+        const isNearHorizontal = angleDeg < 35 || angleDeg > 145;
+        if (isNearHorizontal && distance > this.joystickMaxDistance * 0.2) {
+            // Snap to pure horizontal (left or right)
+            angle = offsetX >= 0 ? 0 : Math.PI;
+        }
 
         const clampedDistance = Math.min(distance, this.joystickMaxDistance);
         const thumbX = this.joystickCenterX + Math.cos(angle) * clampedDistance;
-        const thumbY = this.joystickCenterY + Math.sin(angle) * clampedDistance;
+        // For horizontal lock, keep thumb on horizontal axis
+        const thumbY = isNearHorizontal && distance > this.joystickMaxDistance * 0.2
+            ? this.joystickCenterY
+            : this.joystickCenterY + Math.sin(angle) * clampedDistance;
 
-        // Update thumb visual
+        // Update thumb visual with active state
         this.joystickThumb.clear();
-        this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
+        // Brighter when actively moving
+        const isMoving = distance > this.joystickMaxDistance * 0.25;
+        this.joystickThumb.fillStyle(isMoving ? 0x00CED1 : 0xFFFFFF, 0.9);
         this.joystickThumb.fillCircle(thumbX, thumbY, this.joystickThumbRadius);
-        this.joystickThumb.lineStyle(2, 0x00CED1, 1);
+        this.joystickThumb.lineStyle(3, isMoving ? 0xFFFFFF : 0x00CED1, 1);
         this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
 
-        // Calculate normalized X input (-1 to 1) with dead zone
-        const deadZone = this.joystickMaxDistance * 0.15;
+        // Add direction arrow when moving
+        if (isMoving) {
+            const arrowDir = offsetX >= 0 ? 1 : -1;
+            this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
+            this.joystickThumb.fillTriangle(
+                thumbX + arrowDir * 8, thumbY,
+                thumbX - arrowDir * 4, thumbY - 6,
+                thumbX - arrowDir * 4, thumbY + 6
+            );
+        }
+
+        // Calculate normalized X input (-1 to 1) with LARGER dead zone (25%)
+        const deadZone = this.joystickMaxDistance * 0.25; // Was 0.15, now 0.25
         if (distance > deadZone) {
             const effectiveDistance = clampedDistance - deadZone;
             const effectiveMax = this.joystickMaxDistance - deadZone;
-            const magnitude = effectiveDistance / effectiveMax;
-            this.virtualJoystickX = Math.cos(angle) * magnitude;
+            const magnitude = Math.min(1, effectiveDistance / effectiveMax);
+
+            // For horizontal lock, use full magnitude
+            if (isNearHorizontal) {
+                this.virtualJoystickX = offsetX >= 0 ? magnitude : -magnitude;
+            } else {
+                this.virtualJoystickX = Math.cos(angle) * magnitude;
+            }
         } else {
             this.virtualJoystickX = 0;
         }
     }
 
     /**
-     * Reset joystick to center
+     * Reset joystick to center and original position (for floating joystick)
      */
     resetJoystick() {
         this.joystickActive = false;
         this.joystickPointerId = null;
         this.virtualJoystickX = 0;
 
-        // Reset thumb to center
+        // Reset joystick to original position (floating joystick returns home)
+        if (this.originalJoystickX && this.originalJoystickY) {
+            this.joystickCenterX = this.originalJoystickX;
+            this.joystickCenterY = this.originalJoystickY;
+
+            // Redraw base at original position with inactive styling
+            if (this.joystickBase && this.joystickBaseRadius) {
+                this.joystickBase.clear();
+                this.joystickBase.fillStyle(0x000000, 0.4); // More transparent when inactive
+                this.joystickBase.fillCircle(this.joystickCenterX, this.joystickCenterY, this.joystickBaseRadius);
+                this.joystickBase.lineStyle(2, 0xFFFFFF, 0.4);
+                this.joystickBase.strokeCircle(this.joystickCenterX, this.joystickCenterY, this.joystickBaseRadius);
+                // Directional arrows
+                this.joystickBase.fillStyle(0xFFFFFF, 0.3);
+                this.joystickBase.fillTriangle(
+                    this.joystickCenterX - this.joystickBaseRadius + 12, this.joystickCenterY,
+                    this.joystickCenterX - this.joystickBaseRadius + 26, this.joystickCenterY - 10,
+                    this.joystickCenterX - this.joystickBaseRadius + 26, this.joystickCenterY + 10
+                );
+                this.joystickBase.fillTriangle(
+                    this.joystickCenterX + this.joystickBaseRadius - 12, this.joystickCenterY,
+                    this.joystickCenterX + this.joystickBaseRadius - 26, this.joystickCenterY - 10,
+                    this.joystickCenterX + this.joystickBaseRadius - 26, this.joystickCenterY + 10
+                );
+            }
+        }
+
+        // Reset thumb to center with inactive styling
         if (this.joystickThumb) {
             this.joystickThumb.clear();
-            this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
+            this.joystickThumb.fillStyle(0xFFFFFF, 0.7);
             this.joystickThumb.fillCircle(this.joystickCenterX, this.joystickCenterY, this.joystickThumbRadius);
-            this.joystickThumb.lineStyle(2, 0x00CED1, 1);
+            this.joystickThumb.lineStyle(2, 0x00CED1, 0.8);
             this.joystickThumb.strokeCircle(this.joystickCenterX, this.joystickCenterY, this.joystickThumbRadius);
         }
     }
