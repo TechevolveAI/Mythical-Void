@@ -710,35 +710,35 @@ class PlatformerLevelScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const safeArea = this.getSafeAreaInsets();
 
-        // MOBILE UX: Controls positioned ABOVE the bottom safe area
-        // iPhone 12: home indicator is ~34pt, so safeArea.bottom should be around 34
-        // Controls should be positioned ABOVE this safe area, not inside it
-        const bottomSafeMargin = Math.max(25, safeArea.bottom + 5); // Space above home indicator
-        const sideSafeMargin = Math.max(15, Math.max(safeArea.left, safeArea.right));
+        // MOBILE UX: Controls positioned at the VERY BOTTOM of screen
+        // This places them in the "underground" visual area below the playable ground
+        // Only account for minimal safe area (home indicator on newer iPhones)
+        const bottomSafeMargin = Math.max(8, safeArea.bottom); // Minimal margin - just above home indicator
+        const sideSafeMargin = Math.max(10, Math.max(safeArea.left, safeArea.right));
 
-        // Control zone: Fixed 110px tall, positioned above bottom safe area
-        const controlZoneHeight = 110;
+        // Control zone: Compact 90px tall, positioned at very bottom
+        const controlZoneHeight = 90;
         const controlZoneTop = height - bottomSafeMargin - controlZoneHeight;
 
         console.log(`[PlatformerLevel] Mobile controls: height=${height}, safeBottom=${safeArea.bottom}, controlZoneTop=${controlZoneTop}`);
 
-        // Responsive button sizes based on screen width
+        // Responsive button sizes based on screen width - COMPACT for lower positioning
         const isSmallScreen = width < 400;
-        const buttonSize = isSmallScreen ? 50 : 56;
-        const primarySize = isSmallScreen ? 58 : 64;
-        const spacing = isSmallScreen ? 8 : 10;
-        const marginRight = sideSafeMargin + 5;
-        const marginLeft = sideSafeMargin + 5;
+        const buttonSize = isSmallScreen ? 42 : 48;       // Smaller secondary buttons
+        const primarySize = isSmallScreen ? 50 : 56;      // Smaller primary buttons
+        const spacing = isSmallScreen ? 6 : 8;            // Tighter spacing
+        const marginRight = sideSafeMargin + 3;
+        const marginLeft = sideSafeMargin + 3;
 
         // Control opacity - semi-transparent to not fully obscure gameplay
         const controlOpacity = 0.8;
         const containerOpacity = 0.4;
 
         // ============ JOYSTICK (left side, centered in control zone) ============
-        // IMPROVED: Larger joystick for better mobile control
-        const joystickBaseRadius = isSmallScreen ? 52 : 60;  // +30% larger
-        const joystickThumbRadius = isSmallScreen ? 22 : 26; // +20% larger
-        const joystickX = marginLeft + joystickBaseRadius + 10;
+        // COMPACT: Sized to fit in lower control zone
+        const joystickBaseRadius = isSmallScreen ? 38 : 42;  // Smaller to fit compact zone
+        const joystickThumbRadius = isSmallScreen ? 16 : 20; // Proportional thumb
+        const joystickX = marginLeft + joystickBaseRadius + 8;
         const joystickY = controlZoneTop + controlZoneHeight / 2; // Centered vertically in control zone
 
         // Joystick base - semi-transparent for better gameplay visibility

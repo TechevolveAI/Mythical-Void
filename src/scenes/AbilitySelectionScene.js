@@ -361,15 +361,37 @@ export default class AbilitySelectionScene extends Phaser.Scene {
             window.AudioManager.playButtonClick?.();
         }
 
+        // Clean up before stopping
+        this.cleanup();
         this.scene.stop();
+    }
+
+    /**
+     * Cleanup all UI elements
+     */
+    cleanup() {
+        // Clean up ability card hit areas
+        this.abilityCards.forEach(card => {
+            card.hitArea?.removeAllListeners();
+            card.hitArea?.destroy();
+            card.background?.destroy();
+            card.elements?.forEach(el => el?.destroy());
+        });
+        this.abilityCards = [];
+
+        // Clean up main UI elements
+        this.backdrop?.destroy();
+        this.panel?.destroy();
+        this.title?.destroy();
+        this.closeBtn?.removeAllListeners();
+        this.closeBtn?.destroy();
+
+        devLog('[AbilitySelectionScene] Cleaned up UI elements');
     }
 
     shutdown() {
         this.input.keyboard?.off('keydown-ESC');
-        this.abilityCards.forEach(card => {
-            card.hitArea?.removeAllListeners();
-        });
-        this.abilityCards = [];
+        this.cleanup();
 
         devLog('[AbilitySelectionScene] Shutdown');
     }

@@ -424,6 +424,11 @@ class GameScene extends Phaser.Scene {
             this.abilityHUD = new AbilityHUD(this);
             this.abilityHUD.create();
             this.events.on('openAbilitySelection', (slotNumber) => {
+                // Prevent launching if already running
+                if (this.scene.isActive('AbilitySelectionScene')) {
+                    console.log('[GameScene] AbilitySelectionScene already active, skipping');
+                    return;
+                }
                 this.scene.launch('AbilitySelectionScene', { slot: slotNumber });
                 this.scene.bringToTop('AbilitySelectionScene');
             });
