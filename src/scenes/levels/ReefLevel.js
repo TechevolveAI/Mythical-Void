@@ -29,16 +29,18 @@ class ReefLevel extends PlatformerLevelScene {
         });
 
         // Override physics for cosmic void swimming
-        this.gravityY = 60;            // Even lower - floating in cosmic void
-        this.playerSpeed = 170;
-        this.jumpVelocity = -220;      // Propel through void
-        this.playerAcceleration = 0.10;
+        // TUNED: More responsive swimming with noticeable gravity
+        this.gravityY = 150;           // Higher gravity - player sinks when not swimming
+        this.playerSpeed = 200;        // Faster horizontal movement
+        this.jumpVelocity = -320;      // Stronger swim thrust to counter gravity
+        this.playerAcceleration = 0.18; // More responsive acceleration
         this.playerDeceleration = 0.94; // Drifty momentum
-        this.swimDrag = 0.97;
+        this.swimDrag = 0.90;          // Faster velocity decay when not actively swimming
+        this.swimAcceleration = 0.20;  // How quickly swim velocity builds
 
-        // Swimming physics
-        this.sinkSpeed = 20;
-        this.maxSinkSpeed = 100;
+        // Swimming physics - player should noticeably sink when not swimming
+        this.sinkSpeed = 60;           // Faster sink rate
+        this.maxSinkSpeed = 180;       // Higher max sink speed
 
         // Level-specific state
         this.starFragmentsCollected = 0;
@@ -239,11 +241,16 @@ class ReefLevel extends PlatformerLevelScene {
             color: '#AAAACC'
         }).setScrollFactor(0).setDepth(3002);
 
-        // Controls hint
-        const controlsHint = this.add.text(width / 2, panelY + 380,
-            '🎮 Propel through the void with SWIM (↑/W)', {
-            fontSize: '11px',
-            color: '#555577'
+        // Controls hint - mobile-aware
+        const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+        const controlsHint = this.add.text(width / 2, panelY + 370,
+            isMobile
+                ? '📱 HOLD the JUMP button to swim upward!\nRelease to sink. Tap joystick to move.'
+                : '🎮 HOLD ↑/W/SPACE to swim up • Release to sink', {
+            fontSize: isMobile ? '13px' : '11px',
+            color: '#9370DB',
+            align: 'center',
+            fontStyle: 'bold'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Enter button
@@ -276,6 +283,8 @@ class ReefLevel extends PlatformerLevelScene {
                     this.startCosmicAmbience();
                     // Show mobile controls now that intro is dismissed
                     this.showPlatformerMobileControls();
+                    // Create swim indicator HUD
+                    this.createSwimIndicator();
                 }
             });
         });
@@ -2227,8 +2236,10 @@ class ReefLevel extends PlatformerLevelScene {
             }
         }
 
+        // When not actively swimming, player sinks noticeably
         if (!this.isSwimmingUp && this.player.body.velocity.y < this.maxSinkSpeed) {
-            this.player.setVelocityY(this.player.body.velocity.y + this.sinkSpeed * 0.08);
+            // Apply sink speed more aggressively so player feels gravity
+            this.player.setVelocityY(this.player.body.velocity.y + this.sinkSpeed * 0.18);
         }
     }
 
@@ -2241,20 +2252,31 @@ class ReefLevel extends PlatformerLevelScene {
         if (swimPressed) {
             this.isSwimmingUp = true;
             const target = this.jumpVelocity;
-            const newVel = this.player.body.velocity.y + (target - this.player.body.velocity.y) * 0.12;
+            // Use swimAcceleration for more responsive feel
+            const accel = this.swimAcceleration || 0.20;
+            const newVel = this.player.body.velocity.y + (target - this.player.body.velocity.y) * accel;
             this.player.setVelocityY(newVel);
 
-            if (Math.random() > 0.75) {
+            // INCREASED: Visual feedback when swimming - 60% chance of trail
+            if (Math.random() > 0.4) {
                 this.createPlayerCosmicTrail();
+            }
+
+            // Add subtle forward boost when swimming up
+            if (this.player.facingRight !== undefined) {
+                const forwardBoost = this.player.facingRight ? 15 : -15;
+                this.player.setVelocityX(this.player.body.velocity.x + forwardBoost * 0.1);
             }
         } else {
             this.isSwimmingUp = false;
+            // Apply drag but let gravity do more work (don't reduce Y velocity as much)
             this.player.setVelocityY(this.player.body.velocity.y * this.swimDrag);
         }
 
+        // Sink faster when pressing down
         const sinkPressed = this.cursors.down.isDown || this.wasdKeys.S.isDown;
         if (sinkPressed) {
-            const newVel = this.player.body.velocity.y + (this.maxSinkSpeed - this.player.body.velocity.y) * 0.08;
+            const newVel = this.player.body.velocity.y + (this.maxSinkSpeed - this.player.body.velocity.y) * 0.15;
             this.player.setVelocityY(newVel);
         }
     }
@@ -2291,6 +2313,69 @@ class ReefLevel extends PlatformerLevelScene {
 
         if (this.bossFightActive) {
             this.updateBoss(time, delta);
+        }
+
+        // Update swim indicator
+        this.updateSwimIndicator();
+    }
+
+    /**
+     * Create swim indicator HUD element
+     */
+    createSwimIndicator() {
+        const { width, height } = this.cameras.main;
+        const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+
+        // Position above mobile controls or at bottom center
+        const indicatorY = isMobile ? height - 160 : height - 80;
+
+        // Background
+        this.swimIndicatorBg = this.add.graphics();
+        this.swimIndicatorBg.fillStyle(0x0A0015, 0.7);
+        this.swimIndicatorBg.fillRoundedRect(width / 2 - 55, indicatorY - 15, 110, 30, 8);
+        this.swimIndicatorBg.setScrollFactor(0);
+        this.swimIndicatorBg.setDepth(2000);
+        this.swimIndicatorBg.setAlpha(0);
+
+        // Text
+        this.swimIndicatorText = this.add.text(width / 2, indicatorY, '🌊 SWIMMING', {
+            fontSize: '14px',
+            color: '#00FFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2001);
+        this.swimIndicatorText.setAlpha(0);
+
+        // Pulse animation for when swimming
+        this.swimIndicatorPulse = this.tweens.add({
+            targets: this.swimIndicatorText,
+            scale: { from: 1, to: 1.1 },
+            duration: 300,
+            yoyo: true,
+            repeat: -1,
+            paused: true
+        });
+    }
+
+    /**
+     * Update swim indicator visibility based on input
+     */
+    updateSwimIndicator() {
+        if (!this.swimIndicatorText) return;
+
+        if (this.isSwimmingUp) {
+            // Show indicator when swimming
+            if (this.swimIndicatorText.alpha < 0.9) {
+                this.swimIndicatorBg.setAlpha(1);
+                this.swimIndicatorText.setAlpha(1);
+                this.swimIndicatorPulse?.resume();
+            }
+        } else {
+            // Fade out when not swimming
+            if (this.swimIndicatorText.alpha > 0.1) {
+                this.swimIndicatorBg.setAlpha(0);
+                this.swimIndicatorText.setAlpha(0);
+                this.swimIndicatorPulse?.pause();
+            }
         }
     }
 
