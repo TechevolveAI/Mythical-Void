@@ -3679,22 +3679,31 @@ class GraphicsEngine {
 
     /**
      * Convert genetics to visual configuration with enhanced color genome support
+     *
+     * V2 UPDATE: Now supports independent colors for each body part
+     * - feet: Independent foot color
+     * - markings: Independent marking/pattern color
      */
     geneticsToVisualConfig(genetics) {
         const colorGenome = genetics.traits.colorGenome;
         const features = genetics.traits.features;
-        
-        // Enhanced color processing
+
+        // Enhanced color processing (now includes feet and markings)
         const processedColors = this.processEnhancedColorGenome(colorGenome);
-        
+
         return {
             colors: {
+                // Core body colors
                 body: processedColors.body,
                 head: processedColors.head,
                 wings: processedColors.wings,
                 eyes: this.extractHexColor(features.eyes.color, 0x4169E1),
                 accent: this.extractHexColor(colorGenome.accent, 0xFFD700),
-                
+
+                // NEW: Extended body part colors (v2 full random system)
+                feet: processedColors.feet,
+                markings: processedColors.markings,
+
                 // Advanced color properties
                 gradient: colorGenome.gradient,
                 harmonicResonance: colorGenome.harmonicResonance,
@@ -3729,13 +3738,53 @@ class GraphicsEngine {
 
     /**
      * Process enhanced color genome for visual application
+     *
+     * NEW SYSTEM (v2): Each body part can have its own independent random color
+     * - colorGenome.head = independent head color
+     * - colorGenome.feet = independent feet color
+     * - colorGenome.markings = independent markings color
+     *
+     * BACKWARD COMPATIBLE: Falls back to blending if new properties don't exist
      */
     processEnhancedColorGenome(colorGenome) {
         // Safely extract hex colors to prevent stack overflow from colorGenome objects
         let bodyColor = this.extractHexColor(colorGenome.primary, 0x9370DB);
         let wingsColor = this.extractHexColor(colorGenome.secondary, 0x8A2BE2);
-        
-        // Apply gradient effects if present
+
+        // NEW: Check for independent head color first
+        let headColor;
+        if (colorGenome.head !== undefined) {
+            // V2 system: Use the independent random head color
+            headColor = this.extractHexColor(colorGenome.head, bodyColor);
+        } else {
+            // Legacy fallback: Calculate head from body/wings blend
+            switch (colorGenome.mixingPattern) {
+                case 'gradient':
+                case 'color_shift':
+                    headColor = this.blendColors(bodyColor, wingsColor, 0.4);
+                    break;
+                case 'harmonic_blend':
+                    headColor = this.createHarmonicBlend(bodyColor, wingsColor, colorGenome.harmonicResonance);
+                    break;
+                case 'aurora_flow':
+                case 'cosmic_weave':
+                    headColor = this.createCosmicBlend(bodyColor, wingsColor, 0.3);
+                    break;
+                default:
+                    headColor = this.blendColors(bodyColor, wingsColor, 0.3);
+            }
+        }
+
+        // NEW: Independent feet and markings colors
+        const feetColor = colorGenome.feet !== undefined
+            ? this.extractHexColor(colorGenome.feet, bodyColor)
+            : bodyColor; // Legacy: same as body
+
+        const markingsColor = colorGenome.markings !== undefined
+            ? this.extractHexColor(colorGenome.markings, colorGenome.accent || 0xFFD700)
+            : this.extractHexColor(colorGenome.accent, 0xFFD700); // Legacy: use accent
+
+        // Apply gradient effects if present (legacy support)
         if (colorGenome.gradient && colorGenome.gradient.type !== 'linear') {
             switch (colorGenome.gradient.type) {
                 case 'radial':
@@ -3746,8 +3795,8 @@ class GraphicsEngine {
                     break;
             }
         }
-        
-        // Apply mutation effects
+
+        // Apply mutation effects (legacy support)
         if (colorGenome.mutationFlags) {
             colorGenome.mutationFlags.forEach(flag => {
                 switch (flag) {
@@ -3764,29 +3813,13 @@ class GraphicsEngine {
                 }
             });
         }
-        
-        // Calculate head color based on mixing pattern
-        let headColor;
-        switch (colorGenome.mixingPattern) {
-            case 'gradient':
-            case 'color_shift':
-                headColor = this.blendColors(bodyColor, wingsColor, 0.4);
-                break;
-            case 'harmonic_blend':
-                headColor = this.createHarmonicBlend(bodyColor, wingsColor, colorGenome.harmonicResonance);
-                break;
-            case 'aurora_flow':
-            case 'cosmic_weave':
-                headColor = this.createCosmicBlend(bodyColor, wingsColor, 0.3);
-                break;
-            default:
-                headColor = this.blendColors(bodyColor, wingsColor, 0.3);
-        }
-        
+
         return {
             body: bodyColor,
             head: headColor,
-            wings: wingsColor
+            wings: wingsColor,
+            feet: feetColor,
+            markings: markingsColor
         };
     }
 

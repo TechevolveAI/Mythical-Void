@@ -410,81 +410,172 @@ class CreatureGenetics {
     }
 
     /**
-     * Generate color genome with Space-Mythic palette and advanced mixing
+     * Generate a truly random color from the entire color spectrum
+     * Uses HSL for better control - ensures vibrant, visible colors
+     *
+     * @returns {number} Random hex color
+     */
+    generateTrulyRandomColor() {
+        // Full hue range: 0-360 degrees (any color on the wheel)
+        const hue = Math.random() * 360;
+
+        // Saturation: 40-100% (avoid washed-out grays, but allow some softer tones)
+        const saturation = 0.4 + Math.random() * 0.6;
+
+        // Lightness: 30-80% (avoid too dark or too bright/white)
+        const lightness = 0.3 + Math.random() * 0.5;
+
+        return this.hslToHex(hue, saturation, lightness);
+    }
+
+    /**
+     * Convert HSL values to hex color
+     * @param {number} h - Hue (0-360)
+     * @param {number} s - Saturation (0-1)
+     * @param {number} l - Lightness (0-1)
+     * @returns {number} Hex color
+     */
+    hslToHex(h, s, l) {
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+
+        let r, g, b;
+
+        if (h < 60) { r = c; g = x; b = 0; }
+        else if (h < 120) { r = x; g = c; b = 0; }
+        else if (h < 180) { r = 0; g = c; b = x; }
+        else if (h < 240) { r = 0; g = x; b = c; }
+        else if (h < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+
+        const rInt = Math.round((r + m) * 255);
+        const gInt = Math.round((g + m) * 255);
+        const bInt = Math.round((b + m) * 255);
+
+        return (rInt << 16) | (gInt << 8) | bInt;
+    }
+
+    /**
+     * Generate LEGENDARY prestige colors - gold, platinum, diamond
+     * These creatures should look CLASSY and instantly recognizable as special
+     */
+    generateLegendaryColors() {
+        // Legendary color palettes - gold, platinum, rose gold, diamond
+        const legendaryPalettes = [
+            // Pure Gold
+            {
+                primary: 0xFFD700,    // Gold
+                secondary: 0xFFC125,  // Golden rod
+                accent: 0xFFF8DC,     // Cornsilk (creamy gold highlight)
+                head: 0xFFDF00,       // Golden yellow
+                feet: 0xDAA520,       // Goldenrod (darker gold)
+                markings: 0xFFFFE0    // Light yellow (gold shimmer)
+            },
+            // Platinum
+            {
+                primary: 0xE5E4E2,    // Platinum
+                secondary: 0xC0C0C0,  // Silver
+                accent: 0xFFFFFF,     // Pure white highlights
+                head: 0xD8D8D8,       // Light platinum
+                feet: 0xA8A8A8,       // Darker platinum
+                markings: 0xF5F5F5    // White smoke shimmer
+            },
+            // Rose Gold
+            {
+                primary: 0xB76E79,    // Rose gold
+                secondary: 0xE8B4B8,  // Light rose
+                accent: 0xFFC0CB,     // Pink highlights
+                head: 0xC9A9A6,       // Dusty rose
+                feet: 0x8B6969,       // Darker rose
+                markings: 0xFFE4E1    // Misty rose shimmer
+            },
+            // Diamond/Crystal
+            {
+                primary: 0xB9F2FF,    // Diamond blue
+                secondary: 0xE0FFFF,  // Light cyan
+                accent: 0xFFFFFF,     // Pure white sparkle
+                head: 0xAFEEEE,       // Pale turquoise
+                feet: 0x87CEEB,       // Sky blue
+                markings: 0xF0FFFF    // Azure shimmer
+            },
+            // Black Gold (rare legendary variant)
+            {
+                primary: 0x1C1C1C,    // Near black
+                secondary: 0xFFD700,  // Gold accents
+                accent: 0xFFD700,     // Gold highlights
+                head: 0x2F2F2F,       // Dark gray
+                feet: 0xB8860B,       // Dark goldenrod
+                markings: 0xFFD700    // Gold markings
+            }
+        ];
+
+        // Pick a random legendary palette
+        return this.randomChoice(legendaryPalettes);
+    }
+
+    /**
+     * Generate color genome with FULL RANDOM colors for TRUE uniqueness
+     *
+     * PHILOSOPHY:
+     * - Common, Uncommon, Rare, Epic: FULL RANDOM colors. Any color, any body part.
+     *   Every creature is unique. A common can be just as visually stunning.
+     *
+     * - LEGENDARY: Special prestige treatment. Gold, platinum, rose gold, or diamond.
+     *   These are the 2% ultra-rare and should LOOK instantly special.
+     *
+     * Rarity affects genetics/abilities under the hood for non-legendary.
      */
     generateColorGenome(template, rarity) {
-        const rarityAnchors = this.getRarityAnchors(rarity);
-        const paletteBlendRatio = this.getPaletteBlendRatio(rarity);
-        const mutationChance = this.config?.mutationChance || 0.15;
-        const colorMixingStrength = Math.random() * 0.4 + 0.1; // 0.1-0.5 range
+        let primaryColor, secondaryColor, accentColor, feetColor, headColor, markingsColor;
 
-        // Start with rarity-aligned colors so each tier stays within its family
-        let primaryColor = rarityAnchors.primary;
-        let secondaryColor = rarityAnchors.secondary;
-        let accentColor = rarityAnchors.accent;
-
-        // Blend with species palettes to keep subtle species identity without breaking rarity family
-        const templateBodyColor = this.selectFromPalette(template.baseColors.body);
-        const templateWingColor = this.selectFromPalette(template.baseColors.wings);
-        const templateEyeColor = this.selectFromPalette(template.baseColors.eyes);
-
-        primaryColor = this.blendColors(primaryColor, templateBodyColor, paletteBlendRatio);
-        secondaryColor = this.blendColors(secondaryColor, templateWingColor, paletteBlendRatio);
-        accentColor = this.blendColors(accentColor, templateEyeColor, Math.min(0.35, paletteBlendRatio + 0.05));
-
-        // Additional mixing stays within the rarity palette family for variation
-        if (Math.random() < colorMixingStrength) {
-            const alternatePrimary = this.randomChoice(rarityAnchors.swatchPool.primary);
-            primaryColor = this.blendColors(primaryColor, alternatePrimary, 0.4);
-        }
-        if (Math.random() < colorMixingStrength) {
-            const alternateSecondary = this.randomChoice(rarityAnchors.swatchPool.secondary);
-            secondaryColor = this.blendColors(secondaryColor, alternateSecondary, 0.35);
+        if (rarity === 'legendary') {
+            // LEGENDARY: Special prestige colors - gold, platinum, diamond, etc.
+            const legendaryColors = this.generateLegendaryColors();
+            primaryColor = legendaryColors.primary;
+            secondaryColor = legendaryColors.secondary;
+            accentColor = legendaryColors.accent;
+            headColor = legendaryColors.head;
+            feetColor = legendaryColors.feet;
+            markingsColor = legendaryColors.markings;
+        } else {
+            // ALL OTHER RARITIES: Full random - any color, any body part
+            primaryColor = this.generateTrulyRandomColor();   // Body
+            secondaryColor = this.generateTrulyRandomColor(); // Wings
+            accentColor = this.generateTrulyRandomColor();    // Eyes/markings
+            feetColor = this.generateTrulyRandomColor();      // Feet
+            headColor = this.generateTrulyRandomColor();      // Head
+            markingsColor = this.generateTrulyRandomColor();  // Pattern markings
         }
 
-        // Allow cosmic accents but keep final clamp to rarity palette
-        if (Math.random() < 0.3) { // 30% chance for cosmic influence
-            const cosmicColors = this.getCosmicColorPalette(template.cosmicAffinities);
-            if (cosmicColors.length > 0) {
-                const cosmicColor = this.randomChoice(cosmicColors);
-                accentColor = this.blendColors(accentColor, cosmicColor, 0.2);
-            }
-        }
-
-        // Color mutations provide subtle brightness shifts without leaving the family
-        if (Math.random() < mutationChance) {
-            primaryColor = this.applyColorMutation(primaryColor, rarity);
-        }
-        if (Math.random() < mutationChance * 0.7) {
-            secondaryColor = this.applyColorMutation(secondaryColor, rarity);
-        }
-        if (Math.random() < mutationChance * 0.6) {
-            accentColor = this.applyColorMutation(accentColor, rarity);
-        }
-
-        // Final clamp - only apply for common creatures to preserve unique colors in higher rarities
-        // This allows uncommon+ creatures to maintain their species-specific color variety
-        if (rarity === 'common') {
-            primaryColor = this.clampToRarityPalette(primaryColor, rarityAnchors.swatchPool.primary, rarity);
-            secondaryColor = this.clampToRarityPalette(secondaryColor, rarityAnchors.swatchPool.secondary, rarity);
-            accentColor = this.clampToRarityPalette(accentColor, rarityAnchors.swatchPool.accent, rarity);
-        }
-        // Higher rarities keep their unique, vibrant species colors
-
+        // Rarity affects shimmer/effects intensity
         const rarityEnhancement = this.getRarityColorEnhancement(rarity);
 
         return {
-            primary: this.enhanceColor(primaryColor, rarityEnhancement.intensity),
-            secondary: this.enhanceColor(secondaryColor, rarityEnhancement.intensity),
-            accent: this.enhanceColor(accentColor, rarityEnhancement.intensity),
+            // Core colors
+            primary: primaryColor,
+            secondary: secondaryColor,
+            accent: accentColor,
+
+            // Extended color palette for more body parts
+            feet: feetColor,
+            head: headColor,
+            markings: markingsColor,
+
+            // Visual effects (legendary gets max shimmer)
             gradient: this.generateColorGradient(primaryColor, secondaryColor, rarity),
-            shimmerIntensity: rarityEnhancement.shimmer,
+            shimmerIntensity: rarity === 'legendary' ? 1.0 : rarityEnhancement.shimmer,
+
+            // Metadata
             colorComplexity: this.calculateColorComplexity(primaryColor, secondaryColor, accentColor),
             harmonicResonance: this.calculateColorHarmony([primaryColor, secondaryColor, accentColor]),
-            mixingPattern: this.determineMixingPattern(rarity),
+            mixingPattern: rarity === 'legendary' ? 'legendary_shimmer' : this.determineMixingPattern(rarity),
             dominantHue: this.extractDominantHue(primaryColor),
             saturationLevel: this.calculateSaturationLevel([primaryColor, secondaryColor, accentColor]),
-            mutationFlags: this.generateMutationFlags(rarity)
+            mutationFlags: this.generateMutationFlags(rarity),
+
+            // NEW: Flag for legendary prestige rendering
+            isLegendaryPrestige: rarity === 'legendary'
         };
     }
 
