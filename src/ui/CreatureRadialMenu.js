@@ -11,12 +11,13 @@ export default class CreatureRadialMenu {
         this.isVisible = false;
         this.isAnimating = false;
 
-        // Menu items configuration
+        // Menu items configuration (5 items spread evenly at 72° intervals)
         this.menuItems = [
             { id: 'profile', icon: '📋', label: 'Profile', angle: -90 },   // Top
-            { id: 'chat', icon: '💬', label: 'Chat', angle: 0 },           // Right
-            { id: 'abilities', icon: '✨', label: 'Abilities', angle: 90 }, // Bottom
-            { id: 'pet', icon: '🤲', label: 'Pet', angle: 180 }            // Left
+            { id: 'chat', icon: '💬', label: 'Chat', angle: -18 },         // Top-right
+            { id: 'ai_art', icon: '🎨', label: 'AI Art', angle: 54 },      // Bottom-right
+            { id: 'abilities', icon: '✨', label: 'Abilities', angle: 126 }, // Bottom-left
+            { id: 'pet', icon: '🤲', label: 'Pet', angle: 198 }            // Left
         ];
 
         // UI elements

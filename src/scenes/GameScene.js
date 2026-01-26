@@ -18,6 +18,7 @@ import NASAContentModal from '../ui/NASAContentModal.js';
 import AchievementNotification from '../ui/AchievementNotification.js';
 import CreatureRadialMenu from '../ui/CreatureRadialMenu.js';
 import AbilityHUD from '../ui/AbilityHUD.js';
+import AIArtModal from '../ui/AIArtModal.js';
 // MapNavigationButtons removed - redundant with HamburgerMenu navigation
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
@@ -96,6 +97,7 @@ class GameScene extends Phaser.Scene {
         this.floatingChatBubble = null;
         this.creatureRadialMenu = null;
         this.abilityHUD = null;
+        this.aiArtModal = null;
         this.creatureSwitcher = null;
         this.hamburgerMenu = null;
         // mapNavButtons removed - redundant with hamburgerMenu
@@ -5388,6 +5390,9 @@ class GameScene extends Phaser.Scene {
             case 'abilities':
                 this.openAbilitiesOverlay();
                 break;
+            case 'ai_art':
+                this.openAIArt();
+                break;
             default:
                 console.warn('[GameScene] Unknown radial menu item:', itemId);
         }
@@ -5400,6 +5405,24 @@ class GameScene extends Phaser.Scene {
         console.log('[GameScene] Opening creature profile');
         this.scene.launch('CreatureProfileScene');
         this.scene.bringToTop('CreatureProfileScene');
+    }
+
+    /**
+     * Open AI Art generator modal
+     */
+    openAIArt() {
+        console.log('[GameScene] Opening AI Art generator');
+
+        // Create modal if needed
+        if (!this.aiArtModal) {
+            this.aiArtModal = new AIArtModal(this);
+        }
+
+        // Get creature data
+        const creatureData = window.GameState?.get('creature.genes');
+
+        // Show the modal with creature data and sprite
+        this.aiArtModal.show(creatureData, this.player);
     }
 
     /**
@@ -7598,6 +7621,12 @@ class GameScene extends Phaser.Scene {
         if (this.creatureRadialMenu) {
             this.creatureRadialMenu.destroy();
             this.creatureRadialMenu = null;
+        }
+
+        // Clean up AI Art modal
+        if (this.aiArtModal) {
+            this.aiArtModal.cleanup();
+            this.aiArtModal = null;
         }
 
         // Clean up ability HUD
