@@ -507,18 +507,21 @@ class FusionPodScene extends Phaser.Scene {
         const maxVisible = Math.floor((modalHeight - 120) / rowHeight);
 
         adultCreatures.slice(0, maxVisible).forEach((creature, idx) => {
+            // CRITICAL: Capture rowY value for this iteration to avoid closure bug
+            const currentRowY = rowY;
+
             // Check if already selected in other slot
             const otherSlotIndex = slotNum === 1 ? this.parent2Index : this.parent1Index;
             const isSelectedElsewhere = creature.collectionIndex === otherSlotIndex;
 
             const rowBg = this.add.graphics();
             rowBg.fillStyle(isSelectedElsewhere ? 0x333333 : 0x2A1A4E, 0.8);
-            rowBg.fillRoundedRect(modalX + 15, rowY, modalWidth - 30, rowHeight - 5, 8);
+            rowBg.fillRoundedRect(modalX + 15, currentRowY, modalWidth - 30, rowHeight - 5, 8);
             rowBg.setDepth(302);
 
             // Make entire row tappable on mobile (if not selected elsewhere)
             if (!isSelectedElsewhere) {
-                const rowZone = this.add.zone(modalX + 15 + (modalWidth - 30) / 2, rowY + (rowHeight - 5) / 2, modalWidth - 30, rowHeight - 5);
+                const rowZone = this.add.zone(modalX + 15 + (modalWidth - 30) / 2, currentRowY + (rowHeight - 5) / 2, modalWidth - 30, rowHeight - 5);
                 rowZone.setInteractive({ useHandCursor: true });
                 rowZone.setDepth(304);  // Above the row elements
 
@@ -527,16 +530,17 @@ class FusionPodScene extends Phaser.Scene {
                     this.selectCreatureForSlot(slotNum, creature.collectionIndex, creature);
                 });
 
+                // Use captured currentRowY value, not loop variable rowY
                 rowZone.on('pointerover', () => {
                     rowBg.clear();
                     rowBg.fillStyle(0x3A2A6E, 0.9);
-                    rowBg.fillRoundedRect(modalX + 15, rowY, modalWidth - 30, rowHeight - 5, 8);
+                    rowBg.fillRoundedRect(modalX + 15, currentRowY, modalWidth - 30, rowHeight - 5, 8);
                 });
 
                 rowZone.on('pointerout', () => {
                     rowBg.clear();
                     rowBg.fillStyle(0x2A1A4E, 0.8);
-                    rowBg.fillRoundedRect(modalX + 15, rowY, modalWidth - 30, rowHeight - 5, 8);
+                    rowBg.fillRoundedRect(modalX + 15, currentRowY, modalWidth - 30, rowHeight - 5, 8);
                 });
 
                 this.selectionModalElements.push(rowZone);
@@ -546,11 +550,11 @@ class FusionPodScene extends Phaser.Scene {
             const iconColor = this.getCreatureColor(creature.genes || creature.dna);
             const icon = this.add.graphics();
             icon.fillStyle(iconColor, 0.9);
-            icon.fillCircle(modalX + 40, rowY + 22, 15);
+            icon.fillCircle(modalX + 40, currentRowY + 22, 15);
             icon.setDepth(303);
 
             // Creature info
-            const name = this.add.text(modalX + 65, rowY + 8, creature.name || 'Unknown', {
+            const name = this.add.text(modalX + 65, currentRowY + 8, creature.name || 'Unknown', {
                 fontSize: '13px',
                 color: isSelectedElsewhere ? '#666666' : '#FFFFFF',
                 fontStyle: 'bold'
@@ -558,14 +562,14 @@ class FusionPodScene extends Phaser.Scene {
 
             const rarity = creature.rarity || creature.genes?.rarity || 'common';
             const generation = creature.generation || 1;
-            const info = this.add.text(modalX + 65, rowY + 26, `${rarity} • Gen ${generation}`, {
+            const info = this.add.text(modalX + 65, currentRowY + 26, `${rarity} • Gen ${generation}`, {
                 fontSize: '10px',
                 color: '#888888'
             }).setDepth(303);
 
             // Select button (if not selected elsewhere)
             if (!isSelectedElsewhere) {
-                const selectBtn = this.add.text(modalX + modalWidth - 60, rowY + 18, 'SELECT', {
+                const selectBtn = this.add.text(modalX + modalWidth - 60, currentRowY + 18, 'SELECT', {
                     fontSize: '12px',
                     color: '#00FF00',
                     backgroundColor: '#1A3A1A',
@@ -591,7 +595,7 @@ class FusionPodScene extends Phaser.Scene {
 
                 this.selectionModalElements.push(selectBtn);
             } else {
-                const usedLabel = this.add.text(modalX + modalWidth - 55, rowY + 18, 'In Use', {
+                const usedLabel = this.add.text(modalX + modalWidth - 55, currentRowY + 18, 'In Use', {
                     fontSize: '10px',
                     color: '#666666'
                 }).setOrigin(0.5).setDepth(303);

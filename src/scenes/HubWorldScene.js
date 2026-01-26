@@ -618,6 +618,14 @@ export default class HubWorldScene extends Phaser.Scene {
 
     enterGate(gate) {
         if (this.isTransitioning) return;
+
+        // Check if level is "Coming Soon" (in development)
+        const comingSoonLevels = ['void_peaks', 'aurora_depths'];
+        if (comingSoonLevels.includes(gate.id)) {
+            this.showComingSoonModal(gate);
+            return;
+        }
+
         this.isTransitioning = true;
 
         console.log(`[HubWorldScene] Entering gate: ${gate.id}`);
@@ -665,6 +673,73 @@ export default class HubWorldScene extends Phaser.Scene {
         // Play sound
         if (window.AudioManager) {
             window.AudioManager.playPurchase();
+        }
+    }
+
+    showComingSoonModal(gate) {
+        const { width, height, isMobile } = this.dims;
+
+        // Create overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(200);
+
+        // Modal panel
+        const modalWidth = isMobile ? width - 40 : 380;
+        const modalHeight = 220;
+        const modalX = (width - modalWidth) / 2;
+        const modalY = (height - modalHeight) / 2;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 1);
+        panel.fillRoundedRect(modalX, modalY, modalWidth, modalHeight, 15);
+        panel.lineStyle(3, gate.config.color);
+        panel.strokeRoundedRect(modalX, modalY, modalWidth, modalHeight, 15);
+        panel.setDepth(201);
+
+        // Construction icon
+        const constructionIcon = this.add.text(width / 2, modalY + 45, '🚧', {
+            fontSize: '48px'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Title
+        const title = this.add.text(width / 2, modalY + 100, 'Coming Soon!', {
+            fontSize: isMobile ? '24px' : '28px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Description
+        const desc = this.add.text(width / 2, modalY + 135,
+            `${gate.data.name} is currently\nin development.`, {
+            fontSize: isMobile ? '14px' : '16px',
+            color: '#AAAAAA',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(202);
+
+        const elements = [overlay, panel, constructionIcon, title, desc];
+
+        // Close button
+        const closeBtn = this.add.text(width / 2, modalY + modalHeight - 35, 'OK', {
+            fontSize: '18px',
+            color: '#FFFFFF',
+            backgroundColor: '#666666',
+            padding: { x: 30, y: 10 }
+        }).setOrigin(0.5).setDepth(202);
+        closeBtn.setInteractive({ useHandCursor: true });
+
+        closeBtn.on('pointerdown', () => {
+            elements.forEach(el => el.destroy());
+            closeBtn.destroy();
+        });
+
+        closeBtn.on('pointerover', () => closeBtn.setStyle({ backgroundColor: '#888888' }));
+        closeBtn.on('pointerout', () => closeBtn.setStyle({ backgroundColor: '#666666' }));
+
+        // Play sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
         }
     }
 

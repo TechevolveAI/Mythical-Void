@@ -359,6 +359,8 @@ class GameScene extends Phaser.Scene {
                 }
                 if (this.crashedShip) {
                     this.physics.add.overlap(this.player, this.crashedShip, this.handleCrashedShipProximity, null, this);
+                    // Create "Read Story" sign near the crashed ship
+                    this.createReadStorySign();
                 }
                 if (this.campfire) {
                     this.physics.add.overlap(this.player, this.campfire, this.handleCampfireProximity, null, this);
@@ -477,6 +479,10 @@ class GameScene extends Phaser.Scene {
             // Show controls tutorial for first-time players
             this.controlsTutorial = new ControlsTutorialOverlay(this);
             this.controlsTutorial.show();
+
+            // Show crash story on first entry (after controls tutorial dismissed)
+            // Delay to allow controls tutorial to be dismissed first
+            this.time.delayedCall(500, () => this.showFirstTimeStoryIfNeeded());
 
             // Check for daily login greeting after a short delay
             this.time.delayedCall(1500, () => this.checkDailyGreeting());
@@ -4610,6 +4616,98 @@ class GameScene extends Phaser.Scene {
                 this.scene.start('GameScene', { biome: 'nebula' });
             }
         });
+    }
+
+    /**
+     * Show first-time story modal if player hasn't seen it before
+     * This automatically shows the crash story on first entry to GameScene
+     */
+    showFirstTimeStoryIfNeeded() {
+        // Check if story has been seen
+        const hasSeenStory = window.GameState?.get('tutorial.crashStorySeen');
+        if (hasSeenStory) {
+            console.log('[GameScene] Crash story already seen, skipping');
+            return;
+        }
+
+        // Check if controls tutorial is still showing - if so, wait
+        if (this.controlsTutorial?.isVisible) {
+            console.log('[GameScene] Controls tutorial still showing, delaying story');
+            this.time.delayedCall(1000, () => this.showFirstTimeStoryIfNeeded());
+            return;
+        }
+
+        console.log('[GameScene] Showing first-time crash story');
+
+        // Mark as seen before showing (prevents double-show)
+        window.GameState?.set('tutorial.crashStorySeen', true);
+        window.GameState?.save();
+
+        // Show the story modal
+        this.showShipMemories();
+    }
+
+    /**
+     * Create "Read Story" sign near the crashed ship for manual access
+     */
+    createReadStorySign() {
+        if (!this.crashedShip) return;
+
+        // Position the sign to the right and below the crashed ship
+        const signX = this.crashedShip.x + 130;
+        const signY = this.crashedShip.y + 50;
+
+        // Create sign post graphic
+        const signPost = this.add.graphics();
+        signPost.setDepth(signY + 1);
+
+        // Post
+        signPost.fillStyle(0x8B4513, 1); // Brown
+        signPost.fillRect(signX - 4, signY - 10, 8, 50);
+
+        // Sign board background
+        signPost.fillStyle(0x5D3A1A, 1); // Darker brown
+        signPost.fillRoundedRect(signX - 50, signY - 45, 100, 40, 5);
+        signPost.lineStyle(2, 0x3D2A0A);
+        signPost.strokeRoundedRect(signX - 50, signY - 45, 100, 40, 5);
+
+        // Sign text
+        const signText = this.add.text(signX, signY - 25, '📖 Read Story', {
+            fontSize: '14px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5).setDepth(signY + 2);
+
+        // Create interactive zone for the sign
+        const signZone = this.add.zone(signX, signY - 25, 100, 50);
+        signZone.setInteractive({ useHandCursor: true });
+        signZone.setDepth(signY + 3);
+
+        // Hover effect
+        signZone.on('pointerover', () => {
+            signText.setColor('#FFFFFF');
+            signText.setScale(1.1);
+        });
+
+        signZone.on('pointerout', () => {
+            signText.setColor('#FFD700');
+            signText.setScale(1.0);
+        });
+
+        // Click to show story
+        signZone.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+            this.showShipMemories();
+        });
+
+        // Store references for cleanup
+        this.readStorySign = { post: signPost, text: signText, zone: signZone };
+
+        console.log('[GameScene] Read Story sign created near crashed ship');
     }
 
     /**
