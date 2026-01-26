@@ -18,6 +18,7 @@ export default class HamburgerMenu {
         // Menu items configuration
         this.menuItems = [
             { key: 'profile', label: 'Creature Profile', icon: '🐾', shortcut: 'P', action: () => this.navigateToProfile() },
+            { key: 'achievements', label: 'Achievements', icon: '🏆', shortcut: 'A', action: () => this.navigateToAchievements() },
             { key: 'inventory', label: 'Inventory', icon: '🎒', shortcut: 'I', action: () => this.navigateToInventory() },
             { key: 'shop', label: 'Shop', icon: '🛒', shortcut: 'S', action: () => this.navigateToShop() },
             { key: 'hub', label: 'Hub World', icon: '🌌', shortcut: 'H', action: () => this.navigateToHub() },
@@ -297,6 +298,11 @@ export default class HamburgerMenu {
     navigateToProfile() {
         devLog('[HamburgerMenu] Navigate to Profile');
         this.scene.scene.start('CreatureProfileScene');
+    }
+
+    navigateToAchievements() {
+        devLog('[HamburgerMenu] Navigate to Achievements');
+        this.scene.scene.launch('AchievementMenuScene');
     }
 
     navigateToInventory() {

@@ -308,34 +308,57 @@ class StageVisualResolver {
 
     /**
      * Resolve colors based on stage color mode
+     * V2 UPDATE: Now preserves independent random colors for each body part
      */
     resolveColors(genetics, stage, config) {
         const colorGenome = genetics.traits.colorGenome || {};
         const mode = config.colorMode;
         const saturation = config.colorSaturation;
 
-        // Extract safe hex colors to prevent stack overflow with colorGenome objects
+        // Extract safe hex colors - including NEW v2 body part colors
         const baseColors = {
             primary: this.extractHexColor(colorGenome.primary, 0x9370DB),
             secondary: this.extractHexColor(colorGenome.secondary, 0x87CEEB),
-            accent: this.extractHexColor(colorGenome.accent, 0xFFD700)
+            accent: this.extractHexColor(colorGenome.accent, 0xFFD700),
+            // V2: Independent random colors for each body part
+            head: this.extractHexColor(colorGenome.head, null),  // null = will fall back to primary
+            feet: this.extractHexColor(colorGenome.feet, null),
+            markings: this.extractHexColor(colorGenome.markings, null)
         };
 
-        // Apply saturation adjustment
+        // Use independent head color if available, otherwise blend (legacy fallback)
+        const headColor = baseColors.head !== null
+            ? baseColors.head
+            : this.blendColors(baseColors.primary, baseColors.secondary, 0.3);
+
+        // Apply saturation adjustment to all colors
         const adjustedColors = {
             body: this.adjustSaturation(baseColors.primary, saturation),
             wings: this.adjustSaturation(baseColors.secondary, saturation),
-            head: this.blendColors(baseColors.primary, baseColors.secondary, 0.3),
-            accent: this.adjustSaturation(baseColors.accent, saturation)
+            head: this.adjustSaturation(headColor, saturation),
+            accent: this.adjustSaturation(baseColors.accent, saturation),
+            // V2: Feet and markings with independent colors
+            feet: baseColors.feet !== null
+                ? this.adjustSaturation(baseColors.feet, saturation)
+                : this.adjustSaturation(baseColors.primary, saturation),
+            markings: baseColors.markings !== null
+                ? this.adjustSaturation(baseColors.markings, saturation)
+                : this.adjustSaturation(baseColors.accent, saturation),
+            tail: baseColors.feet !== null
+                ? this.adjustSaturation(baseColors.feet, saturation)
+                : this.adjustSaturation(baseColors.primary, saturation)
         };
 
-        // Apply mode-specific modifications
+        // Apply mode-specific modifications to ALL body part colors
         switch (mode) {
             case 'pastel':
-                // Lighten and desaturate for baby softness
+                // Lighten and desaturate for baby softness - apply to all parts
                 adjustedColors.body = this.makePastel(adjustedColors.body);
                 adjustedColors.wings = this.makePastel(adjustedColors.wings);
                 adjustedColors.head = this.makePastel(adjustedColors.head);
+                adjustedColors.feet = this.makePastel(adjustedColors.feet);
+                adjustedColors.markings = this.makePastel(adjustedColors.markings);
+                adjustedColors.tail = this.makePastel(adjustedColors.tail);
                 break;
 
             case 'developing':
@@ -348,12 +371,31 @@ class StageVisualResolver {
                 break;
 
             case 'ethereal':
-                // Add cosmic undertones for elder
+                // Add cosmic undertones for elder - apply to all parts
                 adjustedColors.body = this.addCosmicTint(adjustedColors.body);
                 adjustedColors.wings = this.addCosmicTint(adjustedColors.wings);
+                adjustedColors.head = this.addCosmicTint(adjustedColors.head);
+                adjustedColors.feet = this.addCosmicTint(adjustedColors.feet);
+                adjustedColors.markings = this.addCosmicTint(adjustedColors.markings);
+                adjustedColors.tail = this.addCosmicTint(adjustedColors.tail);
                 adjustedColors.auraColor = 0xE6E6FA; // Lavender cosmic aura
                 break;
         }
+
+        // DEBUG: Log resolved colors to verify they're multi-colored
+        console.log(`[StageVisualResolver] RESOLVED COLORS (${stage} / ${mode}):`, {
+            body: `#${adjustedColors.body.toString(16).padStart(6, '0')}`,
+            wings: `#${adjustedColors.wings.toString(16).padStart(6, '0')}`,
+            head: `#${adjustedColors.head.toString(16).padStart(6, '0')}`,
+            feet: `#${adjustedColors.feet.toString(16).padStart(6, '0')}`,
+            markings: `#${adjustedColors.markings.toString(16).padStart(6, '0')}`,
+            tail: `#${adjustedColors.tail.toString(16).padStart(6, '0')}`,
+            sourceColorGenome: {
+                hasFeet: colorGenome.feet !== undefined,
+                hasHead: colorGenome.head !== undefined,
+                hasMarkings: colorGenome.markings !== undefined
+            }
+        });
 
         return {
             ...adjustedColors,

@@ -473,6 +473,11 @@ class ChatOverlay {
                 this.showMoodBoostFeedback(response.moodBoost.amount);
             }
 
+            // Record chat conversation for bond progression
+            if (this.scene.recordBondActivity) {
+                this.scene.recordBondActivity('chat');
+            }
+
             // Update buttons with new options
             this.createResponseButtons(response.nextOptions || []);
         });

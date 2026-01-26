@@ -150,6 +150,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
         currentY = this.createHeritageSection(creatureData, currentY);
         currentY = this.createLifecycleSection(creatureData, currentY);
         currentY = this.createStatsSection(creatureData, currentY);
+        currentY = this.createBondSection(creatureData, currentY);
         currentY = this.createPersonalitySection(creatureData, currentY);
         currentY = this.createEvolutionHistorySection(creatureData, currentY);
 
@@ -221,7 +222,10 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
             // Ancient Lineage
             hasAncientLineage: gs.get('creature.hasAncientLineage') || false,
-            ancientProphecy: gs.get('creature.ancientProphecy') || null
+            ancientProphecy: gs.get('creature.ancientProphecy') || null,
+
+            // Bond/Relationship data
+            bond: gs.getBondStatus?.() || null
         };
     }
 
@@ -1150,6 +1154,157 @@ export default class CreatureProfileScene extends Phaser.Scene {
         });
 
         return startY + stats.length * 40 + 10;
+    }
+
+    /**
+     * Create bond/relationship section
+     */
+    createBondSection(data, startY) {
+        const { width } = this.scale;
+        const padding = this.isMobile ? 16 : 24;
+
+        // Get bond data
+        const bond = data.bond;
+        if (!bond) {
+            return startY;
+        }
+
+        startY += 20;
+
+        const header = this.createSectionHeader('Relationship', startY);
+        startY = header.y + 30;
+
+        // Bond level with title
+        const levelTitle = bond.description?.title || 'Stranger';
+        const bondHeader = this.add.text(padding, startY, `💜 Bond Level ${bond.level}: ${levelTitle}`, {
+            fontSize: this.isMobile ? '16px' : '18px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#E040FB',
+            fontStyle: 'bold'
+        }).setDepth(11);
+        this.elements.push(bondHeader);
+
+        startY += 30;
+
+        // Progress bar to next level
+        const barX = padding;
+        const barWidth = width - padding * 2;
+        const barHeight = 16;
+
+        const barBg = this.add.graphics();
+        barBg.fillStyle(0x2A2A4E, 1);
+        barBg.fillRoundedRect(barX, startY, barWidth, barHeight, 8);
+        barBg.setDepth(11);
+        this.elements.push(barBg);
+
+        const progressPercent = bond.progressPercent / 100;
+        const barFill = this.add.graphics();
+        barFill.fillStyle(0xE040FB, 1);
+        barFill.fillRoundedRect(barX, startY, barWidth * progressPercent, barHeight, 8);
+        barFill.setDepth(12);
+        this.elements.push(barFill);
+
+        // XP text
+        const xpText = this.add.text(width / 2, startY + barHeight / 2,
+            `${bond.xpInCurrentLevel} / ${bond.xpPerLevel} XP`, {
+            fontSize: '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(13);
+        this.elements.push(xpText);
+
+        startY += 30;
+
+        // Current perk
+        if (bond.description?.perk) {
+            const perkText = this.add.text(padding, startY, `✨ ${bond.description.perk}`, {
+                fontSize: this.isMobile ? '13px' : '14px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#FFD700'
+            }).setDepth(11);
+            this.elements.push(perkText);
+            startY += 25;
+        }
+
+        // Statistics grid
+        startY += 10;
+        const statItems = [
+            { icon: '🤲', label: 'Care Actions', value: bond.careActions || 0 },
+            { icon: '💬', label: 'Conversations', value: bond.conversations || 0 },
+            { icon: '🏆', label: 'Levels Completed', value: bond.levelsCompleted || 0 },
+            { icon: '🎯', label: 'Total Interactions', value: bond.totalInteractions || 0 }
+        ];
+
+        const colWidth = (width - padding * 2) / 2;
+        statItems.forEach((stat, index) => {
+            const col = index % 2;
+            const row = Math.floor(index / 2);
+            const x = padding + col * colWidth;
+            const y = startY + row * 28;
+
+            const statText = this.add.text(x, y, `${stat.icon} ${stat.label}: ${stat.value}`, {
+                fontSize: this.isMobile ? '12px' : '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#AAAAAA'
+            }).setDepth(11);
+            this.elements.push(statText);
+        });
+
+        startY += 60;
+
+        // Ability slots status
+        const slots = bond.abilitySlots || { slot1: true, slot2: false, slot3: false };
+        const slotText = this.add.text(padding, startY, '⚔️ Ability Slots:', {
+            fontSize: this.isMobile ? '14px' : '15px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF'
+        }).setDepth(11);
+        this.elements.push(slotText);
+
+        // Slot indicators
+        const slotStartX = padding + slotText.width + 15;
+        for (let i = 1; i <= 3; i++) {
+            const slotKey = `slot${i}`;
+            const isUnlocked = slots[slotKey];
+            const slotX = slotStartX + (i - 1) * 35;
+
+            const slotBg = this.add.graphics();
+            slotBg.fillStyle(isUnlocked ? 0x7B68EE : 0x333333, 1);
+            slotBg.fillRoundedRect(slotX, startY - 2, 28, 28, 6);
+            slotBg.lineStyle(2, isUnlocked ? 0xFFD700 : 0x555555, 1);
+            slotBg.strokeRoundedRect(slotX, startY - 2, 28, 28, 6);
+            slotBg.setDepth(11);
+            this.elements.push(slotBg);
+
+            const slotIcon = this.add.text(slotX + 14, startY + 12,
+                isUnlocked ? i.toString() : '🔒', {
+                fontSize: isUnlocked ? '14px' : '12px',
+                color: '#FFFFFF'
+            }).setOrigin(0.5).setDepth(12);
+            this.elements.push(slotIcon);
+        }
+
+        // Unlock hints
+        startY += 35;
+        if (!slots.slot2) {
+            const hint = this.add.text(padding, startY, '🔒 Slot 2 unlocks at Bond Level 5', {
+                fontSize: '11px',
+                color: '#888888'
+            }).setDepth(11);
+            this.elements.push(hint);
+            startY += 18;
+        }
+        if (!slots.slot3) {
+            const hint = this.add.text(padding, startY, '🔒 Slot 3 unlocks at Bond Level 10', {
+                fontSize: '11px',
+                color: '#888888'
+            }).setDepth(11);
+            this.elements.push(hint);
+            startY += 18;
+        }
+
+        return startY + 10;
     }
 
     createPersonalitySection(data, startY) {

@@ -75,6 +75,8 @@ import './scenes/CreatureProfileScene.js';
 import './scenes/WelcomeBackScene.js';
 import './scenes/VoidMiniGameScene.js';
 import './scenes/CreatureGatheringScene.js';
+import './scenes/AchievementMenuScene.js';
+import './scenes/AbilitySelectionScene.js';
 // Platformer scenes - loaded via main.js imports
 // import './scenes/PlatformerLevelScene.js';
 // import './scenes/levels/CrystalCavesLevel.js';

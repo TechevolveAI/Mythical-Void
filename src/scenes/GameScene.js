@@ -15,6 +15,9 @@ import FloatingChatBubble from '../ui/FloatingChatBubble.js';
 import CreatureSwitcherModal from '../ui/CreatureSwitcherModal.js';
 import HamburgerMenu from '../ui/HamburgerMenu.js';
 import NASAContentModal from '../ui/NASAContentModal.js';
+import AchievementNotification from '../ui/AchievementNotification.js';
+import CreatureRadialMenu from '../ui/CreatureRadialMenu.js';
+import AbilityHUD from '../ui/AbilityHUD.js';
 // MapNavigationButtons removed - redundant with HamburgerMenu navigation
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
@@ -91,6 +94,8 @@ class GameScene extends Phaser.Scene {
         this.controlsTutorial = null;
         this.controlsHintPanel = null;
         this.floatingChatBubble = null;
+        this.creatureRadialMenu = null;
+        this.abilityHUD = null;
         this.creatureSwitcher = null;
         this.hamburgerMenu = null;
         // mapNavButtons removed - redundant with hamburgerMenu
@@ -130,6 +135,10 @@ class GameScene extends Phaser.Scene {
         this.welcomeToastDisplayed = false;
         this.shownDepartureWarning = false;
         this.welcomeBackChecked = false;
+
+        // Achievement notification UI
+        this.achievementNotification = null;
+        this.achievementUnlockHandler = null;
 
         // ParallaxBiome for layered space-fantasy backgrounds
         this.parallaxBiome = null;
@@ -239,7 +248,19 @@ class GameScene extends Phaser.Scene {
                 if (typeof this.achievementSystem.initialize === 'function' && !this.achievementSystem.initialized) {
                     this.achievementSystem.initialize();
                 }
-                console.log('[GameScene] AchievementSystem ready');
+
+                // Create achievement notification UI
+                this.achievementNotification = new AchievementNotification(this);
+
+                // Listen for achievement unlocks
+                this.achievementUnlockHandler = (unlock) => {
+                    if (this.achievementNotification && !this._isShuttingDown) {
+                        this.achievementNotification.show(unlock);
+                    }
+                };
+                this.achievementSystem.on('achievement:unlocked', this.achievementUnlockHandler, this);
+
+                console.log('[GameScene] AchievementSystem and notification ready');
             } else {
                 console.error('AchievementSystem not available, achievement features will be disabled');
                 this.achievementSystem = null;
@@ -389,6 +410,20 @@ class GameScene extends Phaser.Scene {
             this.floatingChatBubble.init(this.player);
             this.events.on('openChat', () => this.openChat());
             console.log('[GameScene] Floating chat bubble initialized');
+
+            // Initialize creature radial menu (shown when tapping creature)
+            this.creatureRadialMenu = new CreatureRadialMenu(this);
+            this.events.on('radialMenuSelect', (itemId) => this.handleRadialMenuSelect(itemId));
+            console.log('[GameScene] Creature radial menu initialized');
+
+            // Initialize ability HUD (3 slots at bottom-left)
+            this.abilityHUD = new AbilityHUD(this);
+            this.abilityHUD.create();
+            this.events.on('openAbilitySelection', (slotNumber) => {
+                this.scene.launch('AbilitySelectionScene', { slot: slotNumber });
+                this.scene.bringToTop('AbilitySelectionScene');
+            });
+            console.log('[GameScene] Ability HUD initialized');
 
             // Initialize NASA content system for daily space content
             this.setupNASAContent();
@@ -1566,10 +1601,10 @@ class GameScene extends Phaser.Scene {
 
         console.log(`game:info [GameScene] Player created at (${startX}, ${startY}) with world bounds: ${this.worldWidth}x${this.worldHeight}`);
         
-        // Make creature clickable for chat interactions
+        // Make creature clickable for radial menu
         this.player.setInteractive({ cursor: 'pointer' });
         this.player.on('pointerdown', () => {
-            this.openChat();
+            this.showCreatureRadialMenu();
         });
 
         // Add breathing/idle animation to make creature feel alive
@@ -2375,8 +2410,10 @@ class GameScene extends Phaser.Scene {
             this.createPersonalityDisplay();
         }
 
-        // Create skill bar for creature abilities
-        this.createSkillBar();
+        // Skill bar disabled - using AbilityHUD (bond-based) instead
+        // The SkillBar (affinity-based skills) created duplicate UI with AbilityHUD
+        // TODO: Consider merging or differentiating these systems in the future
+        // this.createSkillBar();
 
         // Create roster indicator
         this.createRosterIndicator();
@@ -5206,6 +5243,236 @@ class GameScene extends Phaser.Scene {
         this.chatOverlay.show();
     }
 
+    /**
+     * Show radial menu when creature is tapped
+     */
+    showCreatureRadialMenu() {
+        if (!this.player || !this.creatureRadialMenu) return;
+
+        // Don't show if already visible or if chat is open
+        if (this.creatureRadialMenu.isVisible || this.chatOverlay?.getIsVisible()) {
+            return;
+        }
+
+        // Hide floating chat bubble while radial menu is open
+        this.floatingChatBubble?.hide();
+
+        // Show radial menu at creature position
+        this.creatureRadialMenu.show(this.player.x, this.player.y);
+
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick?.();
+        }
+
+        console.log('[GameScene] Showing creature radial menu');
+    }
+
+    /**
+     * Handle radial menu item selection
+     * @param {string} itemId - The selected menu item ID
+     */
+    handleRadialMenuSelect(itemId) {
+        console.log('[GameScene] Radial menu selected:', itemId);
+
+        // Show floating chat bubble again
+        this.floatingChatBubble?.show();
+
+        switch (itemId) {
+            case 'profile':
+                this.openCreatureProfile();
+                break;
+            case 'chat':
+                this.openChat();
+                break;
+            case 'pet':
+                this.petCreature();
+                break;
+            case 'abilities':
+                this.openAbilitiesOverlay();
+                break;
+            default:
+                console.warn('[GameScene] Unknown radial menu item:', itemId);
+        }
+    }
+
+    /**
+     * Open creature profile scene
+     */
+    openCreatureProfile() {
+        console.log('[GameScene] Opening creature profile');
+        this.scene.launch('CreatureProfileScene');
+        this.scene.bringToTop('CreatureProfileScene');
+    }
+
+    /**
+     * Quick pet action from radial menu
+     */
+    petCreature() {
+        console.log('[GameScene] Petting creature');
+
+        // Get creature genetics for personality bonus
+        const genetics = window.GameState?.get('creature.genes');
+
+        // Perform pet care action
+        if (this.careSystem && typeof this.careSystem.performCareAction === 'function') {
+            this.careSystem.performCareAction('pet', genetics).then(result => {
+                if (result && result.success) {
+                    // Show floating feedback
+                    this.showCareEffect(result.message || '💜 +5 Happiness', 0xE040FB);
+
+                    // Record for bond progression
+                    this.recordBondActivity('pet');
+
+                    // Record for achievements
+                    if (window.AchievementSystem?.recordEvent) {
+                        window.AchievementSystem.recordEvent('care_action', { type: 'pet' });
+                    }
+
+                    // Show heart particles
+                    if (window.FXLibrary) {
+                        window.FXLibrary.emotionHappy?.(this, this.player.x, this.player.y);
+                    }
+                }
+            }).catch(err => {
+                console.warn('[GameScene] Pet action failed:', err);
+                // Fallback simple feedback
+                this.showCareEffect('💜 Petted!', 0xE040FB);
+            });
+        } else {
+            // Fallback if CareSystem not available
+            this.showCareEffect('💜 Petted!', 0xE040FB);
+        }
+
+        // Play pet sound
+        if (window.AudioManager) {
+            window.AudioManager.playPet?.();
+        }
+    }
+
+    /**
+     * Open abilities overlay/selector
+     */
+    openAbilitiesOverlay() {
+        console.log('[GameScene] Opening abilities overlay');
+
+        // Check if creature has any abilities
+        const abilities = window.GameState?.get('creature.secretAbilities') || [];
+
+        if (abilities.length === 0) {
+            // Show message if no abilities
+            this.showInteractionHint('✨ No abilities unlocked yet. Bond with your creature!');
+            return;
+        }
+
+        // Launch ability selection scene (to be created)
+        this.scene.launch('AbilitySelectionScene');
+        this.scene.bringToTop('AbilitySelectionScene');
+    }
+
+    /**
+     * Record bond activity for relationship progression
+     * @param {string} activityType - Type of activity (pet, chat, care, level_complete)
+     */
+    recordBondActivity(activityType) {
+        if (!window.GameState) return;
+
+        // Get current bond data
+        const bondData = window.GameState.get('creature.bond') || {
+            level: 1,
+            experience: 0,
+            totalInteractions: 0,
+            careActions: 0,
+            conversations: 0,
+            levelsCompleted: 0
+        };
+
+        // Award bond XP based on activity
+        const bondXPRewards = {
+            pet: 2,
+            feed: 3,
+            play: 3,
+            rest: 1,
+            clean: 2,
+            photo: 2,
+            chat: 4,
+            level_complete: 10
+        };
+
+        const xpGain = bondXPRewards[activityType] || 1;
+        bondData.experience += xpGain;
+        bondData.totalInteractions++;
+
+        // Track specific activities
+        if (['pet', 'feed', 'play', 'rest', 'clean', 'photo'].includes(activityType)) {
+            bondData.careActions++;
+        } else if (activityType === 'chat') {
+            bondData.conversations++;
+        } else if (activityType === 'level_complete') {
+            bondData.levelsCompleted++;
+        }
+
+        // Ensure abilitySlots exists
+        if (!bondData.abilitySlots) {
+            bondData.abilitySlots = { slot1: true, slot2: false, slot3: false };
+        }
+        if (!bondData.equippedAbilities) {
+            bondData.equippedAbilities = { slot1: null, slot2: null, slot3: null };
+        }
+
+        // Track timestamps
+        if (!bondData.firstInteraction) {
+            bondData.firstInteraction = Date.now();
+        }
+        bondData.lastInteraction = Date.now();
+
+        // Check for level up (every 50 XP)
+        const xpPerLevel = 50;
+        const newLevel = Math.floor(bondData.experience / xpPerLevel) + 1;
+
+        if (newLevel > bondData.level) {
+            bondData.level = newLevel;
+            console.log('[GameScene] Bond level up!', bondData.level);
+
+            // Show celebration
+            this.showCareEffect(`💜 Bond Level ${bondData.level}!`, 0xFFD700);
+
+            if (window.AudioManager) {
+                window.AudioManager.playLevelUp?.();
+            }
+
+            // FX celebration
+            if (window.FXLibrary) {
+                window.FXLibrary.stardustBurst?.(this, this.player.x, this.player.y, {
+                    count: 15,
+                    color: [0xE040FB, 0xFFD700],
+                    duration: 1500
+                });
+            }
+
+            // Check for ability slot unlocks
+            if (bondData.level >= 5 && !bondData.abilitySlots.slot2) {
+                bondData.abilitySlots.slot2 = true;
+                this.showInteractionHint('✨ Ability Slot 2 Unlocked!');
+                window.GameState.emit('abilitySlotUnlocked', { slot: 2, level: bondData.level });
+            }
+            if (bondData.level >= 10 && !bondData.abilitySlots.slot3) {
+                bondData.abilitySlots.slot3 = true;
+                this.showInteractionHint('✨ Ability Slot 3 Unlocked!');
+                window.GameState.emit('abilitySlotUnlocked', { slot: 3, level: bondData.level });
+            }
+        }
+
+        // Save updated bond data
+        window.GameState.set('creature.bond', bondData);
+
+        // Emit bond progress event for UI updates
+        window.GameState.emit('bondProgress', {
+            level: bondData.level,
+            experience: bondData.experience,
+            activity: activityType
+        });
+    }
+
     showInteractionHint(message) {
         this.interactionText.setText(message);
         this.interactionText.setVisible(true);
@@ -5943,16 +6210,27 @@ class GameScene extends Phaser.Scene {
         if (!this.achievementSystem?.checkAchievements) {
             return;
         }
-        const newUnlocks = this.achievementSystem.checkAchievements() || [];
-        newUnlocks.forEach((achievement) => this.showAchievementToast(achievement));
+        // Check achievements - notifications are handled by the event listener
+        this.achievementSystem.checkAchievements();
     }
 
+    /**
+     * Show achievement toast (legacy method - now handled by AchievementNotification)
+     * @deprecated Use AchievementNotification instead
+     */
     showAchievementToast(achievement) {
         if (!achievement) return;
 
         // Trigger haptic feedback for achievement
         window.FeedbackManager?.trigger?.('success', this);
 
+        // If we have the new notification system, use it
+        if (this.achievementNotification) {
+            this.achievementNotification.show(achievement);
+            return;
+        }
+
+        // Fallback to simple toast for backward compatibility
         const toast = this.add.text(this.scale.width / 2, 180, `⭐ Achievement: ${achievement.name}`, {
             fontSize: '18px',
             color: '#FFD700',
@@ -6142,7 +6420,11 @@ class GameScene extends Phaser.Scene {
             window.FeedbackManager?.trigger?.('tap', this);
             this.carePanelManager?.handleCareEvent(data);
             this.updateStatsDisplay();
-            this.time.delayedCall(500, () => this.checkAndUnlockAchievements());
+
+            // Record care action for achievement tracking
+            if (window.AchievementSystem?.recordEvent) {
+                window.AchievementSystem.recordEvent('care_action', data);
+            }
         });
 
         // Listen for daily bonus events
@@ -7208,9 +7490,27 @@ class GameScene extends Phaser.Scene {
         // Remove scene event listeners
         if (this.events) {
             this.events.off('openChat');
+            this.events.off('radialMenuSelect');
             if (import.meta.env.DEV) {
                 this.events.off('forceCreatureRefresh');
             }
+        }
+
+        // Clean up radial menu
+        if (this.creatureRadialMenu) {
+            this.creatureRadialMenu.destroy();
+            this.creatureRadialMenu = null;
+        }
+
+        // Clean up ability HUD
+        if (this.abilityHUD) {
+            this.abilityHUD.destroy();
+            this.abilityHUD = null;
+        }
+
+        // Remove ability selection event
+        if (this.events) {
+            this.events.off('openAbilitySelection');
         }
 
         // Remove game event listeners
@@ -7297,6 +7597,16 @@ class GameScene extends Phaser.Scene {
 
         // Clean up void pull sequence if active
         this.cancelVoidPull();
+
+        // Clean up achievement notification and listener
+        if (this.achievementSystem && this.achievementUnlockHandler) {
+            this.achievementSystem.off('achievement:unlocked', this.achievementUnlockHandler, this);
+            this.achievementUnlockHandler = null;
+        }
+        if (this.achievementNotification) {
+            this.achievementNotification.destroy();
+            this.achievementNotification = null;
+        }
 
         this.economyHud?.destroy();
         this.economyHud = null;

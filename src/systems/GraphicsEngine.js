@@ -3819,7 +3819,9 @@ class GraphicsEngine {
             head: headColor,
             wings: wingsColor,
             feet: feetColor,
-            markings: markingsColor
+            markings: markingsColor,
+            accent: this.extractHexColor(colorGenome.accent, 0xFFD700),
+            tail: feetColor  // Tail uses feet color for consistency
         };
     }
 
@@ -3883,18 +3885,39 @@ class GraphicsEngine {
     /**
      * Render body based on genetic body type
      * Supports stage-aware body types: baby_blob, transitional_*, elder_*
+     *
+     * V2 UPDATE: Now accepts colors object OR single bodyColor for backward compatibility
+     * colors = { body, head, wings, feet, markings, accent, tail }
      */
-    renderBodyByType(graphics, center, bodyOffset, bodyScale, bodyColor, bodyType, destinyType = null) {
+    renderBodyByType(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor, bodyType, destinyType = null) {
+        // Handle both old (single bodyColor) and new (colors object) formats
+        let colors;
+        if (typeof colorsOrBodyColor === 'number') {
+            // Legacy: single bodyColor passed
+            colors = {
+                body: colorsOrBodyColor,
+                head: colorsOrBodyColor,
+                wings: colorsOrBodyColor,
+                feet: colorsOrBodyColor,
+                markings: colorsOrBodyColor,
+                accent: colorsOrBodyColor,
+                tail: colorsOrBodyColor
+            };
+        } else {
+            // New: colors object passed
+            colors = colorsOrBodyColor;
+        }
+
         // Handle stage-aware body types
         if (bodyType === 'baby_blob') {
-            this.renderBabyBlobBody(graphics, center, bodyOffset, bodyScale, bodyColor, destinyType);
+            this.renderBabyBlobBody(graphics, center, bodyOffset, bodyScale, colors, destinyType);
             return;
         }
 
         // Handle transitional bodies (juvenile stage)
         if (bodyType && bodyType.startsWith('transitional_')) {
             const targetType = bodyType.replace('transitional_', '');
-            this.renderTransitionalBody(graphics, center, bodyOffset, bodyScale, bodyColor, targetType, 0.4);
+            this.renderTransitionalBody(graphics, center, bodyOffset, bodyScale, colors, targetType, 0.4);
             return;
         }
 
@@ -3902,50 +3925,70 @@ class GraphicsEngine {
         if (bodyType && bodyType.startsWith('elder_')) {
             const baseType = bodyType.replace('elder_', '');
             // Render base body then add elder enhancements
-            this.renderBodyByType(graphics, center, bodyOffset, bodyScale, bodyColor, baseType);
-            this.addElderBodyEnhancements(graphics, center, bodyOffset, bodyScale, bodyColor);
+            this.renderBodyByType(graphics, center, bodyOffset, bodyScale, colors, baseType);
+            this.addElderBodyEnhancements(graphics, center, bodyOffset, bodyScale, colors.body);
             return;
         }
 
         switch (bodyType) {
             case 'fish':
-                this.renderFishBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                this.renderFishBody(graphics, center, bodyOffset, bodyScale, colors);
                 break;
             case 'cyclops':
-                this.renderCyclopsBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                this.renderCyclopsBody(graphics, center, bodyOffset, bodyScale, colors);
                 break;
             case 'serpentine':
-                this.renderSerpentineBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                this.renderSerpentineBody(graphics, center, bodyOffset, bodyScale, colors);
                 break;
             case 'avian':
-                this.renderAvianBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                this.renderAvianBody(graphics, center, bodyOffset, bodyScale, colors);
                 break;
             case 'quadruped':
-                this.renderQuadrupedBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                this.renderQuadrupedBody(graphics, center, bodyOffset, bodyScale, colors);
                 break;
             case 'blob':
-                this.renderBlobBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                this.renderBlobBody(graphics, center, bodyOffset, bodyScale, colors);
                 break;
             case 'reptilian':
-                this.renderReptilianBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                this.renderReptilianBody(graphics, center, bodyOffset, bodyScale, colors);
                 break;
             case 'insectoid':
-                this.renderInsectoidBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                this.renderInsectoidBody(graphics, center, bodyOffset, bodyScale, colors);
                 break;
             default:
-                this.renderStandardBody(graphics, center, bodyOffset, bodyScale, bodyColor);
+                this.renderStandardBody(graphics, center, bodyOffset, bodyScale, colors);
                 break;
         }
     }
 
     /**
-     * Render standard creature body
+     * Render standard creature body with multi-colored parts
+     * V2: Now uses colors object for different body parts
      */
-    renderStandardBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+    renderStandardBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, feet: colorsOrBodyColor, markings: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const feetColor = colors.feet || bodyColor;
+        const markingsColor = colors.markings || bodyColor;
+
         // Body shadow (ground shadow)
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillEllipse(center.x + 3, center.y + 25, 32, 42);
+
+        // FEET - rendered behind body (different color!)
+        graphics.fillStyle(this.darkenColor(feetColor, 0.2));
+        graphics.fillEllipse(center.x - 12 + bodyOffset.x, center.y + 38 + bodyOffset.y, 10 * scale.x, 8 * scale.y);
+        graphics.fillEllipse(center.x + 12 + bodyOffset.x, center.y + 38 + bodyOffset.y, 10 * scale.x, 8 * scale.y);
+        // Foot highlights
+        graphics.fillStyle(feetColor);
+        graphics.fillEllipse(center.x - 12 + bodyOffset.x, center.y + 36 + bodyOffset.y, 8 * scale.x, 6 * scale.y);
+        graphics.fillEllipse(center.x + 12 + bodyOffset.x, center.y + 36 + bodyOffset.y, 8 * scale.x, 6 * scale.y);
 
         // Body base layer (darkest)
         graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
@@ -3954,6 +3997,14 @@ class GraphicsEngine {
         // Body mid layer
         graphics.fillStyle(bodyColor);
         graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 12 + bodyOffset.y, 30 * scale.x, 40 * scale.y);
+
+        // MARKINGS - spots/stripes with markings color
+        if (markingsColor !== bodyColor) {
+            graphics.fillStyle(markingsColor, 0.7);
+            graphics.fillCircle(center.x - 8 + bodyOffset.x, center.y + 5 + bodyOffset.y, 5 * scale.x);
+            graphics.fillCircle(center.x + 5 + bodyOffset.x, center.y + 15 + bodyOffset.y, 4 * scale.x);
+            graphics.fillCircle(center.x - 3 + bodyOffset.x, center.y + 22 + bodyOffset.y, 3 * scale.x);
+        }
 
         // Body highlight layer (creates 3D roundness)
         graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
@@ -3965,10 +4016,22 @@ class GraphicsEngine {
     }
 
     /**
-     * Render fish-like body
+     * Render fish-like body with multi-colored fins and tail
+     * V2: Uses colors object for different parts
      */
-    renderFishBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+    renderFishBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, wings: colorsOrBodyColor, tail: colorsOrBodyColor, markings: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const finColor = colors.wings || bodyColor;  // Fins use wing color
+        const tailColor = colors.tail || colors.feet || bodyColor;  // Tail uses feet/tail color
+        const markingsColor = colors.markings || bodyColor;
+
         // Fish body shadow
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillEllipse(center.x + 2, center.y + 20, 28 * scale.x, 50 * scale.y);
@@ -3980,12 +4043,30 @@ class GraphicsEngine {
         graphics.fillStyle(bodyColor);
         graphics.fillEllipse(center.x - 1 + bodyOffset.x, center.y + 8 + bodyOffset.y, 28 * scale.x, 50 * scale.y);
 
+        // FISH MARKINGS - scales pattern
+        if (markingsColor !== bodyColor) {
+            graphics.fillStyle(markingsColor, 0.5);
+            for (let i = 0; i < 4; i++) {
+                const y = center.y + 5 + (i * 10) + bodyOffset.y;
+                graphics.fillEllipse(center.x - 5 + bodyOffset.x, y, 6 * scale.x, 4 * scale.y);
+                graphics.fillEllipse(center.x + 5 + bodyOffset.x, y + 5, 6 * scale.x, 4 * scale.y);
+            }
+        }
+
         // Streamlined highlight
         graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
         graphics.fillEllipse(center.x - 4 + bodyOffset.x, center.y + 5 + bodyOffset.y, 18 * scale.x, 35 * scale.y);
 
-        // Fish tail
-        graphics.fillStyle(bodyColor);
+        // FISH TAIL - different color!
+        graphics.fillStyle(this.darkenColor(tailColor, 0.2));
+        graphics.beginPath();
+        graphics.moveTo(center.x + bodyOffset.x, center.y + 35 + bodyOffset.y);
+        graphics.lineTo(center.x - 12 + bodyOffset.x, center.y + 50 + bodyOffset.y);
+        graphics.lineTo(center.x + 12 + bodyOffset.x, center.y + 50 + bodyOffset.y);
+        graphics.closePath();
+        graphics.fillPath();
+        // Tail highlight
+        graphics.fillStyle(tailColor, 0.9);
         graphics.beginPath();
         graphics.moveTo(center.x + bodyOffset.x, center.y + 35 + bodyOffset.y);
         graphics.lineTo(center.x - 8 + bodyOffset.x, center.y + 45 + bodyOffset.y);
@@ -3993,20 +4074,51 @@ class GraphicsEngine {
         graphics.closePath();
         graphics.fillPath();
 
-        // Side fins
-        graphics.fillStyle(this.lightenColor(bodyColor, 0.2), 0.7);
-        graphics.fillEllipse(center.x - 12 + bodyOffset.x, center.y + 15 + bodyOffset.y, 8 * scale.x, 15 * scale.y);
-        graphics.fillEllipse(center.x + 12 + bodyOffset.x, center.y + 15 + bodyOffset.y, 8 * scale.x, 15 * scale.y);
+        // SIDE FINS - different color!
+        graphics.fillStyle(this.darkenColor(finColor, 0.2), 0.8);
+        graphics.fillEllipse(center.x - 14 + bodyOffset.x, center.y + 15 + bodyOffset.y, 10 * scale.x, 18 * scale.y);
+        graphics.fillEllipse(center.x + 14 + bodyOffset.x, center.y + 15 + bodyOffset.y, 10 * scale.x, 18 * scale.y);
+        // Fin highlights
+        graphics.fillStyle(finColor, 0.85);
+        graphics.fillEllipse(center.x - 12 + bodyOffset.x, center.y + 13 + bodyOffset.y, 8 * scale.x, 15 * scale.y);
+        graphics.fillEllipse(center.x + 12 + bodyOffset.x, center.y + 13 + bodyOffset.y, 8 * scale.x, 15 * scale.y);
+
+        // Dorsal fin (top fin) - also fin color
+        graphics.fillStyle(finColor, 0.9);
+        graphics.beginPath();
+        graphics.moveTo(center.x + bodyOffset.x, center.y - 15 + bodyOffset.y);
+        graphics.lineTo(center.x - 5 + bodyOffset.x, center.y + 5 + bodyOffset.y);
+        graphics.lineTo(center.x + 5 + bodyOffset.x, center.y + 5 + bodyOffset.y);
+        graphics.closePath();
+        graphics.fillPath();
     }
 
     /**
      * Render cyclops body with single large eye
+     * V2: Handles colors object with feet
      */
-    renderCyclopsBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+    renderCyclopsBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, feet: colorsOrBodyColor, markings: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const feetColor = colors.feet || bodyColor;
+
         // Cyclops body - slightly larger and rounder
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillEllipse(center.x + 3, center.y + 25, 36 * scale.x, 46 * scale.y);
+
+        // FEET - stubby cyclops feet
+        graphics.fillStyle(this.darkenColor(feetColor, 0.2));
+        graphics.fillEllipse(center.x - 14 + bodyOffset.x, center.y + 42 + bodyOffset.y, 10 * scale.x, 8 * scale.y);
+        graphics.fillEllipse(center.x + 14 + bodyOffset.x, center.y + 42 + bodyOffset.y, 10 * scale.x, 8 * scale.y);
+        graphics.fillStyle(feetColor);
+        graphics.fillEllipse(center.x - 14 + bodyOffset.x, center.y + 40 + bodyOffset.y, 8 * scale.x, 6 * scale.y);
+        graphics.fillEllipse(center.x + 14 + bodyOffset.x, center.y + 40 + bodyOffset.y, 8 * scale.x, 6 * scale.y);
 
         graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
         graphics.fillEllipse(center.x + bodyOffset.x, center.y + 15 + bodyOffset.y, 38 * scale.x, 48 * scale.y);
@@ -4022,17 +4134,29 @@ class GraphicsEngine {
 
     /**
      * Render serpentine body - long and sinuous
+     * V2: Uses colors object for segment colors and tail
      */
-    renderSerpentineBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+    renderSerpentineBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, markings: colorsOrBodyColor, tail: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const markingsColor = colors.markings || bodyColor;
+        const tailColor = colors.tail || colors.feet || bodyColor;
+
         // Serpentine body - long and curved
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillEllipse(center.x + 2, center.y + 30, 24 * scale.x, 65 * scale.y);
 
-        // Main body segments
+        // Main body segments - alternating with markings for snake-like pattern
         for (let i = 0; i < 3; i++) {
             const segmentY = center.y + 10 + (i * 15) + bodyOffset.y;
             const segmentX = center.x + bodyOffset.x + (Math.sin(i * 0.5) * 3);
+            const isMarkedSegment = i % 2 === 1 && markingsColor !== bodyColor;
 
             graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
             graphics.fillEllipse(segmentX + 1, segmentY + 2, 26 * scale.x, 18 * scale.y);
@@ -4040,12 +4164,30 @@ class GraphicsEngine {
             graphics.fillStyle(bodyColor);
             graphics.fillEllipse(segmentX, segmentY, 24 * scale.x, 16 * scale.y);
 
+            // MARKINGS - snake pattern bands
+            if (isMarkedSegment) {
+                graphics.fillStyle(markingsColor, 0.7);
+                graphics.fillEllipse(segmentX, segmentY, 20 * scale.x, 12 * scale.y);
+            }
+
             graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.7);
             graphics.fillEllipse(segmentX - 2, segmentY - 1, 16 * scale.x, 12 * scale.y);
         }
 
-        // Tapered tail
-        graphics.fillStyle(bodyColor);
+        // Belly underside (different color - use lighter body or marking)
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.5), 0.4);
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 25 + bodyOffset.y, 12 * scale.x, 35 * scale.y);
+
+        // Tapered tail with tail color
+        graphics.fillStyle(this.darkenColor(tailColor, 0.2));
+        graphics.beginPath();
+        graphics.moveTo(center.x + bodyOffset.x, center.y + 55 + bodyOffset.y);
+        graphics.lineTo(center.x - 6 + bodyOffset.x, center.y + 70 + bodyOffset.y);
+        graphics.lineTo(center.x + 6 + bodyOffset.x, center.y + 70 + bodyOffset.y);
+        graphics.closePath();
+        graphics.fillPath();
+        // Tail tip
+        graphics.fillStyle(tailColor);
         graphics.beginPath();
         graphics.moveTo(center.x + bodyOffset.x, center.y + 55 + bodyOffset.y);
         graphics.lineTo(center.x - 4 + bodyOffset.x, center.y + 65 + bodyOffset.y);
@@ -4056,13 +4198,36 @@ class GraphicsEngine {
 
     /**
      * Render avian (bird-like) body with chest and feathered details
+     * V2: Uses colors object for wings, feet (talons), and breast markings
      */
-    renderAvianBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+    renderAvianBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, feet: colorsOrBodyColor, markings: colorsOrBodyColor, wings: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const feetColor = colors.feet || bodyColor;  // Talons/legs
+        const markingsColor = colors.markings || bodyColor;  // Breast feathers
 
         // Shadow
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillEllipse(center.x + 3, center.y + 25, 30, 38);
+
+        // BIRD LEGS/TALONS - rendered first (behind body)
+        graphics.fillStyle(this.darkenColor(feetColor, 0.3));
+        // Left leg
+        graphics.fillRect(center.x - 8 + bodyOffset.x, center.y + 25 + bodyOffset.y, 3 * scale.x, 15 * scale.y);
+        // Right leg
+        graphics.fillRect(center.x + 5 + bodyOffset.x, center.y + 25 + bodyOffset.y, 3 * scale.x, 15 * scale.y);
+        // Talons (claws)
+        graphics.fillStyle(feetColor);
+        graphics.fillCircle(center.x - 10 + bodyOffset.x, center.y + 40 + bodyOffset.y, 3 * scale.x);
+        graphics.fillCircle(center.x - 6 + bodyOffset.x, center.y + 41 + bodyOffset.y, 2 * scale.x);
+        graphics.fillCircle(center.x + 4 + bodyOffset.x, center.y + 40 + bodyOffset.y, 3 * scale.x);
+        graphics.fillCircle(center.x + 8 + bodyOffset.x, center.y + 41 + bodyOffset.y, 2 * scale.x);
 
         // Prominent chest (birds have pronounced chests)
         graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
@@ -4070,6 +4235,16 @@ class GraphicsEngine {
 
         graphics.fillStyle(bodyColor);
         graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 5 + bodyOffset.y, 32 * scale.x, 35 * scale.y);
+
+        // BREAST MARKINGS - feather pattern
+        if (markingsColor !== bodyColor) {
+            graphics.fillStyle(markingsColor, 0.6);
+            // Feather pattern on chest
+            for (let i = 0; i < 3; i++) {
+                const y = center.y + 5 + (i * 8) + bodyOffset.y;
+                graphics.fillEllipse(center.x - 5 + bodyOffset.x, y, 10 * scale.x, 5 * scale.y);
+            }
+        }
 
         // Chest highlight (bright plumage)
         graphics.fillStyle(this.lightenColor(bodyColor, 0.4), 0.85);
@@ -4128,33 +4303,29 @@ class GraphicsEngine {
 
     /**
      * Render quadruped (four-legged) body - feline/canine style
+     * V2: Now uses colors object for multi-colored legs, paws, tail
      */
-    renderQuadrupedBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+    renderQuadrupedBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, feet: colorsOrBodyColor, tail: colorsOrBodyColor, markings: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const feetColor = colors.feet || bodyColor;  // Legs and paws
+        const tailColor = colors.tail || colors.feet || bodyColor;  // Tail
+        const markingsColor = colors.markings || bodyColor;
 
         // Shadow
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillEllipse(center.x + 3, center.y + 30, 40, 20);
 
-        // Main body (horizontal orientation)
-        graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
-        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 10 + bodyOffset.y, 42 * scale.x, 28 * scale.y);
-
-        graphics.fillStyle(bodyColor);
-        graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 8 + bodyOffset.y, 38 * scale.x, 25 * scale.y);
-
-        // Body highlight
-        graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
-        graphics.fillEllipse(center.x - 6 + bodyOffset.x, center.y + 5 + bodyOffset.y, 28 * scale.x, 18 * scale.y);
-
-        // Spine shine
-        graphics.fillStyle(0xFFFFFF, 0.3);
-        graphics.fillEllipse(center.x - 8 + bodyOffset.x, center.y + 3 + bodyOffset.y, 20 * scale.x, 12 * scale.y);
-
-        // Four legs (simple pillars)
-        const legColor = this.darkenColor(bodyColor, 0.2);
+        // Four LEGS - rendered first (behind body) with FEET COLOR
         const legWidth = 6 * scale.x;
         const legHeight = 18 * scale.y;
+        const legColor = this.darkenColor(feetColor, 0.15);
 
         // Front left leg
         graphics.fillStyle(legColor);
@@ -4166,29 +4337,75 @@ class GraphicsEngine {
         // Back right leg
         graphics.fillRect(center.x + 10 + bodyOffset.x, center.y + 18 + bodyOffset.y, legWidth, legHeight);
 
-        // Paws (small circles at leg ends)
-        const pawColor = this.darkenColor(bodyColor, 0.3);
-        graphics.fillStyle(pawColor);
-        graphics.fillCircle(center.x - 9 + bodyOffset.x, center.y + 38 + bodyOffset.y, 4 * scale.x);
-        graphics.fillCircle(center.x + 9 + bodyOffset.x, center.y + 38 + bodyOffset.y, 4 * scale.x);
-        graphics.fillCircle(center.x - 13 + bodyOffset.x, center.y + 36 + bodyOffset.y, 4 * scale.x);
-        graphics.fillCircle(center.x + 13 + bodyOffset.x, center.y + 36 + bodyOffset.y, 4 * scale.x);
+        // PAWS - brighter feet color
+        graphics.fillStyle(feetColor);
+        graphics.fillCircle(center.x - 9 + bodyOffset.x, center.y + 38 + bodyOffset.y, 5 * scale.x);
+        graphics.fillCircle(center.x + 9 + bodyOffset.x, center.y + 38 + bodyOffset.y, 5 * scale.x);
+        graphics.fillCircle(center.x - 13 + bodyOffset.x, center.y + 36 + bodyOffset.y, 5 * scale.x);
+        graphics.fillCircle(center.x + 13 + bodyOffset.x, center.y + 36 + bodyOffset.y, 5 * scale.x);
+        // Paw pads (lighter)
+        graphics.fillStyle(this.lightenColor(feetColor, 0.3), 0.7);
+        graphics.fillCircle(center.x - 9 + bodyOffset.x, center.y + 38 + bodyOffset.y, 3 * scale.x);
+        graphics.fillCircle(center.x + 9 + bodyOffset.x, center.y + 38 + bodyOffset.y, 3 * scale.x);
+        graphics.fillCircle(center.x - 13 + bodyOffset.x, center.y + 36 + bodyOffset.y, 3 * scale.x);
+        graphics.fillCircle(center.x + 13 + bodyOffset.x, center.y + 36 + bodyOffset.y, 3 * scale.x);
 
-        // Tail (curved)
+        // Main body (horizontal orientation)
+        graphics.fillStyle(this.darkenColor(bodyColor, 0.4));
+        graphics.fillEllipse(center.x + bodyOffset.x, center.y + 10 + bodyOffset.y, 42 * scale.x, 28 * scale.y);
+
         graphics.fillStyle(bodyColor);
+        graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 8 + bodyOffset.y, 38 * scale.x, 25 * scale.y);
+
+        // MARKINGS - spots/stripes on body
+        if (markingsColor !== bodyColor) {
+            graphics.fillStyle(markingsColor, 0.6);
+            // Stripe/spot pattern
+            graphics.fillEllipse(center.x - 10 + bodyOffset.x, center.y + 8 + bodyOffset.y, 8 * scale.x, 6 * scale.y);
+            graphics.fillEllipse(center.x + 5 + bodyOffset.x, center.y + 12 + bodyOffset.y, 6 * scale.x, 5 * scale.y);
+            graphics.fillEllipse(center.x - 5 + bodyOffset.x, center.y + 18 + bodyOffset.y, 5 * scale.x, 4 * scale.y);
+        }
+
+        // Body highlight
+        graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
+        graphics.fillEllipse(center.x - 6 + bodyOffset.x, center.y + 5 + bodyOffset.y, 28 * scale.x, 18 * scale.y);
+
+        // Spine shine
+        graphics.fillStyle(0xFFFFFF, 0.3);
+        graphics.fillEllipse(center.x - 8 + bodyOffset.x, center.y + 3 + bodyOffset.y, 20 * scale.x, 12 * scale.y);
+
+        // TAIL - with tail color
+        graphics.fillStyle(this.darkenColor(tailColor, 0.2));
+        graphics.beginPath();
+        graphics.moveTo(center.x + 16 + bodyOffset.x, center.y + 10 + bodyOffset.y);
+        graphics.lineTo(center.x + 28 + bodyOffset.x, center.y + 2 + bodyOffset.y);
+        graphics.lineTo(center.x + 30 + bodyOffset.x, center.y + 12 + bodyOffset.y);
+        graphics.closePath();
+        graphics.fillPath();
+        // Tail highlight
+        graphics.fillStyle(tailColor);
         graphics.beginPath();
         graphics.moveTo(center.x + 18 + bodyOffset.x, center.y + 10 + bodyOffset.y);
-        graphics.lineTo(center.x + 24 + bodyOffset.x, center.y + 5 + bodyOffset.y);
-        graphics.lineTo(center.x + 26 + bodyOffset.x, center.y + 12 + bodyOffset.y);
+        graphics.lineTo(center.x + 26 + bodyOffset.x, center.y + 5 + bodyOffset.y);
+        graphics.lineTo(center.x + 27 + bodyOffset.x, center.y + 11 + bodyOffset.y);
         graphics.closePath();
         graphics.fillPath();
     }
 
     /**
      * Render blob/slime body - amorphous and fluid
+     * V2: Uses colors for markings (internal bubbles with different color)
      */
-    renderBlobBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+    renderBlobBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, markings: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const markingsColor = colors.markings || bodyColor;  // Internal bubble color
 
         // Shadow (wider for blob)
         graphics.fillStyle(0x000000, 0.3);
@@ -4200,6 +4417,16 @@ class GraphicsEngine {
 
         graphics.fillStyle(bodyColor, 0.85); // Slightly transparent for gooey effect
         graphics.fillCircle(center.x - 2 + bodyOffset.x, center.y + 13 + bodyOffset.y, 24 * Math.max(scale.x, scale.y));
+
+        // INTERNAL MARKINGS - colored bubbles/particles inside the blob
+        if (markingsColor !== bodyColor) {
+            graphics.fillStyle(markingsColor, 0.5);
+            graphics.fillCircle(center.x - 6 + bodyOffset.x, center.y + 12 + bodyOffset.y, 5);
+            graphics.fillCircle(center.x + 8 + bodyOffset.x, center.y + 18 + bodyOffset.y, 4);
+            graphics.fillCircle(center.x + 2 + bodyOffset.x, center.y + 6 + bodyOffset.y, 3);
+            graphics.fillStyle(markingsColor, 0.3);
+            graphics.fillCircle(center.x - 10 + bodyOffset.x, center.y + 20 + bodyOffset.y, 6);
+        }
 
         // Translucent highlight (gooey shine)
         graphics.fillStyle(this.lightenColor(bodyColor, 0.4), 0.6);
@@ -4229,10 +4456,20 @@ class GraphicsEngine {
     /**
      * Render baby blob body - ALL babies are adorable round blobs
      * Maximum cuteness: huge shine, simple shape, optional destiny hints
+     * V2: Handles colors object for multi-colored markings
      */
-    renderBabyBlobBody(graphics, center, bodyOffset, bodyScale, bodyColor, destinyType = null) {
+    renderBabyBlobBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor, destinyType = null) {
         const scale = this.resolveScale(bodyScale);
         const maxScale = Math.max(scale.x, scale.y);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, markings: colorsOrBodyColor, accent: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const markingsColor = colors.markings || bodyColor;
+        const accentColor = colors.accent || bodyColor;
 
         // Ground shadow (soft, circular)
         graphics.fillStyle(0x000000, 0.15);
@@ -4246,6 +4483,14 @@ class GraphicsEngine {
         // Main color layer
         graphics.fillStyle(bodyColor, 0.98);
         graphics.fillCircle(center.x - 2 + bodyOffset.x, center.y + 10 + bodyOffset.y, 26 * maxScale);
+
+        // Baby spots/freckles with markings color (cute!)
+        if (markingsColor !== bodyColor) {
+            graphics.fillStyle(markingsColor, 0.4);
+            graphics.fillCircle(center.x - 10 + bodyOffset.x, center.y + 8 + bodyOffset.y, 4 * maxScale);
+            graphics.fillCircle(center.x + 6 + bodyOffset.x, center.y + 14 + bodyOffset.y, 3 * maxScale);
+            graphics.fillCircle(center.x - 2 + bodyOffset.x, center.y + 20 + bodyOffset.y, 3 * maxScale);
+        }
 
         // Bright highlight for kawaii shine
         graphics.fillStyle(this.lightenColor(bodyColor, 0.45), 0.85);
@@ -4343,10 +4588,19 @@ class GraphicsEngine {
     /**
      * Render transitional body - blend between blob and genetic body type
      * Used for juvenile stage (40% blob, 60% toward genetic type)
+     * V2: Handles colors object for multi-colored parts
      */
-    renderTransitionalBody(graphics, center, bodyOffset, bodyScale, bodyColor, targetType, transitionAmount = 0.4) {
+    renderTransitionalBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor, targetType, transitionAmount = 0.4) {
         const scale = this.resolveScale(bodyScale);
         const maxScale = Math.max(scale.x, scale.y);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, markings: colorsOrBodyColor, accent: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const markingsColor = colors.markings || bodyColor;
 
         // Transitional bodies are rounder than adult but less blob-like
         const roundness = 1.0 + (1.0 - transitionAmount) * 0.5; // 1.0 = adult, 1.5 = more blob-like
@@ -4392,6 +4646,13 @@ class GraphicsEngine {
         // Main color layer
         graphics.fillStyle(bodyColor);
         graphics.fillEllipse(center.x - 2 + bodyOffset.x, center.y + 10 + bodyOffset.y, bodyWidth * 0.92, bodyHeight * 0.92);
+
+        // Transitional markings - emerging pattern
+        if (markingsColor !== bodyColor) {
+            graphics.fillStyle(markingsColor, 0.35);
+            graphics.fillCircle(center.x - 5 + bodyOffset.x, center.y + 8 + bodyOffset.y, 5 * maxScale * transitionAmount);
+            graphics.fillCircle(center.x + 4 + bodyOffset.x, center.y + 15 + bodyOffset.y, 4 * maxScale * transitionAmount);
+        }
 
         // Highlight layer
         graphics.fillStyle(this.lightenColor(bodyColor, 0.35), 0.8);
@@ -4608,12 +4869,24 @@ class GraphicsEngine {
     /**
      * Render stage-aware creature body - main entry point for stage-based rendering
      * Uses resolved traits from StageVisualResolver for dramatic transformation
+     *
+     * V2 UPDATE: Now passes full colors object for multi-colored body parts
      */
     renderStageAwareCreatureBody(graphics, center, baseSize, colors, frame, traits, stageConfig, resolvedTraits) {
         // Determine the body type and destiny
         const bodyType = resolvedTraits?.bodyType || traits.resolvedBodyType || 'balanced';
         const destinyType = resolvedTraits?.destinyBodyType || traits.destinyBodyType || 'balanced';
-        const bodyColor = colors.body || 0x9370DB;
+
+        // Build complete colors object with all body part colors
+        const creatureColors = {
+            body: colors.body || 0x9370DB,
+            head: colors.head || colors.body || 0x9370DB,
+            wings: colors.wings || colors.body || 0x8A2BE2,
+            feet: colors.feet || colors.body || 0x9370DB,
+            markings: colors.markings || colors.accent || 0xFFD700,
+            accent: colors.accent || 0xFFD700,
+            tail: colors.feet || colors.body || 0x9370DB  // Tail uses feet color
+        };
 
         // Calculate body positioning and scaling
         const bodyOffset = {
@@ -4626,8 +4899,8 @@ class GraphicsEngine {
             y: stageConfig.scale || 1.0
         };
 
-        // Render the body using the stage-aware body type
-        this.renderBodyByType(graphics, center, bodyOffset, bodyScale, bodyColor, bodyType, destinyType);
+        // Render the body using the stage-aware body type with ALL colors
+        this.renderBodyByType(graphics, center, bodyOffset, bodyScale, creatureColors, bodyType, destinyType);
 
         // Add stage-specific features
         const resolvedFeatures = resolvedTraits?.features || {};
@@ -6607,9 +6880,19 @@ class GraphicsEngine {
 
     /**
      * Render reptilian body - scaled with ridges
+     * V2: Uses colors object for multi-colored parts
      */
-    renderReptilianBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+    renderReptilianBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, markings: colorsOrBodyColor, accent: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const markingsColor = colors.markings || bodyColor;  // Scale markings
+        const accentColor = colors.accent || bodyColor;       // Spinal ridges
 
         // Shadow
         graphics.fillStyle(0x000000, 0.3);
@@ -6626,9 +6909,9 @@ class GraphicsEngine {
         graphics.fillStyle(this.lightenColor(bodyColor, 0.3), 0.8);
         graphics.fillEllipse(center.x - 4 + bodyOffset.x, center.y + 7 + bodyOffset.y, 18 * scale.x, 32 * scale.y);
 
-        // Scaled texture (diamond pattern)
-        const scaleColor = this.darkenColor(bodyColor, 0.15);
-        graphics.lineStyle(1, scaleColor, 0.6);
+        // Scaled texture (diamond pattern) - uses markings color
+        const scaleLineColor = this.darkenColor(markingsColor, 0.15);
+        graphics.lineStyle(1, scaleLineColor, 0.6);
         for (let i = 0; i < 5; i++) {
             const yOffset = center.y + 5 + (i * 8) + bodyOffset.y;
             graphics.beginPath();
@@ -6637,8 +6920,16 @@ class GraphicsEngine {
             graphics.strokePath();
         }
 
-        // Spinal ridges
-        graphics.fillStyle(this.lightenColor(bodyColor, 0.2), 0.7);
+        // Scale pattern spots - use markings color
+        if (markingsColor !== bodyColor) {
+            graphics.fillStyle(markingsColor, 0.5);
+            graphics.fillEllipse(center.x - 5 + bodyOffset.x, center.y + 8 + bodyOffset.y, 4 * scale.x, 3 * scale.y);
+            graphics.fillEllipse(center.x + 5 + bodyOffset.x, center.y + 18 + bodyOffset.y, 4 * scale.x, 3 * scale.y);
+            graphics.fillEllipse(center.x - 3 + bodyOffset.x, center.y + 28 + bodyOffset.y, 3 * scale.x, 2 * scale.y);
+        }
+
+        // Spinal ridges - use accent color
+        graphics.fillStyle(this.lightenColor(accentColor, 0.2), 0.7);
         for (let i = 0; i < 4; i++) {
             const ridgeY = center.y + (i * 10) + bodyOffset.y;
             graphics.beginPath();
@@ -6663,9 +6954,20 @@ class GraphicsEngine {
 
     /**
      * Render insectoid body - segmented with antennae
+     * V2: Uses colors object for multi-colored parts (legs, antennae, markings)
      */
-    renderInsectoidBody(graphics, center, bodyOffset, bodyScale, bodyColor) {
+    renderInsectoidBody(graphics, center, bodyOffset, bodyScale, colorsOrBodyColor) {
         const scale = this.resolveScale(bodyScale);
+
+        // Handle both old and new format
+        const colors = typeof colorsOrBodyColor === 'number'
+            ? { body: colorsOrBodyColor, feet: colorsOrBodyColor, accent: colorsOrBodyColor, markings: colorsOrBodyColor }
+            : colorsOrBodyColor;
+
+        const bodyColor = colors.body;
+        const legColor = colors.feet || this.darkenColor(bodyColor, 0.2);  // Legs use feet color
+        const antennaColor = colors.accent || this.lightenColor(bodyColor, 0.2);  // Antennae use accent
+        const markingsColor = colors.markings || bodyColor;  // Segment markings
 
         // Shadow
         graphics.fillStyle(0x000000, 0.3);
@@ -6689,6 +6991,14 @@ class GraphicsEngine {
         graphics.fillStyle(bodyColor);
         graphics.fillEllipse(center.x - 1 + bodyOffset.x, center.y + 25 + bodyOffset.y, 12 * scale.x, 20 * scale.y);
 
+        // Segment markings - stripes on abdomen with markings color
+        if (markingsColor !== bodyColor) {
+            graphics.fillStyle(markingsColor, 0.5);
+            graphics.fillEllipse(center.x + bodyOffset.x, center.y + 22 + bodyOffset.y, 10 * scale.x, 3 * scale.y);
+            graphics.fillEllipse(center.x + bodyOffset.x, center.y + 28 + bodyOffset.y, 8 * scale.x, 3 * scale.y);
+            graphics.fillEllipse(center.x + bodyOffset.x, center.y + 34 + bodyOffset.y, 6 * scale.x, 2 * scale.y);
+        }
+
         // Segment lines (showing separation)
         graphics.lineStyle(1, this.darkenColor(bodyColor, 0.5), 0.8);
         graphics.beginPath();
@@ -6696,8 +7006,7 @@ class GraphicsEngine {
         graphics.lineTo(center.x + 10 + bodyOffset.x, center.y + 18 + bodyOffset.y);
         graphics.strokePath();
 
-        // Six legs (three pairs)
-        const legColor = this.darkenColor(bodyColor, 0.2);
+        // Six legs (three pairs) - use feet/leg color
         graphics.lineStyle(2, legColor, 0.9);
         // Front pair
         graphics.beginPath();
@@ -6735,8 +7044,8 @@ class GraphicsEngine {
         graphics.lineTo(center.x + 14 + bodyOffset.x, center.y + 36 + bodyOffset.y);
         graphics.strokePath();
 
-        // Antennae
-        graphics.lineStyle(2, this.lightenColor(bodyColor, 0.2), 0.8);
+        // Antennae - use accent color
+        graphics.lineStyle(2, antennaColor, 0.8);
         graphics.beginPath();
         graphics.moveTo(center.x - 4 + bodyOffset.x, center.y - 10 + bodyOffset.y);
         graphics.lineTo(center.x - 8 + bodyOffset.x, center.y - 18 + bodyOffset.y);
@@ -6746,8 +7055,8 @@ class GraphicsEngine {
         graphics.lineTo(center.x + 8 + bodyOffset.x, center.y - 18 + bodyOffset.y);
         graphics.strokePath();
 
-        // Antennae tips (small circles)
-        graphics.fillStyle(this.lightenColor(bodyColor, 0.3));
+        // Antennae tips (small circles) - use accent color
+        graphics.fillStyle(this.lightenColor(antennaColor, 0.3));
         graphics.fillCircle(center.x - 8 + bodyOffset.x, center.y - 18 + bodyOffset.y, 2);
         graphics.fillCircle(center.x + 8 + bodyOffset.x, center.y - 18 + bodyOffset.y, 2);
     }
@@ -8229,8 +8538,30 @@ class GraphicsEngine {
         try {
             const startTime = Date.now();
 
-            // Get DNA-based color scheme
-            const colors = this.getDNAColorScheme(dna);
+            // CRITICAL FIX: Prefer genetics colorGenome over DNA aura colors
+            // This ensures the random colors from hatching are preserved
+            let colors;
+            const gameState = typeof window !== 'undefined' && window.GameState ? window.GameState : null;
+            const genetics = gameState?.get('creature.genes') || gameState?.getActiveCreature?.()?.genes;
+
+            if (genetics?.traits?.colorGenome) {
+                // Use random colors from genetics colorGenome
+                const colorGenome = genetics.traits.colorGenome;
+                colors = {
+                    body: this.extractHexColor(colorGenome.primary, 0x9370DB),
+                    head: this.extractHexColor(colorGenome.head, colorGenome.primary),
+                    accent: this.extractHexColor(colorGenome.accent, 0xFFD700),
+                    eyes: this.extractHexColor(colorGenome.accent, 0x4169E1),
+                    feet: this.extractHexColor(colorGenome.feet, colorGenome.primary),
+                    markings: this.extractHexColor(colorGenome.markings, colorGenome.accent),
+                    wings: this.extractHexColor(colorGenome.secondary, colorGenome.primary)
+                };
+                console.log('graphics:debug [GraphicsEngine] Using genetics colorGenome for DNA render:', colors);
+            } else {
+                // Fallback to DNA-based aura color scheme
+                colors = this.getDNAColorScheme(dna);
+                console.log('graphics:debug [GraphicsEngine] Using DNA aura colors (no genetics colorGenome):', colors);
+            }
 
             // Calculate canvas size based on body archetype
             const metrics = this.getDNACanvasMetrics(dna.bodyArchetype);

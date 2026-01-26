@@ -152,6 +152,29 @@ class GameStateManager {
                     current: 'happy',             // happy, neutral, sad, abandoned
                     lastMoodChange: null,
                     moodHistory: []               // Track mood changes over time
+                },
+                // Bond system - Relationship between player and creature
+                bond: {
+                    level: 1,                     // Bond level (1-20)
+                    experience: 0,                // XP towards next level (50 per level)
+                    totalInteractions: 0,         // Total care/chat interactions
+                    careActions: 0,               // Total care actions performed
+                    conversations: 0,             // Total chat conversations
+                    levelsCompleted: 0,           // Levels completed together
+                    firstInteraction: null,       // Timestamp of first interaction
+                    lastInteraction: null,        // Timestamp of last interaction
+                    // Ability slots unlocked by bond level
+                    abilitySlots: {
+                        slot1: true,              // Always unlocked
+                        slot2: false,             // Unlocked at bond level 5
+                        slot3: false              // Unlocked at bond level 10
+                    },
+                    // Equipped abilities in each slot
+                    equippedAbilities: {
+                        slot1: null,
+                        slot2: null,
+                        slot3: null
+                    }
                 }
             },
             world: {
@@ -1706,6 +1729,123 @@ class GameStateManager {
         }
         
         return result;
+    }
+
+    /**
+     * Get bond status for creature relationship system
+     * @returns {Object} Bond status information
+     */
+    getBondStatus() {
+        const bond = this.get('creature.bond') || {
+            level: 1,
+            experience: 0,
+            totalInteractions: 0,
+            careActions: 0,
+            conversations: 0,
+            levelsCompleted: 0,
+            abilitySlots: { slot1: true, slot2: false, slot3: false },
+            equippedAbilities: { slot1: null, slot2: null, slot3: null }
+        };
+
+        const xpPerLevel = 50;
+        const xpInCurrentLevel = bond.experience % xpPerLevel;
+        const xpToNextLevel = xpPerLevel - xpInCurrentLevel;
+
+        return {
+            level: bond.level,
+            experience: bond.experience,
+            xpInCurrentLevel,
+            xpToNextLevel,
+            xpPerLevel,
+            progressPercent: (xpInCurrentLevel / xpPerLevel) * 100,
+            totalInteractions: bond.totalInteractions,
+            careActions: bond.careActions,
+            conversations: bond.conversations,
+            levelsCompleted: bond.levelsCompleted,
+            abilitySlots: bond.abilitySlots,
+            equippedAbilities: bond.equippedAbilities,
+            // Bond level descriptions
+            description: this.getBondLevelDescription(bond.level)
+        };
+    }
+
+    /**
+     * Get bond level description
+     * @param {number} level - Current bond level
+     * @returns {Object} Level info with title and perks
+     */
+    getBondLevelDescription(level) {
+        const levels = {
+            1: { title: 'Stranger', perk: 'Starting your journey' },
+            2: { title: 'Acquaintance', perk: 'Getting to know each other' },
+            3: { title: 'Friend', perk: 'Building trust' },
+            4: { title: 'Companion', perk: 'Growing closer' },
+            5: { title: 'Trusted Ally', perk: 'Ability Slot 2 unlocked!' },
+            6: { title: 'Close Friend', perk: 'Deeper connection' },
+            7: { title: 'Partner', perk: 'Working as a team' },
+            8: { title: 'Best Friend', perk: 'Unbreakable bond forming' },
+            9: { title: 'Soulmate', perk: 'Understanding each other perfectly' },
+            10: { title: 'Bonded', perk: 'Ability Slot 3 unlocked!' },
+            11: { title: 'Inseparable', perk: 'Always together' },
+            12: { title: 'Kindred Spirit', perk: 'Minds intertwined' },
+            13: { title: 'Heart Link', perk: 'Emotions synchronized' },
+            14: { title: 'Cosmic Pair', perk: 'Destiny intertwined' },
+            15: { title: 'Eternal Bond', perk: 'Forever companions' },
+            16: { title: 'Legendary', perk: 'Stories told of your bond' },
+            17: { title: 'Mythical', perk: 'Bond transcends time' },
+            18: { title: 'Transcendent', perk: 'Beyond mortal bonds' },
+            19: { title: 'Divine', perk: 'Cosmic unity' },
+            20: { title: 'Ultimate', perk: 'Perfect harmony achieved' }
+        };
+
+        return levels[Math.min(level, 20)] || levels[20];
+    }
+
+    /**
+     * Equip an ability to a slot
+     * @param {number} slotNumber - Slot number (1, 2, or 3)
+     * @param {string} abilityId - Ability ID to equip (or null to unequip)
+     * @returns {boolean} Success
+     */
+    equipAbility(slotNumber, abilityId) {
+        const bond = this.get('creature.bond') || {};
+        const slotKey = `slot${slotNumber}`;
+
+        // Check if slot is unlocked
+        if (!bond.abilitySlots?.[slotKey]) {
+            console.warn(`[GameState] Ability slot ${slotNumber} is not unlocked`);
+            return false;
+        }
+
+        // Update equipped abilities
+        const equippedAbilities = { ...bond.equippedAbilities };
+        equippedAbilities[slotKey] = abilityId;
+
+        this.set('creature.bond.equippedAbilities', equippedAbilities);
+        this.emit('abilityEquipped', { slot: slotNumber, abilityId });
+
+        console.log(`[GameState] Equipped ${abilityId || 'nothing'} to slot ${slotNumber}`);
+        return true;
+    }
+
+    /**
+     * Get equipped abilities
+     * @returns {Object} Equipped abilities by slot
+     */
+    getEquippedAbilities() {
+        const bond = this.get('creature.bond') || {};
+        return bond.equippedAbilities || { slot1: null, slot2: null, slot3: null };
+    }
+
+    /**
+     * Check if ability slot is unlocked
+     * @param {number} slotNumber - Slot number (1, 2, or 3)
+     * @returns {boolean} Whether slot is unlocked
+     */
+    isAbilitySlotUnlocked(slotNumber) {
+        const bond = this.get('creature.bond') || {};
+        const slotKey = `slot${slotNumber}`;
+        return bond.abilitySlots?.[slotKey] || false;
     }
 
     /**

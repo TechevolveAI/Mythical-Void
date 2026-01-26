@@ -159,6 +159,16 @@ class CarePanelManager {
                 this.updateButtons();
                 this.updateHint();
 
+                // Record for bond progression
+                if (this.scene?.recordBondActivity) {
+                    this.scene.recordBondActivity(actionType);
+                }
+
+                // Record for achievement tracking
+                if (window.AchievementSystem?.recordEvent) {
+                    window.AchievementSystem.recordEvent('care_action', { type: actionType });
+                }
+
                 // INTEGRATION EXAMPLE: Get creature's response via CreatureAIController
                 if (window.CreatureAIController) {
                     try {

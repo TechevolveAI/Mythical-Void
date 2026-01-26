@@ -83,7 +83,8 @@ class HatchingScene extends Phaser.Scene {
     }
 
     preload() {
-        // Nothing to preload - sprites created in create()
+        // Preload theme music for home screen
+        this.load.audio('themeMusic', 'audio/theme-music.mp3');
     }
 
     create() {
@@ -192,6 +193,66 @@ class HatchingScene extends Phaser.Scene {
 
         // Check for storage issues (incognito mode, etc.)
         this.checkStorageAndWarn();
+
+        // Start playing theme music (loops continuously)
+        this.startThemeMusic();
+    }
+
+    /**
+     * Start playing the home screen theme music
+     * Respects AudioManager mute settings
+     */
+    startThemeMusic() {
+        // Check if audio is loaded
+        if (!this.cache.audio.exists('themeMusic')) {
+            console.log('[HatchingScene] Theme music not loaded yet');
+            return;
+        }
+
+        // Check if AudioManager exists and is muted
+        if (window.AudioManager && window.AudioManager.isMuted && window.AudioManager.isMuted()) {
+            console.log('[HatchingScene] Audio is muted, skipping theme music');
+            return;
+        }
+
+        // Create and play the theme music
+        this.themeMusic = this.sound.add('themeMusic', {
+            loop: true,
+            volume: 0.4  // Start at comfortable volume
+        });
+
+        // Fade in the music for a smooth start
+        this.themeMusic.play();
+        this.tweens.add({
+            targets: this.themeMusic,
+            volume: 0.6,
+            duration: 2000,
+            ease: 'Sine.easeIn'
+        });
+
+        console.log('[HatchingScene] 🎵 Theme music started - Starwhale Over the Nebula Sea');
+    }
+
+    /**
+     * Stop theme music with fade out
+     */
+    stopThemeMusic() {
+        if (this.themeMusic && this.themeMusic.isPlaying) {
+            this.tweens.add({
+                targets: this.themeMusic,
+                volume: 0,
+                duration: 800,
+                ease: 'Sine.easeOut',
+                onComplete: () => {
+                    if (this.themeMusic) {
+                        this.themeMusic.stop();
+                        this.themeMusic.destroy();
+                        this.themeMusic = null;
+                    }
+                }
+            });
+            console.log('[HatchingScene] 🎵 Theme music fading out');
+        }
     }
 
     /**
@@ -394,11 +455,10 @@ class HatchingScene extends Phaser.Scene {
             state.set('session.gameStarted', true);
             console.log('✅ Set gameStarted to true');
 
-            // CRITICAL: Reset creature collection to clear old test creatures
-            if (state.resetCreatureCollection) {
-                state.resetCreatureCollection();
-                console.log('✅ Reset creature collection for fresh start');
-            }
+            // NOTE: Do NOT reset creature collection here!
+            // The collection persists across hatchings so players can have multiple creatures.
+            // resetCreatureCollection() should only be called on explicit "New Game" with confirmation.
+            console.log(`✅ Creature collection preserved (${state.get('creatures')?.length || 0} creatures)`);
 
             // CRITICAL: Reset creature to unhatched state for fresh game flow
             state.set('creature.hatched', false);
@@ -2344,7 +2404,9 @@ class HatchingScene extends Phaser.Scene {
         // Save the complete genetic profile
         const state = getGameState();
 
+        // Save to BOTH paths for compatibility across different systems
         state.set('creature.genetics', this.creatureGenetics);
+        state.set('creature.genes', this.creatureGenetics);  // Required for addCreatureToCollection
 
         // Save the texture name for consistency across scenes
         const textureName = this.creature?.texture?.key || `creature_${this.creatureGenetics.id}_0`;
@@ -2359,6 +2421,17 @@ class HatchingScene extends Phaser.Scene {
         // Generate a descriptive name based on genetics
         const descriptiveName = this.generateCreatureName();
         state.set('creature.descriptiveName', descriptiveName);
+
+        // Set hatch time for lifecycle tracking
+        const hatchTime = Date.now();
+        state.set('creature.hatchTime', hatchTime);
+
+        // Initialize lifecycle data for new creature
+        state.set('creature.lifecycle', {
+            stage: 'baby',
+            birthDate: hatchTime,
+            evolutionHistory: []
+        });
 
         // CRITICAL: Force save to localStorage immediately
         state.save();
@@ -3889,17 +3962,19 @@ class HatchingScene extends Phaser.Scene {
      * ⚠️ CRITICAL SECTION - DO NOT MODIFY - GAME FLOW LOGIC ⚠️
      */
     handleStartGame() {
+        // Fade out theme music when starting game
+        this.stopThemeMusic();
+
         const GameState = getGameState();
 
         // Mark game as started - CRITICAL for game flow validation
         GameState.set('session.gameStarted', true);
         console.log('✅ Set gameStarted to true');
 
-        // CRITICAL: Reset creature collection to clear old test creatures
-        if (GameState.resetCreatureCollection) {
-            GameState.resetCreatureCollection();
-            console.log('✅ Reset creature collection for fresh start');
-        }
+        // NOTE: Do NOT reset creature collection here!
+        // The collection persists across hatchings so players can have multiple creatures.
+        // resetCreatureCollection() should only be called on explicit "New Game" with confirmation.
+        console.log(`✅ Creature collection preserved (${GameState.get('creatures')?.length || 0} creatures)`);
 
         // CRITICAL: Reset creature to unhatched state for fresh game flow
         GameState.set('creature.hatched', false);

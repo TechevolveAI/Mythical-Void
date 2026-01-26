@@ -95,6 +95,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Call parent create
         super.create();
 
+        // Record level entry for achievements
+        if (window.AchievementSystem?.recordEvent) {
+            window.AchievementSystem.recordEvent('level_entered', { levelId: 'crystalCaves' });
+        }
+
+        // Track start time for speedrun achievements
+        this.levelStartTime = Date.now();
+        this.damageTaken = 0;
+
         // Show level entry screen
         this.showLevelEntry();
     }
@@ -941,6 +950,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             loop: true
         });
 
+        // Web spray timer - sprays web downward while patrolling on ceiling
+        this.spiderWebSprayTimer = this.time.addEvent({
+            delay: 1500,
+            callback: () => this.spiderSprayWebDown(),
+            loop: true
+        });
+
         console.log('[CrystalCavesLevel] Crystal Spider miniboss created at', x, y);
 
         return this.crystalSpider;
@@ -1219,6 +1235,102 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     /**
+     * Spider sprays web downward while patrolling on ceiling
+     * Creates hazards that fall down to lower levels
+     */
+    spiderSprayWebDown() {
+        if (!this.crystalSpider || !this.crystalSpider.active || this.crystalSpider.defeated) return;
+        if (!this.crystalSpider.isOnCeiling) return; // Only spray when on ceiling
+
+        const spider = this.crystalSpider;
+
+        // Create falling web projectile
+        const web = this.add.graphics();
+        web.fillStyle(0xDDDDDD, 0.7);
+        web.fillCircle(0, 0, 8);
+        // Web drip pattern
+        web.fillStyle(0xFFFFFF, 0.5);
+        web.fillCircle(0, 5, 4);
+        web.fillCircle(0, 10, 3);
+
+        web.setPosition(spider.x, spider.y + 20);
+        web.setDepth(850);
+
+        // Add physics
+        this.physics.add.existing(web);
+        web.body.setAllowGravity(true);
+        web.body.setGravityY(150); // Slower fall for better visibility
+        web.body.setCircle(8);
+        web.body.setVelocityY(50); // Initial downward velocity
+
+        // Slight horizontal spread based on patrol direction
+        web.body.setVelocityX(spider.patrolDirection * Phaser.Math.Between(10, 30));
+
+        // Player collision - slow effect
+        const webCollider = this.physics.add.overlap(this.player, web, () => {
+            this.applyWebSlow();
+            web.destroy();
+            this.physics.world.removeCollider(webCollider);
+        });
+
+        // Platform collision - create web puddle hazard
+        const platformCollider = this.physics.add.collider(web, this.platforms, (webObj, platform) => {
+            // Create web puddle at impact location
+            this.createWebPuddle(webObj.x, platform.y - platform.body.height / 2 - 5);
+            webObj.destroy();
+            this.physics.world.removeCollider(platformCollider);
+            this.physics.world.removeCollider(webCollider);
+        });
+
+        // Auto-destroy if it goes off-screen or after 5 seconds
+        this.time.delayedCall(5000, () => {
+            if (web && web.active) {
+                web.destroy();
+            }
+        });
+    }
+
+    /**
+     * Create a web puddle hazard on the ground
+     * Slows player if they walk through it
+     */
+    createWebPuddle(x, y) {
+        const puddle = this.add.graphics();
+        puddle.fillStyle(0xDDDDDD, 0.4);
+        puddle.fillEllipse(0, 0, 40, 15);
+        // Web texture
+        puddle.lineStyle(1, 0xFFFFFF, 0.3);
+        for (let i = 0; i < 4; i++) {
+            const angle = (i / 4) * Math.PI * 2;
+            puddle.lineBetween(0, 0, Math.cos(angle) * 18, Math.sin(angle) * 6);
+        }
+
+        puddle.setPosition(x, y);
+        puddle.setDepth(100);
+
+        // Add collision zone
+        const zone = this.add.zone(x, y, 40, 15);
+        this.physics.add.existing(zone, true);
+
+        // Player collision - slow effect
+        this.physics.add.overlap(this.player, zone, () => {
+            this.applyWebSlow();
+        });
+
+        // Puddle fades and disappears after 4 seconds
+        this.tweens.add({
+            targets: puddle,
+            alpha: 0,
+            duration: 1000,
+            delay: 3000,
+            onComplete: () => {
+                puddle.destroy();
+                zone.destroy();
+            }
+        });
+    }
+
+    /**
      * Apply web slow effect to player
      */
     applyWebSlow() {
@@ -1336,6 +1448,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.spiderAttackTimer) {
             this.spiderAttackTimer.remove();
         }
+        if (this.spiderWebSprayTimer) {
+            this.spiderWebSprayTimer.remove();
+        }
 
         // Death animation
         spider.setVelocity(0, 0);
@@ -1368,14 +1483,19 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Hide spider UI
         if (this.spiderUI) {
+            const spiderUIRef = this.spiderUI;
             this.tweens.add({
-                targets: this.spiderUI,
+                targets: spiderUIRef,
                 alpha: 0,
                 duration: 500,
                 onComplete: () => {
-                    this.spiderUI.destroy();
+                    spiderUIRef.destroy();
                 }
             });
+            this.spiderUI = null; // Clear reference immediately
+            this.spiderHealthBar = null;
+            this.spiderHealthBarBg = null;
+            this.spiderNameText = null;
         }
 
         // Victory effects
@@ -3295,6 +3415,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossDefeated = true;
         this.bossFightActive = false;
 
+        // Record boss defeat for achievements
+        if (window.AchievementSystem?.recordEvent) {
+            window.AchievementSystem.recordEvent('boss_defeated', { bossId: 'crystal_golem' });
+        }
+
         // Stop boss AI
         if (this.bossAITimer) {
             this.bossAITimer.remove();
@@ -3427,6 +3552,48 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Record success for contextual thoughts (enables special encouragement if struggled)
         this.recordLevelSuccess();
+
+        // Calculate completion stats for achievements
+        const completionTime = Date.now() - (this.levelStartTime || Date.now());
+        const noDamage = (this.damageTaken || 0) === 0;
+        const speedrunThreshold = 180000; // 3 minutes
+
+        // Record level completion for achievements
+        if (window.AchievementSystem?.recordEvent) {
+            window.AchievementSystem.recordEvent('level_completed', {
+                levelId: 'crystalCaves',
+                noDamage: noDamage,
+                time: completionTime,
+                speedrunThreshold: speedrunThreshold
+            });
+        }
+
+        // Record level completion for bond progression
+        const bondData = window.GameState?.get('creature.bond');
+        if (bondData) {
+            const levelXP = 10; // Bond XP for completing a level
+            const newExperience = (bondData.experience || 0) + levelXP;
+            const newLevel = Math.floor(newExperience / 50) + 1;
+            const leveledUp = newLevel > (bondData.level || 1);
+
+            window.GameState.set('creature.bond', {
+                ...bondData,
+                experience: newExperience,
+                level: newLevel,
+                levelsCompleted: (bondData.levelsCompleted || 0) + 1,
+                totalInteractions: (bondData.totalInteractions || 0) + 1,
+                abilitySlots: {
+                    ...bondData.abilitySlots,
+                    slot2: newLevel >= 5 || bondData.abilitySlots?.slot2,
+                    slot3: newLevel >= 10 || bondData.abilitySlots?.slot3
+                }
+            });
+
+            if (leveledUp) {
+                console.log(`[CrystalCavesLevel] Bond level up! Now level ${newLevel}`);
+                window.GameState.emit('bondLevelUp', { level: newLevel });
+            }
+        }
 
         // Pause gameplay
         this.physics.pause();
@@ -3680,6 +3847,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.spiderAttackTimer) {
             this.spiderAttackTimer.remove();
             this.spiderAttackTimer = null;
+        }
+        if (this.spiderWebSprayTimer) {
+            this.spiderWebSprayTimer.remove();
+            this.spiderWebSprayTimer = null;
         }
         if (this.crystalSpider) {
             this.crystalSpider.destroy();

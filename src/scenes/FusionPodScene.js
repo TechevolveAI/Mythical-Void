@@ -98,8 +98,18 @@ class FusionPodScene extends Phaser.Scene {
 
     /**
      * Get adult creatures from collection
+     * TESTING MODE: Allow all creatures regardless of stage
+     * TODO: Change ALLOW_ALL_STAGES back to false for production
      */
     getAdultCreatures(collection) {
+        // TESTING FLAG - Set to true to allow babies in fusion pod
+        const ALLOW_ALL_STAGES = true;
+
+        if (ALLOW_ALL_STAGES) {
+            console.log('[FusionPodScene] TESTING MODE: Allowing all creatures regardless of stage');
+            return collection;
+        }
+
         return collection.filter(creature => {
             // Check lifecycle stage
             const lifecycle = creature.lifecycle || {};
@@ -124,8 +134,17 @@ class FusionPodScene extends Phaser.Scene {
 
     /**
      * Check if a specific creature is adult
+     * TESTING MODE: Allow all creatures regardless of stage
+     * TODO: Change ALLOW_ALL_STAGES back to false for production
      */
     isCreatureAdult(creature) {
+        // TESTING FLAG - Set to true to allow babies in fusion pod
+        const ALLOW_ALL_STAGES = true;
+
+        if (ALLOW_ALL_STAGES) {
+            return creature !== null && creature !== undefined;
+        }
+
         if (!creature) return false;
 
         const lifecycle = creature.lifecycle || {};

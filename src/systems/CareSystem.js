@@ -84,10 +84,16 @@ class CareSystem {
             if (count >= action.dailyLimit) return false;
         }
 
-        // Check cooldown for rest
+        // Check cooldown for rest (affected by Time Warp ability)
         if (actionType === 'rest') {
             const now = Date.now();
-            if (now - this.lastRestTime < action.cooldown) return false;
+            let effectiveCooldown = action.cooldown;
+
+            // Apply ability cooldown reduction (e.g., Time Warp: 50% reduction)
+            const cooldownReduction = window.SecretAbilityManager?.getSanctuaryModifiers?.()?.cooldownReduction || 1;
+            effectiveCooldown = Math.round(effectiveCooldown * cooldownReduction);
+
+            if (now - this.lastRestTime < effectiveCooldown) return false;
         }
 
         return true;
@@ -104,7 +110,12 @@ class CareSystem {
         // Calculate personality-based bonus
         const personalityBonus = this.calculatePersonalityBonus(actionType, genetics);
         const baseBonusHappiness = this.careActions[actionType].happinessBonus;
-        const totalHappinessBonus = Math.round(baseBonusHappiness * personalityBonus.multiplier);
+        let totalHappinessBonus = Math.round(baseBonusHappiness * personalityBonus.multiplier);
+
+        // Apply ability bonus (e.g., Gentle Aura: +50% care effectiveness)
+        if (window.SecretAbilityManager?.applyCareBonus) {
+            totalHappinessBonus = window.SecretAbilityManager.applyCareBonus(totalHappinessBonus);
+        }
 
         const success = getGameState().performCareAction(actionType, totalHappinessBonus);
 

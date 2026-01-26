@@ -933,6 +933,16 @@ class NamingScene extends Phaser.Scene {
                     }
                 }
 
+                // Record creature hatched for achievement tracking
+                if (window.AchievementSystem?.recordEvent) {
+                    const genetics = state.get('creature.genes');
+                    window.AchievementSystem.recordEvent('creature_hatched', {
+                        rarity: genetics?.rarity || 'common',
+                        species: genetics?.species || 'unknown'
+                    });
+                    console.log('[NamingScene] Recorded creature_hatched event for achievements');
+                }
+
                 state.save();
                 console.log('[NamingScene] Name saved to GameState');
             } catch (error) {

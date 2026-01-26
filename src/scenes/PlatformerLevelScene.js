@@ -471,18 +471,31 @@ class PlatformerLevelScene extends Phaser.Scene {
         const textureWidth = this.player.width;
         const textureHeight = this.player.height;
 
-        // Set body size for better collision
-        // Body should be smaller than visual, centered horizontally, aligned to bottom
-        // DNA creature textures are typically 80-110px wide, 85-110px tall
-        const bodyWidth = Math.min(30, textureWidth * 0.4);  // 40% of texture width, max 30
-        const bodyHeight = Math.min(45, textureHeight * 0.45); // 45% of texture height, max 45
+        // MOBILE UX FIX: Physics body aligned to visual "feet" of creature
+        // The body should be at the VERY bottom of the sprite so creature
+        // visually sits ON TOP of platforms, not floating or embedded
+        //
+        // Body sizing: small hitbox for precise platforming
+        const bodyWidth = Math.min(28, textureWidth * 0.35);  // Narrower for tighter platforming
+        const bodyHeight = Math.min(40, textureHeight * 0.40); // Shorter body
 
-        // Center body horizontally, align to bottom with small margin
+        // CRITICAL: Creature textures have significant padding for visual effects
+        // (cosmic auras, sparkles, etc). The actual creature visual is centered in the texture.
+        // We need to offset the physics body to align with where the creature's FEET appear.
+        //
+        // For a 220x260 texture with 60x80 creature centered:
+        // - The creature visual sits in the center
+        // - We need physics body to align with the visual creature's feet
+        // - Testing showed 90px was too much (creature below platform), trying ~55-60px
+        const estimatedBottomPadding = Math.min(55, textureHeight * 0.22); // Reduced from 90px - creature was below platforms
         const offsetX = (textureWidth - bodyWidth) / 2;
-        const offsetY = textureHeight - bodyHeight - 5; // 5px margin from bottom
+        const offsetY = textureHeight - bodyHeight - estimatedBottomPadding;
 
         this.player.body.setSize(bodyWidth, bodyHeight);
         this.player.body.setOffset(offsetX, offsetY);
+
+        // Anchor point adjustment for visual grounding
+        // Default origin is 0.5, 0.5 (center). Keep this for proper flip behavior.
 
         // Player properties - depth must be higher than platforms (which use Y position as depth)
         // Platforms at Y=750 (ground) have depth 750, so player needs depth > 800
@@ -518,56 +531,79 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     /**
-     * Set up horizontal camera following
+     * Set up horizontal camera following with directional lead
+     * MOBILE UX ENHANCEMENT: Camera leads ahead of player movement direction
      */
     setupCamera() {
         const camera = this.cameras.main;
         const screenHeight = camera.height;
+        const screenWidth = camera.width;
 
-        // Detect if mobile for camera offset adjustment
-        const isMobileDevice = this.detectMobile();
+        // Detect if mobile for camera adjustments
+        this.isMobileDevice = this.detectMobile();
 
-        // Calculate camera bounds based on screen vs level height
-        // If screen is taller than level, clamp camera so ground stays at bottom
-        const effectiveLevelHeight = Math.max(this.levelHeight, screenHeight);
-
-        // Calculate the vertical offset to ensure ground (at levelHeight - 50)
-        // stays near the bottom of the screen, not floating in the middle
-        const groundY = this.levelHeight - 50;
-        const cameraBottomMargin = 50; // Small margin below ground
-
-        // Set bounds: X is full level width, Y adjusted so camera can't go below ground
-        // Top bound is 0, bottom bound ensures ground stays visible at screen bottom
-        const boundsHeight = this.levelHeight + cameraBottomMargin;
+        // Calculate camera bounds
+        const boundsHeight = this.levelHeight + 50;
         camera.setBounds(0, 0, this.levelWidth, boundsHeight);
 
         // Follow player with smooth easing
-        camera.startFollow(this.player, true, 0.1, 0.1);
+        // Slower horizontal lerp for smoother directional lead
+        camera.startFollow(this.player, true, 0.08, 0.1);
 
         // Set deadzone for smooth scrolling
-        // Larger vertical deadzone so camera doesn't bounce on every small jump
-        camera.setDeadzone(camera.width * 0.2, camera.height * 0.4);
+        // Smaller horizontal deadzone to allow directional lead to work
+        camera.setDeadzone(screenWidth * 0.1, screenHeight * 0.35);
 
-        // Camera follow offset - on mobile, push player UP on screen to leave room
-        // for controls at the bottom (controls take ~200-250px, offset compensates)
-        // Positive Y offset = camera looks lower = player appears HIGHER on screen
-        let followOffsetY;
-        if (isMobileDevice) {
-            // Mobile: larger offset to keep player in upper 55% of screen
-            // Controls (joystick + buttons) take ~200-250px from bottom
-            // Using 35% offset (increased from 25%) to prevent overlap
-            followOffsetY = screenHeight * 0.35;
-            console.log(`[PlatformerLevel] Mobile detected - applying enhanced camera offset for controls (35%)`);
+        // MOBILE UX: Calculate vertical offset for control safe zone
+        // Controls are positioned at VERY BOTTOM of screen
+        // Camera offset pushes gameplay UP so ground level appears ABOVE controls
+        if (this.isMobileDevice) {
+            // Mobile: push gameplay to upper portion of screen
+            // Controls occupy bottom ~15% of screen
+            // Camera offset of 45% ensures ground level is well above control zone
+            this.mobileControlZoneHeight = screenHeight * 0.15; // 15% of screen for controls
+            this.cameraBaseOffsetY = screenHeight * 0.45; // 45% offset - gameplay appears in upper half
+            console.log(`[PlatformerLevel] Mobile camera: controlZone=${this.mobileControlZoneHeight}px, offsetY=${this.cameraBaseOffsetY}px`);
         } else {
-            // Desktop: slight offset for better ground visibility
-            followOffsetY = screenHeight * 0.1;
+            this.mobileControlZoneHeight = 0;
+            this.cameraBaseOffsetY = screenHeight * 0.1;
         }
-        camera.setFollowOffset(0, followOffsetY);
 
-        // Zoom for better view
-        camera.setZoom(1.0);
+        // DIRECTIONAL LEAD: Offset camera based on player facing
+        // This shows more of the level AHEAD of the player
+        this.cameraLeadAmount = this.isMobileDevice ? screenWidth * 0.15 : screenWidth * 0.1;
+        this.currentCameraLeadX = 0;
+        this.targetCameraLeadX = 0;
 
-        console.log(`[PlatformerLevel] Camera set up: ${this.levelWidth}x${boundsHeight}, screen: ${camera.width}x${screenHeight}, offsetY: ${followOffsetY}`);
+        // Initial camera offset
+        camera.setFollowOffset(0, this.cameraBaseOffsetY);
+
+        // Zoom slightly out on mobile for better visibility
+        camera.setZoom(this.isMobileDevice ? 0.95 : 1.0);
+
+        console.log(`[PlatformerLevel] Camera: bounds ${this.levelWidth}x${boundsHeight}, lead=${this.cameraLeadAmount}px, zoom=${camera.zoom}`);
+    }
+
+    /**
+     * Update camera directional lead based on player movement
+     * Called from update() loop
+     */
+    updateCameraLead() {
+        if (!this.player || !this.cameras.main) return;
+
+        const camera = this.cameras.main;
+
+        // Determine target lead based on facing direction
+        // Positive X offset = camera looks RIGHT = shows more of RIGHT side
+        // Negative X offset = camera looks LEFT = shows more of LEFT side
+        this.targetCameraLeadX = this.player.facingRight ? -this.cameraLeadAmount : this.cameraLeadAmount;
+
+        // Smooth interpolation toward target lead (slower = smoother transition)
+        const lerpFactor = 0.03;
+        this.currentCameraLeadX += (this.targetCameraLeadX - this.currentCameraLeadX) * lerpFactor;
+
+        // Apply combined offset
+        camera.setFollowOffset(this.currentCameraLeadX, this.cameraBaseOffsetY);
     }
 
     /**
@@ -631,10 +667,18 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     /**
      * Set up platformer-specific mobile controls
-     * Layout:
-     *   [Special Z]    [Attack X]     <- Top row (secondary attacks)
-     *   [Jump]         [Attack]       <- Bottom row (primary actions)
-     *   [Joystick]                    <- Movement
+     * MOBILE UX REDESIGN: Controls at VERY BOTTOM, gameplay appears ABOVE
+     *
+     * Layout (at very bottom of screen):
+     *   [Joystick]          [Special] [Ranged]
+     *                       [Jump]    [Melee]
+     *
+     * Key improvements:
+     * - Controls positioned at VERY BOTTOM of screen (85%+ from top)
+     * - Camera offset pushes gameplay UP so it appears ABOVE controls
+     * - Smaller, semi-transparent controls
+     * - Horizontal joystick-only (no vertical needed for platformer)
+     * - Ground level and creatures appear ABOVE the control zone
      */
     setupPlatformerMobileControls() {
         this.isMobile = this.detectMobile();
@@ -644,49 +688,69 @@ class PlatformerLevelScene extends Phaser.Scene {
             return;
         }
 
-        console.log('[PlatformerLevel] Setting up platformer mobile controls');
+        console.log('[PlatformerLevel] Setting up BOTTOM-POSITIONED mobile controls');
 
         const { width, height } = this.scale;
         const safeArea = this.getSafeAreaInsets();
 
-        // Layout configuration
-        const buttonSize = 70;
-        const primarySize = 80;
-        const spacing = 15;
-        const marginBottom = Math.max(20, safeArea.bottom);
-        const marginRight = Math.max(15, safeArea.right);
-        const marginLeft = Math.max(15, safeArea.left);
+        // MOBILE UX: Controls at VERY BOTTOM of screen
+        // This zone is BELOW the gameplay area (camera pushes gameplay UP)
+        const controlZoneBottom = Math.max(20, safeArea.bottom + 10);
+        const controlZoneTop = height * 0.85; // Controls start at 85% down (at very bottom)
 
-        // ============ JOYSTICK (bottom-left) ============
-        const joystickX = marginLeft + 70;
-        const joystickY = height - marginBottom - 80;
-        const joystickBaseRadius = 55;
-        const joystickThumbRadius = 25;
+        // Smaller, more compact controls
+        const buttonSize = 58; // Reduced from 70
+        const primarySize = 65; // Reduced from 80
+        const spacing = 10; // Reduced from 15
+        const marginRight = Math.max(12, safeArea.right);
+        const marginLeft = Math.max(12, safeArea.left);
 
-        // Joystick base
+        // Control opacity - semi-transparent to not fully obscure gameplay
+        const controlOpacity = 0.7;
+        const containerOpacity = 0.35;
+
+        // ============ JOYSTICK (left side, at bottom) ============
+        const joystickX = marginLeft + 60;
+        const joystickY = controlZoneTop + 35; // Positioned within bottom control zone
+        const joystickBaseRadius = 45; // Smaller base
+        const joystickThumbRadius = 20; // Smaller thumb
+
+        // Joystick base - semi-transparent for better gameplay visibility
         const joystickBase = this.add.graphics();
         joystickBase.setScrollFactor(0);
         joystickBase.setDepth(10000);
-        joystickBase.fillStyle(0x000000, 0.4);
+        joystickBase.fillStyle(0x000000, containerOpacity);
         joystickBase.fillCircle(joystickX, joystickY, joystickBaseRadius);
-        joystickBase.lineStyle(3, 0xFFFFFF, 0.5);
+        joystickBase.lineStyle(2, 0xFFFFFF, 0.4);
         joystickBase.strokeCircle(joystickX, joystickY, joystickBaseRadius);
+        // Add directional indicators (left/right arrows)
+        joystickBase.fillStyle(0xFFFFFF, 0.3);
+        joystickBase.fillTriangle(
+            joystickX - joystickBaseRadius + 10, joystickY,
+            joystickX - joystickBaseRadius + 22, joystickY - 8,
+            joystickX - joystickBaseRadius + 22, joystickY + 8
+        );
+        joystickBase.fillTriangle(
+            joystickX + joystickBaseRadius - 10, joystickY,
+            joystickX + joystickBaseRadius - 22, joystickY - 8,
+            joystickX + joystickBaseRadius - 22, joystickY + 8
+        );
         this.mobileControlElements.push(joystickBase);
 
-        // Joystick thumb
+        // Joystick thumb - more visible for feedback
         const joystickThumb = this.add.graphics();
         joystickThumb.setScrollFactor(0);
         joystickThumb.setDepth(10001);
-        joystickThumb.fillStyle(0xFFFFFF, 0.8);
+        joystickThumb.fillStyle(0xFFFFFF, controlOpacity);
         joystickThumb.fillCircle(joystickX, joystickY, joystickThumbRadius);
-        joystickThumb.lineStyle(2, 0x00CED1, 1);
+        joystickThumb.lineStyle(2, 0x00CED1, 0.8);
         joystickThumb.strokeCircle(joystickX, joystickY, joystickThumbRadius);
         this.mobileControlElements.push(joystickThumb);
 
         // Store joystick state
         this.joystickCenterX = joystickX;
         this.joystickCenterY = joystickY;
-        this.joystickMaxDistance = 45;
+        this.joystickMaxDistance = 35; // Reduced for more compact control
         this.joystickActive = false;
         this.joystickPointerId = null;
         this.joystickThumb = joystickThumb;
@@ -736,15 +800,18 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         }, { passive: true });
 
-        // ============ ACTION BUTTONS (right side) ============
+        // ============ ACTION BUTTONS (right side, at BOTTOM) ============
+        // Button layout at very bottom of screen
         const rightColX = width - marginRight - primarySize / 2;
         const leftColX = rightColX - primarySize - spacing;
-        const bottomRowY = height - marginBottom - primarySize / 2;
-        const topRowY = bottomRowY - primarySize - spacing;
+        // Compact positions within bottom control zone - avoid safe area
+        const availableHeight = height - controlZoneTop - controlZoneBottom;
+        const topRowY = controlZoneTop + 5; // Secondary buttons near top of control zone
+        const bottomRowY = controlZoneTop + Math.min(60, availableHeight - primarySize / 2 - 5); // Primary buttons
 
-        // Button configs for platformer
-        // Layout: [Special] [Ranged]
-        //         [Jump]    [Melee]
+        // Button configs for platformer - compact layout
+        // Layout: [Special] [Ranged]  <- smaller secondary actions
+        //         [Jump]    [Melee]   <- larger primary actions
         const buttons = [
             {
                 id: 'special',
@@ -754,7 +821,8 @@ class PlatformerLevelScene extends Phaser.Scene {
                 size: buttonSize,
                 color: 0x9B59B6, // Purple - special (costs 3 energy)
                 action: () => this.performSpecialAttack(),
-                energyCost: 3
+                energyCost: 3,
+                opacity: controlOpacity
             },
             {
                 id: 'ranged',
@@ -764,7 +832,8 @@ class PlatformerLevelScene extends Phaser.Scene {
                 size: buttonSize,
                 color: 0x00CED1, // Cyan - ranged attack (costs 1 energy)
                 action: () => this.performRangedAttack(),
-                energyCost: 1
+                energyCost: 1,
+                opacity: controlOpacity
             },
             {
                 id: 'jump',
@@ -775,7 +844,8 @@ class PlatformerLevelScene extends Phaser.Scene {
                 color: 0x27AE60, // Green - jump (free)
                 action: () => { this.virtualJumpPressed = true; },
                 onRelease: () => { this.virtualJumpPressed = false; },
-                energyCost: 0
+                energyCost: 0,
+                opacity: controlOpacity
             },
             {
                 id: 'melee',
@@ -785,12 +855,13 @@ class PlatformerLevelScene extends Phaser.Scene {
                 size: primarySize,
                 color: 0xE74C3C, // Red - melee attack (free)
                 action: () => this.performAttack(),
-                energyCost: 0
+                energyCost: 0,
+                opacity: controlOpacity
             }
         ];
 
-        // Create button container background
-        const containerPadding = 12;
+        // Create button container background - semi-transparent
+        const containerPadding = 10;
         const containerX = leftColX - buttonSize / 2 - containerPadding;
         const containerY = topRowY - buttonSize / 2 - containerPadding;
         const containerWidth = (rightColX - leftColX) + primarySize + containerPadding * 2;
@@ -799,10 +870,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         const buttonContainer = this.add.graphics();
         buttonContainer.setScrollFactor(0);
         buttonContainer.setDepth(9999);
-        buttonContainer.fillStyle(0x0D0D1A, 0.4);
-        buttonContainer.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 16);
-        buttonContainer.lineStyle(1, 0xFFFFFF, 0.15);
-        buttonContainer.strokeRoundedRect(containerX, containerY, containerWidth, containerHeight, 16);
+        buttonContainer.fillStyle(0x0D0D1A, containerOpacity);
+        buttonContainer.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 14);
+        buttonContainer.lineStyle(1, 0xFFFFFF, 0.1);
+        buttonContainer.strokeRoundedRect(containerX, containerY, containerWidth, containerHeight, 14);
         this.mobileControlElements.push(buttonContainer);
 
         // Create each button
@@ -1320,6 +1391,9 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Update player facing direction
         this.updatePlayerFacing();
+
+        // MOBILE UX: Update camera directional lead
+        this.updateCameraLead();
 
         // Update Crystal Shield if active
         if (this.hasShield) {
@@ -1949,6 +2023,9 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.health -= amount;
         this.updateHealthDisplay();
+
+        // Track damage for achievement purposes (no-damage run tracking)
+        this.damageTaken = (this.damageTaken || 0) + amount;
 
         console.log(`[PlatformerLevel] Player took ${amount} damage, health: ${this.health}/${this.maxHealth}`);
 

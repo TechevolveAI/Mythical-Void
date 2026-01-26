@@ -546,6 +546,16 @@ class CreatureGenetics {
             feetColor = this.generateTrulyRandomColor();      // Feet
             headColor = this.generateTrulyRandomColor();      // Head
             markingsColor = this.generateTrulyRandomColor();  // Pattern markings
+
+            // DEBUG: Log generated colors to verify randomness
+            console.log(`[CreatureGenetics] RANDOM COLORS for ${rarity}:`, {
+                body: `#${primaryColor.toString(16).padStart(6, '0')}`,
+                wings: `#${secondaryColor.toString(16).padStart(6, '0')}`,
+                accent: `#${accentColor.toString(16).padStart(6, '0')}`,
+                feet: `#${feetColor.toString(16).padStart(6, '0')}`,
+                head: `#${headColor.toString(16).padStart(6, '0')}`,
+                markings: `#${markingsColor.toString(16).padStart(6, '0')}`
+            });
         }
 
         // Rarity affects shimmer/effects intensity

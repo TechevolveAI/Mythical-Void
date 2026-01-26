@@ -1130,6 +1130,19 @@ export default class SoulRevealScene extends Phaser.Scene {
         window.GameState?.set('creature.name', finalName);
         window.GameState?.set('creature.named', true);
 
+        // CRITICAL: Add creature to collection for multi-creature support
+        const collectionStatus = window.GameState?.getCollectionStatus?.() || { hasSpace: true };
+        if (collectionStatus.hasSpace) {
+            const added = window.GameState?.addCreatureToCollection();
+            if (added) {
+                devLog('[SoulRevealScene] Creature added to collection successfully');
+            } else {
+                devLog('[SoulRevealScene] Failed to add creature to collection');
+            }
+        } else {
+            devLog('[SoulRevealScene] Collection full, creature not added');
+        }
+
         // Save soul data for profile page access
         this.saveSoulDataForProfile();
 

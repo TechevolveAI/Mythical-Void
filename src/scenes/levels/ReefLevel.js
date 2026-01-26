@@ -108,6 +108,16 @@ class ReefLevel extends PlatformerLevelScene {
 
     create() {
         super.create();
+
+        // Record level entry for achievements
+        if (window.AchievementSystem?.recordEvent) {
+            window.AchievementSystem.recordEvent('level_entered', { levelId: 'cosmicReef' });
+        }
+
+        // Track start time for speedrun achievements
+        this.levelStartTime = Date.now();
+        this.damageTaken = 0;
+
         this.showLevelEntry();
     }
 
@@ -2046,6 +2056,11 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossDefeated = true;
         this.bossFightActive = false;
 
+        // Record boss defeat for achievements
+        if (window.AchievementSystem?.recordEvent) {
+            window.AchievementSystem.recordEvent('boss_defeated', { bossId: 'nyxvoral' });
+        }
+
         if (this.bossAttackTimer) {
             this.bossAttackTimer.remove();
         }
@@ -2088,6 +2103,48 @@ class ReefLevel extends PlatformerLevelScene {
     showVictoryScreen() {
         // Record success for contextual thoughts (enables special encouragement if struggled)
         this.recordLevelSuccess();
+
+        // Calculate completion stats for achievements
+        const completionTime = Date.now() - (this.levelStartTime || Date.now());
+        const noDamage = (this.damageTaken || 0) === 0;
+        const speedrunThreshold = 240000; // 4 minutes
+
+        // Record level completion for achievements
+        if (window.AchievementSystem?.recordEvent) {
+            window.AchievementSystem.recordEvent('level_completed', {
+                levelId: 'cosmicReef',
+                noDamage: noDamage,
+                time: completionTime,
+                speedrunThreshold: speedrunThreshold
+            });
+        }
+
+        // Record level completion for bond progression
+        const bondData = window.GameState?.get('creature.bond');
+        if (bondData) {
+            const levelXP = 10; // Bond XP for completing a level
+            const newExperience = (bondData.experience || 0) + levelXP;
+            const newLevel = Math.floor(newExperience / 50) + 1;
+            const leveledUp = newLevel > (bondData.level || 1);
+
+            window.GameState.set('creature.bond', {
+                ...bondData,
+                experience: newExperience,
+                level: newLevel,
+                levelsCompleted: (bondData.levelsCompleted || 0) + 1,
+                totalInteractions: (bondData.totalInteractions || 0) + 1,
+                abilitySlots: {
+                    ...bondData.abilitySlots,
+                    slot2: newLevel >= 5 || bondData.abilitySlots?.slot2,
+                    slot3: newLevel >= 10 || bondData.abilitySlots?.slot3
+                }
+            });
+
+            if (leveledUp) {
+                console.log(`[ReefLevel] Bond level up! Now level ${newLevel}`);
+                window.GameState.emit('bondLevelUp', { level: newLevel });
+            }
+        }
 
         const { width, height } = this.cameras.main;
 

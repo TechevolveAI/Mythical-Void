@@ -234,6 +234,70 @@ class SecretAbilityManager {
     }
 
     /**
+     * Get sanctuary-specific modifiers for non-combat gameplay
+     * Used in GameScene for care actions, exploration, etc.
+     */
+    getSanctuaryModifiers() {
+        return {
+            // Care action effectiveness
+            careBonus: this.abilityEffects.healingBonus || 0, // gentleAura: +50% happiness from care
+            cooldownReduction: this.abilityEffects.cooldownReduction || 1, // timeWarp: 50% faster cooldowns
+
+            // Movement and exploration
+            speedBonus: this.abilityEffects.speedBonus || 0, // swiftPaws: +25% movement speed
+
+            // Discovery and rewards
+            treasureRange: this.abilityEffects.treasureRevealRange || 0, // treasureScent: reveal hidden items
+            xpMultiplier: this.abilityEffects.xpMultiplier || 1, // cosmicResonance: 2x XP
+
+            // Stat bonuses
+            statBonus: this.abilityEffects.statBonusPercent || 0, // bloodlineMemory: +5% per generation
+
+            // Special flags
+            showHiddenItems: this.abilityEffects.showHiddenItems || false,
+            agingSpeed: this.abilityEffects.agingSpeed || 1 // timeWarp: slower aging
+        };
+    }
+
+    /**
+     * Apply care action bonus based on active abilities
+     * @param {number} baseBonus - Base happiness bonus from care action
+     * @returns {number} Modified bonus
+     */
+    applyCareBonus(baseBonus) {
+        const modifiers = this.getSanctuaryModifiers();
+        return Math.round(baseBonus * (1 + modifiers.careBonus));
+    }
+
+    /**
+     * Check if creature should reveal hidden items (Treasure Scent)
+     * @param {number} x - Creature X position
+     * @param {number} y - Creature Y position
+     * @returns {boolean} Whether to reveal items
+     */
+    shouldRevealHiddenItems(x, y) {
+        return this.abilityEffects.showHiddenItems || false;
+    }
+
+    /**
+     * Get movement speed multiplier from abilities
+     * @returns {number} Speed multiplier (e.g., 1.25 for +25%)
+     */
+    getSpeedMultiplier() {
+        return 1 + (this.abilityEffects.speedBonus || 0);
+    }
+
+    /**
+     * Activate ability for sanctuary use
+     * @param {string} abilityId - Ability ID
+     * @param {object} scene - Current Phaser scene
+     */
+    activateAbility(abilityId, scene) {
+        const creature = window.GameState?.get('creature');
+        return this.triggerAbility(abilityId, creature, scene, creature?.x, creature?.y);
+    }
+
+    /**
      * Trigger an active ability
      */
     triggerAbility(abilityId, creature, scene, targetX, targetY) {

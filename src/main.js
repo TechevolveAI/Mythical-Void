@@ -15,6 +15,8 @@ import HubWorldScene from './scenes/HubWorldScene.js';
 import CreatureProfileScene from './scenes/CreatureProfileScene.js';
 import WelcomeBackScene from './scenes/WelcomeBackScene.js';
 import VoidMiniGameScene from './scenes/VoidMiniGameScene.js';
+import AchievementMenuScene from './scenes/AchievementMenuScene.js';
+import AbilitySelectionScene from './scenes/AbilitySelectionScene.js';
 import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
 import CrystalCavesLevel from './scenes/levels/CrystalCavesLevel.js';
 import ReefLevel from './scenes/levels/ReefLevel.js';
@@ -311,7 +313,7 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, SoulRevealScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel],
+            scene: [HatchingScene, PersonalityScene, NamingScene, SoulRevealScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, AchievementMenuScene, AbilitySelectionScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
