@@ -61,6 +61,7 @@ import './systems/SoulPhraseGenerator.js';
 import './systems/SpaceWeatherSystem.js';
 import './systems/NASAContentSystem.js';
 import './systems/ThoughtBubbleSystem.js';
+import './systems/OnboardingManager.js';
 import './scenes/HatchingScene.js';
 import './scenes/PersonalityScene.js';
 import './scenes/NamingScene.js';

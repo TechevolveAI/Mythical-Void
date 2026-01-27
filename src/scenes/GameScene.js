@@ -483,16 +483,17 @@ class GameScene extends Phaser.Scene {
             // Set up periodic timers for achievements and tutorials
             this.setupPeriodicTimers();
 
-            // Show controls tutorial for first-time players
+            // Initialize controls tutorial (used by OnboardingManager)
             this.controlsTutorial = new ControlsTutorialOverlay(this);
-            this.controlsTutorial.show();
 
-            // Show crash story on first entry (after controls tutorial dismissed)
-            // Delay to allow controls tutorial to be dismissed first
-            this.time.delayedCall(500, () => this.showFirstTimeStoryIfNeeded());
-
-            // Check for daily login greeting after a short delay
-            this.time.delayedCall(1500, () => this.checkDailyGreeting());
+            // Use OnboardingManager to sequence all popups properly
+            // This replaces the scattered delayed calls for controls, story, greeting, and NASA content
+            this.time.delayedCall(500, () => {
+                if (window.OnboardingManager) {
+                    window.OnboardingManager.initialize(this);
+                    window.OnboardingManager.startOnboardingFlow();
+                }
+            });
 
             // Initialize Secret Abilities for current creature
             this.initializeSecretAbilities();
@@ -506,12 +507,13 @@ class GameScene extends Phaser.Scene {
             }
 
             // Controls hint panel (desktop helper - toggleable with H key)
+            // NOTE: showOnStart is false because OnboardingManager handles first-time tutorial
             this.controlsHintPanel = new ControlsHintPanel(this, {
-                showOnStart: true, // Show briefly on start
-                autoHideDelay: 8000 // Auto-hide after 8 seconds
+                showOnStart: false, // OnboardingManager handles first-time tutorial
+                autoHideDelay: 8000 // Auto-hide after 8 seconds when manually toggled
             });
             this.controlsHintPanel.init();
-            console.log('[GameScene] Controls hint panel initialized');
+            console.log('[GameScene] Controls hint panel initialized (press H to toggle)');
 
             // Initialize FeedbackManager for haptics and screen shake
             if (window.FeedbackManager) {
@@ -944,10 +946,8 @@ class GameScene extends Phaser.Scene {
             // Try to get player's approximate location for ISS tracking
             this.requestLocationForISS();
 
-            // Check for daily content after a short delay (let scene settle)
-            this.time.delayedCall(2000, () => {
-                this.checkAndShowDailyNASAContent();
-            });
+            // NASA daily content is now handled by OnboardingManager
+            // to ensure proper sequencing with other popups
 
             console.log('[GameScene] NASA content system connected');
         } catch (error) {
@@ -4721,11 +4721,21 @@ class GameScene extends Phaser.Scene {
      * Show ship memories/narrative when interacting with crashed ship
      * Enhanced with multi-page storyline and repair progress
      */
-    showShipMemories() {
+    /**
+     * Show ship memories with optional callback when dismissed
+     * @param {Function} onComplete - Optional callback when story is dismissed
+     */
+    showShipMemoriesWithCallback(onComplete = null) {
+        this.showShipMemories(onComplete);
+    }
+
+    showShipMemories(onComplete = null) {
         console.log('[GameScene] Showing ship memories');
 
         const { width, height } = this.scale;
         const elements = [];
+        // Store elements on this so OnboardingManager can detect dismissal
+        this.storyModalElements = elements;
 
         // Story pages
         const storyPages = [
@@ -4916,8 +4926,11 @@ class GameScene extends Phaser.Scene {
             } else {
                 // Close
                 elements.forEach(el => el.destroy());
+                this.storyModalElements = [];
                 this.nearCrashedShip = false;
                 this.input.keyboard.off('keydown', escHandler);
+                this.input.keyboard.off('keydown', arrowHandler);
+                if (onComplete) onComplete();
             }
         });
 
@@ -4968,8 +4981,11 @@ class GameScene extends Phaser.Scene {
         const escHandler = (event) => {
             if (event.key === 'Escape') {
                 elements.forEach(el => el.destroy());
+                this.storyModalElements = [];
                 this.nearCrashedShip = false;
                 this.input.keyboard.off('keydown', escHandler);
+                this.input.keyboard.off('keydown', arrowHandler);
+                if (onComplete) onComplete();
             }
         };
         this.input.keyboard.on('keydown', escHandler);
@@ -4987,15 +5003,6 @@ class GameScene extends Phaser.Scene {
             }
         };
         this.input.keyboard.on('keydown', arrowHandler);
-
-        // Clean up arrow handler when closing
-        const originalEscHandler = escHandler;
-        const cleanupHandler = (event) => {
-            if (event.key === 'Escape') {
-                this.input.keyboard.off('keydown', arrowHandler);
-            }
-        };
-        this.input.keyboard.on('keydown', cleanupHandler);
 
         if (window.AudioManager) {
             window.AudioManager.playVisionReveal();
@@ -5028,9 +5035,22 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
-     * Display the daily greeting overlay
+     * Display the daily greeting overlay with optional callback
+     * @param {string} creatureName - The creature's name
+     * @param {Object} dailyBonus - Daily bonus info
+     * @param {Function} onComplete - Optional callback when dismissed
      */
-    showDailyGreetingOverlay(creatureName, dailyBonus) {
+    showDailyGreetingWithCallback(creatureName, dailyBonus, onComplete = null) {
+        this.showDailyGreetingOverlay(creatureName, dailyBonus, onComplete);
+    }
+
+    /**
+     * Display the daily greeting overlay
+     * @param {string} creatureName - The creature's name
+     * @param {Object} dailyBonus - Daily bonus info
+     * @param {Function} onComplete - Optional callback when dismissed
+     */
+    showDailyGreetingOverlay(creatureName, dailyBonus, onComplete = null) {
         const { width, height } = this.scale;
 
         // Create overlay
@@ -5091,6 +5111,15 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
 
         const elements = [overlay, panel, title, greetingText];
+        // Store elements so OnboardingManager can detect dismissal
+        this.greetingElements = elements;
+
+        // Helper to close and cleanup
+        const closeGreeting = () => {
+            elements.forEach(el => el.destroy());
+            this.greetingElements = [];
+            if (onComplete) onComplete();
+        };
 
         // If daily bonus available, show it
         if (dailyBonus.available) {
@@ -5129,7 +5158,7 @@ class GameScene extends Phaser.Scene {
                     // Show floating text
                     this.showFloatingText(`+${dailyBonus.rewards.xp} XP!`, this.player.x, this.player.y - 60, '#90EE90');
                 }
-                elements.forEach(el => el.destroy());
+                closeGreeting();
             });
 
             claimBtn.on('pointerover', () => claimBtn.setStyle({ backgroundColor: '#45a049' }));
@@ -5146,7 +5175,7 @@ class GameScene extends Phaser.Scene {
             elements.push(closeBtn);
 
             closeBtn.on('pointerdown', () => {
-                elements.forEach(el => el.destroy());
+                closeGreeting();
             });
 
             closeBtn.on('pointerover', () => closeBtn.setStyle({ backgroundColor: '#6a5acd' }));
