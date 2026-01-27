@@ -56,8 +56,8 @@
       default-src 'self';
       script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
       style-src 'self' 'unsafe-inline';
-      img-src 'self' data: blob: https://*.nasa.gov https://apod.nasa.gov https://mars.nasa.gov;
-      connect-src 'self' https://api.x.ai https://api.nasa.gov;
+      img-src 'self' data: blob: https://*.nasa.gov https://apod.nasa.gov https://mars.nasa.gov https://replicate.delivery https://*.replicate.delivery;
+      connect-src 'self' https://api.x.ai https://api.nasa.gov https://api.replicate.com;
       font-src 'self';
       object-src 'none';
       base-uri 'self';

@@ -232,24 +232,49 @@ exports.handler = async (event, context) => {
         };
     }
 
+    // Check API token first
+    if (!REPLICATE_API_TOKEN) {
+        console.error('[AI Art] REPLICATE_API_TOKEN not configured in environment variables');
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({
+                success: false,
+                error: 'AI Art service not configured. Please set REPLICATE_API_TOKEN in Netlify environment variables.',
+                configError: true
+            })
+        };
+    }
+
     try {
         const body = JSON.parse(event.body);
         const { imageBase64, style = 'fantasy', creatureData, mode = 'text2img' } = body;
 
+        console.log('[AI Art] Request received:', {
+            style,
+            mode,
+            hasCreatureData: !!creatureData,
+            creatureName: creatureData?.name
+        });
+
         // Build the prompt from creature data
         const prompt = buildCreaturePrompt(creatureData, style);
 
-        console.log('[AI Art] Generating with prompt:', prompt.substring(0, 200) + '...');
+        console.log('[AI Art] Generated prompt:', prompt.substring(0, 200) + '...');
 
         let imageUrl;
 
         if (mode === 'img2img' && imageBase64) {
+            console.log('[AI Art] Using img2img mode');
             // Transform the creature image
             imageUrl = await generateWithReplicate(imageBase64, prompt);
         } else {
+            console.log('[AI Art] Using text2img mode');
             // Generate from text description only
             imageUrl = await generateTextToImage(prompt);
         }
+
+        console.log('[AI Art] Generation successful, image URL:', imageUrl?.substring(0, 80) + '...');
 
         return {
             statusCode: 200,
@@ -262,14 +287,28 @@ exports.handler = async (event, context) => {
         };
 
     } catch (error) {
-        console.error('[AI Art] Error:', error);
+        console.error('[AI Art] Error:', error.message);
+        console.error('[AI Art] Stack:', error.stack);
+
+        // Provide more specific error messages
+        let errorMessage = error.message || 'Failed to generate image';
+
+        if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
+            errorMessage = 'Invalid API token. Please check REPLICATE_API_TOKEN in Netlify settings.';
+        } else if (errorMessage.includes('402') || errorMessage.includes('payment')) {
+            errorMessage = 'Replicate account needs credits. Please add credits at replicate.com.';
+        } else if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
+            errorMessage = 'Rate limit exceeded. Please try again in a few minutes.';
+        } else if (errorMessage.includes('timeout')) {
+            errorMessage = 'Image generation timed out. Please try again.';
+        }
 
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({
                 success: false,
-                error: error.message || 'Failed to generate image'
+                error: errorMessage
             })
         };
     }
