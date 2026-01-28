@@ -1,14 +1,41 @@
+/**
+ * Global Module Initialization
+ *
+ * Code Splitting Strategy:
+ * - Core systems are statically imported (always needed)
+ * - Scenes are statically imported for reliability but chunked by Vite
+ * - SceneLoader enables lazy loading for future scenes
+ *
+ * Chunk Categories (defined in vite.config.js):
+ * - vendor-phaser: Phaser.js (~1.5MB, cached separately)
+ * - core: Essential systems (GameState, GraphicsEngine, etc.)
+ * - creature: Creature-related systems
+ * - onboarding: First-time user flow scenes
+ * - gameplay: Main game scene
+ * - levels: Platformer levels
+ * - menus: Shop, Inventory, etc.
+ * - advanced: Breeding, Fusion, etc.
+ */
+
 import Phaser from 'phaser';
 
-// Import Logger first (other systems may use it)
+// ============================================
+// CORE UTILITIES (Always loaded first)
+// ============================================
 import './utils/Logger.js';
-
-// Import DevTools for development testing
 import './utils/DevTools.js';
+import './utils/SceneLoader.js';
+import './utils/ChunkPreloader.js';
 
-// Static imports for proper bundling in production
+// ============================================
+// CONFIGURATION
+// ============================================
 import './config/env-loader.js';
 import './config/api-config.js';
+
+// ============================================
+// CORE SYSTEMS (Always needed)
+// ============================================
 import './systems/ErrorHandler.js';
 import './systems/InputValidator.js';
 import './systems/UITheme.js';
@@ -16,8 +43,13 @@ import './systems/MemoryManager.js';
 import './systems/ResponsiveManager.js';
 import './systems/UXEnhancements.js';
 import './systems/KidMode.js';
-import './systems/HatchCinematics.js';
+import './systems/AudioManager.js';
 import './systems/FXLibrary.js';
+
+// ============================================
+// CREATURE SYSTEMS
+// ============================================
+import './systems/HatchCinematics.js';
 import './systems/ParallaxBiome.js';
 import './systems/RaritySystem.js';
 import './systems/RerollSystem.js';
@@ -26,9 +58,15 @@ import './systems/CreatureDNA.js';
 import './systems/PersonalitySystem.js';
 import './systems/CreatureAIController.js';
 import './systems/BreedingEngine.js';
+import './systems/StageVisualResolver.js';
+import './systems/CreatureAnimationController.js';
+import './systems/ThoughtBubbleSystem.js';
+
+// ============================================
+// GAME STATE & MANAGERS
+// ============================================
 import './systems/GameState.js';
 import './systems/EconomyManager.js';
-import './systems/AudioManager.js';
 import './systems/EnemyManager.js';
 import './systems/ProjectileManager.js';
 import './systems/InventoryManager.js';
@@ -45,48 +83,83 @@ import './systems/ChatManager.js';
 import './systems/QuestManager.js';
 import './systems/CollectibleManager.js';
 import './systems/ui/ToastNotificationSystem.js';
+
+// ============================================
+// ADVANCED SYSTEMS
+// ============================================
 import './systems/CampfireRestSystem.js';
 import './systems/NatureAttunementSystem.js';
 import './systems/CreatureLifecycle.js';
 import './systems/CreatureSkills.js';
-import './systems/StageVisualResolver.js';
 import './systems/EvolutionCelebration.js';
 import './systems/CreatureAgent.js';
 import './systems/FeedbackManager.js';
-import './systems/CreatureAnimationController.js';
 import './systems/BirthEventSystem.js';
 import './systems/SecretAbilityManager.js';
 import './systems/BossFightManager.js';
 import './systems/SoulPhraseGenerator.js';
 import './systems/SpaceWeatherSystem.js';
 import './systems/NASAContentSystem.js';
-import './systems/ThoughtBubbleSystem.js';
 import './systems/OnboardingManager.js';
+
+// ============================================
+// SCENES - Onboarding Flow (Critical Path)
+// ============================================
 import './scenes/HatchingScene.js';
 import './scenes/PersonalityScene.js';
 import './scenes/NamingScene.js';
 import './scenes/SoulRevealScene.js';
+
+// ============================================
+// SCENES - Main Gameplay
+// ============================================
 import './scenes/GameScene.js';
+
+// ============================================
+// SCENES - Menus & UI
+// ============================================
 import './scenes/ShopScene.js';
 import './scenes/InventoryScene.js';
+import './scenes/CreatureProfileScene.js';
+import './scenes/AchievementMenuScene.js';
+
+// ============================================
+// SCENES - Hub & Levels
+// ============================================
+import './scenes/HubWorldScene.js';
+// Platformer scenes loaded via main.js
+
+// ============================================
+// SCENES - Advanced Features
+// ============================================
 import './scenes/FusionPodScene.js';
 import './scenes/BreedingHatchScene.js';
-import './scenes/HubWorldScene.js';
-import './scenes/CreatureProfileScene.js';
 import './scenes/WelcomeBackScene.js';
 import './scenes/VoidMiniGameScene.js';
 import './scenes/CreatureGatheringScene.js';
-import './scenes/AchievementMenuScene.js';
 import './scenes/AbilitySelectionScene.js';
-// Platformer scenes - loaded via main.js imports
-// import './scenes/PlatformerLevelScene.js';
-// import './scenes/levels/CrystalCavesLevel.js';
 
+// ============================================
+// GLOBAL EXPORTS
+// ============================================
 if (typeof window !== 'undefined' && !window.Phaser) {
     window.Phaser = Phaser;
 }
 
+// Mark all statically imported scenes as loaded in SceneLoader
+if (typeof window !== 'undefined' && window.SceneLoader) {
+    const staticScenes = [
+        'HatchingScene', 'PersonalityScene', 'NamingScene', 'SoulRevealScene',
+        'GameScene', 'ShopScene', 'InventoryScene', 'CreatureProfileScene',
+        'AchievementMenuScene', 'HubWorldScene', 'FusionPodScene',
+        'BreedingHatchScene', 'WelcomeBackScene', 'VoidMiniGameScene',
+        'CreatureGatheringScene', 'AbilitySelectionScene'
+    ];
+    staticScenes.forEach(scene => window.SceneLoader.loadedScenes.add(scene));
+}
+
 // Modules are now loaded synchronously via static imports
+// Vite handles code splitting via manualChunks in vite.config.js
 const preloadModulesReady = Promise.resolve();
 
 export { Phaser, preloadModulesReady };

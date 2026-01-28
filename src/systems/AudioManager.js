@@ -16,6 +16,10 @@ class AudioManager {
         // Cache for procedurally generated audio buffers
         this.generatedSounds = new Map();
 
+        // Lazy sound registry - definitions stored here, generated on first play
+        this.soundRegistry = new Map();
+        this.soundsGenerated = 0;
+
         // Mobile audio unlock state
         this.audioUnlocked = false;
         this.unlockHandler = null;
@@ -995,11 +999,11 @@ class AudioManager {
             { frequency: 1567.98, duration: 0.25, volume: 0.28 }   // G6
         ]);
 
-        console.log('[AudioManager] Generated', this.generatedSounds.size, 'procedural sounds');
+        console.log('[AudioManager] Registered', this.generatedSounds.size, 'sound definitions');
     }
 
     /**
-     * Create a sequence of tones
+     * Create a sequence of tones (immediate generation - backward compatible)
      * @param {string} name - Sound effect name
      * @param {Array} tones - Array of {frequency, duration, volume} objects
      */
@@ -1007,6 +1011,15 @@ class AudioManager {
         if (!this.audioContext) return;
 
         this.generatedSounds.set(name, tones);
+    }
+
+    /**
+     * Register a sound for lazy generation (generated on first play)
+     * @param {string} name - Sound effect name
+     * @param {Array} tones - Array of {frequency, duration, volume} objects
+     */
+    registerSound(name, tones) {
+        this.soundRegistry.set(name, tones);
     }
 
     /**
@@ -1026,10 +1039,19 @@ class AudioManager {
             return;
         }
 
-        const tones = this.generatedSounds.get(name);
+        // Lazy generation: if sound not in cache, check registry and generate
+        let tones = this.generatedSounds.get(name);
         if (!tones) {
-            console.warn(`[AudioManager] Sound "${name}" not found`);
-            return;
+            const definition = this.soundRegistry.get(name);
+            if (definition) {
+                // Generate on first use
+                this.generatedSounds.set(name, definition);
+                tones = definition;
+                this.soundsGenerated++;
+            } else {
+                console.warn(`[AudioManager] Sound "${name}" not found`);
+                return;
+            }
         }
 
         try {
@@ -3031,7 +3053,9 @@ class AudioManager {
             this.musicNodes.lfoNodes.forEach(node => {
                 try {
                     node.disconnect();
-                } catch (e) {}
+                } catch (e) {
+                    // Node already disconnected - safe to ignore during cleanup
+                }
             });
             this.musicNodes.lfoNodes = [];
 

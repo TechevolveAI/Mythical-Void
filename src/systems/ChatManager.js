@@ -22,18 +22,12 @@ class ChatManager {
      * Initialize the chat system
      */
     async initialize() {
-        try {
-            // Load scripted responses
-            const response = await fetch('/src/config/chat-responses.json');
-            this.responses = await response.json();
-            this.isInitialized = true;
-            devLog('[ChatManager] Initialized with scripted responses');
-        } catch (error) {
-            console.error('[ChatManager] Failed to load responses:', error);
-            // Use fallback responses
-            this.responses = this.getFallbackResponses();
-            this.isInitialized = true;
-        }
+        // Use embedded fallback responses directly
+        // Note: Config JSON files are bundled with the build, not served as static files
+        // The fetch approach would fail in production, so we use fallback responses
+        this.responses = this.getFallbackResponses();
+        this.isInitialized = true;
+        devLog('[ChatManager] Initialized with embedded responses');
     }
 
     /**

@@ -2582,7 +2582,9 @@ class PlatformerLevelScene extends Phaser.Scene {
                 try {
                     el?.removeAllListeners?.();
                     el?.destroy?.();
-                } catch (e) {}
+                } catch (e) {
+                    // Element already destroyed - safe to ignore during cleanup
+                }
             });
             this.pauseMenuElements = [];
         }
@@ -2591,8 +2593,6 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Resume physics
         this.physics.resume();
-
-        console.log('[PlatformerLevel] Game resumed');
     }
 
     /**
@@ -2660,7 +2660,9 @@ class PlatformerLevelScene extends Phaser.Scene {
                 try {
                     el?.removeAllListeners?.();
                     el?.destroy?.();
-                } catch (e) {}
+                } catch (e) {
+                    // Element already destroyed - safe to ignore during shutdown
+                }
             });
             this.pauseMenuElements = [];
         }

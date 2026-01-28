@@ -498,6 +498,12 @@ The `scripts/validate-game-flow.js` script enforces integrity of critical code s
 - `src/config/hatch-cinematics.json` - Cinematic sequence definitions
 - `src/config/biomes.json` - Parallax biome configurations
 - `src/config/evolution.json` - Creature lifecycle stages, hatching vision reveal, baby enhancements
+- `src/config/bosses.json` - Boss fight configurations
+- `src/config/rarity-config.json` - Rarity tiers and probabilities
+- `src/config/personality-expanded.json` - Extended personality traits
+- `src/config/chat-responses.json` - Creature chat dialogue library
+- `src/config/creature-responses.json` - Creature interaction responses
+- `src/config/legal.json` - Legal/compliance configuration
 
 **Pattern**: Systems load configs via `cloneConfig()` helper in main.js to prevent mutation.
 
@@ -1101,6 +1107,36 @@ The following keyboard shortcuts are available globally (defined in `main.js`):
 - Kid-safe filtering integration
 - Access: `window.ChatManager`
 
+### SpaceWeatherSystem (`src/systems/SpaceWeatherSystem.js`)
+- Connects real NASA space weather data to game atmosphere
+- Uses NASA DONKI API (Solar Flares, Geomagnetic Storms, High Speed Streams)
+- 4-hour cache to avoid API spam
+- Graceful fallback when offline
+- Access: `window.SpaceWeatherSystem`
+
+**Game Effects from Space Weather**:
+- `auroraActive` / `auroraIntensity` - Visual aurora effects
+- `solarActivity` - quiet/moderate/active/intense
+- `cosmicEnergy` - Affects creature energy (0-100)
+- `skyTint` - Dynamic sky color changes
+
+### HubWorldScene Navigation
+The game uses a Crash Bandicoot-style hub world with gates to different biomes:
+
+```javascript
+// Transition from HubWorldScene to a level
+this.scene.start('CrystalCavesLevel', { fromHub: true });
+
+// Return to hub from a level
+this.scene.start('HubWorldScene');
+```
+
+**Key HubWorldScene features**:
+- Circular gate layout with selectable biome portals
+- Creature display in center
+- Arrow key / tap navigation between gates
+- Collection button for viewing creature collection
+
 ## Security & Safety
 
 - Follows **Vibe Coding Playbook** security standards (see VIBE_CODING_COMPLIANCE.md)
@@ -1108,12 +1144,115 @@ The following keyboard shortcuts are available globally (defined in `main.js`):
 - **Input validation** via InputValidator system
 - **No hardcoded secrets** - use environment variables with VITE_ prefix
 
+## Netlify Functions
+
+The project includes serverless functions for backend operations:
+
+### AI Art Generator (`netlify/functions/generate-ai-art.js`)
+- Transforms creature images into realistic/artistic versions using AI
+- Supports multiple backends: Replicate, OpenArt, Stability AI
+- **Required Environment Variables** (set in Netlify dashboard):
+  - `REPLICATE_API_TOKEN` - Replicate API key
+  - `OPENART_API_KEY` - OpenArt API key (optional)
+
+**Art Styles Available**: realistic, fantasy, anime, oil_painting, cosmic
+
+**Request Format**:
+```javascript
+{
+    imageBase64: string,    // Base64 encoded creature image
+    prompt: string,         // Generated prompt from creature traits
+    style: string,          // Art style
+    creatureData: object    // Creature metadata for prompt enhancement
+}
+```
+
+## Code Splitting Architecture
+
+The game uses Vite's code splitting to optimize load times and caching.
+
+### Chunk Categories
+
+| Chunk | Contents | Size (gzip) | When Loaded |
+|-------|----------|-------------|-------------|
+| **vendor-phaser** | Phaser.js | ~340 KB | Always (cached long-term) |
+| **core** | Essential systems | ~81 KB | Always |
+| **creature** | Creature systems | ~34 KB | Always |
+| **onboarding** | Hatching flow scenes | ~32 KB | Always |
+| **gameplay** | GameScene | ~42 KB | Always |
+| **menus** | Shop, Inventory, etc. | ~25 KB | On demand |
+| **levels** | Platformer levels | ~37 KB | On demand |
+| **advanced** | Breeding, Fusion, etc. | ~25 KB | On demand |
+
+### Configuration
+
+Chunks are defined in `vite.config.js` using `manualChunks`:
+
+```javascript
+manualChunks: (id) => {
+    if (id.includes('node_modules/phaser')) return 'vendor-phaser';
+    if (id.includes('/systems/GameState')) return 'core';
+    if (id.includes('/scenes/HatchingScene')) return 'onboarding';
+    // ... etc
+}
+```
+
+### SceneLoader Utility
+
+`src/utils/SceneLoader.js` provides lazy scene loading capabilities:
+
+```javascript
+// Preload a scene chunk
+await SceneLoader.preload('ShopScene');
+
+// Load and start a scene
+await SceneLoader.loadAndStart(game, 'ShopScene', data);
+
+// Preload an entire chunk
+SceneLoader.preloadChunk('menus');
+
+// Preload anticipated scenes based on current location
+SceneLoader.preloadAnticipated('HatchingScene');
+```
+
+### ChunkPreloader Utility
+
+`src/utils/ChunkPreloader.js` provides intelligent idle-time preloading:
+
+```javascript
+// Preload chunks for a game phase
+ChunkPreloader.preloadForPhase('gameplay');
+
+// Preload all chunks during idle time
+ChunkPreloader.preloadAllDuringIdle();
+```
+
+### Benefits
+
+1. **Better Caching**: Phaser chunk changes rarely, stays cached
+2. **Parallel Loading**: Multiple smaller files load faster
+3. **Selective Invalidation**: Only changed chunks re-download on updates
+4. **Future Lazy Loading**: Infrastructure ready for true lazy loading
+
+## Service Worker & Caching
+
+The game uses a smart service worker (`public/sw.js`) for offline capabilities:
+
+- **Auto-versioning**: Cache name includes build timestamp (updates on each deployment)
+- **Network-first for HTML**: Always fetches fresh HTML, falls back to cache
+- **Cache-first for assets**: Static assets cached with fingerprinted URLs
+- **Automatic cleanup**: Old caches deleted on activation
+
+**Build Timestamp Injection**:
+The `scripts/inject-build-timestamp.js` replaces `__BUILD_TIMESTAMP__` in sw.js during build.
+
 ## Deployment
 
 - Production-ready configs for **Netlify** (`netlify.toml`) and **Vercel** (`vercel.json`)
 - Security headers configured for OWASP compliance
 - Health check endpoints: `/health`, `/readiness`, `/metrics`
 - See DEPLOYMENT.md for detailed instructions
+- **CRITICAL**: See `docs/DEPLOYMENT_LESSONS.md` for production incident learnings
 
 ## Key Development Notes (CRITICAL - READ FIRST)
 
@@ -1179,43 +1318,75 @@ main.js (entry point)
             ├─> MemoryManager (resource tracking)
             ├─> GameState (state management)
             ├─> GraphicsEngine (sprite generation)
-            └─> InputValidator (input validation)
+            ├─> InputValidator (input validation)
+            └─> OnboardingManager (new user flow)
        └─> Creature Systems:
             ├─> CreatureGenetics (procedural genetics)
             ├─> CreatureDNA (DNA encoding)
             ├─> CreatureAI (AI behavior)
             ├─> CreatureAIController (chat behavior)
+            ├─> CreatureAnimationController (idle animations)
+            ├─> CreatureLifecycle (stage progression)
+            ├─> CreatureSkills (abilities/skills)
+            ├─> CreatureAgent (autonomous behavior)
             ├─> PersonalitySystem (personality shaping)
-            └─> BreedingEngine (breeding mechanics)
+            ├─> BreedingEngine (breeding mechanics)
+            └─> StageVisualResolver (stage-based rendering)
        └─> Game Systems:
             ├─> RaritySystem (weighted rarity)
             ├─> RerollSystem (reroll mechanics)
             ├─> CareSystem (creature care)
             ├─> AchievementSystem (achievements)
             ├─> TutorialSystem (guided tutorials)
-            └─> HatchCinematics (animation sequences)
+            ├─> HatchCinematics (animation sequences)
+            ├─> QuestManager (quest system)
+            ├─> BossFightManager (boss encounters)
+            ├─> CollectibleManager (collectible items)
+            ├─> SecretAbilityManager (hidden abilities)
+            ├─> SpaceWeatherSystem (NASA integration)
+            └─> NASAContentSystem (space content)
        └─> Managers:
             ├─> EconomyManager (coins/currency)
             ├─> InventoryManager (items/inventory)
             ├─> EnemyManager (enemy spawning)
             ├─> ProjectileManager (projectiles)
             ├─> AudioManager (sound effects)
-            └─> ChatManager (chat system)
+            ├─> ChatManager (chat system)
+            └─> FeedbackManager (user feedback)
        └─> UI/UX Systems:
             ├─> UITheme (theming)
             ├─> UXEnhancements (loading states)
             ├─> ResponsiveManager (responsive design)
             ├─> MobileControls (touch controls)
+            ├─> MobileHUD (mobile interface)
             ├─> FXLibrary (particle effects)
             ├─> ParallaxBiome (parallax backgrounds)
+            ├─> ThoughtBubbleSystem (creature thoughts)
+            ├─> ToastNotificationSystem (notifications)
+            ├─> CarePanelManager (care UI)
             └─> KidMode (family-friendly mode)
+       └─> World Systems:
+            ├─> WorldBuilder (procedural worlds)
+            └─> SanctuaryZones (safe zones)
        └─> Scenes:
             ├─> HatchingScene (egg hatching)
             ├─> PersonalityScene (personality selection)
             ├─> NamingScene (creature naming)
+            ├─> SoulRevealScene (soul phrase reveal)
             ├─> GameScene (exploration gameplay)
+            ├─> HubWorldScene (level hub)
             ├─> ShopScene (in-game shop)
-            └─> InventoryScene (inventory management)
+            ├─> InventoryScene (inventory management)
+            ├─> FusionPodScene (creature fusion)
+            ├─> BreedingHatchScene (breeding hatching)
+            ├─> CreatureProfileScene (creature details)
+            ├─> AbilitySelectionScene (ability choice)
+            ├─> AchievementMenuScene (achievements UI)
+            └─> VoidMiniGameScene (mini-games)
+       └─> Platformer Levels:
+            ├─> PlatformerLevelScene (base class)
+            ├─> CrystalCavesLevel (cave platformer)
+            └─> ReefLevel (swimming level)
 ```
 
 ## Quick Reference: Code Quality Checklist

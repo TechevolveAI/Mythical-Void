@@ -308,6 +308,11 @@ class AIArtModal {
                 body: JSON.stringify(requestData)
             });
 
+            // Check for HTTP errors before parsing JSON
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            }
+
             const result = await response.json();
 
             if (!result.success) {

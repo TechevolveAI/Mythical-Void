@@ -36,6 +36,47 @@ class NASAContentSystem {
 
         // Event listeners
         this.listeners = {};
+
+        // Rate limiting to prevent API abuse
+        this.requestQueue = [];
+        this.isProcessingQueue = false;
+        this.lastRequestTime = 0;
+        this.minRequestInterval = 1000; // Minimum 1 second between requests
+        this.rateLimitedUntil = 0; // Timestamp when rate limiting expires
+    }
+
+    /**
+     * Rate-limited fetch wrapper for NASA API
+     * Prevents burst requests and handles 429 responses
+     */
+    async rateLimitedFetch(url) {
+        // Check if we're currently rate limited
+        if (Date.now() < this.rateLimitedUntil) {
+            devWarn('[NASAContent] Rate limited, skipping request');
+            return null;
+        }
+
+        // Enforce minimum interval between requests
+        const timeSinceLastRequest = Date.now() - this.lastRequestTime;
+        if (timeSinceLastRequest < this.minRequestInterval) {
+            await new Promise(resolve =>
+                setTimeout(resolve, this.minRequestInterval - timeSinceLastRequest)
+            );
+        }
+
+        this.lastRequestTime = Date.now();
+
+        const response = await fetch(url);
+
+        // Handle rate limiting
+        if (response.status === 429) {
+            // Rate limited - back off for 5 minutes
+            this.rateLimitedUntil = Date.now() + (5 * 60 * 1000);
+            devWarn('[NASAContent] Rate limited by NASA API, backing off for 5 minutes');
+            return null;
+        }
+
+        return response;
     }
 
     /**
@@ -193,7 +234,10 @@ class NASAContentSystem {
 
         try {
             const url = `${this.baseUrl}/planetary/apod?api_key=${this.apiKey}`;
-            const response = await fetch(url);
+            const response = await this.rateLimitedFetch(url);
+
+            // Rate limited or failed
+            if (!response) return null;
 
             if (!response.ok) throw new Error(`APOD API error: ${response.status}`);
 
@@ -239,7 +283,10 @@ class NASAContentSystem {
             const targetSol = Math.max(1, approxSol - randomSolOffset);
 
             const url = `${this.baseUrl}/mars-photos/api/v1/rovers/curiosity/photos?sol=${targetSol}&api_key=${this.apiKey}`;
-            const response = await fetch(url);
+            const response = await this.rateLimitedFetch(url);
+
+            // Rate limited or failed
+            if (!response) return null;
 
             if (!response.ok) throw new Error(`Mars API error: ${response.status}`);
 
@@ -252,19 +299,17 @@ class NASAContentSystem {
                 return photo;
             }
 
-            // If no photos for that sol, try a few more times with different sols
-            for (let attempt = 0; attempt < 3; attempt++) {
-                const fallbackSol = Math.max(1, approxSol - 50 - (attempt * 100));
-                const fallbackUrl = `${this.baseUrl}/mars-photos/api/v1/rovers/curiosity/photos?sol=${fallbackSol}&api_key=${this.apiKey}`;
-                const fallbackResponse = await fetch(fallbackUrl);
+            // If no photos for that sol, try ONE fallback (to limit API calls)
+            const fallbackSol = Math.max(1, approxSol - 100);
+            const fallbackUrl = `${this.baseUrl}/mars-photos/api/v1/rovers/curiosity/photos?sol=${fallbackSol}&api_key=${this.apiKey}`;
+            const fallbackResponse = await this.rateLimitedFetch(fallbackUrl);
 
-                if (fallbackResponse.ok) {
-                    const fallbackData = await fallbackResponse.json();
-                    if (fallbackData.photos && fallbackData.photos.length > 0) {
-                        const photo = fallbackData.photos[Math.floor(Math.random() * fallbackData.photos.length)];
-                        this.cache.mars = { data: photo, date: today };
-                        return photo;
-                    }
+            if (fallbackResponse && fallbackResponse.ok) {
+                const fallbackData = await fallbackResponse.json();
+                if (fallbackData.photos && fallbackData.photos.length > 0) {
+                    const photo = fallbackData.photos[Math.floor(Math.random() * fallbackData.photos.length)];
+                    this.cache.mars = { data: photo, date: today };
+                    return photo;
                 }
             }
 

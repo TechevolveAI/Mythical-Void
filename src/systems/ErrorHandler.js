@@ -9,6 +9,22 @@ class ErrorHandler {
         this.maxErrors = 10;
         this.errorContainer = null;
         this.isInitialized = false;
+
+        // Rate limiting for user-facing messages
+        this.lastMessageTime = 0;
+        this.messageRateLimitMs = 2000; // Minimum 2 seconds between messages
+        this.messagesShownThisSession = 0;
+        this.maxMessagesPerSession = 5; // Don't spam users with too many errors
+
+        // Suppress known non-critical errors
+        this.suppressedPatterns = [
+            /ResizeObserver loop/i,
+            /MetaMask/i,
+            /Extension context/i,
+            /chrome-extension/i,
+            /moz-extension/i,
+            /safari-extension/i
+        ];
     }
 
     /**
@@ -122,6 +138,16 @@ class ErrorHandler {
      * Handle an error with appropriate user feedback
      */
     handleError(errorInfo) {
+        // Check if this error should be suppressed (browser extensions, etc.)
+        const errorMessage = errorInfo.message || '';
+        const isSuppressed = this.suppressedPatterns.some(pattern => pattern.test(errorMessage));
+
+        if (isSuppressed) {
+            // Silently log suppressed errors for debugging but don't show to users
+            console.debug('[ErrorHandler] Suppressed error:', errorMessage);
+            return;
+        }
+
         // Log to console for debugging with full details
         console.error('[ErrorHandler] Error caught:');
         console.error('  Message:', errorInfo.message);
@@ -146,13 +172,37 @@ class ErrorHandler {
         // Determine if error is recoverable
         const isRecoverable = this.isErrorRecoverable(errorInfo);
 
-        // TEMPORARILY DISABLED: Show user-friendly error message to prevent cascading errors
-        // this.showErrorMessage(errorInfo, isRecoverable);
+        // Show user-friendly error message with rate limiting
+        // Only show critical errors to avoid overwhelming users
+        if (errorInfo.severity === 'error' && this.shouldShowMessage()) {
+            this.showErrorMessage(errorInfo, isRecoverable);
+        }
 
         // Auto-recover if possible
         if (isRecoverable) {
             this.attemptAutoRecovery(errorInfo);
         }
+    }
+
+    /**
+     * Check if we should show a message (rate limiting)
+     */
+    shouldShowMessage() {
+        const now = Date.now();
+
+        // Don't spam users with too many error messages
+        if (this.messagesShownThisSession >= this.maxMessagesPerSession) {
+            return false;
+        }
+
+        // Rate limit messages
+        if (now - this.lastMessageTime < this.messageRateLimitMs) {
+            return false;
+        }
+
+        this.lastMessageTime = now;
+        this.messagesShownThisSession++;
+        return true;
     }
 
     /**
