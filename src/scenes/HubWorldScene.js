@@ -226,11 +226,11 @@ export default class HubWorldScene extends Phaser.Scene {
 
         // Gate colors and icons
         const gateConfigs = {
-            main: { color: 0x7B68EE, icon: '🏠', label: 'Main World' },
-            stellar_reef: { color: 0x00CED1, icon: '🐠', label: 'Stellar Reef' },
-            crystal_caves: { color: 0xE040FB, icon: '💎', label: 'Crystal Caves' },
-            void_peaks: { color: 0x37474F, icon: '⛰️', label: 'Void Peaks' },
-            aurora_depths: { color: 0x00E676, icon: '🌌', label: 'Aurora Depths' }
+            main: { color: 0x7B68EE, icon: '🏠', label: 'Sanctuary' },
+            stellar_reef: { color: 0x00CED1, icon: '🐠', label: 'Stellar Reef', shipPart: '⚙️' },
+            crystal_caves: { color: 0xE040FB, icon: '💎', label: 'Crystal Caves', shipPart: '🔮' },
+            void_peaks: { color: 0x37474F, icon: '⛰️', label: 'Void Peaks', shipPart: '🌀' },
+            aurora_depths: { color: 0x00E676, icon: '🌌', label: 'Aurora Depths', shipPart: '✨' }
         };
 
         this.gates = [];
@@ -248,6 +248,9 @@ export default class HubWorldScene extends Phaser.Scene {
             // Gate container
             const gateContainer = this.add.container(x, y);
             gateContainer.setDepth(10);
+
+            // Check if gate is in development
+            const isInDevelopment = gateData.inDevelopment === true;
 
             // Gate glow (for unlocked gates)
             const glow = this.add.graphics();
@@ -267,18 +270,60 @@ export default class HubWorldScene extends Phaser.Scene {
 
             // Gate background
             const gateBg = this.add.graphics();
-            if (gateData.unlocked) {
+            if (isInDevelopment) {
+                // In Development: Blueprint/wireframe style with construction stripes
+                gateBg.fillStyle(0x1A1A2E, 0.9);
+                gateBg.fillCircle(0, 0, gateSize);
+                gateBg.lineStyle(4, 0xFF9800); // Orange construction border
+                gateBg.strokeCircle(0, 0, gateSize);
+
+                // Construction stripes pattern (diagonal lines)
+                gateBg.lineStyle(3, 0xFF9800, 0.3);
+                for (let i = -gateSize; i < gateSize; i += 15) {
+                    gateBg.beginPath();
+                    gateBg.moveTo(i, -gateSize);
+                    gateBg.lineTo(i + gateSize, gateSize);
+                    gateBg.strokePath();
+                }
+            } else if (gateData.unlocked) {
                 gateBg.fillStyle(config.color, 0.9);
+                gateBg.fillCircle(0, 0, gateSize);
+                gateBg.lineStyle(4, 0xFFD700);
+                gateBg.strokeCircle(0, 0, gateSize);
             } else {
                 gateBg.fillStyle(0x333333, 0.8);
+                gateBg.fillCircle(0, 0, gateSize);
+                gateBg.lineStyle(4, 0x555555);
+                gateBg.strokeCircle(0, 0, gateSize);
             }
-            gateBg.fillCircle(0, 0, gateSize);
-            gateBg.lineStyle(4, gateData.unlocked ? 0xFFD700 : 0x555555);
-            gateBg.strokeCircle(0, 0, gateSize);
             gateContainer.add(gateBg);
 
-            // Lock icon for locked gates
-            if (!gateData.unlocked) {
+            // Gate content based on state
+            if (isInDevelopment) {
+                // In Development: Construction icon and label
+                const constructionIcon = this.add.text(0, -15, '🚧', {
+                    fontSize: isMobile ? '28px' : '36px'
+                }).setOrigin(0.5);
+                gateContainer.add(constructionIcon);
+
+                const devLabel = this.add.text(0, 20, 'IN DEV', {
+                    fontSize: isMobile ? '10px' : '12px',
+                    color: '#FF9800',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 2
+                }).setOrigin(0.5);
+                gateContainer.add(devLabel);
+
+                // Pulsing animation for construction icon
+                this.tweens.add({
+                    targets: constructionIcon,
+                    alpha: { from: 1, to: 0.5 },
+                    duration: 800,
+                    yoyo: true,
+                    repeat: -1
+                });
+            } else if (!gateData.unlocked) {
                 const lockIcon = this.add.text(0, -10, '🔒', {
                     fontSize: isMobile ? '28px' : '36px'
                 }).setOrigin(0.5);
@@ -301,9 +346,10 @@ export default class HubWorldScene extends Phaser.Scene {
             }
 
             // Gate label (below gate)
+            const labelColor = isInDevelopment ? '#FF9800' : (gateData.unlocked ? '#FFFFFF' : '#888888');
             const label = this.add.text(0, gateSize + 20, config.label, {
                 fontSize: isMobile ? '12px' : '16px',
-                color: gateData.unlocked ? '#FFFFFF' : '#888888',
+                color: labelColor,
                 stroke: '#000000',
                 strokeThickness: 2,
                 align: 'center'
@@ -376,20 +422,41 @@ export default class HubWorldScene extends Phaser.Scene {
     updateInfoPanel(gate) {
         if (!gate) return;
 
+        const isInDevelopment = gate.data.inDevelopment === true;
+
         // Update info text
         if (this.infoText) {
             let info = `${gate.config.icon} ${gate.data.name}`;
-            if (gate.data.unlocked) {
+            if (isInDevelopment) {
+                info += `\n🚧 In Development`;
+                if (gate.data.shipPart) {
+                    info += `\nReward: ${gate.config.shipPart || '⚙️'} ${gate.data.shipPart}`;
+                }
+            } else if (gate.data.unlocked) {
                 info += `\nVisits: ${gate.data.visits || 0}`;
+                if (gate.data.shipPart) {
+                    info += `  •  Reward: ${gate.config.shipPart || '⚙️'}`;
+                }
             } else {
                 info += `\n🔒 Unlock: ${gate.data.unlockCost} coins`;
+                if (gate.data.shipPart) {
+                    info += `\nReward: ${gate.config.shipPart || '⚙️'} ${gate.data.shipPart}`;
+                }
             }
             this.infoText.setText(info);
         }
 
         // Update action button
         if (this.actionButton && this.actionLabel) {
-            if (gate.data.unlocked) {
+            if (isInDevelopment) {
+                // In Development - show disabled state
+                this.actionLabel.setText('COMING SOON');
+                this.actionButton.clear();
+                this.actionButton.fillStyle(0x555555, 1);
+                this.actionButton.fillRoundedRect(-70, -25, 140, 50, 10);
+                this.actionButton.lineStyle(3, 0xFF9800);
+                this.actionButton.strokeRoundedRect(-70, -25, 140, 50, 10);
+            } else if (gate.data.unlocked) {
                 this.actionLabel.setText('ENTER');
                 this.actionButton.clear();
                 this.actionButton.fillStyle(0x00AA00, 1);
@@ -411,6 +478,12 @@ export default class HubWorldScene extends Phaser.Scene {
         if (this.isTransitioning) return;
 
         this.selectGate(index);
+
+        // Check if gate is in development - show coming soon modal instead
+        if (gate.data.inDevelopment) {
+            this.showComingSoonModal(gate);
+            return;
+        }
 
         if (gate.data.unlocked) {
             this.enterGate(gate);
@@ -619,9 +692,8 @@ export default class HubWorldScene extends Phaser.Scene {
     enterGate(gate) {
         if (this.isTransitioning) return;
 
-        // Check if level is "Coming Soon" (in development)
-        const comingSoonLevels = ['void_peaks', 'aurora_depths'];
-        if (comingSoonLevels.includes(gate.id)) {
+        // Double-check for in-development gates (should be caught earlier)
+        if (gate.data.inDevelopment) {
             this.showComingSoonModal(gate);
             return;
         }
@@ -810,6 +882,9 @@ export default class HubWorldScene extends Phaser.Scene {
             strokeThickness: 3
         }).setOrigin(1, 0).setDepth(50);
 
+        // Ship Parts Progress Display
+        this.createShipPartsDisplay();
+
         // Info panel at bottom
         const infoPanelY = height - (isMobile ? 140 : 160);
         const infoPanelHeight = isMobile ? 130 : 150;
@@ -868,6 +943,101 @@ export default class HubWorldScene extends Phaser.Scene {
 
         backBtn.on('pointerover', () => backBtn.setAlpha(0.8));
         backBtn.on('pointerout', () => backBtn.setAlpha(1));
+    }
+
+    /**
+     * Create ship parts progress display showing progress toward final boss
+     */
+    createShipPartsDisplay() {
+        const { width, height, isMobile } = this.dims;
+
+        // Get ship parts status from GameState
+        const shipParts = window.GameState?.get('hubWorld.shipParts') || {
+            collected: [],
+            totalRequired: 4,
+            finalBossUnlocked: false
+        };
+
+        const collected = shipParts.collected?.length || 0;
+        const total = shipParts.totalRequired || 4;
+
+        // Position below title
+        const displayY = isMobile ? 70 : 85;
+
+        // Ship parts container
+        const containerWidth = isMobile ? 200 : 280;
+        const containerHeight = isMobile ? 50 : 60;
+        const containerX = (width - containerWidth) / 2;
+
+        // Background panel
+        const shipPanel = this.add.graphics();
+        shipPanel.fillStyle(0x1A0A2E, 0.85);
+        shipPanel.fillRoundedRect(containerX, displayY, containerWidth, containerHeight, 10);
+        shipPanel.lineStyle(2, collected === total ? 0xFFD700 : 0x6B00B3);
+        shipPanel.strokeRoundedRect(containerX, displayY, containerWidth, containerHeight, 10);
+        shipPanel.setDepth(50);
+
+        // Ship icon
+        const shipIcon = this.add.text(containerX + 15, displayY + containerHeight / 2, '🚀', {
+            fontSize: isMobile ? '24px' : '32px'
+        }).setOrigin(0, 0.5).setDepth(51);
+
+        // Title text
+        const titleText = this.add.text(containerX + (isMobile ? 45 : 55), displayY + 12, 'SHIP PARTS', {
+            fontSize: isMobile ? '10px' : '12px',
+            color: '#AAAAAA',
+            fontStyle: 'bold'
+        }).setDepth(51);
+
+        // Progress text
+        const progressColor = collected === total ? '#00FF00' : '#FFFFFF';
+        const progressText = this.add.text(containerX + (isMobile ? 45 : 55), displayY + (isMobile ? 30 : 35),
+            `${collected}/${total} Collected`, {
+            fontSize: isMobile ? '14px' : '18px',
+            color: progressColor,
+            fontStyle: 'bold'
+        }).setDepth(51);
+
+        // Part indicators (small circles showing collected/not collected)
+        const partIcons = ['⚙️', '🔮', '🌀', '✨'];
+        const partNames = ['Dimensional Drive', 'Crystal Core', 'Void Stabilizer', 'Aurora Reactor'];
+        const partIds = ['dimensional_drive', 'crystal_core', 'void_stabilizer', 'aurora_reactor'];
+
+        const startX = containerX + containerWidth - (isMobile ? 60 : 80);
+        partIcons.forEach((icon, idx) => {
+            const isCollected = shipParts.collected?.includes(partIds[idx]);
+            const partX = startX + idx * (isMobile ? 14 : 18);
+
+            const partIndicator = this.add.text(partX, displayY + containerHeight / 2, icon, {
+                fontSize: isMobile ? '12px' : '16px'
+            }).setOrigin(0.5).setDepth(51);
+
+            // Gray out if not collected
+            if (!isCollected) {
+                partIndicator.setAlpha(0.3);
+            }
+        });
+
+        // If all parts collected, show "FINAL BOSS READY!" with animation
+        if (collected === total) {
+            const readyText = this.add.text(width / 2, displayY + containerHeight + 15, '⚔️ FINAL BOSS UNLOCKED! ⚔️', {
+                fontSize: isMobile ? '14px' : '18px',
+                color: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(51);
+
+            // Pulsing animation
+            this.tweens.add({
+                targets: readyText,
+                alpha: { from: 1, to: 0.6 },
+                scale: { from: 1, to: 1.05 },
+                duration: 800,
+                yoyo: true,
+                repeat: -1
+            });
+        }
     }
 
     createCollectionButton() {

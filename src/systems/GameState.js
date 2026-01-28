@@ -284,14 +284,20 @@ class GameStateManager {
             hubWorld: {
                 currentGate: 'main',  // Which gate player is at
                 gates: {
-                    main: { unlocked: true, name: 'Main World', biome: 'nebula', visits: 0 },
-                    stellar_reef: { unlocked: false, name: 'Stellar Reef', biome: 'stellar_reef', visits: 0, unlockCost: 500 },
-                    crystal_caves: { unlocked: false, name: 'Crystal Caves', biome: 'crystal_caves', visits: 0, unlockCost: 1000 },
-                    void_peaks: { unlocked: false, name: 'Void Peaks', biome: 'void_peaks', visits: 0, unlockCost: 2000 },
-                    aurora_depths: { unlocked: false, name: 'Aurora Depths', biome: 'aurora_depths', visits: 0, unlockCost: 5000 }
+                    main: { unlocked: true, name: 'Sanctuary', biome: 'nebula', visits: 0 },
+                    stellar_reef: { unlocked: false, name: 'Stellar Reef', biome: 'stellar_reef', visits: 0, unlockCost: 500, shipPart: 'Dimensional Drive' },
+                    crystal_caves: { unlocked: false, name: 'Crystal Caves', biome: 'crystal_caves', visits: 0, unlockCost: 500, shipPart: 'Crystal Core Engine' },
+                    void_peaks: { unlocked: false, name: 'Void Peaks', biome: 'void_peaks', visits: 0, inDevelopment: true, shipPart: 'Void Stabilizer' },
+                    aurora_depths: { unlocked: false, name: 'Aurora Depths', biome: 'aurora_depths', visits: 0, inDevelopment: true, shipPart: 'Aurora Reactor' }
                 },
                 mapsOwned: [],  // Map items purchased from shop
-                lastVisitedGate: 'main'
+                lastVisitedGate: 'main',
+                // Ship parts collected from completing levels - needed for final boss battle
+                shipParts: {
+                    collected: [],  // Array of part IDs: 'dimensional_drive', 'crystal_core', 'void_stabilizer', 'aurora_reactor'
+                    totalRequired: 4,
+                    finalBossUnlocked: false
+                }
             },
             safety: {
                 kidProfile: {
