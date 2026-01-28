@@ -664,6 +664,7 @@ class FusionPodScene extends Phaser.Scene {
     selectCreatureForSlot(slotNum, collectionIndex, creature) {
         console.log(`[FusionPodScene] Selected creature ${creature.name} for slot ${slotNum}`);
 
+        // 1. Store creature data
         if (slotNum === 1) {
             this.parent1Index = collectionIndex;
             this.parent1Data = creature;
@@ -672,66 +673,117 @@ class FusionPodScene extends Phaser.Scene {
             this.parent2Data = creature;
         }
 
-        // Close modal FIRST to avoid input conflicts during UI refresh
+        // 2. Close modal IMMEDIATELY (no delay)
         this.closeSelectionModal();
 
-        // Show visual confirmation immediately
-        this.showSelectionConfirmation(creature.name, slotNum);
-
-        // Play selection sound immediately
+        // 3. Play selection sound
         window.AudioManager?.playButtonClick?.();
 
-        // Small delay to let Phaser process the modal cleanup before refreshing
-        this.time.delayedCall(100, () => {
-            // Refresh the UI
-            this.refreshUI();
+        // 4. Refresh UI immediately (no delay - modal cleanup is synchronous)
+        this.refreshUI();
 
-            // Calculate compatibility if both selected
-            if (this.parent1Data && this.parent2Data) {
-                this.calculateCompatibility();
-                // Play success sound when both parents selected
-                window.AudioManager?.playLevelUp?.();
-            }
-        });
+        // 5. Animate the filled slot with visual feedback
+        this.animateSlotFill(slotNum, creature.name);
+
+        // 6. Auto-highlight empty slot to guide user to next action
+        if (slotNum === 1 && !this.parent2Data) {
+            this.highlightEmptySlot(2);
+        } else if (slotNum === 2 && !this.parent1Data) {
+            this.highlightEmptySlot(1);
+        }
+
+        // 7. Calculate compatibility if both filled
+        if (this.parent1Data && this.parent2Data) {
+            this.calculateCompatibility();
+            // Play success sound when both parents selected
+            window.AudioManager?.playLevelUp?.();
+        }
     }
 
     /**
-     * Show a brief confirmation toast when a parent is selected
+     * Animate a slot when a creature is selected - provides non-blocking visual feedback
+     * Shows a brief pulse animation on the slot and a floating checkmark
      */
-    showSelectionConfirmation(creatureName, slotNum) {
-        const { width, height } = this.scale;
+    animateSlotFill(slotNum, creatureName) {
+        const slotElements = slotNum === 1 ? this.slot1Elements : this.slot2Elements;
+        if (!slotElements?.slot) return;
 
-        // Create confirmation toast
-        const toast = this.add.text(width / 2, height / 2 - 50, `✓ ${creatureName} selected for Parent ${slotNum}!`, {
-            fontSize: '18px',
-            fontFamily: 'Arial, sans-serif',
-            color: '#00FF00',
-            backgroundColor: 'rgba(0, 50, 0, 0.9)',
-            padding: { x: 20, y: 12 },
-            stroke: '#00AA00',
-            strokeThickness: 1
-        }).setOrigin(0.5).setDepth(500).setScrollFactor(0).setAlpha(0);
+        // Get slot position for the checkmark
+        const slotPos = this.getSlotPosition(slotNum);
 
-        // Animate in
+        // Pulse animation on the slot background
         this.tweens.add({
-            targets: toast,
-            alpha: 1,
-            y: height / 2 - 70,
-            duration: 200,
-            ease: 'Back.easeOut',
-            onComplete: () => {
-                // Hold for a moment then fade out
-                this.time.delayedCall(1200, () => {
-                    this.tweens.add({
-                        targets: toast,
-                        alpha: 0,
-                        y: height / 2 - 100,
-                        duration: 300,
-                        onComplete: () => toast.destroy()
-                    });
-                });
-            }
+            targets: slotElements.slot,
+            scaleX: 1.05,
+            scaleY: 1.05,
+            duration: 150,
+            yoyo: true,
+            ease: 'Power2'
         });
+
+        // Brief checkmark near the slot (non-blocking, fades quickly)
+        const check = this.add.text(slotPos.x + 50, slotPos.y + 20, '✓', {
+            fontSize: '28px',
+            color: '#00FF00',
+            stroke: '#004400',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(250);
+
+        // Float up and fade out
+        this.tweens.add({
+            targets: check,
+            alpha: 0,
+            y: slotPos.y - 10,
+            duration: 800,
+            delay: 200,
+            ease: 'Power2',
+            onComplete: () => check.destroy()
+        });
+
+        console.log(`[FusionPodScene] Animated slot ${slotNum} fill for ${creatureName}`);
+    }
+
+    /**
+     * Highlight an empty slot to guide user to select the other parent
+     * Uses a subtle pulsing border effect
+     */
+    highlightEmptySlot(slotNum) {
+        const slotElements = slotNum === 1 ? this.slot1Elements : this.slot2Elements;
+        if (!slotElements?.slot) return;
+
+        // Subtle pulsing highlight effect (3 pulses)
+        this.tweens.add({
+            targets: slotElements.slot,
+            alpha: { from: 0.6, to: 1 },
+            duration: 400,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+
+        console.log(`[FusionPodScene] Highlighting empty slot ${slotNum}`);
+    }
+
+    /**
+     * Get the position of a slot for animation purposes
+     */
+    getSlotPosition(slotNum) {
+        const { width } = this.scale;
+        const slotWidth = 130;
+        const gap = 30;
+        const startY = this.panelBounds.y + 85;
+
+        if (slotNum === 1) {
+            return {
+                x: width / 2 - slotWidth - gap / 2 + slotWidth / 2,
+                y: startY
+            };
+        } else {
+            return {
+                x: width / 2 + gap / 2 + slotWidth / 2,
+                y: startY
+            };
+        }
     }
 
     refreshUI() {
