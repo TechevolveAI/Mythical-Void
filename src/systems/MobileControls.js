@@ -387,7 +387,13 @@ class MobileControls {
         this.joystickZone = this.scene.add.zone(joystickX, joystickY, zoneSize, zoneSize)
             .setOrigin(0.5)
             .setScrollFactor(0)
-            .setInteractive({ draggable: true });
+            .setDepth(10002) // Above all joystick visual elements to receive touch
+            .setInteractive({ draggable: true, useHandCursor: false });
+
+        // Enable draggable for mobile drag events
+        this.scene.input.setDraggable(this.joystickZone);
+
+        console.log('[MobileControls] Joystick zone created at', joystickX, joystickY, 'size:', zoneSize, 'depth:', 10002);
 
         // Store center position
         this.joystickCenterX = joystickX;
@@ -395,6 +401,7 @@ class MobileControls {
 
         // Handle touch/drag events
         this.joystickZone.on('pointerdown', (pointer) => {
+            console.log('[MobileControls] Joystick pointerdown received, pointer.id:', pointer.id);
             this.joystickActive = true;
             this.activePointerId = pointer.id; // Track which pointer activated joystick
             this.joystickStartX = pointer.x;
@@ -478,6 +485,50 @@ class MobileControls {
             if (pointer.id === this.activePointerId) {
                 this.resetJoystick();
             }
+        });
+
+        // BACKUP: Also use drag events (more reliable on some mobile browsers)
+        this.joystickZone.on('drag', (pointer, dragX, dragY) => {
+            if (!this.joystickActive) return;
+
+            // Calculate offset from center using drag coordinates
+            const offsetX = dragX - this.joystickCenterX;
+            const offsetY = dragY - this.joystickCenterY;
+
+            const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+            const angle = Math.atan2(offsetY, offsetX);
+            const clampedDistance = Math.min(distance, this.joystickMaxDistance);
+
+            // Update thumb position
+            const thumbX = this.joystickCenterX + Math.cos(angle) * clampedDistance;
+            const thumbY = this.joystickCenterY + Math.sin(angle) * clampedDistance;
+
+            this.joystickThumb.clear();
+            this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
+            this.joystickThumb.fillCircle(thumbX, thumbY, this.joystickThumbRadius);
+            this.joystickThumb.lineStyle(2, 0x00CED1, 1);
+            this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
+
+            const deadZonePixels = this.joystickMaxDistance * this.deadZone;
+            let normalizedX = 0;
+            let normalizedY = 0;
+
+            if (distance > deadZonePixels) {
+                const effectiveDistance = clampedDistance - deadZonePixels;
+                const effectiveMax = this.joystickMaxDistance - deadZonePixels;
+                const magnitude = effectiveDistance / effectiveMax;
+                normalizedX = Math.cos(angle) * magnitude;
+                normalizedY = Math.sin(angle) * magnitude;
+            }
+
+            this.scene.game.events.emit('virtual-joystick', {
+                x: normalizedX,
+                y: normalizedY
+            });
+        });
+
+        this.joystickZone.on('dragend', () => {
+            this.resetJoystick();
         });
 
         // CRITICAL: Scene-level pointermove handler for joystick tracking
