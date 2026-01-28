@@ -636,8 +636,29 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     closeSelectionModal() {
-        this.selectionModalElements.forEach(el => el?.destroy?.());
+        console.log('[FusionPodScene] Closing selection modal, destroying', this.selectionModalElements.length, 'elements');
+
+        // Reset input mode (was set to topOnly when modal opened)
+        if (this.input) {
+            this.input.topOnly = false;
+        }
+
+        // Destroy all modal elements with proper cleanup
+        this.selectionModalElements.forEach(el => {
+            if (el) {
+                // Remove any event listeners first
+                if (el.removeAllListeners) {
+                    el.removeAllListeners();
+                }
+                // Destroy the element
+                if (el.destroy) {
+                    el.destroy();
+                }
+            }
+        });
+
         this.selectionModalElements = [];
+        console.log('[FusionPodScene] Selection modal closed');
     }
 
     selectCreatureForSlot(slotNum, collectionIndex, creature) {

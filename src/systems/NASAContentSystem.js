@@ -85,8 +85,12 @@ class NASAContentSystem {
     async initialize() {
         this.apiKey = window.envLoader?.get('NASA_API_KEY') || 'DEMO_KEY';
 
-        devLog('[NASAContent] Initializing with API key:',
-            this.apiKey === 'DEMO_KEY' ? 'DEMO_KEY (limited)' : '***' + this.apiKey.slice(-4));
+        // Log API key status (helpful for debugging)
+        if (this.apiKey === 'DEMO_KEY') {
+            console.warn('[NASAContent] Using DEMO_KEY - limited to 30 req/hr. Set VITE_NASA_API_KEY in environment for better limits.');
+        } else {
+            devLog('[NASAContent] Using custom API key: ***' + this.apiKey.slice(-4));
+        }
 
         // Load last shown date from storage
         this.loadLastShownDate();
@@ -237,9 +241,22 @@ class NASAContentSystem {
             const response = await this.rateLimitedFetch(url);
 
             // Rate limited or failed
-            if (!response) return null;
+            if (!response) {
+                devLog('[NASAContent] APOD request skipped (rate limited)');
+                return null;
+            }
 
-            if (!response.ok) throw new Error(`APOD API error: ${response.status}`);
+            if (!response.ok) {
+                // Log specific error for debugging
+                if (response.status === 403) {
+                    console.warn('[NASAContent] APOD 403 Forbidden - API key may be invalid');
+                } else if (response.status === 429) {
+                    console.warn('[NASAContent] APOD 429 Rate Limited - too many requests');
+                } else {
+                    devWarn(`[NASAContent] APOD API error: ${response.status}`);
+                }
+                return null;
+            }
 
             const data = await response.json();
 
@@ -253,7 +270,12 @@ class NASAContentSystem {
             return null;
 
         } catch (error) {
-            devWarn('[NASAContent] APOD fetch failed:', error.message);
+            // Don't spam console for network errors - they're expected when offline
+            if (error.message?.includes('fetch')) {
+                devLog('[NASAContent] APOD fetch failed (network)');
+            } else {
+                devWarn('[NASAContent] APOD fetch failed:', error.message);
+            }
             return null;
         }
     }

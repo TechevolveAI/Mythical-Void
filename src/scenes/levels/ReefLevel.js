@@ -1532,6 +1532,28 @@ class ReefLevel extends PlatformerLevelScene {
 
         this.createBossHealthBar();
         this.startBossAI();
+
+        // CRITICAL: Restore camera to follow player after boss intro
+        // Pan back to player first, then re-enable follow
+        this.time.delayedCall(500, () => {
+            if (this.player && this.cameras.main) {
+                // Smooth pan back to player position
+                this.cameras.main.pan(
+                    this.player.x,
+                    this.player.y,
+                    1000, // 1 second pan
+                    'Power2',
+                    true, // force
+                    (camera, progress) => {
+                        // When pan completes, restore camera follow
+                        if (progress === 1) {
+                            camera.startFollow(this.player, true, 0.08, 0.1);
+                            console.log('[ReefLevel] Camera follow restored after boss intro');
+                        }
+                    }
+                );
+            }
+        });
     }
 
     /**

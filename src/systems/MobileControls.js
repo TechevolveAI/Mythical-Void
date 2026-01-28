@@ -285,7 +285,6 @@ class MobileControls {
         }
         // Clean up native touch listeners
         if (this.sceneTouchCancelHandler && this.scene?.game?.canvas) {
-            this.scene.game.canvas.removeEventListener('touchend', this.sceneTouchCancelHandler);
             this.scene.game.canvas.removeEventListener('touchcancel', this.sceneTouchCancelHandler);
             this.sceneTouchCancelHandler = null;
         }
@@ -544,15 +543,28 @@ class MobileControls {
         this.scene.input.on('pointerup', this.scenePointerUpHandler);
 
         // Handle touch cancel (when browser cancels touch, e.g., palm rejection)
-        this.sceneTouchCancelHandler = () => {
-            if (this.joystickActive) {
-                this.resetJoystick();
+        // CRITICAL: Check touch identifier to only reset if the joystick's touch ended
+        this.sceneTouchCancelHandler = (event) => {
+            if (!this.joystickActive || this.activePointerId === null) return;
+
+            // Check if the ended/cancelled touch is the joystick's touch
+            // Native touch events use 'identifier', Phaser uses 'id'
+            const changedTouches = event.changedTouches || [];
+            for (let i = 0; i < changedTouches.length; i++) {
+                // Touch identifiers sometimes offset from Phaser pointer IDs
+                // Check if this touch identifier matches our active pointer
+                if (changedTouches[i].identifier === this.activePointerId ||
+                    changedTouches[i].identifier === this.activePointerId - 1) {
+                    this.resetJoystick();
+                    return;
+                }
             }
+            // Don't reset if this was a different finger (e.g., action button release)
         };
 
-        // Use native touchend/touchcancel for more reliable detection on mobile
+        // Only use touchcancel for unexpected interruptions (e.g., palm rejection, incoming call)
+        // Removed touchend - let Phaser's pointerup handle normal releases with proper ID tracking
         if (this.scene.game.canvas) {
-            this.scene.game.canvas.addEventListener('touchend', this.sceneTouchCancelHandler, { passive: true });
             this.scene.game.canvas.addEventListener('touchcancel', this.sceneTouchCancelHandler, { passive: true });
         }
 

@@ -16,14 +16,17 @@ class ErrorHandler {
         this.messagesShownThisSession = 0;
         this.maxMessagesPerSession = 5; // Don't spam users with too many errors
 
-        // Suppress known non-critical errors
+        // Suppress known non-critical errors (these have graceful fallbacks)
         this.suppressedPatterns = [
             /ResizeObserver loop/i,
             /MetaMask/i,
             /Extension context/i,
             /chrome-extension/i,
             /moz-extension/i,
-            /safari-extension/i
+            /safari-extension/i,
+            /api\.nasa\.gov/i,  // NASA API errors - graceful fallbacks exist
+            /APOD/i,            // APOD specific errors
+            /fetch.*failed/i    // Network fetch failures
         ];
     }
 
