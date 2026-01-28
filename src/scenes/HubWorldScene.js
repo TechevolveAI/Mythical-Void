@@ -31,6 +31,10 @@ export default class HubWorldScene extends Phaser.Scene {
         this.gateElements = [];
         this.creatureSprite = null;
         this.graphicsEngine = null;
+        this.shipAssemblyElements = [];
+        this.portalVortexElements = [];
+        this.vortexTimers = [];
+        this.parallaxLayers = [];
         console.log('[HubWorldScene] State reset in init()');
     }
 
@@ -52,6 +56,7 @@ export default class HubWorldScene extends Phaser.Scene {
         this.createBackground();
         this.createCentralPlatform();
         this.createGates();
+        this.createShipAssemblyView(); // Ship visualization above creature
         this.createCreatureDisplay();
         this.createUI();
         this.createCollectionButton();
@@ -94,12 +99,10 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     createBackground() {
-        const { width, height } = this.dims;
+        const { width, height, isMobile } = this.dims;
 
-        // Deep cosmic background
+        // Deep cosmic background gradient
         const bg = this.add.graphics();
-
-        // Gradient from dark purple to deep blue
         for (let y = 0; y < height; y += 2) {
             const t = y / height;
             const r = Math.floor(15 + t * 10);
@@ -111,30 +114,112 @@ export default class HubWorldScene extends Phaser.Scene {
         }
         bg.setDepth(0);
 
-        // Stars
-        const starCount = Math.min(300, Math.floor((width * height) / 2000));
-        for (let i = 0; i < starCount; i++) {
-            const x = Phaser.Math.Between(0, width);
-            const y = Phaser.Math.Between(0, height);
-            const size = Phaser.Math.FloatBetween(0.5, 2.5);
-            const alpha = Phaser.Math.FloatBetween(0.3, 1);
-
-            bg.fillStyle(0xFFFFFF, alpha);
-            bg.fillCircle(x, y, size);
-        }
-
-        // Twinkling stars animation
-        this.tweens.add({
-            targets: bg,
-            alpha: { from: 0.85, to: 1 },
-            duration: 2500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        // Create parallax star layers
+        this.createParallaxStars();
 
         // Floating cosmic particles
         this.createFloatingParticles();
+
+        // Track pointer for parallax effect
+        this.lastPointerX = width / 2;
+        this.lastPointerY = height / 2;
+
+        this.input.on('pointermove', (pointer) => {
+            this.lastPointerX = pointer.x;
+            this.lastPointerY = pointer.y;
+        });
+
+        // Timer-based parallax update (50ms = 20fps)
+        this.parallaxTimer = this.time.addEvent({
+            delay: 50,
+            callback: () => this.updateParallaxStars(),
+            loop: true
+        });
+    }
+
+    /**
+     * Create parallax star layers for depth effect
+     */
+    createParallaxStars() {
+        const { width, height, isMobile } = this.dims;
+
+        // Star layer definitions (reduced on mobile for performance)
+        const layers = [
+            { count: isMobile ? 60 : 100, parallaxFactor: 0.02, sizeMin: 0.5, sizeMax: 1.5, alpha: 0.3, depth: 1 }, // Far
+            { count: isMobile ? 35 : 60, parallaxFactor: 0.05, sizeMin: 1, sizeMax: 2.5, alpha: 0.5, depth: 2 },   // Mid
+            { count: isMobile ? 15 : 30, parallaxFactor: 0.1, sizeMin: 2, sizeMax: 4, alpha: 0.8, depth: 3 }       // Near
+        ];
+
+        this.parallaxLayers = [];
+
+        layers.forEach(layer => {
+            const stars = [];
+
+            for (let i = 0; i < layer.count; i++) {
+                const originalX = Phaser.Math.Between(0, width);
+                const originalY = Phaser.Math.Between(0, height);
+                const size = Phaser.Math.FloatBetween(layer.sizeMin, layer.sizeMax);
+
+                const star = this.add.graphics();
+                star.fillStyle(0xFFFFFF, layer.alpha);
+                star.fillCircle(0, 0, size);
+                star.setPosition(originalX, originalY);
+                star.setDepth(layer.depth);
+
+                stars.push({
+                    graphics: star,
+                    originalX: originalX,
+                    originalY: originalY
+                });
+            }
+
+            this.parallaxLayers.push({
+                factor: layer.parallaxFactor,
+                stars: stars
+            });
+        });
+
+        // Add twinkling effect to near stars
+        const nearLayer = this.parallaxLayers[2];
+        if (nearLayer) {
+            nearLayer.stars.forEach((star, i) => {
+                // Stagger twinkling
+                this.time.delayedCall(i * 100, () => {
+                    this.tweens.add({
+                        targets: star.graphics,
+                        alpha: { from: 0.8, to: 0.4 },
+                        duration: Phaser.Math.Between(2000, 4000),
+                        yoyo: true,
+                        repeat: -1,
+                        ease: 'Sine.easeInOut'
+                    });
+                });
+            });
+        }
+    }
+
+    /**
+     * Update parallax star positions based on pointer
+     */
+    updateParallaxStars() {
+        if (this._isShuttingDown || !this.parallaxLayers) return;
+
+        const { width, height } = this.dims;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        // Calculate offset from center (-1 to 1)
+        const offsetX = (this.lastPointerX - centerX) / centerX;
+        const offsetY = (this.lastPointerY - centerY) / centerY;
+
+        this.parallaxLayers.forEach(layer => {
+            layer.stars.forEach(star => {
+                // Apply parallax offset
+                const newX = star.originalX - (offsetX * 30 * layer.factor);
+                const newY = star.originalY - (offsetY * 20 * layer.factor);
+                star.graphics.setPosition(newX, newY);
+            });
+        });
     }
 
     createFloatingParticles() {
@@ -356,6 +441,16 @@ export default class HubWorldScene extends Phaser.Scene {
             }).setOrigin(0.5);
             gateContainer.add(label);
 
+            // Add completion badge for unlocked, non-development gates
+            if (gateData.unlocked && !isInDevelopment && gateId !== 'main') {
+                this.createCompletionBadge(gateId, gateContainer, gateSize, isMobile);
+            }
+
+            // Add portal vortex effect for unlocked, non-development gates
+            if (gateData.unlocked && !isInDevelopment) {
+                this.createPortalVortex(gateContainer, gateId, gateSize, config.color, isMobile);
+            }
+
             // Interactive zone
             const zone = this.add.zone(0, 0, gateSize * 2, gateSize * 2);
             zone.setInteractive({ useHandCursor: true });
@@ -392,6 +487,199 @@ export default class HubWorldScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * Create completion badge for a gate showing star rating
+     * @param {string} gateId - Gate identifier
+     * @param {Phaser.GameObjects.Container} container - Gate container
+     * @param {number} gateSize - Gate circle radius
+     * @param {boolean} isMobile - Mobile flag
+     */
+    createCompletionBadge(gateId, container, gateSize, isMobile) {
+        // Map gate IDs to level data paths
+        const levelIdMap = {
+            crystal_caves: 'crystalCaves',
+            stellar_reef: 'cosmicReef',
+            void_peaks: 'voidPeaks',
+            aurora_depths: 'auroraDepths'
+        };
+
+        const levelId = levelIdMap[gateId];
+        if (!levelId) return;
+
+        // Get level completion data
+        const levelData = window.GameState?.get(`levels.${levelId}`) || {};
+        const { completed, noDamageRun, speedrun, visited } = levelData;
+
+        // Calculate star count
+        let stars = 0;
+        if (completed) stars = 1;
+        if (completed && noDamageRun) stars = 2;
+        if (completed && noDamageRun && speedrun) stars = 3;
+
+        // Position badge at top-right of gate
+        const badgeX = gateSize * 0.7;
+        const badgeY = -gateSize * 0.7;
+        const badgeRadius = isMobile ? 14 : 18;
+
+        // Only show badge if level has been visited or completed
+        if (!visited && !completed) return;
+
+        // Badge background
+        const badgeBg = this.add.graphics();
+
+        if (stars > 0) {
+            // Star badge with gold border
+            badgeBg.fillStyle(0x1A0A2E, 1);
+            badgeBg.fillCircle(badgeX, badgeY, badgeRadius);
+            badgeBg.lineStyle(2, 0xFFD700);
+            badgeBg.strokeCircle(badgeX, badgeY, badgeRadius);
+        } else {
+            // In-progress badge (visited but not completed)
+            badgeBg.fillStyle(0x1A0A2E, 1);
+            badgeBg.fillCircle(badgeX, badgeY, badgeRadius);
+            badgeBg.lineStyle(2, 0x4CAF50);
+            badgeBg.strokeCircle(badgeX, badgeY, badgeRadius);
+        }
+        container.add(badgeBg);
+
+        // Badge content
+        if (stars > 0) {
+            // Show stars
+            const starText = '⭐'.repeat(stars);
+            const starDisplay = this.add.text(badgeX, badgeY, starText, {
+                fontSize: stars === 3 ? (isMobile ? '8px' : '10px') : (isMobile ? '10px' : '12px')
+            }).setOrigin(0.5);
+            container.add(starDisplay);
+
+            // Subtle pulse for 3-star completion
+            if (stars === 3) {
+                this.tweens.add({
+                    targets: [badgeBg, starDisplay],
+                    alpha: { from: 1, to: 0.7 },
+                    duration: 1000,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        } else {
+            // Checkmark for in-progress
+            const checkmark = this.add.text(badgeX, badgeY, '✓', {
+                fontSize: isMobile ? '12px' : '16px',
+                color: '#4CAF50',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            container.add(checkmark);
+        }
+    }
+
+    /**
+     * Create portal vortex effect with swirling particles
+     * @param {Phaser.GameObjects.Container} container - Gate container
+     * @param {string} gateId - Gate identifier
+     * @param {number} gateSize - Gate radius
+     * @param {number} color - Gate theme color
+     * @param {boolean} isMobile - Mobile flag
+     */
+    createPortalVortex(container, gateId, gateSize, color, isMobile) {
+        // Reduce particle count on mobile for performance
+        const particleCount = isMobile ? 10 : 15;
+        const vortexRadius = gateSize * 0.8;
+
+        // Create depth glow layers (behind particles)
+        const glowGraphics = this.add.graphics();
+
+        // Outer glow
+        glowGraphics.fillStyle(color, 0.1);
+        glowGraphics.fillCircle(0, 0, vortexRadius * 0.9);
+
+        // Middle glow
+        glowGraphics.fillStyle(color, 0.2);
+        glowGraphics.fillCircle(0, 0, vortexRadius * 0.6);
+
+        // Inner glow (brightest)
+        glowGraphics.fillStyle(color, 0.4);
+        glowGraphics.fillCircle(0, 0, vortexRadius * 0.3);
+
+        container.addAt(glowGraphics, 1); // Behind gate icon but above background
+
+        // Create particles
+        const particles = [];
+        for (let i = 0; i < particleCount; i++) {
+            const particle = this.add.graphics();
+            const size = Phaser.Math.FloatBetween(isMobile ? 2 : 3, isMobile ? 4 : 6);
+            const alpha = Phaser.Math.FloatBetween(0.5, 0.8);
+
+            // Particle color (mix of gate color, gold, and white for variety)
+            const particleColors = [color, 0xFFD700, 0xFFFFFF];
+            const particleColor = Phaser.Utils.Array.GetRandom(particleColors);
+
+            particle.fillStyle(particleColor, alpha);
+            particle.fillCircle(0, 0, size);
+
+            // Initial position in spiral
+            const angle = (i / particleCount) * Math.PI * 2;
+            const radius = Phaser.Math.FloatBetween(vortexRadius * 0.2, vortexRadius * 0.85);
+
+            particle.setPosition(
+                Math.cos(angle) * radius,
+                Math.sin(angle) * radius
+            );
+
+            container.addAt(particle, 2); // Layer above glow
+
+            particles.push({
+                graphics: particle,
+                angle: angle,
+                radius: radius,
+                speed: Phaser.Math.FloatBetween(0.015, 0.03), // Variable rotation speed
+                radiusOscillation: Phaser.Math.FloatBetween(0, Math.PI * 2) // Phase offset for radius breathing
+            });
+        }
+
+        // Store for cleanup
+        if (!this.portalVortexElements) this.portalVortexElements = [];
+        this.portalVortexElements.push({
+            glow: glowGraphics,
+            particles: particles,
+            container: container
+        });
+
+        // Timer-based animation (50ms = 20fps)
+        const vortexTimer = this.time.addEvent({
+            delay: 50,
+            callback: () => this.updatePortalVortex(particles, vortexRadius),
+            loop: true
+        });
+
+        // Store timer reference for cleanup
+        if (!this.vortexTimers) this.vortexTimers = [];
+        this.vortexTimers.push(vortexTimer);
+    }
+
+    /**
+     * Update portal vortex particles (called by timer)
+     */
+    updatePortalVortex(particles, vortexRadius) {
+        if (this._isShuttingDown) return;
+
+        particles.forEach(p => {
+            // Update angle (rotation)
+            p.angle += p.speed;
+
+            // Subtle radius breathing effect
+            p.radiusOscillation += 0.02;
+            const breathingOffset = Math.sin(p.radiusOscillation) * 5;
+            const effectiveRadius = Math.max(vortexRadius * 0.15, Math.min(vortexRadius * 0.85, p.radius + breathingOffset));
+
+            // Update position
+            p.graphics.setPosition(
+                Math.cos(p.angle) * effectiveRadius,
+                Math.sin(p.angle) * effectiveRadius
+            );
+        });
+    }
+
     selectGate(index) {
         this.selectedGateIndex = index;
 
@@ -413,10 +701,175 @@ export default class HubWorldScene extends Phaser.Scene {
         // Update info panel
         this.updateInfoPanel(this.gates[index]);
 
+        // Show details panel for selected gate
+        this.showDetailsPanel(this.gates[index]);
+
         // Play sound
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
         }
+    }
+
+    /**
+     * Gate details data for hover panel
+     */
+    getGateDetails() {
+        return {
+            main: { difficulty: '⭐', boss: 'None', reward: 'Rest & Recovery', desc: 'Safe sanctuary for your creature' },
+            stellar_reef: { difficulty: '⭐⭐⭐', boss: "Nyx'voral", reward: 'Dimensional Drive', desc: 'Cosmic underwater realm' },
+            crystal_caves: { difficulty: '⭐⭐', boss: 'Crystal Golem', reward: 'Crystal Core', desc: 'Crystalline underground maze' },
+            void_peaks: { difficulty: '⭐⭐⭐⭐', boss: 'Void Titan', reward: 'Void Stabilizer', desc: 'Treacherous mountain peaks' },
+            aurora_depths: { difficulty: '⭐⭐⭐⭐⭐', boss: 'Aurora Dragon', reward: 'Aurora Reactor', desc: 'Deepest cosmic abyss' }
+        };
+    }
+
+    /**
+     * Show detailed info panel for selected gate
+     */
+    showDetailsPanel(gate) {
+        if (!gate) return;
+
+        // Hide existing panel
+        this.hideDetailsPanel();
+
+        const { width, height, isMobile } = this.dims;
+        const gateDetails = this.getGateDetails();
+        const details = gateDetails[gate.id] || {};
+
+        // Get level completion data
+        const levelIdMap = {
+            crystal_caves: 'crystalCaves',
+            stellar_reef: 'cosmicReef',
+            void_peaks: 'voidPeaks',
+            aurora_depths: 'auroraDepths'
+        };
+        const levelId = levelIdMap[gate.id];
+        const levelData = levelId ? (window.GameState?.get(`levels.${levelId}`) || {}) : {};
+
+        // Panel dimensions and position
+        const panelWidth = isMobile ? width - 40 : 280;
+        const panelHeight = isMobile ? 100 : 150;
+        const panelX = isMobile ? 20 : width - panelWidth - 20;
+        const panelY = isMobile ? height - 280 : 120;
+
+        // Create panel elements
+        this.detailsPanelElements = [];
+
+        // Panel background
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A0A2E, 0.95);
+        panel.fillRoundedRect(panelX, panelY + 20, panelWidth, panelHeight, 12);
+        panel.lineStyle(2, gate.config.color, 0.8);
+        panel.strokeRoundedRect(panelX, panelY + 20, panelWidth, panelHeight, 12);
+        panel.setDepth(100);
+        panel.setAlpha(0);
+        this.detailsPanelElements.push(panel);
+
+        // Gate icon and name header
+        const header = this.add.text(panelX + 15, panelY + 35, `${gate.config.icon} ${gate.data.name}`, {
+            fontSize: isMobile ? '16px' : '18px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setDepth(101).setAlpha(0);
+        this.detailsPanelElements.push(header);
+
+        // Difficulty
+        const difficulty = this.add.text(panelX + 15, panelY + 60, `Difficulty: ${details.difficulty || '?'}`, {
+            fontSize: isMobile ? '12px' : '14px',
+            color: '#FFFFFF'
+        }).setDepth(101).setAlpha(0);
+        this.detailsPanelElements.push(difficulty);
+
+        // Boss info (only show if not main and not in development)
+        if (gate.id !== 'main' && !gate.data.inDevelopment) {
+            const boss = this.add.text(panelX + 15, panelY + 82, `Boss: ${details.boss || 'Unknown'}`, {
+                fontSize: isMobile ? '12px' : '14px',
+                color: '#FF6B6B'
+            }).setDepth(101).setAlpha(0);
+            this.detailsPanelElements.push(boss);
+
+            // Reward
+            const reward = this.add.text(panelX + 15, panelY + 104, `Reward: ${gate.config.shipPart || '🎁'} ${details.reward || '???'}`, {
+                fontSize: isMobile ? '12px' : '14px',
+                color: '#00CED1'
+            }).setDepth(101).setAlpha(0);
+            this.detailsPanelElements.push(reward);
+
+            // Best time / visits (if visited)
+            if (levelData.visited || levelData.completed) {
+                const bestTime = levelData.bestTime ? this.formatTime(levelData.bestTime) : 'N/A';
+                const stats = this.add.text(panelX + 15, panelY + 126, `Best Time: ${bestTime}  •  Visits: ${gate.data.visits || 0}`, {
+                    fontSize: isMobile ? '10px' : '12px',
+                    color: '#AAAAAA'
+                }).setDepth(101).setAlpha(0);
+                this.detailsPanelElements.push(stats);
+            }
+        } else if (gate.data.inDevelopment) {
+            const devNote = this.add.text(panelX + 15, panelY + 82, '🚧 Coming in future update!', {
+                fontSize: isMobile ? '12px' : '14px',
+                color: '#FF9800'
+            }).setDepth(101).setAlpha(0);
+            this.detailsPanelElements.push(devNote);
+
+            const teaser = this.add.text(panelX + 15, panelY + 104, details.desc || 'New adventures await...', {
+                fontSize: isMobile ? '11px' : '13px',
+                color: '#888888',
+                fontStyle: 'italic'
+            }).setDepth(101).setAlpha(0);
+            this.detailsPanelElements.push(teaser);
+        } else {
+            // Main sanctuary
+            const desc = this.add.text(panelX + 15, panelY + 82, details.desc || 'Your creature\'s home', {
+                fontSize: isMobile ? '12px' : '14px',
+                color: '#9370DB'
+            }).setDepth(101).setAlpha(0);
+            this.detailsPanelElements.push(desc);
+        }
+
+        // Animate in (slide up + fade in)
+        this.detailsPanelElements.forEach((el, i) => {
+            this.tweens.add({
+                targets: el,
+                alpha: 1,
+                y: el.y - 20,
+                duration: 200,
+                delay: i * 30,
+                ease: 'Power2'
+            });
+        });
+    }
+
+    /**
+     * Hide details panel
+     */
+    hideDetailsPanel() {
+        if (!this.detailsPanelElements) return;
+
+        // Animate out and destroy
+        this.detailsPanelElements.forEach(el => {
+            this.tweens.add({
+                targets: el,
+                alpha: 0,
+                y: el.y + 10,
+                duration: 150,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (el && el.destroy) el.destroy();
+                }
+            });
+        });
+
+        this.detailsPanelElements = [];
+    }
+
+    /**
+     * Format time in mm:ss
+     */
+    formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
     updateInfoPanel(gate) {
@@ -705,46 +1158,155 @@ export default class HubWorldScene extends Phaser.Scene {
         // Update GameState
         window.GameState?.enterGate(gate.id);
 
-        // Show loading
+        // Show loading (will appear after transition)
         if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading(`Traveling to ${gate.data.name}...`);
+            this.time.delayedCall(800, () => {
+                window.UXEnhancements.showLoading(`Traveling to ${gate.data.name}...`);
+            });
         }
 
-        // Transition effect
-        const { width, height } = this.dims;
+        // Cinematic transition
+        this.playCinematicGateEntry(gate);
+    }
 
-        const flash = this.add.graphics();
-        flash.fillStyle(gate.config.color, 0);
-        flash.fillRect(0, 0, width, height);
-        flash.setDepth(300);
+    /**
+     * Play cinematic gate entry sequence
+     * Timeline: zoom → particles → radial wipe → transition
+     */
+    playCinematicGateEntry(gate) {
+        const { width, height, isMobile } = this.dims;
+        const gateX = gate.x;
+        const gateY = gate.y;
 
-        // Flash and transition
+        // 0ms: Camera zoom toward gate (400ms)
         this.tweens.add({
-            targets: flash,
-            alpha: 1,
-            duration: 500,
-            ease: 'Power2',
-            onComplete: () => {
-                // Start appropriate scene based on gate
-                if (gate.id === 'main') {
-                    // Main sanctuary - top-down exploration
-                    this.scene.start('GameScene', { biome: 'nebula' });
-                } else if (gate.id === 'crystal_caves') {
-                    // Crystal Caves - side-scrolling platformer level
-                    this.scene.start('CrystalCavesLevel');
-                } else if (gate.id === 'stellar_reef') {
-                    // Stellar Reef - underwater swimming platformer level
-                    this.scene.start('ReefLevel');
-                } else {
-                    // Other biomes - top-down for now (will become platformer levels)
-                    this.scene.start('GameScene', { biome: gate.data.biome });
-                }
+            targets: this.cameras.main,
+            zoom: 1.5,
+            scrollX: gateX - width / 2,
+            scrollY: gateY - height / 2,
+            duration: 400,
+            ease: 'Power2'
+        });
+
+        // 300ms: Particle burst from gate
+        this.time.delayedCall(300, () => {
+            this.createGateEntryBurst(gateX, gateY, gate.config.color);
+
+            // Play whoosh/portal sound
+            if (window.AudioManager) {
+                window.AudioManager.playPurchase();
             }
         });
 
-        // Play sound
-        if (window.AudioManager) {
-            window.AudioManager.playPurchase();
+        // 500ms: Expanding radial wipe from gate center
+        this.time.delayedCall(500, () => {
+            this.createRadialWipe(gateX, gateY, gate.config.color, () => {
+                // 900ms: Scene transition
+                this.transitionToGateScene(gate);
+            });
+        });
+    }
+
+    /**
+     * Create particle burst effect at gate position
+     */
+    createGateEntryBurst(x, y, color) {
+        // Particle count based on device
+        const particleCount = this.dims.isMobile ? 20 : 40;
+        const colors = [color, 0xFFD700, 0xFFFFFF];
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = this.add.graphics();
+            const size = Phaser.Math.FloatBetween(2, 6);
+            const particleColor = Phaser.Utils.Array.GetRandom(colors);
+
+            particle.fillStyle(particleColor, Phaser.Math.FloatBetween(0.6, 1));
+            particle.fillCircle(0, 0, size);
+            particle.setPosition(x, y);
+            particle.setDepth(250);
+
+            // Random direction burst
+            const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+            const speed = Phaser.Math.FloatBetween(100, 300);
+            const targetX = x + Math.cos(angle) * speed;
+            const targetY = y + Math.sin(angle) * speed;
+
+            this.tweens.add({
+                targets: particle,
+                x: targetX,
+                y: targetY,
+                alpha: 0,
+                scale: { from: 1, to: 0.2 },
+                duration: Phaser.Math.Between(400, 800),
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        // Add FXLibrary burst if available
+        if (window.FXLibrary) {
+            window.FXLibrary.stardustBurst(this, x, y, {
+                count: 20,
+                color: [color, 0xFFD700],
+                duration: 1000
+            });
+        }
+    }
+
+    /**
+     * Create expanding radial wipe effect
+     */
+    createRadialWipe(centerX, centerY, color, onComplete) {
+        const { width, height } = this.dims;
+        const maxRadius = Math.max(width, height) * 1.5;
+
+        // Create circular mask/wipe
+        const wipe = this.add.graphics();
+        wipe.setDepth(300);
+
+        // Animate expanding circle
+        let currentRadius = 0;
+
+        const wipeTimer = this.time.addEvent({
+            delay: 16, // ~60fps
+            callback: () => {
+                currentRadius += 30; // Expansion speed
+
+                wipe.clear();
+                wipe.fillStyle(color, 1);
+                wipe.fillCircle(centerX, centerY, currentRadius);
+
+                // Add inner glow ring
+                if (currentRadius > 50) {
+                    wipe.lineStyle(4, 0xFFFFFF, 0.5);
+                    wipe.strokeCircle(centerX, centerY, currentRadius - 20);
+                }
+
+                if (currentRadius >= maxRadius) {
+                    wipeTimer.destroy();
+                    if (onComplete) onComplete();
+                }
+            },
+            loop: true
+        });
+    }
+
+    /**
+     * Transition to appropriate scene based on gate
+     */
+    transitionToGateScene(gate) {
+        if (gate.id === 'main') {
+            // Main sanctuary - top-down exploration
+            this.scene.start('GameScene', { biome: 'nebula' });
+        } else if (gate.id === 'crystal_caves') {
+            // Crystal Caves - side-scrolling platformer level
+            this.scene.start('CrystalCavesLevel');
+        } else if (gate.id === 'stellar_reef') {
+            // Stellar Reef - underwater swimming platformer level
+            this.scene.start('ReefLevel');
+        } else {
+            // Other biomes - top-down for now (will become platformer levels)
+            this.scene.start('GameScene', { biome: gate.data.biome });
         }
     }
 
@@ -812,6 +1374,207 @@ export default class HubWorldScene extends Phaser.Scene {
         // Play sound
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
+        }
+    }
+
+    /**
+     * Create Ship Assembly View - visual ship being built with collected parts
+     * Positioned above creature display showing ship hull outline with part positions
+     */
+    createShipAssemblyView() {
+        const { centerX, centerY, isMobile } = this.dims;
+
+        // Get ship parts status
+        const shipParts = window.GameState?.get('hubWorld.shipParts') || {
+            collected: [],
+            totalRequired: 4,
+            finalBossUnlocked: false
+        };
+        const collectedParts = shipParts.collected || [];
+        const allCollected = collectedParts.length === 4;
+
+        // Position above creature display
+        const shipY = centerY - (isMobile ? 150 : 200);
+        const shipScale = isMobile ? 0.7 : 1.0;
+
+        // Part definitions with positions relative to ship center
+        const partDefs = {
+            dimensional_drive: { x: 0, y: 35 * shipScale, icon: '⚙️', label: 'Engine' },
+            crystal_core: { x: -30 * shipScale, y: 0, icon: '🔮', label: 'Core' },
+            void_stabilizer: { x: 30 * shipScale, y: 0, icon: '🌀', label: 'Stabilizer' },
+            aurora_reactor: { x: 0, y: -35 * shipScale, icon: '✨', label: 'Reactor' }
+        };
+
+        // Store elements for cleanup
+        this.shipAssemblyElements = [];
+
+        // Create ship container
+        const shipContainer = this.add.container(centerX, shipY);
+        shipContainer.setDepth(15);
+        this.shipAssemblyElements.push(shipContainer);
+
+        // Draw ship hull outline (dashed purple lines connecting part positions)
+        const hull = this.add.graphics();
+        hull.lineStyle(2, 0x7B68EE, 0.5);
+
+        // Draw hull shape as connected lines (diamond shape)
+        const points = [
+            { x: partDefs.aurora_reactor.x, y: partDefs.aurora_reactor.y }, // Top
+            { x: partDefs.void_stabilizer.x + 15, y: partDefs.void_stabilizer.y }, // Right
+            { x: partDefs.dimensional_drive.x, y: partDefs.dimensional_drive.y + 10 }, // Bottom
+            { x: partDefs.crystal_core.x - 15, y: partDefs.crystal_core.y } // Left
+        ];
+
+        // Draw dashed hull outline
+        for (let i = 0; i < points.length; i++) {
+            const start = points[i];
+            const end = points[(i + 1) % points.length];
+            this.drawDashedLine(hull, start.x, start.y, end.x, end.y, 5, 5);
+        }
+
+        shipContainer.add(hull);
+
+        // Glow effect for completed ship
+        if (allCollected) {
+            const glow = this.add.graphics();
+            glow.fillStyle(0xFFD700, 0.2);
+            glow.fillCircle(0, 0, 60 * shipScale);
+            shipContainer.add(glow);
+
+            // Pulse glow animation
+            this.tweens.add({
+                targets: glow,
+                alpha: { from: 0.2, to: 0.5 },
+                scaleX: { from: 1, to: 1.2 },
+                scaleY: { from: 1, to: 1.2 },
+                duration: 1200,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        // Draw connection lines between collected parts
+        const connectionGraphics = this.add.graphics();
+        connectionGraphics.lineStyle(2, 0xFFD700, 0.6);
+        shipContainer.add(connectionGraphics);
+
+        // Track collected part positions for connection lines
+        const collectedPositions = [];
+
+        // Create part slots
+        Object.entries(partDefs).forEach(([partId, def]) => {
+            const isCollected = collectedParts.includes(partId);
+            const slotSize = isMobile ? 18 : 24;
+
+            // Part background circle
+            const slotBg = this.add.graphics();
+            if (isCollected) {
+                // Collected: Gold glow with full opacity
+                slotBg.fillStyle(0xFFD700, 0.3);
+                slotBg.fillCircle(def.x, def.y, slotSize + 5);
+                slotBg.fillStyle(0x1A0A2E, 1);
+                slotBg.fillCircle(def.x, def.y, slotSize);
+                slotBg.lineStyle(2, 0xFFD700);
+                slotBg.strokeCircle(def.x, def.y, slotSize);
+
+                collectedPositions.push({ x: def.x, y: def.y });
+            } else {
+                // Missing: Gray, low opacity
+                slotBg.fillStyle(0x333333, 0.5);
+                slotBg.fillCircle(def.x, def.y, slotSize);
+                slotBg.lineStyle(1, 0x555555, 0.5);
+                slotBg.strokeCircle(def.x, def.y, slotSize);
+            }
+            shipContainer.add(slotBg);
+
+            // Part icon
+            const icon = this.add.text(def.x, def.y, def.icon, {
+                fontSize: isMobile ? '16px' : '22px'
+            }).setOrigin(0.5);
+
+            if (!isCollected) {
+                icon.setAlpha(0.3);
+            }
+            shipContainer.add(icon);
+
+            // Pulsing animation for collected parts
+            if (isCollected) {
+                this.tweens.add({
+                    targets: [icon],
+                    alpha: { from: 1, to: 0.6 },
+                    duration: 1000,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        });
+
+        // Draw connection lines between adjacent collected parts
+        if (collectedPositions.length >= 2) {
+            for (let i = 0; i < collectedPositions.length; i++) {
+                for (let j = i + 1; j < collectedPositions.length; j++) {
+                    connectionGraphics.beginPath();
+                    connectionGraphics.moveTo(collectedPositions[i].x, collectedPositions[i].y);
+                    connectionGraphics.lineTo(collectedPositions[j].x, collectedPositions[j].y);
+                    connectionGraphics.strokePath();
+                }
+            }
+        }
+
+        // Progress counter
+        const progressText = this.add.text(0, 55 * shipScale, `${collectedParts.length}/4 Parts`, {
+            fontSize: isMobile ? '12px' : '14px',
+            color: allCollected ? '#FFD700' : '#AAAAAA',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        shipContainer.add(progressText);
+
+        // "READY!" text when all parts collected
+        if (allCollected) {
+            const readyText = this.add.text(0, 75 * shipScale, '⚔️ READY! ⚔️', {
+                fontSize: isMobile ? '14px' : '18px',
+                color: '#00FF00',
+                fontStyle: 'bold',
+                stroke: '#004400',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+            shipContainer.add(readyText);
+
+            // Pulsing animation for ready text
+            this.tweens.add({
+                targets: readyText,
+                scale: { from: 1, to: 1.1 },
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+    }
+
+    /**
+     * Draw a dashed line on graphics object
+     */
+    drawDashedLine(graphics, x1, y1, x2, y2, dashLength = 5, gapLength = 5) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const dashCount = Math.floor(distance / (dashLength + gapLength));
+        const nx = dx / distance;
+        const ny = dy / distance;
+
+        for (let i = 0; i < dashCount; i++) {
+            const startX = x1 + (dashLength + gapLength) * i * nx;
+            const startY = y1 + (dashLength + gapLength) * i * ny;
+            const endX = startX + dashLength * nx;
+            const endY = startY + dashLength * ny;
+
+            graphics.beginPath();
+            graphics.moveTo(startX, startY);
+            graphics.lineTo(endX, endY);
+            graphics.strokePath();
         }
     }
 
@@ -1255,6 +2018,64 @@ export default class HubWorldScene extends Phaser.Scene {
         // Clear timers and tweens
         if (this.time) this.time.removeAllEvents();
         if (this.tweens) this.tweens.killAll();
+
+        // Clear ship assembly elements
+        if (this.shipAssemblyElements) {
+            this.shipAssemblyElements.forEach(el => {
+                if (el && el.destroy) el.destroy();
+            });
+            this.shipAssemblyElements = [];
+        }
+
+        // Clear portal vortex timers
+        if (this.vortexTimers) {
+            this.vortexTimers.forEach(timer => {
+                if (timer && timer.destroy) timer.destroy();
+            });
+            this.vortexTimers = [];
+        }
+
+        // Clear portal vortex elements
+        if (this.portalVortexElements) {
+            this.portalVortexElements.forEach(vortex => {
+                if (vortex.glow && vortex.glow.destroy) vortex.glow.destroy();
+                if (vortex.particles) {
+                    vortex.particles.forEach(p => {
+                        if (p.graphics && p.graphics.destroy) p.graphics.destroy();
+                    });
+                }
+            });
+            this.portalVortexElements = [];
+        }
+
+        // Clear parallax timer
+        if (this.parallaxTimer && this.parallaxTimer.destroy) {
+            this.parallaxTimer.destroy();
+            this.parallaxTimer = null;
+        }
+
+        // Clear parallax layers
+        if (this.parallaxLayers) {
+            this.parallaxLayers.forEach(layer => {
+                layer.stars.forEach(star => {
+                    if (star.graphics && star.graphics.destroy) star.graphics.destroy();
+                });
+            });
+            this.parallaxLayers = [];
+        }
+
+        // Remove pointer move listener
+        if (this.input) {
+            this.input.off('pointermove');
+        }
+
+        // Clear details panel
+        if (this.detailsPanelElements) {
+            this.detailsPanelElements.forEach(el => {
+                if (el && el.destroy) el.destroy();
+            });
+            this.detailsPanelElements = [];
+        }
 
         // Clear references
         this.graphicsEngine = null;
