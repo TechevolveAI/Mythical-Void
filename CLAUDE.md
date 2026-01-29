@@ -618,9 +618,15 @@ Platformer levels extend `PlatformerLevelScene` base class which provides differ
 
 **Required Mobile Controls:**
 All platformer levels MUST have mobile controls that include:
-1. **Joystick** (bottom-left) - Horizontal movement
-2. **Action Buttons** (bottom-right) - Jump, Attack, Special, Ranged
+1. **Joystick** (bottom-left, 140px diameter) - Horizontal movement
+2. **Action Buttons** (bottom-right, arc layout) - Jump (100px, bottom), Attack buttons in arc above
 3. **Menu Button** (top-left) - Opens pause menu with Exit to Hub option
+
+**CRITICAL - Control Placement:**
+- Controls MUST be positioned in the dedicated control zone at the BOTTOM of the screen
+- Controls must NEVER overlay the playable game area - player must always see their character
+- The control zone height is 120px, positioned at the very bottom above the safe area
+- Joystick and buttons stay within/just above ground level visually
 
 **Pause Menu Requirements:**
 - ESC key on desktop opens pause menu

@@ -63,34 +63,137 @@ export default class CreatureProfileScene extends Phaser.Scene {
     createBackground() {
         const { width, height } = this.scale;
 
-        // Dark gradient background
+        // Dark cosmic gradient background
         const bg = this.add.graphics();
-        bg.fillGradientStyle(0x0D0D1A, 0x0D0D1A, 0x1A1A3E, 0x1A1A3E, 1);
+        bg.fillGradientStyle(0x050510, 0x050510, 0x0D0D2B, 0x0D0D2B, 1);
         bg.fillRect(0, 0, width, height);
         this.elements.push(bg);
 
-        // Subtle star particles
-        for (let i = 0; i < 30; i++) {
-            const star = this.add.graphics();
-            const x = Math.random() * width;
-            const y = Math.random() * height;
-            const size = 1 + Math.random() * 2;
-            const alpha = 0.3 + Math.random() * 0.5;
+        // Animated DNA helix on the side (decorative)
+        this.createDNAHelix(width - 40, height / 2);
 
-            star.fillStyle(0xFFFFFF, alpha);
-            star.fillCircle(x, y, size);
-            this.elements.push(star);
+        // Cosmic nebula swirls
+        this.createNebulaEffect(width * 0.2, height * 0.3);
+        this.createNebulaEffect(width * 0.8, height * 0.7);
 
-            // Twinkle animation
-            this.tweens.add({
-                targets: star,
-                alpha: alpha * 0.3,
-                duration: 1000 + Math.random() * 2000,
-                yoyo: true,
-                repeat: -1,
-                delay: Math.random() * 1000
-            });
+        // Star field with depth layers
+        for (let layer = 0; layer < 3; layer++) {
+            const starCount = 15 - layer * 4;
+            const sizeRange = [0.5 + layer * 0.5, 1.5 + layer];
+            const alphaRange = [0.2 + layer * 0.15, 0.5 + layer * 0.2];
+
+            for (let i = 0; i < starCount; i++) {
+                const star = this.add.graphics();
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const size = sizeRange[0] + Math.random() * (sizeRange[1] - sizeRange[0]);
+                const alpha = alphaRange[0] + Math.random() * (alphaRange[1] - alphaRange[0]);
+
+                // Some stars have color
+                const colors = [0xFFFFFF, 0xFFE4B5, 0x87CEEB, 0xE6E6FA];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+
+                star.fillStyle(color, alpha);
+                star.fillCircle(x, y, size);
+                star.setDepth(layer);
+                this.elements.push(star);
+
+                // Twinkle with varying speeds based on depth
+                this.tweens.add({
+                    targets: star,
+                    alpha: alpha * 0.2,
+                    duration: 1500 + layer * 500 + Math.random() * 1500,
+                    yoyo: true,
+                    repeat: -1,
+                    delay: Math.random() * 2000
+                });
+            }
         }
+    }
+
+    /**
+     * Create animated DNA helix decoration
+     */
+    createDNAHelix(x, centerY) {
+        const helixHeight = 300;
+        const amplitude = 15;
+        const segments = 20;
+        const segmentHeight = helixHeight / segments;
+
+        // Create helix strands
+        for (let strand = 0; strand < 2; strand++) {
+            const phaseOffset = strand * Math.PI;
+
+            for (let i = 0; i < segments; i++) {
+                const dot = this.add.graphics();
+                const baseY = centerY - helixHeight / 2 + i * segmentHeight;
+                const startPhase = (i / segments) * Math.PI * 4 + phaseOffset;
+
+                // Initial position
+                const offsetX = Math.sin(startPhase) * amplitude;
+                const depth = Math.cos(startPhase);
+                const size = 2 + depth * 1.5;
+                const alpha = 0.3 + depth * 0.3;
+
+                const color = strand === 0 ? 0x7B68EE : 0x00FFFF;
+                dot.fillStyle(color, alpha);
+                dot.fillCircle(x + offsetX, baseY, Math.max(1, size));
+                dot.setDepth(1);
+                this.elements.push(dot);
+
+                // Animate the helix rotation
+                this.tweens.add({
+                    targets: dot,
+                    alpha: { from: alpha, to: alpha * 0.3 },
+                    duration: 3000,
+                    yoyo: true,
+                    repeat: -1,
+                    delay: i * 100
+                });
+            }
+        }
+
+        // Connecting rungs
+        for (let i = 0; i < segments; i += 2) {
+            const rung = this.add.graphics();
+            const y = centerY - helixHeight / 2 + i * segmentHeight;
+            const phase = (i / segments) * Math.PI * 4;
+            const x1 = x + Math.sin(phase) * amplitude;
+            const x2 = x + Math.sin(phase + Math.PI) * amplitude;
+
+            rung.lineStyle(1, 0x4B0082, 0.3);
+            rung.lineBetween(x1, y, x2, y);
+            rung.setDepth(0);
+            this.elements.push(rung);
+        }
+    }
+
+    /**
+     * Create nebula swirl effect
+     */
+    createNebulaEffect(x, y) {
+        const nebula = this.add.graphics();
+        const colors = [0x7B68EE, 0x9370DB, 0x4B0082];
+
+        // Multiple overlapping circles with low opacity
+        for (let ring = 0; ring < 4; ring++) {
+            const radius = 30 + ring * 20;
+            const color = colors[ring % colors.length];
+            nebula.fillStyle(color, 0.05 - ring * 0.01);
+            nebula.fillCircle(x, y, radius);
+        }
+
+        nebula.setDepth(0);
+        this.elements.push(nebula);
+
+        // Slow rotation effect via alpha pulse
+        this.tweens.add({
+            targets: nebula,
+            alpha: { from: 1, to: 0.5 },
+            duration: 5000,
+            yoyo: true,
+            repeat: -1
+        });
     }
 
     createHeader() {
@@ -147,6 +250,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
         // Create info sections
         currentY = this.createBasicInfoSection(creatureData, currentY);
+        currentY = this.createGeneticsSection(creatureData, currentY);
         currentY = this.createHeritageSection(creatureData, currentY);
         currentY = this.createLifecycleSection(creatureData, currentY);
         currentY = this.createStatsSection(creatureData, currentY);
@@ -154,10 +258,8 @@ export default class CreatureProfileScene extends Phaser.Scene {
         currentY = this.createPersonalitySection(creatureData, currentY);
         currentY = this.createEvolutionHistorySection(creatureData, currentY);
 
-        // Dev tools section (only in development mode)
-        if (import.meta.env.DEV) {
-            currentY = this.createDevToolsSection(creatureData, currentY);
-        }
+        // Release creature section (only show if more than 1 creature in collection)
+        currentY = this.createReleaseSection(creatureData, currentY);
 
         // Calculate max scroll
         this.maxScroll = Math.max(0, currentY - height + 100);
@@ -320,14 +422,105 @@ export default class CreatureProfileScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(11);
         this.elements.push(nameText);
 
-        // Species and rarity
-        const rarityColor = this.getRarityColorHex(data.rarity);
-        const speciesText = this.add.text(centerX, creatureY + 100,
-            `${this.capitalizeFirst(data.rarity)} ${data.species}`, {
-            fontSize: this.isMobile ? '14px' : '16px',
-            color: rarityColor
+        // Species subtitle
+        const speciesText = this.add.text(centerX, creatureY + 100, data.species, {
+            fontSize: this.isMobile ? '13px' : '15px',
+            color: '#AAAAAA'
         }).setOrigin(0.5).setDepth(11);
         this.elements.push(speciesText);
+
+        // "What Makes You Special" summary card
+        const cardY = creatureY + 130;
+        const cardPadding = this.isMobile ? 12 : 16;
+        const cardWidth = width - cardPadding * 2;
+
+        // Count special traits
+        const specialTraits = [];
+
+        // Rarity is always special
+        const rarityRank = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5 };
+        if (rarityRank[data.rarity] >= 3) {
+            specialTraits.push({ icon: '✨', text: this.capitalizeFirst(data.rarity), color: this.getRarityColorHex(data.rarity) });
+        }
+
+        // Generation
+        if (data.generation > 1) {
+            specialTraits.push({ icon: '🧬', text: `Gen ${data.generation}`, color: '#FFD700' });
+        }
+
+        // Special indicators
+        if (data.isShiny) {
+            specialTraits.push({ icon: '💫', text: 'Shiny', color: '#FFD700' });
+        }
+        if (data.hasDualAffinity) {
+            specialTraits.push({ icon: '🌈', text: 'Dual Affinity', color: '#88CCFF' });
+        }
+        if (data.hasAncientLineage) {
+            specialTraits.push({ icon: '🌌', text: 'Ancient', color: '#9B59B6' });
+        }
+
+        // Cosmic affinity
+        if (data.cosmicAffinity?.element) {
+            const affinityIcons = { star: '⭐', moon: '🌙', nebula: '🌀', crystal: '💎', void: '🕳️' };
+            specialTraits.push({
+                icon: affinityIcons[data.cosmicAffinity.element] || '✨',
+                text: this.capitalizeFirst(data.cosmicAffinity.element),
+                color: '#00FFFF'
+            });
+        }
+
+        // Secret abilities count
+        if (data.secretAbilities?.length > 0) {
+            specialTraits.push({ icon: '🌟', text: `${data.secretAbilities.length} Secret Ability${data.secretAbilities.length > 1 ? 'ies' : ''}`, color: '#FF69B4' });
+        }
+
+        // Draw card only if there are special traits
+        if (specialTraits.length > 0) {
+            const cardHeight = 70;
+
+            // Card background with gradient effect
+            const card = this.add.graphics();
+            card.fillStyle(0x1A1A3E, 0.95);
+            card.fillRoundedRect(cardPadding, cardY, cardWidth, cardHeight, 12);
+            card.lineStyle(2, this.getRarityColor(data.rarity), 0.8);
+            card.strokeRoundedRect(cardPadding, cardY, cardWidth, cardHeight, 12);
+            card.setDepth(11);
+            this.elements.push(card);
+
+            // "What Makes You Special" header
+            const headerText = this.add.text(cardPadding + 12, cardY + 12, 'What Makes You Special', {
+                fontSize: this.isMobile ? '10px' : '11px',
+                color: '#888888',
+                fontStyle: 'italic'
+            }).setDepth(12);
+            this.elements.push(headerText);
+
+            // Display trait badges in a row
+            const badgeY = cardY + 40;
+            const badgeSpacing = Math.min(80, (cardWidth - 20) / specialTraits.length);
+            const startX = cardPadding + 20;
+
+            specialTraits.slice(0, 5).forEach((trait, index) => {
+                const badgeX = startX + (index * badgeSpacing);
+
+                // Badge background
+                const badge = this.add.graphics();
+                badge.fillStyle(Phaser.Display.Color.HexStringToColor(trait.color).color, 0.2);
+                badge.fillRoundedRect(badgeX - 5, badgeY - 12, badgeSpacing - 10, 24, 6);
+                badge.setDepth(12);
+                this.elements.push(badge);
+
+                // Badge text
+                const badgeText = this.add.text(badgeX + (badgeSpacing - 10) / 2 - 5, badgeY, `${trait.icon} ${trait.text}`, {
+                    fontSize: this.isMobile ? '10px' : '11px',
+                    color: trait.color,
+                    fontStyle: 'bold'
+                }).setOrigin(0.5).setDepth(13);
+                this.elements.push(badgeText);
+            });
+
+            return cardY + cardHeight + 10;
+        }
 
         return creatureY + 130;
     }
@@ -370,6 +563,194 @@ export default class CreatureProfileScene extends Phaser.Scene {
         });
 
         return startY + Math.ceil(infoItems.length / itemsPerRow) * 50 + 10;
+    }
+
+    /**
+     * Create genetics section - shows rarity, generation, and key genetic traits
+     * Always displays for ALL creatures
+     */
+    createGeneticsSection(data, startY) {
+        const { width } = this.scale;
+        const padding = this.isMobile ? 16 : 24;
+
+        startY += 20;
+
+        const header = this.createSectionHeader('🧬 Genetics & Rarity', startY);
+        startY = header.y + 30;
+
+        // Rarity badge (prominent, centered)
+        const rarityColor = this.getRarityColor(data.rarity);
+        const rarityColorHex = this.getRarityColorHex(data.rarity);
+        const badgeWidth = this.isMobile ? 160 : 180;
+        const badgeHeight = 45;
+        const badgeX = width / 2 - badgeWidth / 2;
+
+        const rarityBadge = this.add.graphics();
+        rarityBadge.fillStyle(rarityColor, 0.3);
+        rarityBadge.fillRoundedRect(badgeX, startY, badgeWidth, badgeHeight, 12);
+        rarityBadge.lineStyle(3, rarityColor, 1);
+        rarityBadge.strokeRoundedRect(badgeX, startY, badgeWidth, badgeHeight, 12);
+        rarityBadge.setDepth(11);
+        this.elements.push(rarityBadge);
+
+        const rarityText = this.add.text(width / 2, startY + badgeHeight / 2,
+            `✨ ${this.capitalizeFirst(data.rarity)} ✨`, {
+            fontSize: this.isMobile ? '18px' : '22px',
+            color: rarityColorHex,
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(12);
+        this.elements.push(rarityText);
+
+        startY += badgeHeight + 20;
+
+        // Generation info
+        const genText = this.add.text(width / 2, startY, `Generation ${data.generation || 1}`, {
+            fontSize: this.isMobile ? '14px' : '16px',
+            color: '#FFD700'
+        }).setOrigin(0.5).setDepth(11);
+        this.elements.push(genText);
+
+        startY += 30;
+
+        // Cosmic Affinity (if available)
+        if (data.cosmicAffinity) {
+            const affinityIcon = this.getAffinityIcon(data.cosmicAffinity.element);
+            const affinityText = this.add.text(width / 2, startY,
+                `${affinityIcon} Cosmic Affinity: ${this.capitalizeFirst(data.cosmicAffinity.element)}`, {
+                fontSize: this.isMobile ? '14px' : '16px',
+                color: '#00FFFF'
+            }).setOrigin(0.5).setDepth(11);
+            this.elements.push(affinityText);
+
+            startY += 25;
+
+            // Power level if available
+            if (data.cosmicAffinity.powerLevel) {
+                const powerPercent = Math.round(data.cosmicAffinity.powerLevel * 100);
+                const powerText = this.add.text(width / 2, startY,
+                    `Power Level: ${powerPercent}%`, {
+                    fontSize: '12px',
+                    color: '#88CCFF'
+                }).setOrigin(0.5).setDepth(11);
+                this.elements.push(powerText);
+                startY += 20;
+            }
+        }
+
+        // Key genetic traits (if genes exist)
+        if (data.genes?.traits) {
+            startY += 10;
+
+            const traitsLabel = this.add.text(padding, startY, 'Key Traits:', {
+                fontSize: '14px',
+                color: '#7B68EE'
+            }).setDepth(11);
+            this.elements.push(traitsLabel);
+
+            startY += 25;
+
+            // Body type
+            if (data.genes.traits.bodyShape) {
+                const bodyType = data.genes.traits.bodyShape.type || 'balanced';
+                const bodyText = this.add.text(padding + 10, startY,
+                    `• Body Type: ${this.capitalizeFirst(bodyType)}`, {
+                    fontSize: '13px',
+                    color: '#AAAAAA'
+                }).setDepth(11);
+                this.elements.push(bodyText);
+                startY += 22;
+            }
+
+            // Special features
+            if (data.genes.traits.features) {
+                const features = data.genes.traits.features;
+
+                if (features.hasWings) {
+                    const wingText = this.add.text(padding + 10, startY,
+                        `• Has Wings (Size: ${Math.round((features.wingSize || 1) * 100)}%)`, {
+                        fontSize: '13px',
+                        color: '#AAAAAA'
+                    }).setDepth(11);
+                    this.elements.push(wingText);
+                    startY += 22;
+                }
+
+                if (features.hasHorns) {
+                    const hornText = this.add.text(padding + 10, startY,
+                        `• Has Horns`, {
+                        fontSize: '13px',
+                        color: '#AAAAAA'
+                    }).setDepth(11);
+                    this.elements.push(hornText);
+                    startY += 22;
+                }
+
+                if (features.hasTail) {
+                    const tailText = this.add.text(padding + 10, startY,
+                        `• Has Tail`, {
+                        fontSize: '13px',
+                        color: '#AAAAAA'
+                    }).setDepth(11);
+                    this.elements.push(tailText);
+                    startY += 22;
+                }
+
+                // Eye count if special
+                if (features.eyeCount && features.eyeCount !== 2) {
+                    const eyeText = this.add.text(padding + 10, startY,
+                        `• Eyes: ${features.eyeCount}`, {
+                        fontSize: '13px',
+                        color: '#AAAAAA'
+                    }).setDepth(11);
+                    this.elements.push(eyeText);
+                    startY += 22;
+                }
+
+                // Markings
+                if (features.markingType && features.markingType !== 'none') {
+                    const markingText = this.add.text(padding + 10, startY,
+                        `• Markings: ${this.capitalizeFirst(features.markingType)}`, {
+                        fontSize: '13px',
+                        color: '#AAAAAA'
+                    }).setDepth(11);
+                    this.elements.push(markingText);
+                    startY += 22;
+                }
+            }
+        }
+
+        // Shiny indicator
+        if (data.isShiny) {
+            const shinyBadge = this.add.text(width / 2, startY + 5, '✨ SHINY CREATURE ✨', {
+                fontSize: '14px',
+                color: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5).setDepth(11);
+            this.elements.push(shinyBadge);
+            startY += 30;
+        }
+
+        // Dual Affinity indicator
+        if (data.hasDualAffinity && data.dualAffinity) {
+            const affinityIcons = {
+                star: '⭐', moon: '🌙', nebula: '🌌', crystal: '💎', void: '🕳️'
+            };
+            const icon1 = affinityIcons[data.dualAffinity.primary] || '✨';
+            const icon2 = affinityIcons[data.dualAffinity.secondary] || '✨';
+
+            const dualText = this.add.text(width / 2, startY + 5,
+                `${icon1} ${icon2} Dual Affinity`, {
+                fontSize: '14px',
+                color: '#88CCFF',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(11);
+            this.elements.push(dualText);
+            startY += 30;
+        }
+
+        return startY + 10;
     }
 
     /**
@@ -859,83 +1240,218 @@ export default class CreatureProfileScene extends Phaser.Scene {
     createLifecycleSection(data, startY) {
         const { width } = this.scale;
         const padding = this.isMobile ? 16 : 24;
+        const centerX = width / 2;
 
-        startY += 20;
+        startY += 25;
 
-        const header = this.createSectionHeader('Lifecycle', startY);
-        startY = header.y + 30;
+        // Section header with cosmic theme
+        const headerBg = this.add.graphics();
+        headerBg.fillStyle(0x1A0A2E, 0.9);
+        headerBg.fillRoundedRect(padding, startY, width - padding * 2, 35, 8);
+        headerBg.setDepth(11);
+        this.elements.push(headerBg);
+
+        const headerText = this.add.text(centerX, startY + 17, '🌌 Cosmic Life Journey', {
+            fontSize: this.isMobile ? '14px' : '16px',
+            color: '#E6E6FA',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(12);
+        this.elements.push(headerText);
+
+        startY += 50;
 
         // Calculate days alive
         const daysAlive = data.birthDate
             ? Math.floor((Date.now() - data.birthDate) / (1000 * 60 * 60 * 24))
             : 0;
 
-        // Stage info
-        const stageConfig = evolutionConfig.stages[data.stage] || {};
-        const stageIcon = stageConfig.icon || '🐣';
-        const stageName = stageConfig.displayName || this.capitalizeFirst(data.stage);
+        // CORRECT stage definitions from evolution.json
+        const stages = [
+            { id: 'baby', icon: '🐣', name: 'Hatchling', days: 0, color: 0xFFB6C1, desc: 'Full of wonder' },
+            { id: 'juvenile', icon: '🌱', name: 'Youngling', days: 1, color: 0x98FB98, desc: 'Growing stronger' },
+            { id: 'adult', icon: '✨', name: 'Mature', days: 2, color: 0xFFD700, desc: 'Can breed!' },
+            { id: 'elder', icon: '👑', name: 'Elder', days: 9, color: 0xE6E6FA, desc: 'Ancient wisdom' }
+        ];
 
-        // Stage display
-        const stageText = this.add.text(padding, startY, `${stageIcon} Stage: ${stageName}`, {
-            fontSize: this.isMobile ? '16px' : '18px',
-            color: '#FFFFFF'
-        }).setDepth(11);
-        this.elements.push(stageText);
+        const currentStageIndex = stages.findIndex(s => s.id === data.stage);
+        const currentStage = stages[currentStageIndex] || stages[0];
 
-        startY += 30;
+        // Create cosmic spiral visualization
+        const spiralCenterX = centerX;
+        const spiralCenterY = startY + 80;
+        const spiralRadius = this.isMobile ? 70 : 90;
 
-        // Age
-        const ageText = this.add.text(padding, startY, `🗓️ Age: ${daysAlive} day${daysAlive !== 1 ? 's' : ''} old`, {
-            fontSize: this.isMobile ? '14px' : '16px',
-            color: '#AAAAAA'
-        }).setDepth(11);
-        this.elements.push(ageText);
+        // Draw cosmic spiral background
+        const spiralBg = this.add.graphics();
+        for (let ring = 3; ring >= 0; ring--) {
+            const ringRadius = spiralRadius + ring * 15;
+            const alpha = 0.08 - ring * 0.015;
+            spiralBg.fillStyle(0x7B68EE, alpha);
+            spiralBg.fillCircle(spiralCenterX, spiralCenterY, ringRadius);
+        }
+        spiralBg.setDepth(10);
+        this.elements.push(spiralBg);
 
-        startY += 25;
+        // Animated orbital particles
+        for (let i = 0; i < 8; i++) {
+            const particle = this.add.graphics();
+            const angle = (i / 8) * Math.PI * 2;
+            const orbitRadius = spiralRadius - 10;
+            const x = spiralCenterX + Math.cos(angle) * orbitRadius;
+            const y = spiralCenterY + Math.sin(angle) * orbitRadius;
 
-        // Lifespan progress bar
-        const totalLifespan = evolutionConfig.departure?.totalLifespanDays || 90;
-        const lifeProgress = Math.min(daysAlive / totalLifespan, 1);
+            particle.fillStyle(0xFFFFFF, 0.4);
+            particle.fillCircle(x, y, 2);
+            particle.setDepth(11);
+            this.elements.push(particle);
 
-        const barWidth = width - padding * 2;
-        const barHeight = 8;
-
-        // Bar background
-        const barBg = this.add.graphics();
-        barBg.fillStyle(0x2A2A4E, 1);
-        barBg.fillRoundedRect(padding, startY, barWidth, barHeight, 4);
-        barBg.setDepth(11);
-        this.elements.push(barBg);
-
-        // Bar fill
-        const barFill = this.add.graphics();
-        const fillColor = lifeProgress > 0.9 ? 0xE6E6FA : (lifeProgress > 0.7 ? 0xFFD700 : 0x7B68EE);
-        barFill.fillStyle(fillColor, 1);
-        barFill.fillRoundedRect(padding, startY, barWidth * lifeProgress, barHeight, 4);
-        barFill.setDepth(12);
-        this.elements.push(barFill);
-
-        startY += 20;
-
-        // Days remaining
-        const daysRemaining = Math.max(0, totalLifespan - daysAlive);
-        const remainingText = this.add.text(padding, startY,
-            daysRemaining > 0
-                ? `${daysRemaining} days until cosmic journey`
-                : 'Ready for cosmic journey', {
-            fontSize: '12px',
-            color: lifeProgress > 0.9 ? '#E6E6FA' : '#888888'
-        }).setDepth(11);
-        this.elements.push(remainingText);
-
-        startY += 30;
-
-        // DEV ONLY: Stage testing UI
-        if (import.meta.env.DEV) {
-            startY = this.createStageTestingUI(data, startY, padding, width);
+            // Orbit animation
+            this.tweens.add({
+                targets: particle,
+                angle: 360,
+                duration: 8000 + i * 500,
+                repeat: -1,
+                onUpdate: () => {
+                    const currentAngle = (angle + (particle.angle * Math.PI / 180)) % (Math.PI * 2);
+                    particle.x = spiralCenterX + Math.cos(currentAngle) * orbitRadius - x;
+                    particle.y = spiralCenterY + Math.sin(currentAngle) * orbitRadius - y;
+                }
+            });
         }
 
-        return startY + 10;
+        // Current stage display in center
+        const stageCircle = this.add.graphics();
+        stageCircle.fillStyle(currentStage.color, 0.3);
+        stageCircle.fillCircle(spiralCenterX, spiralCenterY, 55);
+        stageCircle.fillStyle(currentStage.color, 0.8);
+        stageCircle.fillCircle(spiralCenterX, spiralCenterY, 45);
+        stageCircle.lineStyle(3, 0xFFFFFF, 0.9);
+        stageCircle.strokeCircle(spiralCenterX, spiralCenterY, 45);
+        stageCircle.setDepth(12);
+        this.elements.push(stageCircle);
+
+        // Pulsing glow animation
+        this.tweens.add({
+            targets: stageCircle,
+            alpha: { from: 1, to: 0.7 },
+            duration: 1500,
+            yoyo: true,
+            repeat: -1
+        });
+
+        // Current stage icon (large)
+        const currentIcon = this.add.text(spiralCenterX, spiralCenterY - 8, currentStage.icon, {
+            fontSize: this.isMobile ? '32px' : '40px'
+        }).setOrigin(0.5).setDepth(13);
+        this.elements.push(currentIcon);
+
+        // Current stage name
+        const currentName = this.add.text(spiralCenterX, spiralCenterY + 25, currentStage.name, {
+            fontSize: this.isMobile ? '12px' : '14px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(13);
+        this.elements.push(currentName);
+
+        // Stage indicators around the spiral
+        stages.forEach((stage, index) => {
+            const angle = -Math.PI / 2 + (index / stages.length) * Math.PI * 2;
+            const indicatorRadius = spiralRadius + 25;
+            const ix = spiralCenterX + Math.cos(angle) * indicatorRadius;
+            const iy = spiralCenterY + Math.sin(angle) * indicatorRadius;
+
+            const isActive = index <= currentStageIndex;
+            const isCurrent = index === currentStageIndex;
+
+            // Small indicator circle
+            const indicator = this.add.graphics();
+            if (isCurrent) {
+                indicator.fillStyle(0xFFFFFF, 1);
+                indicator.fillCircle(ix, iy, 8);
+            } else if (isActive) {
+                indicator.fillStyle(stage.color, 0.9);
+                indicator.fillCircle(ix, iy, 6);
+            } else {
+                indicator.lineStyle(2, 0x555555, 0.5);
+                indicator.strokeCircle(ix, iy, 5);
+            }
+            indicator.setDepth(14);
+            this.elements.push(indicator);
+
+            // Stage label (positioned outward)
+            const labelRadius = indicatorRadius + 18;
+            const lx = spiralCenterX + Math.cos(angle) * labelRadius;
+            const ly = spiralCenterY + Math.sin(angle) * labelRadius;
+
+            const labelColor = isCurrent ? '#FFD700' : (isActive ? '#AAAAAA' : '#555555');
+            const label = this.add.text(lx, ly, `Day ${stage.days}`, {
+                fontSize: '10px',
+                color: labelColor
+            }).setOrigin(0.5).setDepth(14);
+            this.elements.push(label);
+        });
+
+        startY = spiralCenterY + spiralRadius + 45;
+
+        // Age info card
+        const cardWidth = width - padding * 2;
+        const card = this.add.graphics();
+        card.fillStyle(0x1A1A3E, 0.95);
+        card.fillRoundedRect(padding, startY, cardWidth, 80, 12);
+        card.lineStyle(2, currentStage.color, 0.6);
+        card.strokeRoundedRect(padding, startY, cardWidth, 80, 12);
+        card.setDepth(11);
+        this.elements.push(card);
+
+        // Age display
+        const ageText = this.add.text(padding + 20, startY + 20, `${daysAlive}`, {
+            fontSize: this.isMobile ? '28px' : '36px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setDepth(12);
+        this.elements.push(ageText);
+
+        const daysLabel = this.add.text(padding + 20 + ageText.width + 8, startY + 28, `day${daysAlive !== 1 ? 's' : ''} old`, {
+            fontSize: this.isMobile ? '14px' : '16px',
+            color: '#AAAAAA'
+        }).setDepth(12);
+        this.elements.push(daysLabel);
+
+        // Next milestone
+        const nextStage = stages[currentStageIndex + 1];
+        let milestoneText = '';
+        let milestoneColor = '#888888';
+
+        if (nextStage) {
+            const daysUntil = Math.max(0, nextStage.days - daysAlive);
+            if (daysUntil > 0) {
+                milestoneText = `⏳ ${daysUntil} day${daysUntil !== 1 ? 's' : ''} until ${nextStage.name}`;
+            } else {
+                milestoneText = `✨ Ready to evolve into ${nextStage.name}!`;
+                milestoneColor = '#00FF88';
+            }
+        } else {
+            milestoneText = '👑 Achieved Elder wisdom';
+            milestoneColor = '#E6E6FA';
+        }
+
+        const milestone = this.add.text(padding + 20, startY + 55, milestoneText, {
+            fontSize: this.isMobile ? '12px' : '14px',
+            color: milestoneColor
+        }).setDepth(12);
+        this.elements.push(milestone);
+
+        // Total lifespan indicator (small)
+        const lifespanDays = 90;
+        const lifespanPercent = Math.min(100, Math.round((daysAlive / lifespanDays) * 100));
+        const lifespanText = this.add.text(cardWidth + padding - 20, startY + 40, `${lifespanPercent}%\njourney`, {
+            fontSize: '11px',
+            color: '#666666',
+            align: 'right'
+        }).setOrigin(1, 0.5).setDepth(12);
+        this.elements.push(lifespanText);
+
+        return startY + 100;
     }
 
     /**
@@ -1378,6 +1894,336 @@ export default class CreatureProfileScene extends Phaser.Scene {
         });
 
         return startY + history.length * 25 + 20;
+    }
+
+    /**
+     * Create release creature section - allows player to release creature to make room
+     * Only shows if player has more than 1 creature
+     */
+    createReleaseSection(data, startY) {
+        const { width } = this.scale;
+        const padding = this.isMobile ? 16 : 24;
+
+        // Only show if more than 1 creature in collection
+        const collection = window.GameState?.get('creatures') || [];
+        if (collection.length <= 1) {
+            return startY;
+        }
+
+        startY += 30;
+
+        const header = this.createSectionHeader('Manage Creature', startY);
+        startY = header.y + 30;
+
+        // Warning text
+        const warning = this.add.text(width / 2, startY,
+            '⚠️ Releasing a creature is permanent and cannot be undone.', {
+            fontSize: '12px',
+            color: '#FF6666',
+            align: 'center',
+            wordWrap: { width: width - padding * 2 }
+        }).setOrigin(0.5).setDepth(11);
+        this.elements.push(warning);
+
+        startY += 35;
+
+        // Release button
+        const btnWidth = this.isMobile ? 180 : 200;
+        const btnHeight = 40;
+        const btnX = width / 2 - btnWidth / 2;
+
+        const releaseBtn = this.add.graphics();
+        releaseBtn.fillStyle(0x8B0000, 0.9);
+        releaseBtn.fillRoundedRect(btnX, startY, btnWidth, btnHeight, 10);
+        releaseBtn.lineStyle(2, 0xFF4444);
+        releaseBtn.strokeRoundedRect(btnX, startY, btnWidth, btnHeight, 10);
+        releaseBtn.setDepth(11);
+        this.elements.push(releaseBtn);
+
+        const btnLabel = this.add.text(width / 2, startY + btnHeight / 2, '🕊️ Release Creature', {
+            fontSize: '14px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(12);
+        this.elements.push(btnLabel);
+
+        const hitZone = this.add.zone(btnX, startY, btnWidth, btnHeight).setOrigin(0, 0);
+        hitZone.setInteractive({ useHandCursor: true });
+        hitZone.setDepth(13);
+
+        hitZone.on('pointerdown', () => {
+            this.showReleaseConfirmation(data);
+        });
+
+        hitZone.on('pointerover', () => {
+            releaseBtn.clear();
+            releaseBtn.fillStyle(0xAA0000, 1);
+            releaseBtn.fillRoundedRect(btnX, startY, btnWidth, btnHeight, 10);
+            releaseBtn.lineStyle(3, 0xFF6666);
+            releaseBtn.strokeRoundedRect(btnX, startY, btnWidth, btnHeight, 10);
+        });
+
+        hitZone.on('pointerout', () => {
+            releaseBtn.clear();
+            releaseBtn.fillStyle(0x8B0000, 0.9);
+            releaseBtn.fillRoundedRect(btnX, startY, btnWidth, btnHeight, 10);
+            releaseBtn.lineStyle(2, 0xFF4444);
+            releaseBtn.strokeRoundedRect(btnX, startY, btnWidth, btnHeight, 10);
+        });
+
+        this.elements.push(hitZone);
+
+        startY += btnHeight + 20;
+
+        // Collection status
+        const statusText = this.add.text(width / 2, startY,
+            `Collection: ${collection.length}/8 creatures`, {
+            fontSize: '12px',
+            color: '#888888'
+        }).setOrigin(0.5).setDepth(11);
+        this.elements.push(statusText);
+
+        return startY + 30;
+    }
+
+    /**
+     * Show release confirmation dialog
+     */
+    showReleaseConfirmation(data) {
+        const { width, height } = this.scale;
+        const isMobile = this.isMobile;
+
+        // Play sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Create overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.85);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(200);
+
+        // Create confirmation panel
+        const panelWidth = isMobile ? width * 0.95 : 420;
+        const panelHeight = isMobile ? 320 : 300;
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 1);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.lineStyle(4, 0xFF4444);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.setDepth(201);
+
+        // Title
+        const title = this.add.text(width / 2, panelY + 35, '🕊️ Release Creature?', {
+            fontSize: isMobile ? '20px' : '24px',
+            color: '#FF6666',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Warning message
+        const warningText = this.add.text(width / 2, panelY + 85,
+            `Are you sure you want to release\n"${data.name}"?\n\nThis action cannot be undone!`, {
+            fontSize: isMobile ? '14px' : '16px',
+            color: '#FFFFFF',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Creature info
+        const rarityColor = this.getRarityColorHex(data.rarity);
+        const infoText = this.add.text(width / 2, panelY + 160,
+            `${this.capitalizeFirst(data.rarity)} ${data.species}\nGeneration ${data.generation || 1}`, {
+            fontSize: '12px',
+            color: rarityColor,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Buttons
+        const btnWidth = 100;
+        const btnHeight = 40;
+        const btnSpacing = 20;
+        const btnY = panelY + panelHeight - 70;
+
+        // Cancel button
+        const cancelBtnX = width / 2 - btnWidth - btnSpacing / 2;
+        const cancelBtn = this.add.graphics();
+        cancelBtn.fillStyle(0x4B0082, 1);
+        cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+        cancelBtn.lineStyle(2, 0x7B68EE);
+        cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+        cancelBtn.setDepth(202);
+
+        const cancelLabel = this.add.text(cancelBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Cancel', {
+            fontSize: '14px',
+            color: '#FFFFFF'
+        }).setOrigin(0.5).setDepth(203);
+
+        const cancelZone = this.add.zone(cancelBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
+        cancelZone.setInteractive({ useHandCursor: true });
+        cancelZone.setDepth(210);
+
+        // Release button
+        const releaseBtnX = width / 2 + btnSpacing / 2;
+        const releaseBtn = this.add.graphics();
+        releaseBtn.fillStyle(0x8B0000, 1);
+        releaseBtn.fillRoundedRect(releaseBtnX, btnY, btnWidth, btnHeight, 10);
+        releaseBtn.lineStyle(2, 0xFF4444);
+        releaseBtn.strokeRoundedRect(releaseBtnX, btnY, btnWidth, btnHeight, 10);
+        releaseBtn.setDepth(202);
+
+        const releaseLabel = this.add.text(releaseBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Release', {
+            fontSize: '14px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(203);
+
+        const releaseZone = this.add.zone(releaseBtnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
+        releaseZone.setInteractive({ useHandCursor: true });
+        releaseZone.setDepth(210);
+
+        const dialogElements = [overlay, panel, title, warningText, infoText,
+            cancelBtn, cancelLabel, cancelZone, releaseBtn, releaseLabel, releaseZone];
+
+        // Cancel handler
+        cancelZone.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+            dialogElements.forEach(el => el.destroy());
+        });
+
+        // Release handler
+        releaseZone.on('pointerdown', () => {
+            this.executeRelease(data, dialogElements);
+        });
+
+        // Hover effects
+        cancelZone.on('pointerover', () => {
+            cancelBtn.clear();
+            cancelBtn.fillStyle(0x6B00B3, 1);
+            cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+            cancelBtn.lineStyle(3, 0x9B68EE);
+            cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        cancelZone.on('pointerout', () => {
+            cancelBtn.clear();
+            cancelBtn.fillStyle(0x4B0082, 1);
+            cancelBtn.fillRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+            cancelBtn.lineStyle(2, 0x7B68EE);
+            cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        releaseZone.on('pointerover', () => {
+            releaseBtn.clear();
+            releaseBtn.fillStyle(0xAA0000, 1);
+            releaseBtn.fillRoundedRect(releaseBtnX, btnY, btnWidth, btnHeight, 10);
+            releaseBtn.lineStyle(3, 0xFF6666);
+            releaseBtn.strokeRoundedRect(releaseBtnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        releaseZone.on('pointerout', () => {
+            releaseBtn.clear();
+            releaseBtn.fillStyle(0x8B0000, 1);
+            releaseBtn.fillRoundedRect(releaseBtnX, btnY, btnWidth, btnHeight, 10);
+            releaseBtn.lineStyle(2, 0xFF4444);
+            releaseBtn.strokeRoundedRect(releaseBtnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        // ESC to cancel
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                dialogElements.forEach(el => el.destroy());
+                this.input.keyboard.off('keydown', escHandler);
+            }
+        };
+        this.input.keyboard?.on('keydown', escHandler);
+    }
+
+    /**
+     * Execute the creature release
+     */
+    executeRelease(data, dialogElements) {
+        // Play sound
+        if (window.AudioManager) {
+            window.AudioManager.playButtonClick();
+        }
+
+        // Find creature index in collection
+        const collection = window.GameState?.get('creatures') || [];
+        const creatureIndex = collection.findIndex(c =>
+            c.id === data.id ||
+            c.genes?.id === data.id ||
+            c.dna?.id === data.id
+        );
+
+        if (creatureIndex === -1) {
+            console.error('[CreatureProfileScene] Creature not found in collection');
+            dialogElements.forEach(el => el.destroy());
+            return;
+        }
+
+        // Remove creature from collection
+        const result = window.GameState?.removeCreatureFromCollection(creatureIndex);
+
+        if (result) {
+            console.log(`[CreatureProfileScene] Released creature "${result.name}"`);
+
+            // Clean up dialog
+            dialogElements.forEach(el => el.destroy());
+
+            // Show farewell message briefly then go back
+            this.showReleaseFarewell(result.name);
+        } else {
+            console.error('[CreatureProfileScene] Failed to release creature');
+            dialogElements.forEach(el => el.destroy());
+        }
+    }
+
+    /**
+     * Show farewell message after releasing creature
+     */
+    showReleaseFarewell(creatureName) {
+        const { width, height } = this.scale;
+
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.9);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(200);
+
+        const message = this.add.text(width / 2, height / 2 - 30, `🕊️ Farewell, ${creatureName}!`, {
+            fontSize: this.isMobile ? '24px' : '28px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(201);
+
+        const subMessage = this.add.text(width / 2, height / 2 + 20,
+            'May the cosmos guide them on their journey...', {
+            fontSize: '14px',
+            color: '#AAAAAA'
+        }).setOrigin(0.5).setDepth(201);
+
+        // Fade out and go back to game
+        this.tweens.add({
+            targets: [overlay, message, subMessage],
+            alpha: 0,
+            duration: 2000,
+            delay: 1500,
+            onComplete: () => {
+                overlay.destroy();
+                message.destroy();
+                subMessage.destroy();
+                this.scene.start('GameScene');
+            }
+        });
+
+        // Play a gentle sound
+        if (window.AudioManager) {
+            window.AudioManager.playAchievement();
+        }
     }
 
     /**

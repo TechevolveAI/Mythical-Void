@@ -57,10 +57,8 @@ This document provides comprehensive deployment instructions following the Vibe 
 NODE_ENV=production
 ENABLE_API_FEATURES=false
 
-# Only add if you need AI features:
-XAI_API_KEY=your_actual_key_here
-XAI_ENDPOINT=https://api.x.ai/v1/chat/completions
-XAI_MODEL=grok-4-latest
+# For AI Art Generation feature:
+REPLICATE_API_TOKEN=your_replicate_token_here
 ```
 
 ### Option 2: Vercel
@@ -154,11 +152,12 @@ NODE_ENV=production
 ENABLE_API_FEATURES=false  # Set to true only if you need AI features
 ```
 
-#### Optional (for AI features)
+#### Optional (for AI Art Generation)
 ```bash
-XAI_API_KEY=your_xai_api_key
-XAI_ENDPOINT=https://api.x.ai/v1/chat/completions
-XAI_MODEL=grok-4-latest
+# Configure in Netlify dashboard (server-side only)
+REPLICATE_API_TOKEN=your_replicate_token
+
+# Note: Creature chat uses pre-written responses (no external LLM API)
 ```
 
 #### Additional Configuration

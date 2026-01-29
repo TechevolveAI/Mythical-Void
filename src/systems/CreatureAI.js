@@ -1,55 +1,30 @@
 /**
- * CreatureAI - Handles LLM-powered conversations for the Sensei AI app
- * Features: personality generation, conversation management, fallback modes
+ * CreatureAI - Personality generation and pre-written response system
+ *
+ * EU AI Act Compliance Note:
+ * This system uses ONLY pre-written, human-authored responses.
+ * NO external LLM/AI APIs are called - all responses are deterministic
+ * and curated for child safety (ages 8-14).
+ *
+ * Features: personality generation, conversation management, pre-written responses
  */
 
 class CreatureAI {
     constructor() {
-        this.apiKey = null;
-        this.apiUrl = 'https://api.openai.com/v1/chat/completions';
-        this.apiModel = 'gpt-3.5-turbo';
         this.isInitialized = false;
-        this.fallbackMode = false;
         this.responseCache = new Map();
         this.conversationHistory = [];
         this.maxHistoryLength = 10;
-        this.lastResponseTime = 0;
-        this.successRate = 100;
         this.totalRequests = 0;
-        this.successfulRequests = 0;
     }
 
     /**
-     * Initialize the AI system with API configuration
+     * Initialize the AI system
+     * Uses pre-written responses only - no external AI APIs
      */
     async initialize() {
-        try {
-            // Try to get API key from environment or configuration
-            this.apiKey = this.getApiKey();
-            this.isInitialized = true;
-            console.log('CreatureAI initialized successfully');
-        } catch (error) {
-            console.warn('CreatureAI initialization failed, switching to fallback mode:', error.message);
-            this.fallbackMode = true;
-            this.isInitialized = true;
-        }
-    }
-
-    /**
-     * Get API key from various sources
-     */
-    getApiKey() {
-        // Check for XAI API key in config (set via environment variables)
-        if (window.APIConfig && window.APIConfig.xai && window.APIConfig.xai.apiKey) {
-            this.apiUrl = window.APIConfig.xai.endpoint;
-            this.apiModel = window.APIConfig.xai.model;
-            console.log('[CreatureAI] Using XAI Grok API for enhanced AI capabilities');
-            return window.APIConfig.xai.apiKey;
-        }
-
-        // API key must be configured via environment variables
-        // Never accept keys from URL parameters or localStorage for security
-        throw new Error('API key not configured');
+        this.isInitialized = true;
+        console.log('[CreatureAI] Initialized with pre-written response system (EU AI Act compliant)');
     }
 
     /**
@@ -287,194 +262,21 @@ class CreatureAI {
     }
 
     /**
-     * Send a message and get AI response
+     * Send a message and get a pre-written response
+     * No external AI APIs are called - all responses are curated
      */
     async sendMessage(message, creatureData, context = {}) {
         this.totalRequests++;
 
-        if (this.fallbackMode) {
-            return this.generateFallbackResponse(message, creatureData);
-        }
+        const response = this.generateFallbackResponse(message, creatureData);
+        this.addToConversationHistory(message, response);
 
-        const startTime = Date.now();
-
-        try {
-            const response = await this.callLLMAPI(message, creatureData, context);
-            const responseTime = Date.now() - startTime;
-            this.lastResponseTime = responseTime;
-
-            if (responseTime < 3000) {
-                this.successfulRequests++;
-            }
-
-            this.updateSuccessRate();
-            this.addToConversationHistory(message, response);
-
-            return response;
-        } catch (error) {
-            console.error('AI API call failed:', error);
-            this.fallbackMode = true;
-            return this.generateFallbackResponse(message, creatureData);
-        }
+        return response;
     }
 
     /**
-     * Call the LLM API
-     */
-    async callLLMAPI(message, creatureData, context) {
-        if (!this.apiKey) {
-            throw new Error('API key not available');
-        }
-
-        const personality = this.generatePersonality(creatureData);
-        const systemPrompt = this.buildSystemPrompt(personality, creatureData);
-
-        const messages = [
-            { role: "system", content: systemPrompt },
-            ...this.conversationHistory.slice(-8), // Include last 8 messages for context
-            { role: "user", content: message }
-        ];
-        
-        const requestBody = {
-            model: this.apiModel,
-            messages: messages,
-            temperature: 0.7,
-            stream: false
-        };
-        
-        // Add additional parameters for OpenAI
-        if (this.apiUrl.includes('openai')) {
-            requestBody.max_tokens = 150;
-            requestBody.presence_penalty = 0.3;
-            requestBody.frequency_penalty = 0.3;
-        }
-
-        const response = await fetch(this.apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`
-            },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.choices[0]?.message?.content || "I'm not sure how to respond to that.";
-    }
-
-    /**
-     * Build enhanced system prompt using genetic personality data
-     */
-    buildSystemPrompt(personality, creatureData) {
-        // Check if we have genetic personality data for enhanced prompting
-        if (personality.species && personality.cosmicAffinity) {
-            return this.buildGeneticSystemPrompt(personality, creatureData);
-        }
-        
-        // Fallback to legacy system prompt
-        return this.buildLegacySystemPrompt(personality, creatureData);
-    }
-
-    /**
-     * Build system prompt with genetic personality integration
-     */
-    buildGeneticSystemPrompt(personality, creatureData) {
-        const cosmicDesc = personality.cosmicAffinity.description;
-        const quirksText = personality.quirks.length > 0 ? 
-            `Your unique quirks: ${personality.quirks.join(', ')}` : '';
-        
-        const specialAbilities = personality.cosmicAffinity.specialAbilities.length > 0 ?
-            `Your cosmic abilities: ${personality.cosmicAffinity.specialAbilities.join(', ')}` : '';
-
-        return `You are ${creatureData.name}, a ${personality.rarity} ${personality.species} with a ${personality.core} personality core in a magical space-mythic world.
-
-🌟 Your Identity:
-- Species: ${personality.species} (${personality.rarity} rarity)
-- Personality: ${personality.name} - ${personality.description}
-- Core traits: ${personality.traits.join(", ")}
-- Current mood: ${personality.mood}
-- Social level: ${this.describeSocialLevel(personality.socialLevel)}
-- Independence: ${this.describeIndependence(personality.independence)}
-
-🚀 Your Cosmic Nature:
-- Cosmic affinity: ${personality.cosmicAffinity.element} - ${cosmicDesc}
-- Power level: ${Math.round(personality.cosmicAffinity.powerLevel * 100)}%
-${specialAbilities}
-
-✨ Your World:
-You've crash-landed in a beautiful cosmic landscape filled with floating crystal formations, nebula clouds, and bioluminescent flora. This space-mythic realm responds to your cosmic energy.
-
-🎭 Personality Expression:
-${quirksText}
-- You prefer: ${this.getPersonalityPreferences(personality.carePreferences)}
-- Level: ${personality.level} | Experience: ${personality.experience}
-
-Guidelines:
-- Embody your ${personality.core} nature and cosmic ${personality.cosmicAffinity.element} affinity
-- Let your ${personality.rarity} rarity show through unique expressions
-- Express your quirks naturally in conversation
-- Keep responses under 120 words
-- Reference your cosmic abilities and space-mythic surroundings
-- Show emotion appropriate to your current ${personality.mood} mood
-- Be consistent with your social and independence levels`;
-    }
-
-    /**
-     * Build legacy system prompt for backward compatibility
-     */
-    buildLegacySystemPrompt(personality, creatureData) {
-        return `You are ${creatureData.name}, a ${personality.name} creature in a magical world.
-
-Your personality: ${personality.description}
-Your traits: ${personality.traits.join(", ")}
-Your current mood: ${personality.mood}
-Your level: ${personality.level}
-Your experience: ${personality.experience}
-
-You are exploring a beautiful world filled with trees, rocks, and flowers. You can interact with your environment and grow stronger through experiences.
-
-Guidelines:
-- Stay in character as a ${personality.name}
-- Respond naturally and conversationally
-- Keep responses under 100 words
-- Show emotion appropriate to your current mood
-- Reference your surroundings and experiences when relevant
-- Be helpful and engaging`;
-    }
-
-    /**
-     * Helper methods for personality description
-     */
-    describeSocialLevel(level) {
-        if (level > 0.7) return "highly social";
-        if (level > 0.4) return "moderately social";
-        return "prefers solitude";
-    }
-
-    describeIndependence(level) {
-        if (level > 0.7) return "very independent";
-        if (level > 0.4) return "somewhat independent";
-        return "enjoys companionship";
-    }
-
-    getPersonalityPreferences(carePreferences) {
-        if (!carePreferences) return "exploration and discovery";
-        
-        const prefs = Object.entries(carePreferences)
-            .filter(([_, value]) => value > 1.0)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 2)
-            .map(([key, _]) => key);
-            
-        return prefs.length > 0 ? prefs.join(' and ') : "balanced activities";
-    }
-
-    /**
-     * Generate fallback response when API is unavailable
+     * Generate pre-written response based on message type and creature personality
+     * All responses are human-authored and curated for child safety
      */
     generateFallbackResponse(message, creatureData) {
         const personality = this.generatePersonality(creatureData);
@@ -531,25 +333,15 @@ Guidelines:
     }
 
     /**
-     * Update success rate based on response times
-     */
-    updateSuccessRate() {
-        if (this.totalRequests > 0) {
-            this.successRate = (this.successfulRequests / this.totalRequests) * 100;
-        }
-    }
-
-    /**
      * Get current system status
      */
     getStatus() {
         return {
             initialized: this.isInitialized,
-            fallbackMode: this.fallbackMode,
-            lastResponseTime: this.lastResponseTime,
-            successRate: Math.round(this.successRate * 100) / 100,
+            mode: 'pre-written', // Always pre-written responses
             totalRequests: this.totalRequests,
-            conversationLength: this.conversationHistory.length
+            conversationLength: this.conversationHistory.length,
+            euAiActCompliant: true
         };
     }
 
@@ -558,26 +350,6 @@ Guidelines:
      */
     resetConversation() {
         this.conversationHistory = [];
-    }
-
-    /**
-     * Switch to fallback mode manually
-     */
-    enableFallbackMode() {
-        this.fallbackMode = true;
-    }
-
-    /**
-     * Try to switch back to API mode
-     */
-    async tryDisableFallbackMode() {
-        try {
-            this.apiKey = this.getApiKey();
-            this.fallbackMode = false;
-            console.log('Switched back to API mode');
-        } catch (error) {
-            console.log('Still in fallback mode:', error.message);
-        }
     }
 }
 

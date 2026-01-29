@@ -15,6 +15,8 @@ class LegalDocumentsModal {
         this.currentDocument = null; // 'privacy' or 'terms'
         this.scrollY = 0;
         this.maxScroll = 0;
+        this.contentY = 0; // Track content Y position for scrolling
+        this.maskGraphics = null; // Track mask graphics for cleanup
     }
 
     /**
@@ -190,14 +192,18 @@ class LegalDocumentsModal {
         const contentHeight = panelHeight - 110;
         const contentWidth = panelWidth - 40;
 
-        // Create mask for scrolling
-        const maskGraphics = this.scene.make.graphics();
-        maskGraphics.fillRect(panelX + 20, contentY, contentWidth, contentHeight);
-        const mask = maskGraphics.createGeometryMask();
+        // Store content Y position for scroll calculations
+        this.contentY = contentY;
+
+        // Create mask for scrolling (track for cleanup)
+        this.maskGraphics = this.scene.make.graphics();
+        this.maskGraphics.fillRect(panelX + 20, contentY, contentWidth, contentHeight);
+        const mask = this.maskGraphics.createGeometryMask();
 
         // Content container
         this.contentContainer = this.scene.add.container(panelX + 20, contentY);
         this.contentContainer.setMask(mask);
+        this.contentContainer.setScrollFactor(0);
         this.contentContainer.setDepth(17002);
 
         // Build content text
@@ -284,8 +290,7 @@ class LegalDocumentsModal {
         if (!this.contentContainer || this.maxScroll === 0) return;
 
         this.scrollY = Phaser.Math.Clamp(this.scrollY + deltaY * 0.5, 0, this.maxScroll);
-        const contentY = this.scene.cameras.main.height * 0.025 + 70; // Match panelY + 70
-        this.contentContainer.y = 20 + 70 - this.scrollY;
+        this.contentContainer.y = this.contentY - this.scrollY;
     }
 
     /**
@@ -342,6 +347,13 @@ class LegalDocumentsModal {
      * Cleanup all elements
      */
     cleanup() {
+        // Destroy mask graphics first (not in elements array)
+        if (this.maskGraphics) {
+            this.maskGraphics.destroy();
+            this.maskGraphics = null;
+        }
+
+        // Destroy all tracked elements
         this.elements.forEach(el => {
             if (el && el.destroy) {
                 el.destroy();
@@ -350,6 +362,8 @@ class LegalDocumentsModal {
         this.elements = [];
         this.contentContainer = null;
         this.isVisible = false;
+        this.scrollY = 0;
+        this.contentY = 0;
     }
 }
 

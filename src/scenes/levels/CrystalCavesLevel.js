@@ -3561,6 +3561,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Record success for contextual thoughts (enables special encouragement if struggled)
         this.recordLevelSuccess();
 
+        // Award ship part for completing this level
+        if (window.InventoryManager?.addShipPart) {
+            const awarded = window.InventoryManager.addShipPart('crystal_core');
+            if (awarded) {
+                console.log('[CrystalCavesLevel] Awarded Crystal Core ship part!');
+            }
+        }
+
         // Calculate completion stats for achievements
         const completionTime = Date.now() - (this.levelStartTime || Date.now());
         const noDamage = (this.damageTaken || 0) === 0;

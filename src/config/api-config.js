@@ -2,6 +2,12 @@
  * API Configuration
  * Loads API configuration from environment variables
  * Follows security best practices - no hardcoded secrets
+ *
+ * EU AI Act Compliance Note:
+ * This game does NOT use external LLM/AI APIs for chat responses.
+ * All creature chat responses are pre-written and human-authored.
+ * The only external API is Replicate for optional AI art generation,
+ * which is clearly labeled as AI-generated content.
  */
 
 class APIConfig {
@@ -12,46 +18,30 @@ class APIConfig {
 
     /**
      * Initialize API configuration from environment
-     * Must be called after EnvironmentLoader.load()
+     * Currently only supports Replicate API for AI art generation
      */
     async initialize() {
         if (!window.envLoader || !window.envLoader.loaded) {
             throw new Error('EnvironmentLoader must be loaded before APIConfig');
         }
 
-        // Only load API config if features are enabled
-        if (window.envLoader.getBool('ENABLE_API_FEATURES')) {
-            this.config.xai = {
-                apiKey: window.envLoader.get('XAI_API_KEY'),
-                endpoint: window.envLoader.get('XAI_ENDPOINT'),
-                model: window.envLoader.get('XAI_MODEL')
-            };
-
-            // Validate API key exists
-            if (!this.config.xai.apiKey) {
-                console.error('❌ XAI_API_KEY not found in environment variables');
-                throw new Error('Missing required API configuration');
-            }
-
-            console.log('✅ API configuration loaded securely');
-        } else {
-            console.log('💡 API features disabled in environment configuration');
-        }
+        // Replicate API for AI art generation (optional feature)
+        // Note: This is configured via Netlify environment variables, not client-side
+        // The client calls a Netlify function which has the API key server-side
+        this.config.replicateConfigured = true; // Configured server-side
 
         this.initialized = true;
+        console.log('[APIConfig] Initialized (EU AI Act compliant - no LLM chat APIs)');
     }
 
     /**
      * Get API configuration for service
+     * @param {string} service - Service name
+     * @returns {object|null} - Config or null if not available
      */
     get(service) {
         if (!this.initialized) {
-            console.warn('⚠️ APIConfig not initialized, call initialize() first');
-            return null;
-        }
-
-        if (!window.envLoader.getBool('ENABLE_API_FEATURES')) {
-            console.warn('⚠️ API features are disabled');
+            console.warn('[APIConfig] Not initialized, call initialize() first');
             return null;
         }
 
@@ -62,24 +52,25 @@ class APIConfig {
      * Check if API features are available
      */
     isEnabled() {
-        return this.initialized && window.envLoader.getBool('ENABLE_API_FEATURES');
+        return this.initialized;
     }
 
     /**
-     * Get masked configuration for debugging (hides sensitive values)
+     * Get public configuration info (no secrets exposed)
      */
     getPublicConfig() {
-        const publicConfig = {};
-        
-        for (const [service, config] of Object.entries(this.config)) {
-            publicConfig[service] = {
-                endpoint: config.endpoint,
-                model: config.model,
-                apiKey: config.apiKey ? '***' + config.apiKey.slice(-4) : 'not set'
-            };
-        }
-        
-        return publicConfig;
+        return {
+            aiArtGeneration: {
+                provider: 'Replicate (via Netlify function)',
+                status: 'server-side only',
+                euAiActCompliance: 'Images labeled as AI-generated'
+            },
+            creatureChat: {
+                provider: 'None (pre-written responses)',
+                status: 'No external AI',
+                euAiActCompliance: 'Fully compliant - no AI-generated text'
+            }
+        };
     }
 }
 

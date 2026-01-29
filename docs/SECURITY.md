@@ -44,38 +44,23 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' h
 
 ### Secure API Key Management
 
-```javascript
-// ❌ BEFORE (Insecure)
-const APIConfig = {
-    xai: {
-        apiKey: 'xai-LVS426RMCXmuLsT6ZAgDAZPRJ6xZv9StUhYuQ3BtcJ7EFyPHvFEkqEQYBrOzGrYY3kSmfOBZI4zY24xs',
-        endpoint: 'https://api.x.ai/v1/chat/completions'
-    }
-};
+All API keys are managed via Netlify environment variables (server-side only).
+The client application does NOT have direct access to API keys.
 
-// ✅ AFTER (Secure)
-class APIConfig {
-    async initialize() {
-        if (window.envLoader.getBool('ENABLE_API_FEATURES')) {
-            this.config.xai = {
-                apiKey: window.envLoader.get('XAI_API_KEY'), // From .env
-                endpoint: window.envLoader.get('XAI_ENDPOINT')
-            };
-        }
-    }
-}
+```javascript
+// API keys for AI Art generation are configured in Netlify dashboard
+// The client calls a Netlify function which has the key server-side
+// See: netlify/functions/generate-ai-art.js
 ```
 
 ### Environment Variable Security
 
 ```bash
 # .env (never committed to git)
-XAI_API_KEY=your_actual_api_key
 ENABLE_API_FEATURES=false
 
-# .env.example (committed to git)
-XAI_API_KEY=your_xai_api_key_here
-ENABLE_API_FEATURES=false
+# Replicate API key for AI art is configured in Netlify:
+# REPLICATE_API_TOKEN=your_token (server-side only)
 ```
 
 ## 🚨 Threat Model & Mitigations
@@ -228,8 +213,7 @@ server {
 # .env.development
 NODE_ENV=development
 DEBUG=true
-ENABLE_API_FEATURES=true  # OK for development
-XAI_API_KEY=test_key_xxx  # Use test keys
+ENABLE_API_FEATURES=false
 ```
 
 ### Production Environment
@@ -237,8 +221,10 @@ XAI_API_KEY=test_key_xxx  # Use test keys
 # .env.production
 NODE_ENV=production
 DEBUG=false
-ENABLE_API_FEATURES=false  # Disabled by default
-# XAI_API_KEY only if needed and properly secured
+ENABLE_API_FEATURES=false
+
+# AI Art API (Replicate) is configured server-side in Netlify
+# REPLICATE_API_TOKEN=your_token
 ```
 
 ## 🚨 Incident Response

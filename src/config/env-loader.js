@@ -28,9 +28,6 @@ class EnvironmentLoader {
             AUTO_SAVE_INTERVAL: envSource.VITE_AUTO_SAVE_INTERVAL,
             MAX_SAVE_SLOTS: envSource.VITE_MAX_SAVE_SLOTS,
             CORS_ORIGINS: envSource.VITE_CORS_ORIGINS,
-            XAI_API_KEY: envSource.VITE_XAI_API_KEY,
-            XAI_ENDPOINT: envSource.VITE_XAI_ENDPOINT,
-            XAI_MODEL: envSource.VITE_XAI_MODEL,
             NASA_API_KEY: envSource.VITE_NASA_API_KEY // For space weather features
         };
 
@@ -54,10 +51,7 @@ class EnvironmentLoader {
             AUTO_SAVE_INTERVAL: '30000',
             MAX_SAVE_SLOTS: '3',
             ENABLE_API_FEATURES: 'false',
-            CORS_ORIGINS: 'http://localhost:8080,http://127.0.0.1:8080',
-            XAI_API_KEY: undefined,
-            XAI_ENDPOINT: 'https://api.x.ai/v1/chat/completions',
-            XAI_MODEL: 'grok-4-latest'
+            CORS_ORIGINS: 'http://localhost:8080,http://127.0.0.1:8080'
         };
     }
 
@@ -131,14 +125,7 @@ class EnvironmentLoader {
      */
     validate() {
         const errors = [];
-        
-        // Check for required API keys if API features are enabled
-        if (this.getBool('ENABLE_API_FEATURES')) {
-            if (!this.get('XAI_API_KEY')) {
-                errors.push('XAI_API_KEY is required when ENABLE_API_FEATURES=true');
-            }
-        }
-        
+
         // Validate numeric values
         const numericKeys = ['PORT', 'AUTO_SAVE_INTERVAL', 'MAX_SAVE_SLOTS'];
         for (const key of numericKeys) {
@@ -147,13 +134,13 @@ class EnvironmentLoader {
                 errors.push(`${key} must be a valid number, got: ${value}`);
             }
         }
-        
+
         if (errors.length > 0) {
             console.error('❌ Environment validation failed:');
             errors.forEach(error => console.error(`  - ${error}`));
             return false;
         }
-        
+
         console.log('✅ Environment validation passed');
         return true;
     }

@@ -2135,6 +2135,14 @@ class ReefLevel extends PlatformerLevelScene {
         // Record success for contextual thoughts (enables special encouragement if struggled)
         this.recordLevelSuccess();
 
+        // Award ship part for completing this level (Stellar Reef -> dimensional_drive)
+        if (window.InventoryManager?.addShipPart) {
+            const awarded = window.InventoryManager.addShipPart('dimensional_drive');
+            if (awarded) {
+                console.log('[ReefLevel] Awarded Dimensional Drive ship part!');
+            }
+        }
+
         // Calculate completion stats for achievements
         const completionTime = Date.now() - (this.levelStartTime || Date.now());
         const noDamage = (this.damageTaken || 0) === 0;

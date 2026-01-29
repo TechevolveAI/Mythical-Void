@@ -716,8 +716,8 @@ export default class ShopScene extends Phaser.Scene {
             buyBtn.lineStyle(2, 0x00FF00);
             buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
-            const buyLabel = this.add.text(buyBtnX + buyBtnWidth / 2, buyBtnY + buyBtnHeight / 2, 'BRING HOME', {
-                fontSize: this.dims.isMobile ? '12px' : '14px',
+            const buyLabel = this.add.text(buyBtnX + buyBtnWidth / 2, buyBtnY + buyBtnHeight / 2, 'BUY', {
+                fontSize: this.dims.isMobile ? '14px' : '16px',
                 fontFamily: 'Arial Black',
                 color: '#FFFFFF'
             });

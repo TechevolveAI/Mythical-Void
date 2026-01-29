@@ -9,6 +9,43 @@ class InventoryManager {
         this.maxSlots = 30;
         this.inventory = [];
         this.events = new Phaser.Events.EventEmitter();
+
+        // Ship part definitions - collected through gameplay
+        // Canonical storage is hubWorld.shipParts.collected[] in GameState
+        this.SHIP_PART_DEFINITIONS = {
+            dimensional_drive: {
+                id: 'dimensional_drive',
+                icon: '⚙️',
+                label: 'Dimensional Drive',
+                source: 'Stellar Reef',
+                description: 'Powers interdimensional travel',
+                position: 'bottom' // Position in ship assembly
+            },
+            crystal_core: {
+                id: 'crystal_core',
+                icon: '🔮',
+                label: 'Crystal Core',
+                source: 'Crystal Caves',
+                description: 'Channels cosmic energy',
+                position: 'left'
+            },
+            void_stabilizer: {
+                id: 'void_stabilizer',
+                icon: '🌀',
+                label: 'Void Stabilizer',
+                source: 'Void Peaks',
+                description: 'Maintains dimensional stability',
+                position: 'right'
+            },
+            aurora_reactor: {
+                id: 'aurora_reactor',
+                icon: '✨',
+                label: 'Aurora Reactor',
+                source: 'Aurora Depths',
+                description: 'Generates aurora energy',
+                position: 'top'
+            }
+        };
     }
 
     /**
@@ -428,6 +465,109 @@ class InventoryManager {
                 food: this.getItemsByType('food').length,
                 utilities: this.getItemsByType('utility').length
             }
+        };
+    }
+
+    // ============ SHIP PARTS SYSTEM ============
+    // Ship parts are stored in hubWorld.shipParts.collected (canonical source)
+    // These methods provide a unified interface
+
+    /**
+     * Add a ship part to collection
+     * @param {string} partId - Ship part ID (e.g., 'crystal_core')
+     * @returns {boolean} - Success status
+     */
+    addShipPart(partId) {
+        if (!window.GameState) {
+            console.warn('[InventoryManager] GameState not available');
+            return false;
+        }
+
+        // Validate part ID
+        if (!this.SHIP_PART_DEFINITIONS[partId]) {
+            console.warn(`[InventoryManager] Unknown ship part: ${partId}`);
+            return false;
+        }
+
+        // Get current collected parts
+        const collected = window.GameState.get('hubWorld.shipParts.collected') || [];
+
+        // Check if already collected
+        if (collected.includes(partId)) {
+            console.log(`[InventoryManager] Ship part already collected: ${partId}`);
+            return false;
+        }
+
+        // Add to collection
+        collected.push(partId);
+        window.GameState.set('hubWorld.shipParts.collected', collected);
+        window.GameState.save();
+
+        const partInfo = this.SHIP_PART_DEFINITIONS[partId];
+        console.log(`[InventoryManager] Collected ship part: ${partInfo.label}`);
+
+        // Emit event for UI celebrations
+        this.events.emit('shipPartCollected', {
+            partId,
+            partInfo,
+            totalCollected: collected.length,
+            totalParts: Object.keys(this.SHIP_PART_DEFINITIONS).length
+        });
+
+        // Play celebration sound
+        if (window.AudioManager) {
+            window.AudioManager.playAchievement();
+        }
+
+        return true;
+    }
+
+    /**
+     * Get all ship parts with collection status
+     * @returns {array} - Array of ship part objects with collected status
+     */
+    getShipParts() {
+        const collected = window.GameState?.get('hubWorld.shipParts.collected') || [];
+
+        return Object.values(this.SHIP_PART_DEFINITIONS).map(part => ({
+            ...part,
+            collected: collected.includes(part.id)
+        }));
+    }
+
+    /**
+     * Get only collected ship parts
+     * @returns {array} - Array of collected ship part objects
+     */
+    getCollectedShipParts() {
+        const collected = window.GameState?.get('hubWorld.shipParts.collected') || [];
+
+        return collected.map(partId => this.SHIP_PART_DEFINITIONS[partId]).filter(Boolean);
+    }
+
+    /**
+     * Check if a specific ship part is collected
+     * @param {string} partId - Ship part ID
+     * @returns {boolean}
+     */
+    hasShipPart(partId) {
+        const collected = window.GameState?.get('hubWorld.shipParts.collected') || [];
+        return collected.includes(partId);
+    }
+
+    /**
+     * Get ship parts collection progress
+     * @returns {object} - Progress info
+     */
+    getShipPartsProgress() {
+        const collected = window.GameState?.get('hubWorld.shipParts.collected') || [];
+        const total = Object.keys(this.SHIP_PART_DEFINITIONS).length;
+
+        return {
+            collected: collected.length,
+            total,
+            percentage: Math.round((collected.length / total) * 100),
+            isComplete: collected.length >= total
         };
     }
 

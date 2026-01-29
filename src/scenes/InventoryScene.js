@@ -14,10 +14,11 @@ export default class InventoryScene extends Phaser.Scene {
         this.inventorySlots = [];
         this.itemSprites = [];
 
-        // Tab state: 'items' or 'collection'
+        // Tab state: 'items', 'ship_parts', or 'collection'
         this.currentTab = 'items';
         this.tabButtons = [];
         this.collectionElements = []; // Track collection tab UI elements
+        this.shipPartsElements = []; // Track ship parts tab UI elements
 
         // Sort and filter state
         this.currentSort = 'none'; // none, name, type, price
@@ -275,20 +276,22 @@ export default class InventoryScene extends Phaser.Scene {
     }
 
     /**
-     * Create tab buttons for Items/Collection
+     * Create tab buttons for Items/Ship Parts/Collection
      */
     createTabButtons() {
         const { width, isMobile } = this.dims;
 
-        const tabWidth = isMobile ? 100 : 120;
+        const tabWidth = isMobile ? 85 : 105;
         const tabHeight = 36;
-        const tabSpacing = 10;
-        const startX = (width - (tabWidth * 2 + tabSpacing)) / 2;
+        const tabSpacing = 8;
+        const totalWidth = tabWidth * 3 + tabSpacing * 2;
+        const startX = (width - totalWidth) / 2;
         const y = 52;
 
         const tabs = [
-            { key: 'items', label: 'Items' },
-            { key: 'collection', label: 'Collection' }
+            { key: 'items', label: '🎒 Items', icon: '🎒' },
+            { key: 'ship_parts', label: '🚀 Ship', icon: '🚀' },
+            { key: 'collection', label: '📖 Found', icon: '📖' }
         ];
 
         tabs.forEach((tab, index) => {
@@ -371,6 +374,8 @@ export default class InventoryScene extends Phaser.Scene {
         // Hide/show appropriate content
         if (tabKey === 'items') {
             this.showItemsTab();
+        } else if (tabKey === 'ship_parts') {
+            this.showShipPartsTab();
         } else {
             this.showCollectionTab();
         }
@@ -406,8 +411,9 @@ export default class InventoryScene extends Phaser.Scene {
             btn.zone?.setActive(true);
         });
 
-        // Hide collection elements
+        // Hide other tab elements
         this.clearCollectionElements();
+        this.clearShipPartsElements();
 
         // Update stats text
         const stats = window.InventoryManager?.getStats();
@@ -440,6 +446,9 @@ export default class InventoryScene extends Phaser.Scene {
             btn.text?.setVisible(false);
             btn.zone?.setActive(false);
         });
+
+        // Clear ship parts elements if any
+        this.clearShipPartsElements();
 
         // Create collection display
         this.createCollectionDisplay();
@@ -738,6 +747,246 @@ export default class InventoryScene extends Phaser.Scene {
             }
         });
         this.collectionElements = [];
+    }
+
+    // ============ SHIP PARTS TAB ============
+
+    /**
+     * Show ship parts tab
+     */
+    showShipPartsTab() {
+        // Hide inventory elements
+        this.inventorySlots.forEach(slot => {
+            if (slot.graphics) slot.graphics.setVisible(false);
+            if (slot.zone) slot.zone.setActive(false).setVisible(false);
+            if (slot.slotNum) slot.slotNum.setVisible(false);
+            if (slot.itemIcon) slot.itemIcon.setVisible(false);
+            if (slot.itemQuantity) slot.itemQuantity.setVisible(false);
+        });
+
+        // Hide sort/filter controls (not needed for ship parts)
+        this.sortButtons.forEach(btn => {
+            btn.button?.setVisible(false);
+            btn.text?.setVisible(false);
+            btn.zone?.setActive(false);
+        });
+        this.filterButtons.forEach(btn => {
+            btn.button?.setVisible(false);
+            btn.text?.setVisible(false);
+            btn.zone?.setActive(false);
+        });
+
+        // Clear collection elements if any
+        this.clearCollectionElements();
+
+        // Create ship parts display
+        this.createShipPartsDisplay();
+
+        // Update stats text
+        const progress = window.InventoryManager?.getShipPartsProgress();
+        if (this.statsText && progress) {
+            this.statsText.setText(`${progress.collected} / ${progress.total} Ship Parts`);
+        }
+    }
+
+    /**
+     * Create ship parts display in diamond layout
+     */
+    createShipPartsDisplay() {
+        this.clearShipPartsElements();
+
+        const { width, height, isMobile, margin } = this.dims;
+
+        if (!window.InventoryManager) {
+            const noDataText = this.add.text(width / 2, 200, 'Ship parts data not available', {
+                fontSize: '16px',
+                color: '#888888'
+            }).setOrigin(0.5);
+            this.shipPartsElements.push(noDataText);
+            return;
+        }
+
+        const shipParts = window.InventoryManager.getShipParts();
+        const progress = window.InventoryManager.getShipPartsProgress();
+
+        // Title section
+        const startY = 115;
+        let currentY = startY;
+
+        // Header with progress
+        const headerBg = this.add.graphics();
+        headerBg.fillStyle(0x1A0A2E, 0.9);
+        headerBg.fillRoundedRect(margin, currentY, width - margin * 2, 70, 12);
+        headerBg.lineStyle(2, 0x6B00B3);
+        headerBg.strokeRoundedRect(margin, currentY, width - margin * 2, 70, 12);
+        this.shipPartsElements.push(headerBg);
+
+        const headerTitle = this.add.text(width / 2, currentY + 18, '🚀 Ship Assembly Progress', {
+            fontSize: isMobile ? '16px' : '18px',
+            color: '#00FFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.shipPartsElements.push(headerTitle);
+
+        // Progress bar
+        const barWidth = width - margin * 2 - 40;
+        const barHeight = 16;
+        const barX = margin + 20;
+        const barY = currentY + 42;
+
+        // Background bar
+        const progressBg = this.add.graphics();
+        progressBg.fillStyle(0x2D2D4D, 1);
+        progressBg.fillRoundedRect(barX, barY, barWidth, barHeight, 8);
+        this.shipPartsElements.push(progressBg);
+
+        // Filled bar
+        const filledWidth = (progress.collected / progress.total) * barWidth;
+        if (filledWidth > 0) {
+            const progressFill = this.add.graphics();
+            progressFill.fillStyle(0xFFD700, 1);
+            progressFill.fillRoundedRect(barX, barY, Math.max(filledWidth, 16), barHeight, 8);
+            this.shipPartsElements.push(progressFill);
+        }
+
+        // Progress text
+        const progressText = this.add.text(barX + barWidth / 2, barY + barHeight / 2, `${progress.percentage}%`, {
+            fontSize: '12px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.shipPartsElements.push(progressText);
+
+        currentY += 90;
+
+        // Ship parts in diamond layout
+        //        [aurora_reactor]     <- top
+        //    [crystal]    [void]      <- sides
+        //        [dimensional]        <- bottom
+        const centerX = width / 2;
+        const centerY = currentY + 100;
+        const diamondRadius = isMobile ? 70 : 90;
+        const partSize = isMobile ? 60 : 75;
+
+        const positions = {
+            aurora_reactor: { x: centerX, y: centerY - diamondRadius },
+            crystal_core: { x: centerX - diamondRadius, y: centerY },
+            void_stabilizer: { x: centerX + diamondRadius, y: centerY },
+            dimensional_drive: { x: centerX, y: centerY + diamondRadius }
+        };
+
+        // Draw connecting lines (ship frame)
+        const frameBg = this.add.graphics();
+        frameBg.lineStyle(3, 0x4B0082, 0.4);
+        frameBg.beginPath();
+        frameBg.moveTo(positions.aurora_reactor.x, positions.aurora_reactor.y);
+        frameBg.lineTo(positions.crystal_core.x, positions.crystal_core.y);
+        frameBg.lineTo(positions.dimensional_drive.x, positions.dimensional_drive.y);
+        frameBg.lineTo(positions.void_stabilizer.x, positions.void_stabilizer.y);
+        frameBg.closePath();
+        frameBg.strokePath();
+        this.shipPartsElements.push(frameBg);
+
+        // Draw each ship part
+        shipParts.forEach(part => {
+            const pos = positions[part.id];
+            if (!pos) return;
+
+            this.createShipPartSlot(pos.x, pos.y, partSize, part);
+        });
+
+        // Bottom instruction text
+        const instructionY = centerY + diamondRadius + 60;
+        const instructionText = this.add.text(width / 2, instructionY,
+            progress.isComplete
+                ? '✨ All parts collected! Ship ready for launch!'
+                : 'Complete levels to collect ship parts',
+            {
+                fontSize: isMobile ? '13px' : '14px',
+                color: progress.isComplete ? '#FFD700' : '#AAAAAA',
+                fontStyle: progress.isComplete ? 'bold' : 'normal'
+            }
+        ).setOrigin(0.5);
+        this.shipPartsElements.push(instructionText);
+    }
+
+    /**
+     * Create a ship part slot in the diamond layout
+     */
+    createShipPartSlot(x, y, size, part) {
+        const { isMobile } = this.dims;
+        const radius = size / 2;
+
+        // Slot background
+        const slotBg = this.add.graphics();
+        if (part.collected) {
+            // Collected: Gold glow
+            slotBg.fillStyle(0xFFD700, 0.2);
+            slotBg.fillCircle(x, y, radius + 4);
+            slotBg.fillStyle(0x1A1A3E, 0.95);
+            slotBg.fillCircle(x, y, radius);
+            slotBg.lineStyle(3, 0xFFD700, 1);
+            slotBg.strokeCircle(x, y, radius);
+        } else {
+            // Not collected: Gray, dimmed
+            slotBg.fillStyle(0x1A1A2E, 0.6);
+            slotBg.fillCircle(x, y, radius);
+            slotBg.lineStyle(2, 0x4A4A6A, 0.5);
+            slotBg.strokeCircle(x, y, radius);
+        }
+        this.shipPartsElements.push(slotBg);
+
+        // Icon
+        const iconSize = isMobile ? '24px' : '28px';
+        const icon = this.add.text(x, y - 6, part.icon, {
+            fontSize: iconSize
+        }).setOrigin(0.5);
+        icon.setAlpha(part.collected ? 1 : 0.3);
+        this.shipPartsElements.push(icon);
+
+        // Label below slot
+        const label = this.add.text(x, y + radius + 10, part.label, {
+            fontSize: isMobile ? '10px' : '12px',
+            color: part.collected ? '#FFFFFF' : '#666666',
+            fontStyle: part.collected ? 'bold' : 'normal'
+        }).setOrigin(0.5);
+        this.shipPartsElements.push(label);
+
+        // Source location (if not collected)
+        if (!part.collected) {
+            const sourceText = this.add.text(x, y + radius + 24, `(${part.source})`, {
+                fontSize: isMobile ? '9px' : '10px',
+                color: '#888888',
+                fontStyle: 'italic'
+            }).setOrigin(0.5);
+            this.shipPartsElements.push(sourceText);
+        }
+
+        // Pulsing animation for collected parts
+        if (part.collected) {
+            this.tweens.add({
+                targets: icon,
+                scale: { from: 1, to: 1.15 },
+                alpha: { from: 1, to: 0.8 },
+                duration: 1200,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+    }
+
+    /**
+     * Clear ship parts tab elements
+     */
+    clearShipPartsElements() {
+        this.shipPartsElements.forEach(el => {
+            if (el && el.destroy) {
+                if (el.removeAllListeners) el.removeAllListeners();
+                el.destroy();
+            }
+        });
+        this.shipPartsElements = [];
     }
 
     /**
@@ -1709,6 +1958,14 @@ export default class InventoryScene extends Phaser.Scene {
         console.log(`[InventoryScene] Showing egg confirmation for: ${item.name}`);
 
         const { width, height, isMobile } = this.dims;
+
+        // Check collection capacity before allowing hatch
+        const collectionStatus = window.GameState?.getCollectionStatus?.() || { hasSpace: true, count: 0, max: 8 };
+        if (!collectionStatus.hasSpace) {
+            this.showCollectionFullError(item, collectionStatus);
+            return;
+        }
+
         const creatureName = window.GameState?.get('creature.name') || 'your creature';
         const isStellar = item.eggType === 'stellar';
 
@@ -1962,6 +2219,128 @@ export default class InventoryScene extends Phaser.Scene {
             }
         };
         this.input.keyboard.on('keydown', escHandler);
+    }
+
+    /**
+     * Show collection full error when trying to hatch with 8/8 creatures
+     */
+    showCollectionFullError(item, collectionStatus) {
+        console.log('[InventoryScene] Collection full - cannot hatch egg');
+
+        const { width, height, isMobile } = this.dims;
+
+        // Create dark overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.8);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(200);
+        overlay.disableInteractive();
+
+        // Create error panel
+        const panelWidth = isMobile ? width * 0.95 : 450;
+        const panelHeight = isMobile ? 380 : 350;
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 1);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.lineStyle(4, 0xFF6666);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.setDepth(201);
+
+        // Title
+        const title = this.add.text(width / 2, panelY + 40, '⚠️ Collection Full!', {
+            fontSize: isMobile ? '22px' : '26px',
+            color: '#FF6666',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Status message
+        const statusText = this.add.text(width / 2, panelY + 90,
+            `Your creature collection is full!\n${collectionStatus.count}/${collectionStatus.max} creatures`, {
+            fontSize: isMobile ? '14px' : '16px',
+            color: '#FFFFFF',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Explanation
+        const explanation = this.add.text(width / 2, panelY + 150,
+            'To hatch a new creature, you need to\nrelease one of your current creatures first.', {
+            fontSize: isMobile ? '12px' : '14px',
+            color: '#AAAAAA',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(202);
+
+        // Tip about where to release
+        const tip = this.add.text(width / 2, panelY + 210,
+            '💡 Go to Creature Profile and tap\n"Release Creature" to make room.', {
+            fontSize: isMobile ? '12px' : '14px',
+            color: '#88CCFF',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(202);
+
+        // OK button
+        const btnWidth = 120;
+        const btnHeight = 40;
+        const btnX = width / 2 - btnWidth / 2;
+        const btnY = panelY + panelHeight - 70;
+
+        const okBtn = this.add.graphics();
+        okBtn.fillStyle(0x4B0082, 1);
+        okBtn.fillRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
+        okBtn.lineStyle(3, 0x7B68EE);
+        okBtn.strokeRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
+        okBtn.setDepth(202);
+
+        const okLabel = this.add.text(width / 2, btnY + btnHeight / 2, 'OK', {
+            fontSize: '16px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(203);
+
+        const okZone = this.add.zone(btnX, btnY, btnWidth, btnHeight).setOrigin(0, 0);
+        okZone.setInteractive({ useHandCursor: true });
+        okZone.setDepth(210);
+
+        const dialogElements = [overlay, panel, title, statusText, explanation, tip, okBtn, okLabel, okZone];
+
+        okZone.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+            dialogElements.forEach(el => el.destroy());
+        });
+
+        okZone.on('pointerover', () => {
+            okBtn.clear();
+            okBtn.fillStyle(0x6B00B3, 1);
+            okBtn.fillRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
+            okBtn.lineStyle(4, 0x9B68EE);
+            okBtn.strokeRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        okZone.on('pointerout', () => {
+            okBtn.clear();
+            okBtn.fillStyle(0x4B0082, 1);
+            okBtn.fillRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
+            okBtn.lineStyle(3, 0x7B68EE);
+            okBtn.strokeRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
+        });
+
+        // ESC to close
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                dialogElements.forEach(el => el.destroy());
+                this.input.keyboard.off('keydown', escHandler);
+            }
+        };
+        this.input.keyboard.on('keydown', escHandler);
+
+        // Play error sound
+        if (window.AudioManager) {
+            window.AudioManager.playError();
+        }
     }
 
     /**
@@ -2411,6 +2790,9 @@ export default class InventoryScene extends Phaser.Scene {
 
         // Clear collection elements
         this.clearCollectionElements();
+
+        // Clear ship parts elements
+        this.clearShipPartsElements();
 
         // Remove listeners from close button zone
         if (this.closeButtonZone && this.closeButtonZone.removeAllListeners) {

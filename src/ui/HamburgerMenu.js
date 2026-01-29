@@ -25,8 +25,12 @@ export default class HamburgerMenu {
             { key: 'fusion', label: 'Fusion Pod', icon: '🧬', shortcut: 'F', action: () => this.navigateToFusion() },
             { key: 'collection', label: 'Switch Creature', icon: '🔄', shortcut: 'C', action: () => this.showCreatureSwitcher() },
             { key: 'spacenews', label: 'Space News', icon: '🚀', shortcut: 'N', action: () => this.showSpaceNews() },
-            { key: 'legal', label: 'Legal & About', icon: '📜', shortcut: 'L', action: () => this.showLegalDocuments() }
+            { key: 'legal', label: 'Legal & About', icon: '📜', shortcut: 'L', action: () => this.showLegalDocuments() },
+            { key: 'devhacks', label: 'Developer Hacks', icon: '🔮', shortcut: 'D', action: () => this.showDeveloperHacks() }
         ];
+
+        // Developer hacks submenu state
+        this.devHacksMenu = null;
 
         // Legal documents modal
         this.legalModal = null;
@@ -428,6 +432,211 @@ export default class HamburgerMenu {
             this.legalModal = new LegalDocumentsModal(this.scene);
         }
         this.legalModal.show();
+    }
+
+    /**
+     * Show Developer Hacks menu
+     */
+    showDeveloperHacks() {
+        devLog('[HamburgerMenu] Show Developer Hacks');
+
+        // Close existing menu if any
+        if (this.devHacksMenu) {
+            this.closeDevHacksMenu();
+            return;
+        }
+
+        const { width, height } = this.scene.scale;
+
+        // Create menu container
+        this.devHacksMenu = this.scene.add.container(width / 2, height / 2)
+            .setScrollFactor(0)
+            .setDepth(10000);
+
+        // Dark backdrop
+        const backdrop = this.scene.add.graphics();
+        backdrop.fillStyle(0x000000, 0.85);
+        backdrop.fillRoundedRect(-160, -160, 320, 320, 20);
+        backdrop.lineStyle(3, 0xFFD700, 0.8);
+        backdrop.strokeRoundedRect(-160, -160, 320, 320, 20);
+        this.devHacksMenu.add(backdrop);
+
+        // Title
+        const title = this.scene.add.text(0, -130, '🔮 Developer Hacks 🔮', {
+            fontSize: '20px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.devHacksMenu.add(title);
+
+        // Hack buttons (excluding slow-mo as requested)
+        const hacks = [
+            { label: '💰 +500 Coins', action: () => this.hackAddCoins() },
+            { label: '💖 Max Stats', action: () => this.hackMaxStats() },
+            { label: '🐣 Cycle Stage', action: () => this.hackCycleStage() },
+            { label: '⬆️ Level Up', action: () => this.hackLevelUp() },
+            { label: '❌ Close', action: () => this.closeDevHacksMenu() }
+        ];
+
+        hacks.forEach((hack, index) => {
+            const y = -70 + index * 55;
+
+            // Button background
+            const btnBg = this.scene.add.graphics();
+            btnBg.fillStyle(index === 4 ? 0x8B0000 : 0x4B0082, 0.9);
+            btnBg.fillRoundedRect(-130, y - 20, 260, 45, 10);
+            btnBg.lineStyle(2, 0xFFD700, 0.6);
+            btnBg.strokeRoundedRect(-130, y - 20, 260, 45, 10);
+            this.devHacksMenu.add(btnBg);
+
+            // Button text
+            const btnText = this.scene.add.text(0, y, hack.label, {
+                fontSize: '18px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            this.devHacksMenu.add(btnText);
+
+            // Interactive zone
+            const btnZone = this.scene.add.zone(0, y, 260, 45)
+                .setScrollFactor(0)
+                .setInteractive({ cursor: 'pointer' });
+
+            btnZone.on('pointerdown', () => {
+                hack.action();
+                window.AudioManager?.playButtonClick?.();
+            });
+
+            btnZone.on('pointerover', () => {
+                btnBg.clear();
+                btnBg.fillStyle(index === 4 ? 0xB22222 : 0x6B238E, 0.95);
+                btnBg.fillRoundedRect(-130, y - 20, 260, 45, 10);
+                btnBg.lineStyle(2, 0xFFD700, 1);
+                btnBg.strokeRoundedRect(-130, y - 20, 260, 45, 10);
+            });
+
+            btnZone.on('pointerout', () => {
+                btnBg.clear();
+                btnBg.fillStyle(index === 4 ? 0x8B0000 : 0x4B0082, 0.9);
+                btnBg.fillRoundedRect(-130, y - 20, 260, 45, 10);
+                btnBg.lineStyle(2, 0xFFD700, 0.6);
+                btnBg.strokeRoundedRect(-130, y - 20, 260, 45, 10);
+            });
+
+            this.devHacksMenu.add(btnZone);
+        });
+
+        // Entrance animation
+        this.devHacksMenu.setScale(0.5).setAlpha(0);
+        this.scene.tweens.add({
+            targets: this.devHacksMenu,
+            scale: 1,
+            alpha: 1,
+            duration: 200,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    /**
+     * Close the Developer Hacks menu
+     */
+    closeDevHacksMenu() {
+        if (!this.devHacksMenu) return;
+
+        this.scene.tweens.add({
+            targets: this.devHacksMenu,
+            scale: 0.5,
+            alpha: 0,
+            duration: 150,
+            ease: 'Power2',
+            onComplete: () => {
+                this.devHacksMenu?.destroy();
+                this.devHacksMenu = null;
+            }
+        });
+    }
+
+    /**
+     * Developer hack: Add 500 coins
+     */
+    hackAddCoins() {
+        if (window.EconomyManager) {
+            window.EconomyManager.addCoins(500, 'developer_hack');
+            this.showHackFeedback('💰 +500', '#FFD700');
+        }
+    }
+
+    /**
+     * Developer hack: Max all stats
+     */
+    hackMaxStats() {
+        if (window.GameState) {
+            window.GameState.set('creature.stats.happiness', 100);
+            window.GameState.set('creature.stats.energy', 100);
+            window.GameState.set('creature.stats.health', 100);
+            this.showHackFeedback('💖 MAX STATS', '#FF69B4');
+        }
+    }
+
+    /**
+     * Developer hack: Cycle through lifecycle stages
+     */
+    hackCycleStage() {
+        if (!window.GameState) return;
+
+        const stages = ['baby', 'juvenile', 'adult', 'elder'];
+        const stageIcons = { baby: '🐣', juvenile: '🌱', adult: '✨', elder: '👑' };
+        const currentStage = window.GameState.get('creature.lifecycle.stage') || 'baby';
+        const currentIndex = stages.indexOf(currentStage);
+        const nextIndex = (currentIndex + 1) % stages.length;
+        const newStage = stages[nextIndex];
+
+        window.GameState.set('creature.lifecycle.stage', newStage);
+
+        // Trigger creature texture regeneration if in GameScene
+        if (this.scene.regenerateCreatureTexture) {
+            this.scene.regenerateCreatureTexture(newStage);
+        }
+
+        this.showHackFeedback(`${stageIcons[newStage]} ${newStage}`, '#E040FB');
+    }
+
+    /**
+     * Developer hack: Level up
+     */
+    hackLevelUp() {
+        if (!window.GameState) return;
+
+        const currentLevel = window.GameState.get('creature.level') || 1;
+        window.GameState.set('creature.level', currentLevel + 1);
+        window.GameState.set('creature.experience', 0);
+
+        this.showHackFeedback(`⬆️ LVL ${currentLevel + 1}`, '#00FF00');
+    }
+
+    /**
+     * Show visual feedback for developer hack
+     */
+    showHackFeedback(text, color) {
+        const { width, height } = this.scene.scale;
+
+        const feedback = this.scene.add.text(width / 2, height / 2 - 80, text, {
+            fontSize: '28px',
+            color: color,
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
+
+        this.scene.tweens.add({
+            targets: feedback,
+            y: height / 2 - 150,
+            alpha: { from: 1, to: 0 },
+            scale: { from: 1, to: 1.5 },
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => feedback.destroy()
+        });
     }
 
     /**

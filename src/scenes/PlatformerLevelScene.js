@@ -94,6 +94,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.virtualJoystickX = 0;  // -1 to 1 from virtual joystick
         this.virtualJumpPressed = false;
         this.mobileControlElements = []; // Track all mobile UI elements for cleanup
+        this.actionButtonPointers = new Set(); // Track which pointers are on action buttons (prevents joystick reset)
 
         // Pause menu state
         this.pauseMenuActive = false;
@@ -716,29 +717,31 @@ class PlatformerLevelScene extends Phaser.Scene {
         const bottomSafeMargin = Math.max(8, safeArea.bottom); // Minimal margin - just above home indicator
         const sideSafeMargin = Math.max(10, Math.max(safeArea.left, safeArea.right));
 
-        // Control zone: Compact 90px tall, positioned at very bottom
-        const controlZoneHeight = 90;
+        // Control zone: Expanded to 120px for larger touch targets (ergonomic for thumbs)
+        // Stays at the very bottom of screen to not overlay gameplay
+        const controlZoneHeight = 120;
         const controlZoneTop = height - bottomSafeMargin - controlZoneHeight;
 
         console.log(`[PlatformerLevel] Mobile controls: height=${height}, safeBottom=${safeArea.bottom}, controlZoneTop=${controlZoneTop}`);
 
-        // Responsive button sizes based on screen width - COMPACT for lower positioning
+        // Responsive button sizes - LARGER for better thumb reach
         const isSmallScreen = width < 400;
-        const buttonSize = isSmallScreen ? 42 : 48;       // Smaller secondary buttons
-        const primarySize = isSmallScreen ? 50 : 56;      // Smaller primary buttons
-        const spacing = isSmallScreen ? 6 : 8;            // Tighter spacing
-        const marginRight = sideSafeMargin + 3;
-        const marginLeft = sideSafeMargin + 3;
+        const jumpButtonSize = isSmallScreen ? 80 : 100;    // Large jump button (primary action)
+        const meleeButtonSize = isSmallScreen ? 56 : 70;    // Medium melee button (frequent)
+        const secondarySize = isSmallScreen ? 46 : 56;      // Smaller secondary buttons (ranged, special)
+        const spacing = isSmallScreen ? 8 : 12;
+        const marginRight = sideSafeMargin + 5;
+        const marginLeft = sideSafeMargin + 5;
 
         // Control opacity - semi-transparent to not fully obscure gameplay
-        const controlOpacity = 0.8;
-        const containerOpacity = 0.4;
+        const controlOpacity = 0.85;
+        const containerOpacity = 0.45;
 
         // ============ JOYSTICK (left side, centered in control zone) ============
-        // COMPACT: Sized to fit in lower control zone
-        const joystickBaseRadius = isSmallScreen ? 38 : 42;  // Smaller to fit compact zone
-        const joystickThumbRadius = isSmallScreen ? 16 : 20; // Proportional thumb
-        const joystickX = marginLeft + joystickBaseRadius + 8;
+        // LARGER: 140px diameter for comfortable thumb control
+        const joystickBaseRadius = isSmallScreen ? 55 : 70;   // 110-140px diameter
+        const joystickThumbRadius = isSmallScreen ? 22 : 28;  // 44-56px thumb
+        const joystickX = marginLeft + joystickBaseRadius + 10;
         const joystickY = controlZoneTop + controlZoneHeight / 2; // Centered vertically in control zone
 
         // Joystick base - semi-transparent for better gameplay visibility
@@ -853,40 +856,53 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
 
         this.input.on('pointerup', (pointer) => {
+            // CRITICAL: Don't reset joystick if this pointer is on an action button
+            // This prevents joystick from resetting when pressing jump while moving
+            if (this.actionButtonPointers.has(pointer.id)) {
+                return;
+            }
             if (this.joystickActive && pointer.id === this.joystickPointerId) {
                 this.resetJoystick();
             }
         });
 
-        // Native touch end handler for reliability
-        this.game.canvas.addEventListener('touchend', () => {
-            if (this.joystickActive) {
+        // Native touch end handler for reliability - only reset if no active touches remain on joystick
+        this.game.canvas.addEventListener('touchend', (event) => {
+            // Only reset if there are no remaining touches OR if the joystick pointer specifically ended
+            if (this.joystickActive && event.touches.length === 0) {
+                // All touches ended - reset joystick
                 this.resetJoystick();
             }
         }, { passive: true });
 
-        // ============ ACTION BUTTONS (right side, in control zone) ============
-        // 2x2 grid of buttons on right side
-        const rightColX = width - marginRight - primarySize / 2;
-        const leftColX = rightColX - primarySize - spacing;
+        // ============ ACTION BUTTONS (right side, arc layout above large jump button) ============
+        // New ergonomic layout:
+        //            [Special]        <- top of arc (rare use)
+        //        [Ranged]  [Melee]    <- sides of arc (frequent use)
+        //           [  JUMP  ]        <- large button at bottom (primary action)
 
-        // Position buttons within the control zone (centered vertically)
-        const buttonPadding = 5;
-        const totalButtonHeight = buttonSize + spacing + primarySize;
-        const buttonStartY = controlZoneTop + (controlZoneHeight - totalButtonHeight) / 2;
-        const topRowY = buttonStartY + buttonSize / 2; // Center of top row buttons
-        const bottomRowY = buttonStartY + buttonSize + spacing + primarySize / 2; // Center of bottom row buttons
+        // Jump button position (bottom-right, large)
+        const jumpRadius = jumpButtonSize / 2;
+        const jumpX = width - marginRight - jumpRadius - 10;
+        const jumpY = controlZoneTop + controlZoneHeight - jumpRadius - 8;
 
-        // Button configs for platformer - compact layout
-        // Layout: [Special] [Ranged]  <- smaller secondary actions
-        //         [Jump]    [Melee]   <- larger primary actions
+        // Arc buttons positioned above jump button
+        const arcRadius = jumpRadius + spacing + secondarySize / 2; // Distance from jump center to attack buttons
+        const meleeX = jumpX + arcRadius * 0.7;    // Right side of arc
+        const meleeY = jumpY - arcRadius * 0.6;    // Slightly above jump center
+        const rangedX = jumpX - arcRadius * 0.7;   // Left side of arc
+        const rangedY = jumpY - arcRadius * 0.6;   // Slightly above jump center
+        const specialX = jumpX;                     // Top center of arc
+        const specialY = jumpY - arcRadius - spacing; // Directly above
+
+        // Button configs for platformer - ergonomic arc layout
         const buttons = [
             {
                 id: 'special',
                 label: '💥',
-                x: leftColX,
-                y: topRowY,
-                size: buttonSize,
+                x: specialX,
+                y: specialY,
+                size: secondarySize,
                 color: 0x9B59B6, // Purple - special (costs 3 energy)
                 action: () => this.performSpecialAttack(),
                 energyCost: 3,
@@ -895,36 +911,37 @@ class PlatformerLevelScene extends Phaser.Scene {
             {
                 id: 'ranged',
                 label: '🔫',
-                x: rightColX,
-                y: topRowY,
-                size: buttonSize,
+                x: rangedX,
+                y: rangedY,
+                size: secondarySize,
                 color: 0x00CED1, // Cyan - ranged attack (costs 1 energy)
                 action: () => this.performRangedAttack(),
                 energyCost: 1,
                 opacity: controlOpacity
             },
             {
-                id: 'jump',
-                label: '⬆️',
-                x: leftColX,
-                y: bottomRowY,
-                size: primarySize,
-                color: 0x27AE60, // Green - jump (free)
-                action: () => { this.virtualJumpPressed = true; },
-                onRelease: () => { this.virtualJumpPressed = false; },
+                id: 'melee',
+                label: '👊',
+                x: meleeX,
+                y: meleeY,
+                size: meleeButtonSize,
+                color: 0xE74C3C, // Red - melee attack (free, frequent use)
+                action: () => this.performAttack(),
                 energyCost: 0,
                 opacity: controlOpacity
             },
             {
-                id: 'melee',
-                label: '👊',
-                x: rightColX,
-                y: bottomRowY,
-                size: primarySize,
-                color: 0xE74C3C, // Red - melee attack (free)
-                action: () => this.performAttack(),
+                id: 'jump',
+                label: '', // Will be drawn as arrow icon
+                x: jumpX,
+                y: jumpY,
+                size: jumpButtonSize,
+                color: 0x27AE60, // Green - jump (free)
+                action: () => { this.virtualJumpPressed = true; },
+                onRelease: () => { this.virtualJumpPressed = false; },
                 energyCost: 0,
-                opacity: controlOpacity
+                opacity: controlOpacity,
+                isJumpButton: true // Flag for special rendering
             }
         ];
 
@@ -939,20 +956,26 @@ class PlatformerLevelScene extends Phaser.Scene {
         controlBg.lineBetween(0, controlZoneTop, width, controlZoneTop);
         this.mobileControlElements.push(controlBg);
 
-        // Button container background (right side)
-        const containerPadding = 8;
-        const containerX = leftColX - primarySize / 2 - containerPadding;
-        const containerY = controlZoneTop + containerPadding;
-        const containerWidth = (rightColX - leftColX) + primarySize + containerPadding * 2;
-        const containerHeight = controlZoneHeight - containerPadding * 2;
+        // Button container background (right side) - encompasses arc layout
+        const containerPadding = 10;
+        // Calculate bounds of all buttons on right side
+        const minButtonX = Math.min(rangedX, specialX) - secondarySize / 2;
+        const maxButtonX = Math.max(meleeX, jumpX) + Math.max(meleeButtonSize, jumpButtonSize) / 2;
+        const minButtonY = specialY - secondarySize / 2;
+        const maxButtonY = jumpY + jumpRadius;
+
+        const containerX = minButtonX - containerPadding;
+        const containerY = minButtonY - containerPadding;
+        const containerWidth = (maxButtonX - minButtonX) + containerPadding * 2;
+        const containerHeight = (maxButtonY - minButtonY) + containerPadding * 2;
 
         const buttonContainer = this.add.graphics();
         buttonContainer.setScrollFactor(0);
         buttonContainer.setDepth(9999);
         buttonContainer.fillStyle(0x1A1A3E, containerOpacity);
-        buttonContainer.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 12);
-        buttonContainer.lineStyle(1, 0x9370DB, 0.3);
-        buttonContainer.strokeRoundedRect(containerX, containerY, containerWidth, containerHeight, 12);
+        buttonContainer.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 15);
+        buttonContainer.lineStyle(1, 0x9370DB, 0.25);
+        buttonContainer.strokeRoundedRect(containerX, containerY, containerWidth, containerHeight, 15);
         this.mobileControlElements.push(buttonContainer);
 
         // Create each button
@@ -1038,7 +1061,10 @@ class PlatformerLevelScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: false });
         this.mobileControlElements.push(zone);
 
-        zone.on('pointerdown', () => {
+        zone.on('pointerdown', (pointer) => {
+            // Track this pointer as an action button pointer (prevents joystick reset)
+            this.actionButtonPointers.add(pointer.id);
+
             bg.clear();
             bg.fillStyle(0x4B0082, 0.8);
             bg.fillCircle(x, y, size / 2);
@@ -1052,7 +1078,10 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.showPauseMenu();
         });
 
-        zone.on('pointerup', () => {
+        zone.on('pointerup', (pointer) => {
+            // Remove this pointer from action button tracking
+            this.actionButtonPointers.delete(pointer.id);
+
             bg.clear();
             bg.fillStyle(0x0D0D1A, 0.7);
             bg.fillCircle(x, y, size / 2);
@@ -1065,7 +1094,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Create a platformer action button
      */
     createPlatformerButton(config) {
-        const { id, label, x, y, size, color, action, onRelease, energyCost = 0 } = config;
+        const { id, label, x, y, size, color, action, onRelease, energyCost = 0, isJumpButton = false } = config;
         const radius = size / 2;
 
         // Energy ring (for buttons that cost energy)
@@ -1088,33 +1117,66 @@ class PlatformerLevelScene extends Phaser.Scene {
         const bg = this.add.graphics();
         bg.setScrollFactor(0);
         bg.setDepth(10000);
-        this.drawPlatformerButton(bg, x, y, radius, color, false);
+
+        // Jump button has special rendering with glow ring
+        if (isJumpButton) {
+            this.drawJumpButton(bg, x, y, radius, color, false);
+        } else {
+            this.drawPlatformerButton(bg, x, y, radius, color, false);
+        }
         this.mobileControlElements.push(bg);
 
-        // Button icon
-        const icon = this.add.text(x, y, label, {
-            fontSize: `${size * 0.45}px`,
-            color: '#FFFFFF',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
-        this.mobileControlElements.push(icon);
+        // Button icon - jump button uses drawn arrow, others use emoji
+        let icon = null;
+        let arrowGraphics = null;
 
-        // Interactive zone
-        const zone = this.add.zone(x, y, size + 10, size + 10)
+        if (isJumpButton) {
+            // Draw arrow icon for jump button
+            arrowGraphics = this.add.graphics();
+            arrowGraphics.setScrollFactor(0);
+            arrowGraphics.setDepth(10001);
+            this.drawJumpArrow(arrowGraphics, x, y, radius);
+            this.mobileControlElements.push(arrowGraphics);
+
+            // "JUMP" label is part of the button itself, not separate
+        } else {
+            // Standard emoji icon for other buttons
+            icon = this.add.text(x, y, label, {
+                fontSize: `${size * 0.5}px`,
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
+            this.mobileControlElements.push(icon);
+        }
+
+        // Interactive zone - larger for jump button
+        const zoneSize = isJumpButton ? size + 20 : size + 10;
+        const zone = this.add.zone(x, y, zoneSize, zoneSize)
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(10002)
             .setInteractive({ useHandCursor: false });
         this.mobileControlElements.push(zone);
 
-        zone.on('pointerdown', () => {
-            this.drawPlatformerButton(bg, x, y, radius, color, true);
-            this.tweens.add({
-                targets: icon,
-                scaleX: 0.85,
-                scaleY: 0.85,
-                duration: 60
-            });
+        zone.on('pointerdown', (pointer) => {
+            // Track this pointer as an action button pointer (prevents joystick reset)
+            this.actionButtonPointers.add(pointer.id);
+
+            // Draw pressed state
+            if (isJumpButton) {
+                this.drawJumpButton(bg, x, y, radius, color, true);
+                this.drawJumpArrow(arrowGraphics, x, y, radius, true);
+            } else {
+                this.drawPlatformerButton(bg, x, y, radius, color, true);
+                if (icon) {
+                    this.tweens.add({
+                        targets: icon,
+                        scaleX: 0.85,
+                        scaleY: 0.85,
+                        duration: 60
+                    });
+                }
+            }
 
             if (window.AudioManager) {
                 window.AudioManager.playButtonClick();
@@ -1123,24 +1185,46 @@ class PlatformerLevelScene extends Phaser.Scene {
             action();
         });
 
-        zone.on('pointerup', () => {
-            this.drawPlatformerButton(bg, x, y, radius, color, false);
-            this.tweens.add({
-                targets: icon,
-                scaleX: 1,
-                scaleY: 1,
-                duration: 100,
-                ease: 'Back.easeOut'
-            });
+        zone.on('pointerup', (pointer) => {
+            // Remove this pointer from action button tracking
+            this.actionButtonPointers.delete(pointer.id);
+
+            // Draw unpressed state
+            if (isJumpButton) {
+                this.drawJumpButton(bg, x, y, radius, color, false);
+                this.drawJumpArrow(arrowGraphics, x, y, radius, false);
+            } else {
+                this.drawPlatformerButton(bg, x, y, radius, color, false);
+                if (icon) {
+                    this.tweens.add({
+                        targets: icon,
+                        scaleX: 1,
+                        scaleY: 1,
+                        duration: 100,
+                        ease: 'Back.easeOut'
+                    });
+                }
+            }
 
             if (onRelease) {
                 onRelease();
             }
         });
 
-        zone.on('pointerout', () => {
-            this.drawPlatformerButton(bg, x, y, radius, color, false);
-            icon.setScale(1);
+        zone.on('pointerout', (pointer) => {
+            // Remove this pointer from action button tracking
+            this.actionButtonPointers.delete(pointer.id);
+
+            // Draw unpressed state
+            if (isJumpButton) {
+                this.drawJumpButton(bg, x, y, radius, color, false);
+                this.drawJumpArrow(arrowGraphics, x, y, radius, false);
+            } else {
+                this.drawPlatformerButton(bg, x, y, radius, color, false);
+                if (icon) {
+                    icon.setScale(1);
+                }
+            }
 
             if (onRelease) {
                 onRelease();
@@ -1169,6 +1253,75 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Border
         graphics.lineStyle(2, 0xFFFFFF, pressed ? 0.3 : 0.5);
         graphics.strokeCircle(x, y, radius);
+    }
+
+    /**
+     * Draw the jump button with special glow ring and larger visual presence
+     */
+    drawJumpButton(graphics, x, y, radius, color, pressed) {
+        graphics.clear();
+
+        // Outer glow ring (distinctive for jump)
+        graphics.lineStyle(pressed ? 3 : 4, 0x2ECC71, pressed ? 0.5 : 0.7);
+        graphics.strokeCircle(x, y, radius + 4);
+
+        // Outer shadow
+        graphics.fillStyle(0x000000, pressed ? 0.3 : 0.4);
+        graphics.fillCircle(x + 2, y + 3, radius);
+
+        // Main button - larger and more prominent
+        graphics.fillStyle(color, pressed ? 0.95 : 0.85);
+        graphics.fillCircle(x, y, radius);
+
+        // Inner gradient highlight (top)
+        graphics.fillStyle(0xFFFFFF, pressed ? 0.1 : 0.25);
+        graphics.fillCircle(x, y - radius * 0.25, radius * 0.65);
+
+        // Border with glow
+        graphics.lineStyle(3, 0xFFFFFF, pressed ? 0.4 : 0.6);
+        graphics.strokeCircle(x, y, radius);
+
+        // "JUMP" label at bottom of button
+        // Note: This is drawn as part of the graphics, not as text
+        // The actual text will be shown in the arrow graphics
+    }
+
+    /**
+     * Draw the jump arrow icon (drawn graphics, not emoji)
+     */
+    drawJumpArrow(graphics, x, y, radius, pressed = false) {
+        graphics.clear();
+
+        // Arrow shaft
+        const arrowHeight = radius * 0.6;
+        const arrowWidth = radius * 0.15;
+        const arrowheadWidth = radius * 0.4;
+        const arrowheadHeight = radius * 0.3;
+
+        const color = pressed ? 0xE0E0E0 : 0xFFFFFF;
+        const alpha = pressed ? 0.8 : 1;
+
+        // Draw arrow pointing up
+        graphics.fillStyle(color, alpha);
+
+        // Arrow shaft (vertical rectangle)
+        graphics.fillRect(
+            x - arrowWidth / 2,
+            y - arrowHeight / 2 + arrowheadHeight / 2,
+            arrowWidth,
+            arrowHeight - arrowheadHeight / 2
+        );
+
+        // Arrowhead (triangle pointing up)
+        graphics.fillTriangle(
+            x, y - arrowHeight / 2 - arrowheadHeight / 3,  // Top point
+            x - arrowheadWidth / 2, y - arrowHeight / 2 + arrowheadHeight / 2,  // Bottom left
+            x + arrowheadWidth / 2, y - arrowHeight / 2 + arrowheadHeight / 2   // Bottom right
+        );
+
+        // Add "JUMP" text below arrow
+        // Note: We can't draw text with graphics, so we'll just make the arrow prominent
+        // The arrow itself clearly indicates "jump"
     }
 
     /**
