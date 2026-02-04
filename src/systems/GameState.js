@@ -287,8 +287,9 @@ class GameStateManager {
                     main: { unlocked: true, name: 'Sanctuary', biome: 'nebula', visits: 0 },
                     stellar_reef: { unlocked: false, name: 'Stellar Reef', biome: 'stellar_reef', visits: 0, unlockCost: 500, shipPart: 'Dimensional Drive' },
                     crystal_caves: { unlocked: false, name: 'Crystal Caves', biome: 'crystal_caves', visits: 0, unlockCost: 500, shipPart: 'Crystal Core Engine' },
-                    void_peaks: { unlocked: false, name: 'Void Peaks', biome: 'void_peaks', visits: 0, inDevelopment: true, shipPart: 'Void Stabilizer' },
-                    aurora_depths: { unlocked: false, name: 'Aurora Depths', biome: 'aurora_depths', visits: 0, inDevelopment: true, shipPart: 'Aurora Reactor' }
+                    mythical_forest: { unlocked: true, name: 'Mythical Forest', biome: 'mythical_forest', visits: 0, inDevelopment: false, unlockCost: 0, shipPart: 'Forest Core' },
+                    aurora_depths: { unlocked: false, name: 'Aurora Depths', biome: 'aurora_depths', visits: 0, inDevelopment: false, unlockCost: 750, shipPart: 'Aurora Reactor' },
+                    final_void: { unlocked: false, name: 'The Final Void', biome: 'final_void', visits: 0, inDevelopment: false, unlockCost: 0, shipPart: 'Command Module', requiresAllParts: true }
                 },
                 mapsOwned: [],  // Map items purchased from shop
                 lastVisitedGate: 'main',

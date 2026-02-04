@@ -314,8 +314,9 @@ export default class HubWorldScene extends Phaser.Scene {
             main: { color: 0x7B68EE, icon: '🏠', label: 'Sanctuary' },
             stellar_reef: { color: 0x00CED1, icon: '🐠', label: 'Stellar Reef', shipPart: '⚙️' },
             crystal_caves: { color: 0xE040FB, icon: '💎', label: 'Crystal Caves', shipPart: '🔮' },
-            void_peaks: { color: 0x37474F, icon: '⛰️', label: 'Void Peaks', shipPart: '🌀' },
-            aurora_depths: { color: 0x00E676, icon: '🌌', label: 'Aurora Depths', shipPart: '✨' }
+            mythical_forest: { color: 0x228B22, icon: '🌳', label: 'Mythical Forest', shipPart: '🌿' },
+            aurora_depths: { color: 0x00E676, icon: '🌌', label: 'Aurora Depths', shipPart: '✨' },
+            final_void: { color: 0x4B0082, icon: '👑', label: 'The Final Void', shipPart: '🎯', isFinalBoss: true }
         };
 
         this.gates = [];
@@ -1304,6 +1305,15 @@ export default class HubWorldScene extends Phaser.Scene {
         } else if (gate.id === 'stellar_reef') {
             // Stellar Reef - underwater swimming platformer level
             this.scene.start('ReefLevel');
+        } else if (gate.id === 'mythical_forest') {
+            // Mythical Forest - mystical forest platformer level
+            this.scene.start('MythicalForestLevel');
+        } else if (gate.id === 'aurora_depths') {
+            // Aurora Depths - aurora-themed platformer level with Shadow Phoenix
+            this.scene.start('AuroraDepthsLevel');
+        } else if (gate.id === 'final_void') {
+            // The Final Void - final boss level with Void Empress
+            this.scene.start('FinalVoidLevel');
         } else {
             // Other biomes - top-down for now (will become platformer levels)
             this.scene.start('GameScene', { biome: gate.data.biome });

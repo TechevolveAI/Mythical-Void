@@ -291,6 +291,126 @@
         }
     },
 
+    "elderTreant": {
+        "id": "elder_treant",
+        "name": "ELDER TREANT",
+        "level": "mythical_forest",
+        "description": "An ancient tree spirit that guards the heart of the Mythical Forest. Its roots reach deep into the void between worlds.",
+
+        "stats": {
+            "maxHealth": 10,
+            "baseSpeed": 50,
+            "baseDamage": 1,
+            "bodySize": { "width": 120, "height": 160 },
+            "bodyOffset": { "x": 40, "y": 30 }
+        },
+
+        "phases": [
+            {
+                "threshold": 1.0,
+                "speed": 50,
+                "attackDelay": 2500,
+                "tint": null,
+                "message": null
+            },
+            {
+                "threshold": 0.5,
+                "speed": 70,
+                "attackDelay": 1800,
+                "tint": "0xFF6B6B",
+                "message": "TREANT ENRAGED!"
+            }
+        ],
+
+        "attacks": [
+            {
+                "id": "root_slam",
+                "name": "Root Slam",
+                "weight": 3,
+                "minPhase": 0,
+                "telegraph": "ground",
+                "telegraphDuration": 400,
+                "areaWidth": 300,
+                "areaHeight": 40,
+                "cooldown": 1200,
+                "damage": 1,
+                "description": "Summons roots from the ground to damage players"
+            },
+            {
+                "id": "vine_whip",
+                "name": "Vine Whip",
+                "weight": 3,
+                "minPhase": 0,
+                "telegraph": "line",
+                "telegraphDuration": 300,
+                "cooldown": 1000,
+                "damage": 1,
+                "description": "Whips vines in the direction of the player"
+            },
+            {
+                "id": "spore_cloud",
+                "name": "Spore Cloud",
+                "weight": 2,
+                "minPhase": 0,
+                "telegraph": "ground",
+                "telegraphDuration": 500,
+                "cooldown": 1500,
+                "areaRadius": 60,
+                "dotDamage": 1,
+                "dotTicks": 4,
+                "description": "Creates a poisonous spore cloud at the player's location"
+            },
+            {
+                "id": "nature_fury",
+                "name": "Nature's Fury",
+                "weight": 1,
+                "minPhase": 1,
+                "telegraph": "flash",
+                "telegraphDuration": 800,
+                "cooldown": 2500,
+                "projectileCount": 10,
+                "damage": 1,
+                "description": "Rains deadly leaves across the arena (Phase 2 only)"
+            }
+        ],
+
+        "visual": {
+            "textureSize": 200,
+            "colors": {
+                "body": "0x2D4A2D",
+                "bark": "0x1A301A",
+                "veins": "0xFF4500",
+                "eyes": "0xFF0000",
+                "eyeGlow": "0xFF6666",
+                "hornLeft": "0x9932CC",
+                "hornRight": "0x32CD32",
+                "foliage": "0x8B008B"
+            },
+            "particleColors": ["0x228B22", "0x90EE90", "0x9932CC", "0xFF4500"]
+        },
+
+        "audio": {
+            "intro": "bossRoar",
+            "attack": "playAttack",
+            "hit": "playEnemyHit",
+            "phaseChange": "playError",
+            "defeat": "playLevelUp"
+        },
+
+        "messages": {
+            "intro": "⚠ THE ANCIENT ONE AWAKENS ⚠",
+            "defeat": "🌳 ELDER TREANT DEFEATED 🌳"
+        },
+
+        "rewards": {
+            "baseCoins": 600,
+            "bonusPerFragment": 100,
+            "items": ["rocket_part_forest_core"]
+        },
+
+        "lore": "The Elder Treant was once a peaceful guardian of the Mythical Forest, nurturing life and protecting the cosmic secrets hidden within. But as the void encroached upon the forest, the Treant absorbed its dark energy, becoming a twisted sentinel that now attacks all who dare enter its domain."
+    },
+
     "cosmicTitan": {
         "id": "cosmic_titan",
         "name": "COSMIC TITAN",

@@ -20,6 +20,10 @@ import AbilitySelectionScene from './scenes/AbilitySelectionScene.js';
 import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
 import CrystalCavesLevel from './scenes/levels/CrystalCavesLevel.js';
 import ReefLevel from './scenes/levels/ReefLevel.js';
+import MythicalForestLevel from './scenes/levels/MythicalForestLevel.js';
+import AuroraDepthsLevel from './scenes/levels/AuroraDepthsLevel.js';
+import FinalVoidLevel from './scenes/levels/FinalVoidLevel.js';
+import VictoryScene from './scenes/VictoryScene.js';
 import kidModeConfig from './config/kid-mode.json';
 import hatchCinematicsConfig from './config/hatch-cinematics.json';
 import biomesConfig from './config/biomes.json';
@@ -313,7 +317,7 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, SoulRevealScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, AchievementMenuScene, AbilitySelectionScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel],
+            scene: [HatchingScene, PersonalityScene, NamingScene, SoulRevealScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, AchievementMenuScene, AbilitySelectionScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel, MythicalForestLevel, AuroraDepthsLevel, FinalVoidLevel, VictoryScene],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -533,7 +537,33 @@ async function initializeGame() {
             }
             return; // Exit early if Phaser fails
         }
-        
+
+        // Check for test mode URL parameters
+        // Usage: ?testBoss=mythicalForest to jump directly to boss fight
+        const urlParams = new URLSearchParams(window.location.search);
+        const testBoss = urlParams.get('testBoss');
+        if (testBoss) {
+            console.log(`🧪 TEST MODE: Jumping to ${testBoss} boss fight`);
+            game.events.once('ready', () => {
+                // Wait a moment for scenes to register
+                setTimeout(() => {
+                    if (testBoss === 'mythicalForest') {
+                        game.scene.start('MythicalForestLevel', { testMode: true });
+                    } else if (testBoss === 'crystalCaves') {
+                        game.scene.start('CrystalCavesLevel', { testMode: true });
+                    } else if (testBoss === 'reef') {
+                        game.scene.start('ReefLevel', { testMode: true });
+                    } else if (testBoss === 'auroraDepths') {
+                        game.scene.start('AuroraDepthsLevel', { testMode: true });
+                    } else if (testBoss === 'finalVoid') {
+                        game.scene.start('FinalVoidLevel', { testMode: true });
+                    } else if (testBoss === 'victory') {
+                        game.scene.start('VictoryScene', { testMode: true });
+                    }
+                }, 100);
+            });
+        }
+
         // Handle page unload - save game state with error handling
         window.addEventListener('beforeunload', () => {
             try {
