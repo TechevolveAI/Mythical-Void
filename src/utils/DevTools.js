@@ -463,6 +463,77 @@ class DevTools {
     }
 
     /**
+     * Clear all creatures from collection - use to fix cache issues
+     * WARNING: This deletes all creatures permanently!
+     */
+    clearCreatures() {
+        if (!this.enabled) {
+            console.warn('[DevTools] Only available in development mode');
+            return;
+        }
+
+        const creatures = window.GameState?.get('creatures') || [];
+        const count = creatures.length;
+
+        if (count === 0) {
+            console.log('ℹ️ [DevTools] No creatures in collection to clear');
+            return { cleared: 0 };
+        }
+
+        // Confirm destructive action
+        console.warn(`⚠️ [DevTools] About to delete ${count} creatures permanently!`);
+
+        // Reset creature collection
+        window.GameState?.resetCreatureCollection?.();
+
+        // Also clear the active creature slot
+        window.GameState?.set('creature.hatched', false);
+        window.GameState?.set('creature.named', false);
+        window.GameState?.set('creature.genes', null);
+        window.GameState?.set('creature.name', null);
+        window.GameState?.set('creature.textureName', null);
+        window.GameState?.set('creature.dna', null);
+        window.GameState?.set('creature.personality', null);
+        window.GameState?.set('creature.lifecycle', null);
+
+        window.GameState?.save?.();
+
+        console.log(`✅ [DevTools] Cleared ${count} creatures from collection`);
+        console.log('   - Reload or restart game to hatch a fresh creature');
+
+        return { cleared: count };
+    }
+
+    /**
+     * Reset game completely - clears everything including progress
+     * WARNING: This is a full reset!
+     */
+    fullReset() {
+        if (!this.enabled) {
+            console.warn('[DevTools] Only available in development mode');
+            return;
+        }
+
+        console.warn('⚠️ [DevTools] Performing FULL RESET - all progress will be lost!');
+
+        // Use GameState reset
+        window.GameState?.reset?.();
+
+        // Clear localStorage completely
+        try {
+            localStorage.removeItem('mythical_creature_save');
+            localStorage.removeItem('mythical_creature_save_backup');
+            console.log('✅ [DevTools] localStorage cleared');
+        } catch (e) {
+            console.warn('[DevTools] Could not clear localStorage:', e);
+        }
+
+        console.log('✅ [DevTools] Full reset complete. Reload the page to start fresh.');
+
+        return { reset: true };
+    }
+
+    /**
      * Show help
      */
     help() {
@@ -503,6 +574,12 @@ class DevTools {
 ║                                                                ║
 ║  DevTools.initAgentStates()                                    ║
 ║    → Initialize AI agent state for all creatures               ║
+║                                                                ║
+║  DevTools.clearCreatures()                                     ║
+║    → ⚠️ DELETE all creatures (fixes cache issues)               ║
+║                                                                ║
+║  DevTools.fullReset()                                          ║
+║    → ⚠️ FULL RESET - clears all progress                        ║
 ║                                                                ║
 ╚════════════════════════════════════════════════════════════════╝
         `);

@@ -664,11 +664,15 @@ class MyLevel extends PlatformerLevelScene {
 ```
 
 **Current Platformer Levels:**
-- `MythicalForestLevel` - Cosmic forest with vertical tree climbing, 4 enemy types, Elder Treant boss
+- `MythicalForestLevel` - Cosmic forest with vertical tree climbing, 4 enemy types, Elder Treant boss (50 HP)
+  - **8000px level width** - Extended for longer journey
+  - **Mandatory tree climbing** - Large void gaps (500-1400px) force vertical traversal
+  - **Enemy types**: Void Sprites (ground chasers), Branch Crawlers (platform patrollers), Spore Drifters (AoE hazards with warning telegraphs), Forest Wisps (teleporting shooters with stun window)
 - `CrystalCavesLevel` - Crystal-themed cave platformer with Crystal Golem boss
 - `ReefLevel` - Cosmic void swimming level with Nyx'voral boss
-- `AuroraDepthsLevel` - Deep aurora-lit caverns (in development)
-- `FinalVoidLevel` - Final boss confrontation with Void Empress (in development)
+- `AuroraDepthsLevel` - Deep aurora-lit caverns
+- `FinalVoidLevel` - Final boss confrontation with Void Empress
+- `VictoryScene` - Level completion celebration screen
 
 ### Level Design Patterns (MUST FOLLOW)
 
@@ -709,8 +713,14 @@ Each level MUST have 3-4 distinct enemy types with different behaviors:
 |------------|----------|-----------|
 | **Ground Chasers** | Patrol/chase on ground level | Ground sections |
 | **Platform Patrollers** | Walk back and forth on platforms | Elevated platforms |
-| **Floating Hazards** | Float and emit AoE damage | Open air areas |
-| **Ranged Shooters** | Teleport/shoot at player | Strategic locations |
+| **Floating Hazards** | Float and emit AoE damage with **warning telegraph** | Open air areas |
+| **Ranged Shooters** | Teleport/shoot at player with **stun window** | Strategic locations |
+
+**CRITICAL Enemy Behavior Rules:**
+- **All enemies MUST apply knockback on collision** - prevents trapping player
+- **AoE attacks MUST have warning telegraph** (0.5-1s pulsing visual before damage)
+- **Teleporting enemies MUST have vulnerability window** after attacking
+- **Cluster density limited to 2 enemies** - prevents unfair difficulty spikes
 
 **Enemy Implementation Pattern:**
 ```javascript
@@ -1254,6 +1264,25 @@ The following keyboard shortcuts are available globally (defined in `main.js`):
 - Manages attack animations
 - Access: `window.ProjectileManager`
 
+### CombatJuice (`src/systems/CombatJuice.js`)
+- **Screen shake** on hits with intensity scaling
+- **Haptic feedback** for mobile devices (light/medium/heavy)
+- **Combo system** with damage bonuses (1.1x at 5 hits, up to 1.5x at 20+ hits)
+- **Damage numbers** floating above enemies
+- **Hit flash** effects on sprites
+- **Critical hit detection** with special effects
+
+```javascript
+// Usage in platformer levels
+if (this.combatJuice) {
+    this.combatJuice.registerHit(damage);       // Track combo
+    this.combatJuice.screenShake(intensity, duration);
+    this.combatJuice.hapticFeedback('medium');  // light/medium/heavy
+    this.combatJuice.showDamageNumber(x, y, damage, isCritical);
+    this.combatJuice.hitFlash(sprite, color, duration);
+}
+```
+
 ### ChatManager (`src/systems/ChatManager.js`)
 - Manages in-game chat system
 - Kid-safe filtering integration
@@ -1288,6 +1317,25 @@ this.scene.start('HubWorldScene');
 - Creature display in center
 - Arrow key / tap navigation between gates
 - Collection button for viewing creature collection
+
+### Sanctuary Features (GameScene)
+
+The main GameScene provides a sanctuary-style top-down area with several interactive zones:
+
+**Target Practice Range** (`WorldBuilder.createTargetRange()`):
+- Located in the training grounds zone
+- Targets: Bullseyes (3), Dummies (2), Barrels (2 - explode!), Moving Target (1)
+- Score display when in range
+- Projectiles auto-target range targets when player is within range
+- Targets respawn after being hit
+
+**Navigation Paths**:
+- Visual paths connect sanctuary landmarks
+- Path destinations include: Hatching Area, Cosmic Pond, Training Grounds, Treasure Dig
+
+**Collectibles**:
+- Treasure chest spawn points
+- Coin collection with floating text animations
 
 ## Security & Safety
 

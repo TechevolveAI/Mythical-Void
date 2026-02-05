@@ -2239,6 +2239,18 @@ class AudioManager {
                     bells: [2, 2.5, 3]
                 }
             },
+            // Sanctuary - tranquil, meditative space for creature care
+            sanctuary: {
+                baseFreq: 196,      // G3 - warm, peaceful, not too low
+                scale: 'pentatonic',
+                tempo: 40,          // Very slow, peaceful breathing pace
+                layers: ['breathPad', 'windChimes', 'gentleBells'],
+                colors: {
+                    breathPad: [1, 1.25, 1.5],        // Soft major chord
+                    windChimes: [3, 4, 5],            // High, delicate overtones
+                    gentleBells: [2, 2.5]             // Occasional soft bells
+                }
+            },
             void: {
                 baseFreq: 110,      // A2 - deep, mysterious
                 scale: 'harmonic_minor',
@@ -2393,6 +2405,7 @@ class AudioManager {
             case 'bells':
             case 'chimes':
             case 'sparkles':
+            case 'gentleBells':
                 this.createBellsLayer(baseFreq, intervals);
                 break;
             case 'strings':

@@ -46,8 +46,8 @@ class GameScene extends Phaser.Scene {
         this.playKey = null;
         this.restKey = null;
         this.careKey = null;
-        this.worldWidth = 1600;
-        this.worldHeight = 1200;
+        this.worldWidth = 2400;   // Expanded sanctuary for more exploration
+        this.worldHeight = 1800;  // Larger peaceful space to roam
         this.trees = null;
         this.rocks = null;
         this.flowers = null;
@@ -68,6 +68,10 @@ class GameScene extends Phaser.Scene {
         this.voidPortal = null;
         this.campfire = null;
         this.sanctuaryZones = null;
+        this.targetRange = null;
+        this.nearTargetRange = false;
+        this.targetRangeScore = 0;
+        this.targetRangeScoreText = null;
         this.nearHubPortal = false;
         this.nearVoidPortal = false;
         this.nearCampfire = false;
@@ -308,6 +312,7 @@ class GameScene extends Phaser.Scene {
             this.voidPortal = worldPieces.voidPortal || null;
             this.campfire = worldPieces.campfire || null;
             this.sanctuaryZones = worldPieces.sanctuaryZones || null;
+            this.targetRange = worldPieces.targetRange || null;
 
             // Return portal (only in non-sanctuary biomes)
             this.returnPortal = worldPieces.returnPortal || null;
@@ -329,6 +334,9 @@ class GameScene extends Phaser.Scene {
 
             // Set up parallax background layers (after camera setup)
             this.setupParallaxBiome();
+
+            // Create navigation guide paths for new users (glowing trails to key locations)
+            this.createNavigationPaths();
 
             // Initialize space weather effects (real NASA data)
             this.setupSpaceWeather();
@@ -366,6 +374,11 @@ class GameScene extends Phaser.Scene {
                 }
                 if (this.campfire) {
                     this.physics.add.overlap(this.player, this.campfire, this.handleCampfireProximity, null, this);
+                }
+
+                // Target range interactions
+                if (this.targetRange && this.targetRange.allTargets) {
+                    this.setupTargetRangeCollisions();
                 }
 
                 // Return portal for non-sanctuary biomes
@@ -534,10 +547,34 @@ class GameScene extends Phaser.Scene {
                 this.setupCreatureIntelligence();
             }
 
-            // Play home area background music
+            // Stop any theme music from HatchingScene that might still be playing
+            if (this.sound?.getAll) {
+                const themeSounds = this.sound.getAll('themeMusic');
+                themeSounds.forEach(sound => {
+                    if (sound.isPlaying) {
+                        this.tweens.add({
+                            targets: sound,
+                            volume: 0,
+                            duration: 1000,
+                            onComplete: () => {
+                                sound.stop();
+                                sound.destroy();
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Also check if HatchingScene still has music playing and stop it
+            const hatchingScene = this.scene.get('HatchingScene');
+            if (hatchingScene?.themeMusic?.isPlaying) {
+                hatchingScene.stopThemeMusic();
+            }
+
+            // Play sanctuary area background music (tranquil, meditative ambience)
             if (window.AudioManager?.playAreaMusic) {
-                window.AudioManager.playAreaMusic('home');
-                console.log('[GameScene] Started sanctuary music');
+                window.AudioManager.playAreaMusic('sanctuary');
+                console.log('[GameScene] Started tranquil sanctuary music');
             }
 
             // Start creature idle sounds based on stage and personality
@@ -848,6 +885,208 @@ class GameScene extends Phaser.Scene {
         } catch (error) {
             console.error('[GameScene] Failed to setup ParallaxBiome:', error);
         }
+    }
+
+    /**
+     * Create glowing navigation paths to guide users to key locations
+     * Subtle cosmic dust trails that lead to: Ship (story), Hub Portal (levels), Shop
+     * Only shows on first few visits to help new players navigate
+     */
+    createNavigationPaths() {
+        // Only show in main sanctuary (nebula biome)
+        if (this.currentBiome !== 'nebula') return;
+
+        // Check if user has seen enough to disable navigation hints
+        const timesVisited = window.GameState?.get('session.sanctuaryVisits') || 0;
+        const showNavigation = timesVisited < 5; // Show for first 5 visits
+
+        // Track visit
+        window.GameState?.set('session.sanctuaryVisits', timesVisited + 1);
+
+        if (!showNavigation) {
+            console.log('[GameScene] Navigation paths disabled (user experienced)');
+            return;
+        }
+
+        // Get landmark positions
+        const centerX = this.worldWidth / 2;
+        const centerY = this.worldHeight / 2;
+
+        // Define key destinations with their info
+        const destinations = [];
+
+        if (this.crashedShip) {
+            destinations.push({
+                name: 'Story & Void',
+                icon: '🚀',
+                x: this.crashedShip.x,
+                y: this.crashedShip.y,
+                color: 0x4A90A4,
+                description: 'Your ship\'s story'
+            });
+        }
+
+        if (this.hubPortal) {
+            destinations.push({
+                name: 'Adventure Portal',
+                icon: '⭐',
+                x: this.hubPortal.x,
+                y: this.hubPortal.y,
+                color: 0x9370DB,
+                description: 'Enter levels'
+            });
+        }
+
+        if (this.shop) {
+            destinations.push({
+                name: 'Cosmic Shop',
+                icon: '🏪',
+                x: this.shop.x,
+                y: this.shop.y,
+                color: 0xFFD700,
+                description: 'Buy eggs & items'
+            });
+        }
+
+        // Add Target Range to navigation
+        if (this.targetRange && this.sanctuaryZones?.zones?.trainingGrounds) {
+            const zone = this.sanctuaryZones.zones.trainingGrounds;
+            destinations.push({
+                name: 'Target Range',
+                icon: '🎯',
+                x: zone.center.x,
+                y: zone.center.y,
+                color: 0xFF6B6B,
+                description: 'Practice shooting'
+            });
+        }
+
+        // Create glowing path trails and floating markers for each destination
+        destinations.forEach((dest, index) => {
+            this.createGlowingPath(centerX, centerY, dest.x, dest.y, dest.color);
+            this.createFloatingMarker(dest);
+        });
+
+        console.log(`[GameScene] Navigation paths created for ${destinations.length} destinations`);
+    }
+
+    /**
+     * Create a glowing path from start to end point
+     * Uses pulsing particle dots along the path
+     */
+    createGlowingPath(startX, startY, endX, endY, color) {
+        const distance = Phaser.Math.Distance.Between(startX, startY, endX, endY);
+        const numDots = Math.floor(distance / 80); // Dot every 80 pixels
+        const angle = Phaser.Math.Angle.Between(startX, startY, endX, endY);
+
+        for (let i = 1; i < numDots; i++) {
+            const t = i / numDots;
+            const x = startX + (endX - startX) * t;
+            const y = startY + (endY - startY) * t;
+
+            // Create glowing dot
+            const dot = this.add.graphics();
+            dot.fillStyle(color, 0.3);
+            dot.fillCircle(0, 0, 8);
+            dot.fillStyle(color, 0.5);
+            dot.fillCircle(0, 0, 5);
+            dot.fillStyle(0xFFFFFF, 0.3);
+            dot.fillCircle(0, 0, 2);
+            dot.setPosition(x, y);
+            dot.setDepth(5); // Below most objects
+
+            // Pulsing animation (staggered for wave effect)
+            this.tweens.add({
+                targets: dot,
+                alpha: { from: 0.2, to: 0.6 },
+                scale: { from: 0.8, to: 1.2 },
+                duration: 1500,
+                delay: i * 100, // Staggered
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // Store for cleanup
+            if (!this.navigationPathDots) this.navigationPathDots = [];
+            this.navigationPathDots.push(dot);
+        }
+    }
+
+    /**
+     * Create a floating marker above a destination point
+     * Shows icon and name label that bobs gently
+     */
+    createFloatingMarker(dest) {
+        const markerY = dest.y - 80;
+
+        // Create background glow
+        const glow = this.add.graphics();
+        glow.fillStyle(dest.color, 0.2);
+        glow.fillCircle(0, 0, 30);
+        glow.setPosition(dest.x, markerY);
+        glow.setDepth(100);
+
+        // Create icon text
+        const icon = this.add.text(dest.x, markerY - 5, dest.icon, {
+            fontSize: '32px'
+        }).setOrigin(0.5).setDepth(101);
+
+        // Create name label below icon
+        const label = this.add.text(dest.x, markerY + 30, dest.name, {
+            fontSize: '12px',
+            color: '#FFFFFF',
+            stroke: '#000000',
+            strokeThickness: 3,
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(101);
+
+        // Floating animation
+        this.tweens.add({
+            targets: [glow, icon, label],
+            y: '-=10',
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Glow pulsing
+        this.tweens.add({
+            targets: glow,
+            alpha: { from: 0.2, to: 0.5 },
+            scale: { from: 1, to: 1.3 },
+            duration: 1500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Store for cleanup
+        if (!this.navigationMarkers) this.navigationMarkers = [];
+        this.navigationMarkers.push(glow, icon, label);
+
+        // Fade out markers after player approaches
+        const zone = this.add.zone(dest.x, dest.y, 200, 200);
+        zone.setInteractive();
+
+        this.physics.add.overlap(this.player, zone, () => {
+            // First visit - fade out this marker
+            if (!glow.fading) {
+                glow.fading = true;
+                this.tweens.add({
+                    targets: [glow, icon, label],
+                    alpha: 0,
+                    duration: 1000,
+                    onComplete: () => {
+                        glow.destroy();
+                        icon.destroy();
+                        label.destroy();
+                        zone.destroy();
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -3688,44 +3927,64 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        const nearestEnemy = this.findNearestEnemy();
-        if (!nearestEnemy) {
-            this.showInteractionHint('All calm! Explore or care for your buddy.');
+        // Check if player is in target range - prioritize targets over enemies
+        let target = null;
+        let isTargetPractice = false;
+
+        if (this.nearTargetRange && this.targetRange?.allTargets) {
+            target = this.findNearestTarget();
+            isTargetPractice = !!target;
+        }
+
+        // Fall back to enemies if not in range or no targets found
+        if (!target) {
+            target = this.findNearestEnemy();
+        }
+
+        if (!target) {
+            if (this.nearTargetRange) {
+                this.showInteractionHint('🎯 All targets hit! Wait for respawn.');
+            } else {
+                this.showInteractionHint('All calm! Explore or care for your buddy.');
+            }
             return;
         }
 
         const genes = getGameState().get('creature.genes');
         const rarity = genes?.rarity || 'common';
 
-        // Check for Nova Blast ability (AOE attack)
-        if (window.SecretAbilityManager?.hasAbility('novaBlast')) {
-            const novaResult = window.SecretAbilityManager.triggerAbility(
-                'novaBlast',
-                { x: this.player.x, y: this.player.y },
-                this,
-                nearestEnemy.x,
-                nearestEnemy.y
-            );
-            if (novaResult) {
-                // Nova blast triggered, skip normal projectile
-                this.combatCooldown = this.combatCooldownMax;
-                getGameState().emit('combatEngaged', {
-                    targetX: nearestEnemy.x,
-                    targetY: nearestEnemy.y,
-                    timestamp: Date.now(),
-                    ability: 'novaBlast'
-                });
-                return;
+        // Skip special abilities in target practice mode
+        if (!isTargetPractice) {
+            // Check for Nova Blast ability (AOE attack)
+            if (window.SecretAbilityManager?.hasAbility('novaBlast')) {
+                const novaResult = window.SecretAbilityManager.triggerAbility(
+                    'novaBlast',
+                    { x: this.player.x, y: this.player.y },
+                    this,
+                    target.x,
+                    target.y
+                );
+                if (novaResult) {
+                    // Nova blast triggered, skip normal projectile
+                    this.combatCooldown = this.combatCooldownMax;
+                    getGameState().emit('combatEngaged', {
+                        targetX: target.x,
+                        targetY: target.y,
+                        timestamp: Date.now(),
+                        ability: 'novaBlast'
+                    });
+                    return;
+                }
             }
-        }
 
-        // Check for Crystal Shield ability (defensive trigger on combat)
-        if (window.SecretAbilityManager?.hasAbility('crystalShield')) {
-            window.SecretAbilityManager.triggerAbility(
-                'crystalShield',
-                this.player,
-                this
-            );
+            // Check for Crystal Shield ability (defensive trigger on combat)
+            if (window.SecretAbilityManager?.hasAbility('crystalShield')) {
+                window.SecretAbilityManager.triggerAbility(
+                    'crystalShield',
+                    this.player,
+                    this
+                );
+            }
         }
 
         window.AudioManager?.playAttack?.();
@@ -3733,17 +3992,19 @@ class GameScene extends Phaser.Scene {
             this,
             this.player.x,
             this.player.y,
-            nearestEnemy.x,
-            nearestEnemy.y,
+            target.x,
+            target.y,
             rarity
         );
 
-        // Track combat for personality shaping
-        getGameState().emit('combatEngaged', {
-            targetX: nearestEnemy.x,
-            targetY: nearestEnemy.y,
-            timestamp: Date.now()
-        });
+        // Track combat for personality shaping (skip for target practice)
+        if (!isTargetPractice) {
+            getGameState().emit('combatEngaged', {
+                targetX: target.x,
+                targetY: target.y,
+                timestamp: Date.now()
+            });
+        }
 
         // Apply cooldown with potential reduction from abilities
         let cooldown = this.combatCooldownMax;
@@ -3776,6 +4037,36 @@ class GameScene extends Phaser.Scene {
                 closest = enemy;
             }
         });
+        return closest;
+    }
+
+    /**
+     * Find the nearest active target in the target practice range
+     * @returns {Phaser.GameObjects.Sprite|null} Nearest target or null
+     */
+    findNearestTarget() {
+        if (!this.targetRange?.allTargets || !this.player) return null;
+
+        const activeTargets = this.targetRange.allTargets.filter(target =>
+            target.active && target.visible
+        );
+
+        if (!activeTargets.length) return null;
+
+        let closest = null;
+        let minDist = Infinity;
+
+        activeTargets.forEach(target => {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x, this.player.y,
+                target.x, target.y
+            );
+            if (distance < minDist) {
+                minDist = distance;
+                closest = target;
+            }
+        });
+
         return closest;
     }
 
@@ -4039,6 +4330,262 @@ class GameScene extends Phaser.Scene {
             console.log('[GameScene] Started campfire rest session');
         } else {
             console.warn('[GameScene] CampfireRestSystem not available');
+        }
+    }
+
+    /**
+     * Set up collision detection for the target practice range
+     * Projectiles hitting targets award points and trigger effects
+     */
+    setupTargetRangeCollisions() {
+        if (!this.targetRange || !this.targetRange.allTargets) {
+            console.warn('[GameScene] Cannot setup target range collisions - no targets');
+            return;
+        }
+
+        // Create a group for the targets
+        this.targetGroup = this.physics.add.staticGroup();
+        this.targetRange.allTargets.forEach(target => {
+            this.targetGroup.add(target);
+        });
+
+        // Set up collision between projectiles and targets (after enemies are created)
+        this.time.delayedCall(500, () => {
+            if (this.projectiles && this.targetGroup) {
+                this.physics.add.overlap(
+                    this.projectiles,
+                    this.targetGroup,
+                    this.handleTargetHit,
+                    null,
+                    this
+                );
+                console.log('[GameScene] Target range collisions enabled');
+            }
+        });
+
+        // Create score display for target range
+        this.createTargetRangeScoreDisplay();
+
+        console.log('[GameScene] Target Practice Range initialized');
+    }
+
+    /**
+     * Create the score display for target practice
+     */
+    createTargetRangeScoreDisplay() {
+        if (!this.targetRange) return;
+
+        const zoneCenter = this.sanctuaryZones?.zones?.trainingGrounds?.center;
+        if (!zoneCenter) return;
+
+        // Score background
+        this.targetRangeScoreBg = this.add.graphics();
+        this.targetRangeScoreBg.fillStyle(0x1A1A3E, 0.8);
+        this.targetRangeScoreBg.fillRoundedRect(zoneCenter.x - 80, zoneCenter.y - 150, 160, 40, 10);
+        this.targetRangeScoreBg.lineStyle(2, 0xFF6B6B, 0.8);
+        this.targetRangeScoreBg.strokeRoundedRect(zoneCenter.x - 80, zoneCenter.y - 150, 160, 40, 10);
+        this.targetRangeScoreBg.setDepth(100);
+        this.targetRangeScoreBg.setScrollFactor(1);
+
+        // Score text
+        this.targetRangeScoreText = this.add.text(
+            zoneCenter.x,
+            zoneCenter.y - 130,
+            '🎯 Score: 0',
+            {
+                fontSize: '18px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(101).setScrollFactor(1);
+
+        // Initially hidden until player enters range
+        this.targetRangeScoreBg.setVisible(false);
+        this.targetRangeScoreText.setVisible(false);
+    }
+
+    /**
+     * Handle projectile hitting a target in the practice range
+     * @param {Phaser.GameObjects.Sprite} projectile - The projectile that hit
+     * @param {Phaser.GameObjects.Sprite} target - The target that was hit
+     */
+    handleTargetHit(projectile, target) {
+        if (!projectile.active || !target.active) return;
+
+        const targetType = target.getData('type');
+        const points = target.getData('points') || 10;
+        const explodes = target.getData('explodes');
+
+        // Disable projectile
+        projectile.setActive(false);
+        projectile.setVisible(false);
+
+        // Add points
+        this.targetRangeScore += points;
+        if (this.targetRangeScoreText) {
+            this.targetRangeScoreText.setText(`🎯 Score: ${this.targetRangeScore}`);
+        }
+
+        // Play hit sound
+        if (window.AudioManager) {
+            if (explodes) {
+                window.AudioManager.playError?.(); // Explosion sound
+            } else {
+                window.AudioManager.playCoinCollect?.(); // Hit sound
+            }
+        }
+
+        // Create hit effect based on target type
+        this.createTargetHitEffect(target.x, target.y, targetType, explodes);
+
+        // Show floating points
+        this.showFloatingText(`+${points}`, target.x, target.y - 30, '#FFD700');
+
+        // Handle target response
+        if (explodes) {
+            // Barrels explode and respawn
+            this.explodeTarget(target);
+        } else if (targetType === 'moving') {
+            // Moving targets flash and keep moving
+            this.flashTarget(target);
+        } else {
+            // Static targets wobble and reset
+            this.wobbleTarget(target);
+        }
+
+        console.log(`[GameScene] Target hit! Type: ${targetType}, Points: ${points}, Total: ${this.targetRangeScore}`);
+    }
+
+    /**
+     * Create visual effect when target is hit
+     */
+    createTargetHitEffect(x, y, targetType, explodes) {
+        const color = explodes ? 0xFF6600 : targetType === 'moving' ? 0xFFD700 : 0xFF6B6B;
+        const particleCount = explodes ? 20 : 8;
+
+        // Create particle texture if needed
+        const textureKey = `targetHitParticle_${targetType}`;
+        if (!this.textures.exists(textureKey)) {
+            const graphics = this.add.graphics();
+            graphics.fillStyle(color, 1);
+            graphics.fillCircle(4, 4, 4);
+            graphics.generateTexture(textureKey, 8, 8);
+            graphics.destroy();
+        }
+
+        // Create particle burst
+        const particles = this.add.particles(x, y, textureKey, {
+            speed: { min: explodes ? 100 : 50, max: explodes ? 250 : 120 },
+            scale: { start: explodes ? 1.5 : 0.8, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: explodes ? 800 : 400,
+            quantity: particleCount,
+            blendMode: 'ADD',
+            angle: { min: 0, max: 360 }
+        });
+
+        // Clean up
+        this.time.delayedCall(explodes ? 1000 : 500, () => {
+            particles.destroy();
+        });
+    }
+
+    /**
+     * Explode a barrel target (temporary removal + respawn)
+     */
+    explodeTarget(target) {
+        const originalX = target.x;
+        const originalY = target.y;
+
+        // Hide target
+        target.setVisible(false);
+        target.setActive(false);
+        target.body.enable = false;
+
+        // Screen shake for explosion
+        this.cameras.main.shake(200, 0.01);
+
+        // Respawn after 3 seconds
+        this.time.delayedCall(3000, () => {
+            if (target && target.scene) {
+                target.setPosition(originalX, originalY);
+                target.setVisible(true);
+                target.setActive(true);
+                target.body.enable = true;
+                target.setAlpha(0);
+                this.tweens.add({
+                    targets: target,
+                    alpha: 1,
+                    duration: 500
+                });
+            }
+        });
+    }
+
+    /**
+     * Flash effect for moving target hit
+     */
+    flashTarget(target) {
+        // Quick flash sequence
+        this.tweens.add({
+            targets: target,
+            alpha: { from: 1, to: 0.2 },
+            duration: 100,
+            yoyo: true,
+            repeat: 3
+        });
+    }
+
+    /**
+     * Wobble effect for static target hit
+     */
+    wobbleTarget(target) {
+        // Store original position
+        const originalX = target.x;
+
+        // Wobble animation
+        this.tweens.add({
+            targets: target,
+            x: { from: originalX - 5, to: originalX + 5 },
+            duration: 50,
+            yoyo: true,
+            repeat: 4,
+            onComplete: () => {
+                target.x = originalX;
+            }
+        });
+    }
+
+    /**
+     * Check if player is in target range area
+     */
+    checkTargetRangeProximity() {
+        if (!this.player || !this.sanctuaryZones) return;
+
+        const zone = this.sanctuaryZones.zones?.trainingGrounds;
+        if (!zone) return;
+
+        const inRange = this.player.x >= zone.bounds.x &&
+                        this.player.x <= zone.bounds.x + zone.bounds.width &&
+                        this.player.y >= zone.bounds.y &&
+                        this.player.y <= zone.bounds.y + zone.bounds.height;
+
+        if (inRange !== this.nearTargetRange) {
+            this.nearTargetRange = inRange;
+
+            // Show/hide score display
+            if (this.targetRangeScoreBg) {
+                this.targetRangeScoreBg.setVisible(inRange);
+            }
+            if (this.targetRangeScoreText) {
+                this.targetRangeScoreText.setVisible(inRange);
+            }
+
+            if (inRange) {
+                // Show hint when entering
+                this.showInteractionHint('🎯 Fire at targets to practice! Use attack button.');
+            }
         }
     }
 
@@ -6066,6 +6613,9 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        // Check target range proximity (zone-based check)
+        this.checkTargetRangeProximity();
+
         // Handle care keys (only if care system is available)
         if (this.carePanelManager) {
             if (Phaser.Input.Keyboard.JustDown(this.feedKey)) {
@@ -7826,6 +8376,18 @@ class GameScene extends Phaser.Scene {
 
         // Cleanup skill bar
         this.cleanupSkillBar();
+
+        // Cleanup target range
+        if (this.targetRangeScoreBg) {
+            this.targetRangeScoreBg.destroy();
+            this.targetRangeScoreBg = null;
+        }
+        if (this.targetRangeScoreText) {
+            this.targetRangeScoreText.destroy();
+            this.targetRangeScoreText = null;
+        }
+        this.targetRange = null;
+        this.targetGroup = null;
 
         // Cleanup roster indicator
         if (this.rosterElements) {

@@ -1633,143 +1633,160 @@ class GraphicsEngine {
      * Get seasonal foliage colors
      */
     /**
-     * Create Void Wisp enemy sprite (ghostly wisp with purple-blue glow)
+     * Create Cosmic Grazer - a gentle space herbivore (peaceful fauna)
+     * Like a cosmic cow/sheep with soft nebula patterns
      * @returns {string} Texture name
      */
     createVoidWisp() {
-        // Check if texture already exists
+        // Keep texture name for compatibility, but visual is now peaceful fauna
         if (this.scene.textures.exists('voidWisp')) {
             return 'voidWisp';
         }
 
         const graphics = this.createScratchGraphics();
-        const center = { x: 24, y: 24 };
-        const size = 48;
+        const center = { x: 32, y: 32 };
+        const size = 64;
 
-        // Outer glow layers (ethereal effect)
-        const glowLayers = [
-            { color: 0x4A0080, alpha: 0.2, radius: 22 },
-            { color: 0x6B00B3, alpha: 0.3, radius: 18 },
-            { color: 0x8B00D9, alpha: 0.4, radius: 14 }
-        ];
+        // Soft cosmic glow around the creature
+        graphics.fillStyle(0x88DDFF, 0.15);
+        graphics.fillCircle(center.x, center.y, 28);
+        graphics.fillStyle(0x66CCEE, 0.2);
+        graphics.fillCircle(center.x, center.y, 24);
 
-        glowLayers.forEach(layer => {
-            graphics.fillStyle(layer.color, layer.alpha);
-            graphics.fillCircle(center.x, center.y, layer.radius);
-        });
+        // Body - rounded fluffy shape (like a cosmic sheep)
+        graphics.fillStyle(0x5BA3C0, 0.95);  // Soft teal-blue
+        graphics.fillEllipse(center.x, center.y + 2, 20, 16);
 
-        // Main wisp body - gradient effect
-        for (let i = 0; i < 10; i++) {
-            const t = i / 9;
-            const radius = 12 - i * 1.2;
-            const alpha = 0.6 - t * 0.3;
-
-            // Purple to cyan gradient
-            const r = Math.floor(139 - (139 - 0) * t);
-            const g = Math.floor(0 + (206 - 0) * t);
-            const b = Math.floor(217 + (217 - 217) * t);
-            const color = (r << 16) | (g << 8) | b;
-
-            graphics.fillStyle(color, alpha);
-            graphics.fillCircle(center.x, center.y, radius);
+        // Fluffy texture overlay - multiple soft circles
+        const fluffColors = [0x7BBFD4, 0x8ECAE6, 0x9DD5EC];
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const dist = 8 + Math.random() * 4;
+            const fluffX = center.x + Math.cos(angle) * dist * 0.8;
+            const fluffY = center.y + 2 + Math.sin(angle) * dist * 0.6;
+            graphics.fillStyle(fluffColors[i % 3], 0.6);
+            graphics.fillCircle(fluffX, fluffY, 4 + Math.random() * 2);
         }
 
-        // Wispy tendrils (3 trailing wisps)
-        for (let i = 0; i < 3; i++) {
-            const angle = (Math.PI / 2) + (i - 1) * (Math.PI / 6);
-            const length = 10 + i * 2;
+        // Head - smaller round shape
+        graphics.fillStyle(0x6BB5CC, 0.95);
+        graphics.fillCircle(center.x, center.y - 10, 10);
 
-            for (let j = 0; j < 4; j++) {
-                const dist = length + j * 3;
-                const wispX = center.x + Math.cos(angle + Math.PI) * dist;
-                const wispY = center.y + Math.sin(angle + Math.PI) * dist;
-                const wispRadius = 3 - j * 0.5;
-                const wispAlpha = 0.4 - j * 0.1;
+        // Cute floppy ears
+        graphics.fillStyle(0x7BC5DC, 0.9);
+        graphics.fillEllipse(center.x - 12, center.y - 12, 5, 8);
+        graphics.fillEllipse(center.x + 12, center.y - 12, 5, 8);
 
-                graphics.fillStyle(0x8B00D9, wispAlpha);
-                graphics.fillCircle(wispX, wispY, wispRadius);
-            }
-        }
+        // Inner ear
+        graphics.fillStyle(0xFFB6C1, 0.5);
+        graphics.fillEllipse(center.x - 12, center.y - 12, 2, 4);
+        graphics.fillEllipse(center.x + 12, center.y - 12, 2, 4);
 
-        // Core sparkle (white center)
+        // Friendly eyes - large and gentle
+        const eyeY = center.y - 12;
+        graphics.fillStyle(0x1A1A2E, 0.9);
+        graphics.fillCircle(center.x - 4, eyeY, 3);
+        graphics.fillCircle(center.x + 4, eyeY, 3);
+
+        // Eye shine
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        graphics.fillCircle(center.x - 5, eyeY - 1, 1.5);
+        graphics.fillCircle(center.x + 3, eyeY - 1, 1.5);
+
+        // Cute nose
+        graphics.fillStyle(0xFFB6C1, 0.8);
+        graphics.fillCircle(center.x, center.y - 6, 2);
+
+        // Small legs
+        graphics.fillStyle(0x4A8FA8, 0.9);
+        graphics.fillEllipse(center.x - 10, center.y + 16, 4, 6);
+        graphics.fillEllipse(center.x + 10, center.y + 16, 4, 6);
+        graphics.fillEllipse(center.x - 5, center.y + 17, 3, 5);
+        graphics.fillEllipse(center.x + 5, center.y + 17, 3, 5);
+
+        // Sparkle effects (cosmic shimmer)
         graphics.fillStyle(0xFFFFFF, 0.8);
-        graphics.fillCircle(center.x, center.y, 3);
+        graphics.fillCircle(center.x + 15, center.y - 8, 1.5);
+        graphics.fillCircle(center.x - 18, center.y + 5, 1);
+        graphics.fillCircle(center.x + 8, center.y + 10, 1);
 
         return this.finalizeTexture(graphics, 'voidWisp', size, size);
     }
 
     /**
-     * Create Shadow Sprite enemy (darker, more solid enemy)
+     * Create Star Jellyfish - a peaceful floating luminous creature
+     * Drifts gently through the sanctuary
      * @returns {string} Texture name
      */
     createShadowSprite() {
-        // Check if texture already exists
+        // Keep texture name for compatibility, but visual is now peaceful fauna
         if (this.scene.textures.exists('shadowSprite')) {
             return 'shadowSprite';
         }
 
         const graphics = this.createScratchGraphics();
-        const center = { x: 28, y: 28 };
-        const size = 56;
+        const center = { x: 32, y: 28 };
+        const size = 64;
 
-        // Dark aura
-        graphics.fillStyle(0x0A0118, 0.4);
-        graphics.fillCircle(center.x, center.y, 24);
+        // Outer luminous glow
+        graphics.fillStyle(0xE6B3FF, 0.15);
+        graphics.fillCircle(center.x, center.y, 28);
+        graphics.fillStyle(0xD4A3EE, 0.2);
+        graphics.fillCircle(center.x, center.y, 22);
 
-        // Main body - rounded shape
-        graphics.fillStyle(0x1A0A2E, 0.9);
-        graphics.fillEllipse(center.x, center.y, 18, 20);
+        // Main bell/dome - soft lavender jellyfish
+        graphics.fillStyle(0xDDA0DD, 0.85);  // Plum
+        graphics.fillEllipse(center.x, center.y - 4, 18, 14);
 
-        // Shadow gradient layers
-        for (let i = 0; i < 6; i++) {
-            const t = i / 5;
-            const width = 18 - i * 2;
-            const height = 20 - i * 2.5;
-            const alpha = 0.9 - t * 0.4;
+        // Bell gradient layers for depth
+        const bellColors = [
+            { color: 0xE6B8E6, alpha: 0.7, scale: 0.85 },
+            { color: 0xF0D0F0, alpha: 0.5, scale: 0.7 },
+            { color: 0xFFE8FF, alpha: 0.4, scale: 0.5 }
+        ];
+        bellColors.forEach(layer => {
+            graphics.fillStyle(layer.color, layer.alpha);
+            graphics.fillEllipse(center.x, center.y - 6, 18 * layer.scale, 14 * layer.scale);
+        });
 
-            // Gradient from dark purple to near-black
-            const r = Math.floor(26 - 26 * t);
-            const g = Math.floor(10 - 10 * t);
-            const b = Math.floor(46 - 46 * t);
-            const color = (r << 16) | (g << 8) | b;
+        // Internal pattern (subtle organ-like shapes)
+        graphics.fillStyle(0xBA55D3, 0.3);
+        graphics.fillCircle(center.x - 5, center.y - 4, 3);
+        graphics.fillCircle(center.x + 5, center.y - 4, 3);
+        graphics.fillCircle(center.x, center.y, 4);
 
-            graphics.fillStyle(color, alpha);
-            graphics.fillEllipse(center.x, center.y, width, height);
+        // Flowing tentacles - graceful trailing appendages
+        const tentacleColors = [0xDDA0DD, 0xE6B8E6, 0xD8BFD8, 0xEE82EE, 0xDA70D6];
+        for (let i = 0; i < 7; i++) {
+            const baseX = center.x - 12 + i * 4;
+            const color = tentacleColors[i % tentacleColors.length];
+
+            // Draw wavy tentacle with segments
+            for (let j = 0; j < 8; j++) {
+                const segY = center.y + 6 + j * 3;
+                const wave = Math.sin(j * 0.7 + i * 0.5) * 3;
+                const segAlpha = 0.8 - j * 0.08;
+                const segSize = 2.5 - j * 0.25;
+
+                graphics.fillStyle(color, Math.max(segAlpha, 0.1));
+                graphics.fillCircle(baseX + wave, segY, Math.max(segSize, 0.5));
+            }
         }
 
-        // Sinister eyes (glowing red)
-        const eyeY = center.y - 4;
-        const eyeSpacing = 8;
+        // Bioluminescent spots on bell
+        graphics.fillStyle(0xFFFFFF, 0.9);
+        graphics.fillCircle(center.x - 7, center.y - 8, 2);
+        graphics.fillCircle(center.x + 7, center.y - 8, 2);
+        graphics.fillCircle(center.x, center.y - 4, 1.5);
+        graphics.fillCircle(center.x - 4, center.y - 12, 1);
+        graphics.fillCircle(center.x + 4, center.y - 12, 1);
 
-        // Left eye
-        graphics.fillStyle(0xFF0000, 0.8);
-        graphics.fillCircle(center.x - eyeSpacing / 2, eyeY, 3);
-        graphics.fillStyle(0xFF4444, 0.6);
-        graphics.fillCircle(center.x - eyeSpacing / 2, eyeY, 4);
-
-        // Right eye
-        graphics.fillStyle(0xFF0000, 0.8);
-        graphics.fillCircle(center.x + eyeSpacing / 2, eyeY, 3);
-        graphics.fillStyle(0xFF4444, 0.6);
-        graphics.fillCircle(center.x + eyeSpacing / 2, eyeY, 4);
-
-        // Eye glow
-        graphics.fillStyle(0xFFFFFF, 1.0);
-        graphics.fillCircle(center.x - eyeSpacing / 2, eyeY, 1.5);
-        graphics.fillCircle(center.x + eyeSpacing / 2, eyeY, 1.5);
-
-        // Dark tendrils at bottom
-        for (let i = 0; i < 4; i++) {
-            const tendrilX = center.x - 9 + i * 6;
-            const tendrilY = center.y + 12;
-
-            graphics.fillStyle(0x16213E, 0.7);
-            graphics.fillRect(tendrilX, tendrilY, 3, 8);
-
-            // Fade effect
-            graphics.fillStyle(0x16213E, 0.4);
-            graphics.fillRect(tendrilX, tendrilY + 8, 3, 4);
-        }
+        // Gentle sparkles around
+        graphics.fillStyle(0xFFE4FF, 0.6);
+        graphics.fillCircle(center.x - 14, center.y - 10, 1);
+        graphics.fillCircle(center.x + 16, center.y - 6, 1);
+        graphics.fillCircle(center.x + 4, center.y + 18, 1);
+        graphics.fillCircle(center.x - 8, center.y + 14, 1);
 
         return this.finalizeTexture(graphics, 'shadowSprite', size, size);
     }
@@ -2660,6 +2677,303 @@ class GraphicsEngine {
         graphics.fillCircle(centerX + 3, height - 58, 1);
 
         return this.finalizeTexture(graphics, 'campfire', width, height);
+    }
+
+    /**
+     * Create bullseye target for the shooting range
+     * @returns {string} - Texture name
+     */
+    createTargetBullseye() {
+        if (this.scene.textures.exists('targetBullseye')) {
+            return 'targetBullseye';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 64;
+        const height = 80;
+        const centerX = width / 2;
+        const targetY = 25;
+
+        // Wooden post
+        graphics.fillStyle(0x5D4037, 1);
+        graphics.fillRect(centerX - 6, targetY + 20, 12, 35);
+        graphics.fillStyle(0x4E342E, 1);
+        graphics.fillRect(centerX - 4, targetY + 20, 2, 35);
+
+        // Post base
+        graphics.fillStyle(0x3E2723, 1);
+        graphics.fillEllipse(centerX, height - 8, 16, 6);
+
+        // Target backing (white)
+        graphics.fillStyle(0xFAFAFA, 1);
+        graphics.fillCircle(centerX, targetY, 22);
+
+        // Red outer ring
+        graphics.fillStyle(0xE53935, 1);
+        graphics.fillCircle(centerX, targetY, 20);
+
+        // White ring
+        graphics.fillStyle(0xFAFAFA, 1);
+        graphics.fillCircle(centerX, targetY, 15);
+
+        // Red inner ring
+        graphics.fillStyle(0xE53935, 1);
+        graphics.fillCircle(centerX, targetY, 10);
+
+        // White inner ring
+        graphics.fillStyle(0xFAFAFA, 1);
+        graphics.fillCircle(centerX, targetY, 5);
+
+        // Bullseye (gold center)
+        graphics.fillStyle(0xFFD700, 1);
+        graphics.fillCircle(centerX, targetY, 3);
+
+        // Highlight shine
+        graphics.fillStyle(0xFFFFFF, 0.4);
+        graphics.fillCircle(centerX - 6, targetY - 6, 4);
+
+        return this.finalizeTexture(graphics, 'targetBullseye', width, height);
+    }
+
+    /**
+     * Create practice dummy for the shooting range
+     * @returns {string} - Texture name
+     */
+    createTargetDummy() {
+        if (this.scene.textures.exists('targetDummy')) {
+            return 'targetDummy';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 48;
+        const height = 80;
+        const centerX = width / 2;
+
+        // Wooden stand
+        graphics.fillStyle(0x5D4037, 1);
+        graphics.fillRect(centerX - 4, 55, 8, 20);
+
+        // Stand base
+        graphics.fillStyle(0x3E2723, 1);
+        graphics.fillEllipse(centerX, height - 6, 18, 6);
+
+        // Body (straw/burlap sack)
+        graphics.fillStyle(0xC4A35A, 1);
+        graphics.fillEllipse(centerX, 40, 16, 22);
+
+        // Burlap texture lines
+        graphics.lineStyle(1, 0xA68949, 0.5);
+        graphics.lineBetween(centerX - 10, 30, centerX - 10, 55);
+        graphics.lineBetween(centerX, 25, centerX, 58);
+        graphics.lineBetween(centerX + 10, 30, centerX + 10, 55);
+
+        // Head (smaller sack)
+        graphics.fillStyle(0xC4A35A, 1);
+        graphics.fillCircle(centerX, 16, 12);
+
+        // Face drawn on (X eyes, stitched mouth)
+        graphics.lineStyle(2, 0x5D4037, 0.8);
+        // X left eye
+        graphics.lineBetween(centerX - 8, 12, centerX - 4, 16);
+        graphics.lineBetween(centerX - 8, 16, centerX - 4, 12);
+        // X right eye
+        graphics.lineBetween(centerX + 4, 12, centerX + 8, 16);
+        graphics.lineBetween(centerX + 4, 16, centerX + 8, 12);
+        // Stitched mouth
+        graphics.lineStyle(1.5, 0x5D4037, 0.8);
+        graphics.lineBetween(centerX - 5, 22, centerX + 5, 22);
+        graphics.lineBetween(centerX - 3, 20, centerX - 3, 24);
+        graphics.lineBetween(centerX + 3, 20, centerX + 3, 24);
+
+        // Arms (sticks)
+        graphics.lineStyle(3, 0x5D4037, 1);
+        graphics.lineBetween(centerX - 16, 35, centerX - 4, 38);
+        graphics.lineBetween(centerX + 16, 35, centerX + 4, 38);
+
+        // Target painted on body (red circle)
+        graphics.lineStyle(2, 0xE53935, 0.8);
+        graphics.strokeCircle(centerX, 42, 8);
+        graphics.fillStyle(0xE53935, 0.6);
+        graphics.fillCircle(centerX, 42, 4);
+
+        return this.finalizeTexture(graphics, 'targetDummy', width, height);
+    }
+
+    /**
+     * Create barrel target for the shooting range
+     * @returns {string} - Texture name
+     */
+    createTargetBarrel() {
+        if (this.scene.textures.exists('targetBarrel')) {
+            return 'targetBarrel';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 40;
+        const height = 50;
+        const centerX = width / 2;
+
+        // Barrel body
+        graphics.fillStyle(0x8D6E63, 1);
+        // Curved barrel shape (wider in middle)
+        graphics.fillRect(centerX - 12, 10, 24, 35);
+
+        // Barrel curves (bulge)
+        graphics.fillStyle(0x8D6E63, 1);
+        graphics.fillEllipse(centerX, 12, 14, 4);
+        graphics.fillEllipse(centerX, 43, 14, 4);
+
+        // Metal bands
+        graphics.fillStyle(0x424242, 1);
+        graphics.fillRect(centerX - 14, 14, 28, 4);
+        graphics.fillRect(centerX - 14, 37, 28, 4);
+
+        // Metal band rivets
+        graphics.fillStyle(0x616161, 1);
+        graphics.fillCircle(centerX - 10, 16, 2);
+        graphics.fillCircle(centerX + 10, 16, 2);
+        graphics.fillCircle(centerX - 10, 39, 2);
+        graphics.fillCircle(centerX + 10, 39, 2);
+
+        // Wood grain lines
+        graphics.lineStyle(1, 0x6D4C41, 0.3);
+        graphics.lineBetween(centerX - 6, 12, centerX - 6, 42);
+        graphics.lineBetween(centerX + 6, 12, centerX + 6, 42);
+
+        // Barrel top
+        graphics.fillStyle(0x795548, 1);
+        graphics.fillEllipse(centerX, 10, 12, 5);
+
+        // Highlight
+        graphics.fillStyle(0xA1887F, 0.4);
+        graphics.fillRect(centerX - 8, 18, 4, 18);
+
+        // Explosive mark (danger symbol)
+        graphics.fillStyle(0xFFA000, 0.9);
+        graphics.fillTriangle(centerX, 20, centerX - 6, 32, centerX + 6, 32);
+        graphics.fillStyle(0x000000, 0.8);
+        graphics.fillCircle(centerX, 28, 2);
+
+        return this.finalizeTexture(graphics, 'targetBarrel', width, height);
+    }
+
+    /**
+     * Create shooting range sign
+     * @returns {string} - Texture name
+     */
+    createTargetRangeSign() {
+        if (this.scene.textures.exists('targetRangeSign')) {
+            return 'targetRangeSign';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 100;
+        const height = 70;
+        const centerX = width / 2;
+
+        // Sign posts
+        graphics.fillStyle(0x5D4037, 1);
+        graphics.fillRect(15, 35, 6, 35);
+        graphics.fillRect(width - 21, 35, 6, 35);
+
+        // Sign board
+        graphics.fillStyle(0x795548, 1);
+        graphics.fillRoundedRect(5, 8, 90, 35, 5);
+
+        // Sign border
+        graphics.lineStyle(2, 0x5D4037, 1);
+        graphics.strokeRoundedRect(5, 8, 90, 35, 5);
+
+        // Text background highlight
+        graphics.fillStyle(0x8D6E63, 0.5);
+        graphics.fillRoundedRect(10, 12, 80, 27, 3);
+
+        // Target icon (small bullseye)
+        graphics.fillStyle(0xE53935, 1);
+        graphics.fillCircle(25, 25, 8);
+        graphics.fillStyle(0xFAFAFA, 1);
+        graphics.fillCircle(25, 25, 5);
+        graphics.fillStyle(0xE53935, 1);
+        graphics.fillCircle(25, 25, 2);
+
+        // "RANGE" text approximation using shapes
+        // R
+        graphics.fillStyle(0xFAFAFA, 0.9);
+        graphics.fillRect(40, 18, 2, 12);
+        graphics.fillRect(40, 18, 6, 2);
+        graphics.fillRect(40, 23, 5, 2);
+        graphics.fillRect(44, 18, 2, 7);
+        // A
+        graphics.fillRect(49, 18, 2, 12);
+        graphics.fillRect(54, 18, 2, 12);
+        graphics.fillRect(49, 18, 7, 2);
+        graphics.fillRect(49, 24, 7, 2);
+        // N
+        graphics.fillRect(59, 18, 2, 12);
+        graphics.fillRect(66, 18, 2, 12);
+        graphics.fillRect(59, 18, 9, 2);
+        // G
+        graphics.fillRect(71, 18, 2, 12);
+        graphics.fillRect(71, 18, 8, 2);
+        graphics.fillRect(71, 28, 8, 2);
+        graphics.fillRect(77, 24, 2, 6);
+        graphics.fillRect(75, 24, 4, 2);
+        // E
+        graphics.fillRect(82, 18, 2, 12);
+        graphics.fillRect(82, 18, 6, 2);
+        graphics.fillRect(82, 23, 5, 2);
+        graphics.fillRect(82, 28, 6, 2);
+
+        return this.finalizeTexture(graphics, 'targetRangeSign', width, height);
+    }
+
+    /**
+     * Create moving target (swinging side to side)
+     * @returns {string} - Texture name
+     */
+    createMovingTarget() {
+        if (this.scene.textures.exists('movingTarget')) {
+            return 'movingTarget';
+        }
+
+        const graphics = this.createScratchGraphics();
+        const width = 50;
+        const height = 60;
+        const centerX = width / 2;
+
+        // Chain/rope from top
+        graphics.lineStyle(2, 0x757575, 1);
+        graphics.lineBetween(centerX, 0, centerX, 15);
+
+        // Target backing plate (metal)
+        graphics.fillStyle(0x607D8B, 1);
+        graphics.fillCircle(centerX, 35, 20);
+
+        // Metal shine
+        graphics.fillStyle(0x90A4AE, 0.5);
+        graphics.fillCircle(centerX - 5, 30, 8);
+
+        // Target rings painted on
+        graphics.fillStyle(0xE53935, 1);
+        graphics.fillCircle(centerX, 35, 16);
+        graphics.fillStyle(0xFAFAFA, 1);
+        graphics.fillCircle(centerX, 35, 12);
+        graphics.fillStyle(0xE53935, 1);
+        graphics.fillCircle(centerX, 35, 8);
+        graphics.fillStyle(0xFAFAFA, 1);
+        graphics.fillCircle(centerX, 35, 4);
+
+        // Center bullseye
+        graphics.fillStyle(0xFFD700, 1);
+        graphics.fillCircle(centerX, 35, 2);
+
+        // Mounting hook at top
+        graphics.fillStyle(0x424242, 1);
+        graphics.fillCircle(centerX, 5, 4);
+        graphics.fillStyle(0x616161, 1);
+        graphics.fillCircle(centerX, 5, 2);
+
+        return this.finalizeTexture(graphics, 'movingTarget', width, height);
     }
 
     /**

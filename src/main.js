@@ -154,6 +154,29 @@ async function initializeGame() {
         try {
             GameState.init();
             console.log('✅ GameState initialized successfully');
+
+            // DEV MODE: Auto-reset creature collection to prevent stale cache issues
+            // This ensures fresh starts during development testing
+            if (import.meta.env.DEV) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const forceReset = urlParams.get('reset') === 'true';
+                const keepSave = urlParams.get('keep') === 'true';
+
+                if (forceReset) {
+                    console.log('🔧 DEV MODE: Force reset requested via ?reset=true');
+                    localStorage.removeItem('mythical_creature_save');
+                    GameState.reset();
+                    console.log('✅ DEV MODE: All game data cleared');
+                } else if (!keepSave) {
+                    // Always reset creature collection in dev mode unless ?keep=true
+                    const collection = GameState.get('creatureCollection') || [];
+                    if (collection.length > 0) {
+                        console.log(`🔧 DEV MODE: Clearing stale creature collection (${collection.length} creatures)`);
+                        console.log('   (Use ?keep=true to preserve save data)');
+                        GameState.resetCreatureCollection();
+                    }
+                }
+            }
         } catch (stateError) {
             console.error('❌ GameState initialization failed:', stateError);
             if (window.errorHandler) {

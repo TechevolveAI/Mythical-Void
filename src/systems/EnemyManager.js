@@ -1,16 +1,21 @@
 /**
- * EnemyManager - Manages enemy spawning, behavior, and combat
- * Handles enemy lifecycle, AI, and interactions with the player
+ * EnemyManager - Manages peaceful space fauna spawning and behavior
+ * These are harvestable creatures that wander the sanctuary:
+ * - voidWisp: Cosmic Grazer - gentle space herbivore (like a cosmic sheep)
+ * - shadowSprite: Star Jellyfish - peaceful floating luminous creature
+ *
+ * Fauna do NOT attack the player - they simply wander peacefully and can be
+ * interacted with to harvest coins and resources.
  */
 
 class EnemyManager {
     constructor() {
         this.initialized = false;
-        this.maxEnemies = 3; // Maximum concurrent enemies in sanctuary
-        this.spawnRadius = 300; // Minimum distance from player to spawn
-        this.despawnRadius = 800; // Maximum distance before despawn
-        this.spawnInterval = 25000; // 25 seconds between spawn attempts
-        this.enemyTypes = ['voidWisp', 'shadowSprite'];
+        this.maxEnemies = 4; // Maximum concurrent fauna in sanctuary
+        this.spawnRadius = 250; // Minimum distance from player to spawn
+        this.despawnRadius = 1000; // Maximum distance before despawn (larger world)
+        this.spawnInterval = 20000; // 20 seconds between spawn attempts
+        this.enemyTypes = ['voidWisp', 'shadowSprite']; // Cosmic Grazer, Star Jellyfish
         this.events = new Phaser.Events.EventEmitter();
     }
 
@@ -201,154 +206,163 @@ class EnemyManager {
     }
 
     /**
-     * Get enemy health by type
-     * @param {string} type - Enemy type
-     * @returns {number} Health value
+     * Get fauna harvest threshold by type (how many interactions to harvest)
+     * @param {string} type - Fauna type
+     * @returns {number} Harvest threshold value
      */
     getEnemyHealth(type) {
         switch (type) {
             case 'voidWisp':
-                return 30;
+                // Cosmic Grazer - quick to harvest
+                return 20;
             case 'shadowSprite':
-                return 50;
+                // Star Jellyfish - slightly more substantial
+                return 35;
             default:
-                return 30;
+                return 20;
         }
     }
 
     /**
-     * Get enemy damage by type
-     * @param {string} type - Enemy type
-     * @returns {number} Damage value
+     * Get fauna damage by type - ALWAYS 0 (peaceful creatures)
+     * @param {string} type - Fauna type
+     * @returns {number} Damage value (always 0)
      */
     getEnemyDamage(type) {
-        switch (type) {
-            case 'voidWisp':
-                return 5;
-            case 'shadowSprite':
-                return 8;
-            default:
-                return 5;
-        }
+        // Peaceful fauna do not attack the player
+        return 0;
     }
 
     /**
-     * Get enemy coin drop range by type
-     * @param {string} type - Enemy type
+     * Get fauna resource drop range by type (coins from harvesting)
+     * @param {string} type - Fauna type
      * @returns {object} {min, max} coin drop range
      */
     getEnemyCoinDrop(type) {
         switch (type) {
             case 'voidWisp':
-                return { min: 15, max: 30 };
+                // Cosmic Grazer - fluffy cosmic sheep, generous harvest
+                return { min: 20, max: 40 };
             case 'shadowSprite':
-                return { min: 25, max: 50 };
+                // Star Jellyfish - luminous creature, valuable essence
+                return { min: 30, max: 60 };
             default:
-                return { min: 15, max: 30 };
+                return { min: 20, max: 40 };
         }
     }
 
     /**
-     * Get enemy movement speed by type
-     * @param {string} type - Enemy type
+     * Get fauna movement speed by type (peaceful wandering speed)
+     * @param {string} type - Fauna type
      * @returns {number} Speed value
      */
     getEnemySpeed(type) {
         switch (type) {
             case 'voidWisp':
-                return 40;
+                // Cosmic Grazer - leisurely grazing pace
+                return 25;
             case 'shadowSprite':
-                return 30;
+                // Star Jellyfish - gentle drifting
+                return 20;
             default:
-                return 40;
+                return 25;
         }
     }
 
     /**
-     * Update enemy AI (wander behavior)
-     * @param {Phaser.GameObjects.Sprite} enemy - Enemy sprite
+     * Update fauna AI (peaceful wandering behavior)
+     * Fauna gently wander the sanctuary, grazing and floating peacefully
+     * @param {Phaser.GameObjects.Sprite} fauna - Fauna sprite
      * @param {number} delta - Time delta
      */
-    updateEnemyAI(enemy, delta) {
-        if (!enemy || !enemy.active || !enemy.body) return;
+    updateEnemyAI(fauna, delta) {
+        if (!fauna || !fauna.active || !fauna.body) return;
 
-        const type = enemy.getData('type');
-        const speed = enemy.getData('speed') || 40;
-        const wanderTimer = enemy.getData('wanderTimer') || 0;
-        let wanderTarget = enemy.getData('wanderTarget');
+        const type = fauna.getData('type');
+        const speed = fauna.getData('speed') || 25;
+        const wanderTimer = fauna.getData('wanderTimer') || 0;
+        let wanderTarget = fauna.getData('wanderTarget');
 
         // Update wander timer
-        enemy.setData('wanderTimer', wanderTimer + delta);
+        fauna.setData('wanderTimer', wanderTimer + delta);
 
-        // Pick new wander target every 3-5 seconds
-        if (!wanderTarget || wanderTimer > Phaser.Math.Between(3000, 5000)) {
+        // Pick new wander target every 4-7 seconds (leisurely pace)
+        if (!wanderTarget || wanderTimer > Phaser.Math.Between(4000, 7000)) {
             wanderTarget = {
-                x: enemy.x + Phaser.Math.Between(-150, 150),
-                y: enemy.y + Phaser.Math.Between(-150, 150)
+                x: fauna.x + Phaser.Math.Between(-200, 200),
+                y: fauna.y + Phaser.Math.Between(-200, 200)
             };
 
             // Keep within world bounds
-            wanderTarget.x = Phaser.Math.Clamp(wanderTarget.x, 50, this.worldWidth - 50);
-            wanderTarget.y = Phaser.Math.Clamp(wanderTarget.y, 50, this.worldHeight - 50);
+            wanderTarget.x = Phaser.Math.Clamp(wanderTarget.x, 100, this.worldWidth - 100);
+            wanderTarget.y = Phaser.Math.Clamp(wanderTarget.y, 100, this.worldHeight - 100);
 
-            enemy.setData('wanderTarget', wanderTarget);
-            enemy.setData('wanderTimer', 0);
+            fauna.setData('wanderTarget', wanderTarget);
+            fauna.setData('wanderTimer', 0);
         }
 
-        // Move toward wander target
+        // Move toward wander target at peaceful pace
         if (wanderTarget) {
-            const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, wanderTarget.x, wanderTarget.y);
+            const distance = Phaser.Math.Distance.Between(fauna.x, fauna.y, wanderTarget.x, wanderTarget.y);
 
-            if (distance > 10) {
-                const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, wanderTarget.x, wanderTarget.y);
-                enemy.body.setVelocity(
+            if (distance > 15) {
+                const angle = Phaser.Math.Angle.Between(fauna.x, fauna.y, wanderTarget.x, wanderTarget.y);
+                fauna.body.setVelocity(
                     Math.cos(angle) * speed,
                     Math.sin(angle) * speed
                 );
             } else {
-                enemy.body.setVelocity(0, 0);
+                // Rest at destination briefly
+                fauna.body.setVelocity(0, 0);
             }
         }
 
-        // Add floating animation for voidWisp
+        // Gentle floating animation for both fauna types
         if (type === 'voidWisp') {
-            const floatOffset = Math.sin(Date.now() / 500) * 2;
-            enemy.y += floatOffset * 0.016; // Smooth floating
+            // Cosmic Grazer - gentle bobbing like a grazing animal
+            const bobOffset = Math.sin(Date.now() / 800) * 1.5;
+            fauna.y += bobOffset * 0.012;
+        } else if (type === 'shadowSprite') {
+            // Star Jellyfish - graceful undulating float
+            const floatOffset = Math.sin(Date.now() / 600) * 2;
+            const swayOffset = Math.sin(Date.now() / 1200) * 0.5;
+            fauna.y += floatOffset * 0.015;
+            fauna.x += swayOffset * 0.01;
         }
     }
 
     /**
-     * Damage an enemy
-     * @param {Phaser.GameObjects.Sprite} enemy - Enemy to damage
-     * @param {number} damage - Damage amount
-     * @returns {boolean} True if enemy died
+     * Interact with fauna to harvest resources
+     * @param {Phaser.GameObjects.Sprite} fauna - Fauna to harvest from
+     * @param {number} harvestAmount - Harvest interaction amount
+     * @returns {boolean} True if fauna was fully harvested
      */
-    damageEnemy(enemy, damage) {
-        if (!enemy || !enemy.active) return false;
+    damageEnemy(fauna, harvestAmount) {
+        if (!fauna || !fauna.active) return false;
 
-        const currentHealth = enemy.getData('health') || 0;
-        const newHealth = Math.max(0, currentHealth - damage);
-        enemy.setData('health', newHealth);
+        const currentHealth = fauna.getData('health') || 0;
+        const newHealth = Math.max(0, currentHealth - harvestAmount);
+        fauna.setData('health', newHealth);
 
-        // Flash red on hit
-        enemy.setTint(0xFF0000);
-        this.scene.time.delayedCall(100, () => {
-            if (enemy.active) {
-                enemy.clearTint();
+        // Gentle glow flash on harvest interaction (not red - that's aggressive)
+        fauna.setTint(0xFFFFAA); // Warm golden glow
+        this.scene.time.delayedCall(150, () => {
+            if (fauna.active) {
+                fauna.clearTint();
             }
         });
 
-        // Play hit sound
+        // Play gentle harvest sound instead of combat sound
         if (window.AudioManager) {
-            window.AudioManager.playEnemyHit();
+            window.AudioManager.playCoinCollect(); // Gentle chime for harvesting
         }
 
-        // Emit damage event
-        this.events.emit('enemyDamaged', { enemy, damage, newHealth });
+        // Emit harvest event
+        this.events.emit('enemyDamaged', { enemy: fauna, damage: harvestAmount, newHealth });
 
-        // Check if dead
+        // Check if fully harvested
         if (newHealth <= 0) {
-            this.killEnemy(enemy);
+            this.killEnemy(fauna);
             return true;
         }
 
@@ -356,23 +370,23 @@ class EnemyManager {
     }
 
     /**
-     * Kill an enemy and drop coins
-     * @param {Phaser.GameObjects.Sprite} enemy - Enemy to kill
+     * Complete fauna harvest - fauna floats away leaving resources
+     * @param {Phaser.GameObjects.Sprite} fauna - Fauna that was harvested
      */
-    killEnemy(enemy) {
-        if (!enemy) return;
+    killEnemy(fauna) {
+        if (!fauna) return;
 
-        const type = enemy.getData('type');
-        const coinMin = enemy.getData('coinDropMin') || 15;
-        const coinMax = enemy.getData('coinDropMax') || 30;
+        const type = fauna.getData('type');
+        const coinMin = fauna.getData('coinDropMin') || 20;
+        const coinMax = fauna.getData('coinDropMax') || 40;
         const coinDrop = Phaser.Math.Between(coinMin, coinMax);
 
-        // Add coins to economy
+        // Add coins to economy (harvested resources)
         if (window.EconomyManager) {
-            window.EconomyManager.addCoins(coinDrop, 'enemy_drop');
+            window.EconomyManager.addCoins(coinDrop, 'fauna_harvest');
         }
 
-        // Track enemy defeat for quests
+        // Track harvest for quests
         if (window.QuestManager) {
             const currentBiome = this.scene?.currentBiome || 'nebula';
             window.QuestManager.trackProgress('defeat_enemies', {
@@ -382,25 +396,31 @@ class EnemyManager {
             window.QuestManager.trackProgress('collect_coins', { amount: coinDrop });
         }
 
-        // Death animation
+        // Magical harvest animation - fauna floats upward and fades peacefully
         this.scene.tweens.add({
-            targets: enemy,
+            targets: fauna,
             alpha: 0,
-            scaleX: 0.5,
-            scaleY: 0.5,
-            angle: 360,
-            duration: 400,
-            ease: 'Power2',
+            y: fauna.y - 60,  // Float upward
+            scaleX: 1.3,      // Expand gently
+            scaleY: 1.3,
+            duration: 800,
+            ease: 'Sine.easeOut',
             onComplete: () => {
-                enemy.setActive(false);
-                enemy.setVisible(false);
+                fauna.setActive(false);
+                fauna.setVisible(false);
             }
         });
 
-        // Broadcast calming event for sparkles/particles
-        this.events.emit('wispCalmed', { enemy, type, coinDrop, x: enemy.x, y: enemy.y });
+        // Play gentle harvest complete sound
+        if (window.AudioManager) {
+            window.AudioManager.playAchievement(); // Satisfying completion chime
+        }
 
-        console.log(`[EnemyManager] ${type} calmed. Shared ${coinDrop} cozy coins`);
+        // Broadcast harvest event for sparkles/particles
+        this.events.emit('wispCalmed', { enemy: fauna, type, coinDrop, x: fauna.x, y: fauna.y });
+
+        const faunaName = type === 'voidWisp' ? 'Cosmic Grazer' : 'Star Jellyfish';
+        console.log(`[EnemyManager] ${faunaName} harvested! Gained ${coinDrop} cosmic essence`);
     }
 
     /**

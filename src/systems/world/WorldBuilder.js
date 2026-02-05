@@ -219,13 +219,167 @@ class WorldBuilder {
             ease: 'Sine.easeInOut'
         });
 
-        console.log('[WorldBuilder] Created Sanctuary landmarks: crashedShip, hubPortal, voidPortal, campfire');
+        // Create Target Practice Range
+        const targetRange = this.createTargetRange(landmarks.targetRange);
+
+        console.log('[WorldBuilder] Created Sanctuary landmarks: crashedShip, hubPortal, voidPortal, campfire, targetRange');
 
         return {
             crashedShip,
             hubPortal,
             voidPortal,
-            campfire
+            campfire,
+            targetRange
+        };
+    }
+
+    /**
+     * Create the Target Practice Range area with various targets
+     * @param {object} landmarkData - Landmark position and data from SanctuaryZones
+     * @returns {object} - Object containing all target range elements
+     */
+    createTargetRange(landmarkData) {
+        const physics = this.scene.physics;
+        const centerX = landmarkData.position.x;
+        const centerY = landmarkData.position.y;
+
+        // Create range sign
+        this.graphicsEngine.createTargetRangeSign();
+        const rangeSign = this.scene.add.sprite(centerX - 120, centerY - 80, 'targetRangeSign');
+        rangeSign.setScale(1.0);
+        rangeSign.setDepth(centerY - 100);
+
+        // Create static bullseye targets (3 at different heights)
+        this.graphicsEngine.createTargetBullseye();
+        const targets = [];
+
+        const targetPositions = [
+            { x: centerX - 80, y: centerY - 20, points: 10 },
+            { x: centerX, y: centerY - 40, points: 25 },
+            { x: centerX + 80, y: centerY - 10, points: 10 }
+        ];
+
+        targetPositions.forEach((pos, index) => {
+            const target = physics.add.staticSprite(pos.x, pos.y, 'targetBullseye');
+            target.setScale(0.9);
+            target.setDepth(pos.y);
+            target.body.setSize(40, 40);
+            target.body.setOffset(12, 15);
+            target.setData('type', 'bullseye');
+            target.setData('points', pos.points);
+            target.setData('targetIndex', index);
+            targets.push(target);
+        });
+
+        // Create practice dummies (2)
+        this.graphicsEngine.createTargetDummy();
+        const dummies = [];
+
+        const dummyPositions = [
+            { x: centerX - 40, y: centerY + 40, points: 15 },
+            { x: centerX + 50, y: centerY + 50, points: 15 }
+        ];
+
+        dummyPositions.forEach((pos, index) => {
+            const dummy = physics.add.staticSprite(pos.x, pos.y, 'targetDummy');
+            dummy.setScale(1.0);
+            dummy.setDepth(pos.y);
+            dummy.body.setSize(36, 60);
+            dummy.body.setOffset(6, 15);
+            dummy.setData('type', 'dummy');
+            dummy.setData('points', pos.points);
+            dummy.setData('targetIndex', index);
+            dummies.push(dummy);
+        });
+
+        // Create exploding barrels (2)
+        this.graphicsEngine.createTargetBarrel();
+        const barrels = [];
+
+        const barrelPositions = [
+            { x: centerX - 100, y: centerY + 60, points: 50, explodes: true },
+            { x: centerX + 100, y: centerY + 30, points: 50, explodes: true }
+        ];
+
+        barrelPositions.forEach((pos, index) => {
+            const barrel = physics.add.staticSprite(pos.x, pos.y, 'targetBarrel');
+            barrel.setScale(1.0);
+            barrel.setDepth(pos.y);
+            barrel.body.setSize(32, 40);
+            barrel.body.setOffset(4, 8);
+            barrel.setData('type', 'barrel');
+            barrel.setData('points', pos.points);
+            barrel.setData('explodes', pos.explodes);
+            barrel.setData('targetIndex', index);
+            barrels.push(barrel);
+        });
+
+        // Create moving target (swinging)
+        this.graphicsEngine.createMovingTarget();
+        const movingTarget = physics.add.staticSprite(centerX + 30, centerY - 60, 'movingTarget');
+        movingTarget.setScale(0.8);
+        movingTarget.setDepth(centerY - 80);
+        movingTarget.body.setSize(35, 35);
+        movingTarget.body.setOffset(8, 18);
+        movingTarget.setData('type', 'moving');
+        movingTarget.setData('points', 100);
+        movingTarget.setData('isMoving', true);
+
+        // Add swinging animation to moving target
+        this.scene.tweens.add({
+            targets: movingTarget,
+            x: { from: centerX - 40, to: centerX + 100 },
+            duration: 2500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Create range boundary markers (decorative)
+        const boundaryGraphics = this.scene.add.graphics();
+        boundaryGraphics.lineStyle(2, 0xFF6B6B, 0.4);
+        boundaryGraphics.strokeRect(centerX - 140, centerY - 100, 280, 200);
+        boundaryGraphics.setDepth(1);
+
+        // Add "DANGER ZONE" corner markers
+        const markerPositions = [
+            { x: centerX - 140, y: centerY - 100 },
+            { x: centerX + 140, y: centerY - 100 },
+            { x: centerX - 140, y: centerY + 100 },
+            { x: centerX + 140, y: centerY + 100 }
+        ];
+
+        markerPositions.forEach(pos => {
+            const marker = this.scene.add.graphics();
+            marker.fillStyle(0xFF6B6B, 0.6);
+            marker.fillTriangle(pos.x, pos.y, pos.x + 15, pos.y, pos.x, pos.y + 15);
+            marker.setDepth(2);
+        });
+
+        // Store reference for interaction handling
+        const allTargets = [...targets, ...dummies, ...barrels, movingTarget];
+
+        // Add interactive glow effect on hover for all targets
+        allTargets.forEach(target => {
+            target.setInteractive();
+            target.on('pointerover', () => {
+                target.setTint(0xFFFF00);
+            });
+            target.on('pointerout', () => {
+                target.clearTint();
+            });
+        });
+
+        console.log('[WorldBuilder] Created Target Range with', allTargets.length, 'targets');
+
+        return {
+            sign: rangeSign,
+            targets,
+            dummies,
+            barrels,
+            movingTarget,
+            allTargets,
+            boundary: boundaryGraphics
         };
     }
 

@@ -1662,6 +1662,9 @@ class PlatformerLevelScene extends Phaser.Scene {
     update(time, delta) {
         if (!this.player || this.isPlayerDead) return;
 
+        // Anti-stuck detection: Check if player is embedded in ground and rescue them
+        this.checkAndFixStuckPlayer();
+
         // Check if grounded
         this.isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
 
@@ -2458,6 +2461,76 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Update last safe position (called when grounded)
      * Only updates if player has moved significantly from last position
      */
+    /**
+     * Check if player is stuck in the ground and rescue them
+     * This handles edge cases where physics collision pushes player into solid geometry
+     */
+    checkAndFixStuckPlayer() {
+        if (!this.player || !this.player.body) return;
+
+        const body = this.player.body;
+
+        // Detect if player is stuck: velocity is zero but they're embedded in ground
+        // Signs of being stuck:
+        // 1. Very low velocity (can't move)
+        // 2. Blocked on multiple sides (embedded)
+        // 3. Not recently spawning/respawning
+        const isStuck = (
+            Math.abs(body.velocity.x) < 5 &&
+            Math.abs(body.velocity.y) < 5 &&
+            body.blocked.down &&
+            (body.blocked.left || body.blocked.right) &&
+            !this.isRespawning &&
+            !this.isPlayerDead
+        );
+
+        // Track stuck frames
+        if (!this.stuckFrameCount) {
+            this.stuckFrameCount = 0;
+        }
+
+        if (isStuck) {
+            this.stuckFrameCount++;
+
+            // If stuck for more than 30 frames (~0.5 seconds), rescue the player
+            if (this.stuckFrameCount > 30) {
+                console.warn('[PlatformerLevel] Player appears stuck - attempting rescue');
+
+                // Push player up and slightly to the side they're not blocked
+                const pushX = body.blocked.left ? 50 : (body.blocked.right ? -50 : 0);
+                const pushY = -100; // Always push up
+
+                this.player.setPosition(
+                    this.player.x + pushX,
+                    this.player.y + pushY
+                );
+                this.player.setVelocity(pushX * 2, pushY);
+
+                // Reset stuck counter
+                this.stuckFrameCount = 0;
+
+                // Brief invincibility to prevent immediate re-collision
+                this.isInvincible = true;
+                this.time.delayedCall(500, () => {
+                    this.isInvincible = false;
+                });
+
+                console.log('[PlatformerLevel] Player rescued from stuck position');
+            }
+        } else {
+            // Reset counter when not stuck
+            this.stuckFrameCount = 0;
+        }
+
+        // Also check for embedded in ground (body overlapping with tiles significantly)
+        // If player's feet are below the ground level they're standing on
+        if (body.blocked.down && body.embedded) {
+            console.warn('[PlatformerLevel] Player embedded detected - pushing up');
+            this.player.setPosition(this.player.x, this.player.y - 20);
+            this.player.setVelocityY(-50);
+        }
+    }
+
     updateLastSafePosition() {
         const currentPos = { x: this.player.x, y: this.player.y };
 

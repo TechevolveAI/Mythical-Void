@@ -2175,8 +2175,8 @@ export default class CreatureProfileScene extends Phaser.Scene {
             // Clean up dialog
             dialogElements.forEach(el => el.destroy());
 
-            // Show farewell message briefly then go back
-            this.showReleaseFarewell(result.name);
+            // Show dramatic farewell scene
+            this.showReleaseFarewell(result.name, data);
         } else {
             console.error('[CreatureProfileScene] Failed to release creature');
             dialogElements.forEach(el => el.destroy());
@@ -2184,45 +2184,221 @@ export default class CreatureProfileScene extends Phaser.Scene {
     }
 
     /**
-     * Show farewell message after releasing creature
+     * Show dramatic farewell scene after releasing creature
+     * This is emotional and makes it clear the creature is GONE FOREVER
      */
-    showReleaseFarewell(creatureName) {
+    showReleaseFarewell(creatureName, creatureData) {
         const { width, height } = this.scale;
 
+        // Play sad/melancholic farewell music
+        this.playSadFarewellSound();
+
+        // Dark overlay with slow fade in
         const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.9);
+        overlay.fillStyle(0x000000, 0);
         overlay.fillRect(0, 0, width, height);
         overlay.setDepth(200);
 
-        const message = this.add.text(width / 2, height / 2 - 30, `🕊️ Farewell, ${creatureName}!`, {
-            fontSize: this.isMobile ? '24px' : '28px',
-            color: '#FFD700',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(201);
-
-        const subMessage = this.add.text(width / 2, height / 2 + 20,
-            'May the cosmos guide them on their journey...', {
-            fontSize: '14px',
-            color: '#AAAAAA'
-        }).setOrigin(0.5).setDepth(201);
-
-        // Fade out and go back to game
         this.tweens.add({
-            targets: [overlay, message, subMessage],
-            alpha: 0,
-            duration: 2000,
-            delay: 1500,
-            onComplete: () => {
-                overlay.destroy();
-                message.destroy();
-                subMessage.destroy();
-                this.scene.start('GameScene');
-            }
+            targets: overlay,
+            fillAlpha: 0.95,
+            duration: 1500
         });
 
-        // Play a gentle sound
-        if (window.AudioManager) {
-            window.AudioManager.playAchievement();
+        // Create creature sprite one last time (centered, large)
+        let creatureSprite = null;
+        const textureKey = creatureData?.textureName || window.GameState?.get('creature.textureName');
+        if (textureKey && this.textures.exists(textureKey)) {
+            creatureSprite = this.add.sprite(width / 2, height * 0.35, textureKey);
+            creatureSprite.setScale(2.5);
+            creatureSprite.setDepth(201);
+            creatureSprite.setAlpha(0);
+
+            // Fade in creature
+            this.tweens.add({
+                targets: creatureSprite,
+                alpha: 1,
+                duration: 1000,
+                delay: 500
+            });
+        }
+
+        // Main farewell text - appears after creature
+        const farewellText = this.add.text(width / 2, height * 0.55, `Farewell, ${creatureName}...`, {
+            fontSize: this.isMobile ? '28px' : '36px',
+            color: '#B0C4DE',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(201).setAlpha(0);
+
+        this.tweens.add({
+            targets: farewellText,
+            alpha: 1,
+            duration: 1500,
+            delay: 1500
+        });
+
+        // Emotional sub-messages that appear sequentially
+        const messages = [
+            { text: 'They will return to the cosmic void...', delay: 3000 },
+            { text: 'Carrying the memories of your time together.', delay: 4500 },
+            { text: '💔 This farewell is forever.', delay: 6000, color: '#FF6B6B' },
+            { text: 'May the stars guide their eternal journey.', delay: 7500 }
+        ];
+
+        const messageElements = [];
+
+        messages.forEach((msg, index) => {
+            const msgText = this.add.text(width / 2, height * 0.65 + index * 35, msg.text, {
+                fontSize: '16px',
+                color: msg.color || '#888888',
+                fontStyle: msg.color ? 'bold' : 'normal'
+            }).setOrigin(0.5).setDepth(201).setAlpha(0);
+
+            messageElements.push(msgText);
+
+            this.tweens.add({
+                targets: msgText,
+                alpha: 1,
+                duration: 1000,
+                delay: msg.delay
+            });
+        });
+
+        // Create floating particles rising upward (soul leaving)
+        this.time.delayedCall(2000, () => {
+            this.createFarewellParticles(width / 2, height * 0.35);
+        });
+
+        // Creature slowly floats up and fades (ascending to cosmos)
+        if (creatureSprite) {
+            this.tweens.add({
+                targets: creatureSprite,
+                y: -100,
+                alpha: 0,
+                scale: 0.5,
+                duration: 5000,
+                delay: 4000,
+                ease: 'Sine.easeIn'
+            });
+        }
+
+        // Final message and transition
+        const finalMessage = this.add.text(width / 2, height * 0.85,
+            '🕊️ Touch anywhere to continue...', {
+            fontSize: '14px',
+            color: '#666666'
+        }).setOrigin(0.5).setDepth(201).setAlpha(0);
+
+        this.tweens.add({
+            targets: finalMessage,
+            alpha: 1,
+            duration: 1000,
+            delay: 9000
+        });
+
+        // Allow tap to continue after the emotional moment
+        this.time.delayedCall(9000, () => {
+            const exitZone = this.add.zone(0, 0, width, height).setOrigin(0, 0);
+            exitZone.setInteractive();
+            exitZone.setDepth(250);
+
+            exitZone.once('pointerdown', () => {
+                // Final sound
+                if (window.AudioManager) {
+                    window.AudioManager.playButtonClick();
+                }
+
+                // Fade everything out
+                this.tweens.add({
+                    targets: [overlay, farewellText, finalMessage, creatureSprite, ...messageElements],
+                    alpha: 0,
+                    duration: 1500,
+                    onComplete: () => {
+                        this.scene.start('GameScene');
+                    }
+                });
+            });
+        });
+    }
+
+    /**
+     * Play sad/melancholic farewell sound sequence
+     */
+    playSadFarewellSound() {
+        if (!window.AudioManager?.audioContext) return;
+
+        const ctx = window.AudioManager.audioContext;
+        const now = ctx.currentTime;
+
+        // Sad descending melody (minor key)
+        const notes = [
+            { freq: 440, time: 0, duration: 0.8 },      // A4
+            { freq: 392, time: 0.9, duration: 0.8 },    // G4
+            { freq: 349, time: 1.8, duration: 0.8 },    // F4
+            { freq: 330, time: 2.7, duration: 1.2 },    // E4 (held)
+            { freq: 294, time: 4.0, duration: 1.5 },    // D4 (final, fading)
+        ];
+
+        notes.forEach(note => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.value = note.freq;
+
+            gain.gain.setValueAtTime(0, now + note.time);
+            gain.gain.linearRampToValueAtTime(0.15, now + note.time + 0.1);
+            gain.gain.linearRampToValueAtTime(0, now + note.time + note.duration);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now + note.time);
+            osc.stop(now + note.time + note.duration + 0.1);
+        });
+    }
+
+    /**
+     * Create ascending farewell particles (soul leaving)
+     */
+    createFarewellParticles(x, y) {
+        const colors = [0xB0C4DE, 0x87CEEB, 0xE6E6FA, 0xFFFFFF, 0xDDA0DD];
+
+        for (let i = 0; i < 20; i++) {
+            const particle = this.add.graphics();
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const size = 2 + Math.random() * 4;
+
+            particle.fillStyle(color, 0.8);
+            particle.fillCircle(0, 0, size);
+
+            particle.setPosition(
+                x + (Math.random() - 0.5) * 100,
+                y + (Math.random() - 0.5) * 50
+            );
+            particle.setDepth(202);
+            particle.setAlpha(0);
+
+            // Fade in, float up, fade out
+            this.tweens.add({
+                targets: particle,
+                alpha: { from: 0, to: 0.8 },
+                y: particle.y - 200 - Math.random() * 150,
+                x: particle.x + (Math.random() - 0.5) * 80,
+                duration: 3000 + Math.random() * 2000,
+                delay: Math.random() * 2000,
+                ease: 'Sine.easeOut',
+                onComplete: () => {
+                    this.tweens.add({
+                        targets: particle,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => particle.destroy()
+                    });
+                }
+            });
         }
     }
 

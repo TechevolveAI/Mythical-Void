@@ -69,13 +69,13 @@ class SanctuaryZones {
                 locked: true
             },
             trainingGrounds: {
-                name: 'Training Grounds',
-                description: 'Train your creatures. (Coming Soon)',
-                bounds: { x: w - 400, y: padding, width: 300, height: 300 },
-                center: { x: w - 250, y: 200 },
-                icon: '⚔️',
+                name: 'Target Range',
+                description: 'Practice shooting at targets. Test your weapons!',
+                bounds: { x: w - 450, y: padding, width: 400, height: 350 },
+                center: { x: w - 250, y: 220 },
+                icon: '🎯',
                 color: 0xFF6B6B,
-                locked: true
+                locked: false  // Now available!
             }
         };
     }
@@ -135,6 +135,16 @@ class SanctuaryZones {
                 name: 'Void Rift',
                 description: '⚠️ DANGER! A mysterious tear in spacetime. Enter at your own risk!',
                 onInteract: 'enterVoidMiniGame'
+            },
+            targetRange: {
+                zone: 'trainingGrounds',
+                position: { x: zones.trainingGrounds.center.x, y: zones.trainingGrounds.center.y },
+                size: { width: 350, height: 300 },
+                interactable: true,
+                interactRadius: 200,
+                name: 'Target Range',
+                description: '🎯 Practice your aim! Test weapons and abilities on targets.',
+                onInteract: 'enterTargetRange'
             }
         };
     }

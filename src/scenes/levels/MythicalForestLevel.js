@@ -20,7 +20,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             key: 'MythicalForestLevel',
             levelId: 'mythical_forest_1',
             biomeId: 'mythical_forest',
-            levelWidth: 6000,  // Extended for more exploration
+            levelWidth: 8000,  // EXTENDED - longer journey to boss
             levelHeight: 1200  // Increased for vertical tree climbing
         });
 
@@ -42,7 +42,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Boss state
         this.boss = null;
         this.bossHealth = 0;
-        this.bossMaxHealth = 10;
+        this.bossMaxHealth = 50;  // INCREASED from 10 - boss should be a real challenge!
         this.bossPhase = 1;
         this.bossAttackTimer = null;
         this.bossHealthBar = null;
@@ -452,22 +452,26 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Create ground platforms with void gaps between trees
+     * Create ground platforms with LARGE void gaps that FORCE tree climbing
+     * Players CANNOT simply run across the ground - they MUST use the trees!
      */
     createGroundPlatforms() {
         const groundY = this.levelHeight - 100;
 
-        // Ground sections (with gaps for void pits)
+        // Ground sections with MAJOR gaps - impossible to jump across
+        // Each gap is 400-600px - players MUST climb trees to cross
         const groundSections = [
-            { x: 0, width: 500 },      // Starting area
-            { x: 600, width: 300 },    // After first gap
-            { x: 1000, width: 400 },   // Tree 2 area
-            { x: 1500, width: 300 },   // Bridge section
-            { x: 1900, width: 500 },   // Tree 3-4 area
-            { x: 2500, width: 400 },   // Mid-level
-            { x: 3000, width: 600 },   // Tree 4-5 area
-            { x: 3700, width: 400 },   // Approach to boss
-            { x: 4200, width: 1800 }   // Boss arena (extended)
+            { x: 0, width: 400 },       // Starting area - climb Tree 1
+            // GAP: 400-900 (500px) - MUST climb Tree 1 to cross
+            { x: 900, width: 200 },     // Small landing
+            // GAP: 1100-1700 (600px) - MUST climb Tree 2 to cross
+            { x: 1700, width: 300 },    // Mid checkpoint
+            // GAP: 2000-2600 (600px) - MUST climb Tree 3 to cross
+            { x: 2600, width: 200 },    // Small landing
+            // GAP: 2800-3500 (700px) - MUST climb Tree 4 to cross
+            { x: 3500, width: 300 },    // Pre-boss area
+            // GAP: 3800-5200 (1400px) - MUST climb Tree 5 to reach boss
+            { x: 5200, width: 2800 }    // Boss arena (extended for longer level)
         ];
 
         groundSections.forEach(section => {
@@ -510,16 +514,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     /**
      * Create warning indicators above void pits
+     * These are LARGE pits - players must use trees to cross!
      */
     createVoidPitWarnings() {
+        // Major void pits - these are IMPASSABLE by jumping
         const voidPits = [
-            { x: 550, width: 50 },
-            { x: 950, width: 50 },
-            { x: 1450, width: 50 },
-            { x: 2450, width: 50 },
-            { x: 2950, width: 50 },
-            { x: 3650, width: 50 },
-            { x: 4150, width: 50 }
+            { x: 400, width: 500 },    // Tree 1 gap - 500px
+            { x: 1100, width: 600 },   // Tree 2 gap - 600px
+            { x: 2000, width: 600 },   // Tree 3 gap - 600px
+            { x: 2800, width: 700 },   // Tree 4 gap - 700px
+            { x: 3800, width: 1400 }   // Tree 5 gap - 1400px (final approach to boss)
         ];
 
         voidPits.forEach(pit => {
@@ -559,21 +563,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
     /**
      * Create the 6 Cosmic Trees - SPACE TREES, not earth trees!
      * These are crystalline spires with bioluminescent foliage
+     * CRITICAL: Trees are positioned to span the void gaps - ONLY way to cross!
      */
     createCosmicTrees() {
         const treeConfigs = [
-            // Tree 1: Tutorial tree - easy climb
-            { x: 300, baseY: this.levelHeight - 100, height: 400, branches: 4, difficulty: 'easy' },
-            // Tree 2: Introduces swinging vines
-            { x: 1200, baseY: this.levelHeight - 100, height: 500, branches: 5, difficulty: 'medium' },
-            // Tree 3: Has enemies on branches
-            { x: 2100, baseY: this.levelHeight - 100, height: 600, branches: 6, difficulty: 'medium' },
-            // Tree 4: Central tree - tallest, spiral climb
-            { x: 3200, baseY: this.levelHeight - 100, height: 800, branches: 8, difficulty: 'hard' },
-            // Tree 5: Collapsing branches
-            { x: 4000, baseY: this.levelHeight - 100, height: 700, branches: 7, difficulty: 'hard' },
-            // Tree 6: Final climb to boss arena
-            { x: 5200, baseY: this.levelHeight - 100, height: 600, branches: 5, difficulty: 'boss' }
+            // Tree 1: Tutorial tree - spans gap at x:400-900 - MUST climb to cross
+            { x: 300, baseY: this.levelHeight - 100, height: 500, branches: 5, difficulty: 'easy' },
+            // Tree 2: Spans gap at x:1100-1700 - branches reach across
+            { x: 1000, baseY: this.levelHeight - 100, height: 600, branches: 6, difficulty: 'medium' },
+            // Tree 3: Spans gap at x:2000-2600 - has enemies on branches
+            { x: 1900, baseY: this.levelHeight - 100, height: 700, branches: 7, difficulty: 'medium' },
+            // Tree 4: Spans gap at x:2800-3500 - tallest, spiral climb
+            { x: 2700, baseY: this.levelHeight - 100, height: 850, branches: 9, difficulty: 'hard' },
+            // Tree 5: Spans gap at x:3800-4600 - challenging final approach
+            { x: 3600, baseY: this.levelHeight - 100, height: 800, branches: 8, difficulty: 'hard' },
+            // Tree 6: Boss approach tree - higher platforms for boss arena access
+            { x: 5500, baseY: this.levelHeight - 100, height: 700, branches: 6, difficulty: 'boss' }
         ];
 
         treeConfigs.forEach((config, index) => {
@@ -800,12 +805,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // === SPORE DRIFTERS: Floating AoE hazards ===
         // These float in clusters and emit damaging spores
+        // REDUCED DENSITY: Max 2 per cluster to prevent trapping player
         const sporeDrifterClusters = [
-            { x: 900, y: this.levelHeight - 400, count: 3 },
-            { x: 1800, y: this.levelHeight - 500, count: 2 },
-            { x: 2700, y: this.levelHeight - 450, count: 3 },
-            { x: 3600, y: this.levelHeight - 600, count: 4 },
-            { x: 4200, y: this.levelHeight - 400, count: 2 }
+            { x: 900, y: this.levelHeight - 400, count: 2 },
+            { x: 1800, y: this.levelHeight - 500, count: 1 },
+            { x: 2700, y: this.levelHeight - 450, count: 2 },
+            { x: 3600, y: this.levelHeight - 600, count: 2 },
+            { x: 4200, y: this.levelHeight - 400, count: 1 }
         ];
 
         sporeDrifterClusters.forEach((cluster, index) => {
@@ -1122,12 +1128,43 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     /**
      * Emit a damaging spore cloud from a drifter
+     * Now includes warning glow and knockback
      */
     emitSporeCloud(sprite) {
         if (!sprite.active || !this.scene.isActive() || !this.player) return;
 
         const distance = Phaser.Math.Distance.Between(sprite.x, sprite.y, this.player.x, this.player.y);
         if (distance > 200) return; // Only emit when player is near
+
+        // Warning glow - pulsing red/purple to telegraph the attack
+        const warning = this.add.graphics();
+        warning.lineStyle(4, 0xFF00FF, 0.8);
+        warning.strokeCircle(0, 0, sprite.sporeRadius * 0.8);
+        warning.setPosition(sprite.x, sprite.y);
+        warning.setDepth(103);
+
+        // Pulse the warning
+        this.tweens.add({
+            targets: warning,
+            scaleX: 1.3,
+            scaleY: 1.3,
+            alpha: 0.3,
+            duration: 300,
+            yoyo: true,
+            repeat: 1,
+            onComplete: () => {
+                warning.destroy();
+                // Now emit the actual cloud after warning
+                this.emitActualSporeCloud(sprite);
+            }
+        });
+    }
+
+    /**
+     * Actually emit the spore cloud after warning telegraph
+     */
+    emitActualSporeCloud(sprite) {
+        if (!sprite.active || !this.scene.isActive() || !this.player) return;
 
         // Visual spore cloud
         const cloud = this.add.graphics();
@@ -1146,9 +1183,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
             onComplete: () => cloud.destroy()
         });
 
-        // Damage check
+        // Damage and knockback check
+        const distance = Phaser.Math.Distance.Between(sprite.x, sprite.y, this.player.x, this.player.y);
         if (distance < sprite.sporeRadius) {
             this.handlePlayerDamage(1);
+
+            // Apply knockback - push player away from spore drifter
+            const angle = Phaser.Math.Angle.Between(sprite.x, sprite.y, this.player.x, this.player.y);
+            const knockbackForce = 300;
+            this.player.setVelocity(
+                Math.cos(angle) * knockbackForce,
+                Math.sin(angle) * knockbackForce - 150  // Slight upward boost to help escape
+            );
         }
 
         // Sound
@@ -1207,7 +1253,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         sprite.homeX = x;
         sprite.homeY = y;
         sprite.lastTeleportTime = 0;
-        sprite.teleportCooldown = 4000;
+        sprite.teleportCooldown = 6000;  // Increased from 4000 - teleport less often
+        sprite.isStunned = false;  // Can't teleport while stunned
 
         // Pulse animation
         this.tweens.add({
@@ -1240,19 +1287,34 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     /**
      * Forest Wisp AI - teleport around and shoot at player
+     * IMPROVED: Less frustrating - teleports less often, can be caught after shooting
      */
     updateForestWispAI(sprite) {
         if (!sprite.active || !this.player || !this.scene.isActive()) return;
 
+        // Can't act while stunned (after shooting)
+        if (sprite.isStunned) return;
+
         const distance = Phaser.Math.Distance.Between(sprite.x, sprite.y, this.player.x, this.player.y);
 
-        // Teleport if player is getting close
-        if (distance < 100 && this.time.now - sprite.lastTeleportTime > sprite.teleportCooldown) {
+        // Teleport only if player gets VERY close (reduced from 100 to 50)
+        if (distance < 50 && this.time.now - sprite.lastTeleportTime > sprite.teleportCooldown) {
             this.teleportWisp(sprite);
         }
-        // Shoot if in range
-        else if (distance < sprite.shootRange && distance > 80) {
+        // Shoot if in range - then become stunned briefly
+        else if (distance < sprite.shootRange && distance > 60) {
             this.wispShoot(sprite);
+
+            // Stun after shooting - player can catch up
+            sprite.isStunned = true;
+            sprite.setTint(0x666666);  // Dim to show vulnerability
+
+            this.time.delayedCall(2000, () => {
+                if (sprite.active) {
+                    sprite.isStunned = false;
+                    sprite.clearTint();  // Restore normal appearance
+                }
+            });
         }
     }
 
@@ -1365,10 +1427,20 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     /**
      * Handle collision between player and enemy
+     * Now includes knockback to prevent trapping
      */
     handleEnemyCollision(enemy) {
         if (this.isInvincible || this.isPlayerDead || !enemy.active) return;
+
         this.handlePlayerDamage(enemy.damage || 1);
+
+        // Apply knockback - push player away from enemy
+        const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+        const knockbackForce = 250;
+        this.player.setVelocity(
+            Math.cos(angle) * knockbackForce,
+            Math.sin(angle) * knockbackForce - 200  // Upward boost to help escape
+        );
     }
 
     /**
@@ -1691,6 +1763,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     /**
      * Collect a star fragment
+     * Properly disables and destroys pickup zone
      */
     collectStarFragment(sprite, zone, index) {
         const fragmentData = this.starFragmentSprites[index];
@@ -1698,6 +1771,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         fragmentData.collected = true;
         this.starFragmentsCollected++;
+
+        // IMMEDIATELY disable the pickup zone to prevent duplicate collection
+        if (zone.body) {
+            zone.body.enable = false;
+        }
 
         // Collection effect
         this.tweens.add({
@@ -1728,6 +1806,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             });
         }
 
+        // Destroy the zone after disabling
         zone.destroy();
 
         // Update HUD
@@ -2035,11 +2114,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     /**
      * Create the boss arena at the end of the level (around Tree 6)
+     * EXTENDED: Boss is now further into the level for longer journey
      */
     createBossArena() {
-        // Boss arena positioned around Tree 6 (x: 5200)
-        const arenaX = 4900;
-        const arenaWidth = 1100;
+        // Boss arena positioned around Tree 6 (x: 5500 in new layout)
+        const arenaX = 5200;
+        const arenaWidth = 1500;  // Larger arena for epic boss fight
         const groundY = this.levelHeight - 100;
 
         // Arena floor with cosmic glow
@@ -2051,7 +2131,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         arena.fillRect(arenaX, groundY, arenaWidth, 100);
 
         // Glowing ritual circle in center
-        const centerX = 5200; // Tree 6 location
+        const centerX = 5800; // Updated for new Tree 6 location
         arena.lineStyle(3, 0x9370DB, 0.6);
         arena.strokeCircle(centerX, groundY - 5, 120);
         arena.strokeCircle(centerX, groundY - 5, 80);
@@ -2082,8 +2162,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             arena.stroke();
         }
 
-        // Boss trigger zone - placed just before the tree
-        const triggerZone = this.add.zone(5000, groundY - 50, 100, 100);
+        // Boss trigger zone - placed just before the tree (updated position)
+        const triggerZone = this.add.zone(5600, groundY - 50, 100, 100);
         this.physics.add.existing(triggerZone, true);
 
         // Trigger boss fight when player enters
@@ -2966,50 +3046,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Handle player taking damage
+     * Handle player taking damage - delegates to base class for proper UI update
      */
     handlePlayerDamage(damage) {
-        if (this.isInvincible || this.isPlayerDead) return;
-
-        this.health -= damage;
-        this.isInvincible = true;
-
-        // Flash player
-        this.tweens.add({
-            targets: this.player,
-            alpha: 0.3,
-            duration: 100,
-            yoyo: true,
-            repeat: 5,
-            onComplete: () => {
-                if (this.player) this.player.setAlpha(1);
-                this.isInvincible = false;
-            }
-        });
-
-        // Update HUD
-        if (this.hud) {
-            this.hud.updateHealth(this.health, this.maxHealth);
-        }
-
-        // Check death
-        if (this.health <= 0) {
-            this.handlePlayerDeath();
-        }
-
-        if (window.AudioManager) {
-            window.AudioManager.playEnemyHit();
-        }
+        // Use the parent class's takeDamage which properly handles:
+        // - Health reduction
+        // - Invincibility frames
+        // - Visual feedback (flashing, knockback)
+        // - Health display update
+        // - Death handling
+        this.takeDamage(damage);
     }
 
-    /**
-     * Handle player death
-     */
-    handlePlayerDeath() {
-        this.isPlayerDead = true;
-        // TODO: Implement death screen
-        console.log('[MythicalForestLevel] Player died!');
-    }
+    // Player death is now handled by the parent class (PlatformerLevelScene.onPlayerDeath)
 
     /**
      * Handle boss taking damage - with exciting combat juice!
