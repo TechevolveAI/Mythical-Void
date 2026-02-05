@@ -206,19 +206,20 @@ export default class VictoryScene extends Phaser.Scene {
             window.AudioManager.playLevelUp?.();
         }
 
-        // Ship parts flying in from edges
+        // Ship parts flying in from edges (matches SHIP_PART_DEFINITIONS)
         const partNames = [
-            { name: 'Hull Plating', emoji: '🛡️', color: 0x4169E1 },
-            { name: 'Aurora Reactor', emoji: '⚡', color: 0x00FFFF },
-            { name: 'Forest Core', emoji: '🌿', color: 0x32CD32 },
-            { name: 'Command Module', emoji: '🎯', color: 0xFFD700 }
+            { name: 'Crystal Core', emoji: '🔮', color: 0x7B68EE },
+            { name: 'Dimensional Drive', emoji: '⚙️', color: 0x1E90FF },
+            { name: 'Forest Core', emoji: '🌳', color: 0x32CD32 },
+            { name: 'Aurora Reactor', emoji: '✨', color: 0x00FFFF },
+            { name: 'Command Module', emoji: '👑', color: 0xFFD700 }
         ];
 
         const centerX = width / 2;
         const centerY = height / 2;
 
         partNames.forEach((part, index) => {
-            const angle = (index / 4) * Math.PI * 2;
+            const angle = (index / partNames.length) * Math.PI * 2;
             const startX = centerX + Math.cos(angle) * (width / 2 + 100);
             const startY = centerY + Math.sin(angle) * (height / 2 + 100);
 
@@ -573,7 +574,7 @@ export default class VictoryScene extends Phaser.Scene {
     }
 
     /**
-     * Phase 4: Credits Roll
+     * Phase 4: Credits Roll - Professional game credits
      */
     showCreditsPhase(width, height) {
         // Fade everything to darker
@@ -585,121 +586,231 @@ export default class VictoryScene extends Phaser.Scene {
 
         this.tweens.add({
             targets: overlay,
-            alpha: 0.7,
+            alpha: 0.8,
             duration: 2000
         });
 
-        // Credits container
-        const creditsY = height + 50;
+        // Credits container - scrolling from bottom
+        const creditsY = height + 100;
         const credits = [];
+        const lineHeight = 40;
+        const sectionGap = 60;
+        let currentY = creditsY;
 
-        // THE END title
-        credits.push(this.add.text(width / 2, creditsY, 'THE END', {
-            fontSize: '48px',
+        // ═══════════════════════════════════════════════════════════
+        // MAIN TITLE - MYTHICAL VOID™
+        // ═══════════════════════════════════════════════════════════
+        credits.push(this.add.text(width / 2, currentY, '✦ MYTHICAL VOID™ ✦', {
+            fontSize: '42px',
             color: '#FFD700',
             fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
+            stroke: '#4B0082',
+            strokeThickness: 6
         }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 1.5;
 
-        // Victory stats
-        const statsStartY = creditsY + 100;
-        const lineHeight = 35;
-        let line = 0;
-
-        // Hero section
-        credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, '~ Your Hero ~', {
-            fontSize: '24px',
-            color: '#9B7FEE',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(100));
-
-        credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, this.gameStats.creatureName, {
-            fontSize: '32px',
-            color: '#FFFFFF',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(100));
-
-        credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, `Level ${this.gameStats.creatureLevel} • ${this.gameStats.rarity.toUpperCase()}`, {
-            fontSize: '18px',
-            color: '#CE93D8'
-        }).setOrigin(0.5).setDepth(100));
-
-        line++; // Spacer
-
-        // Journey stats
-        credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, '~ Journey Statistics ~', {
-            fontSize: '24px',
-            color: '#9B7FEE',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(100));
-
-        const statsLines = [
-            `Levels Conquered: ${this.gameStats.levelsCompleted}`,
-            `Bosses Defeated: ${this.gameStats.bossesDefeated}`,
-            `Coins Collected: ${this.gameStats.coinsCollected}`,
-            `Achievements: ${this.gameStats.achievements}`,
-            `Total Play Time: ${this.gameStats.totalPlayTime}`
-        ];
-
-        statsLines.forEach(stat => {
-            credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, stat, {
-                fontSize: '18px',
-                color: '#E8D5FF'
-            }).setOrigin(0.5).setDepth(100));
-        });
-
-        line++; // Spacer
-
-        // Development credits
-        credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, '~ Created With Love ~', {
-            fontSize: '24px',
-            color: '#9B7FEE',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(100));
-
-        credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, 'Mythical Void', {
-            fontSize: '28px',
-            color: '#FFD700',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(100));
-
-        credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, 'Built with Phaser.js', {
-            fontSize: '16px',
-            color: '#8B7FBB'
-        }).setOrigin(0.5).setDepth(100));
-
-        line += 2; // Spacer
-
-        // Thank you
-        credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, 'Thank you for playing!', {
-            fontSize: '28px',
-            color: '#FFD700',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(100));
-
-        credits.push(this.add.text(width / 2, statsStartY + lineHeight * line++, `${this.gameStats.creatureName}'s adventure continues...`, {
+        credits.push(this.add.text(width / 2, currentY, 'Your creature. Your journey. Your choice.', {
             fontSize: '18px',
             color: '#CE93D8',
             fontStyle: 'italic'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += sectionGap;
+
+        // ═══════════════════════════════════════════════════════════
+        // YOUR HERO SECTION
+        // ═══════════════════════════════════════════════════════════
+        credits.push(this.add.text(width / 2, currentY, '— YOUR HERO —', {
+            fontSize: '22px',
+            color: '#7B68EE',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight;
+
+        credits.push(this.add.text(width / 2, currentY, this.gameStats.creatureName, {
+            fontSize: '36px',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight;
+
+        credits.push(this.add.text(width / 2, currentY, `Level ${this.gameStats.creatureLevel} • ${this.gameStats.rarity.toUpperCase()} Rarity`, {
+            fontSize: '16px',
+            color: '#DA70D6'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += sectionGap;
+
+        // ═══════════════════════════════════════════════════════════
+        // JOURNEY STATISTICS
+        // ═══════════════════════════════════════════════════════════
+        credits.push(this.add.text(width / 2, currentY, '— JOURNEY STATISTICS —', {
+            fontSize: '22px',
+            color: '#7B68EE',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight;
+
+        const stats = [
+            ['Realms Conquered', `${this.gameStats.levelsCompleted}`],
+            ['Guardians Defeated', `${this.gameStats.bossesDefeated}`],
+            ['Cosmic Coins', `${this.gameStats.coinsCollected}`],
+            ['Achievements', `${this.gameStats.achievements}`],
+            ['Time in the Void', this.gameStats.totalPlayTime]
+        ];
+
+        stats.forEach(([label, value]) => {
+            credits.push(this.add.text(width / 2 - 80, currentY, label, {
+                fontSize: '16px',
+                color: '#B8A9C9'
+            }).setOrigin(1, 0.5).setDepth(100));
+            credits.push(this.add.text(width / 2 + 80, currentY, value, {
+                fontSize: '16px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }).setOrigin(0, 0.5).setDepth(100));
+            currentY += lineHeight * 0.8;
+        });
+        currentY += sectionGap * 0.5;
+
+        // ═══════════════════════════════════════════════════════════
+        // DEVELOPMENT TEAM
+        // ═══════════════════════════════════════════════════════════
+        credits.push(this.add.text(width / 2, currentY, '— CREATED BY —', {
+            fontSize: '22px',
+            color: '#7B68EE',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 1.2;
+
+        // Kevin Murphy
+        credits.push(this.add.text(width / 2, currentY, 'Kevin Murphy', {
+            fontSize: '28px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 0.7;
+
+        credits.push(this.add.text(width / 2, currentY, 'Creator & Lead Developer', {
+            fontSize: '14px',
+            color: '#B8A9C9'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 1.2;
+
+        // CAYDEN Murphy
+        credits.push(this.add.text(width / 2, currentY, 'CAYDEN Murphy', {
+            fontSize: '28px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 0.7;
+
+        credits.push(this.add.text(width / 2, currentY, 'Creative Director & Game Designer', {
+            fontSize: '14px',
+            color: '#B8A9C9'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 0.5;
+
+        credits.push(this.add.text(width / 2, currentY, '(Age 8)', {
+            fontSize: '12px',
+            color: '#9370DB',
+            fontStyle: 'italic'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += sectionGap;
+
+        // ═══════════════════════════════════════════════════════════
+        // SPECIAL THANKS
+        // ═══════════════════════════════════════════════════════════
+        credits.push(this.add.text(width / 2, currentY, '— SPECIAL THANKS —', {
+            fontSize: '22px',
+            color: '#7B68EE',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight;
+
+        const thanks = [
+            'All our early players & testers',
+            'The Phaser.js community',
+            'NASA for space weather data',
+            'You, for playing!'
+        ];
+
+        thanks.forEach(text => {
+            credits.push(this.add.text(width / 2, currentY, text, {
+                fontSize: '14px',
+                color: '#B8A9C9'
+            }).setOrigin(0.5).setDepth(100));
+            currentY += lineHeight * 0.7;
+        });
+        currentY += sectionGap * 0.5;
+
+        // ═══════════════════════════════════════════════════════════
+        // TECHNOLOGY
+        // ═══════════════════════════════════════════════════════════
+        credits.push(this.add.text(width / 2, currentY, '— POWERED BY —', {
+            fontSize: '18px',
+            color: '#7B68EE',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 0.8;
+
+        credits.push(this.add.text(width / 2, currentY, 'Phaser 3 • Vite • Claude AI', {
+            fontSize: '14px',
+            color: '#8B7FBB'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += sectionGap;
+
+        // ═══════════════════════════════════════════════════════════
+        // FINAL MESSAGE
+        // ═══════════════════════════════════════════════════════════
+        credits.push(this.add.text(width / 2, currentY, `${this.gameStats.creatureName}'s story`, {
+            fontSize: '20px',
+            color: '#CE93D8',
+            fontStyle: 'italic'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 0.8;
+
+        credits.push(this.add.text(width / 2, currentY, 'is just beginning...', {
+            fontSize: '20px',
+            color: '#CE93D8',
+            fontStyle: 'italic'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += sectionGap;
+
+        // Copyright
+        credits.push(this.add.text(width / 2, currentY, `© ${new Date().getFullYear()} TechevolveAI`, {
+            fontSize: '12px',
+            color: '#666666'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 0.6;
+
+        credits.push(this.add.text(width / 2, currentY, 'techevolveai.com', {
+            fontSize: '11px',
+            color: '#7B68EE'
+        }).setOrigin(0.5).setDepth(100));
+        currentY += lineHeight * 0.5;
+
+        credits.push(this.add.text(width / 2, currentY, 'MYTHICAL VOID™ is a trademark of TechevolveAI', {
+            fontSize: '10px',
+            color: '#555555'
         }).setOrigin(0.5).setDepth(100));
 
         this.elements.push(...credits);
 
         // Scroll credits up
-        const scrollDistance = statsStartY + lineHeight * line + 100;
+        const scrollDistance = currentY - height * 0.3;
         credits.forEach(credit => {
             this.tweens.add({
                 targets: credit,
                 y: credit.y - scrollDistance,
-                duration: 15000,
+                duration: 18000,
                 ease: 'Linear'
             });
         });
     }
 
     /**
-     * Phase 5: Complete - Show options
+     * Phase 5: Complete - Show continue button, then choice scene
      */
     showCompletePhase(width, height) {
         // Mark victory in GameState
@@ -710,23 +821,23 @@ export default class VictoryScene extends Phaser.Scene {
         // Final message with creature
         const finalPanel = this.add.graphics();
         finalPanel.fillStyle(0x1A1A3E, 0.95);
-        finalPanel.fillRoundedRect(width * 0.1, height * 0.3, width * 0.8, height * 0.4, 20);
+        finalPanel.fillRoundedRect(width * 0.1, height * 0.25, width * 0.8, height * 0.5, 20);
         finalPanel.lineStyle(3, 0xFFD700, 1);
-        finalPanel.strokeRoundedRect(width * 0.1, height * 0.3, width * 0.8, height * 0.4, 20);
+        finalPanel.strokeRoundedRect(width * 0.1, height * 0.25, width * 0.8, height * 0.5, 20);
         finalPanel.setDepth(200);
         this.elements.push(finalPanel);
 
         // Creature sprite
         if (this.gameStats.creatureTexture && this.textures.exists(this.gameStats.creatureTexture)) {
-            const creature = this.add.sprite(width / 2, height * 0.4, this.gameStats.creatureTexture);
-            creature.setScale(0.8);
+            const creature = this.add.sprite(width / 2, height * 0.38, this.gameStats.creatureTexture);
+            creature.setScale(0.7);
             creature.setDepth(201);
             this.elements.push(creature);
 
             // Breathing animation
             this.tweens.add({
                 targets: creature,
-                scaleY: 0.85,
+                scaleY: 0.75,
                 duration: 1500,
                 yoyo: true,
                 repeat: -1,
@@ -743,21 +854,20 @@ export default class VictoryScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(201);
         this.elements.push(victoryMsg);
 
-        // Buttons
-        const buttonY = height * 0.62;
+        const subMsg = this.add.text(width / 2, height * 0.57,
+            'The ship is ready. What happens next?', {
+            fontSize: '14px',
+            color: '#CE93D8',
+            fontStyle: 'italic'
+        }).setOrigin(0.5).setDepth(201);
+        this.elements.push(subMsg);
 
-        // Continue Playing button
+        // Continue button - leads to choice scene
+        const buttonY = height * 0.67;
         this.createButton(
-            width / 2 - 90, buttonY,
-            'Continue\nPlaying', 0x4CAF50,
-            () => this.continueGame()
-        );
-
-        // New Game+ button
-        this.createButton(
-            width / 2 + 90, buttonY,
-            'New Game+', 0x9C27B0,
-            () => this.startNewGamePlus()
+            width / 2, buttonY,
+            'Continue...', 0x7B68EE,
+            () => this.showChoiceScene()
         );
 
         // Play celebration
@@ -769,6 +879,334 @@ export default class VictoryScene extends Phaser.Scene {
         if (window.AchievementSystem) {
             window.AchievementSystem.unlock?.('VOID_CONQUEROR');
         }
+    }
+
+    /**
+     * Show the big choice: Return to Earth or Stay in the Void
+     */
+    showChoiceScene() {
+        const { width, height } = this.scale;
+
+        // Clear previous elements
+        this.elements.forEach(el => {
+            if (el && el.destroy) el.destroy();
+        });
+        this.elements = [];
+
+        // Create atmospheric background
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x0D0B1E, 0x0D0B1E, 0x2D1B4E, 0x2D1B4E, 1);
+        bg.fillRect(0, 0, width, height);
+        bg.setDepth(0);
+        this.elements.push(bg);
+
+        // Stars
+        for (let i = 0; i < 100; i++) {
+            const star = this.add.graphics();
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            star.fillStyle(0xFFFFFF, 0.3 + Math.random() * 0.7);
+            star.fillCircle(x, y, 0.5 + Math.random() * 1.5);
+            star.setDepth(1);
+            this.elements.push(star);
+        }
+
+        // Title panel
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A0A2E, 0.9);
+        panel.fillRoundedRect(width * 0.08, height * 0.1, width * 0.84, height * 0.8, 20);
+        panel.lineStyle(3, 0x7B68EE);
+        panel.strokeRoundedRect(width * 0.08, height * 0.1, width * 0.84, height * 0.8, 20);
+        panel.setDepth(100);
+        this.elements.push(panel);
+
+        // Title
+        const title = this.add.text(width / 2, height * 0.18, 'THE SHIP IS READY', {
+            fontSize: '28px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(101);
+        this.elements.push(title);
+
+        // Creature in center
+        if (this.gameStats.creatureTexture && this.textures.exists(this.gameStats.creatureTexture)) {
+            const creature = this.add.sprite(width / 2, height * 0.35, this.gameStats.creatureTexture);
+            creature.setScale(0.6);
+            creature.setDepth(101);
+            this.elements.push(creature);
+
+            this.tweens.add({
+                targets: creature,
+                y: height * 0.35 - 5,
+                duration: 2000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        // Narrative text
+        const narrative = this.add.text(width / 2, height * 0.48,
+            `${this.gameStats.creatureName} looks at you with trusting eyes.\nYou've been through so much together.\n\nNow you must choose...`, {
+            fontSize: '14px',
+            color: '#E8D5FF',
+            align: 'center',
+            lineSpacing: 6
+        }).setOrigin(0.5).setDepth(101);
+        this.elements.push(narrative);
+
+        // Choice buttons
+        const btnY = height * 0.65;
+        const btnWidth = Math.min(150, width * 0.35);
+        const btnGap = 20;
+
+        // Return to Earth button
+        this.createChoiceButton(
+            width / 2 - btnWidth / 2 - btnGap, btnY,
+            '🌍 Return to Earth', 0x1E90FF,
+            () => this.showComingSoonTeaser('earth')
+        );
+
+        // Stay in the Void button
+        this.createChoiceButton(
+            width / 2 + btnWidth / 2 + btnGap, btnY,
+            '✨ Stay in the Void', 0x9400D3,
+            () => this.showComingSoonTeaser('void')
+        );
+
+        // Hint text
+        const hint = this.add.text(width / 2, height * 0.82,
+            'What will you choose?', {
+            fontSize: '12px',
+            color: '#8B7FBB',
+            fontStyle: 'italic'
+        }).setOrigin(0.5).setDepth(101);
+        this.elements.push(hint);
+
+        // Pulse hint
+        this.tweens.add({
+            targets: hint,
+            alpha: { from: 1, to: 0.5 },
+            duration: 1500,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    /**
+     * Create a choice button (larger than regular buttons)
+     */
+    createChoiceButton(x, y, text, color, callback) {
+        const { width } = this.scale;
+        const btnWidth = Math.min(150, width * 0.35);
+        const btnHeight = 60;
+
+        const btn = this.add.graphics();
+        btn.fillStyle(color, 1);
+        btn.fillRoundedRect(x - btnWidth / 2, y, btnWidth, btnHeight, 15);
+        btn.lineStyle(3, 0xFFFFFF, 0.3);
+        btn.strokeRoundedRect(x - btnWidth / 2, y, btnWidth, btnHeight, 15);
+        btn.setDepth(102);
+        this.elements.push(btn);
+
+        const btnText = this.add.text(x, y + btnHeight / 2, text, {
+            fontSize: '14px',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(103);
+        this.elements.push(btnText);
+
+        const zone = this.add.zone(x, y + btnHeight / 2, btnWidth, btnHeight)
+            .setInteractive({ cursor: 'pointer' })
+            .setDepth(104);
+
+        zone.on('pointerover', () => {
+            btn.clear();
+            btn.fillStyle(Phaser.Display.Color.GetColor(
+                Math.min(255, ((color >> 16) & 0xFF) + 40),
+                Math.min(255, ((color >> 8) & 0xFF) + 40),
+                Math.min(255, (color & 0xFF) + 40)
+            ), 1);
+            btn.fillRoundedRect(x - btnWidth / 2, y, btnWidth, btnHeight, 15);
+            btn.lineStyle(3, 0xFFD700, 1);
+            btn.strokeRoundedRect(x - btnWidth / 2, y, btnWidth, btnHeight, 15);
+        });
+
+        zone.on('pointerout', () => {
+            btn.clear();
+            btn.fillStyle(color, 1);
+            btn.fillRoundedRect(x - btnWidth / 2, y, btnWidth, btnHeight, 15);
+            btn.lineStyle(3, 0xFFFFFF, 0.3);
+            btn.strokeRoundedRect(x - btnWidth / 2, y, btnWidth, btnHeight, 15);
+        });
+
+        zone.on('pointerdown', () => {
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick?.();
+            }
+            callback();
+        });
+
+        this.elements.push(zone);
+    }
+
+    /**
+     * Show the "Coming Soon" teaser for sequels
+     */
+    showComingSoonTeaser(choice) {
+        const { width, height } = this.scale;
+
+        // Clear previous elements
+        this.elements.forEach(el => {
+            if (el && el.destroy) el.destroy();
+        });
+        this.elements = [];
+
+        // Beautiful gradient background
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x0D0B1E, 0x0D0B1E, 0x1A0A2E, 0x2D1B4E, 1);
+        bg.fillRect(0, 0, width, height);
+        bg.setDepth(0);
+        this.elements.push(bg);
+
+        // Subtle stars
+        for (let i = 0; i < 80; i++) {
+            const star = this.add.graphics();
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            star.fillStyle(0xFFFFFF, 0.2 + Math.random() * 0.5);
+            star.fillCircle(x, y, 0.5 + Math.random() * 1);
+            star.setDepth(1);
+            this.elements.push(star);
+        }
+
+        // Main panel
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1A1A3E, 0.95);
+        panel.fillRoundedRect(width * 0.05, height * 0.08, width * 0.9, height * 0.84, 20);
+        panel.lineStyle(4, 0x7B68EE);
+        panel.strokeRoundedRect(width * 0.05, height * 0.08, width * 0.9, height * 0.84, 20);
+        panel.setDepth(100);
+        this.elements.push(panel);
+
+        // Title based on choice
+        const choiceTitle = choice === 'earth'
+            ? '🌍 Journey to Earth'
+            : '✨ Life Among the Stars';
+
+        const title = this.add.text(width / 2, height * 0.16, choiceTitle, {
+            fontSize: '24px',
+            color: choice === 'earth' ? '#1E90FF' : '#DA70D6',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(101);
+        this.elements.push(title);
+
+        // Coming Soon banner
+        const banner = this.add.text(width / 2, height * 0.24, '🚀 COMING SOON 🚀', {
+            fontSize: '32px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(101);
+        this.elements.push(banner);
+
+        // Pulsing animation
+        this.tweens.add({
+            targets: banner,
+            scale: { from: 1, to: 1.05 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Creature
+        if (this.gameStats.creatureTexture && this.textures.exists(this.gameStats.creatureTexture)) {
+            const creature = this.add.sprite(width / 2, height * 0.38, this.gameStats.creatureTexture);
+            creature.setScale(0.5);
+            creature.setDepth(101);
+            this.elements.push(creature);
+
+            this.tweens.add({
+                targets: creature,
+                y: height * 0.38 - 5,
+                duration: 2000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        // Description text
+        const description = choice === 'earth'
+            ? `What awaits on Earth?\n\nWill ${this.gameStats.creatureName} be safe?\nOr will they want to study your friend...?`
+            : `A new life in the Void awaits.\n\nBut Earth knows about this place now.\nThey will come looking for you...`;
+
+        const descText = this.add.text(width / 2, height * 0.52, description, {
+            fontSize: '14px',
+            color: '#E8D5FF',
+            align: 'center',
+            lineSpacing: 6
+        }).setOrigin(0.5).setDepth(101);
+        this.elements.push(descText);
+
+        // Sequel teasers
+        const sequelY = height * 0.65;
+
+        const sequelTitle = this.add.text(width / 2, sequelY, 'Future Adventures:', {
+            fontSize: '16px',
+            color: '#9B7FEE',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(101);
+        this.elements.push(sequelTitle);
+
+        // Two sequel options
+        const sequels = [
+            { name: 'MYTHICAL VOID: EARTH', desc: 'The Earth storyline', color: '#1E90FF' },
+            { name: 'MYTHICAL VOID: EXPANDED', desc: 'The Void storyline', color: '#DA70D6' }
+        ];
+
+        sequels.forEach((sequel, i) => {
+            const y = sequelY + 35 + i * 35;
+            const text = this.add.text(width / 2, y, `• ${sequel.name}`, {
+                fontSize: '14px',
+                color: sequel.color,
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(101);
+            this.elements.push(text);
+        });
+
+        // Thank you message
+        const thankYou = this.add.text(width / 2, height * 0.78,
+            'Thank you for playing MYTHICAL VOID™!\n\nPlease enjoy the original game while we\ngather feedback for these exciting sequels.', {
+            fontSize: '12px',
+            color: '#B8A9C9',
+            align: 'center',
+            lineSpacing: 4
+        }).setOrigin(0.5).setDepth(101);
+        this.elements.push(thankYou);
+
+        // Return to Hub button
+        const btnY = height * 0.9;
+        this.createButton(
+            width / 2, btnY - 15,
+            'Return to Hub', 0x4CAF50,
+            () => this.returnToHub()
+        );
+    }
+
+    /**
+     * Return to hub world
+     */
+    returnToHub() {
+        this.cameras.main.fadeOut(1000, 0, 0, 0);
+        this.time.delayedCall(1000, () => {
+            this.scene.start('HubWorldScene');
+        });
     }
 
     /**

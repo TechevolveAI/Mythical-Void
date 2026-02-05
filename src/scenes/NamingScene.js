@@ -28,13 +28,16 @@ class NamingScene extends Phaser.Scene {
         this.cursorBlink = true;
         this.isTransitioning = false;  // CRITICAL: Initialize to prevent stuck state
         this.domClickHandler = null;   // Store reference for cleanup
+        this.isMobileInputActive = false; // CRITICAL: Prevents double input on mobile
 
         // Store references to HTML input event handlers for proper cleanup
         this.mobileInputHandlers = {
             input: null,
             keydown: null,
             touchstart: null,
-            click: null
+            click: null,
+            focus: null,
+            blur: null
         };
     }
 
@@ -92,43 +95,64 @@ class NamingScene extends Phaser.Scene {
     }
 
     createBackground() {
-        // MOBILE-RESPONSIVE background
+        // COSMIC THEMED BACKGROUND - Matches HatchingScene for visual consistency
         const { width, height } = this.scale;
 
-        // Create a gentle gradient background
-        const background = this.add.graphics();
-        background.fillGradientStyle(0x87CEEB, 0x87CEEB, 0xE0F6FF, 0xE0F6FF, 1);
-        background.fillRect(0, 0, width, height);
+        // Deep space gradient background
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x2C1B47, 0x4A148C, 0x6A1B9A, 0x4A148C, 1);
+        bg.fillRect(0, 0, width, height);
 
-        // Add some floating clouds (fewer on mobile)
-        this.clouds = this.add.group();
-        const cloudCount = width < 600 ? 2 : 3;
-        for (let i = 0; i < cloudCount; i++) {
-            // Create simple cloud graphics
-            const cloudGraphics = this.add.graphics();
-            cloudGraphics.fillStyle(0xFFFFFF, 0.8);
-            cloudGraphics.fillCircle(0, 0, 25);
-            cloudGraphics.fillCircle(20, -5, 30);
-            cloudGraphics.fillCircle(40, 0, 25);
-            cloudGraphics.fillCircle(25, 10, 20);
-
-            const cloud = this.add.container(
-                Phaser.Math.Between(width * 0.1, width * 0.9),
-                Phaser.Math.Between(height * 0.05, height * 0.25)
+        // Add nebula clouds
+        for (let i = 0; i < 3; i++) {
+            const nebula = this.add.graphics();
+            nebula.fillStyle(0x9C27B0, 0.1 + Math.random() * 0.1);
+            nebula.fillCircle(
+                Phaser.Math.Between(0, width),
+                Phaser.Math.Between(0, height),
+                Phaser.Math.Between(80, 150)
             );
-            cloud.add(cloudGraphics);
-            cloud.setAlpha(0.6);
-            this.clouds.add(cloud);
+            nebula.setBlendMode(Phaser.BlendModes.ADD);
 
-            // Gentle movement
+            // Slow drift animation
             this.tweens.add({
-                targets: cloud,
-                x: cloud.x + Phaser.Math.Between(-30, 30),
+                targets: nebula,
+                x: nebula.x + Phaser.Math.Between(-30, 30),
+                y: nebula.y + Phaser.Math.Between(-20, 20),
                 duration: Phaser.Math.Between(8000, 12000),
                 ease: 'Sine.easeInOut',
                 yoyo: true,
                 repeat: -1
             });
+        }
+
+        // Star layers for depth
+        this.backgroundStars = [];
+        for (let layer = 0; layer < 2; layer++) {
+            const starCount = 20 - (layer * 8);
+            const starSize = 1 + layer;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = this.add.circle(
+                    Phaser.Math.Between(0, width),
+                    Phaser.Math.Between(0, height),
+                    starSize,
+                    0xFFFFFF,
+                    0.3 + (layer * 0.3)
+                );
+                this.backgroundStars.push(star);
+
+                // Twinkling animation
+                this.tweens.add({
+                    targets: star,
+                    alpha: 0.1 + Math.random() * 0.3,
+                    duration: 1500 + (layer * 500),
+                    ease: 'Sine.easeInOut',
+                    yoyo: true,
+                    repeat: -1,
+                    delay: Math.random() * 1000
+                });
+            }
         }
     }
 
@@ -359,30 +383,60 @@ class NamingScene extends Phaser.Scene {
     }
 
     createMobileLayout() {
-        // SIMPLIFIED MOBILE LAYOUT: Creature → Name Input only (no duplicate info)
+        // CHILD-FRIENDLY MOBILE LAYOUT: Fun creature info + Name Input
         const { width, height } = this.scale;
         const centerX = width / 2;
+        const state = getGameState();
 
         // Responsive font sizes for mobile
         const labelSize = Math.max(16, Math.min(20, width * 0.05));
         const bodySize = Math.max(14, Math.min(16, width * 0.04));
+        const traitSize = Math.max(13, Math.min(15, width * 0.038));
 
-        // Reposition creature to center with more prominence
+        // Reposition creature to upper area with good prominence
         if (this.creature) {
             this.creature.x = centerX;
-            this.creature.y = height * 0.35;
-            const scale = Math.min(1.8, width / 280);
+            this.creature.y = height * 0.28;
+            const scale = Math.min(1.6, width / 300);
             this.creature.setScale(scale);
         }
 
-        // NAME INPUT SECTION - centered and prominent
+        // CHILD-FRIENDLY CREATURE INFO - Fun traits kids can understand
+        const creatureTraits = this.getChildFriendlyTraits();
+
+        // Create compact trait cards below creature
+        const traitStartY = height * 0.46;
+        const cardHeight = height * 0.055;
+        const cardGap = 4;
+
+        creatureTraits.forEach((trait, index) => {
+            const cardY = traitStartY + (index * (cardHeight + cardGap));
+
+            // Trait background (subtle rounded pill)
+            const traitBg = this.add.graphics();
+            traitBg.fillStyle(0xFFFFFF, 0.15);
+            traitBg.fillRoundedRect(centerX - (width * 0.42), cardY, width * 0.84, cardHeight, 8);
+
+            // Trait text with emoji
+            this.add.text(centerX, cardY + (cardHeight / 2), trait, {
+                fontSize: `${traitSize}px`,
+                color: '#FFFFFF',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                align: 'center',
+                stroke: '#4B0082',
+                strokeThickness: 1
+            }).setOrigin(0.5);
+        });
+
+        // NAME INPUT SECTION - below traits
         const inputWidth = width * 0.85;
-        const inputHeight = height * 0.07;
+        const inputHeight = height * 0.065;
         const inputX = centerX - (inputWidth / 2);
-        const inputY = height * 0.58;
+        const inputY = height * 0.68;
 
         // Name label with cosmic styling
-        this.add.text(centerX, inputY - (height * 0.04), '✨ Give your creature a name ✨', {
+        this.add.text(centerX, inputY - (height * 0.035), '✨ What will you call them? ✨', {
             fontSize: `${labelSize}px`,
             color: '#FFD700',
             align: 'center',
@@ -414,29 +468,124 @@ class NamingScene extends Phaser.Scene {
         this.updateNameDisplay();
     }
 
-    createInfoPanel() {
-        // SIMPLIFIED DESKTOP LAYOUT - no duplicate personality/genetics info
-        // Just show a hint about the creature's rarity
-        const { width, height } = this.scale;
+    /**
+     * Get child-friendly trait descriptions based on creature genetics
+     * Translates technical genetics into fun, simple language kids understand
+     */
+    getChildFriendlyTraits() {
+        const state = getGameState();
+        const genes = state.get('creature.genes') || {};
+        const personality = state.get('creature.personality') || {};
+        const traits = [];
 
-        // Get rarity info for display
-        const rarity = this.creatureGenetics?.rarity || 'common';
-        const rarityColors = {
-            common: '#32CD32',
-            uncommon: '#FF8C00',
-            rare: '#DC143C',
-            epic: '#9370DB',
-            legendary: '#FFD700'
+        // 1. PERSONALITY - Translate to kid-friendly description
+        const personalityName = personality.name || genes.personality?.core || 'Friendly';
+        const personalityEmoji = this.getPersonalityEmoji(personalityName);
+        const personalityDesc = this.getKidFriendlyPersonality(personalityName);
+        traits.push(`${personalityEmoji} ${personalityDesc}`);
+
+        // 2. COSMIC POWER - Translate affinity to superpower
+        const affinity = genes.cosmicAffinity?.element || genes.traits?.cosmicAffinity?.element || 'star';
+        const powerEmoji = this.getAffinityEmoji(affinity);
+        const powerDesc = this.getKidFriendlySuperpower(affinity);
+        traits.push(`${powerEmoji} ${powerDesc}`);
+
+        // 3. SPECIAL FEATURE - What makes them unique
+        const rarity = genes.rarity || 'common';
+        const specialDesc = this.getKidFriendlyRarity(rarity);
+        traits.push(specialDesc);
+
+        return traits;
+    }
+
+    getPersonalityEmoji(personality) {
+        const emojiMap = {
+            'curious': '🔍',
+            'Curious Explorer': '🔍',
+            'playful': '🎮',
+            'Playful Friend': '🎮',
+            'gentle': '💕',
+            'Gentle Spirit': '💕',
+            'wise': '🦉',
+            'Wise Oracle': '🦉',
+            'energetic': '⚡'
         };
+        return emojiMap[personality] || '✨';
+    }
 
-        // Small rarity badge below creature
-        const rarityBadge = this.add.text(200, 420, `${rarity.toUpperCase()} CREATURE`, {
-            fontSize: '14px',
-            color: rarityColors[rarity] || '#32CD32',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5);
+    getKidFriendlyPersonality(personality) {
+        const descMap = {
+            'curious': 'Loves exploring new places!',
+            'Curious Explorer': 'Loves exploring new places!',
+            'playful': 'Always ready for fun and games!',
+            'Playful Friend': 'Always ready for fun and games!',
+            'gentle': 'Kind and loves cuddles!',
+            'Gentle Spirit': 'Kind and loves cuddles!',
+            'wise': 'Super smart and thoughtful!',
+            'Wise Oracle': 'Super smart and thoughtful!',
+            'energetic': 'Full of energy and excitement!'
+        };
+        return descMap[personality] || 'A wonderful friend!';
+    }
+
+    getAffinityEmoji(affinity) {
+        const emojiMap = {
+            'star': '⭐',
+            'moon': '🌙',
+            'nebula': '🌌',
+            'crystal': '💎',
+            'void': '🌀',
+            'aurora': '✨'
+        };
+        return emojiMap[affinity] || '✨';
+    }
+
+    getKidFriendlySuperpower(affinity) {
+        const powerMap = {
+            'star': 'Star Power - Shines bright like a star!',
+            'moon': 'Moon Magic - Glows in the dark!',
+            'nebula': 'Space Magic - Colors like a rainbow!',
+            'crystal': 'Crystal Power - Sparkles and shimmers!',
+            'void': 'Mystery Power - Full of surprises!',
+            'aurora': 'Light Magic - Beautiful like northern lights!'
+        };
+        return powerMap[affinity] || 'Special cosmic powers!';
+    }
+
+    getKidFriendlyRarity(rarity) {
+        const rarityMap = {
+            'common': '🌟 A wonderful new friend!',
+            'uncommon': '🌟🌟 A pretty special creature!',
+            'rare': '⭐⭐ Super rare and amazing!',
+            'epic': '💫💫 WOW! So incredible!',
+            'legendary': '👑✨ LEGENDARY! One of a kind!'
+        };
+        return rarityMap[rarity] || '🌟 A wonderful new friend!';
+    }
+
+    createInfoPanel() {
+        // CHILD-FRIENDLY DESKTOP LAYOUT - Fun traits kids can understand
+        const { width, height } = this.scale;
+        const state = getGameState();
+
+        // Get child-friendly traits
+        const creatureTraits = this.getChildFriendlyTraits();
+
+        // Show traits in a vertical list below creature (left side)
+        const traitStartY = 400;
+        const traitGap = 35;
+
+        creatureTraits.forEach((trait, index) => {
+            this.add.text(200, traitStartY + (index * traitGap), trait, {
+                fontSize: '15px',
+                color: '#FFFFFF',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                align: 'center',
+                stroke: '#4B0082',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+        });
     }
 
     createNamingSection() {
@@ -488,14 +637,18 @@ class NamingScene extends Phaser.Scene {
 
     /**
      * Create HTML input element for mobile keyboard
+     * ENHANCED: Fixes double input bug, adds keyboard dismissal, improves UX
      */
     createMobileInput(inputX, inputY, inputWidth, inputHeight) {
+        const { width, height } = this.scale;
+
         // Create HTML input element
         const htmlInput = document.createElement('input');
         htmlInput.type = 'text';
         htmlInput.maxLength = this.maxNameLength;
         htmlInput.placeholder = 'Tap to name your creature';
         htmlInput.value = ''; // Ensure it starts empty
+        htmlInput.id = 'creature-name-input'; // For accessibility
 
         // Use inline styles for maximum compatibility (no Tailwind dependencies)
         htmlInput.style.position = 'absolute';
@@ -518,6 +671,7 @@ class NamingScene extends Phaser.Scene {
         htmlInput.autocapitalize = 'words';
         htmlInput.spellcheck = false;
         htmlInput.inputMode = 'text'; // Hint for mobile keyboard type
+        htmlInput.enterkeyhint = 'done'; // Shows "Done" on mobile keyboard
 
         // Position the input - need to account for canvas position
         const updateInputPosition = () => {
@@ -535,11 +689,44 @@ class NamingScene extends Phaser.Scene {
             htmlInput.style.top = `${screenY}px`;
             htmlInput.style.width = `${screenWidth}px`;
             htmlInput.style.height = `${screenHeight}px`;
+
+            // Update Done button position too
+            if (this.doneButton) {
+                this.doneButton.style.left = `${screenX + screenWidth - 70}px`;
+                this.doneButton.style.top = `${screenY + screenHeight + 8}px`;
+            }
         };
 
         // Add to document body (not game container)
         document.body.appendChild(htmlInput);
         updateInputPosition();
+
+        // Create "Done" button for keyboard dismissal (visible when input focused)
+        const doneButton = document.createElement('button');
+        doneButton.textContent = '✓ Done';
+        doneButton.style.position = 'absolute';
+        doneButton.style.padding = '8px 16px';
+        doneButton.style.fontSize = '16px';
+        doneButton.style.fontWeight = 'bold';
+        doneButton.style.backgroundColor = '#32CD32';
+        doneButton.style.color = 'white';
+        doneButton.style.border = 'none';
+        doneButton.style.borderRadius = '8px';
+        doneButton.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+        doneButton.style.zIndex = '10001';
+        doneButton.style.display = 'none'; // Hidden by default
+        doneButton.style.cursor = 'pointer';
+        doneButton.style.touchAction = 'manipulation';
+        document.body.appendChild(doneButton);
+        this.doneButton = doneButton;
+
+        // Done button click handler
+        doneButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            htmlInput.blur();
+            console.log('[NamingScene] Done button clicked - keyboard dismissed');
+        });
 
         // Update position on window resize
         window.addEventListener('resize', updateInputPosition);
@@ -580,7 +767,7 @@ class NamingScene extends Phaser.Scene {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 htmlInput.blur(); // Hide keyboard
-                this.finalizeName();
+                // Don't immediately finalize - let user review first
             }
         };
 
@@ -596,11 +783,35 @@ class NamingScene extends Phaser.Scene {
             console.log('[NamingScene] HTML input clicked');
         };
 
+        // CRITICAL FIX: Track focus state to prevent double input from Phaser keyboard
+        this.mobileInputHandlers.focus = () => {
+            this.isMobileInputActive = true;
+            if (this.doneButton) {
+                this.doneButton.style.display = 'block';
+            }
+            console.log('[NamingScene] Mobile input focused - Phaser keyboard disabled');
+
+            // Scroll input into view on focus (helps with keyboard overlay)
+            setTimeout(() => {
+                htmlInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        };
+
+        this.mobileInputHandlers.blur = () => {
+            this.isMobileInputActive = false;
+            if (this.doneButton) {
+                this.doneButton.style.display = 'none';
+            }
+            console.log('[NamingScene] Mobile input blurred - Phaser keyboard re-enabled');
+        };
+
         // Sync HTML input with game state - use stored handlers
         htmlInput.addEventListener('input', this.mobileInputHandlers.input);
         htmlInput.addEventListener('keydown', this.mobileInputHandlers.keydown);
         htmlInput.addEventListener('touchstart', this.mobileInputHandlers.touchstart);
         htmlInput.addEventListener('click', this.mobileInputHandlers.click);
+        htmlInput.addEventListener('focus', this.mobileInputHandlers.focus);
+        htmlInput.addEventListener('blur', this.mobileInputHandlers.blur);
 
         // CRITICAL iOS FIX: Create a Phaser interactive zone that forwards touches to HTML input
         // iOS requires focus() to be called directly from a user event, not programmatically
@@ -749,6 +960,13 @@ class NamingScene extends Phaser.Scene {
             // Safety check: ensure scene is still active and not transitioning
             if (this.isTransitioning || !this.scene.isActive()) {
                 console.log('[NamingScene] Key ignored - scene transitioning or inactive');
+                return;
+            }
+
+            // CRITICAL FIX: Skip Phaser keyboard when mobile HTML input is focused
+            // This prevents double character input on mobile devices
+            if (this.isMobileInputActive) {
+                console.log('[NamingScene] Key ignored - mobile input is active');
                 return;
             }
 
@@ -949,10 +1167,14 @@ class NamingScene extends Phaser.Scene {
                 console.error('[NamingScene] Error saving name:', error);
             }
 
-            // IMMEDIATELY hide mobile input before transition
+            // IMMEDIATELY hide mobile input and Done button before transition
             if (this.mobileInput) {
                 this.mobileInput.style.display = 'none';
                 console.log('[NamingScene] Mobile input hidden');
+            }
+            if (this.doneButton) {
+                this.doneButton.style.display = 'none';
+                console.log('[NamingScene] Done button hidden');
             }
 
             this.transitionToGame();
@@ -1014,6 +1236,17 @@ class NamingScene extends Phaser.Scene {
                 }
             } catch (mobileError) {
                 console.warn('[NamingScene] Error cleaning mobile input (continuing):', mobileError.message);
+            }
+
+            // Clean up Done button
+            try {
+                if (this.doneButton && this.doneButton.parentElement) {
+                    this.doneButton.parentElement.removeChild(this.doneButton);
+                    this.doneButton = null;
+                    console.log('[NamingScene] Done button cleaned up');
+                }
+            } catch (doneError) {
+                console.warn('[NamingScene] Error cleaning Done button (continuing):', doneError.message);
             }
 
             // Clean up mobile input zone
@@ -1119,10 +1352,23 @@ class NamingScene extends Phaser.Scene {
             if (this.mobileInputHandlers.click) {
                 this.mobileInput.removeEventListener('click', this.mobileInputHandlers.click);
             }
+            if (this.mobileInputHandlers.focus) {
+                this.mobileInput.removeEventListener('focus', this.mobileInputHandlers.focus);
+            }
+            if (this.mobileInputHandlers.blur) {
+                this.mobileInput.removeEventListener('blur', this.mobileInputHandlers.blur);
+            }
             console.log('[NamingScene] Mobile input event listeners removed');
 
             // Reset handler references
-            this.mobileInputHandlers = { input: null, keydown: null, touchstart: null, click: null };
+            this.mobileInputHandlers = { input: null, keydown: null, touchstart: null, click: null, focus: null, blur: null };
+        }
+
+        // Clean up Done button
+        if (this.doneButton && this.doneButton.parentElement) {
+            this.doneButton.parentElement.removeChild(this.doneButton);
+            this.doneButton = null;
+            console.log('[NamingScene] Done button cleaned up in shutdown');
         }
 
         // Now remove the HTML input from DOM
@@ -1133,6 +1379,9 @@ class NamingScene extends Phaser.Scene {
             this.mobileInput = null;
             console.log('[NamingScene] Mobile input cleaned up in shutdown');
         }
+
+        // Reset mobile input active state
+        this.isMobileInputActive = false;
 
         // Clean up mobile input zone
         if (this.mobileInputZone) {
@@ -1210,7 +1459,19 @@ class NamingScene extends Phaser.Scene {
             if (this.mobileInputHandlers.click) {
                 this.mobileInput.removeEventListener('click', this.mobileInputHandlers.click);
             }
-            this.mobileInputHandlers = { input: null, keydown: null, touchstart: null, click: null };
+            if (this.mobileInputHandlers.focus) {
+                this.mobileInput.removeEventListener('focus', this.mobileInputHandlers.focus);
+            }
+            if (this.mobileInputHandlers.blur) {
+                this.mobileInput.removeEventListener('blur', this.mobileInputHandlers.blur);
+            }
+            this.mobileInputHandlers = { input: null, keydown: null, touchstart: null, click: null, focus: null, blur: null };
+        }
+
+        // Clean up Done button
+        if (this.doneButton && this.doneButton.parentElement) {
+            this.doneButton.parentElement.removeChild(this.doneButton);
+            this.doneButton = null;
         }
 
         // Clean up mobile HTML input if it exists
@@ -1221,6 +1482,7 @@ class NamingScene extends Phaser.Scene {
 
         // Reset state
         this.isTransitioning = false;
+        this.isMobileInputActive = false;
     }
 }
 

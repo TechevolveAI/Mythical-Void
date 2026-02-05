@@ -664,8 +664,154 @@ class MyLevel extends PlatformerLevelScene {
 ```
 
 **Current Platformer Levels:**
+- `MythicalForestLevel` - Cosmic forest with vertical tree climbing, 4 enemy types, Elder Treant boss
 - `CrystalCavesLevel` - Crystal-themed cave platformer with Crystal Golem boss
 - `ReefLevel` - Cosmic void swimming level with Nyx'voral boss
+- `AuroraDepthsLevel` - Deep aurora-lit caverns (in development)
+- `FinalVoidLevel` - Final boss confrontation with Void Empress (in development)
+
+### Level Design Patterns (MUST FOLLOW)
+
+All platformer levels should follow these established patterns based on the MythicalForestLevel template:
+
+#### Level Structure Requirements
+
+1. **Dimensions**: Use appropriate dimensions for verticality
+   - Standard: `levelWidth: 5000-6000, levelHeight: 800-1200`
+   - Vertical-focused levels should use taller height (1200px)
+   - Swimming levels can use shorter height (600-800px)
+
+2. **Ground Sections with Void Gaps**: Create ground platforms with hazard gaps
+   ```javascript
+   const groundSections = [
+       { x: 0, width: 500 },      // Starting area (safe)
+       { x: 600, width: 300 },    // After first gap (learning gap)
+       { x: 1000, width: 400 },   // Progression continues
+       // ... void gaps between sections create danger
+   ];
+   ```
+
+3. **Vertical Structures**: Add climbable structures (trees, crystals, pillars)
+   - Each structure should have multiple branch/platform levels
+   - Alternate left/right positioning for interesting climbing
+   - Top platforms should reward exploration
+
+4. **Connecting Bridges**: Link vertical structures with different bridge types
+   - **Static bridges**: Safe, solid platforms
+   - **Vine/stepping bridges**: Require precision jumping
+   - **Collapsing bridges**: Time-pressure challenge
+
+#### Enemy Design Requirements
+
+Each level MUST have 3-4 distinct enemy types with different behaviors:
+
+| Enemy Type | Behavior | Placement |
+|------------|----------|-----------|
+| **Ground Chasers** | Patrol/chase on ground level | Ground sections |
+| **Platform Patrollers** | Walk back and forth on platforms | Elevated platforms |
+| **Floating Hazards** | Float and emit AoE damage | Open air areas |
+| **Ranged Shooters** | Teleport/shoot at player | Strategic locations |
+
+**Enemy Implementation Pattern:**
+```javascript
+createEnemies() {
+    // Ground enemies
+    const groundPositions = [{ x: 700, y: groundY }, ...];
+    groundPositions.forEach(pos => this.createGroundEnemy(pos.x, pos.y));
+
+    // Platform enemies - attach to specific platforms
+    const platformEnemies = [{ platformIndex: 2 }, ...];
+    platformEnemies.forEach(config => this.createPlatformEnemy(config));
+
+    // Floating hazards - clusters in open areas
+    const hazardClusters = [{ x: 900, y: 400, count: 3 }, ...];
+    hazardClusters.forEach(cluster => this.createHazardCluster(cluster));
+
+    // Ranged enemies - strategic positions
+    const rangedPositions = [{ x: 1100, y: 300 }, ...];
+    rangedPositions.forEach(pos => this.createRangedEnemy(pos.x, pos.y));
+}
+```
+
+#### Collectible Requirements
+
+1. **Star Fragments**: 5 per level, placed at challenging locations
+   - 1 tutorial location (easy to find)
+   - 2-3 moderate difficulty (requires exploration)
+   - 1-2 hard locations (high risk or timed)
+
+2. **Coins**: Scattered throughout
+   - Ground level coins (basic reward)
+   - Platform coins (exploration reward)
+   - Bonus coin arcs over hazards (skill reward, +50% value)
+
+**Collectible Placement Pattern:**
+```javascript
+placeCollectibles() {
+    // Star Fragments at challenging spots
+    const starLocations = [
+        { x: 300, y: topOfTree1, hint: 'tutorial' },      // Easy
+        { x: 1300, y: hiddenBranch, hint: 'explore' },    // Medium
+        { x: 3650, y: collapsingBridge, hint: 'timed' }   // Hard
+    ];
+
+    // Coins - ground, platforms, bonus arcs
+    this.placeGroundCoins();
+    this.placePlatformCoins();
+    this.placeBonusCoinArcs();
+}
+```
+
+#### Boss Arena Requirements
+
+1. **Position**: At the end of the level, after final vertical structure
+2. **Visual Distinction**: Ritual circles, glowing runes, atmospheric particles
+3. **Trigger Zone**: Invisible zone that starts boss fight when player enters
+4. **Arena Size**: At least 800px wide for boss movement
+
+**Boss Fight Structure:**
+```javascript
+createBossArena() {
+    const arenaX = this.levelWidth - 1100;  // End of level
+    const arenaWidth = 1000;
+
+    // Visual: ritual circles, runes, particles
+    // Physics: flat arena floor
+    // Trigger: invisible zone starts fight
+}
+
+spawnBoss() {
+    // Create texture (procedural, no image files)
+    // Set physics properties
+    // Create health bar UI
+    // Start AI timer
+}
+
+bossAITick() {
+    // Face player
+    // Choose attack based on phase
+    // Execute attack with telegraphs
+}
+```
+
+#### Level-Specific Theming
+
+Each level MUST have a unique visual identity:
+
+| Level | Theme | Color Palette | Unique Mechanic |
+|-------|-------|---------------|-----------------|
+| **Mythical Forest** | Cosmic trees, bioluminescence | Purple, green, teal glows | Vertical tree climbing |
+| **Crystal Caves** | Crystalline formations | Blue, cyan, white sparkle | Crystal platforms |
+| **Stellar Reef** | Cosmic underwater | Deep blue, coral pink | Swimming physics |
+| **Aurora Depths** | Northern lights caverns | Aurora colors, dark depths | Light/dark zones |
+| **Final Void** | Pure void corruption | Deep purple, black, crimson | Reality tears |
+
+#### Performance Requirements for Levels
+
+1. **Texture Reuse**: Create enemy/collectible textures once with `if (!this.textures.exists(key))`
+2. **Cleanup in shutdown()**: Destroy ALL enemies, collectibles, platforms, particles
+3. **Timer-based AI**: Use `this.time.addEvent()` not `update()` modulo checks
+4. **Particle Limits**: Max 50 simultaneous floating particles per level
 
 ## Performance Considerations & Best Practices
 

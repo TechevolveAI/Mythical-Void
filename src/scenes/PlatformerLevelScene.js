@@ -85,6 +85,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.graphicsEngine = null;
         this.platformBuilder = null;
 
+        // Combat juice system for screen shake, haptics, combos
+        this.combatJuice = null;
+
         // UI
         this.hud = null;
 
@@ -173,6 +176,12 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.collectibles = null;
         this.deathScreenElements = null;
 
+        // Clean up combat juice
+        if (this.combatJuice) {
+            this.combatJuice.cleanup();
+            this.combatJuice = null;
+        }
+
         console.log('[PlatformerLevel] Game state reset for restart');
     }
 
@@ -199,6 +208,12 @@ class PlatformerLevelScene extends Phaser.Scene {
             // 3. Create graphics engine
             if (window.GraphicsEngine) {
                 this.graphicsEngine = new window.GraphicsEngine(this);
+            }
+
+            // 3b. Initialize combat juice system for exciting feedback
+            if (window.CombatJuice) {
+                this.combatJuice = new window.CombatJuice(this);
+                console.log('[PlatformerLevel] CombatJuice system initialized');
             }
 
             // 4. Create parallax background
@@ -2021,7 +2036,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         });
 
-        // Check enemy hits
+        // Check enemy hits - MELEE DOES 2 DAMAGE (reward close combat risk!)
         if (this.enemies) {
             this.enemies.getChildren().forEach(enemy => {
                 const dist = Phaser.Math.Distance.Between(
@@ -2029,7 +2044,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                     enemy.x, enemy.y
                 );
                 if (dist < 70) {
-                    this.damageEnemy(enemy, 1);
+                    this.damageEnemy(enemy, 2); // 2 damage for melee (was 1)
                 }
             });
         }
@@ -2043,10 +2058,22 @@ class PlatformerLevelScene extends Phaser.Scene {
             if (dist < 80) {
                 // Call damageBoss if it exists (implemented in subclass)
                 if (typeof this.damageBoss === 'function') {
-                    this.damageBoss(1);
-                    console.log('[PlatformerLevel] Boss hit by melee attack!');
+                    this.damageBoss(2); // 2 damage for melee (was 1)
+                    console.log('[PlatformerLevel] Boss hit by melee attack! (2 damage)');
+
+                    // Extra combat juice for boss hits
+                    if (this.combatJuice) {
+                        this.combatJuice.screenShake(5, 150);
+                        this.combatJuice.hitStop(40);
+                    }
                 }
             }
+        }
+
+        // Combat juice for melee attack (even if no hit)
+        if (this.combatJuice) {
+            this.combatJuice.screenShake(2, 60);
+            this.combatJuice.hapticFeedback('light');
         }
 
         // Play attack sound
@@ -2057,22 +2084,11 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     /**
      * Perform ranged attack (M key) - fires a projectile
-     * Uses 1 crystal energy per shot
+     * UNLIMITED AMMO - kids can shoot freely!
+     * Crystal energy is now reserved for special attacks only
      */
     performRangedAttack() {
-        if (this.crystalEnergy < 1) {
-            console.log('[PlatformerLevel] Not enough crystal energy for ranged attack');
-            if (window.AudioManager) {
-                window.AudioManager.playError();
-            }
-            return;
-        }
-
-        console.log('[PlatformerLevel] Ranged attack performed');
-
-        // Use energy
-        this.crystalEnergy -= 1;
-        this.updateEnergyDisplay();
+        console.log('[PlatformerLevel] Ranged attack performed (unlimited ammo)');
 
         // Create projectile
         const startX = this.player.x;
@@ -2198,8 +2214,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.crystalEnergy -= 3;
         this.updateEnergyDisplay();
 
-        // Screen shake
-        this.cameras.main.shake(300, 0.02);
+        // Epic screen shake and haptic for special attack
+        if (this.combatJuice) {
+            this.combatJuice.screenShake(8, 300);
+            this.combatJuice.hapticFeedback('heavy');
+            this.combatJuice.slowMotion(0.4, 400); // Brief slow-mo for impact
+        } else {
+            this.cameras.main.shake(300, 0.02);
+        }
 
         // Massive area effect
         const blast = this.add.graphics();
@@ -2239,17 +2261,40 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     /**
-     * Damage an enemy
+     * Damage an enemy with exciting combat juice!
      */
     damageEnemy(enemy, damage) {
         if (!enemy.health) enemy.health = 2;
-        enemy.health -= damage;
 
-        // Flash red
-        enemy.setTint(0xFF0000);
-        this.time.delayedCall(100, () => {
-            if (enemy.active) enemy.clearTint();
-        });
+        // Register hit with combo system for multiplier
+        let finalDamage = damage;
+        if (this.combatJuice) {
+            const comboResult = this.combatJuice.registerHit(damage);
+            finalDamage = damage + comboResult.bonus;
+
+            // Show damage number with combo awareness
+            const isCritical = comboResult.multiplier >= 1.5;
+            this.combatJuice.showDamageNumber(enemy.x, enemy.y, finalDamage, isCritical);
+
+            // Screen shake and haptic for satisfying hits
+            this.combatJuice.screenShake(damage, 80);
+
+            // Hit flash on enemy (white flash)
+            this.combatJuice.hitFlash(enemy, 0xFFFFFF, 80);
+
+            // Brief hit stop for heavy hits
+            if (damage >= 2) {
+                this.combatJuice.hitStop(30);
+            }
+        } else {
+            // Fallback: Flash red
+            enemy.setTint(0xFF0000);
+            this.time.delayedCall(100, () => {
+                if (enemy.active) enemy.clearTint();
+            });
+        }
+
+        enemy.health -= finalDamage;
 
         if (enemy.health <= 0) {
             this.defeatEnemy(enemy);
@@ -2257,15 +2302,25 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     /**
-     * Defeat an enemy
+     * Defeat an enemy with satisfying feedback!
      */
     defeatEnemy(enemy) {
+        // Combat juice for satisfying defeat
+        if (this.combatJuice) {
+            // Stronger screen shake for defeat
+            this.combatJuice.screenShake(4, 120);
+            this.combatJuice.hapticFeedback('medium');
+
+            // Show defeat bonus text
+            this.combatJuice.showDamageNumber(enemy.x, enemy.y - 20, '+1⚡', false);
+        }
+
         // Particle burst
         if (window.FXLibrary) {
             window.FXLibrary.stardustBurst(this, enemy.x, enemy.y, {
-                count: 15,
-                color: [0x7B68EE, 0xE040FB, 0x00FFFF],
-                duration: 1000
+                count: 20, // More particles for defeat
+                color: [0x7B68EE, 0xE040FB, 0x00FFFF, 0xFFD700],
+                duration: 1200
             });
         }
 
@@ -2320,6 +2375,16 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         console.log(`[PlatformerLevel] Player took ${amount} damage, health: ${this.health}/${this.maxHealth}`);
 
+        // Combat juice for taking damage - OUCH!
+        if (this.combatJuice) {
+            this.combatJuice.screenShake(6, 200);
+            this.combatJuice.hapticFeedback('heavy');
+            this.combatJuice.hitFlash(this.player, 0xFF0000, 150);
+            this.combatJuice.showDamageNumber(this.player.x, this.player.y - 40, `-${amount}❤️`, true);
+            // Reset combo on taking damage
+            this.combatJuice.resetCombo();
+        }
+
         // Check for death first
         if (this.health <= 0) {
             this.onPlayerDeath();
@@ -2329,11 +2394,13 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Start invincibility period
         this.isInvincible = true;
 
-        // Flash red initially
-        this.player.setTint(0xFF0000);
-        this.time.delayedCall(200, () => {
-            if (this.player) this.player.clearTint();
-        });
+        // Flash red initially (if not using combatJuice)
+        if (!this.combatJuice) {
+            this.player.setTint(0xFF0000);
+            this.time.delayedCall(200, () => {
+                if (this.player) this.player.clearTint();
+            });
+        }
 
         // Knockback
         const knockbackX = this.player.facingRight ? -200 : 200;
@@ -2852,6 +2919,12 @@ class PlatformerLevelScene extends Phaser.Scene {
                 }
             });
             this.deathScreenElements = null;
+        }
+
+        // Clean up combat juice system
+        if (this.combatJuice) {
+            this.combatJuice.cleanup();
+            this.combatJuice = null;
         }
 
         // Null references

@@ -10,7 +10,7 @@ export default class ShopScene extends Phaser.Scene {
         super({ key: 'ShopScene' });
 
         this.graphicsEngine = null;
-        this.selectedCategory = 'eggs'; // eggs, food, utilities
+        this.selectedCategory = 'eggs'; // eggs, food, powerups, utilities
         this.selectedItemIndex = 0;
         this.shopItems = null;
         this.categoryButtons = [];
@@ -464,46 +464,49 @@ export default class ShopScene extends Phaser.Scene {
         const categories = [
             { id: 'eggs', label: 'Eggs', icon: '🥚' },
             { id: 'food', label: 'Food', icon: '🍎' },
+            { id: 'powerups', label: 'Power', icon: '⚡' },
             { id: 'utilities', label: 'Items', icon: '🎒' }
         ];
 
         const { width, headerHeight, catalogX, categoryHeight, categoryButtonWidth, margin, isMobile } = this.dims;
-        const spacing = margin;
+        const spacing = margin / 2; // Tighter spacing for 4 buttons
         const startY = headerHeight + margin;
 
         // Calculate button positions (centered on mobile, left-aligned on desktop)
-        const totalWidth = (categoryButtonWidth * 3) + (spacing * 2);
+        // Adjusted button width for 4 categories
+        const adjustedButtonWidth = isMobile ? (width - margin * 2 - spacing * 3) / 4 : categoryButtonWidth * 0.85;
+        const totalWidth = (adjustedButtonWidth * 4) + (spacing * 3);
         const startX = isMobile ? (width - totalWidth) / 2 : catalogX;
 
         categories.forEach((category, index) => {
-            const x = startX + (categoryButtonWidth + spacing) * index;
+            const x = startX + (adjustedButtonWidth + spacing) * index;
             const y = startY;
 
             // Button background
             const button = this.add.graphics();
             button.fillStyle(0x2A0040, 0.9);
-            button.fillRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
+            button.fillRoundedRect(x, y, adjustedButtonWidth, categoryHeight, 8);
             button.lineStyle(2, 0x6B00B3);
-            button.strokeRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
+            button.strokeRoundedRect(x, y, adjustedButtonWidth, categoryHeight, 8);
             button.setDepth(20);
 
             // Icon
             const icon = this.add.text(
-                x + (isMobile ? categoryButtonWidth / 4 : 20),
+                x + (isMobile ? adjustedButtonWidth / 4 : 20),
                 y + categoryHeight / 2,
                 category.icon,
-                { fontSize: isMobile ? '20px' : '24px' }
+                { fontSize: isMobile ? '18px' : '24px' }
             );
             icon.setOrigin(0.5, 0.5);
             icon.setDepth(21);
 
             // Label
             const label = this.add.text(
-                x + (isMobile ? categoryButtonWidth * 0.65 : categoryButtonWidth / 2 + 20),
+                x + (isMobile ? adjustedButtonWidth * 0.7 : adjustedButtonWidth / 2 + 15),
                 y + categoryHeight / 2,
                 category.label,
                 {
-                    fontSize: isMobile ? '14px' : '16px',
+                    fontSize: isMobile ? '12px' : '14px',
                     fontFamily: 'Arial',
                     color: '#FFFFFF'
                 }
@@ -512,7 +515,7 @@ export default class ShopScene extends Phaser.Scene {
             label.setDepth(21);
 
             // Interactive zone
-            const zone = this.add.zone(x, y, categoryButtonWidth, categoryHeight).setOrigin(0, 0);
+            const zone = this.add.zone(x, y, adjustedButtonWidth, categoryHeight).setOrigin(0, 0);
             zone.setInteractive({ useHandCursor: true });
             zone.setDepth(21);
 
@@ -523,18 +526,18 @@ export default class ShopScene extends Phaser.Scene {
             zone.on('pointerover', () => {
                 button.clear();
                 button.fillStyle(0x4A0080, 0.9);
-                button.fillRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
+                button.fillRoundedRect(x, y, adjustedButtonWidth, categoryHeight, 8);
                 button.lineStyle(3, 0x8B00D9);
-                button.strokeRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
+                button.strokeRoundedRect(x, y, adjustedButtonWidth, categoryHeight, 8);
             });
 
             zone.on('pointerout', () => {
                 if (this.selectedCategory !== category.id) {
                     button.clear();
                     button.fillStyle(0x2A0040, 0.9);
-                    button.fillRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
+                    button.fillRoundedRect(x, y, adjustedButtonWidth, categoryHeight, 8);
                     button.lineStyle(2, 0x6B00B3);
-                    button.strokeRoundedRect(x, y, categoryButtonWidth, categoryHeight, 8);
+                    button.strokeRoundedRect(x, y, adjustedButtonWidth, categoryHeight, 8);
                 }
             });
 
@@ -546,7 +549,7 @@ export default class ShopScene extends Phaser.Scene {
                 zone,
                 x,
                 y,
-                width: categoryButtonWidth,
+                width: adjustedButtonWidth,
                 height: categoryHeight
             });
         });
@@ -1496,6 +1499,68 @@ export default class ShopScene extends Phaser.Scene {
                     price: 50,
                     type: 'food',
                     effect: { health: 40 }
+                }
+            ],
+            powerups: [
+                {
+                    id: 'energy_crystal',
+                    name: 'Energy Crystal',
+                    description: 'Restore 3 crystal energy during levels. Use for special attacks!',
+                    icon: '⚡',
+                    price: 50,
+                    type: 'powerup',
+                    effect: { crystalEnergy: 3 },
+                    usableInLevel: true
+                },
+                {
+                    id: 'power_shot',
+                    name: 'Power Shot',
+                    description: 'Your next ranged attack does 5x damage - instant KO on most enemies!',
+                    icon: '🎯',
+                    price: 75,
+                    type: 'powerup',
+                    effect: { nextRangedDamageMultiplier: 5 },
+                    usableInLevel: true
+                },
+                {
+                    id: 'crystal_shield',
+                    name: 'Crystal Shield',
+                    description: 'Block the next 2 hits you take. Great for boss fights!',
+                    icon: '🛡️',
+                    price: 100,
+                    type: 'powerup',
+                    effect: { shieldHits: 2 },
+                    usableInLevel: true
+                },
+                {
+                    id: 'super_blast',
+                    name: 'Super Blast',
+                    description: 'FREE super special attack! Damages ALL enemies on screen!',
+                    icon: '💥',
+                    price: 150,
+                    type: 'powerup',
+                    effect: { freeSpecialAttack: 1 },
+                    usableInLevel: true
+                },
+                {
+                    id: 'health_boost',
+                    name: 'Health Boost',
+                    description: 'Fully restore health during a level. Emergency rescue!',
+                    icon: '❤️',
+                    price: 80,
+                    type: 'powerup',
+                    effect: { fullHealth: true },
+                    usableInLevel: true
+                },
+                {
+                    id: 'double_coins',
+                    name: 'Coin Magnet',
+                    description: 'Double all coins collected for the rest of this level!',
+                    icon: '🧲',
+                    price: 100,
+                    type: 'powerup',
+                    effect: { coinMultiplier: 2 },
+                    usableInLevel: true
                 }
             ],
             utilities: [

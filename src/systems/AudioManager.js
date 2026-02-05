@@ -396,6 +396,67 @@ class AudioManager {
         ]);
 
         // ==========================================
+        // COMBAT JUICE SOUNDS - Exciting hit feedback
+        // ==========================================
+
+        // Combo hit - satisfying ascending tone for building combos
+        this.createToneSequence('combo_hit', [
+            { frequency: 600, duration: 0.05, volume: 0.2 },
+            { frequency: 700, duration: 0.05, volume: 0.25 },
+            { frequency: 800, duration: 0.08, volume: 0.2 }
+        ]);
+
+        // Combo milestone - reward for hitting 5x, 10x, etc
+        this.createToneSequence('combo_milestone', [
+            { frequency: 523.25, duration: 0.08, volume: 0.25 },  // C5
+            { frequency: 659.25, duration: 0.08, volume: 0.3 },   // E5
+            { frequency: 783.99, duration: 0.1, volume: 0.35 },   // G5
+            { frequency: 1046.50, duration: 0.15, volume: 0.3 }   // C6
+        ]);
+
+        // Combo break - descending tone when combo ends
+        this.createToneSequence('combo_break', [
+            { frequency: 400, duration: 0.08, volume: 0.2 },
+            { frequency: 350, duration: 0.1, volume: 0.15 },
+            { frequency: 300, duration: 0.12, volume: 0.1 }
+        ]);
+
+        // Critical hit - powerful impact with punch
+        this.createToneSequence('critical_hit', [
+            { frequency: 150, duration: 0.06, volume: 0.35 },
+            { frequency: 200, duration: 0.08, volume: 0.4 },
+            { frequency: 800, duration: 0.1, volume: 0.3 },
+            { frequency: 600, duration: 0.15, volume: 0.2 }
+        ]);
+
+        // Victory fanfare - epic boss defeat celebration
+        this.createToneSequence('victory_fanfare', [
+            { frequency: 392.00, duration: 0.15, volume: 0.3 },   // G4
+            { frequency: 493.88, duration: 0.15, volume: 0.35 },  // B4
+            { frequency: 587.33, duration: 0.15, volume: 0.35 },  // D5
+            { frequency: 783.99, duration: 0.2, volume: 0.4 },    // G5
+            { frequency: 987.77, duration: 0.2, volume: 0.4 },    // B5
+            { frequency: 1174.66, duration: 0.25, volume: 0.35 }, // D6
+            { frequency: 1567.98, duration: 0.3, volume: 0.35 },  // G6
+            { frequency: 1975.53, duration: 0.4, volume: 0.3 }    // B6
+        ]);
+
+        // Slow-mo whoosh - time slowing down effect
+        this.createToneSequence('slowmo_enter', [
+            { frequency: 400, duration: 0.2, volume: 0.15 },
+            { frequency: 300, duration: 0.3, volume: 0.12 },
+            { frequency: 200, duration: 0.4, volume: 0.08 }
+        ]);
+
+        // Slow-mo exit - time resuming effect
+        this.createToneSequence('slowmo_exit', [
+            { frequency: 200, duration: 0.15, volume: 0.1 },
+            { frequency: 300, duration: 0.12, volume: 0.15 },
+            { frequency: 400, duration: 0.1, volume: 0.2 },
+            { frequency: 500, duration: 0.08, volume: 0.15 }
+        ]);
+
+        // ==========================================
         // COSMIC CRYSTAL CAVE AMBIENT SOUNDS
         // ==========================================
         // High-frequency mystical chimes, resonant gongs, ethereal atmosphere
@@ -1230,6 +1291,59 @@ class AudioManager {
      */
     playBossIntro() {
         this.playSound('boss_intro');
+    }
+
+    // ==========================================
+    // COMBAT JUICE SOUND PLAYBACK METHODS
+    // ==========================================
+
+    /**
+     * Play combo hit - satisfying feedback for building combos
+     */
+    playComboHit() {
+        this.playSound('combo_hit');
+    }
+
+    /**
+     * Play combo milestone - reward for hitting 5x, 10x, etc
+     */
+    playComboMilestone() {
+        this.playSound('combo_milestone');
+    }
+
+    /**
+     * Play combo break - when combo ends
+     */
+    playComboBreak() {
+        this.playSound('combo_break');
+    }
+
+    /**
+     * Play critical hit - powerful impact for big damage
+     */
+    playCriticalHit() {
+        this.playSound('critical_hit');
+    }
+
+    /**
+     * Play victory fanfare - epic boss defeat celebration
+     */
+    playVictoryFanfare() {
+        this.playSound('victory_fanfare');
+    }
+
+    /**
+     * Play slow-mo enter - time slowing down effect
+     */
+    playSlowmoEnter() {
+        this.playSound('slowmo_enter');
+    }
+
+    /**
+     * Play slow-mo exit - time resuming effect
+     */
+    playSlowmoExit() {
+        this.playSound('slowmo_exit');
     }
 
     // ==========================================

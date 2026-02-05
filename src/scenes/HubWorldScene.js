@@ -78,6 +78,13 @@ export default class HubWorldScene extends Phaser.Scene {
             this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdown, this);
         }
 
+        // Check if ship completion cutscene should play
+        const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
+        const cutsceneShown = window.GameState?.get('hubWorld.shipCompletionCutsceneShown') || false;
+        if (shipParts.length >= 5 && !cutsceneShown) {
+            this.time.delayedCall(500, () => this.showShipCompletionCutscene());
+        }
+
         console.log('[HubWorldScene] Hub World ready');
     }
 
@@ -86,15 +93,18 @@ export default class HubWorldScene extends Phaser.Scene {
         const height = this.cameras.main.height;
         const isMobile = width < 600;
 
+        // For grid layout, position creature in upper portion of screen
+        // Gates go below in a 2x3 grid
+        const creatureAreaY = isMobile ? height * 0.22 : height * 0.25;
+
         this.dims = {
             width,
             height,
             isMobile,
             centerX: width / 2,
-            centerY: height / 2,
-            platformRadius: isMobile ? 80 : 120,
-            gateRadius: isMobile ? Math.min(width, height) * 0.35 : Math.min(width, height) * 0.38,
-            gateSize: isMobile ? 70 : 100
+            centerY: creatureAreaY, // Creature display position
+            platformRadius: isMobile ? 55 : 80, // Smaller platform for grid layout
+            gateSize: isMobile ? 35 : 45 // Used by completion badge
         };
     }
 
@@ -303,11 +313,20 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     createGates() {
-        const { centerX, centerY, gateRadius, gateSize, isMobile } = this.dims;
+        const { width, height, centerX, centerY, isMobile } = this.dims;
 
         // Get gates from GameState
         const allGates = window.GameState?.getAllGates() || {};
-        const gateIds = Object.keys(allGates);
+        let gateIds = Object.keys(allGates);
+
+        // Check if Final Void should be visible (only when all 5 ship parts collected)
+        const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
+        const allPartsCollected = shipParts.length >= 5;
+
+        // Filter out final_void if not all parts collected
+        if (!allPartsCollected) {
+            gateIds = gateIds.filter(id => id !== 'final_void');
+        }
 
         // Gate colors and icons
         const gateConfigs = {
@@ -322,14 +341,28 @@ export default class HubWorldScene extends Phaser.Scene {
         this.gates = [];
         this.gateElements = [];
 
+        // Grid layout: 2 columns, responsive sizing
+        const gatesPerRow = 2;
+        const gateWidth = isMobile ? 85 : 110;
+        const gateHeight = isMobile ? 95 : 120;
+        const gapX = isMobile ? 12 : 20;
+        const gapY = isMobile ? 10 : 16;
+        const totalGridWidth = gateWidth * 2 + gapX;
+        const startX = (width - totalGridWidth) / 2 + gateWidth / 2;
+        const startY = centerY + (isMobile ? 60 : 80); // Below creature
+
         gateIds.forEach((gateId, index) => {
             const gateData = allGates[gateId];
             const config = gateConfigs[gateId] || { color: 0x666666, icon: '❓', label: gateId };
 
-            // Position gates in a circle
-            const angle = (index / gateIds.length) * Math.PI * 2 - Math.PI / 2;
-            const x = centerX + Math.cos(angle) * gateRadius;
-            const y = centerY + Math.sin(angle) * gateRadius;
+            // Position gates in 2x3 grid
+            const col = index % gatesPerRow;
+            const row = Math.floor(index / gatesPerRow);
+            const x = startX + col * (gateWidth + gapX);
+            const y = startY + row * (gateHeight + gapY);
+
+            // Gate size (radius for circular gates)
+            const gateSize = isMobile ? 35 : 45;
 
             // Gate container
             const gateContainer = this.add.container(x, y);
@@ -468,7 +501,7 @@ export default class HubWorldScene extends Phaser.Scene {
                 zone,
                 x,
                 y,
-                angle
+                gridIndex: index
             };
 
             this.gates.push(gateInfo);
@@ -704,6 +737,13 @@ export default class HubWorldScene extends Phaser.Scene {
 
         // Show details panel for selected gate
         this.showDetailsPanel(this.gates[index]);
+
+        // Preload the level when player selects its gate
+        // This makes entering the level faster (level loads in background)
+        const selectedGate = this.gates[index];
+        if (selectedGate?.id) {
+            this.preloadLevelForGate(selectedGate.id);
+        }
 
         // Play sound
         if (window.AudioManager) {
@@ -1294,29 +1334,94 @@ export default class HubWorldScene extends Phaser.Scene {
 
     /**
      * Transition to appropriate scene based on gate
+     * Uses lazy loading for platformer levels to reduce initial bundle size
      */
-    transitionToGateScene(gate) {
+    async transitionToGateScene(gate) {
+        // Map gate IDs to scene names for lazy loading
+        const levelSceneMap = {
+            'crystal_caves': 'CrystalCavesLevel',
+            'stellar_reef': 'ReefLevel',
+            'mythical_forest': 'MythicalForestLevel',
+            'aurora_depths': 'AuroraDepthsLevel',
+            'final_void': 'FinalVoidLevel'
+        };
+
         if (gate.id === 'main') {
-            // Main sanctuary - top-down exploration
+            // Main sanctuary - top-down exploration (not lazy loaded)
             this.scene.start('GameScene', { biome: 'nebula' });
-        } else if (gate.id === 'crystal_caves') {
-            // Crystal Caves - side-scrolling platformer level
-            this.scene.start('CrystalCavesLevel');
-        } else if (gate.id === 'stellar_reef') {
-            // Stellar Reef - underwater swimming platformer level
-            this.scene.start('ReefLevel');
-        } else if (gate.id === 'mythical_forest') {
-            // Mythical Forest - mystical forest platformer level
-            this.scene.start('MythicalForestLevel');
-        } else if (gate.id === 'aurora_depths') {
-            // Aurora Depths - aurora-themed platformer level with Shadow Phoenix
-            this.scene.start('AuroraDepthsLevel');
-        } else if (gate.id === 'final_void') {
-            // The Final Void - final boss level with Void Empress
-            this.scene.start('FinalVoidLevel');
-        } else {
-            // Other biomes - top-down for now (will become platformer levels)
-            this.scene.start('GameScene', { biome: gate.data.biome });
+            return;
+        }
+
+        // Check if this is a platformer level that needs lazy loading
+        const sceneName = levelSceneMap[gate.id];
+        if (sceneName) {
+            // Show loading indicator
+            if (window.UXEnhancements) {
+                window.UXEnhancements.showLoading(`Loading ${gate.data?.name || 'level'}...`);
+            }
+
+            try {
+                // Use SceneLoader for lazy loading
+                if (window.SceneLoader) {
+                    const loaded = await window.SceneLoader.loadScene(this.game, sceneName);
+                    if (loaded) {
+                        if (window.UXEnhancements) {
+                            window.UXEnhancements.hideLoading();
+                        }
+                        this.scene.start(sceneName);
+                        return;
+                    }
+                }
+
+                // Fallback: try direct scene start (if already registered)
+                if (window.UXEnhancements) {
+                    window.UXEnhancements.hideLoading();
+                }
+                this.scene.start(sceneName);
+            } catch (error) {
+                console.error(`[HubWorldScene] Failed to load ${sceneName}:`, error);
+                if (window.UXEnhancements) {
+                    window.UXEnhancements.hideLoading();
+                }
+                // Show error to user
+                this.showLevelLoadError(gate.data?.name || sceneName);
+            }
+            return;
+        }
+
+        // Other biomes - top-down for now (will become platformer levels)
+        this.scene.start('GameScene', { biome: gate.data?.biome });
+    }
+
+    /**
+     * Show error when level fails to load
+     */
+    showLevelLoadError(levelName) {
+        const { width, height } = this.dims;
+
+        const errorText = this.add.text(width / 2, height / 2,
+            `Failed to load ${levelName}\nPlease try again`,
+            {
+                fontSize: '20px',
+                color: '#FF6B6B',
+                align: 'center',
+                stroke: '#000000',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5).setDepth(500);
+
+        this.time.delayedCall(3000, () => {
+            errorText.destroy();
+        });
+    }
+
+    /**
+     * Preload a level when player hovers over its gate
+     * This makes the level load faster when they actually enter
+     */
+    preloadLevelForGate(gateId) {
+        if (window.SceneLoader?.preloadLevel) {
+            window.SceneLoader.preloadLevel(gateId);
         }
     }
 
@@ -1388,31 +1493,221 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     /**
+     * Show ship completion cutscene when all 5 parts are collected
+     * Dramatic reveal with ship assembly animation and story text
+     */
+    showShipCompletionCutscene() {
+        const { width, height, isMobile } = this.dims;
+        console.log('[HubWorldScene] Starting ship completion cutscene');
+
+        // Play epic sound
+        if (window.AudioManager) {
+            window.AudioManager.playLevelUp();
+        }
+
+        // Dark overlay (fade in)
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.95);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(400);
+        overlay.setAlpha(0);
+
+        this.tweens.add({
+            targets: overlay,
+            alpha: 1,
+            duration: 800,
+            ease: 'Power2'
+        });
+
+        // Ship parts flying to center animation
+        const partData = [
+            { icon: '🔮', name: 'Crystal Core', delay: 800, startX: -50, startY: height * 0.3 },
+            { icon: '⚙️', name: 'Dimensional Drive', delay: 1200, startX: width + 50, startY: height * 0.4 },
+            { icon: '🌿', name: 'Forest Core', delay: 1600, startX: -50, startY: height * 0.5 },
+            { icon: '✨', name: 'Aurora Reactor', delay: 2000, startX: width + 50, startY: height * 0.6 },
+            { icon: '👑', name: 'Command Module', delay: 2400, startX: width / 2, startY: -50 }
+        ];
+
+        const centerX = width / 2;
+        const centerY = height / 2 - 50;
+        const elements = [overlay];
+
+        partData.forEach(part => {
+            this.time.delayedCall(part.delay, () => {
+                const partIcon = this.add.text(part.startX, part.startY, part.icon, {
+                    fontSize: isMobile ? '36px' : '48px'
+                }).setOrigin(0.5).setDepth(401);
+                elements.push(partIcon);
+
+                // Fly to center with trail effect
+                this.tweens.add({
+                    targets: partIcon,
+                    x: centerX + Phaser.Math.Between(-30, 30),
+                    y: centerY + Phaser.Math.Between(-30, 30),
+                    duration: 600,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        // Flash when part arrives
+                        if (window.FXLibrary) {
+                            window.FXLibrary.stardustBurst(this, partIcon.x, partIcon.y, {
+                                count: 10,
+                                color: [0xFFD700, 0xFFFFFF],
+                                duration: 500
+                            });
+                        }
+                        if (window.AudioManager) {
+                            window.AudioManager.playCoinCollect();
+                        }
+                    }
+                });
+            });
+        });
+
+        // After all parts assembled, show assembled ship and story
+        this.time.delayedCall(3200, () => {
+            // Flash effect
+            const flash = this.add.graphics();
+            flash.fillStyle(0xFFD700, 0.8);
+            flash.fillRect(0, 0, width, height);
+            flash.setDepth(402);
+            elements.push(flash);
+
+            this.tweens.add({
+                targets: flash,
+                alpha: 0,
+                duration: 800,
+                ease: 'Power2'
+            });
+
+            // Assembled ship icon
+            const shipIcon = this.add.text(centerX, centerY - 30, '🚀', {
+                fontSize: isMobile ? '72px' : '96px'
+            }).setOrigin(0.5).setDepth(403);
+            elements.push(shipIcon);
+
+            // Pulsing glow
+            this.tweens.add({
+                targets: shipIcon,
+                scale: { from: 1, to: 1.15 },
+                duration: 800,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // Title
+            const title = this.add.text(centerX, centerY + 60, '✨ SHIP COMPLETE! ✨', {
+                fontSize: isMobile ? '28px' : '36px',
+                color: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            }).setOrigin(0.5).setDepth(403);
+            elements.push(title);
+
+            // Story text
+            const story = this.add.text(centerX, centerY + 110,
+                'Your vessel is assembled.\nThe Final Void awaits...\n\nThe Void Empress guards\nthe last frontier.', {
+                fontSize: isMobile ? '16px' : '20px',
+                color: '#FFFFFF',
+                align: 'center',
+                lineSpacing: 6
+            }).setOrigin(0.5).setDepth(403);
+            elements.push(story);
+
+            // Continue button
+            this.time.delayedCall(2000, () => {
+                const continueBtn = this.add.text(centerX, height - (isMobile ? 100 : 120), '⚔️ Face the Void Empress ⚔️', {
+                    fontSize: isMobile ? '18px' : '22px',
+                    color: '#FFFFFF',
+                    backgroundColor: '#4B0082',
+                    padding: { x: 25, y: 15 }
+                }).setOrigin(0.5).setDepth(403);
+                continueBtn.setInteractive({ useHandCursor: true });
+                elements.push(continueBtn);
+
+                // Button hover effects
+                continueBtn.on('pointerover', () => {
+                    continueBtn.setStyle({ backgroundColor: '#6A0DAD' });
+                });
+                continueBtn.on('pointerout', () => {
+                    continueBtn.setStyle({ backgroundColor: '#4B0082' });
+                });
+
+                // Button click - close cutscene and refresh gates
+                continueBtn.on('pointerdown', () => {
+                    // Mark cutscene as shown
+                    window.GameState?.set('hubWorld.shipCompletionCutsceneShown', true);
+                    window.GameState?.save();
+
+                    // Play sound
+                    if (window.AudioManager) {
+                        window.AudioManager.playButtonClick();
+                    }
+
+                    // Fade out overlay
+                    this.tweens.add({
+                        targets: elements,
+                        alpha: 0,
+                        duration: 500,
+                        onComplete: () => {
+                            elements.forEach(el => {
+                                if (el && el.destroy) el.destroy();
+                            });
+
+                            // Refresh gates to show Final Void
+                            this.refreshGates();
+                        }
+                    });
+                });
+
+                // Pulsing animation for button
+                this.tweens.add({
+                    targets: continueBtn,
+                    alpha: { from: 1, to: 0.7 },
+                    duration: 600,
+                    yoyo: true,
+                    repeat: -1
+                });
+            });
+        });
+    }
+
+    /**
      * Create Ship Assembly View - visual ship being built with collected parts
      * Positioned above creature display showing ship hull outline with part positions
      */
     createShipAssemblyView() {
-        const { centerX, centerY, isMobile } = this.dims;
+        const { width, height, centerX, centerY, isMobile } = this.dims;
 
         // Get ship parts status
         const shipParts = window.GameState?.get('hubWorld.shipParts') || {
             collected: [],
-            totalRequired: 4,
+            totalRequired: 5,
             finalBossUnlocked: false
         };
         const collectedParts = shipParts.collected || [];
-        const allCollected = collectedParts.length === 4;
+        const allCollected = collectedParts.length === 5;
 
-        // Position above creature display
-        const shipY = centerY - (isMobile ? 150 : 200);
-        const shipScale = isMobile ? 0.7 : 1.0;
+        // For grid layout, position ship assembly above creature (in header area)
+        // If mobile, skip the detailed ship view to save space - use header progress bar instead
+        if (isMobile) {
+            // On mobile, just show a simple ship icon near creature
+            this.shipAssemblyElements = [];
+            return; // Use header progress display instead
+        }
 
-        // Part definitions with positions relative to ship center
+        // Position ship assembly view above creature display (desktop only)
+        const shipY = centerY - 80;
+        const shipScale = 0.8;
+
+        // Part definitions with positions relative to ship center (5 parts total)
         const partDefs = {
-            dimensional_drive: { x: 0, y: 35 * shipScale, icon: '⚙️', label: 'Engine' },
-            crystal_core: { x: -30 * shipScale, y: 0, icon: '🔮', label: 'Core' },
-            void_stabilizer: { x: 30 * shipScale, y: 0, icon: '🌀', label: 'Stabilizer' },
-            aurora_reactor: { x: 0, y: -35 * shipScale, icon: '✨', label: 'Reactor' }
+            crystal_core: { x: -30 * shipScale, y: -20 * shipScale, icon: '🔮', label: 'Core' },
+            dimensional_drive: { x: 30 * shipScale, y: -20 * shipScale, icon: '⚙️', label: 'Engine' },
+            forest_core: { x: -35 * shipScale, y: 20 * shipScale, icon: '🌿', label: 'Life' },
+            aurora_reactor: { x: 35 * shipScale, y: 20 * shipScale, icon: '✨', label: 'Reactor' },
+            command_module: { x: 0, y: 0, icon: '👑', label: 'Command' }
         };
 
         // Store elements for cleanup
@@ -1427,12 +1722,13 @@ export default class HubWorldScene extends Phaser.Scene {
         const hull = this.add.graphics();
         hull.lineStyle(2, 0x7B68EE, 0.5);
 
-        // Draw hull shape as connected lines (diamond shape)
+        // Draw hull shape as connected lines (pentagon shape for 5 parts)
         const points = [
-            { x: partDefs.aurora_reactor.x, y: partDefs.aurora_reactor.y }, // Top
-            { x: partDefs.void_stabilizer.x + 15, y: partDefs.void_stabilizer.y }, // Right
-            { x: partDefs.dimensional_drive.x, y: partDefs.dimensional_drive.y + 10 }, // Bottom
-            { x: partDefs.crystal_core.x - 15, y: partDefs.crystal_core.y } // Left
+            { x: partDefs.command_module.x, y: partDefs.command_module.y - 30 * shipScale }, // Top (above command)
+            { x: partDefs.aurora_reactor.x + 15, y: partDefs.aurora_reactor.y }, // Right top
+            { x: partDefs.forest_core.x + 15, y: partDefs.forest_core.y + 15 }, // Right bottom
+            { x: partDefs.crystal_core.x - 15, y: partDefs.crystal_core.y + 15 }, // Left bottom
+            { x: partDefs.dimensional_drive.x - 15, y: partDefs.dimensional_drive.y } // Left top
         ];
 
         // Draw dashed hull outline
@@ -1534,7 +1830,7 @@ export default class HubWorldScene extends Phaser.Scene {
         }
 
         // Progress counter
-        const progressText = this.add.text(0, 55 * shipScale, `${collectedParts.length}/4 Parts`, {
+        const progressText = this.add.text(0, 55 * shipScale, `${collectedParts.length}/5 Parts`, {
             fontSize: isMobile ? '12px' : '14px',
             color: allCollected ? '#FFD700' : '#AAAAAA',
             fontStyle: 'bold'
@@ -1716,6 +2012,107 @@ export default class HubWorldScene extends Phaser.Scene {
 
         backBtn.on('pointerover', () => backBtn.setAlpha(0.8));
         backBtn.on('pointerout', () => backBtn.setAlpha(1));
+
+        // Mobile navigation arrows (easier gate navigation on touch devices)
+        if (isMobile) {
+            this.createMobileNavArrows();
+        }
+    }
+
+    /**
+     * Create mobile navigation arrows for easier gate selection
+     */
+    createMobileNavArrows() {
+        const { width, height, centerY } = this.dims;
+
+        // Arrow button size (large touch targets - minimum 44px)
+        const arrowSize = 60;
+        const arrowY = centerY;
+
+        // Left arrow
+        const leftArrowBg = this.add.graphics();
+        leftArrowBg.fillStyle(0x000000, 0.5);
+        leftArrowBg.fillCircle(40, arrowY, arrowSize / 2);
+        leftArrowBg.lineStyle(2, 0x7B68EE);
+        leftArrowBg.strokeCircle(40, arrowY, arrowSize / 2);
+        leftArrowBg.setDepth(45);
+
+        const leftArrow = this.add.text(40, arrowY, '◀', {
+            fontSize: '28px',
+            color: '#FFFFFF'
+        }).setOrigin(0.5).setDepth(46);
+
+        const leftArrowZone = this.add.zone(40, arrowY, arrowSize, arrowSize)
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(47);
+
+        leftArrowZone.on('pointerdown', () => {
+            const newIndex = (this.selectedGateIndex - 1 + this.gates.length) % this.gates.length;
+            this.selectGate(newIndex);
+            // Visual feedback
+            leftArrowBg.clear();
+            leftArrowBg.fillStyle(0x7B68EE, 0.7);
+            leftArrowBg.fillCircle(40, arrowY, arrowSize / 2);
+            leftArrowBg.lineStyle(2, 0xFFD700);
+            leftArrowBg.strokeCircle(40, arrowY, arrowSize / 2);
+            // Play sound
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+        });
+
+        leftArrowZone.on('pointerup', () => {
+            leftArrowBg.clear();
+            leftArrowBg.fillStyle(0x000000, 0.5);
+            leftArrowBg.fillCircle(40, arrowY, arrowSize / 2);
+            leftArrowBg.lineStyle(2, 0x7B68EE);
+            leftArrowBg.strokeCircle(40, arrowY, arrowSize / 2);
+        });
+
+        // Right arrow
+        const rightArrowBg = this.add.graphics();
+        rightArrowBg.fillStyle(0x000000, 0.5);
+        rightArrowBg.fillCircle(width - 40, arrowY, arrowSize / 2);
+        rightArrowBg.lineStyle(2, 0x7B68EE);
+        rightArrowBg.strokeCircle(width - 40, arrowY, arrowSize / 2);
+        rightArrowBg.setDepth(45);
+
+        const rightArrow = this.add.text(width - 40, arrowY, '▶', {
+            fontSize: '28px',
+            color: '#FFFFFF'
+        }).setOrigin(0.5).setDepth(46);
+
+        const rightArrowZone = this.add.zone(width - 40, arrowY, arrowSize, arrowSize)
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(47);
+
+        rightArrowZone.on('pointerdown', () => {
+            const newIndex = (this.selectedGateIndex + 1) % this.gates.length;
+            this.selectGate(newIndex);
+            // Visual feedback
+            rightArrowBg.clear();
+            rightArrowBg.fillStyle(0x7B68EE, 0.7);
+            rightArrowBg.fillCircle(width - 40, arrowY, arrowSize / 2);
+            rightArrowBg.lineStyle(2, 0xFFD700);
+            rightArrowBg.strokeCircle(width - 40, arrowY, arrowSize / 2);
+            // Play sound
+            if (window.AudioManager) {
+                window.AudioManager.playButtonClick();
+            }
+        });
+
+        rightArrowZone.on('pointerup', () => {
+            rightArrowBg.clear();
+            rightArrowBg.fillStyle(0x000000, 0.5);
+            rightArrowBg.fillCircle(width - 40, arrowY, arrowSize / 2);
+            rightArrowBg.lineStyle(2, 0x7B68EE);
+            rightArrowBg.strokeCircle(width - 40, arrowY, arrowSize / 2);
+        });
+
+        // Store references for cleanup
+        this.mobileNavElements = [leftArrowBg, leftArrow, leftArrowZone, rightArrowBg, rightArrow, rightArrowZone];
     }
 
     /**
@@ -1727,12 +2124,12 @@ export default class HubWorldScene extends Phaser.Scene {
         // Get ship parts status from GameState
         const shipParts = window.GameState?.get('hubWorld.shipParts') || {
             collected: [],
-            totalRequired: 4,
+            totalRequired: 5,
             finalBossUnlocked: false
         };
 
         const collected = shipParts.collected?.length || 0;
-        const total = shipParts.totalRequired || 4;
+        const total = shipParts.totalRequired || 5;
 
         // Position below title
         const displayY = isMobile ? 70 : 85;
@@ -1772,11 +2169,11 @@ export default class HubWorldScene extends Phaser.Scene {
         }).setDepth(51);
 
         // Part indicators (small circles showing collected/not collected)
-        const partIcons = ['⚙️', '🔮', '🌀', '✨'];
-        const partNames = ['Dimensional Drive', 'Crystal Core', 'Void Stabilizer', 'Aurora Reactor'];
-        const partIds = ['dimensional_drive', 'crystal_core', 'void_stabilizer', 'aurora_reactor'];
+        const partIcons = ['🔮', '⚙️', '🌿', '✨', '👑'];
+        const partNames = ['Crystal Core', 'Dimensional Drive', 'Forest Core', 'Aurora Reactor', 'Command Module'];
+        const partIds = ['crystal_core', 'dimensional_drive', 'forest_core', 'aurora_reactor', 'command_module'];
 
-        const startX = containerX + containerWidth - (isMobile ? 60 : 80);
+        const startX = containerX + containerWidth - (isMobile ? 75 : 100);
         partIcons.forEach((icon, idx) => {
             const isCollected = shipParts.collected?.includes(partIds[idx]);
             const partX = startX + idx * (isMobile ? 14 : 18);
@@ -2024,6 +2421,15 @@ export default class HubWorldScene extends Phaser.Scene {
                 gate.zone.removeAllListeners();
             }
         });
+
+        // Clear mobile navigation elements
+        if (this.mobileNavElements) {
+            this.mobileNavElements.forEach(el => {
+                if (el && el.removeAllListeners) el.removeAllListeners();
+                if (el && el.destroy) el.destroy();
+            });
+            this.mobileNavElements = [];
+        }
 
         // Clear timers and tweens
         if (this.time) this.time.removeAllEvents();

@@ -101,6 +101,7 @@ import './systems/SoulPhraseGenerator.js';
 import './systems/SpaceWeatherSystem.js';
 import './systems/NASAContentSystem.js';
 import './systems/OnboardingManager.js';
+import './systems/CombatJuice.js';
 
 // ============================================
 // SCENES - Onboarding Flow (Critical Path)

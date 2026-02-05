@@ -22,13 +22,15 @@ import { devLog, devWarn } from './devLogger.js';
 
 class SceneLoaderClass {
     constructor() {
-        // Track loaded scenes
+        // Track loaded scenes and their modules
         this.loadedScenes = new Set();
+        this.loadedModules = new Map();  // Store actual module references
 
         // Track loading promises (prevent duplicate loads)
         this.loadingPromises = new Map();
 
         // Scene to chunk mapping
+        // Each level gets its own chunk for optimal lazy loading
         this.sceneChunks = {
             // Onboarding chunk
             HatchingScene: 'onboarding',
@@ -39,11 +41,17 @@ class SceneLoaderClass {
             // Gameplay chunk
             GameScene: 'gameplay',
 
-            // Levels chunk
-            HubWorldScene: 'levels',
-            PlatformerLevelScene: 'levels',
-            CrystalCavesLevel: 'levels',
-            ReefLevel: 'levels',
+            // Hub and base class (always needed for levels)
+            HubWorldScene: 'levels-hub',
+            PlatformerLevelScene: 'levels-hub',
+            VictoryScene: 'levels-hub',
+
+            // Individual level chunks (lazy loaded on demand)
+            CrystalCavesLevel: 'level-crystal',
+            ReefLevel: 'level-reef',
+            MythicalForestLevel: 'level-forest',
+            AuroraDepthsLevel: 'level-aurora',
+            FinalVoidLevel: 'level-final',
 
             // Menus chunk
             ShopScene: 'menus',
@@ -61,6 +69,7 @@ class SceneLoaderClass {
         };
 
         // Dynamic import functions for each scene
+        // Using dynamic imports enables code splitting - each level loads separately
         this.sceneImports = {
             // Onboarding scenes
             HatchingScene: () => import('../scenes/HatchingScene.js'),
@@ -71,11 +80,17 @@ class SceneLoaderClass {
             // Gameplay
             GameScene: () => import('../scenes/GameScene.js'),
 
-            // Levels
+            // Hub and core level infrastructure
             HubWorldScene: () => import('../scenes/HubWorldScene.js'),
             PlatformerLevelScene: () => import('../scenes/PlatformerLevelScene.js'),
+            VictoryScene: () => import('../scenes/VictoryScene.js'),
+
+            // Individual levels - each loads on demand
             CrystalCavesLevel: () => import('../scenes/levels/CrystalCavesLevel.js'),
             ReefLevel: () => import('../scenes/levels/ReefLevel.js'),
+            MythicalForestLevel: () => import('../scenes/levels/MythicalForestLevel.js'),
+            AuroraDepthsLevel: () => import('../scenes/levels/AuroraDepthsLevel.js'),
+            FinalVoidLevel: () => import('../scenes/levels/FinalVoidLevel.js'),
 
             // Menus
             ShopScene: () => import('../scenes/ShopScene.js'),
@@ -101,12 +116,18 @@ class SceneLoaderClass {
                 this.preload('SoulRevealScene')
             ]),
             gameplay: () => this.preload('GameScene'),
-            levels: () => Promise.all([
+            // Hub infrastructure only - levels load individually
+            'levels-hub': () => Promise.all([
                 this.preload('HubWorldScene'),
                 this.preload('PlatformerLevelScene'),
-                this.preload('CrystalCavesLevel'),
-                this.preload('ReefLevel')
+                this.preload('VictoryScene')
             ]),
+            // Individual level preloaders
+            'level-crystal': () => this.preload('CrystalCavesLevel'),
+            'level-reef': () => this.preload('ReefLevel'),
+            'level-forest': () => this.preload('MythicalForestLevel'),
+            'level-aurora': () => this.preload('AuroraDepthsLevel'),
+            'level-final': () => this.preload('FinalVoidLevel'),
             menus: () => Promise.all([
                 this.preload('ShopScene'),
                 this.preload('InventoryScene'),
@@ -119,6 +140,29 @@ class SceneLoaderClass {
                 this.preload('VoidMiniGameScene')
             ])
         };
+
+        // Map level scene names to their gate IDs for preloading
+        this.levelSceneMap = {
+            'crystal_caves': 'CrystalCavesLevel',
+            'stellar_reef': 'ReefLevel',
+            'mythical_forest': 'MythicalForestLevel',
+            'aurora_depths': 'AuroraDepthsLevel',
+            'final_void': 'FinalVoidLevel'
+        };
+    }
+
+    /**
+     * Preload a specific level by its gate ID
+     * Called from HubWorldScene when player hovers over a gate
+     * @param {string} gateId - The gate ID (e.g., 'crystal_caves')
+     */
+    async preloadLevel(gateId) {
+        const sceneName = this.levelSceneMap[gateId];
+        if (sceneName) {
+            devLog(`[SceneLoader] Preloading level for gate: ${gateId}`);
+            return this.preload(sceneName);
+        }
+        return null;
     }
 
     /**
@@ -127,10 +171,10 @@ class SceneLoaderClass {
      * @returns {Promise<Object>} - The loaded module
      */
     async preload(sceneName) {
-        // Already loaded
+        // Already loaded - return the stored module
         if (this.loadedScenes.has(sceneName)) {
             devLog(`[SceneLoader] ${sceneName} already loaded`);
-            return true;
+            return this.loadedModules.get(sceneName);
         }
 
         // Already loading - return existing promise
@@ -150,6 +194,7 @@ class SceneLoaderClass {
         const loadPromise = importFn()
             .then(module => {
                 this.loadedScenes.add(sceneName);
+                this.loadedModules.set(sceneName, module);  // Store the module reference
                 this.loadingPromises.delete(sceneName);
                 devLog(`[SceneLoader] ${sceneName} preloaded successfully`);
                 return module;

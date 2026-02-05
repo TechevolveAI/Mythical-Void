@@ -105,13 +105,17 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         this.physics.pause();
 
+        // Track ALL elements for proper cleanup
+        const entryElements = [];
+
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.95);
         overlay.fillRect(0, 0, width, height);
         overlay.setScrollFactor(0);
         overlay.setDepth(3000);
+        entryElements.push(overlay);
 
-        const panelWidth = 500;
+        const panelWidth = Math.min(500, width - 40);
         const panelHeight = 400;
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
@@ -123,6 +127,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
         panel.setScrollFactor(0);
         panel.setDepth(3001);
+        entryElements.push(panel);
 
         // Ominous void glow
         const glowPanel = this.add.graphics();
@@ -130,12 +135,14 @@ class FinalVoidLevel extends PlatformerLevelScene {
         glowPanel.fillRoundedRect(panelX - 10, panelY - 10, panelWidth + 20, panelHeight + 20, 25);
         glowPanel.setScrollFactor(0);
         glowPanel.setDepth(3000);
+        entryElements.push(glowPanel);
 
         const title = this.add.text(width / 2, panelY + 50, 'THE FINAL VOID', {
             fontSize: '42px',
             color: '#9400D3',
             fontStyle: 'bold'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(title);
 
         // Pulsing title effect
         this.tweens.add({
@@ -148,38 +155,44 @@ class FinalVoidLevel extends PlatformerLevelScene {
             ease: 'Sine.easeInOut'
         });
 
-        this.add.text(width / 2, panelY + 100, '"The Empress awaits at reality\'s edge"', {
+        const subtitle = this.add.text(width / 2, panelY + 100, '"The Empress awaits at reality\'s edge"', {
             fontSize: '16px',
             color: '#DA70D6',
             fontStyle: 'italic'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(subtitle);
 
         const divider = this.add.graphics();
         divider.lineStyle(2, 0x9400D3, 0.5);
         divider.lineBetween(panelX + 50, panelY + 140, panelX + panelWidth - 50, panelY + 140);
         divider.setScrollFactor(0);
         divider.setDepth(3002);
+        entryElements.push(divider);
 
-        this.add.text(width / 2, panelY + 170, '⚠ FINAL BOSS ⚠', {
+        const warning = this.add.text(width / 2, panelY + 170, '⚠ FINAL BOSS ⚠', {
             fontSize: '18px',
             color: '#FF4500'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(warning);
 
-        this.add.text(width / 2, panelY + 210, 'VOID EMPRESS', {
+        const bossName = this.add.text(width / 2, panelY + 210, 'VOID EMPRESS', {
             fontSize: '28px',
             color: '#FF00FF',
             fontStyle: 'bold'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(bossName);
 
-        this.add.text(width / 2, panelY + 250, '5 Phases • 20 Health • Ultimate Challenge', {
+        const bossStats = this.add.text(width / 2, panelY + 250, '5 Phases • 20 Health • Ultimate Challenge', {
             fontSize: '14px',
             color: '#AAAAAA'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(bossStats);
 
-        this.add.text(width / 2, panelY + 290, 'Reward: Command Module + Space Travel', {
+        const rewardText = this.add.text(width / 2, panelY + 290, 'Reward: Command Module + Space Travel', {
             fontSize: '16px',
             color: '#FFD700'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(rewardText);
 
         const enterBtn = this.add.text(width / 2, panelY + panelHeight - 60, '[ FACE YOUR DESTINY ]', {
             fontSize: '22px',
@@ -187,23 +200,32 @@ class FinalVoidLevel extends PlatformerLevelScene {
             backgroundColor: '#1A0A2E',
             padding: { x: 30, y: 15 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
+        entryElements.push(enterBtn);
 
         enterBtn.on('pointerover', () => enterBtn.setColor('#FF00FF'));
         enterBtn.on('pointerout', () => enterBtn.setColor('#9400D3'));
-        enterBtn.on('pointerdown', () => {
+
+        // Dismiss function - used by button and tap anywhere
+        const dismissEntry = () => {
             this.tweens.add({
-                targets: [overlay, panel, glowPanel, title, enterBtn],
+                targets: entryElements,
                 alpha: 0,
                 duration: 1000,
                 onComplete: () => {
-                    overlay.destroy();
-                    panel.destroy();
-                    glowPanel.destroy();
+                    entryElements.forEach(el => {
+                        if (el && el.destroy) el.destroy();
+                    });
                     this.physics.resume();
                     this.startLevel();
                 }
             });
-        });
+        };
+
+        enterBtn.on('pointerdown', dismissEntry);
+
+        // Also allow tapping anywhere on overlay to dismiss (mobile-friendly)
+        overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        overlay.on('pointerdown', dismissEntry);
     }
 
     startLevel() {
@@ -1268,8 +1290,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
             console.log('[FinalVoidLevel] Ship part acquired: Command Module. Total parts:', shipParts.length);
         }
 
-        // Check if all parts collected
-        const allPartsCollected = shipParts.length >= 4;
+        // Check if all 5 parts collected (one from each boss)
+        const allPartsCollected = shipParts.length >= 5;
 
         const victoryText = this.add.text(width / 2, height / 2 - 50, '👑 VOID EMPRESS DETHRONED 👑', {
             fontSize: '36px',
@@ -1361,12 +1383,12 @@ class FinalVoidLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        this.add.text(width / 2, panelY + 150, `Ship Parts: ${shipParts.length}/4`, {
+        this.add.text(width / 2, panelY + 150, `Ship Parts: ${shipParts.length}/5`, {
             fontSize: '18px',
             color: '#DA70D6'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
-        if (shipParts.length < 4) {
+        if (shipParts.length < 5) {
             this.add.text(width / 2, panelY + 190, 'Collect all parts to complete your ship!', {
                 fontSize: '14px',
                 color: '#AAAAAA'

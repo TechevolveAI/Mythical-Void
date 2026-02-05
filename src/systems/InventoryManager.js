@@ -12,15 +12,8 @@ class InventoryManager {
 
         // Ship part definitions - collected through gameplay
         // Canonical storage is hubWorld.shipParts.collected[] in GameState
+        // 5 parts total: one from each boss level
         this.SHIP_PART_DEFINITIONS = {
-            dimensional_drive: {
-                id: 'dimensional_drive',
-                icon: '⚙️',
-                label: 'Dimensional Drive',
-                source: 'Stellar Reef',
-                description: 'Powers interdimensional travel',
-                position: 'bottom' // Position in ship assembly
-            },
             crystal_core: {
                 id: 'crystal_core',
                 icon: '🔮',
@@ -29,12 +22,20 @@ class InventoryManager {
                 description: 'Channels cosmic energy',
                 position: 'left'
             },
-            void_stabilizer: {
-                id: 'void_stabilizer',
-                icon: '🌀',
-                label: 'Void Stabilizer',
-                source: 'Void Peaks',
-                description: 'Maintains dimensional stability',
+            dimensional_drive: {
+                id: 'dimensional_drive',
+                icon: '⚙️',
+                label: 'Dimensional Drive',
+                source: 'Stellar Reef',
+                description: 'Powers interdimensional travel',
+                position: 'bottom'
+            },
+            forest_core: {
+                id: 'forest_core',
+                icon: '🌳',
+                label: 'Forest Core',
+                source: 'Mythical Forest',
+                description: 'Harnesses nature\'s ancient power',
                 position: 'right'
             },
             aurora_reactor: {
@@ -44,6 +45,14 @@ class InventoryManager {
                 source: 'Aurora Depths',
                 description: 'Generates aurora energy',
                 position: 'top'
+            },
+            command_module: {
+                id: 'command_module',
+                icon: '👑',
+                label: 'Command Module',
+                source: 'The Final Void',
+                description: 'Central control system for space travel',
+                position: 'center'
             }
         };
     }

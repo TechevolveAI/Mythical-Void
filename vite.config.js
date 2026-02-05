@@ -8,9 +8,15 @@ import { defineConfig } from 'vite';
  * - core: Essential systems needed for all gameplay
  * - onboarding: First-time user flow scenes
  * - gameplay: Main game scene and related systems
- * - levels: Platformer levels (loaded on demand)
+ * - levels-hub: Hub world and base level class (always loaded when accessing levels)
+ * - level-*: Individual levels (lazy loaded when player enters)
  * - menus: Shop, Inventory, Achievements (loaded on demand)
  * - advanced: Breeding, Fusion, Mini-games (loaded on demand)
+ *
+ * Level Lazy Loading:
+ * Each platformer level is in its own chunk (~40-60KB each).
+ * When player selects a level from HubWorldScene, only that level loads.
+ * This keeps initial load fast even as more levels are added.
  */
 
 export default defineConfig({
@@ -95,11 +101,29 @@ export default defineConfig({
             return 'gameplay';
           }
 
-          // Platformer levels - loaded when entering hub/levels
-          if (id.includes('/scenes/levels/') ||
+          // Hub infrastructure - always needed when accessing levels
+          if (id.includes('HubWorldScene') ||
               id.includes('PlatformerLevelScene') ||
-              id.includes('HubWorldScene')) {
-            return 'levels';
+              id.includes('VictoryScene')) {
+            return 'levels-hub';
+          }
+
+          // Individual level chunks - lazy loaded on demand
+          // Each level is its own chunk for optimal loading (~40-60KB each)
+          if (id.includes('/scenes/levels/CrystalCavesLevel')) {
+            return 'level-crystal';
+          }
+          if (id.includes('/scenes/levels/ReefLevel')) {
+            return 'level-reef';
+          }
+          if (id.includes('/scenes/levels/MythicalForestLevel')) {
+            return 'level-forest';
+          }
+          if (id.includes('/scenes/levels/AuroraDepthsLevel')) {
+            return 'level-aurora';
+          }
+          if (id.includes('/scenes/levels/FinalVoidLevel')) {
+            return 'level-final';
           }
 
           // Menu scenes - loaded on demand

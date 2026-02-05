@@ -135,13 +135,17 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         this.physics.pause();
 
+        // Track ALL elements for proper cleanup
+        const entryElements = [];
+
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.9);
         overlay.fillRect(0, 0, width, height);
         overlay.setScrollFactor(0);
         overlay.setDepth(3000);
+        entryElements.push(overlay);
 
-        const panelWidth = 450;
+        const panelWidth = Math.min(450, width - 40);
         const panelHeight = 350;
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
@@ -153,46 +157,54 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
         panel.setScrollFactor(0);
         panel.setDepth(3001);
+        entryElements.push(panel);
 
         const title = this.add.text(width / 2, panelY + 50, 'AURORA DEPTHS', {
             fontSize: '36px',
             color: '#00E676',
             fontStyle: 'bold'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(title);
 
-        this.add.text(width / 2, panelY + 90, '"Where light bends and shadows dance"', {
+        const subtitle = this.add.text(width / 2, panelY + 90, '"Where light bends and shadows dance"', {
             fontSize: '16px',
             color: '#7FFFD4',
             fontStyle: 'italic'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(subtitle);
 
         const divider = this.add.graphics();
         divider.lineStyle(2, 0x00E676, 0.5);
         divider.lineBetween(panelX + 40, panelY + 120, panelX + panelWidth - 40, panelY + 120);
         divider.setScrollFactor(0);
         divider.setDepth(3002);
+        entryElements.push(divider);
 
-        this.add.text(width / 2, panelY + 145, 'OBJECTIVE', {
+        const objHeader = this.add.text(width / 2, panelY + 145, 'OBJECTIVE', {
             fontSize: '14px',
             color: '#888888'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(objHeader);
 
-        this.add.text(width / 2, panelY + 175, 'Claim the Aurora Reactor', {
+        const mainObj = this.add.text(width / 2, panelY + 175, 'Claim the Aurora Reactor', {
             fontSize: '20px',
             color: '#7FFFD4',
             fontStyle: 'bold'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(mainObj);
 
         const secondaryY = panelY + 220;
-        this.add.text(panelX + 60, secondaryY, '[ ] Collect Star Fragments (0/5)', {
+        const obj1 = this.add.text(panelX + 60, secondaryY, '[ ] Collect Star Fragments (0/5)', {
             fontSize: '16px',
             color: '#AAAAAA'
         }).setScrollFactor(0).setDepth(3002);
+        entryElements.push(obj1);
 
-        this.add.text(panelX + 60, secondaryY + 30, '[ ] Defeat the Shadow Phoenix', {
+        const obj2 = this.add.text(panelX + 60, secondaryY + 30, '[ ] Defeat the Shadow Phoenix', {
             fontSize: '16px',
             color: '#AAAAAA'
         }).setScrollFactor(0).setDepth(3002);
+        entryElements.push(obj2);
 
         const enterBtn = this.add.text(width / 2, panelY + panelHeight - 50, '[ DESCEND INTO THE AURORA ]', {
             fontSize: '20px',
@@ -200,22 +212,32 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             backgroundColor: '#0A1A2A',
             padding: { x: 25, y: 12 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
+        entryElements.push(enterBtn);
 
         enterBtn.on('pointerover', () => enterBtn.setColor('#7FFFD4'));
         enterBtn.on('pointerout', () => enterBtn.setColor('#00E676'));
-        enterBtn.on('pointerdown', () => {
+
+        // Dismiss function - used by button and tap anywhere
+        const dismissEntry = () => {
             this.tweens.add({
-                targets: [overlay, panel, title, enterBtn],
+                targets: entryElements,
                 alpha: 0,
                 duration: 500,
                 onComplete: () => {
-                    overlay.destroy();
-                    panel.destroy();
+                    entryElements.forEach(el => {
+                        if (el && el.destroy) el.destroy();
+                    });
                     this.physics.resume();
                     this.startLevel();
                 }
             });
-        });
+        };
+
+        enterBtn.on('pointerdown', dismissEntry);
+
+        // Also allow tapping anywhere on overlay to dismiss (mobile-friendly)
+        overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        overlay.on('pointerdown', dismissEntry);
     }
 
     startLevel() {
@@ -1139,7 +1161,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        this.add.text(width / 2, panelY + 130, `Ship Parts: ${shipParts.length}/4`, {
+        this.add.text(width / 2, panelY + 130, `Ship Parts: ${shipParts.length}/5`, {
             fontSize: '16px',
             color: '#7FFFD4'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);

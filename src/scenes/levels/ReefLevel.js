@@ -269,16 +269,21 @@ class ReefLevel extends PlatformerLevelScene {
             enterBtn.setColor('#E066FF');
             enterBtn.setScale(1.0);
         });
-        enterBtn.on('pointerdown', () => {
-            const allElements = [overlay, panel, title, subtitle, storyText, divider,
-                               objHeader, mainObj, shipObj, relicObj, controlsHint, enterBtn];
 
+        // Collect all elements for dismissal
+        const allElements = [overlay, panel, title, subtitle, storyText, divider,
+                           objHeader, mainObj, shipObj, relicObj, controlsHint, enterBtn];
+
+        // Dismiss function - used by button and tap anywhere
+        const dismissEntry = () => {
             this.tweens.add({
                 targets: allElements,
                 alpha: 0,
                 duration: 600,
                 onComplete: () => {
-                    allElements.forEach(el => el.destroy());
+                    allElements.forEach(el => {
+                        if (el && el.destroy) el.destroy();
+                    });
                     this.physics.resume();
                     this.startCosmicAmbience();
                     // Show mobile controls now that intro is dismissed
@@ -287,7 +292,13 @@ class ReefLevel extends PlatformerLevelScene {
                     this.createSwimIndicator();
                 }
             });
-        });
+        };
+
+        enterBtn.on('pointerdown', dismissEntry);
+
+        // Also allow tapping anywhere on overlay to dismiss (mobile-friendly)
+        overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        overlay.on('pointerdown', dismissEntry);
 
         // Animate cosmic particles around panel
         this.createEntryCosmicParticles(panelX, panelY, panelWidth, panelHeight);
@@ -1415,17 +1426,13 @@ class ReefLevel extends PlatformerLevelScene {
         part.destroy();
 
         // Show big message
-        this.showFloatingText('🔧 DIMENSIONAL DRIVE FRAGMENT ACQUIRED!', part.x, part.y - 50, '#00FFFF');
+        this.showFloatingText('⚙️ DIMENSIONAL DRIVE ACQUIRED!', part.x, part.y - 50, '#00FFFF');
 
-        // Save to GameState
-        const shipParts = window.GameState?.get('shipParts') || [];
-        if (!shipParts.includes('dimensional_drive_fragment')) {
-            shipParts.push('dimensional_drive_fragment');
-            window.GameState?.set('shipParts', shipParts);
-            window.GameState?.save();
-        }
+        // Note: Ship part is officially awarded via InventoryManager in showVictoryScreen()
+        // This pickup just marks it visually
+        this.dimensionalDriveFound = true;
 
-        console.log('[ReefLevel] Ship part collected! Total parts:', shipParts.length);
+        console.log('[ReefLevel] Dimensional drive pickup collected!');
     }
 
     /**
@@ -2201,9 +2208,11 @@ class ReefLevel extends PlatformerLevelScene {
             strokeThickness: 5
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
+        const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
         const statsText = this.add.text(width / 2, height / 2,
             `Star Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}\n` +
-            `Ship Part: ${this.shipPartCollected ? '✓ Dimensional Drive Fragment' : '✗ Not Found'}\n` +
+            `Ship Part: ⚙️ Dimensional Drive\n` +
+            `Ship Parts Collected: ${shipParts.length}/5\n` +
             `Nyx'voral Defeated: ✓`, {
             fontSize: '18px',
             color: '#CCAAFF',

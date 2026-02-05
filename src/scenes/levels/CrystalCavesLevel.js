@@ -213,31 +213,33 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             enterBtn.setColor('#7B68EE');
             enterBtn.setScale(1.0);
         });
-        enterBtn.on('pointerdown', () => {
-            // Fade out and start level
+
+        // Collect all elements for proper cleanup
+        const allElements = [overlay, panel, title, subtitle, divider, objHeader, mainObj, relic, boss, enterBtn];
+
+        // Dismiss function - used by button and tap anywhere
+        const dismissEntry = () => {
             this.tweens.add({
-                targets: [overlay, panel, title, subtitle, divider, objHeader, mainObj, relic, boss, enterBtn],
+                targets: allElements,
                 alpha: 0,
                 duration: 500,
                 onComplete: () => {
-                    overlay.destroy();
-                    panel.destroy();
-                    title.destroy();
-                    subtitle.destroy();
-                    divider.destroy();
-                    objHeader.destroy();
-                    mainObj.destroy();
-                    relic.destroy();
-                    boss.destroy();
-                    enterBtn.destroy();
-
+                    allElements.forEach(el => {
+                        if (el && el.destroy) el.destroy();
+                    });
                     // Resume game
                     this.physics.resume();
                     // Show mobile controls now that intro is dismissed
                     this.showPlatformerMobileControls();
                 }
             });
-        });
+        };
+
+        enterBtn.on('pointerdown', dismissEntry);
+
+        // Also allow tapping anywhere on overlay to dismiss (mobile-friendly)
+        overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        overlay.on('pointerdown', dismissEntry);
 
         // Pulsing animation on button
         this.tweens.add({
@@ -3683,18 +3685,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Results
         const resultY = panelY + 120;
         const results = [
-            { text: 'Crystal Core Engine Found', done: true },
+            { text: 'Crystal Core Found', done: true },
             { text: `Star Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}`, done: this.starFragmentsCollected >= this.totalStarFragments },
             { text: 'Crystal Golem Defeated', done: this.bossDefeated }
         ];
 
-        // Save ship part to GameState
-        const shipParts = window.GameState?.get('shipParts') || [];
-        if (!shipParts.includes('crystal_core_engine')) {
-            shipParts.push('crystal_core_engine');
-            window.GameState?.set('shipParts', shipParts);
-            console.log('[CrystalCavesLevel] Ship part acquired: Crystal Core Engine. Total parts:', shipParts.length);
-        }
+        // Ship part already awarded via InventoryManager in onLevelComplete()
 
         results.forEach((result, i) => {
             const icon = result.done ? '[x]' : '[ ]';
@@ -3720,8 +3716,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Ship part notification
-        const currentShipParts = window.GameState?.get('shipParts') || [];
-        this.add.text(width / 2, rewardY + 60, `🔧 Ship Part Acquired: Crystal Core Engine`, {
+        const currentShipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
+        this.add.text(width / 2, rewardY + 60, `🔮 Ship Part Acquired: Crystal Core`, {
             fontSize: '16px',
             color: '#00FFFF',
             fontStyle: 'bold'

@@ -294,9 +294,10 @@ class GameStateManager {
                 mapsOwned: [],  // Map items purchased from shop
                 lastVisitedGate: 'main',
                 // Ship parts collected from completing levels - needed for final boss battle
+                // 5 parts total: one from each boss, final special piece from Void Empress
                 shipParts: {
-                    collected: [],  // Array of part IDs: 'dimensional_drive', 'crystal_core', 'void_stabilizer', 'aurora_reactor'
-                    totalRequired: 4,
+                    collected: [],  // Array of part IDs: 'crystal_core', 'dimensional_drive', 'forest_core', 'aurora_reactor', 'command_module'
+                    totalRequired: 5,
                     finalBossUnlocked: false
                 }
             },
@@ -1541,8 +1542,62 @@ class GameStateManager {
         // New format should be {primary: hex, secondary: hex, accent: hex}
         this.sanitizeColorGenome(migrated);
 
+        // CRITICAL: Fix stale inDevelopment flags on hub world gates
+        // Old development builds may have left gates marked as inDevelopment
+        // All gates are now ready for production
+        this.migrateHubWorldGates(migrated);
+
         console.log(`[GameState] Migration complete: ${fromVersion} → ${GAME_VERSION}`);
         return migrated;
+    }
+
+    /**
+     * Migrate hub world gates to ensure inDevelopment flags are cleared
+     * and gate unlock status is correct
+     *
+     * @param {Object} data - Save data to migrate (mutates in place)
+     */
+    migrateHubWorldGates(data) {
+        if (!data?.hubWorld?.gates) return;
+
+        const gates = data.hubWorld.gates;
+        let migrationsMade = false;
+
+        // Define expected gate states (all levels are now production-ready)
+        const gateDefaults = {
+            main: { inDevelopment: false },
+            stellar_reef: { inDevelopment: false },
+            crystal_caves: { inDevelopment: false },
+            mythical_forest: { inDevelopment: false, unlocked: true }, // Should be unlocked by default
+            aurora_depths: { inDevelopment: false },
+            final_void: { inDevelopment: false }
+        };
+
+        // Fix each gate
+        Object.keys(gates).forEach(gateId => {
+            const gate = gates[gateId];
+            const defaults = gateDefaults[gateId];
+
+            if (!defaults) return;
+
+            // Remove inDevelopment: true (all levels are ready)
+            if (gate.inDevelopment === true) {
+                console.log(`[GameState] Clearing inDevelopment flag for gate: ${gateId}`);
+                gate.inDevelopment = false;
+                migrationsMade = true;
+            }
+
+            // Ensure mythical_forest is unlocked (it's the first unlockable level)
+            if (gateId === 'mythical_forest' && gate.unlocked !== true) {
+                console.log(`[GameState] Unlocking mythical_forest gate (should be unlocked by default)`);
+                gate.unlocked = true;
+                migrationsMade = true;
+            }
+        });
+
+        if (migrationsMade) {
+            console.log('[GameState] Hub world gates migrated successfully');
+        }
     }
 
     /**

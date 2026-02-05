@@ -18,12 +18,10 @@ import VoidMiniGameScene from './scenes/VoidMiniGameScene.js';
 import AchievementMenuScene from './scenes/AchievementMenuScene.js';
 import AbilitySelectionScene from './scenes/AbilitySelectionScene.js';
 import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
-import CrystalCavesLevel from './scenes/levels/CrystalCavesLevel.js';
-import ReefLevel from './scenes/levels/ReefLevel.js';
-import MythicalForestLevel from './scenes/levels/MythicalForestLevel.js';
-import AuroraDepthsLevel from './scenes/levels/AuroraDepthsLevel.js';
-import FinalVoidLevel from './scenes/levels/FinalVoidLevel.js';
 import VictoryScene from './scenes/VictoryScene.js';
+// Individual levels are lazy loaded via SceneLoader when player enters them
+// This reduces initial bundle size by ~200KB (each level is ~40-60KB)
+// See: src/utils/SceneLoader.js for dynamic import configuration
 import kidModeConfig from './config/kid-mode.json';
 import hatchCinematicsConfig from './config/hatch-cinematics.json';
 import biomesConfig from './config/biomes.json';
@@ -317,7 +315,9 @@ async function initializeGame() {
                     debug: false
                 }
             },
-            scene: [HatchingScene, PersonalityScene, NamingScene, SoulRevealScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, AchievementMenuScene, AbilitySelectionScene, PlatformerLevelScene, CrystalCavesLevel, ReefLevel, MythicalForestLevel, AuroraDepthsLevel, FinalVoidLevel, VictoryScene],
+            // Individual platformer levels (CrystalCavesLevel, ReefLevel, etc.) are lazy loaded
+            // via SceneLoader when player enters them from HubWorldScene
+            scene: [HatchingScene, PersonalityScene, NamingScene, SoulRevealScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, AchievementMenuScene, AbilitySelectionScene, PlatformerLevelScene, VictoryScene],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,

@@ -75,6 +75,7 @@ class HatchingScene extends Phaser.Scene {
         this.creatureDNA = null;
         this.rarityInfo = null;
         this.eggTextureName = null;
+        this.isStartingGame = false; // Reset START button state
 
         // Set egg hatching properties from passed data
         this.isEggHatch = data?.isEggHatch || false;
@@ -372,11 +373,12 @@ class HatchingScene extends Phaser.Scene {
         // Add audio indicator
         this.createAudioIndicator();
 
-        // Create beautiful sky background with clouds
-        this.createBackground();
+        // ENHANCED: Use cosmic starfield background (matches home screen)
+        this.createEnhancedBackground();
+        this.createStardustParticles();
 
-        // Create the ground
-        this.createGround();
+        // Create cosmic mystical platform for egg (replaces green ground)
+        this.createCosmicPlatform();
 
         // Create the egg with floating animation
         this.createEgg();
@@ -820,7 +822,92 @@ class HatchingScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Create cosmic mystical platform for the egg to rest on
+     * MOBILE-RESPONSIVE: Positions based on screen dimensions
+     */
+    createCosmicPlatform() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const platformY = height * 0.65; // Platform at 65% down screen
+
+        // Create mystical floating platform with glow
+        const platform = this.add.graphics();
+
+        // Outer glow ring
+        platform.fillStyle(0x7B4FBF, 0.15);
+        platform.fillEllipse(centerX, platformY, 280, 40);
+        platform.fillStyle(0x7B4FBF, 0.25);
+        platform.fillEllipse(centerX, platformY, 220, 30);
+
+        // Main platform surface (glowing mystical stone)
+        platform.fillStyle(0x4A148C, 0.8);
+        platform.fillEllipse(centerX, platformY, 160, 20);
+        platform.fillStyle(0x6A1B9A, 0.9);
+        platform.fillEllipse(centerX, platformY - 3, 140, 15);
+
+        // Highlight rim
+        platform.lineStyle(2, 0xE1BEE7, 0.6);
+        platform.strokeEllipse(centerX, platformY - 3, 140, 15);
+
+        // Add mystical runes/markings on platform
+        platform.lineStyle(1, 0xFFD54F, 0.4);
+        platform.strokeEllipse(centerX, platformY - 3, 100, 10);
+        platform.strokeEllipse(centerX, platformY - 3, 60, 6);
+
+        // Store for cleanup
+        this.cosmicPlatform = platform;
+
+        // Create floating energy particles around platform
+        this.platformParticles = [];
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const radius = 90;
+            const particle = this.add.circle(
+                centerX + Math.cos(angle) * radius,
+                platformY + Math.sin(angle) * 15,
+                3,
+                0xFFD54F,
+                0.5
+            );
+
+            this.platformParticles.push(particle);
+
+            // Orbit animation
+            this.tweens.add({
+                targets: particle,
+                x: centerX + Math.cos(angle + Math.PI * 2) * radius,
+                duration: 8000 + i * 500,
+                repeat: -1,
+                ease: 'Linear'
+            });
+
+            // Pulse animation
+            this.tweens.add({
+                targets: particle,
+                alpha: { from: 0.3, to: 0.8 },
+                scale: { from: 0.8, to: 1.2 },
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                delay: i * 100
+            });
+        }
+
+        // Gentle platform glow pulse
+        this.tweens.add({
+            targets: platform,
+            alpha: { from: 1, to: 0.85 },
+            duration: 2500,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
     createGround() {
+        // LEGACY: Kept for backwards compatibility
+        // Now replaced by createCosmicPlatform() for hatching screen
         // MOBILE-RESPONSIVE ground positioning
         const { width, height } = this.scale;
         const groundY = height * 0.83; // Ground at 83% down the screen
@@ -1796,6 +1883,153 @@ class HatchingScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * Create dramatic birth celebration effects
+     * Triggered when the baby creature is revealed
+     */
+    createBirthCelebration(centerX, centerY) {
+        console.log('hatch:info [HatchingScene] 🎉 Creating birth celebration effects!');
+        const { width, height } = this.scale;
+
+        // 1. Screen flash (soft golden glow)
+        const flash = this.add.graphics();
+        flash.fillStyle(0xFFD700, 0.35);
+        flash.fillRect(0, 0, width, height);
+        flash.setDepth(100);
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 600,
+            ease: 'Sine.easeOut',
+            onComplete: () => flash.destroy()
+        });
+
+        // 2. Radial starburst particles
+        const burstColors = [0xFFD700, 0xFFFFFF, 0xE1BEE7, 0xFFA500, 0x87CEEB];
+        for (let i = 0; i < 24; i++) {
+            const angle = (i / 24) * Math.PI * 2;
+            const distance = 150 + Math.random() * 50;
+            const particle = this.add.graphics();
+            const color = burstColors[i % burstColors.length];
+            const size = 3 + Math.random() * 4;
+
+            // Star shape for larger particles
+            if (i % 3 === 0) {
+                particle.fillStyle(color, 0.9);
+                this.drawStar(particle, 0, 0, 5, size * 2, size);
+            } else {
+                particle.fillStyle(color, 0.8);
+                particle.fillCircle(0, 0, size);
+            }
+
+            particle.setPosition(centerX, centerY);
+            particle.setDepth(99);
+
+            this.tweens.add({
+                targets: particle,
+                x: centerX + Math.cos(angle) * distance,
+                y: centerY + Math.sin(angle) * distance,
+                alpha: 0,
+                scale: { from: 1, to: 0.3 },
+                duration: 800 + Math.random() * 400,
+                ease: 'Power2.easeOut',
+                delay: i * 20,
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        // 3. Rising sparkles (fairy dust effect)
+        for (let i = 0; i < 15; i++) {
+            const sparkle = this.add.graphics();
+            sparkle.fillStyle(0xFFFFFF, 0.9);
+            sparkle.fillCircle(0, 0, 2);
+            sparkle.fillStyle(0xFFD700, 0.7);
+            sparkle.fillCircle(1, 1, 1);
+
+            const startX = centerX + Phaser.Math.Between(-80, 80);
+            sparkle.setPosition(startX, centerY + 30);
+            sparkle.setDepth(98);
+
+            this.tweens.add({
+                targets: sparkle,
+                y: centerY - 100 - Math.random() * 80,
+                x: startX + Phaser.Math.Between(-30, 30),
+                alpha: { from: 1, to: 0 },
+                duration: 1200 + Math.random() * 600,
+                ease: 'Sine.easeOut',
+                delay: 200 + i * 80,
+                onComplete: () => sparkle.destroy()
+            });
+        }
+
+        // 4. Pulsing ring effect
+        const ring = this.add.graphics();
+        ring.lineStyle(3, 0xFFD700, 0.8);
+        ring.strokeCircle(centerX, centerY, 30);
+        ring.setDepth(97);
+
+        this.tweens.add({
+            targets: ring,
+            scaleX: 4,
+            scaleY: 4,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Sine.easeOut',
+            onComplete: () => ring.destroy()
+        });
+
+        // 5. Second delayed ring
+        this.time.delayedCall(200, () => {
+            const ring2 = this.add.graphics();
+            ring2.lineStyle(2, 0xE1BEE7, 0.6);
+            ring2.strokeCircle(centerX, centerY, 20);
+            ring2.setDepth(96);
+
+            this.tweens.add({
+                targets: ring2,
+                scaleX: 5,
+                scaleY: 5,
+                alpha: 0,
+                duration: 1200,
+                ease: 'Sine.easeOut',
+                onComplete: () => ring2.destroy()
+            });
+        });
+
+        // 6. Use FXLibrary if available for extra effects
+        if (window.FXLibrary) {
+            window.FXLibrary.emotionHappy(this, centerX, centerY);
+        }
+    }
+
+    /**
+     * Draw a star shape on graphics object
+     */
+    drawStar(graphics, cx, cy, spikes, outerRadius, innerRadius) {
+        let rot = Math.PI / 2 * 3;
+        const step = Math.PI / spikes;
+
+        graphics.beginPath();
+        graphics.moveTo(cx, cy - outerRadius);
+
+        for (let i = 0; i < spikes; i++) {
+            graphics.lineTo(
+                cx + Math.cos(rot) * outerRadius,
+                cy + Math.sin(rot) * outerRadius
+            );
+            rot += step;
+            graphics.lineTo(
+                cx + Math.cos(rot) * innerRadius,
+                cy + Math.sin(rot) * innerRadius
+            );
+            rot += step;
+        }
+
+        graphics.lineTo(cx, cy - outerRadius);
+        graphics.closePath();
+        graphics.fillPath();
+    }
+
     completeCreatureDisplay(creatureResult) {
 
         console.log('hatch:info [HatchingScene] Step 3: Creature result:', creatureResult ? 'SUCCESS' : 'FAILED');
@@ -1836,12 +2070,19 @@ class HatchingScene extends Phaser.Scene {
                 onComplete: () => {
                     console.log('hatch:info [HatchingScene] Creature fade-in complete');
 
+                    // 🎉 CELEBRATION BURST - Dramatic effect for creature reveal!
+                    this.createBirthCelebration(centerX, creatureY);
+
                     // Add cute baby idle animations
                     this.addCuteIdleAnimations(this.creature, targetScale);
 
-                    // Play cute baby sound
+                    // Play cute baby sound with celebration
                     if (window.AudioManager) {
                         window.AudioManager.playBabyCoo();
+                        // Add a small delay then play achievement sound for extra celebration
+                        this.time.delayedCall(300, () => {
+                            window.AudioManager.playAchievement();
+                        });
                     }
 
                     // Show post-hatch tutorial hint and mark tutorial as seen
@@ -2587,38 +2828,77 @@ class HatchingScene extends Phaser.Scene {
     /**
      * FIX #5: Scene cleanup to prevent duplication on restart
      * Called automatically by Phaser when scene stops/restarts
+     * ENHANCED: Now includes complete cleanup of all scene elements
      */
     shutdown() {
         console.log('🧹 HatchingScene.shutdown() - Cleaning up scene resources');
 
-        // Clean up tap to hatch text
+        // 1. Clean up tap to hatch text
         if (this.tapToHatchText) {
             this.tweens.killTweensOf(this.tapToHatchText);
             this.tapToHatchText.destroy();
             this.tapToHatchText = null;
         }
 
-        // Clean up egg
+        // 2. Clean up egg
         if (this.egg) {
             this.tweens.killTweensOf(this.egg);
             this.egg.destroy();
             this.egg = null;
         }
 
-        // Clean up creature
+        // 3. Clean up creature
         if (this.creature) {
             this.tweens.killTweensOf(this.creature);
             this.creature.destroy();
             this.creature = null;
         }
 
-        // Clean up clouds group
+        // 4. Clean up clouds group
         if (this.clouds) {
             this.clouds.clear(true, true);
             this.clouds = null;
         }
 
-        // Clean up UI elements
+        // 5. Clean up stardust particles (added for responsive fix)
+        if (this.stardustParticles && Array.isArray(this.stardustParticles)) {
+            this.stardustParticles.forEach(particle => {
+                if (particle) {
+                    this.tweens.killTweensOf(particle);
+                    particle.destroy();
+                }
+            });
+            this.stardustParticles = [];
+        }
+
+        // 6. Clean up background stars
+        if (this.backgroundStars && Array.isArray(this.backgroundStars)) {
+            this.backgroundStars.forEach(star => {
+                if (star) {
+                    this.tweens.killTweensOf(star);
+                    star.destroy();
+                }
+            });
+            this.backgroundStars = [];
+        }
+
+        // 6b. Clean up cosmic platform and particles
+        if (this.cosmicPlatform) {
+            this.tweens.killTweensOf(this.cosmicPlatform);
+            this.cosmicPlatform.destroy();
+            this.cosmicPlatform = null;
+        }
+        if (this.platformParticles && Array.isArray(this.platformParticles)) {
+            this.platformParticles.forEach(particle => {
+                if (particle) {
+                    this.tweens.killTweensOf(particle);
+                    particle.destroy();
+                }
+            });
+            this.platformParticles = [];
+        }
+
+        // 7. Clean up UI elements
         if (this.instructionText) {
             this.instructionText.destroy();
             this.instructionText = null;
@@ -2629,7 +2909,7 @@ class HatchingScene extends Phaser.Scene {
             this.progressText = null;
         }
 
-        // Clean up tutorial elements
+        // 8. Clean up tutorial elements
         if (this.tutorialPointer) {
             this.tweens.killTweensOf(this.tutorialPointer);
             this.tutorialPointer.destroy();
@@ -2642,20 +2922,38 @@ class HatchingScene extends Phaser.Scene {
             this.tutorialHintText = null;
         }
 
-        // Clean up reroll UI elements
+        // 9. Clean up reroll UI elements
         this.cleanupRerollUI();
 
-        // Clean up graphics engine
+        // 10. Remove keyboard listeners
+        if (this.input && this.input.keyboard) {
+            this.input.keyboard.off('keydown-SPACE');
+            this.input.keyboard.off('keydown-ESC');
+        }
+
+        // 11. Clear all remaining timers
+        if (this.time) {
+            this.time.removeAllEvents();
+        }
+
+        // 12. Kill all remaining tweens (catch-all)
+        if (this.tweens) {
+            this.tweens.killAll();
+        }
+
+        // 13. Clean up graphics engine
         if (this.graphicsEngine) {
             this.graphicsEngine = null;
         }
 
-        // Reset scene state flags
+        // 14. Reset scene state flags
         this.hatchingProgress = 0;
         this.isHatching = false;
         this.hatchingStarted = false;
         this.creatureAppeared = false;
         this.creatureGenetics = null;
+        this.creatureDNA = null;
+        this.rarityInfo = null;
 
         console.log('✅ HatchingScene cleanup complete');
     }
@@ -3349,10 +3647,15 @@ class HatchingScene extends Phaser.Scene {
 
     /**
      * Create animated stardust particles
+     * MOBILE-RESPONSIVE: Uses actual viewport dimensions for all positions
      */
     createStardustParticles() {
         // Create floating stardust particles
         const { width, height } = this.scale;
+
+        // Store particles for cleanup
+        this.stardustParticles = this.stardustParticles || [];
+
         for (let i = 0; i < 15; i++) {
             const particle = this.add.circle(
                 Phaser.Math.Between(0, width),
@@ -3362,7 +3665,10 @@ class HatchingScene extends Phaser.Scene {
                 0.6
             );
 
-            // Floating animation
+            this.stardustParticles.push(particle);
+
+            // Floating animation - use scene reference for responsive reset
+            const scene = this;
             this.tweens.add({
                 targets: particle,
                 y: particle.y - Phaser.Math.Between(100, 200),
@@ -3373,8 +3679,12 @@ class HatchingScene extends Phaser.Scene {
                 delay: Math.random() * 2000,
                 repeat: -1,
                 onRepeat: () => {
-                    particle.y = 650;
-                    particle.x = Phaser.Math.Between(0, 800);
+                    // RESPONSIVE: Get current screen dimensions on each repeat
+                    const currentWidth = scene.scale.width;
+                    const currentHeight = scene.scale.height;
+                    // Reset to bottom of screen (90% height) for upward float
+                    particle.y = currentHeight * 0.9;
+                    particle.x = Phaser.Math.Between(0, currentWidth);
                     particle.alpha = 0.6;
                 }
             });
@@ -3654,6 +3964,15 @@ class HatchingScene extends Phaser.Scene {
         });
 
         buttonContainer.on('pointerup', () => {
+            // Prevent double-clicks
+            if (this.isStartingGame) return;
+            this.isStartingGame = true;
+
+            // Show loading indicator immediately for user feedback
+            if (window.UXEnhancements) {
+                window.UXEnhancements.showLoading('Preparing your adventure...');
+            }
+
             // Satisfying bounce back
             this.tweens.add({
                 targets: buttonContainer,
@@ -3690,6 +4009,10 @@ class HatchingScene extends Phaser.Scene {
                 delay: 150,
                 ease: 'Back.easeIn',
                 onComplete: () => {
+                    // Hide loading indicator before scene transition
+                    if (window.UXEnhancements) {
+                        window.UXEnhancements.hideLoading();
+                    }
                     // Use the proper state management flow
                     this.handleStartGame();
                 }
