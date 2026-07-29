@@ -44,11 +44,41 @@ class AudioManager {
                 console.warn('[AudioManager] Web Audio API not supported');
             }
 
-            // Load mute setting from GameState or localStorage
+            // Load audio preferences from GameState or localStorage.
             if (typeof window !== 'undefined' && window.GameState) {
                 this.muted = window.GameState.get('settings.audioMuted') || false;
+                this.masterVolume = this.readVolumePreference(
+                    window.GameState.get('settings.volume.master'),
+                    'audioMasterVolume',
+                    this.masterVolume
+                );
+                this.musicVolume = this.readVolumePreference(
+                    window.GameState.get('settings.volume.music'),
+                    'audioMusicVolume',
+                    this.musicVolume
+                );
+                this.sfxVolume = this.readVolumePreference(
+                    window.GameState.get('settings.volume.sfx'),
+                    'audioSFXVolume',
+                    this.sfxVolume
+                );
             } else if (typeof localStorage !== 'undefined') {
                 this.muted = localStorage.getItem('audioMuted') === 'true';
+                this.masterVolume = this.readVolumePreference(
+                    undefined,
+                    'audioMasterVolume',
+                    this.masterVolume
+                );
+                this.musicVolume = this.readVolumePreference(
+                    undefined,
+                    'audioMusicVolume',
+                    this.musicVolume
+                );
+                this.sfxVolume = this.readVolumePreference(
+                    undefined,
+                    'audioSFXVolume',
+                    this.sfxVolume
+                );
             }
 
             // Generate common sound effects
@@ -108,6 +138,21 @@ class AudioManager {
         });
 
         this.unlockHandler = null;
+    }
+
+    readVolumePreference(stateValue, storageKey, fallback) {
+        let value = stateValue === null || stateValue === undefined || stateValue === ''
+            ? Number.NaN
+            : Number(stateValue);
+        if (!Number.isFinite(value) && typeof localStorage !== 'undefined') {
+            const storedValue = localStorage.getItem(storageKey);
+            value = storedValue === null || storedValue === ''
+                ? Number.NaN
+                : Number(storedValue);
+        }
+        return Number.isFinite(value)
+            ? Math.max(0, Math.min(1, value))
+            : fallback;
     }
 
     /**
@@ -2149,15 +2194,47 @@ class AudioManager {
         // Save to GameState if available
         if (typeof window !== 'undefined' && window.GameState) {
             window.GameState.set('settings.audioMuted', this.muted);
+            window.GameState.save?.();
         }
 
         // Also save to localStorage as backup
         if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('audioMuted', this.muted.toString());
+            try {
+                localStorage.setItem('audioMuted', this.muted.toString());
+            } catch (error) {
+                console.warn('[AudioManager] Could not persist mute preference:', error);
+            }
         }
 
+        this.applyMusicGain();
         console.log(`[AudioManager] Audio ${this.muted ? 'muted' : 'unmuted'}`);
         return this.muted;
+    }
+
+    persistVolumePreference(path, storageKey, value) {
+        if (typeof window !== 'undefined' && window.GameState) {
+            window.GameState.set(path, value);
+            window.GameState.save?.();
+        }
+        if (typeof localStorage !== 'undefined') {
+            try {
+                localStorage.setItem(storageKey, value.toString());
+            } catch (error) {
+                console.warn(`[AudioManager] Could not persist ${storageKey}:`, error);
+            }
+        }
+    }
+
+    applyMusicGain(duration = 0.1) {
+        if (!this.musicNodes?.gainNode || !this.audioContext) return;
+
+        const target = this.muted
+            ? 0
+            : this.musicVolume * this.masterVolume * 0.3;
+        this.musicNodes.gainNode.gain.linearRampToValueAtTime(
+            target,
+            this.audioContext.currentTime + duration
+        );
     }
 
     /**
@@ -2166,6 +2243,12 @@ class AudioManager {
      */
     setMasterVolume(volume) {
         this.masterVolume = Math.max(0, Math.min(1, volume));
+        this.persistVolumePreference(
+            'settings.volume.master',
+            'audioMasterVolume',
+            this.masterVolume
+        );
+        this.applyMusicGain();
         console.log(`[AudioManager] Master volume set to ${this.masterVolume}`);
     }
 
@@ -2175,16 +2258,12 @@ class AudioManager {
      */
     setSFXVolume(volume) {
         this.sfxVolume = Math.max(0, Math.min(1, volume));
+        this.persistVolumePreference(
+            'settings.volume.sfx',
+            'audioSFXVolume',
+            this.sfxVolume
+        );
         console.log(`[AudioManager] SFX volume set to ${this.sfxVolume}`);
-    }
-
-    /**
-     * Set music volume
-     * @param {number} volume - Volume level (0.0 to 1.0)
-     */
-    setMusicVolume(volume) {
-        this.musicVolume = Math.max(0, Math.min(1, volume));
-        console.log(`[AudioManager] Music volume set to ${this.musicVolume}`);
     }
 
     /**
@@ -2360,7 +2439,7 @@ class AudioManager {
 
         // Fade in
         this.musicNodes.gainNode.gain.linearRampToValueAtTime(
-            this.musicVolume * 0.3,
+            this.muted ? 0 : this.musicVolume * this.masterVolume * 0.3,
             this.audioContext.currentTime + 1
         );
     }
@@ -3199,13 +3278,12 @@ class AudioManager {
      */
     setMusicVolume(volume) {
         this.musicVolume = Math.max(0, Math.min(1, volume));
-
-        if (this.musicNodes?.gainNode && this.musicPlaying) {
-            this.musicNodes.gainNode.gain.linearRampToValueAtTime(
-                this.musicVolume * 0.3,
-                this.audioContext.currentTime + 0.1
-            );
-        }
+        this.persistVolumePreference(
+            'settings.volume.music',
+            'audioMusicVolume',
+            this.musicVolume
+        );
+        this.applyMusicGain();
 
         console.log(`[AudioManager] Music volume set to ${Math.round(this.musicVolume * 100)}%`);
     }

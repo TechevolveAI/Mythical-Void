@@ -101,7 +101,7 @@
 
         "messages": {
             "intro": "⚠ THE GUARDIAN AWAKENS ⚠",
-            "defeat": "💎 CRYSTAL GOLEM DEFEATED 💎"
+            "defeat": "💎 CRYSTAL GUARDIAN RESTORED 💎"
         },
 
         "rewards": {
@@ -198,7 +198,7 @@
 
         "messages": {
             "intro": "⚠ THE VOID STIRS ⚠",
-            "defeat": "🌟 VOID SERPENT VANQUISHED 🌟"
+            "defeat": "🌟 VOID SERPENT RESTORED 🌟"
         },
 
         "rewards": {
@@ -282,7 +282,7 @@
 
         "messages": {
             "intro": "⚠ FROM ASHES, IT RISES ⚠",
-            "defeat": "🔥 SHADOW PHOENIX EXTINGUISHED 🔥"
+            "defeat": "🔥 AURORA PHOENIX RESTORED 🔥"
         },
 
         "rewards": {
@@ -399,7 +399,7 @@
 
         "messages": {
             "intro": "⚠ THE ANCIENT ONE AWAKENS ⚠",
-            "defeat": "🌳 ELDER TREANT DEFEATED 🌳"
+            "defeat": "🌳 ELDER TREANT RESTORED 🌳"
         },
 
         "rewards": {
@@ -503,7 +503,7 @@
 
         "messages": {
             "intro": "⚠ THE COSMOS TREMBLES ⚠",
-            "defeat": "✨ COSMIC TITAN CONQUERED ✨"
+            "defeat": "✨ COSMIC TITAN RESTORED ✨"
         },
 
         "rewards": {
@@ -621,7 +621,7 @@
 
         "messages": {
             "intro": "⚠ THE VOID EMPRESS DESCENDS ⚠",
-            "defeat": "👑 VOID EMPRESS DETHRONED 👑"
+            "defeat": "👑 VOID EMPRESS RESTORED 👑"
         },
 
         "rewards": {

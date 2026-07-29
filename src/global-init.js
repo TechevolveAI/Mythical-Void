@@ -102,6 +102,7 @@ import './systems/SpaceWeatherSystem.js';
 import './systems/NASAContentSystem.js';
 import './systems/OnboardingManager.js';
 import './systems/CombatJuice.js';
+import './systems/CloudSaveManager.js';
 
 // ============================================
 // SCENES - Onboarding Flow (Critical Path)

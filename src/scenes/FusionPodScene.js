@@ -11,7 +11,34 @@
  * - Generation tracking for lineage
  */
 
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+const FUSION_ELIGIBLE_STAGES = new Set(['adult', 'elder']);
+const FUSION_ADULT_AGE_MS = 2 * 24 * 60 * 60 * 1000;
+
+export function isCreatureFusionEligible(creature, now = Date.now()) {
+    if (!creature || typeof creature !== 'object') {
+        return false;
+    }
+
+    const lifecycle = creature.lifecycle || {};
+    const stage = typeof lifecycle.stage === 'string'
+        ? lifecycle.stage.toLowerCase()
+        : null;
+
+    if (stage) {
+        return FUSION_ELIGIBLE_STAGES.has(stage);
+    }
+
+    const rawBirthDate = lifecycle.birthDate ?? creature.hatchTime;
+    const birthDate = typeof rawBirthDate === 'number'
+        ? rawBirthDate
+        : Date.parse(rawBirthDate);
+
+    return Number.isFinite(birthDate) &&
+        birthDate <= now &&
+        now - birthDate >= FUSION_ADULT_AGE_MS;
+}
 
 function getGameState() {
     if (typeof window === 'undefined' || !window.GameState) {
@@ -39,6 +66,17 @@ class FusionPodScene extends Phaser.Scene {
         this.elements = [];
         this.selectionModal = null;
         this.selectionModalElements = [];
+        this.previewCreatures = null;
+    }
+
+    init(data = {}) {
+        this.previewCreatures = Array.isArray(data.previewCreatures)
+            ? data.previewCreatures
+            : null;
+    }
+
+    getFusionCollection() {
+        return this.previewCreatures || getGameState().getCreatureCollection?.() || [];
     }
 
     create() {
@@ -48,19 +86,10 @@ class FusionPodScene extends Phaser.Scene {
 
         // Stop other scenes to ensure clean display
         const scenesToStop = ['GameScene'];
-        scenesToStop.forEach(sceneKey => {
-            try {
-                const scene = this.scene.get(sceneKey);
-                if (scene && scene.scene.isActive()) {
-                    this.scene.pause(sceneKey);
-                }
-            } catch (e) {
-                // Scene might not exist
-            }
-        });
+        SceneTransitionHelper.pauseActiveScenes(this, scenesToStop);
 
         // Check breeding requirements
-        const collection = getGameState().getCreatureCollection?.() || [];
+        const collection = this.getFusionCollection();
         const adultCreatures = this.getAdultCreatures(collection);
 
         if (collection.length < 2) {
@@ -97,70 +126,17 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     /**
-     * Get adult creatures from collection
-     * TESTING MODE: Allow all creatures regardless of stage
-     * TODO: Change ALLOW_ALL_STAGES back to false for production
+     * Get fusion-eligible adult creatures from the collection.
      */
     getAdultCreatures(collection) {
-        // TESTING FLAG - Set to true to allow babies in fusion pod
-        const ALLOW_ALL_STAGES = true;
-
-        if (ALLOW_ALL_STAGES) {
-            console.log('[FusionPodScene] TESTING MODE: Allowing all creatures regardless of stage');
-            return collection;
-        }
-
-        return collection.filter(creature => {
-            // Check lifecycle stage
-            const lifecycle = creature.lifecycle || {};
-            const stage = lifecycle.stage;
-
-            // If stage is stored, check if adult or elder
-            if (stage) {
-                return stage === 'adult' || stage === 'elder';
-            }
-
-            // Calculate from birthDate if no stage stored
-            const birthDate = lifecycle.birthDate || creature.hatchTime;
-            if (birthDate) {
-                const daysAlive = (Date.now() - birthDate) / (1000 * 60 * 60 * 24);
-                return daysAlive >= 2; // Adult at day 2+
-            }
-
-            // Fallback: assume not adult if can't determine
-            return false;
-        });
+        return collection.filter(creature => isCreatureFusionEligible(creature));
     }
 
     /**
-     * Check if a specific creature is adult
-     * TESTING MODE: Allow all creatures regardless of stage
-     * TODO: Change ALLOW_ALL_STAGES back to false for production
+     * Check if a specific creature is eligible for fusion.
      */
     isCreatureAdult(creature) {
-        // TESTING FLAG - Set to true to allow babies in fusion pod
-        const ALLOW_ALL_STAGES = true;
-
-        if (ALLOW_ALL_STAGES) {
-            return creature !== null && creature !== undefined;
-        }
-
-        if (!creature) return false;
-
-        const lifecycle = creature.lifecycle || {};
-        const stage = lifecycle.stage;
-
-        if (stage) {
-            return stage === 'adult' || stage === 'elder';
-        }
-
-        const birthDate = lifecycle.birthDate || creature.hatchTime;
-        if (birthDate) {
-            const daysAlive = (Date.now() - birthDate) / (1000 * 60 * 60 * 24);
-            return daysAlive >= 2;
-        }
-
-        return false;
+        return isCreatureFusionEligible(creature);
     }
 
     /**
@@ -461,7 +437,7 @@ class FusionPodScene extends Phaser.Scene {
         this.input.topOnly = true;
 
         const { width, height } = this.scale;
-        const collection = getGameState().getCreatureCollection?.() || [];
+        const collection = this.getFusionCollection();
 
         // Filter for adult creatures only
         const adultCreatures = collection.map((creature, index) => ({ ...creature, collectionIndex: index }))
@@ -1874,7 +1850,7 @@ class FusionPodScene extends Phaser.Scene {
         console.log('[FusionPodScene] Closing and returning to GameScene');
 
         // Stop this scene first
-        this.scene.stop('FusionPodScene');
+        SceneTransitionHelper.stopScene(this, 'FusionPodScene');
 
         // Start GameScene fresh (it was stopped, not paused)
         try {

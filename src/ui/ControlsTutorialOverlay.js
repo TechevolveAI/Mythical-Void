@@ -23,28 +23,29 @@ export default class ControlsTutorialOverlay {
     /**
      * Show the controls tutorial
      */
-    show() {
-        if (!this.shouldShow()) {
+    show({ force = false } = {}) {
+        if (!force && !this.shouldShow()) {
             devLog('[ControlsTutorialOverlay] Already seen, skipping');
             return;
         }
 
         this.isVisible = true;
         const { width, height } = this.scene.scale;
-        const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+        const isMobile = width < 600 ||
+            ('ontouchstart' in window && window.innerWidth < 768);
 
         // Full screen overlay
         const overlay = this.scene.add.graphics();
-        overlay.fillStyle(0x000000, 0.92);
+        overlay.fillStyle(0x02080B, 0.94);
         overlay.fillRect(0, 0, width, height);
         overlay.setDepth(10000);
         overlay.setScrollFactor(0);
         this.elements.push(overlay);
 
         // Title
-        const title = this.scene.add.text(width / 2, isMobile ? 50 : 70, 'Welcome to Mythical Void!', {
-            fontSize: isMobile ? '24px' : '36px',
-            color: '#FFD700',
+        const title = this.scene.add.text(width / 2, isMobile ? 50 : 70, 'PROJECT BEACON // FIELD CONTROLS', {
+            fontSize: isMobile ? '17px' : '30px',
+            color: '#F2C14E',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 2
@@ -52,9 +53,9 @@ export default class ControlsTutorialOverlay {
         this.elements.push(title);
 
         // Subtitle
-        const subtitle = this.scene.add.text(width / 2, isMobile ? 90 : 120, 'Here\'s how to play:', {
-            fontSize: isMobile ? '16px' : '22px',
-            color: '#FFFFFF'
+        const subtitle = this.scene.add.text(width / 2, isMobile ? 90 : 120, 'Move gently. Stay close to your companion.', {
+            fontSize: isMobile ? '14px' : '19px',
+            color: '#B9DAD7'
         }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
         this.elements.push(subtitle);
 
@@ -65,21 +66,21 @@ export default class ControlsTutorialOverlay {
         }
 
         // Continue button
-        const continueBtn = this.scene.add.text(width / 2, height - (isMobile ? 60 : 80), 'TAP TO START', {
+        const continueBtn = this.scene.add.text(width / 2, height - (isMobile ? 60 : 80), 'ENTER SANCTUARY', {
             fontSize: isMobile ? '20px' : '26px',
-            color: '#FFFFFF',
-            backgroundColor: '#7B68EE',
+            color: '#061116',
+            backgroundColor: '#6FE7DD',
             padding: { x: 30, y: 12 }
         }).setOrigin(0.5).setDepth(10002).setScrollFactor(0);
         continueBtn.setInteractive({ useHandCursor: true });
-        continueBtn.on('pointerdown', () => this.hide());
-        continueBtn.on('pointerover', () => continueBtn.setBackgroundColor('#9370DB'));
-        continueBtn.on('pointerout', () => continueBtn.setBackgroundColor('#7B68EE'));
+        continueBtn.on('pointerup', () => this.hide());
+        continueBtn.on('pointerover', () => continueBtn.setBackgroundColor('#8AF5EC'));
+        continueBtn.on('pointerout', () => continueBtn.setBackgroundColor('#6FE7DD'));
         this.elements.push(continueBtn);
 
         // Click anywhere to dismiss
         overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
-        overlay.on('pointerdown', () => this.hide());
+        overlay.on('pointerup', () => this.hide());
 
         // Any key to dismiss (desktop)
         if (!isMobile) {
@@ -138,9 +139,9 @@ export default class ControlsTutorialOverlay {
 
         // Draw action buttons
         const buttons = [
-            { emoji: '💬', desc: 'Chat with creature', y: centerY - 40 },
-            { emoji: '🎒', desc: 'Open inventory', y: centerY },
-            { emoji: '⚔️', desc: 'Attack enemies', y: centerY + 40 }
+            { emoji: '💬', desc: 'Chat', y: centerY - 40 },
+            { emoji: '🎒', desc: 'Inventory', y: centerY },
+            { emoji: '✋', desc: 'Interact', y: centerY + 40 }
         ];
 
         buttons.forEach(btn => {
@@ -156,11 +157,24 @@ export default class ControlsTutorialOverlay {
             this.elements.push(btnText);
 
             const descText = this.scene.add.text(rightX - 15, btn.y, btn.desc, {
-                fontSize: '13px',
+                fontSize: '12px',
                 color: '#FFFFFF'
             }).setOrigin(0, 0.5).setDepth(10001).setScrollFactor(0);
             this.elements.push(descText);
         });
+
+        const companionNote = this.scene.add.text(
+            width / 2,
+            centerY + 135,
+            'Tap companion: Care, Chat, Profile.',
+            {
+                fontSize: '13px',
+                color: '#B9DAD7',
+                align: 'center',
+                wordWrap: { width: width - 40 }
+            }
+        ).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+        this.elements.push(companionNote);
     }
 
     createDesktopControls(width, height) {
@@ -169,19 +183,19 @@ export default class ControlsTutorialOverlay {
         // Panel background
         const panel = this.scene.add.graphics();
         panel.setDepth(10001).setScrollFactor(0);
-        panel.fillStyle(0x1A1A3E, 0.95);
+        panel.fillStyle(0x071418, 0.97);
         panel.fillRoundedRect(width / 2 - 280, centerY - 180, 560, 360, 15);
-        panel.lineStyle(3, 0x7B68EE);
+        panel.lineStyle(3, 0x6FE7DD);
         panel.strokeRoundedRect(width / 2 - 280, centerY - 180, 560, 360, 15);
         this.elements.push(panel);
 
         const controls = [
-            { keys: 'W A S D / Arrow Keys', action: 'Move your creature' },
-            { keys: 'SPACE', action: 'Interact with objects' },
-            { keys: 'TAB', action: 'Open care menu' },
-            { keys: 'C', action: 'Switch creatures' },
-            { keys: 'I', action: 'Open inventory' },
-            { keys: 'Click Chat Bubble', action: 'Talk to your creature' },
+            { keys: 'W A S D / Arrow Keys', action: 'Move together' },
+            { keys: 'SPACE', action: 'Interact with markers' },
+            { keys: 'TAB', action: 'Open Care Corner' },
+            { keys: 'F / Y / R', action: 'Feed, play, or rest' },
+            { keys: 'T', action: 'Talk with companion' },
+            { keys: 'I', action: 'Open field inventory' },
             { keys: 'ESC', action: 'Close menus' }
         ];
 

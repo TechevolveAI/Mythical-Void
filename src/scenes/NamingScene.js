@@ -3,7 +3,8 @@
  * Features: creature naming, genetics display, personality traits, transition to game world
  */
 
-const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+import Phaser from 'phaser';
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 
 function requireGlobal(name) {
     if (typeof window === 'undefined' || !window[name]) {
@@ -48,14 +49,8 @@ class NamingScene extends Phaser.Scene {
     create() {
         // Stop all other scenes to ensure clean display
         const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene', 'HatchingScene', 'PersonalityScene'];
-        scenesToStop.forEach(sceneKey => {
-            try {
-                this.scene.stop(sceneKey);
-            } catch (e) {
-                // Scene might not exist - that's fine
-            }
-        });
-        this.scene.bringToTop();
+        SceneTransitionHelper.stopActiveScenes(this, scenesToStop);
+        SceneTransitionHelper.bringToTop(this);
 
         const state = getGameState();
 
@@ -264,8 +259,12 @@ class NamingScene extends Phaser.Scene {
             wordWrap: { width: width * 0.9 }
         }).setOrigin(0.5);
 
-        // Reset button in top right
-        this.createResetButton();
+        // Keep the destructive reset utility behind an explicit local QA route.
+        const showDebugReset = import.meta.env.DEV
+            && new URLSearchParams(window.location.search).has('debugReset');
+        if (showDebugReset) {
+            this.createResetButton();
+        }
 
         if (isMobile) {
             // MOBILE LAYOUT: Stack vertically
@@ -1155,6 +1154,7 @@ class NamingScene extends Phaser.Scene {
                 if (window.AchievementSystem?.recordEvent) {
                     const genetics = state.get('creature.genes');
                     window.AchievementSystem.recordEvent('creature_hatched', {
+                        hatchId: genetics?.id || `primary:${state.get('creature.hatchTime')}`,
                         rarity: genetics?.rarity || 'common',
                         species: genetics?.species || 'unknown'
                     });

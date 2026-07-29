@@ -99,6 +99,62 @@ class GameStateManager {
                 gamesPlayed: 0,
                 lastPlayed: null
             },
+            stats: {
+                levelsCompleted: 0,
+                totalPlayTime: 0,
+                coinsCollected: 0
+            },
+            combat: {
+                enemiesDefeated: 0,
+                bossesDefeated: 0
+            },
+            story: {
+                projectBeacon: {
+                    missionLogSeen: false,
+                    currentMission: null,
+                    fieldKit: {
+                        id: 'wanderer_7_field_kit',
+                        name: 'Wanderer-7 Field Kit',
+                        recovered: false,
+                        recoveredAt: null,
+                        katana: {
+                            id: 'earth_field_katana',
+                            name: 'Earth-forged Field Katana',
+                            material: 'Titanium-ceramic laminate',
+                            configuration: 'secured_in_case',
+                            upgradeSlots: 2,
+                            installedUpgrades: []
+                        }
+                    },
+                    pendingDebriefs: [],
+                    debriefsSeen: [],
+                    firstExpeditionPromptSeen: false,
+                    firstExpeditionDrill: {
+                        completed: false,
+                        completedAt: null
+                    },
+                    expeditionCheckpoint: null,
+                    uplinkRestored: false,
+                    uplinkRestoredAt: null,
+                    endingChoice: null,
+                    endingChoiceDate: null,
+                    endingEpilogueSeen: false,
+                    endingEpilogueCompletedAt: null
+                }
+            },
+            quests: {
+                active: [],
+                completed: [],
+                lastDailyReset: null
+            },
+            levels: {
+                crystalCaves: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+                cosmicReef: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+                mythicalForest: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+                voidPeaks: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+                auroraDepths: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+                finalVoid: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null }
+            },
             creature: {
                 hatched: false,
                 hatchTime: null,
@@ -185,9 +241,28 @@ class GameStateManager {
                     trees: 0,
                     rocks: 0
                 },
-                interactionCount: 0
+                interactionCount: 0,
+                signalGarden: {
+                    stage: 'seed',
+                    tendCount: 0,
+                    lastTendedDay: null,
+                    lastTendedAt: null,
+                    plantedAt: null,
+                    bloomedAt: null
+                },
+                livingSignals: {
+                    observedIds: [],
+                    lastObservedId: null,
+                    lastObservedAt: null
+                },
+                sanctuaryDecorations: {
+                    voidCrystals: 0
+                }
             },
             settings: {
+                audioMuted: false,
+                hapticEnabled: true,
+                screenShakeEnabled: true,
                 volume: {
                     master: 1.0,
                     music: 0.7,
@@ -288,15 +363,16 @@ class GameStateManager {
                     stellar_reef: { unlocked: false, name: 'Stellar Reef', biome: 'stellar_reef', visits: 0, unlockCost: 500, shipPart: 'Dimensional Drive' },
                     crystal_caves: { unlocked: false, name: 'Crystal Caves', biome: 'crystal_caves', visits: 0, unlockCost: 500, shipPart: 'Crystal Core Engine' },
                     mythical_forest: { unlocked: true, name: 'Mythical Forest', biome: 'mythical_forest', visits: 0, inDevelopment: false, unlockCost: 0, shipPart: 'Forest Core' },
+                    void_peaks: { unlocked: false, name: 'Void Peaks', biome: 'void_peaks', visits: 0, inDevelopment: false, unlockCost: 1000, shipPart: 'Hull Plating' },
                     aurora_depths: { unlocked: false, name: 'Aurora Depths', biome: 'aurora_depths', visits: 0, inDevelopment: false, unlockCost: 750, shipPart: 'Aurora Reactor' },
                     final_void: { unlocked: false, name: 'The Final Void', biome: 'final_void', visits: 0, inDevelopment: false, unlockCost: 0, shipPart: 'Command Module', requiresAllParts: true }
                 },
                 mapsOwned: [],  // Map items purchased from shop
                 lastVisitedGate: 'main',
                 // Ship parts collected from completing levels - needed for final boss battle
-                // 5 parts total: one from each boss, final special piece from Void Empress
+                // 5 pre-final parts unlock Final Void. Command Module is awarded by the final boss.
                 shipParts: {
-                    collected: [],  // Array of part IDs: 'crystal_core', 'dimensional_drive', 'forest_core', 'aurora_reactor', 'command_module'
+                    collected: [],  // Array of part IDs: 'crystal_core', 'dimensional_drive', 'forest_core', 'hull_plating', 'aurora_reactor', 'command_module'
                     totalRequired: 5,
                     finalBossUnlocked: false
                 }
@@ -530,6 +606,46 @@ class GameStateManager {
             // Give creature experience for exploration
             this.updateCreature({ experience: 5 });
         }
+    }
+
+    /**
+     * Record a unique realm, Sanctuary zone, or living-signal site.
+     */
+    visitArea(areaId, { persist = true } = {}) {
+        const normalizedId = typeof areaId === 'string'
+            ? areaId.trim().toLowerCase()
+            : '';
+        if (
+            !normalizedId ||
+            normalizedId.length > 64 ||
+            !/^[a-z0-9:_-]+$/.test(normalizedId)
+        ) {
+            console.warn('[GameState] Ignoring invalid exploration area:', areaId);
+            return false;
+        }
+
+        const visitedAreas = this.get('world.visitedAreas');
+        const normalizedAreas = Array.isArray(visitedAreas)
+            ? [...new Set(visitedAreas.filter(area => typeof area === 'string'))]
+            : [];
+        if (normalizedAreas.includes(normalizedId)) {
+            return false;
+        }
+
+        normalizedAreas.push(normalizedId);
+        this.set('world.visitedAreas', normalizedAreas);
+        this.emit('areaVisited', {
+            areaId: normalizedId,
+            totalVisited: normalizedAreas.length
+        });
+
+        if (persist) {
+            this.save();
+        }
+        if (typeof window !== 'undefined') {
+            window.AchievementSystem?.checkAchievements?.();
+        }
+        return true;
     }
 
     /**
@@ -918,22 +1034,39 @@ class GameStateManager {
     /**
      * Add a map to player's collection (called when purchasing from shop)
      * @param {string} gateId - ID of the gate the map unlocks
+     * @returns {boolean} Whether a new permanent map unlock was recorded
      */
     addMapToCollection(gateId) {
+        const gate = this.get(`hubWorld.gates.${gateId}`);
+        if (!gate) {
+            console.warn(`[GameState] Cannot add map for unknown gate: ${gateId}`);
+            return false;
+        }
+
         const mapsOwned = this.get('hubWorld.mapsOwned') || [];
 
-        if (!mapsOwned.includes(gateId)) {
-            mapsOwned.push(gateId);
-            this.set('hubWorld.mapsOwned', mapsOwned);
-            this.emit('mapAcquired', { gateId });
-            console.log(`[GameState] Map for gate "${gateId}" added to collection`);
-
-            // Auto-unlock the gate now that player owns the map
-            const unlockResult = this.unlockGate(gateId, false); // false = don't try to use coins
-            if (unlockResult.success) {
-                console.log(`[GameState] Gate "${gateId}" auto-unlocked with map purchase`);
+        if (mapsOwned.includes(gateId)) {
+            if (!gate.unlocked) {
+                this.unlockGate(gateId, false);
+                this.save();
             }
+            return false;
         }
+
+        this.set('hubWorld.mapsOwned', [...mapsOwned, gateId]);
+
+        // Auto-unlock the gate now that player owns the map.
+        const unlockResult = this.unlockGate(gateId, false);
+        if (!unlockResult.success) {
+            this.set('hubWorld.mapsOwned', mapsOwned);
+            console.warn(`[GameState] Failed to unlock gate for map: ${gateId}`);
+            return false;
+        }
+
+        this.emit('mapAcquired', { gateId });
+        this.save();
+        console.log(`[GameState] Map for gate "${gateId}" added and persisted`);
+        return true;
     }
 
     /**
@@ -954,8 +1087,10 @@ class GameStateManager {
         this.set(`hubWorld.gates.${gateId}`, gate);
         this.set('hubWorld.currentGate', gateId);
         this.set('hubWorld.lastVisitedGate', gateId);
+        this.visitArea(`realm:${gateId}`, { persist: false });
 
         this.emit('gateEntered', { gateId, biome: gate.biome, visits: gate.visits });
+        this.save();
         console.log(`[GameState] Entered gate "${gateId}" (visit #${gate.visits})`);
 
         return { success: true, biome: gate.biome, gate };
@@ -1373,19 +1508,7 @@ class GameStateManager {
         }
 
         try {
-            // Update play time before saving
-            const sessionTime = Date.now() - this.state.session.sessionStart;
-            this.state.player.playTime += sessionTime;
-            this.state.player.lastPlayed = Date.now();
-            this.state.session.sessionStart = Date.now();
-
-            // Create save data (exclude session data)
-            const saveData = {
-                ...this.state,
-                version: '1.0.0',
-                savedAt: Date.now()
-            };
-            delete saveData.session;
+            const saveData = this.createSaveSnapshot({ updatePlayTime: true });
 
             const serialized = JSON.stringify(saveData);
 
@@ -1422,6 +1545,48 @@ class GameStateManager {
                 this.emit('saveError', { type: 'unknown', error });
             }
 
+            return false;
+        }
+    }
+
+    /**
+     * Create the canonical versioned snapshot used by local and cloud saves.
+     */
+    createSaveSnapshot(options = {}) {
+        const { updatePlayTime = false } = options;
+        const now = Date.now();
+
+        if (updatePlayTime && this.state.session) {
+            const sessionStart = Number(this.state.session.sessionStart) || now;
+            const sessionTime = Math.max(0, now - sessionStart);
+            this.state.player.playTime += sessionTime;
+            this.state.player.lastPlayed = now;
+            this.state.session.sessionStart = now;
+        }
+
+        this.state.version = GAME_VERSION;
+        if (updatePlayTime || !Number.isFinite(Number(this.state.savedAt))) {
+            this.state.savedAt = now;
+        }
+
+        const snapshot = JSON.parse(JSON.stringify(this.state));
+        delete snapshot.session;
+        return snapshot;
+    }
+
+    /**
+     * Report whether this browser currently has a durable game save.
+     * Cloud recovery uses this distinction so a brand-new default state cannot
+     * overwrite an existing remote save merely because it has a newer timestamp.
+     */
+    hasPersistedSave() {
+        if (this.storageMode === 'memory') {
+            return false;
+        }
+
+        try {
+            return Boolean(localStorage.getItem(this.saveKey));
+        } catch (error) {
             return false;
         }
     }
@@ -1477,7 +1642,7 @@ class GameStateManager {
 
                 // Update version and timestamp
                 this.state.version = GAME_VERSION;
-                this.state.savedAt = Date.now();
+                this.state.savedAt = Number(migrated.savedAt) || Date.now();
 
                 this.emit('loaded', this.state);
                 console.log(`[GameState] Game loaded successfully (v${saveVersion} → v${GAME_VERSION})`);
@@ -1506,6 +1671,62 @@ class GameStateManager {
                 this.emit('loadError', { type: 'unknown', error });
             }
 
+            return false;
+        }
+    }
+
+    /**
+     * Validate, migrate, and apply a save received from an external source.
+     * The active browser session is preserved and the restored state is written
+     * locally without re-emitting a normal save event.
+     */
+    applyExternalSave(saveData, options = {}) {
+        const { source = 'external', persist = true } = options;
+
+        if (!saveData || typeof saveData !== 'object' || Array.isArray(saveData)) {
+            this.emit('externalLoadError', { source, type: 'invalid_structure' });
+            return false;
+        }
+
+        const saveVersion = saveData.version || '1.0.0';
+        if (!this.checkVersionCompatibility(saveVersion, GAME_VERSION)) {
+            this.emit('externalLoadError', {
+                source,
+                type: 'version_mismatch',
+                oldVersion: saveVersion,
+                newVersion: GAME_VERSION
+            });
+            return false;
+        }
+
+        try {
+            const clonedSave = JSON.parse(JSON.stringify(saveData));
+            const migrated = this.migrateSaveData(clonedSave, saveVersion);
+            const currentSession = this.state.session || {};
+            const defaultState = this.createInitialState();
+
+            this.state = this.deepMerge(defaultState, migrated);
+            this.state.version = GAME_VERSION;
+            this.state.savedAt = Number(migrated.savedAt) || Date.now();
+            this.state.session = {
+                ...defaultState.session,
+                ...currentSession,
+                sessionStart: Date.now()
+            };
+
+            if (persist && this.storageMode !== 'memory') {
+                const localSnapshot = JSON.parse(JSON.stringify(this.state));
+                delete localSnapshot.session;
+                localStorage.setItem(this.saveKey, JSON.stringify(localSnapshot));
+            }
+
+            this.emit('externalLoaded', { source, state: this.get() });
+            this.emit('loaded', this.state);
+            console.log(`[GameState] ${source} save restored successfully`);
+            return true;
+        } catch (error) {
+            console.error(`[GameState] Failed to restore ${source} save:`, error);
+            this.emit('externalLoadError', { source, type: 'restore_failed', error });
             return false;
         }
     }
@@ -1546,6 +1767,7 @@ class GameStateManager {
         // Old development builds may have left gates marked as inDevelopment
         // All gates are now ready for production
         this.migrateHubWorldGates(migrated);
+        this.migrateCampaignProgress(migrated);
 
         console.log(`[GameState] Migration complete: ${fromVersion} → ${GAME_VERSION}`);
         return migrated;
@@ -1569,6 +1791,7 @@ class GameStateManager {
             stellar_reef: { inDevelopment: false },
             crystal_caves: { inDevelopment: false },
             mythical_forest: { inDevelopment: false, unlocked: true }, // Should be unlocked by default
+            void_peaks: { inDevelopment: false },
             aurora_depths: { inDevelopment: false },
             final_void: { inDevelopment: false }
         };
@@ -1597,6 +1820,157 @@ class GameStateManager {
 
         if (migrationsMade) {
             console.log('[GameState] Hub world gates migrated successfully');
+        }
+    }
+
+    /**
+     * Backfill campaign counters and final-gate state for saves created before
+     * every playable level shared the same completion contract.
+     */
+    migrateCampaignProgress(data) {
+        if (!data || typeof data !== 'object') return;
+
+        const levels = data.levels || {};
+        const completedLevels = Object.values(levels).filter(level => level?.completed === true).length;
+        this.migrateProjectBeaconKatana(data);
+
+        data.stats = data.stats || {};
+        const recordedCompletions = Number.isFinite(data.stats.levelsCompleted)
+            ? Math.max(0, Math.floor(data.stats.levelsCompleted))
+            : 0;
+        data.stats.levelsCompleted = Math.max(recordedCompletions, completedLevels);
+
+        const shipParts = data.hubWorld?.shipParts;
+        const gates = data.hubWorld?.gates;
+        if (!shipParts || !gates) return;
+
+        const preFinalPartIds = [
+            'crystal_core',
+            'dimensional_drive',
+            'forest_core',
+            'hull_plating',
+            'aurora_reactor'
+        ];
+        const collected = Array.isArray(shipParts.collected) ? shipParts.collected : [];
+        const collectedPreFinalParts = preFinalPartIds.filter(partId => collected.includes(partId)).length;
+        const totalRequired = preFinalPartIds.length;
+        shipParts.totalRequired = totalRequired;
+
+        const beaconState = data.story?.projectBeacon;
+        const hasDebriefTracking = Array.isArray(beaconState?.pendingDebriefs)
+            || Array.isArray(beaconState?.debriefsSeen);
+        const earnedDebriefCount = Math.min(
+            preFinalPartIds.length,
+            Math.max(completedLevels, Number(data.stats.levelsCompleted) || 0)
+        );
+        const milestoneGateIds = [
+            'crystal_caves',
+            'stellar_reef',
+            'void_peaks',
+            'aurora_depths'
+        ];
+        milestoneGateIds
+            .slice(0, Math.min(earnedDebriefCount, milestoneGateIds.length))
+            .forEach((gateId) => {
+                if (gates[gateId]) {
+                    gates[gateId].unlocked = true;
+                }
+            });
+
+        if (!hasDebriefTracking && earnedDebriefCount > 0) {
+            const partToLevel = {
+                crystal_core: 'crystalCaves',
+                dimensional_drive: 'cosmicReef',
+                forest_core: 'mythicalForest',
+                hull_plating: 'voidPeaks',
+                aurora_reactor: 'auroraDepths'
+            };
+            const collectedPreFinal = collected.filter(partId => preFinalPartIds.includes(partId));
+
+            data.story = data.story || {};
+            data.story.projectBeacon = data.story.projectBeacon || {};
+            data.story.projectBeacon.pendingDebriefs = Array.from(
+                { length: earnedDebriefCount },
+                (_, index) => {
+                    const shipPartId = collectedPreFinal[index] || null;
+                    return {
+                        id: `beacon_debrief_${index + 1}`,
+                        levelId: partToLevel[shipPartId] || null,
+                        shipPartId,
+                        completedAt: null
+                    };
+                }
+            );
+            data.story.projectBeacon.debriefsSeen = [];
+        }
+
+        if (collectedPreFinalParts >= totalRequired) {
+            shipParts.finalBossUnlocked = true;
+            if (data.hubWorld.shipCompletionCutsceneShown && gates.final_void) {
+                gates.final_void.unlocked = true;
+            }
+        }
+    }
+
+    /**
+     * Backfill creature-tech katana rewards for campaigns completed before the
+     * two field-kit interfaces became playable.
+     */
+    migrateProjectBeaconKatana(data) {
+        const fieldKit = data?.story?.projectBeacon?.fieldKit;
+        const katana = fieldKit?.katana;
+        if (!fieldKit?.recovered || !katana) {
+            return;
+        }
+
+        const installed = Array.isArray(katana.installedUpgrades)
+            ? [...katana.installedUpgrades]
+            : [];
+        const installedIds = new Set(
+            installed
+                .map(upgrade => typeof upgrade === 'string' ? upgrade : upgrade?.id)
+                .filter(Boolean)
+        );
+        const upgradeSlots = Math.max(0, Number(katana.upgradeSlots) || 2);
+        const earned = [
+            {
+                id: 'crystal_edge',
+                name: 'Resonant Edge',
+                source: 'Crystal Guardian',
+                sourceLevelId: 'crystalCaves',
+                completed: data.levels?.crystalCaves?.completed === true
+            },
+            {
+                id: 'aurora_guard',
+                name: 'Aurora Guard',
+                source: 'Aurora Phoenix',
+                sourceLevelId: 'auroraDepths',
+                completed: data.levels?.auroraDepths?.completed === true
+            }
+        ];
+
+        earned.forEach(upgrade => {
+            if (
+                upgrade.completed
+                && !installedIds.has(upgrade.id)
+                && installed.length < upgradeSlots
+            ) {
+                installed.push({
+                    id: upgrade.id,
+                    name: upgrade.name,
+                    source: upgrade.source,
+                    sourceLevelId: upgrade.sourceLevelId,
+                    installedAt: null,
+                    migrated: true
+                });
+                installedIds.add(upgrade.id);
+            }
+        });
+
+        katana.upgradeSlots = upgradeSlots;
+        katana.installedUpgrades = installed;
+        if (installed.length > 0) {
+            katana.configuration = 'creature_tech_adapted';
         }
     }
 

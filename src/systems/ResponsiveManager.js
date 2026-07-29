@@ -111,21 +111,18 @@ class ResponsiveManager {
         if (!this.game) return;
 
         try {
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
+            const windowWidth = Math.max(1, Math.floor(window.innerWidth));
+            const windowHeight = Math.max(1, Math.floor(window.innerHeight));
 
-            // Calculate scale to fit window while maintaining aspect ratio
-            const scaleX = windowWidth / this.baseWidth;
-            const scaleY = windowHeight / this.baseHeight;
-            const scale = Math.min(scaleX, scaleY);
-
-            // Apply minimum scale for readability
-            const minScale = this.isMobile ? 0.5 : 0.75;
-            this.currentScale = Math.max(scale, minScale);
-
-            // Calculate new dimensions
-            const newWidth = Math.floor(this.baseWidth * this.currentScale);
-            const newHeight = Math.floor(this.baseHeight * this.currentScale);
+            // RESIZE mode must use the real viewport. Forcing a minimum 4:3
+            // game size crops portrait screens and can leave the canvas blank.
+            this.detectDevice();
+            this.currentScale = Math.min(
+                windowWidth / this.baseWidth,
+                windowHeight / this.baseHeight
+            );
+            const newWidth = windowWidth;
+            const newHeight = windowHeight;
 
             // Update Phaser game size
             if (this.game.scale && typeof this.game.scale.resize === 'function') {
@@ -134,9 +131,6 @@ class ResponsiveManager {
 
             // Center the game canvas
             this.centerCanvas();
-
-            // Update UI scale
-            this.updateUIScale();
 
             // Emit resize event
             if (this.game.events && typeof this.game.events.emit === 'function') {
@@ -191,25 +185,8 @@ class ResponsiveManager {
      * Update UI element scaling
      */
     updateUIScale() {
-        // Update font sizes based on scale
-        const baseFontSize = 16;
-        const scaledFontSize = Math.max(12, Math.floor(baseFontSize * this.currentScale));
-        
-        // Apply to all text elements in the game
-        if (this.game.scene) {
-            const scenes = this.game.scene.scenes;
-            scenes.forEach(scene => {
-                if (scene && scene.children) {
-                    scene.children.list.forEach(child => {
-                        if (child.type === 'Text') {
-                            const originalSize = parseInt(child.style.fontSize) || baseFontSize;
-                            const newSize = Math.floor(originalSize * this.currentScale);
-                            child.setFontSize(newSize);
-                        }
-                    });
-                }
-            });
-        }
+        // Scenes own their typography. Mutating every text object here made
+        // repeated resizes compound font sizes and override responsive layouts.
     }
 
     /**
@@ -1187,4 +1164,10 @@ class ResponsiveManager {
 }
 
 // Create global instance
-window.ResponsiveManager = ResponsiveManager;
+if (typeof window !== 'undefined') {
+    window.ResponsiveManager = ResponsiveManager;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ResponsiveManager;
+}

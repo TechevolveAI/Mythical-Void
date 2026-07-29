@@ -321,7 +321,7 @@ class CarePanelManager {
         if (!status) return;
         const feedLeft = 3 - status.dailyCare.feedCount;
         const playLeft = 2 - status.dailyCare.playCount;
-        this.hintText.setText(`TAB: open Care Corner • 🍎 Feed ${feedLeft} left • 🎮 Play ${playLeft} left • 😴 Rest anytime`);
+        this.hintText.setText(`TAB: Care Corner • Feed ${feedLeft} • Play ${playLeft} • Rest anytime`);
     }
 
     destroy() {
@@ -339,15 +339,7 @@ class CarePanelManager {
         });
         this.panelElements = [];
 
-        // Remove listeners from care button zones BEFORE destroying
-        Object.values(this.careButtons).forEach(({ bg, text, zone }) => {
-            if (zone && zone.removeAllListeners) {
-                zone.removeAllListeners();
-            }
-            if (bg && bg.destroy) bg.destroy();
-            if (text && text.destroy) text.destroy();
-            if (zone && zone.destroy) zone.destroy();
-        });
+        // Button objects are also tracked in panelElements and are already destroyed above.
         this.careButtons = {};
 
         if (this.hintText) {

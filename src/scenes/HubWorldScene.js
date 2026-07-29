@@ -5,6 +5,116 @@
  */
 
 import Phaser from 'phaser';
+import {
+    acknowledgeProjectBeaconDebrief,
+    getNextProjectBeaconDebrief,
+    getProjectBeaconDebrief,
+    getProjectBeaconFirstExpeditionHandoff
+} from '../systems/ProjectBeaconStory.js';
+
+const PRE_FINAL_SHIP_PART_IDS = Object.freeze([
+    'crystal_core',
+    'dimensional_drive',
+    'forest_core',
+    'hull_plating',
+    'aurora_reactor'
+]);
+
+const LEVEL_NAMES = Object.freeze({
+    crystalCaves: 'Crystal Caves',
+    cosmicReef: 'Stellar Reef',
+    mythicalForest: 'Mythical Forest',
+    voidPeaks: 'Void Peaks',
+    auroraDepths: 'Aurora Depths',
+    finalVoid: 'The Final Void'
+});
+
+const SHIP_PART_NAMES = Object.freeze({
+    crystal_core: 'Crystal Core',
+    dimensional_drive: 'Dimensional Drive',
+    forest_core: 'Forest Core',
+    hull_plating: 'Hull Plating',
+    aurora_reactor: 'Aurora Reactor',
+    command_module: 'Command Module'
+});
+
+const DEBRIEF_PREVIEW_CONTEXTS = Object.freeze({
+    1: { levelId: 'mythicalForest', shipPartId: 'forest_core' },
+    2: { levelId: 'crystalCaves', shipPartId: 'crystal_core' },
+    3: { levelId: 'cosmicReef', shipPartId: 'dimensional_drive' },
+    4: { levelId: 'voidPeaks', shipPartId: 'hull_plating' },
+    5: { levelId: 'auroraDepths', shipPartId: 'aurora_reactor' }
+});
+
+const EXPEDITION_CHECKPOINT_PATH =
+    'story.projectBeacon.expeditionCheckpoint';
+const EXPEDITION_CHECKPOINT_VERSION = 1;
+const EXPEDITION_CHECKPOINTS_BY_GATE = Object.freeze({
+    mythical_forest: {
+        sceneKey: 'MythicalForestLevel',
+        levelId: 'mythical_forest_1',
+        levelStateId: 'mythicalForest',
+        checkpoints: [
+            ['forest_anchor_1', 'Rootway'],
+            ['forest_anchor_2', 'Crown Path'],
+            ['forest_anchor_3', 'Guardian Approach']
+        ]
+    },
+    crystal_caves: {
+        sceneKey: 'CrystalCavesLevel',
+        levelId: 'crystal_caves_1',
+        levelStateId: 'crystalCaves',
+        checkpoints: [
+            ['caves_anchor_1', 'Echo Pass'],
+            ['caves_anchor_2', 'Living Chamber'],
+            ['caves_anchor_3', 'Guardian Threshold']
+        ]
+    },
+    stellar_reef: {
+        sceneKey: 'ReefLevel',
+        levelId: 'reef_1',
+        levelStateId: 'cosmicReef',
+        checkpoints: [
+            ['reef_waypoint_1', 'Drift Signal'],
+            ['reef_waypoint_2', 'Traveler Relay'],
+            ['reef_waypoint_3', 'Passage Vector']
+        ]
+    },
+    void_peaks: {
+        sceneKey: 'VoidPeaksLevel',
+        levelId: 'void_peaks_1',
+        levelStateId: 'voidPeaks',
+        checkpoints: [
+            ['peaks_relay_1', 'Lower Relay'],
+            ['peaks_relay_2', 'Ridge Relay'],
+            ['peaks_relay_3', 'Summit Relay']
+        ]
+    },
+    aurora_depths: {
+        sceneKey: 'AuroraDepthsLevel',
+        levelId: 'aurora_depths_1',
+        levelStateId: 'auroraDepths',
+        checkpoints: [
+            ['aurora_prism_1', 'Lower Prism'],
+            ['aurora_prism_2', 'Heart Prism'],
+            ['aurora_prism_3', 'Sky Prism']
+        ]
+    },
+    final_void: {
+        sceneKey: 'FinalVoidLevel',
+        levelId: 'final_void_1',
+        levelStateId: 'finalVoid',
+        checkpoints: [
+            ['final_bond_1', 'Living Systems'],
+            ['final_bond_2', 'Return Route'],
+            ['final_bond_3', 'Trust Signal']
+        ]
+    }
+});
+
+function countCollectedPreFinalParts(collected = []) {
+    return PRE_FINAL_SHIP_PART_IDS.filter(partId => collected.includes(partId)).length;
+}
 
 export default class HubWorldScene extends Phaser.Scene {
     constructor() {
@@ -17,12 +127,14 @@ export default class HubWorldScene extends Phaser.Scene {
         this.gateElements = [];
         this.isTransitioning = false;
         this._isShuttingDown = false;
+        this.firstExpeditionElements = [];
+        this.isFirstExpeditionInvitationOpen = false;
     }
 
     /**
      * Reset state on scene start - called before create()
      */
-    init() {
+    init(data = {}) {
         // CRITICAL: Reset all state flags on scene start
         this.isTransitioning = false;
         this._isShuttingDown = false;
@@ -35,6 +147,11 @@ export default class HubWorldScene extends Phaser.Scene {
         this.portalVortexElements = [];
         this.vortexTimers = [];
         this.parallaxLayers = [];
+        this.projectBeaconDebriefElements = [];
+        this.isProjectBeaconDebriefOpen = false;
+        this.firstExpeditionElements = [];
+        this.isFirstExpeditionInvitationOpen = false;
+        this.progressionPreview = data.progressionPreview || null;
         console.log('[HubWorldScene] State reset in init()');
     }
 
@@ -51,6 +168,7 @@ export default class HubWorldScene extends Phaser.Scene {
 
         // Calculate dimensions
         this.calculateDimensions();
+        this.clearCompletedExpeditionCheckpoint();
 
         // Create visuals
         this.createBackground();
@@ -64,8 +182,25 @@ export default class HubWorldScene extends Phaser.Scene {
         // Set up input
         this.setupInput();
 
-        // Select main gate by default
-        this.selectGate(0);
+        const shouldOfferFirstExpedition = this.shouldShowFirstExpeditionInvitation();
+        const firstExpeditionIndex = this.gates.findIndex(
+            gate => gate.id === 'mythical_forest'
+        );
+        const routeMapIndex = this.gates.findIndex(
+            gate => gate.id === 'stellar_reef'
+        );
+        const resumeGateIndex = this.gates.findIndex(
+            gate => this.getExpeditionResumeForGate(gate.id)
+        );
+        this.selectGate(
+            this.progressionPreview === 'routeMap' && routeMapIndex >= 0
+                ? routeMapIndex
+                : resumeGateIndex >= 0
+                ? resumeGateIndex
+                : shouldOfferFirstExpedition && firstExpeditionIndex >= 0
+                ? firstExpeditionIndex
+                : 0
+        );
 
         // Hide loading
         if (window.UXEnhancements) {
@@ -80,12 +215,457 @@ export default class HubWorldScene extends Phaser.Scene {
 
         // Check if ship completion cutscene should play
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
+        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
         const cutsceneShown = window.GameState?.get('hubWorld.shipCompletionCutsceneShown') || false;
-        if (shipParts.length >= 5 && !cutsceneShown) {
+        const preFinalPartsCollected = countCollectedPreFinalParts(shipParts);
+        if (!this.progressionPreview && preFinalPartsCollected >= totalRequired) {
+            window.GameState?.set('hubWorld.shipParts.finalBossUnlocked', true);
+            if (cutsceneShown) {
+                window.GameState?.set('hubWorld.gates.final_void.unlocked', true);
+            }
+        }
+        const shouldShowShipCutscene =
+            !this.progressionPreview &&
+            preFinalPartsCollected >= totalRequired &&
+            !cutsceneShown;
+        const hasPendingDebrief =
+            !this.progressionPreview &&
+            Boolean(this.getPendingProjectBeaconDebrief());
+        if (hasPendingDebrief) {
+            this.time.delayedCall(400, () => {
+                this.showPendingProjectBeaconDebrief(() => {
+                    if (shouldShowShipCutscene && !this._isShuttingDown) {
+                        this.showShipCompletionCutscene();
+                    }
+                });
+            });
+        } else if (shouldShowShipCutscene) {
             this.time.delayedCall(500, () => this.showShipCompletionCutscene());
+        } else if (this.progressionPreview === 'routeMap') {
+            this.time.delayedCall(450, () => {
+                const routeGate = this.gates.find(
+                    gate => gate.id === 'stellar_reef'
+                );
+                if (routeGate && !this._isShuttingDown) {
+                    this.showUnlockConfirmation(routeGate);
+                }
+            });
+        } else if (shouldOfferFirstExpedition) {
+            this.time.delayedCall(450, () => {
+                if (!this._isShuttingDown && !this.isTransitioning) {
+                    this.showFirstExpeditionInvitation();
+                }
+            });
         }
 
         console.log('[HubWorldScene] Hub World ready');
+    }
+
+    shouldShowFirstExpeditionInvitation() {
+        if (this.progressionPreview === 'firstRoute') return true;
+        if (this.progressionPreview) return false;
+        if (window.GameState?.get('story.projectBeacon.firstExpeditionPromptSeen')) {
+            return false;
+        }
+
+        const forest = window.GameState?.get('levels.mythicalForest') || {};
+        if (forest.entered || forest.completed || forest.visited) {
+            return false;
+        }
+
+        const fieldKitRecovered = Boolean(
+            window.GameState?.get('story.projectBeacon.fieldKit.recovered')
+        );
+        const observedSignals = window.GameState?.get(
+            'world.livingSignals.observedIds'
+        );
+
+        return fieldKitRecovered &&
+            Array.isArray(observedSignals) &&
+            observedSignals.length >= 3;
+    }
+
+    showFirstExpeditionInvitation() {
+        if (
+            this._isShuttingDown ||
+            this.isTransitioning ||
+            this.isFirstExpeditionInvitationOpen
+        ) {
+            return false;
+        }
+
+        const handoff = getProjectBeaconFirstExpeditionHandoff();
+        const forestGate = this.gates.find(gate => gate.id === 'mythical_forest');
+        if (!handoff || !forestGate?.data?.unlocked) {
+            return false;
+        }
+
+        this.isFirstExpeditionInvitationOpen = true;
+        const { width, height, isMobile } = this.dims;
+        const panelWidth = Math.min(isMobile ? width - 28 : 590, width - 28);
+        const panelHeight = Math.min(isMobile ? 500 : 410, height - 28);
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+        const centerX = width / 2;
+        const textWidth = panelWidth - (isMobile ? 44 : 72);
+        const depth = 620;
+
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x02060A, 0.88);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(depth);
+        overlay.setInteractive(
+            new Phaser.Geom.Rectangle(0, 0, width, height),
+            Phaser.Geom.Rectangle.Contains
+        );
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x0B1B18, 0.99);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
+        panel.lineStyle(3, 0x71E6B1, 0.95);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
+        panel.setDepth(depth + 1);
+
+        const routeHeader = this.add.text(centerX, panelY + panelHeight * 0.08, handoff.route, {
+            fontSize: isMobile ? '11px' : '13px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#8FE3CF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(depth + 2);
+
+        const routeIcon = this.add.text(centerX, panelY + panelHeight * 0.2, '🌿', {
+            fontSize: isMobile ? '38px' : '46px'
+        }).setOrigin(0.5).setDepth(depth + 2);
+
+        const title = this.add.text(centerX, panelY + panelHeight * 0.31, handoff.title, {
+            fontSize: isMobile ? '25px' : '31px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(depth + 2);
+
+        const finding = this.add.text(centerX, panelY + panelHeight * 0.43, handoff.finding, {
+            fontSize: isMobile ? '13px' : '15px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#D6EEF2',
+            lineSpacing: 4,
+            align: 'center',
+            wordWrap: { width: textWidth }
+        }).setOrigin(0.5, 0).setDepth(depth + 2);
+
+        const companion = this.add.text(
+            centerX,
+            panelY + panelHeight * (isMobile ? 0.61 : 0.59),
+            `COMPANION // ${handoff.companionMoment}`,
+            {
+                fontSize: isMobile ? '11px' : '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#BFA6FF',
+                fontStyle: 'bold',
+                align: 'center',
+                wordWrap: { width: textWidth }
+            }
+        ).setOrigin(0.5, 0).setDepth(depth + 2);
+
+        const fieldNote = this.add.text(
+            centerX,
+            panelY + panelHeight * (isMobile ? 0.7 : 0.68),
+            `FIELD NOTE // ${handoff.fieldNote}`,
+            {
+                fontSize: isMobile ? '10px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F2C14E',
+                fontStyle: 'bold',
+                align: 'center',
+                wordWrap: { width: textWidth }
+            }
+        ).setOrigin(0.5, 0).setDepth(depth + 2);
+
+        const primary = this.add.text(
+            centerX,
+            panelY + panelHeight * 0.84,
+            handoff.primaryAction,
+            {
+                fontSize: isMobile ? '15px' : '17px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#071411',
+                backgroundColor: '#71E6B1',
+                fontStyle: 'bold',
+                padding: {
+                    x: isMobile ? 18 : 24,
+                    y: isMobile ? 11 : 12
+                }
+            }
+        ).setOrigin(0.5).setDepth(depth + 3)
+            .setInteractive({ useHandCursor: true });
+
+        const secondary = this.add.text(
+            centerX,
+            panelY + panelHeight * 0.95,
+            handoff.secondaryAction,
+            {
+                fontSize: isMobile ? '12px' : '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#A8C2C7',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(depth + 3)
+            .setInteractive({ useHandCursor: true });
+
+        primary.on('pointerdown', () => {
+            this.closeFirstExpeditionInvitation();
+            if (this.progressionPreview === 'firstRoute') return;
+            this.enterGate(forestGate);
+        });
+        secondary.on('pointerdown', () => {
+            this.closeFirstExpeditionInvitation();
+        });
+        primary.on('pointerover', () => primary.setBackgroundColor('#A4F5D0'));
+        primary.on('pointerout', () => primary.setBackgroundColor('#71E6B1'));
+
+        this.firstExpeditionElements = [
+            overlay,
+            panel,
+            routeHeader,
+            routeIcon,
+            title,
+            finding,
+            companion,
+            fieldNote,
+            primary,
+            secondary
+        ];
+
+        return true;
+    }
+
+    closeFirstExpeditionInvitation({ markSeen = true } = {}) {
+        this.firstExpeditionElements.forEach(element => {
+            element?.removeAllListeners?.();
+            element?.destroy?.();
+        });
+        this.firstExpeditionElements = [];
+        this.isFirstExpeditionInvitationOpen = false;
+
+        if (
+            markSeen &&
+            this.progressionPreview !== 'firstRoute' &&
+            window.GameState
+        ) {
+            window.GameState.set(
+                'story.projectBeacon.firstExpeditionPromptSeen',
+                true
+            );
+            window.GameState.save?.();
+        }
+    }
+
+    getPendingProjectBeaconDebrief() {
+        const params = new URLSearchParams(window.location.search);
+        const previewNumber = Number.parseInt(params.get('testDebrief'), 10);
+        const isLocalPreview = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const previewContext = DEBRIEF_PREVIEW_CONTEXTS[previewNumber];
+
+        if (isLocalPreview && previewContext) {
+            const debrief = getProjectBeaconDebrief(`beacon_debrief_${previewNumber}`);
+            return debrief ? {
+                ...previewContext,
+                ...debrief,
+                completedAt: null,
+                isPreview: true
+            } : null;
+        }
+
+        return getNextProjectBeaconDebrief(window.GameState);
+    }
+
+    showPendingProjectBeaconDebrief(onComplete = null) {
+        if (this._isShuttingDown || this.isProjectBeaconDebriefOpen) {
+            return false;
+        }
+
+        const debrief = this.getPendingProjectBeaconDebrief();
+        if (!debrief) {
+            onComplete?.();
+            return false;
+        }
+
+        this.isProjectBeaconDebriefOpen = true;
+        const { width, height, isMobile } = this.dims;
+        const panelWidth = Math.min(isMobile ? width - 32 : 620, width - 32);
+        const panelHeight = Math.min(isMobile ? 660 : 520, height - 32);
+        const panelX = (width - panelWidth) / 2;
+        const panelY = (height - panelHeight) / 2;
+        const centerX = width / 2;
+        const textWidth = panelWidth - (isMobile ? 46 : 80);
+        const levelName = LEVEL_NAMES[debrief.levelId] || 'Unknown Realm';
+        const partName = SHIP_PART_NAMES[debrief.shipPartId] || 'Ship System';
+
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x02030A, 0.9);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setDepth(500);
+        overlay.setInteractive(
+            new Phaser.Geom.Rectangle(0, 0, width, height),
+            Phaser.Geom.Rectangle.Contains
+        );
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x11182A, 0.98);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
+        panel.lineStyle(3, Phaser.Display.Color.HexStringToColor(debrief.color).color, 0.95);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
+        panel.setDepth(501);
+
+        const header = this.add.text(
+            centerX,
+            panelY + panelHeight * 0.065,
+            `PROJECT BEACON // FIELD LOG ${String(debrief.completionNumber).padStart(2, '0')}`,
+            {
+                fontSize: isMobile ? '11px' : '13px',
+                color: '#91A4C6'
+            }
+        ).setOrigin(0.5).setDepth(502);
+
+        const icon = this.add.text(centerX, panelY + panelHeight * 0.145, debrief.icon, {
+            fontSize: isMobile ? '34px' : '42px'
+        }).setOrigin(0.5).setDepth(502);
+
+        const title = this.add.text(centerX, panelY + panelHeight * 0.23, debrief.title, {
+            fontSize: isMobile ? '23px' : '30px',
+            color: debrief.color,
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: textWidth }
+        }).setOrigin(0.5).setDepth(502);
+
+        const routeContext = debrief.nextGate?.label
+            ? `\nNEXT EXPEDITION: ${debrief.nextGate.label.toUpperCase()}`
+            : '';
+        const context = this.add.text(
+            centerX,
+            panelY + panelHeight * 0.3,
+            `${levelName.toUpperCase()} // ${partName.toUpperCase()} RECOVERED${routeContext}`,
+            {
+                fontSize: isMobile ? '10px' : '12px',
+                color: '#7386A8',
+                align: 'center',
+                lineSpacing: 4,
+                wordWrap: { width: textWidth }
+            }
+        ).setOrigin(0.5).setDepth(502);
+
+        const findingLabel = this.add.text(
+            centerX,
+            panelY + panelHeight * 0.365,
+            'WHAT THE SCANNER FOUND',
+            {
+                fontSize: isMobile ? '10px' : '11px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(502);
+
+        const finding = this.add.text(centerX, panelY + panelHeight * 0.45, debrief.finding, {
+            fontSize: isMobile ? '13px' : '15px',
+            color: '#F4F7FF',
+            align: 'center',
+            lineSpacing: isMobile ? 4 : 6,
+            wordWrap: { width: textWidth }
+        }).setOrigin(0.5).setDepth(502);
+
+        const companionMoment = this.add.text(
+            centerX,
+            panelY + panelHeight * 0.625,
+            debrief.companionMoment,
+            {
+                fontSize: isMobile ? '13px' : '15px',
+                color: '#BDEBDD',
+                fontStyle: 'italic',
+                align: 'center',
+                lineSpacing: 4,
+                wordWrap: { width: textWidth }
+            }
+        ).setOrigin(0.5).setDepth(502);
+
+        const noteLabel = this.add.text(
+            centerX,
+            panelY + panelHeight * 0.735,
+            'ASTRONAUT FIELD NOTE',
+            {
+                fontSize: isMobile ? '10px' : '11px',
+                color: '#91A4C6',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(502);
+
+        const fieldNote = this.add.text(centerX, panelY + panelHeight * 0.81, debrief.fieldNote, {
+            fontSize: isMobile ? '12px' : '14px',
+            color: '#D7C7F5',
+            fontStyle: 'italic',
+            align: 'center',
+            lineSpacing: 4,
+            wordWrap: { width: textWidth }
+        }).setOrigin(0.5).setDepth(502);
+
+        const continueBtn = this.add.text(
+            centerX,
+            panelY + panelHeight * 0.925,
+            'CONTINUE',
+            {
+                fontSize: isMobile ? '15px' : '17px',
+                color: '#071018',
+                backgroundColor: debrief.color,
+                fontStyle: 'bold',
+                padding: { x: isMobile ? 28 : 38, y: 12 }
+            }
+        ).setOrigin(0.5).setDepth(503).setInteractive({ useHandCursor: true });
+
+        this.projectBeaconDebriefElements = [
+            overlay,
+            panel,
+            header,
+            icon,
+            title,
+            context,
+            findingLabel,
+            finding,
+            companionMoment,
+            noteLabel,
+            fieldNote,
+            continueBtn
+        ];
+
+        continueBtn.on('pointerdown', () => {
+            if (!this.isProjectBeaconDebriefOpen) {
+                return;
+            }
+
+            this.isProjectBeaconDebriefOpen = false;
+            if (!debrief.isPreview) {
+                acknowledgeProjectBeaconDebrief(window.GameState, debrief.id);
+            }
+            window.AudioManager?.playButtonClick?.();
+
+            this.tweens.add({
+                targets: this.projectBeaconDebriefElements,
+                alpha: 0,
+                duration: 250,
+                onComplete: () => {
+                    this.projectBeaconDebriefElements.forEach(element => element?.destroy?.());
+                    this.projectBeaconDebriefElements = [];
+
+                    if (!debrief.isPreview && getNextProjectBeaconDebrief(window.GameState)) {
+                        this.showPendingProjectBeaconDebrief(onComplete);
+                    } else {
+                        onComplete?.();
+                    }
+                }
+            });
+        });
+
+        return true;
     }
 
     calculateDimensions() {
@@ -316,12 +896,36 @@ export default class HubWorldScene extends Phaser.Scene {
         const { width, height, centerX, centerY, isMobile } = this.dims;
 
         // Get gates from GameState
-        const allGates = window.GameState?.getAllGates() || {};
+        const savedGates = window.GameState?.getAllGates() || {};
+        const allGates = this.progressionPreview === 'complete'
+            ? Object.fromEntries(
+                Object.entries(savedGates).map(([gateId, gate]) => [
+                    gateId,
+                    { ...gate, unlocked: true, inDevelopment: false }
+                ])
+            )
+            : ['firstRoute', 'routeMap'].includes(this.progressionPreview)
+                ? Object.fromEntries(
+                    Object.entries(savedGates).map(([gateId, gate]) => [
+                        gateId,
+                        this.progressionPreview === 'firstRoute' &&
+                        gateId === 'mythical_forest'
+                            ? { ...gate, unlocked: true, inDevelopment: false }
+                            : this.progressionPreview === 'routeMap' &&
+                                gateId === 'stellar_reef'
+                                ? { ...gate, unlocked: false, inDevelopment: false }
+                            : gate
+                    ])
+                )
+            : savedGates;
         let gateIds = Object.keys(allGates);
 
-        // Check if Final Void should be visible (only when all 5 ship parts collected)
+        // Check if Final Void should be visible (only when all pre-final ship parts are collected)
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        const allPartsCollected = shipParts.length >= 5;
+        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
+        const allPartsCollected =
+            this.progressionPreview === 'complete' ||
+            countCollectedPreFinalParts(shipParts) >= totalRequired;
 
         // Filter out final_void if not all parts collected
         if (!allPartsCollected) {
@@ -334,6 +938,7 @@ export default class HubWorldScene extends Phaser.Scene {
             stellar_reef: { color: 0x00CED1, icon: '🐠', label: 'Stellar Reef', shipPart: '⚙️' },
             crystal_caves: { color: 0xE040FB, icon: '💎', label: 'Crystal Caves', shipPart: '🔮' },
             mythical_forest: { color: 0x228B22, icon: '🌳', label: 'Mythical Forest', shipPart: '🌿' },
+            void_peaks: { color: 0xFF4500, icon: '⛰️', label: 'Void Peaks', shipPart: '🛡️' },
             aurora_depths: { color: 0x00E676, icon: '🌌', label: 'Aurora Depths', shipPart: '✨' },
             final_void: { color: 0x4B0082, icon: '👑', label: 'The Final Void', shipPart: '🎯', isFinalBoss: true }
         };
@@ -341,28 +946,30 @@ export default class HubWorldScene extends Phaser.Scene {
         this.gates = [];
         this.gateElements = [];
 
-        // Grid layout: 2 columns, responsive sizing
-        const gatesPerRow = 2;
-        const gateWidth = isMobile ? 85 : 110;
-        const gateHeight = isMobile ? 95 : 120;
-        const gapX = isMobile ? 12 : 20;
-        const gapY = isMobile ? 10 : 16;
-        const totalGridWidth = gateWidth * 2 + gapX;
-        const startX = (width - totalGridWidth) / 2 + gateWidth / 2;
-        const startY = centerY + (isMobile ? 60 : 80); // Below creature
+        const gridLayout = this.getGateGridLayout(gateIds.length);
+        const {
+            gatesPerRow,
+            gateWidth,
+            gateHeight,
+            gapX,
+            gapY,
+            startY,
+            gateSize
+        } = gridLayout;
 
         gateIds.forEach((gateId, index) => {
             const gateData = allGates[gateId];
             const config = gateConfigs[gateId] || { color: 0x666666, icon: '❓', label: gateId };
 
-            // Position gates in 2x3 grid
+            // Center every row, including the partial final row.
             const col = index % gatesPerRow;
             const row = Math.floor(index / gatesPerRow);
-            const x = startX + col * (gateWidth + gapX);
+            const rowStartIndex = row * gatesPerRow;
+            const gatesInRow = Math.min(gatesPerRow, gateIds.length - rowStartIndex);
+            const rowWidth = gatesInRow * gateWidth + Math.max(0, gatesInRow - 1) * gapX;
+            const rowStartX = (width - rowWidth) / 2 + gateWidth / 2;
+            const x = rowStartX + col * (gateWidth + gapX);
             const y = startY + row * (gateHeight + gapY);
-
-            // Gate size (radius for circular gates)
-            const gateSize = isMobile ? 35 : 45;
 
             // Gate container
             const gateContainer = this.add.container(x, y);
@@ -467,11 +1074,12 @@ export default class HubWorldScene extends Phaser.Scene {
             // Gate label (below gate)
             const labelColor = isInDevelopment ? '#FF9800' : (gateData.unlocked ? '#FFFFFF' : '#888888');
             const label = this.add.text(0, gateSize + 20, config.label, {
-                fontSize: isMobile ? '12px' : '16px',
+                fontSize: isMobile ? '10px' : '14px',
                 color: labelColor,
                 stroke: '#000000',
                 strokeThickness: 2,
-                align: 'center'
+                align: 'center',
+                wordWrap: { width: gateWidth }
             }).setOrigin(0.5);
             gateContainer.add(label);
 
@@ -521,6 +1129,29 @@ export default class HubWorldScene extends Phaser.Scene {
         });
     }
 
+    getGateGridLayout(gateCount) {
+        const { width, centerY, isMobile } = this.dims;
+        const gatesPerRow = isMobile
+            ? (gateCount >= 5 ? 3 : 2)
+            : (gateCount >= 7 ? 4 : (gateCount >= 5 ? 3 : 2));
+        const gateWidth = isMobile
+            ? Math.min(92, (width - 60) / gatesPerRow)
+            : (gatesPerRow === 4 ? 100 : 110);
+        const gateHeight = isMobile ? 84 : 120;
+        const gapX = isMobile ? 14 : (gatesPerRow === 4 ? 24 : 32);
+        const gapY = isMobile ? 12 : 16;
+
+        return {
+            gatesPerRow,
+            gateWidth,
+            gateHeight,
+            gapX,
+            gapY,
+            startY: centerY + (isMobile ? 115 : 150),
+            gateSize: isMobile ? 32 : 45
+        };
+    }
+
     /**
      * Create completion badge for a gate showing star rating
      * @param {string} gateId - Gate identifier
@@ -534,7 +1165,9 @@ export default class HubWorldScene extends Phaser.Scene {
             crystal_caves: 'crystalCaves',
             stellar_reef: 'cosmicReef',
             void_peaks: 'voidPeaks',
-            aurora_depths: 'auroraDepths'
+            mythical_forest: 'mythicalForest',
+            aurora_depths: 'auroraDepths',
+            final_void: 'finalVoid'
         };
 
         const levelId = levelIdMap[gateId];
@@ -542,7 +1175,8 @@ export default class HubWorldScene extends Phaser.Scene {
 
         // Get level completion data
         const levelData = window.GameState?.get(`levels.${levelId}`) || {};
-        const { completed, noDamageRun, speedrun, visited } = levelData;
+        const { completed, noDamageRun, speedrun, visited, entered } = levelData;
+        const resume = this.getExpeditionResumeForGate(gateId);
 
         // Calculate star count
         let stars = 0;
@@ -556,7 +1190,7 @@ export default class HubWorldScene extends Phaser.Scene {
         const badgeRadius = isMobile ? 14 : 18;
 
         // Only show badge if level has been visited or completed
-        if (!visited && !completed) return;
+        if (!visited && !entered && !completed && !resume) return;
 
         // Badge background
         const badgeBg = this.add.graphics();
@@ -597,10 +1231,11 @@ export default class HubWorldScene extends Phaser.Scene {
                 });
             }
         } else {
-            // Checkmark for in-progress
-            const checkmark = this.add.text(badgeX, badgeY, '✓', {
+            // A resumable Beacon uses the familiar return arrow; a visited
+            // expedition without a durable signal keeps the progress check.
+            const checkmark = this.add.text(badgeX, badgeY, resume ? '↻' : '✓', {
                 fontSize: isMobile ? '12px' : '16px',
-                color: '#4CAF50',
+                color: resume ? '#8FE3CF' : '#4CAF50',
                 fontStyle: 'bold'
             }).setOrigin(0.5);
             container.add(checkmark);
@@ -759,8 +1394,10 @@ export default class HubWorldScene extends Phaser.Scene {
             main: { difficulty: '⭐', boss: 'None', reward: 'Rest & Recovery', desc: 'Safe sanctuary for your creature' },
             stellar_reef: { difficulty: '⭐⭐⭐', boss: "Nyx'voral", reward: 'Dimensional Drive', desc: 'Cosmic underwater realm' },
             crystal_caves: { difficulty: '⭐⭐', boss: 'Crystal Golem', reward: 'Crystal Core', desc: 'Crystalline underground maze' },
-            void_peaks: { difficulty: '⭐⭐⭐⭐', boss: 'Void Titan', reward: 'Void Stabilizer', desc: 'Treacherous mountain peaks' },
-            aurora_depths: { difficulty: '⭐⭐⭐⭐⭐', boss: 'Aurora Dragon', reward: 'Aurora Reactor', desc: 'Deepest cosmic abyss' }
+            mythical_forest: { difficulty: '⭐⭐', boss: 'Elder Treant', reward: 'Forest Core', desc: 'Ancient woodland between the stars' },
+            void_peaks: { difficulty: '⭐⭐⭐⭐', boss: 'Cosmic Titan', reward: 'Hull Plating', desc: 'Treacherous mountain peaks' },
+            aurora_depths: { difficulty: '⭐⭐⭐⭐⭐', boss: 'Shadow Phoenix', reward: 'Aurora Reactor', desc: 'Deepest cosmic abyss' },
+            final_void: { difficulty: '⭐⭐⭐⭐⭐', boss: 'Void Empress', reward: 'Command Module', desc: 'The final frontier beyond reality' }
         };
     }
 
@@ -782,10 +1419,13 @@ export default class HubWorldScene extends Phaser.Scene {
             crystal_caves: 'crystalCaves',
             stellar_reef: 'cosmicReef',
             void_peaks: 'voidPeaks',
-            aurora_depths: 'auroraDepths'
+            mythical_forest: 'mythicalForest',
+            aurora_depths: 'auroraDepths',
+            final_void: 'finalVoid'
         };
         const levelId = levelIdMap[gate.id];
         const levelData = levelId ? (window.GameState?.get(`levels.${levelId}`) || {}) : {};
+        const resume = this.getExpeditionResumeForGate(gate.id);
 
         // Panel dimensions and position
         const panelWidth = isMobile ? width - 40 : 280;
@@ -837,7 +1477,18 @@ export default class HubWorldScene extends Phaser.Scene {
             this.detailsPanelElements.push(reward);
 
             // Best time / visits (if visited)
-            if (levelData.visited || levelData.completed) {
+            if (resume) {
+                const stats = this.add.text(
+                    panelX + 15,
+                    panelY + 126,
+                    `Beacon: ${resume.label}  •  ${resume.current}/${resume.total}`,
+                    {
+                        fontSize: isMobile ? '10px' : '12px',
+                        color: '#8FE3CF'
+                    }
+                ).setDepth(101).setAlpha(0);
+                this.detailsPanelElements.push(stats);
+            } else if (levelData.visited || levelData.entered || levelData.completed) {
                 const bestTime = levelData.bestTime ? this.formatTime(levelData.bestTime) : 'N/A';
                 const stats = this.add.text(panelX + 15, panelY + 126, `Best Time: ${bestTime}  •  Visits: ${gate.data.visits || 0}`, {
                     fontSize: isMobile ? '10px' : '12px',
@@ -913,29 +1564,103 @@ export default class HubWorldScene extends Phaser.Scene {
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
+    hasRouteMap(gateId) {
+        if (
+            this.progressionPreview === 'routeMap' &&
+            gateId === 'stellar_reef'
+        ) {
+            return true;
+        }
+        const mapsOwned = window.GameState?.get('hubWorld.mapsOwned') || [];
+        return Array.isArray(mapsOwned) && mapsOwned.includes(gateId);
+    }
+
+    clearCompletedExpeditionCheckpoint() {
+        if (this.progressionPreview) return false;
+
+        const checkpoint = window.GameState?.get?.(EXPEDITION_CHECKPOINT_PATH);
+        const config = Object.values(EXPEDITION_CHECKPOINTS_BY_GATE).find(
+            candidate =>
+                candidate.sceneKey === checkpoint?.sceneKey &&
+                candidate.levelId === checkpoint?.levelId
+        );
+        if (
+            !config ||
+            window.GameState?.get?.(
+                `levels.${config.levelStateId}.completed`
+            ) !== true
+        ) {
+            return false;
+        }
+
+        window.GameState?.set?.(EXPEDITION_CHECKPOINT_PATH, null);
+        window.GameState?.save?.();
+        return true;
+    }
+
+    getExpeditionResumeForGate(gateId) {
+        if (this.progressionPreview === 'checkpoint') {
+            return gateId === 'mythical_forest'
+                ? {
+                    gateId,
+                    sceneKey: 'MythicalForestLevel',
+                    checkpointId: 'forest_anchor_3',
+                    label: 'Guardian Approach',
+                    current: 3,
+                    total: 3
+                }
+                : null;
+        }
+        if (this.progressionPreview) return null;
+
+        const checkpoint = window.GameState?.get?.(EXPEDITION_CHECKPOINT_PATH);
+        const config = EXPEDITION_CHECKPOINTS_BY_GATE[gateId];
+        const checkpointIndex = Number(checkpoint?.checkpointIndex);
+        const signal = config?.checkpoints?.[checkpointIndex];
+
+        if (
+            checkpoint?.version !== EXPEDITION_CHECKPOINT_VERSION ||
+            checkpoint?.sceneKey !== config?.sceneKey ||
+            checkpoint?.levelId !== config?.levelId ||
+            !signal ||
+            signal[0] !== checkpoint?.checkpointId ||
+            window.GameState?.get?.(
+                `levels.${config.levelStateId}.completed`
+            ) === true
+        ) {
+            return null;
+        }
+
+        return {
+            gateId,
+            sceneKey: config.sceneKey,
+            checkpointId: signal[0],
+            label: signal[1],
+            current: checkpointIndex + 1,
+            total: config.checkpoints.length
+        };
+    }
+
     updateInfoPanel(gate) {
         if (!gate) return;
 
         const isInDevelopment = gate.data.inDevelopment === true;
+        const hasRouteMap = this.hasRouteMap(gate.id);
+        const resume = this.getExpeditionResumeForGate(gate.id);
 
         // Update info text
         if (this.infoText) {
             let info = `${gate.config.icon} ${gate.data.name}`;
             if (isInDevelopment) {
-                info += `\n🚧 In Development`;
-                if (gate.data.shipPart) {
-                    info += `\nReward: ${gate.config.shipPart || '⚙️'} ${gate.data.shipPart}`;
-                }
+                info += '\n🚧 In Development';
+            } else if (gate.data.unlocked && resume) {
+                info += `\nBeacon ${resume.current}/${resume.total} • ${resume.label}`;
             } else if (gate.data.unlocked) {
-                info += `\nVisits: ${gate.data.visits || 0}`;
-                if (gate.data.shipPart) {
-                    info += `  •  Reward: ${gate.config.shipPart || '⚙️'}`;
-                }
+                info += `\nOpen • ${gate.data.visits || 0} visits`;
+            } else if (hasRouteMap) {
+                info += '\n🗺️ Route map ready • Free';
             } else {
-                info += `\n🔒 Unlock: ${gate.data.unlockCost} coins`;
-                if (gate.data.shipPart) {
-                    info += `\nReward: ${gate.config.shipPart || '⚙️'} ${gate.data.shipPart}`;
-                }
+                info += `\n🔒 Locked • ${gate.data.unlockCost} coins`;
             }
             this.infoText.setText(info);
         }
@@ -951,18 +1676,18 @@ export default class HubWorldScene extends Phaser.Scene {
                 this.actionButton.lineStyle(3, 0xFF9800);
                 this.actionButton.strokeRoundedRect(-70, -25, 140, 50, 10);
             } else if (gate.data.unlocked) {
-                this.actionLabel.setText('ENTER');
+                this.actionLabel.setText(resume ? 'RESUME' : 'ENTER');
                 this.actionButton.clear();
                 this.actionButton.fillStyle(0x00AA00, 1);
                 this.actionButton.fillRoundedRect(-60, -25, 120, 50, 10);
                 this.actionButton.lineStyle(3, 0x00FF00);
                 this.actionButton.strokeRoundedRect(-60, -25, 120, 50, 10);
             } else {
-                this.actionLabel.setText('UNLOCK');
+                this.actionLabel.setText(hasRouteMap ? 'OPEN ROUTE' : 'UNLOCK');
                 this.actionButton.clear();
-                this.actionButton.fillStyle(0xFFAA00, 1);
+                this.actionButton.fillStyle(hasRouteMap ? 0x008F7A : 0xFFAA00, 1);
                 this.actionButton.fillRoundedRect(-60, -25, 120, 50, 10);
-                this.actionButton.lineStyle(3, 0xFFD700);
+                this.actionButton.lineStyle(3, hasRouteMap ? 0x67E8C7 : 0xFFD700);
                 this.actionButton.strokeRoundedRect(-60, -25, 120, 50, 10);
             }
         }
@@ -988,6 +1713,7 @@ export default class HubWorldScene extends Phaser.Scene {
 
     showUnlockConfirmation(gate) {
         const { width, height, isMobile } = this.dims;
+        const hasRouteMap = this.hasRouteMap(gate.id);
 
         // Create overlay
         const overlay = this.add.graphics();
@@ -1009,20 +1735,29 @@ export default class HubWorldScene extends Phaser.Scene {
         panel.setDepth(201);
 
         // Title
-        const title = this.add.text(width / 2, modalY + 40, `Unlock ${gate.data.name}?`, {
+        const title = this.add.text(
+            width / 2,
+            modalY + 40,
+            `${hasRouteMap ? 'Open' : 'Unlock'} ${gate.data.name}?`,
+            {
             fontSize: isMobile ? '22px' : '28px',
             color: '#FFD700',
             fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(202);
+            }
+        ).setOrigin(0.5).setDepth(202);
 
         // Cost info
         const currentCoins = window.GameState?.get('player.cosmicCoins') || 0;
         const canAfford = currentCoins >= gate.data.unlockCost;
+        const canUnlock = hasRouteMap || canAfford;
+        const unlockMessage = hasRouteMap
+            ? 'ROUTE MAP READY\nNo coins required'
+            : `Cost: ${gate.data.unlockCost} 🪙\nYou have: ${currentCoins} 🪙`;
 
         const costText = this.add.text(width / 2, modalY + 100,
-            `Cost: ${gate.data.unlockCost} 🪙\nYou have: ${currentCoins} 🪙`, {
+            unlockMessage, {
             fontSize: isMobile ? '16px' : '20px',
-            color: canAfford ? '#00FF00' : '#FF6666',
+            color: canUnlock ? '#00FF00' : '#FF6666',
             align: 'center'
         }).setOrigin(0.5).setDepth(202);
 
@@ -1033,7 +1768,7 @@ export default class HubWorldScene extends Phaser.Scene {
 
         const dialogElements = [overlay, panel, title, costText];
 
-        if (canAfford) {
+        if (canUnlock) {
             // Confirm button
             const confirmBtnX = modalX + modalWidth / 2 - btnWidth - 20;
             const confirmBtn = this.add.graphics();
@@ -1041,18 +1776,25 @@ export default class HubWorldScene extends Phaser.Scene {
             confirmBtn.fillRoundedRect(confirmBtnX, btnY, btnWidth, btnHeight, 8);
             confirmBtn.setDepth(202);
 
-            const confirmLabel = this.add.text(confirmBtnX + btnWidth / 2, btnY + btnHeight / 2, 'UNLOCK', {
+            const confirmLabel = this.add.text(
+                confirmBtnX + btnWidth / 2,
+                btnY + btnHeight / 2,
+                hasRouteMap ? 'OPEN' : 'UNLOCK',
+                {
                 fontSize: '16px',
                 color: '#FFFFFF',
                 fontStyle: 'bold'
-            }).setOrigin(0.5).setDepth(202);
+                }
+            ).setOrigin(0.5).setDepth(202);
 
             const confirmZone = this.add.zone(confirmBtnX, btnY, btnWidth, btnHeight).setOrigin(0);
             confirmZone.setInteractive({ useHandCursor: true });
             confirmZone.setDepth(203);
 
             confirmZone.on('pointerdown', () => {
-                const result = window.GameState.unlockGate(gate.id, true);
+                const result = this.progressionPreview === 'routeMap'
+                    ? { success: true, method: 'preview' }
+                    : window.GameState.unlockGate(gate.id, true);
                 if (result.success) {
                     dialogElements.forEach(el => el.destroy());
                     confirmBtn.destroy();
@@ -1062,8 +1804,10 @@ export default class HubWorldScene extends Phaser.Scene {
                     cancelLabel.destroy();
                     cancelZone.destroy();
 
-                    this.showUnlockSuccess(gate);
-                    this.refreshGates();
+                    if (result.method !== 'preview') {
+                        this.showUnlockSuccess(gate);
+                        this.refreshGates();
+                    }
                 }
             });
 
@@ -1195,6 +1939,7 @@ export default class HubWorldScene extends Phaser.Scene {
         this.isTransitioning = true;
 
         console.log(`[HubWorldScene] Entering gate: ${gate.id}`);
+        const resume = this.getExpeditionResumeForGate(gate.id);
 
         // Update GameState
         window.GameState?.enterGate(gate.id);
@@ -1202,7 +1947,11 @@ export default class HubWorldScene extends Phaser.Scene {
         // Show loading (will appear after transition)
         if (window.UXEnhancements) {
             this.time.delayedCall(800, () => {
-                window.UXEnhancements.showLoading(`Traveling to ${gate.data.name}...`);
+                window.UXEnhancements.showLoading(
+                    resume
+                        ? `Reconnecting at ${resume.label}...`
+                        : `Traveling to ${gate.data.name}...`
+                );
             });
         }
 
@@ -1342,6 +2091,7 @@ export default class HubWorldScene extends Phaser.Scene {
             'crystal_caves': 'CrystalCavesLevel',
             'stellar_reef': 'ReefLevel',
             'mythical_forest': 'MythicalForestLevel',
+            'void_peaks': 'VoidPeaksLevel',
             'aurora_depths': 'AuroraDepthsLevel',
             'final_void': 'FinalVoidLevel'
         };
@@ -1524,8 +2274,8 @@ export default class HubWorldScene extends Phaser.Scene {
             { icon: '🔮', name: 'Crystal Core', delay: 800, startX: -50, startY: height * 0.3 },
             { icon: '⚙️', name: 'Dimensional Drive', delay: 1200, startX: width + 50, startY: height * 0.4 },
             { icon: '🌿', name: 'Forest Core', delay: 1600, startX: -50, startY: height * 0.5 },
-            { icon: '✨', name: 'Aurora Reactor', delay: 2000, startX: width + 50, startY: height * 0.6 },
-            { icon: '👑', name: 'Command Module', delay: 2400, startX: width / 2, startY: -50 }
+            { icon: '🛡️', name: 'Hull Plating', delay: 2000, startX: width + 50, startY: height * 0.6 },
+            { icon: '✨', name: 'Aurora Reactor', delay: 2400, startX: width / 2, startY: -50 }
         ];
 
         const centerX = width / 2;
@@ -1596,7 +2346,7 @@ export default class HubWorldScene extends Phaser.Scene {
             });
 
             // Title
-            const title = this.add.text(centerX, centerY + 60, '✨ SHIP COMPLETE! ✨', {
+            const title = this.add.text(centerX, centerY + 60, '✨ VOID VOYAGE READY! ✨', {
                 fontSize: isMobile ? '28px' : '36px',
                 color: '#FFD700',
                 fontStyle: 'bold',
@@ -1607,7 +2357,7 @@ export default class HubWorldScene extends Phaser.Scene {
 
             // Story text
             const story = this.add.text(centerX, centerY + 110,
-                'Your vessel is assembled.\nThe Final Void awaits...\n\nThe Void Empress guards\nthe last frontier.', {
+                'Five ship systems are online.\nOnly the Command Module remains...\n\nThe Void Empress guards\nthe last frontier.', {
                 fontSize: isMobile ? '16px' : '20px',
                 color: '#FFFFFF',
                 align: 'center',
@@ -1638,6 +2388,8 @@ export default class HubWorldScene extends Phaser.Scene {
                 continueBtn.on('pointerdown', () => {
                     // Mark cutscene as shown
                     window.GameState?.set('hubWorld.shipCompletionCutsceneShown', true);
+                    window.GameState?.set('hubWorld.shipParts.finalBossUnlocked', true);
+                    window.GameState?.set('hubWorld.gates.final_void.unlocked', true);
                     window.GameState?.save();
 
                     // Play sound
@@ -1687,7 +2439,9 @@ export default class HubWorldScene extends Phaser.Scene {
             finalBossUnlocked: false
         };
         const collectedParts = shipParts.collected || [];
-        const allCollected = collectedParts.length === 5;
+        const totalRequired = shipParts.totalRequired || 5;
+        const preFinalCollectedCount = countCollectedPreFinalParts(collectedParts);
+        const allCollected = preFinalCollectedCount >= totalRequired;
 
         // For grid layout, position ship assembly above creature (in header area)
         // If mobile, skip the detailed ship view to save space - use header progress bar instead
@@ -1701,13 +2455,13 @@ export default class HubWorldScene extends Phaser.Scene {
         const shipY = centerY - 80;
         const shipScale = 0.8;
 
-        // Part definitions with positions relative to ship center (5 parts total)
+        // Part definitions with positions relative to ship center (5 pre-final parts total)
         const partDefs = {
             crystal_core: { x: -30 * shipScale, y: -20 * shipScale, icon: '🔮', label: 'Core' },
             dimensional_drive: { x: 30 * shipScale, y: -20 * shipScale, icon: '⚙️', label: 'Engine' },
             forest_core: { x: -35 * shipScale, y: 20 * shipScale, icon: '🌿', label: 'Life' },
-            aurora_reactor: { x: 35 * shipScale, y: 20 * shipScale, icon: '✨', label: 'Reactor' },
-            command_module: { x: 0, y: 0, icon: '👑', label: 'Command' }
+            hull_plating: { x: 35 * shipScale, y: 20 * shipScale, icon: '🛡️', label: 'Hull' },
+            aurora_reactor: { x: 0, y: 0, icon: '✨', label: 'Reactor' }
         };
 
         // Store elements for cleanup
@@ -1724,8 +2478,8 @@ export default class HubWorldScene extends Phaser.Scene {
 
         // Draw hull shape as connected lines (pentagon shape for 5 parts)
         const points = [
-            { x: partDefs.command_module.x, y: partDefs.command_module.y - 30 * shipScale }, // Top (above command)
-            { x: partDefs.aurora_reactor.x + 15, y: partDefs.aurora_reactor.y }, // Right top
+            { x: partDefs.aurora_reactor.x, y: partDefs.aurora_reactor.y - 30 * shipScale }, // Top
+            { x: partDefs.hull_plating.x + 15, y: partDefs.hull_plating.y }, // Right top
             { x: partDefs.forest_core.x + 15, y: partDefs.forest_core.y + 15 }, // Right bottom
             { x: partDefs.crystal_core.x - 15, y: partDefs.crystal_core.y + 15 }, // Left bottom
             { x: partDefs.dimensional_drive.x - 15, y: partDefs.dimensional_drive.y } // Left top
@@ -1830,7 +2584,7 @@ export default class HubWorldScene extends Phaser.Scene {
         }
 
         // Progress counter
-        const progressText = this.add.text(0, 55 * shipScale, `${collectedParts.length}/5 Parts`, {
+        const progressText = this.add.text(0, 55 * shipScale, `${preFinalCollectedCount}/${totalRequired} Parts`, {
             fontSize: isMobile ? '12px' : '14px',
             color: allCollected ? '#FFD700' : '#AAAAAA',
             fontStyle: 'bold'
@@ -1965,28 +2719,44 @@ export default class HubWorldScene extends Phaser.Scene {
         infoPanel.strokeRoundedRect(20, infoPanelY, width - 40, infoPanelHeight, 15);
         infoPanel.setDepth(40);
 
+        const actionBtnX = isMobile ? width / 2 : width - 110;
+        const actionBtnY = isMobile
+            ? infoPanelY + infoPanelHeight - 35
+            : infoPanelY + infoPanelHeight / 2;
+        const infoX = isMobile ? width / 2 : 42;
+        const infoY = isMobile ? infoPanelY + 14 : actionBtnY;
+
         // Info text
-        this.infoText = this.add.text(width / 2, infoPanelY + 30, 'Select a gate', {
-            fontSize: isMobile ? '18px' : '24px',
+        this.infoText = this.add.text(infoX, infoY, 'Select a gate', {
+            fontSize: isMobile ? '16px' : '21px',
             color: '#FFFFFF',
-            align: 'center'
-        }).setOrigin(0.5, 0).setDepth(41);
+            align: isMobile ? 'center' : 'left',
+            lineSpacing: 3,
+            wordWrap: {
+                width: isMobile ? width - 70 : Math.max(260, width - 310)
+            }
+        }).setOrigin(isMobile ? 0.5 : 0, isMobile ? 0 : 0.5).setDepth(41);
 
-        // Action button
-        const actionBtnY = infoPanelY + infoPanelHeight - 60;
-
-        this.actionButton = this.add.graphics();
+        // Action button uses a stable local coordinate system when its style changes.
+        this.actionButton = this.add.graphics().setPosition(actionBtnX, actionBtnY);
         this.actionButton.fillStyle(0x00AA00, 1);
-        this.actionButton.fillRoundedRect(width / 2 - 60, actionBtnY - 25, 120, 50, 10);
+        this.actionButton.fillRoundedRect(-60, -25, 120, 50, 10);
         this.actionButton.setDepth(41);
 
-        this.actionLabel = this.add.text(width / 2, actionBtnY, 'ENTER', {
-            fontSize: isMobile ? '18px' : '22px',
+        this.actionLabel = this.add.text(actionBtnX, actionBtnY, 'ENTER', {
+            fontSize: isMobile ? '15px' : '17px',
             color: '#FFFFFF',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            fixedWidth: 112
         }).setOrigin(0.5).setDepth(42);
 
-        const actionZone = this.add.zone(width / 2 - 60, actionBtnY - 25, 120, 50).setOrigin(0);
+        const actionZone = this.add.zone(
+            actionBtnX,
+            actionBtnY,
+            120,
+            50
+        ).setOrigin(0.5);
         actionZone.setInteractive({ useHandCursor: true });
         actionZone.setDepth(42);
 
@@ -2128,7 +2898,7 @@ export default class HubWorldScene extends Phaser.Scene {
             finalBossUnlocked: false
         };
 
-        const collected = shipParts.collected?.length || 0;
+        const collected = countCollectedPreFinalParts(shipParts.collected);
         const total = shipParts.totalRequired || 5;
 
         // Position below title
@@ -2169,9 +2939,9 @@ export default class HubWorldScene extends Phaser.Scene {
         }).setDepth(51);
 
         // Part indicators (small circles showing collected/not collected)
-        const partIcons = ['🔮', '⚙️', '🌿', '✨', '👑'];
-        const partNames = ['Crystal Core', 'Dimensional Drive', 'Forest Core', 'Aurora Reactor', 'Command Module'];
-        const partIds = ['crystal_core', 'dimensional_drive', 'forest_core', 'aurora_reactor', 'command_module'];
+        const partIcons = ['🔮', '⚙️', '🌿', '🛡️', '✨'];
+        const partNames = ['Crystal Core', 'Dimensional Drive', 'Forest Core', 'Hull Plating', 'Aurora Reactor'];
+        const partIds = PRE_FINAL_SHIP_PART_IDS;
 
         const startX = containerX + containerWidth - (isMobile ? 75 : 100);
         partIcons.forEach((icon, idx) => {
@@ -2377,16 +3147,25 @@ export default class HubWorldScene extends Phaser.Scene {
     setupInput() {
         // Keyboard navigation
         this.input.keyboard.on('keydown-LEFT', () => {
+            if (this.isFirstExpeditionInvitationOpen) return;
             const newIndex = (this.selectedGateIndex - 1 + this.gates.length) % this.gates.length;
             this.selectGate(newIndex);
         });
 
         this.input.keyboard.on('keydown-RIGHT', () => {
+            if (this.isFirstExpeditionInvitationOpen) return;
             const newIndex = (this.selectedGateIndex + 1) % this.gates.length;
             this.selectGate(newIndex);
         });
 
         this.input.keyboard.on('keydown-ENTER', () => {
+            if (this.isFirstExpeditionInvitationOpen) {
+                const forestGate = this.gates.find(gate => gate.id === 'mythical_forest');
+                this.closeFirstExpeditionInvitation();
+                if (this.progressionPreview === 'firstRoute') return;
+                if (forestGate) this.enterGate(forestGate);
+                return;
+            }
             const selectedGate = this.gates[this.selectedGateIndex];
             if (selectedGate) {
                 this.onGateClicked(selectedGate, this.selectedGateIndex);
@@ -2394,6 +3173,10 @@ export default class HubWorldScene extends Phaser.Scene {
         });
 
         this.input.keyboard.on('keydown-ESC', () => {
+            if (this.isFirstExpeditionInvitationOpen) {
+                this.closeFirstExpeditionInvitation();
+                return;
+            }
             this.scene.start('GameScene');
         });
 
@@ -2406,6 +3189,7 @@ export default class HubWorldScene extends Phaser.Scene {
         this._isShuttingDown = true;
 
         console.log('[HubWorldScene] Shutting down');
+        this.closeFirstExpeditionInvitation({ markSeen: false });
 
         // Remove keyboard listeners
         if (this.input?.keyboard) {
@@ -2492,6 +3276,12 @@ export default class HubWorldScene extends Phaser.Scene {
             });
             this.detailsPanelElements = [];
         }
+
+        if (this.projectBeaconDebriefElements) {
+            this.projectBeaconDebriefElements.forEach(element => element?.destroy?.());
+            this.projectBeaconDebriefElements = [];
+        }
+        this.isProjectBeaconDebriefOpen = false;
 
         // Clear references
         this.graphicsEngine = null;

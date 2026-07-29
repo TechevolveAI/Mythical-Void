@@ -5,6 +5,9 @@
 
 import { devLog } from '../utils/devLogger.js';
 import LegalDocumentsModal from './LegalDocumentsModal.js';
+import CloudSaveSettingsModal from './CloudSaveSettingsModal.js';
+import ProjectBeaconLogModal from './ProjectBeaconLogModal.js';
+import SettingsModal from './SettingsModal.js';
 
 export default class HamburgerMenu {
     constructor(scene) {
@@ -20,20 +23,34 @@ export default class HamburgerMenu {
             { key: 'profile', label: 'Creature Profile', icon: '🐾', shortcut: 'P', action: () => this.navigateToProfile() },
             { key: 'achievements', label: 'Achievements', icon: '🏆', shortcut: 'A', action: () => this.navigateToAchievements() },
             { key: 'inventory', label: 'Inventory', icon: '🎒', shortcut: 'I', action: () => this.navigateToInventory() },
+            { key: 'beaconlog', label: 'Beacon Log', icon: '📡', shortcut: 'B', action: () => this.showBeaconLog() },
             { key: 'shop', label: 'Shop', icon: '🛒', shortcut: 'S', action: () => this.navigateToShop() },
             { key: 'hub', label: 'Hub World', icon: '🌌', shortcut: 'H', action: () => this.navigateToHub() },
             { key: 'fusion', label: 'Fusion Pod', icon: '🧬', shortcut: 'F', action: () => this.navigateToFusion() },
             { key: 'collection', label: 'Switch Creature', icon: '🔄', shortcut: 'C', action: () => this.showCreatureSwitcher() },
             { key: 'spacenews', label: 'Space News', icon: '🚀', shortcut: 'N', action: () => this.showSpaceNews() },
-            { key: 'legal', label: 'Legal & About', icon: '📜', shortcut: 'L', action: () => this.showLegalDocuments() },
-            { key: 'devhacks', label: 'Developer Hacks', icon: '🔮', shortcut: 'D', action: () => this.showDeveloperHacks() }
+            { key: 'settings', label: 'Settings', icon: '⚙️', shortcut: 'O', action: () => this.showSettings() },
+            { key: 'cloudsave', label: 'Cloud Save', icon: '☁️', shortcut: 'V', action: () => this.showCloudSaveSettings() },
+            { key: 'legal', label: 'Legal & About', icon: '📜', shortcut: 'L', action: () => this.showLegalDocuments() }
         ];
+        if (import.meta.env.DEV) {
+            this.menuItems.push({
+                key: 'devhacks',
+                label: 'Developer Hacks',
+                icon: '🔮',
+                shortcut: 'D',
+                action: () => this.showDeveloperHacks()
+            });
+        }
 
         // Developer hacks submenu state
         this.devHacksMenu = null;
 
         // Legal documents modal
         this.legalModal = null;
+        this.cloudSaveModal = null;
+        this.beaconLogModal = null;
+        this.settingsModal = null;
     }
 
     /**
@@ -155,19 +172,24 @@ export default class HamburgerMenu {
 
         // Panel dimensions - position below the hamburger button
         const panelWidth = isMobile ? Math.min(280, width - 40) : 260;
-        const itemHeight = isMobile ? 52 : 48;
-        const panelHeight = this.menuItems.length * itemHeight + 30;
         const panelX = 8;
         // Panel appears below the button (button Y + button size + small gap)
         const buttonBottomY = this.menuButton?.y + (this.menuButton?.size || 44) / 2 || 100;
         const panelY = buttonBottomY + 10;
+        const preferredItemHeight = isMobile ? 52 : 48;
+        const availableHeight = Math.max(360, height - panelY - 8);
+        const itemHeight = Math.max(
+            36,
+            Math.min(preferredItemHeight, Math.floor((availableHeight - 30) / this.menuItems.length))
+        );
+        const panelHeight = this.menuItems.length * itemHeight + 30;
 
         // Create dark overlay
         const overlay = this.scene.add.graphics();
         overlay.fillStyle(0x000000, 0.3);
         overlay.fillRect(0, 0, width, height);
         overlay.setScrollFactor(0);
-        overlay.setDepth(3998);
+        overlay.setDepth(14900);
         overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
         overlay.on('pointerdown', () => this.close());
         this.elements.push(overlay);
@@ -180,7 +202,7 @@ export default class HamburgerMenu {
         panel.lineStyle(2, 0x7B68EE, 0.9);
         panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
         panel.setScrollFactor(0);
-        panel.setDepth(3999);
+        panel.setDepth(14901);
         this.elements.push(panel);
         this.menuPanel = panel;
 
@@ -213,37 +235,26 @@ export default class HamburgerMenu {
         // Item background (for hover effect)
         const itemBg = this.scene.add.graphics();
         itemBg.setScrollFactor(0);
-        itemBg.setDepth(4000);
+        itemBg.setDepth(14902);
         this.elements.push(itemBg);
 
         // Icon
         const icon = this.scene.add.text(panelX + padding + 14, itemY + itemHeight/2, item.icon, {
             fontSize: isMobile ? '22px' : '20px'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(4001);
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(14903);
         this.elements.push(icon);
 
         // Label
         const label = this.scene.add.text(panelX + padding + 38, itemY + itemHeight/2, item.label, {
             fontSize: isMobile ? '16px' : '15px',
             color: '#FFFFFF'
-        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(4001);
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(14903);
         this.elements.push(label);
-
-        // Shortcut (only show on desktop - keyboard shortcuts not relevant on mobile)
-        if (!isMobile) {
-            const shortcut = this.scene.add.text(panelX + panelWidth - padding - 10, itemY + itemHeight/2, item.shortcut, {
-                fontSize: '12px',
-                color: '#888888',
-                backgroundColor: '#333355',
-                padding: { x: 6, y: 3 }
-            }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(4001);
-            this.elements.push(shortcut);
-        }
 
         // Interactive zone
         const zone = this.scene.add.zone(panelX + panelWidth/2, itemY + itemHeight/2, panelWidth - 8, itemHeight - 4);
         zone.setScrollFactor(0);
-        zone.setDepth(4002);
+        zone.setDepth(14904);
         zone.setInteractive({ useHandCursor: true });
 
         zone.on('pointerover', () => {
@@ -306,7 +317,9 @@ export default class HamburgerMenu {
 
     navigateToAchievements() {
         devLog('[HamburgerMenu] Navigate to Achievements');
-        this.scene.scene.launch('AchievementMenuScene');
+        const returnScene = this.scene.sys?.settings?.key || 'GameScene';
+        this.scene.scene.pause(returnScene);
+        this.scene.scene.launch('AchievementMenuScene', { returnScene });
     }
 
     navigateToInventory() {
@@ -432,6 +445,49 @@ export default class HamburgerMenu {
             this.legalModal = new LegalDocumentsModal(this.scene);
         }
         this.legalModal.show();
+    }
+
+    /**
+     * Show optional cloud-save controls and consent.
+     */
+    showCloudSaveSettings() {
+        devLog('[HamburgerMenu] Show Cloud Save settings');
+
+        if (!this.cloudSaveModal) {
+            this.cloudSaveModal = new CloudSaveSettingsModal(this.scene, {
+                openPrivacyPolicy: () => {
+                    if (!this.legalModal) {
+                        this.legalModal = new LegalDocumentsModal(this.scene);
+                    }
+                    this.legalModal.showDocument('privacy');
+                }
+            });
+        }
+        this.cloudSaveModal.show();
+    }
+
+    /**
+     * Show the live Project Beacon campaign record.
+     */
+    showBeaconLog() {
+        devLog('[HamburgerMenu] Show Project Beacon log');
+
+        if (!this.beaconLogModal) {
+            this.beaconLogModal = new ProjectBeaconLogModal(this.scene);
+        }
+        this.beaconLogModal.show();
+    }
+
+    /**
+     * Show audio and feedback preferences.
+     */
+    showSettings() {
+        devLog('[HamburgerMenu] Show settings');
+
+        if (!this.settingsModal) {
+            this.settingsModal = new SettingsModal(this.scene);
+        }
+        this.settingsModal.show();
     }
 
     /**
@@ -675,6 +731,14 @@ export default class HamburgerMenu {
      */
     destroy() {
         this.close();
+        this.cloudSaveModal?.destroy();
+        this.cloudSaveModal = null;
+        this.beaconLogModal?.destroy();
+        this.beaconLogModal = null;
+        this.settingsModal?.destroy();
+        this.settingsModal = null;
+        this.legalModal?.hide();
+        this.legalModal = null;
 
         // Destroy all remaining elements
         this.elements.forEach(el => {

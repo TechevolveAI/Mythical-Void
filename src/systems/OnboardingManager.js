@@ -2,8 +2,8 @@
  * OnboardingManager - Coordinates all first-time and daily popups
  *
  * Ensures only one popup shows at a time and they appear in proper sequence:
- * 1. Controls Tutorial (first time only)
- * 2. Crash Story (first time only)
+ * 1. Crash Story (first time only)
+ * 2. Field Controls (first time only)
  * 3. Daily Greeting/Bonus (once per day)
  * 4. NASA Content (once per day)
  *
@@ -19,6 +19,7 @@ class OnboardingManager {
         this.popupQueue = [];
         this.scene = null;
         this.isProcessing = false;
+        this.flowContext = null;
 
         // Callbacks for when queue completes
         this.onQueueComplete = null;
@@ -34,6 +35,7 @@ class OnboardingManager {
         this.currentPopup = null;
         this.popupQueue = [];
         this.isProcessing = false;
+        this.flowContext = null;
         devLog('[OnboardingManager] Initialized');
     }
 
@@ -75,27 +77,33 @@ class OnboardingManager {
 
         // Build the queue based on player state
         this.popupQueue = [];
+        const firstSanctuaryVisit = this.isNewPlayer() ||
+            !window.GameState?.get('tutorial.crashStorySeen');
+        this.flowContext = {
+            firstSanctuaryVisit,
+            queuedPopupIds: []
+        };
 
-        // 1. Controls Tutorial (first time only)
-        if (this.isNewPlayer()) {
-            this.popupQueue.push({
-                id: 'controls',
-                type: 'controls_tutorial',
-                priority: 1
-            });
-        }
-
-        // 2. Crash Story (first time only)
+        // 1. Establish the mission before teaching controls.
         if (!window.GameState?.get('tutorial.crashStorySeen')) {
             this.popupQueue.push({
                 id: 'crash_story',
                 type: 'crash_story',
+                priority: 1
+            });
+        }
+
+        // 2. Hand agency back with only the controls needed in the sanctuary.
+        if (this.isNewPlayer()) {
+            this.popupQueue.push({
+                id: 'controls',
+                type: 'controls_tutorial',
                 priority: 2
             });
         }
 
-        // 3. Daily Greeting/Bonus (once per day)
-        if (this.shouldShowDailyContent()) {
+        // Returning-session content should not delay the player's first moment of agency.
+        if (!firstSanctuaryVisit && this.shouldShowDailyContent()) {
             const dailyBonus = window.GameState?.getDailyLoginBonus?.();
             if (dailyBonus) {
                 this.popupQueue.push({
@@ -107,8 +115,7 @@ class OnboardingManager {
             }
         }
 
-        // 4. NASA Content (once per day, separate from daily greeting)
-        if (window.NASAContentSystem?.shouldShowDailyContent?.()) {
+        if (!firstSanctuaryVisit && window.NASAContentSystem?.shouldShowDailyContent?.()) {
             this.popupQueue.push({
                 id: 'nasa_content',
                 type: 'nasa_content',
@@ -116,6 +123,7 @@ class OnboardingManager {
             });
         }
 
+        this.flowContext.queuedPopupIds = this.popupQueue.map(popup => popup.id);
         devLog(`[OnboardingManager] Queue built with ${this.popupQueue.length} items`);
 
         // Process the queue
@@ -129,7 +137,7 @@ class OnboardingManager {
         if (this.popupQueue.length === 0) {
             devLog('[OnboardingManager] Queue complete');
             this.isProcessing = false;
-            this.onQueueComplete?.();
+            this.onQueueComplete?.(this.flowContext);
             return;
         }
 
@@ -218,16 +226,18 @@ class OnboardingManager {
     showCrashStory(onComplete) {
         devLog('[OnboardingManager] Showing crash story');
 
-        // Mark as seen before showing to prevent double-show
-        window.GameState?.set('tutorial.crashStorySeen', true);
-        window.GameState?.save?.();
+        const completeCrashStory = () => {
+            window.GameState?.set('tutorial.crashStorySeen', true);
+            window.GameState?.save?.();
+            onComplete();
+        };
 
         // Use scene's showShipMemories method with callback
         if (this.scene.showShipMemoriesWithCallback) {
-            this.scene.showShipMemoriesWithCallback(onComplete);
+            this.scene.showShipMemoriesWithCallback(completeCrashStory);
         } else if (this.scene.showShipMemories) {
             this.scene.showShipMemories();
-            this.waitForStoryDismiss(onComplete);
+            this.waitForStoryDismiss(completeCrashStory);
         } else {
             devLog('[OnboardingManager] showShipMemories not available');
             onComplete();
@@ -373,6 +383,8 @@ class OnboardingManager {
         this.skipRemaining();
         this.scene = null;
         this.isInitialized = false;
+        this.flowContext = null;
+        this.onQueueComplete = null;
         devLog('[OnboardingManager] Cleaned up');
     }
 }

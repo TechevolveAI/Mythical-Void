@@ -3,6 +3,8 @@
  * Provides daily quests, biome quests, and creature quests
  */
 
+import projectBeacon from '../config/project-beacon.json';
+
 class QuestManager {
     constructor() {
         this.initialized = false;
@@ -28,6 +30,9 @@ class QuestManager {
 
         // Check for daily reset
         this.checkDailyReset();
+
+        // Existing players may already have daily quests, so sync story progression separately.
+        this.ensureProjectBeaconQuest({ persist: false });
 
         // Generate initial quests if none exist
         if (this.activeQuests.length === 0) {
@@ -296,6 +301,10 @@ class QuestManager {
             window.GameState.on('changed:creature.stats.happiness', (newValue) => {
                 this.trackProgress('reach_happiness', { happiness: newValue });
             });
+
+            window.GameState.on('changed:creature.hatched', (hatched) => {
+                if (hatched) this.ensureProjectBeaconQuest();
+            });
         }
 
         console.log('[QuestManager] Event listeners set up');
@@ -333,7 +342,7 @@ class QuestManager {
         // Add one-time quests that haven't been completed
         this.addOneTimeQuests();
 
-        this.saveQuestState();
+        this.saveQuestState({ persist: true });
         this.emit('questsGenerated', { quests: selectedQuests });
 
         console.log('[QuestManager] Generated', selectedQuests.length, 'daily quests');
@@ -394,6 +403,114 @@ class QuestManager {
                 });
             }
         });
+
+        this.ensureProjectBeaconQuest({ persist: false });
+    }
+
+    /**
+     * Keep exactly one sequential Project Beacon field mission active.
+     */
+    ensureProjectBeaconQuest({ persist = true } = {}) {
+        if (!window.GameState?.get('creature.hatched')) return null;
+
+        const activeStoryQuest = this.activeQuests.find(quest => quest.type === 'story');
+        if (activeStoryQuest) {
+            const currentDefinition = projectBeacon.fieldMissions.find(
+                mission => mission.id === activeStoryQuest.id
+            );
+            if (currentDefinition) {
+                let observedSignals = window.GameState.get(
+                    'world.livingSignals.observedIds'
+                );
+                let observedCount = Array.isArray(observedSignals)
+                    ? observedSignals.length
+                    : 0;
+                const isLegacySignalObjective =
+                    currentDefinition.id === 'beacon_living_signals' &&
+                    activeStoryQuest.objective?.type === 'collect_items';
+                if (isLegacySignalObjective) {
+                    const signalIds = currentDefinition.objective.signalIds || [];
+                    const preservedCount = Math.min(
+                        activeStoryQuest.progress || 0,
+                        currentDefinition.objective.target
+                    );
+                    if (preservedCount > observedCount) {
+                        observedSignals = signalIds.slice(0, preservedCount);
+                        observedCount = observedSignals.length;
+                        window.GameState.set('world.livingSignals', {
+                            observedIds: observedSignals,
+                            lastObservedId: observedSignals[observedSignals.length - 1] || null,
+                            lastObservedAt: null
+                        });
+                    }
+                }
+                const migratedProgress = currentDefinition.id === 'beacon_living_signals'
+                    ? Math.max(activeStoryQuest.progress || 0, observedCount)
+                    : activeStoryQuest.progress || 0;
+
+                Object.assign(activeStoryQuest, {
+                    ...currentDefinition,
+                    questId: activeStoryQuest.questId || currentDefinition.id,
+                    progress: Math.min(
+                        migratedProgress,
+                        currentDefinition.objective.target
+                    ),
+                    completed: Boolean(
+                        activeStoryQuest.completed ||
+                        migratedProgress >= currentDefinition.objective.target
+                    ),
+                    claimed: activeStoryQuest.claimed === true
+                });
+                window.GameState.set(
+                    'story.projectBeacon.currentMission',
+                    currentDefinition.id
+                );
+                if (persist) this.saveQuestState({ persist: true });
+            }
+            return activeStoryQuest;
+        }
+
+        const nextMission = projectBeacon.fieldMissions.find(
+            mission => !this.completedQuests.includes(mission.id)
+        );
+
+        if (!nextMission) {
+            window.GameState.set('story.projectBeacon.currentMission', 'field_sequence_complete');
+            if (persist) this.saveQuestState({ persist: true });
+            return null;
+        }
+
+        const missionAlreadySatisfied = Boolean(
+            nextMission.objective.type === 'story_interaction' &&
+            nextMission.objective.event === 'field_kit_recovered' &&
+            window.GameState.get('story.projectBeacon.fieldKit.recovered')
+        );
+        const observedSignals = window.GameState.get('world.livingSignals.observedIds');
+        const observedSignalProgress = nextMission.objective.type === 'observe_living_signal' &&
+            Array.isArray(observedSignals)
+            ? Math.min(observedSignals.length, nextMission.objective.target)
+            : 0;
+        const quest = {
+            ...nextMission,
+            questId: nextMission.id,
+            progress: missionAlreadySatisfied
+                ? nextMission.objective.target
+                : observedSignalProgress,
+            completed: missionAlreadySatisfied ||
+                observedSignalProgress >= nextMission.objective.target,
+            claimed: false,
+            generatedAt: Date.now()
+        };
+
+        this.activeQuests.push(quest);
+        window.GameState.set('story.projectBeacon.currentMission', nextMission.id);
+
+        if (persist) {
+            this.saveQuestState({ persist: true });
+            this.emit('questsGenerated', { quests: [quest] });
+        }
+
+        return quest;
     }
 
     /**
@@ -401,6 +518,8 @@ class QuestManager {
      */
     trackProgress(objectiveType, data = {}) {
         let questsUpdated = false;
+        let milestoneReached = false;
+        let storyProgressUpdated = false;
 
         this.activeQuests.forEach(quest => {
             if (quest.completed || quest.claimed) return;
@@ -410,7 +529,7 @@ class QuestManager {
 
             switch (objectiveType) {
                 case 'care_action':
-                    if (obj.type === 'care_action' && obj.action === data.action) {
+                    if (obj.type === 'care_action' && (!obj.action || obj.action === data.action)) {
                         progressIncrement = 1;
                     }
                     break;
@@ -436,6 +555,12 @@ class QuestManager {
                     }
                     if (obj.type === 'collect_biome_item' && obj.biome === data.biome && obj.item === data.item) {
                         progressIncrement = data.count || 1;
+                    }
+                    break;
+
+                case 'observe_living_signal':
+                    if (obj.type === 'observe_living_signal' && data.signalId) {
+                        progressIncrement = 1;
                     }
                     break;
 
@@ -483,23 +608,39 @@ class QuestManager {
                         }
                     }
                     break;
+
+                case 'landmark_visit':
+                    if (obj.type === 'landmark_visit' && obj.landmark === data.landmark) {
+                        progressIncrement = 1;
+                    }
+                    break;
+
+                case 'story_interaction':
+                    if (obj.type === 'story_interaction' && obj.event === data.event) {
+                        progressIncrement = 1;
+                    }
+                    break;
             }
 
             if (progressIncrement > 0) {
                 quest.progress = (quest.progress || 0) + progressIncrement;
                 questsUpdated = true;
+                storyProgressUpdated = storyProgressUpdated || quest.type === 'story';
             }
 
             // Check completion
             if (quest.progress >= quest.objective.target && !quest.completed) {
                 quest.completed = true;
+                milestoneReached = true;
                 this.emit('questCompleted', { quest });
                 console.log(`[QuestManager] Quest completed: ${quest.name}`);
             }
         });
 
         if (questsUpdated) {
-            this.saveQuestState();
+            this.saveQuestState({
+                persist: storyProgressUpdated || milestoneReached
+            });
             this.emit('questProgressUpdated', { quests: this.activeQuests });
         }
     }
@@ -547,7 +688,11 @@ class QuestManager {
         // Remove from active quests
         this.activeQuests = this.activeQuests.filter(q => q.questId !== questId);
 
-        this.saveQuestState();
+        if (quest.type === 'story') {
+            this.ensureProjectBeaconQuest({ persist: false });
+        }
+
+        this.saveQuestState({ persist: true });
         this.emit('questRewardClaimed', { quest, rewards });
 
         console.log(`[QuestManager] Claimed rewards for: ${quest.name}`, rewards);
@@ -589,21 +734,24 @@ class QuestManager {
             // Remove old daily quests
             this.activeQuests = this.activeQuests.filter(q => q.type !== 'daily');
 
+            // Include the reset marker in the same durable save as the new quests.
+            window.GameState?.set('quests.lastDailyReset', today);
+
             // Generate new daily quests
             this.generateDailyQuests();
-
-            // Update reset timestamp
-            window.GameState?.set('quests.lastDailyReset', today);
         }
     }
 
     /**
      * Save quest state to GameState
      */
-    saveQuestState() {
+    saveQuestState({ persist = false } = {}) {
         if (window.GameState) {
             window.GameState.set('quests.active', this.activeQuests);
             window.GameState.set('quests.completed', this.completedQuests);
+            if (persist) {
+                window.GameState.save?.();
+            }
         }
     }
 

@@ -274,6 +274,11 @@ class AIArtModal {
      */
     async generate() {
         if (this.isGenerating) return;
+        if (!window.APIConfig?.isEnabled?.()) {
+            this.previewText?.setText('AI Art is unavailable in this build.');
+            window.AudioManager?.playError?.();
+            return;
+        }
 
         this.isGenerating = true;
         this.generateBtn.setText('⏳ Generating...');

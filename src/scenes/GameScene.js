@@ -19,6 +19,16 @@ import AchievementNotification from '../ui/AchievementNotification.js';
 import CreatureRadialMenu from '../ui/CreatureRadialMenu.js';
 import AbilityHUD from '../ui/AbilityHUD.js';
 import AIArtModal from '../ui/AIArtModal.js';
+import GameSceneSceneRouter from './controllers/GameSceneSceneRouter.js';
+import GameSceneHudController from './controllers/GameSceneHudController.js';
+import projectBeacon from '../config/project-beacon.json';
+import { recoverProjectBeaconFieldKit as recoverFieldKitState, getProjectBeaconKatanaUpgradeIds } from '../systems/ProjectBeaconFieldKit.js';
+import { normalizeSignalGardenState, tendSignalGarden } from '../systems/SignalGarden.js';
+import { LIVING_SIGNAL_DEFINITIONS, normalizeLivingSignalState, observeLivingSignal } from '../systems/LivingSignalSurvey.js';
+import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
+import ProjectBeaconWaypoint from '../systems/ui/ProjectBeaconWaypoint.js';
+import ProjectBeaconLogModal from '../ui/ProjectBeaconLogModal.js';
+import SettingsModal from '../ui/SettingsModal.js';
 // MapNavigationButtons removed - redundant with HamburgerMenu navigation
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
@@ -33,11 +43,14 @@ function requireGlobal(name) {
 const getGameState = () => requireGlobal('GameState');
 const getGraphicsEngine = () => requireGlobal('GraphicsEngine');
 const getCreatureAI = () => requireGlobal('CreatureAI');
+const POSITION_PERSIST_INTERVAL_MS = 500;
+const POSITION_PERSIST_DISTANCE = 24;
 
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
         this.player = null;
+        this.astronautFollower = null;
         this.cursors = null;
         this.wasdKeys = null;
         this.spaceKey = null;
@@ -67,6 +80,13 @@ class GameScene extends Phaser.Scene {
         this.hubPortal = null;
         this.voidPortal = null;
         this.campfire = null;
+        this.signalGarden = null;
+        this.sanctuaryKeepsakes = null;
+        this.livingSignals = [];
+        this.activeLivingSignalId = null;
+        this.livingSignalDwellMs = 0;
+        this.livingSignalMomentElements = [];
+        this.livingSignalMomentTimer = null;
         this.sanctuaryZones = null;
         this.targetRange = null;
         this.nearTargetRange = false;
@@ -75,6 +95,7 @@ class GameScene extends Phaser.Scene {
         this.nearHubPortal = false;
         this.nearVoidPortal = false;
         this.nearCampfire = false;
+        this.nearSignalGarden = false;
         // Time-slow tool state (unlocked after 3 campfire rest sessions)
         this.timeSlowActive = false;
         this.timeSlowCooldown = false;
@@ -88,14 +109,33 @@ class GameScene extends Phaser.Scene {
         this.voidPullBar = null;
         this.voidPullText = null;
         this.nearCrashedShip = false;
+        this.fieldKitCase = null;
+        this.fieldKitCaseTween = null;
+        this.fieldKitModalElements = [];
+        this.isFieldKitModalOpen = false;
         this.nearReturnPortal = false;
         this.returnPortal = null;
         this.dailyGreetingShown = false;
         this.mobileControls = null;
         this.mobileHUD = null;
         this.questTracker = null;
+        this.projectBeaconWaypoint = null;
+        this.waypointPreview = null;
+        this.missionBriefingPreview = null;
+        this.missionBriefingPreviewSize = null;
+        this.mapRecoveryPreview = false;
+        this.mapRecoveryStatusText = null;
+        this.mapRecoveryActors = [];
+        this.carePanelPreview = false;
+        this.signalGardenPreview = null;
+        this.sanctuaryDecorationPreview = null;
+        this.signalGardenPreviewElements = [];
+        this.livingSignalPreview = null;
+        this.livingSignalPreviewElements = [];
+        this.waypointPreviewElements = [];
         this.collectibles = [];
         this.currentBiome = 'nebula';
+        this.currentSanctuaryZoneId = null;
         this.controlsTutorial = null;
         this.controlsHintPanel = null;
         this.floatingChatBubble = null;
@@ -118,11 +158,14 @@ class GameScene extends Phaser.Scene {
         this.virtualJoystickHandler = null;
         this.virtualKeyHandler = null;
         this.positionText = null;
+        this.lastPositionPersistedAt = Number.NEGATIVE_INFINITY;
         this.statsText = null;
         this.statsPulseAnimation = null;
         this.interactionText = null;
         this.portalIndicator = null;
         this.portalPulseAnim = null;
+        this.signalGardenIndicator = null;
+        this.signalGardenIndicatorTween = null;
         this.cosmicMiniMap = null;
         this.miniMapPlayerDot = null;
         this.statBarGraphics = null;
@@ -163,6 +206,8 @@ class GameScene extends Phaser.Scene {
         this.moodIndicator = null;
         this.personalityPanel = null;
         this.personalityPanelVisible = false;
+        this.sceneRouter = null;
+        this.hudController = null;
     }
 
     preload() {
@@ -176,6 +221,23 @@ class GameScene extends Phaser.Scene {
     init(data) {
         // Reset shutdown flag for fresh scene
         this._isShuttingDown = false;
+        this.fieldKitPreview = data?.fieldKitPreview === true;
+        this.fieldKitPreviewSize = data?.fieldKitPreviewSize || null;
+        this.waypointPreview = data?.waypointPreview || null;
+        this.missionBriefingPreview = data?.missionBriefingPreview || null;
+        this.missionBriefingPreviewSize = data?.missionBriefingPreviewSize || null;
+        this.carePanelPreview = data?.carePanelPreview === true;
+        this.signalGardenPreview = data?.signalGardenPreview || null;
+        this.sanctuaryDecorationPreview = Number.isFinite(Number(data?.sanctuaryDecorationPreview))
+            ? Math.max(0, Math.min(3, Math.floor(Number(data.sanctuaryDecorationPreview))))
+            : null;
+        this.livingSignalPreview = data?.livingSignalPreview || null;
+        this.controlsPreview = data?.controlsPreview === true;
+        this.beaconLogPreview = ['mission', 'archive'].includes(data?.beaconLogPreview)
+            ? data.beaconLogPreview
+            : null;
+        this.settingsPreview = data?.settingsPreview === true;
+        this.mapRecoveryPreview = data?.mapRecoveryPreview === true;
 
         // Handle biome data from HubWorldScene
         if (data?.biome) {
@@ -207,6 +269,82 @@ class GameScene extends Phaser.Scene {
             console.log('[GameScene] Initializing lifecycle tracking...');
             this.initializeLifecycleTracking();
             this.registerSceneLifecycleEvents();
+            this.sceneRouter = new GameSceneSceneRouter(this);
+            this.hudController = new GameSceneHudController(this);
+
+            if (this.mapRecoveryPreview) {
+                this.createMapRecoveryPreview();
+                console.log('[GameScene] Map recovery preview created successfully');
+                return;
+            }
+
+            if (this.settingsPreview) {
+                this.createSettingsPreview();
+                console.log('[GameScene] Settings preview created successfully');
+                return;
+            }
+
+            if (this.beaconLogPreview) {
+                this.createBeaconLogPreview();
+                console.log('[GameScene] Project Beacon log preview created successfully');
+                return;
+            }
+
+            if (this.controlsPreview) {
+                this.controlsTutorial = new ControlsTutorialOverlay(this);
+                this.controlsTutorial.show({ force: true });
+                console.log('[GameScene] Field controls preview created successfully');
+                return;
+            }
+
+            if (this.carePanelPreview) {
+                this.createCarePanelPreview();
+                console.log('[GameScene] Care Corner preview created successfully');
+                return;
+            }
+
+            if (this.signalGardenPreview) {
+                this.createSignalGardenPreview();
+                console.log('[GameScene] Signal Garden preview created successfully');
+                return;
+            }
+
+            if (this.sanctuaryDecorationPreview !== null) {
+                this.createSanctuaryDecorationPreview();
+                console.log('[GameScene] Sanctuary decoration preview created successfully');
+                return;
+            }
+
+            if (this.livingSignalPreview) {
+                this.createLivingSignalPreview();
+                console.log('[GameScene] Living Signal preview created successfully');
+                return;
+            }
+
+            if (this.missionBriefingPreview) {
+                this.createMissionBriefingPreview();
+                console.log('[GameScene] Project Beacon mission briefing preview created successfully');
+                return;
+            }
+
+            if (this.waypointPreview) {
+                this.createWaypointPreview();
+                console.log('[GameScene] Project Beacon waypoint preview created successfully');
+                return;
+            }
+
+            if (this.fieldKitPreview) {
+                this.createFieldKitPreviewBackdrop();
+                this.showFieldKitRecoveryModal({
+                    katana: {
+                        name: 'Earth-forged Field Katana',
+                        material: 'Titanium-ceramic laminate',
+                        upgradeSlots: 2
+                    }
+                });
+                console.log('[GameScene] Field-kit preview created successfully');
+                return;
+            }
 
             // Set current scene in GameState
             console.log('[GameScene] Setting current scene in GameState...');
@@ -311,8 +449,12 @@ class GameScene extends Phaser.Scene {
             this.hubPortal = worldPieces.hubPortal || null;
             this.voidPortal = worldPieces.voidPortal || null;
             this.campfire = worldPieces.campfire || null;
+            this.signalGarden = worldPieces.signalGarden || null;
+            this.sanctuaryKeepsakes = worldPieces.sanctuaryKeepsakes || null;
             this.sanctuaryZones = worldPieces.sanctuaryZones || null;
             this.targetRange = worldPieces.targetRange || null;
+
+            this.setupSanctuaryDecorationListener();
 
             // Return portal (only in non-sanctuary biomes)
             this.returnPortal = worldPieces.returnPortal || null;
@@ -328,6 +470,9 @@ class GameScene extends Phaser.Scene {
             
             // Create the player (hatched creature)
             this.createPlayer();
+            this.createExpeditionAstronaut();
+            this.createLivingSignals();
+            this.trackWorldArrival();
             
             // Set up camera to follow player
             this.setupCamera();
@@ -371,9 +516,19 @@ class GameScene extends Phaser.Scene {
                     this.physics.add.overlap(this.player, this.crashedShip, this.handleCrashedShipProximity, null, this);
                     // Create "Read Story" sign near the crashed ship
                     this.createReadStorySign();
+                    this.createFieldKitCase();
                 }
                 if (this.campfire) {
                     this.physics.add.overlap(this.player, this.campfire, this.handleCampfireProximity, null, this);
+                }
+                if (this.signalGarden?.zone) {
+                    this.physics.add.overlap(
+                        this.player,
+                        this.signalGarden.zone,
+                        this.handleSignalGardenProximity,
+                        null,
+                        this
+                    );
                 }
 
                 // Target range interactions
@@ -399,6 +554,11 @@ class GameScene extends Phaser.Scene {
             // Create UI elements
             this.createUI();
 
+            // The mobile radial menu exposes care directly; keyboard players use Care Corner.
+            if (this.scale.width >= 600) {
+                this.carePanelManager?.init();
+            }
+
             this.showWelcomeToastIfNeeded();
 
             // Initialize mobile controls and HUD if on mobile device
@@ -420,6 +580,7 @@ class GameScene extends Phaser.Scene {
             // Initialize Quest Tracker UI
             this.questTracker = new QuestTracker(this);
             this.questTracker.create();
+            window.QuestManager?.ensureProjectBeaconQuest?.();
             console.log('[GameScene] Quest Tracker initialized');
 
             // Initialize floating chat bubble (follows player)
@@ -442,8 +603,7 @@ class GameScene extends Phaser.Scene {
                     console.log('[GameScene] AbilitySelectionScene already active, skipping');
                     return;
                 }
-                this.scene.launch('AbilitySelectionScene', { slot: slotNumber });
-                this.scene.bringToTop('AbilitySelectionScene');
+                this.sceneRouter.launchScene('AbilitySelectionScene', { slot: slotNumber }, { bringToTop: true });
             });
             console.log('[GameScene] Ability HUD initialized');
 
@@ -473,12 +633,6 @@ class GameScene extends Phaser.Scene {
                 }
             });
 
-            // Tab key for quick creature cycling (without modal)
-            this.input.keyboard?.on('keydown-TAB', (event) => {
-                event.preventDefault();
-                this.cycleToNextCreature();
-            });
-
             // Set up profile keyboard shortcut (P key)
             this.input.keyboard?.on('keydown-P', () => {
                 this.openCreatureProfile();
@@ -486,6 +640,8 @@ class GameScene extends Phaser.Scene {
 
             // Spawn collectibles in the world
             this.spawnWorldCollectibles();
+            this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this);
+            this.projectBeaconWaypoint.create();
 
             // Initialize Kid Mode features if enabled
             this.initializeKidMode();
@@ -504,6 +660,11 @@ class GameScene extends Phaser.Scene {
             this.time.delayedCall(500, () => {
                 if (window.OnboardingManager) {
                     window.OnboardingManager.initialize(this);
+                    window.OnboardingManager.onQueueComplete = ({ firstSanctuaryVisit } = {}) => {
+                        if (!firstSanctuaryVisit || this._isShuttingDown) return;
+                        const storyQuest = window.QuestManager?.getQuestsByType?.('story')?.[0];
+                        this.questTracker?.showStoryMissionBriefing?.(storyQuest);
+                    };
                     window.OnboardingManager.startOnboardingFlow();
                 }
             });
@@ -613,6 +774,529 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    createFieldKitPreviewBackdrop() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#081018');
+
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x081018, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x172A32, 1);
+        backdrop.fillRect(0, height * 0.68, width, height * 0.32);
+
+        for (let index = 0; index < 36; index++) {
+            const starX = (index * 97) % width;
+            const starY = (index * 53) % Math.max(1, height * 0.64);
+            backdrop.fillStyle(index % 4 === 0 ? 0x6FE7DD : 0xDCE8ED, 0.45);
+            backdrop.fillCircle(starX, starY, index % 5 === 0 ? 2 : 1);
+        }
+
+        const ship = this.add.graphics();
+        ship.fillStyle(0x26343E, 1);
+        ship.fillRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
+        ship.lineStyle(2, 0x6FE7DD, 0.55);
+        ship.strokeRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
+        ship.setRotation(-0.08);
+
+        this.fieldKitPreviewElements = [backdrop, ship];
+    }
+
+    createCarePanelPreview() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#071017');
+
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x071017, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x17383A, 1);
+        backdrop.fillRect(0, height * 0.68, width, height * 0.32);
+        for (let index = 0; index < 28; index++) {
+            backdrop.fillStyle(index % 3 === 0 ? 0x6FE7DD : 0xDCE8ED, 0.45);
+            backdrop.fillCircle((index * 83) % width, (index * 47) % (height * 0.62), index % 4 === 0 ? 2 : 1);
+        }
+
+        const companionX = Math.max(480, width * 0.68);
+        const companionY = height * 0.55;
+        const companion = this.add.graphics();
+        companion.fillStyle(0x8FE3CF, 0.18);
+        companion.fillCircle(companionX, companionY, 92);
+        companion.fillStyle(0x9370DB, 1);
+        companion.fillCircle(companionX, companionY, 54);
+        companion.fillStyle(0xFFFFFF, 1);
+        companion.fillCircle(companionX - 18, companionY - 10, 9);
+        companion.fillCircle(companionX + 18, companionY - 10, 9);
+        companion.fillStyle(0x17212A, 1);
+        companion.fillCircle(companionX - 16, companionY - 10, 4);
+        companion.fillCircle(companionX + 20, companionY - 10, 4);
+
+        const heading = this.add.text(companionX, Math.max(70, height * 0.2), 'PROJECT BEACON // COMPANION CARE', {
+            fontSize: '20px',
+            color: '#8FE3CF',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        heading.setVisible(width >= 900);
+
+        const actionInfo = {
+            feed: { icon: '🍎', name: 'Feed', currentCount: 0, limit: 3, canPerform: true },
+            play: { icon: '🎾', name: 'Play', currentCount: 0, limit: 2, canPerform: true },
+            rest: { icon: '😴', name: 'Rest', currentCount: 0, limit: -1, isUnlimited: true, canPerform: true }
+        };
+        const previewCareSystem = {
+            getAllCareActionsInfo: () => actionInfo,
+            getCareStatus: () => ({
+                dailyCare: { feedCount: 0, playCount: 0, restCount: 0 }
+            })
+        };
+
+        this.carePanelManager = new CarePanelManager(this, {
+            careSystem: previewCareSystem,
+            playerProvider: () => ({ x: companionX, y: companionY }),
+            geneticsProvider: () => null
+        });
+        this.carePanelManager.init();
+        this.carePanelManager.togglePanel();
+        this.waypointPreviewElements.push(backdrop, companion, heading);
+    }
+
+    createSignalGardenPreview() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#071411');
+
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x071411, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x173B35, 1);
+        backdrop.fillRect(0, height * 0.58, width, height * 0.42);
+        backdrop.fillStyle(0x244E47, 0.78);
+        for (let x = 16; x < width; x += 72) {
+            const plantY = height * 0.62 + ((x / 72) % 3) * 24;
+            backdrop.fillCircle(x, plantY, 13);
+            backdrop.fillCircle(x + 12, plantY + 5, 10);
+        }
+        for (let index = 0; index < 30; index++) {
+            backdrop.fillStyle(index % 4 === 0 ? 0x71E6B1 : 0xD8FFF0, 0.35);
+            backdrop.fillCircle(
+                (index * 83) % width,
+                (index * 47) % Math.max(1, height * 0.52),
+                index % 5 === 0 ? 2 : 1
+            );
+        }
+
+        const heading = this.add.text(width / 2, Math.max(42, height * 0.12), 'PROJECT BEACON // SIGNAL GARDEN', {
+            fontSize: width < 600 ? '16px' : '20px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#D8FFF0',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        const stageLabel = this.add.text(width / 2, heading.y + 32, this.signalGardenPreview.toUpperCase(), {
+            fontSize: '13px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F2C86B'
+        }).setOrigin(0.5);
+
+        const GraphicsEngine = getGraphicsEngine();
+        this.graphicsEngine = new GraphicsEngine(this);
+        this.worldBuilder = new WorldBuilder(this, this.graphicsEngine, {
+            worldWidth: width,
+            worldHeight: height
+        });
+        this.signalGarden = this.worldBuilder.createSignalGarden({
+            position: {
+                x: width / 2,
+                y: Math.min(height - 105, height * 0.68)
+            },
+            name: 'Signal Garden',
+            description: 'Nurture a living signal with your companion.',
+            interactRadius: 115
+        }, this.signalGardenPreview);
+
+        this.signalGardenPreviewElements = [backdrop, heading, stageLabel];
+    }
+
+    createLivingSignalPreview() {
+        const { width, height } = this.scale;
+        const definition = LIVING_SIGNAL_DEFINITIONS.find(
+            signal => signal.id === this.livingSignalPreview
+        ) || LIVING_SIGNAL_DEFINITIONS[0];
+
+        this.cameras.main.setBackgroundColor('#071017');
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x071017, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x173936, 1);
+        backdrop.fillRect(0, height * 0.52, width, height * 0.48);
+        backdrop.fillStyle(0x214D46, 0.8);
+        for (let x = 18; x < width; x += 78) {
+            backdrop.fillCircle(x, height * 0.58 + ((x / 78) % 3) * 18, 14);
+        }
+        for (let index = 0; index < 28; index++) {
+            backdrop.fillStyle(index % 4 === 0 ? 0x8FE3CF : 0xD6EEF2, 0.38);
+            backdrop.fillCircle(
+                (index * 89) % width,
+                (index * 43) % Math.max(1, height * 0.46),
+                index % 5 === 0 ? 2 : 1
+            );
+        }
+
+        const heading = this.add.text(
+            width / 2,
+            Math.max(34, height * 0.08),
+            'PROJECT BEACON // LIVING SIGNAL',
+            {
+                fontSize: width < 600 ? '15px' : '20px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#D8FFF0',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5);
+        const previewSignal = this.createLivingSignalVisual({
+            ...definition,
+            position: {
+                x: width / 2,
+                y: Math.min(
+                    height * (width < 600 ? 0.38 : 0.46),
+                    height - 370
+                )
+            }
+        }, false);
+        this.livingSignals = [previewSignal];
+        this.showLivingSignalMoment({
+            signal: definition,
+            progress: LIVING_SIGNAL_DEFINITIONS.findIndex(
+                signal => signal.id === definition.id
+            ) + 1,
+            total: LIVING_SIGNAL_DEFINITIONS.length,
+            completed: definition.id ===
+                LIVING_SIGNAL_DEFINITIONS[LIVING_SIGNAL_DEFINITIONS.length - 1].id
+        }, { preview: true });
+        this.livingSignalPreviewElements = [backdrop, heading];
+    }
+
+    createLivingSignals() {
+        if (this.currentBiome !== 'nebula') {
+            this.livingSignals = [];
+            return;
+        }
+
+        const state = normalizeLivingSignalState(
+            window.GameState?.get('world.livingSignals')
+        );
+        this.livingSignals = LIVING_SIGNAL_DEFINITIONS.map(definition => (
+            this.createLivingSignalVisual(
+                definition,
+                state.observedIds.includes(definition.id)
+            )
+        ));
+    }
+
+    createLivingSignalVisual(definition, observed = false) {
+        const { x, y } = definition.position;
+        const container = this.add.container(x, y).setDepth(y + 4);
+        const aura = this.add.graphics();
+        aura.fillStyle(definition.color, observed ? 0.08 : 0.18);
+        aura.fillCircle(0, 0, 42);
+        aura.lineStyle(2, definition.color, observed ? 0.25 : 0.75);
+        aura.strokeCircle(0, 0, 33);
+        aura.lineStyle(1, definition.accent, observed ? 0.18 : 0.55);
+        aura.strokeCircle(0, 0, 22);
+
+        const form = this.add.graphics();
+        if (definition.id === 'echo_bloom') {
+            form.lineStyle(4, 0x71E6B1, 1);
+            form.lineBetween(0, 18, 0, -7);
+            form.fillStyle(definition.color, 1);
+            form.fillCircle(-9, -10, 9);
+            form.fillCircle(9, -10, 9);
+            form.fillStyle(definition.accent, 1);
+            form.fillCircle(0, -10, 7);
+        } else if (definition.id === 'memory_stone') {
+            form.fillStyle(0x263C48, 1);
+            form.fillTriangle(-16, 17, 16, 17, 8, -20);
+            form.lineStyle(3, definition.color, 0.95);
+            form.lineBetween(-7, 8, 5, -9);
+            form.lineBetween(5, -9, 10, 5);
+            form.fillStyle(definition.accent, 1);
+            form.fillCircle(5, -9, 4);
+        } else {
+            form.lineStyle(5, definition.color, 1);
+            form.lineBetween(0, 18, 0, -13);
+            form.lineStyle(3, definition.accent, 0.9);
+            form.lineBetween(0, 4, -15, -4);
+            form.lineBetween(0, -3, 15, -12);
+            form.fillStyle(0xD8FFF0, 1);
+            form.fillCircle(-15, -4, 5);
+            form.fillCircle(15, -12, 5);
+            form.fillCircle(0, -17, 6);
+        }
+
+        const label = this.add.text(0, 51, observed ? 'SIGNAL HEARD' : 'LIVING SIGNAL', {
+            fontSize: '10px',
+            fontFamily: 'Arial, sans-serif',
+            color: observed ? '#829B96' : '#D8FFF0',
+            fontStyle: 'bold',
+            backgroundColor: 'rgba(5, 18, 17, 0.78)',
+            padding: { x: 5, y: 3 }
+        }).setOrigin(0.5);
+        container.add([aura, form, label]);
+
+        const pulseTween = this.tweens.add({
+            targets: aura,
+            alpha: { from: observed ? 0.35 : 0.68, to: observed ? 0.5 : 1 },
+            scale: { from: 0.92, to: 1.1 },
+            duration: observed ? 2100 : 1150,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        return {
+            id: definition.id,
+            signalId: definition.id,
+            signalData: definition,
+            x,
+            y,
+            active: true,
+            observed,
+            container,
+            aura,
+            form,
+            label,
+            pulseTween
+        };
+    }
+
+    refreshLivingSignalVisual(signal) {
+        if (!signal) return;
+        signal.observed = true;
+        signal.label?.setText('SIGNAL HEARD');
+        signal.label?.setColor('#829B96');
+        signal.container?.setAlpha(0.58);
+    }
+
+    createWaypointPreview() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#071017');
+
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x071017, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x142A31, 1);
+        backdrop.fillRect(0, height * 0.66, width, height * 0.34);
+        backdrop.lineStyle(1, 0x29434A, 0.5);
+        for (let x = 0; x < width; x += 80) {
+            backdrop.lineBetween(x, height * 0.66, x + 45, height);
+        }
+
+        const playerX = width * 0.3;
+        const playerY = height * 0.66;
+        const playerVisual = this.add.graphics();
+        playerVisual.fillStyle(0x8FE3CF, 0.2);
+        playerVisual.fillCircle(playerX, playerY, 52);
+        playerVisual.fillStyle(0x9370DB, 1);
+        playerVisual.fillCircle(playerX, playerY, 25);
+        playerVisual.fillStyle(0xFFFFFF, 1);
+        playerVisual.fillCircle(playerX - 8, playerY - 6, 5);
+        playerVisual.fillCircle(playerX + 8, playerY - 6, 5);
+        playerVisual.fillStyle(0x17212A, 1);
+        playerVisual.fillCircle(playerX - 7, playerY - 6, 2);
+        playerVisual.fillCircle(playerX + 9, playerY - 6, 2);
+
+        this.player = {
+            x: playerX,
+            y: playerY,
+            active: true,
+            flipX: false
+        };
+
+        const isSignalPreview = this.waypointPreview === 'signals';
+        const targetX = isSignalPreview ? width + 450 : width * 0.77;
+        const targetY = isSignalPreview ? height * 0.34 : height * 0.46;
+        const target = { x: targetX, y: targetY, active: true, collected: false };
+        this.crashedShip = target;
+        this.hubPortal = target;
+        this.collectibles = [];
+        this.livingSignals = isSignalPreview
+            ? [{ ...target, observed: false, signalId: 'preview_signal' }]
+            : [];
+
+        if (!isSignalPreview) {
+            const ship = this.add.graphics();
+            ship.fillStyle(0xBFCBD0, 1);
+            ship.fillRoundedRect(targetX - 65, targetY - 22, 130, 44, 12);
+            ship.fillStyle(0x3978B8, 0.85);
+            ship.fillRoundedRect(targetX - 35, targetY - 34, 52, 19, 8);
+            ship.lineStyle(3, 0xC74B50, 1);
+            ship.lineBetween(targetX + 12, targetY - 20, targetX + 46, targetY + 16);
+            this.waypointPreviewElements.push(ship);
+        }
+
+        const mission = {
+            id: isSignalPreview ? 'beacon_living_signals' : 'beacon_field_kit',
+            type: 'story',
+            completed: false,
+            claimed: false
+        };
+        this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this, {
+            questProvider: () => mission
+        });
+        this.projectBeaconWaypoint.create();
+        this.projectBeaconWaypoint.update(16.67);
+        this.waypointPreviewElements.push(backdrop, playerVisual);
+    }
+
+    createBeaconLogPreview() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#061019');
+
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x061019, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x102B30, 0.9);
+        backdrop.fillRect(0, height * 0.68, width, height * 0.32);
+        backdrop.lineStyle(2, 0x2E5960, 0.35);
+        for (let x = -height; x < width; x += 70) {
+            backdrop.lineBetween(x, height, x + height * 0.35, height * 0.68);
+        }
+
+        const previewState = {
+            creature: {
+                name: 'Luma',
+                bond: { level: 5 }
+            },
+            quests: {
+                completed: projectBeacon.fieldMissions.map(mission => mission.id)
+            },
+            story: {
+                projectBeacon: {
+                    currentMission: 'field_sequence_complete',
+                    pendingDebriefs: [{ id: 'beacon_debrief_3' }],
+                    debriefsSeen: ['beacon_debrief_1', 'beacon_debrief_2'],
+                    lastRouteUnlocked: {
+                        gateId: 'void_peaks',
+                        label: 'Void Peaks'
+                    },
+                    uplinkRestored: false,
+                    endingChoice: null
+                }
+            },
+            hubWorld: {
+                shipParts: {
+                    collected: ['forest_core', 'crystal_core', 'dimensional_drive']
+                }
+            }
+        };
+        const previewGameState = {
+            get(path) {
+                return path.split('.').reduce(
+                    (value, key) => value?.[key],
+                    previewState
+                );
+            }
+        };
+
+        this.beaconLogModal = new ProjectBeaconLogModal(this, {
+            getGameState: () => previewGameState
+        });
+        this.beaconLogModal.show(this.beaconLogPreview);
+    }
+
+    createSettingsPreview() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#061019');
+
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x061019, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x133038, 1);
+        backdrop.fillRect(0, height * 0.7, width, height * 0.3);
+
+        const previewVolumes = {
+            master: 0.8,
+            music: 0.6,
+            sfx: 0.7
+        };
+        const previewAudio = {
+            muted: false,
+            getVolumes: () => ({ ...previewVolumes }),
+            isMuted() {
+                return this.muted;
+            },
+            toggleMute() {
+                this.muted = !this.muted;
+                return this.muted;
+            },
+            setMasterVolume(value) {
+                previewVolumes.master = value;
+            },
+            setMusicVolume(value) {
+                previewVolumes.music = value;
+            },
+            setSFXVolume(value) {
+                previewVolumes.sfx = value;
+            }
+        };
+        const previewFeedback = {
+            screenShakeEnabled: true,
+            hapticEnabled: true,
+            getSettings() {
+                return {
+                    screenShakeEnabled: this.screenShakeEnabled,
+                    hapticEnabled: this.hapticEnabled,
+                    hapticSupported: true
+                };
+            },
+            toggleScreenShake() {
+                this.screenShakeEnabled = !this.screenShakeEnabled;
+            },
+            toggleHaptic() {
+                this.hapticEnabled = !this.hapticEnabled;
+            }
+        };
+
+        this.settingsModal = new SettingsModal(this, {
+            getAudioManager: () => previewAudio,
+            getFeedbackManager: () => previewFeedback
+        });
+        this.settingsModal.show();
+    }
+
+    createMissionBriefingPreview() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#071017');
+
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x071017, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x19363A, 1);
+        backdrop.fillRect(0, height * 0.62, width, height * 0.38);
+        backdrop.fillStyle(0x244E47, 0.75);
+        for (let x = 20; x < width; x += 95) {
+            backdrop.fillCircle(x, height * 0.66 + ((x / 95) % 2) * 26, 18);
+        }
+
+        const missionIds = {
+            care: 'beacon_first_contact',
+            fieldKit: 'beacon_field_kit',
+            signals: 'beacon_living_signals',
+            gate: 'beacon_world_gate'
+        };
+        const missionId = missionIds[this.missionBriefingPreview] || missionIds.care;
+        const mission = projectBeacon.fieldMissions.find(({ id }) => id === missionId);
+
+        this.questTracker = new QuestTracker(this);
+        this.questTracker.showStoryMissionBriefing({
+            ...mission,
+            questId: mission.id,
+            progress: 0,
+            completed: false,
+            claimed: false
+        }, {
+            forceMobile: this.missionBriefingPreviewSize === 'mobile'
+        });
+        this.waypointPreviewElements.push(backdrop);
+    }
+
     initializeLifecycleTracking() {
         this._isShuttingDown = false;
         this._sceneLifecycleRegistered = false;
@@ -622,6 +1306,7 @@ class GameScene extends Phaser.Scene {
         this.virtualKeyHandler = null;
         this.joystickX = 0;
         this.joystickY = 0;
+        this.lastPositionPersistedAt = Number.NEGATIVE_INFINITY;
         this.isShowingTutorial = false;
         this.welcomeToastDisplayed = false;
         this.combatCooldown = 0;
@@ -808,6 +1493,104 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    setupSanctuaryDecorationListener() {
+        if (
+            this.currentBiome !== 'nebula' ||
+            !this.worldBuilder ||
+            !window.InventoryManager
+        ) {
+            return;
+        }
+
+        const placementHandler = ({ item, count }) => {
+            if (
+                this._isShuttingDown ||
+                item?.id !== 'void_crystal'
+            ) {
+                return;
+            }
+
+            this.sanctuaryKeepsakes = this.worldBuilder.refreshSanctuaryKeepsakes(
+                this.sanctuaryKeepsakes,
+                count
+            );
+        };
+
+        window.InventoryManager.on('utilityUsed', placementHandler, this);
+        this.gameStateUnsubscribers.push(() => {
+            window.InventoryManager?.off('utilityUsed', placementHandler, this);
+        });
+    }
+
+    trackWorldArrival() {
+        const realmId = this.currentBiome === 'nebula'
+            ? 'main'
+            : this.currentBiome;
+        getGameState().visitArea?.(`realm:${realmId}`);
+        this.trackSanctuaryZoneVisit();
+    }
+
+    trackSanctuaryZoneVisit() {
+        if (
+            this.currentBiome !== 'nebula' ||
+            !this.player ||
+            !this.sanctuaryZones?.getZoneAt
+        ) {
+            return;
+        }
+
+        const zone = this.sanctuaryZones.getZoneAt(this.player.x, this.player.y);
+        if (!zone || zone.id === this.currentSanctuaryZoneId) {
+            return;
+        }
+
+        this.currentSanctuaryZoneId = zone.id;
+        getGameState().visitArea?.(`sanctuary:${zone.id}`);
+    }
+
+    createSanctuaryDecorationPreview() {
+        const camera = this.cameras.main;
+        camera.setBackgroundColor('#102329');
+        camera.setBounds(0, 0, this.worldWidth, this.worldHeight);
+        camera.centerOn(1100, 1045);
+        camera.setZoom(Math.min(camera.width / 700, camera.height / 560));
+
+        const ground = this.add.graphics();
+        ground.fillStyle(0x102329, 1);
+        ground.fillRect(700, 690, 800, 700);
+        ground.fillStyle(0x193B3B, 1);
+        ground.fillEllipse(1100, 1050, 620, 410);
+        ground.lineStyle(4, 0x44746E, 0.65);
+        ground.strokeEllipse(1100, 1050, 620, 410);
+        ground.setDepth(680);
+
+        const fire = this.add.graphics().setPosition(1100, 950);
+        fire.fillStyle(0x27363C, 1);
+        fire.fillEllipse(0, 22, 92, 32);
+        fire.fillStyle(0xF2C86B, 1);
+        fire.fillTriangle(-24, 18, 0, -55, 24, 18);
+        fire.fillStyle(0xFF8A5B, 1);
+        fire.fillTriangle(-13, 17, 0, -32, 13, 17);
+        fire.setDepth(951);
+
+        this.worldBuilder = new WorldBuilder(this, null, {
+            worldWidth: this.worldWidth,
+            worldHeight: this.worldHeight
+        });
+        this.sanctuaryKeepsakes = this.worldBuilder.createSanctuaryKeepsakes(
+            this.sanctuaryDecorationPreview
+        );
+
+        this.add.text(1100, 800, 'SANCTUARY KEEPSAKES', {
+            fontSize: camera.width < 600 ? '20px' : '26px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            stroke: '#081514',
+            strokeThickness: 5
+        }).setOrigin(0.5).setDepth(2000);
+    }
+
     /**
      * Notify creature of game events (call from other systems)
      * @param {string} eventType - 'level_complete', 'level_failed', 'boss_defeated', etc.
@@ -827,9 +1610,91 @@ class GameScene extends Phaser.Scene {
         if (typeof Phaser !== 'undefined' && Phaser?.Scenes?.Events) {
             this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
             this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdown, this);
+            this.events.on(Phaser.Scenes.Events.RESUME, this.handleSceneResume, this);
         }
 
         this._sceneLifecycleRegistered = true;
+    }
+
+    handleSceneResume() {
+        this.joystickX = 0;
+        this.joystickY = 0;
+        this.player?.setVelocity?.(0, 0);
+        this.physics?.resume?.();
+
+        if (this.input) {
+            this.input.enabled = true;
+        }
+        if (this.input?.keyboard) {
+            this.input.keyboard.enabled = true;
+            this.input.keyboard.resetKeys?.();
+        }
+
+        window.UXEnhancements?.hideLoading?.();
+
+        if (this.mapRecoveryPreview && this.mapRecoveryStatusText) {
+            this.mapRecoveryStatusText
+                .setText('MAP CONTROL RESTORED')
+                .setColor('#8FE3CF');
+            this.tweens?.add?.({
+                targets: this.mapRecoveryActors,
+                x: '+=64',
+                duration: 450,
+                ease: 'Sine.easeOut'
+            });
+        }
+    }
+
+    createMapRecoveryPreview() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#071017');
+
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x071017, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x173B3B, 1);
+        backdrop.fillRect(0, height * 0.65, width, height * 0.35);
+
+        for (let x = 30; x < width; x += 90) {
+            backdrop.fillStyle(x % 180 === 30 ? 0x8FE3CF : 0xBFA6FF, 0.45);
+            backdrop.fillCircle(x, height * 0.62 + (x % 3) * 8, 12);
+        }
+
+        const astronaut = this.add.text(width * 0.43, height * 0.57, '🧑‍🚀', {
+            fontSize: width < 600 ? '42px' : '58px'
+        }).setOrigin(0.5).setDepth(5);
+        const companion = this.add.text(width * 0.55, height * 0.58, '✨', {
+            fontSize: width < 600 ? '34px' : '46px',
+            color: '#BFA6FF'
+        }).setOrigin(0.5).setDepth(5);
+
+        this.mapRecoveryActors = [astronaut, companion];
+        this.player = { setVelocity: () => {} };
+
+        this.add.text(width / 2, height * 0.16, 'SHOP RETURN CHECK', {
+            fontSize: width < 600 ? '20px' : '28px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(6);
+
+        this.mapRecoveryStatusText = this.add.text(
+            width / 2,
+            height * 0.24,
+            'OPENING SHOP...',
+            {
+                fontSize: width < 600 ? '14px' : '18px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(6);
+
+        this.time.delayedCall(350, () => {
+            this.sceneRouter.pauseAndLaunchScene('ShopScene', {
+                initialCategory: 'utilities'
+            }, {
+                loadingMessage: 'Opening Cosmic Shop...'
+            });
+        });
     }
 
     setupCamera() {
@@ -1863,6 +2728,17 @@ class GameScene extends Phaser.Scene {
         this.addBreathingAnimation(this.player, 1.0);
     }
 
+    createExpeditionAstronaut() {
+        this.astronautFollower?.destroy();
+        this.astronautFollower = new ExpeditionAstronaut(this, this.player, {
+            mode: 'topDown',
+            fieldKitRecovered: this.hasRecoveredProjectBeaconFieldKit(),
+            katanaUpgradeIds: getProjectBeaconKatanaUpgradeIds(
+                window.GameState
+            )
+        });
+    }
+
     /**
      * Add breathing/idle animation to make creature feel alive
      * Based on cartoon animation principles: subtle breathing effect
@@ -2597,63 +3473,100 @@ class GameScene extends Phaser.Scene {
         this.input.keyboard.once('keydown', resumeAudio);
     }
 
-    createUI() {
-        const { width, height } = this.scale;
-        this.createResetButton();
-
-        this.positionText = this.add.text(16, 52, 'Position: (0, 0)', {
-            fontSize: '14px',
-            color: '#FFFFFF',
-            stroke: '#000000',
-            strokeThickness: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            padding: { x: 6, y: 3 }
-        });
-        this.positionText.setScrollFactor(0);
-        this.positionText.setDepth(2000);
-
-        this.statsText = this.add.text(width - 16, 16, '', {
-            fontSize: '14px',
-            color: '#FFFFFF',
-            stroke: '#000000',
-            strokeThickness: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            padding: { x: 8, y: 4 },
-            align: 'right'
-        });
-        this.statsText.setOrigin(1, 0);
-        this.statsText.setScrollFactor(0);
-        this.statsText.setDepth(2000);
-        this.updateStatsDisplay();
-
-        this.interactionText = this.add.text(width / 2, height - 40, '', {
-            fontSize: '16px',
-            color: '#FFD700',
-            stroke: '#000000',
-            strokeThickness: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            align: 'center',
-            padding: { x: 10, y: 6 }
-        });
-        this.interactionText.setOrigin(0.5);
-        this.interactionText.setScrollFactor(0);
-        this.interactionText.setDepth(3000);
-        this.interactionText.setVisible(false);
-
-        if (!this.economyHud) {
-            this.economyHud = new EconomyHudManager(this, {
-                economyManager: window.EconomyManager,
-                playerProvider: () => this.player
-            });
+    getHudController() {
+        if (!this.hudController) {
+            this.hudController = new GameSceneHudController(this);
         }
-        this.economyHud.init();
 
-        this.carePanelManager?.init();
+        return this.hudController;
+    }
 
-        this.createDailyBonusButton();
-        this.createCombatButton();
-        this.createCosmicMiniMap();
-        this.createGlowingStatBars();
+    createResetButton() {
+        return this.getHudController().createResetButton();
+    }
+
+    createDailyBonusButton() {
+        return this.getHudController().createDailyBonusButton();
+    }
+
+    updateDailyBonusButton() {
+        return this.getHudController().updateDailyBonusButton();
+    }
+
+    claimDailyBonus() {
+        return this.getHudController().claimDailyBonus();
+    }
+
+    createCombatButton() {
+        return this.getHudController().createCombatButton();
+    }
+
+    showWelcomeToastIfNeeded() {
+        return this.getHudController().showWelcomeToastIfNeeded();
+    }
+
+    showVoidReturnToast(voidScore) {
+        return this.getHudController().showVoidReturnToast(voidScore);
+    }
+
+    createCosmicMiniMap() {
+        return this.getHudController().createCosmicMiniMap();
+    }
+
+    updateCosmicMiniMap() {
+        return this.getHudController().updateCosmicMiniMap();
+    }
+
+    createGlowingStatBars() {
+        return this.getHudController().createGlowingStatBars();
+    }
+
+    updateGlowingStatBars() {
+        return this.getHudController().updateGlowingStatBars();
+    }
+
+    hideDesktopUIOnMobile() {
+        return this.getHudController().hideDesktopUIOnMobile();
+    }
+
+    toggleCarePanel() {
+        this.carePanelManager?.togglePanel();
+    }
+
+    createFloatingParticles() {
+        this.floatingParticles.forEach((particle) => particle.destroy());
+        this.floatingParticles = [];
+
+        if (!this.textures.exists('magicalSparkle')) {
+            return;
+        }
+
+        const emitter = this.add.particles(0, 0, 'magicalSparkle', {
+            x: { min: 0, max: this.scale.width },
+            y: { min: 0, max: 200 },
+            lifespan: 4000,
+            speedY: { min: 10, max: 40 },
+            scale: { start: 0.4, end: 0 },
+            alpha: { start: 0.8, end: 0 },
+            quantity: 1,
+            frequency: 600,
+            tint: [0x00CED1, 0xFFD700, 0x9370DB],
+            blendMode: 'ADD'
+        });
+        emitter.setScrollFactor(0);
+        emitter.setDepth(200);
+        this.floatingParticles.push(emitter);
+    }
+
+    createUI() {
+        this.getHudController().createUI();
+
+        // Skill bar disabled - using AbilityHUD (bond-based) instead
+        // The SkillBar (affinity-based skills) created duplicate UI with AbilityHUD
+        // TODO: Consider merging or differentiating these systems in the future
+        // this.createSkillBar();
+
+        // Create the remaining lightweight overlays that stay local to GameScene
         this.createFloatingParticles();
 
         // Only show personality display on mobile (desktop UI is simplified)
@@ -2661,11 +3574,6 @@ class GameScene extends Phaser.Scene {
         if (isMobileDevice) {
             this.createPersonalityDisplay();
         }
-
-        // Skill bar disabled - using AbilityHUD (bond-based) instead
-        // The SkillBar (affinity-based skills) created duplicate UI with AbilityHUD
-        // TODO: Consider merging or differentiating these systems in the future
-        // this.createSkillBar();
 
         // Create roster indicator
         this.createRosterIndicator();
@@ -3034,35 +3942,6 @@ class GameScene extends Phaser.Scene {
                 window.AudioManager.playButtonClick?.();
             }
             console.log(`[GameScene] Cycled to creature ${nextIndex}: ${nextCreature.name}`);
-        }
-    }
-
-    /**
-     * Open the creature profile scene
-     */
-    openCreatureProfile() {
-        console.log('[GameScene] Opening Creature Profile');
-        // Check if CreatureProfileScene is registered
-        if (this.scene.get('CreatureProfileScene')) {
-            this.scene.start('CreatureProfileScene');
-        } else {
-            // Fallback: Show a temporary info toast until CreatureProfileScene is implemented
-            const { width, height } = this.scale;
-            const toast = this.add.text(width / 2, height / 2, 'Creature Profile coming soon!', {
-                fontSize: '20px',
-                color: '#FFD700',
-                backgroundColor: 'rgba(26, 26, 62, 0.95)',
-                padding: { x: 20, y: 15 }
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(5000);
-
-            this.tweens.add({
-                targets: toast,
-                alpha: { from: 1, to: 0 },
-                y: height / 2 - 30,
-                duration: 2000,
-                delay: 1000,
-                onComplete: () => toast.destroy()
-            });
         }
     }
 
@@ -3580,348 +4459,6 @@ class GameScene extends Phaser.Scene {
         this.personalityText.setVisible(true);
     }
 
-    /**
-     * Hide desktop-oriented UI elements when mobile HUD is active
-     * This prevents UI overlap and provides a cleaner mobile experience
-     */
-    hideDesktopUIOnMobile() {
-        console.log('[GameScene] Hiding desktop UI elements for mobile');
-
-        // Hide verbose stats text (MobileHUD shows compact version)
-        if (this.statsText) {
-            this.statsText.setVisible(false);
-        }
-
-        // Hide old stat bars (MobileHUD has its own)
-        if (this.statBarGraphics) {
-            this.statBarGraphics.setVisible(false);
-        }
-
-        // Hide personality display (too verbose for mobile)
-        if (this.personalityText) {
-            this.personalityText.setVisible(false);
-        }
-
-        // Hide position text (not needed on mobile)
-        if (this.positionText) {
-            this.positionText.setVisible(false);
-        }
-
-        // Hide desktop economy HUD (MobileHUD has integrated coins)
-        if (this.economyHud) {
-            if (this.economyHud.currencyBgImage) {
-                this.economyHud.currencyBgImage.setVisible(false);
-            }
-            if (this.economyHud.currencyIcon) {
-                this.economyHud.currencyIcon.setVisible(false);
-            }
-            if (this.economyHud.currencyText) {
-                this.economyHud.currencyText.setVisible(false);
-            }
-        }
-
-        // Hide combat button (integrated into mobile action buttons)
-        if (this.combatButton) {
-            this.combatButton.setVisible(false);
-        }
-        if (this.combatBg) {
-            this.combatBg.setVisible(false);
-        }
-        if (this.combatText) {
-            this.combatText.setVisible(false);
-        }
-    }
-
-    createResetButton() {
-        const button = this.add.text(16, 16, '↺ Re-center', {
-            fontSize: '12px',
-            color: '#FFFFFF',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            padding: { x: 8, y: 4 }
-        });
-        button.setScrollFactor(0);
-        button.setInteractive({ useHandCursor: true });
-        button.on('pointerdown', () => {
-            window.AudioManager?.playButtonClick?.();
-            const startX = this.worldWidth / 2;
-            const startY = this.worldHeight / 2;
-            if (this.player) {
-                this.player.setPosition(startX, startY);
-                getGameState().set('world.currentPosition', { x: startX, y: startY });
-            }
-        });
-    }
-
-    createDailyBonusButton() {
-        if (!this.careSystem?.getDailyLoginBonus) {
-            return;
-        }
-        this.dailyBonusButton?.destroy();
-        const button = this.add.text(this.scale.width / 2, 12, '', {
-            fontSize: '14px',
-            color: '#FFFFFF',
-            stroke: '#000000',
-            strokeThickness: 2,
-            padding: { x: 12, y: 4 },
-            backgroundColor: 'rgba(0, 0, 0, 0.55)',
-            align: 'center'
-        });
-        button.setScrollFactor(0);
-        button.setOrigin(0.5, 0);
-        button.setDepth(2000);
-        button.setInteractive({ useHandCursor: true });
-        button.on('pointerdown', () => this.claimDailyBonus());
-        this.dailyBonusButton = button;
-        this.updateDailyBonusButton();
-    }
-
-    updateDailyBonusButton() {
-        if (!this.dailyBonusButton || !this.careSystem?.getDailyLoginBonus) {
-            return;
-        }
-        const bonus = this.careSystem.getDailyLoginBonus();
-        if (!bonus) {
-            this.dailyBonusButton.setVisible(false);
-            return;
-        }
-        const text = bonus.available ?
-            `🎁 Cozy Daily Gift Ready! (Streak ${bonus.streak})` :
-            `🌙 Come back tomorrow for more cozy coins (${bonus.streak}-day streak)`;
-        this.dailyBonusButton.setVisible(true);
-        this.dailyBonusButton.setText(text);
-        this.dailyBonusButton.setColor(bonus.available ? '#FFD700' : '#FFFFFF');
-        this.dailyBonusButton.setBackgroundColor(bonus.available ? 'rgba(255,215,0,0.25)' : 'rgba(0,0,0,0.55)');
-    }
-
-    claimDailyBonus() {
-        if (!this.careSystem?.claimDailyLoginBonus) return;
-
-        try {
-            const result = this.careSystem.claimDailyLoginBonus();
-            if (result?.success) {
-                this.showBonusClaimedMessage();
-                this.updateDailyBonusButton();
-            } else if (result?.message) {
-                this.showInteractionHint(result.message);
-            }
-        } catch (error) {
-            console.warn('[GameScene] Failed to claim daily bonus', error);
-        }
-    }
-
-    createCombatButton() {
-        const isMobile = window.responsiveManager?.isMobile;
-        this.combatCooldown = 0;
-        this.combatCooldownMax = 1200;
-
-        if (!isMobile) {
-            return;
-        }
-
-        const buttonX = this.scale.width - 90;
-        const buttonY = this.scale.height - 90;
-
-        this.combatBg?.destroy();
-        this.combatBg = this.add.graphics();
-        this.combatBg.setScrollFactor(0);
-        this.combatBg.fillStyle(0xFF6B35, 0.85);
-        this.combatBg.fillCircle(buttonX, buttonY, 40);
-        this.combatBg.lineStyle(3, 0xFFFFFF, 0.8);
-        this.combatBg.strokeCircle(buttonX, buttonY, 40);
-
-        this.combatText?.destroy();
-        this.combatText = this.add.text(buttonX, buttonY, '⚡', {
-            fontSize: '32px'
-        }).setOrigin(0.5);
-        this.combatText.setScrollFactor(0);
-
-        this.combatCooldownText?.destroy();
-        this.combatCooldownText = this.add.text(buttonX, buttonY + 35, '0s', {
-            fontSize: '14px',
-            color: '#FFFFFF'
-        }).setOrigin(0.5);
-        this.combatCooldownText.setScrollFactor(0);
-        this.combatCooldownText.setVisible(false);
-
-        const zone = this.add.zone(buttonX, buttonY, 80, 80).setOrigin(0.5);
-        zone.setScrollFactor(0);
-        zone.setInteractive({ useHandCursor: true });
-        zone.on('pointerdown', () => this.fireCombatProjectile());
-        this.combatButton = zone;
-    }
-
-    toggleCarePanel() {
-        this.carePanelManager?.togglePanel();
-    }
-
-    showWelcomeToastIfNeeded() {
-        const gameState = getGameState();
-        if (!gameState.get('session.showWelcomeToast') || this.welcomeToastDisplayed) {
-            return;
-        }
-
-        const creatureName = gameState.get('session.pendingWelcomeName') || gameState.get('creature.name');
-        const toast = this.add.text(this.scale.width / 2, 120, `Welcome to the sanctuary, ${creatureName}!`, {
-            fontSize: '20px',
-            color: '#FFD700',
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            padding: { x: 20, y: 10 },
-            align: 'center'
-        }).setOrigin(0.5);
-        toast.setScrollFactor(0);
-        toast.setDepth(4000);
-
-        this.tweens.add({
-            targets: toast,
-            alpha: 0,
-            delay: 2200,
-            duration: 600,
-            onComplete: () => toast.destroy()
-        });
-
-        gameState.set('session.showWelcomeToast', false);
-        gameState.set('session.pendingWelcomeName', null);
-        this.welcomeToastDisplayed = true;
-    }
-
-    showVoidReturnToast(voidScore) {
-        const { width } = this.scale;
-
-        // Create toast container
-        const toast = this.add.text(width / 2, 120, `🌌 Returned from the Void! +${voidScore} coins collected`, {
-            fontSize: '18px',
-            color: '#E6E6FA',
-            backgroundColor: 'rgba(75, 0, 130, 0.85)',
-            padding: { x: 20, y: 12 },
-            align: 'center'
-        }).setOrigin(0.5);
-        toast.setScrollFactor(0);
-        toast.setDepth(4000);
-
-        // Slide in from top
-        toast.y = -50;
-        this.tweens.add({
-            targets: toast,
-            y: 120,
-            duration: 400,
-            ease: 'Back.easeOut'
-        });
-
-        // Fade out after delay
-        this.tweens.add({
-            targets: toast,
-            alpha: 0,
-            delay: 3000,
-            duration: 600,
-            onComplete: () => toast.destroy()
-        });
-
-        // Play celebration sound
-        if (window.AudioManager) {
-            window.AudioManager.playLevelUp?.();
-        }
-
-        console.log(`[GameScene] Void return toast shown for ${voidScore} coins`);
-    }
-
-    createCosmicMiniMap() {
-        const size = 120;
-        const margin = 16;
-        const mapX = this.scale.width - size - margin;
-        const mapY = this.scale.height - size - margin;
-
-        const background = this.add.graphics();
-        background.setScrollFactor(0);
-        background.setDepth(1500);
-        background.fillStyle(0x0a0118, 0.8);
-        background.fillRoundedRect(mapX, mapY, size, size, 12);
-        background.lineStyle(2, 0x00CED1, 0.8);
-        background.strokeRoundedRect(mapX, mapY, size, size, 12);
-
-        this.miniMapPlayerDot?.destroy();
-        this.miniMapPlayerDot = this.add.circle(mapX + size / 2, mapY + size / 2, 4, 0xFFD700);
-        this.miniMapPlayerDot.setScrollFactor(0);
-        this.miniMapPlayerDot.setDepth(1501);
-
-        this.cosmicMiniMap = { x: mapX, y: mapY, size, background };
-    }
-
-    updateCosmicMiniMap() {
-        if (!this.cosmicMiniMap || !this.miniMapPlayerDot || !this.player) {
-            return;
-        }
-        const relX = Phaser.Math.Clamp(this.player.x / this.worldWidth, 0, 1);
-        const relY = Phaser.Math.Clamp(this.player.y / this.worldHeight, 0, 1);
-        this.miniMapPlayerDot.setPosition(
-            this.cosmicMiniMap.x + relX * this.cosmicMiniMap.size,
-            this.cosmicMiniMap.y + relY * this.cosmicMiniMap.size
-        );
-    }
-
-    createGlowingStatBars() {
-        this.statBarGraphics?.destroy();
-        this.statBarGraphics = this.add.graphics();
-        this.statBarGraphics.setScrollFactor(0);
-        this.statBarGraphics.setDepth(2000);
-
-        // Simplified: Only Health and Energy (removed happiness per UI cleanup)
-        this.statBars = [
-            { key: 'health', color: 0xFF6B6B, label: '❤️', x: 16, y: this.scale.height - 70, width: 180, height: 14 },
-            { key: 'energy', color: 0x4ECDC4, label: '⚡', x: 16, y: this.scale.height - 50, width: 180, height: 14 }
-        ];
-
-        // Add labels for stat bars
-        this.statBarLabels?.forEach(l => l.destroy());
-        this.statBarLabels = this.statBars.map(bar => {
-            return this.add.text(bar.x + bar.width + 8, bar.y + bar.height / 2, bar.label, {
-                fontSize: '14px'
-            }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(2001);
-        });
-
-        this.updateGlowingStatBars();
-    }
-
-    updateGlowingStatBars() {
-        if (!this.statBarGraphics || !this.statBars.length) return;
-        const stats = getGameState().get('creature.stats');
-        if (!stats) return;
-
-        this.statBarGraphics.clear();
-        this.statBars.forEach((bar) => {
-            const value = Phaser.Math.Clamp(stats[bar.key] ?? 0, 0, 100);
-            const fill = (value / 100) * bar.width;
-            this.statBarGraphics.fillStyle(0x000000, 0.5);
-            this.statBarGraphics.fillRoundedRect(bar.x, bar.y, bar.width, bar.height, 8);
-            this.statBarGraphics.fillStyle(bar.color, 0.8);
-            this.statBarGraphics.fillRoundedRect(bar.x + 2, bar.y + 2, Math.max(0, fill - 4), bar.height - 4, 6);
-        });
-    }
-
-    createFloatingParticles() {
-        this.floatingParticles.forEach((particle) => particle.destroy());
-        this.floatingParticles = [];
-
-        if (!this.textures.exists('magicalSparkle')) {
-            return;
-        }
-
-        const emitter = this.add.particles(0, 0, 'magicalSparkle', {
-            x: { min: 0, max: this.scale.width },
-            y: { min: 0, max: 200 },
-            lifespan: 4000,
-            speedY: { min: 10, max: 40 },
-            scale: { start: 0.4, end: 0 },
-            alpha: { start: 0.8, end: 0 },
-            quantity: 1,
-            frequency: 600,
-            tint: [0x00CED1, 0xFFD700, 0x9370DB],
-            blendMode: 'ADD'
-        });
-        emitter.setScrollFactor(0);
-        emitter.setDepth(200);
-        this.floatingParticles.push(emitter);
-    }
-
     fireCombatProjectile() {
         if (this.combatCooldown > 0) {
             return;
@@ -4185,19 +4722,10 @@ class GameScene extends Phaser.Scene {
         });
         console.log('[GameScene] Saved player position:', this.player.x, this.player.y);
 
-        // Play button click sound
-        if (window.AudioManager) {
-            window.AudioManager.playButtonClick();
-        }
-
-        // Show loading overlay
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Opening Cosmic Shop...');
-        }
-
-        // Pause this scene and launch ShopScene on top
-        this.scene.pause();
-        this.scene.launch('ShopScene');
+        this.sceneRouter.pauseAndLaunchScene('ShopScene', undefined, {
+            loadingMessage: 'Opening Cosmic Shop...',
+            sound: 'buttonClick'
+        });
     }
 
     /**
@@ -4286,6 +4814,95 @@ class GameScene extends Phaser.Scene {
                 this.campfireGlowAnim = glowAnim;
             }
         }
+    }
+
+    /**
+     * Handle player proximity to the Signal Garden.
+     */
+    handleSignalGardenProximity() {
+        if (this.nearSignalGarden) return;
+
+        this.nearSignalGarden = true;
+        console.log('[GameScene] Player near Signal Garden');
+        this.showInteractionHint('Press SPACE to tend the Signal Garden 🌱');
+        this.mobileControls?.updateInteractIcon('🌱');
+
+        const gardenZone = this.signalGarden?.zone;
+        if (!gardenZone || this.signalGardenIndicator) return;
+
+        this.signalGardenIndicator = this.add.graphics();
+        this.signalGardenIndicator.setDepth((gardenZone.depth || gardenZone.y) - 1);
+        this.signalGardenIndicatorTween = this.tweens.add({
+            targets: { scale: 1 },
+            scale: 1.12,
+            duration: 1300,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+            onUpdate: (tween, target) => {
+                if (!this.signalGardenIndicator || !gardenZone.active) return;
+                this.signalGardenIndicator.clear();
+                this.signalGardenIndicator.lineStyle(3, 0x71E6B1, 0.42);
+                this.signalGardenIndicator.strokeEllipse(
+                    gardenZone.x,
+                    gardenZone.y + 4,
+                    190 * target.scale,
+                    92 * target.scale
+                );
+            }
+        });
+    }
+
+    tendSignalGarden() {
+        if (!window.GameState || !this.signalGarden) return;
+
+        const currentState = normalizeSignalGardenState(
+            window.GameState.get('world.signalGarden')
+        );
+        const result = tendSignalGarden(currentState);
+
+        if (!result.success) {
+            this.showInteractionHint(result.message);
+            window.AudioManager?.playError?.();
+            return;
+        }
+
+        window.GameState.set('world.signalGarden', result.state);
+        this.worldBuilder?.refreshSignalGarden(this.signalGarden, result.stage);
+
+        const happiness = Number(window.GameState.get('creature.stats.happiness')) || 0;
+        window.GameState.set('creature.stats.happiness', Math.min(100, happiness + 5));
+        this.recordBondActivity('garden');
+        this.updateStatsDisplay();
+
+        window.GameState.emit('signalGardenTended', {
+            stage: result.stage,
+            tendCount: result.state.tendCount,
+            isNewStage: result.isNewStage,
+            timestamp: result.state.lastTendedAt
+        });
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'signal_garden_tended',
+            stage: result.stage
+        });
+
+        const gardenZone = this.signalGarden.zone;
+        this.showFloatingText(
+            result.isNewStage ? `${result.stage.toUpperCase()} +5 Happiness` : '+5 Happiness',
+            gardenZone.x,
+            gardenZone.y - 70,
+            '#71E6B1'
+        );
+        this.showCreatureResponse(result.companionLine);
+
+        if (window.FXLibrary?.stardustBurst) {
+            window.FXLibrary.stardustBurst(this, gardenZone.x, gardenZone.y - 30, {
+                count: result.isNewStage ? 18 : 10,
+                color: [0x71E6B1, 0xF2C86B, 0xBFA6FF],
+                duration: 1400
+            });
+        }
+        window.AudioManager?.playAchievement?.();
     }
 
     /**
@@ -5012,6 +5629,7 @@ class GameScene extends Phaser.Scene {
         });
 
         this.nearHubPortal = false;
+        window.QuestManager?.trackProgress('landmark_visit', { landmark: 'hub_gate' });
 
         // Save player position for return
         getGameState().set('world.lastPosition', {
@@ -5019,15 +5637,9 @@ class GameScene extends Phaser.Scene {
             y: this.player.y
         });
 
-        // Play mystical portal sound
-        if (window.AudioManager) {
-            window.AudioManager.playVisionReveal();
-        }
+        this.sceneRouter.playSound('visionReveal');
 
-        // Show loading screen
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Traveling to the Hub...');
-        }
+        this.sceneRouter.showLoading('Traveling to the Hub...');
 
         // Screen effect - magical transition
         this.cameras.main.flash(300, 147, 112, 219); // Purple flash
@@ -5040,13 +5652,13 @@ class GameScene extends Phaser.Scene {
             const creatureTexture = this.creatureTextureName || getGameState().get('creature.textureName');
 
             // Start hub world scene
-            this.scene.start('HubWorldScene', {
+            this.sceneRouter.startScene('HubWorldScene', {
                 creatureTexture: creatureTexture,
                 returnPosition: {
                     x: this.player.x,
                     y: this.player.y
                 }
-            });
+            }, { sound: null });
         });
     }
 
@@ -5075,15 +5687,8 @@ class GameScene extends Phaser.Scene {
             y: this.player.y
         });
 
-        // Play dramatic void entry sound
-        if (window.AudioManager) {
-            window.AudioManager.playVisionReveal();
-        }
-
-        // Show loading screen with void theme
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Entering the Void...');
-        }
+        this.sceneRouter.playSound('visionReveal');
+        this.sceneRouter.showLoading('Entering the Void...');
 
         // Screen effect - get sucked into the void
         this.cameras.main.shake(500, 0.015);
@@ -5096,7 +5701,7 @@ class GameScene extends Phaser.Scene {
             const creatureTexture = this.creatureTextureName || getGameState().get('creature.textureName');
 
             // Start void mini-game scene
-            this.scene.start('VoidMiniGameScene', {
+            this.sceneRouter.startScene('VoidMiniGameScene', {
                 creatureTexture: creatureTexture,
                 returnPosition: {
                     x: this.player.x,
@@ -5109,15 +5714,258 @@ class GameScene extends Phaser.Scene {
     /**
      * Handle player proximity to Crashed Ship
      */
+    hasRecoveredProjectBeaconFieldKit() {
+        return Boolean(getGameState().get('story.projectBeacon.fieldKit.recovered'));
+    }
+
+    createFieldKitCase() {
+        if (!this.crashedShip || this.hasRecoveredProjectBeaconFieldKit()) {
+            return;
+        }
+
+        const caseX = this.crashedShip.x - 125;
+        const caseY = this.crashedShip.y + 55;
+        const container = this.add.container(caseX, caseY).setDepth(caseY + 2);
+        const glow = this.add.graphics();
+        glow.fillStyle(0x6FE7DD, 0.15);
+        glow.fillRoundedRect(-50, -28, 100, 56, 8);
+
+        const caseBody = this.add.graphics();
+        caseBody.fillStyle(0x161C24, 1);
+        caseBody.fillRoundedRect(-44, -23, 88, 46, 5);
+        caseBody.lineStyle(2, 0xA8B3BD, 1);
+        caseBody.strokeRoundedRect(-44, -23, 88, 46, 5);
+        caseBody.fillStyle(0x303B46, 1);
+        caseBody.fillRoundedRect(-14, -31, 28, 9, 3);
+        caseBody.fillStyle(0xD8B65C, 1);
+        caseBody.fillRect(-3, -16, 6, 15);
+        caseBody.fillRect(-10, -10, 20, 4);
+
+        const label = this.add.text(0, 13, 'FIELD KIT', {
+            fontSize: '10px',
+            color: '#D7E3EA',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        container.add([glow, caseBody, label]);
+        this.fieldKitCase = container;
+        this.fieldKitCaseTween = this.tweens.add({
+            targets: glow,
+            alpha: { from: 0.45, to: 1 },
+            duration: 1100,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    recoverProjectBeaconFieldKit() {
+        const result = recoverFieldKitState(getGameState());
+        if (!result.changed) {
+            this.showShipMemories();
+            return;
+        }
+
+        window.QuestManager?.trackProgress?.('story_interaction', {
+            event: 'field_kit_recovered'
+        });
+        this.astronautFollower?.setFieldKitRecovered(true);
+
+        this.fieldKitCaseTween?.stop();
+        this.fieldKitCaseTween = null;
+
+        if (this.fieldKitCase) {
+            this.tweens.add({
+                targets: this.fieldKitCase,
+                alpha: 0,
+                scale: 0.85,
+                duration: 260,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.fieldKitCase?.destroy(true);
+                    this.fieldKitCase = null;
+                }
+            });
+        }
+
+        window.AudioManager?.playButtonClick?.();
+        this.showFieldKitRecoveryModal(result.fieldKit);
+    }
+
+    showFieldKitRecoveryModal(fieldKit) {
+        if (this.isFieldKitModalOpen || !fieldKit?.katana) {
+            return;
+        }
+
+        this.isFieldKitModalOpen = true;
+        const { width: canvasWidth, height: canvasHeight } = this.scale;
+        const previewingMobileLayout = this.fieldKitPreviewSize === 'mobile';
+        const width = previewingMobileLayout ? 390 : canvasWidth;
+        const height = previewingMobileLayout ? Math.min(720, canvasHeight) : canvasHeight;
+        const viewportX = previewingMobileLayout ? (canvasWidth - width) / 2 : 0;
+        const viewportY = previewingMobileLayout ? (canvasHeight - height) / 2 : 0;
+        const centerX = viewportX + width / 2;
+        const isNarrow = width < 520;
+        const panelWidth = Math.min(520, width - 24);
+        const panelHeight = Math.min(isNarrow ? 550 : 510, height - 24);
+        const panelX = viewportX + (width - panelWidth) / 2;
+        const panelY = viewportY + (height - panelHeight) / 2;
+        const elements = [];
+        this.fieldKitModalElements = elements;
+
+        const physicsWasPaused = Boolean(this.physics?.world?.isPaused);
+        if (!physicsWasPaused) {
+            this.physics?.pause?.();
+        }
+
+        const overlay = this.add.graphics()
+            .fillStyle(0x05080D, 0.9)
+            .fillRect(0, 0, canvasWidth, canvasHeight)
+            .setScrollFactor(0)
+            .setDepth(7000);
+        elements.push(overlay);
+
+        const inputShield = this.add.zone(canvasWidth / 2, canvasHeight / 2, canvasWidth, canvasHeight)
+            .setScrollFactor(0)
+            .setDepth(7001)
+            .setInteractive();
+        elements.push(inputShield);
+
+        const panel = this.add.graphics()
+            .fillStyle(0x101820, 0.99)
+            .fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8)
+            .lineStyle(2, 0x6FE7DD, 0.85)
+            .strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8)
+            .setScrollFactor(0)
+            .setDepth(7002);
+        elements.push(panel);
+
+        const eyebrow = this.add.text(centerX, panelY + 28, 'PROJECT BEACON // WANDERER-7', {
+            fontSize: isNarrow ? '11px' : '12px',
+            color: '#6FE7DD',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(7003);
+        elements.push(eyebrow);
+
+        const title = this.add.text(centerX, panelY + 58, 'FIELD KIT RECOVERED', {
+            fontSize: isNarrow ? '22px' : '27px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(7003);
+        elements.push(title);
+
+        const katana = this.add.graphics()
+            .lineStyle(5, 0xDCE8ED, 1)
+            .lineBetween(centerX - 82, panelY + 111, centerX + 67, panelY + 111)
+            .lineStyle(2, 0xFFFFFF, 0.7)
+            .lineBetween(centerX - 78, panelY + 108, centerX + 67, panelY + 108)
+            .lineStyle(8, 0x66513C, 1)
+            .lineBetween(centerX + 68, panelY + 111, centerX + 101, panelY + 111)
+            .lineStyle(5, 0xD8B65C, 1)
+            .lineBetween(centerX + 61, panelY + 99, centerX + 61, panelY + 123)
+            .setScrollFactor(0)
+            .setDepth(7003);
+        elements.push(katana);
+
+        const itemName = this.add.text(centerX, panelY + 145, fieldKit.katana.name, {
+            fontSize: isNarrow ? '17px' : '19px',
+            color: '#D8B65C',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(7003);
+        elements.push(itemName);
+
+        const status = this.add.text(
+            centerX,
+            panelY + 177,
+            `EARTH-FORGED // ${fieldKit.katana.material.toUpperCase()}\nCreature-tech interfaces: 0 / ${fieldKit.katana.upgradeSlots} dormant`,
+            {
+                fontSize: isNarrow ? '11px' : '12px',
+                color: '#9CB0BA',
+                align: 'center',
+                lineSpacing: 5
+            }
+        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(7003);
+        elements.push(status);
+
+        const creatureName = getGameState().get('creature.name') || 'Your companion';
+        const companionMoment = this.add.text(
+            centerX,
+            panelY + 235,
+            `${creatureName} approaches the open case, studies your hands, then taps the sealed scabbard.`,
+            {
+                fontSize: isNarrow ? '13px' : '14px',
+                color: '#E4EEF2',
+                align: 'center',
+                lineSpacing: 5,
+                wordWrap: { width: panelWidth - 52 }
+            }
+        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(7003);
+        elements.push(companionMoment);
+
+        const fieldNoteY = panelY + (isNarrow ? 325 : 310);
+        const fieldNote = this.add.text(
+            centerX,
+            fieldNoteY,
+            '"Not a trophy. A promise to protect. Sensei would approve of the principle. Probably not the landing."',
+            {
+                fontSize: isNarrow ? '12px' : '13px',
+                color: '#B9C6CC',
+                fontStyle: 'italic',
+                align: 'center',
+                lineSpacing: 5,
+                wordWrap: { width: panelWidth - 60 }
+            }
+        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(7003);
+        elements.push(fieldNote);
+
+        const closeModal = () => {
+            if (!this.isFieldKitModalOpen) return;
+            this.isFieldKitModalOpen = false;
+            this.input?.keyboard?.off('keydown-ENTER', closeModal);
+            this.input?.keyboard?.off('keydown-ESC', closeModal);
+            elements.forEach(element => {
+                element?.removeAllListeners?.();
+                element?.destroy?.();
+            });
+            this.fieldKitModalElements = [];
+            this.closeFieldKitModal = null;
+            if (!physicsWasPaused) {
+                this.physics?.resume?.();
+            }
+            this.nearCrashedShip = false;
+        };
+        this.closeFieldKitModal = closeModal;
+
+        const button = this.add.text(centerX, panelY + panelHeight - 48, 'SECURE FIELD KIT', {
+            fontSize: isNarrow ? '14px' : '16px',
+            color: '#071014',
+            backgroundColor: '#6FE7DD',
+            fontStyle: 'bold',
+            padding: { x: isNarrow ? 22 : 30, y: 11 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(7003).setInteractive({ useHandCursor: true });
+        button.on('pointerover', () => button.setStyle({ backgroundColor: '#8AF5EC' }));
+        button.on('pointerout', () => button.setStyle({ backgroundColor: '#6FE7DD' }));
+        button.on('pointerdown', closeModal);
+        elements.push(button);
+
+        this.input?.keyboard?.on('keydown-ENTER', closeModal);
+        this.input?.keyboard?.on('keydown-ESC', closeModal);
+    }
+
     handleCrashedShipProximity(player, ship) {
         if (!this.nearCrashedShip) {
             this.nearCrashedShip = true;
             console.log('[GameScene] Player near Crashed Ship');
 
-            this.showInteractionHint('Press SPACE to examine your ship 🚀');
+            const fieldKitRecovered = this.hasRecoveredProjectBeaconFieldKit();
+            this.showInteractionHint(
+                fieldKitRecovered
+                    ? 'Press SPACE to examine your ship 🚀'
+                    : 'Press SPACE to recover the field kit 🥋'
+            );
 
             if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon('🚀');
+                this.mobileControls.updateInteractIcon(fieldKitRecovered ? '🚀' : '🥋');
             }
         }
     }
@@ -5144,13 +5992,8 @@ class GameScene extends Phaser.Scene {
     returnToSanctuary() {
         console.log('[GameScene] Returning to Sanctuary');
 
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Returning home...');
-        }
-
-        if (window.AudioManager) {
-            window.AudioManager.playPurchase();
-        }
+        this.sceneRouter.showLoading('Returning home...');
+        this.sceneRouter.playSound('purchase');
 
         // Flash transition effect
         const { width, height } = this.scale;
@@ -5167,7 +6010,7 @@ class GameScene extends Phaser.Scene {
             ease: 'Power2',
             onComplete: () => {
                 // Return to nebula biome (Sanctuary)
-                this.scene.start('GameScene', { biome: 'nebula' });
+                this.sceneRouter.startScene('GameScene', { biome: 'nebula' });
             }
         });
     }
@@ -5284,44 +6127,7 @@ class GameScene extends Phaser.Scene {
         // Store elements on this so OnboardingManager can detect dismissal
         this.storyModalElements = elements;
 
-        // Story pages
-        const storyPages = [
-            {
-                title: '🚀 The Wanderer',
-                subtitle: 'Your Research Vessel',
-                icon: '🛸',
-                content: 'The Wanderer-7 was a state-of-the-art research vessel,\ndesigned for deep space exploration and the study\nof anomalous cosmic phenomena.\n\nYou were part of a crew of scientists investigating\nstrange energy readings at the edge of known space.',
-                color: '#4A90A4'
-            },
-            {
-                title: '⚠️ The Incident',
-                subtitle: 'Day 847 of Mission',
-                icon: '💥',
-                content: 'Your instruments detected something impossible:\na tear in the fabric of reality itself.\n\nAs you approached to investigate, the void\nreached back. Gravitational waves pulled the ship\nthrough the rift before you could react.',
-                color: '#FF6B6B'
-            },
-            {
-                title: '🌌 The Void',
-                subtitle: 'An Uncharted Realm',
-                icon: '🕳️',
-                content: 'You crash-landed in this strange dimension.\nYour sensors struggled to comprehend this place.\nTime flows differently here. Stars shine in impossible colors.\n\nThe crew was scattered. You were alone.',
-                color: '#9966FF'
-            },
-            {
-                title: '🥚 The Discovery',
-                subtitle: 'Hope Among the Stars',
-                icon: '✨',
-                content: 'Among the wreckage, you found something unexpected:\nan egg, pulsing with ethereal light.\n\nIt called to you. And when it hatched,\nyou realized you weren\'t alone anymore.\n\nThis strange creature became your companion.',
-                color: '#FFD700'
-            },
-            {
-                title: '🏠 A New Beginning',
-                subtitle: 'The Sanctuary',
-                icon: '💜',
-                content: 'The Void isn\'t hostile—it\'s alive.\nOther creatures dwell here. Eggs can be found.\nPerhaps you were meant to discover this place.\n\nNow you raise and nurture these mythical beings.\nPerhaps one day, you\'ll repair the ship...\nBut for now, this is home.',
-                color: '#7B68EE'
-            }
-        ];
+        const storyPages = projectBeacon.openingPages;
 
         let currentPage = 0;
 
@@ -5334,8 +6140,9 @@ class GameScene extends Phaser.Scene {
         elements.push(overlay);
 
         // Memory panel
-        const panelWidth = Math.min(550, width - 30);
-        const panelHeight = Math.min(420, height - 60);
+        const isNarrow = width < 500;
+        const panelWidth = Math.min(550, width - 20);
+        const panelHeight = Math.min(560, height - 30);
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
 
@@ -5363,7 +6170,7 @@ class GameScene extends Phaser.Scene {
         elements.push(iconText);
 
         const titleText = this.add.text(panelX + 75, panelY + 25, storyPages[0].title, {
-            fontSize: '22px',
+            fontSize: isNarrow ? '18px' : '22px',
             color: storyPages[0].color,
             fontStyle: 'bold'
         }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
@@ -5377,11 +6184,11 @@ class GameScene extends Phaser.Scene {
         elements.push(subtitleText);
 
         const contentText = this.add.text(width / 2, panelY + 120, storyPages[0].content, {
-            fontSize: '15px',
+            fontSize: isNarrow ? '13px' : '15px',
             color: '#CCCCCC',
             align: 'center',
-            lineSpacing: 10,
-            wordWrap: { width: panelWidth - 60 }
+            lineSpacing: isNarrow ? 4 : 7,
+            wordWrap: { width: panelWidth - 40 }
         }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
         elements.push(contentText);
 
@@ -5465,23 +6272,29 @@ class GameScene extends Phaser.Scene {
 
         nextBtn.on('pointerover', () => nextBtn.setStyle({ backgroundColor: '#5AA0B4' }));
         nextBtn.on('pointerout', () => nextBtn.setStyle({ backgroundColor: '#4A90A4' }));
+        const closeStory = () => {
+            elements.forEach(el => el.destroy());
+            this.storyModalElements = [];
+            this.nearCrashedShip = false;
+            this.input.keyboard.off('keydown', escHandler);
+            this.input.keyboard.off('keydown', arrowHandler);
+            window.GameState?.set('story.projectBeacon.missionLogSeen', true);
+            window.GameState?.save?.();
+            window.QuestManager?.ensureProjectBeaconQuest?.();
+            if (onComplete) onComplete();
+        };
+
         nextBtn.on('pointerdown', () => {
             if (currentPage < storyPages.length - 1) {
                 currentPage++;
                 updatePage(currentPage);
                 if (window.AudioManager) window.AudioManager.playButtonClick();
             } else {
-                // Close
-                elements.forEach(el => el.destroy());
-                this.storyModalElements = [];
-                this.nearCrashedShip = false;
-                this.input.keyboard.off('keydown', escHandler);
-                this.input.keyboard.off('keydown', arrowHandler);
-                if (onComplete) onComplete();
+                closeStory();
             }
         });
 
-        // Repair progress section (future feature placeholder)
+        // Recovery progress uses the same ship-part state as campaign completion.
         const repairY = panelY + panelHeight - 155;
         const repairBg = this.add.graphics();
         repairBg.fillStyle(0x1A1A3E, 0.8);
@@ -5490,15 +6303,15 @@ class GameScene extends Phaser.Scene {
         repairBg.setDepth(5001);
         elements.push(repairBg);
 
-        const repairLabel = this.add.text(panelX + 35, repairY + 17, '🔧 Ship Repair Progress:', {
+        const repairLabel = this.add.text(panelX + 30, repairY + 17, isNarrow ? '🔧 Recovery:' : '🔧 Beacon Recovery:', {
             fontSize: '12px',
             color: '#888888'
         }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
         elements.push(repairLabel);
 
         // Progress bar
-        const progressBarX = panelX + 185;
-        const progressBarWidth = panelWidth - 230;
+        const progressBarX = panelX + (isNarrow ? 125 : 185);
+        const progressBarWidth = panelWidth - (isNarrow ? 170 : 230);
         const progressBarBg = this.add.graphics();
         progressBarBg.fillStyle(0x333344, 1);
         progressBarBg.fillRoundedRect(progressBarX, repairY + 10, progressBarWidth, 14, 4);
@@ -5506,7 +6319,9 @@ class GameScene extends Phaser.Scene {
         progressBarBg.setDepth(5002);
         elements.push(progressBarBg);
 
-        const repairProgress = 0; // Future: get from GameState
+        const collectedParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
+        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
+        const repairProgress = Math.min(100, Math.round((collectedParts.length / totalRequired) * 100));
         const progressBarFill = this.add.graphics();
         if (repairProgress > 0) {
             progressBarFill.fillStyle(0x4CAF50, 1);
@@ -5517,22 +6332,16 @@ class GameScene extends Phaser.Scene {
         elements.push(progressBarFill);
 
         const progressText = this.add.text(progressBarX + progressBarWidth + 10, repairY + 17,
-            repairProgress > 0 ? `${repairProgress}%` : 'Coming Soon', {
+            `${Math.min(collectedParts.length, totalRequired)}/${totalRequired}`, {
             fontSize: '11px',
-            color: repairProgress > 0 ? '#4CAF50' : '#666666',
-            fontStyle: 'italic'
+            color: repairProgress > 0 ? '#4CAF50' : '#AAAAAA'
         }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
         elements.push(progressText);
 
         // ESC to close
         const escHandler = (event) => {
             if (event.key === 'Escape') {
-                elements.forEach(el => el.destroy());
-                this.storyModalElements = [];
-                this.nearCrashedShip = false;
-                this.input.keyboard.off('keydown', escHandler);
-                this.input.keyboard.off('keydown', arrowHandler);
-                if (onComplete) onComplete();
+                closeStory();
             }
         };
         this.input.keyboard.on('keydown', escHandler);
@@ -5750,37 +6559,19 @@ class GameScene extends Phaser.Scene {
     openInventory() {
         console.log('[GameScene] Opening Inventory');
 
-        // Play button click sound
-        if (window.AudioManager) {
-            window.AudioManager.playButtonClick();
-        }
-
-        // Show loading overlay
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Opening Inventory...');
-        }
-
-        // Pause this scene and launch InventoryScene on top
-        this.scene.pause();
-        this.scene.launch('InventoryScene');
+        this.sceneRouter.pauseAndLaunchScene('InventoryScene', undefined, {
+            loadingMessage: 'Opening Inventory...',
+            sound: 'buttonClick'
+        });
     }
 
     openShop() {
         console.log('[GameScene] Opening Shop via keyboard');
 
-        // Play button click sound
-        if (window.AudioManager) {
-            window.AudioManager.playButtonClick();
-        }
-
-        // Show loading overlay
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Opening Cosmic Shop...');
-        }
-
-        // Pause this scene and launch ShopScene on top
-        this.scene.pause();
-        this.scene.launch('ShopScene');
+        this.sceneRouter.pauseAndLaunchScene('ShopScene', undefined, {
+            loadingMessage: 'Opening Cosmic Shop...',
+            sound: 'buttonClick'
+        });
     }
 
     openFusionPod() {
@@ -5805,19 +6596,10 @@ class GameScene extends Phaser.Scene {
 
         console.log('[GameScene] Opening Fusion Pod');
 
-        // Play button click sound
-        if (window.AudioManager) {
-            window.AudioManager.playButtonClick();
-        }
-
-        // Show loading overlay
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Opening Fusion Pod...');
-        }
-
-        // Pause this scene and launch FusionPodScene on top
-        this.scene.pause();
-        this.scene.launch('FusionPodScene');
+        this.sceneRouter.pauseAndLaunchScene('FusionPodScene', undefined, {
+            loadingMessage: 'Opening Fusion Pod...',
+            sound: 'buttonClick'
+        });
 
         // Clear guard flag after a delay (FusionPodScene.create() will hide loading)
         this.time.delayedCall(1000, () => {
@@ -5825,21 +6607,18 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    // Backward-compatible route for the original Breeding Shrine shortcut.
+    openBreedingShrine() {
+        return this.openFusionPod();
+    }
+
     openHubWorld() {
         console.log('[GameScene] Opening Hub World');
 
-        // Play button click sound
-        if (window.AudioManager) {
-            window.AudioManager.playButtonClick();
-        }
-
-        // Show loading overlay
-        if (window.UXEnhancements) {
-            window.UXEnhancements.showLoading('Traveling to Hub World...');
-        }
-
-        // Transition to Hub World scene
-        this.scene.start('HubWorldScene');
+        this.sceneRouter.startScene('HubWorldScene', undefined, {
+            loadingMessage: 'Traveling to Hub World...',
+            sound: 'buttonClick'
+        });
     }
 
     /**
@@ -5878,10 +6657,10 @@ class GameScene extends Phaser.Scene {
      * Check proximity to collectibles for auto-collection
      */
     checkCollectibleProximity() {
-        if (!window.CollectibleManager || !this.creature) return;
+        if (!window.CollectibleManager || !this.player) return;
 
-        const creatureX = this.creature.x;
-        const creatureY = this.creature.y;
+        const creatureX = this.player.x;
+        const creatureY = this.player.y;
 
         window.CollectibleManager.checkProximityCollection(
             this,
@@ -5889,6 +6668,205 @@ class GameScene extends Phaser.Scene {
             creatureY,
             60 // Collection radius
         );
+    }
+
+    checkLivingSignalProximity(delta = 16.67) {
+        const activeStoryQuest = window.QuestManager?.getQuestsByType?.('story')?.[0];
+        if (activeStoryQuest?.id !== 'beacon_living_signals') {
+            this.activeLivingSignalId = null;
+            this.livingSignalDwellMs = 0;
+            return;
+        }
+
+        const availableSignals = this.livingSignals.filter(
+            signal => signal?.active !== false && !signal.observed
+        );
+        const nearest = availableSignals.reduce((closest, signal) => {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                signal.x,
+                signal.y
+            );
+            if (!closest || distance < closest.distance) {
+                return { signal, distance };
+            }
+            return closest;
+        }, null);
+
+        if (!nearest || nearest.distance > 82) {
+            this.activeLivingSignalId = null;
+            this.livingSignalDwellMs = 0;
+            return;
+        }
+
+        if (this.activeLivingSignalId !== nearest.signal.signalId) {
+            this.activeLivingSignalId = nearest.signal.signalId;
+            this.livingSignalDwellMs = 0;
+            this.showInteractionHint('Stay close. Your companion is listening...');
+        }
+
+        this.livingSignalDwellMs += Math.min(Number(delta) || 16.67, 100);
+        if (this.livingSignalDwellMs >= 800) {
+            this.activeLivingSignalId = null;
+            this.livingSignalDwellMs = 0;
+            this.recordLivingSignalObservation(nearest.signal);
+        }
+    }
+
+    recordLivingSignalObservation(signal) {
+        if (!signal || signal.observed || !window.GameState) return false;
+
+        const result = observeLivingSignal(
+            window.GameState.get('world.livingSignals'),
+            signal.signalId
+        );
+        if (!result.success) {
+            this.refreshLivingSignalVisual(signal);
+            return false;
+        }
+
+        window.GameState.set('world.livingSignals', result.state);
+        window.GameState.visitArea?.(`signal:${signal.signalId}`);
+        this.refreshLivingSignalVisual(signal);
+        window.QuestManager?.trackProgress?.('observe_living_signal', {
+            signalId: signal.signalId
+        });
+        this.recordBondActivity('signal');
+        window.GameState.emit('livingSignalObserved', {
+            signalId: signal.signalId,
+            progress: result.progress,
+            total: result.total,
+            completed: result.completed,
+            timestamp: result.state.lastObservedAt
+        });
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'living_signal_observed',
+            signalId: signal.signalId
+        });
+
+        this.showLivingSignalMoment(result);
+        this.showCreatureResponse(result.signal.companionLine);
+        this.showFloatingText(
+            `SIGNAL ${result.progress}/${result.total} +4 Bond`,
+            signal.x,
+            signal.y - 55,
+            '#8FE3CF'
+        );
+        window.AudioManager?.playAchievementMinor?.();
+        window.FXLibrary?.stardustBurst?.(this, signal.x, signal.y, {
+            count: 14,
+            color: [result.signal.color, result.signal.accent, 0xFFFFFF],
+            duration: 1500
+        });
+
+        return true;
+    }
+
+    showLivingSignalMoment(result, { preview = false } = {}) {
+        if (!result?.signal) return;
+        this.clearLivingSignalMoment();
+
+        const { width, height } = this.scale;
+        const isMobile = width < 600;
+        const panelWidth = Math.min(isMobile ? width - 24 : 520, width - 24);
+        const panelHeight = isMobile ? 190 : 166;
+        const panelX = (width - panelWidth) / 2;
+        const mobileYLimit = height - panelHeight - 150;
+        const panelY = isMobile
+            ? Math.min(Math.max(230, height * 0.52), mobileYLimit)
+            : height - panelHeight - 24;
+        const depth = 15100;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x07151A, 0.97);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+        panel.lineStyle(2, result.signal.color, 0.95);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+        panel.setScrollFactor(0).setDepth(depth);
+
+        const eyebrow = this.add.text(
+            panelX + 16,
+            panelY + 13,
+            `PROJECT BEACON // LIVING SIGNAL ${result.progress}/${result.total}`,
+            {
+                fontSize: isMobile ? '10px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        ).setScrollFactor(0).setDepth(depth + 1);
+        const title = this.add.text(panelX + 16, panelY + 36, result.signal.name, {
+            fontSize: isMobile ? '18px' : '20px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setScrollFactor(0).setDepth(depth + 1);
+        const response = this.add.text(panelX + 16, panelY + 67, result.signal.response, {
+            fontSize: isMobile ? '12px' : '13px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#D6EEF2',
+            lineSpacing: 3,
+            wordWrap: { width: panelWidth - 32 }
+        }).setScrollFactor(0).setDepth(depth + 1);
+        const companion = this.add.text(
+            panelX + 16,
+            panelY + (isMobile ? 112 : 98),
+            `COMPANION // ${result.signal.companionLine}`,
+            {
+                fontSize: isMobile ? '10px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#BFA6FF',
+                fontStyle: 'bold',
+                wordWrap: { width: panelWidth - 32 }
+            }
+        ).setScrollFactor(0).setDepth(depth + 1);
+        const fieldNote = this.add.text(
+            panelX + 16,
+            panelY + panelHeight - 14,
+            `FIELD NOTE // ${result.signal.fieldNote}`,
+            {
+                fontSize: isMobile ? '10px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F2C14E',
+                fontStyle: 'bold',
+                wordWrap: { width: panelWidth - 32 }
+            }
+        ).setOrigin(0, 1).setScrollFactor(0).setDepth(depth + 1);
+        const close = this.add.text(panelX + panelWidth - 16, panelY + 17, '×', {
+            fontSize: '22px',
+            color: '#A8C2C7'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2)
+            .setInteractive({ useHandCursor: true });
+        close.on('pointerdown', () => this.clearLivingSignalMoment());
+
+        this.livingSignalMomentElements = [
+            panel,
+            eyebrow,
+            title,
+            response,
+            companion,
+            fieldNote,
+            close
+        ];
+
+        if (!preview) {
+            const duration = result.completed ? 3600 : 5200;
+            this.livingSignalMomentTimer = this.time.delayedCall(
+                duration,
+                () => this.clearLivingSignalMoment()
+            );
+        }
+    }
+
+    clearLivingSignalMoment() {
+        this.livingSignalMomentTimer?.remove?.();
+        this.livingSignalMomentTimer = null;
+        this.livingSignalMomentElements.forEach(element => {
+            element?.removeAllListeners?.();
+            element?.destroy?.();
+        });
+        this.livingSignalMomentElements = [];
     }
 
     /**
@@ -5968,6 +6946,9 @@ class GameScene extends Phaser.Scene {
             case 'pet':
                 this.petCreature();
                 break;
+            case 'care':
+                this.toggleCarePanel();
+                break;
             case 'abilities':
                 this.openAbilitiesOverlay();
                 break;
@@ -5984,14 +6965,28 @@ class GameScene extends Phaser.Scene {
      */
     openCreatureProfile() {
         console.log('[GameScene] Opening creature profile');
-        this.scene.launch('CreatureProfileScene');
-        this.scene.bringToTop('CreatureProfileScene');
+        this.sceneRouter.launchScene('CreatureProfileScene', undefined, {
+            bringToTop: true
+        });
     }
 
     /**
      * Open AI Art generator modal
      */
     openAIArt() {
+        if (!window.APIConfig?.isEnabled?.()) {
+            console.warn('[GameScene] AI Art is unavailable in this build');
+            if (this.player) {
+                this.showFloatingText(
+                    'AI Art is unavailable in this build',
+                    this.player.x,
+                    this.player.y - 70,
+                    '#FFCC66'
+                );
+            }
+            return;
+        }
+
         console.log('[GameScene] Opening AI Art generator');
 
         // Create modal if needed
@@ -6067,8 +7062,9 @@ class GameScene extends Phaser.Scene {
         }
 
         // Launch ability selection scene (to be created)
-        this.scene.launch('AbilitySelectionScene');
-        this.scene.bringToTop('AbilitySelectionScene');
+        this.sceneRouter.launchScene('AbilitySelectionScene', undefined, {
+            bringToTop: true
+        });
     }
 
     /**
@@ -6096,6 +7092,8 @@ class GameScene extends Phaser.Scene {
             rest: 1,
             clean: 2,
             photo: 2,
+            garden: 5,
+            signal: 4,
             chat: 4,
             level_complete: 10
         };
@@ -6105,7 +7103,7 @@ class GameScene extends Phaser.Scene {
         bondData.totalInteractions++;
 
         // Track specific activities
-        if (['pet', 'feed', 'play', 'rest', 'clean', 'photo'].includes(activityType)) {
+        if (['pet', 'feed', 'play', 'rest', 'clean', 'photo', 'garden'].includes(activityType)) {
             bondData.careActions++;
         } else if (activityType === 'chat') {
             bondData.conversations++;
@@ -6176,17 +7174,18 @@ class GameScene extends Phaser.Scene {
     }
 
     showInteractionHint(message) {
+        if (!this.interactionText?.active) return;
         this.interactionText.setText(message);
         this.interactionText.setVisible(true);
 
         // Hide the hint after 3 seconds
         this.time.delayedCall(3000, () => {
-            this.interactionText.setVisible(false);
+            this.interactionText?.setVisible(false);
         });
     }
 
     hideInteractionHint() {
-        this.interactionText.setVisible(false);
+        this.interactionText?.setVisible(false);
     }
 
 
@@ -6226,7 +7225,11 @@ class GameScene extends Phaser.Scene {
     }
 
     handleSpaceInteraction() {
-        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCampfire:', this.nearCampfire, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
+        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCampfire:', this.nearCampfire, 'nearSignalGarden:', this.nearSignalGarden, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
+
+        if (this.isFieldKitModalOpen) {
+            return;
+        }
 
         // Distance-based fallback for portals (in case overlap detection missed)
         // Note: Void portal uses automatic pull-in, not spacebar - so no check needed here
@@ -6267,6 +7270,20 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        const GARDEN_INTERACT_DISTANCE = 130;
+        if (!this.nearSignalGarden && this.signalGarden?.zone && this.player) {
+            const distToGarden = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.signalGarden.zone.x,
+                this.signalGarden.zone.y
+            );
+            if (distToGarden <= GARDEN_INTERACT_DISTANCE) {
+                console.log('[GameScene] Distance fallback: Player within range of Signal Garden');
+                this.nearSignalGarden = true;
+            }
+        }
+
         // Check for shop entry first
         if (this.nearShop) {
             console.log('[GameScene] Entering shop from SPACE handler');
@@ -6292,11 +7309,22 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
+        if (this.nearSignalGarden) {
+            console.log('[GameScene] Tending Signal Garden from SPACE handler');
+            this.tendSignalGarden();
+            return;
+        }
+
         // Check for crashed ship interaction
         if (this.nearCrashedShip) {
-            console.log('[GameScene] Viewing ship memories from SPACE handler');
-            this.showShipMemories();
-            this.nearCrashedShip = false;
+            if (this.hasRecoveredProjectBeaconFieldKit()) {
+                console.log('[GameScene] Viewing ship memories from SPACE handler');
+                this.showShipMemories();
+                this.nearCrashedShip = false;
+            } else {
+                console.log('[GameScene] Recovering field kit from SPACE handler');
+                this.recoverProjectBeaconFieldKit();
+            }
             return;
         }
 
@@ -6450,17 +7478,29 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    update() {
+    update(time, delta) {
         // Guard: Skip update if scene is shutting down or not ready
         if (this._isShuttingDown || !this.player) {
             return;
         }
 
+        if (this.waypointPreview) {
+            this.projectBeaconWaypoint?.update(delta || 16.67);
+            return;
+        }
+
+        if (this.mapRecoveryPreview) {
+            return;
+        }
+
         // Handle player movement
         this.handleMovement();
+        this.trackSanctuaryZoneVisit();
+        this.astronautFollower?.update(delta || this.game?.loop?.delta || 16.67);
+        this.projectBeaconWaypoint?.update(delta || this.game?.loop?.delta || 16.67);
 
         // Update position display
-        this.updatePositionDisplay();
+        this.updatePositionDisplay(time);
 
         // Update cosmic UI elements
         this.updateCosmicMiniMap();
@@ -6483,6 +7523,7 @@ class GameScene extends Phaser.Scene {
 
         // Check collectible proximity for auto-collection
         this.checkCollectibleProximity();
+        this.checkLivingSignalProximity(delta || this.game?.loop?.delta || 16.67);
 
         // Check shop proximity distance
         if (this.nearShop && this.shop && this.player) {
@@ -6613,6 +7654,37 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        if (this.nearSignalGarden && this.signalGarden?.zone && this.player) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.signalGarden.zone.x,
+                this.signalGarden.zone.y
+            );
+
+            if (distance > 130) {
+                console.log('[GameScene] Player moved away from Signal Garden, distance:', distance);
+                this.nearSignalGarden = false;
+                this.hideInteractionHint();
+                this.signalGardenIndicatorTween?.stop();
+                this.signalGardenIndicatorTween = null;
+                this.signalGardenIndicator?.destroy();
+                this.signalGardenIndicator = null;
+
+                if (
+                    this.mobileControls &&
+                    !this.nearbyFlower &&
+                    !this.nearShop &&
+                    !this.nearHubPortal &&
+                    !this.nearCrashedShip &&
+                    !this.nearReturnPortal &&
+                    !this.nearCampfire
+                ) {
+                    this.mobileControls.updateInteractIcon('👆');
+                }
+            }
+        }
+
         // Check target range proximity (zone-based check)
         this.checkTargetRangeProximity();
 
@@ -6647,9 +7719,9 @@ class GameScene extends Phaser.Scene {
             this.openShop();
         }
 
-        // Handle B key for breeding shrine
+        // Handle B key for the Fusion Pod (formerly called the Breeding Shrine)
         if (this.breedingKey && Phaser.Input.Keyboard.JustDown(this.breedingKey)) {
-            this.openBreedingShrine();
+            this.openFusionPod();
         }
 
         // Handle H key for Hub World
@@ -6761,20 +7833,24 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    updatePositionDisplay() {
-        if (!this.player || !this.positionText) return;
+    updatePositionDisplay(time = 0) {
+        if (!this.player) return;
 
         const x = Math.round(this.player.x);
         const y = Math.round(this.player.y);
-        this.positionText.setText(`Position: (${x}, ${y})`);
+        this.positionText?.setText?.(`Position: (${x}, ${y})`);
 
-        // Update position in GameState every few pixels
-        if (Math.abs(x - (getGameState().get('world.currentPosition.x') || 0)) > 5 ||
-            Math.abs(y - (getGameState().get('world.currentPosition.y') || 0)) > 5) {
+        const savedPosition = getGameState().get('world.currentPosition') || {};
+        const movedEnough =
+            Math.abs(x - (Number(savedPosition.x) || 0)) >= POSITION_PERSIST_DISTANCE ||
+            Math.abs(y - (Number(savedPosition.y) || 0)) >= POSITION_PERSIST_DISTANCE;
+        const updateTime = Number.isFinite(time) ? time : Date.now();
+        const intervalElapsed =
+            updateTime - this.lastPositionPersistedAt >= POSITION_PERSIST_INTERVAL_MS;
+
+        if (movedEnough && intervalElapsed) {
             getGameState().updateWorldExploration({ x, y });
-
-            // Check tutorials after movement
-            this.time.delayedCall(300, () => this.checkAndCompleteTutorials());
+            this.lastPositionPersistedAt = updateTime;
         }
     }
 
@@ -7285,6 +8361,9 @@ class GameScene extends Phaser.Scene {
 
         // Emit evolution event for other systems
         window.GameState.emit('creature:evolved', { fromStage, toStage });
+        window.AchievementSystem?.recordEvent?.('stage_reached', {
+            stage: toStage
+        });
 
         // Play evolution celebration
         this.playEvolutionCelebration(fromStage, toStage, celebrationConfig);
@@ -8196,6 +9275,9 @@ class GameScene extends Phaser.Scene {
         if (this.events) {
             this.events.off('openChat');
             this.events.off('radialMenuSelect');
+            if (typeof Phaser !== 'undefined' && Phaser?.Scenes?.Events) {
+                this.events.off(Phaser.Scenes.Events.RESUME, this.handleSceneResume, this);
+            }
             if (import.meta.env.DEV) {
                 this.events.off('forceCreatureRefresh');
             }
@@ -8212,6 +9294,34 @@ class GameScene extends Phaser.Scene {
             this.aiArtModal.cleanup();
             this.aiArtModal = null;
         }
+
+        this.closeFieldKitModal?.();
+        this.closeFieldKitModal = null;
+        this.fieldKitModalElements = [];
+        this.fieldKitCaseTween?.stop();
+        this.fieldKitCaseTween = null;
+        this.fieldKitCase?.destroy?.(true);
+        this.fieldKitCase = null;
+        this.fieldKitPreviewElements?.forEach(element => element?.destroy?.());
+        this.fieldKitPreviewElements = [];
+        this.waypointPreviewElements?.forEach(element => element?.destroy?.());
+        this.waypointPreviewElements = [];
+        this.signalGardenPreviewElements?.forEach(element => element?.destroy?.());
+        this.signalGardenPreviewElements = [];
+        this.clearLivingSignalMoment();
+        this.livingSignalPreviewElements?.forEach(element => element?.destroy?.());
+        this.livingSignalPreviewElements = [];
+        this.livingSignals.forEach(signal => {
+            signal?.pulseTween?.stop?.();
+            signal?.container?.destroy?.(true);
+        });
+        this.livingSignals = [];
+        this.signalGardenIndicatorTween?.stop();
+        this.signalGardenIndicatorTween = null;
+        this.signalGardenIndicator?.destroy();
+        this.signalGardenIndicator = null;
+        this.astronautFollower?.destroy();
+        this.astronautFollower = null;
 
         // Clean up ability HUD
         if (this.abilityHUD) {
@@ -8331,6 +9441,8 @@ class GameScene extends Phaser.Scene {
         this.worldBuilder = null;
         this.questTracker?.destroy();
         this.questTracker = null;
+        this.projectBeaconWaypoint?.destroy();
+        this.projectBeaconWaypoint = null;
         this.controlsTutorial?.cleanup();
         this.controlsTutorial = null;
         this.controlsHintPanel?.cleanup();
@@ -8439,6 +9551,8 @@ class GameScene extends Phaser.Scene {
         });
         this.dailyBonusButton?.destroy();
         this.dailyBonusButton = null;
+        this.resetButton?.destroy();
+        this.resetButton = null;
         this.positionText?.destroy();
         this.positionText = null;
         this.statsText?.destroy();
@@ -8538,11 +9652,13 @@ class GameScene extends Phaser.Scene {
         this.moodIndicator = null;
         this.personalityPanel?.destroy();
         this.personalityPanel = null;
+        this.hudController = null;
 
         if (this.cameras?.main) {
             this.cameras.main.stopFollow();
         }
 
+        this.sceneRouter = null;
         this._sceneLifecycleRegistered = false;
 
         console.log('[GameScene] Cleanup complete');

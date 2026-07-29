@@ -103,7 +103,7 @@ class WorldBuilder {
     }
 
     /**
-     * Create Sanctuary-specific landmarks (crash site, hub portal, campfire)
+     * Create Sanctuary-specific landmarks
      */
     createSanctuaryLandmarks() {
         const physics = this.scene.physics;
@@ -221,16 +221,226 @@ class WorldBuilder {
 
         // Create Target Practice Range
         const targetRange = this.createTargetRange(landmarks.targetRange);
+        const signalGarden = this.createSignalGarden(landmarks.signalGarden);
+        const sanctuaryKeepsakes = this.createSanctuaryKeepsakes();
 
-        console.log('[WorldBuilder] Created Sanctuary landmarks: crashedShip, hubPortal, voidPortal, campfire, targetRange');
+        console.log('[WorldBuilder] Created Sanctuary landmarks: crashedShip, hubPortal, voidPortal, campfire, targetRange, signalGarden, sanctuaryKeepsakes');
 
         return {
             crashedShip,
             hubPortal,
             voidPortal,
             campfire,
-            targetRange
+            targetRange,
+            signalGarden,
+            sanctuaryKeepsakes
         };
+    }
+
+    createSanctuaryKeepsakes(countOverride = null) {
+        const storedCount = typeof window !== 'undefined'
+            ? Number(window.GameState?.get?.('world.sanctuaryDecorations.voidCrystals'))
+            : 0;
+        const requestedCount = countOverride === null ? storedCount : Number(countOverride);
+        const count = Number.isFinite(requestedCount)
+            ? Math.max(0, Math.min(3, Math.floor(requestedCount)))
+            : 0;
+        const positions = [
+            { x: 1005, y: 1015, scale: 0.9 },
+            { x: 1195, y: 1035, scale: 1.05 },
+            { x: 1090, y: 1100, scale: 0.82 }
+        ];
+        const elements = [];
+
+        positions.slice(0, count).forEach((position, index) => {
+            const group = this.scene.add.container(position.x, position.y);
+            group.setDepth(position.y);
+            group.setScale(position.scale);
+
+            const glow = this.scene.add.graphics();
+            glow.fillStyle(0x8CEBFF, 0.12);
+            glow.fillCircle(0, -30, 42);
+            glow.lineStyle(2, 0xBFA6FF, 0.4);
+            glow.strokeCircle(0, -30, 32);
+
+            const pedestal = this.scene.add.graphics();
+            pedestal.fillStyle(0x172B35, 0.98);
+            pedestal.fillEllipse(0, 8, 62, 24);
+            pedestal.fillStyle(0x355162, 1);
+            pedestal.fillRoundedRect(-22, -2, 44, 15, 5);
+            pedestal.lineStyle(2, 0x78B8C7, 0.72);
+            pedestal.strokeEllipse(0, 4, 54, 20);
+
+            const crystal = this.scene.add.graphics();
+            crystal.fillStyle(index === 1 ? 0xBFA6FF : 0x72E6E1, 1);
+            crystal.lineStyle(3, 0xE8FFFF, 0.9);
+            crystal.beginPath();
+            crystal.moveTo(0, -67);
+            crystal.lineTo(19, -35);
+            crystal.lineTo(11, -7);
+            crystal.lineTo(-12, -7);
+            crystal.lineTo(-20, -36);
+            crystal.closePath();
+            crystal.fillPath();
+            crystal.strokePath();
+            crystal.lineStyle(2, 0xFFFFFF, 0.65);
+            crystal.beginPath();
+            crystal.moveTo(0, -62);
+            crystal.lineTo(2, -13);
+            crystal.strokePath();
+
+            group.add([glow, pedestal, crystal]);
+            const pulseTween = this.scene.tweens.add({
+                targets: glow,
+                alpha: { from: 0.55, to: 1 },
+                scaleX: { from: 0.92, to: 1.08 },
+                scaleY: { from: 0.92, to: 1.08 },
+                duration: 1500 + (index * 180),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            elements.push({ group, glow, pedestal, crystal, pulseTween });
+        });
+
+        let label = null;
+        if (count > 0) {
+            label = this.scene.add.text(1100, 1145, 'A QUIET CORNER', {
+                fontSize: '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#D8FFF0',
+                fontStyle: 'bold',
+                stroke: '#081514',
+                strokeThickness: 4
+            }).setOrigin(0.5).setDepth(1146);
+        }
+
+        return { count, elements, label };
+    }
+
+    refreshSanctuaryKeepsakes(keepsakes, countOverride = null) {
+        keepsakes?.elements?.forEach(({ group, pulseTween }) => {
+            pulseTween?.stop?.();
+            group?.destroy?.(true);
+        });
+        keepsakes?.label?.destroy?.();
+        return this.createSanctuaryKeepsakes(countOverride);
+    }
+
+    /**
+     * Create the Signal Garden and its stage-specific living growth.
+     */
+    createSignalGarden(landmarkData, stageOverride = null) {
+        const centerX = landmarkData.position.x;
+        const centerY = landmarkData.position.y;
+        const zone = this.scene.add.zone(centerX, centerY, 180, 140);
+        this.scene.physics.add.existing(zone, true);
+        zone.setDepth(centerY);
+        zone.landmarkId = 'signalGarden';
+        zone.landmarkData = landmarkData;
+
+        const bed = this.scene.add.graphics().setPosition(centerX, centerY);
+        bed.setDepth(centerY - 2);
+        bed.fillStyle(0x142D2A, 0.95);
+        bed.fillRoundedRect(-86, -38, 172, 76, 22);
+        bed.lineStyle(3, 0x71E6B1, 0.65);
+        bed.strokeRoundedRect(-86, -38, 172, 76, 22);
+        bed.fillStyle(0x243D38, 1);
+        bed.fillEllipse(0, 5, 142, 52);
+        bed.lineStyle(2, 0xF2C86B, 0.5);
+        bed.strokeEllipse(0, 5, 142, 52);
+
+        const growth = this.scene.add.graphics().setPosition(centerX, centerY);
+        growth.setDepth(centerY + 1);
+
+        const label = this.scene.add.text(centerX, centerY - 72, 'SIGNAL GARDEN', {
+            fontSize: '13px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#D8FFF0',
+            fontStyle: 'bold',
+            stroke: '#081514',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(centerY + 2);
+
+        const storedStage = typeof window !== 'undefined'
+            ? window.GameState?.get?.('world.signalGarden.stage')
+            : null;
+        const garden = {
+            zone,
+            bed,
+            growth,
+            label,
+            pulseTween: null,
+            stage: 'seed'
+        };
+
+        this.refreshSignalGarden(garden, stageOverride || storedStage || 'seed');
+        this.signalGarden = garden;
+        return garden;
+    }
+
+    refreshSignalGarden(garden, requestedStage = 'seed') {
+        if (!garden?.growth) return;
+
+        const stages = ['seed', 'sprout', 'bud', 'bloom'];
+        const stage = stages.includes(requestedStage) ? requestedStage : 'seed';
+        const growth = garden.growth;
+        garden.pulseTween?.stop();
+        growth.clear();
+
+        growth.lineStyle(2, 0x71E6B1, 0.32);
+        growth.strokeEllipse(0, 4, stage === 'bloom' ? 118 : 82, stage === 'bloom' ? 54 : 36);
+
+        if (stage === 'seed') {
+            growth.fillStyle(0xF2C86B, 1);
+            growth.fillCircle(0, 5, 6);
+            growth.lineStyle(2, 0xF2C86B, 0.45);
+            growth.strokeCircle(0, 5, 15);
+        } else {
+            const stemHeight = stage === 'sprout' ? 25 : stage === 'bud' ? 42 : 54;
+            growth.lineStyle(5, 0x71E6B1, 1);
+            growth.beginPath();
+            growth.moveTo(0, 8);
+            growth.lineTo(0, 8 - stemHeight);
+            growth.strokePath();
+
+            growth.fillStyle(0x56C992, 1);
+            growth.fillEllipse(-10, -7, 19, 9);
+            growth.fillEllipse(10, -17, 19, 9);
+
+            if (stage === 'sprout') {
+                growth.fillStyle(0xD8FFF0, 1);
+                growth.fillCircle(0, -18, 4);
+            } else if (stage === 'bud') {
+                growth.fillStyle(0xBFA6FF, 1);
+                growth.fillEllipse(0, -36, 15, 19);
+                growth.lineStyle(2, 0xF2C86B, 0.55);
+                growth.strokeCircle(0, -36, 18);
+            } else {
+                growth.fillStyle(0xBFA6FF, 1);
+                growth.fillCircle(-10, -47, 10);
+                growth.fillCircle(10, -47, 10);
+                growth.fillStyle(0x71E6B1, 1);
+                growth.fillCircle(0, -57, 11);
+                growth.fillCircle(0, -38, 11);
+                growth.fillStyle(0xF2C86B, 1);
+                growth.fillCircle(0, -47, 8);
+                growth.lineStyle(2, 0xD8FFF0, 0.55);
+                growth.strokeCircle(0, -47, 28);
+            }
+        }
+
+        garden.stage = stage;
+        garden.pulseTween = this.scene.tweens.add({
+            targets: growth,
+            alpha: { from: 0.82, to: 1 },
+            scaleX: { from: 0.97, to: 1.03 },
+            scaleY: { from: 0.97, to: 1.03 },
+            duration: stage === 'bloom' ? 1400 : 1900,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
     }
 
     /**
@@ -1448,6 +1658,12 @@ class WorldBuilder {
     }
 
     destroy() {
+        this.signalGarden?.pulseTween?.stop();
+        this.signalGarden?.zone?.destroy();
+        this.signalGarden?.bed?.destroy();
+        this.signalGarden?.growth?.destroy();
+        this.signalGarden?.label?.destroy();
+        this.signalGarden = null;
         this.backgroundImage?.destroy();
         this.backgroundImage = null;
         this.debugGraphics?.destroy();

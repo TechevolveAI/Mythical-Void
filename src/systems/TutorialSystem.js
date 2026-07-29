@@ -40,7 +40,7 @@ class TutorialSystem {
             care: {
                 id: 'care',
                 title: 'Creature Care',
-                message: 'Press TAB to open care menu, then F/P/R to feed, play, or rest with your creature',
+                message: 'Press TAB to open Care Corner, then choose Feed, Play, or Rest for your creature',
                 condition: (gameState, scene) => {
                     // Check if player has performed any care action
                     const care = gameState.creature.care;

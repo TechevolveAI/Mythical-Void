@@ -3,7 +3,8 @@
  * Features: personality display, genetics showcase, creature animation
  */
 
-const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+import Phaser from 'phaser';
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 
 function requireGlobal(name) {
     if (typeof window === 'undefined' || !window[name]) {
@@ -33,14 +34,8 @@ class PersonalityScene extends Phaser.Scene {
     create() {
         // Stop all other scenes to ensure clean display
         const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene', 'HatchingScene'];
-        scenesToStop.forEach(sceneKey => {
-            try {
-                this.scene.stop(sceneKey);
-            } catch (e) {
-                // Scene might not exist - that's fine
-            }
-        });
-        this.scene.bringToTop();
+        SceneTransitionHelper.stopActiveScenes(this, scenesToStop);
+        SceneTransitionHelper.bringToTop(this);
 
         const state = getGameState();
 

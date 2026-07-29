@@ -4,6 +4,7 @@
  */
 
 import Phaser from 'phaser';
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 
 export default class ShopScene extends Phaser.Scene {
     constructor() {
@@ -19,6 +20,16 @@ export default class ShopScene extends Phaser.Scene {
         this.gameStateUnsubscribers = [];
         this.cleanupCallbacks = [];
         this._isShuttingDown = false;
+        this.previewOpenRoutes = new Set();
+        this.previewVoidCrystalCapacity = false;
+    }
+
+    init(data = {}) {
+        this.previewOpenRoutes = new Set(
+            Array.isArray(data.routeMapPreview) ? data.routeMapPreview : []
+        );
+        this.previewVoidCrystalCapacity = data.voidCrystalCapacityPreview === true;
+        this.selectedCategory = data.initialCategory || 'eggs';
     }
 
     create() {
@@ -65,7 +76,7 @@ export default class ShopScene extends Phaser.Scene {
         this.initializeShopItems();
 
         // Display initial category
-        this.displayCategory('eggs');
+        this.displayCategory(this.selectedCategory);
 
         // Play shop ambient sound
         if (window.AudioManager) {
@@ -126,7 +137,7 @@ export default class ShopScene extends Phaser.Scene {
             padding: isMobile ? 8 : 15,
 
             // Header
-            headerHeight: isMobile ? 60 : 80,
+            headerHeight: isMobile ? 92 : 80,
 
             // Shopkeeper (hide on mobile to save space)
             showShopkeeper: !isMobile,
@@ -137,8 +148,8 @@ export default class ShopScene extends Phaser.Scene {
             categoryButtonWidth: isMobile ? (width - 30) / 3 : 150,
 
             // Item catalog
-            catalogStartY: isMobile ? 115 : 150,
-            itemHeight: isMobile ? 70 : 80,
+            catalogStartY: isMobile ? 157 : 150,
+            itemHeight: isMobile ? 98 : 80,
             itemSpacing: isMobile ? 8 : 10,
 
             // Button sizes (44px minimum for touch targets)
@@ -146,7 +157,7 @@ export default class ShopScene extends Phaser.Scene {
             closeButtonSize: isMobile ? 50 : 40,
 
             // Font sizes
-            titleSize: isMobile ? '24px' : '36px',
+            titleSize: isMobile ? '22px' : '36px',
             subtitleSize: isMobile ? '12px' : '16px',
             itemNameSize: isMobile ? '16px' : '18px',
             itemDescSize: isMobile ? '11px' : '12px',
@@ -214,35 +225,43 @@ export default class ShopScene extends Phaser.Scene {
         headerBg.strokeRect(0, headerHeight - 2, width, 2);
         headerBg.setDepth(10);
 
-        // Mobile mini merchant in top-left corner
-        if (isMobile) {
-            this.createMobileMerchant();
-        }
-
-        // Shop title - shifted right on mobile to make room for merchant
-        const titleX = isMobile ? width / 2 + 20 : 60;
-        const title = this.add.text(titleX, headerHeight / 2 - 5, 'COZY COSMIC BOUTIQUE', {
+        const titleX = isMobile ? margin : 60;
+        const titleY = isMobile ? 20 : headerHeight / 2 - 5;
+        const title = this.add.text(
+            titleX,
+            titleY,
+            isMobile ? 'COSMIC BOUTIQUE' : 'COZY COSMIC BOUTIQUE',
+            {
             fontSize: titleSize,
             fontFamily: 'Arial Black',
             color: '#FFD700',
             stroke: '#4A0080',
             strokeThickness: isMobile ? 4 : 6,
             align: 'center'
-        });
-        title.setOrigin(isMobile ? 0.5 : 0, 0.5);
+            }
+        );
+        title.setOrigin(0, 0.5);
         title.setDepth(11);
 
-        const grownUpHelper = this.add.text(width / 2, headerHeight - 18, 'Need help? Ask a grown-up to browse cozy goodies with you.', {
-            fontSize: this.dims.isMobile ? '11px' : '13px',
-            color: '#E6E6FA',
-            fontFamily: 'Arial, sans-serif'
-        }).setOrigin(0.5, 0.5);
+        const grownUpHelper = this.add.text(
+            isMobile ? margin : width / 2,
+            isMobile ? 45 : headerHeight - 18,
+            'Need help? Ask a grown-up to browse cozy goodies with you.',
+            {
+                fontSize: this.dims.isMobile ? '10px' : '13px',
+                color: '#E6E6FA',
+                fontFamily: 'Arial, sans-serif',
+                wordWrap: isMobile ? { width: width - closeButtonSize - margin * 3 } : undefined
+            }
+        ).setOrigin(isMobile ? 0 : 0.5, 0.5);
         grownUpHelper.setDepth(11);
         grownUpHelper.setAlpha(0.9);
 
-        // Currency display (top-right area)
-        const coinX = width - (closeButtonSize + margin * 2 + 80);
-        const coinY = headerHeight / 2;
+        // Currency gets its own row on narrow screens.
+        const coinX = isMobile
+            ? margin + 10
+            : width - (closeButtonSize + margin * 2 + 80);
+        const coinY = isMobile ? headerHeight - 18 : headerHeight / 2;
 
         // Coin icon
         const coinIcon = this.add.graphics();
@@ -276,7 +295,7 @@ export default class ShopScene extends Phaser.Scene {
 
         // Close button (X) - ALWAYS VISIBLE top-right
         const closeX = width - closeButtonSize - margin;
-        const closeY = (headerHeight - closeButtonSize) / 2;
+        const closeY = isMobile ? 6 : (headerHeight - closeButtonSize) / 2;
 
         const closeBtn = this.add.graphics();
         closeBtn.fillStyle(0xAA0000, 0.9);
@@ -455,6 +474,55 @@ export default class ShopScene extends Phaser.Scene {
                 ease: 'Back.easeOut'
             });
         }
+    }
+
+    isRouteMapUnavailable(item) {
+        if (item?.type !== 'map' || !item.gateId) {
+            return false;
+        }
+
+        const mapsOwned = window.GameState?.get('hubWorld.mapsOwned') || [];
+        const gate = window.GameState?.get(`hubWorld.gates.${item.gateId}`);
+        return this.previewOpenRoutes.has(item.gateId) ||
+            mapsOwned.includes(item.gateId) ||
+            gate?.unlocked === true;
+    }
+
+    getItemUnavailableState(item) {
+        if (this.isRouteMapUnavailable(item)) {
+            return {
+                unavailable: true,
+                label: 'OPEN',
+                message: 'That route is already open.'
+            };
+        }
+
+        if (item?.id === 'void_crystal') {
+            if (this.previewVoidCrystalCapacity) {
+                return {
+                    unavailable: true,
+                    label: 'FULL',
+                    message: 'The Sanctuary crystal corner is complete.'
+                };
+            }
+
+            const capacity = window.InventoryManager?.getUtilityCapacity?.('void_crystal');
+            if (capacity && !capacity.canAcquire) {
+                return {
+                    unavailable: true,
+                    label: capacity.placed >= capacity.limit ? 'FULL' : 'PACKED',
+                    message: capacity.placed >= capacity.limit
+                        ? 'The Sanctuary crystal corner is complete.'
+                        : 'Place a carried crystal before buying another.'
+                };
+            }
+        }
+
+        return {
+            unavailable: false,
+            label: 'BUY',
+            message: ''
+        };
     }
 
     /**
@@ -651,19 +719,21 @@ export default class ShopScene extends Phaser.Scene {
 
         items.forEach((item, index) => {
             const y = startY + (itemHeight + itemSpacing) * index;
+            const availability = this.getItemUnavailableState(item);
+            const itemUnavailable = availability.unavailable;
 
             // Item row background
             const itemBg = this.add.graphics();
-            itemBg.fillStyle(0x2A0040, 0.6);
+            itemBg.fillStyle(itemUnavailable ? 0x18382E : 0x2A0040, itemUnavailable ? 0.78 : 0.6);
             itemBg.fillRoundedRect(startX, y, itemWidth, itemHeight, 8);
-            itemBg.lineStyle(2, 0x6B00B3);
+            itemBg.lineStyle(2, itemUnavailable ? 0x5BBF9A : 0x6B00B3);
             itemBg.strokeRoundedRect(startX, y, itemWidth, itemHeight, 8);
 
             // Responsive layout calculations
             const iconSize = this.dims.isMobile ? '28px' : '36px';
-            const iconX = startX + (this.dims.isMobile ? 25 : 30);
+            const iconX = startX + (this.dims.isMobile ? 24 : 30);
             const textX = startX + (this.dims.isMobile ? 55 : 80);
-            const buyBtnWidth = this.dims.isMobile ? 60 : 70;
+            const buyBtnWidth = this.dims.isMobile ? 64 : 70;
             const buyBtnX = startX + itemWidth - buyBtnWidth - 10;
 
             // Item icon
@@ -673,29 +743,28 @@ export default class ShopScene extends Phaser.Scene {
             icon.setOrigin(0.5, 0.5);
 
             // Item name
-            const name = this.add.text(textX, y + (this.dims.isMobile ? itemHeight / 2 - 15 : 20), item.name, {
+            const name = this.add.text(textX, y + (this.dims.isMobile ? 14 : 20), item.name, {
                 fontSize: this.dims.itemNameSize,
                 fontFamily: 'Arial Black',
                 color: '#FFFFFF'
             });
 
-            // Item description (truncate on mobile if needed)
-            const descMaxWidth = itemWidth - textX - buyBtnWidth - 30;
-            const desc = this.add.text(textX, y + (this.dims.isMobile ? itemHeight / 2 + 5 : 45), item.description, {
+            const descMaxWidth = Math.max(100, buyBtnX - textX - 12);
+            const desc = this.add.text(textX, y + (this.dims.isMobile ? 39 : 45), item.description, {
                 fontSize: this.dims.itemDescSize,
                 fontFamily: 'Arial',
                 color: '#AAAAAA',
                 wordWrap: { width: descMaxWidth }
             });
 
-            // Price and coin (above buy button on mobile, next to it on desktop)
+            // Price sits above the mobile action button and beside it on desktop.
             const priceX = buyBtnX + buyBtnWidth / 2;
-            const priceY = y + (this.dims.isMobile ? 15 : itemHeight / 2);
+            const priceY = y + (this.dims.isMobile ? 18 : itemHeight / 2);
 
-            const priceText = this.add.text(priceX, priceY, `${item.price}`, {
-                fontSize: this.dims.priceSize,
+            const priceText = this.add.text(priceX, priceY, itemUnavailable ? '' : `${item.price}`, {
+                fontSize: itemUnavailable ? (this.dims.isMobile ? '13px' : '15px') : this.dims.priceSize,
                 fontFamily: 'Arial Black',
-                color: '#FFD700',
+                color: itemUnavailable ? '#8FE3CF' : '#FFD700',
                 stroke: '#000000',
                 strokeThickness: 2
             });
@@ -708,56 +777,59 @@ export default class ShopScene extends Phaser.Scene {
             coinIcon.fillCircle(coinIconX, priceY, this.dims.isMobile ? 8 : 10);
             coinIcon.fillStyle(0xFFA500, 1);
             coinIcon.fillCircle(coinIconX, priceY, this.dims.isMobile ? 6 : 7);
+            coinIcon.setVisible(!itemUnavailable);
 
             // Buy button
-            const buyBtnY = y + (this.dims.isMobile ? itemHeight - 50 - 5 : 15);
-            const buyBtnHeight = this.dims.isMobile ? 40 : 50;
+            const buyBtnY = y + (this.dims.isMobile ? 43 : 15);
+            const buyBtnHeight = this.dims.isMobile ? 44 : 50;
 
             const buyBtn = this.add.graphics();
-            buyBtn.fillStyle(0x00AA00, 0.9);
+            buyBtn.fillStyle(itemUnavailable ? 0x355B50 : 0x00AA00, 0.9);
             buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
-            buyBtn.lineStyle(2, 0x00FF00);
+            buyBtn.lineStyle(2, itemUnavailable ? 0x77B8A4 : 0x00FF00);
             buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
-            const buyLabel = this.add.text(buyBtnX + buyBtnWidth / 2, buyBtnY + buyBtnHeight / 2, 'BUY', {
+            const buyLabel = this.add.text(buyBtnX + buyBtnWidth / 2, buyBtnY + buyBtnHeight / 2, availability.label, {
                 fontSize: this.dims.isMobile ? '14px' : '16px',
                 fontFamily: 'Arial Black',
-                color: '#FFFFFF'
+                color: itemUnavailable ? '#B9D8CE' : '#FFFFFF'
             });
             buyLabel.setOrigin(0.5, 0.5);
 
             // Interactive zone (larger touch target)
             const zoneTouchSize = Math.max(buyBtnHeight, 44);
             const zone = this.add.zone(buyBtnX, buyBtnY, buyBtnWidth, zoneTouchSize).setOrigin(0, 0);
-            zone.setInteractive({ useHandCursor: true });
+            if (!itemUnavailable) {
+                zone.setInteractive({ useHandCursor: true });
 
-            zone.on('pointerdown', () => {
-                this.showPurchaseConfirmation(item);
-            });
+                zone.on('pointerdown', () => {
+                    this.showPurchaseConfirmation(item);
+                });
 
-            zone.on('pointerover', () => {
-                buyBtn.clear();
-                buyBtn.fillStyle(0x00DD00, 1);
-                buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
-                buyBtn.lineStyle(3, 0x00FF00);
-                buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
+                zone.on('pointerover', () => {
+                    buyBtn.clear();
+                    buyBtn.fillStyle(0x00DD00, 1);
+                    buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
+                    buyBtn.lineStyle(3, 0x00FF00);
+                    buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
-                // Show item tooltip (only on desktop)
-                if (!this.dims.isMobile) {
-                    this.showItemTooltip(item, startX, y);
-                }
-            });
+                    // Show item tooltip (only on desktop)
+                    if (!this.dims.isMobile) {
+                        this.showItemTooltip(item, startX, y);
+                    }
+                });
 
-            zone.on('pointerout', () => {
-                buyBtn.clear();
-                buyBtn.fillStyle(0x00AA00, 0.9);
-                buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
-                buyBtn.lineStyle(2, 0x00FF00);
-                buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
+                zone.on('pointerout', () => {
+                    buyBtn.clear();
+                    buyBtn.fillStyle(0x00AA00, 0.9);
+                    buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
+                    buyBtn.lineStyle(2, 0x00FF00);
+                    buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
-                // Hide item tooltip
-                this.hideItemTooltip();
-            });
+                    // Hide item tooltip
+                    this.hideItemTooltip();
+                });
+            }
 
             this.catalogContainer.add([itemBg, icon, name, desc, priceText, coinIcon, buyBtn, buyLabel, zone]);
 
@@ -1010,6 +1082,13 @@ export default class ShopScene extends Phaser.Scene {
             return;
         }
 
+        const availability = this.getItemUnavailableState(item);
+        if (availability.unavailable) {
+            this.showPurchaseError(availability.message);
+            window.AudioManager?.playError?.();
+            return;
+        }
+
         this.isPurchasing = true;
 
         // Show loading overlay
@@ -1032,7 +1111,11 @@ export default class ShopScene extends Phaser.Scene {
         }
 
         // Check inventory space
-        if (window.InventoryManager && !window.InventoryManager.hasSpace()) {
+        if (
+            item.type !== 'map' &&
+            window.InventoryManager &&
+            !window.InventoryManager.hasSpace()
+        ) {
             this.hideLoadingOverlay();
             this.showPurchaseError('Inventory is full!');
             this.isPurchasing = false;
@@ -1045,50 +1128,51 @@ export default class ShopScene extends Phaser.Scene {
 
         // Simulate async purchase (adds realistic feel)
         this.time.delayedCall(300, () => {
+            const delayedAvailability = this.getItemUnavailableState(item);
+            if (delayedAvailability.unavailable) {
+                this.hideLoadingOverlay();
+                this.showPurchaseError(delayedAvailability.message);
+                this.isPurchasing = false;
+                return;
+            }
+
             // Process purchase via EconomyManager
             // CRITICAL FIX: EconomyManager.purchase() expects (price, itemName) - price first!
             if (window.EconomyManager) {
                 const success = window.EconomyManager.purchase(item.price, item.name);
 
                 if (success) {
-                    // Add item to inventory
-                    if (window.InventoryManager) {
-                        const itemAdded = window.InventoryManager.addItem(item);
+                    const isRouteMap = item.type === 'map' && item.gateId;
+                    const itemAdded = isRouteMap
+                        ? window.GameState?.addMapToCollection?.(item.gateId) === true
+                        : window.InventoryManager?.addItem?.(item) === true;
 
-                        if (itemAdded) {
-                            console.log(`[ShopScene] Purchase successful: ${item.name}`);
+                    if (itemAdded) {
+                        console.log(`[ShopScene] Purchase successful: ${item.name}`);
 
-                            // Special handling for map items - unlock gates
-                            if (item.type === 'map' && item.gateId && window.GameState) {
-                                window.GameState.addMapToCollection(item.gateId);
-                                console.log(`[ShopScene] Map acquired for gate: ${item.gateId}`);
-                            }
-
-                            this.hideLoadingOverlay();
-                            this.showPurchaseSuccess(item);
-
-                            // Update coin display in header
-                            this.updateCoinDisplay();
-
-                            if (window.AudioManager) {
-                                window.AudioManager.playShopPurchase?.(item.price) || window.AudioManager.playPurchase();
-                            }
-
-                            this.isPurchasing = false;
-                        } else {
-                            // Refund if item couldn't be added
-                            window.EconomyManager.addCoins(item.price, 'shop_refund');
-                            this.hideLoadingOverlay();
-                            this.showPurchaseError('Failed to add item to inventory!');
-                            this.isPurchasing = false;
-                        }
-                    } else {
-                        console.warn('[ShopScene] InventoryManager not available');
                         this.hideLoadingOverlay();
-                        this.showPurchaseError('Inventory system unavailable!');
+                        this.showPurchaseSuccess(item);
 
-                        // Refund purchase
+                        // Update coin display in header
+                        this.updateCoinDisplay();
+                        if (isRouteMap || item.id === 'void_crystal') {
+                            this.displayCategory(this.selectedCategory);
+                        }
+
+                        if (window.AudioManager) {
+                            window.AudioManager.playShopPurchase?.(item.price) || window.AudioManager.playPurchase();
+                        }
+
+                        this.isPurchasing = false;
+                    } else {
+                        // Refund if the permanent unlock or inventory write failed.
                         window.EconomyManager.addCoins(item.price, 'shop_refund');
+                        this.hideLoadingOverlay();
+                        this.showPurchaseError(
+                            isRouteMap
+                                ? 'Route map could not be recorded. Your coins were returned.'
+                                : 'Failed to add item to inventory!'
+                        );
                         this.isPurchasing = false;
                     }
                 } else {
@@ -1441,8 +1525,8 @@ export default class ShopScene extends Phaser.Scene {
         }
 
         // Stop this scene and resume GameScene
-        this.scene.stop();
-        this.scene.resume('GameScene');
+        SceneTransitionHelper.stopScene(this);
+        SceneTransitionHelper.resumeScene(this, 'GameScene');
     }
 
     /**

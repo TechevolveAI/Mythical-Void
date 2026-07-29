@@ -50,6 +50,7 @@ class SceneLoaderClass {
             CrystalCavesLevel: 'level-crystal',
             ReefLevel: 'level-reef',
             MythicalForestLevel: 'level-forest',
+            VoidPeaksLevel: 'level-void-peaks',
             AuroraDepthsLevel: 'level-aurora',
             FinalVoidLevel: 'level-final',
 
@@ -89,6 +90,7 @@ class SceneLoaderClass {
             CrystalCavesLevel: () => import('../scenes/levels/CrystalCavesLevel.js'),
             ReefLevel: () => import('../scenes/levels/ReefLevel.js'),
             MythicalForestLevel: () => import('../scenes/levels/MythicalForestLevel.js'),
+            VoidPeaksLevel: () => import('../scenes/levels/VoidPeaksLevel.js'),
             AuroraDepthsLevel: () => import('../scenes/levels/AuroraDepthsLevel.js'),
             FinalVoidLevel: () => import('../scenes/levels/FinalVoidLevel.js'),
 
@@ -126,6 +128,7 @@ class SceneLoaderClass {
             'level-crystal': () => this.preload('CrystalCavesLevel'),
             'level-reef': () => this.preload('ReefLevel'),
             'level-forest': () => this.preload('MythicalForestLevel'),
+            'level-void-peaks': () => this.preload('VoidPeaksLevel'),
             'level-aurora': () => this.preload('AuroraDepthsLevel'),
             'level-final': () => this.preload('FinalVoidLevel'),
             menus: () => Promise.all([
@@ -146,6 +149,7 @@ class SceneLoaderClass {
             'crystal_caves': 'CrystalCavesLevel',
             'stellar_reef': 'ReefLevel',
             'mythical_forest': 'MythicalForestLevel',
+            'void_peaks': 'VoidPeaksLevel',
             'aurora_depths': 'AuroraDepthsLevel',
             'final_void': 'FinalVoidLevel'
         };

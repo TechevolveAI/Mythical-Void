@@ -18,10 +18,16 @@ export default class AchievementMenuScene extends Phaser.Scene {
         this.maxScrollY = 0;
         this.contentHeight = 0;
         this.elements = [];
+        this.returnScene = 'GameScene';
+    }
+
+    init(data = {}) {
+        this.returnScene = data.returnScene || 'GameScene';
     }
 
     create() {
         devLog('[AchievementMenuScene] Creating achievement menu');
+        window.AchievementSystem?.checkAchievements?.();
 
         const { width, height } = this.scale;
 
@@ -422,6 +428,9 @@ export default class AchievementMenuScene extends Phaser.Scene {
         }
 
         this.scene.stop();
+        if (this.scene.isPaused?.(this.returnScene)) {
+            this.scene.resume(this.returnScene);
+        }
     }
 
     shutdown() {

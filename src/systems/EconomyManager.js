@@ -9,6 +9,7 @@ class EconomyManager {
         this.currencyName = 'cosmicCoins';
         this.premiumCurrencyName = 'stardust';
         this.events = new Phaser.Events.EventEmitter();
+        this.levelCoinMultiplier = 1;
 
         // Stardust to Coins conversion rate
         this.STARDUST_TO_COINS_RATE = 100; // 1 Stardust = 100 Coins
@@ -70,10 +71,18 @@ class EconomyManager {
             return;
         }
 
+        const multiplier = this.isLevelPickupSource(source)
+            ? this.levelCoinMultiplier
+            : 1;
+        const awardedAmount = Math.floor(amount * multiplier);
         const currentBalance = this.getBalance();
-        const newBalance = currentBalance + amount;
+        const newBalance = currentBalance + awardedAmount;
 
         window.GameState.set('player.cosmicCoins', newBalance);
+        if (!source.startsWith('debug:')) {
+            const coinsCollected = window.GameState.get('stats.coinsCollected') || 0;
+            window.GameState.set('stats.coinsCollected', coinsCollected + awardedAmount);
+        }
 
         // Play coin collection sound
         if (typeof window !== 'undefined' && window.AudioManager) {
@@ -81,16 +90,43 @@ class EconomyManager {
         }
 
         // Emit event for UI updates and animations
-        this.events.emit('coins:added', {
-            amount,
+        const coinEvent = {
+            amount: awardedAmount,
             source,
             oldBalance: currentBalance,
             newBalance: newBalance
-        });
+        };
+        if (multiplier > 1) {
+            coinEvent.baseAmount = amount;
+            coinEvent.multiplier = multiplier;
+        }
+        this.events.emit('coins:added', coinEvent);
 
-        console.log(`[EconomyManager] +${amount} coins from ${source} (${currentBalance} → ${newBalance})`);
+        console.log(
+            `[EconomyManager] +${awardedAmount} coins from ${source} ` +
+            `(${currentBalance} → ${newBalance})`
+        );
 
         return newBalance;
+    }
+
+    isLevelPickupSource(source) {
+        const normalizedSource = String(source || '');
+        return normalizedSource === 'fauna_harvest' ||
+            normalizedSource.startsWith('collectible_') ||
+            normalizedSource.endsWith('_coin');
+    }
+
+    setLevelCoinMultiplier(multiplier) {
+        const normalized = Math.max(1, Math.floor(Number(multiplier) || 1));
+        this.levelCoinMultiplier = normalized;
+        this.events.emit('coins:multiplier', { multiplier: normalized });
+        return normalized;
+    }
+
+    clearLevelCoinMultiplier() {
+        this.levelCoinMultiplier = 1;
+        this.events.emit('coins:multiplier', { multiplier: 1 });
     }
 
     /**
@@ -381,6 +417,7 @@ class EconomyManager {
         if (typeof window !== 'undefined' && window.GameState) {
             window.GameState.set('player.cosmicCoins', 0);
             window.GameState.set('player.stardust', 0);
+            this.clearLevelCoinMultiplier();
             console.log('[EconomyManager] Economy reset to 0 coins and 0 Stardust');
         }
     }

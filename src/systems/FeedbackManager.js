@@ -43,6 +43,7 @@ class FeedbackManager {
         if (window.GameState) {
             window.GameState.set('settings.hapticEnabled', this.hapticEnabled);
             window.GameState.set('settings.screenShakeEnabled', this.screenShakeEnabled);
+            window.GameState.save?.();
         }
     }
 

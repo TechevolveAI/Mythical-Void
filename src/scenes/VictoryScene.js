@@ -4,23 +4,100 @@
  * Triggered when player defeats the Void Empress and collects all ship parts.
  * Features:
  * - Ship assembly animation
- * - Dramatic launch sequence
+ * - Project Beacon restoration sequence
+ * - A quiet reflection before the final decision
  * - Credits roll with game stats
- * - Celebration effects and music
- * - Option to continue playing or start new game
+ * - Two player-chosen campaign endings
  */
 
 import { devLog } from '../utils/devLogger.js';
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
+
+const PROJECT_BEACON_ENDINGS = Object.freeze({
+    earth: {
+        title: 'PROJECT BEACON: EARTHBOUND',
+        shortTitle: 'Return to Earth',
+        accent: 0x4FA8FF,
+        accentText: '#7FC8FF',
+        confirmation: [
+            'Send this world\'s coordinates with Project Beacon.',
+            'Begin the return journey with your companion beside you.'
+        ],
+        confirmLabel: 'SEND THE BEACON',
+        pages: [
+            {
+                log: 'TRANSMISSION // SENT',
+                title: 'A SIGNAL HOME',
+                body: 'Wanderer-7 sends the evidence and coordinates to Earth. Your voice follows the data: this is a living world, not a resource field.',
+                fieldNote: 'A report can be a warning. It can also be a promise.'
+            },
+            {
+                log: 'DEPARTURE // TWO ABOARD',
+                title: 'NOT A SPECIMEN',
+                body: 'Your companion enters the rebuilt ship by choice, carrying a small light from the Sanctuary. The first alien life to trust a human is coming to meet humanity.',
+                fieldNote: 'Trust begins with how you enter the room. We will enter together.'
+            },
+            {
+                log: 'COURSE // EARTH',
+                title: 'THE LONG WAY HOME',
+                body: 'You set a course for Earth carrying a witness, not a prize. Whatever waits at home, neither of you will face it alone.',
+                fieldNote: 'Sensei always said the return journey shows what the lesson changed.'
+            }
+        ]
+    },
+    void: {
+        title: 'PROJECT BEACON: PROTECTED',
+        shortTitle: 'Protect This World',
+        accent: 0xB58AE8,
+        accentText: '#D9B8FF',
+        confirmation: [
+            'Erase this world\'s coordinates from the uplink.',
+            'Remain here while searching for a safer answer for Earth.'
+        ],
+        confirmLabel: 'SILENCE THE UPLINK',
+        pages: [
+            {
+                log: 'UPLINK // SILENCED',
+                title: 'THE COORDINATES GO DARK',
+                body: 'You erase the route from Project Beacon. Earth receives no map to this world, and no company can arrive here claiming that discovery means ownership.',
+                fieldNote: 'Some things are protected by refusing to name where they are.'
+            },
+            {
+                log: 'SANCTUARY // ANSWERING',
+                title: 'THE WORLD ANSWERS',
+                body: 'Signals rise from the restored realms. Your companion stays at your side as the settlements welcome the first human they have chosen to trust.',
+                fieldNote: 'I came here looking for life. Life found me first.'
+            },
+            {
+                log: 'MISSION // REWRITTEN',
+                title: 'A DIFFERENT BEACON',
+                body: 'Wanderer-7 becomes a shelter and observatory. You stay to help this world heal while searching for a way to help Earth without turning another home into fuel.',
+                fieldNote: 'Sensei called it discipline: power is knowing what not to take.'
+            }
+        ]
+    }
+});
 
 export default class VictoryScene extends Phaser.Scene {
     constructor() {
         super({ key: 'VictoryScene' });
         this.elements = [];
-        this.phase = 'assembly'; // assembly, launch, flight, credits, complete
+        this.phase = 'assembly'; // assembly, beacon, reflection, credits, complete
     }
 
     init(data) {
         this.victoryData = data || {};
+        this.endingPreview = ['choice', 'earth', 'void'].includes(data?.endingPreview)
+            ? data.endingPreview
+            : null;
+        this.endingPreviewPage = Math.max(
+            0,
+            Math.min(2, Number.parseInt(data?.endingPreviewPage, 10) || 0)
+        );
+        this.endingPreviewView = ['confirm', 'newGamePlus'].includes(
+            data?.endingPreviewView
+        ) ? data.endingPreviewView : null;
+        this.isPreview = data?.testMode === true || this.endingPreview !== null;
         devLog('[VictoryScene] Init with data:', data);
     }
 
@@ -28,21 +105,39 @@ export default class VictoryScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         // Stop other scenes
-        const scenesToStop = ['FinalVoidLevel', 'HubWorldScene', 'GameScene'];
-        scenesToStop.forEach(sceneKey => {
-            try {
-                if (this.scene.isActive(sceneKey)) {
-                    this.scene.stop(sceneKey);
-                }
-            } catch (e) { /* Scene might not exist */ }
-        });
-        this.scene.bringToTop();
+        const scenesToStop = [
+            'HatchingScene',
+            'PersonalityScene',
+            'NamingScene',
+            'SoulRevealScene',
+            'FinalVoidLevel',
+            'HubWorldScene',
+            'GameScene'
+        ];
+        SceneTransitionHelper.stopActiveScenes(this, scenesToStop);
+        SceneTransitionHelper.bringToTop(this);
 
         // Get game stats for credits
         this.loadGameStats();
 
         // Create background
         this.createBackground(width, height);
+
+        if (this.endingPreview) {
+            if (this.endingPreview === 'choice') {
+                this.showChoiceScene({ allowExistingChoice: true });
+            } else if (this.endingPreviewView === 'confirm') {
+                this.showEndingConfirmation(this.endingPreview);
+            } else if (this.endingPreviewView === 'newGamePlus') {
+                this.showNewGamePlusConfirmation(this.endingPreview);
+            } else {
+                this.showEndingEpilogue(
+                    this.endingPreview,
+                    this.endingPreviewPage
+                );
+            }
+            return;
+        }
 
         // Start the victory sequence
         this.startVictorySequence(width, height);
@@ -59,9 +154,9 @@ export default class VictoryScene extends Phaser.Scene {
         this.gameStats = {
             creatureName: state?.get('creature.name') || 'Unknown Hero',
             creatureTexture: state?.get('creature.textureName'),
-            totalPlayTime: this.formatPlayTime(state?.get('stats.totalPlayTime') || 0),
-            levelsCompleted: state?.get('stats.levelsCompleted') || 4,
-            bossesDefeated: state?.get('stats.bossesDefeated') || 4,
+            totalPlayTime: this.formatPlayTime(state?.get('player.playTime') / 1000 || 0),
+            levelsCompleted: state?.get('stats.levelsCompleted') || 0,
+            bossesDefeated: state?.get('combat.bossesDefeated') || 0,
             coinsCollected: state?.get('stats.coinsCollected') || 0,
             achievements: state?.get('achievements.unlocked')?.length || 0,
             creatureLevel: state?.get('creature.level') || 1,
@@ -155,17 +250,18 @@ export default class VictoryScene extends Phaser.Scene {
     startVictorySequence(width, height) {
         // Phase 1: Ship Assembly (0-5s)
         this.showAssemblyPhase(width, height);
+        this.createSkipControl(width);
 
-        // Phase 2: Launch Sequence (5-10s)
+        // Phase 2: Restore Project Beacon without transmitting (5-10s)
         this.time.delayedCall(5000, () => {
-            this.phase = 'launch';
-            this.showLaunchPhase(width, height);
+            this.phase = 'beacon';
+            this.showBeaconPhase(width, height);
         });
 
-        // Phase 3: Flight through space (10-18s)
+        // Phase 3: Hold on the responsibility before the choice (10-18s)
         this.time.delayedCall(10000, () => {
-            this.phase = 'flight';
-            this.showFlightPhase(width, height);
+            this.phase = 'reflection';
+            this.showReflectionPhase(width, height);
         });
 
         // Phase 4: Credits (18-35s)
@@ -179,6 +275,52 @@ export default class VictoryScene extends Phaser.Scene {
             this.phase = 'complete';
             this.showCompletePhase(width, height);
         });
+    }
+
+    createSkipControl(width) {
+        this.removeSkipControl();
+
+        this.skipControl = this.add.text(width - 18, 18, 'SKIP >>', {
+            fontSize: '13px',
+            color: '#FFFFFF',
+            backgroundColor: '#241B45',
+            padding: { x: 12, y: 8 }
+        })
+            .setOrigin(1, 0)
+            .setDepth(1000)
+            .setInteractive({ cursor: 'pointer' });
+
+        this.skipControl.on('pointerdown', () => this.skipVictorySequence());
+    }
+
+    removeSkipControl() {
+        if (this.skipControl) {
+            this.skipControl.destroy();
+            this.skipControl = null;
+        }
+    }
+
+    skipVictorySequence() {
+        if (this.phase === 'complete') {
+            return;
+        }
+
+        this.time.removeAllEvents();
+        this.tweens.killAll();
+        this.removeSkipControl();
+
+        this.elements.forEach(el => {
+            if (el && el.destroy) el.destroy();
+        });
+        this.elements = [];
+        this.stars = [];
+        this.ship = null;
+        this.engineFlame = null;
+        this.phase = 'complete';
+
+        const { width, height } = this.scale;
+        this.createBackground(width, height);
+        this.showCompletePhase(width, height);
     }
 
     /**
@@ -211,6 +353,7 @@ export default class VictoryScene extends Phaser.Scene {
             { name: 'Crystal Core', emoji: '🔮', color: 0x7B68EE },
             { name: 'Dimensional Drive', emoji: '⚙️', color: 0x1E90FF },
             { name: 'Forest Core', emoji: '🌳', color: 0x32CD32 },
+            { name: 'Hull Plating', emoji: '🛡️', color: 0xB0BEC5 },
             { name: 'Aurora Reactor', emoji: '✨', color: 0x00FFFF },
             { name: 'Command Module', emoji: '👑', color: 0xFFD700 }
         ];
@@ -341,236 +484,142 @@ export default class VictoryScene extends Phaser.Scene {
     }
 
     /**
-     * Phase 2: Launch Sequence
+     * Phase 2: The rebuilt ship restores Project Beacon but holds transmission.
      */
-    showLaunchPhase(width, height) {
-        // Update title
-        const launchTitle = this.add.text(width / 2, height * 0.1, 'INITIATING LAUNCH', {
+    showBeaconPhase(width, height) {
+        this.clearNonEssentialElements();
+
+        const title = this.add.text(width / 2, height * 0.1, 'PROJECT BEACON RESTORED', {
             fontSize: Math.min(28, width * 0.07) + 'px',
-            color: '#FF6B35',
+            color: '#8FE3CF',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 4
         }).setOrigin(0.5).setAlpha(0).setDepth(100);
-        this.elements.push(launchTitle);
+        this.elements.push(title);
+
+        const signalField = this.add.graphics();
+        [72, 104, 138].forEach((radius, index) => {
+            signalField.lineStyle(3 - index * 0.5, 0x8FE3CF, 0.5 - index * 0.1);
+            signalField.strokeCircle(width / 2, height / 2, radius);
+        });
+        signalField.setDepth(45);
+        this.elements.push(signalField);
+
+        const status = this.add.text(
+            width / 2,
+            height * 0.84,
+            'UPLINK READY  //  TRANSMISSION HELD',
+            {
+                fontSize: Math.min(18, width * 0.042) + 'px',
+                color: '#F2C14E',
+                fontStyle: 'bold',
+                align: 'center',
+                wordWrap: { width: width * 0.82 }
+            }
+        ).setOrigin(0.5).setDepth(100);
+        this.elements.push(status);
 
         this.tweens.add({
-            targets: launchTitle,
+            targets: title,
             alpha: 1,
             duration: 500
         });
-
-        // Countdown
-        const countdown = this.add.text(width / 2, height * 0.85, '', {
-            fontSize: '48px',
-            color: '#FFFFFF',
-            fontStyle: 'bold',
-            stroke: '#FF6B35',
-            strokeThickness: 4
-        }).setOrigin(0.5).setDepth(100);
-        this.elements.push(countdown);
-
-        // Play countdown
-        [3, 2, 1].forEach((num, i) => {
-            this.time.delayedCall(i * 1000 + 500, () => {
-                countdown.setText(num.toString());
-                countdown.setScale(1.5);
-                this.tweens.add({
-                    targets: countdown,
-                    scale: 1,
-                    duration: 800
-                });
-                if (window.AudioManager) {
-                    window.AudioManager.playButtonClick?.();
-                }
-            });
-        });
-
-        // LAUNCH!
-        this.time.delayedCall(4000, () => {
-            countdown.setText('LAUNCH!');
-            countdown.setColor('#FFD700');
-
-            // Screen shake
-            this.cameras.main.shake(500, 0.02);
-
-            // Engine fire effect
-            this.createEngineFlame();
-
-            // Ship starts moving up
-            if (this.ship) {
-                this.tweens.add({
-                    targets: this.ship,
-                    y: -200,
-                    duration: 2000,
-                    ease: 'Cubic.easeIn'
-                });
-            }
-
-            if (window.AudioManager) {
-                window.AudioManager.playLevelUp?.();
-            }
-        });
-    }
-
-    /**
-     * Create engine flame effect
-     */
-    createEngineFlame() {
-        if (!this.ship) return;
-
-        this.engineFlame = this.add.graphics();
-        this.engineFlame.setPosition(this.ship.x, this.ship.y + 90);
-        this.engineFlame.setDepth(55);
-        this.elements.push(this.engineFlame);
-
-        // Animate flame
-        this.time.addEvent({
-            delay: 50,
-            repeat: 60,
-            callback: () => {
-                if (!this.engineFlame) return;
-
-                this.engineFlame.clear();
-                const flameHeight = 20 + Math.random() * 40;
-                const flameWidth = 20 + Math.random() * 10;
-
-                // Outer flame (orange)
-                this.engineFlame.fillStyle(0xFF6B35, 0.8);
-                this.engineFlame.fillTriangle(
-                    -flameWidth, 0,
-                    flameWidth, 0,
-                    0, flameHeight
-                );
-
-                // Inner flame (yellow)
-                this.engineFlame.fillStyle(0xFFD700, 0.9);
-                this.engineFlame.fillTriangle(
-                    -flameWidth * 0.5, 0,
-                    flameWidth * 0.5, 0,
-                    0, flameHeight * 0.7
-                );
-
-                // Follow ship
-                if (this.ship) {
-                    this.engineFlame.setPosition(this.ship.x, this.ship.y + 90);
-                }
-            }
-        });
-    }
-
-    /**
-     * Phase 3: Flight through space
-     */
-    showFlightPhase(width, height) {
-        // Clear previous elements
-        this.clearNonEssentialElements();
-
-        // Create ship flying view
-        this.ship = this.add.graphics();
-        this.ship.setPosition(width / 2, height * 0.7);
-        this.ship.setDepth(60);
-        this.ship.setScale(0.8);
-
-        // Redraw ship
-        this.ship.fillStyle(0x4169E1, 1);
-        this.ship.fillTriangle(0, -60, -25, 30, 25, 30);
-        this.ship.fillRect(-25, 30, 50, 50);
-        this.ship.fillStyle(0x32CD32, 1);
-        this.ship.fillTriangle(-25, 30, -50, 80, -25, 80);
-        this.ship.fillTriangle(25, 30, 50, 80, 25, 80);
-        this.ship.fillStyle(0x00FFFF, 0.8);
-        this.ship.fillCircle(0, 20, 12);
-        this.ship.fillStyle(0xFFD700, 1);
-        this.ship.fillRect(-15, 80, 30, 10);
-
-        this.elements.push(this.ship);
-
-        // Creature in ship window
-        if (this.gameStats.creatureTexture && this.textures.exists(this.gameStats.creatureTexture)) {
-            const creature = this.add.sprite(width / 2, height * 0.7 + 15, this.gameStats.creatureTexture);
-            creature.setScale(0.3);
-            creature.setDepth(61);
-            this.elements.push(creature);
-        }
-
-        // Flying text
-        const flyingText = this.add.text(width / 2, height * 0.15, 'JOURNEY TO THE STARS', {
-            fontSize: Math.min(24, width * 0.06) + 'px',
-            color: '#E8D5FF',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5).setAlpha(0).setDepth(100);
-        this.elements.push(flyingText);
-
         this.tweens.add({
-            targets: flyingText,
-            alpha: 1,
-            duration: 1000
-        });
-
-        // Animate stars flying past (parallax)
-        this.stars.forEach(star => {
-            if (star && star.baseY !== undefined) {
-                this.tweens.add({
-                    targets: star,
-                    y: star.baseY + height,
-                    duration: 3000 + Math.random() * 2000,
-                    repeat: 2,
-                    onRepeat: () => {
-                        if (star) {
-                            star.y = -50;
-                        }
-                    }
-                });
-            }
-        });
-
-        // Ship bobbing
-        this.tweens.add({
-            targets: this.ship,
-            y: height * 0.7 - 10,
-            x: width / 2 + 5,
-            duration: 2000,
+            targets: signalField,
+            alpha: { from: 0.25, to: 0.8 },
+            scale: { from: 0.9, to: 1.08 },
+            duration: 1700,
             yoyo: true,
-            repeat: 3,
+            repeat: 2,
             ease: 'Sine.easeInOut'
         });
 
-        // Engine trail
-        this.createEngineTrail(width, height);
+        window.AudioManager?.playLevelUp?.();
     }
 
     /**
-     * Create engine trail particles
+     * Phase 3: Present both responsibilities before the decision exists.
      */
-    createEngineTrail(width, height) {
-        this.time.addEvent({
-            delay: 100,
-            repeat: 70,
-            callback: () => {
-                if (!this.ship) return;
+    showReflectionPhase(width, height) {
+        this.clearNonEssentialElements();
 
-                const particle = this.add.graphics();
-                particle.fillStyle(0xFFD700, 0.8);
-                particle.fillCircle(0, 0, 5 + Math.random() * 5);
-                particle.setPosition(
-                    this.ship.x + (Math.random() - 0.5) * 20,
-                    this.ship.y + 95
-                );
-                particle.setDepth(50);
+        const isCompact = width < 600;
+        const shipY = height * (isCompact ? 0.55 : 0.57);
+        this.ship?.setPosition(width / 2, shipY);
+        this.ship?.setScale(isCompact ? 0.75 : 0.9);
 
-                this.tweens.add({
-                    targets: particle,
-                    y: particle.y + 200,
-                    alpha: 0,
-                    scale: 0.1,
-                    duration: 1000,
-                    onComplete: () => particle.destroy()
-                });
+        const title = this.add.text(width / 2, height * 0.11, 'NO SIGNAL HAS LEFT', {
+            fontSize: Math.min(28, width * 0.07) + 'px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(100);
+        this.elements.push(title);
+
+        const reflection = this.add.text(
+            width / 2,
+            height * 0.25,
+            'Project Beacon can reach Earth.\nThe same signal could reveal this world.\nFor the first time, the directive waits for you.',
+            {
+                fontSize: Math.min(16, width * 0.038) + 'px',
+                color: '#E8D5FF',
+                align: 'center',
+                lineSpacing: 7,
+                wordWrap: { width: width * 0.82 }
             }
-        });
+        ).setOrigin(0.5).setDepth(100);
+        this.elements.push(reflection);
+
+        const responsibilityLine = this.add.graphics();
+        const nodeY = height * 0.82;
+        const earthX = width * (isCompact ? 0.25 : 0.3);
+        const voidX = width * (isCompact ? 0.75 : 0.7);
+        responsibilityLine.lineStyle(2, 0x8B7FBB, 0.7);
+        responsibilityLine.lineBetween(earthX, nodeY, voidX, nodeY);
+        responsibilityLine.fillStyle(0x1E90FF, 1);
+        responsibilityLine.fillCircle(earthX, nodeY, 8);
+        responsibilityLine.fillStyle(0xDA70D6, 1);
+        responsibilityLine.fillCircle(voidX, nodeY, 8);
+        responsibilityLine.setDepth(70);
+        this.elements.push(responsibilityLine);
+
+        const earthLabel = this.add.text(earthX, nodeY + 24, 'EARTH', {
+            fontSize: '12px',
+            color: '#7FC8FF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100);
+        const voidLabel = this.add.text(voidX, nodeY + 24, 'THIS WORLD', {
+            fontSize: '12px',
+            color: '#E6A5EC',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(100);
+        this.elements.push(earthLabel, voidLabel);
+
+        const reflectionTargets = [this.ship].filter(Boolean);
+        if (this.gameStats.creatureTexture && this.textures.exists(this.gameStats.creatureTexture)) {
+            const creature = this.add.sprite(
+                width / 2,
+                shipY + (isCompact ? 12 : 15),
+                this.gameStats.creatureTexture
+            );
+            creature.setScale(isCompact ? 0.22 : 0.28);
+            creature.setDepth(61);
+            this.elements.push(creature);
+            reflectionTargets.push(creature);
+        }
+
+        if (reflectionTargets.length > 0) {
+            this.tweens.add({
+                targets: reflectionTargets,
+                y: '-=8',
+                duration: 1800,
+                yoyo: true,
+                repeat: 3,
+                ease: 'Sine.easeInOut'
+            });
+        }
     }
 
     /**
@@ -652,8 +701,8 @@ export default class VictoryScene extends Phaser.Scene {
         currentY += lineHeight;
 
         const stats = [
-            ['Realms Conquered', `${this.gameStats.levelsCompleted}`],
-            ['Guardians Defeated', `${this.gameStats.bossesDefeated}`],
+            ['Realms Restored', `${this.gameStats.levelsCompleted}`],
+            ['Guardians Restored', `${this.gameStats.bossesDefeated}`],
             ['Cosmic Coins', `${this.gameStats.coinsCollected}`],
             ['Achievements', `${this.gameStats.achievements}`],
             ['Time in the Void', this.gameStats.totalPlayTime]
@@ -813,10 +862,13 @@ export default class VictoryScene extends Phaser.Scene {
      * Phase 5: Complete - Show continue button, then choice scene
      */
     showCompletePhase(width, height) {
-        // Mark victory in GameState
-        window.GameState?.set('game.victoryAchieved', true);
-        window.GameState?.set('game.victoryDate', new Date().toISOString());
-        window.GameState?.save();
+        this.removeSkipControl();
+
+        if (!this.isPreview) {
+            window.GameState?.set('game.victoryAchieved', true);
+            window.GameState?.set('game.victoryDate', new Date().toISOString());
+            this.recordCampaignRestoration();
+        }
 
         // Final message with creature
         const finalPanel = this.add.graphics();
@@ -847,27 +899,43 @@ export default class VictoryScene extends Phaser.Scene {
 
         // Victory message
         const victoryMsg = this.add.text(width / 2, height * 0.52,
-            `${this.gameStats.creatureName} saved the cosmos!`, {
-            fontSize: '20px',
+            'Together, you survived the Void.', {
+            fontSize: Math.min(20, width * 0.045) + 'px',
             color: '#FFD700',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: width * 0.7 }
         }).setOrigin(0.5).setDepth(201);
         this.elements.push(victoryMsg);
 
         const subMsg = this.add.text(width / 2, height * 0.57,
-            'The ship is ready. What happens next?', {
-            fontSize: '14px',
+            'The ship and uplink are ready. Nothing has been sent.', {
+            fontSize: Math.min(14, width * 0.034) + 'px',
             color: '#CE93D8',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
+            align: 'center',
+            wordWrap: { width: width * 0.7 }
         }).setOrigin(0.5).setDepth(201);
         this.elements.push(subMsg);
 
-        // Continue button - leads to choice scene
+        const existingEnding = window.GameState?.get(
+            'story.projectBeacon.endingChoice'
+        );
+        const hasEnding = ['earth', 'void'].includes(existingEnding);
+
+        // The first visit presents the decision. Later visits replay the saved ending.
         const buttonY = height * 0.67;
         this.createButton(
             width / 2, buttonY,
-            'Continue...', 0x7B68EE,
-            () => this.showChoiceScene()
+            hasEnding ? 'Revisit your ending' : 'Face the choice',
+            0x7B68EE,
+            () => {
+                if (hasEnding) {
+                    this.showEndingEpilogue(existingEnding);
+                    return;
+                }
+                this.showChoiceScene();
+            }
         );
 
         // Play celebration
@@ -875,17 +943,49 @@ export default class VictoryScene extends Phaser.Scene {
             window.AudioManager.playAchievement?.();
         }
 
-        // Unlock achievement
-        if (window.AchievementSystem) {
-            window.AchievementSystem.unlock?.('VOID_CONQUEROR');
-        }
     }
 
     /**
-     * Show the big choice: Return to Earth or Stay in the Void
+     * Persist campaign restoration separately from the still-unmade ending.
      */
-    showChoiceScene() {
+    recordCampaignRestoration() {
+        if (this.isPreview) {
+            return true;
+        }
+
+        const state = window.GameState;
+        if (!state) {
+            return false;
+        }
+
+        const restoredAt = state.get('story.projectBeacon.uplinkRestoredAt')
+            || new Date().toISOString();
+        state.set('story.projectBeacon.uplinkRestored', true);
+        state.set('story.projectBeacon.uplinkRestoredAt', restoredAt);
+        window.AchievementSystem?.recordEvent?.('campaign_completed', {
+            restoredAt
+        });
+        state.save?.();
+        return true;
+    }
+
+    /**
+     * Show the Project Beacon choice without privileging either ending.
+     */
+    showChoiceScene({ allowExistingChoice = false } = {}) {
+        const existingEnding = window.GameState?.get(
+            'story.projectBeacon.endingChoice'
+        );
+        if (
+            !allowExistingChoice
+            && ['earth', 'void'].includes(existingEnding)
+        ) {
+            this.showEndingEpilogue(existingEnding);
+            return;
+        }
+
         const { width, height } = this.scale;
+        const isCompact = width < 600;
 
         // Clear previous elements
         this.elements.forEach(el => {
@@ -921,8 +1021,8 @@ export default class VictoryScene extends Phaser.Scene {
         this.elements.push(panel);
 
         // Title
-        const title = this.add.text(width / 2, height * 0.18, 'THE SHIP IS READY', {
-            fontSize: '28px',
+        const title = this.add.text(width / 2, height * 0.17, 'THE BEACON IS YOURS', {
+            fontSize: Math.min(28, width * 0.07) + 'px',
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#000000',
@@ -932,14 +1032,14 @@ export default class VictoryScene extends Phaser.Scene {
 
         // Creature in center
         if (this.gameStats.creatureTexture && this.textures.exists(this.gameStats.creatureTexture)) {
-            const creature = this.add.sprite(width / 2, height * 0.35, this.gameStats.creatureTexture);
-            creature.setScale(0.6);
+            const creature = this.add.sprite(width / 2, height * (isCompact ? 0.29 : 0.31), this.gameStats.creatureTexture);
+            creature.setScale(isCompact ? 0.4 : 0.6);
             creature.setDepth(101);
             this.elements.push(creature);
 
             this.tweens.add({
                 targets: creature,
-                y: height * 0.35 - 5,
+                y: height * (isCompact ? 0.29 : 0.31) - 5,
                 duration: 2000,
                 yoyo: true,
                 repeat: -1,
@@ -948,40 +1048,49 @@ export default class VictoryScene extends Phaser.Scene {
         }
 
         // Narrative text
-        const narrative = this.add.text(width / 2, height * 0.48,
-            `${this.gameStats.creatureName} looks at you with trusting eyes.\nYou've been through so much together.\n\nNow you must choose...`, {
-            fontSize: '14px',
+        const narrative = this.add.text(width / 2, height * (isCompact ? 0.43 : 0.44),
+            `Earth is waiting for Project Beacon.\nThis world trusts you with its location.\n${this.gameStats.creatureName} stays close. No signal leaves until you choose.`, {
+            fontSize: Math.min(14, width * 0.035) + 'px',
             color: '#E8D5FF',
             align: 'center',
-            lineSpacing: 6
+            lineSpacing: 6,
+            wordWrap: { width: width * 0.76 }
         }).setOrigin(0.5).setDepth(101);
         this.elements.push(narrative);
 
         // Choice buttons
-        const btnY = height * 0.65;
-        const btnWidth = Math.min(150, width * 0.35);
+        const btnY = height * 0.62;
+        const btnWidth = isCompact
+            ? Math.min(320, width * 0.8)
+            : Math.min(220, width * 0.38);
         const btnGap = 20;
 
         // Return to Earth button
         this.createChoiceButton(
-            width / 2 - btnWidth / 2 - btnGap, btnY,
-            '🌍 Return to Earth', 0x1E90FF,
-            () => this.showComingSoonTeaser('earth')
+            isCompact ? width / 2 : width / 2 - btnWidth / 2 - btnGap,
+            isCompact ? height * 0.60 : btnY,
+            'RETURN TO EARTH\nTransmit Project Beacon', 0x1E90FF,
+            () => this.showEndingConfirmation('earth'),
+            btnWidth
         );
 
-        // Stay in the Void button
+        // Protect the creature world button
         this.createChoiceButton(
-            width / 2 + btnWidth / 2 + btnGap, btnY,
-            '✨ Stay in the Void', 0x9400D3,
-            () => this.showComingSoonTeaser('void')
+            isCompact ? width / 2 : width / 2 + btnWidth / 2 + btnGap,
+            isCompact ? height * 0.73 : btnY,
+            'PROTECT THIS WORLD\nSilence the uplink', 0x6750A4,
+            () => this.showEndingConfirmation('void'),
+            btnWidth
         );
 
         // Hint text
-        const hint = this.add.text(width / 2, height * 0.82,
-            'What will you choose?', {
+        const hint = this.add.text(width / 2, height * 0.86,
+            'Choose what happens to the coordinates.', {
             fontSize: '12px',
             color: '#8B7FBB',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
+            align: 'center',
+            wordWrap: { width: width * 0.76 }
         }).setOrigin(0.5).setDepth(101);
         this.elements.push(hint);
 
@@ -998,10 +1107,10 @@ export default class VictoryScene extends Phaser.Scene {
     /**
      * Create a choice button (larger than regular buttons)
      */
-    createChoiceButton(x, y, text, color, callback) {
+    createChoiceButton(x, y, text, color, callback, widthOverride = null) {
         const { width } = this.scale;
-        const btnWidth = Math.min(150, width * 0.35);
-        const btnHeight = 60;
+        const btnWidth = widthOverride || Math.min(150, width * 0.35);
+        const btnHeight = 64;
 
         const btn = this.add.graphics();
         btn.fillStyle(color, 1);
@@ -1012,10 +1121,11 @@ export default class VictoryScene extends Phaser.Scene {
         this.elements.push(btn);
 
         const btnText = this.add.text(x, y + btnHeight / 2, text, {
-            fontSize: '14px',
+            fontSize: Math.min(14, width * 0.035) + 'px',
             color: '#FFFFFF',
             fontStyle: 'bold',
-            align: 'center'
+            align: 'center',
+            wordWrap: { width: btnWidth - 16 }
         }).setOrigin(0.5).setDepth(103);
         this.elements.push(btnText);
 
@@ -1053,150 +1163,440 @@ export default class VictoryScene extends Phaser.Scene {
         this.elements.push(zone);
     }
 
-    /**
-     * Show the "Coming Soon" teaser for sequels
-     */
-    showComingSoonTeaser(choice) {
-        const { width, height } = this.scale;
-
-        // Clear previous elements
-        this.elements.forEach(el => {
-            if (el && el.destroy) el.destroy();
-        });
-        this.elements = [];
-
-        // Beautiful gradient background
-        const bg = this.add.graphics();
-        bg.fillGradientStyle(0x0D0B1E, 0x0D0B1E, 0x1A0A2E, 0x2D1B4E, 1);
-        bg.fillRect(0, 0, width, height);
-        bg.setDepth(0);
-        this.elements.push(bg);
-
-        // Subtle stars
-        for (let i = 0; i < 80; i++) {
-            const star = this.add.graphics();
-            const x = Math.random() * width;
-            const y = Math.random() * height;
-            star.fillStyle(0xFFFFFF, 0.2 + Math.random() * 0.5);
-            star.fillCircle(x, y, 0.5 + Math.random() * 1);
-            star.setDepth(1);
-            this.elements.push(star);
+    showEndingConfirmation(choice) {
+        const ending = PROJECT_BEACON_ENDINGS[choice];
+        if (!ending) {
+            return false;
         }
 
-        // Main panel
+        const { width, height } = this.scale;
+        const isCompact = width < 600;
+        this.clearEndingView();
+        this.createEndingBackground(width, height, ending.accent);
+
         const panel = this.add.graphics();
-        panel.fillStyle(0x1A1A3E, 0.95);
-        panel.fillRoundedRect(width * 0.05, height * 0.08, width * 0.9, height * 0.84, 20);
-        panel.lineStyle(4, 0x7B68EE);
-        panel.strokeRoundedRect(width * 0.05, height * 0.08, width * 0.9, height * 0.84, 20);
+        panel.fillStyle(0x15122C, 0.97);
+        panel.fillRoundedRect(width * 0.06, height * 0.06, width * 0.88, height * 0.88, 8);
+        panel.lineStyle(3, ending.accent, 0.9);
+        panel.strokeRoundedRect(width * 0.06, height * 0.06, width * 0.88, height * 0.88, 8);
         panel.setDepth(100);
         this.elements.push(panel);
 
-        // Title based on choice
-        const choiceTitle = choice === 'earth'
-            ? '🌍 Journey to Earth'
-            : '✨ Life Among the Stars';
-
-        const title = this.add.text(width / 2, height * 0.16, choiceTitle, {
-            fontSize: '24px',
-            color: choice === 'earth' ? '#1E90FF' : '#DA70D6',
+        const eyebrow = this.add.text(width / 2, height * 0.13, 'FINAL DECISION', {
+            fontSize: '12px',
+            color: ending.accentText,
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(101);
-        this.elements.push(title);
 
-        // Coming Soon banner
-        const banner = this.add.text(width / 2, height * 0.24, '🚀 COMING SOON 🚀', {
-            fontSize: '32px',
-            color: '#FFD700',
+        const title = this.add.text(width / 2, height * 0.22, ending.shortTitle, {
+            fontSize: isCompact ? '23px' : '30px',
+            color: '#FFFFFF',
             fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
+            align: 'center'
         }).setOrigin(0.5).setDepth(101);
-        this.elements.push(banner);
 
-        // Pulsing animation
+        const warning = this.add.text(
+            width / 2,
+            height * 0.33,
+            'This becomes the ending of this campaign.',
+            {
+                fontSize: isCompact ? '14px' : '16px',
+                color: '#F2C14E',
+                align: 'center',
+                wordWrap: { width: width * 0.76 }
+            }
+        ).setOrigin(0.5).setDepth(101);
+
+        const consequences = this.add.text(
+            width / 2,
+            height * 0.48,
+            ending.confirmation.map(line => `• ${line}`).join('\n\n'),
+            {
+                fontSize: isCompact ? '14px' : '16px',
+                color: '#E8D5FF',
+                align: 'left',
+                lineSpacing: 4,
+                wordWrap: { width: width * 0.7 }
+            }
+        ).setOrigin(0.5).setDepth(101);
+        this.elements.push(eyebrow, title, warning, consequences);
+
+        this.createChoiceButton(
+            width / 2,
+            height * 0.68,
+            ending.confirmLabel,
+            ending.accent,
+            () => {
+                if (this.recordEndingChoice(choice)) {
+                    this.showEndingEpilogue(choice);
+                }
+            },
+            Math.min(340, width * 0.72)
+        );
+        this.createButton(
+            width / 2,
+            height * 0.82,
+            'GO BACK',
+            0x4A4564,
+            () => this.showChoiceScene({ allowExistingChoice: true })
+        );
+        return true;
+    }
+
+    /**
+     * Deliver the selected ending as three paced field-log moments.
+     */
+    showEndingEpilogue(choice, pageIndex = 0) {
+        const ending = PROJECT_BEACON_ENDINGS[choice];
+        if (!ending) {
+            return false;
+        }
+
+        const page = ending.pages[pageIndex];
+        if (!page) {
+            return false;
+        }
+
+        const { width, height } = this.scale;
+        const isCompact = width < 600;
+        const isLastPage = pageIndex === ending.pages.length - 1;
+        this.clearEndingView();
+        this.createEndingBackground(width, height, ending.accent);
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x111126, 0.96);
+        panel.fillRoundedRect(width * 0.05, height * 0.045, width * 0.9, height * 0.91, 8);
+        panel.lineStyle(3, ending.accent, 0.9);
+        panel.strokeRoundedRect(width * 0.05, height * 0.045, width * 0.9, height * 0.91, 8);
+        panel.setDepth(100);
+        this.elements.push(panel);
+
+        const route = this.add.text(width / 2, height * 0.095, ending.title, {
+            fontSize: '12px',
+            color: ending.accentText,
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(101);
+
+        const log = this.add.text(width / 2, height * 0.145, page.log, {
+            fontSize: '11px',
+            color: '#8E8AAE'
+        }).setOrigin(0.5).setDepth(101);
+
+        const title = this.add.text(width / 2, height * 0.205, page.title, {
+            fontSize: isCompact ? '22px' : '30px',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(101);
+        this.elements.push(route, log, title);
+
+        this.createEndingTableau(
+            choice,
+            pageIndex,
+            width / 2,
+            height * (isCompact ? 0.34 : 0.35)
+        );
+
+        const body = this.add.text(
+            width / 2,
+            height * (isCompact ? 0.50 : 0.51),
+            page.body,
+            {
+                fontSize: isCompact ? '14px' : '16px',
+                color: '#E8E6F2',
+                align: 'center',
+                lineSpacing: 5,
+                wordWrap: { width: width * 0.76 }
+            }
+        ).setOrigin(0.5).setDepth(101);
+
+        const fieldNote = this.add.text(
+            width / 2,
+            height * (isCompact ? 0.66 : 0.67),
+            `FIELD NOTE // ${page.fieldNote}`,
+            {
+                fontSize: isCompact ? '12px' : '14px',
+                color: '#F2C14E',
+                fontStyle: 'italic',
+                align: 'center',
+                lineSpacing: 4,
+                wordWrap: { width: width * 0.74 }
+            }
+        ).setOrigin(0.5).setDepth(101);
+
+        const progress = this.add.text(
+            width / 2,
+            height * 0.76,
+            `${String(pageIndex + 1).padStart(2, '0')} / ${String(ending.pages.length).padStart(2, '0')}`,
+            {
+                fontSize: '11px',
+                color: '#8E8AAE'
+            }
+        ).setOrigin(0.5).setDepth(101);
+        this.elements.push(body, fieldNote, progress);
+
+        if (isLastPage) {
+            this.completeEndingEpilogue(choice);
+            const buttonGap = Math.min(92, width * 0.24);
+            this.createButton(
+                width / 2 - buttonGap,
+                height * 0.84,
+                'SANCTUARY',
+                0x3F8A67,
+                () => this.returnToHub()
+            );
+            this.createButton(
+                width / 2 + buttonGap,
+                height * 0.84,
+                'NEW GAME+',
+                0x6F54A6,
+                () => this.showNewGamePlusConfirmation(choice)
+            );
+        } else {
+            this.createButton(
+                width / 2,
+                height * 0.84,
+                'CONTINUE',
+                ending.accent,
+                () => this.showEndingEpilogue(choice, pageIndex + 1)
+            );
+        }
+
+        window.AudioManager?.playAchievement?.();
+        return true;
+    }
+
+    createEndingTableau(choice, pageIndex, centerX, centerY) {
+        const ending = PROJECT_BEACON_ENDINGS[choice];
+        const art = this.add.graphics();
+        art.setPosition(centerX, centerY);
+        art.setDepth(101);
+        art.lineStyle(2, ending.accent, 0.9);
+
+        if (choice === 'earth') {
+            const earthX = pageIndex === 2 ? 68 : -62;
+            const shipX = pageIndex === 2 ? -52 : 58;
+
+            art.fillStyle(0x2357A6, 1);
+            art.fillCircle(earthX, 0, 36);
+            art.fillStyle(0x5DC58C, 0.9);
+            art.fillCircle(earthX - 12, -8, 10);
+            art.fillCircle(earthX + 10, 9, 8);
+            art.lineStyle(2, 0x7FC8FF, 0.75);
+            art.strokeCircle(earthX, 0, 43);
+
+            art.fillStyle(0xD9E4F0, 1);
+            art.fillTriangle(shipX, -16, shipX - 13, 15, shipX + 13, 15);
+            art.fillStyle(0xF2C14E, 1);
+            art.fillTriangle(shipX - 8, 15, shipX + 8, 15, shipX, 29);
+            art.lineStyle(2, ending.accent, 0.8);
+            art.lineBetween(earthX + (earthX < 0 ? 45 : -45), 0, shipX, 0);
+
+            if (pageIndex === 0) {
+                [50, 60, 70].forEach(radius => art.strokeCircle(earthX, 0, radius));
+            } else if (pageIndex === 1) {
+                art.fillStyle(0x8FE3CF, 1);
+                art.fillCircle(shipX, 4, 6);
+                art.strokeCircle(shipX, 4, 11);
+            } else {
+                art.lineStyle(2, 0xF2C14E, 0.65);
+                art.lineBetween(shipX - 48, 0, shipX - 20, 0);
+                art.lineBetween(shipX - 38, -10, shipX - 18, -5);
+                art.lineBetween(shipX - 38, 10, shipX - 18, 5);
+            }
+        } else if (pageIndex === 0) {
+            art.fillStyle(0x181735, 1);
+            art.fillCircle(55, 0, 39);
+            art.lineStyle(3, ending.accent, 1);
+            art.strokeCircle(55, 0, 48);
+            art.fillStyle(0x8FE3CF, 1);
+            art.fillCircle(45, -8, 7);
+            art.fillCircle(65, 8, 5);
+            art.lineStyle(2, 0xEF767A, 0.8);
+            art.lineBetween(-80, 0, -18, 0);
+            art.lineBetween(-8, -10, 8, 10);
+            art.lineBetween(-8, 10, 8, -10);
+        } else if (pageIndex === 1) {
+            const nodes = [
+                [-70, 8], [-34, -28], [0, 0], [38, -22], [72, 10]
+            ];
+            art.lineStyle(2, ending.accent, 0.65);
+            nodes.slice(0, -1).forEach((node, index) => {
+                art.lineBetween(node[0], node[1], nodes[index + 1][0], nodes[index + 1][1]);
+            });
+            nodes.forEach(([x, y], index) => {
+                art.fillStyle(index === 2 ? 0x8FE3CF : ending.accent, 1);
+                art.fillCircle(x, y, index === 2 ? 9 : 6);
+                art.strokeCircle(x, y, index === 2 ? 15 : 10);
+            });
+        } else {
+            art.fillStyle(0xCDD6E0, 1);
+            art.fillTriangle(0, -30, -24, 18, 24, 18);
+            art.fillStyle(0xF2C14E, 1);
+            art.fillCircle(0, -4, 7);
+            art.lineStyle(3, 0x6DBA78, 0.9);
+            art.lineBetween(-20, 18, -60, 34);
+            art.lineBetween(20, 18, 60, 34);
+            art.lineBetween(-8, 18, -25, 43);
+            art.lineBetween(8, 18, 25, 43);
+            art.fillStyle(0x8FE3CF, 1);
+            art.fillCircle(-60, 34, 6);
+            art.fillCircle(60, 34, 6);
+        }
+
+        art.setScale(0.92);
         this.tweens.add({
-            targets: banner,
-            scale: { from: 1, to: 1.05 },
-            duration: 1000,
+            targets: art,
+            scale: 1,
+            alpha: { from: 0.65, to: 1 },
+            duration: 1200,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+        this.elements.push(art);
+    }
 
-        // Creature
-        if (this.gameStats.creatureTexture && this.textures.exists(this.gameStats.creatureTexture)) {
-            const creature = this.add.sprite(width / 2, height * 0.38, this.gameStats.creatureTexture);
-            creature.setScale(0.5);
-            creature.setDepth(101);
-            this.elements.push(creature);
-
-            this.tweens.add({
-                targets: creature,
-                y: height * 0.38 - 5,
-                duration: 2000,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
+    showNewGamePlusConfirmation(choice) {
+        const ending = PROJECT_BEACON_ENDINGS[choice];
+        if (!ending) {
+            return false;
         }
 
-        // Description text
-        const description = choice === 'earth'
-            ? `What awaits on Earth?\n\nWill ${this.gameStats.creatureName} be safe?\nOr will they want to study your friend...?`
-            : `A new life in the Void awaits.\n\nBut Earth knows about this place now.\nThey will come looking for you...`;
+        const { width, height } = this.scale;
+        const isCompact = width < 600;
+        this.clearEndingView();
+        this.createEndingBackground(width, height, ending.accent);
 
-        const descText = this.add.text(width / 2, height * 0.52, description, {
-            fontSize: '14px',
-            color: '#E8D5FF',
-            align: 'center',
-            lineSpacing: 6
+        const panel = this.add.graphics();
+        panel.fillStyle(0x15122C, 0.97);
+        panel.fillRoundedRect(width * 0.06, height * 0.09, width * 0.88, height * 0.82, 8);
+        panel.lineStyle(3, 0x6F54A6, 0.95);
+        panel.strokeRoundedRect(width * 0.06, height * 0.09, width * 0.88, height * 0.82, 8);
+        panel.setDepth(100);
+
+        const title = this.add.text(width / 2, height * 0.2, 'REPLAY PROJECT BEACON?', {
+            fontSize: isCompact ? '22px' : '30px',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            align: 'center'
         }).setOrigin(0.5).setDepth(101);
-        this.elements.push(descText);
 
-        // Sequel teasers
-        const sequelY = height * 0.65;
+        const body = this.add.text(
+            width / 2,
+            height * 0.43,
+            `Your expeditions, ship parts, and ending will reset.\nPurchased route maps stay open.\n\n${this.gameStats.creatureName}, your bond, achievements, field kit, and katana upgrades will remain.`,
+            {
+                fontSize: isCompact ? '14px' : '16px',
+                color: '#E8E6F2',
+                align: 'center',
+                lineSpacing: 6,
+                wordWrap: { width: width * 0.74 }
+            }
+        ).setOrigin(0.5).setDepth(101);
+        this.elements.push(panel, title, body);
 
-        const sequelTitle = this.add.text(width / 2, sequelY, 'Future Adventures:', {
-            fontSize: '16px',
-            color: '#9B7FEE',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(101);
-        this.elements.push(sequelTitle);
-
-        // Two sequel options
-        const sequels = [
-            { name: 'MYTHICAL VOID: EARTH', desc: 'The Earth storyline', color: '#1E90FF' },
-            { name: 'MYTHICAL VOID: EXPANDED', desc: 'The Void storyline', color: '#DA70D6' }
-        ];
-
-        sequels.forEach((sequel, i) => {
-            const y = sequelY + 35 + i * 35;
-            const text = this.add.text(width / 2, y, `• ${sequel.name}`, {
-                fontSize: '14px',
-                color: sequel.color,
-                fontStyle: 'bold'
-            }).setOrigin(0.5).setDepth(101);
-            this.elements.push(text);
-        });
-
-        // Thank you message
-        const thankYou = this.add.text(width / 2, height * 0.78,
-            'Thank you for playing MYTHICAL VOID™!\n\nPlease enjoy the original game while we\ngather feedback for these exciting sequels.', {
-            fontSize: '12px',
-            color: '#B8A9C9',
-            align: 'center',
-            lineSpacing: 4
-        }).setOrigin(0.5).setDepth(101);
-        this.elements.push(thankYou);
-
-        // Return to Hub button
-        const btnY = height * 0.9;
-        this.createButton(
-            width / 2, btnY - 15,
-            'Return to Hub', 0x4CAF50,
-            () => this.returnToHub()
+        this.createChoiceButton(
+            width / 2,
+            height * 0.64,
+            'START NEW GAME+',
+            0x6F54A6,
+            () => this.startNewGamePlus(),
+            Math.min(320, width * 0.7)
         );
+        this.createButton(
+            width / 2,
+            height * 0.79,
+            'KEEP ENDING',
+            0x4A4564,
+            () => this.showEndingEpilogue(choice, ending.pages.length - 1)
+        );
+        return true;
+    }
+
+    clearEndingView() {
+        this.tweens?.killAll?.();
+        this.elements.forEach(el => {
+            if (el && el.destroy) {
+                el.destroy();
+            }
+        });
+        this.elements = [];
+        this.stars = [];
+        this.ship = null;
+    }
+
+    createEndingBackground(width, height, accent) {
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x080A14, 0x101326, 0x131126, 0x241936, 1);
+        bg.fillRect(0, 0, width, height);
+        bg.setDepth(0);
+        this.elements.push(bg);
+
+        for (let i = 0; i < 55; i++) {
+            const star = this.add.graphics();
+            star.fillStyle(i % 8 === 0 ? accent : 0xFFFFFF, 0.2 + Math.random() * 0.5);
+            star.fillCircle(
+                Math.random() * width,
+                Math.random() * height,
+                0.5 + Math.random()
+            );
+            star.setDepth(1);
+            this.elements.push(star);
+            this.stars.push(star);
+        }
+    }
+
+    completeEndingEpilogue(choice) {
+        if (this.isPreview) {
+            return true;
+        }
+
+        const state = window.GameState;
+        if (!state || state.get('story.projectBeacon.endingChoice') !== choice) {
+            return false;
+        }
+
+        const completedAt = state.get(
+            'story.projectBeacon.endingEpilogueCompletedAt'
+        ) || new Date().toISOString();
+        state.set('story.projectBeacon.endingEpilogueSeen', true);
+        state.set(
+            'story.projectBeacon.endingEpilogueCompletedAt',
+            completedAt
+        );
+        state.save?.();
+        return true;
+    }
+
+    /**
+     * Persist the player's final campaign decision for future story branches.
+     */
+    recordEndingChoice(choice) {
+        if (!['earth', 'void'].includes(choice)) {
+            return false;
+        }
+
+        if (this.isPreview) {
+            return true;
+        }
+
+        const state = window.GameState;
+        if (!state) {
+            return false;
+        }
+
+        const existingChoice = state.get('story.projectBeacon.endingChoice');
+        if (['earth', 'void'].includes(existingChoice)) {
+            return existingChoice === choice;
+        }
+
+        state.set('story.projectBeacon.endingChoice', choice);
+        state.set('story.projectBeacon.endingChoiceDate', new Date().toISOString());
+        state.set('story.projectBeacon.endingEpilogueSeen', false);
+        state.set('story.projectBeacon.endingEpilogueCompletedAt', null);
+        state.save?.();
+        return true;
     }
 
     /**
@@ -1281,22 +1681,70 @@ export default class VictoryScene extends Phaser.Scene {
      * Start New Game+ (keep some progress)
      */
     startNewGamePlus() {
-        // Keep creature and some achievements, reset levels
-        window.GameState?.set('game.newGamePlusCount',
-            (window.GameState?.get('game.newGamePlusCount') || 0) + 1
+        const state = window.GameState;
+        const mapsOwned = state?.get('hubWorld.mapsOwned') || [];
+        const mapOwnedGateIds = new Set(
+            Array.isArray(mapsOwned) ? mapsOwned : []
         );
 
-        // Reset level progression but keep creature
-        window.GameState?.set('hubWorld.gates.crystal_caves.unlocked', true);
-        window.GameState?.set('hubWorld.gates.reef.unlocked', false);
-        window.GameState?.set('hubWorld.gates.mythical_forest.unlocked', false);
-        window.GameState?.set('hubWorld.gates.aurora_depths.unlocked', false);
-        window.GameState?.set('hubWorld.gates.final_void.unlocked', false);
+        // Keep creature and some achievements, reset levels
+        state?.set('game.newGamePlusCount',
+            (state?.get('game.newGamePlusCount') || 0) + 1
+        );
 
-        // Reset ship parts
-        window.GameState?.set('hubWorld.shipParts.collected', []);
+        // Reset campaign progression while honoring permanent route-map rewards.
+        state?.set(
+            'hubWorld.gates.crystal_caves.unlocked',
+            mapOwnedGateIds.has('crystal_caves')
+        );
+        state?.set(
+            'hubWorld.gates.stellar_reef.unlocked',
+            mapOwnedGateIds.has('stellar_reef')
+        );
+        state?.set('hubWorld.gates.mythical_forest.unlocked', true);
+        state?.set(
+            'hubWorld.gates.void_peaks.unlocked',
+            mapOwnedGateIds.has('void_peaks')
+        );
+        state?.set(
+            'hubWorld.gates.aurora_depths.unlocked',
+            mapOwnedGateIds.has('aurora_depths')
+        );
+        state?.set('hubWorld.gates.final_void.unlocked', false);
 
-        window.GameState?.save();
+        state?.set('levels', {
+            crystalCaves: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+            cosmicReef: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+            mythicalForest: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+            voidPeaks: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+            auroraDepths: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null },
+            finalVoid: { entered: false, completed: false, noDamageRun: false, speedrun: false, bestTime: null }
+        });
+        state?.set('stats.levelsCompleted', 0);
+        state?.set('combat.bossesDefeated', 0);
+        state?.set('hubWorld.shipParts.collected', []);
+        state?.set('hubWorld.shipParts.finalBossUnlocked', false);
+        state?.set('hubWorld.shipCompletionCutsceneShown', false);
+
+        // Replay the campaign story while preserving the recovered field kit,
+        // katana upgrades, creature bond, and achievements.
+        const projectBeacon = state?.get('story.projectBeacon') || {};
+        state?.set('story.projectBeacon', {
+            ...projectBeacon,
+            firstExpeditionPromptSeen: false,
+            expeditionCheckpoint: null,
+            pendingDebriefs: [],
+            debriefsSeen: [],
+            uplinkRestored: false,
+            uplinkRestoredAt: null,
+            endingChoice: null,
+            endingChoiceDate: null,
+            endingEpilogueSeen: false,
+            endingEpilogueCompletedAt: null,
+            lastRouteUnlocked: null
+        });
+
+        state?.save();
 
         this.cameras.main.fadeOut(1000, 0, 0, 0);
         this.time.delayedCall(1000, () => {
@@ -1340,7 +1788,7 @@ export default class VictoryScene extends Phaser.Scene {
         this.elements = [];
         this.stars = [];
         this.ship = null;
-        this.engineFlame = null;
+        this.removeSkipControl();
     }
 }
 

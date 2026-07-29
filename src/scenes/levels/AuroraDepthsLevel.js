@@ -1,18 +1,22 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
 
+const SHADOW_PHOENIX_TEXTURE = 'shadowPhoenix';
+const SHADOW_PHOENIX_ASSET = '/game/guardians/shadow-phoenix.webp';
+const SHADOW_PHOENIX_DISPLAY_SIZE = 230;
+
 /**
  * AuroraDepthsLevel - Aurora Depths platformer level
  *
- * Story: "Deep beneath the aurora, where light bends and reality shimmers,
- * the Shadow Phoenix guards the Aurora Reactor. This mystical being was
- * once a creature of pure light, now corrupted by the encroaching void.
- * Defeat it to claim the reactor and restore balance."
+ * Story: Deep beneath the aurora, Project Beacon's uplink begins carrying
+ * farther than expected. The companion quietly bends the signal away from
+ * the sky while the Phoenix shields the reactor from the Void.
  *
  * Features:
  * - Aurora light effects and color-shifting atmosphere
  * - Floating crystal platforms
- * - Shadow Phoenix boss with fire/shadow attacks
- * - Aurora Reactor ship part reward
+ * - Three companion-aligned signal prisms and safe checkpoints
+ * - Aurora Phoenix guardian restoration
+ * - Aurora Reactor offered after the uplink is contained
  */
 class AuroraDepthsLevel extends PlatformerLevelScene {
     constructor() {
@@ -41,16 +45,31 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         // Boss state
         this.boss = null;
+        this.bossBody = null;
         this.bossHealth = 0;
         this.bossMaxHealth = 12;
         this.bossPhase = 1;
-        this.bossAttackTimer = null;
+        this.bossAITimer = null;
         this.bossHealthBar = null;
         this.bossNameText = null;
+        this.bossSubtitle = null;
+        this.bossBarConfig = null;
+        this.bossIndicator = null;
+        this.bossTargetScale = 1;
 
         // Aurora effects
         this.auroraLights = [];
         this.colorShiftTime = 0;
+        this.signalPrisms = [];
+        this.prismsAligned = 0;
+        this.uplinkRiskUnderstood = false;
+        this.reactorGateHintUntil = 0;
+        this.auroraFragments = null;
+        this.auroraEggAwarded = false;
+        this.shadowCurrents = [];
+        this.objectiveDisplay = null;
+        this.levelEntryDismissing = false;
+        this.levelEntryKeyHandler = null;
     }
 
     init(data) {
@@ -64,22 +83,41 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossFightActive = false;
 
         this.boss = null;
+        this.bossBody = null;
         this.bossHealth = 0;
         this.bossPhase = 1;
-        this.bossAttackTimer = null;
+        this.bossAITimer = null;
         this.bossHealthBar = null;
         this.bossNameText = null;
+        this.bossSubtitle = null;
+        this.bossBarConfig = null;
+        this.bossIndicator = null;
+        this.bossTargetScale = 1;
 
         this.auroraLights = [];
         this.colorShiftTime = 0;
+        this.signalPrisms = [];
+        this.prismsAligned = 0;
+        this.uplinkRiskUnderstood = false;
+        this.reactorGateHintUntil = 0;
+        this.auroraFragments = null;
+        this.auroraEggAwarded = false;
+        this.shadowCurrents = [];
+        this.objectiveDisplay = null;
+        this.levelEntryDismissing = false;
+        this.clearLevelEntryKeyHandler();
 
         console.log('[AuroraDepthsLevel] Level state reset');
+    }
+
+    preload() {
+        this.load.image(SHADOW_PHOENIX_TEXTURE, SHADOW_PHOENIX_ASSET);
     }
 
     create() {
         super.create();
 
-        if (window.AchievementSystem?.recordEvent) {
+        if (!this.entryPreview && window.AchievementSystem?.recordEvent) {
             window.AchievementSystem.recordEvent('level_entered', { levelId: 'auroraDepths' });
         }
 
@@ -94,44 +132,34 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     startTestMode() {
-        console.log('[AuroraDepthsLevel] TEST MODE - Spawning boss immediately');
+        console.log('[AuroraDepthsLevel] TEST MODE - Starting Phoenix restoration');
         this.createAuroraBackground();
-        this.createTestArenaPlatform();
+        this.prismsAligned = 3;
+        this.uplinkRiskUnderstood = true;
 
         if (this.player) {
-            this.player.setPosition(200, this.levelHeight - 200);
+            this.player.setPosition(
+                Math.max(80, this.getTestBossSpawnX() - 420),
+                this.levelHeight - 360
+            );
         }
 
-        this.time.delayedCall(500, () => {
-            this.spawnShadowPhoenix();
-        });
+        this.time.delayedCall(500, () => this.startBossFight());
     }
 
-    createTestArenaPlatform() {
-        const groundY = this.levelHeight - 100;
-
-        const ground = this.add.graphics();
-        ground.fillStyle(0x1A3A4A, 1);
-        ground.fillRect(0, groundY, this.levelWidth, 100);
-
-        // Aurora crystal texture
-        ground.fillStyle(0x00E676, 0.3);
-        for (let x = 0; x < this.levelWidth; x += 30) {
-            const crystalHeight = 10 + Math.random() * 15;
-            ground.fillTriangle(x, groundY, x + 15, groundY - crystalHeight, x + 30, groundY);
-        }
-
-        if (!this.platforms) {
-            this.platforms = this.physics.add.staticGroup();
-        }
-
-        const platformZone = this.add.zone(this.levelWidth / 2, groundY + 50, this.levelWidth, 100);
-        this.physics.add.existing(platformZone, true);
-        this.platforms.add(platformZone);
+    getTestBossSpawnX() {
+        const width = this.cameras.main.width;
+        return width <= 480 ? width - 110 : width / 2 + 200;
     }
 
     showLevelEntry() {
-        const { width, height } = this.cameras.main;
+        this.levelEntryDismissing = false;
+        const layout = this.getLevelModalLayout({ maxWidth: 470, maxHeight: 400 });
+        const {
+            width, height, panelWidth, panelHeight, panelX, panelY,
+            contentWidth, contentLeft, contentRight, y, font, buttonPadding
+        } = layout;
+        const resume = this.getExpeditionResumePresentation();
 
         this.physics.pause();
 
@@ -145,11 +173,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         overlay.setDepth(3000);
         entryElements.push(overlay);
 
-        const panelWidth = Math.min(450, width - 40);
-        const panelHeight = 350;
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
-
         const panel = this.add.graphics();
         panel.fillStyle(0x0A1A2A, 1);
         panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
@@ -159,59 +182,71 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         panel.setDepth(3001);
         entryElements.push(panel);
 
-        const title = this.add.text(width / 2, panelY + 50, 'AURORA DEPTHS', {
-            fontSize: '36px',
+        const title = this.add.text(width / 2, y(50), 'AURORA DEPTHS', {
+            fontSize: font(36, 28),
             color: '#00E676',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(title);
 
-        const subtitle = this.add.text(width / 2, panelY + 90, '"Where light bends and shadows dance"', {
-            fontSize: '16px',
+        const subtitle = this.add.text(width / 2, y(90), '"Your companion lowers the light toward home"', {
+            fontSize: font(16, 14),
             color: '#7FFFD4',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(subtitle);
 
-        const divider = this.add.graphics();
-        divider.lineStyle(2, 0x00E676, 0.5);
-        divider.lineBetween(panelX + 40, panelY + 120, panelX + panelWidth - 40, panelY + 120);
-        divider.setScrollFactor(0);
-        divider.setDepth(3002);
-        entryElements.push(divider);
+        const mission = this.add.text(
+            width / 2,
+            y(132),
+            resume
+                ? `PROJECT BEACON // RESUME ${resume.current}/${resume.total}`
+                : 'PROJECT BEACON // EXPEDITION 05',
+            {
+            fontSize: font(13, 11),
+            color: '#8FA5A0',
+            align: 'center',
+            wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(mission);
 
-        const objHeader = this.add.text(width / 2, panelY + 145, 'OBJECTIVE', {
-            fontSize: '14px',
-            color: '#888888'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-        entryElements.push(objHeader);
-
-        const mainObj = this.add.text(width / 2, panelY + 175, 'Claim the Aurora Reactor', {
-            fontSize: '20px',
+        const mainObj = this.add.text(width / 2, y(172), 'Align the three aurora prisms', {
+            fontSize: font(20, 17),
             color: '#7FFFD4',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(mainObj);
 
-        const secondaryY = panelY + 220;
-        const obj1 = this.add.text(panelX + 60, secondaryY, '[ ] Collect Star Fragments (0/5)', {
-            fontSize: '16px',
-            color: '#AAAAAA'
+        const obj1 = this.add.text(contentLeft, y(220), `${
+            resume
+                ? `[ BEACON ] ${resume.label} link restored`
+                : '[ ] Trace the uplink without broadcasting'
+        }\n[ ] Restore the Phoenix guardian\n[ OPTIONAL ] Collect Aurora Fragments (0/5)`, {
+            fontSize: font(16, 14),
+            color: '#AAAAAA',
+            lineSpacing: 8,
+            wordWrap: { width: contentWidth }
         }).setScrollFactor(0).setDepth(3002);
         entryElements.push(obj1);
 
-        const obj2 = this.add.text(panelX + 60, secondaryY + 30, '[ ] Defeat the Shadow Phoenix', {
-            fontSize: '16px',
-            color: '#AAAAAA'
-        }).setScrollFactor(0).setDepth(3002);
-        entryElements.push(obj2);
-
-        const enterBtn = this.add.text(width / 2, panelY + panelHeight - 50, '[ DESCEND INTO THE AURORA ]', {
-            fontSize: '20px',
+        const enterBtn = this.add.text(
+            width / 2,
+            y(350),
+            resume ? '[ RESUME EXPEDITION ]' : '[ DESCEND INTO THE AURORA ]',
+            {
+            fontSize: font(20, 16),
             color: '#00E676',
             backgroundColor: '#0A1A2A',
-            padding: { x: 25, y: 12 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
+            padding: buttonPadding
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
         entryElements.push(enterBtn);
 
         enterBtn.on('pointerover', () => enterBtn.setColor('#7FFFD4'));
@@ -219,6 +254,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         // Dismiss function - used by button and tap anywhere
         const dismissEntry = () => {
+            if (this.levelEntryDismissing) return;
+
+            this.levelEntryDismissing = true;
+            enterBtn.disableInteractive();
+            overlay.disableInteractive();
+            this.clearLevelEntryKeyHandler();
             this.tweens.add({
                 targets: entryElements,
                 alpha: 0,
@@ -228,6 +269,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                         if (el && el.destroy) el.destroy();
                     });
                     this.physics.resume();
+                    this.showPlatformerMobileControls();
                     this.startLevel();
                 }
             });
@@ -238,12 +280,51 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         // Also allow tapping anywhere on overlay to dismiss (mobile-friendly)
         overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
         overlay.on('pointerdown', dismissEntry);
+
+        this.levelEntryKeyHandler = event => {
+            if (!['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            dismissEntry();
+        };
+        window.addEventListener('keydown', this.levelEntryKeyHandler);
+    }
+
+    clearLevelEntryKeyHandler() {
+        if (!this.levelEntryKeyHandler) return;
+
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.levelEntryKeyHandler);
+        }
+        this.levelEntryKeyHandler = null;
     }
 
     startLevel() {
         console.log('[AuroraDepthsLevel] Starting level');
         this.createAuroraBackground();
-        this.createLevelContent();
+        this.createLevelSpecificContentOnce();
+        this.showObjectiveToast();
+    }
+
+    createPlatforms() {
+        this.platforms = this.physics.add.staticGroup();
+
+        const groundY = this.levelHeight - 50;
+        this.createPlatform(0, groundY, this.levelWidth, 80, 'solid');
+
+        const ledges = [
+            [180, groundY - 150, 320], [620, groundY - 255, 240],
+            [980, groundY - 165, 280], [1370, groundY - 310, 240],
+            [1740, groundY - 205, 300], [2140, groundY - 350, 240],
+            [2520, groundY - 230, 280], [2920, groundY - 380, 260],
+            [3340, groundY - 245, 300], [3740, groundY - 330, 260],
+            [4140, groundY - 220, 300], [4550, groundY - 340, 240]
+        ];
+
+        ledges.forEach(([x, y, width]) => {
+            this.createPlatform(x, y, width, 28, 'one-way');
+        });
+
+        console.log(`[AuroraDepthsLevel] Created ${this.platforms.getLength()} platforms`);
     }
 
     createAuroraBackground() {
@@ -323,8 +404,334 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         });
     }
 
+    update(time, delta) {
+        if (this.bossBody?.active && this.boss?.active) {
+            this.bossBody.setPosition(this.boss.x, this.boss.y + 35);
+        }
+
+        super.update(time, delta);
+        if (this.levelCompletionActive) return;
+
+        if (this.objectiveDisplay) {
+            this.objectiveDisplay.setText(this.getAuroraObjectiveText());
+            this.objectiveDisplay.setVisible(
+                !(this.isCompactObjectiveHUD && this.bossFightActive)
+            );
+        }
+        this.updateBossIndicator();
+    }
+
     createLevelContent() {
+        this.createShadowCurrents();
+        this.createAuroraFragments();
+        this.createSignalPrisms();
         this.createBossArena();
+    }
+
+    createHUD() {
+        super.createHUD();
+
+        const { width, height } = this.cameras.main;
+        const isShortLandscape = width > height && height < 620;
+        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
+        this.objectiveDisplay = this.add.text(
+            width - (this.isCompactObjectiveHUD ? 12 : 20),
+            this.isCompactObjectiveHUD ? (isShortLandscape ? 82 : 212) : height - 30,
+            this.getAuroraObjectiveText(),
+            {
+                fontSize: this.isCompactObjectiveHUD ? '11px' : '15px',
+                color: '#A9F3E4',
+                backgroundColor: 'rgba(6, 24, 31, 0.82)',
+                padding: { x: 8, y: 5 },
+                align: 'right'
+            }
+        ).setOrigin(1, this.isCompactObjectiveHUD ? 0 : 1)
+            .setScrollFactor(0)
+            .setDepth(1000);
+    }
+
+    getAuroraObjectiveText() {
+        const uplinkState = this.uplinkRiskUnderstood ? 'EXPOSURE FOUND' : 'TRACING';
+        if (this.isCompactObjectiveHUD) {
+            return `PRISMS: ${this.prismsAligned}/3\nUPLINK: ${uplinkState}\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        }
+        return `PRISMS: ${this.prismsAligned}/3  |  UPLINK: ${uplinkState}\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+    }
+
+    showObjectiveToast() {
+        const { width, height } = this.cameras.main;
+        const isMobileLayout = this.isMobile || width <= 480 || height < 620;
+        const toast = this.add.text(
+            width / 2,
+            isMobileLayout ? 165 : 90,
+            'Align the aurora prisms without opening the uplink',
+            {
+                fontSize: isMobileLayout ? '16px' : '18px',
+                color: '#F2C94C',
+                backgroundColor: 'rgba(4, 18, 25, 0.82)',
+                padding: { x: 16, y: 8 },
+                align: 'center',
+                wordWrap: { width: width - 40 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2500);
+
+        this.tweens.add({
+            targets: toast,
+            alpha: 0,
+            y: 60,
+            delay: 2800,
+            duration: 600,
+            onComplete: () => toast.destroy()
+        });
+    }
+
+    createShadowCurrents() {
+        const currents = [
+            { x: 810, width: 150 },
+            { x: 2020, width: 170 },
+            { x: 3230, width: 180 }
+        ];
+
+        currents.forEach(({ x, width }) => {
+            const y = this.levelHeight - 88;
+            const zone = this.add.zone(x + width / 2, y, width, 76);
+            this.physics.add.existing(zone, true);
+
+            const visual = this.add.graphics();
+            visual.fillStyle(0x2D1748, 0.72);
+            visual.fillRoundedRect(x, y - 28, width, 56, 12);
+            visual.lineStyle(2, 0x7FFFD4, 0.45);
+            visual.strokeRoundedRect(x, y - 28, width, 56, 12);
+            visual.setDepth(110);
+
+            this.tweens.add({
+                targets: visual,
+                alpha: { from: 0.45, to: 0.9 },
+                duration: 950,
+                yoyo: true,
+                repeat: -1
+            });
+
+            this.physics.add.overlap(this.player, zone, () => {
+                if (!this.isInvincible && !this.bossDefeated) {
+                    this.takeDamage(1);
+                }
+            });
+            this.shadowCurrents.push({ zone, visual });
+        });
+    }
+
+    createAuroraFragments() {
+        this.auroraFragments = this.physics.add.group();
+        const positions = [
+            [740, this.levelHeight - 340],
+            [1490, this.levelHeight - 395],
+            [2260, this.levelHeight - 435],
+            [3060, this.levelHeight - 465],
+            [3870, this.levelHeight - 415]
+        ];
+
+        positions.forEach(([x, y], index) => {
+            const fragment = this.add.star(x, y, 5, 7, 18, 0xF2C94C, 1);
+            fragment.fragmentIndex = index;
+            fragment.setDepth(700);
+            this.physics.add.existing(fragment);
+            fragment.body.setAllowGravity(false);
+            fragment.body.setSize(32, 32);
+            this.auroraFragments.add(fragment);
+
+            this.tweens.add({
+                targets: fragment,
+                angle: 360,
+                y: y - 12,
+                duration: 1600,
+                repeat: -1,
+                yoyo: true
+            });
+        });
+
+        this.physics.add.overlap(
+            this.player,
+            this.auroraFragments,
+            this.collectAuroraFragment,
+            null,
+            this
+        );
+    }
+
+    collectAuroraFragment(player, fragment) {
+        if (!fragment?.active) return;
+
+        const collectX = fragment.x;
+        const collectY = fragment.y;
+        this.starFragmentsCollected++;
+        fragment.destroy();
+
+        window.FXLibrary?.stardustBurst?.(this, collectX, collectY, {
+            count: 18,
+            color: [0xF2C94C, 0x7FFFD4, 0xFFFFFF],
+            duration: 1200
+        });
+        this.showFloatingText(
+            `AURORA FRAGMENT ${this.starFragmentsCollected}/${this.totalStarFragments}`,
+            collectX,
+            collectY - 30,
+            '#F2C94C'
+        );
+        window.AudioManager?.playCollect?.();
+
+        if (
+            this.starFragmentsCollected >= this.totalStarFragments &&
+            !this.auroraEggAwarded
+        ) {
+            this.auroraEggAwarded = true;
+            this.time.delayedCall(450, () => {
+                this.showFloatingText(
+                    'THE QUIET LIGHT GATHERS AROUND AN EGG',
+                    collectX,
+                    collectY - 75,
+                    '#A9F3E4'
+                );
+                window.InventoryManager?.addItem?.({
+                    id: 'quiet_aurora_egg',
+                    name: 'Quiet Aurora Egg',
+                    type: 'egg',
+                    rarity: 'rare',
+                    description: 'An egg sheltered inside the light your companion turned away from the sky.',
+                    icon: '🥚🌌'
+                });
+                window.AudioManager?.playAchievement?.();
+            });
+        }
+    }
+
+    createSignalPrisms() {
+        const prisms = [
+            { id: 'aurora_prism_1', x: 1150, y: 610, label: 'LOWER PRISM' },
+            { id: 'aurora_prism_2', x: 2480, y: 490, label: 'HEART PRISM' },
+            { id: 'aurora_prism_3', x: 3680, y: 560, label: 'SKY PRISM' }
+        ];
+
+        prisms.forEach((prism, index) => {
+            const visual = this.add.graphics();
+            visual.setDepth(180);
+            this.drawSignalPrism(visual, prism.x, prism.y, false);
+
+            const label = this.add.text(prism.x, prism.y - 100, prism.label, {
+                fontSize: '11px',
+                color: '#87A49E',
+                fontStyle: 'bold',
+                stroke: '#061319',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(181);
+
+            const zone = this.add.zone(
+                prism.x,
+                this.levelHeight / 2,
+                120,
+                this.levelHeight
+            );
+            this.physics.add.existing(zone, true);
+
+            const signalPrism = {
+                ...prism,
+                index,
+                visual,
+                label,
+                zone,
+                aligned: false
+            };
+            this.physics.add.overlap(this.player, zone, () => {
+                this.alignSignalPrism(signalPrism);
+            });
+            this.signalPrisms.push(signalPrism);
+        });
+    }
+
+    drawSignalPrism(graphics, x, y, aligned) {
+        graphics.clear();
+        const color = aligned ? 0xA9F3E4 : 0x385A5B;
+
+        graphics.fillStyle(color, aligned ? 0.24 : 0.12);
+        graphics.fillCircle(x, y - 42, 48);
+        graphics.lineStyle(4, color, aligned ? 1 : 0.65);
+        graphics.strokeTriangle(x, y - 88, x - 28, y - 20, x + 28, y - 20);
+        graphics.lineBetween(x, y - 20, x, y + 34);
+        graphics.lineBetween(x, y + 34, x - 18, y + 48);
+        graphics.lineBetween(x, y + 34, x + 18, y + 48);
+        graphics.fillStyle(aligned ? 0xF2C94C : color, 0.95);
+        graphics.fillCircle(x, y - 50, 8);
+
+        if (aligned) {
+            graphics.lineStyle(2, 0x7FFFD4, 0.7);
+            graphics.lineBetween(x, y - 50, x, 50);
+            graphics.strokeCircle(x, y - 50, 38);
+        }
+    }
+
+    alignSignalPrism(prism) {
+        if (!prism || prism.aligned) return;
+
+        prism.aligned = true;
+        prism.zone?.destroy?.();
+        prism.zone = null;
+        this.prismsAligned++;
+        this.drawSignalPrism(prism.visual, prism.x, prism.y, true);
+        prism.label.setColor('#A9F3E4');
+        this.setCheckpoint(prism.x, this.levelHeight - 130, {
+            persist: true,
+            checkpointId: prism.id,
+            checkpointIndex: prism.index
+        });
+
+        this.showFloatingText(
+            `AURORA PRISM ${this.prismsAligned}/3 ALIGNED`,
+            prism.x,
+            prism.y - 125,
+            '#A9F3E4'
+        );
+
+        const companionLines = [
+            'Project Beacon is carrying farther than expected.',
+            'Your companion bends the signal down, away from the sky.',
+            "Earth's symbol appears. Your companion stays beside you."
+        ];
+        this.time.delayedCall(600, () => {
+            this.showFloatingText(
+                companionLines[prism.index],
+                prism.x,
+                prism.y - 165,
+                prism.index === 2 ? '#F2C94C' : '#D8FFF6'
+            );
+        });
+
+        if (this.prismsAligned === 3) {
+            this.uplinkRiskUnderstood = true;
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'beacon_exposure_risk_discovered'
+            });
+        }
+
+        window.AudioManager?.playAchievement?.();
+    }
+
+    restoreExpeditionRouteState(resume) {
+        return this.restoreExpeditionRouteSignals(resume, {
+            signals: this.signalPrisms,
+            activeProperty: 'aligned',
+            countProperty: 'prismsAligned',
+            readyProperty: 'uplinkRiskUnderstood',
+            labelColor: '#A9F3E4',
+            drawSignal: prism => this.drawSignalPrism(
+                prism.visual,
+                prism.x,
+                prism.y,
+                true
+            ),
+            onRestored: () => {
+                this.objectiveDisplay?.setText?.(this.getAuroraObjectiveText());
+            }
+        });
     }
 
     createBossArena() {
@@ -343,12 +750,30 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             arena.fillTriangle(crystalX - 10, groundY, crystalX, groundY - 15, crystalX + 10, groundY);
         }
 
-        const triggerZone = this.add.zone(arenaX + arenaWidth / 2, groundY - 50, 100, 100);
+        const triggerZone = this.add.zone(
+            arenaX + 320,
+            this.levelHeight / 2,
+            150,
+            this.levelHeight
+        );
         this.physics.add.existing(triggerZone, true);
 
         if (this.player) {
             this.physics.add.overlap(this.player, triggerZone, () => {
                 if (!this.bossFightActive && !this.bossDefeated) {
+                    if (!this.uplinkRiskUnderstood) {
+                        const now = this.time.now;
+                        if (now >= this.reactorGateHintUntil) {
+                            this.showFloatingText(
+                                'The Phoenix keeps its shield raised. Align the aurora prisms.',
+                                this.player.x,
+                                this.player.y - 70,
+                                '#F2C94C'
+                            );
+                            this.reactorGateHintUntil = now + 1800;
+                        }
+                        return;
+                    }
                     triggerZone.destroy();
                     this.startBossFight();
                 }
@@ -357,22 +782,28 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     startBossFight() {
-        console.log('[AuroraDepthsLevel] Starting Shadow Phoenix boss fight!');
+        if (this.bossFightActive || this.bossDefeated) return;
+
+        console.log('[AuroraDepthsLevel] Starting Aurora Phoenix restoration!');
         this.bossFightActive = true;
 
         this.physics.pause();
-        this.cameras.main.flash(500, 0, 230, 118);
+        this.cameras.main.flash(220, 0, 230, 118);
 
         const { width, height } = this.cameras.main;
-        const warningText = this.add.text(width / 2, height / 2, '⚠ FROM ASHES, IT RISES ⚠', {
-            fontSize: '32px',
-            color: '#FF4500',
+        const warningText = this.add.text(width / 2, height / 2, 'THE PHOENIX IS SHIELDING THE UPLINK', {
+            fontSize: width <= 480 ? '20px' : '30px',
+            color: '#F2C94C',
             fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
+            stroke: '#061319',
+            strokeThickness: 4,
+            backgroundColor: 'rgba(4, 18, 25, 0.86)',
+            padding: { x: 14, y: 9 },
+            align: 'center',
+            wordWrap: { width: width - 50 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
 
-        this.cameras.main.shake(1500, 0.015);
+        this.cameras.main.shake(650, 0.012);
 
         if (window.AudioManager) {
             window.AudioManager.playError();
@@ -381,22 +812,23 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: warningText,
             alpha: 0,
-            duration: 1500,
+            delay: 900,
+            duration: 300,
             onComplete: () => warningText.destroy()
         });
 
-        this.time.delayedCall(1500, () => {
+        this.time.delayedCall(1200, () => {
+            if (this.bossDefeated) return;
             this.spawnShadowPhoenix();
             this.physics.resume();
         });
     }
 
     /**
-     * Create Shadow Phoenix placeholder texture
-     * PLACEHOLDER - Replace with custom artwork later
+     * Keep a procedural fallback so a failed asset request cannot block combat.
      */
-    createShadowPhoenixTexture() {
-        const textureKey = 'shadowPhoenix';
+    ensureShadowPhoenixTexture() {
+        const textureKey = SHADOW_PHOENIX_TEXTURE;
         if (this.textures.exists(textureKey)) return textureKey;
 
         const graphics = this.make.graphics({ add: false });
@@ -491,20 +923,30 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     spawnShadowPhoenix() {
         console.log('[AuroraDepthsLevel] Spawning Shadow Phoenix!');
 
-        const textureKey = this.createShadowPhoenixTexture();
+        const textureKey = this.ensureShadowPhoenixTexture();
 
-        const { width, height } = this.cameras.main;
-        const spawnX = this.testMode ? width / 2 + 200 : 4400;
+        const { width } = this.cameras.main;
+        const spawnX = this.testMode
+            ? this.getTestBossSpawnX()
+            : 4620;
         const spawnY = this.levelHeight - 250;
 
         this.boss = this.physics.add.sprite(spawnX, spawnY, textureKey);
         this.boss.setCollideWorldBounds(true);
         this.boss.setBounce(0);
         this.boss.setDepth(880);
-        this.boss.body.setSize(90, 80);
-        this.boss.body.setOffset(30, 35);
-        this.boss.setScale(1.3);
+        this.bossTargetScale = SHADOW_PHOENIX_DISPLAY_SIZE /
+            Math.max(1, this.boss.width);
+        this.boss.body.setSize(this.boss.width * 0.34, this.boss.height * 0.5);
+        this.boss.body.setOffset(this.boss.width * 0.33, this.boss.height * 0.2);
+        this.boss.setScale(this.bossTargetScale);
         this.boss.body.setAllowGravity(false); // Phoenix floats
+
+        // Keep combat targeting independent of transparent artwork bounds and flips.
+        this.bossBody = this.add.zone(spawnX, spawnY + 35, 160, 210);
+        this.physics.add.existing(this.bossBody);
+        this.bossBody.body.setAllowGravity(false);
+        this.bossBody.body.setImmovable(true);
 
         this.bossHealth = this.bossMaxHealth;
         this.bossPhase = 1;
@@ -522,12 +964,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.createBossHealthBar();
 
         this.boss.setAlpha(0);
-        this.boss.setScale(0.5);
+        this.boss.setScale(this.bossTargetScale * 0.4);
 
         this.tweens.add({
             targets: this.boss,
             alpha: 1,
-            scale: 1.3,
+            scale: this.bossTargetScale,
             duration: 1000,
             ease: 'Back.easeOut',
             onComplete: () => {
@@ -574,30 +1016,40 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     createBossHealthBar() {
-        const screenWidth = this.cameras.main.width;
-        const barWidth = Math.min(350, screenWidth - 60);
-        const barHeight = 28;
+        const { width: screenWidth, height: screenHeight } = this.cameras.main;
+        const isMobileLayout =
+            this.isMobile || screenWidth <= 480 || screenHeight < 620;
+        const barWidth = Math.min(380, screenWidth - 80);
+        const barHeight = 18;
         const barX = (screenWidth - barWidth) / 2;
-        const barY = 55;
+        const barY = isMobileLayout ? 118 : 60;
+        this.bossBarConfig = {
+            x: barX,
+            y: barY,
+            width: barWidth,
+            height: barHeight
+        };
 
         this.bossUI = this.add.container(0, 0);
         this.bossUI.setScrollFactor(0);
         this.bossUI.setDepth(1500);
 
-        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, '🔥 SHADOW PHOENIX 🔥', {
-            fontSize: '22px',
-            color: '#FF6B4A',
+        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'AURORA PHOENIX', {
+            fontSize: isMobileLayout ? '18px' : '22px',
+            color: '#A9F3E4',
             fontStyle: 'bold',
-            stroke: '#2D1B4E',
+            stroke: '#061319',
             strokeThickness: 4
         }).setOrigin(0.5);
         this.bossUI.add(this.bossNameText);
 
-        const subtitle = this.add.text(screenWidth / 2, barY - 8, 'Guardian of the Aurora Reactor', {
+        this.bossSubtitle = this.add.text(screenWidth / 2, barY - 8, 'Release the Void pressure', {
             fontSize: '11px',
-            color: '#7FFFD4'
+            color: '#D8FFF6',
+            stroke: '#061319',
+            strokeThickness: 2
         }).setOrigin(0.5);
-        this.bossUI.add(subtitle);
+        this.bossUI.add(this.bossSubtitle);
 
         const bgBar = this.add.graphics();
         bgBar.fillStyle(0x1A1A3E, 0.9);
@@ -609,32 +1061,74 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossHealthBar = this.add.graphics();
         this.bossUI.add(this.bossHealthBar);
 
-        this.updateBossHealthBar(barX, barY, barWidth, barHeight);
+        this.updateBossHealthBar();
+        this.createBossIndicator();
     }
 
-    updateBossHealthBar(barX, barY, barWidth, barHeight) {
-        if (!this.bossHealthBar) return;
+    updateBossHealthBar() {
+        if (!this.bossHealthBar || !this.bossBarConfig) return;
 
-        barX = barX || (this.cameras.main.width - 350) / 2;
-        barY = barY || 55;
-        barWidth = barWidth || 350;
-        barHeight = barHeight || 28;
+        const {
+            x: barX,
+            y: barY,
+            width: barWidth,
+            height: barHeight
+        } = this.bossBarConfig;
 
         this.bossHealthBar.clear();
 
         const healthPercent = this.bossHealth / this.bossMaxHealth;
         const currentWidth = barWidth * healthPercent;
 
-        const r = Math.floor(255 * (1 - healthPercent * 0.5));
-        const g = Math.floor(100 * healthPercent);
-        const b = 0;
-        const healthColor = Phaser.Display.Color.GetColor(r, g, b);
+        const healthColor = healthPercent > 0.6
+            ? 0x7FFFD4
+            : healthPercent > 0.3
+                ? 0xF2C94C
+                : 0xFF6B4A;
 
         this.bossHealthBar.fillStyle(healthColor, 1);
         this.bossHealthBar.fillRoundedRect(barX, barY, currentWidth, barHeight, 6);
 
         this.bossHealthBar.fillStyle(0xFFFFFF, 0.2);
         this.bossHealthBar.fillRoundedRect(barX, barY, currentWidth, barHeight / 2, { tl: 6, tr: 6, bl: 0, br: 0 });
+    }
+
+    createBossIndicator() {
+        const { width, height } = this.cameras.main;
+        this.bossIndicator = this.add.text(width - 14, height / 2, 'PHOENIX >', {
+            fontSize: width <= 480 ? '13px' : '15px',
+            color: '#F2C94C',
+            backgroundColor: 'rgba(4, 18, 25, 0.82)',
+            padding: { x: 7, y: 5 },
+            fontStyle: 'bold'
+        }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(1499).setVisible(false);
+    }
+
+    updateBossIndicator() {
+        if (!this.bossIndicator || !this.boss?.active || this.bossDefeated) {
+            this.bossIndicator?.setVisible?.(false);
+            return;
+        }
+
+        const camera = this.cameras.main;
+        const bossScreenX = this.boss.x - camera.scrollX;
+        const padding = 45;
+
+        if (bossScreenX > camera.width + padding) {
+            this.bossIndicator
+                .setText('PHOENIX >')
+                .setPosition(camera.width - 14, camera.height / 2)
+                .setOrigin(1, 0.5)
+                .setVisible(true);
+        } else if (bossScreenX < -padding) {
+            this.bossIndicator
+                .setText('< PHOENIX')
+                .setPosition(14, camera.height / 2)
+                .setOrigin(0, 0.5)
+                .setVisible(true);
+        } else {
+            this.bossIndicator.setVisible(false);
+        }
     }
 
     startBossAI() {
@@ -678,7 +1172,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     executeBossAttack(attackType) {
-        if (!this.boss || this.boss.isAttacking) return;
+        if (!this.boss?.active || this.boss.isAttacking || this.bossDefeated) return;
 
         this.boss.isAttacking = true;
 
@@ -701,14 +1195,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         }
 
         this.time.delayedCall(1500, () => {
-            if (this.boss) {
+            if (this.boss?.active && !this.bossDefeated) {
                 this.boss.isAttacking = false;
             }
         });
     }
 
     bossFlameDive() {
-        if (!this.boss || !this.player) return;
+        if (!this.boss?.active || !this.player?.active || this.bossDefeated) return;
 
         const targetX = this.player.x;
         const targetY = this.player.y;
@@ -720,10 +1214,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         telegraph.setDepth(100);
 
         this.time.delayedCall(500, () => {
+            if (!telegraph.active || !this.boss?.active || this.bossDefeated) {
+                telegraph.destroy();
+                return;
+            }
             telegraph.destroy();
-
-            const startX = this.boss.x;
-            const startY = this.boss.y;
 
             this.tweens.add({
                 targets: this.boss,
@@ -731,8 +1226,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 y: targetY,
                 duration: 300,
                 onComplete: () => {
+                    if (!this.boss?.active || this.bossDefeated) return;
                     // Damage check
-                    if (this.player && Math.abs(this.player.x - this.boss.x) < 50 && Math.abs(this.player.y - this.boss.y) < 50) {
+                    if (this.player?.active && Math.abs(this.player.x - this.boss.x) < 50 && Math.abs(this.player.y - this.boss.y) < 50) {
                         this.handlePlayerDamage(1);
                     }
 
@@ -748,7 +1244,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     bossShadowFeathers() {
-        if (!this.boss || !this.player) return;
+        if (!this.boss?.active || !this.player?.active || this.bossDefeated) return;
 
         const count = this.bossPhase >= 2 ? 7 : 5;
         const angleSpread = Math.PI * 0.6;
@@ -774,23 +1270,28 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 y: feather.y + vy,
                 duration: 1000,
                 onUpdate: () => {
-                    if (this.player && Math.abs(this.player.x - feather.x) < 20 && Math.abs(this.player.y - feather.y) < 20) {
+                    if (this.bossDefeated) {
+                        feather.destroy();
+                        return;
+                    }
+                    if (this.player?.active && Math.abs(this.player.x - feather.x) < 20 && Math.abs(this.player.y - feather.y) < 20) {
                         this.handlePlayerDamage(1);
                         feather.destroy();
                     }
                 },
-                onComplete: () => feather.destroy()
+                onComplete: () => feather.active && feather.destroy()
             });
         }
     }
 
     bossFireTrail() {
-        if (!this.boss) return;
+        if (!this.boss?.active || this.bossDefeated) return;
 
         const direction = this.boss.facingRight ? 1 : -1;
 
         for (let i = 0; i < 5; i++) {
             this.time.delayedCall(i * 150, () => {
+                if (!this.boss?.active || this.bossDefeated) return;
                 const flame = this.add.graphics();
                 flame.fillStyle(0xFF4500, 0.8);
                 flame.fillCircle(0, 0, 25);
@@ -804,7 +1305,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                     delay: 100,
                     repeat: 10,
                     callback: () => {
-                        if (this.player && Math.abs(this.player.x - flame.x) < 30 && this.player.y > this.levelHeight - 180) {
+                        if (!flame.active || this.bossDefeated) return;
+                        if (this.player?.active && Math.abs(this.player.x - flame.x) < 30 && this.player.y > this.levelHeight - 180) {
                             this.handlePlayerDamage(1);
                         }
                     }
@@ -822,7 +1324,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     bossRebirthNova() {
-        if (!this.boss) return;
+        if (!this.boss?.active || this.bossDefeated) return;
 
         this.cameras.main.flash(500, 255, 69, 0);
 
@@ -852,6 +1354,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             delay: 30,
             repeat: 30,
             callback: () => {
+                if (!ring.active || this.bossDefeated || !this.boss?.active) {
+                    ring.destroy();
+                    return;
+                }
                 radius += 15;
                 ring.clear();
                 ring.lineStyle(8, 0xFF4500, 1 - radius / 500);
@@ -865,31 +1371,40 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                     }
                 }
             },
-            onComplete: () => ring.destroy()
+            onComplete: () => ring.active && ring.destroy()
         });
     }
 
     bossShadowClones() {
-        if (!this.boss) return;
+        if (!this.boss?.active || this.bossDefeated) return;
 
         // Create 2 shadow clones
         for (let i = 0; i < 2; i++) {
             const clone = this.add.sprite(this.boss.x + (i === 0 ? -100 : 100), this.boss.y, 'shadowPhoenix');
             clone.setAlpha(0.5);
             clone.setTint(0x4B0082);
-            clone.setScale(0.8);
+            clone.setScale(this.bossTargetScale * 0.72);
             clone.setDepth(870);
 
             // Clones dive at player
             this.time.delayedCall(500 + i * 300, () => {
-                if (this.player) {
+                if (this.bossDefeated || !clone.active) {
+                    clone.destroy();
+                    return;
+                }
+                if (this.player?.active) {
                     this.tweens.add({
                         targets: clone,
                         x: this.player.x,
                         y: this.player.y,
                         duration: 400,
                         onComplete: () => {
-                            if (this.player && Math.abs(this.player.x - clone.x) < 40 && Math.abs(this.player.y - clone.y) < 40) {
+                            if (!clone.active) return;
+                            if (this.bossDefeated) {
+                                clone.destroy();
+                                return;
+                            }
+                            if (this.player?.active && Math.abs(this.player.x - clone.x) < 40 && Math.abs(this.player.y - clone.y) < 40) {
                                 this.handlePlayerDamage(1);
                             }
                             clone.destroy();
@@ -906,56 +1421,34 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     handlePlayerDamage(damage) {
-        if (this.isInvincible || this.isPlayerDead) return;
-
-        this.health -= damage;
-        this.isInvincible = true;
-
-        this.tweens.add({
-            targets: this.player,
-            alpha: 0.3,
-            duration: 100,
-            yoyo: true,
-            repeat: 5,
-            onComplete: () => {
-                if (this.player) this.player.setAlpha(1);
-                this.isInvincible = false;
-            }
-        });
-
-        if (this.hud) {
-            this.hud.updateHealth(this.health, this.maxHealth);
-        }
-
-        if (this.health <= 0) {
-            this.handlePlayerDeath();
-        }
-
-        if (window.AudioManager) {
-            window.AudioManager.playEnemyHit();
-        }
-    }
-
-    handlePlayerDeath() {
-        this.isPlayerDead = true;
-        console.log('[AuroraDepthsLevel] Player died!');
+        this.takeDamage(damage);
     }
 
     damageBoss(amount = 1) {
-        if (!this.boss || this.bossDefeated) return;
+        if (!this.boss?.active || this.bossDefeated) return;
 
-        this.bossHealth -= amount;
+        this.bossHealth = Math.max(0, this.bossHealth - amount);
         this.updateBossHealthBar();
 
         this.boss.setTint(0xFF0000);
         this.time.delayedCall(100, () => {
-            if (this.boss) this.boss.clearTint();
+            if (this.boss?.active && !this.bossDefeated) {
+                this.boss.clearTint();
+            }
         });
 
         // Phase transitions
-        if (this.bossHealth <= this.bossMaxHealth * 0.6 && this.bossPhase === 1) {
+        if (
+            this.bossHealth > 0 &&
+            this.bossHealth <= this.bossMaxHealth * 0.6 &&
+            this.bossPhase === 1
+        ) {
             this.triggerPhase2();
-        } else if (this.bossHealth <= this.bossMaxHealth * 0.3 && this.bossPhase === 2) {
+        } else if (
+            this.bossHealth > 0 &&
+            this.bossHealth <= this.bossMaxHealth * 0.3 &&
+            this.bossPhase === 2
+        ) {
             this.triggerPhase3();
         }
 
@@ -974,12 +1467,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.boss.setTint(0x4169E1);
 
         const { width, height } = this.cameras.main;
-        const phaseText = this.add.text(width / 2, height / 2, '🔥 PHOENIX IGNITES! 🔥', {
-            fontSize: '28px',
+        const phaseText = this.add.text(width / 2, height / 2, 'VOID PRESSURE SURGES', {
+            fontSize: width <= 480 ? '21px' : '28px',
             color: '#4169E1',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 3
+            strokeThickness: 3,
+            align: 'center',
+            wordWrap: { width: width - 50 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
 
         this.tweens.add({
@@ -1001,12 +1496,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.boss.setTint(0x00BFFF);
 
         const { width, height } = this.cameras.main;
-        const phaseText = this.add.text(width / 2, height / 2, '⚡ COSMIC FURY! ⚡', {
-            fontSize: '28px',
-            color: '#00BFFF',
+        const phaseText = this.add.text(width / 2, height / 2, 'THE AURORA BREAKS THROUGH', {
+            fontSize: width <= 480 ? '21px' : '28px',
+            color: '#7FFFD4',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 3
+            strokeThickness: 3,
+            align: 'center',
+            wordWrap: { width: width - 50 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
 
         this.tweens.add({
@@ -1023,28 +1520,42 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     onBossDefeated() {
-        console.log('[AuroraDepthsLevel] Shadow Phoenix defeated!');
+        if (this.bossDefeated) return;
+
+        console.log('[AuroraDepthsLevel] Aurora Phoenix restored!');
         this.bossDefeated = true;
         this.bossFightActive = false;
 
-        if (this.bossAITimer) {
-            this.bossAITimer.remove();
+        this.bossAITimer?.remove?.();
+
+        if (this.boss?.body) {
+            this.boss.body.enable = false;
         }
-
-        this.boss.setVelocity(0, 0);
+        if (this.bossBody?.body) {
+            this.bossBody.body.enable = false;
+        }
+        this.boss?.setVelocity?.(0, 0);
+        this.bossBody?.setVelocity?.(0, 0);
         this.tweens.killTweensOf(this.boss);
+        this.boss?.setTint?.(0xA9F3E4);
+        this.cameras.main.flash(420, 169, 243, 228);
+        this.cameras.main.shake(350, 0.012);
+        this.showFloatingText(
+            'PHOENIX SIGNAL STABLE',
+            this.boss?.x || 4400,
+            (this.boss?.y || 550) - 100,
+            '#A9F3E4'
+        );
 
-        this.cameras.main.shake(800, 0.03);
-
-        // Dramatic death - phoenix dissolves into flames
-        for (let i = 0; i < 20; i++) {
+        // The restored guardian sheds the remaining Void pressure as warm light.
+        for (let i = 0; i < 24; i++) {
             this.time.delayedCall(i * 50, () => {
                 const flame = this.add.graphics();
-                flame.fillStyle(Math.random() > 0.5 ? 0xFF4500 : 0xFFD700, 1);
+                flame.fillStyle(Math.random() > 0.5 ? 0xA9F3E4 : 0xF2C94C, 1);
                 flame.fillCircle(0, 0, 10 + Math.random() * 15);
                 flame.setPosition(
-                    this.boss.x + (Math.random() - 0.5) * 100,
-                    this.boss.y + (Math.random() - 0.5) * 80
+                    (this.boss?.x || 4400) + (Math.random() - 0.5) * 100,
+                    (this.boss?.y || 550) + (Math.random() - 0.5) * 80
                 );
                 flame.setDepth(900);
 
@@ -1061,12 +1572,16 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         this.tweens.add({
             targets: this.boss,
-            alpha: 0,
-            scale: 0.3,
-            duration: 2000,
+            alpha: 0.2,
+            scale: 0.7,
+            y: this.boss.y - 120,
+            duration: 1800,
+            ease: 'Sine.easeIn',
             onComplete: () => {
-                this.boss.destroy();
+                this.boss?.destroy?.();
                 this.boss = null;
+                this.bossBody?.destroy?.();
+                this.bossBody = null;
 
                 if (this.bossGlow) {
                     this.bossGlow.destroy();
@@ -1086,22 +1601,26 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     showBossVictory() {
-        const { width, height } = this.cameras.main;
+        const layout = this.getLevelModalLayout({ maxWidth: 480, maxHeight: 300 });
+        const { width, contentWidth, y, font } = layout;
 
-        // Award ship part
-        const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        if (!shipParts.includes('aurora_reactor')) {
-            shipParts.push('aurora_reactor');
-            window.GameState?.set('hubWorld.shipParts.collected', shipParts);
-            console.log('[AuroraDepthsLevel] Ship part acquired: Aurora Reactor. Total parts:', shipParts.length);
-        }
+        this.completeLevelProgression({
+            achievementLevelId: 'auroraDepths',
+            shipPartId: 'aurora_reactor',
+            katanaUpgradeId: 'aurora_guard',
+            speedrunThreshold: 300000
+        });
 
-        const victoryText = this.add.text(width / 2, height / 2, '🔥 SHADOW PHOENIX EXTINGUISHED 🔥', {
-            fontSize: '32px',
+        this.auroraReactorFound = true;
+
+        const victoryText = this.add.text(width / 2, y(150), 'AURORA PHOENIX RESTORED', {
+            fontSize: font(32, 24),
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
 
         this.tweens.add({
@@ -1123,23 +1642,24 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         }
 
         if (window.AchievementSystem?.recordEvent) {
-            window.AchievementSystem.recordEvent('boss_defeated', { bossId: 'shadow_phoenix' });
+            window.AchievementSystem.recordEvent('guardian_restored', { bossId: 'shadow_phoenix' });
         }
     }
 
     showLevelComplete() {
-        const { width, height } = this.cameras.main;
+        this.bindLevelCompletionReturn();
+
+        const layout = this.getLevelModalLayout({ maxWidth: 400, maxHeight: 300 });
+        const {
+            width, height, panelWidth, panelHeight, panelX, panelY,
+            contentWidth, y, font, buttonPadding
+        } = layout;
 
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.8);
         overlay.fillRect(0, 0, width, height);
         overlay.setScrollFactor(0);
         overlay.setDepth(2500);
-
-        const panelWidth = 400;
-        const panelHeight = 300;
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
 
         const panel = this.add.graphics();
         panel.fillStyle(0x0A1A2A, 1);
@@ -1149,61 +1669,97 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         panel.setScrollFactor(0);
         panel.setDepth(2501);
 
-        this.add.text(width / 2, panelY + 40, 'LEVEL COMPLETE!', {
-            fontSize: '28px',
+        this.add.text(width / 2, y(40), 'QUIET UPLINK READY', {
+            fontSize: font(28, 23),
             color: '#00E676',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
-        this.add.text(width / 2, panelY + 90, '🔧 Aurora Reactor Acquired! 🔧', {
-            fontSize: '18px',
-            color: '#FFD700'
+        const katanaUpgrade = this.levelCompletionResult?.katanaUpgrade;
+        const upgradeStatus = this.levelCompletionResult?.katanaUpgradeAwarded
+            ? 'installed'
+            : 'online';
+        this.add.text(
+            width / 2,
+            y(105),
+            `Phoenix Gift: Aurora Reactor\n` +
+            `Guardian Reward: ${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins\n` +
+            (katanaUpgrade
+                ? `Creature-Tech: ${katanaUpgrade.name} ${upgradeStatus}\n`
+                : '') +
+            'Exposure Risk: Confirmed',
+            {
+            fontSize: font(17, 14),
+            color: '#FFD700',
+            align: 'center',
+            lineSpacing: 4,
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        this.add.text(width / 2, panelY + 130, `Ship Parts: ${shipParts.length}/5`, {
-            fontSize: '16px',
+        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
+        this.add.text(width / 2, y(195), `Ship Parts: ${shipParts.length}/${totalRequired}`, {
+            fontSize: font(16, 14),
             color: '#7FFFD4'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
-        const returnBtn = this.add.text(width / 2, panelY + panelHeight - 50, '[ RETURN TO HUB ]', {
-            fontSize: '20px',
+        const returnBtn = this.add.text(width / 2, y(250), '[ RETURN TO HUB ]', {
+            fontSize: font(20, 17),
             color: '#00E676',
             backgroundColor: '#1A3A4A',
-            padding: { x: 20, y: 10 }
+            padding: buttonPadding
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502).setInteractive({ cursor: 'pointer' });
 
         returnBtn.on('pointerover', () => returnBtn.setColor('#7FFFD4'));
         returnBtn.on('pointerout', () => returnBtn.setColor('#00E676'));
         returnBtn.on('pointerdown', () => {
-            this.scene.start('HubWorldScene');
+            this.returnToHub();
         });
     }
 
     shutdown() {
         console.log('[AuroraDepthsLevel] Shutting down');
 
-        if (this.boss) {
-            this.boss.destroy();
-            this.boss = null;
-        }
+        this.clearLevelEntryKeyHandler();
+        this.boss?.destroy?.();
+        this.boss = null;
+        this.bossBody?.destroy?.();
+        this.bossBody = null;
 
-        if (this.bossUI) {
-            this.bossUI.destroy();
-            this.bossUI = null;
-        }
+        this.bossUI?.destroy?.();
+        this.bossUI = null;
+        this.bossHealthBar = null;
+        this.bossNameText = null;
+        this.bossSubtitle = null;
+        this.bossBarConfig = null;
+        this.bossIndicator?.destroy?.();
+        this.bossIndicator = null;
 
-        if (this.bossGlow) {
-            this.bossGlow.destroy();
-            this.bossGlow = null;
-        }
+        this.bossGlow?.destroy?.();
+        this.bossGlow = null;
 
-        if (this.bossAITimer) {
-            this.bossAITimer.remove();
-        }
+        this.bossAITimer?.remove?.();
+        this.bossAITimer = null;
 
         this.auroraLights.forEach(aurora => aurora.graphics.destroy());
         this.auroraLights = [];
+        this.signalPrisms.forEach(prism => {
+            prism.visual?.destroy?.();
+            prism.label?.destroy?.();
+            prism.zone?.destroy?.();
+        });
+        this.signalPrisms = [];
+        this.shadowCurrents.forEach(current => {
+            current.zone?.destroy?.();
+            current.visual?.destroy?.();
+        });
+        this.shadowCurrents = [];
+        this.auroraFragments?.clear?.(true, true);
+        this.auroraFragments = null;
+        this.objectiveDisplay?.destroy?.();
+        this.objectiveDisplay = null;
 
         super.shutdown();
     }

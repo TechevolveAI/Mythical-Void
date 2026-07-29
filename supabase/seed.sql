@@ -1,0 +1,1 @@
+-- Intentionally empty. Cloud-save rows belong to authenticated test users.
