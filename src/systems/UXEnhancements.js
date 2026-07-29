@@ -137,7 +137,8 @@ class UXEnhancements {
                 <li>Use Arrow Keys or W,A,S,D to move your creature</li>
                 <li>Press Space to interact with objects</li>
                 <li>Press Tab to open the care menu</li>
-                <li>Press C to open chat with your creature</li>
+                <li>Press C to switch creatures</li>
+                <li>Press T to chat with your creature</li>
                 <li>Press Escape to pause the game</li>
                 <li>Press Alt+H for help</li>
             </ul>
@@ -910,8 +911,9 @@ class UXEnhancements {
                         <dt>Arrow Keys / WASD</dt><dd>Move your creature</dd>
                         <dt>Space</dt><dd>Interact with objects</dd>
                         <dt>Tab</dt><dd>Open care menu</dd>
-                        <dt>C</dt><dd>Chat with creature</dd>
-                        <dt>F / P / R</dt><dd>Feed / Play / Rest</dd>
+                        <dt>C</dt><dd>Switch creatures</dd>
+                        <dt>T</dt><dd>Chat with creature</dd>
+                        <dt>F / Y / R</dt><dd>Feed / Play / Rest</dd>
                         <dt>Escape</dt><dd>Pause game</dd>
                         <dt>Alt + H</dt><dd>Show this help</dd>
                         <dt>Alt + C</dt><dd>Toggle high contrast</dd>

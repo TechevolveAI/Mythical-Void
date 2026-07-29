@@ -1,6 +1,6 @@
 /**
  * CreatureRadialMenu - Radial menu shown when tapping/clicking the creature
- * Provides quick access to Profile, Chat, Pet, and Abilities
+ * Provides quick access to the creature's relationship and utility actions.
  */
 
 import { devLog } from '../utils/devLogger.js';
@@ -11,14 +11,21 @@ export default class CreatureRadialMenu {
         this.isVisible = false;
         this.isAnimating = false;
 
-        // Menu items configuration (5 items spread evenly at 72° intervals)
-        this.menuItems = [
-            { id: 'profile', icon: '📋', label: 'Profile', angle: -90 },   // Top
-            { id: 'chat', icon: '💬', label: 'Chat', angle: -18 },         // Top-right
-            { id: 'ai_art', icon: '🎨', label: 'AI Art', angle: 54 },      // Bottom-right
-            { id: 'abilities', icon: '✨', label: 'Abilities', angle: 126 }, // Bottom-left
-            { id: 'pet', icon: '🤲', label: 'Pet', angle: 198 }            // Left
+        const actions = [
+            { id: 'profile', icon: '📋', label: 'Profile' },
+            { id: 'chat', icon: '💬', label: 'Chat' },
+            ...(window.APIConfig?.isEnabled?.()
+                ? [{ id: 'ai_art', icon: '🎨', label: 'AI Art' }]
+                : []),
+            { id: 'abilities', icon: '✨', label: 'Abilities' },
+            { id: 'pet', icon: '🤲', label: 'Pet' },
+            { id: 'care', icon: '💖', label: 'Care' }
         ];
+        const angleStep = 360 / actions.length;
+        this.menuItems = actions.map((item, index) => ({
+            ...item,
+            angle: -90 + (index * angleStep)
+        }));
 
         // UI elements
         this.container = null;
@@ -28,8 +35,10 @@ export default class CreatureRadialMenu {
         this.backdrop = null;
 
         // Animation config
-        this.radius = 80;
-        this.buttonSize = 50;
+        const isCompact = (this.scene.scale?.width || window.innerWidth) < 520;
+        this.radius = isCompact ? 74 : 88;
+        this.buttonSize = isCompact ? 44 : 48;
+        this.labelRadius = this.radius + (isCompact ? 32 : 40);
     }
 
     /**
@@ -41,10 +50,33 @@ export default class CreatureRadialMenu {
         if (this.isVisible || this.isAnimating) return;
 
         this.isAnimating = true;
-        this.create(x, y);
+        const center = this.getMenuCenter(x, y);
+        this.create(center.x, center.y);
         this.animateIn();
 
-        devLog('[CreatureRadialMenu] Showing at', x, y);
+        devLog('[CreatureRadialMenu] Showing at', center.x, center.y);
+    }
+
+    getMenuCenter(x, y) {
+        const camera = this.scene.cameras?.main;
+        const worldView = camera?.worldView;
+        if (!worldView) return { x, y };
+
+        const zoom = camera.zoom || 1;
+        const horizontalMargin = Math.min(
+            (worldView.width / 2) - 8,
+            (this.labelRadius + 38) / zoom
+        );
+        const verticalMargin = Math.min(
+            (worldView.height / 2) - 8,
+            (this.labelRadius + 20) / zoom
+        );
+        const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+        return {
+            x: clamp(x, worldView.left + horizontalMargin, worldView.right - horizontalMargin),
+            y: clamp(y, worldView.top + verticalMargin, worldView.bottom - verticalMargin)
+        };
     }
 
     /**
@@ -140,9 +172,9 @@ export default class CreatureRadialMenu {
         this.container.add(icon);
         buttonGroup.icon = icon;
 
-        // Button label (below icon)
-        const labelY = targetY + (item.angle === -90 ? -40 : item.angle === 90 ? 40 : 0);
-        const labelX = targetX + (item.angle === 0 ? 45 : item.angle === 180 ? -45 : 0);
+        // Keep labels outside the action ring for any enabled action count.
+        const labelX = Math.cos(angleRad) * this.labelRadius;
+        const labelY = Math.sin(angleRad) * this.labelRadius;
 
         const label = this.scene.add.text(0, 0, item.label, {
             fontSize: '14px',

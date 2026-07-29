@@ -5,7 +5,7 @@
  * - Shop Area: The Cosmic Boutique
  * - Hub Gate: Portal to other worlds
  * - Living Area: Where creatures roam
- * - Buildable Plots: Future expansion areas
+ * - Signal Garden: A shared living-signal sanctuary
  */
 
 class SanctuaryZones {
@@ -60,13 +60,13 @@ class SanctuaryZones {
                 color: 0x9370DB
             },
             gardenPlot: {
-                name: 'Garden Plot',
-                description: 'A place to grow things. (Coming Soon)',
+                name: 'Signal Garden',
+                description: 'Nurture a living signal with your companion.',
                 bounds: { x: padding, y: h - 400, width: 300, height: 300 },
                 center: { x: 200, y: h - 250 },
                 icon: '🌱',
                 color: 0x4CAF50,
-                locked: true
+                locked: false
             },
             trainingGrounds: {
                 name: 'Target Range',
@@ -124,6 +124,16 @@ class SanctuaryZones {
                 interactable: false,
                 name: 'Campfire',
                 description: 'A warm gathering spot.'
+            },
+            signalGarden: {
+                zone: 'gardenPlot',
+                position: { x: zones.gardenPlot.center.x, y: zones.gardenPlot.center.y },
+                size: { width: 180, height: 140 },
+                interactable: true,
+                interactRadius: 115,
+                name: 'Signal Garden',
+                description: 'Nurture a living signal with your companion.',
+                onInteract: 'tendSignalGarden'
             },
             voidPortal: {
                 zone: 'crashSite',

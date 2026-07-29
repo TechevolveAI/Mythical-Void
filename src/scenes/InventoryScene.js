@@ -4,6 +4,7 @@
  */
 
 import Phaser from 'phaser';
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 
 export default class InventoryScene extends Phaser.Scene {
     constructor() {
@@ -165,8 +166,8 @@ export default class InventoryScene extends Phaser.Scene {
         exitText.setInteractive({ useHandCursor: true });
         exitText.on('pointerdown', () => {
             console.log('[InventoryScene] Emergency exit triggered');
-            this.scene.stop();
-            this.scene.resume('GameScene');
+            SceneTransitionHelper.stopScene(this);
+            SceneTransitionHelper.resumeScene(this, 'GameScene');
         });
     }
 
@@ -1880,9 +1881,10 @@ export default class InventoryScene extends Phaser.Scene {
         console.log(`[InventoryScene] Using item (confirmed): ${item.name}`);
 
         const success = window.InventoryManager.useItem(this.selectedSlot);
+        const useResult = window.InventoryManager.getLastUseResult?.();
 
         if (success) {
-            this.showMessage(`Used ${item.name}!`, 0x00FF00);
+            this.showMessage(useResult?.message || `Used ${item.name}!`, 0x00FF00);
 
             if (window.AudioManager) {
                 window.AudioManager.playCoinCollect();
@@ -1895,7 +1897,7 @@ export default class InventoryScene extends Phaser.Scene {
                 this.updateItemDetails(null);
             });
         } else {
-            this.showMessage('Cannot use item!', 0xFF0000);
+            this.showMessage(useResult?.message || 'Cannot use item!', 0xFF0000);
         }
     }
 
@@ -1920,6 +1922,11 @@ export default class InventoryScene extends Phaser.Scene {
             return;
         }
 
+        if (item.type === 'powerup') {
+            this.showMessage('Use during an expedition from the pause menu.', 0xFFB347);
+            return;
+        }
+
         // Check if item is expensive (>= 100 coins) and show confirmation
         const EXPENSIVE_THRESHOLD = 100;
         if (item.price && item.price >= EXPENSIVE_THRESHOLD) {
@@ -1931,9 +1938,10 @@ export default class InventoryScene extends Phaser.Scene {
 
         if (window.InventoryManager) {
             const success = window.InventoryManager.useItem(this.selectedSlot);
+            const useResult = window.InventoryManager.getLastUseResult?.();
 
             if (success) {
-                this.showMessage(`Used ${item.name}!`, 0x00FF00);
+                this.showMessage(useResult?.message || `Used ${item.name}!`, 0x00FF00);
 
                 if (window.AudioManager) {
                     window.AudioManager.playCoinCollect();
@@ -1946,7 +1954,7 @@ export default class InventoryScene extends Phaser.Scene {
                     this.updateItemDetails(null);
                 });
             } else {
-                this.showMessage('Cannot use item!', 0xFF0000);
+                this.showMessage(useResult?.message || 'Cannot use item!', 0xFF0000);
             }
         }
     }
@@ -2726,8 +2734,8 @@ export default class InventoryScene extends Phaser.Scene {
         }
 
         // Stop this scene and resume GameScene
-        this.scene.stop();
-        this.scene.resume('GameScene');
+        SceneTransitionHelper.stopScene(this);
+        SceneTransitionHelper.resumeScene(this, 'GameScene');
     }
 
     /**

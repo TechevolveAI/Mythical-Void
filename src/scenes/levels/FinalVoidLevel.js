@@ -1,15 +1,28 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
 
+const VOID_EMPRESS_TEXTURE = 'voidEmpress';
+const VOID_EMPRESS_ASSET = '/game/guardians/void-empress.webp';
+const VOID_EMPRESS_DISPLAY_SIZE = 260;
+
+const FINAL_SHIP_PART_IDS = Object.freeze([
+    'crystal_core',
+    'dimensional_drive',
+    'forest_core',
+    'hull_plating',
+    'aurora_reactor',
+    'command_module'
+]);
+
 /**
  * FinalVoidLevel - The ultimate boss encounter
  *
- * Story: "At the edge of reality, where the void meets the cosmos,
- * the Void Empress waits. She is the final guardian, the keeper of
- * the Command Module - the last piece needed to complete your ship.
- * Defeat her, and the stars await. Fall, and be consumed by the void."
+ * Story: At reality's edge, five restored systems answer the companion
+ * together. Their shared signal reveals both a route to Earth and the danger
+ * of exposing this world before the Void Empress severs the line.
  *
  * Features:
- * - Epic 5-phase boss fight
+ * - Three bond-signal anchors and safe checkpoints
+ * - Epic 5-phase boss fight with late-phase companion support
  * - Void atmosphere with reality-warping effects
  * - Most challenging encounter in the game
  * - Command Module ship part reward
@@ -37,47 +50,97 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         // Boss state - 5 phases, 20 HP
         this.boss = null;
+        this.bossBody = null;
         this.bossHealth = 0;
         this.bossMaxHealth = 20;
         this.bossPhase = 1;
-        this.bossAttackTimer = null;
+        this.bossAITimer = null;
         this.bossHealthBar = null;
         this.bossNameText = null;
+        this.bossSubtitle = null;
+        this.bossBarConfig = null;
+        this.bossIndicator = null;
+        this.bossTargetScale = 1;
 
         // Void effects
         this.voidParticles = [];
         this.realityDistortion = 0;
+        this.bondAnchors = [];
+        this.bondAnchorsActivated = 0;
+        this.finalSignalReady = false;
+        this.levelStarted = false;
+        this.bossGateHintUntil = 0;
+        this.empressGate = null;
+        this.voidFractures = [];
+        this.objectiveDisplay = null;
+        this.levelEntryDismissing = false;
+        this.levelEntryKeyHandler = null;
     }
 
     init(data) {
         super.init(data);
 
-        this.testMode = data?.testMode || false;
+        const previewParams = new URLSearchParams(window.location.search);
+        const isLocalPreview = ['localhost', '127.0.0.1'].includes(
+            window.location.hostname
+        );
+        this.resultPreview = Boolean(
+            data?.resultPreview ||
+            (
+                isLocalPreview &&
+                previewParams.get('testGuardianResult') === 'finalVoid'
+            )
+        );
+        this.testMode = data?.testMode || this.resultPreview;
 
         this.bossDefeated = false;
         this.bossFightActive = false;
 
         this.boss = null;
+        this.bossBody = null;
         this.bossHealth = 0;
         this.bossPhase = 1;
-        this.bossAttackTimer = null;
+        this.bossAITimer = null;
         this.bossHealthBar = null;
         this.bossNameText = null;
+        this.bossSubtitle = null;
+        this.bossBarConfig = null;
+        this.bossIndicator = null;
+        this.bossTargetScale = 1;
 
         this.voidParticles = [];
         this.realityDistortion = 0;
+        this.bondAnchors = [];
+        this.bondAnchorsActivated = 0;
+        this.finalSignalReady = false;
+        this.levelStarted = false;
+        this.bossGateHintUntil = 0;
+        this.empressGate = null;
+        this.voidFractures = [];
+        this.objectiveDisplay = null;
+        this.levelEntryDismissing = false;
+        this.clearLevelEntryKeyHandler();
 
         console.log('[FinalVoidLevel] Level state reset');
+    }
+
+    preload() {
+        this.load.image(VOID_EMPRESS_TEXTURE, VOID_EMPRESS_ASSET);
     }
 
     create() {
         super.create();
 
-        if (window.AchievementSystem?.recordEvent) {
+        if (
+            !this.entryPreview &&
+            !this.resultPreview &&
+            window.AchievementSystem?.recordEvent
+        ) {
             window.AchievementSystem.recordEvent('level_entered', { levelId: 'finalVoid' });
         }
 
         this.levelStartTime = Date.now();
+        this.damageTaken = 0;
 
         if (this.testMode) {
             this.startTestMode();
@@ -88,20 +151,42 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
     startTestMode() {
         console.log('[FinalVoidLevel] TEST MODE - Spawning final boss');
+        this.levelStarted = true;
         this.createVoidBackground();
-        this.createBossArena();
+        this.bondAnchorsActivated = 3;
+        this.finalSignalReady = true;
 
         if (this.player) {
-            this.player.setPosition(200, this.levelHeight - 200);
+            this.player.setPosition(
+                Math.max(80, this.getTestBossSpawnX() - 420),
+                this.levelHeight - 200
+            );
         }
 
-        this.time.delayedCall(500, () => {
-            this.startBossFight();
-        });
+        this.time.delayedCall(500, () => this.startBossFight());
+
+        if (this.resultPreview) {
+            this.time.delayedCall(2100, () => {
+                if (this.boss && !this.bossDefeated) {
+                    this.onBossDefeated();
+                }
+            });
+        }
+    }
+
+    getTestBossSpawnX() {
+        const width = this.cameras.main.width;
+        return width <= 480 ? width - 110 : width / 2 + 180;
     }
 
     showLevelEntry() {
-        const { width, height } = this.cameras.main;
+        this.levelEntryDismissing = false;
+        const layout = this.getLevelModalLayout({ maxWidth: 500, maxHeight: 400 });
+        const {
+            width, height, panelWidth, panelHeight, panelX, panelY,
+            contentWidth, contentLeft, y, font, buttonPadding
+        } = layout;
+        const resume = this.getExpeditionResumePresentation();
 
         this.physics.pause();
 
@@ -114,11 +199,6 @@ class FinalVoidLevel extends PlatformerLevelScene {
         overlay.setScrollFactor(0);
         overlay.setDepth(3000);
         entryElements.push(overlay);
-
-        const panelWidth = Math.min(500, width - 40);
-        const panelHeight = 400;
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
 
         const panel = this.add.graphics();
         panel.fillStyle(0x0A0A1A, 1);
@@ -137,10 +217,12 @@ class FinalVoidLevel extends PlatformerLevelScene {
         glowPanel.setDepth(3000);
         entryElements.push(glowPanel);
 
-        const title = this.add.text(width / 2, panelY + 50, 'THE FINAL VOID', {
-            fontSize: '42px',
+        const title = this.add.text(width / 2, y(50), 'THE FINAL VOID', {
+            fontSize: font(42, 30),
             color: '#9400D3',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(title);
 
@@ -155,51 +237,62 @@ class FinalVoidLevel extends PlatformerLevelScene {
             ease: 'Sine.easeInOut'
         });
 
-        const subtitle = this.add.text(width / 2, panelY + 100, '"The Empress awaits at reality\'s edge"', {
-            fontSize: '16px',
+        const subtitle = this.add.text(width / 2, y(94), '"Every world you helped is answering"', {
+            fontSize: font(16, 14),
             color: '#DA70D6',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(subtitle);
 
-        const divider = this.add.graphics();
-        divider.lineStyle(2, 0x9400D3, 0.5);
-        divider.lineBetween(panelX + 50, panelY + 140, panelX + panelWidth - 50, panelY + 140);
-        divider.setScrollFactor(0);
-        divider.setDepth(3002);
-        entryElements.push(divider);
+        const mission = this.add.text(
+            width / 2,
+            y(135),
+            resume
+                ? `PROJECT BEACON // RESUME ${resume.current}/${resume.total}`
+                : 'PROJECT BEACON // FINAL EXPEDITION',
+            {
+            fontSize: font(13, 11),
+            color: '#9E8BAB',
+            align: 'center',
+            wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        entryElements.push(mission);
 
-        const warning = this.add.text(width / 2, panelY + 170, '⚠ FINAL BOSS ⚠', {
-            fontSize: '18px',
-            color: '#FF4500'
+        const objective = this.add.text(width / 2, y(178), 'Carry the shared signal to the Command Module', {
+            fontSize: font(20, 17),
+            color: '#F2C94C',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-        entryElements.push(warning);
+        entryElements.push(objective);
 
-        const bossName = this.add.text(width / 2, panelY + 210, 'VOID EMPRESS', {
-            fontSize: '28px',
-            color: '#FF00FF',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-        entryElements.push(bossName);
+        const checklist = this.add.text(contentLeft, y(225), `${
+            resume
+                ? `[ BEACON ] ${resume.label} link restored`
+                : '[ ] Reconnect the five living systems'
+        }\n[ ] Reach reality's edge together\n[ ] Recover the final Command Module`, {
+            fontSize: font(16, 14),
+            color: '#CCCCCC',
+            lineSpacing: 8,
+            wordWrap: { width: contentWidth }
+        }).setScrollFactor(0).setDepth(3002);
+        entryElements.push(checklist);
 
-        const bossStats = this.add.text(width / 2, panelY + 250, '5 Phases • 20 Health • Ultimate Challenge', {
-            fontSize: '14px',
-            color: '#AAAAAA'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-        entryElements.push(bossStats);
-
-        const rewardText = this.add.text(width / 2, panelY + 290, 'Reward: Command Module + Space Travel', {
-            fontSize: '16px',
-            color: '#FFD700'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-        entryElements.push(rewardText);
-
-        const enterBtn = this.add.text(width / 2, panelY + panelHeight - 60, '[ FACE YOUR DESTINY ]', {
-            fontSize: '22px',
+        const enterBtn = this.add.text(
+            width / 2,
+            y(350),
+            resume ? '[ RESUME EXPEDITION ]' : '[ ENTER THE FINAL VOID ]',
+            {
+            fontSize: font(22, 17),
             color: '#9400D3',
             backgroundColor: '#1A0A2E',
-            padding: { x: 30, y: 15 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
+            padding: buttonPadding
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
         entryElements.push(enterBtn);
 
         enterBtn.on('pointerover', () => enterBtn.setColor('#FF00FF'));
@@ -207,15 +300,22 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         // Dismiss function - used by button and tap anywhere
         const dismissEntry = () => {
+            if (this.levelEntryDismissing) return;
+
+            this.levelEntryDismissing = true;
+            enterBtn.disableInteractive();
+            overlay.disableInteractive();
+            this.clearLevelEntryKeyHandler();
             this.tweens.add({
                 targets: entryElements,
                 alpha: 0,
-                duration: 1000,
+                duration: 500,
                 onComplete: () => {
                     entryElements.forEach(el => {
                         if (el && el.destroy) el.destroy();
                     });
                     this.physics.resume();
+                    this.showPlatformerMobileControls();
                     this.startLevel();
                 }
             });
@@ -226,16 +326,280 @@ class FinalVoidLevel extends PlatformerLevelScene {
         // Also allow tapping anywhere on overlay to dismiss (mobile-friendly)
         overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
         overlay.on('pointerdown', dismissEntry);
+
+        this.levelEntryKeyHandler = event => {
+            if (!['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            dismissEntry();
+        };
+        window.addEventListener('keydown', this.levelEntryKeyHandler);
+    }
+
+    clearLevelEntryKeyHandler() {
+        if (!this.levelEntryKeyHandler) return;
+
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.levelEntryKeyHandler);
+        }
+        this.levelEntryKeyHandler = null;
     }
 
     startLevel() {
         console.log('[FinalVoidLevel] Starting final level');
+        this.levelStarted = true;
         this.createVoidBackground();
-        this.createBossArena();
+        this.createLevelSpecificContentOnce();
+        this.showObjectiveToast();
+    }
 
-        // Immediate boss fight - no exploration
-        this.time.delayedCall(1000, () => {
-            this.startBossFight();
+    createPlatforms() {
+        this.platforms = this.physics.add.staticGroup();
+
+        const groundY = this.levelHeight - 50;
+        this.createPlatform(0, groundY, this.levelWidth, 80, 'solid');
+
+        const ledges = [
+            [240, groundY - 160, 300],
+            [680, groundY - 285, 260],
+            [1080, groundY - 190, 300],
+            [1510, groundY - 340, 270],
+            [1940, groundY - 220, 300],
+            [2370, groundY - 320, 260]
+        ];
+        ledges.forEach(([x, y, width]) => {
+            this.createPlatform(x, y, width, 28, 'one-way');
+        });
+
+        console.log(`[FinalVoidLevel] Created ${this.platforms.getLength()} platforms`);
+    }
+
+    createLevelContent() {
+        this.createVoidFractures();
+        this.createBondAnchors();
+        this.createBossArena();
+        this.createEmpressGate();
+    }
+
+    createHUD() {
+        super.createHUD();
+
+        const { width, height } = this.cameras.main;
+        const isShortLandscape = width > height && height < 620;
+        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
+        this.objectiveDisplay = this.add.text(
+            width - (this.isCompactObjectiveHUD ? 12 : 20),
+            this.isCompactObjectiveHUD ? (isShortLandscape ? 82 : 212) : height - 30,
+            this.getFinalObjectiveText(),
+            {
+                fontSize: this.isCompactObjectiveHUD ? '11px' : '15px',
+                color: '#E6C8F5',
+                backgroundColor: 'rgba(10, 4, 20, 0.84)',
+                padding: { x: 8, y: 5 },
+                align: 'right'
+            }
+        ).setOrigin(1, this.isCompactObjectiveHUD ? 0 : 1)
+            .setScrollFactor(0)
+            .setDepth(1000)
+            .setVisible(false);
+    }
+
+    getFinalObjectiveText() {
+        const signalState = this.finalSignalReady ? 'CONNECTED' : 'GATHERING';
+        if (this.isCompactObjectiveHUD) {
+            return `BOND SIGNALS: ${this.bondAnchorsActivated}/3\nNETWORK: ${signalState}\nCOMMAND: LOCKED`;
+        }
+        return `BOND SIGNALS: ${this.bondAnchorsActivated}/3  |  NETWORK: ${signalState}\nCOMMAND MODULE: LOCKED`;
+    }
+
+    showObjectiveToast() {
+        const { width, height } = this.cameras.main;
+        const isMobileLayout = this.isMobile || width <= 480 || height < 620;
+        const toast = this.add.text(
+            width / 2,
+            isMobileLayout ? 165 : 90,
+            'Follow the shared signal to reality\'s edge',
+            {
+                fontSize: isMobileLayout ? '16px' : '18px',
+                color: '#F2C94C',
+                backgroundColor: 'rgba(10, 4, 20, 0.84)',
+                padding: { x: 16, y: 8 },
+                align: 'center',
+                wordWrap: { width: width - 40 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2500);
+
+        this.tweens.add({
+            targets: toast,
+            alpha: 0,
+            y: 60,
+            delay: 2800,
+            duration: 600,
+            onComplete: () => toast.destroy()
+        });
+    }
+
+    createVoidFractures() {
+        const fractures = [
+            { x: 930, width: 180 },
+            { x: 1780, width: 190 }
+        ];
+
+        fractures.forEach(({ x, width }) => {
+            const y = this.levelHeight - 88;
+            const zone = this.add.zone(x + width / 2, y, width, 76);
+            this.physics.add.existing(zone, true);
+
+            const visual = this.add.graphics();
+            visual.fillStyle(0x170522, 0.9);
+            visual.fillRoundedRect(x, y - 28, width, 56, 10);
+            visual.lineStyle(3, 0xC35CFF, 0.75);
+            visual.lineBetween(x + 10, y - 8, x + width * 0.35, y + 12);
+            visual.lineBetween(x + width * 0.35, y + 12, x + width * 0.65, y - 14);
+            visual.lineBetween(x + width * 0.65, y - 14, x + width - 10, y + 8);
+            visual.setDepth(115);
+
+            this.tweens.add({
+                targets: visual,
+                alpha: { from: 0.5, to: 1 },
+                duration: 850,
+                yoyo: true,
+                repeat: -1
+            });
+
+            this.physics.add.overlap(this.player, zone, () => {
+                if (!this.isInvincible && !this.bossDefeated) {
+                    this.takeDamage(1);
+                }
+            });
+            this.voidFractures.push({ zone, visual });
+        });
+    }
+
+    createBondAnchors() {
+        const anchors = [
+            { id: 'final_bond_1', x: 600, y: 600, label: 'LIVING SYSTEMS' },
+            { id: 'final_bond_2', x: 1420, y: 470, label: 'RETURN ROUTE' },
+            { id: 'final_bond_3', x: 2200, y: 560, label: 'TRUST SIGNAL' }
+        ];
+
+        anchors.forEach((anchor, index) => {
+            const visual = this.add.graphics();
+            visual.setDepth(180);
+            this.drawBondAnchor(visual, anchor.x, anchor.y, false);
+
+            const label = this.add.text(anchor.x, anchor.y - 98, anchor.label, {
+                fontSize: '11px',
+                color: '#8F789D',
+                fontStyle: 'bold',
+                stroke: '#09020E',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(181);
+
+            const zone = this.add.zone(
+                anchor.x,
+                this.levelHeight / 2,
+                120,
+                this.levelHeight
+            );
+            this.physics.add.existing(zone, true);
+
+            const bondAnchor = {
+                ...anchor,
+                index,
+                visual,
+                label,
+                zone,
+                activated: false
+            };
+            this.physics.add.overlap(this.player, zone, () => {
+                this.activateBondAnchor(bondAnchor);
+            });
+            this.bondAnchors.push(bondAnchor);
+        });
+    }
+
+    drawBondAnchor(graphics, x, y, activated) {
+        graphics.clear();
+        const color = activated ? 0xF2C94C : 0x4F315E;
+
+        graphics.fillStyle(color, activated ? 0.2 : 0.1);
+        graphics.fillCircle(x, y - 42, 48);
+        graphics.lineStyle(4, color, activated ? 1 : 0.65);
+        graphics.strokeCircle(x, y - 46, 28);
+        graphics.lineBetween(x, y - 18, x, y + 42);
+        graphics.lineBetween(x, y + 42, x - 18, y + 54);
+        graphics.lineBetween(x, y + 42, x + 18, y + 54);
+        graphics.fillStyle(activated ? 0xA9F3E4 : color, 0.95);
+        graphics.fillCircle(x, y - 46, 9);
+
+        if (activated) {
+            graphics.lineStyle(2, 0xA9F3E4, 0.7);
+            graphics.strokeCircle(x, y - 46, 40);
+            graphics.lineBetween(x, y - 46, x + 115, y - 115);
+        }
+    }
+
+    activateBondAnchor(anchor) {
+        if (!anchor || anchor.activated) return;
+
+        anchor.activated = true;
+        anchor.zone?.destroy?.();
+        anchor.zone = null;
+        this.bondAnchorsActivated++;
+        this.drawBondAnchor(anchor.visual, anchor.x, anchor.y, true);
+        anchor.label.setColor('#F2C94C');
+        this.setCheckpoint(anchor.x, this.levelHeight - 130, {
+            persist: true,
+            checkpointId: anchor.id,
+            checkpointIndex: anchor.index
+        });
+
+        this.showFloatingText(
+            `BOND SIGNAL ${this.bondAnchorsActivated}/3`,
+            anchor.x,
+            anchor.y - 125,
+            '#F2C94C'
+        );
+
+        const storyLines = [
+            'Five living systems answer your companion together.',
+            'Project Beacon finds a route to Earth - and an open door back here.',
+            'Your companion stands beside you. No command was needed.'
+        ];
+        this.time.delayedCall(650, () => {
+            this.showFloatingText(
+                storyLines[anchor.index],
+                anchor.x,
+                anchor.y - 165,
+                anchor.index === 2 ? '#A9F3E4' : '#E6D6F0'
+            );
+        });
+
+        if (this.bondAnchorsActivated === 3) {
+            this.finalSignalReady = true;
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'final_bond_network_connected'
+            });
+        }
+
+        window.AudioManager?.playAchievement?.();
+    }
+
+    restoreExpeditionRouteState(resume) {
+        return this.restoreExpeditionRouteSignals(resume, {
+            signals: this.bondAnchors,
+            countProperty: 'bondAnchorsActivated',
+            readyProperty: 'finalSignalReady',
+            labelColor: '#F2C94C',
+            drawSignal: anchor => this.drawBondAnchor(
+                anchor.visual,
+                anchor.x,
+                anchor.y,
+                true
+            ),
+            onRestored: () => {
+                this.objectiveDisplay?.setText?.(this.getFinalObjectiveText());
+            }
         });
     }
 
@@ -332,32 +696,102 @@ class FinalVoidLevel extends PlatformerLevelScene {
             ground.fillCircle(runeX, groundY - 5, 20);
         }
 
-        if (!this.platforms) {
-            this.platforms = this.physics.add.staticGroup();
+        ground.setDepth(90);
+        this.bossArenaVisual = ground;
+    }
+
+    createEmpressGate() {
+        const gateX = this.levelWidth - 500;
+        const gateY = this.levelHeight - 230;
+        const visual = this.add.graphics();
+        visual.fillStyle(0x13061D, 0.92);
+        visual.fillRoundedRect(gateX - 34, gateY - 150, 68, 300, 18);
+        visual.lineStyle(5, 0x9400D3, 0.95);
+        visual.strokeRoundedRect(gateX - 34, gateY - 150, 68, 300, 18);
+        visual.lineStyle(2, 0xA9F3E4, 0.65);
+        visual.lineBetween(gateX, gateY - 120, gateX, gateY + 120);
+        visual.setDepth(890);
+
+        const label = this.add.text(gateX, gateY - 180, 'EMPRESS SEAL', {
+            fontSize: '13px',
+            color: '#DA70D6',
+            fontStyle: 'bold',
+            stroke: '#09020E',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(891);
+
+        const zone = this.add.zone(gateX, this.levelHeight / 2, 130, this.levelHeight);
+        this.physics.add.existing(zone, true);
+        this.physics.add.overlap(this.player, zone, () => {
+            if (this.bossFightActive || this.bossDefeated) return;
+
+            if (!this.finalSignalReady) {
+                if (this.time.now >= this.bossGateHintUntil) {
+                    this.bossGateHintUntil = this.time.now + 1800;
+                    this.showFloatingText(
+                        `BOND SIGNALS REQUIRED: ${this.bondAnchorsActivated}/3`,
+                        gateX - 90,
+                        gateY - 205,
+                        '#DA70D6'
+                    );
+                }
+                return;
+            }
+
+            zone.destroy();
+            visual.destroy();
+            label.destroy();
+            this.empressGate = null;
+            this.startBossFight();
+        });
+
+        this.empressGate = { visual, label, zone };
+    }
+
+    update(time, delta) {
+        if (this.bossBody?.active && this.boss?.active) {
+            this.bossBody.setPosition(this.boss.x, this.boss.y + 60);
         }
 
-        const platformZone = this.add.zone(this.levelWidth / 2, groundY + 50, this.levelWidth, 100);
-        this.physics.add.existing(platformZone, true);
-        this.platforms.add(platformZone);
+        super.update(time, delta);
+        if (this.levelCompletionActive) return;
+
+        if (this.objectiveDisplay?.active) {
+            this.objectiveDisplay.setText(this.getFinalObjectiveText());
+            this.objectiveDisplay.setVisible(
+                this.levelStarted &&
+                !(this.isCompactObjectiveHUD && this.bossFightActive)
+            );
+        }
+
+        this.updateBossIndicator();
+
+        if (!this.bossFightActive && this.cameras?.main) {
+            this.cameras.main.x = 0;
+            this.cameras.main.y = 0;
+        }
     }
 
     startBossFight() {
+        if (this.bossFightActive || this.bossDefeated) return;
+
         console.log('[FinalVoidLevel] Starting Void Empress boss fight!');
         this.bossFightActive = true;
 
         this.physics.pause();
 
-        // Epic entrance
-        this.cameras.main.flash(1000, 75, 0, 130);
-        this.cameras.main.shake(2000, 0.02);
+        this.cameras.main.flash(220, 75, 0, 130);
+        this.cameras.main.shake(650, 0.012);
 
         const { width, height } = this.cameras.main;
-        const warningText = this.add.text(width / 2, height / 2, '⚠ THE VOID EMPRESS DESCENDS ⚠', {
-            fontSize: '36px',
+        const warningText = this.add.text(width / 2, height / 2, 'THE VOID EMPRESS CUTS THE BEACON LINE', {
+            fontSize: width <= 480 ? '24px' : '34px',
             color: '#FF00FF',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 5
+            strokeThickness: 5,
+            align: 'center',
+            wordWrap: { width: width - 48 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
 
         if (window.AudioManager) {
@@ -367,24 +801,24 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: warningText,
             alpha: 0,
-            scaleX: 1.5,
-            scaleY: 1.5,
-            duration: 2000,
+            scaleX: 1.25,
+            scaleY: 1.25,
+            duration: 1200,
             onComplete: () => warningText.destroy()
         });
 
-        this.time.delayedCall(2000, () => {
+        this.time.delayedCall(1200, () => {
+            if (!this.bossFightActive || this.bossDefeated) return;
             this.spawnVoidEmpress();
             this.physics.resume();
         });
     }
 
     /**
-     * Create Void Empress placeholder texture
-     * PLACEHOLDER - Replace with custom artwork later
+     * Keep a procedural fallback so a failed asset request cannot block combat.
      */
-    createVoidEmpressTexture() {
-        const textureKey = 'voidEmpress';
+    ensureVoidEmpressTexture() {
+        const textureKey = VOID_EMPRESS_TEXTURE;
         if (this.textures.exists(textureKey)) return textureKey;
 
         const graphics = this.make.graphics({ add: false });
@@ -485,20 +919,29 @@ class FinalVoidLevel extends PlatformerLevelScene {
     spawnVoidEmpress() {
         console.log('[FinalVoidLevel] Spawning Void Empress!');
 
-        const textureKey = this.createVoidEmpressTexture();
+        const textureKey = this.ensureVoidEmpressTexture();
 
-        const { width } = this.cameras.main;
-        const spawnX = this.testMode ? width / 2 + 150 : this.levelWidth / 2;
+        const spawnX = this.testMode
+            ? this.getTestBossSpawnX()
+            : this.levelWidth - 250;
         const spawnY = this.levelHeight - 280;
 
         this.boss = this.physics.add.sprite(spawnX, spawnY, textureKey);
         this.boss.setCollideWorldBounds(true);
         this.boss.setBounce(0);
         this.boss.setDepth(880);
-        this.boss.body.setSize(100, 120);
-        this.boss.body.setOffset(40, 30);
-        this.boss.setScale(1.4);
+        this.bossTargetScale = VOID_EMPRESS_DISPLAY_SIZE /
+            Math.max(1, this.boss.height);
+        this.boss.body.setSize(this.boss.width * 0.5, this.boss.height * 0.62);
+        this.boss.body.setOffset(this.boss.width * 0.25, this.boss.height * 0.14);
+        this.boss.setScale(this.bossTargetScale);
         this.boss.body.setAllowGravity(false);
+
+        // Keep combat targeting independent of transparent artwork bounds and flips.
+        this.bossBody = this.add.zone(spawnX, spawnY + 60, 170, 380);
+        this.physics.add.existing(this.bossBody);
+        this.bossBody.body.setAllowGravity(false);
+        this.bossBody.body.setImmovable(true);
 
         this.bossHealth = this.bossMaxHealth;
         this.bossPhase = 1;
@@ -516,13 +959,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         // Grand entrance
         this.boss.setAlpha(0);
-        this.boss.setScale(0.3);
+        this.boss.setScale(this.bossTargetScale * 0.25);
         this.boss.y = this.levelHeight - 400;
 
         this.tweens.add({
             targets: this.boss,
             alpha: 1,
-            scale: 1.4,
+            scale: this.bossTargetScale,
             y: spawnY,
             duration: 2000,
             ease: 'Power2',
@@ -594,18 +1037,22 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     createBossHealthBar() {
-        const screenWidth = this.cameras.main.width;
-        const barWidth = Math.min(400, screenWidth - 60);
-        const barHeight = 32;
+        const { width: screenWidth, height: screenHeight } = this.cameras.main;
+        const compact =
+            this.isMobile || screenWidth <= 480 || screenHeight < 620;
+        const barWidth = Math.min(420, screenWidth - (compact ? 32 : 60));
+        const barHeight = compact ? 18 : 26;
         const barX = (screenWidth - barWidth) / 2;
-        const barY = 55;
+        // Leave both player-status rows unobstructed on portrait screens.
+        const barY = compact ? 118 : 60;
+        this.bossBarConfig = { barX, barY, barWidth, barHeight };
 
         this.bossUI = this.add.container(0, 0);
         this.bossUI.setScrollFactor(0);
         this.bossUI.setDepth(1500);
 
-        this.bossNameText = this.add.text(screenWidth / 2, barY - 32, '👑 VOID EMPRESS 👑', {
-            fontSize: '26px',
+        this.bossNameText = this.add.text(screenWidth / 2, barY - (compact ? 31 : 34), 'VOID EMPRESS', {
+            fontSize: compact ? '18px' : '25px',
             color: '#FF00FF',
             fontStyle: 'bold',
             stroke: '#1A0A2E',
@@ -613,15 +1060,15 @@ class FinalVoidLevel extends PlatformerLevelScene {
         }).setOrigin(0.5);
         this.bossUI.add(this.bossNameText);
 
-        const subtitle = this.add.text(screenWidth / 2, barY - 8, 'Keeper of the Final Void', {
-            fontSize: '12px',
+        this.bossSubtitle = this.add.text(screenWidth / 2, barY - (compact ? 10 : 9), 'THE BEACON BREAKER', {
+            fontSize: compact ? '10px' : '12px',
             color: '#DA70D6'
         }).setOrigin(0.5);
-        this.bossUI.add(subtitle);
+        this.bossUI.add(this.bossSubtitle);
 
         // Phase indicator
-        this.phaseText = this.add.text(screenWidth / 2, barY + barHeight + 15, 'Phase 1/5', {
-            fontSize: '14px',
+        this.phaseText = this.add.text(screenWidth / 2, barY + barHeight + (compact ? 11 : 14), 'Phase 1/5', {
+            fontSize: compact ? '11px' : '14px',
             color: '#9400D3'
         }).setOrigin(0.5);
         this.bossUI.add(this.phaseText);
@@ -636,20 +1083,23 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossHealthBar = this.add.graphics();
         this.bossUI.add(this.bossHealthBar);
 
-        this.updateBossHealthBar(barX, barY, barWidth, barHeight);
+        this.updateBossHealthBar();
+
+        this.bossIndicator = this.add.text(screenWidth - 14, compact ? 158 : 112, '', {
+            fontSize: compact ? '12px' : '14px',
+            color: '#FF7CFF',
+            backgroundColor: 'rgba(10, 4, 20, 0.78)',
+            padding: { x: 7, y: 4 }
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(1499).setVisible(false);
     }
 
-    updateBossHealthBar(barX, barY, barWidth, barHeight) {
-        if (!this.bossHealthBar) return;
-
-        barX = barX || (this.cameras.main.width - 400) / 2;
-        barY = barY || 55;
-        barWidth = barWidth || 400;
-        barHeight = barHeight || 32;
+    updateBossHealthBar() {
+        if (!this.bossHealthBar || !this.bossBarConfig) return;
+        const { barX, barY, barWidth, barHeight } = this.bossBarConfig;
 
         this.bossHealthBar.clear();
 
-        const healthPercent = this.bossHealth / this.bossMaxHealth;
+        const healthPercent = Phaser.Math.Clamp(this.bossHealth / this.bossMaxHealth, 0, 1);
         const currentWidth = barWidth * healthPercent;
 
         // Color changes with health/phase
@@ -669,6 +1119,27 @@ class FinalVoidLevel extends PlatformerLevelScene {
         // Update phase text
         if (this.phaseText) {
             this.phaseText.setText(`Phase ${this.bossPhase}/5`);
+        }
+    }
+
+    updateBossIndicator() {
+        if (!this.bossIndicator?.active || !this.boss?.active || !this.bossFightActive) {
+            this.bossIndicator?.setVisible(false);
+            return;
+        }
+
+        const view = this.cameras.main.worldView;
+        const offscreenRight = this.boss.x > view.right - 40;
+        const offscreenLeft = this.boss.x < view.left + 40;
+
+        if (offscreenRight || offscreenLeft) {
+            this.bossIndicator
+                .setText(`${offscreenRight ? '>' : '<'} EMPRESS`)
+                .setVisible(true)
+                .setX(offscreenRight ? this.cameras.main.width - 14 : 14)
+                .setOrigin(offscreenRight ? 1 : 0, 0);
+        } else {
+            this.bossIndicator.setVisible(false);
         }
     }
 
@@ -693,7 +1164,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     bossAITick() {
-        if (!this.boss || this.bossDefeated || !this.bossFightActive) return;
+        if (!this.isBossCombatActive()) return;
 
         if (this.player && this.boss) {
             this.boss.facingRight = this.player.x > this.boss.x;
@@ -711,8 +1182,32 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.executeBossAttack(attack);
     }
 
+    isBossCombatActive() {
+        return Boolean(
+            this.bossFightActive &&
+            !this.bossDefeated &&
+            this.boss?.active
+        );
+    }
+
+    getBossArenaBounds() {
+        if (this.testMode) {
+            return {
+                left: 20,
+                right: Math.max(300, this.cameras.main.width - 20),
+                center: this.cameras.main.width / 2
+            };
+        }
+
+        return {
+            left: this.levelWidth - 620,
+            right: this.levelWidth - 40,
+            center: this.levelWidth - 330
+        };
+    }
+
     executeBossAttack(attackType) {
-        if (!this.boss || this.boss.isAttacking) return;
+        if (!this.isBossCombatActive() || this.boss.isAttacking) return;
 
         this.boss.isAttacking = true;
 
@@ -739,16 +1234,21 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         const cooldown = Math.max(1000, 2000 - this.bossPhase * 150);
         this.time.delayedCall(cooldown, () => {
-            if (this.boss) this.boss.isAttacking = false;
+            if (this.isBossCombatActive()) this.boss.isAttacking = false;
         });
     }
 
     bossVoidTendrils() {
-        if (!this.boss) return;
+        if (!this.isBossCombatActive()) return;
+        const { left, right } = this.getBossArenaBounds();
 
         // Tendrils rise from ground
         for (let i = 0; i < 5; i++) {
-            const x = 200 + i * 200 + (Math.random() - 0.5) * 100;
+            const x = Phaser.Math.Clamp(
+                left + ((i + 0.5) / 5) * (right - left) + (Math.random() - 0.5) * 45,
+                left,
+                right
+            );
 
             // Telegraph
             const warning = this.add.graphics();
@@ -758,6 +1258,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
             this.time.delayedCall(500, () => {
                 warning.destroy();
+                if (!this.isBossCombatActive()) return;
 
                 const tendril = this.add.graphics();
                 tendril.fillStyle(0x4B0082, 1);
@@ -775,7 +1276,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
                     duration: 200,
                     onComplete: () => {
                         // Damage check
-                        if (this.player && Math.abs(this.player.x - x) < 30 && this.player.y > this.levelHeight - 200) {
+                        if (this.isBossCombatActive() && this.player &&
+                            Math.abs(this.player.x - x) < 30 &&
+                            this.player.y > this.levelHeight - 200) {
                             this.handlePlayerDamage(1);
                         }
 
@@ -795,7 +1298,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     bossDarkNova() {
-        if (!this.boss) return;
+        if (!this.isBossCombatActive()) return;
 
         this.cameras.main.flash(200, 75, 0, 130);
 
@@ -805,10 +1308,16 @@ class FinalVoidLevel extends PlatformerLevelScene {
         nova.setDepth(850);
 
         let radius = 0;
-        this.time.addEvent({
+        const novaEvent = this.time.addEvent({
             delay: 20,
             repeat: 40,
             callback: () => {
+                if (!this.isBossCombatActive()) {
+                    novaEvent.remove();
+                    nova.destroy();
+                    return;
+                }
+
                 radius += 12;
                 nova.clear();
                 nova.lineStyle(15, 0x9400D3, 1 - radius / 500);
@@ -816,7 +1325,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 nova.lineStyle(8, 0xFF00FF, 0.5 - radius / 600);
                 nova.strokeCircle(0, 0, radius - 10);
 
-                if (this.player) {
+                if (this.player && this.isBossCombatActive()) {
                     const dist = Math.sqrt(Math.pow(this.player.x - this.boss.x, 2) + Math.pow(this.player.y - this.boss.y, 2));
                     if (Math.abs(dist - radius) < 25) {
                         this.handlePlayerDamage(2);
@@ -828,7 +1337,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     bossShadowClones() {
-        if (!this.boss) return;
+        if (!this.isBossCombatActive()) return;
 
         const cloneCount = this.bossPhase >= 4 ? 3 : 2;
 
@@ -836,10 +1345,15 @@ class FinalVoidLevel extends PlatformerLevelScene {
             const clone = this.add.sprite(this.boss.x + (i - 1) * 150, this.boss.y, 'voidEmpress');
             clone.setAlpha(0.4);
             clone.setTint(0x4B0082);
-            clone.setScale(0.9);
+            clone.setScale(this.bossTargetScale * 0.7);
             clone.setDepth(870);
 
             this.time.delayedCall(300 + i * 200, () => {
+                if (!this.isBossCombatActive()) {
+                    clone.destroy();
+                    return;
+                }
+
                 if (this.player) {
                     this.tweens.add({
                         targets: clone,
@@ -847,7 +1361,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
                         y: this.player.y,
                         duration: 500,
                         onComplete: () => {
-                            if (this.player && Math.abs(this.player.x - clone.x) < 50) {
+                            if (this.isBossCombatActive() && this.player &&
+                                Math.abs(this.player.x - clone.x) < 50) {
                                 this.handlePlayerDamage(1);
                             }
 
@@ -874,9 +1389,10 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     bossDimensionRift() {
-        if (!this.boss || !this.player) return;
+        if (!this.isBossCombatActive() || !this.player) return;
 
         const { width, height } = this.cameras.main;
+        const { left, right } = this.getBossArenaBounds();
 
         // Warning
         const warning = this.add.text(width / 2, height / 3, '⚠ DIMENSION RIFT ⚠', {
@@ -895,7 +1411,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
         // Create rifts at random positions
         for (let i = 0; i < 4; i++) {
             this.time.delayedCall(i * 400, () => {
-                const riftX = Math.random() * (this.levelWidth - 200) + 100;
+                if (!this.isBossCombatActive()) return;
+
+                const riftX = Phaser.Math.Between(Math.ceil(left), Math.floor(right));
                 const riftY = this.levelHeight - 200;
 
                 const rift = this.add.graphics();
@@ -912,11 +1430,22 @@ class FinalVoidLevel extends PlatformerLevelScene {
                     scale: 1,
                     duration: 300,
                     onComplete: () => {
+                        if (!this.isBossCombatActive()) {
+                            rift.destroy();
+                            return;
+                        }
+
                         // Pull effect
-                        this.time.addEvent({
+                        const pullEvent = this.time.addEvent({
                             delay: 50,
                             repeat: 30,
                             callback: () => {
+                                if (!this.isBossCombatActive()) {
+                                    pullEvent.remove();
+                                    rift.destroy();
+                                    return;
+                                }
+
                                 if (this.player) {
                                     const dist = Math.sqrt(Math.pow(this.player.x - riftX, 2) + Math.pow(this.player.y - riftY, 2));
                                     if (dist < 150) {
@@ -935,6 +1464,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
                         });
 
                         this.time.delayedCall(1500, () => {
+                            pullEvent.remove();
+                            if (!rift.active) return;
                             this.tweens.add({
                                 targets: rift,
                                 scale: 0,
@@ -949,9 +1480,10 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     bossVoidStorm() {
-        if (!this.boss) return;
+        if (!this.isBossCombatActive()) return;
 
         const { width, height } = this.cameras.main;
+        const { left, right } = this.getBossArenaBounds();
 
         const warning = this.add.text(width / 2, height / 3, '⚡ VOID STORM! ⚡', {
             fontSize: '28px',
@@ -969,7 +1501,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         // Rain of void energy
         for (let i = 0; i < 20; i++) {
             this.time.delayedCall(i * 100, () => {
-                const x = Math.random() * this.levelWidth;
+                if (!this.isBossCombatActive()) return;
+                const x = Phaser.Math.Between(Math.ceil(left), Math.floor(right));
 
                 const bolt = this.add.graphics();
                 bolt.fillStyle(0x9400D3, 1);
@@ -983,7 +1516,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
                     x: x + (Math.random() - 0.5) * 100,
                     duration: 800,
                     onComplete: () => {
-                        if (this.player && Math.abs(this.player.x - bolt.x) < 30) {
+                        if (this.isBossCombatActive() && this.player &&
+                            Math.abs(this.player.x - bolt.x) < 30) {
                             this.handlePlayerDamage(1);
                         }
 
@@ -1009,9 +1543,10 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     bossOblivion() {
-        if (!this.boss) return;
+        if (!this.isBossCombatActive()) return;
 
         const { width, height } = this.cameras.main;
+        const { center: safeZoneX } = this.getBossArenaBounds();
 
         // Ultimate attack - screen-wide danger
         this.cameras.main.flash(500, 255, 0, 255);
@@ -1035,13 +1570,18 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         // Only safe zone is near the center
         this.time.delayedCall(1000, () => {
-            const safeZoneX = this.levelWidth / 2;
+            if (!this.isBossCombatActive()) return;
 
             // Damage everything outside safe zone
-            this.time.addEvent({
+            const oblivionEvent = this.time.addEvent({
                 delay: 100,
                 repeat: 20,
                 callback: () => {
+                    if (!this.isBossCombatActive()) {
+                        oblivionEvent.remove();
+                        return;
+                    }
+
                     if (this.player && Math.abs(this.player.x - safeZoneX) > 150) {
                         this.handlePlayerDamage(1);
                     }
@@ -1069,50 +1609,18 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     handleBossCollision(player, boss) {
-        if (this.isInvincible || this.isPlayerDead) return;
+        if (!this.isBossCombatActive() || this.isInvincible || this.isPlayerDead) return;
         this.handlePlayerDamage(2);
     }
 
     handlePlayerDamage(damage) {
-        if (this.isInvincible || this.isPlayerDead) return;
-
-        this.health -= damage;
-        this.isInvincible = true;
-
-        this.tweens.add({
-            targets: this.player,
-            alpha: 0.3,
-            duration: 100,
-            yoyo: true,
-            repeat: 5,
-            onComplete: () => {
-                if (this.player) this.player.setAlpha(1);
-                this.isInvincible = false;
-            }
-        });
-
-        if (this.hud) {
-            this.hud.updateHealth(this.health, this.maxHealth);
-        }
-
-        if (this.health <= 0) {
-            this.handlePlayerDeath();
-        }
-
-        if (window.AudioManager) {
-            window.AudioManager.playEnemyHit();
-        }
-    }
-
-    handlePlayerDeath() {
-        this.isPlayerDead = true;
-        console.log('[FinalVoidLevel] Player died!');
+        this.takeDamage(damage);
     }
 
     damageBoss(amount = 1) {
-        if (!this.boss || this.bossDefeated) return;
+        if (!this.isBossCombatActive()) return;
 
-        this.bossHealth -= amount;
+        this.bossHealth = Math.max(0, this.bossHealth - amount);
         this.updateBossHealthBar();
 
         this.boss.setTint(0xFFFFFF);
@@ -1123,13 +1631,16 @@ class FinalVoidLevel extends PlatformerLevelScene {
         // Phase transitions at 75%, 50%, 25%, 10%
         const healthPercent = this.bossHealth / this.bossMaxHealth;
 
-        if (healthPercent <= 0.75 && this.bossPhase === 1) this.triggerPhase(2, 'EMPRESS AWAKENS!', 0x4B0082);
-        else if (healthPercent <= 0.50 && this.bossPhase === 2) this.triggerPhase(3, 'VOID CHANNELING!', 0x9400D3);
-        else if (healthPercent <= 0.25 && this.bossPhase === 3) this.triggerPhase(4, 'ULTIMATE POWER!', 0xFF00FF);
-        else if (healthPercent <= 0.10 && this.bossPhase === 4) this.triggerPhase(5, 'FINAL DESPERATION!', 0xFFFFFF);
-
         if (this.bossHealth <= 0) {
             this.onBossDefeated();
+        } else if (healthPercent <= 0.10 && this.bossPhase === 4) {
+            this.triggerPhase(5, 'YOUR COMPANION HOLDS THE LINE', 0xFFFFFF);
+        } else if (healthPercent <= 0.25 && this.bossPhase === 3) {
+            this.triggerPhase(4, 'THE LIVING NETWORK ANSWERS', 0xFF00FF);
+        } else if (healthPercent <= 0.50 && this.bossPhase === 2) {
+            this.triggerPhase(3, 'THE EMPRESS FRACTURES REALITY', 0x9400D3);
+        } else if (healthPercent <= 0.75 && this.bossPhase === 1) {
+            this.triggerPhase(2, 'THE BEACON LINE FLICKERS', 0x4B0082);
         }
 
         if (window.AudioManager) {
@@ -1138,6 +1649,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     triggerPhase(phase, message, tint) {
+        if (!this.isBossCombatActive()) return;
+
         this.bossPhase = phase;
         this.cameras.main.shake(800, 0.03);
         this.cameras.main.flash(500, (tint >> 16) & 0xFF, (tint >> 8) & 0xFF, tint & 0xFF);
@@ -1168,28 +1681,69 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.bossAITimer.delay = Math.max(1000, 2500 - phase * 300);
         }
 
+        if (phase === 4 || phase === 5) {
+            this.grantBondRecovery(phase);
+        }
+
         if (window.AudioManager) {
             window.AudioManager.playError();
         }
     }
 
+    grantBondRecovery(phase) {
+        const previousHealth = this.health;
+        const previousEnergy = this.crystalEnergy;
+        this.health = Math.min(this.maxHealth, this.health + 1);
+        this.crystalEnergy = Math.min(this.maxCrystalEnergy, this.crystalEnergy + 1);
+        this.updateHealthDisplay();
+        this.updateEnergyDisplay();
+
+        if (this.health === previousHealth && this.crystalEnergy === previousEnergy) return;
+
+        const recoveryText = phase === 4
+            ? 'THE NETWORK ANSWERS: +1 HEART / +1 ENERGY'
+            : 'YOUR COMPANION HOLDS THE LINE: +1 HEART / +1 ENERGY';
+        this.showFloatingText(
+            recoveryText,
+            this.player?.x || this.getBossArenaBounds().center,
+            (this.player?.y || this.levelHeight - 180) - 80,
+            phase === 4 ? '#A9F3E4' : '#F2C94C'
+        );
+        window.AudioManager?.playAchievement?.();
+    }
+
     onBossDefeated() {
-        console.log('[FinalVoidLevel] VOID EMPRESS DEFEATED!');
+        if (this.bossDefeated || !this.boss) return;
+
+        console.log('[FinalVoidLevel] Void Empress restored.');
         this.bossDefeated = true;
         this.bossFightActive = false;
 
-        if (this.bossAITimer) this.bossAITimer.remove();
+        if (this.bossAITimer) {
+            this.bossAITimer.remove();
+            this.bossAITimer = null;
+        }
+        if (this.boss.body) {
+            this.boss.body.enable = false;
+        }
+        if (this.bossBody?.body) {
+            this.bossBody.body.enable = false;
+        }
+        this.boss.isAttacking = false;
+        this.bossBody?.setVelocity?.(0, 0);
         this.tweens.killTweensOf(this.boss);
+        this.cameras.main.x = 0;
+        this.cameras.main.y = 0;
 
         this.cameras.main.shake(1500, 0.05);
         this.cameras.main.flash(2000, 255, 255, 255);
 
-        // Epic death sequence
-        const deathDuration = 4000;
+        // The corruption breaks apart while the Empress regains her own light.
+        const restorationDuration = 4000;
 
-        // Screen goes white gradually
+        // A pale restoration wave replaces the void storm.
         const whiteout = this.add.graphics();
-        whiteout.fillStyle(0xFFFFFF, 0);
+        whiteout.fillStyle(0xD8FFF5, 0);
         whiteout.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
         whiteout.setScrollFactor(0);
         whiteout.setDepth(3000);
@@ -1197,7 +1751,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: whiteout,
             alpha: 0.8,
-            duration: deathDuration,
+            duration: restorationDuration,
             onComplete: () => {
                 this.tweens.add({
                     targets: whiteout,
@@ -1208,16 +1762,17 @@ class FinalVoidLevel extends PlatformerLevelScene {
             }
         });
 
-        // Empress dissolves
+        // The Empress steadies before withdrawing from the battlefield.
         this.boss.setVelocity(0, 0);
+        this.boss.setTint?.(0x8FE3CF);
 
-        // Void particles explode outward
+        // Released void fragments brighten as they leave her.
         for (let i = 0; i < 50; i++) {
             this.time.delayedCall(i * 50, () => {
                 if (!this.boss) return;
 
                 const particle = this.add.graphics();
-                const color = [0x9400D3, 0xFF00FF, 0x4B0082, 0xFFFFFF][Math.floor(Math.random() * 4)];
+                const color = [0x8FE3CF, 0xF2C94C, 0xBFA6FF, 0xFFFFFF][Math.floor(Math.random() * 4)];
                 particle.fillStyle(color, 1);
                 particle.fillCircle(0, 0, 5 + Math.random() * 10);
                 particle.setPosition(this.boss.x + (Math.random() - 0.5) * 100, this.boss.y + (Math.random() - 0.5) * 100);
@@ -1238,7 +1793,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             });
         }
 
-        // Destroy orbs
+        // The hostile orbit fades with the corruption.
         if (this.empressOrbs) {
             this.empressOrbs.forEach(orb => {
                 this.tweens.add({
@@ -1253,15 +1808,17 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         this.tweens.add({
             targets: this.boss,
-            alpha: 0,
-            scaleX: 0.1,
-            scaleY: 2,
-            y: this.boss.y - 200,
-            duration: deathDuration,
-            ease: 'Power4',
+            alpha: 0.12,
+            scaleX: 0.92,
+            scaleY: 0.92,
+            y: this.boss.y - 90,
+            duration: restorationDuration,
+            ease: 'Sine.easeInOut',
             onComplete: () => {
                 this.boss.destroy();
                 this.boss = null;
+                this.bossBody?.destroy?.();
+                this.bossBody = null;
 
                 if (this.bossGlow) this.bossGlow.destroy();
 
@@ -1279,26 +1836,31 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     showBossVictory() {
-        const { width, height } = this.cameras.main;
+        const layout = this.getLevelModalLayout({ maxWidth: 520, maxHeight: 260 });
+        const { width, contentWidth, y, font } = layout;
 
-        // Award final ship part
-        const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        if (!shipParts.includes('command_module')) {
-            shipParts.push('command_module');
-            window.GameState?.set('hubWorld.shipParts.collected', shipParts);
-            window.GameState?.set('hubWorld.shipParts.finalBossUnlocked', true);
-            console.log('[FinalVoidLevel] Ship part acquired: Command Module. Total parts:', shipParts.length);
+        if (this.resultPreview) {
+            this.levelCompletionResult = { coinsAwarded: 900 };
+        } else {
+            this.completeLevelProgression({
+                achievementLevelId: 'finalVoid',
+                shipPartId: 'command_module',
+                speedrunThreshold: 360000
+            });
         }
 
-        // Check if all 5 parts collected (one from each boss)
-        const allPartsCollected = shipParts.length >= 5;
+        const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
 
-        const victoryText = this.add.text(width / 2, height / 2 - 50, '👑 VOID EMPRESS DETHRONED 👑', {
-            fontSize: '36px',
+        const allPartsCollected = FINAL_SHIP_PART_IDS.every(partId => shipParts.includes(partId));
+
+        const victoryText = this.add.text(width / 2, y(80), 'VOID EMPRESS RESTORED', {
+            fontSize: font(36, 27),
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 5
+            strokeThickness: 5,
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
 
         this.tweens.add({
@@ -1310,11 +1872,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
             ease: 'Back.easeOut'
         });
 
-        const subtitleText = this.add.text(width / 2, height / 2 + 20, allPartsCollected ?
-            '✨ ALL SHIP PARTS COLLECTED! ✨' :
-            '🔧 Command Module Acquired! 🔧', {
-            fontSize: '24px',
-            color: allPartsCollected ? '#00FF00' : '#FFD700'
+        const subtitleText = this.add.text(width / 2, y(145), allPartsCollected ?
+            'BEACON LINE RESTORED - SHIP COMPLETE' :
+            'BEACON LINE RESTORED - COMMAND MODULE ACQUIRED', {
+            fontSize: font(24, 19),
+            color: allPartsCollected ? '#00FF00' : '#FFD700',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
 
         this.tweens.add({
@@ -1324,12 +1888,31 @@ class FinalVoidLevel extends PlatformerLevelScene {
             duration: 500
         });
 
+        const rewardText = this.add.text(
+            width / 2,
+            y(205),
+            `Guardian Reward: ${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins`,
+            {
+                fontSize: font(20, 16),
+                color: '#FFD700',
+                align: 'center',
+                wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
+
+        this.tweens.add({
+            targets: rewardText,
+            alpha: 1,
+            delay: 1300,
+            duration: 500
+        });
+
         if (window.AudioManager) {
             window.AudioManager.playLevelUp();
         }
 
-        if (window.AchievementSystem?.recordEvent) {
-            window.AchievementSystem.recordEvent('boss_defeated', { bossId: 'void_empress' });
+        if (!this.resultPreview && window.AchievementSystem?.recordEvent) {
+            window.AchievementSystem.recordEvent('guardian_restored', { bossId: 'void_empress' });
             if (allPartsCollected) {
                 window.AchievementSystem.recordEvent('game_complete', {});
             }
@@ -1339,8 +1922,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.time.delayedCall(4000, () => {
             victoryText.destroy();
             subtitleText.destroy();
+            rewardText.destroy();
 
-            if (allPartsCollected) {
+            if (allPartsCollected && !this.resultPreview) {
                 // Go to victory scene
                 this.scene.start('VictoryScene');
             } else {
@@ -1350,18 +1934,19 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     showLevelComplete() {
-        const { width, height } = this.cameras.main;
+        this.bindLevelCompletionReturn();
+
+        const layout = this.getLevelModalLayout({ maxWidth: 450, maxHeight: 350 });
+        const {
+            width, height, panelWidth, panelHeight, panelX, panelY,
+            contentWidth, y, font, buttonPadding
+        } = layout;
 
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.9);
         overlay.fillRect(0, 0, width, height);
         overlay.setScrollFactor(0);
         overlay.setDepth(2500);
-
-        const panelWidth = 450;
-        const panelHeight = 350;
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
 
         const panel = this.add.graphics();
         panel.fillStyle(0x1A0A2E, 1);
@@ -1371,51 +1956,68 @@ class FinalVoidLevel extends PlatformerLevelScene {
         panel.setScrollFactor(0);
         panel.setDepth(2501);
 
-        this.add.text(width / 2, panelY + 40, 'VOID EMPRESS DEFEATED!', {
-            fontSize: '28px',
+        this.add.text(width / 2, y(40), 'VOID EMPRESS RESTORED', {
+            fontSize: font(28, 23),
             color: '#FF00FF',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
-        this.add.text(width / 2, panelY + 100, '🔧 Command Module Acquired! 🔧', {
-            fontSize: '20px',
-            color: '#FFD700'
+        this.add.text(width / 2, y(100), '🔧 Command Module Acquired! 🔧', {
+            fontSize: font(20, 16),
+            color: '#FFD700',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        this.add.text(width / 2, panelY + 150, `Ship Parts: ${shipParts.length}/5`, {
-            fontSize: '18px',
+        const collectedFinalParts = FINAL_SHIP_PART_IDS.filter(partId => shipParts.includes(partId)).length;
+        const finalTotal = FINAL_SHIP_PART_IDS.length;
+        this.add.text(width / 2, y(150), `Ship Parts: ${collectedFinalParts}/${finalTotal}`, {
+            fontSize: font(18, 15),
             color: '#DA70D6'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
-        if (shipParts.length < 5) {
-            this.add.text(width / 2, panelY + 190, 'Collect all parts to complete your ship!', {
-                fontSize: '14px',
-                color: '#AAAAAA'
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
-        }
+        const completionMessage = [
+            `Guardian Reward: ${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins`,
+            collectedFinalParts < finalTotal ? 'Collect all parts to complete your ship!' : null
+        ].filter(Boolean).join('\n');
+        this.add.text(width / 2, y(205), completionMessage, {
+            fontSize: font(14, 13),
+            color: '#FFD700',
+            align: 'center',
+            lineSpacing: 6,
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
-        const returnBtn = this.add.text(width / 2, panelY + panelHeight - 60, '[ RETURN TO HUB ]', {
-            fontSize: '22px',
+        const returnBtn = this.add.text(width / 2, y(290), '[ RETURN TO HUB ]', {
+            fontSize: font(22, 17),
             color: '#9400D3',
             backgroundColor: '#2A1A4A',
-            padding: { x: 25, y: 12 }
+            padding: buttonPadding
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502).setInteractive({ cursor: 'pointer' });
 
         returnBtn.on('pointerover', () => returnBtn.setColor('#FF00FF'));
         returnBtn.on('pointerout', () => returnBtn.setColor('#9400D3'));
         returnBtn.on('pointerdown', () => {
-            this.scene.start('HubWorldScene');
+            this.returnToHub();
         });
     }
 
     shutdown() {
         console.log('[FinalVoidLevel] Shutting down');
+        this.clearLevelEntryKeyHandler();
+        this.bossFightActive = false;
+        this.cameras.main.x = 0;
+        this.cameras.main.y = 0;
 
         if (this.boss) {
             this.boss.destroy();
             this.boss = null;
         }
+        this.bossBody?.destroy?.();
+        this.bossBody = null;
 
         if (this.bossUI) {
             this.bossUI.destroy();
@@ -1429,6 +2031,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         if (this.bossAITimer) {
             this.bossAITimer.remove();
+            this.bossAITimer = null;
         }
 
         if (this.empressOrbs) {
@@ -1438,6 +2041,35 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         this.voidParticles.forEach(p => p.destroy());
         this.voidParticles = [];
+
+        this.bondAnchors.forEach(anchor => {
+            anchor.zone?.destroy?.();
+            anchor.visual?.destroy?.();
+            anchor.label?.destroy?.();
+        });
+        this.bondAnchors = [];
+
+        this.voidFractures.forEach(fracture => {
+            fracture.zone?.destroy?.();
+            fracture.visual?.destroy?.();
+        });
+        this.voidFractures = [];
+
+        if (this.empressGate) {
+            this.empressGate.zone?.destroy?.();
+            this.empressGate.visual?.destroy?.();
+            this.empressGate.label?.destroy?.();
+            this.empressGate = null;
+        }
+
+        this.bossArenaVisual?.destroy?.();
+        this.bossArenaVisual = null;
+        this.bossIndicator?.destroy?.();
+        this.bossIndicator = null;
+        this.objectiveDisplay?.destroy?.();
+        this.objectiveDisplay = null;
+        this.bossBarConfig = null;
+        this.bossSubtitle = null;
 
         super.shutdown();
     }

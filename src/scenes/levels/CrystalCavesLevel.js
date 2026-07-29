@@ -3,9 +3,10 @@ import PlatformerLevelScene from '../PlatformerLevelScene.js';
 /**
  * CrystalCavesLevel - Crystal Caves platformer level
  *
- * Story: "Ancient miners once harvested the mystical crystals that glow in these depths.
- * Now abandoned, the caves are home to shadow bats, crystal spiders, and the ancient Crystal Golem.
- * Deep within lies the Crystal Core Engine - a ship part needed to repair your crashed vessel."
+ * Story: "Ancient extraction scars still interrupt the living pulse of these caves.
+ * The astronaut enters looking for a ship system, but the companion first stops
+ * to tend the damage. The Crystal Guardian must be stabilized before it can trust
+ * them with the Core."
  *
  * Features:
  * - Dynamic lighting: Player glow + crystal proximity activation
@@ -15,7 +16,7 @@ import PlatformerLevelScene from '../PlatformerLevelScene.js';
  *
  * Objectives:
  * - Primary: Find the Crystal Core Engine (ship part)
- * - Secondary: Collect 5 Star Fragments, Defeat Crystal Golem boss
+ * - Secondary: Tend the fractured grove, activate Beacon anchors, collect 5 Star Fragments
  * - Bonus: Collect all Star Fragments for a special Cosmic Egg reward!
  */
 class CrystalCavesLevel extends PlatformerLevelScene {
@@ -64,6 +65,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.playerGlowRadius = 150;
         this.backgroundCrystals = []; // Track crystals for proximity activation
         this.crystalProximityDistance = 200;
+
+        // Project Beacon expedition state
+        this.beaconAnchors = [];
+        this.beaconAnchorsActivated = 0;
+        this.caveRouteAligned = false;
+        this.crystalWoundTended = false;
+        this.woundedCrystalGrove = null;
+        this.coreGateHintUntil = 0;
+        this.levelEntryDismissing = false;
+        this.levelEntryKeyHandler = null;
     }
 
     /**
@@ -72,6 +83,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     init(data) {
         // Call parent init first (resets base game state)
         super.init(data);
+        this.testMode = data?.testMode || false;
 
         // Reset level-specific state
         this.starFragmentsCollected = 0;
@@ -95,6 +107,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Reset lighting
         this.playerGlow = null;
         this.backgroundCrystals = [];
+        this.beaconAnchors = [];
+        this.beaconAnchorsActivated = 0;
+        this.caveRouteAligned = false;
+        this.crystalWoundTended = false;
+        this.woundedCrystalGrove = null;
+        this.coreGateHintUntil = 0;
+        this.levelEntryDismissing = false;
+        this.clearLevelEntryKeyHandler();
 
         console.log('[CrystalCavesLevel] Level-specific state reset for restart');
     }
@@ -104,7 +124,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         super.create();
 
         // Record level entry for achievements
-        if (window.AchievementSystem?.recordEvent) {
+        if (!this.entryPreview && window.AchievementSystem?.recordEvent) {
             window.AchievementSystem.recordEvent('level_entered', { levelId: 'crystalCaves' });
         }
 
@@ -112,15 +132,37 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.levelStartTime = Date.now();
         this.damageTaken = 0;
 
-        // Show level entry screen
-        this.showLevelEntry();
+        if (this.testMode) {
+            this.startTestMode();
+        } else {
+            this.showLevelEntry();
+        }
+    }
+
+    startTestMode() {
+        console.log('[CrystalCavesLevel] TEST MODE - Spawning Crystal Golem');
+
+        if (this.player) {
+            this.player.setPosition(this.levelWidth - 900, this.levelHeight - 200);
+        }
+
+        this.time.delayedCall(300, () => {
+            this.crystalCoreFound = true;
+            this.startBossFight();
+        });
     }
 
     /**
      * Show level entry screen with objectives
      */
     showLevelEntry() {
-        const { width, height } = this.cameras.main;
+        this.levelEntryDismissing = false;
+        const layout = this.getLevelModalLayout({ maxWidth: 450, maxHeight: 400 });
+        const {
+            width, height, panelWidth, panelHeight, panelX, panelY,
+            contentWidth, contentLeft, contentRight, y, font, buttonPadding
+        } = layout;
+        const resume = this.getExpeditionResumePresentation();
 
         // Pause game briefly
         this.physics.pause();
@@ -133,11 +175,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         overlay.setDepth(3000);
 
         // Panel background
-        const panelWidth = 450;
-        const panelHeight = 350;
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
-
         const panel = this.add.graphics();
         panel.fillStyle(0x1A1025, 1);
         panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
@@ -151,58 +188,91 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.addCrystalDecoration(panel, panelX + panelWidth - 30, panelY + 30);
 
         // Title
-        const title = this.add.text(width / 2, panelY + 50, 'CRYSTAL CAVES', {
-            fontSize: '36px',
+        const title = this.add.text(width / 2, y(48), 'CRYSTAL CAVES', {
+            fontSize: font(36, 28),
             color: '#7B68EE',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Subtitle
-        const subtitle = this.add.text(width / 2, panelY + 90, '"Deep below, ancient crystals sing"', {
-            fontSize: '16px',
+        const subtitle = this.add.text(width / 2, y(86), '"Your companion hears pain beneath the stone"', {
+            fontSize: font(16, 14),
             color: '#9370DB',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Divider
         const divider = this.add.graphics();
         divider.lineStyle(2, 0x7B68EE, 0.5);
-        divider.lineBetween(panelX + 40, panelY + 120, panelX + panelWidth - 40, panelY + 120);
+        divider.lineBetween(contentLeft, y(116), contentRight, y(116));
         divider.setScrollFactor(0);
         divider.setDepth(3002);
 
         // Objective header
-        const objHeader = this.add.text(width / 2, panelY + 145, 'OBJECTIVE', {
-            fontSize: '14px',
+        const objHeader = this.add.text(
+            width / 2,
+            y(140),
+            resume
+                ? `PROJECT BEACON // RESUME ${resume.current}/${resume.total}`
+                : 'PROJECT BEACON // EXPEDITION 02',
+            {
+            fontSize: font(14, 12),
             color: '#888888'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Main objective
-        const mainObj = this.add.text(width / 2, panelY + 175, 'Find the Crystal Core Engine', {
-            fontSize: '20px',
+        const mainObj = this.add.text(width / 2, y(172), "Follow the cave's pulse to the Crystal Core", {
+            fontSize: font(20, 17),
             color: '#00FFFF',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Secondary objectives
-        const secondaryY = panelY + 220;
-        const relic = this.add.text(panelX + 60, secondaryY, '[ ] Collect Star Fragments (0/5)', {
-            fontSize: '16px',
-            color: '#AAAAAA'
+        const secondaryY = y(220);
+        const anchors = this.add.text(
+            contentLeft,
+            secondaryY,
+            resume
+                ? `[ BEACON ] ${resume.label} link restored`
+                : '[ ] Activate Beacon anchors',
+            {
+            fontSize: font(16, 14),
+            color: '#AAAAAA',
+            wordWrap: { width: contentWidth }
+            }
+        ).setScrollFactor(0).setDepth(3002);
+
+        const grove = this.add.text(contentLeft, y(250), '[ ] Tend the fractured crystal grove', {
+            fontSize: font(16, 14),
+            color: '#AAAAAA',
+            wordWrap: { width: contentWidth }
         }).setScrollFactor(0).setDepth(3002);
 
-        const boss = this.add.text(panelX + 60, secondaryY + 30, '[ ] Defeat the Crystal Golem', {
-            fontSize: '16px',
-            color: '#AAAAAA'
+        const relic = this.add.text(contentLeft, y(280), '[ OPTIONAL ] Collect Star Fragments (0/5)', {
+            fontSize: font(16, 14),
+            color: '#AAAAAA',
+            wordWrap: { width: contentWidth }
         }).setScrollFactor(0).setDepth(3002);
 
         // Enter button
-        const enterBtn = this.add.text(width / 2, panelY + panelHeight - 50, '[ ENTER THE CAVES ]', {
-            fontSize: '20px',
+        const enterBtn = this.add.text(
+            width / 2,
+            y(340),
+            resume ? '[ RESUME EXPEDITION ]' : '[ ENTER THE CAVES ]',
+            {
+            fontSize: font(20, 17),
             color: '#7B68EE',
             backgroundColor: '#2D1B3D',
-            padding: { x: 25, y: 12 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
+            padding: buttonPadding
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
 
         // Button hover effects
         enterBtn.on('pointerover', () => {
@@ -215,10 +285,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         });
 
         // Collect all elements for proper cleanup
-        const allElements = [overlay, panel, title, subtitle, divider, objHeader, mainObj, relic, boss, enterBtn];
+        const allElements = [overlay, panel, title, subtitle, divider, objHeader, mainObj, anchors, grove, relic, enterBtn];
 
         // Dismiss function - used by button and tap anywhere
         const dismissEntry = () => {
+            if (this.levelEntryDismissing) return;
+
+            this.levelEntryDismissing = true;
+            enterBtn.disableInteractive();
+            overlay.disableInteractive();
+            this.clearLevelEntryKeyHandler();
             this.tweens.add({
                 targets: allElements,
                 alpha: 0,
@@ -241,6 +317,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
         overlay.on('pointerdown', dismissEntry);
 
+        this.levelEntryKeyHandler = event => {
+            if (!['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            dismissEntry();
+        };
+        window.addEventListener('keydown', this.levelEntryKeyHandler);
+
         // Pulsing animation on button
         this.tweens.add({
             targets: enterBtn,
@@ -249,6 +332,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             yoyo: true,
             repeat: -1
         });
+    }
+
+    clearLevelEntryKeyHandler() {
+        if (!this.levelEntryKeyHandler) return;
+
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.levelEntryKeyHandler);
+        }
+        this.levelEntryKeyHandler = null;
     }
 
     /**
@@ -832,8 +924,249 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Create atmospheric elements
         this.createAtmosphere();
 
+        // Make recovery and the wounded-world story beat part of play.
+        this.createBeaconCheckpoints();
+        this.createWoundedCrystalGrove();
+
         // Create the Crystal Core Engine goal (ship part)
         this.createCrystalCoreEngine();
+    }
+
+    createBeaconCheckpoints() {
+        const groundY = this.levelHeight - 50;
+        const anchors = [
+            { id: 'caves_anchor_1', x: 1220, label: 'ECHO PASS' },
+            { id: 'caves_anchor_2', x: 2520, label: 'LIVING CHAMBER' },
+            { id: 'caves_anchor_3', x: 3480, label: 'GUARDIAN THRESHOLD' }
+        ];
+
+        anchors.forEach((anchor, index) => {
+            const visual = this.add.graphics();
+            visual.setDepth(85);
+            this.drawCaveBeacon(visual, anchor.x, groundY, false);
+
+            const label = this.add.text(anchor.x, groundY - 120, anchor.label, {
+                fontSize: '11px',
+                color: '#756D91',
+                fontStyle: 'bold',
+                stroke: '#080510',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(86);
+
+            // Full-height anchors cannot be skipped by taking an elevated cave path.
+            const zone = this.add.zone(
+                anchor.x,
+                this.levelHeight / 2,
+                110,
+                this.levelHeight
+            );
+            this.physics.add.existing(zone, true);
+
+            const checkpoint = {
+                ...anchor,
+                index,
+                visual,
+                label,
+                zone,
+                activated: false,
+                respawnY: this.levelHeight - 150
+            };
+
+            this.physics.add.overlap(this.player, zone, () => {
+                this.activateCaveBeacon(checkpoint);
+            });
+            this.beaconAnchors.push(checkpoint);
+        });
+    }
+
+    drawCaveBeacon(graphics, x, groundY, activated) {
+        graphics.clear();
+        const color = activated ? 0x8FE3CF : 0x4A4268;
+
+        graphics.fillStyle(color, activated ? 0.26 : 0.1);
+        graphics.fillCircle(x, groundY - 64, 36);
+        graphics.lineStyle(3, color, activated ? 1 : 0.7);
+        graphics.strokeCircle(x, groundY - 64, 24);
+        graphics.lineStyle(2, color, 0.9);
+        graphics.lineBetween(x, groundY - 40, x, groundY - 6);
+        graphics.lineBetween(x, groundY - 25, x - 13, groundY - 6);
+        graphics.lineBetween(x, groundY - 25, x + 13, groundY - 6);
+        graphics.fillStyle(activated ? 0xF2C94C : color, 0.95);
+        graphics.fillTriangle(
+            x,
+            groundY - 88,
+            x - 9,
+            groundY - 68,
+            x + 9,
+            groundY - 68
+        );
+    }
+
+    activateCaveBeacon(checkpoint) {
+        if (!checkpoint || checkpoint.activated) return;
+
+        checkpoint.activated = true;
+        checkpoint.zone?.destroy?.();
+        checkpoint.zone = null;
+        this.beaconAnchorsActivated++;
+        this.drawCaveBeacon(checkpoint.visual, checkpoint.x, this.levelHeight - 50, true);
+        checkpoint.label.setColor('#8FE3CF');
+        this.setCheckpoint(checkpoint.x, checkpoint.respawnY, {
+            persist: true,
+            checkpointId: checkpoint.id,
+            checkpointIndex: checkpoint.index
+        });
+
+        const anchorNumber = this.beaconAnchorsActivated;
+        this.showFloatingText(
+            `PROJECT BEACON ANCHOR ${anchorNumber}/3`,
+            checkpoint.x,
+            checkpoint.respawnY - 38,
+            '#8FE3CF'
+        );
+
+        if (anchorNumber === 1) {
+            this.time.delayedCall(650, () => {
+                this.showFloatingText(
+                    'Your companion matches the cave pulse.',
+                    checkpoint.x,
+                    checkpoint.respawnY - 72,
+                    '#D6EEF2'
+                );
+            });
+        } else if (this.beaconAnchorsActivated === this.beaconAnchors.length) {
+            this.caveRouteAligned = true;
+            this.refreshCrystalCoreHint();
+            this.time.delayedCall(650, () => {
+                this.showFloatingText(
+                    'Three living pulses align. The guardian can hear us.',
+                    checkpoint.x,
+                    checkpoint.respawnY - 72,
+                    '#F2C94C'
+                );
+            });
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'crystal_route_aligned'
+            });
+        }
+
+        window.AudioManager?.playAchievement?.();
+    }
+
+    restoreExpeditionRouteState(resume) {
+        return this.restoreExpeditionRouteSignals(resume, {
+            signals: this.beaconAnchors,
+            countProperty: 'beaconAnchorsActivated',
+            readyProperty: 'caveRouteAligned',
+            drawSignal: checkpoint => this.drawCaveBeacon(
+                checkpoint.visual,
+                checkpoint.x,
+                this.levelHeight - 50,
+                true
+            ),
+            onRestored: () => {
+                this.refreshCrystalCoreHint();
+                this.objectiveDisplay?.setText?.(this.getCrystalObjectiveText());
+            }
+        });
+    }
+
+    createWoundedCrystalGrove() {
+        const x = 2730;
+        const groundY = this.levelHeight - 50;
+        const visual = this.add.graphics();
+        visual.setDepth(82);
+        this.drawWoundedCrystalGrove(visual, x, groundY, false);
+
+        const label = this.add.text(x, groundY - 155, 'FRACTURED GROVE', {
+            fontSize: '12px',
+            color: '#A78BCB',
+            fontStyle: 'bold',
+            stroke: '#080510',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(86);
+
+        // Full-height trigger makes the story beat reliable across every traversal path.
+        const zone = this.add.zone(x, this.levelHeight / 2, 190, this.levelHeight);
+        this.physics.add.existing(zone, true);
+        this.physics.add.overlap(this.player, zone, () => {
+            this.tendWoundedCrystalGrove();
+        });
+
+        this.woundedCrystalGrove = { x, groundY, visual, label, zone };
+    }
+
+    drawWoundedCrystalGrove(graphics, x, groundY, tended) {
+        graphics.clear();
+        const crystalColor = tended ? 0x78D9BC : 0x695080;
+        const coreColor = tended ? 0xE8FFF7 : 0x321A45;
+        const glowColor = tended ? 0x8FE3CF : 0x7D2A7D;
+
+        graphics.fillStyle(glowColor, tended ? 0.22 : 0.14);
+        graphics.fillEllipse(x, groundY - 55, 155, 105);
+        graphics.lineStyle(3, coreColor, tended ? 0.9 : 0.75);
+        graphics.lineBetween(x - 72, groundY - 8, x - 24, groundY - 34);
+        graphics.lineBetween(x + 72, groundY - 8, x + 24, groundY - 34);
+        graphics.lineBetween(x - 24, groundY - 34, x + 24, groundY - 34);
+
+        [
+            { dx: -54, height: 70, width: 28 },
+            { dx: -20, height: 104, width: 34 },
+            { dx: 22, height: 82, width: 30 },
+            { dx: 55, height: 58, width: 24 }
+        ].forEach(({ dx, height, width }) => {
+            graphics.fillStyle(crystalColor, 0.9);
+            graphics.fillTriangle(
+                x + dx - width / 2,
+                groundY - 10,
+                x + dx + width / 2,
+                groundY - 10,
+                x + dx,
+                groundY - height
+            );
+            graphics.fillStyle(coreColor, tended ? 0.7 : 0.35);
+            graphics.fillTriangle(
+                x + dx - width / 5,
+                groundY - 15,
+                x + dx + width / 5,
+                groundY - 15,
+                x + dx,
+                groundY - height + 16
+            );
+        });
+    }
+
+    tendWoundedCrystalGrove() {
+        if (this.crystalWoundTended || !this.woundedCrystalGrove) return;
+
+        this.crystalWoundTended = true;
+        this.refreshCrystalCoreHint();
+        const grove = this.woundedCrystalGrove;
+        grove.zone?.destroy?.();
+        grove.zone = null;
+        this.drawWoundedCrystalGrove(grove.visual, grove.x, grove.groundY, true);
+        grove.label.setText('LIVING PULSE RESTORED').setColor('#8FE3CF');
+        this.setCheckpoint(grove.x, this.levelHeight - 150);
+
+        this.showFloatingText(
+            'Your companion tends the fractured crystal.',
+            grove.x,
+            grove.groundY - 175,
+            '#8FE3CF'
+        );
+        this.time.delayedCall(850, () => {
+            this.showFloatingText(
+                'The cave answers with a steadier pulse.',
+                grove.x,
+                grove.groundY - 205,
+                '#D6EEF2'
+            );
+        });
+
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'crystal_grove_tended'
+        });
+        window.AudioManager?.playAchievement?.();
     }
 
     /**
@@ -1446,7 +1779,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Handle Spider defeat
      */
     onSpiderDefeated() {
-        console.log('[CrystalCavesLevel] Crystal Spider defeated!');
+        console.log('[CrystalCavesLevel] Crystal Spider calmed.');
 
         const spider = this.crystalSpider;
         spider.defeated = true;
@@ -1462,11 +1795,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.spiderWebSprayTimer.remove();
         }
 
-        // Death animation
+        // The spider settles as the crystal pulse clears.
         spider.setVelocity(0, 0);
         spider.body.setAllowGravity(false);
+        spider.setTint(0x8FE3CF);
 
-        // Explosion particles
+        // Gentle resonance particles mark the restored passage.
         for (let i = 0; i < 5; i++) {
             this.time.delayedCall(i * 100, () => {
                 if (window.FXLibrary) {
@@ -1479,7 +1813,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             });
         }
 
-        // Fade out
+        // The spider withdraws into the crystal wall.
         this.tweens.add({
             targets: spider,
             alpha: 0,
@@ -1508,8 +1842,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.spiderNameText = null;
         }
 
-        // Victory effects
-        this.showFloatingText('MINIBOSS DEFEATED!', spider.x, spider.y - 60, '#FFD700');
+        // Restoration effects
+        this.showFloatingText('CRYSTAL SPIDER CALMED', spider.x, spider.y - 60, '#8FE3CF');
 
         if (window.AudioManager) {
             window.AudioManager.playLevelUp();
@@ -1721,7 +2055,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             { x: 1550, y: this.levelHeight - 440 },  // Secret slide reward area
             { x: 2100, y: this.levelHeight - 560 },  // Above spider arena
             { x: 2900, y: this.levelHeight - 440 },  // Relic alcove
-            { x: 4850, y: this.levelHeight - 200 }   // After boss (victory reward)
+            { x: 4740, y: this.levelHeight - 550 }   // Final approach, before the Core trigger
         ];
 
         relicPositions.forEach(pos => {
@@ -2609,7 +2943,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setDepth(60);
 
         // Label hint text
-        this.crystalCoreHint = this.add.text(coreX, coreY - 50, 'Touch to Activate!', {
+        this.crystalCoreHint = this.add.text(coreX, coreY - 50, this.getCrystalCoreHintText(), {
             fontSize: '12px',
             color: '#E040FB',
             stroke: '#000000',
@@ -2648,6 +2982,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Overlap for collection - triggers boss fight
         this.physics.add.overlap(this.player, this.crystalCore, () => {
             if (!this.crystalCoreFound && !this.bossFightActive) {
+                if (!this.canActivateCrystalCore()) {
+                    this.showCrystalCoreGateHint();
+                    return;
+                }
+
                 this.crystalCoreFound = true;
                 // Hide labels when boss fight starts
                 this.crystalCoreLabel?.destroy();
@@ -2656,6 +2995,32 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 this.startBossFight();
             }
         });
+    }
+
+    canActivateCrystalCore() {
+        return this.caveRouteAligned && this.crystalWoundTended;
+    }
+
+    getCrystalCoreHintText() {
+        if (!this.caveRouteAligned) return 'Align the Beacon anchors';
+        if (!this.crystalWoundTended) return 'Tend the fractured grove';
+        return 'Touch to Answer the Guardian';
+    }
+
+    refreshCrystalCoreHint() {
+        this.crystalCoreHint?.setText?.(this.getCrystalCoreHintText());
+    }
+
+    showCrystalCoreGateHint() {
+        const now = this.time.now;
+        if (now < this.coreGateHintUntil) return;
+
+        const message = !this.caveRouteAligned
+            ? 'The Core signal is incomplete. Align the Beacon anchors.'
+            : 'Your companion still hears the fractured grove.';
+        this.showFloatingText(message, this.player.x, this.player.y - 70, '#F2C94C');
+        this.cameras.main.flash(180, 242, 193, 78);
+        this.coreGateHintUntil = now + 1800;
     }
 
     /**
@@ -2673,12 +3038,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Warning text
         const { width, height } = this.cameras.main;
-        const warningText = this.add.text(width / 2, height / 2, '⚠ THE GUARDIAN AWAKENS ⚠', {
-            fontSize: '32px',
+        const warningText = this.add.text(width / 2, height / 2, 'THE CAVE GUARDIAN IS HURTING', {
+            fontSize: width <= 480 ? '22px' : '32px',
             color: '#FF4500',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: width - 50 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
 
         // Fade in warning
@@ -2887,7 +3254,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const barWidth = Math.min(320, screenWidth - 60);
         const barHeight = 26;
         const barX = (screenWidth - barWidth) / 2;
-        const barY = 55;
+        const screenHeight = this.cameras.main.height;
+        const isMobileLayout = this.isMobile || screenWidth <= 480 || screenHeight < 620;
+        const barY = isMobileLayout ? 118 : 55;
 
         // Store for updateBossHealthBar
         this.bossBarConfig = { x: barX, y: barY, width: barWidth, height: barHeight };
@@ -2898,9 +3267,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossUI.setDepth(1500);
 
         // Boss name with enhanced visibility
-        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, '⚔️ CRYSTAL GOLEM ⚔️', {
-            fontSize: '22px',
-            color: '#FF6B4A',
+        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'CRYSTAL GUARDIAN', {
+            fontSize: isMobileLayout ? '18px' : '22px',
+            color: '#A9F3E4',
             fontStyle: 'bold',
             stroke: '#2D1B4E',
             strokeThickness: 4
@@ -2908,9 +3277,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossUI.add(this.bossNameText);
 
         // Subtitle
-        const subtitle = this.add.text(screenWidth / 2, barY - 8, 'Guardian of the Caves', {
+        const subtitle = this.add.text(screenWidth / 2, barY - 8, 'Stabilize the wounded pulse', {
             fontSize: '11px',
-            color: '#9B7FEE'
+            color: '#D8FFF6',
+            stroke: '#160D24',
+            strokeThickness: 2
         }).setOrigin(0.5);
         this.bossUI.add(subtitle);
 
@@ -3119,7 +3490,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Flash warning
         const { width, height } = this.cameras.main;
-        const phaseText = this.add.text(width / 2, height / 2, 'GOLEM ENRAGED!', {
+        const phaseText = this.add.text(width / 2, height / 2, 'THE WOUND SURGES!', {
             fontSize: '28px',
             color: '#FF4500',
             fontStyle: 'bold',
@@ -3418,16 +3789,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Handle boss defeat
+     * Handle guardian restoration.
      */
     onBossDefeated() {
-        console.log('[CrystalCavesLevel] Crystal Golem defeated!');
+        console.log('[CrystalCavesLevel] Crystal Guardian stabilized!');
         this.bossDefeated = true;
         this.bossFightActive = false;
 
-        // Record boss defeat for achievements
+        // Record guardian restoration for achievements.
         if (window.AchievementSystem?.recordEvent) {
-            window.AchievementSystem.recordEvent('boss_defeated', { bossId: 'crystal_golem' });
+            window.AchievementSystem.recordEvent('guardian_restored', { bossId: 'crystal_golem' });
         }
 
         // Stop boss AI
@@ -3438,35 +3809,42 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.bossAttackTimer.remove();
         }
 
-        // Boss death animation
+        // The guardian calms as the unstable pulse clears.
         this.boss.setVelocity(0, 0);
         this.boss.body.setAllowGravity(false);
+        this.boss.setTint(0x8FE3CF);
 
-        // Screen shake
-        this.cameras.main.shake(1000, 0.04);
+        this.cameras.main.shake(350, 0.01);
+        this.cameras.main.flash(450, 143, 227, 207);
+        this.showFloatingText(
+            'GUARDIAN PULSE STABLE',
+            this.boss.x,
+            this.boss.y - 95,
+            '#8FE3CF'
+        );
 
-        // Explosion of crystals
-        for (let i = 0; i < 8; i++) {
-            this.time.delayedCall(i * 100, () => {
+        // Resonance particles replace the previous destruction effect.
+        for (let i = 0; i < 6; i++) {
+            this.time.delayedCall(i * 130, () => {
                 if (window.FXLibrary && this.boss) {
                     const offsetX = Phaser.Math.Between(-40, 40);
                     const offsetY = Phaser.Math.Between(-50, 30);
                     window.FXLibrary.stardustBurst(this, this.boss.x + offsetX, this.boss.y + offsetY, {
-                        count: 15,
-                        color: [0x7B68EE, 0xE040FB, 0x00FFFF, 0xFFD700],
+                        count: 12,
+                        color: [0x8FE3CF, 0x00FFFF, 0xBFA6FF, 0xFFD700],
                         duration: 1200
                     });
                 }
             });
         }
 
-        // Fade out boss
+        // The restored guardian withdraws into the crystal wall.
         this.tweens.add({
             targets: this.boss,
-            alpha: 0,
-            scaleX: 1.5,
-            scaleY: 1.5,
-            duration: 1500,
+            alpha: 0.15,
+            scaleX: 0.88,
+            scaleY: 0.88,
+            duration: 1800,
             onComplete: () => {
                 if (this.boss) this.boss.destroy();
             }
@@ -3517,12 +3895,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const { width, height } = this.cameras.main;
 
         // Victory text
-        const victoryText = this.add.text(width / 2, height / 2, '💎 CRYSTAL GOLEM DEFEATED 💎', {
-            fontSize: '32px',
-            color: '#FFD700',
+        const victoryText = this.add.text(width / 2, height / 2, 'CRYSTAL GUARDIAN RESTORED', {
+            fontSize: width <= 480 ? '24px' : '32px',
+            color: '#8FE3CF',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: width - 50 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
 
         this.tweens.add({
@@ -3560,58 +3940,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     onLevelComplete() {
         console.log('[CrystalCavesLevel] Level complete!');
 
-        // Record success for contextual thoughts (enables special encouragement if struggled)
-        this.recordLevelSuccess();
-
-        // Award ship part for completing this level
-        if (window.InventoryManager?.addShipPart) {
-            const awarded = window.InventoryManager.addShipPart('crystal_core');
-            if (awarded) {
-                console.log('[CrystalCavesLevel] Awarded Crystal Core ship part!');
-            }
-        }
-
-        // Calculate completion stats for achievements
-        const completionTime = Date.now() - (this.levelStartTime || Date.now());
-        const noDamage = (this.damageTaken || 0) === 0;
-        const speedrunThreshold = 180000; // 3 minutes
-
-        // Record level completion for achievements
-        if (window.AchievementSystem?.recordEvent) {
-            window.AchievementSystem.recordEvent('level_completed', {
-                levelId: 'crystalCaves',
-                noDamage: noDamage,
-                time: completionTime,
-                speedrunThreshold: speedrunThreshold
-            });
-        }
-
-        // Record level completion for bond progression
-        const bondData = window.GameState?.get('creature.bond');
-        if (bondData) {
-            const levelXP = 10; // Bond XP for completing a level
-            const newExperience = (bondData.experience || 0) + levelXP;
-            const newLevel = Math.floor(newExperience / 50) + 1;
-            const leveledUp = newLevel > (bondData.level || 1);
-
-            window.GameState.set('creature.bond', {
-                ...bondData,
-                experience: newExperience,
-                level: newLevel,
-                levelsCompleted: (bondData.levelsCompleted || 0) + 1,
-                totalInteractions: (bondData.totalInteractions || 0) + 1,
-                abilitySlots: {
-                    ...bondData.abilitySlots,
-                    slot2: newLevel >= 5 || bondData.abilitySlots?.slot2,
-                    slot3: newLevel >= 10 || bondData.abilitySlots?.slot3
-                }
-            });
-
-            if (leveledUp) {
-                console.log(`[CrystalCavesLevel] Bond level up! Now level ${newLevel}`);
-                window.GameState.emit('bondLevelUp', { level: newLevel });
-            }
-        }
+        this.completeLevelProgression({
+            achievementLevelId: 'crystalCaves',
+            shipPartId: 'crystal_core',
+            katanaUpgradeId: 'crystal_edge',
+            speedrunThreshold: 180000,
+            rewardBonusCount: this.starFragmentsCollected
+        });
 
         // Pause gameplay
         this.physics.pause();
@@ -3645,7 +3980,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Show level completion screen
      */
     showCompletionScreen() {
-        const { width, height } = this.cameras.main;
+        this.bindLevelCompletionReturn();
+
+        const layout = this.getLevelModalLayout({ maxWidth: 450, maxHeight: 400 });
+        const {
+            width, height, panelWidth, panelHeight, panelX, panelY,
+            contentWidth, contentLeft, contentRight, y, font, buttonPadding
+        } = layout;
 
         // Dark overlay
         const overlay = this.add.graphics();
@@ -3655,11 +3996,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         overlay.setDepth(3000);
 
         // Panel
-        const panelWidth = 450;
-        const panelHeight = 400;
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
-
         const panel = this.add.graphics();
         panel.fillStyle(0x1A1025, 1);
         panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
@@ -3669,25 +4005,28 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         panel.setDepth(3001);
 
         // Title
-        const title = this.add.text(width / 2, panelY + 50, 'LEVEL COMPLETE', {
-            fontSize: '36px',
+        const title = this.add.text(width / 2, y(50), 'LEVEL COMPLETE', {
+            fontSize: font(36, 28),
             color: '#00FFFF',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Divider
         const divider = this.add.graphics();
         divider.lineStyle(2, 0x7B68EE, 0.5);
-        divider.lineBetween(panelX + 40, panelY + 90, panelX + panelWidth - 40, panelY + 90);
+        divider.lineBetween(contentLeft, y(90), contentRight, y(90));
         divider.setScrollFactor(0);
         divider.setDepth(3002);
 
         // Results
-        const resultY = panelY + 120;
+        const resultY = y(120);
         const results = [
-            { text: 'Crystal Core Found', done: true },
+            { text: 'Beacon Route Aligned', done: this.caveRouteAligned },
+            { text: 'Fractured Grove Tended', done: this.crystalWoundTended },
             { text: `Star Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}`, done: this.starFragmentsCollected >= this.totalStarFragments },
-            { text: 'Crystal Golem Defeated', done: this.bossDefeated }
+            { text: 'Crystal Guardian Stabilized', done: this.bossDefeated }
         ];
 
         // Ship part already awarded via InventoryManager in onLevelComplete()
@@ -3695,49 +4034,60 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         results.forEach((result, i) => {
             const icon = result.done ? '[x]' : '[ ]';
             const color = result.done ? '#00FF00' : '#888888';
-            this.add.text(panelX + 60, resultY + i * 35, `${icon} ${result.text}`, {
-                fontSize: '18px',
-                color: color
+            this.add.text(contentLeft, resultY + i * (y(35) - panelY), `${icon} ${result.text}`, {
+                fontSize: font(18, 15),
+                color: color,
+                wordWrap: { width: contentWidth }
             }).setScrollFactor(0).setDepth(3002);
         });
 
         // Rewards
-        const rewardY = resultY + 130;
+        const rewardY = y(250);
         this.add.text(width / 2, rewardY, 'REWARDS', {
-            fontSize: '14px',
+            fontSize: font(14, 12),
             color: '#888888'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
-        const coins = 500 + (this.starFragmentsCollected * 100);
+        const coins = this.levelCompletionResult?.coinsAwarded || 0;
         this.add.text(width / 2, rewardY + 30, `+ ${coins} Cosmic Coins`, {
-            fontSize: '22px',
+            fontSize: font(22, 18),
             color: '#FFD700',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Ship part notification
         const currentShipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        this.add.text(width / 2, rewardY + 60, `🔮 Ship Part Acquired: Crystal Core`, {
-            fontSize: '16px',
+        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
+        const katanaUpgrade = this.levelCompletionResult?.katanaUpgrade;
+        const upgradeStatus = this.levelCompletionResult?.katanaUpgradeAwarded
+            ? 'installed'
+            : 'online';
+        const guardianGifts = katanaUpgrade
+            ? `Guardian Gifts: Crystal Core + ${katanaUpgrade.name} ${upgradeStatus}`
+            : 'Guardian Gift: Crystal Core';
+        this.add.text(width / 2, y(310), guardianGifts, {
+            fontSize: font(16, 14),
             color: '#00FFFF',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
-        this.add.text(width / 2, rewardY + 85, `Ship Repair Progress: ${currentShipParts.length}/5 parts`, {
-            fontSize: '14px',
-            color: '#9370DB'
+        this.add.text(width / 2, y(335), `Ship Repair Progress: ${currentShipParts.length}/${totalRequired} parts`, {
+            fontSize: font(14, 12),
+            color: '#9370DB',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-
-        // Award coins
-        const currentCoins = window.GameState?.get('player.cosmicCoins') || 0;
-        window.GameState?.set('player.cosmicCoins', currentCoins + coins);
 
         // Return button
-        const returnBtn = this.add.text(width / 2, panelY + panelHeight - 50, '[ RETURN TO SANCTUARY ]', {
-            fontSize: '20px',
+        const returnBtn = this.add.text(width / 2, y(365), '[ RETURN TO HUB ]', {
+            fontSize: font(20, 16),
             color: '#7B68EE',
             backgroundColor: '#2D1B3D',
-            padding: { x: 25, y: 12 }
+            padding: buttonPadding
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
 
         returnBtn.on('pointerover', () => {
@@ -3749,7 +4099,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             returnBtn.setScale(1.0);
         });
         returnBtn.on('pointerdown', () => {
-            this.returnToSanctuary();
+            this.returnToHub();
         });
     }
 
@@ -3759,14 +4109,31 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     createHUD() {
         super.createHUD();
 
-        // Objective display (bottom right)
+        // Keep the objective away from mobile movement and combat controls.
         const { width, height } = this.cameras.main;
-        this.objectiveDisplay = this.add.text(width - 20, height - 30, `⭐ Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}`, {
-            fontSize: '16px',
+        const isShortLandscape = width > height && height < 620;
+        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
+        this.objectiveDisplay = this.add.text(
+            width - (this.isCompactObjectiveHUD ? 12 : 20),
+            this.isCompactObjectiveHUD ? (isShortLandscape ? 82 : 92) : height - 30,
+            this.getCrystalObjectiveText(),
+            {
+            fontSize: this.isCompactObjectiveHUD ? '11px' : '15px',
             color: '#9370DB',
             backgroundColor: 'rgba(26, 16, 37, 0.7)',
-            padding: { x: 10, y: 5 }
-        }).setOrigin(1, 1).setScrollFactor(0).setDepth(1000);
+            padding: { x: 8, y: 5 },
+            align: 'right'
+        }).setOrigin(1, this.isCompactObjectiveHUD ? 0 : 1)
+            .setScrollFactor(0)
+            .setDepth(1000);
+    }
+
+    getCrystalObjectiveText() {
+        const pulseState = this.crystalWoundTended ? 'STABLE' : 'SEARCHING';
+        if (this.isCompactObjectiveHUD) {
+            return `PULSE: ${pulseState}\nANCHORS: ${this.beaconAnchorsActivated}/3\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        }
+        return `PULSE: ${pulseState}\nANCHORS: ${this.beaconAnchorsActivated}/3  |  FRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
     }
 
     /**
@@ -3774,10 +4141,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      */
     update(time, delta) {
         super.update(time, delta);
+        if (this.levelCompletionActive) return;
 
         // Update objective display
         if (this.objectiveDisplay) {
-            this.objectiveDisplay.setText(`⭐ Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}`);
+            this.objectiveDisplay.setText(this.getCrystalObjectiveText());
+            this.objectiveDisplay.setVisible(
+                !(this.isCompactObjectiveHUD && this.bossFightActive)
+            );
         }
 
         // Update dynamic lighting
@@ -3837,6 +4208,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      */
     shutdown() {
         console.log('[CrystalCavesLevel] Shutting down - cleaning up boss resources');
+        this.clearLevelEntryKeyHandler();
 
         // Stop ambient audio
         if (this.ambientAudio && this.ambientAudio.stop) {
@@ -3873,6 +4245,20 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.spiderUI = null;
         }
         this.slidePlatforms = [];
+
+        this.beaconAnchors.forEach(anchor => {
+            anchor.visual?.destroy?.();
+            anchor.label?.destroy?.();
+            anchor.zone?.destroy?.();
+        });
+        this.beaconAnchors = [];
+
+        if (this.woundedCrystalGrove) {
+            this.woundedCrystalGrove.visual?.destroy?.();
+            this.woundedCrystalGrove.label?.destroy?.();
+            this.woundedCrystalGrove.zone?.destroy?.();
+            this.woundedCrystalGrove = null;
+        }
 
         // Clean up boss arena elements
         if (this.powerWellTimer) {

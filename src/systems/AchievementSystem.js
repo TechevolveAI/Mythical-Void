@@ -123,9 +123,14 @@ const ACHIEVEMENT_DEFINITIONS = {
             }
         },
         getProgress: (state) => {
-            const hatchedAt = state.creature?.hatchedAt;
+            const hatchedAt = state.creature?.lifecycle?.birthDate ||
+                state.creature?.hatchTime;
             if (!hatchedAt) return 0;
-            const daysSinceHatch = Math.floor((Date.now() - hatchedAt) / (1000 * 60 * 60 * 24));
+            const hatchTimestamp = new Date(hatchedAt).getTime();
+            if (!Number.isFinite(hatchTimestamp)) return 0;
+            const daysSinceHatch = Math.floor(
+                Math.max(0, Date.now() - hatchTimestamp) / (1000 * 60 * 60 * 24)
+            );
             return daysSinceHatch;
         }
     },
@@ -323,12 +328,12 @@ const ACHIEVEMENT_DEFINITIONS = {
                 rewards: { coins: 75 }
             },
             GOLD: {
-                description: 'Visit all biomes',
-                requirement: 8,
+                description: 'Visit every realm',
+                requirement: 7,
                 rewards: { coins: 150 }
             },
             PLATINUM: {
-                description: 'Achieve 100% map discovery',
+                description: 'Discover 15 realms, Sanctuary places, and living signals',
                 requirement: 15,
                 rewards: { stardust: 100 }
             }
@@ -341,7 +346,7 @@ const ACHIEVEMENT_DEFINITIONS = {
 
     crystal_conqueror: {
         id: 'crystal_conqueror',
-        name: 'Crystal Conqueror',
+        name: 'Crystal Keeper',
         category: 'EXPLORATION',
         hidden: false,
         tiers: {
@@ -454,27 +459,27 @@ const ACHIEVEMENT_DEFINITIONS = {
 
     boss_slayer: {
         id: 'boss_slayer',
-        name: 'Boss Slayer',
+        name: 'Guardian Restorer',
         category: 'COMBAT',
         hidden: false,
         tiers: {
             BRONZE: {
-                description: 'Defeat your first boss',
+                description: 'Restore your first guardian',
                 requirement: 1,
                 rewards: { coins: 75 }
             },
             SILVER: {
-                description: 'Defeat 3 bosses',
+                description: 'Restore 3 guardians',
                 requirement: 3,
                 rewards: { coins: 150 }
             },
             GOLD: {
-                description: 'Defeat 10 bosses',
+                description: 'Restore 10 guardians across your journeys',
                 requirement: 10,
                 rewards: { coins: 250, egg: 'uncommon' }
             },
             PLATINUM: {
-                description: 'Defeat all bosses without taking damage',
+                description: 'Restore every guardian without taking damage',
                 requirement: 1,
                 rewards: { stardust: 150, egg: 'rare' }
             }
@@ -550,7 +555,7 @@ const ACHIEVEMENT_DEFINITIONS = {
             }
         },
         getProgress: (state) => {
-            return state.stats?.totalCoinsEarned || state.player?.cosmicCoins || 0;
+            return state.stats?.coinsCollected || state.player?.cosmicCoins || 0;
         }
     },
 
@@ -592,6 +597,24 @@ const ACHIEVEMENT_DEFINITIONS = {
             }
         },
         isSpecialProgress: true
+    },
+
+    beacon_restorer: {
+        id: 'beacon_restorer',
+        name: 'Beacon Restorer',
+        category: 'MASTERY',
+        hidden: false,
+        tiers: {
+            BRONZE: {
+                description: 'Restore every realm and bring Project Beacon online',
+                requirement: 1,
+                rewards: { coins: 500 }
+            }
+        },
+        getProgress: (state) => {
+            return state.story?.projectBeacon?.uplinkRestored ? 1 : 0;
+        },
+        singleTier: true
     },
 
     // ==================== HIDDEN ====================
@@ -715,6 +738,7 @@ class AchievementSystem {
         });
 
         getGameState().set('achievements', toSave);
+        getGameState().save?.();
     }
 
     /**
@@ -1090,8 +1114,18 @@ class AchievementSystem {
                 break;
 
             case 'creature_hatched':
+                const recordedHatchIds = getGameState().get('stats.recordedHatchIds') || [];
+                if (data.hatchId && recordedHatchIds.includes(data.hatchId)) {
+                    break;
+                }
                 const hatched = getGameState().get('stats.creaturesHatched') || 0;
                 getGameState().set('stats.creaturesHatched', hatched + 1);
+                if (data.hatchId) {
+                    getGameState().set(
+                        'stats.recordedHatchIds',
+                        [...recordedHatchIds, data.hatchId]
+                    );
+                }
 
                 // Track rarity
                 if (data.rarity) {
@@ -1115,6 +1149,8 @@ class AchievementSystem {
                 getGameState().set('combat.enemiesDefeated', enemies + 1);
                 break;
 
+            // `boss_defeated` remains as a compatibility alias for older callers.
+            case 'guardian_restored':
             case 'boss_defeated':
                 const bosses = getGameState().get('combat.bossesDefeated') || 0;
                 getGameState().set('combat.bossesDefeated', bosses + 1);
@@ -1135,6 +1171,16 @@ class AchievementSystem {
                     if (data.time && data.speedrunThreshold && data.time < data.speedrunThreshold) {
                         getGameState().set(`levels.${data.levelId}.speedrun`, true);
                     }
+                }
+                break;
+
+            case 'campaign_completed':
+                getGameState().set('story.projectBeacon.uplinkRestored', true);
+                if (!getGameState().get('story.projectBeacon.uplinkRestoredAt')) {
+                    getGameState().set(
+                        'story.projectBeacon.uplinkRestoredAt',
+                        data.restoredAt || new Date().toISOString()
+                    );
                 }
                 break;
 

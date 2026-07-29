@@ -5,16 +5,14 @@ import PlatformerLevelScene from '../PlatformerLevelScene.js';
  *
  * Story: "The Stellar Reef exists between dimensions - a luminous void where cosmic
  * energy flows like water. Ancient star-travelers built waypoints here, but the
- * Void Incursion twisted this realm. Strange entities now drift through the ethereal
- * currents, and the ancient guardian Nyx'voral - a serpentine being of pure void
- * energy - has become corrupted, blocking passage through this critical route.
+ * Void Incursion twisted this realm. The companion can still hear those waypoints,
+ * and synchronizes them into a route no human instrument could find alone.
  *
  * A piece of your crashed ship's Dimensional Drive lies somewhere in this realm.
- * Recover it, collect the Star Fragments, and defeat Nyx'voral to restore
- * the cosmic passage."
+ * Recover it and stabilize Nyx'voral, the corrupted passage guardian."
  *
  * Objectives:
- * - Primary: Defeat Nyx'voral the Void Serpent
+ * - Primary: Synchronize the ancient waypoints and stabilize Nyx'voral
  * - Critical: Recover the Dimensional Drive Fragment (ship part)
  * - Secondary: Collect 5 Star Fragments
  */
@@ -74,10 +72,19 @@ class ReefLevel extends PlatformerLevelScene {
         this.nebulaParticles = [];
         this.voidRifts = [];
         this.starfieldLayer = null;
+
+        // Project Beacon expedition state
+        this.beaconAnchors = [];
+        this.beaconAnchorsActivated = 0;
+        this.reefRouteAligned = false;
+        this.bossGateHintUntil = 0;
+        this.levelEntryDismissing = false;
+        this.levelEntryKeyHandler = null;
     }
 
     init(data) {
         super.init(data);
+        this.testMode = data?.testMode || false;
 
         // Reset level state
         this.starFragmentsCollected = 0;
@@ -104,6 +111,12 @@ class ReefLevel extends PlatformerLevelScene {
         // Reset collectibles
         this.starFragments = [];
         this.shipPart = null;
+        this.beaconAnchors = [];
+        this.beaconAnchorsActivated = 0;
+        this.reefRouteAligned = false;
+        this.bossGateHintUntil = 0;
+        this.levelEntryDismissing = false;
+        this.clearLevelEntryKeyHandler();
 
         console.log('[ReefLevel] Cosmic Abyss state reset');
     }
@@ -112,7 +125,7 @@ class ReefLevel extends PlatformerLevelScene {
         super.create();
 
         // Record level entry for achievements
-        if (window.AchievementSystem?.recordEvent) {
+        if (!this.entryPreview && window.AchievementSystem?.recordEvent) {
             window.AchievementSystem.recordEvent('level_entered', { levelId: 'cosmicReef' });
         }
 
@@ -120,7 +133,23 @@ class ReefLevel extends PlatformerLevelScene {
         this.levelStartTime = Date.now();
         this.damageTaken = 0;
 
-        this.showLevelEntry();
+        if (this.testMode) {
+            this.startTestMode();
+        } else {
+            this.showLevelEntry();
+        }
+    }
+
+    startTestMode() {
+        console.log("[ReefLevel] TEST MODE - Spawning Nyx'voral");
+
+        if (this.player) {
+            this.player.setPosition(this.levelWidth - 900, this.levelHeight - 200);
+        }
+
+        this.time.delayedCall(300, () => {
+            this.startBossFight();
+        });
     }
 
     setupPlatformerPhysics() {
@@ -132,7 +161,13 @@ class ReefLevel extends PlatformerLevelScene {
      * Show cosmic level entry screen
      */
     showLevelEntry() {
-        const { width, height } = this.cameras.main;
+        this.levelEntryDismissing = false;
+        const layout = this.getLevelModalLayout({ maxWidth: 520, maxHeight: 540 });
+        const {
+            width, height, isCompact, panelWidth, panelHeight, panelX, panelY,
+            contentWidth, contentLeft, contentRight, y, font, buttonPadding
+        } = layout;
+        const resume = this.getExpeditionResumePresentation();
         this.physics.pause();
 
         // Deep cosmic overlay
@@ -153,11 +188,6 @@ class ReefLevel extends PlatformerLevelScene {
         }
 
         // Panel
-        const panelWidth = Math.min(520, width - 40);
-        const panelHeight = 480;
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
-
         const panel = this.add.graphics();
         panel.fillStyle(0x0D0020, 0.95);
         panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
@@ -170,96 +200,125 @@ class ReefLevel extends PlatformerLevelScene {
         panel.setDepth(3001);
 
         // Cosmic decorations
-        this.addCosmicDecoration(panelX + 40, panelY + 40);
-        this.addCosmicDecoration(panelX + panelWidth - 40, panelY + 40);
+        this.addCosmicDecoration(panelX + (isCompact ? 28 : 40), y(40));
+        this.addCosmicDecoration(panelX + panelWidth - (isCompact ? 28 : 40), y(40));
 
         // Title
-        const title = this.add.text(width / 2, panelY + 55, '✧ THE COSMIC ABYSS ✧', {
-            fontSize: '30px',
+        const title = this.add.text(width / 2, y(55), 'STELLAR REEF', {
+            fontSize: font(30, 24),
             color: '#E066FF',
             fontStyle: 'bold',
             stroke: '#4B0082',
-            strokeThickness: 4
+            strokeThickness: isCompact ? 3 : 4,
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Subtitle
-        const subtitle = this.add.text(width / 2, panelY + 95,
-            '"Where dimensions blur and void energy flows like water"', {
-            fontSize: '13px',
+        const subtitle = this.add.text(width / 2, y(95),
+            '"Your companion recognizes the old waypoints"', {
+            fontSize: font(13, 12),
             color: '#BA55D3',
-            fontStyle: 'italic'
+            fontStyle: 'italic',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Story text
-        const storyText = this.add.text(width / 2, panelY + 150,
-            'The Void Incursion corrupted this dimensional crossing.\n' +
-            'Ancient star-beings drift in eternal confusion.\n' +
-            'Nyx\'voral, the Void Serpent, guards the passage.\n\n' +
-            'A fragment of your ship\'s Dimensional Drive is here.', {
-            fontSize: '12px',
+        const storyText = this.add.text(width / 2, y(125),
+            'Ancient star-travelers crossed these living currents.\n' +
+            'The Void broke their route into scattered signals.\n' +
+            'Your instruments hear noise. Your companion hears a path.', {
+            fontSize: font(12, 11),
             color: '#9370DB',
             align: 'center',
-            lineSpacing: 5
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+            lineSpacing: isCompact ? 1 : 4,
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(3002);
 
         // Divider with cosmic energy
         const divider = this.add.graphics();
         divider.lineStyle(2, 0x9B30FF, 0.6);
-        divider.lineBetween(panelX + 50, panelY + 210, panelX + panelWidth - 50, panelY + 210);
+        divider.lineBetween(contentLeft, y(235), contentRight, y(235));
         // Add glow dots
         for (let i = 0; i < 5; i++) {
-            const dotX = panelX + 50 + i * ((panelWidth - 100) / 4);
+            const dotX = contentLeft + i * (contentWidth / 4);
             divider.fillStyle(0xE066FF, 0.8);
-            divider.fillCircle(dotX, panelY + 210, 3);
+            divider.fillCircle(dotX, y(235), 3);
         }
         divider.setScrollFactor(0);
         divider.setDepth(3002);
 
         // Objectives header
-        const objHeader = this.add.text(width / 2, panelY + 235, 'MISSION OBJECTIVES', {
-            fontSize: '14px',
+        const objHeader = this.add.text(
+            width / 2,
+            y(260),
+            resume
+                ? `PROJECT BEACON // RESUME ${resume.current}/${resume.total}`
+                : 'PROJECT BEACON // EXPEDITION 03',
+            {
+            fontSize: font(14, 12),
             color: '#666688'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Primary objective
-        const mainObj = this.add.text(width / 2, panelY + 265, '⚔️ Defeat Nyx\'voral the Void Serpent', {
-            fontSize: '16px',
-            color: '#FF6B9D',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        const mainObj = this.add.text(
+            width / 2,
+            y(295),
+            resume
+                ? `${resume.label} link restored`
+                : 'Synchronize the three ancient waypoints',
+            {
+            fontSize: font(16, 14),
+            color: '#8FE3CF',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Ship part objective (critical!)
-        const shipObj = this.add.text(width / 2, panelY + 295, '🔧 Recover Dimensional Drive Fragment', {
-            fontSize: '15px',
+        const shipObj = this.add.text(width / 2, y(335), 'Recover the Dimensional Drive Fragment', {
+            fontSize: font(15, 13),
             color: '#00FFFF',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Secondary objectives
-        const relicObj = this.add.text(panelX + 60, panelY + 330, '✧ Collect Star Fragments (0/5)', {
-            fontSize: '13px',
-            color: '#AAAACC'
+        const relicObj = this.add.text(contentLeft, y(375), '[ OPTIONAL ] Collect Star Fragments (0/5)', {
+            fontSize: font(13, 12),
+            color: '#AAAACC',
+            wordWrap: { width: contentWidth }
         }).setScrollFactor(0).setDepth(3002);
 
         // Controls hint - mobile-aware
         const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
-        const controlsHint = this.add.text(width / 2, panelY + 370,
+        const controlsHint = this.add.text(width / 2, y(420),
             isMobile
                 ? '📱 HOLD the JUMP button to swim upward!\nRelease to sink. Tap joystick to move.'
                 : '🎮 HOLD ↑/W/SPACE to swim up • Release to sink', {
-            fontSize: isMobile ? '13px' : '11px',
+            fontSize: isMobile ? font(13, 12) : font(11, 10),
             color: '#9370DB',
             align: 'center',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Enter button
-        const enterBtn = this.add.text(width / 2, panelY + panelHeight - 50, '[ ENTER THE ABYSS ]', {
-            fontSize: '18px',
+        const enterBtn = this.add.text(
+            width / 2,
+            y(490),
+            resume ? '[ RESUME EXPEDITION ]' : '[ ENTER THE ABYSS ]',
+            {
+            fontSize: font(18, 16),
             color: '#E066FF',
             backgroundColor: '#1A0030',
-            padding: { x: 30, y: 14 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
+            padding: buttonPadding
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
 
         enterBtn.on('pointerover', () => {
             enterBtn.setColor('#FF88FF');
@@ -276,6 +335,12 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Dismiss function - used by button and tap anywhere
         const dismissEntry = () => {
+            if (this.levelEntryDismissing) return;
+
+            this.levelEntryDismissing = true;
+            enterBtn.disableInteractive();
+            overlay.disableInteractive();
+            this.clearLevelEntryKeyHandler();
             this.tweens.add({
                 targets: allElements,
                 alpha: 0,
@@ -300,8 +365,24 @@ class ReefLevel extends PlatformerLevelScene {
         overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
         overlay.on('pointerdown', dismissEntry);
 
+        this.levelEntryKeyHandler = event => {
+            if (!['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            dismissEntry();
+        };
+        window.addEventListener('keydown', this.levelEntryKeyHandler);
+
         // Animate cosmic particles around panel
         this.createEntryCosmicParticles(panelX, panelY, panelWidth, panelHeight);
+    }
+
+    clearLevelEntryKeyHandler() {
+        if (!this.levelEntryKeyHandler) return;
+
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.levelEntryKeyHandler);
+        }
+        this.levelEntryKeyHandler = null;
     }
 
     /**
@@ -670,7 +751,14 @@ class ReefLevel extends PlatformerLevelScene {
             platform.fillStyle(0xE066FF, 0.5);
             for (let i = 0; i < width / 25; i++) {
                 const facetX = x + 12 + i * 25;
-                platform.fillTriangle(facetX - 8, y, facetX + 8, y, facetX, y - 15);
+                platform.fillTriangle(
+                    facetX - 8,
+                    y + height - 5,
+                    facetX + 8,
+                    y + height - 5,
+                    facetX,
+                    y + 7
+                );
             }
 
             // Glow
@@ -735,6 +823,36 @@ class ReefLevel extends PlatformerLevelScene {
         body.body.setOffset(-width / 2, -height / 2);
     }
 
+    createHUD() {
+        super.createHUD();
+
+        const { width, height } = this.cameras.main;
+        const isShortLandscape = width > height && height < 620;
+        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
+        this.objectiveDisplay = this.add.text(
+            width - (this.isCompactObjectiveHUD ? 12 : 20),
+            this.isCompactObjectiveHUD ? (isShortLandscape ? 82 : 92) : height - 30,
+            this.getReefObjectiveText(),
+            {
+                fontSize: this.isCompactObjectiveHUD ? '11px' : '15px',
+                color: '#8FE3CF',
+                backgroundColor: 'rgba(10, 0, 21, 0.78)',
+                padding: { x: 8, y: 5 },
+                align: 'right'
+            }
+        ).setOrigin(1, this.isCompactObjectiveHUD ? 0 : 1)
+            .setScrollFactor(0)
+            .setDepth(1000);
+    }
+
+    getReefObjectiveText() {
+        const driveState = this.shipPartCollected ? 'SECURED' : 'SEARCHING';
+        if (this.isCompactObjectiveHUD) {
+            return `DRIVE: ${driveState}\nWAYPOINTS: ${this.beaconAnchorsActivated}/3\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        }
+        return `DRIVE: ${driveState}\nWAYPOINTS: ${this.beaconAnchorsActivated}/3  |  FRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+    }
+
     /**
      * Create level content - cosmic enemies, collectibles
      */
@@ -753,8 +871,139 @@ class ReefLevel extends PlatformerLevelScene {
         this.spawnStarFragments();
         this.spawnShipPart();
 
+        // Recovery points also carry the companion-led route discovery.
+        this.createBeaconWaypoints();
+
         // Boss trigger
         this.createBossTrigger();
+    }
+
+    createBeaconWaypoints() {
+        const waypoints = [
+            { id: 'reef_waypoint_1', x: 1250, y: 700, label: 'DRIFT SIGNAL', respawnY: 690 },
+            { id: 'reef_waypoint_2', x: 3150, y: 420, label: 'TRAVELER RELAY', respawnY: 430 },
+            { id: 'reef_waypoint_3', x: 4750, y: 620, label: 'PASSAGE VECTOR', respawnY: 630 }
+        ];
+
+        waypoints.forEach((waypoint, index) => {
+            const visual = this.add.graphics();
+            visual.setDepth(180);
+            this.drawBeaconWaypoint(visual, waypoint.x, waypoint.y, false);
+
+            const label = this.add.text(waypoint.x, waypoint.y - 72, waypoint.label, {
+                fontSize: '11px',
+                color: '#667F94',
+                fontStyle: 'bold',
+                stroke: '#05030C',
+                strokeThickness: 3
+            }).setOrigin(0.5).setDepth(181);
+
+            // The Reef supports many vertical routes; crossing the waypoint's
+            // horizontal position is enough to synchronize it.
+            const zone = this.add.zone(
+                waypoint.x,
+                this.levelHeight / 2,
+                110,
+                this.levelHeight
+            );
+            this.physics.add.existing(zone, true);
+
+            const anchor = {
+                ...waypoint,
+                index,
+                visual,
+                label,
+                zone,
+                activated: false
+            };
+            this.physics.add.overlap(this.player, zone, () => {
+                this.activateBeaconWaypoint(anchor);
+            });
+            this.beaconAnchors.push(anchor);
+        });
+    }
+
+    drawBeaconWaypoint(graphics, x, y, activated) {
+        graphics.clear();
+        const color = activated ? 0x8FE3CF : 0x3D5266;
+
+        graphics.fillStyle(color, activated ? 0.24 : 0.1);
+        graphics.fillCircle(x, y, 38);
+        graphics.lineStyle(3, color, activated ? 1 : 0.7);
+        graphics.strokeCircle(x, y, 25);
+        graphics.lineStyle(2, activated ? 0xF2C94C : color, 0.9);
+        graphics.strokeCircle(x, y, 12);
+        graphics.fillStyle(activated ? 0xF2C94C : color, 0.95);
+        graphics.fillTriangle(x, y - 13, x - 9, y + 8, x + 9, y + 8);
+        graphics.lineStyle(2, color, 0.8);
+        graphics.lineBetween(x - 42, y, x - 27, y);
+        graphics.lineBetween(x + 27, y, x + 42, y);
+    }
+
+    activateBeaconWaypoint(anchor) {
+        if (!anchor || anchor.activated) return;
+
+        anchor.activated = true;
+        anchor.zone?.destroy?.();
+        anchor.zone = null;
+        this.beaconAnchorsActivated++;
+        this.drawBeaconWaypoint(anchor.visual, anchor.x, anchor.y, true);
+        anchor.label.setColor('#8FE3CF');
+        this.setCheckpoint(anchor.x, anchor.respawnY, {
+            persist: true,
+            checkpointId: anchor.id,
+            checkpointIndex: anchor.index
+        });
+
+        this.showFloatingText(
+            `PROJECT BEACON WAYPOINT ${this.beaconAnchorsActivated}/3`,
+            anchor.x,
+            anchor.y - 92,
+            '#8FE3CF'
+        );
+
+        if (this.beaconAnchorsActivated === 1) {
+            this.time.delayedCall(650, () => {
+                this.showFloatingText(
+                    'Your companion answers the ancient signal.',
+                    anchor.x,
+                    anchor.y - 126,
+                    '#D6EEF2'
+                );
+            });
+        } else if (this.beaconAnchorsActivated === 3) {
+            this.reefRouteAligned = true;
+            this.time.delayedCall(650, () => {
+                this.showFloatingText(
+                    'Three signals align. A route appears through the Void.',
+                    anchor.x,
+                    anchor.y - 126,
+                    '#F2C94C'
+                );
+            });
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'reef_route_aligned'
+            });
+        }
+
+        window.AudioManager?.playAchievement?.();
+    }
+
+    restoreExpeditionRouteState(resume) {
+        return this.restoreExpeditionRouteSignals(resume, {
+            signals: this.beaconAnchors,
+            countProperty: 'beaconAnchorsActivated',
+            readyProperty: 'reefRouteAligned',
+            drawSignal: anchor => this.drawBeaconWaypoint(
+                anchor.visual,
+                anchor.x,
+                anchor.y,
+                true
+            ),
+            onRestored: () => {
+                this.objectiveDisplay?.setText?.(this.getReefObjectiveText());
+            }
+        });
     }
 
     /**
@@ -1405,12 +1654,14 @@ class ReefLevel extends PlatformerLevelScene {
     collectShipPart(part) {
         if (!part.active || this.shipPartCollected) return;
 
+        const collectX = part.x;
+        const collectY = part.y;
         part.active = false;
         this.shipPartCollected = true;
 
         // Major celebration!
         if (window.FXLibrary) {
-            window.FXLibrary.stardustBurst(this, part.x, part.y, {
+            window.FXLibrary.stardustBurst(this, collectX, collectY, {
                 count: 40,
                 color: [0x00FFFF, 0xFFFFFF, 0x00FF00, 0xFFD700],
                 duration: 2000
@@ -1426,7 +1677,12 @@ class ReefLevel extends PlatformerLevelScene {
         part.destroy();
 
         // Show big message
-        this.showFloatingText('⚙️ DIMENSIONAL DRIVE ACQUIRED!', part.x, part.y - 50, '#00FFFF');
+        this.showFloatingText(
+            'DIMENSIONAL DRIVE SECURED',
+            collectX,
+            collectY - 50,
+            '#00FFFF'
+        );
 
         // Note: Ship part is officially awarded via InventoryManager in showVictoryScreen()
         // This pickup just marks it visually
@@ -1441,9 +1697,29 @@ class ReefLevel extends PlatformerLevelScene {
     createBossTrigger() {
         const triggerZone = this.add.zone(5200, this.levelHeight / 2, 100, this.levelHeight);
         this.physics.add.existing(triggerZone, true);
+        this.bossTriggerZone = triggerZone;
 
         this.physics.add.overlap(this.player, triggerZone, () => {
             if (!this.bossFightActive && !this.bossDefeated) {
+                const missingRoute = !this.reefRouteAligned;
+                const missingDrive = !this.shipPartCollected;
+                if (missingRoute || missingDrive) {
+                    const now = this.time.now;
+                    if (now >= this.bossGateHintUntil) {
+                        const message = missingRoute
+                            ? 'The passage is unreadable. Synchronize the waypoints.'
+                            : 'The Drive signal is still behind us.';
+                        this.showFloatingText(
+                            message,
+                            this.player.x,
+                            this.player.y - 70,
+                            '#F2C94C'
+                        );
+                        this.cameras.main.flash(180, 242, 193, 78);
+                        this.bossGateHintUntil = now + 1800;
+                    }
+                    return;
+                }
                 this.startBossFight();
             }
         });
@@ -1455,6 +1731,9 @@ class ReefLevel extends PlatformerLevelScene {
     startBossFight() {
         this.bossFightActive = true;
         this.bossHealth = this.bossMaxHealth;
+        this.bossTriggerZone?.destroy?.();
+        this.bossTriggerZone = null;
+        this.physics.pause();
 
         console.log('[ReefLevel] BOSS FIGHT: Nyx\'voral the Void Serpent!');
 
@@ -1466,6 +1745,7 @@ class ReefLevel extends PlatformerLevelScene {
 
     showBossIntro() {
         const { width, height } = this.cameras.main;
+        const isMobileLayout = this.isMobile || width <= 480 || height < 620;
 
         // Void darkness
         const darkness = this.add.graphics();
@@ -1474,17 +1754,19 @@ class ReefLevel extends PlatformerLevelScene {
         darkness.setDepth(2000);
 
         // Boss name with cosmic styling
-        const bossTitle = this.add.text(5600, 200, 'NYX\'VORAL', {
-            fontSize: '52px',
+        const bossTitle = this.add.text(5600, this.levelHeight / 2 - 55, 'NYX\'VORAL', {
+            fontSize: isMobileLayout ? '38px' : '52px',
             color: '#E066FF',
             fontStyle: 'bold',
             stroke: '#4B0082',
             strokeThickness: 8
         }).setOrigin(0.5).setDepth(2001).setAlpha(0);
 
-        const bossSubtitle = this.add.text(5600, 270, 'The Void Serpent', {
-            fontSize: '24px',
-            color: '#9B30FF',
+        const bossSubtitle = this.add.text(5600, this.levelHeight / 2 + 10, 'The passage guardian is lost in the Void', {
+            fontSize: isMobileLayout ? '17px' : '24px',
+            color: '#BFA6FF',
+            align: 'center',
+            wordWrap: { width: isMobileLayout ? 330 : 620 },
             fontStyle: 'italic'
         }).setOrigin(0.5).setDepth(2001).setAlpha(0);
 
@@ -1555,6 +1837,7 @@ class ReefLevel extends PlatformerLevelScene {
                         // When pan completes, restore camera follow
                         if (progress === 1) {
                             camera.startFollow(this.player, true, 0.08, 0.1);
+                            this.physics.resume();
                             console.log('[ReefLevel] Camera follow restored after boss intro');
                         }
                     }
@@ -1667,7 +1950,9 @@ class ReefLevel extends PlatformerLevelScene {
         const barWidth = Math.min(350, screenWidth - 60);
         const barHeight = 28;
         const x = (screenWidth - barWidth) / 2;
-        const y = 55;
+        const screenHeight = this.cameras.main.height;
+        const isMobileLayout = this.isMobile || screenWidth <= 480 || screenHeight < 620;
+        const y = isMobileLayout ? 118 : 55;
 
         // Boss UI container for all elements
         this.bossUI = this.add.container(0, 0);
@@ -1675,9 +1960,9 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossUI.setDepth(1500); // Higher depth for visibility
 
         // Boss name with enhanced visibility
-        this.bossNameText = this.add.text(screenWidth / 2, y - 28, '⚔️ NYX\'VORAL ⚔️', {
-            fontSize: '24px',
-            color: '#E066FF',
+        this.bossNameText = this.add.text(screenWidth / 2, y - 28, 'NYX\'VORAL', {
+            fontSize: isMobileLayout ? '18px' : '24px',
+            color: '#A9F3E4',
             fontStyle: 'bold',
             stroke: '#2D0050',
             strokeThickness: 5
@@ -1685,9 +1970,11 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossUI.add(this.bossNameText);
 
         // Subtitle
-        this.bossSubtitle = this.add.text(screenWidth / 2, y - 8, 'Void Serpent', {
+        this.bossSubtitle = this.add.text(screenWidth / 2, y - 8, 'Clear the Void distortion', {
             fontSize: '12px',
-            color: '#9B7FEE'
+            color: '#D8FFF6',
+            stroke: '#160D24',
+            strokeThickness: 2
         }).setOrigin(0.5).setScrollFactor(0);
         this.bossUI.add(this.bossSubtitle);
 
@@ -2003,46 +2290,72 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     performAttack() {
-        console.log('[ReefLevel] Void energy attack');
+        if (!this.player || this.levelCompletionActive || this.isPlayerDead) return;
+
+        console.log('[ReefLevel] Current-assisted katana strike');
+        const combatProfile = this.katanaCombatProfile || {};
+        const meleeDamage = Number(combatProfile.meleeDamage) || 2;
+        const enemyMeleeRange = Number(combatProfile.enemyMeleeRange) || 70;
+        const bossMeleeRange = (Number(combatProfile.bossMeleeRange) || 80) + 40;
+        const slashColor = combatProfile.slashColor || 0xE040FB;
+        const slashGlowColor = combatProfile.slashGlowColor || 0x7B68EE;
 
         const attackX = this.player.facingRight ? this.player.x + 70 : this.player.x - 70;
         const attackY = this.player.y;
+        const astronautStrike = this.astronautFollower?.performKatanaStrike({
+            facingRight: this.player.facingRight,
+            targetX: attackX,
+            targetY: attackY,
+            slashColor,
+            slashGlowColor,
+            reefAmplified: true
+        }) === true;
 
-        const attack = this.add.graphics();
-        attack.setDepth(300);
+        if (!astronautStrike) {
+            const attack = this.add.graphics();
+            attack.setDepth(300);
 
-        // Cosmic energy burst
-        attack.fillStyle(0xE066FF, 0.6);
-        attack.fillCircle(attackX, attackY, 50);
-        attack.fillStyle(0x00FFFF, 0.8);
-        attack.fillCircle(attackX, attackY, 30);
+            // The Reef current amplifies the installed Earth-forged katana profile.
+            attack.fillStyle(slashGlowColor, 0.6);
+            attack.fillCircle(attackX, attackY, 50);
+            attack.fillStyle(slashColor, 0.82);
+            attack.fillCircle(attackX, attackY, 30);
+            attack.lineStyle(5, slashColor, 1);
+            attack.beginPath();
+            const startAngle = this.player.facingRight ? -Math.PI / 2 : Math.PI / 2;
+            attack.arc(attackX, attackY, 56, startAngle - 0.55, startAngle + 1.05, false);
+            attack.strokePath();
 
-        this.tweens.add({
-            targets: attack,
-            alpha: 0,
-            scaleX: 1.8,
-            scaleY: 1.8,
-            duration: 350,
-            onComplete: () => attack.destroy()
-        });
+            this.tweens.add({
+                targets: attack,
+                alpha: 0,
+                scaleX: 1.8,
+                scaleY: 1.8,
+                duration: 350,
+                onComplete: () => attack.destroy()
+            });
+        }
 
         // Check enemy hits
         this.enemies.children.each(enemy => {
             if (!enemy.active) return;
 
             const dist = Phaser.Math.Distance.Between(attackX, attackY, enemy.x, enemy.y);
-            if (dist < 70) {
-                this.damageEnemy(enemy, 1);
+            if (dist < enemyMeleeRange) {
+                this.damageEnemy(enemy, meleeDamage);
             }
         });
 
         // Check boss hit
         if (this.bossFightActive && this.bossBody) {
             const distToBoss = Phaser.Math.Distance.Between(attackX, attackY, this.bossBody.x, this.bossBody.y);
-            if (distToBoss < 120) {
-                this.damageBoss(1);
+            if (distToBoss < bossMeleeRange) {
+                this.damageBoss(meleeDamage);
             }
         }
+
+        this.combatJuice?.screenShake?.(2, 60);
+        this.combatJuice?.hapticFeedback?.('light');
 
         if (window.AudioManager) {
             window.AudioManager.playAttack();
@@ -2068,6 +2381,8 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     damageBoss(amount) {
+        if (!this.bossFightActive || this.bossDefeated || !this.boss) return;
+
         this.bossHealth -= amount;
         this.updateBossHealthBar();
 
@@ -2089,47 +2404,83 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     defeatBoss() {
-        console.log('[ReefLevel] Nyx\'voral defeated!');
+        console.log('[ReefLevel] Nyx\'voral stabilized!');
 
         this.bossDefeated = true;
         this.bossFightActive = false;
 
-        // Record boss defeat for achievements
+        // Record guardian restoration for achievements.
         if (window.AchievementSystem?.recordEvent) {
-            window.AchievementSystem.recordEvent('boss_defeated', { bossId: 'nyxvoral' });
+            window.AchievementSystem.recordEvent('guardian_restored', { bossId: 'nyxvoral' });
         }
 
         if (this.bossAttackTimer) {
             this.bossAttackTimer.remove();
         }
 
-        // Epic death
+        if (this.bossBody?.body) {
+            this.bossBody.body.enable = false;
+            this.bossBody.setVelocity?.(0, 0);
+        }
+        this.bossMinions.forEach(minion => {
+            minion.graphics?.destroy?.();
+            minion.destroy?.();
+        });
+        this.bossMinions = [];
+        this.bossIndicator?.setAlpha?.(0);
+
+        this.cameras.main.flash(450, 143, 227, 207);
+        this.showFloatingText(
+            'PASSAGE GUARDIAN STABLE',
+            this.bossBody?.x || 5700,
+            (this.bossBody?.y || 700) - 100,
+            '#8FE3CF'
+        );
+
+        // Nyx'voral calms and withdraws into the restored current.
         this.tweens.add({
             targets: this.boss,
-            alpha: 0,
-            scaleX: 2.5,
-            scaleY: 2.5,
-            duration: 2500,
-            ease: 'Power2'
+            alpha: 0.12,
+            scaleX: 0.9,
+            scaleY: 0.9,
+            duration: 2200,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                this.boss?.destroy?.();
+                this.bossBody?.destroy?.();
+                this.boss = null;
+                this.bossBody = null;
+            }
         });
 
         if (window.FXLibrary) {
-            for (let i = 0; i < 6; i++) {
-                this.time.delayedCall(i * 350, () => {
-                    window.FXLibrary.stardustBurst(this,
-                        this.bossBody.x + (Math.random() - 0.5) * 150,
-                        this.bossBody.y + (Math.random() - 0.5) * 80,
+            const resonanceX = this.bossBody?.x || 5700;
+            const resonanceY = this.bossBody?.y || 700;
+            for (let i = 0; i < 5; i++) {
+                this.time.delayedCall(i * 300, () => {
+                    window.FXLibrary.stardustBurst(
+                        this,
+                        resonanceX + (Math.random() - 0.5) * 150,
+                        resonanceY + (Math.random() - 0.5) * 80,
                         {
-                            count: 35,
-                            color: [0xE066FF, 0x9B30FF, 0x00FFFF, 0xFF69B4, 0xFFFFFF],
-                            duration: 2500
+                            count: 24,
+                            color: [0x8FE3CF, 0x00FFFF, 0xBFA6FF, 0xFFD700],
+                            duration: 2000
                         }
                     );
                 });
             }
         }
 
-        this.time.delayedCall(3000, () => {
+        if (this.bossUI) {
+            this.tweens.add({
+                targets: this.bossUI,
+                alpha: 0,
+                duration: 500
+            });
+        }
+
+        this.time.delayedCall(2600, () => {
             this.showVictoryScreen();
         });
 
@@ -2139,60 +2490,16 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     showVictoryScreen() {
-        // Record success for contextual thoughts (enables special encouragement if struggled)
-        this.recordLevelSuccess();
+        this.bindLevelCompletionReturn();
 
-        // Award ship part for completing this level (Stellar Reef -> dimensional_drive)
-        if (window.InventoryManager?.addShipPart) {
-            const awarded = window.InventoryManager.addShipPart('dimensional_drive');
-            if (awarded) {
-                console.log('[ReefLevel] Awarded Dimensional Drive ship part!');
-            }
-        }
+        const completionResult = this.completeLevelProgression({
+            achievementLevelId: 'cosmicReef',
+            shipPartId: 'dimensional_drive',
+            speedrunThreshold: 240000
+        });
 
-        // Calculate completion stats for achievements
-        const completionTime = Date.now() - (this.levelStartTime || Date.now());
-        const noDamage = (this.damageTaken || 0) === 0;
-        const speedrunThreshold = 240000; // 4 minutes
-
-        // Record level completion for achievements
-        if (window.AchievementSystem?.recordEvent) {
-            window.AchievementSystem.recordEvent('level_completed', {
-                levelId: 'cosmicReef',
-                noDamage: noDamage,
-                time: completionTime,
-                speedrunThreshold: speedrunThreshold
-            });
-        }
-
-        // Record level completion for bond progression
-        const bondData = window.GameState?.get('creature.bond');
-        if (bondData) {
-            const levelXP = 10; // Bond XP for completing a level
-            const newExperience = (bondData.experience || 0) + levelXP;
-            const newLevel = Math.floor(newExperience / 50) + 1;
-            const leveledUp = newLevel > (bondData.level || 1);
-
-            window.GameState.set('creature.bond', {
-                ...bondData,
-                experience: newExperience,
-                level: newLevel,
-                levelsCompleted: (bondData.levelsCompleted || 0) + 1,
-                totalInteractions: (bondData.totalInteractions || 0) + 1,
-                abilitySlots: {
-                    ...bondData.abilitySlots,
-                    slot2: newLevel >= 5 || bondData.abilitySlots?.slot2,
-                    slot3: newLevel >= 10 || bondData.abilitySlots?.slot3
-                }
-            });
-
-            if (leveledUp) {
-                console.log(`[ReefLevel] Bond level up! Now level ${newLevel}`);
-                window.GameState.emit('bondLevelUp', { level: newLevel });
-            }
-        }
-
-        const { width, height } = this.cameras.main;
+        const layout = this.getLevelModalLayout({ maxWidth: 520, maxHeight: 400 });
+        const { width, height, contentWidth, y, font, buttonPadding } = layout;
 
         const overlay = this.add.graphics();
         overlay.fillStyle(0x0A0015, 0.95);
@@ -2200,36 +2507,42 @@ class ReefLevel extends PlatformerLevelScene {
         overlay.setScrollFactor(0);
         overlay.setDepth(3000);
 
-        const victoryText = this.add.text(width / 2, height / 2 - 100, '✧ COSMIC ABYSS CLEARED ✧', {
-            fontSize: '34px',
+        const victoryText = this.add.text(width / 2, y(70), 'STELLAR PASSAGE RESTORED', {
+            fontSize: font(34, 26),
             color: '#E066FF',
             fontStyle: 'bold',
             stroke: '#4B0082',
-            strokeThickness: 5
+            strokeThickness: 5,
+            align: 'center',
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        const statsText = this.add.text(width / 2, height / 2,
+        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
+        const statsText = this.add.text(width / 2, y(200),
+            `Waypoints Synchronized: ${this.beaconAnchorsActivated}/3\n` +
             `Star Fragments: ${this.starFragmentsCollected}/${this.totalStarFragments}\n` +
             `Ship Part: ⚙️ Dimensional Drive\n` +
-            `Ship Parts Collected: ${shipParts.length}/5\n` +
-            `Nyx'voral Defeated: ✓`, {
-            fontSize: '18px',
+            `Ship Parts Collected: ${shipParts.length}/${totalRequired}\n` +
+            `Guardian Reward: ${completionResult?.coinsAwarded || 0} Cosmic Coins\n` +
+            `Nyx'voral's Trust: Returned`, {
+            fontSize: font(18, 15),
             color: '#CCAAFF',
             align: 'center',
-            lineSpacing: 12
+            lineSpacing: 12,
+            wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
-        const continueBtn = this.add.text(width / 2, height / 2 + 130, '[ RETURN TO SANCTUARY ]', {
-            fontSize: '20px',
+        const continueBtn = this.add.text(width / 2, y(340), '[ RETURN TO HUB ]', {
+            fontSize: font(20, 16),
             color: '#E066FF',
             backgroundColor: '#1A0030',
-            padding: { x: 30, y: 15 }
+            padding: buttonPadding
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3001).setInteractive();
 
         continueBtn.on('pointerover', () => continueBtn.setColor('#FF88FF'));
         continueBtn.on('pointerout', () => continueBtn.setColor('#E066FF'));
-        continueBtn.on('pointerdown', () => this.returnToSanctuary());
+        continueBtn.on('pointerdown', () => this.returnToHub());
     }
 
     showFloatingText(text, x, y, color = '#FFFFFF') {
@@ -2342,12 +2655,17 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     update(time, delta) {
-        if (!this.player) return;
+        if (!this.player || this.levelCompletionActive) return;
 
         this.isGrounded = false;
         this.handleMovement();
         this.handleJump();
         this.updatePlayerFacing();
+        this.astronautFollower?.update(delta);
+        this.updateCameraLead();
+        if (this.hasShield) {
+            this.updateShield(delta);
+        }
         this.updateEnemies(time, delta);
 
         if (this.bossFightActive) {
@@ -2356,6 +2674,13 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Update swim indicator
         this.updateSwimIndicator();
+
+        if (this.objectiveDisplay) {
+            this.objectiveDisplay.setText(this.getReefObjectiveText());
+            this.objectiveDisplay.setVisible(
+                !(this.isCompactObjectiveHUD && this.bossFightActive)
+            );
+        }
     }
 
     /**
@@ -2420,6 +2745,7 @@ class ReefLevel extends PlatformerLevelScene {
 
     shutdown() {
         console.log('[ReefLevel] Shutting down Cosmic Abyss');
+        this.clearLevelEntryKeyHandler();
 
         if (this.bossAttackTimer) {
             this.bossAttackTimer.remove();
@@ -2438,6 +2764,33 @@ class ReefLevel extends PlatformerLevelScene {
             this.bossUI.destroy();
             this.bossUI = null;
         }
+        this.boss?.destroy?.();
+        this.boss = null;
+        this.bossBody?.destroy?.();
+        this.bossBody = null;
+        this.bossMinions.forEach(minion => {
+            minion.graphics?.destroy?.();
+            minion.destroy?.();
+        });
+        this.bossMinions = [];
+        this.bossTriggerZone?.destroy?.();
+        this.bossTriggerZone = null;
+
+        this.beaconAnchors.forEach(anchor => {
+            anchor.visual?.destroy?.();
+            anchor.label?.destroy?.();
+            anchor.zone?.destroy?.();
+        });
+        this.beaconAnchors = [];
+
+        this.objectiveDisplay?.destroy?.();
+        this.objectiveDisplay = null;
+        this.swimIndicatorPulse?.stop?.();
+        this.swimIndicatorPulse = null;
+        this.swimIndicatorBg?.destroy?.();
+        this.swimIndicatorBg = null;
+        this.swimIndicatorText?.destroy?.();
+        this.swimIndicatorText = null;
 
         // Reset camera zoom
         if (this.cameras?.main) {

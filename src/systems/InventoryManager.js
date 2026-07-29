@@ -9,10 +9,14 @@ class InventoryManager {
         this.maxSlots = 30;
         this.inventory = [];
         this.events = new Phaser.Events.EventEmitter();
+        this.lastUseResult = null;
+        this.utilityLimits = {
+            void_crystal: 3
+        };
 
         // Ship part definitions - collected through gameplay
         // Canonical storage is hubWorld.shipParts.collected[] in GameState
-        // 5 parts total: one from each boss level
+        // 5 pre-final parts unlock Final Void. Command Module is awarded by the final boss.
         this.SHIP_PART_DEFINITIONS = {
             crystal_core: {
                 id: 'crystal_core',
@@ -46,6 +50,14 @@ class InventoryManager {
                 description: 'Generates aurora energy',
                 position: 'top'
             },
+            hull_plating: {
+                id: 'hull_plating',
+                icon: '🛡️',
+                label: 'Hull Plating',
+                source: 'Void Peaks',
+                description: 'Protects the ship from void pressure',
+                position: 'upper'
+            },
             command_module: {
                 id: 'command_module',
                 icon: '👑',
@@ -74,8 +86,45 @@ class InventoryManager {
             }
         }
 
+        this.migrateLegacyMapItems();
         this.initialized = true;
         console.log('✅ InventoryManager initialized');
+    }
+
+    /**
+     * Older shop builds stored route maps in finite inventory slots after
+     * unlocking their gates. Move those records into permanent route ownership.
+     */
+    migrateLegacyMapItems() {
+        if (!window.GameState?.addMapToCollection) {
+            return false;
+        }
+
+        const legacyMaps = this.inventory.filter(
+            item => item?.type === 'map' && item.gateId
+        );
+        if (legacyMaps.length === 0) {
+            return false;
+        }
+
+        const migratedItems = new Set();
+        legacyMaps.forEach(item => {
+            const added = window.GameState.addMapToCollection(item.gateId);
+            const mapsOwned = window.GameState.get('hubWorld.mapsOwned') || [];
+            if (added || mapsOwned.includes(item.gateId)) {
+                migratedItems.add(item);
+            }
+        });
+        if (migratedItems.size === 0) {
+            return false;
+        }
+
+        this.inventory = this.inventory
+            .filter(item => !migratedItems.has(item))
+            .map((item, slot) => ({ ...item, slot }));
+        this.saveInventory();
+        console.log(`[InventoryManager] Migrated ${migratedItems.size} route map(s) to permanent unlocks`);
+        return true;
     }
 
     /**
@@ -97,7 +146,7 @@ class InventoryManager {
         }
 
         // Check if item is stackable
-        const stackableTypes = ['food', 'utility'];
+        const stackableTypes = ['food', 'powerup', 'utility'];
         if (stackableTypes.includes(item.type)) {
             // Try to find existing stack
             const existingItem = this.inventory.find(i => i.id === item.id);
@@ -177,15 +226,25 @@ class InventoryManager {
      * @param {number} slot - Inventory slot index
      * @returns {boolean} - Success status
      */
-    useItem(slot) {
+    useItem(slot, options = {}) {
+        this.lastUseResult = null;
+
         if (slot < 0 || slot >= this.inventory.length) {
             console.warn('[InventoryManager] Invalid slot index');
+            this.lastUseResult = {
+                success: false,
+                message: 'That inventory slot is no longer available.'
+            };
             return false;
         }
 
         const item = this.inventory[slot];
         if (!item) {
             console.warn('[InventoryManager] No item in slot');
+            this.lastUseResult = {
+                success: false,
+                message: 'That item is no longer available.'
+            };
             return false;
         }
 
@@ -201,6 +260,9 @@ class InventoryManager {
 
             case 'utility':
                 return this.useUtilityItem(item, slot);
+
+            case 'powerup':
+                return this.usePowerupItem(item, slot, options);
 
             default:
                 console.warn(`[InventoryManager] Unknown item type: ${item.type}`);
@@ -283,12 +345,122 @@ class InventoryManager {
     useUtilityItem(item, slot) {
         console.log(`[InventoryManager] Using utility: ${item.name}`);
 
-        // Emit event for game-specific utility handling
-        this.events.emit('utilityUsed', { item, slot });
+        if (item.id !== 'void_crystal') {
+            const message = `${item.name} cannot be placed yet.`;
+            console.warn(`[InventoryManager] Unsupported utility item: ${item.id}`);
+            this.lastUseResult = { success: false, message };
+            this.events.emit('utilityRejected', { item, slot, message });
+            return false;
+        }
 
-        // Utility items are typically consumed after use
+        if (!window.GameState) {
+            const message = 'The Sanctuary could not be reached. The item was not used.';
+            this.lastUseResult = { success: false, message };
+            this.events.emit('utilityRejected', { item, slot, message });
+            return false;
+        }
+
+        const path = 'world.sanctuaryDecorations.voidCrystals';
+        const limit = this.utilityLimits.void_crystal;
+        const storedCount = Number(window.GameState.get(path));
+        const currentCount = Number.isFinite(storedCount)
+            ? Math.max(0, Math.min(limit, Math.floor(storedCount)))
+            : 0;
+
+        if (currentCount >= limit) {
+            const message = 'The Sanctuary crystal corner is complete.';
+            this.lastUseResult = { success: false, message };
+            this.events.emit('utilityRejected', { item, slot, message });
+            return false;
+        }
+
+        const nextCount = currentCount + 1;
+        window.GameState.set(path, nextCount);
+
+        if (!this.removeItem(slot, 1)) {
+            window.GameState.set(path, currentCount);
+            const message = 'The crystal could not be placed. The item was not used.';
+            this.lastUseResult = { success: false, message };
+            this.events.emit('utilityRejected', { item, slot, message });
+            return false;
+        }
+
+        const message = `Void Crystal placed in the Sanctuary (${nextCount}/${limit}).`;
+        this.lastUseResult = { success: true, message };
+        this.events.emit('utilityUsed', {
+            item,
+            slot,
+            count: nextCount,
+            limit,
+            message
+        });
+        return true;
+    }
+
+    getLastUseResult() {
+        return this.lastUseResult ? { ...this.lastUseResult } : null;
+    }
+
+    getUtilityCapacity(itemId) {
+        const limit = this.utilityLimits[itemId];
+        if (!limit) {
+            return null;
+        }
+
+        const placedPath = itemId === 'void_crystal'
+            ? 'world.sanctuaryDecorations.voidCrystals'
+            : null;
+        const storedPlaced = placedPath ? Number(window.GameState?.get(placedPath)) : 0;
+        const placed = Number.isFinite(storedPlaced)
+            ? Math.max(0, Math.min(limit, Math.floor(storedPlaced)))
+            : 0;
+        const carried = this.inventory
+            .filter(item => item?.id === itemId)
+            .reduce((total, item) => total + Math.max(1, Number(item.quantity) || 1), 0);
+
+        return {
+            placed,
+            carried,
+            total: placed + carried,
+            limit,
+            canAcquire: placed + carried < limit
+        };
+    }
+
+    /**
+     * Activate a combat power-up through the current level scene.
+     * The inventory owns consumption; the scene owns live combat state.
+     */
+    usePowerupItem(item, slot, options = {}) {
+        if (!item.usableInLevel || !item.effect) {
+            console.warn(`[InventoryManager] ${item.name} is not a usable level power-up`);
+            return false;
+        }
+
+        if (typeof options.applyPowerup !== 'function') {
+            console.warn(`[InventoryManager] ${item.name} can only be used during an expedition`);
+            this.events.emit('powerupUnavailable', { item, slot });
+            return false;
+        }
+
+        const activation = options.applyPowerup(item.effect, item);
+        const success = activation === true || activation?.success === true;
+        if (!success) {
+            this.events.emit('powerupRejected', {
+                item,
+                slot,
+                message: activation?.message || 'Power-up could not be activated'
+            });
+            return false;
+        }
+
         this.removeItem(slot, 1);
-
+        this.events.emit('powerupUsed', {
+            item,
+            slot,
+            effect: item.effect,
+            message: activation?.message || `${item.name} activated`
+        });
         return true;
     }
 
@@ -406,7 +578,7 @@ class InventoryManager {
      * Sort inventory by type
      */
     sortByType() {
-        const typeOrder = { egg: 0, food: 1, utility: 2 };
+        const typeOrder = { egg: 0, food: 1, powerup: 2, utility: 3 };
 
         this.inventory.sort((a, b) => {
             const orderA = typeOrder[a.type] ?? 999;
@@ -472,6 +644,7 @@ class InventoryManager {
             itemsByType: {
                 eggs: this.getItemsByType('egg').length,
                 food: this.getItemsByType('food').length,
+                powerups: this.getItemsByType('powerup').length,
                 utilities: this.getItemsByType('utility').length
             }
         };

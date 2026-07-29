@@ -28,10 +28,15 @@ class APIConfig {
         // Replicate API for AI art generation (optional feature)
         // Note: This is configured via Netlify environment variables, not client-side
         // The client calls a Netlify function which has the API key server-side
-        this.config.replicateConfigured = true; // Configured server-side
+        this.config.apiFeaturesEnabled = window.envLoader.getBool('ENABLE_API_FEATURES', false);
+        this.config.replicateConfigured = this.config.apiFeaturesEnabled;
 
         this.initialized = true;
-        console.log('[APIConfig] Initialized (EU AI Act compliant - no LLM chat APIs)');
+        console.log(
+            `[APIConfig] Initialized (optional API features ${
+                this.config.apiFeaturesEnabled ? 'enabled' : 'disabled'
+            })`
+        );
     }
 
     /**
@@ -45,14 +50,16 @@ class APIConfig {
             return null;
         }
 
-        return this.config[service] || null;
+        return Object.prototype.hasOwnProperty.call(this.config, service)
+            ? this.config[service]
+            : null;
     }
 
     /**
      * Check if API features are available
      */
     isEnabled() {
-        return this.initialized;
+        return this.initialized && this.config.apiFeaturesEnabled === true;
     }
 
     /**
@@ -62,7 +69,8 @@ class APIConfig {
         return {
             aiArtGeneration: {
                 provider: 'Replicate (via Netlify function)',
-                status: 'server-side only',
+                available: this.isEnabled(),
+                status: this.isEnabled() ? 'enabled' : 'disabled',
                 euAiActCompliance: 'Images labeled as AI-generated'
             },
             creatureChat: {

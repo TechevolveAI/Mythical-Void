@@ -73,12 +73,10 @@ export default class MobileHUD {
      * This ensures tablet users and mobile emulation work correctly
      */
     isMobile() {
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         const isSmallScreen = window.innerWidth < 1024; // Increased threshold for tablets
         const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-        // Show mobile HUD if: touch device with small-ish screen, OR mobile user agent
-        return (isTouchDevice && isSmallScreen) || isMobileUserAgent;
+        return isSmallScreen || isMobileUserAgent;
     }
 
     /**

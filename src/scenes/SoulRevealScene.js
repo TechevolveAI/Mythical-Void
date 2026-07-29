@@ -11,6 +11,7 @@
  */
 
 import { devLog } from '../utils/devLogger.js';
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 
 export default class SoulRevealScene extends Phaser.Scene {
     constructor() {
@@ -31,14 +32,8 @@ export default class SoulRevealScene extends Phaser.Scene {
     create() {
         // Stop other scenes to ensure clean display
         const scenesToStop = ['HatchingScene', 'PersonalityScene', 'NamingScene', 'GameScene'];
-        scenesToStop.forEach(sceneKey => {
-            try {
-                if (this.scene.isActive(sceneKey)) {
-                    this.scene.stop(sceneKey);
-                }
-            } catch (e) { /* Scene might not exist */ }
-        });
-        this.scene.bringToTop();
+        SceneTransitionHelper.stopActiveScenes(this, scenesToStop);
+        SceneTransitionHelper.bringToTop(this);
 
         const { width, height } = this.scale;
 
@@ -1142,6 +1137,13 @@ export default class SoulRevealScene extends Phaser.Scene {
         } else {
             devLog('[SoulRevealScene] Collection full, creature not added');
         }
+
+        const genetics = window.GameState?.get('creature.genes');
+        window.AchievementSystem?.recordEvent?.('creature_hatched', {
+            hatchId: genetics?.id || `primary:${window.GameState?.get('creature.hatchTime')}`,
+            rarity: genetics?.rarity || 'common',
+            species: genetics?.species || 'unknown'
+        });
 
         // Save soul data for profile page access
         this.saveSoulDataForProfile();

@@ -57,6 +57,68 @@
     }
   },
 
+  "mythical_forest": {
+    "id": "mythical_forest",
+    "name": "Mythical Forest",
+    "description": "An ancient living forest threaded with cosmic light and watched over by the Elder Treant",
+    "unlockCost": 0,
+    "palette": {
+      "skyTop": "#071B1A",
+      "skyBottom": "#163D2B",
+      "nebula": "#365E52",
+      "accent": "#F2C94C",
+      "flora": "#58C6A2",
+      "rocks": "#243B34"
+    },
+    "layers": {
+      "nebulaBackground": {
+        "enabled": true,
+        "colors": ["#071B1A", "#102D26", "#29453B"],
+        "scrollFactor": 0.08,
+        "opacity": 0.92
+      },
+      "distantStars": {
+        "enabled": true,
+        "count": 28,
+        "colors": ["#E8FFF7", "#9BE7CD", "#F2C94C"],
+        "scrollFactor": 0.16
+      },
+      "floatingRocks": {
+        "enabled": true,
+        "count": 6,
+        "colors": ["#182A25", "#243B34", "#365E52"],
+        "scrollFactor": 0.32
+      },
+      "crystalFlora": {
+        "enabled": true,
+        "count": 10,
+        "colors": ["#58C6A2", "#89E0BC", "#7867A8"],
+        "scrollFactor": 0.56,
+        "bioluminescence": true
+      },
+      "foregroundDust": {
+        "enabled": true,
+        "count": 18,
+        "colors": ["#9BE7CD", "#F2C94C", "#D9CCFF"],
+        "scrollFactor": 0.84
+      }
+    },
+    "enemies": {
+      "types": ["void_sprite", "branch_crawler", "spore_drifter", "forest_wisp"],
+      "spawnRate": 1.0,
+      "maxEnemies": 8
+    },
+    "collectibles": {
+      "types": ["star_fragment", "forest_coin", "forest_core"],
+      "spawnCount": 20
+    },
+    "ambientEffects": {
+      "livingCanopy": true,
+      "guardianPulse": true,
+      "whisperingRoots": true
+    }
+  },
+
   "stellar_reef": {
     "id": "stellar_reef",
     "name": "Stellar Reef",
@@ -347,6 +409,69 @@
     "special": {
       "healingZones": true,
       "ancientSecrets": true
+    }
+  },
+
+  "final_void": {
+    "id": "final_void",
+    "name": "The Final Void",
+    "description": "Reality's edge, where the five restored living systems converge into a fragile route between worlds",
+    "unlockCost": 0,
+    "palette": {
+      "skyTop": "#03020B",
+      "skyBottom": "#14061F",
+      "nebula": "#35165E",
+      "accent": "#A9F3E4",
+      "flora": "#7E6AA6",
+      "rocks": "#191222"
+    },
+    "layers": {
+      "nebulaBackground": {
+        "enabled": true,
+        "colors": ["#03020B", "#0B0615", "#24103A"],
+        "scrollFactor": 0.04,
+        "opacity": 0.96
+      },
+      "distantStars": {
+        "enabled": true,
+        "count": 34,
+        "colors": ["#FFFFFF", "#A9F3E4", "#F2C94C", "#D9CCFF"],
+        "scrollFactor": 0.1
+      },
+      "floatingRocks": {
+        "enabled": true,
+        "count": 5,
+        "colors": ["#100B18", "#191222", "#2B1C3A"],
+        "crystalGlow": ["#A9F3E4", "#F2C94C"],
+        "scrollFactor": 0.24
+      },
+      "crystalFlora": {
+        "enabled": true,
+        "count": 7,
+        "colors": ["#7E6AA6", "#A9F3E4", "#F2C94C"],
+        "scrollFactor": 0.48,
+        "bioluminescence": true
+      },
+      "foregroundDust": {
+        "enabled": true,
+        "count": 16,
+        "colors": ["#A9F3E4", "#D9CCFF", "#F2C94C"],
+        "scrollFactor": 0.76
+      }
+    },
+    "enemies": {
+      "types": ["void_wraith", "rift_echo", "beacon_breaker"],
+      "spawnRate": 1.2,
+      "maxEnemies": 6
+    },
+    "collectibles": {
+      "types": ["bond_signal", "void_fragment", "command_module"],
+      "spawnCount": 12
+    },
+    "ambientEffects": {
+      "livingNetwork": true,
+      "signalConvergence": true,
+      "realityFlicker": true
     }
   }
 }

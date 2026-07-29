@@ -10,6 +10,9 @@ export default class QuestTracker {
         this.questItems = [];
         this.isExpanded = false;
         this.isMinimized = false;
+        this.storyBannerElements = [];
+        this.storyBannerTimer = null;
+        this.storyBriefingQueueTimer = null;
 
         this.unsubscribers = [];
     }
@@ -21,13 +24,14 @@ export default class QuestTracker {
         const { width, height } = this.scene.scale;
         const isMobile = width < 600;
 
-        // Position in top-right corner (below coins)
+        // Position below the status block so the control remains visible and tappable.
         this.x = width - (isMobile ? 15 : 20);
-        this.y = isMobile ? 120 : 100;
+        this.y = isMobile ? 145 : 155;
 
         // Container for all quest UI elements
         this.container = this.scene.add.container(this.x, this.y);
-        this.container.setDepth(90);
+        this.container.setScrollFactor(0);
+        this.container.setDepth(12000);
 
         // Create minimized button (always visible)
         this.createMinimizedButton(isMobile);
@@ -43,6 +47,7 @@ export default class QuestTracker {
 
         // Initial update
         this.updateQuestDisplay();
+        this.advanceCompletedStoryQuest();
 
         console.log('[QuestTracker] Created quest tracker UI');
     }
@@ -180,7 +185,7 @@ export default class QuestTracker {
             this.questCountBadge.fillStyle(0xFF6600, 1);
             this.claimableIndicator.setVisible(false);
         }
-        this.questCountBadge.fillCircle(-this.isMobile ? 40 : 50 + 10, 10, 12);
+        this.questCountBadge.fillCircle(this.isMobile ? -40 : -50, 10, 12);
 
         // Update expanded panel quest list
         this.updateQuestList(activeQuests);
@@ -200,6 +205,8 @@ export default class QuestTracker {
 
         // Show quests (prioritize claimable, then in-progress)
         const sortedQuests = [...quests].sort((a, b) => {
+            if (a.type === 'story' && b.type !== 'story') return -1;
+            if (b.type === 'story' && a.type !== 'story') return 1;
             if (a.completed && !a.claimed) return -1;
             if (b.completed && !b.claimed) return 1;
             return (b.progress / b.objective.target) - (a.progress / a.objective.target);
@@ -327,14 +334,16 @@ export default class QuestTracker {
     /**
      * Claim a quest reward
      */
-    claimQuest(quest) {
+    claimQuest(quest, { showRewardAnimation = true } = {}) {
         if (!window.QuestManager) return;
 
         const rewards = window.QuestManager.claimReward(quest.questId);
 
         if (rewards) {
             // Show celebration
-            this.showClaimAnimation(rewards);
+            if (showRewardAnimation) {
+                this.showClaimAnimation(rewards);
+            }
 
             // Play sound
             if (window.AudioManager) {
@@ -364,7 +373,7 @@ export default class QuestTracker {
             stroke: '#000000',
             strokeThickness: 4,
             align: 'center'
-        }).setOrigin(0.5).setDepth(200).setAlpha(0);
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(14520).setAlpha(0);
 
         // Animate
         this.scene.tweens.add({
@@ -461,13 +470,33 @@ export default class QuestTracker {
             const completedUnsub = window.QuestManager.on('questCompleted', (data) => {
                 this.updateQuestDisplay();
                 this.showQuestCompleteNotification(data.quest);
+                if (data.quest?.type === 'story') {
+                    this.claimQuest(data.quest, { showRewardAnimation: false });
+                }
             });
 
-            const claimedUnsub = window.QuestManager.on('questRewardClaimed', () => {
+            const claimedUnsub = window.QuestManager.on('questRewardClaimed', ({ quest } = {}) => {
                 this.updateQuestDisplay();
+                if (quest?.type === 'story') {
+                    const nextQuest = window.QuestManager.getQuestsByType('story')[0];
+                    if (nextQuest) {
+                        if (nextQuest.completed && !nextQuest.claimed) {
+                            this.claimQuest(nextQuest, { showRewardAnimation: false });
+                        } else {
+                            this.scheduleStoryMissionBriefing(nextQuest);
+                        }
+                    }
+                }
             });
 
             this.unsubscribers.push(progressUnsub, completedUnsub, claimedUnsub);
+        }
+    }
+
+    advanceCompletedStoryQuest() {
+        const storyQuest = window.QuestManager?.getQuestsByType?.('story')?.[0];
+        if (storyQuest?.completed && !storyQuest.claimed) {
+            this.claimQuest(storyQuest, { showRewardAnimation: false });
         }
     }
 
@@ -476,6 +505,7 @@ export default class QuestTracker {
      */
     showQuestCompleteNotification(quest) {
         const { width } = this.scene.scale;
+        const isMobile = width < 600;
 
         // Flash the minimized button
         this.scene.tweens.add({
@@ -486,19 +516,30 @@ export default class QuestTracker {
             repeat: 3
         });
 
-        // Show notification banner
-        const notification = this.scene.add.text(width / 2, 60, `✅ Quest Complete: ${quest.name}`, {
-            fontSize: '18px',
-            color: '#00FF00',
-            fontStyle: 'bold',
-            backgroundColor: 'rgba(0,0,0,0.8)',
-            padding: { x: 20, y: 10 }
-        }).setOrigin(0.5).setDepth(150).setAlpha(0);
+        const label = quest.type === 'story' ? 'FIELD MISSION COMPLETE' : 'QUEST COMPLETE';
+        const startY = isMobile ? 215 : 60;
+        const fieldNote = quest.type === 'story' && quest.fieldNote ?
+            `\n"${quest.fieldNote}"` :
+            '';
+        const notification = this.scene.add.text(
+            width / 2,
+            startY,
+            `${label}\n${quest.name}${fieldNote}`,
+            {
+                fontSize: isMobile ? '15px' : '18px',
+                color: '#00FF00',
+                fontStyle: 'bold',
+                backgroundColor: 'rgba(0,0,0,0.8)',
+                padding: { x: 20, y: 10 },
+                align: 'center',
+                wordWrap: { width: Math.min(420, width - 40) }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(14520).setAlpha(0);
 
         this.scene.tweens.add({
             targets: notification,
             alpha: 1,
-            y: 80,
+            y: startY + 20,
             duration: 300,
             onComplete: () => {
                 this.scene.time.delayedCall(2500, () => {
@@ -514,9 +555,179 @@ export default class QuestTracker {
     }
 
     /**
+     * Show a non-blocking authored briefing for the active Project Beacon mission.
+     */
+    showStoryMissionBriefing(quest, { forceMobile = false } = {}) {
+        if (!quest || quest.type !== 'story') return;
+
+        this.clearScheduledStoryMissionBriefing();
+        this.clearStoryMissionBriefing();
+
+        const { width, height } = this.scene.scale;
+        const isMobile = forceMobile || width < 600;
+        const panelWidth = Math.min(isMobile ? 330 : 440, width - 24);
+        const panelHeight = isMobile ? 150 : 142;
+        const panelX = (width - panelWidth) / 2;
+        const mobilePanelLimit = Math.max(180, height - panelHeight - 150);
+        const panelY = isMobile ? Math.min(215, mobilePanelLimit) : 76;
+        const depth = 14500;
+        const guidance = isMobile ?
+            (quest.guidanceMobile || quest.guidanceDesktop) :
+            (quest.guidanceDesktop || quest.guidanceMobile);
+
+        const panel = this.scene.add.graphics();
+        panel.fillStyle(0x081720, 0.96);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+        panel.lineStyle(2, 0x66C7D4, 0.95);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+        panel.setScrollFactor(0).setDepth(depth);
+
+        const eyebrow = this.scene.add.text(
+            panelX + 16,
+            panelY + 13,
+            'PROJECT BEACON // NEW FIELD MISSION',
+            {
+                fontSize: isMobile ? '10px' : '11px',
+                color: '#66C7D4',
+                fontStyle: 'bold'
+            }
+        ).setScrollFactor(0).setDepth(depth + 1);
+
+        const title = this.scene.add.text(
+            panelX + 16,
+            panelY + 34,
+            `${quest.icon || '📡'} ${quest.name}`,
+            {
+                fontSize: isMobile ? '16px' : '18px',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                wordWrap: { width: panelWidth - 52 }
+            }
+        ).setScrollFactor(0).setDepth(depth + 1);
+
+        const briefing = this.scene.add.text(
+            panelX + 16,
+            panelY + 62,
+            quest.briefing || quest.description,
+            {
+                fontSize: isMobile ? '12px' : '13px',
+                color: '#D6EEF2',
+                lineSpacing: 2,
+                wordWrap: { width: panelWidth - 32 }
+            }
+        ).setScrollFactor(0).setDepth(depth + 1);
+
+        const instruction = this.scene.add.text(
+            panelX + 16,
+            panelY + panelHeight - 16,
+            guidance || quest.description,
+            {
+                fontSize: isMobile ? '11px' : '12px',
+                color: '#F2C14E',
+                fontStyle: 'bold',
+                wordWrap: { width: panelWidth - 32 }
+            }
+        ).setOrigin(0, 1).setScrollFactor(0).setDepth(depth + 1);
+
+        const close = this.scene.add.text(panelX + panelWidth - 16, panelY + 16, '×', {
+            fontSize: '22px',
+            color: '#A8C2C7'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2)
+            .setInteractive({ useHandCursor: true });
+        close.on('pointerdown', () => this.clearStoryMissionBriefing());
+
+        this.storyBannerElements = [panel, eyebrow, title, briefing, instruction, close];
+        this.storyBannerElements.forEach(element => element.setAlpha(0));
+        this.scene.tweens.add({
+            targets: this.storyBannerElements,
+            alpha: 1,
+            duration: 220,
+            ease: 'Sine.easeOut'
+        });
+
+        this.storyBannerTimer = this.scene.time.delayedCall(7000, () => {
+            this.clearStoryMissionBriefing();
+        });
+    }
+
+    scheduleStoryMissionBriefing(
+        quest,
+        { initialDelay = 4500, retryDelay = 350 } = {}
+    ) {
+        if (!quest || quest.type !== 'story') return;
+
+        this.clearScheduledStoryMissionBriefing();
+
+        const attemptBriefing = () => {
+            this.storyBriefingQueueTimer = null;
+            if (this.scene?._isShuttingDown) return;
+
+            const activeQuest = window.QuestManager
+                ?.getQuestsByType?.('story')?.[0];
+            if (
+                !activeQuest
+                || activeQuest.id !== quest.id
+                || activeQuest.completed
+                || activeQuest.claimed
+            ) {
+                return;
+            }
+
+            if (this.isBlockingStoryMomentActive()) {
+                this.storyBriefingQueueTimer = this.scene.time.delayedCall(
+                    retryDelay,
+                    attemptBriefing
+                );
+                return;
+            }
+
+            this.showStoryMissionBriefing(activeQuest);
+        };
+
+        this.storyBriefingQueueTimer = this.scene.time.delayedCall(
+            initialDelay,
+            attemptBriefing
+        );
+    }
+
+    isBlockingStoryMomentActive() {
+        return Boolean(
+            this.scene?.isFieldKitModalOpen
+            || this.scene?.controlsTutorial?.isVisible
+            || this.scene?.storyModalElements?.length
+            || this.scene?.greetingElements?.length
+            || this.scene?.livingSignalMomentElements?.length
+            || this.scene?.hamburgerMenu?.isOpen
+            || this.scene?.hamburgerMenu?.settingsModal?.isVisible
+            || this.scene?.hamburgerMenu?.cloudSaveModal?.isVisible
+            || this.scene?.hamburgerMenu?.beaconLogModal?.isVisible
+            || this.scene?.carePanelManager?.panelVisible
+            || this.scene?.creatureRadialMenu?.isVisible
+        );
+    }
+
+    clearScheduledStoryMissionBriefing() {
+        this.storyBriefingQueueTimer?.remove?.();
+        this.storyBriefingQueueTimer = null;
+    }
+
+    clearStoryMissionBriefing() {
+        this.storyBannerTimer?.remove?.();
+        this.storyBannerTimer = null;
+        this.storyBannerElements.forEach(element => {
+            element?.removeAllListeners?.();
+            element?.destroy?.();
+        });
+        this.storyBannerElements = [];
+    }
+
+    /**
      * Cleanup
      */
     destroy() {
+        this.clearScheduledStoryMissionBriefing();
+        this.clearStoryMissionBriefing();
+
         // Unsubscribe from events
         this.unsubscribers.forEach(unsub => {
             if (typeof unsub === 'function') unsub();

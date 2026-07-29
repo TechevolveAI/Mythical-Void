@@ -149,7 +149,8 @@ class ParallaxBiomeManager {
             stars: null,
             dust: null,
             aurora: null,
-            bubbles: null
+            bubbles: null,
+            beacon: null
         };
 
         // Shader pipeline
@@ -637,6 +638,8 @@ class ParallaxBiomeManager {
      */
     getStarColors() {
         switch (this.currentBiomeId) {
+            case 'mythical_forest':
+                return [0xE8FFF7, 0x9BE7CD, 0xF2C94C, 0xD9CCFF];
             case 'stellar_reef':
                 return [0xE0F7FA, 0xB2EBF2, 0x80DEEA, 0x4DD0E1];
             case 'crystal_caves':
@@ -646,6 +649,8 @@ class ParallaxBiomeManager {
                 return [0xFF4500, 0xDC143C, 0x8B0000, 0x4B0082];
             case 'aurora_depths':
                 return [0x7FFFD4, 0x00FA9A, 0x00FF7F, 0xFFD700];
+            case 'final_void':
+                return [0xFFFFFF, 0xA9F3E4, 0xF2C94C, 0xD9CCFF];
             default:
                 return [0xFFFFFF, 0xCCCCFF, 0xFFCCFF, 0xCCFFFF];
         }
@@ -720,6 +725,9 @@ class ParallaxBiomeManager {
                 break;
             case 'aurora_depths':
                 this.createAuroraParticles(width, height);
+                break;
+            case 'final_void':
+                this.createBeaconSignalParticles(width, height);
                 break;
             default:
                 // Nebula has default dust only
@@ -826,6 +834,36 @@ class ParallaxBiomeManager {
     }
 
     /**
+     * Create converging signal traces for the Final Void.
+     */
+    createBeaconSignalParticles(width, height) {
+        const beaconEmitter = this.scene.add.particles(0, 0, 'particle_aurora', {
+            x: { min: -40, max: width * 1.2 },
+            y: { min: height * 0.12, max: height * 0.78 },
+            speedY: { min: -4, max: 4 },
+            speedX: { min: 12, max: 28 },
+            scaleX: { min: 0.7, max: 1.8 },
+            scaleY: { min: 0.12, max: 0.3 },
+            alpha: { start: 0.35, end: 0 },
+            tint: [0xA9F3E4, 0xF2C94C, 0xD9CCFF],
+            lifespan: { min: 3500, max: 6500 },
+            frequency: 260,
+            quantity: 1,
+            blendMode: 'ADD',
+            emitting: true
+        });
+
+        beaconEmitter.setScrollFactor(0.18);
+        beaconEmitter.setDepth(-18);
+        this.particleEmitters.beacon = beaconEmitter;
+        this.layers.push({
+            type: 'beaconSignalEmitter',
+            object: beaconEmitter,
+            config: { parallax: 0.18 }
+        });
+    }
+
+    /**
      * Layer 5: Create crystal flora with enhanced effects
      */
     createCrystalFlora() {
@@ -923,6 +961,8 @@ class ParallaxBiomeManager {
      */
     getDustColors() {
         switch (this.currentBiomeId) {
+            case 'mythical_forest':
+                return [0x9BE7CD, 0xF2C94C, 0xD9CCFF];
             case 'stellar_reef':
                 return [0xE0F7FA, 0x80DEEA, 0x00BCD4];
             case 'crystal_caves':
@@ -932,6 +972,8 @@ class ParallaxBiomeManager {
                 return [0x4B0082, 0x8B008B, 0xFF4500];
             case 'aurora_depths':
                 return [0x00FF7F, 0x7FFFD4, 0xFFD700];
+            case 'final_void':
+                return [0xA9F3E4, 0xD9CCFF, 0xF2C94C];
             default:
                 return [0xE1F5FE, 0xB3E5FC, 0xFFCCFF];
         }
@@ -1025,6 +1067,11 @@ class ParallaxBiomeManager {
                 color1: [0.04, 0.1, 0.18],
                 color2: [0.0, 1.0, 0.5],
                 color3: [1.0, 0.84, 0.0]
+            },
+            final_void: {
+                color1: [0.01, 0.01, 0.04],
+                color2: [0.21, 0.09, 0.37],
+                color3: [0.66, 0.95, 0.89]
             }
         };
 
@@ -1250,7 +1297,8 @@ class ParallaxBiomeManager {
             stars: null,
             dust: null,
             aurora: null,
-            bubbles: null
+            bubbles: null,
+            beacon: null
         };
 
         // Destroy layers

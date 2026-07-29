@@ -9,6 +9,7 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
+.claude/
 
 # API keys and configuration
 config/secrets.js
@@ -71,3 +72,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Local Netlify folder
+.netlify

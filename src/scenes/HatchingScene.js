@@ -7,8 +7,11 @@ import hatchCinematicsConfig from '../config/hatch-cinematics.json';
 import evolutionConfig from '../config/evolution.json';
 import rarityConfig from '../config/rarity-config.json';
 import legalConfig from '../config/legal.json';
+import projectBeacon from '../config/project-beacon.json';
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 import MobileHelpers from '../utils/mobile-helpers.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
+const firstSessionFraming = projectBeacon.firstSessionFraming;
 
 // Make evolution config available globally for GraphicsEngine and other systems
 if (typeof window !== 'undefined') {
@@ -85,20 +88,50 @@ class HatchingScene extends Phaser.Scene {
 
     preload() {
         // Preload theme music for home screen
-        this.load.audio('themeMusic', 'audio/theme-music.mp3');
+        this.load.audio('themeMusic', '/audio/theme-music.mp3');
+        this.load.image(
+            'projectBeaconCrashSite',
+            '/game/project-beacon-crash-site.webp'
+        );
     }
 
     create() {
+        // Boss/ending preview routes start their requested scene after boot.
+        const previewParams = new URLSearchParams(window.location.search);
+        const isLocalPreview = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        if (
+            previewParams.has('testBoss') ||
+            previewParams.has('testGuardianResult') ||
+            (
+                isLocalPreview &&
+                (
+                    previewParams.has('testDebrief') ||
+                    previewParams.has('testLevelEntry') ||
+                    previewParams.has('testExpeditionDrill') ||
+                    previewParams.has('testHub') ||
+                    previewParams.has('testFieldKit') ||
+                    previewParams.has('testWaypoint') ||
+                    previewParams.has('testGarden') ||
+                    previewParams.has('testLivingSignal') ||
+                    previewParams.has('testMissionBriefing') ||
+                    previewParams.has('testControls') ||
+                    previewParams.has('testBeaconLog') ||
+                    previewParams.has('testSettings') ||
+                    previewParams.has('testRecovery') ||
+                    previewParams.has('testFusion') ||
+                    previewParams.has('testAchievements') ||
+                    previewParams.has('testCloudSave') ||
+                    previewParams.has('testEnding')
+                )
+            )
+        ) {
+            return;
+        }
+
         // Stop all other scenes to ensure clean display
         const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene'];
-        scenesToStop.forEach(sceneKey => {
-            try {
-                this.scene.stop(sceneKey);
-            } catch (e) {
-                // Scene might not exist - that's fine
-            }
-        });
-        this.scene.bringToTop();
+        SceneTransitionHelper.stopScenes(this, scenesToStop);
+        SceneTransitionHelper.bringToTop(this);
 
         const GameState = getGameState();
 
@@ -388,6 +421,7 @@ class HatchingScene extends Phaser.Scene {
 
         // Create UI text elements
         this.createUI();
+        this.createTapToHatchText();
 
         // Initialize hatch cinematics if available
         if (window.HatchCinematics) {
@@ -1052,8 +1086,6 @@ class HatchingScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Add "Tap to Hatch" instruction text (Quick Win #1 from QA Audit)
-        this.createTapToHatchText();
     }
 
     setupInput() {
@@ -1095,15 +1127,19 @@ class HatchingScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const eggX = width / 2;
         const eggY = height * 0.45;
+        const eggTop = this.egg
+            ? this.egg.y - (this.egg.displayHeight / 2)
+            : eggY - 60;
 
         // Create animated arrow pointing down at the egg
         const arrowGraphics = this.add.graphics();
         arrowGraphics.fillStyle(0xFFD700, 1);
 
         // Draw arrow shape
-        const arrowSize = 30;
+        const arrowSize = 22;
         const arrowX = eggX;
-        const arrowY = eggY - 100;
+        const arrowY = eggTop - 4;
+        const shaftHeight = 12;
 
         arrowGraphics.beginPath();
         arrowGraphics.moveTo(arrowX, arrowY);
@@ -1113,7 +1149,12 @@ class HatchingScene extends Phaser.Scene {
         arrowGraphics.fillPath();
 
         // Draw arrow shaft
-        arrowGraphics.fillRect(arrowX - 5, arrowY - arrowSize - 20, 10, 20);
+        arrowGraphics.fillRect(
+            arrowX - 4,
+            arrowY - arrowSize - shaftHeight,
+            8,
+            shaftHeight
+        );
 
         this.tutorialPointer = arrowGraphics;
 
@@ -1155,14 +1196,14 @@ class HatchingScene extends Phaser.Scene {
 
         switch (stage) {
             case 'preHatch':
-                hintText = '💡 Tip: Click anywhere on or near the egg to begin!';
+                hintText = firstSessionFraming.tutorialHints.preHatch;
                 break;
             case 'hatching':
-                hintText = '✨ Your creature is hatching! Watch as it reveals its unique traits...';
+                hintText = firstSessionFraming.tutorialHints.hatching;
                 duration = 3000;
                 break;
             case 'postHatch':
-                hintText = '🎉 Amazing! Next you\'ll choose its personality and give it a name.';
+                hintText = firstSessionFraming.tutorialHints.postHatch;
                 duration = 5000;
                 break;
             default:
@@ -1225,10 +1266,10 @@ class HatchingScene extends Phaser.Scene {
         const instructionFontSize = Math.max(16, Math.min(20, width * 0.045));
 
         // Main title
-        const titleText = this.add.text(centerX, height * 0.08, '🌟 Mythical Creature Game 🌟', {
+        const titleText = this.add.text(centerX, height * 0.08, firstSessionFraming.hatchTitle, {
             fontSize: `${titleFontSize}px`,
             color: '#FFD54F',
-            stroke: '#7B1FA2',
+            stroke: '#071418',
             strokeThickness: 3,
             align: 'center',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
@@ -1236,7 +1277,7 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Subtitle
-        const subtitleText = this.add.text(centerX, height * 0.13, 'Your magical adventure begins here!', {
+        const subtitleText = this.add.text(centerX, height * 0.13, firstSessionFraming.hatchSubtitle, {
             fontSize: `${subtitleFontSize}px`,
             color: '#FFFFFF',
             stroke: '#000000',
@@ -1247,13 +1288,13 @@ class HatchingScene extends Phaser.Scene {
 
         // Instructions text with better styling and enhanced tutorial hints
         const tutorialText = this.hasSeenTutorial()
-            ? '👆 Click the magical egg below to hatch your creature! 👆'
-            : '✨ Welcome! Click or tap the egg below to begin.\nYour creature will hatch and reveal its unique traits! ✨';
+            ? firstSessionFraming.returningHatchPrompt
+            : firstSessionFraming.firstHatchPrompt;
 
         this.instructionText = this.add.text(centerX, height * 0.2, tutorialText, {
             fontSize: `${instructionFontSize}px`,
             color: '#FFFFFF',
-            stroke: '#7B1FA2',
+            stroke: '#071418',
             strokeThickness: 2,
             align: 'center',
             fontFamily: 'Arial, sans-serif',
@@ -1311,7 +1352,7 @@ class HatchingScene extends Phaser.Scene {
         panelBg.strokeRoundedRect(centerX - panelWidth/2, panelY, panelWidth, panelHeight, 15);
 
         // Instructions
-        this.add.text(centerX, panelY + 30, '🎮 Click egg to hatch • SPACE to continue • WASD/Arrows to move', {
+        this.add.text(centerX, panelY + 30, firstSessionFraming.controlPrompt, {
             fontSize: '16px',
             color: '#F5F5F5',
             align: 'center',
@@ -1319,7 +1360,7 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Game info
-        this.add.text(centerX, panelY + 60, '🏆 Hatch → Name → Explore the magical world!', {
+        this.add.text(centerX, panelY + 60, firstSessionFraming.journeyPrompt, {
             fontSize: '14px',
             color: '#80CBC4',
             align: 'center',
@@ -1706,7 +1747,8 @@ class HatchingScene extends Phaser.Scene {
         this.visionCreature.setTint(0xFFFACD);
 
         // Create vision message with more emphasis
-        const visionMessage = this.add.text(centerX, height * 0.1, visionConfig.visionMessage || '✨ Behold their magnificent destiny... ✨', {
+        const visionMessageY = width < 600 ? height * 0.72 : height * 0.1;
+        const visionMessage = this.add.text(centerX, visionMessageY, visionConfig.visionMessage || '✨ Behold their magnificent destiny... ✨', {
             fontSize: width < 600 ? '20px' : '26px',
             color: '#FFD700',
             fontStyle: 'bold italic',
@@ -3584,65 +3626,44 @@ class HatchingScene extends Phaser.Scene {
     // ==========================================
 
     /**
-     * Create enhanced starfield background with depth
+     * Create the Project Beacon crash-site backdrop.
      */
     createEnhancedBackground() {
-        // Deep space gradient background - responsive to screen size
         const { width, height } = this.scale;
-        const bg = this.add.graphics();
-        bg.fillGradientStyle(0x2C1B47, 0x4A148C, 0x6A1B9A, 0x4A148C, 1);
-        bg.fillRect(0, 0, width, height);
+        const fallback = this.add.rectangle(
+            width / 2,
+            height / 2,
+            width,
+            height,
+            0x061116,
+            1
+        );
 
-        // Add nebula clouds
-        for (let i = 0; i < 3; i++) {
-            const nebula = this.add.graphics();
-            nebula.fillStyle(0x9C27B0, 0.1 + Math.random() * 0.1);
-            nebula.fillCircle(
-                Phaser.Math.Between(0, width),
-                Phaser.Math.Between(0, height),
-                Phaser.Math.Between(100, 200)
+        if (this.textures?.exists('projectBeaconCrashSite')) {
+            const background = this.add.image(
+                width / 2,
+                height / 2,
+                'projectBeaconCrashSite'
             );
-            nebula.setBlendMode(Phaser.BlendModes.ADD);
-
-            // Slow drift animation
-            this.tweens.add({
-                targets: nebula,
-                x: nebula.x + Phaser.Math.Between(-50, 50),
-                y: nebula.y + Phaser.Math.Between(-30, 30),
-                duration: Phaser.Math.Between(8000, 12000),
-                ease: 'Sine.easeInOut',
-                yoyo: true,
-                repeat: -1
-            });
+            const coverScale = Math.max(
+                width / background.width,
+                height / background.height
+            );
+            background.setScale(coverScale);
+            fallback.setVisible(false);
+            this.projectBeaconBackground = background;
         }
 
-        // Multiple star layers for parallax depth
-        for (let layer = 0; layer < 3; layer++) {
-            const starCount = 30 - (layer * 8);
-            const starSize = 1 + layer;
-            const twinkleSpeed = 1500 + (layer * 500);
-
-            for (let i = 0; i < starCount; i++) {
-                const star = this.add.circle(
-                    Phaser.Math.Between(0, width),
-                    Phaser.Math.Between(0, height),
-                    starSize,
-                    0xFFFFFF,
-                    0.3 + (layer * 0.3)
-                );
-
-                // Twinkling animation
-                this.tweens.add({
-                    targets: star,
-                    alpha: 0.1 + Math.random() * 0.3,
-                    duration: twinkleSpeed,
-                    ease: 'Sine.easeInOut',
-                    yoyo: true,
-                    repeat: -1,
-                    delay: Math.random() * 1000
-                });
-            }
-        }
+        const contrastVeil = this.add.rectangle(
+            width / 2,
+            height / 2,
+            width,
+            height,
+            0x02080B,
+            0.2
+        );
+        this.projectBeaconBackgroundFallback = fallback;
+        this.projectBeaconContrastVeil = contrastVeil;
     }
 
     /**
@@ -3711,7 +3732,7 @@ class HatchingScene extends Phaser.Scene {
 
         // Glassmorphic panel behind title
         const titlePanel = this.add.graphics();
-        titlePanel.fillStyle(0xFFFFFF, 0.1);
+        titlePanel.fillStyle(0x061018, 0.76);
         titlePanel.fillRoundedRect(centerX - panelWidth/2, titleY - 30, panelWidth, panelHeight, 20);
         titlePanel.lineStyle(2, 0xFFD54F, 0.5);
         titlePanel.strokeRoundedRect(centerX - panelWidth/2, titleY - 30, panelWidth, panelHeight, 20);
@@ -3722,7 +3743,7 @@ class HatchingScene extends Phaser.Scene {
             color: '#FFD54F',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'bold',
-            stroke: '#7B1FA2',
+            stroke: '#071418',
             strokeThickness: 3
             // NO wordWrap - title must never break across lines
         }).setOrigin(0.5);
@@ -3750,10 +3771,10 @@ class HatchingScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Subtitle - "Where Space Meets Magic" on SEPARATE line below
+        // Project Beacon mission identifier on a separate line below.
         // Dynamic spacing based on title font size for proper visual hierarchy
         const subtitleY = titleY + (titleFontSize * 1.6);  // 1.6x title size = proper spacing
-        const subtitleText = this.add.text(centerX, subtitleY, 'Where Space Meets Magic', {
+        const subtitleText = this.add.text(centerX, subtitleY, firstSessionFraming.homeSubtitle, {
             fontSize: `${subtitleFontSize}px`,
             color: '#B0B0B0',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
@@ -3814,7 +3835,7 @@ class HatchingScene extends Phaser.Scene {
 
         // POWER WORDS - Action-oriented, benefit-focused (responsive font size)
         const fontSize = MobileHelpers.getFontSize(this.scale, 28);
-        const buttonText = this.add.text(0, 0, 'START YOUR ADVENTURE', {
+        const buttonText = this.add.text(0, 0, firstSessionFraming.homeCta, {
             fontSize: fontSize,
             color: '#FFFFFF',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
@@ -4042,16 +4063,19 @@ class HatchingScene extends Phaser.Scene {
         const cardY = height - 180;
         const spacing = Math.min(215, width / 4);
 
-        const cards = [
-            { icon: '🥚', title: 'HATCH', desc: 'Discover your\nunique companion', x: centerX - spacing, color: 0xFFD54F },
-            { icon: '✨', title: 'EVOLVE', desc: 'Unlock cosmic\npowers', x: centerX, color: 0xB39DDB },
-            { icon: '🌍', title: 'EXPLORE', desc: 'Navigate vast\nstar systems', x: centerX + spacing, color: 0x80CBC4 }
-        ];
+        const cardColors = [0xEF767A, 0x8FE3CF, 0xF2C14E];
+        const cardPositions = [centerX - spacing, centerX, centerX + spacing];
+        const cards = firstSessionFraming.homeCards.map((card, index) => ({
+            ...card,
+            desc: card.description,
+            x: cardPositions[index],
+            color: cardColors[index]
+        }));
 
         cards.forEach(card => {
             // Glassmorphic card with subtle gradient
             const cardBg = this.add.graphics();
-            cardBg.fillStyle(0xFFFFFF, 0.12);
+            cardBg.fillStyle(0x061018, 0.78);
             cardBg.fillRoundedRect(card.x - cardWidth/2, cardY, cardWidth, cardHeight, 12);
             cardBg.lineStyle(2, card.color, 0.5);
             cardBg.strokeRoundedRect(card.x - cardWidth/2, cardY, cardWidth, cardHeight, 12);
@@ -4107,11 +4131,12 @@ class HatchingScene extends Phaser.Scene {
      */
     createBottomHints() {
         const { width, height } = this.scale;
-        const hintText = this.add.text(width / 2, height - 50, 'Click BEGIN ADVENTURE to start your cosmic journey!', {
-            fontSize: '16px',
-            color: '#000000',
+        const hintText = this.add.text(width / 2, height - 50, firstSessionFraming.homePromise, {
+            fontSize: width < 600 ? '13px' : '16px',
+            color: '#D9D3E8',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
-            align: 'center'
+            align: 'center',
+            wordWrap: { width: Math.max(260, width - 24) }
         }).setOrigin(0.5);
 
         // Gentle fade animation
@@ -4194,21 +4219,28 @@ class HatchingScene extends Phaser.Scene {
             this.tapToHatchText = null;
         }
 
-        const isMobile = MobileHelpers.isMobile();
-        const text = isMobile ? '👆 TAP TO HATCH 👆' : '👆 CLICK TO HATCH 👆';
+        const { width, height } = this.scale;
+        const isMobile = MobileHelpers.isMobile() || width < 600;
+        const text = isMobile
+            ? firstSessionFraming.tapPromptMobile
+            : firstSessionFraming.tapPromptDesktop;
 
         // MOBILE-RESPONSIVE positioning - position relative to egg
-        const { width, height } = this.scale;
         const textX = width / 2;
-        const textY = (height * 0.45) - 120; // Position above the egg
-        const fontSize = Math.max(20, Math.min(28, width * 0.065));
+        const availableWidth = Math.max(260, width - 32);
+        const fittedFontSize = availableWidth / (text.length * 0.62);
+        const fontSize = Math.max(18, Math.min(28, fittedFontSize));
+        const instructionBottom = this.instructionText
+            ? this.instructionText.y + (this.instructionText.height / 2)
+            : height * 0.22;
+        const textY = instructionBottom + (fontSize / 2) + 14;
 
         this.tapToHatchText = this.add.text(textX, textY, text, {
             fontSize: `${fontSize}px`,
             color: '#FFD54F',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: 'bold',
-            stroke: '#7B1FA2',
+            stroke: '#071418',
             strokeThickness: 4,
             align: 'center',
             shadow: {
@@ -4235,7 +4267,7 @@ class HatchingScene extends Phaser.Scene {
         // Gentle floating animation synced with egg
         this.tweens.add({
             targets: this.tapToHatchText,
-            y: 170,
+            y: textY - 6,
             duration: 2000,
             ease: 'Sine.easeInOut',
             yoyo: true,

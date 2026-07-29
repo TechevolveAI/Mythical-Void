@@ -1,6 +1,6 @@
-# Mythical Creature Game
+# Mythical Void
 
-A delightful 2D mythical creature game built with Phaser.js where you hatch and guide your own magical companion through an enchanted world.
+A creature-raising action-adventure and its public storefront, built as one Vite deployment. The website is served at `/` and the Phaser game starts at `/play/`.
 
 ## 📁 Documentation Structure
 
@@ -30,8 +30,8 @@ A delightful 2D mythical creature game built with Phaser.js where you hatch and 
 1. **Click the floating egg** to start the hatching process
 2. Watch as the egg **changes color** from cream → pink → red during hatching
 3. The **hatching percentage** shows your progress (0-100%)
-4. After hatching completes, your **purple creature** will appear with sparkle effects
-5. **Press SPACE** to begin your adventure
+4. After hatching completes, `SoulRevealScene` handles the reveal and naming step
+5. **Press SPACE** to continue into `GameScene`, where the main sanctuary loop begins
 
 ### Game Scene
 1. **Move your creature** using:
@@ -44,6 +44,7 @@ A delightful 2D mythical creature game built with Phaser.js where you hatch and 
    - **Trees and rocks**: Solid obstacles with collision detection
    - **Flowers**: Walk near them and **press SPACE to smell** them
    - Sparkle effects appear during interactions
+4. `GameScene` now acts as the main sanctuary/orchestration scene for inventory, shop, hub, and overlay routing, with HUD-specific work moving into a dedicated controller
 
 ## 🚀 Getting Started
 
@@ -62,13 +63,18 @@ npm run dev
 npm run build
 ```
 
-The Vite dev server launches on port **5173** by default. After running `npm run dev`, open the URL printed in the terminal (e.g. `http://localhost:5173/`; Vite will bump to the next free port if 5173 is busy).
+The Vite dev server is configured for port **8080**. After running `npm run dev`, open the printed root URL for the storefront or add `/play/` to launch the game. Vite will use the next free port when 8080 is busy.
 
 Looking for the manual test harness instead? Run `npm test` and open the URL it prints (starts at `http://localhost:8080/test-framework.html` with automatic fallback to nearby ports).
 
 ### Configuration
 
 Environment values exposed to the browser must use the `VITE_` prefix. Create an `.env.local` (ignored by git) and add entries such as `VITE_ENABLE_API_FEATURES=true` to toggle optional integrations.
+
+Optional cloud saves use the dedicated Supabase project configured by
+`VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Cloud saving remains
+disabled until the player explicitly opts in; local browser saves continue to
+work without Supabase. See [docs/cloud-saves.md](docs/cloud-saves.md).
 
 ## 🎨 Game Features
 
@@ -108,17 +114,20 @@ Environment values exposed to the browser must use the `VITE_` prefix. Create an
 ## 📁 Project Structure
 
 ```
-├── index.html          # Main HTML file
+├── index.html          # Shared website and game document shell
 ├── package.json        # NPM configuration
 ├── src/
-│   ├── main.js         # Game initialization and config
+│   ├── main.js         # Route-aware website/game entry point
+│   ├── game.js         # Phaser initialization and config
+│   ├── site/           # Public storefront UI and styles
 │   ├── config/         # Configuration management
 │   │   ├── env-loader.js     # Environment variable loader
 │   │   └── api-config.js     # API configuration (secure)
 │   ├── scenes/         # Game scenes
-│   │   ├── HatchingScene.js  # Egg hatching gameplay
-│   │   ├── NamingScene.js    # Creature naming
-│   │   └── GameScene.js      # Main exploration gameplay
+│   │   ├── HatchingScene.js   # Egg hatching gameplay
+│   │   ├── SoulRevealScene.js # Reveal + naming flow
+│   │   ├── NamingScene.js     # Legacy compatibility flow
+│   │   └── GameScene.js       # Main sanctuary/orchestration gameplay; HUD split into a controller
 │   └── systems/        # Core game systems
 │       ├── GameState.js      # Game progress management
 │       ├── GraphicsEngine.js # Programmatic graphics

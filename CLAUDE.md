@@ -45,13 +45,14 @@ The game uses a **centralized preload system** via `src/global-init.js`:
 - All core systems and scenes are loaded via `Promise.all()` before game initialization
 - The `preloadModulesReady` promise ensures all modules are available before Phaser starts
 - Phaser is exported globally via `window.Phaser` for system compatibility
+- `SceneLoader` handles lazy registration/start/launch transitions, while `GameSceneSceneRouter` and the HUD controller split launch and HUD orchestration out of `GameScene`
 
 **Critical**: Systems are initialized in a specific order in `src/main.js`:
 1. ErrorHandler → MemoryManager → UITheme
 2. KidMode → HatchCinematics → FXLibrary → ParallaxBiome
 3. RaritySystem → RerollSystem → CreatureGenetics
 4. GameState → GraphicsEngine → CreatureAI
-5. Finally: All scenes (HatchingScene → PersonalityScene → NamingScene → GameScene)
+5. Finally: All scenes (HatchingScene → SoulRevealScene → GameScene, with PersonalityScene/NamingScene still loaded for compatibility)
 
 ### Core Systems Architecture
 
@@ -181,7 +182,7 @@ if (window.FXLibrary) {
 **Critical game flow logic** (protected by validation script):
 
 ```
-HatchingScene → PersonalityScene → NamingScene → GameScene
+HatchingScene → SoulRevealScene → GameScene
 ```
 
 **Scene transition conditions** (DO NOT MODIFY without team review):
@@ -192,7 +193,7 @@ if (!gameStarted) {
 } else if (gameStarted && !creatureHatched) {
     // Show hatching sequence
 } else if (gameStarted && creatureHatched && !creatureNamed) {
-    // Transition to PersonalityScene then NamingScene
+    // Transition to SoulRevealScene
 } else {
     // Transition to GameScene
 }
@@ -212,7 +213,7 @@ this.time.delayedCall(100, () => {
 
 When hatching an egg from inventory (purchased from shop), the flow differs from initial onboarding:
 
-**Flow: Inventory → Farewell → HatchingScene → PersonalityScene → NamingScene → GameScene**
+**Flow: Inventory → Farewell → HatchingScene → SoulRevealScene → GameScene**
 
 **Key differences from initial onboarding:**
 1. **State must be completely reset** - The existing creature data must be cleared before hatching
@@ -236,11 +237,11 @@ window.GameState.set('creature.experience', 0);
 window.GameState.save();
 ```
 
-**Scene isolation pattern** (used by HatchingScene, PersonalityScene, NamingScene):
+**Scene isolation pattern** (used by HatchingScene, SoulRevealScene, and the legacy naming flow):
 ```javascript
 create() {
     // Stop all other scenes to ensure clean display
-    const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene', 'HatchingScene', 'PersonalityScene'];
+    const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene', 'HatchingScene', 'SoulRevealScene'];
     scenesToStop.forEach(sceneKey => {
         try {
             this.scene.stop(sceneKey);

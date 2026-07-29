@@ -12,6 +12,7 @@ class AgeGateModal {
     constructor(scene) {
         this.scene = scene;
         this.isVisible = false;
+        this.isCompleting = false;
         this.elements = [];
         this.onComplete = null;
     }
@@ -43,6 +44,7 @@ class AgeGateModal {
 
         this.cleanup();
         this.isVisible = true;
+        this.isCompleting = false;
         this.onComplete = onComplete;
 
         const { width, height } = this.scene.cameras.main;
@@ -157,7 +159,7 @@ class AgeGateModal {
             bg.lineStyle(2, 0x7B68EE, 0.8);
             bg.strokeRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 12);
         });
-        btn.on('pointerdown', onClick);
+        btn.on('pointerup', onClick);
 
         elements.push(btn);
         return elements;
@@ -259,7 +261,7 @@ class AgeGateModal {
 
         continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: '#66BB6A' }));
         continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: '#4CAF50' }));
-        continueBtn.on('pointerdown', () => {
+        continueBtn.on('pointerup', () => {
             if (window.AudioManager) {
                 window.AudioManager.playButtonClick();
             }
@@ -273,10 +275,21 @@ class AgeGateModal {
      * Complete and close the age gate
      */
     complete() {
+        if (this.isCompleting) {
+            return;
+        }
+        this.isCompleting = true;
+
+        const onComplete = this.onComplete;
+        this.onComplete = null;
         this.cleanup();
 
-        if (this.onComplete) {
-            this.onComplete();
+        if (onComplete) {
+            // Wait until the confirming pointer has fully cleared before creating
+            // the Start control beneath the modal.
+            this.scene.time.delayedCall(50, () => {
+                onComplete();
+            });
         }
     }
 

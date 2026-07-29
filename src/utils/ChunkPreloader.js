@@ -145,6 +145,11 @@ class ChunkPreloaderClass {
                     'ReefLevel',
                     2
                 );
+                this.queuePreload(
+                    () => import('../scenes/levels/VoidPeaksLevel.js'),
+                    'VoidPeaksLevel',
+                    3
+                );
                 break;
 
             default:
@@ -166,6 +171,7 @@ class ChunkPreloaderClass {
             { fn: () => import('../scenes/AchievementMenuScene.js'), name: 'AchievementMenuScene' },
             { fn: () => import('../scenes/CreatureProfileScene.js'), name: 'CreatureProfileScene' },
             { fn: () => import('../scenes/HubWorldScene.js'), name: 'HubWorldScene' },
+            { fn: () => import('../scenes/levels/VoidPeaksLevel.js'), name: 'VoidPeaksLevel' },
             { fn: () => import('../scenes/FusionPodScene.js'), name: 'FusionPodScene' },
             { fn: () => import('../scenes/BreedingHatchScene.js'), name: 'BreedingHatchScene' },
             { fn: () => import('../scenes/VoidMiniGameScene.js'), name: 'VoidMiniGameScene' }

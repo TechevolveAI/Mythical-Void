@@ -11,6 +11,7 @@
  * - Naming prompt for the new creature
  */
 
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
 class BreedingHatchScene extends Phaser.Scene {
@@ -58,13 +59,7 @@ class BreedingHatchScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         // Stop other scenes
-        ['GameScene', 'FusionPodScene'].forEach(sceneKey => {
-            try {
-                this.scene.stop(sceneKey);
-            } catch (e) {
-                // Scene might not exist
-            }
-        });
+        SceneTransitionHelper.stopScenes(this, ['GameScene', 'FusionPodScene']);
 
         // Initialize GraphicsEngine for proper creature rendering
         if (window.GraphicsEngine) {
@@ -1663,6 +1658,12 @@ class BreedingHatchScene extends Phaser.Scene {
             window.GameState?.set('creature.offspringBonus', creatureData.offspringBonus);
             window.GameState?.set('creature.hatched', true);
             window.GameState?.set('creature.named', true);
+
+            window.AchievementSystem?.recordEvent?.('creature_hatched', {
+                hatchId: creatureData.id,
+                rarity: creatureData.rarity,
+                species: creatureData.genes?.species || 'unknown'
+            });
 
             // Save the state
             window.GameState?.save?.();
