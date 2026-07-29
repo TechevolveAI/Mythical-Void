@@ -29,7 +29,7 @@ const faqs = [
 
 const app = document.querySelector('#app');
 const pagePath = window.location.pathname.replace(/\/+$/, '') || '/';
-const siteOrigin = 'https://www.mythicalvoid.com';
+const siteOrigin = 'https://mythicalvoid.com';
 
 function updatePageMetadata({ title, description, path = '/' }) {
     const absoluteUrl = `${siteOrigin}${path}`;

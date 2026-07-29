@@ -3,8 +3,8 @@
 
 [build]
   # Build command - Vite production build
-  # Delete lockfile too so npm resolves Linux-specific optional deps fresh
-  command = "rm -rf node_modules package-lock.json && npm install && npm run build"
+  # Netlify installs the locked dependencies before this command runs.
+  command = "npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"

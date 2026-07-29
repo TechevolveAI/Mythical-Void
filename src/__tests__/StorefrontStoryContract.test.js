@@ -74,10 +74,10 @@ describe('storefront Project Beacon story contract', () => {
 
     test('publishes absolute social media assets and route-aware canonical metadata', () => {
         expect(metadata).toContain(
-            'content="https://www.mythicalvoid.com/marketing/nova.webp"'
+            'content="https://mythicalvoid.com/marketing/nova.webp"'
         );
         expect(metadata).toContain(
-            '<link rel="canonical" href="https://www.mythicalvoid.com/">'
+            '<link rel="canonical" href="https://mythicalvoid.com/">'
         );
         expect(storefront).toContain('function updatePageMetadata');
         expect(storefront).toContain('link[rel="canonical"]');
