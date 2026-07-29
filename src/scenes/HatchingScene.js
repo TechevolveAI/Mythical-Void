@@ -3,6 +3,7 @@
  * Features: floating egg animation, progressive hatching with color changes, sparkle effects
  */
 
+import Phaser from 'phaser';
 import hatchCinematicsConfig from '../config/hatch-cinematics.json';
 import evolutionConfig from '../config/evolution.json';
 import rarityConfig from '../config/rarity-config.json';
@@ -10,7 +11,6 @@ import legalConfig from '../config/legal.json';
 import projectBeacon from '../config/project-beacon.json';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 import MobileHelpers from '../utils/mobile-helpers.js';
-const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 const firstSessionFraming = projectBeacon.firstSessionFraming;
 
 // Make evolution config available globally for GraphicsEngine and other systems

@@ -3,8 +3,8 @@
  * Features: creature naming, genetics display, personality traits, transition to game world
  */
 
+import Phaser from 'phaser';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
-const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
 function requireGlobal(name) {
     if (typeof window === 'undefined' || !window[name]) {

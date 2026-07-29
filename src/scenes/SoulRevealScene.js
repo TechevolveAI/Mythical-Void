@@ -10,6 +10,7 @@
  * - Data saved to GameState for profile page access
  */
 
+import Phaser from 'phaser';
 import { devLog } from '../utils/devLogger.js';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 

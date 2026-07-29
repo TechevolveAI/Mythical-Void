@@ -3,8 +3,8 @@
  * Features: personality display, genetics showcase, creature animation
  */
 
+import Phaser from 'phaser';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
-const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
 function requireGlobal(name) {
     if (typeof window === 'undefined' || !window[name]) {
