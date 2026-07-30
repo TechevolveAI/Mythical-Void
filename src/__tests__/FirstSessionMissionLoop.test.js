@@ -625,6 +625,16 @@ describe('first-session Project Beacon mission loop', () => {
         trackedElements.forEach(element => {
             expect(element.destroy).toHaveBeenCalledTimes(1);
         });
+
+        careSystem.getAllCareActionsInfo.mockReturnValue({
+            feed: null,
+            play: { icon: 'P', name: 'Play', currentCount: 0, limit: 2, canPerform: true },
+            rest: null
+        });
+        const partialManager = new CarePanelManager(scene, { careSystem });
+        expect(() => partialManager.init()).not.toThrow();
+        expect(Object.keys(partialManager.careButtons)).toEqual(['play']);
+        partialManager.destroy();
     });
 
     test('keeps the mission briefing preview local and non-mutating', () => {

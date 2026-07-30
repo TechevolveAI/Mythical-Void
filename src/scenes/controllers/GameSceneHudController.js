@@ -72,8 +72,6 @@ export default class GameSceneHudController {
         }
         scene.economyHud.init();
 
-        scene.carePanelManager?.init();
-
         this.createDailyBonusButton();
         this.createCombatButton();
         this.createCosmicMiniMap();

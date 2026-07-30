@@ -27,6 +27,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.portraitError = null;
         this.portraitDomElement = null;
         this.portraitHandoffActive = false;
+        this.previousDomContainerStyles = null;
     }
 
     init(data) {
@@ -1061,6 +1062,12 @@ export default class SoulRevealScene extends Phaser.Scene {
             this.htmlInput
         ).setOrigin(0.5).setDepth(105);
         if (this.game.domContainer) {
+            if (!this.previousDomContainerStyles) {
+                this.previousDomContainerStyles = {
+                    zIndex: this.game.domContainer.style.zIndex,
+                    pointerEvents: this.game.domContainer.style.pointerEvents
+                };
+            }
             this.game.domContainer.style.zIndex = '110';
             this.game.domContainer.style.pointerEvents = 'none';
         }
@@ -1291,6 +1298,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.portraitHandoffActive = false;
         this.portraitDomElement?.destroy?.();
         this.portraitDomElement = null;
+        this.restoreDomContainerStyles();
         this.cameras.main.fadeOut(800, 0, 0, 0);
 
         this.time.delayedCall(800, () => {
@@ -1479,6 +1487,16 @@ export default class SoulRevealScene extends Phaser.Scene {
         image.src = record.imageUrl;
     }
 
+    restoreDomContainerStyles() {
+        if (!this.game?.domContainer || !this.previousDomContainerStyles) {
+            return;
+        }
+
+        this.game.domContainer.style.zIndex = this.previousDomContainerStyles.zIndex;
+        this.game.domContainer.style.pointerEvents = this.previousDomContainerStyles.pointerEvents;
+        this.previousDomContainerStyles = null;
+    }
+
     /**
      * Save soul data to GameState for profile page access
      */
@@ -1540,6 +1558,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.portraitDomElement?.destroy?.();
         this.portraitDomElement = null;
         this.htmlInput = null;
+        this.restoreDomContainerStyles();
 
         // Clear typewriter timer
         if (this.typewriterTimer) {

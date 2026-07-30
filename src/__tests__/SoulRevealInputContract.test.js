@@ -17,6 +17,8 @@ describe('Soul Reveal naming input', () => {
         expect(source).toContain("pointerEvents: 'auto'");
         expect(source).not.toContain("this.htmlInput.style.opacity = '0.01'");
         expect(source).not.toContain('document.body.appendChild(this.htmlInput)');
+        expect(source).toContain('this.restoreDomContainerStyles();');
+        expect(source).toContain('this.previousDomContainerStyles');
     });
 
     test('keeps input and submission targets at mobile-safe sizes', () => {

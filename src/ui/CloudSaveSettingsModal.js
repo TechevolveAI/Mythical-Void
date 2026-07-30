@@ -13,9 +13,11 @@ class CloudSaveSettingsModal {
         this.confirmingDelete = false;
         this.notice = '';
         this.uiCamera = null;
+        this.lifecycleBound = false;
     }
 
     show() {
+        this.bindSceneLifecycle();
         this.isVisible = true;
         this.consentChecked = false;
         this.confirmingDelete = false;
@@ -474,6 +476,20 @@ class CloudSaveSettingsModal {
         this.uiCamera = null;
     }
 
+    bindSceneLifecycle() {
+        if (this.lifecycleBound || !this.scene?.events) return;
+        this.scene.events.once('shutdown', this.destroy, this);
+        this.scene.events.once('destroy', this.destroy, this);
+        this.lifecycleBound = true;
+    }
+
+    unbindSceneLifecycle() {
+        if (!this.lifecycleBound || !this.scene?.events) return;
+        this.scene.events.off('shutdown', this.destroy, this);
+        this.scene.events.off('destroy', this.destroy, this);
+        this.lifecycleBound = false;
+    }
+
     hide() {
         this.isVisible = false;
         this.clearElements();
@@ -486,6 +502,7 @@ class CloudSaveSettingsModal {
     }
 
     destroy() {
+        this.unbindSceneLifecycle();
         this.hide();
     }
 }

@@ -273,6 +273,7 @@ class GameScene extends Phaser.Scene {
     create() {
         console.log('[GameScene] ===== CREATE() STARTING =====');
         try {
+            this.removeStaleAuxiliaryCameras();
             prefetchKatanaArtifactArtwork();
             console.log('[GameScene] Initializing lifecycle tracking...');
             this.initializeLifecycleTracking();
@@ -804,6 +805,16 @@ class GameScene extends Phaser.Scene {
             // Still throw the error so it gets properly logged
             throw error;
         }
+    }
+
+    removeStaleAuxiliaryCameras() {
+        const mainCamera = this.cameras?.main;
+        const cameras = [...(this.cameras?.cameras || [])];
+        cameras.forEach(camera => {
+            if (camera !== mainCamera) {
+                this.cameras.remove(camera);
+            }
+        });
     }
 
     createFieldKitPreviewBackdrop() {

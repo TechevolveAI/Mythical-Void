@@ -86,6 +86,7 @@ class CarePanelManager {
         const spacing = 60;
         let index = 0;
         Object.entries(actions).forEach(([actionType, info]) => {
+            if (!info) return;
             const y = startY + index * spacing;
             const button = this.createCareButton(200, y, 240, 50, info.icon || '✨', info.name || actionType, actionType);
             this.careButtons[actionType] = button;

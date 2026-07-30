@@ -50,6 +50,8 @@ describe('Cloud Save privacy contract', () => {
         expect(modalSource).toContain('Backed up to cloud');
         expect(modalSource).toContain('this.scene.cameras.add(0, 0, width, height)');
         expect(modalSource).toContain('this.scene.cameras.main.ignore(this.elements)');
+        expect(modalSource).toContain("this.scene.events.once('shutdown', this.destroy, this)");
+        expect(modalSource).toContain('this.scene.cameras.remove(this.uiCamera)');
     });
 
     test('keeps the destructive naming reset behind an explicit local QA route', () => {
