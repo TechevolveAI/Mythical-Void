@@ -566,14 +566,18 @@ export default class QuestTracker {
         const { width, height } = this.scene.scale;
         const isMobile = forceMobile || width < 600;
         const panelWidth = Math.min(isMobile ? 330 : 440, width - 24);
-        const panelHeight = isMobile ? 150 : 142;
+        const guidance = isMobile ?
+            (quest.guidanceMobile || quest.guidanceDesktop) :
+            (quest.guidanceDesktop || quest.guidanceMobile);
+        const authoredLength = `${quest.briefing || quest.description || ''} ${guidance || ''}`.length;
+        const hasLongCopy = authoredLength > 180;
+        const panelHeight = isMobile
+            ? (hasLongCopy ? 190 : 158)
+            : (hasLongCopy ? 164 : 142);
         const panelX = (width - panelWidth) / 2;
         const mobilePanelLimit = Math.max(180, height - panelHeight - 150);
         const panelY = isMobile ? Math.min(215, mobilePanelLimit) : 76;
         const depth = 14500;
-        const guidance = isMobile ?
-            (quest.guidanceMobile || quest.guidanceDesktop) :
-            (quest.guidanceDesktop || quest.guidanceMobile);
 
         const panel = this.scene.add.graphics();
         panel.fillStyle(0x081720, 0.96);
@@ -588,6 +592,7 @@ export default class QuestTracker {
             'PROJECT BEACON // NEW FIELD MISSION',
             {
                 fontSize: isMobile ? '10px' : '11px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#66C7D4',
                 fontStyle: 'bold'
             }
@@ -599,6 +604,7 @@ export default class QuestTracker {
             `${quest.icon || '📡'} ${quest.name}`,
             {
                 fontSize: isMobile ? '16px' : '18px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#FFFFFF',
                 fontStyle: 'bold',
                 wordWrap: { width: panelWidth - 52 }
@@ -611,6 +617,7 @@ export default class QuestTracker {
             quest.briefing || quest.description,
             {
                 fontSize: isMobile ? '12px' : '13px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#D6EEF2',
                 lineSpacing: 2,
                 wordWrap: { width: panelWidth - 32 }
@@ -623,6 +630,7 @@ export default class QuestTracker {
             guidance || quest.description,
             {
                 fontSize: isMobile ? '11px' : '12px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#F2C14E',
                 fontStyle: 'bold',
                 wordWrap: { width: panelWidth - 32 }

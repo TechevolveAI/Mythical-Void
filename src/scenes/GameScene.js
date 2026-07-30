@@ -85,6 +85,7 @@ class GameScene extends Phaser.Scene {
         this.livingSignals = [];
         this.activeLivingSignalId = null;
         this.livingSignalDwellMs = 0;
+        this.livingSignalApproachHintShown = false;
         this.livingSignalMomentElements = [];
         this.livingSignalMomentTimer = null;
         this.sanctuaryZones = null;
@@ -1040,14 +1041,19 @@ class GameScene extends Phaser.Scene {
             form.fillCircle(0, -17, 6);
         }
 
-        const label = this.add.text(0, 51, observed ? 'SIGNAL HEARD' : 'LIVING SIGNAL', {
-            fontSize: '10px',
-            fontFamily: 'Arial, sans-serif',
-            color: observed ? '#829B96' : '#D8FFF0',
-            fontStyle: 'bold',
-            backgroundColor: 'rgba(5, 18, 17, 0.78)',
-            padding: { x: 5, y: 3 }
-        }).setOrigin(0.5);
+        const label = this.add.text(
+            0,
+            51,
+            observed ? 'SIGNAL HEARD' : 'LIVING SIGNAL // APPROACH',
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: observed ? '#829B96' : '#D8FFF0',
+                fontStyle: 'bold',
+                backgroundColor: 'rgba(5, 18, 17, 0.78)',
+                padding: { x: 5, y: 3 }
+            }
+        ).setOrigin(0.5);
         container.add([aura, form, label]);
 
         const pulseTween = this.tweens.add({
@@ -6724,13 +6730,6 @@ class GameScene extends Phaser.Scene {
     }
 
     checkLivingSignalProximity(delta = 16.67) {
-        const activeStoryQuest = window.QuestManager?.getQuestsByType?.('story')?.[0];
-        if (activeStoryQuest?.id !== 'beacon_living_signals') {
-            this.activeLivingSignalId = null;
-            this.livingSignalDwellMs = 0;
-            return;
-        }
-
         const availableSignals = this.livingSignals.filter(
             signal => signal?.active !== false && !signal.observed
         );
@@ -6747,7 +6746,20 @@ class GameScene extends Phaser.Scene {
             return closest;
         }, null);
 
-        if (!nearest || nearest.distance > 82) {
+        if (!nearest || nearest.distance > 150) {
+            this.activeLivingSignalId = null;
+            this.livingSignalDwellMs = 0;
+            return;
+        }
+
+        if (!this.livingSignalApproachHintShown) {
+            this.livingSignalApproachHintShown = true;
+            this.showInteractionHint(
+                'Living signal: approach with your companion and stay close.'
+            );
+        }
+
+        if (nearest.distance > 82) {
             this.activeLivingSignalId = null;
             this.livingSignalDwellMs = 0;
             return;
@@ -6756,7 +6768,7 @@ class GameScene extends Phaser.Scene {
         if (this.activeLivingSignalId !== nearest.signal.signalId) {
             this.activeLivingSignalId = nearest.signal.signalId;
             this.livingSignalDwellMs = 0;
-            this.showInteractionHint('Stay close. Your companion is listening...');
+            this.showInteractionHint('Stay close. Your companion is listening.');
         }
 
         this.livingSignalDwellMs += Math.min(Number(delta) || 16.67, 100);

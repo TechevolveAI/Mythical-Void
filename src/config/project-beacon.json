@@ -118,11 +118,11 @@
     {
       "id": "beacon_living_signals",
       "name": "Survey Living Signals",
-      "description": "Discover three living anomalies near the crash site.",
-      "briefing": "The scanner calls them anomalies. Your companion approaches them like familiar voices.",
+      "description": "Approach all three pulsating signals with your companion and stay nearby until each responds.",
+      "briefing": "The scanner calls them anomalies. Your companion approaches them like familiar voices. Walk to each pulse and remain close while your companion listens.",
       "fieldNote": "Three readings. No samples until I understand what I am touching.",
-      "guidanceDesktop": "Follow the LIVING SIGNAL marker. It will retarget after each discovery.",
-      "guidanceMobile": "Follow the LIVING SIGNAL marker. It will retarget after each discovery.",
+      "guidanceDesktop": "Follow the LIVING SIGNAL marker. Approach the pulse and stay close until it answers.",
+      "guidanceMobile": "Follow the LIVING SIGNAL marker. Move beside the pulse and stay close until it answers.",
       "icon": "🔍",
       "type": "story",
       "objective": {

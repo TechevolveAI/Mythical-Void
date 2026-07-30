@@ -116,6 +116,7 @@ class HatchingScene extends Phaser.Scene {
                     previewParams.has('testMissionBriefing') ||
                     previewParams.has('testControls') ||
                     previewParams.has('testStory') ||
+                    previewParams.has('testSoulReveal') ||
                     previewParams.has('testBeaconLog') ||
                     previewParams.has('testSettings') ||
                     previewParams.has('testRecovery') ||

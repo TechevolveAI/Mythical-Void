@@ -1005,6 +1005,15 @@ async function initializeGame() {
             });
         }
 
+        // Local, non-mutating preview of the first-contact naming screen.
+        if (isLocalPreview && urlParams.has('testSoulReveal')) {
+            game.events.once('ready', () => {
+                setTimeout(() => {
+                    game.scene.start('SoulRevealScene');
+                }, 100);
+            });
+        }
+
         // Local, non-mutating Project Beacon mission-log previews.
         const testBeaconLog = urlParams.get('testBeaconLog');
         if (isLocalPreview && ['mission', 'archive'].includes(testBeaconLog)) {

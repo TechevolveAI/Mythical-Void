@@ -22,6 +22,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.inputActive = false;
         this.canProceed = false;
         this.htmlInput = null;
+        this.nameDomElement = null;
     }
 
     init(data) {
@@ -54,6 +55,7 @@ export default class SoulRevealScene extends Phaser.Scene {
 
         // Setup keyboard input for desktop
         this.setupKeyboardInput();
+        this.events.once('shutdown', this.shutdown, this);
 
         devLog('[SoulRevealScene] Created');
     }
@@ -236,6 +238,42 @@ export default class SoulRevealScene extends Phaser.Scene {
         return abilities[affinity] || abilities.star;
     }
 
+    getRevealLayout(width = this.scale.width, height = this.scale.height) {
+        const compactHeight = height < 660;
+        const panelHeight = compactHeight ? 264 : 276;
+        const formTail = 156;
+        const preferredPanelY = height * (width < 600 ? 0.38 : 0.32);
+        const panelY = Math.max(
+            compactHeight ? 126 : 150,
+            Math.min(preferredPanelY, height - panelHeight - formTail)
+        );
+        const panelWidth = Math.min(width - 32, 380);
+        const panelBottom = panelY + panelHeight;
+        const inputHeight = 46;
+        const inputTop = panelBottom + 42;
+        const buttonTop = panelBottom + 102;
+
+        return {
+            compactHeight,
+            panelX: (width - panelWidth) / 2,
+            panelY,
+            panelWidth,
+            panelHeight,
+            panelBottom,
+            titleY: Math.max(30, panelY - (compactHeight ? 142 : 156)),
+            creatureY: Math.max(76, panelY - (compactHeight ? 54 : 72)),
+            creatureMaxSize: Math.min(
+                width * 0.26,
+                compactHeight ? 72 : 104
+            ),
+            inputTop,
+            inputHeight,
+            inputWidth: Math.min(panelWidth - 24, 320),
+            buttonTop,
+            buttonHeight: 48
+        };
+    }
+
     /**
      * Create magical background
      */
@@ -333,7 +371,8 @@ export default class SoulRevealScene extends Phaser.Scene {
      * Show title with fade animation
      */
     showTitle(width, height) {
-        const title = this.add.text(width / 2, height * 0.06, 'FIRST CONTACT // INITIAL READINGS', {
+        const layout = this.getRevealLayout(width, height);
+        const title = this.add.text(width / 2, layout.titleY, 'FIRST CONTACT // INITIAL READINGS', {
             fontSize: Math.min(20, width * 0.047) + 'px',
             fontFamily: 'Arial, sans-serif',
             color: '#DCE8ED',
@@ -368,8 +407,9 @@ export default class SoulRevealScene extends Phaser.Scene {
         }
 
         // Calculate creature position and size
-        const creatureY = height * 0.22;
-        const maxSize = Math.min(width * 0.35, height * 0.2);
+        const layout = this.getRevealLayout(width, height);
+        const creatureY = layout.creatureY;
+        const maxSize = layout.creatureMaxSize;
 
         this.creature = this.add.sprite(width / 2, creatureY, textureName);
         const scale = maxSize / Math.max(this.creature.width, this.creature.height);
@@ -470,12 +510,15 @@ export default class SoulRevealScene extends Phaser.Scene {
         const config = rarityColors[rarity] || rarityColors.common;
         const context = this.rarityContext;
 
-        const panelY = height * 0.38;
-        const panelWidth = Math.min(width - 30, 320);
-        const panelX = (width - panelWidth) / 2;
+        const layout = this.getRevealLayout(width, height);
+        const {
+            panelX,
+            panelY,
+            panelWidth,
+            panelHeight
+        } = layout;
 
         // Info panel background
-        const panelHeight = Math.min(300, height * 0.34);
         this.infoPanel = this.add.graphics();
         this.infoPanel.fillStyle(0x1A1A3E, 0.95);
         this.infoPanel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
@@ -501,7 +544,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         // Rarity odds (meaningful context!)
         const oddsText = this.add.text(
             panelX + panelWidth - 15,
-            panelY + 14,
+            panelY + 34,
             `VARIATION ${context.statBoost > 0 ? `+${context.statBoost}%` : 'BASELINE'}`,
             {
                 fontSize: '10px',
@@ -518,13 +561,19 @@ export default class SoulRevealScene extends Phaser.Scene {
             context.bonus,
             {
                 fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#7FEEAF'
             }
         ).setDepth(100).setAlpha(0);
         this.elements.push(bonusText);
 
         // Store panel bounds for later elements
-        this.panelBounds = { x: panelX, y: panelY, width: panelWidth };
+        this.panelBounds = {
+            x: panelX,
+            y: panelY,
+            width: panelWidth,
+            height: panelHeight
+        };
 
         // Fade in
         this.tweens.add({
@@ -607,7 +656,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         if (!this.panelBounds) return;
 
         const { x: panelX, y: panelY, width: panelWidth } = this.panelBounds;
-        const personalityY = panelY + 55;
+        const personalityY = panelY + 60;
 
         const personality = this.creatureData.personalityCore;
         const preview = this.personalityPreview;
@@ -629,10 +678,11 @@ export default class SoulRevealScene extends Phaser.Scene {
         // Trait description
         const traitText = this.add.text(
             panelX + 15,
-            personalityY + 18,
+            personalityY + 20,
             preview.trait,
             {
                 fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#9B8FBB'
             }
         ).setDepth(100).setAlpha(0);
@@ -641,7 +691,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         // Sample dialogue bubble
         const dialogueText = this.add.text(
             panelX + 15,
-            personalityY + 36,
+            personalityY + 42,
             `OBSERVATION // ${preview.observation}`,
             {
                 fontSize: '12px',
@@ -682,7 +732,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         if (!this.panelBounds) return;
 
         const { x: panelX, y: panelY, width: panelWidth } = this.panelBounds;
-        const affinityY = panelY + 105;
+        const affinityY = panelY + 142;
 
         // Get affinity info
         const affinity = this.creatureData.cosmicAffinity;
@@ -697,6 +747,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             `${emoji} ${name}`,
             {
                 fontSize: '13px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#9B7FEE',
                 fontStyle: 'bold'
             }
@@ -711,6 +762,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             `SIGNAL ${powerPercent}%`,
             {
                 fontSize: '11px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#7FEEAF'
             }
         ).setOrigin(1, 0).setDepth(100).setAlpha(0);
@@ -751,7 +803,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         if (!this.panelBounds || !this.innateAbility) return;
 
         const { x: panelX, y: panelY, width: panelWidth } = this.panelBounds;
-        const abilityY = panelY + 145;
+        const abilityY = panelY + 181;
 
         // Ability section header
         const headerText = this.add.text(
@@ -760,6 +812,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             'INNATE ABILITY',
             {
                 fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#7B68EE',
                 letterSpacing: 1
             }
@@ -770,7 +823,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         const cardX = panelX + 10;
         const cardY = abilityY + 16;
         const cardWidth = panelWidth - 20;
-        const cardHeight = 65;
+        const cardHeight = 64;
 
         const abilityCard = this.add.graphics();
         abilityCard.fillStyle(0x2D1B4E, 0.8);
@@ -798,6 +851,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             this.innateAbility.name,
             {
                 fontSize: '13px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#FFFFFF',
                 fontStyle: 'bold'
             }
@@ -811,6 +865,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             this.innateAbility.displayRange || this.innateAbility.range,
             {
                 fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#7FEEAF'
             }
         ).setOrigin(1, 0).setDepth(100).setAlpha(0);
@@ -823,6 +878,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             this.innateAbility.benefit,
             {
                 fontSize: '11px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#E8D5FF',
                 wordWrap: { width: cardWidth - 55 }
             }
@@ -836,6 +892,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             'Available now',
             {
                 fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#8B7FBB'
             }
         ).setDepth(100).setAlpha(0);
@@ -876,123 +933,118 @@ export default class SoulRevealScene extends Phaser.Scene {
     showNameInput(width, height) {
         if (!this.panelBounds) return;
 
-        const { x: panelX, width: panelWidth } = this.panelBounds;
-        const panelBottom = height * 0.38 + Math.min(300, height * 0.34);
-        const inputY = Math.min(height - 118, panelBottom + 30);
+        const layout = this.getRevealLayout(width, height);
+        const inputY = layout.inputTop;
 
         // Name label
         const nameLabel = this.add.text(
             width / 2,
-            inputY - 25,
+            inputY - 20,
             'The creature is watching you. What will you call them?',
             {
-                fontSize: '13px',
-                color: '#9B7FEE'
+                fontSize: width < 500 ? '13px' : '15px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#C8B8FF',
+                align: 'center',
+                wordWrap: { width: Math.min(width - 32, 430) }
             }
         ).setOrigin(0.5).setDepth(100).setAlpha(0);
         this.elements.push(nameLabel);
 
-        // Input background
-        const inputWidth = Math.min(panelWidth - 30, 260);
-        const inputX = (width - inputWidth) / 2;
-
-        const inputBg = this.add.graphics();
-        inputBg.fillStyle(0x12122A, 1);
-        inputBg.fillRoundedRect(inputX, inputY, inputWidth, 36, 10);
-        inputBg.lineStyle(2, 0x7B68EE, 0.8);
-        inputBg.strokeRoundedRect(inputX, inputY, inputWidth, 36, 10);
-        inputBg.setDepth(100).setAlpha(0);
-        this.elements.push(inputBg);
-
-        // Input text display
-        this.inputText = this.add.text(
-            width / 2,
-            inputY + 18,
-            '|',
-            {
-                fontSize: '16px',
-                color: '#FFFFFF'
-            }
-        ).setOrigin(0.5).setDepth(101).setAlpha(0);
-        this.elements.push(this.inputText);
-
-        // Store input bounds for click detection
-        this.inputBounds = { x: inputX, y: inputY, width: inputWidth, height: 36 };
-
-        // Cursor blink
-        this.time.addEvent({
-            delay: 500,
-            loop: true,
-            callback: () => {
-                if (this.inputText && this.inputActive) {
-                    const text = this.nameInput || '';
-                    const cursor = this.inputText.text.endsWith('|') ? '' : '|';
-                    this.inputText.setText(text + cursor);
-                }
-            }
-        });
-
         // Fade in
         this.tweens.add({
-            targets: [nameLabel, inputBg, this.inputText],
+            targets: nameLabel,
             alpha: 1,
             duration: 400,
             ease: 'Power2',
             onComplete: () => {
                 this.inputActive = true;
-                this.createMobileInput(width, inputY);
+                this.createMobileInput(width, inputY, layout);
             }
         });
     }
 
     /**
-     * Create HTML input for mobile keyboards
+     * Create a visible native field so mobile browsers open their keyboard from
+     * the user's direct tap instead of forwarding focus from the canvas.
      */
-    createMobileInput(width, inputY) {
-        // Create invisible HTML input for mobile keyboard
+    createMobileInput(width, inputY, layout = this.getRevealLayout()) {
+        this.nameDomElement?.destroy?.();
+        this.htmlInput?.remove?.();
+
         this.htmlInput = document.createElement('input');
         this.htmlInput.type = 'text';
         this.htmlInput.maxLength = 20;
+        this.htmlInput.inputMode = 'text';
+        this.htmlInput.enterKeyHint = 'done';
+        this.htmlInput.setAttribute('aria-label', 'Name your creature');
+        this.htmlInput.setAttribute('data-testid', 'creature-name-input');
         this.htmlInput.autocomplete = 'off';
         this.htmlInput.autocorrect = 'off';
+        this.htmlInput.spellcheck = false;
         this.htmlInput.autocapitalize = 'words';
-        this.htmlInput.style.position = 'absolute';
-        this.htmlInput.style.left = `${(width - 200) / 2}px`;
-        this.htmlInput.style.top = `${inputY}px`;
-        this.htmlInput.style.width = '200px';
-        this.htmlInput.style.height = '36px';
-        this.htmlInput.style.opacity = '0.01';
-        this.htmlInput.style.fontSize = '16px';
-        this.htmlInput.style.zIndex = '1000';
-        this.htmlInput.placeholder = 'Enter name...';
+        this.htmlInput.placeholder = 'Enter a name';
+        Object.assign(this.htmlInput.style, {
+            width: `${layout.inputWidth}px`,
+            height: `${layout.inputHeight}px`,
+            boxSizing: 'border-box',
+            border: '2px solid #7B68EE',
+            borderRadius: '6px',
+            background: '#101126',
+            color: '#FFFFFF',
+            caretColor: '#8FE3CF',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '16px',
+            lineHeight: 'normal',
+            padding: '0 14px',
+            outline: 'none',
+            textAlign: 'center',
+            opacity: '1',
+            pointerEvents: 'auto',
+            touchAction: 'manipulation',
+            appearance: 'none',
+            WebkitAppearance: 'none'
+        });
 
-        document.body.appendChild(this.htmlInput);
+        this.nameDomElement = this.add.dom(
+            width / 2,
+            inputY + layout.inputHeight / 2,
+            this.htmlInput
+        ).setOrigin(0.5).setDepth(105);
+        if (this.game.domContainer) {
+            this.game.domContainer.style.zIndex = '110';
+            this.game.domContainer.style.pointerEvents = 'none';
+        }
+        this.elements.push(this.nameDomElement);
 
         // Sync input
         this.htmlInput.addEventListener('input', () => {
-            this.nameInput = this.htmlInput.value.slice(0, 20);
+            this.nameInput = this.htmlInput.value
+                .replace(/[^\p{L}\p{N} '\-_]/gu, '')
+                .slice(0, 20);
             this.updateInputDisplay();
         });
 
         this.htmlInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && this.canProceed) {
+            e.stopPropagation();
+            if (
+                e.key === 'Enter' &&
+                this.canProceed &&
+                this.nameInput.trim().length > 0
+            ) {
+                e.preventDefault();
                 this.finalizeName();
             }
         });
 
-        // Focus on tap
-        const inputZone = this.add.zone(
-            this.inputBounds.x + this.inputBounds.width / 2,
-            this.inputBounds.y + this.inputBounds.height / 2,
-            this.inputBounds.width,
-            this.inputBounds.height
-        ).setInteractive().setDepth(102);
-
-        inputZone.on('pointerdown', () => {
-            this.htmlInput.focus();
+        this.htmlInput.addEventListener('focus', () => {
+            this.htmlInput.style.borderColor = '#8FE3CF';
+            this.htmlInput.style.boxShadow = '0 0 0 3px rgba(143, 227, 207, 0.2)';
         });
-
-        this.elements.push(inputZone);
+        this.htmlInput.addEventListener('blur', () => {
+            this.htmlInput.style.borderColor = '#7B68EE';
+            this.htmlInput.style.boxShadow = 'none';
+        });
     }
 
     /**
@@ -1003,6 +1055,7 @@ export default class SoulRevealScene extends Phaser.Scene {
 
         this.input.keyboard.on('keydown', (event) => {
             if (!this.inputActive) return;
+            if (document.activeElement === this.htmlInput) return;
 
             if (event.key === 'Enter' && this.canProceed && this.nameInput.length > 0) {
                 this.finalizeName();
@@ -1023,10 +1076,7 @@ export default class SoulRevealScene extends Phaser.Scene {
      * Update the input text display
      */
     updateInputDisplay() {
-        if (this.inputText) {
-            this.inputText.setText(this.nameInput + '|');
-        }
-        if (this.htmlInput) {
+        if (this.htmlInput && this.htmlInput.value !== this.nameInput) {
             this.htmlInput.value = this.nameInput;
         }
     }
@@ -1035,10 +1085,9 @@ export default class SoulRevealScene extends Phaser.Scene {
      * Show begin button (static, no animation)
      */
     showBeginButton(width, height) {
-        const panelBottom = height * 0.38 + Math.min(300, height * 0.34);
-        const inputY = Math.min(height - 118, panelBottom + 30);
-        const btnY = Math.min(height - 58, inputY + 54);
-        const btnWidth = Math.min(width - 60, 260);
+        const layout = this.getRevealLayout(width, height);
+        const btnY = layout.buttonTop;
+        const btnWidth = layout.inputWidth;
         const btnX = (width - btnWidth) / 2;
 
         // Button background
@@ -1057,6 +1106,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             'ENTER SANCTUARY',
             {
                 fontSize: '16px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#FFFFFF',
                 fontStyle: 'bold'
             }
@@ -1085,17 +1135,16 @@ export default class SoulRevealScene extends Phaser.Scene {
         });
 
         btnZone.on('pointerdown', () => {
+            if (!this.nameInput.trim()) {
+                this.htmlInput?.focus();
+                if (this.htmlInput) {
+                    this.htmlInput.style.borderColor = '#F2C14E';
+                    this.htmlInput.style.boxShadow = '0 0 0 3px rgba(242, 193, 78, 0.24)';
+                }
+                return;
+            }
             if (this.canProceed) {
                 this.finalizeName();
-            } else if (this.nameInput.length === 0) {
-                // Flash the input to indicate name needed
-                this.tweens.add({
-                    targets: this.inputText,
-                    alpha: { from: 1, to: 0.3 },
-                    duration: 100,
-                    yoyo: true,
-                    repeat: 2
-                });
             }
         });
 
@@ -1119,8 +1168,8 @@ export default class SoulRevealScene extends Phaser.Scene {
     finalizeName() {
         if (!this.canProceed) return;
         if (!this.nameInput || this.nameInput.trim().length === 0) {
-            // Generate a random name if empty
-            this.nameInput = this.generateRandomName();
+            this.htmlInput?.focus();
+            return;
         }
 
         this.canProceed = false;
@@ -1177,10 +1226,9 @@ export default class SoulRevealScene extends Phaser.Scene {
         }
 
         // Remove HTML input
-        if (this.htmlInput) {
-            this.htmlInput.remove();
-            this.htmlInput = null;
-        }
+        this.nameDomElement?.destroy?.();
+        this.nameDomElement = null;
+        this.htmlInput = null;
 
         // Fade out and transition
         this.cameras.main.fadeOut(800, 0, 0, 0);
@@ -1245,11 +1293,9 @@ export default class SoulRevealScene extends Phaser.Scene {
     shutdown() {
         devLog('[SoulRevealScene] Shutting down');
 
-        // Remove HTML input
-        if (this.htmlInput) {
-            this.htmlInput.remove();
-            this.htmlInput = null;
-        }
+        this.nameDomElement?.destroy?.();
+        this.nameDomElement = null;
+        this.htmlInput = null;
 
         // Clear typewriter timer
         if (this.typewriterTimer) {

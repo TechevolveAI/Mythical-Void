@@ -38,6 +38,12 @@ describe('Living Signal first-session contract', () => {
     test('requires a short companion-led listening dwell and saves each encounter', () => {
         expect(gameSceneSource).toContain('checkLivingSignalProximity(delta');
         expect(gameSceneSource).toContain('this.livingSignalDwellMs >= 800');
+        expect(gameSceneSource).toContain('nearest.distance > 150');
+        expect(gameSceneSource).toContain('approach with your companion and stay close');
+        expect(gameSceneSource).toContain('LIVING SIGNAL // APPROACH');
+        expect(gameSceneSource).not.toContain(
+            "activeStoryQuest?.id !== 'beacon_living_signals'"
+        );
         expect(gameSceneSource).toContain(
             "window.GameState.set('world.livingSignals', result.state)"
         );
