@@ -310,8 +310,8 @@ class CloudSaveSettingsModal {
     }
 
     renderAgeRestricted(panelX, panelWidth, y, ageGroup) {
-        const message = ageGroup === 'age_under_13'
-            ? 'Cloud Save is unavailable for under-13 profiles in this release. Progress continues to save locally on this device.'
+        const message = ['age_under_13', 'age_13_15'].includes(ageGroup)
+            ? 'Cloud Save is unavailable for under-16 profiles in this release. Progress continues to save locally on this device.'
             : 'Complete the age confirmation before using Cloud Save. Local saving remains active.';
         this.addText(panelX + 24, y, message, {
             fontSize: '14px',

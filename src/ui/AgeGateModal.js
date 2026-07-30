@@ -2,7 +2,7 @@
  * AgeGateModal - Age verification modal for first-time users
  *
  * Shows on first launch to collect age confirmation
- * All users can play - under-13 gets a privacy notice
+ * All users can play - under-16 gets a local-play privacy notice
  * Stores confirmation in localStorage
  */
 
@@ -60,29 +60,22 @@ class AgeGateModal {
         this.elements.push(overlay);
 
         // Panel
-        const panelWidth = Math.min(420, width - 40);
-        const panelHeight = 340;
+        const panelWidth = Math.min(420, width - 24);
+        const panelHeight = Math.min(430, height - 24);
         const panelX = centerX - panelWidth / 2;
         const panelY = centerY - panelHeight / 2;
 
         const panel = this.scene.add.graphics();
         panel.fillStyle(0x0D0D2B, 1);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.lineStyle(3, 0x7B68EE);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.setScrollFactor(0);
         panel.setDepth(18001);
         this.elements.push(panel);
 
-        // Cosmic decoration at top
-        const starDecor = this.scene.add.text(centerX, panelY + 35, '✨🌌✨', {
-            fontSize: '28px',
-            fontFamily: 'Arial, sans-serif'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(18002);
-        this.elements.push(starDecor);
-
         // Title
-        const title = this.scene.add.text(centerX, panelY + 75, legalConfig.ageGate.title, {
+        const title = this.scene.add.text(centerX, panelY + 38, legalConfig.ageGate.title, {
             fontSize: '22px',
             fontFamily: 'Arial, sans-serif',
             color: '#FFFFFF',
@@ -91,7 +84,7 @@ class AgeGateModal {
         this.elements.push(title);
 
         // Subtitle
-        const subtitle = this.scene.add.text(centerX, panelY + 105, legalConfig.ageGate.subtitle, {
+        const subtitle = this.scene.add.text(centerX, panelY + 72, legalConfig.ageGate.subtitle, {
             fontSize: '14px',
             fontFamily: 'Arial, sans-serif',
             color: '#AAAAAA'
@@ -100,12 +93,13 @@ class AgeGateModal {
 
         // Create age option buttons
         const options = legalConfig.ageGate.options;
-        let buttonY = panelY + 155;
+        const optionSpacing = Math.min(58, (panelHeight - 170) / options.length);
+        let buttonY = panelY + 122;
 
         options.forEach((option, index) => {
             const btn = this.createAgeButton(
                 centerX,
-                buttonY + (index * 60),
+                buttonY + (index * optionSpacing),
                 option.label,
                 () => this.selectAge(option)
             );
@@ -116,7 +110,9 @@ class AgeGateModal {
         const footer = this.scene.add.text(centerX, panelY + panelHeight - 30, legalConfig.ageGate.footer, {
             fontSize: '11px',
             fontFamily: 'Arial, sans-serif',
-            color: '#666666'
+            color: '#9AA3AD',
+            align: 'center',
+            wordWrap: { width: panelWidth - 40 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(18002);
         this.elements.push(footer);
     }
@@ -126,42 +122,47 @@ class AgeGateModal {
      */
     createAgeButton(x, y, text, onClick) {
         const elements = [];
-        const btnWidth = 280;
-        const btnHeight = 44;
+        const btnWidth = Math.min(320, this.scene.cameras.main.width - 56);
+        const btnHeight = 46;
 
         const bg = this.scene.add.graphics();
         bg.fillStyle(0x2D1B4E, 1);
-        bg.fillRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 12);
+        bg.fillRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 6);
         bg.lineStyle(2, 0x7B68EE, 0.8);
-        bg.strokeRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 12);
+        bg.strokeRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 6);
         bg.setScrollFactor(0);
         bg.setDepth(18002);
         elements.push(bg);
 
-        const btn = this.scene.add.text(x, y, text, {
+        const label = this.scene.add.text(x, y, text, {
             fontSize: '16px',
             fontFamily: 'Arial, sans-serif',
             color: '#FFFFFF'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(18003);
-        btn.setInteractive({ useHandCursor: true });
+        elements.push(label);
 
-        btn.on('pointerover', () => {
+        const hitArea = this.scene.add.zone(x, y, btnWidth, btnHeight)
+            .setScrollFactor(0)
+            .setDepth(18004)
+            .setInteractive({ useHandCursor: true });
+
+        hitArea.on('pointerover', () => {
             bg.clear();
             bg.fillStyle(0x4D3B6E, 1);
-            bg.fillRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 12);
+            bg.fillRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 6);
             bg.lineStyle(2, 0x9B88FF, 1);
-            bg.strokeRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 12);
+            bg.strokeRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 6);
         });
-        btn.on('pointerout', () => {
+        hitArea.on('pointerout', () => {
             bg.clear();
             bg.fillStyle(0x2D1B4E, 1);
-            bg.fillRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 12);
+            bg.fillRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 6);
             bg.lineStyle(2, 0x7B68EE, 0.8);
-            bg.strokeRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 12);
+            bg.strokeRoundedRect(x - btnWidth/2, y - btnHeight/2, btnWidth, btnHeight, 6);
         });
-        btn.on('pointerup', onClick);
+        hitArea.on('pointerup', onClick);
 
-        elements.push(btn);
+        elements.push(hitArea);
         return elements;
     }
 
@@ -179,7 +180,7 @@ class AgeGateModal {
         localStorage.setItem('mythical_void_age_group', option.storeAs);
 
         if (option.action === 'continue_with_notice') {
-            // Show the notice for under-13 users
+            // Show the local-play notice for users who cannot use cloud features
             this.showNotice(option.notice, () => {
                 this.complete();
             });
@@ -190,7 +191,7 @@ class AgeGateModal {
     }
 
     /**
-     * Show a notice message (for under-13 users)
+     * Show the local-play privacy notice
      */
     showNotice(message, onDismiss) {
         this.cleanup();
@@ -215,22 +216,15 @@ class AgeGateModal {
 
         const panel = this.scene.add.graphics();
         panel.fillStyle(0x0D0D2B, 1);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.lineStyle(3, 0x4CAF50);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.setScrollFactor(0);
         panel.setDepth(18001);
         this.elements.push(panel);
 
-        // Safety icon
-        const icon = this.scene.add.text(centerX, panelY + 40, '🛡️', {
-            fontSize: '36px',
-            fontFamily: 'Arial, sans-serif'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(18002);
-        this.elements.push(icon);
-
         // Title
-        const title = this.scene.add.text(centerX, panelY + 80, 'Your Privacy Matters!', {
+        const title = this.scene.add.text(centerX, panelY + 45, 'Local Play', {
             fontSize: '20px',
             fontFamily: 'Arial, sans-serif',
             color: '#4CAF50',
@@ -239,8 +233,8 @@ class AgeGateModal {
         this.elements.push(title);
 
         // Message
-        const messageText = this.scene.add.text(centerX, panelY + 140, message, {
-            fontSize: '14px',
+        const messageText = this.scene.add.text(centerX, panelY + 115, message, {
+            fontSize: '15px',
             fontFamily: 'Arial, sans-serif',
             color: '#CCCCCC',
             wordWrap: { width: panelWidth - 50 },
@@ -250,25 +244,63 @@ class AgeGateModal {
         this.elements.push(messageText);
 
         // Continue button
-        const continueBtn = this.scene.add.text(centerX, panelY + panelHeight - 45, '🚀 Start Playing!', {
-            fontSize: '18px',
-            fontFamily: 'Arial, sans-serif',
-            color: '#FFFFFF',
-            backgroundColor: '#4CAF50',
-            padding: { x: 30, y: 12 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(18003);
-        continueBtn.setInteractive({ useHandCursor: true });
+        const continueY = panelY + panelHeight - 45;
+        const continueWidth = 150;
+        const continueHeight = 48;
+        const continueBg = this.scene.add.graphics();
+        continueBg.fillStyle(0x4CAF50, 1);
+        continueBg.fillRoundedRect(
+            centerX - continueWidth / 2,
+            continueY - continueHeight / 2,
+            continueWidth,
+            continueHeight,
+            6
+        );
+        continueBg.setScrollFactor(0).setDepth(18002);
 
-        continueBtn.on('pointerover', () => continueBtn.setStyle({ backgroundColor: '#66BB6A' }));
-        continueBtn.on('pointerout', () => continueBtn.setStyle({ backgroundColor: '#4CAF50' }));
-        continueBtn.on('pointerup', () => {
+        const continueLabel = this.scene.add.text(centerX, continueY, 'CONTINUE', {
+            fontSize: '16px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(18003);
+
+        const continueHitArea = this.scene.add.zone(
+            centerX,
+            continueY,
+            continueWidth,
+            continueHeight
+        ).setScrollFactor(0).setDepth(18004).setInteractive({ useHandCursor: true });
+
+        continueHitArea.on('pointerover', () => {
+            continueBg.clear();
+            continueBg.fillStyle(0x66BB6A, 1);
+            continueBg.fillRoundedRect(
+                centerX - continueWidth / 2,
+                continueY - continueHeight / 2,
+                continueWidth,
+                continueHeight,
+                6
+            );
+        });
+        continueHitArea.on('pointerout', () => {
+            continueBg.clear();
+            continueBg.fillStyle(0x4CAF50, 1);
+            continueBg.fillRoundedRect(
+                centerX - continueWidth / 2,
+                continueY - continueHeight / 2,
+                continueWidth,
+                continueHeight,
+                6
+            );
+        });
+        continueHitArea.on('pointerup', () => {
             if (window.AudioManager) {
                 window.AudioManager.playButtonClick();
             }
             onDismiss();
         });
 
-        this.elements.push(continueBtn);
+        this.elements.push(continueBg, continueLabel, continueHitArea);
     }
 
     /**

@@ -19,7 +19,7 @@ describe('storefront Project Beacon story contract', () => {
     test('matches the implemented 2026 astronaut opening', () => {
         expect(projectBeacon.year).toBe(2026);
         expect(projectBeacon.openingPages[0].content).toContain(
-            'One astronaut survived the crash.'
+            'Wanderer-7 missed its target'
         );
         expect(storefront).toContain('PROJECT BEACON // 2026');
         expect(storefront).toContain(

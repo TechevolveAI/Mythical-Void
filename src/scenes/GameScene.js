@@ -233,6 +233,7 @@ class GameScene extends Phaser.Scene {
             : null;
         this.livingSignalPreview = data?.livingSignalPreview || null;
         this.controlsPreview = data?.controlsPreview === true;
+        this.storyPreview = data?.storyPreview === true;
         this.beaconLogPreview = ['mission', 'archive'].includes(data?.beaconLogPreview)
             ? data.beaconLogPreview
             : null;
@@ -294,6 +295,12 @@ class GameScene extends Phaser.Scene {
                 this.controlsTutorial = new ControlsTutorialOverlay(this);
                 this.controlsTutorial.show({ force: true });
                 console.log('[GameScene] Field controls preview created successfully');
+                return;
+            }
+
+            if (this.storyPreview) {
+                this.showShipMemories();
+                console.log('[GameScene] Opening story preview created successfully');
                 return;
             }
 
@@ -594,9 +601,12 @@ class GameScene extends Phaser.Scene {
             this.events.on('radialMenuSelect', (itemId) => this.handleRadialMenuSelect(itemId));
             console.log('[GameScene] Creature radial menu initialized');
 
-            // Initialize ability HUD (3 slots at bottom-left)
-            this.abilityHUD = new AbilityHUD(this);
-            this.abilityHUD.create();
+            // Ability slots duplicate the mobile radial menu and collide with the
+            // movement dock, so they remain a desktop HUD.
+            if (!this.mobileHUD.isVisible) {
+                this.abilityHUD = new AbilityHUD(this);
+                this.abilityHUD.create();
+            }
             this.events.on('openAbilitySelection', (slotNumber) => {
                 // Prevent launching if already running
                 if (this.scene.isActive('AbilitySelectionScene')) {
@@ -605,7 +615,7 @@ class GameScene extends Phaser.Scene {
                 }
                 this.sceneRouter.launchScene('AbilitySelectionScene', { slot: slotNumber }, { bringToTop: true });
             });
-            console.log('[GameScene] Ability HUD initialized');
+            console.log('[GameScene] Ability HUD initialized for desktop layout');
 
             // Initialize NASA content system for daily space content
             this.setupNASAContent();
@@ -6120,12 +6130,20 @@ class GameScene extends Phaser.Scene {
     }
 
     showShipMemories(onComplete = null) {
+        if (this.storyModalElements?.length) {
+            return;
+        }
         console.log('[GameScene] Showing ship memories');
 
         const { width, height } = this.scale;
         const elements = [];
         // Store elements on this so OnboardingManager can detect dismissal
         this.storyModalElements = elements;
+        const restoreMobileControls = this.mobileControls?.suspend?.() === true;
+        const physicsWasPaused = Boolean(this.physics?.world?.isPaused);
+        if (!physicsWasPaused) {
+            this.physics?.pause?.();
+        }
 
         const storyPages = projectBeacon.openingPages;
 
@@ -6136,68 +6154,78 @@ class GameScene extends Phaser.Scene {
         overlay.fillStyle(0x000000, 0.85);
         overlay.fillRect(0, 0, width, height);
         overlay.setScrollFactor(0);
-        overlay.setDepth(5000);
+        overlay.setDepth(12000);
         elements.push(overlay);
+
+        const inputShield = this.add.zone(width / 2, height / 2, width, height)
+            .setScrollFactor(0)
+            .setDepth(12001)
+            .setInteractive();
+        elements.push(inputShield);
 
         // Memory panel
         const isNarrow = width < 500;
-        const panelWidth = Math.min(550, width - 20);
-        const panelHeight = Math.min(560, height - 30);
+        const panelWidth = Math.min(550, width - (isNarrow ? 16 : 32));
+        const panelHeight = Math.min(isNarrow ? 500 : 540, height - 24);
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
 
         const panel = this.add.graphics();
         panel.fillStyle(0x0D0D1E, 0.98);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.lineStyle(2, 0x4A90A4);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.setScrollFactor(0);
-        panel.setDepth(5001);
+        panel.setDepth(12002);
         elements.push(panel);
 
         // Header background
         const headerBg = this.add.graphics();
         headerBg.fillStyle(0x1A2040, 1);
-        headerBg.fillRoundedRect(panelX, panelY, panelWidth, 70, { tl: 20, tr: 20, bl: 0, br: 0 });
+        headerBg.fillRoundedRect(panelX, panelY, panelWidth, 70, { tl: 8, tr: 8, bl: 0, br: 0 });
         headerBg.setScrollFactor(0);
-        headerBg.setDepth(5001);
+        headerBg.setDepth(12002);
         elements.push(headerBg);
 
         // Dynamic content elements
         const iconText = this.add.text(panelX + 25, panelY + 35, storyPages[0].icon, {
-            fontSize: '36px'
-        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+            fontSize: isNarrow ? '25px' : '32px',
+            fontFamily: 'Arial, sans-serif'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(12003);
         elements.push(iconText);
 
         const titleText = this.add.text(panelX + 75, panelY + 25, storyPages[0].title, {
-            fontSize: isNarrow ? '18px' : '22px',
+            fontSize: isNarrow ? '17px' : '22px',
+            fontFamily: 'Arial, sans-serif',
             color: storyPages[0].color,
             fontStyle: 'bold'
-        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(12003);
         elements.push(titleText);
 
         const subtitleText = this.add.text(panelX + 75, panelY + 50, storyPages[0].subtitle, {
-            fontSize: '14px',
-            color: '#888888',
-            fontStyle: 'italic'
-        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+            fontSize: isNarrow ? '12px' : '14px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#AEB8C2'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(12003);
         elements.push(subtitleText);
 
-        const contentText = this.add.text(width / 2, panelY + 120, storyPages[0].content, {
-            fontSize: isNarrow ? '13px' : '15px',
-            color: '#CCCCCC',
-            align: 'center',
-            lineSpacing: isNarrow ? 4 : 7,
-            wordWrap: { width: panelWidth - 40 }
-        }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
+        const contentText = this.add.text(panelX + 24, panelY + 104, storyPages[0].content, {
+            fontSize: isNarrow ? '15px' : '16px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#E4EAF0',
+            align: 'left',
+            lineSpacing: isNarrow ? 6 : 8,
+            wordWrap: { width: panelWidth - 48 }
+        }).setOrigin(0, 0).setScrollFactor(0).setDepth(12003);
         elements.push(contentText);
 
         // Page indicator
         const pageIndicator = this.add.text(width / 2, panelY + panelHeight - 85,
             `Page ${currentPage + 1} of ${storyPages.length}`, {
             fontSize: '12px',
-            color: '#666666'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+            fontFamily: 'Arial, sans-serif',
+            color: '#AEB8C2'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(12003);
         elements.push(pageIndicator);
 
         // Navigation dots
@@ -6209,7 +6237,7 @@ class GameScene extends Phaser.Scene {
             dot.fillStyle(i === 0 ? 0x4A90A4 : 0x444444, 1);
             dot.fillCircle(dotX, dotsY, 5);
             dot.setScrollFactor(0);
-            dot.setDepth(5002);
+            dot.setDepth(12003);
             dots.push(dot);
             elements.push(dot);
         }
@@ -6238,21 +6266,28 @@ class GameScene extends Phaser.Scene {
         };
 
         // Previous button
-        const prevBtn = this.add.text(panelX + 30, panelY + panelHeight - 45, '← Previous', {
-            fontSize: '16px',
+        const prevBtn = this.add.text(panelX + 24, panelY + panelHeight - 38, 'Back', {
+            fontSize: '15px',
+            fontFamily: 'Arial, sans-serif',
             color: '#AAAAAA',
             backgroundColor: '#2A2A4E',
-            padding: { x: 15, y: 8 }
-        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
-        prevBtn.setInteractive({ useHandCursor: true });
+            padding: { x: 18, y: 10 }
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(12003);
         prevBtn.setAlpha(0.3);
         elements.push(prevBtn);
 
-        prevBtn.on('pointerover', () => {
+        const prevZone = this.add.zone(
+            panelX + 68,
+            panelY + panelHeight - 38,
+            96,
+            48
+        ).setScrollFactor(0).setDepth(12004).setInteractive({ useHandCursor: true });
+        elements.push(prevZone);
+        prevZone.on('pointerover', () => {
             if (currentPage > 0) prevBtn.setColor('#FFFFFF');
         });
-        prevBtn.on('pointerout', () => prevBtn.setColor('#AAAAAA'));
-        prevBtn.on('pointerdown', () => {
+        prevZone.on('pointerout', () => prevBtn.setColor('#AAAAAA'));
+        prevZone.on('pointerdown', () => {
             if (currentPage > 0) {
                 currentPage--;
                 updatePage(currentPage);
@@ -6261,30 +6296,46 @@ class GameScene extends Phaser.Scene {
         });
 
         // Next/Close button
-        const nextBtn = this.add.text(panelX + panelWidth - 30, panelY + panelHeight - 45, 'Next →', {
-            fontSize: '16px',
+        const nextBtn = this.add.text(panelX + panelWidth - 24, panelY + panelHeight - 38, 'Next', {
+            fontSize: '15px',
+            fontFamily: 'Arial, sans-serif',
             color: '#FFFFFF',
             backgroundColor: '#4A90A4',
-            padding: { x: 15, y: 8 }
-        }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(5002);
-        nextBtn.setInteractive({ useHandCursor: true });
+            padding: { x: 20, y: 10 }
+        }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(12003);
         elements.push(nextBtn);
 
-        nextBtn.on('pointerover', () => nextBtn.setStyle({ backgroundColor: '#5AA0B4' }));
-        nextBtn.on('pointerout', () => nextBtn.setStyle({ backgroundColor: '#4A90A4' }));
+        const nextZone = this.add.zone(
+            panelX + panelWidth - 68,
+            panelY + panelHeight - 38,
+            104,
+            48
+        ).setScrollFactor(0).setDepth(12004).setInteractive({ useHandCursor: true });
+        elements.push(nextZone);
+        nextZone.on('pointerover', () => nextBtn.setStyle({ backgroundColor: '#5AA0B4' }));
+        nextZone.on('pointerout', () => nextBtn.setStyle({ backgroundColor: '#4A90A4' }));
         const closeStory = () => {
-            elements.forEach(el => el.destroy());
+            elements.forEach(el => {
+                el?.removeAllListeners?.();
+                el?.destroy?.();
+            });
             this.storyModalElements = [];
             this.nearCrashedShip = false;
             this.input.keyboard.off('keydown', escHandler);
             this.input.keyboard.off('keydown', arrowHandler);
+            if (!physicsWasPaused) {
+                this.physics?.resume?.();
+            }
+            if (restoreMobileControls) {
+                this.mobileControls?.resume?.();
+            }
             window.GameState?.set('story.projectBeacon.missionLogSeen', true);
             window.GameState?.save?.();
             window.QuestManager?.ensureProjectBeaconQuest?.();
             if (onComplete) onComplete();
         };
 
-        nextBtn.on('pointerdown', () => {
+        nextZone.on('pointerdown', () => {
             if (currentPage < storyPages.length - 1) {
                 currentPage++;
                 updatePage(currentPage);
@@ -6300,13 +6351,14 @@ class GameScene extends Phaser.Scene {
         repairBg.fillStyle(0x1A1A3E, 0.8);
         repairBg.fillRoundedRect(panelX + 20, repairY, panelWidth - 40, 35, 8);
         repairBg.setScrollFactor(0);
-        repairBg.setDepth(5001);
+        repairBg.setDepth(12002);
         elements.push(repairBg);
 
         const repairLabel = this.add.text(panelX + 30, repairY + 17, isNarrow ? '🔧 Recovery:' : '🔧 Beacon Recovery:', {
             fontSize: '12px',
-            color: '#888888'
-        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+            fontFamily: 'Arial, sans-serif',
+            color: '#AEB8C2'
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(12003);
         elements.push(repairLabel);
 
         // Progress bar
@@ -6316,7 +6368,7 @@ class GameScene extends Phaser.Scene {
         progressBarBg.fillStyle(0x333344, 1);
         progressBarBg.fillRoundedRect(progressBarX, repairY + 10, progressBarWidth, 14, 4);
         progressBarBg.setScrollFactor(0);
-        progressBarBg.setDepth(5002);
+        progressBarBg.setDepth(12003);
         elements.push(progressBarBg);
 
         const collectedParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
@@ -6328,14 +6380,15 @@ class GameScene extends Phaser.Scene {
             progressBarFill.fillRoundedRect(progressBarX, repairY + 10, progressBarWidth * (repairProgress / 100), 14, 4);
         }
         progressBarFill.setScrollFactor(0);
-        progressBarFill.setDepth(5003);
+        progressBarFill.setDepth(12004);
         elements.push(progressBarFill);
 
         const progressText = this.add.text(progressBarX + progressBarWidth + 10, repairY + 17,
             `${Math.min(collectedParts.length, totalRequired)}/${totalRequired}`, {
             fontSize: '11px',
+            fontFamily: 'Arial, sans-serif',
             color: repairProgress > 0 ? '#4CAF50' : '#AAAAAA'
-        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(5002);
+        }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(12003);
         elements.push(progressText);
 
         // ESC to close
@@ -6974,6 +7027,16 @@ class GameScene extends Phaser.Scene {
      * Open AI Art generator modal
      */
     openAIArt() {
+        const ageGroup = localStorage.getItem('mythical_void_age_group');
+        if (!window.CloudSaveManager?.isAgeGroupEligible?.(ageGroup)) {
+            this.showFloatingText(
+                'Living Portraits require the 16+ privacy setting',
+                this.player?.x || this.scale.width / 2,
+                (this.player?.y || this.scale.height / 2) - 70,
+                '#FFCC66'
+            );
+            return;
+        }
         if (!window.APIConfig?.isEnabled?.()) {
             console.warn('[GameScene] AI Art is unavailable in this build');
             if (this.player) {

@@ -54,8 +54,12 @@ class CloudSaveManager {
         }
     }
 
+    static isAgeGroupEligible(ageGroup) {
+        return ageGroup === 'age_16_17' || ageGroup === 'age_18_plus';
+    }
+
     isAgeEligible() {
-        return this.getAgeGroup() === 'age_13_plus';
+        return CloudSaveManager.isAgeGroupEligible(this.getAgeGroup());
     }
 
     async initialize() {
@@ -101,7 +105,7 @@ class CloudSaveManager {
             throw new Error('Cloud saves are not configured.');
         }
         if (!this.isAgeEligible()) {
-            throw new Error('Cloud saves are available only to confirmed 13+ profiles.');
+            throw new Error('Cloud saves are available only to confirmed 16+ profiles.');
         }
         if (!consentConfirmed) {
             throw new Error('Cloud saves require explicit player consent.');

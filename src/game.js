@@ -362,11 +362,19 @@ async function initializeGame() {
 
         // Game configuration - MOBILE-FIRST PORTRAIT LAYOUT
         // iPhone 12 dimensions: 390x844 (portrait), but we use dynamic sizing
+        const viewportWidth = Math.max(
+            1,
+            Math.floor(window.visualViewport?.width || window.innerWidth)
+        );
+        const viewportHeight = Math.max(
+            1,
+            Math.floor(window.visualViewport?.height || window.innerHeight)
+        );
         const config = {
             type: Phaser.AUTO,
             parent: 'game',
-            width: window.innerWidth,
-            height: window.innerHeight,
+            width: viewportWidth,
+            height: viewportHeight,
             backgroundColor: '#0a0118',
             physics: {
                 default: 'arcade',
@@ -381,8 +389,8 @@ async function initializeGame() {
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: window.innerWidth,
-                height: window.innerHeight,
+                width: viewportWidth,
+                height: viewportHeight,
                 // Handle window resize for orientation changes
                 parent: 'game',
                 expandParent: true,
@@ -985,6 +993,18 @@ async function initializeGame() {
             });
         }
 
+        // Local, non-mutating preview of the opening Project Beacon story.
+        if (isLocalPreview && urlParams.has('testStory')) {
+            game.events.once('ready', () => {
+                setTimeout(() => {
+                    game.scene.getScenes(true).forEach(scene => {
+                        game.scene.stop(scene.scene.key);
+                    });
+                    game.scene.start('GameScene', { storyPreview: true });
+                }, 100);
+            });
+        }
+
         // Local, non-mutating Project Beacon mission-log previews.
         const testBeaconLog = urlParams.get('testBeaconLog');
         if (isLocalPreview && ['mission', 'archive'].includes(testBeaconLog)) {
@@ -1115,7 +1135,7 @@ async function initializeGame() {
                             configured: true,
                             enabled: true,
                             ageEligible: true,
-                            ageGroup: 'age_13_plus',
+                            ageGroup: 'age_18_plus',
                             status: 'synced',
                             lastSyncedAt: Date.UTC(2026, 6, 28, 12, 30),
                             lastSyncDirection: testCloudSave,

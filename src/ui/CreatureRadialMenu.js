@@ -15,6 +15,9 @@ export default class CreatureRadialMenu {
             { id: 'profile', icon: '📋', label: 'Profile' },
             { id: 'chat', icon: '💬', label: 'Chat' },
             ...(window.APIConfig?.isEnabled?.()
+                && window.CloudSaveManager?.isAgeGroupEligible?.(
+                    localStorage.getItem('mythical_void_age_group')
+                )
                 ? [{ id: 'ai_art', icon: '🎨', label: 'AI Art' }]
                 : []),
             { id: 'abilities', icon: '✨', label: 'Abilities' },

@@ -89,6 +89,9 @@ class ResponsiveManager {
         // Listen for resize events
         this.addManagedEvent(window, 'resize', this.resizeHandler);
         this.addManagedEvent(window, 'orientationchange', this.resizeHandler);
+        if (window.visualViewport) {
+            this.addManagedEvent(window.visualViewport, 'resize', this.resizeHandler);
+        }
 
         // Listen for device pixel ratio changes (zoom)
         if (window.matchMedia) {
@@ -111,8 +114,15 @@ class ResponsiveManager {
         if (!this.game) return;
 
         try {
-            const windowWidth = Math.max(1, Math.floor(window.innerWidth));
-            const windowHeight = Math.max(1, Math.floor(window.innerHeight));
+            const viewport = window.visualViewport;
+            const windowWidth = Math.max(
+                1,
+                Math.floor(viewport?.width || window.innerWidth)
+            );
+            const windowHeight = Math.max(
+                1,
+                Math.floor(viewport?.height || window.innerHeight)
+            );
 
             // RESIZE mode must use the real viewport. Forcing a minimum 4:3
             // game size crops portrait screens and can leave the canvas blank.
@@ -432,27 +442,6 @@ class ResponsiveManager {
      * Set up fullscreen support
      */
     setupFullscreenSupport() {
-        // Add fullscreen button for mobile
-        if (this.isMobile) {
-            const fullscreenBtn = document.createElement('div');
-            fullscreenBtn.className = 'virtual-button';
-            fullscreenBtn.innerHTML = '⛶';
-            fullscreenBtn.style.right = '20px';
-            fullscreenBtn.style.top = '80px';
-            
-            const onClick = () => this.toggleFullscreen();
-            this.addManagedEvent(fullscreenBtn, 'click', onClick);
-            
-            document.body.appendChild(fullscreenBtn);
-            this.fullscreenButton = fullscreenBtn;
-            this.registerCleanup(() => {
-                if (this.fullscreenButton) {
-                    this.fullscreenButton.remove();
-                    this.fullscreenButton = null;
-                }
-            });
-        }
-
         this.fullscreenChangeHandler = () => {
             this.isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
         };

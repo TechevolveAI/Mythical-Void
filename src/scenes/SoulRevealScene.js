@@ -1,7 +1,7 @@
 /**
  * SoulRevealScene - Unified soul reveal + naming screen
  *
- * Combines the old PersonalityScene and NamingScene into a single dramatic reveal.
+ * Combines the old PersonalityScene and NamingScene into a first-contact reading.
  * Features:
  * - AI-generated unique soul phrases
  * - Meaningful context for all stats (rarity odds, ability benefits, etc.)
@@ -152,29 +152,24 @@ export default class SoulRevealScene extends Phaser.Scene {
     getPersonalityPreview(personality) {
         const previews = {
             curious: {
-                greeting: "What's that over there?!",
-                happy: "I wonder what we'll discover today!",
-                trait: "Loves exploring and asking questions"
+                observation: 'Tracks every light and movement around the wreck.',
+                trait: 'Alert, investigative, and quick to notice change'
             },
             playful: {
-                greeting: "Let's play! Please? PLEASE?!",
-                happy: "Hehe, that was so much fun!",
-                trait: "Always ready for games and mischief"
+                observation: 'Mirrors your movements, then waits for a response.',
+                trait: 'Social, responsive, and drawn to movement'
             },
             gentle: {
-                greeting: "Hello, friend...",
-                happy: "I'm so happy we're together.",
-                trait: "Kind, caring, and peaceful"
+                observation: 'Keeps close when your suit alarm sounds.',
+                trait: 'Calm, attentive, and sensitive to distress'
             },
             wise: {
-                greeting: "I sense something interesting...",
-                happy: "Knowledge brings the greatest joy.",
-                trait: "Thoughtful and observant"
+                observation: 'Studies the scanner before approaching you.',
+                trait: 'Patient, deliberate, and highly observant'
             },
             energetic: {
-                greeting: "WOOO! Let's GO!",
-                happy: "I have SO much energy right now!",
-                trait: "Boundless enthusiasm and speed"
+                observation: 'Moves first, then checks whether you follow.',
+                trait: 'Fast, decisive, and constantly in motion'
             }
         };
         return previews[personality] || previews.curious;
@@ -193,6 +188,7 @@ export default class SoulRevealScene extends Phaser.Scene {
                 type: 'exploration',
                 color: 0xFFD700,
                 range: '300px radius',
+                displayRange: 'Medium range',
                 benefit: 'Find treasures others miss'
             },
             moon: {
@@ -202,6 +198,7 @@ export default class SoulRevealScene extends Phaser.Scene {
                 type: 'exploration',
                 color: 0xC0C0C0,
                 range: '400px radius',
+                displayRange: 'Long range',
                 benefit: 'Locate rare & legendary items'
             },
             nebula: {
@@ -211,6 +208,7 @@ export default class SoulRevealScene extends Phaser.Scene {
                 type: 'defensive',
                 color: 0x9370DB,
                 range: '150px radius',
+                displayRange: 'Short range',
                 benefit: 'Escape dangerous situations'
             },
             crystal: {
@@ -220,6 +218,7 @@ export default class SoulRevealScene extends Phaser.Scene {
                 type: 'exploration',
                 color: 0x00CED1,
                 range: '350px radius',
+                displayRange: 'Medium range',
                 benefit: 'Maximize crystal collection'
             },
             void: {
@@ -229,6 +228,7 @@ export default class SoulRevealScene extends Phaser.Scene {
                 type: 'exploration',
                 color: 0x4B0082,
                 range: '500px radius',
+                displayRange: 'Long range',
                 benefit: 'Discover hidden areas'
             }
         };
@@ -333,9 +333,10 @@ export default class SoulRevealScene extends Phaser.Scene {
      * Show title with fade animation
      */
     showTitle(width, height) {
-        const title = this.add.text(width / 2, height * 0.06, 'A SOUL AWAKENS', {
-            fontSize: Math.min(24, width * 0.06) + 'px',
-            color: '#E8D5FF',
+        const title = this.add.text(width / 2, height * 0.06, 'FIRST CONTACT // INITIAL READINGS', {
+            fontSize: Math.min(20, width * 0.047) + 'px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#DCE8ED',
             fontStyle: 'bold',
             stroke: '#2D1B4E',
             strokeThickness: 4
@@ -474,12 +475,12 @@ export default class SoulRevealScene extends Phaser.Scene {
         const panelX = (width - panelWidth) / 2;
 
         // Info panel background
-        const panelHeight = height * 0.48;
+        const panelHeight = Math.min(300, height * 0.34);
         this.infoPanel = this.add.graphics();
         this.infoPanel.fillStyle(0x1A1A3E, 0.95);
-        this.infoPanel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
+        this.infoPanel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         this.infoPanel.lineStyle(2, config.bg, 0.8);
-        this.infoPanel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 16);
+        this.infoPanel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         this.infoPanel.setDepth(30).setAlpha(0);
         this.elements.push(this.infoPanel);
 
@@ -487,9 +488,10 @@ export default class SoulRevealScene extends Phaser.Scene {
         const rarityText = this.add.text(
             panelX + 15,
             panelY + 12,
-            `${config.emoji} ${rarity.toUpperCase()}`,
+            `FIELD CLASSIFICATION // ${rarity.toUpperCase()}`,
             {
-                fontSize: '16px',
+                fontSize: '13px',
+                fontFamily: 'Arial, sans-serif',
                 color: config.text,
                 fontStyle: 'bold'
             }
@@ -500,9 +502,10 @@ export default class SoulRevealScene extends Phaser.Scene {
         const oddsText = this.add.text(
             panelX + panelWidth - 15,
             panelY + 14,
-            context.odds,
+            `VARIATION ${context.statBoost > 0 ? `+${context.statBoost}%` : 'BASELINE'}`,
             {
-                fontSize: '11px',
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#8B7FBB'
             }
         ).setOrigin(1, 0).setDepth(100).setAlpha(0);
@@ -514,7 +517,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             panelY + 32,
             context.bonus,
             {
-                fontSize: '11px',
+                fontSize: '12px',
                 color: '#7FEEAF'
             }
         ).setDepth(100).setAlpha(0);
@@ -613,9 +616,10 @@ export default class SoulRevealScene extends Phaser.Scene {
         const headerText = this.add.text(
             panelX + 15,
             personalityY,
-            `${this.getPersonalityEmoji(personality)} ${personality.toUpperCase()} SOUL`,
+            `OBSERVED TEMPERAMENT // ${personality.toUpperCase()}`,
             {
-                fontSize: '13px',
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#CE93D8',
                 fontStyle: 'bold'
             }
@@ -628,7 +632,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             personalityY + 18,
             preview.trait,
             {
-                fontSize: '11px',
+                fontSize: '12px',
                 color: '#9B8FBB'
             }
         ).setDepth(100).setAlpha(0);
@@ -638,11 +642,11 @@ export default class SoulRevealScene extends Phaser.Scene {
         const dialogueText = this.add.text(
             panelX + 15,
             personalityY + 36,
-            `"${preview.greeting}"`,
+            `OBSERVATION // ${preview.observation}`,
             {
                 fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
                 color: '#E8D5FF',
-                fontStyle: 'italic',
                 wordWrap: { width: panelWidth - 30 }
             }
         ).setDepth(100).setAlpha(0);
@@ -684,7 +688,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         const affinity = this.creatureData.cosmicAffinity;
         const power = this.creatureData.powerLevel;
         const emoji = window.SoulPhraseGenerator?.getAffinityEmoji(affinity) || '✨';
-        const name = window.SoulPhraseGenerator?.getAffinityName(affinity) || 'Cosmic Soul';
+        const name = `${String(affinity || 'unknown').toUpperCase()} RESONANCE`;
 
         // Affinity header
         const affinityText = this.add.text(
@@ -704,7 +708,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         const comparisonText = this.add.text(
             panelX + panelWidth - 15,
             affinityY + 2,
-            `Top ${100 - powerPercent}%`,
+            `SIGNAL ${powerPercent}%`,
             {
                 fontSize: '11px',
                 color: '#7FEEAF'
@@ -804,7 +808,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         const rangeText = this.add.text(
             cardX + cardWidth - 10,
             cardY + 10,
-            this.innateAbility.range,
+            this.innateAbility.displayRange || this.innateAbility.range,
             {
                 fontSize: '10px',
                 color: '#7FEEAF'
@@ -829,7 +833,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         const unlockText = this.add.text(
             cardX + 45,
             cardY + 45,
-            'Available now · Level 1',
+            'Available now',
             {
                 fontSize: '10px',
                 color: '#8B7FBB'
@@ -873,13 +877,14 @@ export default class SoulRevealScene extends Phaser.Scene {
         if (!this.panelBounds) return;
 
         const { x: panelX, width: panelWidth } = this.panelBounds;
-        const inputY = height * 0.85;
+        const panelBottom = height * 0.38 + Math.min(300, height * 0.34);
+        const inputY = Math.min(height - 118, panelBottom + 30);
 
         // Name label
         const nameLabel = this.add.text(
             width / 2,
             inputY - 25,
-            'Name your companion:',
+            'The creature is watching you. What will you call them?',
             {
                 fontSize: '13px',
                 color: '#9B7FEE'
@@ -1030,24 +1035,26 @@ export default class SoulRevealScene extends Phaser.Scene {
      * Show begin button (static, no animation)
      */
     showBeginButton(width, height) {
-        const btnY = height * 0.93;
+        const panelBottom = height * 0.38 + Math.min(300, height * 0.34);
+        const inputY = Math.min(height - 118, panelBottom + 30);
+        const btnY = Math.min(height - 58, inputY + 54);
         const btnWidth = Math.min(width - 60, 260);
         const btnX = (width - btnWidth) / 2;
 
         // Button background
         const btnBg = this.add.graphics();
         btnBg.fillStyle(0x4CAF50, 1);
-        btnBg.fillRoundedRect(btnX, btnY, btnWidth, 44, 12);
+        btnBg.fillRoundedRect(btnX, btnY, btnWidth, 46, 6);
         btnBg.lineStyle(2, 0xFFD700, 0.8);
-        btnBg.strokeRoundedRect(btnX, btnY, btnWidth, 44, 12);
+        btnBg.strokeRoundedRect(btnX, btnY, btnWidth, 46, 6);
         btnBg.setDepth(100).setAlpha(0);
         this.elements.push(btnBg);
 
         // Button text
         const btnText = this.add.text(
             width / 2,
-            btnY + 22,
-            'BEGIN ADVENTURE',
+            btnY + 23,
+            'ENTER SANCTUARY',
             {
                 fontSize: '16px',
                 color: '#FFFFFF',
@@ -1057,24 +1064,24 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.elements.push(btnText);
 
         // Interactive zone
-        const btnZone = this.add.zone(width / 2, btnY + 22, btnWidth, 44)
+        const btnZone = this.add.zone(width / 2, btnY + 23, btnWidth, 46)
             .setInteractive({ cursor: 'pointer' })
             .setDepth(102);
 
         btnZone.on('pointerover', () => {
             btnBg.clear();
             btnBg.fillStyle(0x66BB6A, 1);
-            btnBg.fillRoundedRect(btnX, btnY, btnWidth, 44, 12);
+            btnBg.fillRoundedRect(btnX, btnY, btnWidth, 46, 6);
             btnBg.lineStyle(2, 0xFFD700, 1);
-            btnBg.strokeRoundedRect(btnX, btnY, btnWidth, 44, 12);
+            btnBg.strokeRoundedRect(btnX, btnY, btnWidth, 46, 6);
         });
 
         btnZone.on('pointerout', () => {
             btnBg.clear();
             btnBg.fillStyle(0x4CAF50, 1);
-            btnBg.fillRoundedRect(btnX, btnY, btnWidth, 44, 12);
+            btnBg.fillRoundedRect(btnX, btnY, btnWidth, 46, 6);
             btnBg.lineStyle(2, 0xFFD700, 0.8);
-            btnBg.strokeRoundedRect(btnX, btnY, btnWidth, 44, 12);
+            btnBg.strokeRoundedRect(btnX, btnY, btnWidth, 46, 6);
         });
 
         btnZone.on('pointerdown', () => {

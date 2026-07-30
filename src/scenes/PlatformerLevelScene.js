@@ -5,6 +5,7 @@ import {
 } from '../systems/ProjectBeaconStory.js';
 import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import '../systems/ProjectBeaconFieldKit.js';
+import { getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
 import bossConfigs from '../config/bosses.json';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
@@ -825,15 +826,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Initial camera offset
         camera.setFollowOffset(0, this.cameraBaseOffsetY);
 
-        // Zoom out on mobile for better visibility of the level
-        // More zoom out = see more of the level = easier to play
+        // Fixed HUD and touch controls share this camera. Keep it at 1x so those
+        // controls fill the phone width instead of shrinking into the middle.
         if (this.isMobileDevice) {
-            // Calculate appropriate zoom based on screen size
-            const screenAspect = screenWidth / screenHeight;
-            // Portrait mode needs more zoom out, landscape less
-            const zoomFactor = screenAspect < 1 ? 0.75 : 0.85;
-            camera.setZoom(zoomFactor);
-            console.log(`[PlatformerLevel] Mobile zoom: ${zoomFactor} (aspect: ${screenAspect.toFixed(2)})`);
+            camera.setZoom(1);
+            console.log('[PlatformerLevel] Mobile zoom: 1 (full-width HUD and controls)');
         } else {
             camera.setZoom(1.0);
         }
@@ -917,13 +914,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Get safe area insets for devices with notches/home indicators
      */
     getSafeAreaInsets() {
-        const computedStyle = getComputedStyle(document.documentElement);
-        return {
-            top: parseInt(computedStyle.getPropertyValue('--sat') || '0', 10),
-            bottom: parseInt(computedStyle.getPropertyValue('--sab') || '0', 10) || 20,
-            left: parseInt(computedStyle.getPropertyValue('--sal') || '0', 10),
-            right: parseInt(computedStyle.getPropertyValue('--sar') || '0', 10)
-        };
+        return getSafeAreaInsets();
     }
 
     /**
@@ -953,28 +944,18 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         const { width, height } = this.scale;
         const safeArea = this.getSafeAreaInsets();
-
-        // MOBILE UX: Controls positioned at the VERY BOTTOM of screen
-        // This places them in the "underground" visual area below the playable ground
-        // Only account for minimal safe area (home indicator on newer iPhones)
-        const bottomSafeMargin = Math.max(8, safeArea.bottom); // Minimal margin - just above home indicator
-        const sideSafeMargin = Math.max(10, Math.max(safeArea.left, safeArea.right));
-
-        // Control zone: Expanded to 120px for larger touch targets (ergonomic for thumbs)
-        // Stays at the very bottom of screen to not overlay gameplay
-        const controlZoneHeight = 120;
-        const controlZoneTop = height - bottomSafeMargin - controlZoneHeight;
+        const layout = getMobileControlLayout({ width, height, safeArea });
+        const bottomSafeMargin = safeArea.bottom;
+        const controlZoneHeight = layout.dockHeight;
+        const controlZoneTop = layout.dockTop;
 
         console.log(`[PlatformerLevel] Mobile controls: height=${height}, safeBottom=${safeArea.bottom}, controlZoneTop=${controlZoneTop}`);
 
         // Responsive button sizes - LARGER for better thumb reach
-        const isSmallScreen = width < 400;
-        const jumpButtonSize = isSmallScreen ? 80 : 100;    // Large jump button (primary action)
-        const meleeButtonSize = isSmallScreen ? 56 : 70;    // Medium melee button (frequent)
-        const secondarySize = isSmallScreen ? 46 : 56;      // Smaller secondary buttons (ranged, special)
-        const spacing = isSmallScreen ? 8 : 12;
-        const marginRight = sideSafeMargin + 5;
-        const marginLeft = sideSafeMargin + 5;
+        const jumpButtonSize = layout.primarySize;
+        const meleeButtonSize = layout.primarySize;
+        const secondarySize = layout.secondarySize;
+        const marginLeft = safeArea.left + layout.edge;
 
         // Control opacity - semi-transparent to not fully obscure gameplay
         const controlOpacity = 0.85;
@@ -982,10 +963,10 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // ============ JOYSTICK (left side, centered in control zone) ============
         // LARGER: 140px diameter for comfortable thumb control
-        const joystickBaseRadius = isSmallScreen ? 55 : 70;   // 110-140px diameter
-        const joystickThumbRadius = isSmallScreen ? 22 : 28;  // 44-56px thumb
-        const joystickX = marginLeft + joystickBaseRadius + 10;
-        const joystickY = controlZoneTop + controlZoneHeight / 2; // Centered vertically in control zone
+        const joystickBaseRadius = layout.joystick.radius;
+        const joystickThumbRadius = layout.joystick.thumbRadius;
+        const joystickX = layout.joystick.x;
+        const joystickY = layout.joystick.y;
 
         // Joystick base - semi-transparent for better gameplay visibility
         const joystickBase = this.add.graphics();
@@ -1029,9 +1010,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.joystickThumbRadius = joystickThumbRadius;
 
         // Joystick touch zone - IMPROVED: larger zone that extends higher for easier reach
-        const joystickZoneWidth = width * 0.45; // Left 45% of screen (was 40%)
-        const joystickZoneHeight = controlZoneHeight + 40; // Extend above control zone for easier reach
-        const joystickZone = this.add.zone(joystickZoneWidth / 2, controlZoneTop + controlZoneHeight / 2 - 15, joystickZoneWidth, joystickZoneHeight)
+        const joystickZoneWidth = layout.joystick.zoneWidth;
+        const joystickZoneHeight = layout.joystick.zoneHeight;
+        const joystickZone = this.add.zone(joystickZoneWidth / 2, joystickY, joystickZoneWidth, joystickZoneHeight)
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(10002)
@@ -1050,7 +1031,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
             // FLOATING JOYSTICK: Move joystick to where finger touches (within bounds)
             const touchX = Math.max(marginLeft + joystickBaseRadius, Math.min(pointer.x, joystickZoneWidth - joystickBaseRadius));
-            const touchY = Math.max(controlZoneTop + joystickBaseRadius / 2, Math.min(pointer.y, height - bottomSafeMargin - joystickBaseRadius / 2));
+            const touchY = Math.max(controlZoneTop + joystickBaseRadius, Math.min(pointer.y, height - bottomSafeMargin - joystickBaseRadius));
 
             // Only move if touch is reasonably close to joystick area
             const distFromOriginal = Math.sqrt(Math.pow(pointer.x - joystickX, 2) + Math.pow(pointer.y - joystickY, 2));
@@ -1118,25 +1099,21 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         }, { passive: true });
 
-        // ============ ACTION BUTTONS (right side, arc layout above large jump button) ============
-        // New ergonomic layout:
-        //            [Special]        <- top of arc (rare use)
-        //        [Ranged]  [Melee]    <- sides of arc (frequent use)
-        //           [  JUMP  ]        <- large button at bottom (primary action)
-
-        // Jump button position (bottom-right, large)
+        const {
+            leftX,
+            rightX,
+            topY,
+            bottomY
+        } = layout.actions;
         const jumpRadius = jumpButtonSize / 2;
-        const jumpX = width - marginRight - jumpRadius - 10;
-        const jumpY = controlZoneTop + controlZoneHeight - jumpRadius - 8;
-
-        // Arc buttons positioned above jump button
-        const arcRadius = jumpRadius + spacing + secondarySize / 2; // Distance from jump center to attack buttons
-        const meleeX = jumpX + arcRadius * 0.7;    // Right side of arc
-        const meleeY = jumpY - arcRadius * 0.6;    // Slightly above jump center
-        const rangedX = jumpX - arcRadius * 0.7;   // Left side of arc
-        const rangedY = jumpY - arcRadius * 0.6;   // Slightly above jump center
-        const specialX = jumpX;                     // Top center of arc
-        const specialY = jumpY - arcRadius - spacing; // Directly above
+        const jumpX = leftX;
+        const jumpY = bottomY;
+        const meleeX = rightX;
+        const meleeY = bottomY;
+        const rangedX = rightX;
+        const rangedY = topY;
+        const specialX = leftX;
+        const specialY = topY;
 
         // Button configs for platformer - ergonomic arc layout
         const buttons = [
@@ -1188,38 +1165,16 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         ];
 
-        // Create full-width control zone background - semi-transparent
+        // The near-opaque dock creates a stable boundary below the playable view.
         const controlBg = this.add.graphics();
         controlBg.setScrollFactor(0);
         controlBg.setDepth(9998);
-        controlBg.fillStyle(0x0D0D1A, containerOpacity * 0.8);
+        controlBg.fillStyle(0x080A17, 0.9);
         controlBg.fillRect(0, controlZoneTop, width, controlZoneHeight + bottomSafeMargin);
         // Subtle top border
         controlBg.lineStyle(1, 0xFFFFFF, 0.15);
         controlBg.lineBetween(0, controlZoneTop, width, controlZoneTop);
         this.mobileControlElements.push(controlBg);
-
-        // Button container background (right side) - encompasses arc layout
-        const containerPadding = 10;
-        // Calculate bounds of all buttons on right side
-        const minButtonX = Math.min(rangedX, specialX) - secondarySize / 2;
-        const maxButtonX = Math.max(meleeX, jumpX) + Math.max(meleeButtonSize, jumpButtonSize) / 2;
-        const minButtonY = specialY - secondarySize / 2;
-        const maxButtonY = jumpY + jumpRadius;
-
-        const containerX = minButtonX - containerPadding;
-        const containerY = minButtonY - containerPadding;
-        const containerWidth = (maxButtonX - minButtonX) + containerPadding * 2;
-        const containerHeight = (maxButtonY - minButtonY) + containerPadding * 2;
-
-        const buttonContainer = this.add.graphics();
-        buttonContainer.setScrollFactor(0);
-        buttonContainer.setDepth(9999);
-        buttonContainer.fillStyle(0x1A1A3E, containerOpacity);
-        buttonContainer.fillRoundedRect(containerX, containerY, containerWidth, containerHeight, 15);
-        buttonContainer.lineStyle(1, 0x9370DB, 0.25);
-        buttonContainer.strokeRoundedRect(containerX, containerY, containerWidth, containerHeight, 15);
-        this.mobileControlElements.push(buttonContainer);
 
         // Create each button
         buttons.forEach(config => {
@@ -1227,7 +1182,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
 
         // ============ MENU BUTTON (top-left) ============
-        this.createMenuButton(marginLeft + 30, Math.max(40, safeArea.top + 20));
+        this.createMenuButton(layout.menu.x, layout.menu.y);
 
         console.log('[PlatformerLevel] Mobile controls created: Joystick + 4 action buttons + menu');
 
@@ -1815,19 +1770,29 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Create HUD - override in subclass for themed HUD
      */
     createHUD() {
+        const mobileLayout = this.detectMobile()
+            ? getMobileControlLayout({
+                width: this.scale.width,
+                height: this.scale.height,
+                safeArea: this.getSafeAreaInsets()
+            })
+            : null;
+        const hudX = mobileLayout ? mobileLayout.menu.x + 42 : 20;
+        const hudY = mobileLayout ? Math.max(12, mobileLayout.safeArea.top + 8) : 20;
+
         // Health display (hearts)
-        this.healthDisplay = this.add.container(20, 20);
+        this.healthDisplay = this.add.container(hudX, hudY);
         this.healthDisplay.setScrollFactor(0);
         this.healthDisplay.setDepth(1000);
         this.updateHealthDisplay();
 
         // Crystal energy display
-        this.energyDisplay = this.add.container(20, 60);
+        this.energyDisplay = this.add.container(hudX, hudY + 38);
         this.energyDisplay.setScrollFactor(0);
         this.energyDisplay.setDepth(1000);
         this.updateEnergyDisplay();
 
-        this.katanaUpgradeDisplay = this.add.container(20, 100);
+        this.katanaUpgradeDisplay = this.add.container(hudX, hudY + 76);
         this.katanaUpgradeDisplay.setScrollFactor(0);
         this.katanaUpgradeDisplay.setDepth(1000);
         this.layoutKatanaUpgradeDisplay();
@@ -1841,8 +1806,19 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         const screenWidth = gameSize?.width || this.cameras?.main?.width || 800;
-        const isPortraitMobile = screenWidth <= 480;
-        this.katanaUpgradeDisplay.setPosition(20, isPortraitMobile ? 168 : 100);
+        if (screenWidth <= 480) {
+            const layout = getMobileControlLayout({
+                width: screenWidth,
+                height: gameSize?.height || this.scale?.height || 800,
+                safeArea: this.getSafeAreaInsets()
+            });
+            this.katanaUpgradeDisplay.setPosition(
+                layout.menu.x + 42,
+                Math.max(88, layout.safeArea.top + 84)
+            );
+            return;
+        }
+        this.katanaUpgradeDisplay.setPosition(20, 100);
     }
 
     updateKatanaUpgradeDisplay() {

@@ -3,18 +3,27 @@ const path = require('path');
 const legal = require('../config/legal.json');
 
 describe('Cloud Save privacy contract', () => {
-    test('keeps the under-13 age-gate path local-only', () => {
+    test('uses neutral age bands and keeps under-16 paths local-only', () => {
         const under13Option = legal.ageGate.options.find(
             option => option.storeAs === 'age_under_13'
+        );
+        const teenOption = legal.ageGate.options.find(
+            option => option.storeAs === 'age_13_15'
         );
         const childrenSection = legal.privacyPolicy.sections.find(
             section => section.heading === 'Children\'s Privacy'
         );
 
-        expect(under13Option.notice).toMatch(/save locally/i);
-        expect(under13Option.notice).toMatch(/Cloud Save is unavailable/i);
-        expect(childrenSection.content).toMatch(/under 13/i);
-        expect(childrenSection.content).toMatch(/Cloud Save is unavailable/i);
+        expect(legal.ageGate.options.map(option => option.storeAs)).toEqual([
+            'age_under_13',
+            'age_13_15',
+            'age_16_17',
+            'age_18_plus'
+        ]);
+        expect(under13Option.notice).toMatch(/stay on this device/i);
+        expect(teenOption.notice).toMatch(/saved on this device/i);
+        expect(childrenSection.content).toMatch(/under 16/i);
+        expect(childrenSection.content).toMatch(/unavailable/i);
     });
 
     test('renders a local-save-only state instead of guardian self-attestation', () => {
@@ -24,7 +33,7 @@ describe('Cloud Save privacy contract', () => {
         );
 
         expect(modalSource).toContain('renderAgeRestricted');
-        expect(modalSource).toContain('Cloud Save is unavailable for under-13 profiles');
+        expect(modalSource).toContain('Cloud Save is unavailable for under-16 profiles');
         expect(modalSource).toContain('Delete Cloud Data');
         expect(modalSource).toContain('anonymous cloud identity');
         expect(modalSource).not.toContain("I am this player's parent or guardian");

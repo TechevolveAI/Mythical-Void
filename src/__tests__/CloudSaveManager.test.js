@@ -2,7 +2,7 @@ const CloudSaveManager = require('../systems/CloudSaveManager.js');
 
 function createStorage() {
     const values = new Map();
-    values.set('mythical_void_age_group', 'age_13_plus');
+    values.set('mythical_void_age_group', 'age_18_plus');
     return {
         getItem: jest.fn((key) => values.get(key) ?? null),
         setItem: jest.fn((key, value) => values.set(key, String(value))),
@@ -175,6 +175,34 @@ describe('CloudSaveManager', () => {
         expect(client.from).not.toHaveBeenCalled();
     });
 
+    test('keeps 13-to-15 profiles local-only without a guardian flow', async () => {
+        const storage = createStorage();
+        storage.setItem('mythical_void_age_group', 'age_13_15');
+        const { client } = createClient();
+        const manager = new CloudSaveManager({
+            client,
+            gameState: createGameState(),
+            storage
+        });
+
+        const status = await manager.initialize();
+
+        expect(status).toEqual(expect.objectContaining({
+            ageEligible: false,
+            ageGroup: 'age_13_15',
+            enabled: false,
+            status: 'restricted'
+        }));
+        expect(client.auth.getSession).not.toHaveBeenCalled();
+    });
+
+    test.each(['age_16_17', 'age_18_plus'])(
+        'allows optional cloud save for %s profiles',
+        (ageGroup) => {
+            expect(CloudSaveManager.isAgeGroupEligible(ageGroup)).toBe(true);
+        }
+    );
+
     test('rejects direct cloud enable calls when age confirmation is missing', async () => {
         const storage = createStorage();
         storage.removeItem('mythical_void_age_group');
@@ -186,7 +214,7 @@ describe('CloudSaveManager', () => {
         });
 
         await expect(manager.enable({ consentConfirmed: true }))
-            .rejects.toThrow('confirmed 13+ profiles');
+            .rejects.toThrow('confirmed 16+ profiles');
         expect(storage.setItem).not.toHaveBeenCalledWith(
             'mythical_void_cloud_save_enabled',
             'true'

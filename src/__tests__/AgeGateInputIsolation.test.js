@@ -8,9 +8,9 @@ describe('age gate input isolation', () => {
     );
 
     test('age and notice confirmations wait for pointer release', () => {
-        expect(source).toContain("btn.on('pointerup', onClick)");
-        expect(source).toContain("continueBtn.on('pointerup'");
-        expect(source).not.toContain("btn.on('pointerdown', onClick)");
+        expect(source).toContain("hitArea.on('pointerup', onClick)");
+        expect(source).toContain("continueHitArea.on('pointerup'");
+        expect(source).not.toContain("hitArea.on('pointerdown', onClick)");
     });
 
     test('home content is not created in the confirming pointer event', () => {

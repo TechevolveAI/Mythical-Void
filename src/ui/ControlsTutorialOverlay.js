@@ -30,6 +30,7 @@ export default class ControlsTutorialOverlay {
         }
 
         this.isVisible = true;
+        this.restoreMobileControls = this.scene.mobileControls?.suspend?.() === true;
         const { width, height } = this.scene.scale;
         const isMobile = width < 600 ||
             ('ontouchstart' in window && window.innerWidth < 768);
@@ -38,7 +39,7 @@ export default class ControlsTutorialOverlay {
         const overlay = this.scene.add.graphics();
         overlay.fillStyle(0x02080B, 0.94);
         overlay.fillRect(0, 0, width, height);
-        overlay.setDepth(10000);
+        overlay.setDepth(13000);
         overlay.setScrollFactor(0);
         this.elements.push(overlay);
 
@@ -49,14 +50,14 @@ export default class ControlsTutorialOverlay {
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 2
-        }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+        }).setOrigin(0.5).setDepth(13001).setScrollFactor(0);
         this.elements.push(title);
 
         // Subtitle
-        const subtitle = this.scene.add.text(width / 2, isMobile ? 90 : 120, 'Move gently. Stay close to your companion.', {
+        const subtitle = this.scene.add.text(width / 2, isMobile ? 90 : 120, 'You are in control. Keep the hatchling close.', {
             fontSize: isMobile ? '14px' : '19px',
             color: '#B9DAD7'
-        }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+        }).setOrigin(0.5).setDepth(13001).setScrollFactor(0);
         this.elements.push(subtitle);
 
         if (isMobile) {
@@ -66,12 +67,12 @@ export default class ControlsTutorialOverlay {
         }
 
         // Continue button
-        const continueBtn = this.scene.add.text(width / 2, height - (isMobile ? 60 : 80), 'ENTER SANCTUARY', {
+        const continueBtn = this.scene.add.text(width / 2, height - (isMobile ? 60 : 80), 'START FIELDWORK', {
             fontSize: isMobile ? '20px' : '26px',
             color: '#061116',
             backgroundColor: '#6FE7DD',
             padding: { x: 30, y: 12 }
-        }).setOrigin(0.5).setDepth(10002).setScrollFactor(0);
+        }).setOrigin(0.5).setDepth(13002).setScrollFactor(0);
         continueBtn.setInteractive({ useHandCursor: true });
         continueBtn.on('pointerup', () => this.hide());
         continueBtn.on('pointerover', () => continueBtn.setBackgroundColor('#8AF5EC'));
@@ -105,12 +106,12 @@ export default class ControlsTutorialOverlay {
             fontSize: '18px',
             color: '#4ECDC4',
             fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+        }).setOrigin(0.5).setDepth(13001).setScrollFactor(0);
         this.elements.push(moveTitle);
 
         // Draw joystick diagram
         const joystickGraphic = this.scene.add.graphics();
-        joystickGraphic.setDepth(10001).setScrollFactor(0);
+        joystickGraphic.setDepth(13001).setScrollFactor(0);
         joystickGraphic.fillStyle(0x333333, 0.8);
         joystickGraphic.fillCircle(leftX, centerY, 45);
         joystickGraphic.fillStyle(0x666666, 0.9);
@@ -126,7 +127,7 @@ export default class ControlsTutorialOverlay {
         const joystickLabel = this.scene.add.text(leftX, centerY + 70, 'Drag to move', {
             fontSize: '14px',
             color: '#AAAAAA'
-        }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+        }).setOrigin(0.5).setDepth(13001).setScrollFactor(0);
         this.elements.push(joystickLabel);
 
         // Right side: Action buttons
@@ -134,7 +135,7 @@ export default class ControlsTutorialOverlay {
             fontSize: '18px',
             color: '#FFD166',
             fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+        }).setOrigin(0.5).setDepth(13001).setScrollFactor(0);
         this.elements.push(actionTitle);
 
         // Draw action buttons
@@ -146,20 +147,20 @@ export default class ControlsTutorialOverlay {
 
         buttons.forEach(btn => {
             const btnBg = this.scene.add.graphics();
-            btnBg.setDepth(10001).setScrollFactor(0);
+            btnBg.setDepth(13001).setScrollFactor(0);
             btnBg.fillStyle(0x7B68EE, 0.8);
             btnBg.fillCircle(rightX - 50, btn.y, 22);
             this.elements.push(btnBg);
 
             const btnText = this.scene.add.text(rightX - 50, btn.y, btn.emoji, {
                 fontSize: '18px'
-            }).setOrigin(0.5).setDepth(10002).setScrollFactor(0);
+            }).setOrigin(0.5).setDepth(13002).setScrollFactor(0);
             this.elements.push(btnText);
 
             const descText = this.scene.add.text(rightX - 15, btn.y, btn.desc, {
                 fontSize: '12px',
                 color: '#FFFFFF'
-            }).setOrigin(0, 0.5).setDepth(10001).setScrollFactor(0);
+            }).setOrigin(0, 0.5).setDepth(13001).setScrollFactor(0);
             this.elements.push(descText);
         });
 
@@ -173,7 +174,7 @@ export default class ControlsTutorialOverlay {
                 align: 'center',
                 wordWrap: { width: width - 40 }
             }
-        ).setOrigin(0.5).setDepth(10001).setScrollFactor(0);
+        ).setOrigin(0.5).setDepth(13001).setScrollFactor(0);
         this.elements.push(companionNote);
     }
 
@@ -182,7 +183,7 @@ export default class ControlsTutorialOverlay {
 
         // Panel background
         const panel = this.scene.add.graphics();
-        panel.setDepth(10001).setScrollFactor(0);
+        panel.setDepth(13001).setScrollFactor(0);
         panel.fillStyle(0x071418, 0.97);
         panel.fillRoundedRect(width / 2 - 280, centerY - 180, 560, 360, 15);
         panel.lineStyle(3, 0x6FE7DD);
@@ -206,13 +207,13 @@ export default class ControlsTutorialOverlay {
                 fontSize: '18px',
                 color: '#4ECDC4',
                 fontStyle: 'bold'
-            }).setDepth(10002).setScrollFactor(0);
+            }).setDepth(13002).setScrollFactor(0);
             this.elements.push(keyText);
 
             const actionText = this.scene.add.text(width / 2 + 20, y, ctrl.action, {
                 fontSize: '18px',
                 color: '#FFFFFF'
-            }).setDepth(10002).setScrollFactor(0);
+            }).setDepth(13002).setScrollFactor(0);
             this.elements.push(actionText);
         });
     }
@@ -238,6 +239,10 @@ export default class ControlsTutorialOverlay {
             }
         });
         this.elements = [];
+        if (this.restoreMobileControls) {
+            this.scene.mobileControls?.resume?.();
+        }
+        this.restoreMobileControls = false;
 
         if (window.AudioManager) {
             window.AudioManager.playButtonClick?.();

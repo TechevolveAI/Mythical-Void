@@ -9,7 +9,7 @@
     "shortNotice": "© 2026 Tech Evolve AI"
   },
   "privacyPolicy": {
-    "lastUpdated": "2026-07-27",
+    "lastUpdated": "2026-07-30",
     "title": "Privacy Policy",
     "sections": [
       {
@@ -26,7 +26,7 @@
       },
       {
         "heading": "Children's Privacy",
-        "content": "Mythical Void is designed for players of all ages, including children. No account is required and local play remains available without Cloud Save. Cloud Save is unavailable to profiles that identify as under 13 in this release. We do not intentionally request a child's email address, exact birth date, or physical location for Cloud Save."
+        "content": "Mythical Void is designed for players of all ages, including children. No account is required and local play remains available without Cloud Save. Cloud Save and personalized external AI features are unavailable to profiles that identify as under 16 in this release. The selected age range stays on the device. We do not intentionally request a child's email address, exact birth date, or physical location."
       },
       {
         "heading": "Data Security",
@@ -90,21 +90,32 @@
   },
   "ageGate": {
     "enabled": true,
-    "title": "Welcome to Mythical Void!",
-    "subtitle": "Before we begin, please confirm:",
+    "title": "Before You Begin",
+    "subtitle": "Choose the age range that applies to you.",
     "options": [
       {
-        "label": "I am 13 years or older",
-        "action": "continue",
-        "storeAs": "age_13_plus"
-      },
-      {
-        "label": "I am under 13 years old",
+        "label": "Under 13",
         "action": "continue_with_notice",
         "storeAs": "age_under_13",
-        "notice": "That's great! Mythical Void is designed to be safe and fun for players of all ages. Your progress will save locally on this device. Cloud Save is unavailable for under-13 profiles in this release."
+        "notice": "You can still play the full game. Progress will stay on this device. Cloud Save and personalized online features will remain off."
+      },
+      {
+        "label": "13 to 15",
+        "action": "continue_with_notice",
+        "storeAs": "age_13_15",
+        "notice": "You can play the full game with progress saved on this device. Cloud Save and personalized online features will remain off unless a guardian-approved option is added in a future release."
+      },
+      {
+        "label": "16 to 17",
+        "action": "continue",
+        "storeAs": "age_16_17"
+      },
+      {
+        "label": "18 or older",
+        "action": "continue",
+        "storeAs": "age_18_plus"
       }
     ],
-    "footer": "This helps us provide the best experience for you."
+    "footer": "Used only to apply the right privacy settings on this device."
   }
 }

@@ -60,7 +60,10 @@ function loadCreatureRadialMenu(sceneWindow = {}) {
         module: { exports: {} },
         exports: {},
         console,
-        window: sceneWindow
+        window: sceneWindow,
+        localStorage: sceneWindow.localStorage || {
+            getItem: jest.fn(() => null)
+        }
     };
 
     vm.runInNewContext(transformed, sandbox, { filename: filePath });
@@ -164,7 +167,7 @@ describe('first-session Project Beacon mission loop', () => {
         expect(controlsSource).toContain(
             'PROJECT BEACON // FIELD CONTROLS'
         );
-        expect(controlsSource).toContain('ENTER SANCTUARY');
+        expect(controlsSource).toContain('START FIELDWORK');
         expect(controlsSource).toContain(
             "const isMobile = width < 600 ||"
         );
@@ -440,6 +443,12 @@ describe('first-session Project Beacon mission loop', () => {
         const CreatureRadialMenu = loadCreatureRadialMenu({
             APIConfig: {
                 isEnabled: jest.fn(() => true)
+            },
+            CloudSaveManager: {
+                isAgeGroupEligible: jest.fn(() => true)
+            },
+            localStorage: {
+                getItem: jest.fn(() => 'age_18_plus')
             }
         });
         const menu = new CreatureRadialMenu({});
@@ -454,6 +463,23 @@ describe('first-session Project Beacon mission loop', () => {
         expect(menu.menuItems.map(item => item.angle)).toEqual([
             -90, -30, 30, 90, 150, 210
         ]);
+    });
+
+    test('keeps external portrait generation off for under-16 profiles', () => {
+        const CreatureRadialMenu = loadCreatureRadialMenu({
+            APIConfig: {
+                isEnabled: jest.fn(() => true)
+            },
+            CloudSaveManager: {
+                isAgeGroupEligible: jest.fn(() => false)
+            },
+            localStorage: {
+                getItem: jest.fn(() => 'age_13_15')
+            }
+        });
+        const menu = new CreatureRadialMenu({});
+
+        expect(menu.menuItems.find(item => item.id === 'ai_art')).toBeUndefined();
     });
 
     test('keeps the radial menu inside a narrow camera view', () => {

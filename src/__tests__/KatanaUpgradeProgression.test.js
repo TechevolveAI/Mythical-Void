@@ -261,7 +261,7 @@ describe('creature-tech katana combat progression', () => {
 
         expect(source).toContain('RESONANT EDGE  +1');
         expect(source).toContain('AURORA GUARD  ${this.auroraGuardCharges}');
-        expect(source).toContain('isPortraitMobile ? 168 : 100');
+        expect(source).toContain('layout.menu.x + 42');
         expect(source).toContain(
             "['crystal', 'aurora', 'full'].includes("
         );

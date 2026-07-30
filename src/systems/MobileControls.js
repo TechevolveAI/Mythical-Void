@@ -4,12 +4,18 @@
  */
 
 import { devLog } from '../utils/devLogger.js';
+import {
+    getMobileControlLayout,
+    getSafeAreaInsets
+} from './MobileControlLayout.js';
 
 class MobileControls {
     constructor(scene) {
         this.scene = scene;
         this.isMobile = this.detectMobile();
         this.isVisible = false;
+        this.isSuspended = false;
+        this.dockBackground = null;
 
         // Joystick state
         this.joystickBase = null;
@@ -113,30 +119,7 @@ class MobileControls {
      * Uses CSS environment variables when available
      */
     getSafeAreaInsets() {
-        const computedStyle = getComputedStyle(document.documentElement);
-
-        // Try to get CSS env() values for safe areas
-        const safeTop = parseInt(computedStyle.getPropertyValue('--sat') || '0') ||
-                       parseInt(computedStyle.getPropertyValue('env(safe-area-inset-top)') || '0') || 0;
-        const safeBottom = parseInt(computedStyle.getPropertyValue('--sab') || '0') ||
-                          parseInt(computedStyle.getPropertyValue('env(safe-area-inset-bottom)') || '0') || 0;
-        const safeLeft = parseInt(computedStyle.getPropertyValue('--sal') || '0') ||
-                        parseInt(computedStyle.getPropertyValue('env(safe-area-inset-left)') || '0') || 0;
-        const safeRight = parseInt(computedStyle.getPropertyValue('--sar') || '0') ||
-                         parseInt(computedStyle.getPropertyValue('env(safe-area-inset-right)') || '0') || 0;
-
-        // Fallback: detect if likely an iPhone with notch/dynamic island
-        const isIPhoneWithNotch = /iPhone/.test(navigator.userAgent) &&
-                                  window.screen.height >= 812 &&
-                                  window.devicePixelRatio >= 2;
-
-        // Apply minimum safe areas for known devices
-        return {
-            top: Math.max(safeTop, isIPhoneWithNotch ? 44 : 0),
-            bottom: Math.max(safeBottom, isIPhoneWithNotch ? 34 : 20), // Always add some bottom padding
-            left: Math.max(safeLeft, 0),
-            right: Math.max(safeRight, 0)
-        };
+        return getSafeAreaInsets();
     }
 
     /**
@@ -315,6 +298,10 @@ class MobileControls {
         if (this.joystickBase) this.joystickBase.destroy();
         if (this.joystickThumb) this.joystickThumb.destroy();
         if (this.joystickZone) this.joystickZone.destroy();
+        if (this.dockBackground) {
+            this.dockBackground.destroy();
+            this.dockBackground = null;
+        }
 
         // Destroy button container
         if (this.buttonContainer) {
@@ -332,33 +319,85 @@ class MobileControls {
 
         this.actionButtons = {};
         this.isVisible = false;
+        this.isSuspended = false;
         devLog('[MobileControls] Mobile controls hidden');
+    }
+
+    getControlElements() {
+        const elements = [
+            this.dockBackground,
+            this.joystickGlow,
+            this.joystickBase,
+            this.joystickThumb,
+            this.joystickZone,
+            this.buttonContainer
+        ];
+        Object.values(this.actionButtons).forEach(button => {
+            elements.push(button.bg, button.icon, button.zone, button.glow);
+        });
+        return elements.filter(Boolean);
+    }
+
+    suspend() {
+        if (!this.isVisible || this.isSuspended) return false;
+        this.resetJoystick();
+        this.getControlElements().forEach(element => {
+            element.setVisible?.(false);
+            if (element.input) element.input.enabled = false;
+        });
+        this.isSuspended = true;
+        return true;
+    }
+
+    resume() {
+        if (!this.isVisible || !this.isSuspended) return;
+        this.getControlElements().forEach(element => {
+            element.setVisible?.(true);
+            if (element.input) element.input.enabled = true;
+        });
+        this.joystickGlow?.setVisible(false);
+        this.isSuspended = false;
     }
 
     /**
      * Create virtual joystick for movement
      */
     createVirtualJoystick() {
-        const { height } = this.scene.scale;
-        const config = this.getLayoutConfig();
-
-        // Edge-anchored positioning: bottom-left corner with safe area
-        // Use minimal left margin for edge-hugging placement
-        const leftMargin = config.safeLeft + 8; // Minimal margin, just safe area + tiny buffer
-        const bottomMargin = Math.max(config.margin, config.minEdgeMargin) + config.safeBottom;
-
-        const joystickX = leftMargin + config.joystickBaseRadius;
-        const joystickY = height - bottomMargin - config.joystickBaseRadius;
+        const { width, height } = this.scene.scale;
+        const layout = getMobileControlLayout({
+            width,
+            height,
+            safeArea: this.getSafeAreaInsets()
+        });
+        const joystickX = layout.joystick.x;
+        const joystickY = layout.joystick.y;
+        const joystickBaseRadius = layout.joystick.radius;
+        const joystickGlowRadius = joystickBaseRadius + 6;
+        const joystickThumbRadius = layout.joystick.thumbRadius;
 
         // Store scaled max distance for movement calculations
-        this.joystickMaxDistance = config.joystickMaxDistance;
+        this.joystickMaxDistance = layout.joystick.maxDistance;
+
+        if (!this.dockBackground) {
+            this.dockBackground = this.scene.add.graphics();
+            this.dockBackground.setScrollFactor(0).setDepth(9998);
+            this.dockBackground.fillStyle(0x080A17, 0.9);
+            this.dockBackground.fillRect(
+                0,
+                layout.dockTop,
+                width,
+                height - layout.dockTop
+            );
+            this.dockBackground.lineStyle(1, 0x8FE3CF, 0.35);
+            this.dockBackground.lineBetween(0, layout.dockTop, width, layout.dockTop);
+        }
 
         // Create glow ring (initially invisible, shown when active)
         this.joystickGlow = this.scene.add.graphics();
         this.joystickGlow.setScrollFactor(0);
         this.joystickGlow.setDepth(9999); // Behind base
         this.joystickGlow.lineStyle(6, 0x00CED1, 0.6);
-        this.joystickGlow.strokeCircle(joystickX, joystickY, config.joystickGlowRadius);
+        this.joystickGlow.strokeCircle(joystickX, joystickY, joystickGlowRadius);
         this.joystickGlow.setAlpha(0); // Start invisible
 
         // Create base circle
@@ -366,25 +405,29 @@ class MobileControls {
         this.joystickBase.setScrollFactor(0);
         this.joystickBase.setDepth(10000);
         this.joystickBase.fillStyle(0x000000, 0.3);
-        this.joystickBase.fillCircle(joystickX, joystickY, config.joystickBaseRadius);
+        this.joystickBase.fillCircle(joystickX, joystickY, joystickBaseRadius);
         this.joystickBase.lineStyle(3, 0xFFFFFF, 0.5);
-        this.joystickBase.strokeCircle(joystickX, joystickY, config.joystickBaseRadius);
+        this.joystickBase.strokeCircle(joystickX, joystickY, joystickBaseRadius);
 
         // Create thumb (moveable part)
         this.joystickThumb = this.scene.add.graphics();
         this.joystickThumb.setScrollFactor(0);
         this.joystickThumb.setDepth(10001);
         this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-        this.joystickThumb.fillCircle(joystickX, joystickY, config.joystickThumbRadius);
+        this.joystickThumb.fillCircle(joystickX, joystickY, joystickThumbRadius);
         this.joystickThumb.lineStyle(2, 0x00CED1, 1);
-        this.joystickThumb.strokeCircle(joystickX, joystickY, config.joystickThumbRadius);
+        this.joystickThumb.strokeCircle(joystickX, joystickY, joystickThumbRadius);
 
         // Store thumb radius for movement updates
-        this.joystickThumbRadius = config.joystickThumbRadius;
+        this.joystickThumbRadius = joystickThumbRadius;
 
         // Create invisible zone for touch handling (MUCH larger than visual for reliable tracking)
-        const zoneSize = config.joystickBaseRadius * 5; // Touch zone 5x the base radius for smooth dragging
-        this.joystickZone = this.scene.add.zone(joystickX, joystickY, zoneSize, zoneSize)
+        this.joystickZone = this.scene.add.zone(
+            layout.joystick.zoneWidth / 2,
+            joystickY,
+            layout.joystick.zoneWidth,
+            layout.joystick.zoneHeight
+        )
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(10002) // Above all joystick visual elements to receive touch
@@ -393,7 +436,7 @@ class MobileControls {
         // Enable draggable for mobile drag events
         this.scene.input.setDraggable(this.joystickZone);
 
-        console.log('[MobileControls] Joystick zone created at', joystickX, joystickY, 'size:', zoneSize, 'depth:', 10002);
+        console.log('[MobileControls] Joystick zone created in bottom dock');
 
         // Store center position
         this.joystickCenterX = joystickX;
@@ -666,25 +709,19 @@ class MobileControls {
      */
     createActionButtons() {
         const { width, height } = this.scene.scale;
-        const config = this.getLayoutConfig();
-
-        // Layout constants - scaled for screen size with safe area
-        const buttonSize = config.buttonSize;
-        const primarySize = config.primaryButtonSize;
-        const spacing = config.spacing;
-        const marginRight = Math.max(config.margin, config.minEdgeMargin) + config.safeRight;
-        const marginBottom = Math.max(config.margin, config.minEdgeMargin) + config.safeBottom;
-
-        // Edge-anchored positioning: bottom-right corner with safe area
-        // Right column X (primary actions - Attack, Inventory)
-        const rightColX = width - marginRight - primarySize / 2;
-        // Left column X (secondary actions - Chat, Action)
-        const leftColX = rightColX - primarySize - spacing;
-
-        // Bottom row Y (Attack, Action)
-        const bottomRowY = height - marginBottom - primarySize / 2;
-        // Top row Y (Inventory, Chat)
-        const topRowY = bottomRowY - primarySize - spacing;
+        const layout = getMobileControlLayout({
+            width,
+            height,
+            safeArea: this.getSafeAreaInsets()
+        });
+        const buttonSize = layout.secondarySize;
+        const primarySize = layout.primarySize;
+        const {
+            leftX: leftColX,
+            rightX: rightColX,
+            topY: topRowY,
+            bottomY: bottomRowY
+        } = layout.actions;
 
         // Button configurations in optimal game design order:
         // Top-Left: Chat (social/secondary)
@@ -737,9 +774,6 @@ class MobileControls {
                 priority: 'primary'
             }
         ];
-
-        // Create button container background for visual grouping
-        this.createButtonContainer(leftColX, topRowY, rightColX, bottomRowY, buttonSize, primarySize, spacing);
 
         buttons.forEach(config => {
             this.createActionButton(config);

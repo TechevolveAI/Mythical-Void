@@ -41,44 +41,44 @@
       "title": "PROJECT BEACON",
       "subtitle": "Mission Log // 2026",
       "icon": "📡",
-      "content": "The Wanderer-7 never reached its target.\nOne astronaut survived the crash.\n\nYou left a divided Earth in cascading crisis,\nsent beyond known space to find something\nthat could help humanity endure.",
+      "content": "Wanderer-7 missed its target and fell beyond mapped space.\n\nYou survived. Earth is still waiting for the mission that was meant to help it endure.",
       "color": "#66C7D4"
     },
     {
       "title": "EARTH DIRECTIVE",
       "subtitle": "Priority Transmission // Fragment 04",
       "icon": "🌍",
-      "content": "LOCATE viable energy, mineral, and biological samples.\nRESTORE the uplink. REPORT all signs of life.\n\nMission Control's final instruction survived the impact:\nEarth comes first. The cost was never discussed.",
+      "content": "Locate viable energy, mineral, and biological samples. Restore the uplink. Report all signs of life.\n\nMission Control's final order survived the impact: Earth comes first.",
       "color": "#F2C14E"
     },
     {
       "title": "IMPACT",
       "subtitle": "Wanderer-7 // Systems Critical",
       "icon": "🚀",
-      "content": "The hull is broken. The emergency beacon is silent.\nThe crew modules are missing.\n\nYour field katana, forged from Earth's best materials,\nsurvived in its case. Most of the science bay did not.\nThe ship will need parts this world may be able to provide.",
+      "content": "The hull is breached and the emergency beacon is silent.\n\nYour Earth-forged field katana survived in its case. Most of the science bay did not.",
       "color": "#EF767A"
     },
     {
-      "title": "FIRST CONTACT",
+      "title": "FIRST OBSERVATION",
       "subtitle": "Field Note // Classification Pending",
       "icon": "✨",
-      "content": "The creature did not behave like a specimen.\nIt watched. It understood. It chose to stay.\n\nThis is the first confirmed life beyond Earth,\nand it has offered trust before you have earned it.\nObserve carefully. Protect it. Do not assume.",
+      "content": "The hatchling tracks movement, responds to tone, and avoids the scanner. Intelligence is unconfirmed.\n\nDo not treat it as a specimen. Observe. Protect. Learn.",
       "color": "#8FE3CF"
     },
     {
-      "title": "FIND YOUR FOOTING",
+      "title": "FIELD PLAN",
       "subtitle": "Immediate Field Plan",
       "icon": "🥋",
-      "content": "Stabilize your companion. Survey the living signals.\nFind a route beyond the crash site.\n\nSensei always said: first, learn your footing.\nAfter falling out of the sky, that feels annoyingly relevant.",
+      "content": "Stabilize the hatchling. Earn its trust. Recover your field kit. Survey the nearby signals. Find a safe route from the crash site.\n\nSensei always said to begin with your footing. He probably meant on the ground.",
       "color": "#BFA6FF"
     }
   ],
   "fieldMissions": [
     {
       "id": "beacon_first_contact",
-      "name": "Care for Your Companion",
-      "description": "Feed or play with your new companion once.",
-      "briefing": "The first thing your companion offered was trust. Answer it with care, not a scanner.",
+      "name": "Establish Trust",
+      "description": "Offer food or play once.",
+      "briefing": "The hatchling is watching what you do. Begin without instruments.",
       "fieldNote": "Easy. Sensei said trust begins with how you enter the room. We entered through the roof.",
       "guidanceDesktop": "Press TAB, then choose Feed or Play.",
       "guidanceMobile": "Tap your companion, choose Care, then Feed or Play.",

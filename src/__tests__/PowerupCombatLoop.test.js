@@ -107,6 +107,11 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
         )
         .replace("import '../systems/ProjectBeaconFieldKit.js';", '')
         .replace(
+            "import { getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';",
+            'const getMobileControlLayout = () => ({});\n' +
+            'const getSafeAreaInsets = () => ({ top: 0, right: 0, bottom: 0, left: 0 });'
+        )
+        .replace(
             "import bossConfigs from '../config/bosses.json';",
             'const bossConfigs = {};'
         )

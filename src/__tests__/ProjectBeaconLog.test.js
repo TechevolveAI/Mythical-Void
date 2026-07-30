@@ -75,7 +75,7 @@ describe('Project Beacon mission log', () => {
         const log = getProjectBeaconLog(createGameState());
 
         expect(log.phase).toBe('FIRST CONTACT');
-        expect(log.directive).toBe('Care for Your Companion');
+        expect(log.directive).toBe('Establish Trust');
         expect(log.companion).toEqual({ name: 'Luma', bondLevel: 3 });
         expect(log.recoveredSystems).toBe(0);
         expect(log.systems.every(system => system.recovered === false)).toBe(true);
