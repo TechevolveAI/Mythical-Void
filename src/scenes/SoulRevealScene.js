@@ -1440,9 +1440,9 @@ export default class SoulRevealScene extends Phaser.Scene {
         const { width, height } = this.scale;
         const compact = height < 660;
         const image = document.createElement('img');
-        image.src = record.imageUrl;
         image.alt = `AI-generated living portrait of ${finalName}`;
         image.referrerPolicy = 'no-referrer';
+        image.decoding = 'async';
         image.style.width = `${Math.min(width - 48, compact ? 250 : 320)}px`;
         image.style.height = `${Math.min(height - 250, compact ? 250 : 360)}px`;
         image.style.objectFit = 'contain';
@@ -1450,16 +1450,33 @@ export default class SoulRevealScene extends Phaser.Scene {
         image.style.borderRadius = '8px';
         image.style.background = '#101820';
         image.style.boxShadow = '0 10px 30px rgba(111, 231, 221, 0.24)';
+        image.style.visibility = 'hidden';
 
-        this.portraitDomElement = this.add.dom(
-            width / 2,
-            height / 2 - (compact ? 18 : 28),
-            image
-        ).setDepth(25);
-        title.setText(`${finalName.toUpperCase()} // LIVING FORM`);
-        status.setText('AI-GENERATED INTERPRETATION // Saved to creature profile');
-        status.setColor('#8FE3CF');
-        window.AudioManager?.playLevelUp?.();
+        image.onload = () => {
+            if (!this.portraitHandoffActive || this.portraitDomElement) {
+                return;
+            }
+            image.style.visibility = 'visible';
+            this.portraitDomElement = this.add.dom(
+                width / 2,
+                height / 2 - (compact ? 18 : 28),
+                image
+            ).setDepth(25);
+            title.setText(`${finalName.toUpperCase()} // LIVING FORM`);
+            status.setText('AI-GENERATED INTERPRETATION // Saved to creature profile');
+            status.setColor('#8FE3CF');
+            window.AudioManager?.playLevelUp?.();
+        };
+        image.onerror = () => {
+            image.remove();
+            if (this.portraitHandoffActive) {
+                status.setText(
+                    'The living portrait could not be opened. Continue now; the Beacon will retry later.'
+                );
+                status.setColor('#FFCC66');
+            }
+        };
+        image.src = record.imageUrl;
     }
 
     /**

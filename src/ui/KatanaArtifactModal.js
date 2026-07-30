@@ -146,10 +146,23 @@ export default class KatanaArtifactModal {
         const media = document.createElement('div');
         media.className = 'katana-artifact-media';
         const image = document.createElement('img');
-        image.src = presentation.imageUrl;
         image.alt = `${presentation.title}, AI-assisted concept artwork`;
         image.decoding = 'async';
         image.draggable = false;
+        image.style.visibility = 'hidden';
+        image.onload = () => {
+            image.style.visibility = 'visible';
+        };
+        image.onerror = () => {
+            image.remove();
+            const fallback = createTextElement(
+                'p',
+                'katana-artifact-media-fallback',
+                'ARTIFACT VISUAL OFFLINE'
+            );
+            media.prepend(fallback);
+        };
+        image.src = presentation.imageUrl;
         media.append(image);
 
         const generatedLabel = createTextElement(

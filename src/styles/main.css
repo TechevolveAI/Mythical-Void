@@ -203,6 +203,14 @@ body.game-mode {
   user-select: none;
 }
 
+.katana-artifact-media-fallback {
+  margin: 0;
+  color: #9fb0b9;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .katana-artifact-generated {
   position: absolute;
   right: 10px;

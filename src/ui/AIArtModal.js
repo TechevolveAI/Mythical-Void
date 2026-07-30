@@ -449,8 +449,8 @@ class AIArtModal {
 
         // Create HTML img element for the result
         const img = document.createElement('img');
-        img.src = imageUrl;
         img.referrerPolicy = 'no-referrer';
+        img.decoding = 'async';
 
         img.style.cssText = `
             position: fixed;
@@ -466,32 +466,34 @@ class AIArtModal {
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(147, 112, 219, 0.6);
             background-color: #1A1A3E;
+            visibility: hidden;
         `;
 
         img.onload = () => {
             img.style.backgroundColor = 'transparent';
+            img.style.visibility = 'visible';
             devLog('[AIArtModal] Image displayed successfully');
         };
 
         img.onerror = () => {
             devWarn('[AIArtModal] Failed to display generated image');
+            img.remove();
+            this.htmlElements = this.htmlElements.filter(element => element !== img);
             this.previewText = this.scene.add.text(
                 this.scene.cameras.main.width / 2,
                 this.previewY + this.previewHeight / 2,
-                '⚠️ Image display failed\nURL copied to clipboard', {
+                'Portrait could not be opened.\nThe Beacon will retry later.', {
                 fontSize: '14px',
                 fontFamily: 'Arial, sans-serif',
                 color: '#FFAA00',
                 align: 'center'
             }).setOrigin(0.5).setScrollFactor(0).setDepth(17003);
             this.elements.push(this.previewText);
-
-            // Copy URL to clipboard as fallback
-            navigator.clipboard?.writeText(imageUrl);
         };
 
         document.body.appendChild(img);
         this.htmlElements.push(img);
+        img.src = imageUrl;
 
         // Add download/share buttons
         this.addActionButtons();
