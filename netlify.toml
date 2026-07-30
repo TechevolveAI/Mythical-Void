@@ -19,6 +19,8 @@
   NPM_CONFIG_PRODUCTION = "false"
   ENABLE_API_FEATURES = "false"
   VITE_ENABLE_API_FEATURES = "false"
+  ENABLE_AI_PORTRAITS = "false"
+  VITE_ENABLE_AI_PORTRAITS = "false"
 
 # Redirect rules for single-page application behavior
 [[redirects]]
@@ -103,16 +105,22 @@
   NODE_ENV = "production"
   ENABLE_API_FEATURES = "false"
   VITE_ENABLE_API_FEATURES = "false"
+  ENABLE_AI_PORTRAITS = "false"
+  VITE_ENABLE_AI_PORTRAITS = "false"
 
 [context.deploy-preview.environment]
   NODE_ENV = "staging"
   ENABLE_API_FEATURES = "false"
   VITE_ENABLE_API_FEATURES = "false"
+  ENABLE_AI_PORTRAITS = "false"
+  VITE_ENABLE_AI_PORTRAITS = "false"
 
 [context.branch-deploy.environment]
   NODE_ENV = "development"
   ENABLE_API_FEATURES = "true"
   VITE_ENABLE_API_FEATURES = "true"
+  ENABLE_AI_PORTRAITS = "false"
+  VITE_ENABLE_AI_PORTRAITS = "false"
 
 # Form handling (future use for feedback/contact forms)
 [forms]

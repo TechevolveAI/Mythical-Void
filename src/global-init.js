@@ -54,6 +54,7 @@ import './systems/ParallaxBiome.js';
 import './systems/RaritySystem.js';
 import './systems/RerollSystem.js';
 import './systems/CreatureGenetics.js';
+import './systems/CreaturePortraitSpec.js';
 import './systems/CreatureDNA.js';
 import './systems/PersonalitySystem.js';
 import './systems/CreatureAIController.js';

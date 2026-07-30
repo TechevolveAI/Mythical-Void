@@ -29,12 +29,16 @@ class APIConfig {
         // Note: This is configured via Netlify environment variables, not client-side
         // The client calls a Netlify function which has the API key server-side
         this.config.apiFeaturesEnabled = window.envLoader.getBool('ENABLE_API_FEATURES', false);
-        this.config.replicateConfigured = this.config.apiFeaturesEnabled;
+        this.config.aiPortraitsEnabled = (
+            this.config.apiFeaturesEnabled &&
+            window.envLoader.getBool('ENABLE_AI_PORTRAITS', false)
+        );
+        this.config.replicateConfigured = this.config.aiPortraitsEnabled;
 
         this.initialized = true;
         console.log(
             `[APIConfig] Initialized (optional API features ${
-                this.config.apiFeaturesEnabled ? 'enabled' : 'disabled'
+                this.config.aiPortraitsEnabled ? 'enabled' : 'disabled'
             })`
         );
     }
@@ -59,7 +63,7 @@ class APIConfig {
      * Check if API features are available
      */
     isEnabled() {
-        return this.initialized && this.config.apiFeaturesEnabled === true;
+        return this.initialized && this.config.aiPortraitsEnabled === true;
     }
 
     /**
@@ -68,7 +72,7 @@ class APIConfig {
     getPublicConfig() {
         return {
             aiArtGeneration: {
-                provider: 'Replicate (via Netlify function)',
+                provider: 'Replicate official model (via Netlify function)',
                 available: this.isEnabled(),
                 status: this.isEnabled() ? 'enabled' : 'disabled',
                 euAiActCompliance: 'Images labeled as AI-generated'

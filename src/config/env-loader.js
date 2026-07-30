@@ -22,6 +22,7 @@ class EnvironmentLoader {
         const mappings = {
             NODE_ENV: envSource.MODE || envSource.VITE_NODE_ENV,
             ENABLE_API_FEATURES: envSource.VITE_ENABLE_API_FEATURES,
+            ENABLE_AI_PORTRAITS: envSource.VITE_ENABLE_AI_PORTRAITS,
             PORT: envSource.VITE_PORT,
             DEBUG: envSource.VITE_DEBUG,
             GAME_SAVE_PREFIX: envSource.VITE_GAME_SAVE_PREFIX,
@@ -51,6 +52,7 @@ class EnvironmentLoader {
             AUTO_SAVE_INTERVAL: '30000',
             MAX_SAVE_SLOTS: '3',
             ENABLE_API_FEATURES: 'false',
+            ENABLE_AI_PORTRAITS: 'false',
             CORS_ORIGINS: 'http://localhost:8080,http://127.0.0.1:8080'
         };
     }
@@ -107,7 +109,8 @@ class EnvironmentLoader {
     getPublicConfig() {
         const publicKeys = [
             'NODE_ENV', 'PORT', 'DEBUG', 'GAME_SAVE_PREFIX', 
-            'AUTO_SAVE_INTERVAL', 'MAX_SAVE_SLOTS', 'ENABLE_API_FEATURES'
+            'AUTO_SAVE_INTERVAL', 'MAX_SAVE_SLOTS', 'ENABLE_API_FEATURES',
+            'ENABLE_AI_PORTRAITS'
         ];
         
         const publicConfig = {};

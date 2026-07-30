@@ -1,8 +1,8 @@
 /**
- * AIArtModal - Generate realistic AI art of your creature
+ * AIArtModal - Generate a living portrait of the active creature
  *
- * Uses Replicate API via Netlify function to transform creature images
- * into beautiful artistic renditions in various styles.
+ * The pixel creature remains the gameplay identity. This optional portrait
+ * uses its rendered sprite and normalized genetics as visual references.
  */
 
 import { devLog, devWarn } from '../utils/devLogger.js';
@@ -14,16 +14,15 @@ class AIArtModal {
         this.isGenerating = false;
         this.elements = [];
         this.htmlElements = [];
-        this.currentStyle = 'fantasy';
+        this.currentStyle = 'cinematic';
         this.generatedImageUrl = null;
 
         // Available art styles
         this.styles = [
-            { id: 'realistic', label: '📷 Realistic', desc: 'Photorealistic render' },
-            { id: 'fantasy', label: '✨ Fantasy', desc: 'Magical fantasy art' },
-            { id: 'anime', label: '🎨 Anime', desc: 'Studio Ghibli inspired' },
-            { id: 'oil_painting', label: '🖼️ Oil Painting', desc: 'Classical masterpiece' },
-            { id: 'cosmic', label: '🌌 Cosmic', desc: 'Space nebula theme' }
+            { id: 'cinematic', label: 'Cinematic', desc: 'Detailed creature portrait' },
+            { id: 'storybook', label: 'Storybook', desc: 'Warm painted illustration' },
+            { id: 'cosmic', label: 'Cosmic', desc: 'Luminous science fantasy' },
+            { id: 'watercolor', label: 'Watercolor', desc: 'Soft traditional media' }
         ];
     }
 
@@ -52,9 +51,7 @@ class AIArtModal {
         overlay.setScrollFactor(0);
         overlay.setDepth(17000);
         overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
-        overlay.on('pointerdown', () => {
-            if (!this.isGenerating) this.close();
-        });
+        overlay.on('pointerdown', () => this.close());
         this.elements.push(overlay);
 
         // Modal panel
@@ -73,7 +70,7 @@ class AIArtModal {
         this.elements.push(panel);
 
         // Title
-        const title = this.scene.add.text(centerX, panelY + 25, '🎨 AI Art Generator', {
+        const title = this.scene.add.text(centerX, panelY + 25, 'Living Portrait', {
             fontSize: isMobile ? '20px' : '24px',
             fontFamily: 'Arial, sans-serif',
             color: '#FFD700',
@@ -84,7 +81,7 @@ class AIArtModal {
         // Subtitle
         const creatureName = creatureData?.name || 'Your Creature';
         const subtitle = this.scene.add.text(centerX, panelY + 55,
-            `Transform ${creatureName} into realistic art!`, {
+            `Reveal ${creatureName} beyond the pixel form`, {
             fontSize: '14px',
             fontFamily: 'Arial, sans-serif',
             color: '#AAAAFF',
@@ -174,7 +171,7 @@ class AIArtModal {
 
         // Preview placeholder
         this.previewText = this.scene.add.text(centerX, previewY + previewHeight / 2,
-            '✨ Your AI art will appear here', {
+            'Your AI-generated portrait will appear here', {
             fontSize: '14px',
             fontFamily: 'Arial, sans-serif',
             color: '#666666'
@@ -184,7 +181,7 @@ class AIArtModal {
         // Generate button
         const generateY = previewY + previewHeight + 20;
 
-        this.generateBtn = this.scene.add.text(centerX, generateY, '🚀 Generate AI Art', {
+        this.generateBtn = this.scene.add.text(centerX, generateY, 'Generate Portrait', {
             fontSize: '18px',
             fontFamily: 'Arial, sans-serif',
             color: '#FFFFFF',
@@ -205,7 +202,7 @@ class AIArtModal {
 
         // Cost info
         const costText = this.scene.add.text(centerX, generateY + 45,
-            '💫 Free during beta!', {
+            'Optional AI feature. Pixel gameplay is unchanged.', {
             fontSize: '12px',
             fontFamily: 'Arial, sans-serif',
             color: '#88FF88'
@@ -221,14 +218,12 @@ class AIArtModal {
         closeBtn.setInteractive({ useHandCursor: true });
         closeBtn.on('pointerover', () => closeBtn.setColor('#FFFFFF'));
         closeBtn.on('pointerout', () => closeBtn.setColor('#888888'));
-        closeBtn.on('pointerdown', () => {
-            if (!this.isGenerating) this.close();
-        });
+        closeBtn.on('pointerdown', () => this.close());
         this.elements.push(closeBtn);
 
         // ESC to close
         this.escHandler = (event) => {
-            if (event.key === 'Escape' && !this.isGenerating) {
+            if (event.key === 'Escape') {
                 this.close();
             }
         };
@@ -236,6 +231,16 @@ class AIArtModal {
 
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
+        }
+
+        const existingPortrait = window.GameState?.getCreaturePortrait?.(creatureData?.stage);
+        if (existingPortrait?.imageUrl) {
+            this.generatedImageUrl = existingPortrait.imageUrl;
+            this.displayGeneratedImage(existingPortrait.imageUrl);
+        } else if (this.isGenerating) {
+            this.previewText?.setText('A living portrait is already forming...\nYou can close this and keep playing.');
+            this.generateBtn?.setText('Generating...');
+            this.generateBtn?.setStyle({ backgroundColor: '#555555' });
         }
 
         devLog('[AIArtModal] Opened');
@@ -281,54 +286,74 @@ class AIArtModal {
         }
 
         this.isGenerating = true;
-        this.generateBtn.setText('⏳ Generating...');
-        this.generateBtn.setStyle({ backgroundColor: '#555555' });
-        this.previewText.setText('🎨 Creating your masterpiece...\nThis may take 30-60 seconds');
+        this.generateBtn?.setText('Generating...');
+        this.generateBtn?.setStyle({ backgroundColor: '#555555' });
+        this.previewText?.setText('A living portrait is forming...\nClose this window to keep playing.');
 
         try {
-            // Prepare creature data for the API
+            const portraitSpec = window.CreaturePortraitSpec?.create?.(this.creatureData);
+            if (!portraitSpec || !window.CreaturePortraitSpec?.isValid?.(portraitSpec)) {
+                throw new Error('Creature identity is incomplete');
+            }
+
+            const referenceImage = this.captureCreatureReference();
             const requestData = {
                 style: this.currentStyle,
-                creatureData: {
-                    name: this.creatureData?.name || 'Mythical Creature',
-                    personality: this.creatureData?.personality?.core || 'curious',
-                    rarity: this.creatureData?.rarity || 'common',
-                    colors: {
-                        primary: this.getColorName(this.creatureData?.traits?.colorGenome?.primary),
-                        secondary: this.getColorName(this.creatureData?.traits?.colorGenome?.secondary),
-                        accent: this.getColorName(this.creatureData?.traits?.colorGenome?.accent)
-                    },
-                    bodyType: this.creatureData?.traits?.bodyShape?.type || 'balanced',
-                    cosmicAffinity: this.creatureData?.cosmicAffinity?.element || 'star'
-                },
-                mode: 'text2img' // Generate from description (safer, no base64 needed)
+                portraitSpec,
+                referenceImage
             };
 
-            devLog('[AIArtModal] Requesting AI generation:', requestData);
+            devLog('[AIArtModal] Requesting portrait generation:', {
+                identityKey: portraitSpec.identityKey,
+                style: this.currentStyle,
+                hasReferenceImage: Boolean(referenceImage)
+            });
 
             // Call the Netlify function
-            const response = await fetch('/.netlify/functions/generate-ai-art', {
+            let response = await fetch('/.netlify/functions/generate-ai-art', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestData)
             });
 
-            // Check for HTTP errors before parsing JSON
             if (!response.ok) {
-                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                const failure = await response.json().catch(() => ({}));
+                throw new Error(failure.error || `Portrait service error (${response.status})`);
             }
 
-            const result = await response.json();
+            let result = await response.json();
+            if (result.status !== 'succeeded' && result.predictionId) {
+                this.previewText?.setText('The portrait is rendering...\nYour creature identity is locked in.');
+                result = await this.waitForPrediction(result.predictionId);
+            }
 
             if (!result.success) {
                 throw new Error(result.error || 'Generation failed');
             }
 
-            devLog('[AIArtModal] Generated image URL:', result.imageUrl);
+            devLog('[AIArtModal] Portrait generated:', result.predictionId);
             this.generatedImageUrl = result.imageUrl;
+            window.GameState?.saveCreaturePortrait?.({
+                identityKey: portraitSpec.identityKey,
+                stage: portraitSpec.stage,
+                style: this.currentStyle,
+                imageUrl: result.imageUrl,
+                provider: result.provider,
+                model: result.model,
+                promptVersion: portraitSpec.promptVersion,
+                generatedAt: Date.now(),
+                expiresAt: result.expiresAt,
+                storage: result.storage
+            });
 
-            // Display the generated image
-            this.displayGeneratedImage(result.imageUrl);
+            if (this.isVisible) {
+                this.displayGeneratedImage(result.imageUrl);
+            } else {
+                window.GameState?.emit?.('notification', {
+                    type: 'portraitReady',
+                    message: `${portraitSpec.name}'s living portrait is ready`
+                });
+            }
 
             // Play success sound
             if (window.AudioManager) {
@@ -337,16 +362,87 @@ class AIArtModal {
 
         } catch (error) {
             console.error('[AIArtModal] Generation error:', error);
-            this.previewText.setText(`❌ Generation failed\n${error.message}\n\nTry again later`);
+            this.previewText?.setText(`Portrait unavailable\n${error.message}\n\nTry again later`);
 
             if (window.AudioManager) {
                 window.AudioManager.playError();
             }
         } finally {
             this.isGenerating = false;
-            this.generateBtn.setText('🚀 Generate Again');
-            this.generateBtn.setStyle({ backgroundColor: '#9370DB' });
+            if (this.isVisible) {
+                this.generateBtn?.setText('Generate Again');
+                this.generateBtn?.setStyle({ backgroundColor: '#9370DB' });
+            }
         }
+    }
+
+    captureCreatureReference() {
+        const sprite = this.creatureSprite;
+        const frame = sprite?.frame;
+        const sourceImage = frame?.source?.image;
+        if (!frame || !sourceImage || typeof document === 'undefined') return null;
+
+        try {
+            const canvas = document.createElement('canvas');
+            const size = 256;
+            const padding = 24;
+            canvas.width = size;
+            canvas.height = size;
+            const context = canvas.getContext('2d');
+            context.imageSmoothingEnabled = false;
+
+            const sourceWidth = frame.cutWidth || frame.width;
+            const sourceHeight = frame.cutHeight || frame.height;
+            const scale = Math.min(
+                (size - padding * 2) / sourceWidth,
+                (size - padding * 2) / sourceHeight
+            );
+            const drawWidth = Math.max(1, Math.round(sourceWidth * scale));
+            const drawHeight = Math.max(1, Math.round(sourceHeight * scale));
+            const drawX = Math.round((size - drawWidth) / 2);
+            const drawY = Math.round((size - drawHeight) / 2);
+
+            context.drawImage(
+                sourceImage,
+                frame.cutX,
+                frame.cutY,
+                sourceWidth,
+                sourceHeight,
+                drawX,
+                drawY,
+                drawWidth,
+                drawHeight
+            );
+
+            const dataUrl = canvas.toDataURL('image/png');
+            return dataUrl.length <= 350000 ? dataUrl : null;
+        } catch (error) {
+            devWarn('[AIArtModal] Could not capture creature reference:', error.message);
+            return null;
+        }
+    }
+
+    async waitForPrediction(predictionId) {
+        const startedAt = Date.now();
+        const timeoutMs = 120000;
+
+        while (Date.now() - startedAt < timeoutMs) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const response = await fetch(
+                `/.netlify/functions/generate-ai-art?predictionId=${encodeURIComponent(predictionId)}`,
+                { headers: { Accept: 'application/json' } }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.error || `Portrait status error (${response.status})`);
+            }
+            if (result.status === 'succeeded') return result;
+            if (result.status === 'failed' || result.status === 'canceled') {
+                throw new Error(result.error || 'Portrait generation failed');
+            }
+        }
+
+        throw new Error('Portrait generation is taking longer than expected');
     }
 
     /**

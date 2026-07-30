@@ -49,14 +49,15 @@ Mythical Void is a child-focused virtual pet game (ages 8-14) that has been desi
 | Aspect | Details |
 |--------|---------|
 | **System Name** | AI Art Generator |
-| **AI Provider** | Replicate API (Stable Diffusion XL) |
+| **AI Provider** | Replicate API (official image model, configurable) |
 | **Risk Category** | **Limited Risk** |
 | **Transparency Obligation** | Images labeled as AI-generated |
 
 **Technical Implementation:**
 - User explicitly requests AI art generation (opt-in only)
 - API calls made via Netlify serverless function (server-side)
-- Generated images are clearly labeled as "AI Generated"
+- Generated images are clearly identified as AI-generated
+- Production use requires a separate feature gate, persistent storage, and usage controls
 - Download filenames include "ai_art" identifier
 
 **Code Reference:** `netlify/functions/generate-ai-art.js`

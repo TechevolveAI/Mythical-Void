@@ -1,315 +1,369 @@
 /**
- * Netlify Function: AI Art Generator
+ * Living portrait generation gateway.
  *
- * Transforms creature images into realistic/artistic versions using AI
- * Supports multiple backends: Replicate, OpenArt, Stability AI
- *
- * Request body:
- * {
- *   imageBase64: string,        // Base64 encoded creature image
- *   prompt: string,             // Generated prompt from creature traits
- *   style: string,              // Art style: 'realistic', 'fantasy', 'anime', 'oil_painting'
- *   creatureData: object        // Creature metadata for prompt enhancement
- * }
+ * The function accepts only a normalized creature identity contract and builds
+ * the provider prompt server-side. Generation is asynchronous: POST starts a
+ * prediction and GET polls its status.
  */
 
-const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
-const OPENART_API_KEY = process.env.OPENART_API_KEY;
+const REPLICATE_MODEL = process.env.REPLICATE_IMAGE_MODEL || 'openai/gpt-image-2';
+const REPLICATE_API_BASE = 'https://api.replicate.com/v1';
+const MAX_BODY_BYTES = 400000;
+const OUTPUT_TTL_MS = 55 * 60 * 1000;
+const PREDICTION_ID_PATTERN = /^[a-z0-9]{8,64}$/i;
+const ALLOWED_STYLES = new Set(['cinematic', 'storybook', 'cosmic', 'watercolor']);
+const ALLOWED_SPECIES = new Set([
+    'stellarWyrm',
+    'crystalDrake',
+    'nebulaSprite',
+    'voidStalker',
+    'cosmicGuardian',
+    'auroraPhoenix',
+    'crystalElemental'
+]);
+const PERSONALITY_DESCRIPTIONS = Object.freeze({
+    curious: 'intelligent, inquisitive, and eager to discover',
+    playful: 'joyful, energetic, and gently mischievous',
+    gentle: 'kind, calm, caring, and peaceful',
+    wise: 'thoughtful, perceptive, and quietly ancient',
+    energetic: 'active, enthusiastic, and full of bright life'
+});
+const AFFINITY_DESCRIPTIONS = Object.freeze({
+    star: 'golden shimmer and restrained star sparkles',
+    moon: 'soft silver light and crescent details',
+    nebula: 'subtle color shifting and a fine mist trail',
+    crystal: 'prismatic refractions and crystalline resonance',
+    void: 'a deep star field and soft dimensional shadows'
+});
 
-// Supported art styles with prompt modifiers
-const STYLE_MODIFIERS = {
-    realistic: 'photorealistic, highly detailed, 8k resolution, cinematic lighting, professional photography',
-    fantasy: 'fantasy art style, magical atmosphere, ethereal glow, mystical creature, detailed illustration',
-    anime: 'anime style, studio ghibli inspired, vibrant colors, expressive eyes, detailed character art',
-    oil_painting: 'oil painting, classical art style, rich textures, museum quality, masterpiece',
-    cosmic: 'cosmic art, space nebula background, bioluminescent, otherworldly creature, sci-fi fantasy'
-};
+const STYLE_MODIFIERS = Object.freeze({
+    cinematic: [
+        'cinematic creature portrait',
+        'believable anatomy and materials',
+        'warm expressive eyes',
+        'soft natural key light',
+        'high-detail family adventure film concept art'
+    ].join(', '),
+    storybook: [
+        'warm hand-painted storybook illustration',
+        'tactile brushwork',
+        'gentle wonder',
+        'emotionally expressive',
+        'timeless all-ages fantasy'
+    ].join(', '),
+    cosmic: [
+        'luminous science-fantasy creature portrait',
+        'subtle nebula light',
+        'bioluminescent detail',
+        'deep-space naturalism',
+        'cinematic but welcoming'
+    ].join(', '),
+    watercolor: [
+        'traditional watercolor and gouache creature portrait',
+        'visible paper texture',
+        'controlled color blooms',
+        'delicate linework',
+        'warm all-ages illustration'
+    ].join(', ')
+});
 
-// Build enhanced prompt from creature data
-function buildCreaturePrompt(creatureData, style) {
-    const {
-        name = 'mythical creature',
-        personality = 'curious',
-        rarity = 'common',
-        colors = {},
-        bodyType = 'balanced',
-        cosmicAffinity = 'star'
-    } = creatureData || {};
-
-    const primaryColor = colors.primary || 'purple';
-    const secondaryColor = colors.secondary || 'blue';
-    const accentColor = colors.accent || 'gold';
-
-    // Base creature description
-    let prompt = `A beautiful mythical creature called "${name}", `;
-
-    // Add personality traits
-    const personalityDescriptions = {
-        curious: 'with intelligent, curious eyes and an inquisitive expression',
-        playful: 'with a playful, mischievous expression and dynamic pose',
-        gentle: 'with soft, gentle features and a serene, peaceful demeanor',
-        wise: 'with ancient, wise eyes that seem to hold cosmic knowledge',
-        energetic: 'with vibrant energy radiating from its form, in an active pose'
-    };
-    prompt += personalityDescriptions[personality] || personalityDescriptions.curious;
-
-    // Add colors
-    prompt += `. Its body features ${primaryColor} as the main color with ${secondaryColor} accents and ${accentColor} highlights. `;
-
-    // Add rarity-based features
-    const rarityFeatures = {
-        common: 'A charming creature with subtle magical properties.',
-        uncommon: 'An elegant creature with visible magical aura.',
-        rare: 'A magnificent creature with glowing magical markings.',
-        epic: 'A breathtaking creature with powerful magical energy swirling around it.',
-        legendary: 'An awe-inspiring legendary creature with reality-bending presence and cosmic power.'
-    };
-    prompt += rarityFeatures[rarity] || rarityFeatures.common;
-
-    // Add cosmic affinity
-    const affinityDescriptions = {
-        star: 'Connected to stellar energy, with star-like sparkles in its aura.',
-        moon: 'Attuned to lunar power, with a soft silvery glow.',
-        nebula: 'Infused with nebula essence, colors swirling like cosmic clouds.',
-        crystal: 'Resonating with crystal energy, with prismatic light refractions.',
-        void: 'Touched by void energy, with mysterious dark matter effects.'
-    };
-    prompt += ' ' + (affinityDescriptions[cosmicAffinity] || affinityDescriptions.star);
-
-    // Add style modifiers
-    prompt += ' ' + (STYLE_MODIFIERS[style] || STYLE_MODIFIERS.fantasy);
-
-    return prompt;
+function isFeatureEnabled() {
+    return (
+        process.env.ENABLE_API_FEATURES === 'true' &&
+        process.env.ENABLE_AI_PORTRAITS === 'true'
+    );
 }
 
-// Generate image using Replicate API (img2img with SDXL)
-async function generateWithReplicate(imageBase64, prompt) {
-    if (!REPLICATE_API_TOKEN) {
-        throw new Error('REPLICATE_API_TOKEN not configured');
-    }
+function responseHeaders() {
+    return {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff'
+    };
+}
 
-    // Use SDXL img2img model
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Token ${REPLICATE_API_TOKEN}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            // SDXL img2img model
-            version: 'a00d0b7dcbb9c3fbb34ba87d2d5b46c56969c84a628bf778a7fdaec30b1b99c5',
-            input: {
-                image: `data:image/png;base64,${imageBase64}`,
-                prompt: prompt,
-                negative_prompt: 'ugly, blurry, low quality, distorted, deformed, disfigured, bad anatomy, watermark, text, logo',
-                num_outputs: 1,
-                guidance_scale: 7.5,
-                prompt_strength: 0.8,  // How much to change from original (0.8 = significant transformation)
-                num_inference_steps: 30
-            }
+function json(statusCode, body) {
+    return {
+        statusCode,
+        headers: responseHeaders(),
+        body: JSON.stringify(body)
+    };
+}
+
+function isSameOrigin(event) {
+    const origin = event.headers?.origin || event.headers?.Origin;
+    if (!origin) return true;
+    const host = event.headers?.['x-forwarded-host'] || event.headers?.host;
+    if (!host) return false;
+
+    try {
+        return new URL(origin).host === String(host).split(',')[0].trim();
+    } catch (error) {
+        return false;
+    }
+}
+
+function cleanText(value, fallback, maxLength = 120) {
+    if (typeof value !== 'string') return fallback;
+    const cleaned = value
+        .replace(/[\u0000-\u001F\u007F]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, maxLength);
+    return cleaned || fallback;
+}
+
+function describeFeatures(features) {
+    if (!Array.isArray(features) || features.length === 0) return 'none';
+    return features
+        .slice(0, 6)
+        .map(feature => {
+            const type = safeIdentifier(feature?.type, 'unknown_feature').replace(/_/g, ' ');
+            const variant = safeIdentifier(feature?.variant, 'standard').replace(/_/g, ' ');
+            return `${variant} ${type}`;
         })
-    });
-
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Replicate API error: ${error}`);
-    }
-
-    const prediction = await response.json();
-
-    // Poll for completion
-    let result = prediction;
-    let attempts = 0;
-    const maxAttempts = 60; // 60 seconds max wait
-
-    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const pollResponse = await fetch(result.urls.get, {
-            headers: {
-                'Authorization': `Token ${REPLICATE_API_TOKEN}`
-            }
-        });
-        result = await pollResponse.json();
-        attempts++;
-    }
-
-    if (result.status === 'failed') {
-        throw new Error(`Image generation failed: ${result.error}`);
-    }
-
-    if (result.status !== 'succeeded') {
-        throw new Error('Image generation timed out');
-    }
-
-    return result.output[0]; // Return the generated image URL
+        .join(', ');
 }
 
-// Alternative: Generate with text-to-image (no input image needed)
-async function generateTextToImage(prompt) {
-    if (!REPLICATE_API_TOKEN) {
-        throw new Error('REPLICATE_API_TOKEN not configured');
-    }
-
-    // Use SDXL for high quality text-to-image
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Token ${REPLICATE_API_TOKEN}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            // SDXL text-to-image model
-            version: '39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
-            input: {
-                prompt: prompt,
-                negative_prompt: 'ugly, blurry, low quality, distorted, deformed, disfigured, bad anatomy, watermark, text, logo, human, person',
-                width: 1024,
-                height: 1024,
-                num_outputs: 1,
-                guidance_scale: 7.5,
-                num_inference_steps: 30
-            }
-        })
-    });
-
-    if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Replicate API error: ${error}`);
-    }
-
-    const prediction = await response.json();
-
-    // Poll for completion
-    let result = prediction;
-    let attempts = 0;
-    const maxAttempts = 60;
-
-    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const pollResponse = await fetch(result.urls.get, {
-            headers: {
-                'Authorization': `Token ${REPLICATE_API_TOKEN}`
-            }
-        });
-        result = await pollResponse.json();
-        attempts++;
-    }
-
-    if (result.status === 'failed') {
-        throw new Error(`Image generation failed: ${result.error}`);
-    }
-
-    if (result.status !== 'succeeded') {
-        throw new Error('Image generation timed out');
-    }
-
-    return result.output[0];
+function safeIdentifier(value, fallback) {
+    return (
+        typeof value === 'string' &&
+        value.length <= 48 &&
+        /^[a-z0-9_-]+$/i.test(value)
+    ) ? value : fallback;
 }
 
-// Main handler
-exports.handler = async (event, context) => {
-    // CORS headers
-    const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Content-Type': 'application/json'
-    };
-
-    // Handle preflight
-    if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 200, headers, body: '' };
+function validatePortraitSpec(spec) {
+    const validStages = new Set(['baby', 'juvenile', 'adult', 'elder']);
+    const validRarities = new Set(['common', 'uncommon', 'rare', 'epic', 'legendary']);
+    if (!spec || typeof spec !== 'object') return false;
+    if (spec.schemaVersion !== 1 || spec.promptVersion !== 'living-portrait-v1') return false;
+    if (
+        typeof spec.identityKey !== 'string' ||
+        spec.identityKey.length === 0 ||
+        spec.identityKey.length > 180
+    ) return false;
+    if (typeof spec.creatureId !== 'string' || spec.creatureId.length > 96) return false;
+    if (!validStages.has(spec.stage) || !validRarities.has(spec.rarity)) return false;
+    if (!ALLOWED_SPECIES.has(spec.species)) return false;
+    if (!Object.prototype.hasOwnProperty.call(PERSONALITY_DESCRIPTIONS, spec.personality?.core)) {
+        return false;
     }
+    if (!Object.prototype.hasOwnProperty.call(AFFINITY_DESCRIPTIONS, spec.affinity?.element)) {
+        return false;
+    }
+    const identityLabels = [
+        spec.silhouette?.bodyType,
+        spec.silhouette?.wingType,
+        spec.eyes?.size,
+        spec.markings?.pattern,
+        spec.markings?.distribution
+    ];
+    if (identityLabels.some(label => safeIdentifier(label, '') === '')) return false;
+    const featureLists = [spec.specialFeatures, spec.mutations];
+    if (featureLists.some(list => (
+        !Array.isArray(list) ||
+        list.length > 6 ||
+        list.some(feature => (
+            safeIdentifier(feature?.type, '') === '' ||
+            safeIdentifier(feature?.variant, '') === ''
+        ))
+    ))) return false;
+    return ['body', 'head', 'wings', 'eyes', 'feet', 'markings'].every(
+        key => /^#[0-9A-F]{6}$/.test(spec.palette?.[key] || '')
+    );
+}
 
-    // Only allow POST
-    if (event.httpMethod !== 'POST') {
+function buildCreaturePrompt(spec, style) {
+    const palette = spec.palette;
+    const silhouette = spec.silhouette || {};
+    const eyes = spec.eyes || {};
+    const markings = spec.markings || {};
+    const personality = spec.personality || {};
+    const affinity = spec.affinity || {};
+    const variants = spec.variants || {};
+
+    return [
+        'Create one original, non-human mythical creature as a full-body character portrait.',
+        'Use the supplied pixel creature as the same subject and preserve its silhouette, color placement, eyes, wings, markings, and unusual traits.',
+        `Identity: a ${spec.stage} ${spec.species} with a ${safeIdentifier(silhouette.bodyType, 'balanced')} body.`,
+        `Wing structure: ${safeIdentifier(silhouette.wingType, 'none')}; relative span ${Number(silhouette.wingSpan || 1).toFixed(2)}.`,
+        `Exact palette anchors: body ${palette.body}, head ${palette.head}, wings ${palette.wings}, eyes ${palette.eyes}, feet ${palette.feet}, markings ${palette.markings}.`,
+        `Eyes: ${safeIdentifier(eyes.size, 'medium')}, softly glowing; unusual placement ${safeIdentifier(eyes.unusualPlacement, 'none')}.`,
+        `Markings: ${safeIdentifier(markings.pattern, 'none').replace(/_/g, ' ')}, ${safeIdentifier(markings.distribution, 'none')} distribution.`,
+        `Distinctive features: ${describeFeatures(spec.specialFeatures)}.`,
+        `Genetic mutations that must remain recognizable: ${describeFeatures(spec.mutations)}.`,
+        `Temperament: ${personality.core}; ${PERSONALITY_DESCRIPTIONS[personality.core]}.`,
+        `Cosmic affinity: ${affinity.element}; ${AFFINITY_DESCRIPTIONS[affinity.element]}.`,
+        variants.shiny
+            ? `Shiny variant: preserve the ${cleanText(variants.shinyType, 'cosmic shimmer', 48)} treatment.`
+            : 'Use restrained magical effects so the creature remains readable.',
+        STYLE_MODIFIERS[style],
+        'Warm, emotionally appealing, safe for all ages, centered subject, simple atmospheric background.',
+        'No humans, no text, no logo, no watermark, no extra creatures, no horror, no weapons.'
+    ].join(' ');
+}
+
+function parseReferenceImage(value) {
+    if (value === null || value === undefined || value === '') return null;
+    if (
+        typeof value !== 'string' ||
+        value.length > 350000 ||
+        !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value)
+    ) {
+        throw new Error('Invalid creature reference image');
+    }
+    return value;
+}
+
+function getOutputUrl(output) {
+    if (typeof output === 'string') return output;
+    if (Array.isArray(output) && typeof output[0] === 'string') return output[0];
+    return null;
+}
+
+function predictionPayload(prediction) {
+    const status = prediction?.status || 'starting';
+    const imageUrl = status === 'succeeded' ? getOutputUrl(prediction.output) : null;
+    if (status === 'succeeded' && !imageUrl) {
         return {
-            statusCode: 405,
-            headers,
-            body: JSON.stringify({ error: 'Method not allowed' })
+            success: false,
+            status: 'failed',
+            error: 'The portrait provider returned no image'
         };
     }
 
-    // Check API token first
-    if (!REPLICATE_API_TOKEN) {
-        console.error('[AI Art] REPLICATE_API_TOKEN not configured in environment variables');
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({
-                success: false,
-                error: 'AI Art service not configured. Please set REPLICATE_API_TOKEN in Netlify environment variables.',
-                configError: true
-            })
-        };
+    return {
+        success: status !== 'failed' && status !== 'canceled',
+        status,
+        predictionId: prediction?.id || null,
+        imageUrl,
+        provider: 'Replicate',
+        model: prediction?.model || REPLICATE_MODEL,
+        expiresAt: imageUrl ? Date.now() + OUTPUT_TTL_MS : null,
+        storage: imageUrl ? 'provider-temporary' : null,
+        error: status === 'failed' ? 'Portrait generation failed' : undefined
+    };
+}
+
+async function callReplicate(path, options = {}) {
+    const token = process.env.REPLICATE_API_TOKEN;
+    if (!token) {
+        const error = new Error('Portrait service is not configured');
+        error.statusCode = 503;
+        throw error;
+    }
+
+    const response = await fetch(`${REPLICATE_API_BASE}${path}`, {
+        ...options,
+        headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+            ...(options.headers || {})
+        }
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const error = new Error('Portrait provider request failed');
+        error.statusCode = response.status === 429 ? 429 : 502;
+        error.providerStatus = response.status;
+        throw error;
+    }
+    return payload;
+}
+
+async function startPrediction(spec, style, referenceImage) {
+    const input = {
+        prompt: buildCreaturePrompt(spec, style),
+        aspect_ratio: '1:1',
+        quality: 'medium',
+        number_of_images: 1,
+        output_format: 'webp',
+        background: 'opaque',
+        moderation: 'auto'
+    };
+    if (referenceImage) {
+        input.input_images = [referenceImage];
+    }
+
+    const [owner, model] = REPLICATE_MODEL.split('/');
+    if (!owner || !model) throw new Error('Invalid portrait model configuration');
+
+    return callReplicate(`/models/${encodeURIComponent(owner)}/${encodeURIComponent(model)}/predictions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Prefer: 'wait=10'
+        },
+        body: JSON.stringify({ input })
+    });
+}
+
+async function getPrediction(predictionId) {
+    return callReplicate(`/predictions/${encodeURIComponent(predictionId)}`);
+}
+
+exports.handler = async event => {
+    if (!isFeatureEnabled()) {
+        return json(404, { success: false, error: 'Portrait generation is not enabled' });
+    }
+    if (!isSameOrigin(event)) {
+        return json(403, { success: false, error: 'Cross-origin requests are not allowed' });
     }
 
     try {
-        const body = JSON.parse(event.body);
-        const { imageBase64, style = 'fantasy', creatureData, mode = 'text2img' } = body;
-
-        console.log('[AI Art] Request received:', {
-            style,
-            mode,
-            hasCreatureData: !!creatureData,
-            creatureName: creatureData?.name
-        });
-
-        // Build the prompt from creature data
-        const prompt = buildCreaturePrompt(creatureData, style);
-
-        console.log('[AI Art] Generated prompt:', prompt.substring(0, 200) + '...');
-
-        let imageUrl;
-
-        if (mode === 'img2img' && imageBase64) {
-            console.log('[AI Art] Using img2img mode');
-            // Transform the creature image
-            imageUrl = await generateWithReplicate(imageBase64, prompt);
-        } else {
-            console.log('[AI Art] Using text2img mode');
-            // Generate from text description only
-            imageUrl = await generateTextToImage(prompt);
+        if (event.httpMethod === 'GET') {
+            const predictionId = event.queryStringParameters?.predictionId;
+            if (!PREDICTION_ID_PATTERN.test(predictionId || '')) {
+                return json(400, { success: false, error: 'Invalid prediction ID' });
+            }
+            const prediction = await getPrediction(predictionId);
+            const result = predictionPayload(prediction);
+            return json(result.status === 'succeeded' ? 200 : 202, result);
         }
 
-        console.log('[AI Art] Generation successful, image URL:', imageUrl?.substring(0, 80) + '...');
+        if (event.httpMethod !== 'POST') {
+            return json(405, { success: false, error: 'Method not allowed' });
+        }
+        if (!event.body || Buffer.byteLength(event.body, 'utf8') > MAX_BODY_BYTES) {
+            return json(413, { success: false, error: 'Portrait request is too large' });
+        }
 
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-                success: true,
-                imageUrl,
-                prompt: prompt
-            })
-        };
+        let body;
+        try {
+            body = JSON.parse(event.body);
+        } catch (error) {
+            return json(400, { success: false, error: 'Invalid JSON request' });
+        }
 
+        const style = ALLOWED_STYLES.has(body.style) ? body.style : 'cinematic';
+        if (!validatePortraitSpec(body.portraitSpec)) {
+            return json(400, { success: false, error: 'Invalid creature identity' });
+        }
+        const referenceImage = parseReferenceImage(body.referenceImage);
+        const prediction = await startPrediction(body.portraitSpec, style, referenceImage);
+        const result = predictionPayload(prediction);
+        return json(result.status === 'succeeded' ? 200 : 202, result);
     } catch (error) {
-        console.error('[AI Art] Error:', error.message);
-        console.error('[AI Art] Stack:', error.stack);
-
-        // Provide more specific error messages
-        let errorMessage = error.message || 'Failed to generate image';
-
-        if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
-            errorMessage = 'Invalid API token. Please check REPLICATE_API_TOKEN in Netlify settings.';
-        } else if (errorMessage.includes('402') || errorMessage.includes('payment')) {
-            errorMessage = 'Replicate account needs credits. Please add credits at replicate.com.';
-        } else if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
-            errorMessage = 'Rate limit exceeded. Please try again in a few minutes.';
-        } else if (errorMessage.includes('timeout')) {
-            errorMessage = 'Image generation timed out. Please try again.';
-        }
-
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({
-                success: false,
-                error: errorMessage
-            })
-        };
+        console.error('[LivingPortrait] Request failed', {
+            message: error.message,
+            statusCode: error.statusCode,
+            providerStatus: error.providerStatus
+        });
+        return json(error.statusCode || 500, {
+            success: false,
+            error: error.message || 'Portrait generation failed'
+        });
     }
+};
+
+exports._internal = {
+    ALLOWED_STYLES,
+    buildCreaturePrompt,
+    getOutputUrl,
+    isFeatureEnabled,
+    isSameOrigin,
+    parseReferenceImage,
+    predictionPayload,
+    validatePortraitSpec
 };

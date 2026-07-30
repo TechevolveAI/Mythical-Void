@@ -85,6 +85,14 @@ class GameStateManager {
     /**
      * Create a brand-new default state tree
      */
+    createEmptyPortraitState() {
+        return {
+            schemaVersion: 1,
+            activeStage: null,
+            byStage: {}
+        };
+    }
+
     createInitialState() {
         const now = Date.now();
 
@@ -173,6 +181,7 @@ class GameStateManager {
                     head: 0xDDA0DD,
                     wings: 0x9370DB
                 },
+                portraits: this.createEmptyPortraitState(),
                 care: {
                     lastCareTime: null,
                     careStreak: 0,
@@ -702,6 +711,94 @@ class GameStateManager {
         }
     }
 
+    /**
+     * Persist generated portrait metadata for the active creature.
+     * Provider files may be temporary until the storage pipeline copies them.
+     */
+    saveCreaturePortrait(record) {
+        const allowedStages = new Set(['baby', 'juvenile', 'adult', 'elder']);
+        if (!record || typeof record !== 'object' || !allowedStages.has(record.stage)) {
+            return false;
+        }
+        if (
+            typeof record.imageUrl !== 'string' ||
+            record.imageUrl.length > 2048 ||
+            !/^https:\/\//i.test(record.imageUrl)
+        ) {
+            return false;
+        }
+        if (
+            typeof record.identityKey !== 'string' ||
+            record.identityKey.length === 0 ||
+            record.identityKey.length > 180
+        ) {
+            return false;
+        }
+
+        const normalized = {
+            identityKey: record.identityKey,
+            stage: record.stage,
+            style: typeof record.style === 'string' ? record.style.slice(0, 32) : 'cinematic',
+            imageUrl: record.imageUrl,
+            status: 'ready',
+            provider: typeof record.provider === 'string' ? record.provider.slice(0, 48) : 'unknown',
+            model: typeof record.model === 'string' ? record.model.slice(0, 80) : 'unknown',
+            promptVersion: typeof record.promptVersion === 'string'
+                ? record.promptVersion.slice(0, 48)
+                : 'unknown',
+            generatedAt: Number.isFinite(Number(record.generatedAt))
+                ? Number(record.generatedAt)
+                : Date.now(),
+            expiresAt: Number.isFinite(Number(record.expiresAt))
+                ? Number(record.expiresAt)
+                : null,
+            storage: record.storage === 'persistent' ? 'persistent' : 'provider-temporary',
+            aiGenerated: true
+        };
+
+        const current = this.get('creature.portraits');
+        const portraits = current && typeof current === 'object'
+            ? {
+                schemaVersion: 1,
+                activeStage: record.stage,
+                byStage: { ...(current.byStage || {}) }
+            }
+            : this.createEmptyPortraitState();
+
+        portraits.activeStage = record.stage;
+        portraits.byStage[record.stage] = normalized;
+        this.set('creature.portraits', portraits);
+
+        const currentCreatures = this.get('creatures');
+        const activeIndex = Number(this.get('activeCreatureIndex')) || 0;
+        if (Array.isArray(currentCreatures) && currentCreatures[activeIndex]) {
+            const creatures = [...currentCreatures];
+            creatures[activeIndex] = {
+                ...creatures[activeIndex],
+                portraits: {
+                    schemaVersion: portraits.schemaVersion,
+                    activeStage: portraits.activeStage,
+                    byStage: { ...portraits.byStage }
+                }
+            };
+            this.set('creatures', creatures);
+        }
+
+        this.save();
+        this.emit('creaturePortraitReady', normalized);
+        return true;
+    }
+
+    getCreaturePortrait(stage = null) {
+        const targetStage = stage || this.get('creature.lifecycle.stage') || 'baby';
+        const record = this.get(`creature.portraits.byStage.${targetStage}`);
+        if (!record || record.status !== 'ready') return null;
+        if (record.expiresAt && Date.now() >= record.expiresAt) {
+            return null;
+        }
+        return { ...record };
+    }
+
     // ==========================================
     // MULTI-CREATURE COLLECTION MANAGEMENT
     // ==========================================
@@ -736,6 +833,7 @@ class GameStateManager {
             level: this.get('creature.level') || 1,
             experience: this.get('creature.experience') || 0,
             textureName: this.get('creature.textureName'),
+            portraits: this.get('creature.portraits') || this.createEmptyPortraitState(),
             hatchTime: this.get('creature.hatchTime') || Date.now(),
             cosmicAffinity: this.get('creature.genes')?.cosmicAffinity?.element || null,
             rarity: this.get('creature.genes')?.rarity || 'common',
@@ -803,7 +901,8 @@ class GameStateManager {
                     genes: this.get('creature.genes'),
                     stats: this.get('creature.stats'),
                     level: this.get('creature.level'),
-                    textureName: this.get('creature.textureName')
+                    textureName: this.get('creature.textureName'),
+                    portraits: this.get('creature.portraits') || this.createEmptyPortraitState()
                 };
             }
             return null;
@@ -835,6 +934,7 @@ class GameStateManager {
             previousCreature.level = this.get('creature.level');
             previousCreature.experience = this.get('creature.experience');
             previousCreature.personalityState = this.get('creature.personalityState');
+            previousCreature.portraits = this.get('creature.portraits') || this.createEmptyPortraitState();
             // Save lifecycle state back to collection (critical for stage cycling)
             previousCreature.lifecycle = { ...this.get('creature.lifecycle') };
             creatures[previousIndex] = previousCreature;
@@ -853,6 +953,7 @@ class GameStateManager {
         this.set('creature.level', newCreature.level);
         this.set('creature.experience', newCreature.experience);
         this.set('creature.textureName', newCreature.textureName);
+        this.set('creature.portraits', newCreature.portraits || this.createEmptyPortraitState());
         this.set('creature.hatched', true);
         this.set('creature.named', true);
         // Load lifecycle from collection (critical for Fusion Pod to recognize stage)
@@ -922,6 +1023,7 @@ class GameStateManager {
         this.set('creature.personality', null);
         this.set('creature.personalityState', null);
         this.set('creature.textureName', null);
+        this.set('creature.portraits', this.createEmptyPortraitState());
         this.set('creature.stats', { happiness: 100, energy: 100, health: 100 });
         this.set('creature.level', 1);
         this.set('creature.experience', 0);

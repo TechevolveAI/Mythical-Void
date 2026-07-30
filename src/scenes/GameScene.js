@@ -6995,7 +6995,11 @@ class GameScene extends Phaser.Scene {
         }
 
         // Get creature data
-        const creatureData = window.GameState?.get('creature.genes');
+        const creatureData = {
+            name: window.GameState?.get('creature.name') || 'Mythical Creature',
+            stage: window.GameState?.get('creature.lifecycle.stage') || 'baby',
+            genes: window.GameState?.get('creature.genes')
+        };
 
         // Show the modal with creature data and sprite
         this.aiArtModal.show(creatureData, this.player);

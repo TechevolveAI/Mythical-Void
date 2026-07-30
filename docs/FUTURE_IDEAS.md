@@ -427,6 +427,9 @@ Browse other players' creatures.
 
 Use image generation AI to create realistic/artistic versions of creatures for special moments.
 
+The current implementation direction and video extension are documented in
+[`LIVING_CREATURE_MEDIA.md`](./LIVING_CREATURE_MEDIA.md).
+
 **Concept:**
 - Phaser sprites handle gameplay (fast, performant, consistent)
 - AI-generated images for emotional/showcase moments
@@ -467,11 +470,10 @@ function buildCreaturePrompt(genetics) {
 }
 ```
 
-**Implementation Options:**
-1. **DALL-E 3 API** - High quality, easy integration
-2. **Stable Diffusion API** - More control, can fine-tune
-3. **Midjourney API** - Best quality, harder to integrate
-4. **Claude Vision + Generation** - If/when available
+**Implementation Direction:**
+1. **Replicate official GPT Image 2 model** - Recommended first path using the existing provider integration
+2. **Direct OpenAI Image API** - Option when direct request control and a unified image/video provider justify another credential
+3. **Provider router** - Add only after a fixed identity-preservation evaluation set exists
 
 **Caching Strategy:**
 - Generate once per creature (or per evolution stage)
@@ -480,7 +482,7 @@ function buildCreaturePrompt(genetics) {
 - Regenerate only on evolution or manual request
 
 **Cost Considerations:**
-- ~$0.04-0.08 per image (DALL-E 3)
+- Treat current provider pricing as configuration, not a hardcoded game constant
 - Generate only at key moments, not continuously
 - Could be a premium feature
 - Free tier: 1 generation per creature
