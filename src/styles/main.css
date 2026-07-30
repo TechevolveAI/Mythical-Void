@@ -115,3 +115,321 @@ body.game-mode {
 .animate-fade-out {
   animation: fadeOut 0.3s ease-out forwards;
 }
+
+/* Project Beacon artifact reveals */
+.katana-artifact-modal {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(12px, var(--sat))
+    max(12px, var(--sar))
+    max(12px, var(--sab))
+    max(12px, var(--sal));
+  overflow: hidden;
+  color: #f4f7f8;
+  background: rgba(3, 7, 10, 0.94);
+  font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: auto;
+}
+
+.katana-artifact-modal.is-visible {
+  opacity: 1;
+}
+
+.katana-artifact-shell {
+  width: min(820px, 100%);
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #0b1115;
+  border: 1px solid rgba(226, 234, 238, 0.28);
+  border-radius: 8px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.62);
+}
+
+.katana-artifact-header {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 18px;
+  background: #10191e;
+  border-bottom: 1px solid rgba(226, 234, 238, 0.14);
+}
+
+.katana-artifact-eyebrow,
+.katana-artifact-context,
+.katana-artifact-state,
+.katana-artifact-effect,
+.katana-artifact-generated {
+  margin: 0;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+.katana-artifact-eyebrow {
+  color: var(--artifact-accent);
+  font-size: 11px;
+}
+
+.katana-artifact-context {
+  color: #9fb0b9;
+  font-size: 10px;
+  text-align: right;
+}
+
+.katana-artifact-media {
+  position: relative;
+  display: grid;
+  min-height: 220px;
+  max-height: 42dvh;
+  place-items: center;
+  overflow: hidden;
+  background: #030608;
+  border-bottom: 1px solid color-mix(in srgb, var(--artifact-accent) 55%, transparent);
+}
+
+.katana-artifact-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 42dvh;
+  object-fit: contain;
+  user-select: none;
+}
+
+.katana-artifact-generated {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  padding: 5px 7px;
+  color: #d8e2e6;
+  background: rgba(3, 7, 10, 0.82);
+  border: 1px solid rgba(216, 226, 230, 0.24);
+  border-radius: 4px;
+  font-size: 8px;
+}
+
+.katana-artifact-content {
+  padding: 16px 20px 18px;
+}
+
+.katana-artifact-state {
+  color: var(--artifact-accent);
+  font-size: 10px;
+}
+
+.katana-artifact-title {
+  margin: 4px 0 5px;
+  color: #ffffff;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.katana-artifact-description {
+  max-width: 680px;
+  margin: 0;
+  color: #c7d2d7;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.katana-artifact-effect {
+  margin-top: 8px;
+  color: #f2c14e;
+  font-size: 11px;
+}
+
+.katana-artifact-timeline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 430px;
+  margin: 15px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.katana-artifact-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  color: #66757d;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.katana-artifact-step:not(:last-child)::after {
+  position: absolute;
+  top: 10px;
+  right: 7px;
+  left: 29px;
+  height: 1px;
+  content: '';
+  background: #36434a;
+}
+
+.katana-artifact-node {
+  z-index: 1;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  background: #151d22;
+  border: 1px solid #53616a;
+  border-radius: 50%;
+}
+
+.katana-artifact-step.is-complete,
+.katana-artifact-step.is-active {
+  color: #dbe5e9;
+}
+
+.katana-artifact-step.is-complete .katana-artifact-node {
+  color: #06100e;
+  background: #8fe3cf;
+  border-color: #8fe3cf;
+}
+
+.katana-artifact-step.is-active .katana-artifact-node {
+  color: #071014;
+  background: var(--artifact-accent);
+  border-color: var(--artifact-accent);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--artifact-accent) 50%, transparent);
+}
+
+.katana-artifact-companion {
+  margin: 14px 0;
+  color: #9fb0b9;
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.katana-artifact-continue {
+  min-height: 42px;
+  padding: 10px 18px;
+  color: #061014;
+  background: var(--artifact-accent);
+  border: 1px solid #f1f6f7;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.katana-artifact-continue:hover,
+.katana-artifact-continue:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  filter: brightness(1.08);
+}
+
+@media (max-width: 520px) {
+  .katana-artifact-header {
+    min-height: 42px;
+    padding: 9px 12px;
+  }
+
+  .katana-artifact-eyebrow {
+    font-size: 9px;
+  }
+
+  .katana-artifact-context {
+    max-width: 110px;
+    font-size: 8px;
+  }
+
+  .katana-artifact-media {
+    min-height: 150px;
+    max-height: 34dvh;
+  }
+
+  .katana-artifact-media img {
+    max-height: 34dvh;
+  }
+
+  .katana-artifact-content {
+    padding: 12px 14px 14px;
+  }
+
+  .katana-artifact-title {
+    font-size: 19px;
+  }
+
+  .katana-artifact-description {
+    font-size: 11px;
+  }
+
+  .katana-artifact-effect,
+  .katana-artifact-companion {
+    font-size: 9px;
+  }
+
+  .katana-artifact-timeline {
+    margin-top: 11px;
+  }
+
+  .katana-artifact-step {
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 5px;
+    font-size: 8px;
+  }
+
+  .katana-artifact-node {
+    width: 20px;
+    height: 20px;
+  }
+
+  .katana-artifact-step:not(:last-child)::after {
+    top: 9px;
+    left: 26px;
+  }
+
+  .katana-artifact-companion {
+    margin: 10px 0;
+  }
+
+  .katana-artifact-continue {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 10px;
+    font-size: 10px;
+  }
+}
+
+@media (max-height: 620px) {
+  .katana-artifact-modal {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .katana-artifact-media,
+  .katana-artifact-media img {
+    max-height: 31dvh;
+  }
+
+  .katana-artifact-media {
+    min-height: 138px;
+  }
+
+  .katana-artifact-header {
+    min-height: 38px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .katana-artifact-content {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+}

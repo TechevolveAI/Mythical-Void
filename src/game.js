@@ -932,12 +932,18 @@ async function initializeGame() {
 
         // Local field-kit recovery preview. This renders the interaction without recovering it.
         const testFieldKit = urlParams.get('testFieldKit');
-        if (isLocalPreview && ['1', 'mobile'].includes(testFieldKit)) {
+        if (
+            isLocalPreview &&
+            ['1', 'mobile', 'earth', 'crystal', 'aurora'].includes(testFieldKit)
+        ) {
             game.events.once('ready', () => {
                 setTimeout(() => {
                     game.scene.start('GameScene', {
                         fieldKitPreview: true,
-                        fieldKitPreviewSize: testFieldKit === 'mobile' ? 'mobile' : null
+                        fieldKitPreviewSize: testFieldKit === 'mobile' ? 'mobile' : null,
+                        fieldKitPreviewStage: ['crystal', 'aurora'].includes(testFieldKit)
+                            ? testFieldKit
+                            : 'earth'
                     });
                 }, 100);
             });

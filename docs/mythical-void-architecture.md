@@ -52,6 +52,15 @@ Mythical Void is a cozy, mobile-first Phaser game where players hatch and bond w
 - Inventory display slots retain the canonical manager slot after sorting and filtering; actions never operate on a display-only index.
 - **Accessory systems**: `AudioManager`, `HatchCinematics`, `ParallaxBiome`, `UXEnhancements`, etc., initialized in `main.js` once Phaser boots.
 
+### Artifact Media Contract
+
+- The field katana uses three curated, bundled artworks: untouched Earth configuration, Resonant Edge, and Aurora Guard.
+- `KatanaArtifactModal` derives the displayed stage only from canonical installed upgrade IDs. Presentation state cannot award or mutate progression.
+- Recovery reveals the untouched blade. Newly earned Guardian upgrades reveal their evolved artwork before the ordinary level-reward panel.
+- Inventory > Kit provides a persistent Inspect route to the currently installed configuration.
+- All three images are prefetched before their likely reveal and require no runtime generation call, so the moment is immediate and visually consistent.
+- Artwork is visibly identified as an AI-assisted artistic interpretation.
+
 ## Event & Lifecycle Patterns
 - Scenes register shutdown/destroy hooks (`this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this)`), store unsubscribe handles, and tear down timers/tweens during `shutdown()`.
 - Example pattern (from GameScene & managers):

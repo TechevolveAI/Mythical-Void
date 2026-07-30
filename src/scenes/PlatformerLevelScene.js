@@ -7,6 +7,7 @@ import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import '../systems/ProjectBeaconFieldKit.js';
 import { getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
 import bossConfigs from '../config/bosses.json';
+import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     crystalCaves: 'crystalGolem',
@@ -150,6 +151,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.katanaEquipped = false;
         this.auroraGuardCharges = 0;
         this.katanaUpgradeDisplay = null;
+        this.katanaArtifactModal = null;
         this.nextRangedDamageMultiplier = 1;
         this.powerupShieldHits = 0;
         this.freeSpecialAttackCharges = 0;
@@ -388,6 +390,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     create() {
         console.log(`[PlatformerLevel] Creating level: ${this.levelId}`);
+        prefetchKatanaArtifactArtwork();
 
         // CRITICAL: Re-enable keyboard input (disabled on death, must be restored on restart)
         if (this.input && this.input.keyboard) {
@@ -3937,6 +3940,8 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.scale?.off?.('resize', this.layoutKatanaUpgradeDisplay, this);
         window.EconomyManager?.clearLevelCoinMultiplier?.();
+        this.katanaArtifactModal?.destroy?.();
+        this.katanaArtifactModal = null;
 
         // Remove keyboard listeners
         if (this.input && this.input.keyboard) {
@@ -4090,6 +4095,35 @@ class PlatformerLevelScene extends Phaser.Scene {
             returnAction();
         };
         window.addEventListener('keydown', this.levelCompletionKeyHandler);
+    }
+
+    showKatanaUpgradeReveal({ onClose = null } = {}) {
+        if (!this.levelCompletionResult?.katanaUpgradeAwarded) {
+            onClose?.();
+            return false;
+        }
+
+        const fieldKit = window.GameState?.get?.(
+            'story.projectBeacon.fieldKit'
+        ) || {};
+        const creatureName = window.GameState?.get?.('creature.name') || 'Your companion';
+        this.katanaArtifactModal?.destroy?.();
+        this.katanaArtifactModal = new KatanaArtifactModal(this);
+        const shown = this.katanaArtifactModal.show({
+            fieldKit,
+            creatureName,
+            context: 'upgrade',
+            onClose: () => {
+                this.katanaArtifactModal = null;
+                onClose?.();
+            }
+        });
+
+        if (!shown) {
+            this.katanaArtifactModal = null;
+            onClose?.();
+        }
+        return shown;
     }
 
     /**

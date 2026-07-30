@@ -137,11 +137,14 @@ describe('Project Beacon opening', () => {
         const gameSource = fs.readFileSync(path.join(__dirname, '../game.js'), 'utf8');
         const sceneSource = fs.readFileSync(path.join(__dirname, '../scenes/GameScene.js'), 'utf8');
 
-        expect(gameSource).toContain("['1', 'mobile'].includes(testFieldKit)");
+        expect(gameSource).toContain(
+            "['1', 'mobile', 'earth', 'crystal', 'aurora'].includes(testFieldKit)"
+        );
         expect(gameSource).toContain('fieldKitPreview: true');
         expect(gameSource).toContain("fieldKitPreviewSize: testFieldKit === 'mobile' ? 'mobile' : null");
+        expect(gameSource).toContain('fieldKitPreviewStage:');
         expect(sceneSource).toContain('if (this.fieldKitPreview)');
-        expect(sceneSource).toContain('this.showFieldKitRecoveryModal({');
+        expect(sceneSource).toContain('this.showFieldKitRecoveryModal(');
     });
 
     test('activates one story mission at a time and advances after claiming', () => {

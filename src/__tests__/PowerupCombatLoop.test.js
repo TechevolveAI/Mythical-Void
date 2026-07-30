@@ -116,6 +116,11 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             'const bossConfigs = {};'
         )
         .replace(
+            "import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';",
+            'const KatanaArtifactModal = class {};\n' +
+            'const prefetchKatanaArtifactArtwork = () => {};'
+        )
+        .replace(
             'export default PlatformerLevelScene;',
             'module.exports = PlatformerLevelScene;'
         );

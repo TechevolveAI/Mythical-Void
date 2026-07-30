@@ -3972,7 +3972,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Show completion screen after celebration
         this.time.delayedCall(1500, () => {
-            this.showCompletionScreen();
+            this.showKatanaUpgradeReveal({
+                onClose: () => this.showCompletionScreen()
+            });
         });
     }
 

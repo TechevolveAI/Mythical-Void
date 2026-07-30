@@ -18,6 +18,10 @@ describe('shop, inventory, and field-kit interconnection', () => {
         path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
         'utf8'
     );
+    const artifactSource = fs.readFileSync(
+        path.join(__dirname, '../ui/KatanaArtifactModal.js'),
+        'utf8'
+    );
 
     test('preserves canonical inventory slots after filtering and sorting', () => {
         expect(inventorySource).toContain('slot.inventoryIndex =');
@@ -50,13 +54,16 @@ describe('shop, inventory, and field-kit interconnection', () => {
     test('shows the equipped katana and every canonical ship component', () => {
         expect(inventorySource).toContain('FIELD KIT // KATANA EQUIPPED');
         expect(inventorySource).toContain('Use RED MELEE or X during expeditions');
+        expect(inventorySource).toContain("'INSPECT'");
+        expect(inventorySource).toContain("context: 'inventory'");
         expect(inventorySource).toContain('shipParts.forEach((part, index)');
         expect(inventorySource).not.toContain('void_stabilizer: {');
     });
 
     test('explains katana acquisition and baseline expedition use', () => {
-        expect(gameSource).toContain('AUTO-EQUIPPED TO YOUR ASTRONAUT');
-        expect(gameSource).toContain('CONTINUE // KATANA EQUIPPED');
+        expect(gameSource).toContain("context = 'recovery'");
+        expect(artifactSource).toContain('CONTINUE // KATANA EQUIPPED');
+        expect(artifactSource).toContain('EARTH-FORGED FIELD KATANA');
         expect(levelSource).toContain('FIELD KATANA  //  MELEE');
         expect(levelSource).toContain('this.katanaEquipped = Boolean(');
     });

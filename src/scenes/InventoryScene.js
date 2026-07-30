@@ -5,6 +5,9 @@
 
 import Phaser from 'phaser';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
+import KatanaArtifactModal, {
+    prefetchKatanaArtifactArtwork
+} from '../ui/KatanaArtifactModal.js';
 
 export default class InventoryScene extends Phaser.Scene {
     constructor() {
@@ -35,6 +38,7 @@ export default class InventoryScene extends Phaser.Scene {
         // Track setTimeout IDs for proper cleanup (prevents memory leaks)
         this.pendingTimeouts = [];
         this.kitPreview = null;
+        this.katanaArtifactModal = null;
     }
 
     init(data = {}) {
@@ -43,6 +47,7 @@ export default class InventoryScene extends Phaser.Scene {
 
     create() {
         this._isShuttingDown = false;
+        prefetchKatanaArtifactArtwork();
         if (this.events) {
             this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
             this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdown, this);
@@ -863,6 +868,26 @@ export default class InventoryScene extends Phaser.Scene {
         );
         this.shipPartsElements.push(kitTitle);
 
+        if (fieldKit.recovered) {
+            const inspectButton = this.add.text(
+                width - margin - 14,
+                currentY + 11,
+                'INSPECT',
+                {
+                    fontSize: isMobile ? '10px' : '11px',
+                    fontFamily: 'Arial',
+                    color: '#071014',
+                    backgroundColor: '#F2C14E',
+                    fontStyle: 'bold',
+                    padding: { x: 9, y: 5 }
+                }
+            ).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+            inspectButton.on('pointerdown', () => {
+                this.showKatanaArtifact(fieldKit);
+            });
+            this.shipPartsElements.push(inspectButton);
+        }
+
         const katanaName = fieldKit.recovered
             ? (katana.name || 'Earth-forged Field Katana')
             : 'Return to the Wanderer-7 crash site';
@@ -955,6 +980,22 @@ export default class InventoryScene extends Phaser.Scene {
             }
         ).setOrigin(0.5, 0);
         this.shipPartsElements.push(instructionText);
+    }
+
+    showKatanaArtifact(fieldKit) {
+        this.katanaArtifactModal?.destroy?.();
+        this.katanaArtifactModal = new KatanaArtifactModal(this);
+        const shown = this.katanaArtifactModal.show({
+            fieldKit,
+            creatureName: window.GameState?.get?.('creature.name') || 'Your companion',
+            context: 'inventory',
+            onClose: () => {
+                this.katanaArtifactModal = null;
+            }
+        });
+        if (!shown) {
+            this.katanaArtifactModal = null;
+        }
     }
 
     getKitPresentationData() {
@@ -2886,6 +2927,8 @@ export default class InventoryScene extends Phaser.Scene {
         }
         this._isShuttingDown = true;
         console.log('[InventoryScene] Shutting down - cleaning up event listeners');
+        this.katanaArtifactModal?.destroy?.();
+        this.katanaArtifactModal = null;
 
         // Remove global event listeners
         if (window.InventoryManager) {

@@ -29,6 +29,7 @@ import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import ProjectBeaconWaypoint from '../systems/ui/ProjectBeaconWaypoint.js';
 import ProjectBeaconLogModal from '../ui/ProjectBeaconLogModal.js';
 import SettingsModal from '../ui/SettingsModal.js';
+import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
 // MapNavigationButtons removed - redundant with HamburgerMenu navigation
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
@@ -114,6 +115,7 @@ class GameScene extends Phaser.Scene {
         this.fieldKitCaseTween = null;
         this.fieldKitModalElements = [];
         this.isFieldKitModalOpen = false;
+        this.katanaArtifactModal = null;
         this.nearReturnPortal = false;
         this.returnPortal = null;
         this.dailyGreetingShown = false;
@@ -224,6 +226,9 @@ class GameScene extends Phaser.Scene {
         this._isShuttingDown = false;
         this.fieldKitPreview = data?.fieldKitPreview === true;
         this.fieldKitPreviewSize = data?.fieldKitPreviewSize || null;
+        this.fieldKitPreviewStage = ['earth', 'crystal', 'aurora'].includes(
+            data?.fieldKitPreviewStage
+        ) ? data.fieldKitPreviewStage : 'earth';
         this.waypointPreview = data?.waypointPreview || null;
         this.missionBriefingPreview = data?.missionBriefingPreview || null;
         this.missionBriefingPreviewSize = data?.missionBriefingPreviewSize || null;
@@ -268,6 +273,7 @@ class GameScene extends Phaser.Scene {
     create() {
         console.log('[GameScene] ===== CREATE() STARTING =====');
         try {
+            prefetchKatanaArtifactArtwork();
             console.log('[GameScene] Initializing lifecycle tracking...');
             this.initializeLifecycleTracking();
             this.registerSceneLifecycleEvents();
@@ -343,13 +349,28 @@ class GameScene extends Phaser.Scene {
 
             if (this.fieldKitPreview) {
                 this.createFieldKitPreviewBackdrop();
-                this.showFieldKitRecoveryModal({
-                    katana: {
-                        name: 'Earth-forged Field Katana',
-                        material: 'Titanium-ceramic laminate',
-                        upgradeSlots: 2
+                const previewUpgrades = {
+                    crystal: [{ id: 'crystal_edge', name: 'Resonant Edge' }],
+                    aurora: [
+                        { id: 'crystal_edge', name: 'Resonant Edge' },
+                        { id: 'aurora_guard', name: 'Aurora Guard' }
+                    ]
+                }[this.fieldKitPreviewStage] || [];
+                this.showFieldKitRecoveryModal(
+                    {
+                        katana: {
+                            name: 'Earth-forged Field Katana',
+                            material: 'Titanium-ceramic laminate',
+                            upgradeSlots: 2,
+                            installedUpgrades: previewUpgrades
+                        }
+                    },
+                    {
+                        context: this.fieldKitPreviewStage === 'earth'
+                            ? 'recovery'
+                            : 'upgrade'
                     }
-                });
+                );
                 console.log('[GameScene] Field-kit preview created successfully');
                 return;
             }
@@ -5808,168 +5829,37 @@ class GameScene extends Phaser.Scene {
         this.showFieldKitRecoveryModal(result.fieldKit);
     }
 
-    showFieldKitRecoveryModal(fieldKit) {
+    showFieldKitRecoveryModal(fieldKit, { context = 'recovery' } = {}) {
         if (this.isFieldKitModalOpen || !fieldKit?.katana) {
             return;
         }
 
         this.isFieldKitModalOpen = true;
-        const { width: canvasWidth, height: canvasHeight } = this.scale;
-        const previewingMobileLayout = this.fieldKitPreviewSize === 'mobile';
-        const width = previewingMobileLayout ? 390 : canvasWidth;
-        const height = previewingMobileLayout ? Math.min(720, canvasHeight) : canvasHeight;
-        const viewportX = previewingMobileLayout ? (canvasWidth - width) / 2 : 0;
-        const viewportY = previewingMobileLayout ? (canvasHeight - height) / 2 : 0;
-        const centerX = viewportX + width / 2;
-        const isNarrow = width < 520;
-        const panelWidth = Math.min(520, width - 24);
-        const panelHeight = Math.min(isNarrow ? 550 : 510, height - 24);
-        const panelX = viewportX + (width - panelWidth) / 2;
-        const panelY = viewportY + (height - panelHeight) / 2;
-        const elements = [];
-        this.fieldKitModalElements = elements;
-
-        const physicsWasPaused = Boolean(this.physics?.world?.isPaused);
-        if (!physicsWasPaused) {
-            this.physics?.pause?.();
-        }
-
-        const overlay = this.add.graphics()
-            .fillStyle(0x05080D, 0.9)
-            .fillRect(0, 0, canvasWidth, canvasHeight)
-            .setScrollFactor(0)
-            .setDepth(7000);
-        elements.push(overlay);
-
-        const inputShield = this.add.zone(canvasWidth / 2, canvasHeight / 2, canvasWidth, canvasHeight)
-            .setScrollFactor(0)
-            .setDepth(7001)
-            .setInteractive();
-        elements.push(inputShield);
-
-        const panel = this.add.graphics()
-            .fillStyle(0x101820, 0.99)
-            .fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8)
-            .lineStyle(2, 0x6FE7DD, 0.85)
-            .strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8)
-            .setScrollFactor(0)
-            .setDepth(7002);
-        elements.push(panel);
-
-        const eyebrow = this.add.text(centerX, panelY + 28, 'PROJECT BEACON // WANDERER-7', {
-            fontSize: isNarrow ? '11px' : '12px',
-            color: '#6FE7DD',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(7003);
-        elements.push(eyebrow);
-
-        const title = this.add.text(centerX, panelY + 58, 'FIELD KIT RECOVERED', {
-            fontSize: isNarrow ? '22px' : '27px',
-            color: '#FFFFFF',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(7003);
-        elements.push(title);
-
-        const katana = this.add.graphics()
-            .lineStyle(5, 0xDCE8ED, 1)
-            .lineBetween(centerX - 82, panelY + 111, centerX + 67, panelY + 111)
-            .lineStyle(2, 0xFFFFFF, 0.7)
-            .lineBetween(centerX - 78, panelY + 108, centerX + 67, panelY + 108)
-            .lineStyle(8, 0x66513C, 1)
-            .lineBetween(centerX + 68, panelY + 111, centerX + 101, panelY + 111)
-            .lineStyle(5, 0xD8B65C, 1)
-            .lineBetween(centerX + 61, panelY + 99, centerX + 61, panelY + 123)
-            .setScrollFactor(0)
-            .setDepth(7003);
-        elements.push(katana);
-
-        const itemName = this.add.text(centerX, panelY + 145, fieldKit.katana.name, {
-            fontSize: isNarrow ? '17px' : '19px',
-            color: '#D8B65C',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(7003);
-        elements.push(itemName);
-
-        const status = this.add.text(
-            centerX,
-            panelY + 177,
-            `EARTH-FORGED // ${fieldKit.katana.material.toUpperCase()}\n` +
-            'AUTO-EQUIPPED TO YOUR ASTRONAUT\n' +
-            'RED MELEE OR X DURING EXPEDITIONS\n' +
-            `CREATURE-TECH INTERFACES 0/${fieldKit.katana.upgradeSlots} DORMANT`,
-            {
-                fontSize: isNarrow ? '10px' : '12px',
-                color: '#9CB0BA',
-                align: 'center',
-                lineSpacing: 4,
-                wordWrap: { width: panelWidth - 48 }
-            }
-        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(7003);
-        elements.push(status);
-
         const creatureName = getGameState().get('creature.name') || 'Your companion';
-        const companionMoment = this.add.text(
-            centerX,
-            panelY + 235,
-            `${creatureName} approaches the open case, studies your hands, then taps the sealed scabbard.`,
-            {
-                fontSize: isNarrow ? '13px' : '14px',
-                color: '#E4EEF2',
-                align: 'center',
-                lineSpacing: 5,
-                wordWrap: { width: panelWidth - 52 }
+        this.katanaArtifactModal = new KatanaArtifactModal(this);
+        const shown = this.katanaArtifactModal.show({
+            fieldKit,
+            creatureName,
+            context,
+            onClose: () => {
+                this.katanaArtifactModal = null;
+                this.fieldKitModalElements = [];
+                this.closeFieldKitModal = null;
+                this.isFieldKitModalOpen = false;
+                this.nearCrashedShip = false;
             }
-        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(7003);
-        elements.push(companionMoment);
-
-        const fieldNoteY = panelY + (isNarrow ? 325 : 310);
-        const fieldNote = this.add.text(
-            centerX,
-            fieldNoteY,
-            '"Not a trophy. A promise to protect. Sensei would approve of the principle. Probably not the landing."',
-            {
-                fontSize: isNarrow ? '12px' : '13px',
-                color: '#B9C6CC',
-                fontStyle: 'italic',
-                align: 'center',
-                lineSpacing: 5,
-                wordWrap: { width: panelWidth - 60 }
-            }
-        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(7003);
-        elements.push(fieldNote);
-
-        const closeModal = () => {
-            if (!this.isFieldKitModalOpen) return;
+        });
+        if (!shown) {
+            this.katanaArtifactModal = null;
             this.isFieldKitModalOpen = false;
-            this.input?.keyboard?.off('keydown-ENTER', closeModal);
-            this.input?.keyboard?.off('keydown-ESC', closeModal);
-            elements.forEach(element => {
-                element?.removeAllListeners?.();
-                element?.destroy?.();
-            });
-            this.fieldKitModalElements = [];
-            this.closeFieldKitModal = null;
-            if (!physicsWasPaused) {
-                this.physics?.resume?.();
-            }
-            this.nearCrashedShip = false;
+            return;
+        }
+        this.closeFieldKitModal = () => {
+            if (!this.isFieldKitModalOpen) return;
+            this.katanaArtifactModal?.destroy?.();
+            this.katanaArtifactModal = null;
+            this.isFieldKitModalOpen = false;
         };
-        this.closeFieldKitModal = closeModal;
-
-        const button = this.add.text(centerX, panelY + panelHeight - 48, 'CONTINUE // KATANA EQUIPPED', {
-            fontSize: isNarrow ? '14px' : '16px',
-            color: '#071014',
-            backgroundColor: '#6FE7DD',
-            fontStyle: 'bold',
-            padding: { x: isNarrow ? 22 : 30, y: 11 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(7003).setInteractive({ useHandCursor: true });
-        button.on('pointerover', () => button.setStyle({ backgroundColor: '#8AF5EC' }));
-        button.on('pointerout', () => button.setStyle({ backgroundColor: '#6FE7DD' }));
-        button.on('pointerdown', closeModal);
-        elements.push(button);
-
-        this.input?.keyboard?.on('keydown-ENTER', closeModal);
-        this.input?.keyboard?.on('keydown-ESC', closeModal);
     }
 
     handleCrashedShipProximity(player, ship) {

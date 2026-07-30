@@ -1633,7 +1633,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             hold: 2000,
             onComplete: () => {
                 victoryText.destroy();
-                this.showLevelComplete();
+                this.showKatanaUpgradeReveal({
+                    onClose: () => this.showLevelComplete()
+                });
             }
         });
 
