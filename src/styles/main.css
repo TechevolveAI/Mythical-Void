@@ -28,6 +28,11 @@ body {
   overflow: hidden;
 }
 
+/* Netlify's owner-only preview drawer must never cover the game HUD. */
+iframe[title='Netlify Drawer'] {
+  display: none !important;
+}
+
 * {
   box-sizing: border-box;
 }
