@@ -86,6 +86,8 @@ describe('shared mobile control dock', () => {
         expect(css).toContain('--sab: env(safe-area-inset-bottom, 0px)');
         expect(css).toContain('height: 100dvh');
         expect(css).toContain("iframe[title='Netlify Drawer']");
+        expect(css).toContain("iframe[src*='app.netlify.com/cdp/']");
+        expect(css).toContain('#app + div:not([id]):not([class])');
         expect(css).toContain('display: none !important');
     });
 });

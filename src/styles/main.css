@@ -33,6 +33,11 @@ iframe[title='Netlify Drawer'] {
   display: none !important;
 }
 
+body.game-mode > div:has(> iframe[src*='app.netlify.com/cdp/']),
+body.game-mode > #app + div:not([id]):not([class]) {
+  display: none !important;
+}
+
 * {
   box-sizing: border-box;
 }
