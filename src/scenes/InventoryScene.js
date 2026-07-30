@@ -12,6 +12,7 @@ export default class InventoryScene extends Phaser.Scene {
 
         this.graphicsEngine = null;
         this.selectedSlot = null;
+        this.selectedDisplaySlot = null;
         this.inventorySlots = [];
         this.itemSprites = [];
 
@@ -33,6 +34,11 @@ export default class InventoryScene extends Phaser.Scene {
 
         // Track setTimeout IDs for proper cleanup (prevents memory leaks)
         this.pendingTimeouts = [];
+        this.kitPreview = null;
+    }
+
+    init(data = {}) {
+        this.kitPreview = data.kitPreview || null;
     }
 
     create() {
@@ -105,6 +111,10 @@ export default class InventoryScene extends Phaser.Scene {
             console.log('[InventoryScene] Refreshing inventory...');
             this.refreshInventory();
             console.log('[InventoryScene] ✅ Inventory refreshed');
+
+            if (this.kitPreview) {
+                this.switchTab('ship_parts');
+            }
 
             // Listen for inventory changes
             console.log('[InventoryScene] Setting up event listeners...');
@@ -183,6 +193,7 @@ export default class InventoryScene extends Phaser.Scene {
         const isMobile = width < 600;
         const isTablet = width >= 600 && width < 1000;
         const isDesktop = width >= 1000;
+        const isCompactMobile = isMobile && height < 700;
 
         this.dims = {
             width,
@@ -199,9 +210,9 @@ export default class InventoryScene extends Phaser.Scene {
             headerHeight: isMobile ? 60 : 80,
 
             // Grid (mobile gets full width, desktop leaves room for sidebar)
-            slotSize: isMobile ? 70 : 70,
-            slotMargin: isMobile ? 8 : 10,
-            gridCols: isMobile ? 4 : 5,  // Mobile: 4 cols full width, Desktop: 5 cols with sidebar
+            slotSize: isMobile ? (isCompactMobile ? 44 : 56) : 70,
+            slotMargin: isMobile ? (isCompactMobile ? 4 : 6) : 10,
+            gridCols: 5,
             gridStartX: isMobile ? null : 80,  // null = centered on mobile
 
             // Sidebar (desktop only)
@@ -253,7 +264,7 @@ export default class InventoryScene extends Phaser.Scene {
         const { width, titleSize, textSize } = this.dims;
 
         // Title
-        const title = this.add.text(width / 2, 30, 'INVENTORY', {
+        const title = this.add.text(width / 2, 24, 'INVENTORY', {
             fontSize: titleSize,
             fontFamily: 'Arial Black',
             color: '#00FFFF',
@@ -267,7 +278,7 @@ export default class InventoryScene extends Phaser.Scene {
         const stats = window.InventoryManager?.getStats();
         const statsText = `${stats?.totalItems || 0} / ${stats?.maxSlots || 30} Items`;
 
-        this.statsText = this.add.text(width / 2, 65, statsText, {
+        this.statsText = this.add.text(width / 2, 50, statsText, {
             fontSize: '16px',
             fontFamily: 'Arial',
             color: '#FFFFFF',
@@ -287,11 +298,11 @@ export default class InventoryScene extends Phaser.Scene {
         const tabSpacing = 8;
         const totalWidth = tabWidth * 3 + tabSpacing * 2;
         const startX = (width - totalWidth) / 2;
-        const y = 52;
+        const y = 66;
 
         const tabs = [
             { key: 'items', label: '🎒 Items', icon: '🎒' },
-            { key: 'ship_parts', label: '🚀 Ship', icon: '🚀' },
+            { key: 'ship_parts', label: '🥋 Kit', icon: '🥋' },
             { key: 'collection', label: '📖 Found', icon: '📖' }
         ];
 
@@ -415,6 +426,11 @@ export default class InventoryScene extends Phaser.Scene {
         // Hide other tab elements
         this.clearCollectionElements();
         this.clearShipPartsElements();
+        this.selectionHintText?.setVisible(true);
+        const selectedItem = this.selectedSlot === null
+            ? null
+            : window.InventoryManager?.getItem(this.selectedSlot);
+        this.updateSelectedItemActions(selectedItem);
 
         // Update stats text
         const stats = window.InventoryManager?.getStats();
@@ -450,6 +466,9 @@ export default class InventoryScene extends Phaser.Scene {
 
         // Clear ship parts elements if any
         this.clearShipPartsElements();
+        this.selectionHintText?.setVisible(false);
+        this.setActionButtonVisible(this.useButton, false);
+        this.setActionButtonVisible(this.equipButton, false);
 
         // Create collection display
         this.createCollectionDisplay();
@@ -779,24 +798,31 @@ export default class InventoryScene extends Phaser.Scene {
 
         // Clear collection elements if any
         this.clearCollectionElements();
+        this.selectionHintText?.setVisible(false);
+        this.setActionButtonVisible(this.useButton, false);
+        this.setActionButtonVisible(this.equipButton, false);
 
         // Create ship parts display
         this.createShipPartsDisplay();
 
         // Update stats text
-        const progress = window.InventoryManager?.getShipPartsProgress();
+        const { progress, fieldKit } = this.getKitPresentationData();
         if (this.statsText && progress) {
-            this.statsText.setText(`${progress.collected} / ${progress.total} Ship Parts`);
+            this.statsText.setText(
+                `${fieldKit.recovered ? 'Katana Equipped  //  ' : ''}` +
+                `${progress.collected} / ${progress.total} Ship Parts`
+            );
         }
     }
 
     /**
-     * Create ship parts display in diamond layout
+     * Create a unified Project Beacon field-kit and ship-recovery display.
      */
     createShipPartsDisplay() {
         this.clearShipPartsElements();
 
         const { width, height, isMobile, margin } = this.dims;
+        const compact = height < 680;
 
         if (!window.InventoryManager) {
             const noDataText = this.add.text(width / 2, 200, 'Ship parts data not available', {
@@ -807,174 +833,205 @@ export default class InventoryScene extends Phaser.Scene {
             return;
         }
 
-        const shipParts = window.InventoryManager.getShipParts();
-        const progress = window.InventoryManager.getShipPartsProgress();
+        const { shipParts, progress, fieldKit } = this.getKitPresentationData();
+        const katana = fieldKit.katana || {};
+        const installedUpgrades = Array.isArray(katana.installedUpgrades)
+            ? katana.installedUpgrades
+            : [];
+        let currentY = 106;
 
-        // Title section
-        const startY = 115;
-        let currentY = startY;
+        const kitHeight = fieldKit.recovered ? (compact ? 102 : 116) : 82;
+        const kitBg = this.add.graphics();
+        kitBg.fillStyle(fieldKit.recovered ? 0x102B31 : 0x16182B, 0.98);
+        kitBg.fillRoundedRect(margin, currentY, width - margin * 2, kitHeight, 8);
+        kitBg.lineStyle(2, fieldKit.recovered ? 0x6FE7DD : 0x565B72, 0.9);
+        kitBg.strokeRoundedRect(margin, currentY, width - margin * 2, kitHeight, 8);
+        this.shipPartsElements.push(kitBg);
 
-        // Header with progress
-        const headerBg = this.add.graphics();
-        headerBg.fillStyle(0x1A0A2E, 0.9);
-        headerBg.fillRoundedRect(margin, currentY, width - margin * 2, 70, 12);
-        headerBg.lineStyle(2, 0x6B00B3);
-        headerBg.strokeRoundedRect(margin, currentY, width - margin * 2, 70, 12);
-        this.shipPartsElements.push(headerBg);
+        const kitTitle = this.add.text(
+            margin + 18,
+            currentY + 14,
+            fieldKit.recovered
+                ? 'FIELD KIT // KATANA EQUIPPED'
+                : 'FIELD KIT // NOT RECOVERED',
+            {
+                fontSize: isMobile ? '13px' : '15px',
+                fontFamily: 'Arial',
+                color: fieldKit.recovered ? '#6FE7DD' : '#9197AA',
+                fontStyle: 'bold'
+            }
+        );
+        this.shipPartsElements.push(kitTitle);
 
-        const headerTitle = this.add.text(width / 2, currentY + 18, '🚀 Ship Assembly Progress', {
-            fontSize: isMobile ? '16px' : '18px',
-            color: '#00FFFF',
+        const katanaName = fieldKit.recovered
+            ? (katana.name || 'Earth-forged Field Katana')
+            : 'Return to the Wanderer-7 crash site';
+        const kitName = this.add.text(margin + 18, currentY + 39, katanaName, {
+            fontSize: isMobile ? '14px' : '17px',
+            fontFamily: 'Arial',
+            color: fieldKit.recovered ? '#F2C14E' : '#C2C6D1',
             fontStyle: 'bold'
-        }).setOrigin(0.5);
-        this.shipPartsElements.push(headerTitle);
+        });
+        this.shipPartsElements.push(kitName);
 
-        // Progress bar
-        const barWidth = width - margin * 2 - 40;
-        const barHeight = 16;
-        const barX = margin + 20;
-        const barY = currentY + 42;
+        const upgradeSlots = Math.max(0, Number(katana.upgradeSlots) || 2);
+        const kitStatus = this.add.text(
+            margin + 18,
+            currentY + (compact ? 62 : 68),
+            fieldKit.recovered
+                ? `Use RED MELEE or X during expeditions  //  Creature-tech ${installedUpgrades.length}/${upgradeSlots}`
+                : 'Recover the case beside your crashed ship in the Sanctuary.',
+            {
+                fontSize: isMobile ? '11px' : '13px',
+                fontFamily: 'Arial',
+                color: fieldKit.recovered ? '#DCE8ED' : '#9197AA',
+                wordWrap: { width: width - margin * 2 - 36 }
+            }
+        );
+        this.shipPartsElements.push(kitStatus);
 
-        // Background bar
-        const progressBg = this.add.graphics();
-        progressBg.fillStyle(0x2D2D4D, 1);
-        progressBg.fillRoundedRect(barX, barY, barWidth, barHeight, 8);
-        this.shipPartsElements.push(progressBg);
-
-        // Filled bar
-        const filledWidth = (progress.collected / progress.total) * barWidth;
-        if (filledWidth > 0) {
-            const progressFill = this.add.graphics();
-            progressFill.fillStyle(0xFFD700, 1);
-            progressFill.fillRoundedRect(barX, barY, Math.max(filledWidth, 16), barHeight, 8);
-            this.shipPartsElements.push(progressFill);
+        if (fieldKit.recovered && !compact) {
+            const upgradeNames = installedUpgrades.length > 0
+                ? installedUpgrades.map(upgrade => upgrade.name || upgrade.id).join('  +  ')
+                : 'Upgrade interfaces dormant';
+            const upgradeText = this.add.text(
+                margin + 18,
+                currentY + 92,
+                upgradeNames,
+                {
+                    fontSize: isMobile ? '10px' : '11px',
+                    fontFamily: 'Arial',
+                    color: installedUpgrades.length > 0 ? '#B8F1E8' : '#768690'
+                }
+            );
+            this.shipPartsElements.push(upgradeText);
         }
 
-        // Progress text
-        const progressText = this.add.text(barX + barWidth / 2, barY + barHeight / 2, `${progress.percentage}%`, {
-            fontSize: '12px',
-            color: '#FFFFFF',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        this.shipPartsElements.push(progressText);
+        currentY += kitHeight + 12;
 
-        currentY += 90;
+        const shipHeader = this.add.text(
+            margin,
+            currentY,
+            `SHIP RECOVERY // ${progress.collected} OF ${progress.total}`,
+            {
+                fontSize: isMobile ? '12px' : '14px',
+                fontFamily: 'Arial',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        );
+        this.shipPartsElements.push(shipHeader);
+        currentY += 24;
 
-        // Ship parts in diamond layout
-        //        [aurora_reactor]     <- top
-        //    [crystal]    [void]      <- sides
-        //        [dimensional]        <- bottom
-        const centerX = width / 2;
-        const centerY = currentY + 100;
-        const diamondRadius = isMobile ? 70 : 90;
-        const partSize = isMobile ? 60 : 75;
+        const columns = isMobile ? 2 : 3;
+        const gap = isMobile ? 8 : 12;
+        const cellWidth = (
+            width - margin * 2 - gap * (columns - 1)
+        ) / columns;
+        const cellHeight = compact ? 56 : 68;
 
-        const positions = {
-            aurora_reactor: { x: centerX, y: centerY - diamondRadius },
-            crystal_core: { x: centerX - diamondRadius, y: centerY },
-            void_stabilizer: { x: centerX + diamondRadius, y: centerY },
-            dimensional_drive: { x: centerX, y: centerY + diamondRadius }
-        };
-
-        // Draw connecting lines (ship frame)
-        const frameBg = this.add.graphics();
-        frameBg.lineStyle(3, 0x4B0082, 0.4);
-        frameBg.beginPath();
-        frameBg.moveTo(positions.aurora_reactor.x, positions.aurora_reactor.y);
-        frameBg.lineTo(positions.crystal_core.x, positions.crystal_core.y);
-        frameBg.lineTo(positions.dimensional_drive.x, positions.dimensional_drive.y);
-        frameBg.lineTo(positions.void_stabilizer.x, positions.void_stabilizer.y);
-        frameBg.closePath();
-        frameBg.strokePath();
-        this.shipPartsElements.push(frameBg);
-
-        // Draw each ship part
-        shipParts.forEach(part => {
-            const pos = positions[part.id];
-            if (!pos) return;
-
-            this.createShipPartSlot(pos.x, pos.y, partSize, part);
+        shipParts.forEach((part, index) => {
+            const column = index % columns;
+            const row = Math.floor(index / columns);
+            const x = margin + column * (cellWidth + gap);
+            const y = currentY + row * (cellHeight + gap);
+            this.createShipPartSlot(x, y, cellWidth, cellHeight, part);
         });
 
-        // Bottom instruction text
-        const instructionY = centerY + diamondRadius + 60;
-        const instructionText = this.add.text(width / 2, instructionY,
+        const rows = Math.ceil(shipParts.length / columns);
+        const instructionY = currentY + rows * (cellHeight + gap) + 4;
+        const instructionText = this.add.text(
+            width / 2,
+            instructionY,
             progress.isComplete
-                ? '✨ All parts collected! Ship ready for launch!'
-                : 'Complete levels to collect ship parts',
+                ? 'All systems recovered. The Wanderer-7 can launch.'
+                : 'Guardian rescues recover the remaining ship systems.',
             {
-                fontSize: isMobile ? '13px' : '14px',
-                color: progress.isComplete ? '#FFD700' : '#AAAAAA',
-                fontStyle: progress.isComplete ? 'bold' : 'normal'
+                fontSize: isMobile ? '11px' : '13px',
+                fontFamily: 'Arial',
+                color: progress.isComplete ? '#F2C14E' : '#AAB6C4',
+                align: 'center',
+                wordWrap: { width: width - margin * 2 }
             }
-        ).setOrigin(0.5);
+        ).setOrigin(0.5, 0);
         this.shipPartsElements.push(instructionText);
     }
 
-    /**
-     * Create a ship part slot in the diamond layout
-     */
-    createShipPartSlot(x, y, size, part) {
-        const { isMobile } = this.dims;
-        const radius = size / 2;
-
-        // Slot background
-        const slotBg = this.add.graphics();
-        if (part.collected) {
-            // Collected: Gold glow
-            slotBg.fillStyle(0xFFD700, 0.2);
-            slotBg.fillCircle(x, y, radius + 4);
-            slotBg.fillStyle(0x1A1A3E, 0.95);
-            slotBg.fillCircle(x, y, radius);
-            slotBg.lineStyle(3, 0xFFD700, 1);
-            slotBg.strokeCircle(x, y, radius);
-        } else {
-            // Not collected: Gray, dimmed
-            slotBg.fillStyle(0x1A1A2E, 0.6);
-            slotBg.fillCircle(x, y, radius);
-            slotBg.lineStyle(2, 0x4A4A6A, 0.5);
-            slotBg.strokeCircle(x, y, radius);
+    getKitPresentationData() {
+        const liveShipParts = window.InventoryManager?.getShipParts?.() || [];
+        if (!this.kitPreview) {
+            return {
+                shipParts: liveShipParts,
+                progress: window.InventoryManager?.getShipPartsProgress?.() || {
+                    collected: 0,
+                    total: liveShipParts.length,
+                    percentage: 0,
+                    isComplete: false
+                },
+                fieldKit: window.GameState?.get('story.projectBeacon.fieldKit') || {}
+            };
         }
+
+        const collectedIds = new Set(this.kitPreview.shipPartIds || []);
+        const shipParts = liveShipParts.map(part => ({
+            ...part,
+            collected: collectedIds.has(part.id)
+        }));
+        const collected = shipParts.filter(part => part.collected).length;
+        const total = shipParts.length;
+
+        return {
+            shipParts,
+            progress: {
+                collected,
+                total,
+                percentage: total > 0 ? Math.round((collected / total) * 100) : 0,
+                isComplete: total > 0 && collected >= total
+            },
+            fieldKit: this.kitPreview.fieldKit || {}
+        };
+    }
+
+    /**
+     * Create one ship-system status cell.
+     */
+    createShipPartSlot(x, y, width, height, part) {
+        const { isMobile } = this.dims;
+
+        const slotBg = this.add.graphics();
+        slotBg.fillStyle(part.collected ? 0x28283C : 0x151522, 0.96);
+        slotBg.fillRoundedRect(x, y, width, height, 6);
+        slotBg.lineStyle(2, part.collected ? 0xF2C14E : 0x45485B, 0.9);
+        slotBg.strokeRoundedRect(x, y, width, height, 6);
         this.shipPartsElements.push(slotBg);
 
-        // Icon
-        const iconSize = isMobile ? '24px' : '28px';
-        const icon = this.add.text(x, y - 6, part.icon, {
-            fontSize: iconSize
-        }).setOrigin(0.5);
-        icon.setAlpha(part.collected ? 1 : 0.3);
+        const icon = this.add.text(x + 12, y + 11, part.icon, {
+            fontSize: isMobile ? '18px' : '22px'
+        });
+        icon.setAlpha(part.collected ? 1 : 0.35);
         this.shipPartsElements.push(icon);
 
-        // Label below slot
-        const label = this.add.text(x, y + radius + 10, part.label, {
+        const label = this.add.text(x + 40, y + 9, part.label, {
             fontSize: isMobile ? '10px' : '12px',
-            color: part.collected ? '#FFFFFF' : '#666666',
-            fontStyle: part.collected ? 'bold' : 'normal'
-        }).setOrigin(0.5);
+            fontFamily: 'Arial',
+            color: part.collected ? '#FFFFFF' : '#777B8B',
+            fontStyle: 'bold',
+            wordWrap: { width: width - 48 }
+        });
         this.shipPartsElements.push(label);
 
-        // Source location (if not collected)
-        if (!part.collected) {
-            const sourceText = this.add.text(x, y + radius + 24, `(${part.source})`, {
+        const status = this.add.text(
+            x + 40,
+            y + height - 18,
+            part.collected ? 'RECOVERED' : part.source,
+            {
                 fontSize: isMobile ? '9px' : '10px',
-                color: '#888888',
-                fontStyle: 'italic'
-            }).setOrigin(0.5);
-            this.shipPartsElements.push(sourceText);
-        }
-
-        // Pulsing animation for collected parts
-        if (part.collected) {
-            this.tweens.add({
-                targets: icon,
-                scale: { from: 1, to: 1.15 },
-                alpha: { from: 1, to: 0.8 },
-                duration: 1200,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-        }
+                fontFamily: 'Arial',
+                color: part.collected ? '#8FE3CF' : '#676B7A',
+                wordWrap: { width: width - 48 }
+            }
+        );
+        this.shipPartsElements.push(status);
     }
 
     /**
@@ -997,7 +1054,7 @@ export default class InventoryScene extends Phaser.Scene {
         const { width, isMobile, margin } = this.dims;
 
         const startX = margin + 10;
-        const y = 85;
+        const y = 110;
         const buttonWidth = isMobile ? 50 : 60;
         const buttonHeight = isMobile ? 18 : 20;
         const spacing = isMobile ? 3 : 5;
@@ -1183,7 +1240,7 @@ export default class InventoryScene extends Phaser.Scene {
             startX = gridStartX;
         }
 
-        const startY = 110;
+        const startY = 136;
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
@@ -1342,7 +1399,33 @@ export default class InventoryScene extends Phaser.Scene {
         this.equipButton = this.createButton(x + buttonWidth + spacing, y, buttonWidth, buttonHeight, 'EQUIP', 0x0066AA, () => {
             this.equipSelectedItem();
         });
-        this.equipButton.visible = false;
+        this.setActionButtonVisible(this.useButton, false);
+        this.setActionButtonVisible(this.equipButton, false);
+
+        this.selectionHintText = this.add.text(
+            width / 2,
+            y - 24,
+            'Select an item to see where it is used.',
+            {
+                fontSize: isMobile ? '12px' : '13px',
+                fontFamily: 'Arial',
+                color: '#AAB6C4',
+                align: 'center',
+                wordWrap: { width: isMobile ? width - 36 : 430 }
+            }
+        ).setOrigin(0.5, 0.5).setDepth(101);
+    }
+
+    setActionButtonVisible(control, visible) {
+        if (!control) {
+            return;
+        }
+
+        control.visible = visible;
+        control.button?.setVisible(visible);
+        control.text?.setVisible(visible);
+        control.zone?.setVisible(visible);
+        control.zone?.setActive(visible);
     }
 
     /**
@@ -1466,6 +1549,14 @@ export default class InventoryScene extends Phaser.Scene {
                 });
                 this.itemSprites = [];
             }
+            this.selectedSlot = null;
+            this.selectedDisplaySlot = null;
+            this.updateSelectedItemActions(null);
+            this.inventorySlots.forEach(slot => {
+                slot.itemIcon = null;
+                slot.itemQuantity = null;
+                slot.inventoryIndex = null;
+            });
 
             // Check if InventoryManager exists
             if (!window.InventoryManager) {
@@ -1506,6 +1597,9 @@ export default class InventoryScene extends Phaser.Scene {
                     console.warn('[InventoryScene] Slot not found at index:', index);
                     return;
                 }
+                slot.inventoryIndex = Number.isInteger(item.slot)
+                    ? item.slot
+                    : index;
 
                 // Item icon
                 if (slot.itemIcon) {
@@ -1516,7 +1610,7 @@ export default class InventoryScene extends Phaser.Scene {
                     slot.x + slot.size / 2,
                     slot.y + slot.size / 2 - 5,
                     item.icon || '?',
-                    { fontSize: '32px' }
+                    { fontSize: `${Math.max(22, Math.min(32, slot.size * 0.48))}px` }
                 );
                 slot.itemIcon.setOrigin(0.5, 0.5);
                 this.itemSprites.push(slot.itemIcon);
@@ -1623,12 +1717,12 @@ export default class InventoryScene extends Phaser.Scene {
     /**
      * Select inventory slot
      */
-    selectSlot(slotIndex) {
-        console.log(`[InventoryScene] Selected slot: ${slotIndex}`);
+    selectSlot(displaySlotIndex) {
+        console.log(`[InventoryScene] Selected display slot: ${displaySlotIndex}`);
 
         // Clear previous selection
-        if (this.selectedSlot !== null) {
-            const prevSlot = this.inventorySlots[this.selectedSlot];
+        if (this.selectedDisplaySlot !== null) {
+            const prevSlot = this.inventorySlots[this.selectedDisplaySlot];
             prevSlot.graphics.clear();
             prevSlot.graphics.fillStyle(0x2A0040, 0.6);
             prevSlot.graphics.fillRoundedRect(prevSlot.x, prevSlot.y, prevSlot.size, prevSlot.size, 8);
@@ -1637,8 +1731,18 @@ export default class InventoryScene extends Phaser.Scene {
         }
 
         // Highlight selected slot
-        this.selectedSlot = slotIndex;
-        const slot = this.inventorySlots[slotIndex];
+        const slot = this.inventorySlots[displaySlotIndex];
+        const inventoryIndex = slot?.inventoryIndex;
+        if (!Number.isInteger(inventoryIndex)) {
+            this.selectedSlot = null;
+            this.selectedDisplaySlot = null;
+            this.updateSelectedItemActions(null);
+            this.updateItemDetails(null);
+            return;
+        }
+
+        this.selectedSlot = inventoryIndex;
+        this.selectedDisplaySlot = displaySlotIndex;
         slot.graphics.clear();
         slot.graphics.fillStyle(0x6B00B3, 1);
         slot.graphics.fillRoundedRect(slot.x, slot.y, slot.size, slot.size, 8);
@@ -1646,12 +1750,46 @@ export default class InventoryScene extends Phaser.Scene {
         slot.graphics.strokeRoundedRect(slot.x, slot.y, slot.size, slot.size, 8);
 
         // Update item details
-        this.updateItemDetails(slotIndex);
+        const item = window.InventoryManager?.getItem(inventoryIndex);
+        this.updateItemDetails(inventoryIndex);
+        this.updateSelectedItemActions(item);
 
         // Play sound
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
         }
+    }
+
+    updateSelectedItemActions(item) {
+        const hasItem = Boolean(item);
+        this.setActionButtonVisible(this.useButton, hasItem);
+        this.setActionButtonVisible(this.equipButton, item?.equippable === true);
+
+        if (this.selectionHintText) {
+            this.selectionHintText.setText(
+                hasItem
+                    ? `${item.name} // ${item.usageHint || this.getDefaultUsageHint(item)}`
+                    : 'Select an item to see where it is used.'
+            );
+            this.selectionHintText.setColor(hasItem ? '#8FE3CF' : '#AAB6C4');
+        }
+    }
+
+    getDefaultUsageHint(item) {
+        if (item?.type === 'powerup') {
+            return 'Use from the expedition pause menu';
+        }
+        if (item?.type === 'egg') {
+            return 'Use here to begin hatching';
+        }
+        return 'Use from this inventory';
+    }
+
+    clearItemSelection() {
+        this.selectedSlot = null;
+        this.selectedDisplaySlot = null;
+        this.updateItemDetails(null);
+        this.updateSelectedItemActions(null);
     }
 
     /**
@@ -1673,7 +1811,7 @@ export default class InventoryScene extends Phaser.Scene {
             if (this.detailDescription) this.detailDescription.setText('');
             if (this.detailEffects) this.detailEffects.setText('');
             if (this.detailQuantity) this.detailQuantity.setText('');
-            if (this.equipButton) this.equipButton.visible = false;
+            this.updateSelectedItemActions(null);
             return;
         }
 
@@ -1681,7 +1819,12 @@ export default class InventoryScene extends Phaser.Scene {
         this.detailName.setText(item.name);
         if (this.detailIcon) this.detailIcon.setText(item.icon);
         if (this.detailType) this.detailType.setText(`Type: ${item.type.toUpperCase()}`);
-        if (this.detailDescription) this.detailDescription.setText(item.description || 'No description available');
+        if (this.detailDescription) {
+            const usage = item.usageHint || this.getDefaultUsageHint(item);
+            this.detailDescription.setText(
+                `${item.description || 'No description available'}\n\nUSE // ${usage}`
+            );
+        }
 
         // Show effects if food
         if (item.effect && this.detailEffects) {
@@ -1704,9 +1847,7 @@ export default class InventoryScene extends Phaser.Scene {
         }
 
         // Show/hide equip button
-        if (this.equipButton) {
-            this.equipButton.visible = item.equippable === true;
-        }
+        this.updateSelectedItemActions(item);
     }
 
     /**
@@ -1893,8 +2034,7 @@ export default class InventoryScene extends Phaser.Scene {
             // Refresh display
             this.time.delayedCall(500, () => {
                 this.refreshInventory();
-                this.selectedSlot = null;
-                this.updateItemDetails(null);
+                this.clearItemSelection();
             });
         } else {
             this.showMessage(useResult?.message || 'Cannot use item!', 0xFF0000);
@@ -1950,8 +2090,7 @@ export default class InventoryScene extends Phaser.Scene {
                 // Refresh display
                 this.time.delayedCall(500, () => {
                     this.refreshInventory();
-                    this.selectedSlot = null;
-                    this.updateItemDetails(null);
+                    this.clearItemSelection();
                 });
             } else {
                 this.showMessage(useResult?.message || 'Cannot use item!', 0xFF0000);

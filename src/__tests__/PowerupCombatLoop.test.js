@@ -163,6 +163,26 @@ describe('purchased expedition power-ups', () => {
         expect(manager.getItem(0).quantity).toBe(2);
     });
 
+    test('accepts an existing stack even when all inventory slots are occupied', () => {
+        const fullInventory = [
+            { ...powerShot, quantity: 1, slot: 0 },
+            ...Array.from({ length: 29 }, (_, index) => ({
+                id: `egg_${index}`,
+                name: `Egg ${index}`,
+                type: 'egg',
+                quantity: 1,
+                slot: index + 1
+            }))
+        ];
+        const { manager } = loadInventoryManager(fullInventory);
+
+        expect(manager.hasSpace()).toBe(false);
+        expect(manager.canAcceptItem(powerShot)).toBe(true);
+        expect(manager.addItem(powerShot)).toBe(true);
+        expect(manager.getAllItems()).toHaveLength(30);
+        expect(manager.getItem(0).quantity).toBe(2);
+    });
+
     test('consumes exactly one item only after the level accepts its effect', () => {
         const { manager } = loadInventoryManager([{ ...powerShot, quantity: 2, slot: 0 }]);
         const applyPowerup = jest.fn(() => ({

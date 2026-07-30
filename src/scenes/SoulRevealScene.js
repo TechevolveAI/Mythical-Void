@@ -23,11 +23,16 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.canProceed = false;
         this.htmlInput = null;
         this.nameDomElement = null;
+        this.portraitPromise = null;
+        this.portraitError = null;
+        this.portraitDomElement = null;
+        this.portraitHandoffActive = false;
     }
 
     init(data) {
         this.isEggHatch = data?.isEggHatch || false;
         this.eggType = data?.eggType || null;
+        this.portraitPreviewImage = data?.portraitPreviewImage || null;
         devLog('[SoulRevealScene] Init with data:', data);
     }
 
@@ -46,6 +51,15 @@ export default class SoulRevealScene extends Phaser.Scene {
 
         // Get creature data
         this.loadCreatureData();
+        if (this.portraitPreviewImage) {
+            this.portraitPromise = new Promise(resolve => {
+                this.time.delayedCall(1400, () => resolve({
+                    identityKey: 'local-preview',
+                    stage: 'baby',
+                    imageUrl: this.portraitPreviewImage
+                }));
+            });
+        }
 
         // Create background
         this.createBackground(width, height);
@@ -79,6 +93,11 @@ export default class SoulRevealScene extends Phaser.Scene {
             shinyType: genetics?.shinyType || null,
             mutations: genetics?.traits?.features?.wackyMutations || [],
             specialFeatures: genetics?.traits?.features?.specialFeatures || []
+        };
+        this.portraitCreatureData = {
+            name: window.GameState?.get('creature.name') || 'Mythical Creature',
+            stage: window.GameState?.get('creature.lifecycle.stage') || 'baby',
+            genes: genes || genetics
         };
 
         // Get innate ability from CreatureSkills with full details
@@ -415,6 +434,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         const scale = maxSize / Math.max(this.creature.width, this.creature.height);
         this.creature.setScale(0).setDepth(50);
         this.elements.push(this.creature);
+        this.beginLivingPortraitPrewarm();
 
         // Dramatic entrance: scale from 0 → 1.1 → 1.0
         this.tweens.add({
@@ -451,6 +471,35 @@ export default class SoulRevealScene extends Phaser.Scene {
         if (window.AudioManager) {
             window.AudioManager.playBabyCoo?.();
         }
+    }
+
+    beginLivingPortraitPrewarm() {
+        if (
+            this.portraitPromise ||
+            !this.creature
+        ) {
+            return;
+        }
+
+        if (!this.portraitCreatureData?.genes) {
+            return;
+        }
+
+        const job = window.LivingPortraitService?.prewarm?.({
+            creatureData: this.portraitCreatureData,
+            sprite: this.creature,
+            style: 'cinematic',
+            source: 'post_hatch'
+        });
+        if (!job) {
+            return;
+        }
+
+        this.portraitPromise = job;
+        job.catch(error => {
+            this.portraitError = error;
+            devLog('[SoulRevealScene] Portrait prewarm unavailable:', error.message);
+        });
     }
 
     /**
@@ -1230,12 +1279,187 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.nameDomElement = null;
         this.htmlInput = null;
 
-        // Fade out and transition
+        if (this.portraitPromise) {
+            this.showLivingPortraitHandoff(finalName);
+            return;
+        }
+
+        this.transitionToGame();
+    }
+
+    transitionToGame() {
+        this.portraitHandoffActive = false;
+        this.portraitDomElement?.destroy?.();
+        this.portraitDomElement = null;
         this.cameras.main.fadeOut(800, 0, 0, 0);
 
         this.time.delayedCall(800, () => {
             this.scene.start('GameScene', { fromSoulReveal: true });
         });
+    }
+
+    showLivingPortraitHandoff(finalName) {
+        this.portraitHandoffActive = true;
+        this.tweens.killAll();
+        this.elements.forEach(element => element?.destroy?.());
+        this.elements = [];
+
+        const { width, height } = this.scale;
+        const compact = height < 660;
+        const bg = this.add.graphics()
+            .fillStyle(0x070B16, 1)
+            .fillRect(0, 0, width, height)
+            .setDepth(1);
+        this.elements.push(bg);
+
+        const title = this.add.text(
+            width / 2,
+            compact ? 34 : 52,
+            'LIVING FORM // RESOLVING',
+            {
+                fontSize: compact ? '18px' : '22px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(20);
+        this.elements.push(title);
+
+        const subtitle = this.add.text(
+            width / 2,
+            compact ? 67 : 90,
+            `The Beacon is translating ${finalName}'s pixel form into a living portrait.`,
+            {
+                fontSize: compact ? '12px' : '14px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#DCE8ED',
+                align: 'center',
+                wordWrap: { width: width - 48 }
+            }
+        ).setOrigin(0.5, 0).setDepth(20);
+        this.elements.push(subtitle);
+
+        const textureName = this.creatureData.textureName;
+        if (textureName && this.textures.exists(textureName)) {
+            const pixelCreature = this.add.sprite(
+                width / 2,
+                height / 2 - (compact ? 20 : 35),
+                textureName
+            ).setDepth(15);
+            const maxSize = Math.min(width * 0.46, compact ? 180 : 230);
+            pixelCreature.setScale(
+                maxSize / Math.max(pixelCreature.width, pixelCreature.height)
+            );
+            this.elements.push(pixelCreature);
+            this.tweens.add({
+                targets: pixelCreature,
+                alpha: { from: 0.65, to: 1 },
+                scaleX: pixelCreature.scaleX * 1.03,
+                scaleY: pixelCreature.scaleY * 1.03,
+                duration: 1100,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        const status = this.add.text(
+            width / 2,
+            height - (compact ? 122 : 150),
+            'Identity locked from genetics, markings, affinity, and temperament.',
+            {
+                fontSize: compact ? '11px' : '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#AAB6C4',
+                align: 'center',
+                wordWrap: { width: width - 42 }
+            }
+        ).setOrigin(0.5).setDepth(20);
+        this.elements.push(status);
+
+        const continueButton = this.add.text(
+            width / 2,
+            height - (compact ? 66 : 82),
+            'ENTER SANCTUARY',
+            {
+                fontSize: compact ? '15px' : '17px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#071014',
+                backgroundColor: '#6FE7DD',
+                fontStyle: 'bold',
+                padding: { x: 28, y: 12 }
+            }
+        ).setOrigin(0.5).setDepth(30).setAlpha(0);
+        continueButton.setInteractive({ useHandCursor: true });
+        continueButton.on('pointerdown', () => this.transitionToGame());
+        this.elements.push(continueButton);
+        this.tweens.add({
+            targets: continueButton,
+            alpha: 1,
+            duration: 300,
+            delay: 800
+        });
+
+        this.time.delayedCall(6500, () => {
+            if (this.portraitHandoffActive && !this.portraitDomElement) {
+                status.setText(
+                    'The portrait is still forming. Continue now and it will be saved to the creature profile.'
+                );
+            }
+        });
+
+        this.portraitPromise
+            .then(record => {
+                if (!record?.imageUrl) {
+                    return;
+                }
+                if (!this.portraitHandoffActive) {
+                    window.GameState?.emit?.('notification', {
+                        type: 'portraitReady',
+                        message: `${finalName}'s living portrait is ready`
+                    });
+                    return;
+                }
+                this.revealLivingPortrait(record, finalName, status, title);
+            })
+            .catch(error => {
+                if (this.portraitHandoffActive) {
+                    status.setText(
+                        `Living portrait unavailable right now. ${error.message}`
+                    );
+                    status.setColor('#FFCC66');
+                }
+            });
+    }
+
+    revealLivingPortrait(record, finalName, status, title) {
+        if (this.portraitDomElement || !record?.imageUrl) {
+            return;
+        }
+
+        const { width, height } = this.scale;
+        const compact = height < 660;
+        const image = document.createElement('img');
+        image.src = record.imageUrl;
+        image.alt = `AI-generated living portrait of ${finalName}`;
+        image.referrerPolicy = 'no-referrer';
+        image.style.width = `${Math.min(width - 48, compact ? 250 : 320)}px`;
+        image.style.height = `${Math.min(height - 250, compact ? 250 : 360)}px`;
+        image.style.objectFit = 'contain';
+        image.style.border = '2px solid #6FE7DD';
+        image.style.borderRadius = '8px';
+        image.style.background = '#101820';
+        image.style.boxShadow = '0 10px 30px rgba(111, 231, 221, 0.24)';
+
+        this.portraitDomElement = this.add.dom(
+            width / 2,
+            height / 2 - (compact ? 18 : 28),
+            image
+        ).setDepth(25);
+        title.setText(`${finalName.toUpperCase()} // LIVING FORM`);
+        status.setText('AI-GENERATED INTERPRETATION // Saved to creature profile');
+        status.setColor('#8FE3CF');
+        window.AudioManager?.playLevelUp?.();
     }
 
     /**
@@ -1295,6 +1519,9 @@ export default class SoulRevealScene extends Phaser.Scene {
 
         this.nameDomElement?.destroy?.();
         this.nameDomElement = null;
+        this.portraitHandoffActive = false;
+        this.portraitDomElement?.destroy?.();
+        this.portraitDomElement = null;
         this.htmlInput = null;
 
         // Clear typewriter timer

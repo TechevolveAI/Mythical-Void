@@ -5893,12 +5893,16 @@ class GameScene extends Phaser.Scene {
         const status = this.add.text(
             centerX,
             panelY + 177,
-            `EARTH-FORGED // ${fieldKit.katana.material.toUpperCase()}\nCreature-tech interfaces: 0 / ${fieldKit.katana.upgradeSlots} dormant`,
+            `EARTH-FORGED // ${fieldKit.katana.material.toUpperCase()}\n` +
+            'AUTO-EQUIPPED TO YOUR ASTRONAUT\n' +
+            'RED MELEE OR X DURING EXPEDITIONS\n' +
+            `CREATURE-TECH INTERFACES 0/${fieldKit.katana.upgradeSlots} DORMANT`,
             {
-                fontSize: isNarrow ? '11px' : '12px',
+                fontSize: isNarrow ? '10px' : '12px',
                 color: '#9CB0BA',
                 align: 'center',
-                lineSpacing: 5
+                lineSpacing: 4,
+                wordWrap: { width: panelWidth - 48 }
             }
         ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(7003);
         elements.push(status);
@@ -5952,7 +5956,7 @@ class GameScene extends Phaser.Scene {
         };
         this.closeFieldKitModal = closeModal;
 
-        const button = this.add.text(centerX, panelY + panelHeight - 48, 'SECURE FIELD KIT', {
+        const button = this.add.text(centerX, panelY + panelHeight - 48, 'CONTINUE // KATANA EQUIPPED', {
             fontSize: isNarrow ? '14px' : '16px',
             color: '#071014',
             backgroundColor: '#6FE7DD',

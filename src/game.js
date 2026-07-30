@@ -891,6 +891,35 @@ async function initializeGame() {
             });
         }
 
+        // Local field-kit and ship-inventory preview.
+        if (isLocalPreview && urlParams.get('testInventory') === 'kit') {
+            game.events.once('ready', () => {
+                setTimeout(() => {
+                    game.scene.stop('HatchingScene');
+                    game.scene.start('InventoryScene', {
+                        kitPreview: {
+                            fieldKit: {
+                                id: 'wanderer_7_field_kit',
+                                name: 'Wanderer-7 Field Kit',
+                                recovered: true,
+                                katana: {
+                                    id: 'earth_field_katana',
+                                    name: 'Earth-forged Field Katana',
+                                    material: 'Titanium-ceramic laminate',
+                                    upgradeSlots: 2,
+                                    installedUpgrades: [{
+                                        id: 'crystal_edge',
+                                        name: 'Resonant Edge'
+                                    }]
+                                }
+                            },
+                            shipPartIds: ['crystal_core', 'forest_core']
+                        }
+                    });
+                }, 100);
+            });
+        }
+
         // Local, non-saving smoke route for Shop -> map input recovery.
         if (isLocalPreview && urlParams.get('testMapRecovery') === 'shop') {
             game.events.once('ready', () => {
@@ -1009,7 +1038,11 @@ async function initializeGame() {
         if (isLocalPreview && urlParams.has('testSoulReveal')) {
             game.events.once('ready', () => {
                 setTimeout(() => {
-                    game.scene.start('SoulRevealScene');
+                    game.scene.start('SoulRevealScene', {
+                        portraitPreviewImage: urlParams.get('testSoulReveal') === 'portrait'
+                            ? '/marketing/nova.webp'
+                            : null
+                    });
                 }, 100);
             });
         }

@@ -41,6 +41,15 @@ Mythical Void is a cozy, mobile-first Phaser game where players hatch and bond w
 - **`WorldBuilder`**: Generates the background texture once, spawns trees/rocks/flowers/shop, and exposes Phaser groups for collisions.
 - **`EnemyManager` + `ProjectileManager`**: Manages void wisp spawn/behavior, simple AIs, projectiles with limited counts.
 - **`InventoryManager`**: Adds/uses/removes items, stackable logic.
+
+### Shop Outcome Contract
+
+- Eggs and care items enter Inventory and explain their use location.
+- Expedition power-ups enter Inventory and activate from the expedition pause menu.
+- Void Crystals enter Inventory and are placed into the Sanctuary from there.
+- Route maps bypass finite slots and immediately unlock their matching Hub route.
+- The Project Beacon field kit is progression equipment rather than shop inventory. Its katana is auto-equipped to the astronaut and appears under Inventory > Kit.
+- Inventory display slots retain the canonical manager slot after sorting and filtering; actions never operate on a display-only index.
 - **Accessory systems**: `AudioManager`, `HatchCinematics`, `ParallaxBiome`, `UXEnhancements`, etc., initialized in `main.js` once Phaser boots.
 
 ## Event & Lifecycle Patterns

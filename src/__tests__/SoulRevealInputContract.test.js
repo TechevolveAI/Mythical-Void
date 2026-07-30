@@ -37,7 +37,7 @@ describe('Soul Reveal naming input', () => {
         );
 
         expect(game).toContain("urlParams.has('testSoulReveal')");
-        expect(game).toContain("game.scene.start('SoulRevealScene')");
+        expect(game).toContain("game.scene.start('SoulRevealScene', {");
         expect(hatching).toContain("previewParams.has('testSoulReveal')");
     });
 });

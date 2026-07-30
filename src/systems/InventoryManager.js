@@ -138,13 +138,6 @@ class InventoryManager {
             return false;
         }
 
-        // Check if inventory is full
-        if (this.inventory.length >= this.maxSlots) {
-            console.warn('[InventoryManager] Inventory is full');
-            this.events.emit('inventoryFull');
-            return false;
-        }
-
         // Check if item is stackable
         const stackableTypes = ['food', 'powerup', 'utility'];
         if (stackableTypes.includes(item.type)) {
@@ -158,6 +151,14 @@ class InventoryManager {
                 this.events.emit('itemAdded', { item: existingItem, stacked: true });
                 return true;
             }
+        }
+
+        // A full inventory can still accept an item that joins an existing
+        // stack, so capacity is checked only after the stack path above.
+        if (this.inventory.length >= this.maxSlots) {
+            console.warn('[InventoryManager] Inventory is full');
+            this.events.emit('inventoryFull');
+            return false;
         }
 
         // Add as new item
@@ -175,6 +176,23 @@ class InventoryManager {
         this.events.emit('itemAdded', { item: newItem, stacked: false });
 
         return true;
+    }
+
+    /**
+     * Check whether an item can be added without mutating inventory.
+     */
+    canAcceptItem(item) {
+        if (!item) {
+            return false;
+        }
+
+        const stackableTypes = ['food', 'powerup', 'utility'];
+        const joinsExistingStack = (
+            stackableTypes.includes(item.type) &&
+            this.inventory.some(existingItem => existingItem.id === item.id)
+        );
+
+        return joinsExistingStack || this.inventory.length < this.maxSlots;
     }
 
     /**

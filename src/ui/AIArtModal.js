@@ -291,67 +291,25 @@ class AIArtModal {
         this.previewText?.setText('A living portrait is forming...\nClose this window to keep playing.');
 
         try {
-            const portraitSpec = window.CreaturePortraitSpec?.create?.(this.creatureData);
-            if (!portraitSpec || !window.CreaturePortraitSpec?.isValid?.(portraitSpec)) {
-                throw new Error('Creature identity is incomplete');
+            if (!window.LivingPortraitService) {
+                throw new Error('Living Portrait service is unavailable');
             }
 
-            const referenceImage = this.captureCreatureReference();
-            const requestData = {
+            const portrait = await window.LivingPortraitService.generate({
+                creatureData: this.creatureData,
+                sprite: this.creatureSprite,
                 style: this.currentStyle,
-                portraitSpec,
-                referenceImage
-            };
-
-            devLog('[AIArtModal] Requesting portrait generation:', {
-                identityKey: portraitSpec.identityKey,
-                style: this.currentStyle,
-                hasReferenceImage: Boolean(referenceImage)
+                source: 'portrait_modal'
             });
-
-            // Call the Netlify function
-            let response = await fetch('/.netlify/functions/generate-ai-art', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestData)
-            });
-
-            if (!response.ok) {
-                const failure = await response.json().catch(() => ({}));
-                throw new Error(failure.error || `Portrait service error (${response.status})`);
-            }
-
-            let result = await response.json();
-            if (result.status !== 'succeeded' && result.predictionId) {
-                this.previewText?.setText('The portrait is rendering...\nYour creature identity is locked in.');
-                result = await this.waitForPrediction(result.predictionId);
-            }
-
-            if (!result.success) {
-                throw new Error(result.error || 'Generation failed');
-            }
-
-            devLog('[AIArtModal] Portrait generated:', result.predictionId);
-            this.generatedImageUrl = result.imageUrl;
-            window.GameState?.saveCreaturePortrait?.({
-                identityKey: portraitSpec.identityKey,
-                stage: portraitSpec.stage,
-                style: this.currentStyle,
-                imageUrl: result.imageUrl,
-                provider: result.provider,
-                model: result.model,
-                promptVersion: portraitSpec.promptVersion,
-                generatedAt: Date.now(),
-                expiresAt: result.expiresAt,
-                storage: result.storage
-            });
+            devLog('[AIArtModal] Portrait ready:', portrait.identityKey);
+            this.generatedImageUrl = portrait.imageUrl;
 
             if (this.isVisible) {
-                this.displayGeneratedImage(result.imageUrl);
+                this.displayGeneratedImage(portrait.imageUrl);
             } else {
                 window.GameState?.emit?.('notification', {
                     type: 'portraitReady',
-                    message: `${portraitSpec.name}'s living portrait is ready`
+                    message: `${this.creatureData?.name || 'Your creature'}'s living portrait is ready`
                 });
             }
 

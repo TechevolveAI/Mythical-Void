@@ -22,15 +22,19 @@ The living form must not become a random replacement. It is generated from an im
 
 Portrait metadata is saved per evolution stage with provider/model provenance and an AI-generated label. Provider output is currently marked temporary because Replicate API files expire; production generation remains behind the separate `ENABLE_AI_PORTRAITS` gate until the storage and usage-control work below is complete.
 
+`LivingPortraitService` now owns one deduplicated background job per creature identity and evolution stage. The hatch reveal and the later portrait modal reuse the same request instead of spending twice or producing competing versions.
+
 ## Recommended Player Experience
 
-1. The creature hatches and naming completes without waiting on any network service.
-2. The pixel creature enters gameplay immediately.
-3. The player can opt into creating a living portrait from the profile or creature menu.
-4. The generation job runs asynchronously and never freezes movement or scene transitions.
-5. The finished portrait is revealed as the same creature "seen more clearly," with an AI-generated label.
-6. The player can accept one portrait as the creature's living-form reference.
-7. Evolution creates a new stage portrait while preserving the same face, palette, markings, and mutation anchors.
+1. The pixel creature hatches immediately.
+2. For an eligible 16+ profile in an enabled build, portrait generation begins in the background as soon as the pixel sprite and genetics are available.
+3. The existing first-contact readings and naming interaction hide the first several seconds of provider latency.
+4. After naming, a non-blocking Living Form handoff shows the finished portrait when ready and always offers an immediate route into the Sanctuary.
+5. If generation takes longer, play continues and the finished portrait is saved to the creature profile.
+6. The profile and portrait modal reuse the hatch job and stored result.
+7. Evolution creates one new stage portrait while preserving the same face, palette, markings, and mutation anchors.
+
+Generation cannot be guaranteed to finish instantaneously. The product target is **instant perceived response**: prewarm early, never show an empty loader, never block gameplay indefinitely, and reveal the result at the first emotionally appropriate moment.
 
 ## Provider Direction
 

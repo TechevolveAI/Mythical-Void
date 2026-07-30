@@ -147,6 +147,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             slashGlowColor: 0x7B68EE,
             guardCharges: 0
         };
+        this.katanaEquipped = false;
         this.auroraGuardCharges = 0;
         this.katanaUpgradeDisplay = null;
         this.nextRangedDamageMultiplier = 1;
@@ -295,6 +296,10 @@ class PlatformerLevelScene extends Phaser.Scene {
                 slashGlowColor: 0x7B68EE,
                 guardCharges: 0
             };
+        this.katanaEquipped = Boolean(
+            this.katanaPreview ||
+            window.GameState?.get?.('story.projectBeacon.fieldKit.recovered')
+        );
         this.auroraGuardCharges = this.katanaCombatProfile.guardCharges;
 
         // Reset combat state
@@ -1829,6 +1834,21 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.katanaUpgradeDisplay.removeAll(true);
         const upgrades = this.katanaCombatProfile?.upgradeIds || [];
         let row = 0;
+
+        if (this.katanaEquipped && upgrades.length === 0) {
+            const blade = this.add.graphics();
+            blade.lineStyle(3, 0xDCE8ED, 1);
+            blade.lineBetween(2, 15, 18, 2);
+            blade.lineStyle(2, 0xF2C14E, 1);
+            blade.lineBetween(1, 10, 9, 18);
+            const label = this.add.text(26, 2, 'FIELD KATANA  //  MELEE', {
+                fontSize: '11px',
+                color: '#DCE8ED',
+                fontStyle: 'bold'
+            });
+            this.katanaUpgradeDisplay.add([blade, label]);
+            row += 1;
+        }
 
         if (upgrades.includes('crystal_edge')) {
             const edge = this.add.graphics();

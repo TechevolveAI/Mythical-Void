@@ -1111,19 +1111,20 @@ export default class ShopScene extends Phaser.Scene {
         }
 
         // Check inventory space
-        if (
-            item.type !== 'map' &&
-            window.InventoryManager &&
-            !window.InventoryManager.hasSpace()
-        ) {
-            this.hideLoadingOverlay();
-            this.showPurchaseError('Inventory is full!');
-            this.isPurchasing = false;
+        if (item.type !== 'map' && window.InventoryManager) {
+            const canAcceptItem = window.InventoryManager.canAcceptItem
+                ? window.InventoryManager.canAcceptItem(item)
+                : window.InventoryManager.hasSpace?.();
+            if (!canAcceptItem) {
+                this.hideLoadingOverlay();
+                this.showPurchaseError('Inventory is full!');
+                this.isPurchasing = false;
 
-            if (window.AudioManager) {
-                window.AudioManager.playError();
+                if (window.AudioManager) {
+                    window.AudioManager.playError();
+                }
+                return;
             }
-            return;
         }
 
         // Simulate async purchase (adds realistic feel)
@@ -1134,6 +1135,17 @@ export default class ShopScene extends Phaser.Scene {
                 this.showPurchaseError(delayedAvailability.message);
                 this.isPurchasing = false;
                 return;
+            }
+            if (item.type !== 'map' && window.InventoryManager) {
+                const stillHasCapacity = window.InventoryManager.canAcceptItem
+                    ? window.InventoryManager.canAcceptItem(item)
+                    : window.InventoryManager.hasSpace?.();
+                if (!stillHasCapacity) {
+                    this.hideLoadingOverlay();
+                    this.showPurchaseError('Inventory is full!');
+                    this.isPurchasing = false;
+                    return;
+                }
             }
 
             // Process purchase via EconomyManager
@@ -1242,12 +1254,22 @@ export default class ShopScene extends Phaser.Scene {
         const { width, height, isMobile } = this.dims;
 
         // Success message
-        const successText = this.add.text(width / 2, height / 2 - 50, `✅ Purchased ${item.name}!`, {
-            fontSize: isMobile ? '22px' : '28px',
+        const destination = item.type === 'map'
+            ? 'Route opened in the Hub'
+            : (item.usageHint || 'Added to Inventory');
+        const successText = this.add.text(
+            width / 2,
+            height / 2 - 50,
+            `Purchased ${item.name}\n${destination}`,
+            {
+            fontSize: isMobile ? '18px' : '23px',
             color: '#00FF00',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center',
+            lineSpacing: 6,
+            wordWrap: { width: width - 40 }
         }).setOrigin(0.5).setDepth(250).setAlpha(0);
 
         // Coin animation (fly from item to header)
@@ -1543,6 +1565,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 250,
                     type: 'egg',
                     eggType: 'cosmic',
+                    usageHint: 'Inventory > select egg > Hatch',
                     rarityOdds: '50% Common, 25% Uncommon, 15% Rare, 8% Epic, 2% Legendary'
                 },
                 {
@@ -1553,6 +1576,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 1000,
                     type: 'egg',
                     eggType: 'stellar',
+                    usageHint: 'Inventory > select egg > Hatch',
                     rarityOdds: '50% Uncommon, 30% Rare, 15% Epic, 5% Legendary'
                 }
             ],
@@ -1564,6 +1588,7 @@ export default class ShopScene extends Phaser.Scene {
                     icon: '✨',
                     price: 20,
                     type: 'food',
+                    usageHint: 'Inventory > select item > Use',
                     effect: { happiness: 20 }
                 },
                 {
@@ -1573,6 +1598,7 @@ export default class ShopScene extends Phaser.Scene {
                     icon: '🫐',
                     price: 30,
                     type: 'food',
+                    usageHint: 'Inventory > select item > Use',
                     effect: { hunger: 30 }
                 },
                 {
@@ -1582,6 +1608,7 @@ export default class ShopScene extends Phaser.Scene {
                     icon: '🍯',
                     price: 50,
                     type: 'food',
+                    usageHint: 'Inventory > select item > Use',
                     effect: { health: 40 }
                 }
             ],
@@ -1594,6 +1621,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 50,
                     type: 'powerup',
                     effect: { crystalEnergy: 3 },
+                    usageHint: 'Expedition pause menu > Power-ups',
                     usableInLevel: true
                 },
                 {
@@ -1604,6 +1632,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 75,
                     type: 'powerup',
                     effect: { nextRangedDamageMultiplier: 5 },
+                    usageHint: 'Expedition pause menu > Power-ups',
                     usableInLevel: true
                 },
                 {
@@ -1614,6 +1643,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 100,
                     type: 'powerup',
                     effect: { shieldHits: 2 },
+                    usageHint: 'Expedition pause menu > Power-ups',
                     usableInLevel: true
                 },
                 {
@@ -1624,6 +1654,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 150,
                     type: 'powerup',
                     effect: { freeSpecialAttack: 1 },
+                    usageHint: 'Expedition pause menu > Power-ups',
                     usableInLevel: true
                 },
                 {
@@ -1634,6 +1665,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 80,
                     type: 'powerup',
                     effect: { fullHealth: true },
+                    usageHint: 'Expedition pause menu > Power-ups',
                     usableInLevel: true
                 },
                 {
@@ -1644,6 +1676,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 100,
                     type: 'powerup',
                     effect: { coinMultiplier: 2 },
+                    usageHint: 'Expedition pause menu > Power-ups',
                     usableInLevel: true
                 }
             ],
@@ -1654,7 +1687,8 @@ export default class ShopScene extends Phaser.Scene {
                     description: 'Sparkly keepsake for decorating cozy corners',
                     icon: '💎',
                     price: 150,
-                    type: 'utility'
+                    type: 'utility',
+                    usageHint: 'Inventory > Use to place in Sanctuary'
                 },
                 {
                     id: 'map_stellar_reef',
@@ -1664,6 +1698,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 400,
                     type: 'map',
                     gateId: 'stellar_reef',
+                    usageHint: 'Opens the Stellar Reef route immediately',
                     effect: 'Unlocks Stellar Reef biome'
                 },
                 {
@@ -1674,6 +1709,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 800,
                     type: 'map',
                     gateId: 'crystal_caves',
+                    usageHint: 'Opens the Crystal Caves route immediately',
                     effect: 'Unlocks Crystal Caves biome'
                 },
                 {
@@ -1684,6 +1720,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 1500,
                     type: 'map',
                     gateId: 'void_peaks',
+                    usageHint: 'Opens the Void Peaks route immediately',
                     effect: 'Unlocks Void Peaks biome'
                 },
                 {
@@ -1694,6 +1731,7 @@ export default class ShopScene extends Phaser.Scene {
                     price: 4000,
                     type: 'map',
                     gateId: 'aurora_depths',
+                    usageHint: 'Opens the Aurora Depths route immediately',
                     effect: 'Unlocks Aurora Depths biome'
                 }
             ]
