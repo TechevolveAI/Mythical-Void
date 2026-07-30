@@ -102,13 +102,21 @@ class LivingPortraitService {
 
     async runJob({ job, portraitSpec, referenceImage }) {
         try {
+            const accessToken = await this.getAccessToken();
+            const ageGroup = window.localStorage?.getItem?.(
+                'mythical_void_age_group'
+            );
             const response = await fetch('/.netlify/functions/generate-ai-art', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`
+                },
                 body: JSON.stringify({
                     style: job.style,
                     portraitSpec,
-                    referenceImage
+                    referenceImage,
+                    ageGroup
                 })
             });
 
@@ -123,9 +131,13 @@ class LivingPortraitService {
             job.status = initialResult.status || 'processing';
             const result = (
                 initialResult.status !== 'succeeded' &&
-                initialResult.predictionId
+                initialResult.jobId
             )
-                ? await this.waitForPrediction(initialResult.predictionId, job)
+                ? await this.waitForPrediction(
+                    initialResult.jobId,
+                    job,
+                    accessToken
+                )
                 : initialResult;
 
             if (!result.success || !result.imageUrl) {
@@ -142,7 +154,8 @@ class LivingPortraitService {
                 promptVersion: portraitSpec.promptVersion,
                 generatedAt: Date.now(),
                 expiresAt: result.expiresAt,
-                storage: result.storage
+                storage: result.storage,
+                jobId: result.jobId
             });
             const record = (
                 saved &&
@@ -174,17 +187,45 @@ class LivingPortraitService {
         }
     }
 
-    async waitForPrediction(predictionId, job) {
+    async getAccessToken() {
+        const client = window.CloudSave?.client;
+        if (!client?.auth) {
+            throw new Error('Private portrait authentication is unavailable');
+        }
+
+        const { data: sessionData, error: sessionError } =
+            await client.auth.getSession();
+        if (sessionError) {
+            throw new Error('Private portrait authentication failed');
+        }
+
+        let session = sessionData?.session || null;
+        if (!session?.access_token) {
+            const { data, error } = await client.auth.signInAnonymously();
+            if (error || !data?.session?.access_token) {
+                throw new Error('Private portrait authentication failed');
+            }
+            session = data.session;
+        }
+        return session.access_token;
+    }
+
+    async waitForPrediction(jobId, job, accessToken) {
         const startedAt = Date.now();
         const timeoutMs = 120000;
 
         while (Date.now() - startedAt < timeoutMs) {
             await new Promise(resolve => setTimeout(resolve, 2000));
             const response = await fetch(
-                `/.netlify/functions/generate-ai-art?predictionId=${
-                    encodeURIComponent(predictionId)
+                `/.netlify/functions/generate-ai-art?jobId=${
+                    encodeURIComponent(jobId)
                 }`,
-                { headers: { Accept: 'application/json' } }
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        Authorization: `Bearer ${accessToken}`
+                    }
+                }
             );
             const result = await response.json().catch(() => ({}));
             if (!response.ok) {

@@ -32,12 +32,23 @@ function loadService({
         json: async () => ({
             success: true,
             status: 'succeeded',
-            imageUrl: 'https://replicate.delivery/portrait.webp',
+            jobId: '824363b2-d374-4b44-bf7f-1d7a177fa074',
+            imageUrl: 'https://mkcmdbzcihjgidjuypqe.supabase.co/storage/portrait',
             provider: 'replicate',
             model: 'openai/gpt-image-2',
-            storage: 'provider-temporary'
+            storage: 'supabase-private',
+            expiresAt: Date.now() + 60000
         })
     }));
+    const auth = {
+        getSession: jest.fn(async () => ({
+            data: {
+                session: { access_token: 'private-session-token' }
+            },
+            error: null
+        })),
+        signInAnonymously: jest.fn()
+    };
     const sandbox = {
         module: { exports: {} },
         exports: {},
@@ -54,6 +65,9 @@ function loadService({
             },
             CloudSaveManager: {
                 isAgeGroupEligible: jest.fn(() => ageEligible)
+            },
+            CloudSave: {
+                client: { auth }
             },
             localStorage: {
                 getItem: jest.fn(() => 'age_18_plus')
@@ -77,7 +91,7 @@ function loadService({
 
     vm.runInNewContext(source, sandbox, { filename: filePath });
     const service = new sandbox.module.exports.LivingPortraitService();
-    return { service, fetchMock, gameState };
+    return { service, fetchMock, gameState, auth };
 }
 
 describe('background living portrait generation', () => {
@@ -114,9 +128,14 @@ describe('background living portrait generation', () => {
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(gameState.saveCreaturePortrait).toHaveBeenCalledTimes(1);
         expect(hatchPortrait.imageUrl).toBe(
-            'https://replicate.delivery/portrait.webp'
+            'https://mkcmdbzcihjgidjuypqe.supabase.co/storage/portrait'
         );
         expect(modalPortrait).toEqual(hatchPortrait);
+        const request = fetchMock.mock.calls[0][1];
+        expect(request.headers.Authorization).toBe(
+            'Bearer private-session-token'
+        );
+        expect(JSON.parse(request.body).ageGroup).toBe('age_18_plus');
     });
 
     test('the naming flow prewarms before submission and reveals without blocking play', () => {

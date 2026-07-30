@@ -1,16 +1,23 @@
 /**
- * Living portrait generation gateway.
+ * Authenticated living portrait gateway.
  *
- * The function accepts only a normalized creature identity contract and builds
- * the provider prompt server-side. Generation is asynchronous: POST starts a
- * prediction and GET polls its status.
+ * The browser receives only an application job ID and a short-lived signed
+ * image URL. Provider credentials, prediction IDs, and storage authority stay
+ * inside this function.
  */
+
+const { createClient } = require('@supabase/supabase-js');
 
 const REPLICATE_MODEL = process.env.REPLICATE_IMAGE_MODEL || 'openai/gpt-image-2';
 const REPLICATE_API_BASE = 'https://api.replicate.com/v1';
+const SUPABASE_PROJECT_URL = 'https://mkcmdbzcihjgidjuypqe.supabase.co';
+const PORTRAIT_BUCKET = 'creature-portraits';
 const MAX_BODY_BYTES = 400000;
-const OUTPUT_TTL_MS = 55 * 60 * 1000;
-const PREDICTION_ID_PATTERN = /^[a-z0-9]{8,64}$/i;
+const MAX_OUTPUT_BYTES = 12 * 1024 * 1024;
+const OUTPUT_TTL_SECONDS = 55 * 60;
+const DAILY_GENERATION_LIMIT = 3;
+const JOB_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ALLOWED_AGE_GROUPS = new Set(['age_16_17', 'age_18_plus']);
 const ALLOWED_STYLES = new Set(['cinematic', 'storybook', 'cosmic', 'watercolor']);
 const ALLOWED_SPECIES = new Set([
     'stellarWyrm',
@@ -35,7 +42,6 @@ const AFFINITY_DESCRIPTIONS = Object.freeze({
     crystal: 'prismatic refractions and crystalline resonance',
     void: 'a deep star field and soft dimensional shadows'
 });
-
 const STYLE_MODIFIERS = Object.freeze({
     cinematic: [
         'cinematic creature portrait',
@@ -67,6 +73,13 @@ const STYLE_MODIFIERS = Object.freeze({
     ].join(', ')
 });
 
+const defaultRuntime = Object.freeze({
+    createClient,
+    fetch: (...args) => fetch(...args),
+    now: () => Date.now()
+});
+let runtime = { ...defaultRuntime };
+
 function isFeatureEnabled() {
     return (
         process.env.ENABLE_API_FEATURES === 'true' &&
@@ -82,10 +95,10 @@ function responseHeaders() {
     };
 }
 
-function json(statusCode, body) {
+function json(statusCode, body, headers = {}) {
     return {
         statusCode,
-        headers: responseHeaders(),
+        headers: { ...responseHeaders(), ...headers },
         body: JSON.stringify(body)
     };
 }
@@ -103,6 +116,55 @@ function isSameOrigin(event) {
     }
 }
 
+function getBearerToken(event) {
+    const value = event.headers?.authorization || event.headers?.Authorization;
+    const match = typeof value === 'string'
+        ? value.match(/^Bearer ([A-Za-z0-9._~-]+)$/)
+        : null;
+    return match?.[1] || null;
+}
+
+function getAdminClient() {
+    const supabaseUrl = process.env.SUPABASE_URL
+        || process.env.VITE_SUPABASE_URL
+        || SUPABASE_PROJECT_URL;
+    const serviceKey = process.env.SUPABASE_SECRET_KEY
+        || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) {
+        const error = new Error('Portrait service is not configured');
+        error.statusCode = 503;
+        throw error;
+    }
+
+    return runtime.createClient(supabaseUrl, serviceKey, {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+        }
+    });
+}
+
+async function authenticate(event, adminClient) {
+    const token = getBearerToken(event);
+    if (!token) {
+        const error = new Error('Authentication required');
+        error.statusCode = 401;
+        throw error;
+    }
+
+    const {
+        data: { user } = {},
+        error: userError
+    } = await adminClient.auth.getUser(token);
+    if (userError || !user?.id) {
+        const error = new Error('Authentication could not be verified');
+        error.statusCode = 401;
+        throw error;
+    }
+    return user;
+}
+
 function cleanText(value, fallback, maxLength = 120) {
     if (typeof value !== 'string') return fallback;
     const cleaned = value
@@ -111,6 +173,14 @@ function cleanText(value, fallback, maxLength = 120) {
         .trim()
         .slice(0, maxLength);
     return cleaned || fallback;
+}
+
+function safeIdentifier(value, fallback) {
+    return (
+        typeof value === 'string' &&
+        value.length <= 48 &&
+        /^[a-z0-9_-]+$/i.test(value)
+    ) ? value : fallback;
 }
 
 function describeFeatures(features) {
@@ -123,14 +193,6 @@ function describeFeatures(features) {
             return `${variant} ${type}`;
         })
         .join(', ');
-}
-
-function safeIdentifier(value, fallback) {
-    return (
-        typeof value === 'string' &&
-        value.length <= 48 &&
-        /^[a-z0-9_-]+$/i.test(value)
-    ) ? value : fallback;
 }
 
 function validatePortraitSpec(spec) {
@@ -211,7 +273,9 @@ function parseReferenceImage(value) {
         value.length > 350000 ||
         !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value)
     ) {
-        throw new Error('Invalid creature reference image');
+        const error = new Error('Invalid creature reference image');
+        error.statusCode = 400;
+        throw error;
     }
     return value;
 }
@@ -222,28 +286,16 @@ function getOutputUrl(output) {
     return null;
 }
 
-function predictionPayload(prediction) {
-    const status = prediction?.status || 'starting';
-    const imageUrl = status === 'succeeded' ? getOutputUrl(prediction.output) : null;
-    if (status === 'succeeded' && !imageUrl) {
-        return {
-            success: false,
-            status: 'failed',
-            error: 'The portrait provider returned no image'
-        };
+function isAllowedProviderImageUrl(value) {
+    try {
+        const url = new URL(value);
+        return (
+            url.protocol === 'https:' &&
+            (url.hostname === 'replicate.delivery' || url.hostname.endsWith('.replicate.delivery'))
+        );
+    } catch (error) {
+        return false;
     }
-
-    return {
-        success: status !== 'failed' && status !== 'canceled',
-        status,
-        predictionId: prediction?.id || null,
-        imageUrl,
-        provider: 'Replicate',
-        model: prediction?.model || REPLICATE_MODEL,
-        expiresAt: imageUrl ? Date.now() + OUTPUT_TTL_MS : null,
-        storage: imageUrl ? 'provider-temporary' : null,
-        error: status === 'failed' ? 'Portrait generation failed' : undefined
-    };
 }
 
 async function callReplicate(path, options = {}) {
@@ -254,7 +306,7 @@ async function callReplicate(path, options = {}) {
         throw error;
     }
 
-    const response = await fetch(`${REPLICATE_API_BASE}${path}`, {
+    const response = await runtime.fetch(`${REPLICATE_API_BASE}${path}`, {
         ...options,
         headers: {
             Authorization: `Bearer ${token}`,
@@ -303,6 +355,258 @@ async function getPrediction(predictionId) {
     return callReplicate(`/predictions/${encodeURIComponent(predictionId)}`);
 }
 
+async function upsertAgeAssertion(adminClient, userId, ageGroup) {
+    if (!ALLOWED_AGE_GROUPS.has(ageGroup)) {
+        const error = new Error('Living Portraits require the 16+ privacy setting');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    const timestamp = new Date(runtime.now()).toISOString();
+    const { error } = await adminClient
+        .from('player_privacy_profiles')
+        .upsert({
+            user_id: userId,
+            age_group: ageGroup,
+            ai_media_enabled: true,
+            assertion_version: 1,
+            asserted_at: timestamp,
+            updated_at: timestamp
+        }, { onConflict: 'user_id' });
+    if (error) {
+        const serviceError = new Error('Portrait authorization could not be saved');
+        serviceError.statusCode = 503;
+        throw serviceError;
+    }
+}
+
+async function assertEligibleProfile(adminClient, userId) {
+    const { data, error } = await adminClient
+        .from('player_privacy_profiles')
+        .select('age_group, ai_media_enabled')
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (
+        error ||
+        !data?.ai_media_enabled ||
+        !ALLOWED_AGE_GROUPS.has(data.age_group)
+    ) {
+        const restricted = new Error('Living Portraits require the 16+ privacy setting');
+        restricted.statusCode = 403;
+        throw restricted;
+    }
+}
+
+async function reserveJob(adminClient, userId, spec, style) {
+    const { data, error } = await adminClient.rpc('reserve_creature_portrait_job', {
+        p_user_id: userId,
+        p_identity_key: spec.identityKey,
+        p_stage: spec.stage,
+        p_style: style,
+        p_daily_limit: DAILY_GENERATION_LIMIT
+    });
+    if (error || !data) {
+        const serviceError = new Error('Portrait job could not be reserved');
+        serviceError.statusCode = 503;
+        throw serviceError;
+    }
+    if (data.allowed !== true) {
+        const limited = new Error(
+            data.reason === 'rate_limited'
+                ? 'Daily Living Portrait limit reached'
+                : 'Living Portraits require the 16+ privacy setting'
+        );
+        limited.statusCode = data.reason === 'rate_limited' ? 429 : 403;
+        limited.retryAt = data.retry_at || null;
+        throw limited;
+    }
+    return data;
+}
+
+async function getOwnedJob(adminClient, userId, jobId) {
+    const { data, error } = await adminClient
+        .from('creature_portrait_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .eq('user_id', userId)
+        .maybeSingle();
+    if (error) {
+        const serviceError = new Error('Portrait job could not be loaded');
+        serviceError.statusCode = 503;
+        throw serviceError;
+    }
+    if (!data) {
+        const notFound = new Error('Portrait job was not found');
+        notFound.statusCode = 404;
+        throw notFound;
+    }
+    return data;
+}
+
+async function updateOwnedJob(adminClient, userId, jobId, values) {
+    const { data, error } = await adminClient
+        .from('creature_portrait_jobs')
+        .update({
+            ...values,
+            updated_at: new Date(runtime.now()).toISOString()
+        })
+        .eq('id', jobId)
+        .eq('user_id', userId)
+        .select('*')
+        .single();
+    if (error || !data) {
+        const serviceError = new Error('Portrait job could not be updated');
+        serviceError.statusCode = 503;
+        throw serviceError;
+    }
+    return data;
+}
+
+async function signStoredPortrait(adminClient, job) {
+    if (!job.storage_path) {
+        const error = new Error('Portrait storage record is incomplete');
+        error.statusCode = 503;
+        throw error;
+    }
+    const { data, error } = await adminClient.storage
+        .from(PORTRAIT_BUCKET)
+        .createSignedUrl(job.storage_path, OUTPUT_TTL_SECONDS);
+    if (error || !data?.signedUrl) {
+        const storageError = new Error('Portrait could not be opened');
+        storageError.statusCode = 503;
+        throw storageError;
+    }
+
+    return {
+        success: true,
+        status: 'succeeded',
+        jobId: job.id,
+        imageUrl: data.signedUrl,
+        provider: job.provider || 'Replicate',
+        model: job.model || REPLICATE_MODEL,
+        expiresAt: runtime.now() + (OUTPUT_TTL_SECONDS * 1000),
+        storage: 'supabase-private'
+    };
+}
+
+async function persistPredictionOutput(adminClient, userId, job, prediction) {
+    const outputUrl = getOutputUrl(prediction.output);
+    if (!outputUrl || !isAllowedProviderImageUrl(outputUrl)) {
+        const error = new Error('The portrait provider returned an invalid image');
+        error.statusCode = 502;
+        throw error;
+    }
+
+    const response = await runtime.fetch(outputUrl, {
+        method: 'GET',
+        redirect: 'error',
+        headers: { Accept: 'image/webp,image/png,image/jpeg' }
+    });
+    if (!response.ok) {
+        const error = new Error('The generated portrait could not be secured');
+        error.statusCode = 502;
+        throw error;
+    }
+
+    const contentType = String(response.headers?.get?.('content-type') || '')
+        .split(';')[0]
+        .trim()
+        .toLowerCase();
+    const extensions = {
+        'image/webp': 'webp',
+        'image/png': 'png',
+        'image/jpeg': 'jpg'
+    };
+    const extension = extensions[contentType];
+    if (!extension) {
+        const error = new Error('The portrait provider returned an unsupported image');
+        error.statusCode = 502;
+        throw error;
+    }
+
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length === 0 || bytes.length > MAX_OUTPUT_BYTES) {
+        const error = new Error('The generated portrait has an invalid size');
+        error.statusCode = 502;
+        throw error;
+    }
+
+    const storagePath = `${userId}/${job.id}.${extension}`;
+    const { error: uploadError } = await adminClient.storage
+        .from(PORTRAIT_BUCKET)
+        .upload(storagePath, bytes, {
+            contentType,
+            cacheControl: '31536000',
+            upsert: true
+        });
+    if (uploadError) {
+        const error = new Error('The generated portrait could not be stored');
+        error.statusCode = 503;
+        throw error;
+    }
+
+    const completedAt = new Date(runtime.now()).toISOString();
+    const storedJob = await updateOwnedJob(adminClient, userId, job.id, {
+        status: 'succeeded',
+        provider: 'Replicate',
+        model: prediction.model || REPLICATE_MODEL,
+        storage_path: storagePath,
+        error_code: null,
+        completed_at: completedAt
+    });
+    return signStoredPortrait(adminClient, storedJob);
+}
+
+async function resultForJob(adminClient, userId, job) {
+    if (job.status === 'succeeded') {
+        return signStoredPortrait(adminClient, job);
+    }
+    if (job.status === 'failed' || job.status === 'canceled') {
+        return {
+            success: false,
+            status: job.status,
+            jobId: job.id,
+            error: 'Portrait generation failed'
+        };
+    }
+    if (!job.provider_prediction_id) {
+        return {
+            success: true,
+            status: job.status || 'starting',
+            jobId: job.id
+        };
+    }
+
+    const prediction = await getPrediction(job.provider_prediction_id);
+    if (prediction.status === 'succeeded') {
+        return persistPredictionOutput(adminClient, userId, job, prediction);
+    }
+    if (prediction.status === 'failed' || prediction.status === 'canceled') {
+        await updateOwnedJob(adminClient, userId, job.id, {
+            status: prediction.status,
+            error_code: 'provider_failed',
+            completed_at: new Date(runtime.now()).toISOString()
+        });
+        return {
+            success: false,
+            status: prediction.status,
+            jobId: job.id,
+            error: 'Portrait generation failed'
+        };
+    }
+
+    if (job.status !== prediction.status) {
+        await updateOwnedJob(adminClient, userId, job.id, {
+            status: prediction.status === 'starting' ? 'starting' : 'processing'
+        });
+    }
+    return {
+        success: true,
+        status: prediction.status || 'processing',
+        jobId: job.id
+    };
+}
+
 exports.handler = async event => {
     if (!isFeatureEnabled()) {
         return json(404, { success: false, error: 'Portrait generation is not enabled' });
@@ -311,14 +615,22 @@ exports.handler = async event => {
         return json(403, { success: false, error: 'Cross-origin requests are not allowed' });
     }
 
+    let adminClient;
+    let user;
+    let activeJobId = null;
+    let ownsActiveJob = false;
     try {
+        adminClient = getAdminClient();
+        user = await authenticate(event, adminClient);
+
         if (event.httpMethod === 'GET') {
-            const predictionId = event.queryStringParameters?.predictionId;
-            if (!PREDICTION_ID_PATTERN.test(predictionId || '')) {
-                return json(400, { success: false, error: 'Invalid prediction ID' });
+            const jobId = event.queryStringParameters?.jobId;
+            if (!JOB_ID_PATTERN.test(jobId || '')) {
+                return json(400, { success: false, error: 'Invalid portrait job ID' });
             }
-            const prediction = await getPrediction(predictionId);
-            const result = predictionPayload(prediction);
+            await assertEligibleProfile(adminClient, user.id);
+            const job = await getOwnedJob(adminClient, user.id, jobId);
+            const result = await resultForJob(adminClient, user.id, job);
             return json(result.status === 'succeeded' ? 200 : 202, result);
         }
 
@@ -341,29 +653,98 @@ exports.handler = async event => {
             return json(400, { success: false, error: 'Invalid creature identity' });
         }
         const referenceImage = parseReferenceImage(body.referenceImage);
-        const prediction = await startPrediction(body.portraitSpec, style, referenceImage);
-        const result = predictionPayload(prediction);
-        return json(result.status === 'succeeded' ? 200 : 202, result);
+        await upsertAgeAssertion(adminClient, user.id, body.ageGroup);
+
+        const reservation = await reserveJob(
+            adminClient,
+            user.id,
+            body.portraitSpec,
+            style
+        );
+        activeJobId = reservation.job_id;
+        ownsActiveJob = reservation.reused !== true;
+        const job = await getOwnedJob(adminClient, user.id, activeJobId);
+        if (reservation.reused === true) {
+            const reusedResult = await resultForJob(adminClient, user.id, job);
+            return json(reusedResult.status === 'succeeded' ? 200 : 202, reusedResult);
+        }
+
+        const prediction = await startPrediction(
+            body.portraitSpec,
+            style,
+            referenceImage
+        );
+        if (!prediction?.id) {
+            const error = new Error('Portrait provider returned an invalid job');
+            error.statusCode = 502;
+            throw error;
+        }
+        if (prediction.status === 'succeeded') {
+            const result = await persistPredictionOutput(
+                adminClient,
+                user.id,
+                job,
+                prediction
+            );
+            return json(200, result);
+        }
+
+        await updateOwnedJob(adminClient, user.id, job.id, {
+            status: prediction.status === 'starting' ? 'starting' : 'processing',
+            provider: 'Replicate',
+            model: prediction.model || REPLICATE_MODEL,
+            provider_prediction_id: prediction.id
+        });
+        return json(202, {
+            success: true,
+            status: prediction.status === 'starting' ? 'starting' : 'processing',
+            jobId: job.id
+        });
     } catch (error) {
+        if (adminClient && user?.id && activeJobId && ownsActiveJob) {
+            try {
+                await updateOwnedJob(adminClient, user.id, activeJobId, {
+                    status: 'failed',
+                    error_code: 'request_failed',
+                    completed_at: new Date(runtime.now()).toISOString()
+                });
+            } catch (updateError) {
+                console.error('[LivingPortrait] Failed to close portrait job', {
+                    message: updateError.message
+                });
+            }
+        }
+
         console.error('[LivingPortrait] Request failed', {
             message: error.message,
             statusCode: error.statusCode,
             providerStatus: error.providerStatus
         });
+        const headers = error.statusCode === 429
+            ? { 'Retry-After': '3600' }
+            : {};
         return json(error.statusCode || 500, {
             success: false,
-            error: error.message || 'Portrait generation failed'
-        });
+            error: error.message || 'Portrait generation failed',
+            retryAt: error.retryAt || undefined
+        }, headers);
     }
 };
 
 exports._internal = {
     ALLOWED_STYLES,
     buildCreaturePrompt,
+    getBearerToken,
     getOutputUrl,
+    isAllowedProviderImageUrl,
     isFeatureEnabled,
     isSameOrigin,
     parseReferenceImage,
-    predictionPayload,
+    resetRuntime() {
+        runtime = { ...defaultRuntime };
+    },
+    setRuntime(overrides = {}) {
+        runtime = { ...runtime, ...overrides };
+    },
     validatePortraitSpec
 };

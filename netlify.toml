@@ -59,8 +59,8 @@
       default-src 'self';
       script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
       style-src 'self' 'unsafe-inline';
-      img-src 'self' data: blob: https://*.nasa.gov https://apod.nasa.gov https://mars.nasa.gov https://replicate.delivery https://*.replicate.delivery;
-      connect-src 'self' https://mkcmdbzcihjgidjuypqe.supabase.co https://api.x.ai https://api.nasa.gov https://api.replicate.com;
+      img-src 'self' data: blob: https://*.nasa.gov https://apod.nasa.gov https://mars.nasa.gov https://mkcmdbzcihjgidjuypqe.supabase.co;
+      connect-src 'self' https://mkcmdbzcihjgidjuypqe.supabase.co https://api.x.ai https://api.nasa.gov;
       font-src 'self';
       object-src 'none';
       base-uri 'self';
@@ -103,24 +103,24 @@
 # Environment-specific configurations
 [context.production.environment]
   NODE_ENV = "production"
-  ENABLE_API_FEATURES = "false"
-  VITE_ENABLE_API_FEATURES = "false"
-  ENABLE_AI_PORTRAITS = "false"
-  VITE_ENABLE_AI_PORTRAITS = "false"
+  ENABLE_API_FEATURES = "true"
+  VITE_ENABLE_API_FEATURES = "true"
+  ENABLE_AI_PORTRAITS = "true"
+  VITE_ENABLE_AI_PORTRAITS = "true"
 
 [context.deploy-preview.environment]
   NODE_ENV = "staging"
-  ENABLE_API_FEATURES = "false"
-  VITE_ENABLE_API_FEATURES = "false"
-  ENABLE_AI_PORTRAITS = "false"
-  VITE_ENABLE_AI_PORTRAITS = "false"
+  ENABLE_API_FEATURES = "true"
+  VITE_ENABLE_API_FEATURES = "true"
+  ENABLE_AI_PORTRAITS = "true"
+  VITE_ENABLE_AI_PORTRAITS = "true"
 
 [context.branch-deploy.environment]
   NODE_ENV = "development"
   ENABLE_API_FEATURES = "true"
   VITE_ENABLE_API_FEATURES = "true"
-  ENABLE_AI_PORTRAITS = "false"
-  VITE_ENABLE_AI_PORTRAITS = "false"
+  ENABLE_AI_PORTRAITS = "true"
+  VITE_ENABLE_AI_PORTRAITS = "true"
 
 # Form handling (future use for feedback/contact forms)
 [forms]

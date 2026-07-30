@@ -713,7 +713,6 @@ class GameStateManager {
 
     /**
      * Persist generated portrait metadata for the active creature.
-     * Provider files may be temporary until the storage pipeline copies them.
      */
     saveCreaturePortrait(record) {
         const allowedStages = new Set(['baby', 'juvenile', 'adult', 'elder']);
@@ -752,7 +751,12 @@ class GameStateManager {
             expiresAt: Number.isFinite(Number(record.expiresAt))
                 ? Number(record.expiresAt)
                 : null,
-            storage: record.storage === 'persistent' ? 'persistent' : 'provider-temporary',
+            storage: record.storage === 'supabase-private'
+                ? 'supabase-private'
+                : 'provider-temporary',
+            jobId: typeof record.jobId === 'string'
+                ? record.jobId.slice(0, 64)
+                : null,
             aiGenerated: true
         };
 

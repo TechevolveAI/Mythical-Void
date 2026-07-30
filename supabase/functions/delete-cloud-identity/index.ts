@@ -63,6 +63,25 @@ Deno.serve(async (request) => {
             autoRefreshToken: false
         }
     });
+
+    const { data: portraitFiles, error: listError } = await adminClient.storage
+        .from('creature-portraits')
+        .list(user.id, { limit: 1000 });
+    if (listError) {
+        console.error('[delete-cloud-identity] Portrait listing failed:', listError.message);
+        return jsonResponse(500, { error: 'Cloud identity could not be deleted' });
+    }
+    if (portraitFiles?.length) {
+        const paths = portraitFiles.map(file => `${user.id}/${file.name}`);
+        const { error: storageError } = await adminClient.storage
+            .from('creature-portraits')
+            .remove(paths);
+        if (storageError) {
+            console.error('[delete-cloud-identity] Portrait deletion failed:', storageError.message);
+            return jsonResponse(500, { error: 'Cloud identity could not be deleted' });
+        }
+    }
+
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
     if (deleteError) {
         console.error('[delete-cloud-identity] Delete failed:', deleteError.message);
