@@ -42,6 +42,40 @@ describe('Sanctuary navigation safety', () => {
             .toEqual({ x: 1200, y: 900 });
     });
 
+    test.each([
+        'crashedShip',
+        'cosmicShop',
+        'hubPortal',
+        'voidPortal'
+    ])('recovers a saved position inside the %s blocker', landmarkId => {
+        const zones = new SanctuaryZones(2400, 1800);
+        const position = zones.landmarks[landmarkId].position;
+
+        expect(zones.getSafeSpawnPosition(position))
+            .toEqual(zones.getSpawnPosition());
+    });
+
+    test('recovers positions where procedural colliders may be regenerated', () => {
+        const zones = new SanctuaryZones(2400, 1800);
+        const unreservedPosition = { x: 600, y: 600 };
+
+        expect(zones.getZoneAt(unreservedPosition.x, unreservedPosition.y))
+            .toBeNull();
+        expect(zones.getSafeSpawnPosition(unreservedPosition))
+            .toEqual(zones.getSpawnPosition());
+    });
+
+    test('keeps the fallback and Void exit clear of known blockers', () => {
+        const zones = new SanctuaryZones(2400, 1800);
+        const fallback = zones.getSpawnPosition();
+        const voidExit = zones.getVoidExitPosition();
+
+        expect(zones.isInsideSpawnBlocker(fallback.x, fallback.y)).toBe(false);
+        expect(zones.isInsideColliderFreeZone(fallback.x, fallback.y)).toBe(true);
+        expect(zones.isInsideSpawnBlocker(voidExit.x, voidExit.y)).toBe(false);
+        expect(zones.isInsideColliderFreeZone(voidExit.x, voidExit.y)).toBe(true);
+    });
+
     test('uses the central spawn for malformed or unrelated unsafe saves', () => {
         const zones = new SanctuaryZones(2400, 1800);
 

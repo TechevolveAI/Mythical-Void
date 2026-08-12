@@ -2423,8 +2423,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.clearLevelEntryKeyHandler();
         this.clearCompanionHighPowerMoment();
         this.bossFightActive = false;
-        this.cameras.main.x = 0;
-        this.cameras.main.y = 0;
+        // SceneManager may have disposed the camera transform before a rapid
+        // campaign stop reaches this cleanup hook. The next init establishes
+        // the correct camera position, so shutdown must not mutate it.
 
         if (this.boss) {
             this.boss.destroy();

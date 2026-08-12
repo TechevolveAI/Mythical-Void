@@ -37,11 +37,22 @@ describe('Creature Profile living portrait continuity contract', () => {
 
         expect(activeJobIndex).toBeGreaterThan(-1);
         expect(generationIndex).toBeGreaterThan(activeJobIndex);
+        expect(profile.indexOf('if (initialRecord) {', activeJobIndex))
+            .toBeGreaterThan(activeJobIndex);
+        expect(profile).toContain(
+            'activeJob.identityKey === activeIdentityKey'
+        );
         expect(profile).toContain(
             'portraitService?.getEligibility?.().eligible'
         );
         expect(profile).toContain("source: 'profile_recovery'");
         expect(profile).toContain('sprite: this.creatureSprite');
+        expect(profile).toContain("'creaturePortraitReady'");
+        expect(profile).toContain("'LIVING FORM\\nTAP TO RETRY'");
+        expect(profile).toContain('this.profilePortraitUnsubscribe?.();');
+        expect(profile).toContain(
+            'this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);'
+        );
     });
 
     test('provides a local non-saving responsive visual preview', () => {

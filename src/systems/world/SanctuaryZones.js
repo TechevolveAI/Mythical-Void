@@ -289,6 +289,43 @@ class SanctuaryZones {
         });
     }
 
+    getSpawnBlockers(clearance = 24) {
+        return [
+            'crashedShip',
+            'cosmicShop',
+            'hubPortal',
+            'voidPortal'
+        ].map(id => {
+            const landmark = this.landmarks[id];
+            return {
+                id,
+                left: landmark.position.x - landmark.size.width / 2 - clearance,
+                right: landmark.position.x + landmark.size.width / 2 + clearance,
+                top: landmark.position.y - landmark.size.height / 2 - clearance,
+                bottom: landmark.position.y + landmark.size.height / 2 + clearance
+            };
+        });
+    }
+
+    isInsideSpawnBlocker(x, y) {
+        return this.getSpawnBlockers().some(blocker =>
+            x >= blocker.left &&
+            x <= blocker.right &&
+            y >= blocker.top &&
+            y <= blocker.bottom
+        );
+    }
+
+    isInsideColliderFreeZone(x, y) {
+        return Object.values(this.zones).some(zone => {
+            const bounds = zone.bounds;
+            return x >= bounds.x &&
+                x <= bounds.x + bounds.width &&
+                y >= bounds.y &&
+                y <= bounds.y + bounds.height;
+        });
+    }
+
     /**
      * Keep restored players away from narrow world-edge pockets. Older builds
      * could save a position between the Target Range and the outer bounds.
@@ -303,7 +340,15 @@ class SanctuaryZones {
             y >= inset &&
             y <= this.worldHeight - inset;
 
-        if (insideSafeWorld) {
+        // WorldBuilder reserves every Sanctuary zone from procedural tree and
+        // rock placement. Positions outside those zones cannot be proven clear
+        // after scenery is regenerated, so recover them along with known
+        // landmark intersections.
+        const colliderFree = insideSafeWorld &&
+            this.isInsideColliderFreeZone(x, y) &&
+            !this.isInsideSpawnBlocker(x, y);
+
+        if (colliderFree) {
             return { x, y };
         }
 

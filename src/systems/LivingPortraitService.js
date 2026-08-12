@@ -19,11 +19,37 @@ class LivingPortraitError extends Error {
     }
 }
 
+const DEFAULT_TIMEOUTS = Object.freeze({
+    authMs: 10000,
+    requestMs: 45000,
+    statusRequestMs: 12000
+});
+const DEFAULT_POLL_DELAYS = Object.freeze([750, 1000, 1500, 2000, 2500]);
+const RECONNECT_RETRY_DELAY_MS = 1500;
+
 class LivingPortraitService {
-    constructor() {
+    constructor(options = {}) {
         this.jobs = new Map();
         this.activeStageJobs = new Map();
+        this.completedStageDiagnostics = new Map();
         this.assetResolutions = new Map();
+        this.reconnectRetries = new Map();
+        this.retryDrainPromise = null;
+        this.retryTimer = null;
+        this.onlineHandler = null;
+        this.timeouts = {
+            ...DEFAULT_TIMEOUTS,
+            ...(options.timeouts || {})
+        };
+        this.pollDelays = Array.isArray(options.pollDelays)
+            && options.pollDelays.length > 0
+            ? [...options.pollDelays]
+            : [...DEFAULT_POLL_DELAYS];
+        this.reconnectRetryDelayMs = Number.isFinite(
+            Number(options.reconnectRetryDelayMs)
+        )
+            ? Math.max(0, Number(options.reconnectRetryDelayMs))
+            : RECONNECT_RETRY_DELAY_MS;
     }
 
     getEligibility() {
@@ -48,22 +74,50 @@ class LivingPortraitService {
 
     getActiveJob(stage = 'baby') {
         const identityKey = this.activeStageJobs.get(stage);
-        return identityKey ? this.jobs.get(identityKey) || null : null;
+        const job = identityKey ? this.jobs.get(identityKey) || null : null;
+        if (
+            !job ||
+            job.completedAt ||
+            !['starting', 'processing'].includes(job.status)
+        ) {
+            if (identityKey && this.activeStageJobs.get(stage) === identityKey) {
+                this.activeStageJobs.delete(stage);
+            }
+            return null;
+        }
+        return job;
     }
 
     getDiagnostics(stage = 'baby') {
         const job = this.getActiveJob(stage);
-        if (!job) return null;
+        if (!job) return this.completedStageDiagnostics.get(stage) || null;
+        return this.createJobDiagnostics(job);
+    }
+
+    createJobDiagnostics(job) {
         const finishedAt = job.completedAt || Date.now();
         return {
+            identityKey: job.identityKey,
             stage: job.stage,
             source: job.source,
             status: job.status,
             elapsedMs: Math.max(0, finishedAt - job.startedAt),
             initialResponseMs: job.initialResponseMs || null,
             pollCount: job.pollCount || 0,
-            referenceImageCaptured: job.referenceImageCaptured
+            referenceImageCaptured: job.referenceImageCaptured,
+            error: job.error || null
         };
+    }
+
+    finishJob(job) {
+        this.completedStageDiagnostics.set(
+            job.stage,
+            this.createJobDiagnostics(job)
+        );
+        this.jobs.delete(job.identityKey);
+        if (this.activeStageJobs.get(job.stage) === job.identityKey) {
+            this.activeStageJobs.delete(job.stage);
+        }
     }
 
     createServiceError(result, response, fallbackMessage) {
@@ -82,6 +136,180 @@ class LivingPortraitService {
 
     isRetryableError(error) {
         return error?.retryable === true || error?.code === 'generation_failed';
+    }
+
+    isReconnectRetryable(error) {
+        return [
+            'portrait_auth_timeout',
+            'portrait_request_timeout',
+            'portrait_status_timeout',
+            'portrait_network_unavailable',
+            'portrait_generation_timeout'
+        ].includes(error?.code);
+    }
+
+    createTimeoutError(message, code) {
+        return new LivingPortraitError(message, {
+            code,
+            status: 'deferred',
+            retryable: true
+        });
+    }
+
+    async withDeadline(operation, {
+        timeoutMs,
+        timeoutCode,
+        timeoutMessage,
+        onTimeout = null
+    }) {
+        let timer = null;
+        const deadline = new Promise((resolve, reject) => {
+            timer = setTimeout(() => {
+                try {
+                    onTimeout?.();
+                } catch (error) {
+                    // The timeout result remains authoritative.
+                }
+                reject(this.createTimeoutError(timeoutMessage, timeoutCode));
+            }, timeoutMs);
+        });
+
+        try {
+            return await Promise.race([
+                Promise.resolve().then(() => operation),
+                deadline
+            ]);
+        } finally {
+            if (timer !== null) clearTimeout(timer);
+        }
+    }
+
+    async requestJson(url, options, {
+        timeoutMs,
+        timeoutCode,
+        timeoutMessage
+    }) {
+        const controller = typeof AbortController !== 'undefined'
+            ? new AbortController()
+            : null;
+        const requestOptions = controller
+            ? { ...options, signal: controller.signal }
+            : options;
+
+        try {
+            return await this.withDeadline((async () => {
+                const response = await fetch(url, requestOptions);
+                const result = await response.json().catch(() => ({}));
+                return { response, result };
+            })(), {
+                timeoutMs,
+                timeoutCode,
+                timeoutMessage,
+                onTimeout: () => controller?.abort?.()
+            });
+        } catch (error) {
+            if (error instanceof LivingPortraitError) throw error;
+            const isOffline = window.navigator?.onLine === false;
+            if (isOffline || error?.name === 'AbortError' || error instanceof TypeError) {
+                throw new LivingPortraitError(
+                    'Portrait connection is temporarily unavailable',
+                    {
+                        code: 'portrait_network_unavailable',
+                        status: 'deferred',
+                        retryable: true
+                    }
+                );
+            }
+            throw error;
+        }
+    }
+
+    queueReconnectRetry({ portraitSpec, referenceImage, style }) {
+        if (!portraitSpec?.identityKey) return;
+        this.reconnectRetries.set(portraitSpec.identityKey, {
+            portraitSpec,
+            referenceImage,
+            style
+        });
+        window.GameState?.emit?.('creaturePortraitReconnectRetryQueued', {
+            identityKey: portraitSpec.identityKey,
+            stage: portraitSpec.stage,
+            durableReferenceAvailable: Boolean(
+                window.GameState?.getCreaturePortrait?.(portraitSpec.stage)?.assetRef
+            )
+        });
+        this.ensureOnlineListener();
+        if (window.navigator?.onLine !== false) {
+            this.scheduleRetryDrain();
+        }
+    }
+
+    ensureOnlineListener() {
+        if (this.onlineHandler || !window.addEventListener) return;
+        this.onlineHandler = () => {
+            this.drainReconnectRetries();
+        };
+        window.addEventListener('online', this.onlineHandler);
+    }
+
+    scheduleRetryDrain() {
+        if (this.retryTimer !== null || this.retryDrainPromise) return;
+        this.retryTimer = setTimeout(() => {
+            this.retryTimer = null;
+            this.drainReconnectRetries();
+        }, this.reconnectRetryDelayMs);
+    }
+
+    drainReconnectRetries() {
+        if (this.retryDrainPromise) return this.retryDrainPromise;
+        if (window.navigator?.onLine === false || this.reconnectRetries.size === 0) {
+            return Promise.resolve([]);
+        }
+
+        const intents = Array.from(this.reconnectRetries.values());
+        this.reconnectRetries.clear();
+        this.retryDrainPromise = Promise.allSettled(
+            intents.map(intent => this.runReconnectRetry(intent))
+        ).finally(() => {
+            this.retryDrainPromise = null;
+        });
+        return this.retryDrainPromise;
+    }
+
+    async runReconnectRetry(intent) {
+        const { portraitSpec, referenceImage, style } = intent;
+        const existing = window.GameState?.getCreaturePortrait?.(
+            portraitSpec.stage
+        );
+        try {
+            if (
+                existing?.assetRef &&
+                existing.identityKey === portraitSpec.identityKey
+            ) {
+                try {
+                    return await this.resolve(existing);
+                } catch (error) {
+                    if (!this.isRetryableError(error) || this.isReconnectRetryable(error)) {
+                        throw error;
+                    }
+                }
+            }
+
+            return await this.startJob({
+                portraitSpec,
+                sprite: null,
+                style,
+                referenceImage,
+                source: 'reconnect_retry'
+            });
+        } catch (error) {
+            window.GameState?.emit?.('creaturePortraitReconnectRetryFailed', {
+                identityKey: portraitSpec.identityKey,
+                stage: portraitSpec.stage,
+                message: error.message
+            });
+            return null;
+        }
     }
 
     getRetryStatus(error) {
@@ -151,6 +379,7 @@ class LivingPortraitService {
         if (activeJob) {
             return activeJob.promise;
         }
+        this.reconnectRetries.delete(portraitSpec.identityKey);
 
         const existing = window.GameState?.getCreaturePortrait?.(
             portraitSpec.stage
@@ -166,7 +395,16 @@ class LivingPortraitService {
             existing.identityKey === portraitSpec.identityKey
         ) {
             return this.resolve(existing).catch(error => {
-                if (!this.isRetryableError(error)) throw error;
+                if (error?.code !== 'generation_failed') {
+                    if (this.isReconnectRetryable(error)) {
+                        this.queueReconnectRetry({
+                            portraitSpec,
+                            referenceImage,
+                            style
+                        });
+                    }
+                    throw error;
+                }
                 return this.startJob({
                     portraitSpec,
                     sprite,
@@ -239,21 +477,27 @@ class LivingPortraitService {
                     { code: 'storage_unavailable', retryable: false }
                 );
             }
-            const response = await fetch('/.netlify/functions/generate-ai-art', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${accessToken}`
+            const { response, result: initialResult } = await this.requestJson(
+                '/.netlify/functions/generate-ai-art',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({
+                        style: job.style,
+                        portraitSpec,
+                        referenceImage,
+                        ageGroup
+                    })
                 },
-                body: JSON.stringify({
-                    style: job.style,
-                    portraitSpec,
-                    referenceImage,
-                    ageGroup
-                })
-            });
-
-            const initialResult = await response.json().catch(() => ({}));
+                {
+                    timeoutMs: this.timeouts.requestMs,
+                    timeoutCode: 'portrait_request_timeout',
+                    timeoutMessage: 'Portrait request timed out'
+                }
+            );
             job.initialResponseMs = Date.now() - job.startedAt;
             if (!response.ok) {
                 throw this.createServiceError(
@@ -341,16 +585,14 @@ class LivingPortraitService {
                 pollCount: job.pollCount,
                 referenceImageCaptured: job.referenceImageCaptured
             });
+            this.finishJob(job);
+            this.reconnectRetries.delete(job.identityKey);
             this.prepareFirstForestVideo(record);
             return record;
         } catch (error) {
             job.status = 'failed';
             job.error = error.message;
             job.completedAt = Date.now();
-            this.jobs.delete(job.identityKey);
-            if (this.activeStageJobs.get(job.stage) === job.identityKey) {
-                this.activeStageJobs.delete(job.stage);
-            }
             window.GameState?.emit?.('creaturePortraitGenerationFailed', {
                 identityKey: job.identityKey,
                 stage: job.stage,
@@ -358,6 +600,17 @@ class LivingPortraitService {
                 durationMs: Math.max(0, job.completedAt - job.startedAt),
                 pollCount: job.pollCount
             });
+            this.finishJob(job);
+            if (
+                this.isReconnectRetryable(error) &&
+                job.source !== 'reconnect_retry'
+            ) {
+                this.queueReconnectRetry({
+                    portraitSpec,
+                    referenceImage,
+                    style: job.style
+                });
+            }
             throw error;
         }
     }
@@ -383,14 +636,25 @@ class LivingPortraitService {
         }
 
         const { data: sessionData, error: sessionError } =
-            await client.auth.getSession();
+            await this.withDeadline(client.auth.getSession(), {
+                timeoutMs: this.timeouts.authMs,
+                timeoutCode: 'portrait_auth_timeout',
+                timeoutMessage: 'Private portrait authentication timed out'
+            });
         if (sessionError) {
             throw new Error('Private portrait authentication failed');
         }
 
         let session = sessionData?.session || null;
         if (!session?.access_token) {
-            const { data, error } = await client.auth.signInAnonymously();
+            const { data, error } = await this.withDeadline(
+                client.auth.signInAnonymously(),
+                {
+                    timeoutMs: this.timeouts.authMs,
+                    timeoutCode: 'portrait_auth_timeout',
+                    timeoutMessage: 'Private portrait authentication timed out'
+                }
+            );
             if (error || !data?.session?.access_token) {
                 throw new Error('Private portrait authentication failed');
             }
@@ -445,7 +709,7 @@ class LivingPortraitService {
         }
 
         const accessToken = await this.getAccessToken();
-        const response = await fetch(
+        const { response, result } = await this.requestJson(
             `/.netlify/functions/generate-ai-art?assetRef=${
                 encodeURIComponent(record.assetRef)
             }`,
@@ -454,9 +718,13 @@ class LivingPortraitService {
                     Accept: 'application/json',
                     Authorization: `Bearer ${accessToken}`
                 }
+            },
+            {
+                timeoutMs: this.timeouts.statusRequestMs,
+                timeoutCode: 'portrait_status_timeout',
+                timeoutMessage: 'Portrait access request timed out'
             }
         );
-        const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.success || result.assetRef !== record.assetRef) {
             throw this.createServiceError(
                 result,
@@ -511,13 +779,15 @@ class LivingPortraitService {
 
     async waitForPrediction(jobId, job, accessToken, { timeoutMs = 120000 } = {}) {
         const startedAt = Date.now();
-        const pollDelays = [750, 1000, 1500, 2000, 2500];
 
         while (Date.now() - startedAt < timeoutMs) {
-            const delay = pollDelays[Math.min(job.pollCount, pollDelays.length - 1)];
+            const delay = this.pollDelays[
+                Math.min(job.pollCount, this.pollDelays.length - 1)
+            ];
             await new Promise(resolve => setTimeout(resolve, delay));
             job.pollCount += 1;
-            const response = await fetch(
+            const remainingMs = Math.max(1, timeoutMs - (Date.now() - startedAt));
+            const { response, result } = await this.requestJson(
                 `/.netlify/functions/generate-ai-art?jobId=${
                     encodeURIComponent(jobId)
                 }`,
@@ -526,9 +796,16 @@ class LivingPortraitService {
                         Accept: 'application/json',
                         Authorization: `Bearer ${accessToken}`
                     }
+                },
+                {
+                    timeoutMs: Math.min(
+                        this.timeouts.statusRequestMs,
+                        remainingMs
+                    ),
+                    timeoutCode: 'portrait_status_timeout',
+                    timeoutMessage: 'Portrait status request timed out'
                 }
             );
-            const result = await response.json().catch(() => ({}));
             if (!response.ok) {
                 throw this.createServiceError(
                     result,
@@ -549,7 +826,10 @@ class LivingPortraitService {
             }
         }
 
-        throw new Error('Portrait generation is taking longer than expected');
+        throw this.createTimeoutError(
+            'Portrait generation is taking longer than expected',
+            'portrait_generation_timeout'
+        );
     }
 
     captureReference(sprite) {

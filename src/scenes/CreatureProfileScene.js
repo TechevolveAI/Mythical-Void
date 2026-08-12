@@ -39,6 +39,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
         this.profilePortraitPreview = false;
         this.profilePortraitPreviewSize = null;
         this.profilePortraitRequest = 0;
+        this.profilePortraitUnsubscribe = null;
         this.fieldMemoryReplay = null;
         this.fieldMemoryReplayRequest = 0;
     }
@@ -63,6 +64,8 @@ export default class CreatureProfileScene extends Phaser.Scene {
             data?.profilePortraitPreviewSize === 'mobile'
                 ? 'mobile'
                 : null;
+        this.profilePortraitUnsubscribe?.();
+        this.profilePortraitUnsubscribe = null;
     }
 
     create() {
@@ -70,6 +73,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
         // Reset restarting flag
         this.isRestarting = false;
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
 
         if (this.identityArchivePreview) {
             this.createIdentityArchivePreview();
@@ -1181,14 +1185,33 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
     async waitForProfilePortrait(stage, initialRecord = null, creatureData = null) {
         const mediaService = window.CompanionMediaService || companionMediaService;
-        if (initialRecord) {
-            return mediaService?.resolvePortrait?.(stage) || initialRecord;
-        }
-
         const portraitService = window.LivingPortraitService;
         const activeJob = portraitService?.getActiveJob?.(stage);
-        if (activeJob?.promise) {
+        const activeIdentityKey = window.CreaturePortraitSpec
+            ?.create?.(creatureData)?.identityKey;
+        if (
+            activeJob?.promise &&
+            (!activeIdentityKey || activeJob.identityKey === activeIdentityKey)
+        ) {
             return activeJob.promise;
+        }
+
+        if (initialRecord) {
+            try {
+                const resolved = await mediaService?.resolvePortrait?.(stage);
+                if (resolved?.imageUrl) return resolved;
+                if (initialRecord.imageUrl) return initialRecord;
+                throw new Error('Protected portrait is still forming');
+            } catch (error) {
+                if (
+                    error?.code !== 'generation_failed' ||
+                    !portraitService?.getEligibility?.().eligible ||
+                    !portraitService?.generate ||
+                    !creatureData?.genes
+                ) {
+                    throw error;
+                }
+            }
         }
 
         if (
@@ -1265,11 +1288,17 @@ export default class CreatureProfileScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(12);
         this.elements.push(frame, placeholder, label);
 
-        const requestId = ++this.profilePortraitRequest;
-        const recordPromise = this.profilePortraitPreview
-            ? Promise.resolve(record)
-            : this.waitForProfilePortrait(stage, record, creatureData);
-        Promise.resolve(recordPromise)
+        let portraitLoaded = false;
+        const loadPortrait = candidate => {
+            const nextRequestId = ++this.profilePortraitRequest;
+            placeholder.disableInteractive?.();
+            placeholder.setText('LIVING FORM\nRESOLVING');
+            const recordPromise = this.profilePortraitPreview
+                ? Promise.resolve(record)
+                : candidate
+                    ? Promise.resolve(candidate)
+                    : this.waitForProfilePortrait(stage, record, creatureData);
+            return Promise.resolve(recordPromise)
             .then(resolved => {
                 if (!resolved?.imageUrl) return null;
                 return Promise.resolve(
@@ -1282,17 +1311,21 @@ export default class CreatureProfileScene extends Phaser.Scene {
             .then(result => {
                 if (
                     !result?.textureKey ||
-                    requestId !== this.profilePortraitRequest ||
+                    nextRequestId !== this.profilePortraitRequest ||
+                    portraitLoaded ||
                     !this.scene.isActive()
                 ) {
                     return;
                 }
+                portraitLoaded = true;
                 const portrait = this.add.image(
                     x,
                     y,
                     result.textureKey
                 ).setDisplaySize(size - 8, size - 8).setDepth(10);
                 placeholder.destroy();
+                this.profilePortraitUnsubscribe?.();
+                this.profilePortraitUnsubscribe = null;
                 this.elements.push(portrait);
                 if (!this.profilePortraitPreview) {
                     window.CompanionMediaService?.recordAppearance?.(
@@ -1304,17 +1337,43 @@ export default class CreatureProfileScene extends Phaser.Scene {
             })
             .catch(error => {
                 if (
-                    requestId !== this.profilePortraitRequest ||
+                    nextRequestId !== this.profilePortraitRequest ||
+                    portraitLoaded ||
                     !placeholder.active
                 ) {
                     return;
                 }
-                placeholder.setText('LIVING FORM\nAVAILABLE IN ARCHIVE');
+                placeholder
+                    .setText('LIVING FORM\nTAP TO RETRY')
+                    .setPadding(8, 8)
+                    .setInteractive({ useHandCursor: true });
+                placeholder.once('pointerup', () => {
+                    record = window.GameState?.getCreaturePortrait?.(stage) || record;
+                    loadPortrait();
+                });
                 devLog(
                     '[CreatureProfileScene] Living portrait unavailable:',
                     error.message
                 );
             });
+        };
+
+        if (!this.profilePortraitPreview) {
+            this.profilePortraitUnsubscribe?.();
+            this.profilePortraitUnsubscribe = window.GameState?.on?.(
+                'creaturePortraitReady',
+                nextRecord => {
+                    if (
+                        !portraitLoaded &&
+                        nextRecord?.stage === stage &&
+                        nextRecord?.imageUrl
+                    ) {
+                        loadPortrait(nextRecord);
+                    }
+                }
+            ) || null;
+        }
+        loadPortrait();
     }
 
     createBasicInfoSection(data, startY) {
@@ -3490,6 +3549,8 @@ export default class CreatureProfileScene extends Phaser.Scene {
     shutdown() {
         console.log('[CreatureProfileScene] Shutting down');
         this.profilePortraitRequest += 1;
+        this.profilePortraitUnsubscribe?.();
+        this.profilePortraitUnsubscribe = null;
 
         // Remove keyboard listeners
         if (this.input?.keyboard) {

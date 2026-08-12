@@ -1926,7 +1926,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             current.visual?.destroy?.();
         });
         this.shadowCurrents = [];
-        this.auroraFragments?.clear?.(true, true);
+        // Phaser owns this physics group and destroys it during Scene shutdown.
+        // Clearing it here can run after the physics world has already disposed
+        // the group's body set when campaign scenes are stopped in quick succession.
         this.auroraFragments = null;
         this.objectiveDisplay?.destroy?.();
         this.objectiveDisplay = null;
