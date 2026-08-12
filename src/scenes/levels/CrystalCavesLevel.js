@@ -45,17 +45,17 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             key: 'CrystalCavesLevel',
             levelId: 'crystal_caves_1',
             biomeId: 'crystal_caves',
-            levelWidth: 5000,
-            levelHeight: 800
+            levelWidth: 5600,
+            levelHeight: 800,
+            movement: {
+                playerSpeed: 220,
+                jumpVelocity: -460,
+                playerAcceleration: 0.22,
+                playerDeceleration: 0.68,
+                coyoteTime: 150,
+                jumpBufferTime: 150
+            }
         });
-
-        // MOBILE-OPTIMIZED PHYSICS: More responsive controls
-        this.playerSpeed = 220;           // Faster movement (was 180 default)
-        this.jumpVelocity = -460;         // Higher jumps (was -420 default)
-        this.playerAcceleration = 0.22;   // Faster acceleration (was 0.15 default)
-        this.playerDeceleration = 0.68;   // Quicker stops (was 0.75 default)
-        this.coyoteTime = 150;            // More forgiving jump timing (was 100ms)
-        this.jumpBufferTime = 150;        // More forgiving jump buffer (was 100ms)
 
         // Level-specific state
         this.starFragmentsCollected = 0;
@@ -489,6 +489,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.createPlatform(4450, this.levelHeight - 280, 180, 25, 'solid');  // Step 1
         this.createPlatform(4600, this.levelHeight - 380, 180, 25, 'solid');  // Step 2
         this.createPlatform(4700, this.levelHeight - 480, 200, 30, 'solid');  // Final platform
+        this.createPlatform(5000, this.levelHeight - 50, 600, 80, 'solid');   // Forward guardian arena
 
         // Boss arena interactive elements
         this.createBossArenaElements();
@@ -561,21 +562,21 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.powerWell = null;
 
         // === CRYSTAL POWER WELL ===
-        // Positioned on ground in boss arena - standing on it doubles energy regen
-        this.createCrystalPowerWell(4050, this.levelHeight - 80);
+        // Positioned inside the forward guardian arena - standing on it doubles energy regen.
+        this.createCrystalPowerWell(5150, this.levelHeight - 80);
 
         // === DESTRUCTIBLE CRYSTAL PILLARS (3 total) ===
         // Provide temporary cover from projectiles
-        this.createCrystalPillar(3800, this.levelHeight - 150, 0);
-        this.createCrystalPillar(4200, this.levelHeight - 150, 1);
-        this.createCrystalPillar(4450, this.levelHeight - 150, 2);
+        this.createCrystalPillar(5050, this.levelHeight - 150, 0);
+        this.createCrystalPillar(5325, this.levelHeight - 150, 1);
+        this.createCrystalPillar(5540, this.levelHeight - 150, 2);
 
         // === STALACTITES ===
         // Fall when boss does ground slam (visual warning first)
-        this.createStalactite(3700, 100);
-        this.createStalactite(3950, 120);
-        this.createStalactite(4200, 90);
-        this.createStalactite(4400, 110);
+        this.createStalactite(5075, 100);
+        this.createStalactite(5225, 120);
+        this.createStalactite(5375, 90);
+        this.createStalactite(5525, 110);
 
         console.log('[CrystalCavesLevel] Boss arena elements created: Power Well, 3 Pillars, 4 Stalactites');
     }
@@ -1282,10 +1283,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Crystal Spider Miniboss - Guards Crystal Chamber
         this.createCrystalSpider(2100, this.levelHeight - 560); // On the elevated spider arena platform
 
-        // Set up enemy collisions
-        this.physics.add.collider(this.enemies, this.platforms);
-        this.physics.add.collider(this.player, this.enemies, this.onEnemyCollision, null, this);
-
         console.log(`[CrystalCavesLevel] Created ${this.enemies.getLength()} enemies (including Crystal Spider miniboss)`);
     }
 
@@ -1363,6 +1360,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.crystalSpider.homeY = y;
         this.crystalSpider.isAttacking = false;
         this.crystalSpider.defeated = false;
+        this.crystalSpider.onCombatDamage = amount => this.damageSpider(amount);
 
         // Make it hang upside down initially
         this.crystalSpider.setFlipY(true);
@@ -1811,26 +1809,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      */
     onSpiderCollision(player, spider) {
         if (!spider.active || spider.defeated) return;
-
-        const playerBottom = player.body.bottom;
-        const spiderTop = spider.body.top;
-        const spiderHeight = spider.body.height;
-
-        // Stomp detection - more generous for miniboss
-        const isStomping = player.body.velocity.y > 0 &&
-                          playerBottom <= spiderTop + (spiderHeight * 0.6);
-
-        if (isStomping) {
-            this.damageSpider(1);
-            player.setVelocityY(this.jumpVelocity * 0.7);
-
-            if (window.AudioManager) {
-                window.AudioManager.playEnemyHit();
-            }
-        } else {
-            // Player takes damage
-            this.takeDamage(1);
-        }
+        return this.resolveEnemyContact(player, spider, {
+            stompDamage: 1,
+            contactDamage: 1,
+            onStomp: () => this.damageSpider(1)
+        });
     }
 
     /**
@@ -1875,6 +1858,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         const spider = this.crystalSpider;
         spider.defeated = true;
+        spider.onCombatDamage = null;
 
         // Stop AI timers
         if (this.spiderAITimer) {
@@ -2931,7 +2915,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Hexagonal core with rotating crystal rings
      */
     createCrystalCoreEngine() {
-        // Position above the final stepped platform (4750, levelHeight - 480)
+        // The Core introduces the arena from its raised refuge, with the
+        // guardian appearing farther along the route instead of behind the
+        // player's narrow mobile camera.
         const coreX = 4850;
         const coreY = this.levelHeight - 530;
 
@@ -3275,7 +3261,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             : this.createCrystalGolemTexture();
 
         // Spawn position - center of boss arena (section 5)
-        const spawnX = 4300;
+        const spawnX = 5250;
         const spawnY = this.levelHeight - 180;
 
         // Create boss sprite

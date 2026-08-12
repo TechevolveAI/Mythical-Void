@@ -41,16 +41,16 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             levelId: 'aurora_depths_1',
             biomeId: 'aurora_depths',
             levelWidth: 5000,
-            levelHeight: 800
+            levelHeight: 800,
+            movement: {
+                playerSpeed: 200,
+                jumpVelocity: -450,
+                playerAcceleration: 0.20,
+                playerDeceleration: 0.70,
+                coyoteTime: 150,
+                jumpBufferTime: 150
+            }
         });
-
-        // Physics tuned for aurora platforming
-        this.playerSpeed = 200;
-        this.jumpVelocity = -450;
-        this.playerAcceleration = 0.20;
-        this.playerDeceleration = 0.70;
-        this.coyoteTime = 150;
-        this.jumpBufferTime = 150;
 
         // Level-specific state
         this.starFragmentsCollected = 0;
@@ -691,13 +691,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 strokeThickness: 3
             }).setOrigin(0.5).setDepth(181);
 
-            const zone = this.add.zone(
+            const zone = this.createObjectiveTriggerZone(
                 prism.x,
-                this.levelHeight / 2,
-                120,
-                this.levelHeight
+                prism.y - 35,
+                { width: 160, height: 210 }
             );
-            this.physics.add.existing(zone, true);
 
             const signalPrism = {
                 ...prism,

@@ -106,8 +106,9 @@ describe('Guardian resident gameplay contract', () => {
 
     test('applies exactly one selected guardian ability to expedition stats', () => {
         expect(platformer).toContain('getActiveGuardianTeamSupport?.(window.GameState)');
-        expect(platformer).toContain('this.playerSpeed = 180;');
-        expect(platformer).toContain('this.jumpVelocity = -420;');
+        expect(platformer).toContain('this.applyMovementProfile();');
+        expect(platformer).toContain('this.playerSpeed = Number.isFinite(profile.playerSpeed)');
+        expect(platformer).toContain('this.jumpVelocity = Number.isFinite(profile.jumpVelocity)');
         expect(platformer).toContain('this.guardianTeamSupport.maxHealthBonus');
         expect(platformer).toContain('this.guardianTeamSupport.maxEnergyBonus');
         expect(platformer).toContain('this.powerupShieldHits = this.guardianTeamSupport.shieldHits');

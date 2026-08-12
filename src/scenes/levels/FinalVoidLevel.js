@@ -26,14 +26,16 @@ class FinalVoidLevel extends PlatformerLevelScene {
             levelId: 'final_void_1',
             biomeId: 'final_void',
             levelWidth: 3000,
-            levelHeight: 800
+            levelHeight: 800,
+            movement: {
+                playerSpeed: 200,
+                jumpVelocity: -450,
+                playerAcceleration: 0.20,
+                playerDeceleration: 0.70,
+                coyoteTime: 150,
+                jumpBufferTime: 150
+            }
         });
-
-        // Physics for void platforming
-        this.playerSpeed = 200;
-        this.jumpVelocity = -450;
-        this.playerAcceleration = 0.20;
-        this.playerDeceleration = 0.70;
 
         // Level state
         this.bossDefeated = false;
@@ -542,13 +544,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 strokeThickness: 3
             }).setOrigin(0.5).setDepth(181);
 
-            const zone = this.add.zone(
+            const zone = this.createObjectiveTriggerZone(
                 anchor.x,
-                this.levelHeight / 2,
-                120,
-                this.levelHeight
+                anchor.y - 35,
+                { width: 160, height: 210 }
             );
-            this.physics.add.existing(zone, true);
 
             const bondAnchor = {
                 ...anchor,

@@ -28,14 +28,14 @@ describe('fourth expedition rescue loop', () => {
         expect(startLevel).toContain('this.showPlatformerMobileControls()');
     });
 
-    test('places three full-height warning relays with safe checkpoints', () => {
+    test('places three localized warning relays with safe checkpoints', () => {
         const source = readLevel();
 
         expect(source).toContain("id: 'peaks_relay_1'");
         expect(source).toContain("id: 'peaks_relay_2'");
         expect(source).toContain("id: 'peaks_relay_3'");
         expect(source).toContain(
-            'this.add.zone(\n                relay.x,\n                this.levelHeight / 2,\n                110,\n                this.levelHeight'
+            'this.createObjectiveTriggerZone(\n                relay.x,\n                relay.y - 35,\n                { width: 150, height: 190 }'
         );
         expect(source).toContain(
             'this.setCheckpoint(relay.x, relay.respawnY, {'

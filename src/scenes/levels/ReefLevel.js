@@ -39,16 +39,20 @@ class ReefLevel extends PlatformerLevelScene {
             levelId: 'reef_1',
             biomeId: 'stellar_reef',
             levelWidth: 6000,
-            levelHeight: 1200
+            levelHeight: 1200,
+            movement: {
+                gravityY: 150,
+                playerSpeed: 200,
+                jumpVelocity: -320,
+                playerAcceleration: 0.18,
+                playerDeceleration: 0.94,
+                coyoteTime: 150,
+                jumpBufferTime: 150
+            }
         });
 
         // Override physics for cosmic void swimming
         // TUNED: More responsive swimming with noticeable gravity
-        this.gravityY = 150;           // Higher gravity - player sinks when not swimming
-        this.playerSpeed = 200;        // Faster horizontal movement
-        this.jumpVelocity = -320;      // Stronger swim thrust to counter gravity
-        this.playerAcceleration = 0.18; // More responsive acceleration
-        this.playerDeceleration = 0.94; // Drifty momentum
         this.swimDrag = 0.90;          // Faster velocity decay when not actively swimming
         this.swimAcceleration = 0.20;  // How quickly swim velocity builds
 
@@ -975,15 +979,11 @@ class ReefLevel extends PlatformerLevelScene {
                 strokeThickness: 3
             }).setOrigin(0.5).setDepth(181);
 
-            // The Reef supports many vertical routes; crossing the waypoint's
-            // horizontal position is enough to synchronize it.
-            const zone = this.add.zone(
+            const zone = this.createObjectiveTriggerZone(
                 waypoint.x,
-                this.levelHeight / 2,
-                110,
-                this.levelHeight
+                waypoint.y,
+                { width: 150, height: 190 }
             );
-            this.physics.add.existing(zone, true);
 
             const anchor = {
                 ...waypoint,

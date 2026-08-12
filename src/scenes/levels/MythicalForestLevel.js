@@ -54,16 +54,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
             levelId: 'mythical_forest_1',
             biomeId: 'mythical_forest',
             levelWidth: 8000,  // EXTENDED - longer journey to boss
-            levelHeight: 1200  // Increased for vertical tree climbing
+            levelHeight: 1200, // Increased for vertical tree climbing
+            movement: {
+                playerSpeed: 200,
+                jumpVelocity: -450,
+                playerAcceleration: 0.20,
+                playerDeceleration: 0.70,
+                coyoteTime: 150,
+                jumpBufferTime: 150
+            }
         });
-
-        // Physics tuned for forest platforming
-        this.playerSpeed = 200;
-        this.jumpVelocity = -450;
-        this.playerAcceleration = 0.20;
-        this.playerDeceleration = 0.70;
-        this.coyoteTime = 150;
-        this.jumpBufferTime = 150;
 
         // Level-specific state
         this.starFragmentsCollected = 0;
@@ -107,6 +107,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.branchPlatforms = [];
         this.swingingVines = [];
         this.collapsingBranches = [];
+        // Forest enemies use authored overlap callbacks for aerial and branch
+        // behavior, while still registering with the shared attack group.
+        this.enemyCollisionsManagedByLevel = true;
 
         // Collectibles
         this.starFragmentSprites = [];
@@ -1616,7 +1619,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         for (let i = 0; i < branches; i++) {
             const branchY = baseY - branchSpacing * (i + 1);
             const direction = i % 2 === 0 ? -1 : 1;
-            const branchLength = 80 + Math.random() * 60;
+            // Route-critical geometry must be repeatable across runs. Cosmetic
+            // particles can vary; a jump target cannot.
+            const branchLength = 96 + ((treeIndex * 29 + i * 17) % 36);
 
             // Visual branch
             const branch = this.add.graphics();
@@ -1740,6 +1745,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     createEnemies() {
         console.log('[MythicalForestLevel] Creating forest enemies...');
+        this.enemies = this.physics.add.group();
 
         // === VOID SPRITES: Ground-based chasers ===
         // These lurk in the shadows and chase the player
@@ -1856,6 +1862,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         sprite.speed = 80;
         sprite.detectionRange = 250;
         sprite.isChasing = false;
+        this.enemies.add(sprite);
 
         // Add to platforms collider
         if (this.platforms) {
@@ -1981,6 +1988,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         sprite.patrolLeft = zone.x - zone.width/2 + 30;
         sprite.patrolRight = zone.x + zone.width/2 - 30;
         sprite.direction = 1;
+        this.enemies.add(sprite);
 
         // Player collision
         if (this.player) {
@@ -2055,6 +2063,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         sprite.sporeRadius = 60;
         sprite.lastSporeTime = 0;
         sprite.sporeCooldown = 3000;
+        this.enemies.add(sprite);
 
         // Float animation
         this.tweens.add({
@@ -2222,6 +2231,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         sprite.lastTeleportTime = 0;
         sprite.teleportCooldown = 6000;  // Increased from 4000 - teleport less often
         sprite.isStunned = false;  // Can't teleport while stunned
+        this.enemies.add(sprite);
 
         // Pulse animation
         this.tweens.add({
@@ -2397,17 +2407,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Now includes knockback to prevent trapping
      */
     handleEnemyCollision(enemy) {
-        if (this.isInvincible || this.isPlayerDead || !enemy.active) return;
-
-        this.handlePlayerDamage(enemy.damage || 1);
-
-        // Apply knockback - push player away from enemy
-        const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
-        const knockbackForce = 250;
-        this.player.setVelocity(
-            Math.cos(angle) * knockbackForce,
-            Math.sin(angle) * knockbackForce - 200  // Upward boost to help escape
-        );
+        return this.resolveEnemyContact(this.player, enemy, {
+            contactDamage: enemy.damage || 1,
+            knockbackX: 250,
+            knockbackY: -200
+        });
     }
 
     /**
@@ -2472,6 +2476,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         enemy.destroy();
+        window.AchievementSystem?.recordEvent?.('enemy_defeated', {
+            levelId: this.levelId
+        });
 
         // Remove from arrays
         this.voidSprites = this.voidSprites.filter(e => e !== enemy);
@@ -2940,8 +2947,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
             { x1: 1400, x2: 1900, y: this.levelHeight - 450, type: 'vine' },
             // From Tree 3 to Tree 4
             { x1: 2400, x2: 3000, y: this.levelHeight - 500, type: 'static' },
+            // Readable stepped spine between the two tall-tree routes.
+            { x1: 3000, x2: 3260, y: this.levelHeight - 525, type: 'static' },
+            { x1: 3260, x2: 3500, y: this.levelHeight - 565, type: 'static' },
             // From Tree 4 to Tree 5
             { x1: 3500, x2: 3800, y: this.levelHeight - 600, type: 'collapsing' },
+            // Recovery spine after the collapsing challenge. Players who read
+            // the warning still have a clear forward route to Tree 5.
+            { x1: 3800, x2: 4050, y: this.levelHeight - 565, type: 'static' },
+            { x1: 4050, x2: 4300, y: this.levelHeight - 525, type: 'static' },
             // From Tree 5 to Tree 6
             { x1: 4300, x2: 4900, y: this.levelHeight - 500, type: 'static' }
         ];
@@ -3129,9 +3143,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
             arena.stroke();
         }
 
-        // Boss trigger zone - placed just before the tree (updated position)
+        // Introduce the guardian in front of the player on the approach. The
+        // previous trigger was to the right of the spawn and made mobile users
+        // backtrack into an encounter they could not see.
         const triggerZone = this.add.zone(
-            5600,
+            5350,
             this.levelHeight / 2,
             120,
             this.levelHeight
@@ -3567,7 +3583,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Spawn position - center of screen for test mode, or boss arena (Tree 6 area)
         const { width, height } = this.cameras.main;
-        const spawnX = this.testMode ? width / 2 + 200 : 5200; // Tree 6 location
+        const spawnX = this.testMode ? width / 2 + 200 : 5900;
         const spawnY = this.levelHeight - 220;
 
         // Create boss sprite

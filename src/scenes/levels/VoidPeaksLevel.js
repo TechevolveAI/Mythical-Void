@@ -27,13 +27,16 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             levelId: 'void_peaks_1',
             biomeId: 'void_peaks',
             levelWidth: 5200,
-            levelHeight: 850
+            levelHeight: 850,
+            movement: {
+                playerSpeed: 195,
+                jumpVelocity: -455,
+                playerAcceleration: 0.18,
+                playerDeceleration: 0.72,
+                coyoteTime: 150,
+                jumpBufferTime: 150
+            }
         });
-
-        this.playerSpeed = 195;
-        this.jumpVelocity = -455;
-        this.playerAcceleration = 0.18;
-        this.playerDeceleration = 0.72;
 
         this.starFragmentsCollected = 0;
         this.totalStarFragments = 5;
@@ -555,13 +558,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 strokeThickness: 3
             }).setOrigin(0.5).setDepth(181);
 
-            const zone = this.add.zone(
+            const zone = this.createObjectiveTriggerZone(
                 relay.x,
-                this.levelHeight / 2,
-                110,
-                this.levelHeight
+                relay.y - 35,
+                { width: 150, height: 190 }
             );
-            this.physics.add.existing(zone, true);
 
             const beacon = {
                 ...relay,

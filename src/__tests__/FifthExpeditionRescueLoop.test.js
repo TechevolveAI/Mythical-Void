@@ -42,14 +42,14 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('this.takeDamage(1)');
     });
 
-    test('places three full-height prisms with checkpoints and the exposure reveal', () => {
+    test('places three localized prisms with checkpoints and the exposure reveal', () => {
         const source = readLevel();
 
         expect(source).toContain("id: 'aurora_prism_1'");
         expect(source).toContain("id: 'aurora_prism_2'");
         expect(source).toContain("id: 'aurora_prism_3'");
         expect(source).toContain(
-            'this.add.zone(\n                prism.x,\n                this.levelHeight / 2,\n                120,\n                this.levelHeight'
+            'this.createObjectiveTriggerZone(\n                prism.x,\n                prism.y - 35,\n                { width: 160, height: 210 }'
         );
         expect(source).toContain(
             'this.setCheckpoint(prism.x, this.levelHeight - 130, {'

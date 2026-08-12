@@ -22,14 +22,14 @@ describe('third expedition rescue loop', () => {
         expect(entryDismissal).not.toContain('this.createLevelContent()');
     });
 
-    test('synchronizes three full-height waypoint crossings with checkpoints', () => {
+    test('synchronizes three localized waypoint crossings with checkpoints', () => {
         const source = readLevel();
 
         expect(source).toContain("id: 'reef_waypoint_1'");
         expect(source).toContain("id: 'reef_waypoint_2'");
         expect(source).toContain("id: 'reef_waypoint_3'");
         expect(source).toContain(
-            'this.add.zone(\n                waypoint.x,\n                this.levelHeight / 2,\n                110,\n                this.levelHeight'
+            'this.createObjectiveTriggerZone(\n                waypoint.x,\n                waypoint.y,\n                { width: 150, height: 190 }'
         );
         expect(source).toContain(
             'this.setCheckpoint(anchor.x, anchor.respawnY, {'

@@ -203,13 +203,31 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.biomeId = config.biomeId || 'crystal_caves';
         this.levelWidth = config.levelWidth || 5000;
         this.levelHeight = config.levelHeight || 800;
+        this.pitRecoveryDepth = Math.max(
+            260,
+            Number(config.pitRecoveryDepth) || 320
+        );
 
-        // Physics settings
-        this.gravityY = 500;
-        this.playerSpeed = 180;         // Reduced from 250 for less sensitive movement
-        this.jumpVelocity = -420;
-        this.playerAcceleration = 0.15; // Smooth acceleration factor
-        this.playerDeceleration = 0.75; // Slower deceleration for precise control
+        // Keep authored movement values as immutable level configuration. Phaser
+        // reuses scene instances, so assigning these only in subclass constructors
+        // silently loses them when init() resets a restarted expedition.
+        const movement = config.movement || {};
+        this.movementProfile = Object.freeze({
+            gravityY: Number.isFinite(movement.gravityY) ? movement.gravityY : 500,
+            playerSpeed: Number.isFinite(movement.playerSpeed) ? movement.playerSpeed : 180,
+            jumpVelocity: Number.isFinite(movement.jumpVelocity) ? movement.jumpVelocity : -420,
+            playerAcceleration: Number.isFinite(movement.playerAcceleration)
+                ? movement.playerAcceleration
+                : 0.15,
+            playerDeceleration: Number.isFinite(movement.playerDeceleration)
+                ? movement.playerDeceleration
+                : 0.75,
+            coyoteTime: Number.isFinite(movement.coyoteTime) ? movement.coyoteTime : 140,
+            jumpBufferTime: Number.isFinite(movement.jumpBufferTime)
+                ? movement.jumpBufferTime
+                : 140
+        });
+        this.applyMovementProfile();
 
         // State
         this.player = null;
@@ -306,9 +324,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.checkpointPosition = null; // Explicit checkpoint if set
 
         // Movement feel enhancements
-        this.coyoteTime = 100; // ms grace period to jump after leaving platform
+        this.coyoteTime = this.movementProfile.coyoteTime;
         this.lastGroundedTime = 0; // Timestamp when last grounded
-        this.jumpBufferTime = 100; // ms to buffer jump input before landing
+        this.jumpBufferTime = this.movementProfile.jumpBufferTime;
         this.jumpBufferPressed = false; // Whether jump was pressed recently (for buffering)
         this.jumpBufferTimestamp = 0; // When jump buffer was activated
         this.wasGrounded = false; // Track previous grounded state for landing detection
@@ -515,8 +533,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Reset all game state - called on init() for restart support
      */
     resetGameState() {
-        this.playerSpeed = 180;
-        this.jumpVelocity = -420;
+        this.applyMovementProfile();
         const previewUpgradeIds = {
             crystal: ['crystal_edge'],
             aurora: ['aurora_guard'],
@@ -729,6 +746,24 @@ class PlatformerLevelScene extends Phaser.Scene {
         console.log('[PlatformerLevel] Game state reset for restart');
     }
 
+    applyMovementProfile() {
+        const profile = this.movementProfile || {};
+        this.gravityY = Number.isFinite(profile.gravityY) ? profile.gravityY : 500;
+        this.playerSpeed = Number.isFinite(profile.playerSpeed) ? profile.playerSpeed : 180;
+        this.jumpVelocity = Number.isFinite(profile.jumpVelocity) ? profile.jumpVelocity : -420;
+        this.playerAcceleration = Number.isFinite(profile.playerAcceleration)
+            ? profile.playerAcceleration
+            : 0.15;
+        this.playerDeceleration = Number.isFinite(profile.playerDeceleration)
+            ? profile.playerDeceleration
+            : 0.75;
+        this.coyoteTime = Number.isFinite(profile.coyoteTime) ? profile.coyoteTime : 140;
+        this.jumpBufferTime = Number.isFinite(profile.jumpBufferTime)
+            ? profile.jumpBufferTime
+            : 140;
+        return { ...profile };
+    }
+
     create() {
         console.log(`[PlatformerLevel] Creating level: ${this.levelId}`);
         prefetchKatanaArtifactArtwork();
@@ -750,7 +785,16 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.setupPlatformerPhysics();
 
             // 2. Set world bounds
-            this.physics.world.setBounds(0, 0, this.levelWidth, this.levelHeight);
+            // The physical world extends below the visible playfield so gaps
+            // behave as real pits. The camera remains bounded to levelHeight,
+            // and checkFallOutOfBounds() recovers the player before they touch
+            // this lower safety boundary.
+            this.physics.world.setBounds(
+                0,
+                0,
+                this.levelWidth,
+                this.levelHeight + this.pitRecoveryDepth
+            );
 
             // 3. Create graphics engine
             if (window.GraphicsEngine) {
@@ -1169,6 +1213,23 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         return platform;
+    }
+
+    createObjectiveTriggerZone(x, y, {
+        width = 140,
+        height = 190
+    } = {}) {
+        const triggerWidth = Math.max(80, Number(width) || 140);
+        const triggerHeight = Math.max(100, Number(height) || 190);
+        const triggerY = Phaser.Math.Clamp(
+            Number(y) || this.levelHeight / 2,
+            triggerHeight / 2,
+            this.levelHeight - triggerHeight / 2
+        );
+        const zone = this.add.zone(x, triggerY, triggerWidth, triggerHeight);
+        this.physics.add.existing(zone, true);
+        zone.isObjectiveTrigger = true;
+        return zone;
     }
 
     /**
@@ -2612,7 +2673,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         // Enemies collision (to be set up in subclass)
-        if (this.enemies) {
+        if (this.enemies && !this.enemyCollisionsManagedByLevel) {
             this.physics.add.collider(this.player, this.enemies, this.onEnemyCollision, null, this);
             this.physics.add.collider(this.enemies, this.platforms);
         }
@@ -2632,40 +2693,73 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Handle enemy collision (override in subclass)
      */
     onEnemyCollision(player, enemy) {
-        // Skip if enemy is already defeated
-        if (!enemy.active) return;
+        return this.resolveEnemyContact(player, enemy);
+    }
 
-        // Get collision info
-        const playerCenterY = player.body.center.y;
-        const playerBottom = player.body.bottom;
-        const playerVelocityY = player.body.velocity.y;
-        const enemyCenterY = enemy.body.center.y;
-        const enemyTop = enemy.body.top;
-
-        // Mario-style stomp detection - GENEROUS for better game feel:
-        // 1. Player must be falling (positive Y velocity) OR just landed (velocity near 0 but was falling)
-        // 2. Player's CENTER must be above enemy's CENTER (player approaching from above)
-        // 3. Player's BOTTOM must be in upper portion of enemy (feet hitting head)
-        const isFalling = playerVelocityY > -50; // Allow small upward velocity (just bounced)
-        const isAboveEnemy = playerCenterY < enemyCenterY; // Player center is higher (lower Y)
-        const feetNearTop = playerBottom <= enemyTop + (enemy.body.height * 0.6); // Generous 60%
-
-        const isStomping = isFalling && isAboveEnemy && feetNearTop;
-
-        if (isStomping) {
-            console.log('[PlatformerLevel] Enemy stomped! Player Y:', playerCenterY, 'Enemy Y:', enemyCenterY);
-            this.defeatEnemy(enemy);
-            player.setVelocityY(this.jumpVelocity * 0.6); // Bounce up
-
-            // Satisfying stomp sound
-            if (window.AudioManager) {
-                window.AudioManager.playEnemyHit();
-            }
-        } else {
-            // Player touched enemy from side/below - take damage
-            console.log('[PlatformerLevel] Enemy collision - damage! Player Y:', playerCenterY, 'Enemy Y:', enemyCenterY);
-            this.takeDamage(1);
+    classifyEnemyContact(player, enemy) {
+        if (!player?.body || !enemy?.body || enemy.active === false) {
+            return 'ignored';
         }
+
+        const playerCenterY = Number(player.body.center?.y);
+        const playerBottom = Number(player.body.bottom);
+        const playerVelocityY = Number(player.body.velocity?.y) || 0;
+        const enemyCenterY = Number(enemy.body.center?.y);
+        const enemyTop = Number(enemy.body.top);
+        const enemyHeight = Number(enemy.body.height) || 1;
+        const descending = playerVelocityY >= -35;
+        const approachingFromAbove = playerCenterY < enemyCenterY;
+        const feetInsideStompBand = playerBottom <= enemyTop + enemyHeight * 0.62;
+
+        return descending && approachingFromAbove && feetInsideStompBand
+            ? 'stomp'
+            : 'contact';
+    }
+
+    resolveEnemyContact(player, enemy, options = {}) {
+        if (!player?.body || !enemy?.body || enemy.active === false) {
+            return 'ignored';
+        }
+
+        const now = Number(this.time?.now) || 0;
+        if (now < (Number(enemy.stompContactLockedUntil) || 0)) {
+            return 'ignored';
+        }
+
+        const contactType = this.classifyEnemyContact(player, enemy);
+        if (contactType === 'stomp' && enemy.stompable !== false) {
+            enemy.stompContactLockedUntil = now + 220;
+            const defaultDamage = enemy.isMiniboss
+                ? 1
+                : Math.max(1, Number(enemy.health) || 1);
+            const stompDamage = Number.isFinite(options.stompDamage)
+                ? options.stompDamage
+                : defaultDamage;
+
+            if (typeof options.onStomp === 'function') {
+                options.onStomp(enemy, stompDamage);
+            } else {
+                this.damageEnemy(enemy, stompDamage);
+            }
+            player.setVelocityY(this.jumpVelocity * 0.62);
+            this.showFloatingText?.('STOMP', enemy.x, enemy.y - 36, '#F2C94C');
+            window.AudioManager?.playEnemyHit?.();
+            return 'stomp';
+        }
+
+        if (this.isInvincible || this.isPlayerDead) {
+            return 'ignored';
+        }
+
+        const healthBefore = Number(this.health);
+        this.takeDamage(Number(options.contactDamage ?? enemy.damage) || 1);
+        if (Number(this.health) < healthBefore && player.active !== false) {
+            const horizontalDirection = player.x >= enemy.x ? 1 : -1;
+            const horizontalForce = Number(options.knockbackX) || 240;
+            const verticalForce = Number(options.knockbackY) || -180;
+            player.setVelocity(horizontalDirection * horizontalForce, verticalForce);
+        }
+        return 'contact';
     }
 
     /**
@@ -3659,7 +3753,9 @@ class PlatformerLevelScene extends Phaser.Scene {
             onComplete: () => blast.destroy()
         });
 
-        // Damage all nearby enemies
+        // Damage all nearby enemies through the same contract as melee,
+        // ranged attacks, and stomps. This preserves miniboss callbacks and
+        // still gives the three-energy blast its intended instant-clear power.
         if (this.enemies) {
             this.enemies.getChildren().forEach(enemy => {
                 const dist = Phaser.Math.Distance.Between(
@@ -3667,7 +3763,10 @@ class PlatformerLevelScene extends Phaser.Scene {
                     enemy.x, enemy.y
                 );
                 if (dist < 300) {
-                    this.defeatEnemy(enemy);
+                    this.damageEnemy(
+                        enemy,
+                        Math.max(6, Number(enemy.health) || 1)
+                    );
                 }
             });
         }
@@ -3682,6 +3781,11 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Damage an enemy with exciting combat juice!
      */
     damageEnemy(enemy, damage) {
+        if (!enemy?.active) return false;
+        if (typeof enemy.onCombatDamage === 'function') {
+            enemy.onCombatDamage(damage);
+            return true;
+        }
         if (!enemy.health) enemy.health = 2;
 
         // Register hit with combo system for multiplier
@@ -3717,6 +3821,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (enemy.health <= 0) {
             this.defeatEnemy(enemy);
         }
+        return true;
     }
 
     /**
@@ -3724,7 +3829,11 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     defeatEnemy(enemy) {
         if (!enemy?.active) {
-            return;
+            return false;
+        }
+        if (typeof enemy.onCombatDefeat === 'function') {
+            enemy.onCombatDefeat();
+            return true;
         }
 
         // Combat juice for satisfying defeat
@@ -3750,7 +3859,12 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.crystalEnergy = Math.min(this.crystalEnergy + 1, this.maxCrystalEnergy);
         this.updateEnergyDisplay();
 
-        // Destroy enemy
+        // Some biomes use an invisible physics body with separate artwork.
+        // Retire both atomically so defeated enemies cannot remain visible.
+        if (enemy.graphics && enemy.graphics !== enemy) {
+            enemy.graphics.destroy?.();
+            enemy.graphics = null;
+        }
         enemy.destroy();
         window.AchievementSystem?.recordEvent?.('enemy_defeated', {
             levelId: this.levelId || this.scene?.key || null
@@ -3760,6 +3874,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (window.AudioManager) {
             window.AudioManager.playEnemyHit();
         }
+        return true;
     }
 
     /**
@@ -4424,8 +4539,10 @@ class PlatformerLevelScene extends Phaser.Scene {
     checkFallOutOfBounds() {
         if (!this.player || this.isPlayerDead) return;
 
-        // Fall threshold: below level height + buffer
-        const fallThreshold = this.levelHeight + 200;
+        const fallThreshold = this.levelHeight + Math.min(
+            180,
+            this.pitRecoveryDepth - 60
+        );
 
         if (this.player.y > fallThreshold) {
             console.log('[PlatformerLevel] Player fell out of bounds');
