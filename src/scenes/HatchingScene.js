@@ -81,6 +81,8 @@ class HatchingScene extends Phaser.Scene {
         this.eggTextureName = null;
         this.isStartingGame = false; // Reset START button state
         this.themeMusicLoadRequested = false;
+        this.startButtonPressed = false;
+        this.startFlowQueued = false;
 
         // Set egg hatching properties from passed data
         this.isEggHatch = data?.isEggHatch || false;
@@ -4144,6 +4146,9 @@ class HatchingScene extends Phaser.Scene {
         // CLICK - Tactile satisfaction & reward
         buttonContainer.on('pointerdown', () => {
             console.log('🚀 START GAME button clicked!');
+            this.startButtonPressed = true;
+            this.startButtonPressedAt = Date.now();
+            this.animateStartPress();
 
             // Haptic feedback for mobile
             MobileHelpers.vibrate(50);
@@ -4164,63 +4169,136 @@ class HatchingScene extends Phaser.Scene {
             });
         });
 
-        buttonContainer.on('pointerup', () => {
-            // Prevent double-clicks
-            if (this.isStartingGame) return;
-            this.isStartingGame = true;
+        const onReleaseStart = () => {
+            if (!this.startButtonPressed) return;
+            this.startButtonPressed = false;
+            this.onStartRelease(buttonContainer, buttonX, buttonY);
+        };
 
-            // Show loading indicator immediately for user feedback
-            if (window.UXEnhancements) {
-                window.UXEnhancements.showLoading('Preparing your adventure...');
-            }
+        buttonContainer.on('pointerup', () => onReleaseStart());
+        buttonContainer.on('pointerupoutside', () => onReleaseStart());
+        buttonContainer.on('pointercancel', () => {
+            this.startButtonPressed = false;
+        });
+        buttonContainer.on('pointerout', () => {
+            // Keep pressed state if dragging back in, but reset when this is a non-UI
+            // environment that doesn't support outside tracking.
+            if (!this.startButtonPressed || !this.sys?.isActive()) return;
+            this.startButtonPressed = false;
+        });
+        buttonContainer.setData('startButton', true);
 
-            // Satisfying bounce back
-            this.tweens.add({
-                targets: buttonContainer,
-                scaleX: 1.06,
-                scaleY: 1.06,
-                duration: 110,
-                ease: 'Back.easeOut'
-            });
-
-            // Success burst
-            for (let i = 0; i < 16; i++) {
-                const angle = (i / 16) * Math.PI * 2;
-                const distance = 90;
-                const particle = this.add.circle(buttonX, buttonY, 5, 0xFFD700, 1);
-                this.tweens.add({
-                    targets: particle,
-                    x: buttonX + Math.cos(angle) * distance,
-                    y: buttonY + Math.sin(angle) * distance,
-                    alpha: 0,
-                    scale: 0,
-                    duration: 650,
-                    ease: 'Power2.easeOut',
-                    onComplete: () => particle.destroy()
-                });
-            }
-
-            // Fade and transition - CRITICAL FIX: Use handleStartGame() for proper state management
-            this.tweens.add({
-                targets: buttonContainer,
-                alpha: 0,
-                scaleX: 1.25,
-                scaleY: 1.25,
-                duration: 350,
-                delay: 150,
-                ease: 'Back.easeIn',
-                onComplete: () => {
-                    // Hide loading indicator before scene transition
-                    if (window.UXEnhancements) {
-                        window.UXEnhancements.hideLoading();
-                    }
-                    // Use the proper state management flow
-                    this.handleStartGame();
-                }
-            });
+        // Fallback for environments where Phaser pointer lifecycle can miss release
+        buttonContainer.once('destroy', () => {
+            this.startButtonPressed = false;
         });
 
+        this.input.on('pointerup', onReleaseStart);
+
+        if (typeof document !== 'undefined' && this.game?.canvas) {
+            const fallbackHandler = (event) => {
+                if (!this.sys?.isActive() || !this.startButtonPressed) return;
+                const bounds = this.game.canvas.getBoundingClientRect();
+                const x = event.clientX || 0;
+                const y = event.clientY || 0;
+                const inside = x >= bounds.left && x <= bounds.right
+                    && y >= bounds.top && y <= bounds.bottom;
+                if (inside) {
+                    onReleaseStart();
+                } else {
+                    this.startButtonPressed = false;
+                }
+            };
+
+            window.addEventListener('pointerup', fallbackHandler, { capture: true, passive: true });
+            this.inputAbortHandler = () => {
+                window.removeEventListener('pointerup', fallbackHandler, true);
+            };
+            this.game.events.once('shutdown', this.inputAbortHandler);
+            this.game.events.once('destroy', this.inputAbortHandler);
+        }
+
         this.startButton = buttonContainer;
+    }
+
+    animateStartPress() {
+        if (!this.startButton || !this.startButton.active) return;
+        this.tweens.add({
+            targets: this.startButton,
+            scaleX: 0.94,
+            scaleY: 0.94,
+            duration: 85,
+            ease: 'Power2'
+        });
+    }
+
+    animateStartRelease(buttonContainer) {
+        this.tweens.add({
+            targets: buttonContainer,
+            scaleX: 1.06,
+            scaleY: 1.06,
+            duration: 110,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    onStartRelease(buttonContainer, buttonX, buttonY) {
+        // Prevent double-clicks and re-entry into transition path
+        if (this.isStartingGame || this.startFlowQueued) return;
+
+        if (this.startButtonPressedAt && Date.now() - this.startButtonPressedAt > 18000) {
+            this.startButtonPressedAt = null;
+            this.startButtonPressed = false;
+            return;
+        }
+
+        this.isStartingGame = true;
+        this.startFlowQueued = true;
+        this.startButtonPressed = false;
+
+        // Show loading indicator immediately for user feedback
+        if (window.UXEnhancements) {
+            window.UXEnhancements.showLoading('Preparing your adventure...');
+        }
+
+        this.animateStartRelease(buttonContainer);
+
+        // Success burst
+        for (let i = 0; i < 16; i += 1) {
+            const angle = (i / 16) * Math.PI * 2;
+            const distance = 90;
+            const particle = this.add.circle(buttonX, buttonY, 5, 0xFFD700, 1);
+            this.tweens.add({
+                targets: particle,
+                x: buttonX + Math.cos(angle) * distance,
+                y: buttonY + Math.sin(angle) * distance,
+                alpha: 0,
+                scale: 0,
+                duration: 650,
+                ease: 'Power2.easeOut',
+                onComplete: () => particle.destroy()
+            });
+        }
+
+        // Fade and transition - CRITICAL FIX: Use handleStartGame() for proper state management
+        this.tweens.add({
+            targets: buttonContainer,
+            alpha: 0,
+            scaleX: 1.25,
+            scaleY: 1.25,
+            duration: 350,
+            delay: 150,
+            ease: 'Back.easeIn',
+            onComplete: () => {
+                // Hide loading indicator before scene transition
+                if (window.UXEnhancements) {
+                    window.UXEnhancements.hideLoading();
+                }
+                this.startFlowQueued = false;
+                // Use the proper state management flow
+                this.handleStartGame();
+            }
+        });
     }
 
     /**
@@ -4552,7 +4630,24 @@ class HatchingScene extends Phaser.Scene {
 
         // Delayed restart to ensure save completes
         this.time.delayedCall(100, () => {
-            this.scene.restart();
+            if (!this.scene?.sys?.isActive()) {
+                this.startFlowQueued = false;
+                this.isStartingGame = false;
+                return;
+            }
+
+            try {
+                this.scene.restart();
+            } catch (error) {
+                console.error('[HatchingScene] Restart failed, attempting direct start', error);
+                this.startFlowQueued = false;
+                this.isStartingGame = false;
+                try {
+                    this.scene.start('HatchingScene');
+                } catch (startError) {
+                    console.error('[HatchingScene] Scene start fallback failed', startError);
+                }
+            }
         });
     }
 }

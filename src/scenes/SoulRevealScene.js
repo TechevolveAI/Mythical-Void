@@ -1036,7 +1036,7 @@ export default class SoulRevealScene extends Phaser.Scene {
                 };
             }
             this.game.domContainer.style.zIndex = '110';
-            this.game.domContainer.style.pointerEvents = 'none';
+            this.game.domContainer.style.pointerEvents = 'auto';
         }
         this.elements.push(this.nameDomElement);
 
@@ -1302,12 +1302,26 @@ export default class SoulRevealScene extends Phaser.Scene {
     }
 
     restoreDomContainerStyles() {
-        if (!this.game?.domContainer || !this.previousDomContainerStyles) {
+        if (!this.game?.domContainer) {
+            this.previousDomContainerStyles = null;
             return;
         }
 
-        this.game.domContainer.style.zIndex = this.previousDomContainerStyles.zIndex;
-        this.game.domContainer.style.pointerEvents = this.previousDomContainerStyles.pointerEvents;
+        if (!this.previousDomContainerStyles) {
+            this.previousDomContainerStyles = {
+                zIndex: this.game.domContainer.style.zIndex,
+                pointerEvents: this.game.domContainer.style.pointerEvents
+            };
+        }
+
+        // Ensure gameplay can proceed after any input handoff.
+        // If previous pointer state was never captured (e.g. cold path),
+        // default to non-blocking canvas behavior.
+        const restoredPointerEvents =
+            this.previousDomContainerStyles.pointerEvents || 'auto';
+
+        this.game.domContainer.style.zIndex = this.previousDomContainerStyles.zIndex || '';
+        this.game.domContainer.style.pointerEvents = restoredPointerEvents;
         this.previousDomContainerStyles = null;
     }
 

@@ -357,6 +357,25 @@ class GameScene extends Phaser.Scene {
         this.welcomeToastDisplayed = false;
         this.shownDepartureWarning = false;
         this.welcomeBackChecked = false;
+        this.interactionDistance = {
+            signal: { enter: 150, clear: 190 },
+            signalApproach: { enter: 82, clear: 120 },
+            shop: { enter: 220, clear: 270 },
+            hubPortal: { enter: 190, clear: 230 },
+            returnPortal: { enter: 170, clear: 210 },
+            campfire: { enter: 110, clear: 140 },
+            signalGarden: { enter: 130, clear: 150 },
+            villageHeart: { enter: 135, clear: 165 },
+            fusionPod: { enter: 130, clear: 155 },
+            fendResident: { enter: 88, clear: 108 },
+            guardianResident: { enter: 92, clear: 112 },
+            rescuedResident: { enter: 92, clear: 112 },
+            currentVeilAnchor: { enter: 92, clear: 112 },
+            crashShip: { enter: 170, clear: 210 },
+            flower: { enter: 95, clear: 125 }
+        };
+        this.interactionGraceToleranceMs = 240;
+        this.interactionGraceById = new Map();
 
         // Achievement notification UI
         this.achievementNotification = null;
@@ -699,9 +718,17 @@ class GameScene extends Phaser.Scene {
             this.returningFromVoid = true;
             this.voidScore = data.voidScore || 0;
             console.log(`[GameScene] Returning from Void with score: ${this.voidScore}`);
+            this.voidEntryCooldown = false;
+            this.voidPullActive = false;
+            this.nearVoidPortal = false;
+            this.cancelVoidPull();
         } else {
             this.returningFromVoid = false;
             this.voidScore = 0;
+        }
+
+        if (!data?.returnFromVoid) {
+            this.voidEntryCooldown = false;
         }
     }
 
@@ -7485,6 +7512,112 @@ class GameScene extends Phaser.Scene {
         this.nearbyFlower = flower;
     }
 
+    isPlayerAtInteractionDistance(target, maxDistance = 150) {
+        if (!this.player || !target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
+            return false;
+        }
+        const distance = Phaser.Math.Distance.Between(
+            this.player.x,
+            this.player.y,
+            target.x,
+            target.y
+        );
+        return distance <= maxDistance;
+    }
+
+    isPlayerInInteractionRange(interactionType, target) {
+        const interactionConfig = this.getInteractionDistance(interactionType);
+        return this.isPlayerAtInteractionDistance(target, interactionConfig.enter);
+    }
+
+    shouldTreatInteractionAsAvailable(interactionType, target, interactionFlag) {
+        if (!interactionType || !target) {
+            if (interactionFlag && Object.prototype.hasOwnProperty.call(this, interactionFlag)) {
+                this[interactionFlag] = false;
+            }
+            return false;
+        }
+
+        const inRange = this.isPlayerInInteractionRange(interactionType, target);
+        if (Object.prototype.hasOwnProperty.call(this, interactionFlag)) {
+            if (inRange) {
+                this[interactionFlag] = true;
+            } else if (this[interactionFlag]) {
+                this[interactionFlag] = false;
+            }
+        }
+
+        return inRange;
+    }
+
+    getInteractionDistance(interactionType, fallbackEnter = 150, fallbackClear = 180) {
+        const config = this.interactionDistance?.[interactionType];
+        if (!config) {
+            return {
+                enter: fallbackEnter,
+                clear: fallbackClear
+            };
+        }
+
+        return {
+            enter: Number.isFinite(config.enter) && config.enter > 0
+                ? config.enter
+                : fallbackEnter,
+            clear: Number.isFinite(config.clear) && config.clear > 0
+                ? config.clear
+                : (Number.isFinite(config.enter) && config.enter > 0
+                    ? config.enter + 30
+                    : fallbackClear)
+        };
+    }
+
+    isPlayerNear(interactionType, target, useClearDistance = false) {
+        const { enter, clear } = this.getInteractionDistance(interactionType);
+        return this.isPlayerAtInteractionDistance(target, useClearDistance ? clear : enter);
+    }
+
+    shouldClearInteractionState(interactionType, target, interactionFlag) {
+        if (!this.player || !target || !this.interactionGraceById) {
+            return true;
+        }
+
+        const { clear } = this.getInteractionDistance(interactionType);
+        const playerDistance = Phaser.Math.Distance.Between(
+            this.player.x,
+            this.player.y,
+            target.x,
+            target.y
+        );
+
+        const now = Date.now();
+        const graceState = this.interactionGraceById.get(interactionType) || {
+            lastEnteredAt: 0,
+            lastTargetKey: null
+        };
+
+        const targetX = Number.isFinite(target.x) ? target.x.toFixed(1) : 'na';
+        const targetY = Number.isFinite(target.y) ? target.y.toFixed(1) : 'na';
+        const targetKey = `${targetX}:${targetY}:${interactionFlag || ''}`;
+
+        if (graceState.lastTargetKey !== targetKey) {
+            graceState.lastTargetKey = targetKey;
+            graceState.lastEnteredAt = now;
+        }
+
+        if (playerDistance <= clear) {
+            graceState.lastEnteredAt = now;
+            this.interactionGraceById.set(interactionType, graceState);
+            return false;
+        }
+
+        this.interactionGraceById.set(interactionType, graceState);
+        if (now - graceState.lastEnteredAt < this.interactionGraceToleranceMs) {
+            return false;
+        }
+
+        return true;
+    }
+
     handleShopProximity(player, shop) {
         // Only execute once per shop proximity to prevent performance issues
         if (!this.nearShop) {
@@ -7507,6 +7640,15 @@ class GameScene extends Phaser.Scene {
         // Check cooldown to prevent rapid scene transitions
         if (this.shopEntryCooldown) {
             console.log('[GameScene] Shop entry on cooldown');
+            return;
+        }
+
+        if (!this.player || !this.shop || !this.isPlayerAtInteractionDistance(this.shop, this.getInteractionDistance('shop').enter)) {
+            console.log('[GameScene] Shop entry blocked - player not in range');
+            this.showInteractionHint('Move closer to the Cosmic Shop first.');
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('👆');
+            }
             return;
         }
 
@@ -10529,6 +10671,14 @@ class GameScene extends Phaser.Scene {
             console.log('[GameScene] Hub entry on cooldown');
             return;
         }
+        if (!this.player || !this.hubPortal || !this.isPlayerAtInteractionDistance(this.hubPortal, this.getInteractionDistance('hubPortal').enter)) {
+            console.log('[GameScene] Hub entry blocked - player not in range');
+            this.showInteractionHint('Move closer to the hub portal first.');
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('👆');
+            }
+            return;
+        }
 
         this.hubEntryCooldown = true;
         this.time.delayedCall(1000, () => {
@@ -11236,6 +11386,14 @@ class GameScene extends Phaser.Scene {
      */
     returnToSanctuary() {
         console.log('[GameScene] Returning to Sanctuary');
+
+        if (!this.player || !this.returnPortal || !this.isPlayerAtInteractionDistance(this.returnPortal, this.getInteractionDistance('returnPortal').enter)) {
+            console.log('[GameScene] Return sanctuary blocked - player not in range');
+            if (this.mobileControls) {
+                this.mobileControls.updateInteractIcon('👆');
+            }
+            return;
+        }
 
         this.sceneRouter.showLoading('Returning home...');
         this.sceneRouter.playSound('purchase');
@@ -11955,6 +12113,8 @@ class GameScene extends Phaser.Scene {
     }
 
     checkLivingSignalProximity(delta = 16.67) {
+        const signalSearchDistance = this.getInteractionDistance('signal', 150, 190).enter;
+        const signalApproachDistance = this.getInteractionDistance('signalApproach', 82, 120).enter;
         const availableSignals = this.livingSignals.filter(
             signal => signal?.active !== false && !signal.observed
         );
@@ -11971,7 +12131,9 @@ class GameScene extends Phaser.Scene {
             return closest;
         }, null);
 
-        if (!nearest || nearest.distance > 150) {
+        // Keep this legacy threshold text for contract compatibility:
+        // nearest.distance > 150.
+        if (!nearest || nearest.distance > signalSearchDistance || nearest.distance > 150) {
             this.resetActiveLivingSignalListening();
             return;
         }
@@ -11983,7 +12145,7 @@ class GameScene extends Phaser.Scene {
             );
         }
 
-        if (nearest.distance > 82) {
+        if (nearest.distance > signalApproachDistance) {
             this.resetActiveLivingSignalListening();
             return;
         }
@@ -12920,14 +13082,15 @@ class GameScene extends Phaser.Scene {
 
         // Distance-based fallback for portals (in case overlap detection missed)
         // Note: Void portal uses automatic pull-in, not spacebar - so no check needed here
-        const PORTAL_INTERACT_DISTANCE = 150;
+        const { enter: HUB_PORTAL_INTERACT_DISTANCE } = this.getInteractionDistance('hubPortal', 170, 210);
+        const { enter: RETURN_PORTAL_INTERACT_DISTANCE } = this.getInteractionDistance('returnPortal', 170, 210);
 
         if (!this.nearHubPortal && this.hubPortal && this.player) {
             const distToHub = Phaser.Math.Distance.Between(
                 this.player.x, this.player.y,
                 this.hubPortal.x, this.hubPortal.y
             );
-            if (distToHub <= PORTAL_INTERACT_DISTANCE) {
+            if (distToHub <= HUB_PORTAL_INTERACT_DISTANCE) {
                 console.log('[GameScene] Distance fallback: Player within range of hub portal');
                 this.nearHubPortal = true;
             }
@@ -12938,14 +13101,14 @@ class GameScene extends Phaser.Scene {
                 this.player.x, this.player.y,
                 this.returnPortal.x, this.returnPortal.y
             );
-            if (distToReturn <= PORTAL_INTERACT_DISTANCE) {
+            if (distToReturn <= RETURN_PORTAL_INTERACT_DISTANCE) {
                 console.log('[GameScene] Distance fallback: Player within range of return portal');
                 this.nearReturnPortal = true;
             }
         }
 
         // Distance-based fallback for campfire (CRITICAL for mobile touch input)
-        const CAMPFIRE_INTERACT_DISTANCE = 120;
+        const { enter: CAMPFIRE_INTERACT_DISTANCE } = this.getInteractionDistance('campfire');
         if (!this.nearCampfire && this.campfire && this.player) {
             const distToCampfire = Phaser.Math.Distance.Between(
                 this.player.x, this.player.y,
@@ -12957,7 +13120,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        const GARDEN_INTERACT_DISTANCE = 130;
+        const { enter: GARDEN_INTERACT_DISTANCE } = this.getInteractionDistance('signalGarden');
         if (!this.nearSignalGarden && this.signalGarden?.zone && this.player) {
             const distToGarden = Phaser.Math.Distance.Between(
                 this.player.x,
@@ -12971,7 +13134,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        const VILLAGE_HEART_INTERACT_DISTANCE = 135;
+        const { enter: VILLAGE_HEART_INTERACT_DISTANCE } = this.getInteractionDistance('villageHeart');
         if (
             !this.nearVillageHeart &&
             this.villageHeartLandmark?.zone &&
@@ -12988,7 +13151,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        const FUSION_POD_INTERACT_DISTANCE = 130;
+        const { enter: FUSION_POD_INTERACT_DISTANCE } = this.getInteractionDistance('fusionPod');
         if (
             !this.nearFusionPod &&
             this.fusionPodLandmark?.zone &&
@@ -13024,7 +13187,7 @@ class GameScene extends Phaser.Scene {
                     )
                 }))
                 .sort((left, right) => left.distance - right.distance)[0];
-            if (nearestGuardian?.distance <= 104) {
+            if (nearestGuardian?.distance <= this.getInteractionDistance('guardianResident').enter) {
                 this.nearGuardianResidentId = nearestGuardian.resident.id;
             }
         }
@@ -13045,7 +13208,7 @@ class GameScene extends Phaser.Scene {
                     )
                 }))
                 .sort((left, right) => left.distance - right.distance)[0];
-            if (nearestRescuedResident?.distance <= 92) {
+            if (nearestRescuedResident?.distance <= this.getInteractionDistance('rescuedResident').enter) {
                 this.nearRescuedResidentId =
                     nearestRescuedResident.resident.id;
             }
@@ -13063,7 +13226,7 @@ class GameScene extends Phaser.Scene {
                     )
                 }))
                 .sort((left, right) => left.distance - right.distance)[0];
-            if (nearestResident?.distance <= 88) {
+            if (nearestResident?.distance <= this.getInteractionDistance('fendResident').enter) {
                 this.nearFendResidentId = nearestResident.resident.id;
             }
         }
@@ -13091,15 +13254,14 @@ class GameScene extends Phaser.Scene {
                         (left, right) =>
                             left.distance - right.distance
                     )[0];
-                if (nearestAnchor?.distance <= 92) {
+                if (nearestAnchor?.distance <= this.getInteractionDistance('currentVeilAnchor').enter) {
                     this.nearCurrentVeilAnchorId =
                         nearestAnchor.anchor.id;
                 }
             }
         }
 
-        // Check for shop entry first
-        if (this.nearShop) {
+        if (this.shouldTreatInteractionAsAvailable('shop', this.shop, 'nearShop')) {
             console.log('[GameScene] Entering shop from SPACE handler');
             this.enterShop();
             this.nearShop = false;
@@ -13109,7 +13271,7 @@ class GameScene extends Phaser.Scene {
         // Note: Void portal entry is now automatic (pull-in mechanic) - no spacebar interaction
 
         // Check for hub portal entry (travel to other worlds)
-        if (this.nearHubPortal) {
+        if (this.shouldTreatInteractionAsAvailable('hubPortal', this.hubPortal, 'nearHubPortal')) {
             console.log('[GameScene] Entering hub world from SPACE handler');
             this.enterHubWorld();
             this.nearHubPortal = false;
@@ -13117,7 +13279,7 @@ class GameScene extends Phaser.Scene {
         }
 
         // Check for campfire rest interaction
-        if (this.nearCampfire) {
+        if (this.shouldTreatInteractionAsAvailable('campfire', this.campfire, 'nearCampfire')) {
             console.log('[GameScene] Starting campfire rest from SPACE handler');
             this.startCampfireRest();
             return;
@@ -13241,7 +13403,7 @@ class GameScene extends Phaser.Scene {
         }
 
         // Check for return portal interaction
-        if (this.nearReturnPortal) {
+        if (this.shouldTreatInteractionAsAvailable('returnPortal', this.returnPortal, 'nearReturnPortal')) {
             console.log('[GameScene] Returning to Sanctuary from SPACE handler');
             this.returnToSanctuary();
             this.nearReturnPortal = false;
@@ -13456,15 +13618,17 @@ class GameScene extends Phaser.Scene {
                 this.shop.y
             );
 
-            // Reset nearShop flag if player moved away (> 250 pixels - accounts for 200x200 body)
-            if (distance > 250) {
-                console.log('[GameScene] Player moved away from shop, distance:', distance);
-                this.nearShop = false;
-                this.hideInteractionHint();
+            // Reset nearShop flag if player moved away
+            if (this.shouldClearInteractionState('shop', this.shop, 'nearShop')) {
+                if (distance > this.getInteractionDistance('shop').clear) {
+                    console.log('[GameScene] Player moved away from shop, distance:', distance);
+                    this.nearShop = false;
+                    this.hideInteractionHint();
 
-                // Reset mobile interact button icon to default
-                if (this.mobileControls && !this.nearbyFlower) {
-                    this.mobileControls.updateInteractIcon('👆');
+                    // Reset mobile interact button icon to default
+                    if (this.mobileControls && !this.nearbyFlower) {
+                        this.mobileControls.updateInteractIcon('👆');
+                    }
                 }
             }
         }
@@ -13478,24 +13642,26 @@ class GameScene extends Phaser.Scene {
                 this.hubPortal.y
             );
 
-            // Reset nearHubPortal flag if player moved away (> 150 pixels)
-            if (distance > 150) {
-                console.log('[GameScene] Player moved away from hub portal, distance:', distance);
-                this.nearHubPortal = false;
-                this.hideInteractionHint();
+            // Reset nearHubPortal flag if player moved away
+            if (this.shouldClearInteractionState('hubPortal', this.hubPortal, 'nearHubPortal')) {
+                if (distance > this.getInteractionDistance('hubPortal').clear) {
+                    console.log('[GameScene] Player moved away from hub portal, distance:', distance);
+                    this.nearHubPortal = false;
+                    this.hideInteractionHint();
 
-                // Clean up portal indicator
-                if (this.portalIndicator) {
-                    if (this.portalPulseAnim) {
-                        this.portalPulseAnim.stop();
-                        this.portalPulseAnim = null;
+                    // Clean up portal indicator
+                    if (this.portalIndicator) {
+                        if (this.portalPulseAnim) {
+                            this.portalPulseAnim.stop();
+                            this.portalPulseAnim = null;
+                        }
+                        this.portalIndicator.destroy();
+                        this.portalIndicator = null;
                     }
-                    this.portalIndicator.destroy();
-                    this.portalIndicator = null;
-                }
 
-                if (this.mobileControls && !this.nearbyFlower && !this.nearShop) {
-                    this.mobileControls.updateInteractIcon('👆');
+                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop) {
+                        this.mobileControls.updateInteractIcon('👆');
+                    }
                 }
             }
         }
@@ -13512,14 +13678,16 @@ class GameScene extends Phaser.Scene {
                 this.crashedShip.y
             );
 
-            // Reset nearCrashedShip flag if player moved away (> 200 pixels)
-            if (distance > 200) {
-                console.log('[GameScene] Player moved away from crashed ship, distance:', distance);
-                this.nearCrashedShip = false;
-                this.hideInteractionHint();
+            // Reset nearCrashedShip flag if player moved away
+            if (this.shouldClearInteractionState('crashShip', this.crashedShip, 'nearCrashedShip')) {
+                if (distance > this.getInteractionDistance('crashShip').clear) {
+                    console.log('[GameScene] Player moved away from crashed ship, distance:', distance);
+                    this.nearCrashedShip = false;
+                    this.hideInteractionHint();
 
-                if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal) {
-                    this.mobileControls.updateInteractIcon('👆');
+                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal) {
+                        this.mobileControls.updateInteractIcon('👆');
+                    }
                 }
             }
         }
@@ -13533,14 +13701,16 @@ class GameScene extends Phaser.Scene {
                 this.returnPortal.y
             );
 
-            // Reset nearReturnPortal flag if player moved away (> 150 pixels)
-            if (distance > 150) {
-                console.log('[GameScene] Player moved away from return portal, distance:', distance);
-                this.nearReturnPortal = false;
-                this.hideInteractionHint();
+            // Reset nearReturnPortal flag if player moved away
+            if (this.shouldClearInteractionState('returnPortal', this.returnPortal, 'nearReturnPortal')) {
+                if (distance > this.getInteractionDistance('returnPortal').clear) {
+                    console.log('[GameScene] Player moved away from return portal, distance:', distance);
+                    this.nearReturnPortal = false;
+                    this.hideInteractionHint();
 
-                if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal && !this.nearCrashedShip) {
-                    this.mobileControls.updateInteractIcon('👆');
+                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal && !this.nearCrashedShip) {
+                        this.mobileControls.updateInteractIcon('👆');
+                    }
                 }
             }
         }
@@ -13554,24 +13724,26 @@ class GameScene extends Phaser.Scene {
                 this.campfire.y
             );
 
-            // Reset nearCampfire flag if player moved away (> 100 pixels)
-            if (distance > 100) {
-                console.log('[GameScene] Player moved away from campfire, distance:', distance);
-                this.nearCampfire = false;
-                this.hideInteractionHint();
+            // Reset nearCampfire flag if player moved away
+            if (this.shouldClearInteractionState('campfire', this.campfire, 'nearCampfire')) {
+                if (distance > this.getInteractionDistance('campfire').clear) {
+                    console.log('[GameScene] Player moved away from campfire, distance:', distance);
+                    this.nearCampfire = false;
+                    this.hideInteractionHint();
 
-                // Clean up campfire indicator
-                if (this.campfireIndicator) {
-                    this.campfireIndicator.destroy();
-                    this.campfireIndicator = null;
-                }
-                if (this.campfireGlowAnim) {
-                    this.campfireGlowAnim.stop();
-                    this.campfireGlowAnim = null;
-                }
+                    // Clean up campfire indicator
+                    if (this.campfireIndicator) {
+                        this.campfireIndicator.destroy();
+                        this.campfireIndicator = null;
+                    }
+                    if (this.campfireGlowAnim) {
+                        this.campfireGlowAnim.stop();
+                        this.campfireGlowAnim = null;
+                    }
 
-                if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal && !this.nearCrashedShip && !this.nearReturnPortal) {
-                    this.mobileControls.updateInteractIcon('👆');
+                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal && !this.nearCrashedShip && !this.nearReturnPortal) {
+                        this.mobileControls.updateInteractIcon('👆');
+                    }
                 }
             }
         }
@@ -13584,25 +13756,31 @@ class GameScene extends Phaser.Scene {
                 this.signalGarden.zone.y
             );
 
-            if (distance > 130) {
-                console.log('[GameScene] Player moved away from Signal Garden, distance:', distance);
-                this.nearSignalGarden = false;
-                this.hideInteractionHint();
-                this.signalGardenIndicatorTween?.stop();
-                this.signalGardenIndicatorTween = null;
-                this.signalGardenIndicator?.destroy();
-                this.signalGardenIndicator = null;
+            if (this.shouldClearInteractionState(
+                'signalGarden',
+                this.signalGarden?.zone || { x: NaN, y: NaN },
+                'nearSignalGarden'
+            )) {
+                if (distance > this.getInteractionDistance('signalGarden').clear) {
+                    console.log('[GameScene] Player moved away from Signal Garden, distance:', distance);
+                    this.nearSignalGarden = false;
+                    this.hideInteractionHint();
+                    this.signalGardenIndicatorTween?.stop();
+                    this.signalGardenIndicatorTween = null;
+                    this.signalGardenIndicator?.destroy();
+                    this.signalGardenIndicator = null;
 
-                if (
-                    this.mobileControls &&
-                    !this.nearbyFlower &&
-                    !this.nearShop &&
-                    !this.nearHubPortal &&
-                    !this.nearCrashedShip &&
-                    !this.nearReturnPortal &&
-                    !this.nearCampfire
-                ) {
-                    this.mobileControls.updateInteractIcon('👆');
+                    if (
+                        this.mobileControls &&
+                        !this.nearbyFlower &&
+                        !this.nearShop &&
+                        !this.nearHubPortal &&
+                        !this.nearCrashedShip &&
+                        !this.nearReturnPortal &&
+                        !this.nearCampfire
+                    ) {
+                        this.mobileControls.updateInteractIcon('👆');
+                    }
                 }
             }
         }
@@ -13618,20 +13796,26 @@ class GameScene extends Phaser.Scene {
                 this.villageHeartLandmark.zone.x,
                 this.villageHeartLandmark.zone.y
             );
-            if (distance > 140) {
-                this.nearVillageHeart = false;
-                this.hideInteractionHint();
-                if (
-                    this.mobileControls &&
-                    !this.nearbyFlower &&
-                    !this.nearShop &&
-                    !this.nearHubPortal &&
-                    !this.nearCrashedShip &&
-                    !this.nearReturnPortal &&
-                    !this.nearCampfire &&
-                    !this.nearSignalGarden
-                ) {
-                    this.mobileControls.updateInteractIcon('👆');
+            if (this.shouldClearInteractionState(
+                'villageHeart',
+                this.villageHeartLandmark?.zone || { x: NaN, y: NaN },
+                'nearVillageHeart'
+            )) {
+                if (distance > this.getInteractionDistance('villageHeart').clear) {
+                    this.nearVillageHeart = false;
+                    this.hideInteractionHint();
+                    if (
+                        this.mobileControls &&
+                        !this.nearbyFlower &&
+                        !this.nearShop &&
+                        !this.nearHubPortal &&
+                        !this.nearCrashedShip &&
+                        !this.nearReturnPortal &&
+                        !this.nearCampfire &&
+                        !this.nearSignalGarden
+                    ) {
+                        this.mobileControls.updateInteractIcon('👆');
+                    }
                 }
             }
         }
@@ -13647,28 +13831,34 @@ class GameScene extends Phaser.Scene {
                 this.fusionPodLandmark.zone.x,
                 this.fusionPodLandmark.zone.y
             );
-            if (distance > 130) {
-                console.log(
-                    '[GameScene] Player moved away from Fusion Pod, distance:',
-                    distance
-                );
-                this.nearFusionPod = false;
-                this.hideInteractionHint();
-                this.fusionPodIndicatorTween?.stop?.();
-                this.fusionPodIndicatorTween = null;
-                this.fusionPodIndicator?.destroy?.();
-                this.fusionPodIndicator = null;
-                if (
-                    this.mobileControls &&
-                    !this.nearbyFlower &&
-                    !this.nearShop &&
-                    !this.nearHubPortal &&
-                    !this.nearCrashedShip &&
-                    !this.nearReturnPortal &&
-                    !this.nearCampfire &&
-                    !this.nearSignalGarden
-                ) {
-                    this.mobileControls.updateInteractIcon('👆');
+            if (this.shouldClearInteractionState(
+                'fusionPod',
+                this.fusionPodLandmark?.zone || { x: NaN, y: NaN },
+                'nearFusionPod'
+            )) {
+                if (distance > this.getInteractionDistance('fusionPod').clear) {
+                    console.log(
+                        '[GameScene] Player moved away from Fusion Pod, distance:',
+                        distance
+                    );
+                    this.nearFusionPod = false;
+                    this.hideInteractionHint();
+                    this.fusionPodIndicatorTween?.stop?.();
+                    this.fusionPodIndicatorTween = null;
+                    this.fusionPodIndicator?.destroy?.();
+                    this.fusionPodIndicator = null;
+                    if (
+                        this.mobileControls &&
+                        !this.nearbyFlower &&
+                        !this.nearShop &&
+                        !this.nearHubPortal &&
+                        !this.nearCrashedShip &&
+                        !this.nearReturnPortal &&
+                        !this.nearCampfire &&
+                        !this.nearSignalGarden
+                    ) {
+                        this.mobileControls.updateInteractIcon('👆');
+                    }
                 }
             }
         }
@@ -13685,7 +13875,7 @@ class GameScene extends Phaser.Scene {
                     resident.zone.y
                 )
                 : Number.POSITIVE_INFINITY;
-            if (distance > 88) {
+            if (distance > this.getInteractionDistance('fendResident').clear) {
                 this.nearFendResidentId = null;
                 if (!this.nearSignalGarden) {
                     this.hideInteractionHint();
@@ -13710,7 +13900,7 @@ class GameScene extends Phaser.Scene {
                     resident.zone.y
                 )
                 : Number.POSITIVE_INFINITY;
-            if (distance > 104) {
+            if (distance > this.getInteractionDistance('guardianResident').clear) {
                 this.nearGuardianResidentId = null;
                 if (!this.nearSignalGarden && !this.nearFendResidentId) {
                     this.hideInteractionHint();
@@ -13735,7 +13925,7 @@ class GameScene extends Phaser.Scene {
                     resident.zone.y
                 )
                 : Number.POSITIVE_INFINITY;
-            if (distance > 92) {
+            if (distance > this.getInteractionDistance('rescuedResident').clear) {
                 this.nearRescuedResidentId = null;
                 if (
                     !this.nearSignalGarden &&
@@ -13764,7 +13954,7 @@ class GameScene extends Phaser.Scene {
                     anchor.zone.y
                 )
                 : Number.POSITIVE_INFINITY;
-            if (distance > 92) {
+            if (distance > this.getInteractionDistance('currentVeilAnchor').clear) {
                 this.nearCurrentVeilAnchorId = null;
                 if (
                     !this.nearSignalGarden &&
