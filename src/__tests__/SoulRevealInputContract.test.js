@@ -26,6 +26,11 @@ describe('Soul Reveal naming input', () => {
         expect(source).toContain('buttonHeight: 48');
         expect(source).toContain('this.nameInput.trim()');
         expect(source).toContain('this.htmlInput?.focus()');
+        expect(source).toContain('soul-reveal-name-submit');
+        expect(source).toContain(
+            "button.setAttribute('data-testid', 'creature-name-submit')"
+        );
+        expect(source).toContain('this.nameSubmitButton?.remove?.()');
     });
 
     test('provides a local visual QA route', () => {

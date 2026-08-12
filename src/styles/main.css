@@ -126,6 +126,36 @@ body.game-mode {
   animation: fadeOut 0.3s ease-out forwards;
 }
 
+/* The naming field and submit action share the same DOM layer so mobile taps
+   cannot be intercepted by the Phaser canvas underneath. */
+.soul-reveal-name-submit {
+  box-sizing: border-box;
+  padding: 10px 14px;
+  color: #ffffff;
+  background: #4caf50;
+  border: 2px solid #f2c14e;
+  border-radius: 6px;
+  font: 800 15px/1.2 Arial, sans-serif;
+  letter-spacing: 0;
+  opacity: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition: opacity 180ms ease, filter 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.soul-reveal-name-submit.is-visible {
+  opacity: 1;
+}
+
+.soul-reveal-name-submit:hover,
+.soul-reveal-name-submit:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  filter: brightness(1.08);
+}
+
 /* First-contact living-form handoff */
 .living-form-handoff {
   position: relative;

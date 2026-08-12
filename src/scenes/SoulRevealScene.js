@@ -25,6 +25,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.canProceed = false;
         this.htmlInput = null;
         this.nameDomElement = null;
+        this.nameSubmitButton = null;
         this.portraitPromise = null;
         this.portraitError = null;
         this.livingFormHandoff = null;
@@ -1111,53 +1112,22 @@ export default class SoulRevealScene extends Phaser.Scene {
         const layout = this.getRevealLayout(width, height);
         const btnY = layout.buttonTop;
         const btnWidth = layout.inputWidth;
-        const btnX = (width - btnWidth) / 2;
+        this.nameSubmitButton?.remove?.();
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'soul-reveal-name-submit';
+        button.textContent = 'REVEAL LIVING FORM';
+        button.setAttribute('data-testid', 'creature-name-submit');
+        button.style.width = `${btnWidth}px`;
+        button.style.height = `${layout.buttonHeight}px`;
+        button.style.touchAction = 'manipulation';
+        button.style.webkitTapHighlightColor = 'transparent';
 
-        // Button background
-        const btnBg = this.add.graphics();
-        btnBg.fillStyle(0x4CAF50, 1);
-        btnBg.fillRoundedRect(btnX, btnY, btnWidth, 46, 6);
-        btnBg.lineStyle(2, 0xFFD700, 0.8);
-        btnBg.strokeRoundedRect(btnX, btnY, btnWidth, 46, 6);
-        btnBg.setDepth(100).setAlpha(0);
-        this.elements.push(btnBg);
-
-        // Button text
-        const btnText = this.add.text(
-            width / 2,
-            btnY + 23,
-            'ENTER SANCTUARY',
-            {
-                fontSize: '16px',
-                fontFamily: 'Arial, sans-serif',
-                color: '#FFFFFF',
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5).setDepth(101).setAlpha(0);
-        this.elements.push(btnText);
-
-        // Interactive zone
-        const btnZone = this.add.zone(width / 2, btnY + 23, btnWidth, 46)
-            .setInteractive({ cursor: 'pointer' })
-            .setDepth(102);
-
-        btnZone.on('pointerover', () => {
-            btnBg.clear();
-            btnBg.fillStyle(0x66BB6A, 1);
-            btnBg.fillRoundedRect(btnX, btnY, btnWidth, 46, 6);
-            btnBg.lineStyle(2, 0xFFD700, 1);
-            btnBg.strokeRoundedRect(btnX, btnY, btnWidth, 46, 6);
-        });
-
-        btnZone.on('pointerout', () => {
-            btnBg.clear();
-            btnBg.fillStyle(0x4CAF50, 1);
-            btnBg.fillRoundedRect(btnX, btnY, btnWidth, 46, 6);
-            btnBg.lineStyle(2, 0xFFD700, 0.8);
-            btnBg.strokeRoundedRect(btnX, btnY, btnWidth, 46, 6);
-        });
-
-        btnZone.on('pointerdown', () => {
+        let submitting = false;
+        const submitName = event => {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            if (submitting) return;
             if (!this.nameInput.trim()) {
                 this.htmlInput?.focus();
                 if (this.htmlInput) {
@@ -1167,22 +1137,23 @@ export default class SoulRevealScene extends Phaser.Scene {
                 return;
             }
             if (this.canProceed) {
+                submitting = true;
                 this.finalizeName();
             }
-        });
+        };
+        button.addEventListener('pointerup', submitName);
+        button.addEventListener('touchend', submitName, { passive: false });
+        button.addEventListener('click', submitName);
 
-        this.elements.push(btnZone);
-
-        // Fade in (static button)
-        this.tweens.add({
-            targets: [btnBg, btnText],
-            alpha: 1,
-            duration: 400,
-            ease: 'Power2',
-            onComplete: () => {
-                this.canProceed = true;
-            }
-        });
+        this.nameSubmitButton = button;
+        const submitDom = this.add.dom(
+            width / 2,
+            btnY + layout.buttonHeight / 2,
+            button
+        ).setOrigin(0.5).setDepth(106);
+        this.elements.push(submitDom);
+        this.canProceed = true;
+        requestAnimationFrame(() => button.classList.add('is-visible'));
     }
 
     /**
@@ -1249,6 +1220,8 @@ export default class SoulRevealScene extends Phaser.Scene {
         }
 
         // Remove HTML input
+        this.nameSubmitButton?.remove?.();
+        this.nameSubmitButton = null;
         this.nameDomElement?.destroy?.();
         this.nameDomElement = null;
         this.htmlInput = null;
@@ -1382,6 +1355,8 @@ export default class SoulRevealScene extends Phaser.Scene {
 
         this.nameDomElement?.destroy?.();
         this.nameDomElement = null;
+        this.nameSubmitButton?.remove?.();
+        this.nameSubmitButton = null;
         this.livingFormHandoff?.destroy?.();
         this.livingFormHandoff = null;
         this.authoredPortraitPreload = null;
