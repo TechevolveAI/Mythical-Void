@@ -2302,6 +2302,20 @@ export default class InventoryScene extends Phaser.Scene {
                 const eggTypeToHatch = item.eggType || 'cosmic';
                 console.log('[InventoryScene] Stored egg type:', eggTypeToHatch);
 
+                const savedPos = window.GameState?.get('world.currentPosition');
+                const reservedSpawnPosition = {
+                    x: savedPos?.x || 400,
+                    y: savedPos?.y || 300
+                };
+                const hatchTransaction = {
+                    schemaVersion: 1,
+                    status: 'reserved',
+                    eggType: eggTypeToHatch,
+                    spawnPosition: reservedSpawnPosition,
+                    reservedAt: Date.now()
+                };
+                window.GameState?.set('creature.hatchTransaction', hatchTransaction);
+
                 // Clean up dialog
                 console.log('[InventoryScene] Cleaning up dialog elements...');
                 dialogElements.forEach(el => {
@@ -2314,13 +2328,19 @@ export default class InventoryScene extends Phaser.Scene {
                     const removed = window.InventoryManager.removeItem(this.selectedSlot, 1);
                     console.log('[InventoryScene] Item removed from inventory:', removed);
                     if (!removed) {
+                        window.GameState?.set('creature.hatchTransaction', null);
+                        window.GameState?.save();
                         throw new Error('The selected egg could not be reserved for hatching');
                     }
                 }
 
+                // Persist the reservation in the same durable save as the egg
+                // removal. HatchingScene consumes it after identity commit.
+                window.GameState?.save();
+
                 // Confirm sanctuary continuity, then transition to hatching.
                 console.log('[InventoryScene] Starting sanctuary hatch transition:', eggTypeToHatch);
-                this.showSanctuaryHatchTransition(eggTypeToHatch);
+                this.showSanctuaryHatchTransition(eggTypeToHatch, reservedSpawnPosition);
             } catch (err) {
                 console.error('[InventoryScene] ERROR in hatch handler:', err);
                 console.error('[InventoryScene] Error stack:', err.stack);
@@ -2536,7 +2556,7 @@ export default class InventoryScene extends Phaser.Scene {
     /**
      * Show the active companion answering a second sanctuary signal.
      */
-    showSanctuaryHatchTransition(eggType) {
+    showSanctuaryHatchTransition(eggType, reservedSpawnPosition = null) {
         console.log('[InventoryScene] Starting sanctuary hatch transition:', eggType);
 
         // Defensive check for dims
@@ -2557,6 +2577,35 @@ export default class InventoryScene extends Phaser.Scene {
 
         // Prevent accidental closure during animation
         this.hatchTransitionInProgress = true;
+
+        const launchReservedHatch = () => {
+            if (!this.hatchTransitionInProgress) return;
+            this.hatchTransitionInProgress = false;
+
+            try {
+                const pendingHatch = window.GameState?.get('creature.hatchTransaction');
+                const savedPos = window.GameState?.get('world.currentPosition');
+                const oldPosition = reservedSpawnPosition || pendingHatch?.spawnPosition || {
+                    x: savedPos?.x || 400,
+                    y: savedPos?.y || 300
+                };
+                const sceneManager = this.game?.scene;
+                if (!sceneManager || pendingHatch?.status !== 'reserved') {
+                    throw new Error('Reserved egg hatch is no longer available');
+                }
+
+                sceneManager.stop('GameScene');
+                sceneManager.start('HatchingScene', {
+                    isEggHatch: true,
+                    eggType: pendingHatch.eggType || eggType,
+                    spawnPosition: oldPosition
+                });
+            } catch (error) {
+                this.hatchTransitionInProgress = true;
+                console.error('[InventoryScene] Reserved hatch launch failed:', error);
+                this.showMessage('Hatch paused. Tap the egg again to resume.', 0xFF6B6B);
+            }
+        };
 
         try {
 
@@ -2705,92 +2754,10 @@ export default class InventoryScene extends Phaser.Scene {
             });
         });
 
-        // 3. After 3s total, transition to hatching scene
-        this.time.delayedCall(3000, () => {
-            try {
-                // Store old creature position for new creature spawn
-                const savedPos = window.GameState?.get('world.currentPosition');
-                const oldPosition = {
-                    x: savedPos?.x || 400,
-                    y: savedPos?.y || 300
-                };
-
-                // Reset creature state COMPLETELY for new hatching
-                window.GameState?.set('creature.hatched', false);
-                window.GameState?.set('creature.named', false);
-                window.GameState?.set('creature.genes', null);
-                window.GameState?.set('creature.name', null);
-                window.GameState?.set('creature.textureName', null);
-                // Additional state that must be reset for clean hatching
-                window.GameState?.set('creature.dna', null);
-                window.GameState?.set('creature.personality', null);
-                window.GameState?.set('creature.personalityState', null);
-                window.GameState?.set('creature.stats', {
-                    happiness: 100,
-                    energy: 100,
-                    health: 100
-                });
-                window.GameState?.set('creature.level', 1);
-                window.GameState?.set('creature.experience', 0);
-                // CRITICAL: Reset breeding/lineage fields to prevent old data persisting
-                window.GameState?.set('creature.isOffspring', false);
-                window.GameState?.set('creature.generation', null);
-                window.GameState?.set('creature.parentIds', null);
-                window.GameState?.set('creature.offspringBonus', null);
-                window.GameState?.set('creature.hasAncientLineage', false);
-                window.GameState?.set('creature.ancientProphecy', null);
-
-                // Store spawn position for new creature
-                window.GameState?.set('creature.spawnPosition', oldPosition);
-
-                // Reset pity system for fresh start
-                const freshPity = window.raritySystem?.initializePitySystem();
-                if (freshPity) {
-                    window.GameState?.set('pitySystem', freshPity);
-                }
-
-                // Save state before transition
-                window.GameState?.save();
-
-                // Prepare data for HatchingScene
-                const hatchData = {
-                    isEggHatch: true,
-                    eggType: eggType,
-                    spawnPosition: oldPosition
-                };
-
-                // Start the destination while this scene still owns a live scene
-                // plugin. Stopping Inventory first used to cancel its own delayed
-                // launch during shutdown, leaving the player on an error screen.
-                const sceneManager = this.game?.scene;
-                if (!sceneManager) {
-                    throw new Error('Scene manager unavailable during egg hatch');
-                }
-                if (sceneManager.isActive?.('GameScene')) {
-                    sceneManager.stop('GameScene');
-                }
-                this.scene.start('HatchingScene', hatchData);
-
-            } catch (err) {
-                console.error('[InventoryScene] Error during scene transition:', err);
-                console.error('[InventoryScene] Error stack:', err.stack);
-
-                // Fallback: try direct scene start with proper cleanup
-                try {
-                    const sceneManager = this.game?.scene;
-                    if (sceneManager) {
-                        sceneManager.stop('GameScene');
-                        sceneManager.start('HatchingScene', {
-                            isEggHatch: true,
-                            eggType: eggType,
-                            spawnPosition: { x: 400, y: 300 }
-                        });
-                    }
-                } catch (fallbackErr) {
-                    console.error('[InventoryScene] Fallback transition also failed:', fallbackErr);
-                }
-            }
-        });
+        // Use wall-clock time for the handoff. Phaser scene clocks can be
+        // throttled or paused by mobile browser lifecycle events.
+        const hatchLaunchTimeout = setTimeout(launchReservedHatch, 3000);
+        this.pendingTimeouts.push(hatchLaunchTimeout);
 
         } catch (err) {
             console.error('[InventoryScene] Error in sanctuary hatch transition:', err);

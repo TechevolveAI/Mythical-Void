@@ -662,6 +662,12 @@ async function smokePurchasedEgg(session, exceptions) {
             rarityOdds: '50% Common, 25% Uncommon, 15% Rare, 8% Epic, 2% Legendary'
         });
         window.GameState.set('creature.name', 'Nova');
+        window.GameState.set('creature.named', true);
+        window.GameState.set('creature.genes', {
+            id: 'qa_existing_companion_23',
+            rarity: 'common',
+            species: 'nebulaSprite'
+        });
         window.GameState.set('creature.hatched', true);
         window.GameState.set('maxCreatures', 8);
         game.scene.stop('HatchingScene');
@@ -745,6 +751,7 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             hatched: true,
             named: true,
             genes: {
+                id: 'smoke_navigation_genes_23',
                 personality: { primary: 'curious' },
                 cosmicAffinity: { element: 'nebula' }
             },
@@ -864,6 +871,7 @@ async function smokeHubForestTransition(session, exceptions) {
             hatched: true,
             named: true,
             genes: {
+                id: 'smoke_hub_forest_genes_23',
                 personality: { primary: 'curious' },
                 cosmicAffinity: { element: 'nebula' }
             },
@@ -1466,6 +1474,7 @@ async function smokeVillageUi(session, exceptions) {
             hatched: true,
             named: true,
             genes: {
+                id: 'smoke_village_genes_23',
                 personality: { primary: 'curious' },
                 cosmicAffinity: { element: 'nebula' }
             },

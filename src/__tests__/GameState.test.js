@@ -39,6 +39,16 @@ describe('GameStateManager', () => {
         expect(manager.initialized).toBe(false);
     });
 
+    test('refuses to mark a creature hatched before its identity is durable', () => {
+        expect(manager.completeHatching()).toBe(false);
+        expect(manager.get('creature.hatched')).toBe(false);
+
+        manager.set('creature.genes', { id: 'stable-hatch-23' });
+        expect(manager.completeHatching()).toBe(true);
+        expect(manager.get('creature.hatched')).toBe(true);
+        expect(manager.get('creature.hatchTime')).toEqual(expect.any(Number));
+    });
+
     test('initial state includes a versioned portable Current ecology record', () => {
         expect(manager.get('world.currentEcology')).toEqual({
             schemaVersion: 3,

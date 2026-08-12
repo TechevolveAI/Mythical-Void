@@ -440,6 +440,7 @@ class GameStateManager {
             },
             creature: {
                 hatched: false,
+                hatchTransaction: null,
                 hatchTime: null,
                 name: 'Your Creature',
                 level: 1,
@@ -451,6 +452,7 @@ class GameStateManager {
                 },
                 traits: [],
                 genes: null,
+                genetics: null,
                 colors: {
                     body: 0x9370DB,
                     head: 0xDDA0DD,
@@ -1121,6 +1123,12 @@ class GameStateManager {
      * Complete creature hatching process
      */
     completeHatching() {
+        const genes = this.get('creature.genes') || this.get('creature.genetics');
+        if (!genes || typeof genes !== 'object' || !genes.id) {
+            console.error('[GameState] Refusing to complete hatching without a durable creature identity');
+            return false;
+        }
+
         if (!this.get('creature.hatched')) {
             const now = Date.now();
             this.set('creature.hatched', true);
@@ -1147,6 +1155,8 @@ class GameStateManager {
 
             console.log('[GameState] Creature hatching completed with lifecycle initialized!');
         }
+
+        return true;
     }
 
     /**

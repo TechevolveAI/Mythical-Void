@@ -39,13 +39,14 @@ describe('secondary journey reliability contract', () => {
         expect(loader).toContain("this.preload('MythicalForestLevel')");
     });
 
-    test('starts purchased egg hatching before Inventory shutdown can cancel it', () => {
-        const transition = inventory.slice(
-            inventory.indexOf('// Prepare data for HatchingScene'),
-            inventory.indexOf('/**\n     * Equip selected item')
+    test('starts purchased egg hatching from a durable reservation', () => {
+        expect(inventory).toContain("status: 'reserved'");
+        expect(inventory).toContain('const launchReservedHatch = () => {');
+        expect(inventory).toContain("sceneManager.start('HatchingScene', {");
+        expect(inventory).toContain(
+            'const hatchLaunchTimeout = setTimeout(launchReservedHatch, 3000);'
         );
-        expect(transition).toContain("this.scene.start('HatchingScene', hatchData)");
-        expect(transition).not.toContain('setTimeout(() =>');
+        expect(inventory).toContain('this.pendingTimeouts.push(hatchLaunchTimeout);');
         expect(inventory).toContain('The selected egg could not be reserved for hatching');
     });
 

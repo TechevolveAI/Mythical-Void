@@ -87,9 +87,13 @@ class HatchingScene extends Phaser.Scene {
         this.portraitError = null;
 
         // Set egg hatching properties from passed data
-        this.isEggHatch = data?.isEggHatch || false;
-        this.eggType = data?.eggType || null;
-        this.spawnPosition = data?.spawnPosition || null;
+        const pendingHatch = window.GameState?.get?.('creature.hatchTransaction');
+        const resumableHatch = pendingHatch?.status === 'reserved'
+            ? pendingHatch
+            : null;
+        this.isEggHatch = data?.isEggHatch === true || Boolean(resumableHatch);
+        this.eggType = data?.eggType || resumableHatch?.eggType || null;
+        this.spawnPosition = data?.spawnPosition || resumableHatch?.spawnPosition || null;
     }
 
     preload() {
@@ -160,12 +164,36 @@ class HatchingScene extends Phaser.Scene {
 
         const GameState = getGameState();
 
+        // A reserved inventory egg may be resumed after the phone was locked or
+        // the tab was closed. Reset only the active slot; the previous companion
+        // is already preserved in the collection.
+        const reservedHatch = GameState.get('creature.hatchTransaction');
+        if (this.isEggHatch && reservedHatch?.status === 'reserved') {
+            const freshCreature = GameState.createInitialState().creature;
+            freshCreature.hatchTransaction = reservedHatch;
+            freshCreature.spawnPosition = this.spawnPosition || reservedHatch.spawnPosition || null;
+            GameState.set('creature', freshCreature);
+            GameState.set('tutorial.livingFormPending', false);
+            GameState.set('tutorial.livingFormSeen', false);
+            GameState.save();
+        }
+
         // Set current scene in GameState
         GameState.set('session.currentScene', 'HatchingScene');
 
         // Check game flow state
         const gameStarted = GameState.get('session.gameStarted') || false;
-        const creatureHatched = GameState.get('creature.hatched') || false;
+        let creatureHatched = GameState.get('creature.hatched') || false;
+        const creatureIdentity = GameState.get('creature.genes') || GameState.get('creature.genetics');
+        if (creatureHatched && (!creatureIdentity || !creatureIdentity.id)) {
+            console.warn('[HatchingScene] Repairing interrupted hatch with no durable creature identity');
+            GameState.set('creature.hatched', false);
+            GameState.set('creature.named', false);
+            GameState.set('creature.name', 'Your Creature');
+            GameState.set('tutorial.livingFormPending', false);
+            GameState.save();
+            creatureHatched = false;
+        }
         const creatureName = GameState.get('creature.name');
         const creatureNamed = GameState.get('creature.named') === true || (
             creatureName && creatureName !== 'Your Creature'
@@ -1578,9 +1606,6 @@ class HatchingScene extends Phaser.Scene {
         this.isHatching = false;
         this.progressText.setVisible(false);
 
-        // Update GameState - creature has hatched!
-        getGameState().completeHatching();
-
         // Stop shaking and floating animations
         this.tweens.killTweensOf(this.egg);
 
@@ -2859,16 +2884,13 @@ class HatchingScene extends Phaser.Scene {
         const descriptiveName = this.generateCreatureName();
         state.set('creature.descriptiveName', descriptiveName);
 
-        // Set hatch time for lifecycle tracking
-        const hatchTime = Date.now();
-        state.set('creature.hatchTime', hatchTime);
-
-        // Initialize lifecycle data for new creature
-        state.set('creature.lifecycle', {
-            stage: 'baby',
-            birthDate: hatchTime,
-            evolutionHistory: []
-        });
+        // Commit the identity and the hatched flag together. A refresh before
+        // this point safely restarts hatching instead of exposing a partial save.
+        if (!state.completeHatching()) {
+            this.showCriticalError('Creature identity could not be saved');
+            return;
+        }
+        state.set('creature.hatchTransaction', null);
 
         // CRITICAL: Force save to localStorage immediately
         state.save();
@@ -2920,10 +2942,13 @@ class HatchingScene extends Phaser.Scene {
      * Transition to personality scene
      */
     transitionToPersonality() {
-        // Mark creature as hatched
+        // Genetics persistence commits the hatch before this transition.
         const state = getGameState();
-        state.set('creature.hatched', true);
-        state.set('creature.hatchTime', Date.now());
+        if (!state.get('creature.hatched') || !state.get('creature.genes')?.id) {
+            console.error('[HatchingScene] Blocked transition without a committed creature identity');
+            this.showCriticalError('Creature identity is still stabilizing');
+            return;
+        }
 
         // Fade transition - responsive to screen size
         const { width, height } = this.scale;
@@ -4602,6 +4627,7 @@ class HatchingScene extends Phaser.Scene {
 
         // CRITICAL: Reset creature to unhatched state for fresh game flow
         GameState.set('creature.hatched', false);
+        GameState.set('creature.hatchTransaction', null);
         GameState.set('creature.name', 'Your Creature');
         GameState.set('creature.named', false);
         GameState.set('tutorial.livingFormPending', false);
@@ -4621,6 +4647,7 @@ class HatchingScene extends Phaser.Scene {
         // Clear personality, genes, DNA, and personality state to regenerate fresh
         GameState.set('creature.personality', null);
         GameState.set('creature.genes', null);
+        GameState.set('creature.genetics', null);
         GameState.set('creature.dna', null);
         GameState.set('creature.personalityState', null);
 
