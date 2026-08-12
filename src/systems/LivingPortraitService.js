@@ -31,9 +31,14 @@ class LivingPortraitService {
             return { eligible: false, reason: 'feature_disabled' };
         }
 
-        const ageGroup = window.localStorage?.getItem?.(
-            'mythical_void_age_group'
-        );
+        let ageGroup = null;
+        try {
+            ageGroup = window.localStorage?.getItem?.(
+                'mythical_void_age_group'
+            );
+        } catch (error) {
+            return { eligible: false, reason: 'storage_unavailable' };
+        }
         if (!window.CloudSaveManager?.isAgeGroupEligible?.(ageGroup)) {
             return { eligible: false, reason: 'age_restricted' };
         }
@@ -223,9 +228,17 @@ class LivingPortraitService {
     async runJob({ job, portraitSpec, referenceImage }) {
         try {
             const accessToken = await this.getAccessToken();
-            const ageGroup = window.localStorage?.getItem?.(
-                'mythical_void_age_group'
-            );
+            let ageGroup = null;
+            try {
+                ageGroup = window.localStorage?.getItem?.(
+                    'mythical_void_age_group'
+                );
+            } catch (error) {
+                throw new LivingPortraitError(
+                    'Private portrait preferences are unavailable',
+                    { code: 'storage_unavailable', retryable: false }
+                );
+            }
             const response = await fetch('/.netlify/functions/generate-ai-art', {
                 method: 'POST',
                 headers: {

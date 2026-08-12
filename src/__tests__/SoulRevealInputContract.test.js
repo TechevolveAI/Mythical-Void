@@ -31,6 +31,30 @@ describe('Soul Reveal naming input', () => {
             "button.setAttribute('data-testid', 'creature-name-submit')"
         );
         expect(source).toContain('this.nameSubmitButton?.remove?.()');
+        expect(source).toContain('layoutNativeNamingControls(width, height)');
+        expect(source).toContain('this.game.events.on(\'resize\'');
+        expect(source).toContain('height - inputHeight - 48 - 28');
+    });
+
+    test('resets reused scene state and persists an interrupted handoff', () => {
+        const hatching = fs.readFileSync(
+            path.join(__dirname, '../scenes/HatchingScene.js'),
+            'utf8'
+        );
+
+        expect(source).toContain("this.nameInput = '';");
+        expect(source).toContain('this.portraitPromise = null;');
+        expect(source).toContain('this.resumeLivingFormHandoff(width, height);');
+        expect(source).toContain(
+            "window.GameState?.set('tutorial.livingFormPending', true);"
+        );
+        expect(source).toContain(
+            "window.GameState?.set('tutorial.livingFormPending', false);"
+        );
+        expect(hatching).toContain('this.portraitPromise = null;');
+        expect(hatching).toContain(
+            "this.scene.start('SoulRevealScene', { resumeLivingForm: true });"
+        );
     });
 
     test('provides a local visual QA route', () => {

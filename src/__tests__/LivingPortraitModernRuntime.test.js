@@ -11,6 +11,8 @@ describe('living portrait modern Netlify runtime', () => {
     test('uses a modern ESM default handler so AI Gateway variables are available', () => {
         expect(adapterSource).toContain("import { GoogleGenAI } from '@google/genai'");
         expect(adapterSource).toContain("import { createClient } from '@supabase/supabase-js'");
+        expect(adapterSource).toContain("import WebSocket from 'ws'");
+        expect(adapterSource).toContain('transport: WebSocket');
         expect(adapterSource).toContain('export default async function generateAIArt(request)');
         expect(adapterSource).toContain('new Response(');
         expect(adapterSource).not.toContain('exports.handler');

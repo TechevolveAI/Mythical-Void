@@ -1,6 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
+// Supabase Realtime performs an eager runtime capability check even though this
+// smoke test uses only Auth and HTTP. Supply the installed implementation when
+// the Node process does not expose WebSocket globally.
+if (typeof globalThis.WebSocket === 'undefined') {
+    globalThis.WebSocket = require('ws');
+}
+
 const DEFAULT_ENDPOINT = 'https://mythicalvoid.com/.netlify/functions/generate-ai-art';
 const DEFAULT_SPEC_PATH = '/private/tmp/mythical-void-portrait-specimen.json';
 const DEFAULT_REFERENCE_PATH = '/private/tmp/mythical-void-hatch-reference.png';
@@ -61,11 +68,15 @@ async function run() {
     }`;
 
     const { createClient } = await import('@supabase/supabase-js');
+    const websocketTransport = globalThis.WebSocket
+        || require('ws').WebSocket
+        || require('ws');
     const client = createClient(supabaseUrl, publishableKey, {
         auth: {
             persistSession: false,
             autoRefreshToken: false
-        }
+        },
+        realtime: { transport: websocketTransport }
     });
     const startedAt = Date.now();
     let initialResponseMs = null;
@@ -188,6 +199,6 @@ async function run() {
 }
 
 run().catch(error => {
-    console.error(error.message);
+    console.error(error.stack || error.message);
     process.exitCode = 1;
 });

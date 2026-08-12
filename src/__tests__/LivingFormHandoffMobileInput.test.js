@@ -69,6 +69,38 @@ describe('LivingFormHandoff mobile continuation', () => {
 
     afterEach(() => {
         document.body.innerHTML = '';
+        jest.restoreAllMocks();
+    });
+
+    test('tracks the visual viewport while the mobile keyboard opens and closes', () => {
+        let resizeListener;
+        const originalVisualViewport = window.visualViewport;
+        Object.defineProperty(window, 'visualViewport', {
+            configurable: true,
+            value: {
+                width: 390,
+                height: 500,
+                addEventListener: jest.fn((eventName, listener) => {
+                    if (eventName === 'resize') resizeListener = listener;
+                }),
+                removeEventListener: jest.fn()
+            }
+        });
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({ name: 'Nova', species: 'nebulaSprite' });
+        const root = document.querySelector('[data-testid="living-form-handoff"]');
+        expect(root.style.height).toBe('500px');
+
+        window.visualViewport.height = 720;
+        resizeListener();
+        expect(root.style.height).toBe('720px');
+
+        handoff.destroy();
+        expect(window.visualViewport.removeEventListener).toHaveBeenCalled();
+        Object.defineProperty(window, 'visualViewport', {
+            configurable: true,
+            value: originalVisualViewport
+        });
     });
 
     test('a mobile pointer release enters the Sanctuary exactly once', () => {

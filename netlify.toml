@@ -14,7 +14,7 @@
 
 [build.environment]
   # Build-time environment variables
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
   NODE_ENV = "development"
   NPM_CONFIG_PRODUCTION = "false"
   ENABLE_API_FEATURES = "false"

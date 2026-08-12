@@ -271,7 +271,7 @@ describe('first-session Project Beacon mission loop', () => {
         );
     });
 
-    test('preserves daily and NASA content for returning sessions', async () => {
+    test('returns player control before optional astronomy content', async () => {
         const state = {
             tutorial: {
                 controlsSeen: true,
@@ -300,9 +300,10 @@ describe('first-session Project Beacon mission loop', () => {
         await manager.startOnboardingFlow();
 
         expect(manager.popupQueue.map(popup => popup.id)).toEqual([
-            'daily_greeting',
-            'nasa_content'
+            'daily_greeting'
         ]);
+        expect(sceneWindow.NASAContentSystem.shouldShowDailyContent)
+            .not.toHaveBeenCalled();
         expect(manager.flowContext.firstSanctuaryVisit).toBe(false);
     });
 

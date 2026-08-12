@@ -83,6 +83,8 @@ class HatchingScene extends Phaser.Scene {
         this.themeMusicLoadRequested = false;
         this.startButtonPressed = false;
         this.startFlowQueued = false;
+        this.portraitPromise = null;
+        this.portraitError = null;
 
         // Set egg hatching properties from passed data
         this.isEggHatch = data?.isEggHatch || false;
@@ -165,7 +167,10 @@ class HatchingScene extends Phaser.Scene {
         const gameStarted = GameState.get('session.gameStarted') || false;
         const creatureHatched = GameState.get('creature.hatched') || false;
         const creatureName = GameState.get('creature.name');
-        const creatureNamed = creatureName && creatureName !== 'Your Creature';
+        const creatureNamed = GameState.get('creature.named') === true || (
+            creatureName && creatureName !== 'Your Creature'
+        );
+        const livingFormPending = GameState.get('tutorial.livingFormPending') === true;
 
         // ⚠️ CRITICAL SECTION - DO NOT MODIFY - GAME FLOW LOGIC
         // This logic ensures the correct scene flow: Home → Hatch → Personality → Name → Game
@@ -193,6 +198,12 @@ class HatchingScene extends Phaser.Scene {
         } else if (gameStarted && creatureHatched && !creatureNamed) {
             // Hatched but not named - go to soul reveal scene
             this.scene.start('SoulRevealScene');
+            return;
+        } else if (gameStarted && creatureHatched && creatureNamed && livingFormPending) {
+            // Naming is saved before the reveal so a mobile interruption cannot
+            // lose the chosen name. Resume the reveal until the player confirms
+            // entry to the Sanctuary.
+            this.scene.start('SoulRevealScene', { resumeLivingForm: true });
             return;
         } else if (gameStarted && creatureHatched && creatureNamed) {
             // Fully set up - go to game scene
@@ -4592,6 +4603,9 @@ class HatchingScene extends Phaser.Scene {
         // CRITICAL: Reset creature to unhatched state for fresh game flow
         GameState.set('creature.hatched', false);
         GameState.set('creature.name', 'Your Creature');
+        GameState.set('creature.named', false);
+        GameState.set('tutorial.livingFormPending', false);
+        GameState.set('tutorial.livingFormSeen', false);
         GameState.set('creature.hatchTime', null);
         GameState.set('creature.experience', 0);
         GameState.set('creature.level', 1);

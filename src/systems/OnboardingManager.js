@@ -115,13 +115,8 @@ class OnboardingManager {
             }
         }
 
-        if (!firstSanctuaryVisit && window.NASAContentSystem?.shouldShowDailyContent?.()) {
-            this.popupQueue.push({
-                id: 'nasa_content',
-                type: 'nasa_content',
-                priority: 4
-            });
-        }
+        // Daily astronomy content remains available from the menu. It must not
+        // interrupt or trap a returning player before they regain movement.
 
         this.flowContext.queuedPopupIds = this.popupQueue.map(popup => popup.id);
         devLog(`[OnboardingManager] Queue built with ${this.popupQueue.length} items`);

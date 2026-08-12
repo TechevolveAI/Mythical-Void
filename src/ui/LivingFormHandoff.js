@@ -40,6 +40,7 @@ export default class LivingFormHandoff {
         this.isVisible = false;
         this.portraitPending = false;
         this.statusTimers = [];
+        this.resizeHandler = null;
     }
 
     show({
@@ -64,8 +65,19 @@ export default class LivingFormHandoff {
         const { width, height } = this.scene.scale;
 
         const root = createElement('div', 'living-form-handoff');
-        root.style.width = `${width}px`;
-        root.style.height = `${height}px`;
+        this.updateViewportSize = () => {
+            const viewport = window.visualViewport;
+            const nextWidth = Math.max(1, Math.floor(
+                viewport?.width || this.scene.scale.width || width
+            ));
+            const nextHeight = Math.max(1, Math.floor(
+                viewport?.height || this.scene.scale.height || height
+            ));
+            root.style.width = `${nextWidth}px`;
+            root.style.height = `${nextHeight}px`;
+            this.domElement?.setPosition?.(nextWidth / 2, nextHeight / 2);
+        };
+        this.updateViewportSize();
         root.setAttribute('role', 'dialog');
         root.setAttribute('aria-modal', 'true');
         root.setAttribute('aria-label', `${safeName} living form reveal`);
@@ -208,6 +220,9 @@ export default class LivingFormHandoff {
             this.continueHandler?.();
         };
         window.addEventListener('keydown', this.keyboardHandler);
+        this.resizeHandler = () => this.updateViewportSize?.();
+        window.addEventListener('resize', this.resizeHandler);
+        window.visualViewport?.addEventListener?.('resize', this.resizeHandler);
 
         this.domElement = this.scene.add.dom(width / 2, height / 2, root)
             .setOrigin(0.5)
@@ -374,6 +389,15 @@ export default class LivingFormHandoff {
             window.removeEventListener('keydown', this.keyboardHandler);
             this.keyboardHandler = null;
         }
+        if (this.resizeHandler) {
+            window.removeEventListener('resize', this.resizeHandler);
+            window.visualViewport?.removeEventListener?.(
+                'resize',
+                this.resizeHandler
+            );
+            this.resizeHandler = null;
+        }
+        this.updateViewportSize = null;
         this.image?.removeAttribute?.('src');
         this.domElement?.destroy?.();
         this.domElement = null;

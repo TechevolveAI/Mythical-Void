@@ -14,6 +14,9 @@ class NASAContentModal {
         this.currentContentIndex = 0;
         this.contentQueue = [];
         this.onComplete = null;
+        this.isAdvancing = false;
+        this.dismissButton = null;
+        this.previousDomContainerStyles = null;
     }
 
     /**
@@ -168,12 +171,49 @@ class NASAContentModal {
 
         button.on('pointerover', () => button.setStyle({ backgroundColor: '#9B88FF' }));
         button.on('pointerout', () => button.setStyle({ backgroundColor: '#7B68EE' }));
-        button.on('pointerdown', () => this.next());
+        const advance = () => this.next();
+        button.on('pointerup', advance);
+        button.on('pointerdown', advance);
 
         this.elements.push(button);
 
         // Click overlay to dismiss
-        overlay.on('pointerdown', () => this.next());
+        overlay.on('pointerup', advance);
+
+        // Keep the primary action on the browser input layer. Phaser canvas
+        // events can be interrupted by stale mobile pointers after scene resume.
+        if (this.scene.game?.domContainer) {
+            const domContainer = this.scene.game.domContainer;
+            this.previousDomContainerStyles = {
+                zIndex: domContainer.style.zIndex,
+                pointerEvents: domContainer.style.pointerEvents
+            };
+            domContainer.style.zIndex = '110';
+            domContainer.style.pointerEvents = 'auto';
+            const nativeButton = document.createElement('button');
+            nativeButton.type = 'button';
+            nativeButton.className = 'nasa-content-dismiss';
+            nativeButton.textContent = buttonText.replace(/[➡️✨]/gu, '').trim();
+            nativeButton.setAttribute('aria-label', nativeButton.textContent);
+            nativeButton.setAttribute('data-testid', 'nasa-content-dismiss');
+            const nativeAdvance = event => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.next();
+            };
+            nativeButton.addEventListener('pointerup', nativeAdvance);
+            nativeButton.addEventListener('touchend', nativeAdvance, {
+                passive: false
+            });
+            nativeButton.addEventListener('click', nativeAdvance);
+            const nativeDom = this.scene.add.dom(
+                centerX,
+                buttonY,
+                nativeButton
+            ).setOrigin(0.5).setScrollFactor(0).setDepth(16004);
+            this.dismissButton = nativeButton;
+            this.elements.push(nativeDom);
+        }
 
         // Play reveal sound
         if (window.AudioManager) {
@@ -272,8 +312,12 @@ class NASAContentModal {
      * Go to next content or close
      */
     next() {
+        if (this.isAdvancing || !this.isVisible) return;
+        this.isAdvancing = true;
         this.currentContentIndex++;
-        this.showCurrentContent();
+        void this.showCurrentContent().finally(() => {
+            if (this.isVisible) this.isAdvancing = false;
+        });
     }
 
     /**
@@ -307,7 +351,16 @@ class NASAContentModal {
         });
         this.htmlElements = [];
 
+        if (this.previousDomContainerStyles && this.scene.game?.domContainer) {
+            this.scene.game.domContainer.style.zIndex =
+                this.previousDomContainerStyles.zIndex;
+            this.scene.game.domContainer.style.pointerEvents =
+                this.previousDomContainerStyles.pointerEvents;
+        }
+        this.previousDomContainerStyles = null;
+
         this.isVisible = false;
+        this.dismissButton = null;
     }
 }
 

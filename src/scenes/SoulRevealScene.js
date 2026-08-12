@@ -26,15 +26,32 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.htmlInput = null;
         this.nameDomElement = null;
         this.nameSubmitButton = null;
+        this.nameSubmitDomElement = null;
         this.portraitPromise = null;
         this.portraitError = null;
         this.livingFormHandoff = null;
         this.previousDomContainerStyles = null;
+        this.viewportResizeHandler = null;
+        this.compactNamingScrim = null;
+        this.compactNamingPrompt = null;
     }
 
     init(data) {
+        // Phaser reuses scene instances. Reset every per-creature field here so
+        // a second hatch cannot inherit the previous name or portrait job.
+        this.nameInput = '';
+        this.inputActive = false;
+        this.canProceed = false;
+        this.htmlInput = null;
+        this.nameDomElement = null;
+        this.nameSubmitButton = null;
+        this.portraitPromise = null;
+        this.portraitError = null;
+        this.livingFormHandoff = null;
+        this.previousDomContainerStyles = null;
         this.isEggHatch = data?.isEggHatch || false;
         this.eggType = data?.eggType || null;
+        this.resumeLivingForm = data?.resumeLivingForm === true;
         this.portraitPreviewImage = data?.portraitPreviewImage || null;
         this.portraitPreviewFailure = data?.portraitPreviewFailure || false;
         this.portraitPreviewSpecies = data?.portraitPreviewSpecies || null;
@@ -78,14 +95,52 @@ export default class SoulRevealScene extends Phaser.Scene {
         // Create background
         this.createBackground(width, height);
 
-        // Start the dramatic reveal sequence
-        this.startRevealSequence(width, height);
+        if (this.resumeLivingForm) {
+            this.resumeLivingFormHandoff(width, height);
+        } else {
+            // Start the dramatic reveal sequence
+            this.startRevealSequence(width, height);
+        }
 
         // Setup keyboard input for desktop
         this.setupKeyboardInput();
+        this.viewportResizeHandler = ({ width: nextWidth, height: nextHeight } = {}) => {
+            this.layoutNativeNamingControls(
+                Number(nextWidth) || this.scale.width,
+                Number(nextHeight) || this.scale.height
+            );
+        };
+        this.game.events.on('resize', this.viewportResizeHandler);
         this.events.once('shutdown', this.shutdown, this);
 
         devLog('[SoulRevealScene] Created');
+    }
+
+    resumeLivingFormHandoff(width, height) {
+        const stage = this.portraitCreatureData?.stage || 'baby';
+        const existingPortrait = window.GameState?.getCreaturePortrait?.(stage);
+        if (existingPortrait?.imageUrl) {
+            this.portraitPromise = Promise.resolve(existingPortrait);
+        } else if (existingPortrait?.assetRef) {
+            this.portraitPromise = window.LivingPortraitService
+                ?.resolve?.(existingPortrait) || null;
+            this.portraitPromise?.catch?.(error => {
+                this.portraitError = error;
+            });
+        }
+
+        const textureName = this.creatureData.textureName;
+        if (textureName && this.textures.exists(textureName)) {
+            this.creature = this.add.sprite(width / 2, height / 2, textureName)
+                .setVisible(false);
+            this.elements.push(this.creature);
+            this.beginLivingPortraitPrewarm();
+        }
+
+        const creatureName = window.GameState?.get('creature.name') || 'Companion';
+        this.time.delayedCall(50, () => {
+            this.showLivingPortraitHandoff(creatureName);
+        });
     }
 
     /**
@@ -224,6 +279,7 @@ export default class SoulRevealScene extends Phaser.Scene {
 
     getRevealLayout(width = this.scale.width, height = this.scale.height) {
         const compactHeight = height < 660;
+        const keyboardCompact = height < 600;
         const panelHeight = compactHeight ? 264 : 276;
         const formTail = 156;
         const preferredPanelY = height * (width < 600 ? 0.38 : 0.32);
@@ -234,11 +290,16 @@ export default class SoulRevealScene extends Phaser.Scene {
         const panelWidth = Math.min(width - 32, 380);
         const panelBottom = panelY + panelHeight;
         const inputHeight = 46;
-        const inputTop = panelBottom + 42;
-        const buttonTop = panelBottom + 102;
+        const inputTop = keyboardCompact
+            ? Math.max(12, height - inputHeight - 48 - 28)
+            : panelBottom + 42;
+        const buttonTop = keyboardCompact
+            ? inputTop + inputHeight + 8
+            : panelBottom + 102;
 
         return {
             compactHeight,
+            keyboardCompact,
             panelX: (width - panelWidth) / 2,
             panelY,
             panelWidth,
@@ -978,6 +1039,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             onComplete: () => {
                 this.inputActive = true;
                 this.createMobileInput(width, inputY, layout);
+                this.layoutNativeNamingControls(width, height);
             }
         });
     }
@@ -1151,9 +1213,66 @@ export default class SoulRevealScene extends Phaser.Scene {
             btnY + layout.buttonHeight / 2,
             button
         ).setOrigin(0.5).setDepth(106);
+        this.nameSubmitDomElement = submitDom;
         this.elements.push(submitDom);
         this.canProceed = true;
+        this.layoutNativeNamingControls(width, height);
         requestAnimationFrame(() => button.classList.add('is-visible'));
+    }
+
+    layoutNativeNamingControls(width, height) {
+        const layout = this.getRevealLayout(width, height);
+        if (layout.keyboardCompact) {
+            if (!this.compactNamingScrim) {
+                this.compactNamingScrim = this.add.graphics().setDepth(102);
+                this.elements.push(this.compactNamingScrim);
+            }
+            this.compactNamingScrim.clear();
+            const scrimTop = Math.max(0, layout.inputTop - 48);
+            this.compactNamingScrim.fillStyle(0x160B2A, 0.99);
+            this.compactNamingScrim.fillRect(
+                0,
+                scrimTop,
+                width,
+                height - scrimTop
+            );
+            this.compactNamingScrim.lineStyle(1, 0x7B68EE, 0.75);
+            this.compactNamingScrim.lineBetween(0, scrimTop, width, scrimTop);
+            if (!this.compactNamingPrompt) {
+                this.compactNamingPrompt = this.add.text(0, 0, '', {
+                    fontSize: '12px',
+                    fontFamily: 'Arial, sans-serif',
+                    color: '#C8B8FF',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5).setDepth(103);
+                this.elements.push(this.compactNamingPrompt);
+            }
+            this.compactNamingPrompt
+                .setText('NAME THIS LIVING SIGNAL')
+                .setPosition(width / 2, layout.inputTop - 23)
+                .setVisible(true);
+        } else {
+            this.compactNamingScrim?.destroy?.();
+            this.compactNamingPrompt?.destroy?.();
+            this.compactNamingScrim = null;
+            this.compactNamingPrompt = null;
+        }
+        if (this.nameDomElement && this.htmlInput) {
+            this.nameDomElement.setPosition(
+                width / 2,
+                layout.inputTop + layout.inputHeight / 2
+            );
+            this.htmlInput.style.width = `${layout.inputWidth}px`;
+            this.htmlInput.style.height = `${layout.inputHeight}px`;
+        }
+        if (this.nameSubmitDomElement && this.nameSubmitButton) {
+            this.nameSubmitDomElement.setPosition(
+                width / 2,
+                layout.buttonTop + layout.buttonHeight / 2
+            );
+            this.nameSubmitButton.style.width = `${layout.inputWidth}px`;
+            this.nameSubmitButton.style.height = `${layout.buttonHeight}px`;
+        }
     }
 
     /**
@@ -1175,6 +1294,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         // Save to GameState
         window.GameState?.set('creature.name', finalName);
         window.GameState?.set('creature.named', true);
+        window.GameState?.set('tutorial.livingFormPending', true);
 
         // CRITICAL: Add creature to collection for multi-creature support
         const collectionStatus = window.GameState?.getCollectionStatus?.() || { hasSpace: true };
@@ -1222,6 +1342,9 @@ export default class SoulRevealScene extends Phaser.Scene {
         // Remove HTML input
         this.nameSubmitButton?.remove?.();
         this.nameSubmitButton = null;
+        this.nameSubmitDomElement = null;
+        this.compactNamingScrim = null;
+        this.compactNamingPrompt = null;
         this.nameDomElement?.destroy?.();
         this.nameDomElement = null;
         this.htmlInput = null;
@@ -1232,6 +1355,9 @@ export default class SoulRevealScene extends Phaser.Scene {
     transitionToGame() {
         this.livingFormHandoff?.destroy?.();
         this.livingFormHandoff = null;
+        window.GameState?.set('tutorial.livingFormPending', false);
+        window.GameState?.set('tutorial.livingFormSeen', true);
+        window.GameState?.save?.();
         this.restoreDomContainerStyles();
         this.cameras.main.fadeOut(800, 0, 0, 0);
 
@@ -1357,11 +1483,18 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.nameDomElement = null;
         this.nameSubmitButton?.remove?.();
         this.nameSubmitButton = null;
+        this.nameSubmitDomElement = null;
+        this.compactNamingScrim = null;
+        this.compactNamingPrompt = null;
         this.livingFormHandoff?.destroy?.();
         this.livingFormHandoff = null;
         this.authoredPortraitPreload = null;
         this.htmlInput = null;
         this.restoreDomContainerStyles();
+        if (this.viewportResizeHandler) {
+            this.game?.events?.off?.('resize', this.viewportResizeHandler);
+            this.viewportResizeHandler = null;
+        }
 
         // Clear typewriter timer
         if (this.typewriterTimer) {

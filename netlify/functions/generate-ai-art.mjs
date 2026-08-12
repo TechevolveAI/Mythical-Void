@@ -1,11 +1,18 @@
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import portraitCore from '../lib/generate-ai-art-core.cjs';
 
 const { handler, _internal } = portraitCore;
 
 _internal.setRuntime({
-    createClient,
+    createClient: (url, key, options = {}) => createClient(url, key, {
+        ...options,
+        realtime: {
+            ...options.realtime,
+            transport: WebSocket
+        }
+    }),
     createGeminiClient: () => new GoogleGenAI({
         apiKey: process.env.GEMINI_API_KEY
     })

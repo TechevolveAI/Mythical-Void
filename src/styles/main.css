@@ -156,6 +156,26 @@ body.game-mode {
   filter: brightness(1.08);
 }
 
+.nasa-content-dismiss {
+  min-width: 132px;
+  min-height: 46px;
+  padding: 10px 20px;
+  color: #ffffff;
+  background: #6556d9;
+  border: 1px solid #ffffff;
+  border-radius: 6px;
+  font: 700 16px/1 'Poppins', 'Inter', system-ui, sans-serif;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nasa-content-dismiss:focus-visible {
+  outline: 2px solid #8fe3cf;
+  outline-offset: 2px;
+}
+
 /* First-contact living-form handoff */
 .living-form-handoff {
   position: relative;
@@ -423,7 +443,7 @@ body.game-mode {
 
 @media (max-width: 660px), (orientation: portrait) {
   .living-form-shell {
-    grid-template: auto minmax(220px, 1fr) auto / minmax(0, 1fr);
+    grid-template: auto minmax(120px, 1fr) auto / minmax(0, 1fr);
   }
 
   .living-form-header {
@@ -496,6 +516,53 @@ body.game-mode {
     min-height: 30px;
     margin: 10px 0;
     font-size: 10px;
+  }
+}
+
+@media (max-width: 660px) and (max-height: 600px) {
+  .living-form-header {
+    min-height: 36px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .living-form-shell {
+    grid-template-rows: auto minmax(96px, 0.75fr) auto;
+  }
+
+  .living-form-content {
+    overflow-y: auto;
+    padding-top: 9px;
+    padding-bottom: max(9px, var(--sab));
+  }
+
+  .living-form-title {
+    margin: 2px 0 4px;
+    font-size: 18px;
+  }
+
+  .living-form-description {
+    display: none;
+  }
+
+  .living-form-facts {
+    margin-top: 5px;
+  }
+
+  .living-form-fact {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .living-form-status {
+    min-height: 18px;
+    margin: 5px 0;
+    font-size: 9px;
+  }
+
+  .living-form-continue {
+    min-height: 44px;
+    flex: 0 0 44px;
   }
 }
 
