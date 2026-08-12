@@ -42,6 +42,7 @@ class MobileControls {
         this.windowPointerUpHandler = null;
         this.windowPointerCancelHandler = null;
         this.canvasTouchEndHandler = null;
+        this.pendingWindowPointerUp = null;
 
         // Action buttons
         this.actionButtons = {};
@@ -336,6 +337,7 @@ class MobileControls {
             window.removeEventListener('pointercancel', this.windowPointerCancelHandler, true);
             this.windowPointerCancelHandler = null;
         }
+        this.pendingWindowPointerUp = null;
 
         // Reset joystick state
         this.joystickActive = false;
@@ -637,7 +639,7 @@ class MobileControls {
             this.finishJoystickInput(this.activePointerId);
         };
         this.canvasTouchEndHandler = event => {
-            if (!this.joystickActive || !this.activePointerId) return;
+            if (!this.joystickActive || this.activePointerId === null) return;
 
             const changed = event.changedTouches || [];
             for (let i = 0; i < changed.length; i += 1) {
@@ -678,7 +680,24 @@ class MobileControls {
             if (eventPointerId === null || this.activePointerId === null || eventPointerId !== this.activePointerId) {
                 return;
             }
-            this.resetJoystick(true);
+
+            // This listener runs before the canvas handler in capture phase. Defer
+            // the fallback so a normal canvas release can preserve the brief
+            // directional pulse used by taps and flicks. If the release happened
+            // outside the canvas, finalize it after event dispatch instead.
+            this.pendingWindowPointerUp = eventPointerId;
+            Promise.resolve().then(() => {
+                if (
+                    this.pendingWindowPointerUp === eventPointerId &&
+                    this.joystickActive &&
+                    this.activePointerId === eventPointerId
+                ) {
+                    this.finishJoystickInput(eventPointerId);
+                }
+                if (this.pendingWindowPointerUp === eventPointerId) {
+                    this.pendingWindowPointerUp = null;
+                }
+            });
         };
         this.windowPointerCancelHandler = (event) => {
             if (!this.joystickActive) return;
@@ -745,6 +764,14 @@ class MobileControls {
             const converted = Number(pointerId);
             return Number.isFinite(converted) ? converted : null;
         })();
+        if (
+            !this.joystickActive ||
+            this.activePointerId === null ||
+            normalizedPointerId === null ||
+            normalizedPointerId !== this.activePointerId
+        ) {
+            return false;
+        }
         const elapsed = performance.now() - this.joystickActivatedAt;
         const remainingPulse = this.minimumFlickDuration - elapsed;
         this.joystickActive = false;
@@ -763,9 +790,10 @@ class MobileControls {
                 this.pendingJoystickReset = null;
                 this.resetJoystick(true);
             }, remainingPulse);
-            return;
+            return true;
         }
         this.resetJoystick(true);
+        return true;
     }
 
     clearPendingJoystickReset() {

@@ -348,6 +348,12 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.mobileControlCoach = null;
         this.mobileControlCoachTween = null;
         this.actionButtonPointers = new Set(); // Track which pointers are on action buttons (prevents joystick reset)
+        this.platformerJoystickMoveHandler = null;
+        this.platformerJoystickUpHandler = null;
+        this.platformerTouchEndHandler = null;
+        this.platformerPointerCancelHandler = null;
+        this.platformerInputAbortHandler = null;
+        this.platformerVisibilityHandler = null;
 
         // Pause menu state
         this.pauseMenuActive = false;
@@ -727,6 +733,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         console.log(`[PlatformerLevel] Creating level: ${this.levelId}`);
         prefetchKatanaArtifactArtwork();
 
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+
         // CRITICAL: Re-enable keyboard input (disabled on death, must be restored on restart)
         if (this.input && this.input.keyboard) {
             this.input.keyboard.enabled = true;
@@ -863,7 +871,52 @@ class PlatformerLevelScene extends Phaser.Scene {
             if (window.UXEnhancements) {
                 window.UXEnhancements.hideLoading();
             }
+            this.showLevelInitializationError();
         }
+    }
+
+    showLevelInitializationError() {
+        const camera = this.cameras?.main;
+        const width = camera?.width || this.scale?.width || 390;
+        const height = camera?.height || this.scale?.height || 700;
+
+        this.physics?.pause?.();
+        camera?.setBackgroundColor?.('#07100F');
+        const panel = this.add?.rectangle?.(
+            width / 2,
+            height / 2,
+            Math.min(width - 32, 520),
+            220,
+            0x07100F,
+            0.98
+        )?.setScrollFactor?.(0)?.setDepth?.(20000)?.setStrokeStyle?.(2, 0x71E6B1, 0.9);
+        const heading = this.add?.text?.(width / 2, height / 2 - 58, 'EXPEDITION INTERRUPTED', {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: width < 600 ? '20px' : '24px',
+            color: '#F4F4F4',
+            align: 'center'
+        })?.setOrigin?.(0.5)?.setScrollFactor?.(0)?.setDepth?.(20001);
+        const detail = this.add?.text?.(
+            width / 2,
+            height / 2 - 10,
+            'The route did not stabilize. Your progress is safe.',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: '15px',
+                color: '#B8D8CC',
+                align: 'center',
+                wordWrap: { width: Math.min(width - 70, 430) }
+            }
+        )?.setOrigin?.(0.5)?.setScrollFactor?.(0)?.setDepth?.(20001);
+        const button = this.add?.text?.(width / 2, height / 2 + 62, 'RETURN TO SANCTUARY', {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '16px',
+            color: '#07100F',
+            backgroundColor: '#71E6B1',
+            padding: { left: 22, right: 22, top: 13, bottom: 13 }
+        })?.setOrigin?.(0.5)?.setScrollFactor?.(0)?.setDepth?.(20001)?.setInteractive?.({ useHandCursor: true });
+        button?.once?.('pointerup', () => this.scene.start('HubWorldScene'));
+        this.levelInitializationErrorElements = [panel, heading, detail, button].filter(Boolean);
     }
 
     showVillageSupportBriefing() {
@@ -1676,6 +1729,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      * - Ground level and creatures appear ABOVE the control zone
      */
     setupPlatformerMobileControls() {
+        this.cleanupPlatformerInputHandlers();
         this.isMobile = this.detectMobile();
 
         if (!this.isMobile) {
@@ -1833,13 +1887,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
 
         // Scene-level pointer tracking for joystick
-        this.input.on('pointermove', (pointer) => {
+        this.platformerJoystickMoveHandler = (pointer) => {
             if (this.joystickActive && pointer.id === this.joystickPointerId) {
                 this.updateJoystick(pointer);
             }
-        });
+        };
+        this.input.on('pointermove', this.platformerJoystickMoveHandler);
 
-        this.input.on('pointerup', (pointer) => {
+        this.platformerJoystickUpHandler = (pointer) => {
             // CRITICAL: Don't reset joystick if this pointer is on an action button
             // This prevents joystick from resetting when pressing jump while moving
             if (this.actionButtonPointers.has(pointer.id)) {
@@ -1848,16 +1903,27 @@ class PlatformerLevelScene extends Phaser.Scene {
             if (this.joystickActive && pointer.id === this.joystickPointerId) {
                 this.resetJoystick();
             }
-        });
+        };
+        this.input.on('pointerup', this.platformerJoystickUpHandler);
 
         // Native touch end handler for reliability - only reset if no active touches remain on joystick
-        this.game.canvas.addEventListener('touchend', (event) => {
+        this.platformerTouchEndHandler = (event) => {
             // Only reset if there are no remaining touches OR if the joystick pointer specifically ended
             if (this.joystickActive && event.touches.length === 0) {
                 // All touches ended - reset joystick
                 this.resetJoystick();
             }
-        }, { passive: true });
+        };
+        this.platformerPointerCancelHandler = () => this.resetJoystick();
+        this.platformerInputAbortHandler = () => this.resetJoystick();
+        this.platformerVisibilityHandler = () => {
+            if (document.hidden) this.resetJoystick();
+        };
+        this.game.canvas.addEventListener('touchend', this.platformerTouchEndHandler, { passive: true });
+        this.game.canvas.addEventListener('pointercancel', this.platformerPointerCancelHandler, { passive: true });
+        window.addEventListener('blur', this.platformerInputAbortHandler);
+        window.addEventListener('pagehide', this.platformerInputAbortHandler);
+        document.addEventListener('visibilitychange', this.platformerVisibilityHandler);
 
         const {
             leftX,
@@ -2506,6 +2572,35 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.joystickThumb.lineStyle(2, 0x00CED1, 0.8);
             this.joystickThumb.strokeCircle(this.joystickCenterX, this.joystickCenterY, this.joystickThumbRadius);
         }
+    }
+
+    cleanupPlatformerInputHandlers() {
+        if (this.platformerJoystickMoveHandler && this.input) {
+            this.input.off('pointermove', this.platformerJoystickMoveHandler);
+        }
+        if (this.platformerJoystickUpHandler && this.input) {
+            this.input.off('pointerup', this.platformerJoystickUpHandler);
+        }
+        const canvas = this.game?.canvas;
+        if (this.platformerTouchEndHandler && canvas) {
+            canvas.removeEventListener('touchend', this.platformerTouchEndHandler);
+        }
+        if (this.platformerPointerCancelHandler && canvas) {
+            canvas.removeEventListener('pointercancel', this.platformerPointerCancelHandler);
+        }
+        if (this.platformerInputAbortHandler) {
+            window.removeEventListener('blur', this.platformerInputAbortHandler);
+            window.removeEventListener('pagehide', this.platformerInputAbortHandler);
+        }
+        if (this.platformerVisibilityHandler) {
+            document.removeEventListener('visibilitychange', this.platformerVisibilityHandler);
+        }
+        this.platformerJoystickMoveHandler = null;
+        this.platformerJoystickUpHandler = null;
+        this.platformerTouchEndHandler = null;
+        this.platformerPointerCancelHandler = null;
+        this.platformerInputAbortHandler = null;
+        this.platformerVisibilityHandler = null;
     }
 
     /**
@@ -5916,6 +6011,10 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     shutdown() {
         console.log('[PlatformerLevel] Shutting down - cleaning up resources');
+
+        this.cleanupPlatformerInputHandlers();
+        this.levelInitializationErrorElements?.forEach(element => element?.destroy?.());
+        this.levelInitializationErrorElements = [];
 
         this.scale?.off?.('resize', this.layoutKatanaUpgradeDisplay, this);
         window.EconomyManager?.clearLevelCoinMultiplier?.();

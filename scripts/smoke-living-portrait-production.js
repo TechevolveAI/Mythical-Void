@@ -58,6 +58,7 @@ async function run() {
     }
 
     const endpoint = getArgument('--endpoint', DEFAULT_ENDPOINT);
+    const requestOrigin = getArgument('--origin', new URL(endpoint).origin);
     const specPath = getArgument('--spec', DEFAULT_SPEC_PATH);
     const referencePath = getArgument('--reference', DEFAULT_REFERENCE_PATH);
     const outputBase = getArgument('--output', DEFAULT_OUTPUT_BASE);
@@ -92,7 +93,7 @@ async function run() {
         const requestHeaders = {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
-            Origin: 'https://mythicalvoid.com'
+            Origin: requestOrigin
         };
         const requestBody = JSON.stringify({
             style: 'cinematic',
@@ -122,7 +123,7 @@ async function run() {
                     headers: {
                         Accept: 'application/json',
                         Authorization: `Bearer ${accessToken}`,
-                        Origin: 'https://mythicalvoid.com'
+                        Origin: requestOrigin
                     }
                 }
             ));

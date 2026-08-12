@@ -2372,9 +2372,12 @@ export default class HubWorldScene extends Phaser.Scene {
         const { width, height } = this.dims;
         const maxRadius = Math.max(width, height) * 1.5;
 
+        this.clearGateTransitionFx(false);
+
         // Create circular mask/wipe
         const wipe = this.add.graphics();
         wipe.setDepth(300);
+        this.gateTransitionWipe = wipe;
 
         // Animate expanding circle
         let currentRadius = 0;
@@ -2396,11 +2399,27 @@ export default class HubWorldScene extends Phaser.Scene {
 
                 if (currentRadius >= maxRadius) {
                     wipeTimer.destroy();
+                    this.gateTransitionWipeTimer = null;
                     if (onComplete) onComplete();
                 }
             },
             loop: true
         });
+        this.gateTransitionWipeTimer = wipeTimer;
+    }
+
+    clearGateTransitionFx(restoreCamera = true) {
+        this.gateTransitionWipeTimer?.destroy?.();
+        this.gateTransitionWipeTimer = null;
+        this.gateTransitionWipe?.destroy?.();
+        this.gateTransitionWipe = null;
+
+        if (restoreCamera && this.cameras?.main) {
+            this.cameras.main.setZoom?.(1);
+            if (this.player && !this.cameras.main._follow) {
+                this.cameras.main.startFollow?.(this.player, true, 0.1, 0.1);
+            }
+        }
     }
 
     /**
@@ -2440,21 +2459,34 @@ export default class HubWorldScene extends Phaser.Scene {
                         if (window.UXEnhancements) {
                             window.UXEnhancements.hideLoading();
                         }
+                        this.clearGateTransitionFx(false);
                         this.scene.start(sceneName);
                         return;
                     }
+                    throw new Error(`${sceneName} could not be loaded`);
                 }
 
-                // Fallback: try direct scene start (if already registered)
+                // Fallback only when the scene is already registered. Starting an
+                // unknown Phaser key produces the same blank-screen failure as a
+                // rejected chunk load.
+                const registeredScene = this.game?.scene?.keys?.[sceneName] ||
+                    this.game?.scene?.scenes?.find?.(
+                        scene => scene?.sys?.settings?.key === sceneName
+                    );
+                if (!registeredScene) {
+                    throw new Error(`${sceneName} is not registered`);
+                }
                 if (window.UXEnhancements) {
                     window.UXEnhancements.hideLoading();
                 }
+                this.clearGateTransitionFx(false);
                 this.scene.start(sceneName);
             } catch (error) {
                 console.error(`[HubWorldScene] Failed to load ${sceneName}:`, error);
                 if (window.UXEnhancements) {
                     window.UXEnhancements.hideLoading();
                 }
+                this.clearGateTransitionFx(true);
                 // Show error to user
                 this.showLevelLoadError(gate.data?.name || sceneName);
                 this.isTransitioning = false;

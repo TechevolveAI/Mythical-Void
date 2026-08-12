@@ -28,6 +28,7 @@ class SceneLoaderClass {
 
         // Track loading promises (prevent duplicate loads)
         this.loadingPromises = new Map();
+        this.importTimeoutMs = 15000;
 
         // Scene to chunk mapping
         // Each level gets its own chunk for optimal lazy loading
@@ -195,7 +196,16 @@ class SceneLoaderClass {
 
         // Start loading
         devLog(`[SceneLoader] Preloading ${sceneName}...`);
-        const loadPromise = importFn()
+        let timeoutId = null;
+        const timeoutPromise = new Promise((resolve, reject) => {
+            timeoutId = setTimeout(() => {
+                reject(new Error(`Timed out loading ${sceneName}`));
+            }, this.importTimeoutMs);
+        });
+        const loadPromise = Promise.race([
+            Promise.resolve().then(() => importFn()),
+            timeoutPromise
+        ])
             .then(module => {
                 this.loadedScenes.add(sceneName);
                 this.loadedModules.set(sceneName, module);  // Store the module reference
@@ -207,6 +217,11 @@ class SceneLoaderClass {
                 this.loadingPromises.delete(sceneName);
                 console.error(`[SceneLoader] Failed to preload ${sceneName}:`, error);
                 throw error;
+            })
+            .finally(() => {
+                if (timeoutId !== null) {
+                    clearTimeout(timeoutId);
+                }
             });
 
         this.loadingPromises.set(sceneName, loadPromise);

@@ -1039,7 +1039,8 @@ class VoidMiniGameScene extends Phaser.Scene {
         this.cameras.main.once('camerafadeoutcomplete', () => {
             this.scene.start('GameScene', {
                 returnFromVoid: true,
-                voidScore: this.score
+                voidScore: this.score,
+                returnPosition: this.returnPosition
             });
         });
     }

@@ -276,6 +276,19 @@ class SanctuaryZones {
         };
     }
 
+    getVoidExitPosition(distance = 180) {
+        const portal = this.landmarks.voidPortal.position;
+        const livingArea = this.zones.livingArea.center;
+        const dx = livingArea.x - portal.x;
+        const dy = livingArea.y - portal.y;
+        const magnitude = Math.max(1, Math.hypot(dx, dy));
+
+        return this.getSafeSpawnPosition({
+            x: portal.x + (dx / magnitude) * distance,
+            y: portal.y + (dy / magnitude) * distance
+        });
+    }
+
     /**
      * Keep restored players away from narrow world-edge pockets. Older builds
      * could save a position between the Target Range and the outer bounds.

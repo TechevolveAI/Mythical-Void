@@ -225,4 +225,32 @@ describe('MobileControls pointer ownership', () => {
         expect(finishSpy).toHaveBeenCalledTimes(1);
         expect(resetSpy).toHaveBeenCalledTimes(resetCallsAfterFirstEnd);
     });
+
+    test('accepts touch identifier zero and preserves a short directional flick', () => {
+        const MobileControls = loadMobileControls();
+        const { scene, events } = createScene();
+        const controls = new MobileControls(scene);
+        controls.isMobile = true;
+        controls.scene = scene;
+
+        attachControlFixtures(controls);
+        controls.setupCanvasJoystickInput();
+        controls.activePointerId = 0;
+        controls.joystickActive = true;
+        controls.joystickActivatedAt = 0;
+        controls.lastJoystickMagnitude = 1;
+
+        const touchEnd = events.find(evt => evt.type === 'touchend');
+        const resetSpy = jest.spyOn(controls, 'resetJoystick');
+        touchEnd.handler({
+            changedTouches: [{ identifier: 0 }],
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        });
+
+        expect(controls.joystickActive).toBe(false);
+        expect(controls.pendingJoystickReset).toBe(0);
+        expect(resetSpy).not.toHaveBeenCalled();
+        expect(controls.finishJoystickInput(0)).toBe(false);
+    });
 });

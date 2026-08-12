@@ -708,17 +708,16 @@ class GameScene extends Phaser.Scene {
         this.nearVillageHeart = false;
         this.villageRenderSignature = null;
 
-        // Store any spawn position data
-        if (data?.spawnPosition) {
-            this.spawnPosition = data.spawnPosition;
-        }
+        // Transition spawn data must not leak across scene restarts.
+        this.spawnPosition = data?.spawnPosition || null;
 
         // Handle return from Void mini-game
         if (data?.returnFromVoid) {
             this.returningFromVoid = true;
             this.voidScore = data.voidScore || 0;
+            this.spawnPosition = data.returnPosition || this.spawnPosition;
             console.log(`[GameScene] Returning from Void with score: ${this.voidScore}`);
-            this.voidEntryCooldown = false;
+            this.voidEntryCooldown = true;
             this.voidPullActive = false;
             this.nearVoidPortal = false;
             this.cancelVoidPull();
@@ -1385,6 +1384,10 @@ class GameScene extends Phaser.Scene {
 
             // Show Void return feedback if applicable
             if (this.returningFromVoid) {
+                this.time.delayedCall(1800, () => {
+                    this.voidEntryCooldown = false;
+                    this.nearVoidPortal = false;
+                });
                 this.time.delayedCall(500, () => {
                     this.showVoidReturnToast(this.voidScore);
                 });
@@ -5451,13 +5454,18 @@ class GameScene extends Phaser.Scene {
     }
 
     createPlayer() {
-        // Check for spawn position from egg hatching (creature replacement)
+        // Check for a scene-transition spawn before persisted world positions.
+        const transitionSpawn = this.spawnPosition;
         const spawnPos = getGameState().get('creature.spawnPosition');
         const savedPos = getGameState().get('world.currentPosition');
 
         let startX, startY;
 
-        if (spawnPos) {
+        if (transitionSpawn) {
+            startX = Number(transitionSpawn.x);
+            startY = Number(transitionSpawn.y);
+            this.spawnPosition = null;
+        } else if (spawnPos) {
             // Use spawn position from egg hatching (where old creature was)
             startX = spawnPos.x;
             startY = spawnPos.y;
@@ -10417,6 +10425,10 @@ class GameScene extends Phaser.Scene {
      * If player is near the ship, they can safely examine it with spacebar.
      */
     handleVoidPortalProximity(player, portal) {
+        if (this.voidEntryCooldown) {
+            return;
+        }
+
         // Calculate distance to void portal
         const distToPortal = portal && player
             ? Phaser.Math.Distance.Between(player.x, player.y, portal.x, portal.y)
@@ -10738,10 +10750,15 @@ class GameScene extends Phaser.Scene {
 
         this.nearVoidPortal = false;
 
-        // Save player position for return
-        getGameState().set('world.lastPosition', {
+        // Return outside the rift's activation radius so this portal remains
+        // repeatable without immediately pulling the player back in.
+        const returnPosition = this.sanctuaryZones?.getVoidExitPosition?.() || {
             x: this.player.x,
             y: this.player.y
+        };
+        getGameState().set('world.lastPosition', {
+            x: returnPosition.x,
+            y: returnPosition.y
         });
 
         this.sceneRouter.playSound('visionReveal');
@@ -10760,10 +10777,7 @@ class GameScene extends Phaser.Scene {
             // Start void mini-game scene
             this.sceneRouter.startScene('VoidMiniGameScene', {
                 creatureTexture: creatureTexture,
-                returnPosition: {
-                    x: this.player.x,
-                    y: this.player.y
-                }
+                returnPosition
             });
         });
     }
