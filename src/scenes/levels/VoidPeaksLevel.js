@@ -54,6 +54,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.creatureNetworkReached = false;
         this.replySignals = [];
         this.bossGateHintUntil = 0;
+        this.routeHintUntil = 0;
         this.cosmicEggAwarded = false;
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer = null;
@@ -82,6 +83,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.creatureNetworkReached = false;
         this.replySignals = [];
         this.bossGateHintUntil = 0;
+        this.routeHintUntil = 0;
         this.cosmicEggAwarded = false;
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer = null;
@@ -321,10 +323,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.platforms = this.physics.add.staticGroup();
 
         const groundY = this.levelHeight - 50;
-        this.createPlatform(0, groundY, 700, 80, 'solid');
-        this.createPlatform(900, groundY, 680, 80, 'solid');
-        this.createPlatform(1800, groundY, 720, 80, 'solid');
-        this.createPlatform(2850, groundY, 650, 80, 'solid');
+        // Floor islands are recovery spaces. Wide geyser breaks keep them from becoming a bypass.
+        this.createPlatform(0, groundY, 620, 80, 'solid');
+        this.createPlatform(980, groundY, 520, 80, 'solid');
+        this.createPlatform(1880, groundY, 540, 80, 'solid');
+        this.createPlatform(2920, groundY, 460, 80, 'solid');
         this.createPlatform(3900, groundY, 1300, 80, 'solid');
 
         const ledges = [
@@ -336,6 +339,17 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         ledges.forEach(([x, y, width]) => {
             this.createPlatform(x, y, width, 28, 'solid');
+        });
+
+        // Optional Relic Ridge: a higher, safer line with two Star Fragments.
+        const relicRidge = [
+            [2640, 345, 180],
+            [2910, 280, 190],
+            [3190, 250, 200],
+            [3440, 350, 180]
+        ];
+        relicRidge.forEach(([x, y, width]) => {
+            this.createPlatform(x, y, width, 28, 'one-way');
         });
 
         this.createBossArena();
@@ -350,6 +364,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.createPeakEnemies();
         this.createStarFragments();
         this.createSignalRelays();
+        this.createPeakRouteChoiceMarkers();
         this.createTitanGate();
 
         this.physics.add.overlap(this.player, this.collectibles, this.collectItem, null, this);
@@ -379,8 +394,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     createVoidGeysers() {
         const geysers = [
-            { x: 790, width: 95 }, { x: 1660, width: 120 },
-            { x: 2600, width: 150 }, { x: 3650, width: 125 }
+            { x: 620, width: 360 }, { x: 1500, width: 380 },
+            { x: 2420, width: 500 }, { x: 3380, width: 520 }
         ];
 
         geysers.forEach(({ x, width }) => {
@@ -460,8 +475,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     createStarFragments() {
         const positions = [
-            [610, this.levelHeight - 240], [920, this.levelHeight - 340],
-            [1680, this.levelHeight - 395], [2500, this.levelHeight - 455],
+            [610, this.levelHeight - 240], [1680, this.levelHeight - 395],
+            [2730, 300], [3000, 235],
             [3660, this.levelHeight - 355]
         ];
 
@@ -550,7 +565,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawSignalRelay(visual, relay.x, relay.y, false);
 
-            const label = this.add.text(relay.x, relay.y - 94, relay.label, {
+            const label = this.add.text(relay.x, relay.y - 94, `${index + 1} // ${relay.label}`, {
                 fontSize: '11px',
                 color: '#7E718A',
                 fontStyle: 'bold',
@@ -577,6 +592,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             });
             this.beaconRelays.push(beacon);
         });
+
+        this.refreshSignalRouteReadability();
     }
 
     drawSignalRelay(graphics, x, y, activated) {
@@ -603,12 +620,24 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     activateSignalRelay(relay) {
         if (!relay || relay.activated) return;
 
+        if (!this.canActivateOrderedRouteSignal(
+            relay,
+            this.beaconRelays,
+            this.beaconRelaysActivated,
+            {
+                fallbackLabel: 'FOLLOW THE WARNING LINE',
+                hintOffsetY: -120
+            }
+        )) {
+            return;
+        }
+
         relay.activated = true;
         relay.zone?.destroy?.();
         relay.zone = null;
         this.beaconRelaysActivated++;
         this.drawSignalRelay(relay.visual, relay.x, relay.y, true);
-        relay.label.setColor('#8FE3CF');
+        this.refreshSignalRouteReadability();
         this.setCheckpoint(relay.x, relay.respawnY, {
             persist: true,
             checkpointId: relay.id,
@@ -652,6 +681,39 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         window.AudioManager?.playAchievement?.();
     }
 
+    refreshSignalRouteReadability() {
+        return this.refreshOrderedRouteSignals(
+            this.beaconRelays,
+            this.beaconRelaysActivated
+        );
+    }
+
+    createPeakRouteChoiceMarkers() {
+        const spine = this.add.text(2530, 615, 'WARNING LINE →', {
+            fontSize: '12px',
+            color: '#8FE3CF',
+            fontStyle: 'bold',
+            stroke: '#09030E',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(182);
+
+        const relicRoute = this.add.text(2670, 250, 'RELIC RIDGE ↑ // 2 FRAGMENTS', {
+            fontSize: '12px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#09030E',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(182);
+
+        this.tweens.add({
+            targets: [spine, relicRoute],
+            alpha: { from: 0.68, to: 1 },
+            duration: 900,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
     restoreExpeditionRouteState(resume) {
         return this.restoreExpeditionRouteSignals(resume, {
             signals: this.beaconRelays,
@@ -664,6 +726,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 true
             ),
             onRestored: (relay, restoredCount) => {
+                this.refreshSignalRouteReadability();
                 if (restoredCount === this.beaconRelays.length) {
                     this.showDistantReplyNetwork(relay);
                 }

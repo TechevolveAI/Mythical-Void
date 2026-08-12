@@ -366,6 +366,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.mobileControlCoach = null;
         this.mobileControlCoachTween = null;
         this.actionButtonPointers = new Set(); // Track which pointers are on action buttons (prevents joystick reset)
+        this.actionButtonReleases = new Map();
         this.platformerJoystickMoveHandler = null;
         this.platformerJoystickUpHandler = null;
         this.platformerTouchEndHandler = null;
@@ -654,6 +655,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Reset mobile control state
         this.virtualJoystickX = 0;
         this.virtualJumpPressed = false;
+        this.actionButtonPointers.clear();
+        this.actionButtonReleases.clear();
         this.recoveryInputLockedUntil = 0;
 
         // Reset pause menu state
@@ -1232,6 +1235,49 @@ class PlatformerLevelScene extends Phaser.Scene {
         return zone;
     }
 
+    canActivateOrderedRouteSignal(signal, signals, activatedCount, {
+        fallbackLabel = 'FOLLOW THE SIGNAL',
+        hintOffsetY = -100
+    } = {}) {
+        if (signal?.index === activatedCount) return true;
+
+        const now = Number(this.time?.now) || 0;
+        if (now >= (Number(this.routeHintUntil) || 0)) {
+            const nextSignal = signals?.[activatedCount];
+            const nextLabel = typeof nextSignal?.label === 'string'
+                ? nextSignal.label
+                : nextSignal?.label?.text || fallbackLabel;
+            this.showFloatingText?.(
+                `NEXT → ${nextLabel}`,
+                signal?.x || this.player?.x || 0,
+                (signal?.y || this.player?.y || 0) + hintOffsetY,
+                '#F2C94C'
+            );
+            this.routeHintUntil = now + 1600;
+        }
+        return false;
+    }
+
+    refreshOrderedRouteSignals(signals, activatedCount, {
+        activeProperty = 'activated',
+        completeColor = '#8FE3CF',
+        nextColor = '#F2C94C',
+        futureColor = '#7E718A'
+    } = {}) {
+        if (!Array.isArray(signals)) return false;
+
+        signals.forEach(signal => {
+            const complete = signal?.[activeProperty] === true;
+            const next = !complete && signal?.index === activatedCount;
+            signal?.label?.setColor?.(
+                complete ? completeColor : (next ? nextColor : futureColor)
+            );
+            signal?.label?.setAlpha?.(complete || next ? 1 : 0.48);
+            signal?.visual?.setAlpha?.(complete || next ? 1 : 0.42);
+        });
+        return true;
+    }
+
     /**
      * Generate organic platform texture (not sharp triangles)
      */
@@ -1790,6 +1836,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      * - Ground level and creatures appear ABOVE the control zone
      */
     setupPlatformerMobileControls() {
+        this.releaseAllPlatformerActionButtons();
         this.cleanupPlatformerInputHandlers();
         this.isMobile = this.detectMobile();
 
@@ -1956,9 +2003,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.input.on('pointermove', this.platformerJoystickMoveHandler);
 
         this.platformerJoystickUpHandler = (pointer) => {
-            // CRITICAL: Don't reset joystick if this pointer is on an action button
-            // This prevents joystick from resetting when pressing jump while moving
-            if (this.actionButtonPointers.has(pointer.id)) {
+            // Finish this action without interrupting a second finger that owns
+            // the joystick. Scene-level release covers drags outside the button.
+            if (this.releasePlatformerActionButton(pointer.id)) {
                 return;
             }
             if (this.joystickActive && pointer.id === this.joystickPointerId) {
@@ -1969,16 +2016,31 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Native touch end handler for reliability - only reset if no active touches remain on joystick
         this.platformerTouchEndHandler = (event) => {
+            Array.from(event.changedTouches || []).forEach(touch => {
+                this.releasePlatformerActionButton(touch.identifier);
+            });
+            if (event.touches.length === 0) {
+                this.releaseAllPlatformerActionButtons();
+            }
             // Only reset if there are no remaining touches OR if the joystick pointer specifically ended
             if (this.joystickActive && event.touches.length === 0) {
                 // All touches ended - reset joystick
                 this.resetJoystick();
             }
         };
-        this.platformerPointerCancelHandler = () => this.resetJoystick();
-        this.platformerInputAbortHandler = () => this.resetJoystick();
+        this.platformerPointerCancelHandler = () => {
+            this.releaseAllPlatformerActionButtons();
+            this.resetJoystick();
+        };
+        this.platformerInputAbortHandler = () => {
+            this.releaseAllPlatformerActionButtons();
+            this.resetJoystick();
+        };
         this.platformerVisibilityHandler = () => {
-            if (document.hidden) this.resetJoystick();
+            if (document.hidden) {
+                this.releaseAllPlatformerActionButtons();
+                this.resetJoystick();
+            }
         };
         this.game.canvas.addEventListener('touchend', this.platformerTouchEndHandler, { passive: true });
         this.game.canvas.addEventListener('pointercancel', this.platformerPointerCancelHandler, { passive: true });
@@ -2045,7 +2107,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 size: jumpButtonSize,
                 color: 0x27AE60, // Green - jump (free)
                 action: () => { this.virtualJumpPressed = true; },
-                onRelease: () => { this.virtualJumpPressed = false; },
+                onRelease: () => this.releaseVirtualJumpInput(),
                 energyCost: 0,
                 opacity: controlOpacity,
                 isJumpButton: true // Flag for special rendering
@@ -2084,6 +2146,8 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     hidePlatformerMobileControls() {
         if (!this.mobileControlElements || this.mobileControlElements.length === 0) return;
+
+        this.releaseAllPlatformerActionButtons();
 
         this.mobileControlElements.forEach(element => {
             if (element && typeof element.setAlpha === 'function') {
@@ -2294,9 +2358,30 @@ class PlatformerLevelScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: false });
         this.mobileControlElements.push(zone);
 
+        const releaseButton = () => {
+            if (isJumpButton) {
+                this.drawJumpButton(bg, x, y, radius, color, false);
+                this.drawJumpArrow(arrowGraphics, x, y, radius, false);
+            } else {
+                this.drawPlatformerButton(bg, x, y, radius, color, false);
+                if (icon) {
+                    this.tweens.add({
+                        targets: icon,
+                        scaleX: 1,
+                        scaleY: 1,
+                        duration: 100,
+                        ease: 'Back.easeOut'
+                    });
+                }
+            }
+            onRelease?.();
+        };
+
         zone.on('pointerdown', (pointer) => {
             // Track this pointer as an action button pointer (prevents joystick reset)
-            this.actionButtonPointers.add(pointer.id);
+            const pointerKey = String(pointer.id);
+            this.actionButtonPointers.add(pointerKey);
+            this.actionButtonReleases.set(pointerKey, releaseButton);
 
             // Draw pressed state
             if (isJumpButton) {
@@ -2322,52 +2407,38 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
 
         zone.on('pointerup', (pointer) => {
-            // Remove this pointer from action button tracking
-            this.actionButtonPointers.delete(pointer.id);
-
-            // Draw unpressed state
-            if (isJumpButton) {
-                this.drawJumpButton(bg, x, y, radius, color, false);
-                this.drawJumpArrow(arrowGraphics, x, y, radius, false);
-            } else {
-                this.drawPlatformerButton(bg, x, y, radius, color, false);
-                if (icon) {
-                    this.tweens.add({
-                        targets: icon,
-                        scaleX: 1,
-                        scaleY: 1,
-                        duration: 100,
-                        ease: 'Back.easeOut'
-                    });
-                }
-            }
-
-            if (onRelease) {
-                onRelease();
-            }
+            this.releasePlatformerActionButton(pointer.id);
         });
 
         zone.on('pointerout', (pointer) => {
-            // Remove this pointer from action button tracking
-            this.actionButtonPointers.delete(pointer.id);
-
-            // Draw unpressed state
-            if (isJumpButton) {
-                this.drawJumpButton(bg, x, y, radius, color, false);
-                this.drawJumpArrow(arrowGraphics, x, y, radius, false);
-            } else {
-                this.drawPlatformerButton(bg, x, y, radius, color, false);
-                if (icon) {
-                    icon.setScale(1);
-                }
-            }
-
-            if (onRelease) {
-                onRelease();
-            }
+            this.releasePlatformerActionButton(pointer.id);
         });
 
         return { id, x, y, radius, bg, icon, arrowGraphics, zone };
+    }
+
+    releaseVirtualJumpInput() {
+        this.virtualJumpPressed = false;
+    }
+
+    releasePlatformerActionButton(pointerId) {
+        const pointerKey = String(pointerId);
+        const release = this.actionButtonReleases.get(pointerKey);
+        if (!release) return false;
+
+        this.actionButtonReleases.delete(pointerKey);
+        this.actionButtonPointers.delete(pointerKey);
+        release();
+        return true;
+    }
+
+    releaseAllPlatformerActionButtons() {
+        Array.from(this.actionButtonReleases.keys()).forEach(pointerId => {
+            this.releasePlatformerActionButton(pointerId);
+        });
+        this.actionButtonPointers.clear();
+        this.releaseVirtualJumpInput();
+        return true;
     }
 
     /**
@@ -6175,6 +6246,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         // Reset mobile control state
+        this.releaseAllPlatformerActionButtons();
         this.joystickActive = false;
         this.virtualJoystickX = 0;
         this.virtualJumpPressed = false;

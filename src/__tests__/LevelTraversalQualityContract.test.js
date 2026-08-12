@@ -152,4 +152,91 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.createCrystalPillar(5325');
         expect(source).toContain('this.createStalactite(5375');
     });
+
+    test('Stellar Reef spawns above its opening floating platform', () => {
+        const source = read('levels/ReefLevel.js');
+
+        expect(source).toContain('createPlayer() {');
+        expect(source).toContain('this.player.setPosition(200, this.levelHeight - 290);');
+        expect(source).toContain('this.player.setVelocity(0, 0);');
+    });
+
+    test('Stellar Reef offers a finite resource detour that rejoins the route', () => {
+        const source = read('levels/ReefLevel.js');
+
+        expect(source).toContain('STAR TRENCH ↓ // 2 FRAGMENTS');
+        expect(source).toContain('createAbyssAscentCurrent()');
+        expect(source).toContain('this.player.setVelocityY(Math.min(this.player.body.velocity.y, -185))');
+        expect(source).toContain('{ x: 1750, y: this.levelHeight - 225 }');
+        expect(source).toContain('{ x: 2250, y: this.levelHeight - 220 }');
+    });
+
+    test('Void Peaks separates recovery islands and rewards Relic Ridge', () => {
+        const source = read('levels/VoidPeaksLevel.js');
+
+        expect(source).toContain('const relicRidge = [');
+        expect(source).toContain('RELIC RIDGE ↑ // 2 FRAGMENTS');
+        expect(source).toContain('{ x: 620, width: 360 }');
+        expect(source).toContain('[2730, 300], [3000, 235]');
+    });
+
+    test('Aurora Depths offers safety for taking the Quiet Light route', () => {
+        const source = read('levels/AuroraDepthsLevel.js');
+
+        expect(source).toContain('const quietLightRoute = [');
+        expect(source).toContain('QUIET LIGHT / HIGH ROUTE');
+        expect(source).toContain('SHADOW CURRENT / DIRECT ROUTE');
+        expect(source).toContain("'QUIET LIGHT // 15 SECOND SHELTER'");
+        expect(source).toContain('this.activateShield();');
+    });
+
+    test('Final Void rewards the Trust Bridge with one reliable rescue', () => {
+        const source = read('levels/FinalVoidLevel.js');
+
+        expect(source).toContain('const trustBridgeRoute = [');
+        expect(source).toContain('TRUST BRIDGE / HIGH ROUTE');
+        expect(source).toContain('VOID FRACTURE / DIRECT ROUTE');
+        expect(source).toContain('incomingDamage = Math.max(0, this.health - 1);');
+        expect(source).toContain('this.bondReserveEcho?.destroy?.();');
+    });
+
+    test('the shared route contract identifies the next objective without blocking input', () => {
+        const source = read('PlatformerLevelScene.js');
+
+        expect(source).toContain('canActivateOrderedRouteSignal(signal, signals, activatedCount');
+        expect(source).toContain('refreshOrderedRouteSignals(signals, activatedCount');
+        expect(source).toContain("nextSignal?.label?.text || fallbackLabel");
+        expect(source).toContain('`NEXT → ${nextLabel}`');
+    });
+
+    test('platformer action pointers have a shared all-path release contract', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'ActionReleaseTest' });
+        const release = jest.fn();
+
+        scene.actionButtonPointers.add('7');
+        scene.actionButtonReleases.set('7', release);
+        scene.virtualJumpPressed = true;
+
+        expect(scene.releasePlatformerActionButton(7)).toBe(true);
+        expect(release).toHaveBeenCalledTimes(1);
+        expect(scene.actionButtonPointers.has('7')).toBe(false);
+        expect(scene.releasePlatformerActionButton(7)).toBe(false);
+
+        scene.virtualJumpPressed = true;
+        scene.releaseAllPlatformerActionButtons();
+        expect(scene.virtualJumpPressed).toBe(false);
+    });
+
+    test.each([
+        'levels/ReefLevel.js',
+        'levels/VoidPeaksLevel.js',
+        'levels/AuroraDepthsLevel.js',
+        'levels/FinalVoidLevel.js'
+    ])('%s enforces readable objective order', relativePath => {
+        const source = read(relativePath);
+
+        expect(source).toContain('this.canActivateOrderedRouteSignal(');
+        expect(source).toContain('this.refreshOrderedRouteSignals(');
+    });
 });

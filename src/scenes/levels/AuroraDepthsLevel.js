@@ -83,10 +83,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.signalPrisms = [];
         this.prismsAligned = 0;
         this.uplinkRiskUnderstood = false;
+        this.routeHintUntil = 0;
         this.reactorGateHintUntil = 0;
         this.auroraFragments = null;
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
+        this.quietLightClaimed = false;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -131,10 +133,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.signalPrisms = [];
         this.prismsAligned = 0;
         this.uplinkRiskUnderstood = false;
+        this.routeHintUntil = 0;
         this.reactorGateHintUntil = 0;
         this.auroraFragments = null;
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
+        this.quietLightClaimed = false;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
@@ -359,12 +363,20 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             [180, groundY - 150, 320], [620, groundY - 255, 240],
             [980, groundY - 165, 280], [1370, groundY - 310, 240],
             [1740, groundY - 205, 300], [2140, groundY - 350, 240],
-            [2520, groundY - 230, 280], [2920, groundY - 380, 260],
-            [3340, groundY - 245, 300], [3740, groundY - 330, 260],
+            [2520, groundY - 230, 280],
+            [3420, groundY - 110, 240], [3700, groundY - 165, 260],
             [4140, groundY - 220, 300], [4550, groundY - 340, 240]
         ];
 
-        ledges.forEach(([x, y, width]) => {
+        // A short high route avoids the third shadow current and rejoins
+        // before the Sky Prism. Every gap stays inside the normal jump arc.
+        const quietLightRoute = [
+            [2780, groundY - 290, 210],
+            [3040, groundY - 380, 220],
+            [3310, groundY - 320, 210]
+        ];
+
+        [...ledges, ...quietLightRoute].forEach(([x, y, width]) => {
             this.createPlatform(x, y, width, 28, 'one-way');
         });
 
@@ -469,7 +481,110 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.createShadowCurrents();
         this.createAuroraFragments();
         this.createSignalPrisms();
+        this.createQuietLightRoute();
         this.createBossArena();
+    }
+
+    createQuietLightRoute() {
+        const groundY = this.levelHeight - 50;
+        const route = this.add.graphics().setDepth(105);
+
+        route.lineStyle(5, 0x7FFFD4, 0.58);
+        route.beginPath();
+        route.moveTo(2730, groundY - 190);
+        route.lineTo(2885, groundY - 300);
+        route.lineTo(3150, groundY - 390);
+        route.lineTo(3415, groundY - 330);
+        route.lineTo(3590, groundY - 175);
+        route.strokePath();
+
+        [2885, 3150, 3415].forEach((x, index) => {
+            const y = [groundY - 300, groundY - 390, groundY - 330][index];
+            route.fillStyle(index === 2 ? 0xF2C94C : 0xA9F3E4, 0.95);
+            route.fillCircle(x, y, index === 2 ? 7 : 5);
+        });
+
+        this.tweens.add({
+            targets: route,
+            alpha: { from: 0.55, to: 1 },
+            duration: 1100,
+            yoyo: true,
+            repeat: -1
+        });
+
+        this.add.text(2700, groundY - 205, 'QUIET LIGHT / HIGH ROUTE', {
+            fontSize: '12px',
+            color: '#A9F3E4',
+            fontStyle: 'bold',
+            stroke: '#061319',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(182);
+        this.add.text(3160, groundY - 82, 'SHADOW CURRENT / DIRECT ROUTE', {
+            fontSize: '11px',
+            color: '#C9A7E8',
+            fontStyle: 'bold',
+            stroke: '#061319',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(182);
+
+        const shelter = this.add.circle(
+            3415,
+            groundY - 365,
+            18,
+            0xF2C94C,
+            0.95
+        ).setDepth(720);
+        shelter.setStrokeStyle(4, 0x7FFFD4, 0.9);
+        this.physics.add.existing(shelter);
+        shelter.body.setAllowGravity(false);
+        shelter.body.setCircle(24, -6, -6);
+
+        const shelterLabel = this.add.text(
+            shelter.x,
+            shelter.y - 38,
+            'CURRENT SHELTER',
+            {
+                fontSize: '11px',
+                color: '#F2C94C',
+                fontStyle: 'bold',
+                stroke: '#061319',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(721);
+
+        this.tweens.add({
+            targets: [shelter, shelterLabel],
+            y: '-=10',
+            duration: 900,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        this.physics.add.overlap(this.player, shelter, () => {
+            if (this.quietLightClaimed || !shelter.active) return;
+
+            this.quietLightClaimed = true;
+            const rewardX = shelter.x;
+            const rewardY = shelter.y;
+            shelter.destroy();
+            shelterLabel.destroy();
+            this.activateShield();
+            this.showFloatingText(
+                'QUIET LIGHT // 15 SECOND SHELTER',
+                rewardX,
+                rewardY - 30,
+                '#F2C94C'
+            );
+            window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
+                count: 22,
+                color: [0xF2C94C, 0x7FFFD4, 0xFFFFFF],
+                duration: 1000
+            });
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'aurora_quiet_light_route'
+            });
+        });
     }
 
     createHUD() {
@@ -683,7 +798,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawSignalPrism(visual, prism.x, prism.y, false);
 
-            const label = this.add.text(prism.x, prism.y - 100, prism.label, {
+            const label = this.add.text(prism.x, prism.y - 100, `${index + 1} // ${prism.label}`, {
                 fontSize: '11px',
                 color: '#87A49E',
                 fontStyle: 'bold',
@@ -710,6 +825,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             });
             this.signalPrisms.push(signalPrism);
         });
+
+        this.refreshPrismRouteReadability();
     }
 
     drawSignalPrism(graphics, x, y, aligned) {
@@ -747,12 +864,24 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     alignSignalPrism(prism) {
         if (!prism || prism.aligned) return;
 
+        if (!this.canActivateOrderedRouteSignal(
+            prism,
+            this.signalPrisms,
+            this.prismsAligned,
+            {
+                fallbackLabel: 'FOLLOW THE AURORA PRISMS',
+                hintOffsetY: -125
+            }
+        )) {
+            return;
+        }
+
         prism.aligned = true;
         prism.zone?.destroy?.();
         prism.zone = null;
         this.prismsAligned++;
         this.drawSignalPrism(prism.visual, prism.x, prism.y, true);
-        prism.label.setColor('#A9F3E4');
+        this.refreshPrismRouteReadability();
         this.setCheckpoint(prism.x, this.levelHeight - 130, {
             persist: true,
             checkpointId: prism.id,
@@ -799,6 +928,18 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         window.AudioManager?.playAchievement?.();
     }
 
+    refreshPrismRouteReadability() {
+        return this.refreshOrderedRouteSignals(
+            this.signalPrisms,
+            this.prismsAligned,
+            {
+                activeProperty: 'aligned',
+                completeColor: '#A9F3E4',
+                futureColor: '#87A49E'
+            }
+        );
+    }
+
     restoreExpeditionRouteState(resume) {
         return this.restoreExpeditionRouteSignals(resume, {
             signals: this.signalPrisms,
@@ -813,6 +954,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 true
             ),
             onRestored: () => {
+                this.refreshPrismRouteReadability();
                 this.objectiveDisplay?.setText?.(this.getAuroraObjectiveText());
             }
         });

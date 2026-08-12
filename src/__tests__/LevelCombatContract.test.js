@@ -19,7 +19,7 @@ describe('playable level combat contracts', () => {
         );
 
         expect(damageHandler).not.toBeNull();
-        expect(damageHandler[1]).toContain('this.takeDamage(damage)');
+        expect(damageHandler[1]).toMatch(/this\.takeDamage\((damage|incomingDamage)\)/);
         expect(damageHandler[1]).not.toContain('this.health -=');
     });
 

@@ -61,10 +61,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bondAnchors = [];
         this.bondAnchorsActivated = 0;
         this.finalSignalReady = false;
+        this.routeHintUntil = 0;
         this.levelStarted = false;
         this.bossGateHintUntil = 0;
         this.empressGate = null;
         this.voidFractures = [];
+        this.bondReserveReady = false;
+        this.bondReserveEcho = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -112,10 +115,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bondAnchors = [];
         this.bondAnchorsActivated = 0;
         this.finalSignalReady = false;
+        this.routeHintUntil = 0;
         this.levelStarted = false;
         this.bossGateHintUntil = 0;
         this.empressGate = null;
         this.voidFractures = [];
+        this.bondReserveReady = false;
+        this.bondReserveEcho = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.highPowerRevealActive = false;
@@ -379,10 +385,19 @@ class FinalVoidLevel extends PlatformerLevelScene {
             [680, groundY - 285, 260],
             [1080, groundY - 190, 300],
             [1510, groundY - 340, 270],
-            [1940, groundY - 220, 300],
+            [1990, groundY - 100, 240],
+            [2240, groundY - 150, 220],
             [2370, groundY - 320, 260]
         ];
-        ledges.forEach(([x, y, width]) => {
+
+        // The Trust Bridge is a bounded high route over the second fracture.
+        // It rejoins at the third anchor and never replaces the forward spine.
+        const trustBridgeRoute = [
+            [1790, groundY - 420, 220],
+            [2050, groundY - 330, 220]
+        ];
+
+        [...ledges, ...trustBridgeRoute].forEach(([x, y, width]) => {
             this.createPlatform(x, y, width, 28, 'one-way');
         });
 
@@ -392,8 +407,123 @@ class FinalVoidLevel extends PlatformerLevelScene {
     createLevelContent() {
         this.createVoidFractures();
         this.createBondAnchors();
+        this.createTrustBridgeRoute();
         this.createBossArena();
         this.createEmpressGate();
+    }
+
+    createTrustBridgeRoute() {
+        const groundY = this.levelHeight - 50;
+        const route = this.add.graphics().setDepth(106);
+
+        route.lineStyle(5, 0xF2C94C, 0.6);
+        route.beginPath();
+        route.moveTo(1660, groundY - 350);
+        route.lineTo(1900, groundY - 430);
+        route.lineTo(2160, groundY - 340);
+        route.lineTo(2310, groundY - 220);
+        route.strokePath();
+        route.lineStyle(2, 0xA9F3E4, 0.72);
+        route.strokeCircle(1900, groundY - 430, 17);
+        route.strokeCircle(2160, groundY - 340, 12);
+
+        this.tweens.add({
+            targets: route,
+            alpha: { from: 0.5, to: 1 },
+            duration: 950,
+            yoyo: true,
+            repeat: -1
+        });
+
+        this.add.text(1690, groundY - 372, 'TRUST BRIDGE / HIGH ROUTE', {
+            fontSize: '12px',
+            color: '#F2C94C',
+            fontStyle: 'bold',
+            stroke: '#09020E',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(182);
+        this.add.text(1845, groundY - 82, 'VOID FRACTURE / DIRECT ROUTE', {
+            fontSize: '11px',
+            color: '#D5A6F5',
+            fontStyle: 'bold',
+            stroke: '#09020E',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(182);
+
+        const reserve = this.add.circle(
+            1900,
+            groundY - 465,
+            18,
+            0xA9F3E4,
+            0.95
+        ).setDepth(720);
+        reserve.setStrokeStyle(4, 0xF2C94C, 0.95);
+        this.physics.add.existing(reserve);
+        reserve.body.setAllowGravity(false);
+        reserve.body.setCircle(24, -6, -6);
+
+        const reserveLabel = this.add.text(
+            reserve.x,
+            reserve.y - 38,
+            'BOND RESERVE',
+            {
+                fontSize: '11px',
+                color: '#A9F3E4',
+                fontStyle: 'bold',
+                stroke: '#09020E',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(721);
+
+        this.tweens.add({
+            targets: [reserve, reserveLabel],
+            y: '-=10',
+            duration: 850,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        this.physics.add.overlap(this.player, reserve, () => {
+            if (this.bondReserveReady || !reserve.active) return;
+
+            this.bondReserveReady = true;
+            const rewardX = reserve.x;
+            const rewardY = reserve.y;
+            reserve.destroy();
+            reserveLabel.destroy();
+
+            this.bondReserveEcho = this.add.circle(
+                this.player.x - 32,
+                this.player.y - 38,
+                8,
+                0xA9F3E4,
+                0.95
+            ).setStrokeStyle(2, 0xF2C94C, 0.9).setDepth(760);
+            this.tweens.add({
+                targets: this.bondReserveEcho,
+                scale: { from: 0.85, to: 1.25 },
+                alpha: { from: 0.65, to: 1 },
+                duration: 700,
+                yoyo: true,
+                repeat: -1
+            });
+
+            this.showFloatingText(
+                'BOND RESERVE // ONE AUTOMATIC RESCUE',
+                rewardX,
+                rewardY - 30,
+                '#A9F3E4'
+            );
+            window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
+                count: 22,
+                color: [0xA9F3E4, 0xF2C94C, 0xFFFFFF],
+                duration: 1000
+            });
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'final_void_trust_bridge'
+            });
+        });
     }
 
     createHUD() {
@@ -536,7 +666,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawBondAnchor(visual, anchor.x, anchor.y, false);
 
-            const label = this.add.text(anchor.x, anchor.y - 98, anchor.label, {
+            const label = this.add.text(anchor.x, anchor.y - 98, `${index + 1} // ${anchor.label}`, {
                 fontSize: '11px',
                 color: '#8F789D',
                 fontStyle: 'bold',
@@ -563,6 +693,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
             });
             this.bondAnchors.push(bondAnchor);
         });
+
+        this.refreshBondRouteReadability();
     }
 
     drawBondAnchor(graphics, x, y, activated) {
@@ -589,12 +721,24 @@ class FinalVoidLevel extends PlatformerLevelScene {
     activateBondAnchor(anchor) {
         if (!anchor || anchor.activated) return;
 
+        if (!this.canActivateOrderedRouteSignal(
+            anchor,
+            this.bondAnchors,
+            this.bondAnchorsActivated,
+            {
+                fallbackLabel: 'FOLLOW THE BOND SIGNALS',
+                hintOffsetY: -125
+            }
+        )) {
+            return;
+        }
+
         anchor.activated = true;
         anchor.zone?.destroy?.();
         anchor.zone = null;
         this.bondAnchorsActivated++;
         this.drawBondAnchor(anchor.visual, anchor.x, anchor.y, true);
-        anchor.label.setColor('#F2C94C');
+        this.refreshBondRouteReadability();
         this.setCheckpoint(anchor.x, this.levelHeight - 130, {
             persist: true,
             checkpointId: anchor.id,
@@ -647,6 +791,18 @@ class FinalVoidLevel extends PlatformerLevelScene {
         window.AudioManager?.playAchievement?.();
     }
 
+    refreshBondRouteReadability() {
+        return this.refreshOrderedRouteSignals(
+            this.bondAnchors,
+            this.bondAnchorsActivated,
+            {
+                completeColor: '#F2C94C',
+                nextColor: '#A9F3E4',
+                futureColor: '#8F789D'
+            }
+        );
+    }
+
     restoreExpeditionRouteState(resume) {
         return this.restoreExpeditionRouteSignals(resume, {
             signals: this.bondAnchors,
@@ -660,6 +816,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 true
             ),
             onRestored: () => {
+                this.refreshBondRouteReadability();
                 this.objectiveDisplay?.setText?.(this.getFinalObjectiveText());
             }
         });
@@ -827,6 +984,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
         }
 
         this.updateBossIndicator();
+
+        if (this.bondReserveEcho?.active && this.player?.active) {
+            this.bondReserveEcho.setPosition(
+                this.player.x - (this.player.flipX ? -32 : 32),
+                this.player.y - 38
+            );
+        }
 
         if (!this.bossFightActive && this.cameras?.main) {
             this.cameras.main.x = 0;
@@ -1679,7 +1843,48 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     handlePlayerDamage(damage) {
-        this.takeDamage(damage);
+        let incomingDamage = Math.max(1, Number(damage) || 1);
+        const protectedByAnotherEffect = Boolean(
+            this.hasShield ||
+            this.powerupShieldHits > 0 ||
+            this.guardianGuardCharges > 0 ||
+            this.communityGuardCharges > 0 ||
+            this.auroraGuardCharges > 0 ||
+            this.isInvincible ||
+            this.isPlayerDead
+        );
+        if (
+            this.bondReserveReady &&
+            !protectedByAnotherEffect &&
+            incomingDamage >= this.health
+        ) {
+            this.bondReserveReady = false;
+            this.bondReserveEcho?.destroy?.();
+            this.bondReserveEcho = null;
+            // Reduce the pending hit through the shared damage pipeline so one
+            // heart remains without temporarily inflating maximum health.
+            incomingDamage = Math.max(0, this.health - 1);
+            this.showFloatingText(
+                'BOND RESERVE // YOUR COMPANION PULLS YOU BACK',
+                this.player.x,
+                this.player.y - 75,
+                '#A9F3E4'
+            );
+            window.FXLibrary?.stardustBurst?.(
+                this,
+                this.player.x,
+                this.player.y,
+                {
+                    count: 28,
+                    color: [0xA9F3E4, 0xF2C94C, 0xFFFFFF],
+                    duration: 1100
+                }
+            );
+            window.AudioManager?.playAchievement?.();
+        }
+        if (incomingDamage > 0) {
+            this.takeDamage(incomingDamage);
+        }
     }
 
     damageBoss(amount = 1) {
@@ -2483,6 +2688,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossIndicator = null;
         this.objectiveDisplay?.destroy?.();
         this.objectiveDisplay = null;
+        this.bondReserveEcho?.destroy?.();
+        this.bondReserveEcho = null;
+        this.bondReserveReady = false;
         this.bossBarConfig = null;
         this.bossSubtitle = null;
 

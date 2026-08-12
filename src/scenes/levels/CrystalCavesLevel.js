@@ -4285,9 +4285,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const { width, height } = this.cameras.main;
         const isShortLandscape = width > height && height < 620;
         this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
+        const objectiveTop = this.isCompactObjectiveHUD
+            ? (isShortLandscape ? 76 : 72)
+            : 28;
         this.objectiveDisplay = this.add.text(
             width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
+            objectiveTop,
             this.getCrystalObjectiveText(),
             {
             fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',

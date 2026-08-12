@@ -106,6 +106,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.beaconAnchorsActivated = 0;
         this.reefRouteAligned = false;
         this.bossGateHintUntil = 0;
+        this.routeHintUntil = 0;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
     }
@@ -162,6 +163,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.beaconAnchorsActivated = 0;
         this.reefRouteAligned = false;
         this.bossGateHintUntil = 0;
+        this.routeHintUntil = 0;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
 
@@ -204,6 +206,15 @@ class ReefLevel extends PlatformerLevelScene {
     setupPlatformerPhysics() {
         this.physics.world.gravity.y = this.gravityY;
         console.log(`[ReefLevel] Cosmic void physics: gravity.y = ${this.gravityY}`);
+    }
+
+    createPlayer() {
+        super.createPlayer();
+        // The Reef opens on a floating platform above the shared ground line.
+        // Spawn above its surface so the padded creature body cannot resolve
+        // underneath it and pin swimming input against the platform ceiling.
+        this.player.setPosition(200, this.levelHeight - 290);
+        this.player.setVelocity(0, 0);
     }
 
     /**
@@ -765,6 +776,11 @@ class ReefLevel extends PlatformerLevelScene {
             { x: 1600, y: this.levelHeight - 700, width: 220, type: 'crystal' },
             { x: 1900, y: this.levelHeight - 500, width: 150, type: 'void' },
 
+            // Optional Star Trench - a finite resource detour that rejoins via the ascent current
+            { x: 1600, y: this.levelHeight - 170, width: 220, type: 'void' },
+            { x: 1940, y: this.levelHeight - 150, width: 220, type: 'crystal' },
+            { x: 2280, y: this.levelHeight - 180, width: 220, type: 'void' },
+
             // Deep section - ship part area
             { x: 2200, y: this.levelHeight - 800, width: 200, type: 'crystal' },
             { x: 2500, y: this.levelHeight - 600, width: 180, type: 'void' },
@@ -954,6 +970,8 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Recovery points also carry the companion-led route discovery.
         this.createBeaconWaypoints();
+        this.createReefRouteChoice();
+        this.createAbyssAscentCurrent();
 
         // Boss trigger
         this.createBossTrigger();
@@ -971,7 +989,7 @@ class ReefLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawBeaconWaypoint(visual, waypoint.x, waypoint.y, false);
 
-            const label = this.add.text(waypoint.x, waypoint.y - 72, waypoint.label, {
+            const label = this.add.text(waypoint.x, waypoint.y - 72, `${index + 1} // ${waypoint.label}`, {
                 fontSize: '11px',
                 color: '#667F94',
                 fontStyle: 'bold',
@@ -998,6 +1016,8 @@ class ReefLevel extends PlatformerLevelScene {
             });
             this.beaconAnchors.push(anchor);
         });
+
+        this.refreshBeaconRouteReadability();
     }
 
     drawBeaconWaypoint(graphics, x, y, activated) {
@@ -1020,12 +1040,21 @@ class ReefLevel extends PlatformerLevelScene {
     activateBeaconWaypoint(anchor) {
         if (!anchor || anchor.activated) return;
 
+        if (!this.canActivateOrderedRouteSignal(
+            anchor,
+            this.beaconAnchors,
+            this.beaconAnchorsActivated,
+            { hintOffsetY: -92 }
+        )) {
+            return;
+        }
+
         anchor.activated = true;
         anchor.zone?.destroy?.();
         anchor.zone = null;
         this.beaconAnchorsActivated++;
         this.drawBeaconWaypoint(anchor.visual, anchor.x, anchor.y, true);
-        anchor.label.setColor('#8FE3CF');
+        this.refreshBeaconRouteReadability();
         this.setCheckpoint(anchor.x, anchor.respawnY, {
             persist: true,
             checkpointId: anchor.id,
@@ -1076,6 +1105,88 @@ class ReefLevel extends PlatformerLevelScene {
         window.AudioManager?.playAchievement?.();
     }
 
+    refreshBeaconRouteReadability() {
+        return this.refreshOrderedRouteSignals(
+            this.beaconAnchors,
+            this.beaconAnchorsActivated,
+            {
+                futureColor: '#667F94'
+            }
+        );
+    }
+
+    createReefRouteChoice() {
+        const mainRoute = this.add.text(1540, 735, 'SIGNAL CURRENT →', {
+            fontSize: '12px',
+            color: '#8FE3CF',
+            fontStyle: 'bold',
+            stroke: '#05030C',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(182);
+
+        const optionalRoute = this.add.text(1580, 930, 'STAR TRENCH ↓ // 2 FRAGMENTS', {
+            fontSize: '12px',
+            color: '#FFD700',
+            fontStyle: 'bold',
+            stroke: '#05030C',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(182);
+
+        this.tweens.add({
+            targets: [mainRoute, optionalRoute],
+            alpha: { from: 0.68, to: 1 },
+            duration: 900,
+            yoyo: true,
+            repeat: -1
+        });
+    }
+
+    createAbyssAscentCurrent() {
+        const startX = 2500;
+        const width = 1000;
+        const currentHeight = 700;
+        const currentY = this.levelHeight - currentHeight / 2;
+        const current = this.add.zone(
+            startX + width / 2,
+            currentY,
+            width,
+            currentHeight
+        );
+        this.physics.add.existing(current, true);
+
+        const visual = this.add.graphics();
+        visual.setDepth(115);
+        visual.fillStyle(0x00FFFF, 0.08);
+        visual.fillRect(startX, this.levelHeight - 210, width, 210);
+        visual.lineStyle(3, 0x00FFFF, 0.36);
+        for (let x = startX + 70; x < startX + width; x += 170) {
+            visual.lineBetween(x, this.levelHeight - 25, x, this.levelHeight - 150);
+            visual.lineBetween(x, this.levelHeight - 150, x - 10, this.levelHeight - 132);
+            visual.lineBetween(x, this.levelHeight - 150, x + 10, this.levelHeight - 132);
+        }
+
+        const label = this.add.text(startX + 170, this.levelHeight - 188, 'ASCENT CURRENT ↑', {
+            fontSize: '11px',
+            color: '#00FFFF',
+            fontStyle: 'bold',
+            stroke: '#05030C',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(183);
+
+        this.tweens.add({
+            targets: [visual, label],
+            alpha: { from: 0.48, to: 0.9 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1
+        });
+
+        this.physics.add.overlap(this.player, current, () => {
+            if (!this.player?.body) return;
+            this.player.setVelocityY(Math.min(this.player.body.velocity.y, -185));
+        });
+    }
+
     restoreExpeditionRouteState(resume) {
         return this.restoreExpeditionRouteSignals(resume, {
             signals: this.beaconAnchors,
@@ -1088,6 +1199,7 @@ class ReefLevel extends PlatformerLevelScene {
                 true
             ),
             onRestored: () => {
+                this.refreshBeaconRouteReadability();
                 this.objectiveDisplay?.setText?.(this.getReefObjectiveText());
             }
         });
@@ -1544,8 +1656,8 @@ class ReefLevel extends PlatformerLevelScene {
         const positions = [
             { x: 500, y: this.levelHeight - 450 },
             { x: 1300, y: this.levelHeight - 750 },
-            { x: 2200, y: this.levelHeight - 850 },
-            { x: 3200, y: this.levelHeight - 650 },
+            { x: 1750, y: this.levelHeight - 225 },
+            { x: 2250, y: this.levelHeight - 220 },
             { x: 4100, y: this.levelHeight - 750 },
         ];
 
@@ -2840,6 +2952,11 @@ class ReefLevel extends PlatformerLevelScene {
             const newVel = this.player.body.velocity.y + (this.maxSinkSpeed - this.player.body.velocity.y) * 0.15;
             this.player.setVelocityY(newVel);
         }
+    }
+
+    releaseVirtualJumpInput() {
+        super.releaseVirtualJumpInput();
+        this.isSwimmingUp = false;
     }
 
     createPlayerCosmicTrail() {

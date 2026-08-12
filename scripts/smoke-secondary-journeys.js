@@ -481,6 +481,74 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         throw new Error(`${sceneName} has no usable mobile joystick: ${JSON.stringify(joystick)}`);
     }
 
+    const jumpControl = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const target = scene?.mobileControlTargets?.jump;
+            if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
+                return null;
+            }
+            return { x: target.x, y: target.y };
+        })()`),
+        { timeoutMs: 5000, message: `${sceneName} jump control` }
+    );
+    if (route !== 'reef') {
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                return Boolean(scene?.isGrounded || scene?.player?.body?.blocked?.down);
+            })()`),
+            { timeoutMs: 5000, message: `${sceneName} grounded before jump` }
+        );
+    }
+    const beforeJump = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        return {
+            playerY: scene?.player?.y,
+            velocityY: scene?.player?.body?.velocity?.y
+        };
+    })()`);
+    await holdTouchDrag(session, jumpControl, jumpControl, 250);
+    const jumped = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        return {
+            playerY: scene?.player?.y,
+            velocityY: scene?.player?.body?.velocity?.y,
+            virtualJumpPressed: scene?.virtualJumpPressed,
+            isSwimmingUp: scene?.isSwimmingUp
+        };
+    })()`);
+    await releaseTouch(session);
+    await delay(120);
+    const jumpReleased = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        return {
+            virtualJumpPressed: scene?.virtualJumpPressed,
+            isSwimmingUp: scene?.isSwimmingUp,
+            jumpKeyDown: scene?.jumpKey?.isDown,
+            cursorUpDown: scene?.cursors?.up?.isDown,
+            wasdUpDown: scene?.wasdKeys?.W?.isDown,
+            actionPointers: Array.from(scene?.actionButtonPointers || []),
+            actionReleases: Array.from(scene?.actionButtonReleases?.keys?.() || [])
+        };
+    })()`);
+    const jumpResponded = route === 'reef'
+        ? jumped.isSwimmingUp === true && (
+            jumped.velocityY < beforeJump.velocityY - 5 ||
+            jumped.playerY < beforeJump.playerY - 2
+        )
+        : jumped.velocityY < -20 || jumped.playerY < beforeJump.playerY - 2;
+    if (!jumpResponded) {
+        throw new Error(`${sceneName} did not respond to jump touch: ${JSON.stringify({
+            before: beforeJump,
+            during: jumped,
+            control: jumpControl
+        })}`);
+    }
+    if (jumpReleased.virtualJumpPressed || jumpReleased.isSwimmingUp) {
+        throw new Error(`${sceneName} retained jump input after touch release: ${JSON.stringify(jumpReleased)}`);
+    }
+
     const dragDistance = Math.max(28, Math.min(joystick.maxDistance, 48));
     trace('right drag ready', { joystick, dragDistance });
     if (SMOKE_TRACE) {
@@ -639,7 +707,11 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     if (exceptions.length) {
         throw new Error(`${sceneName} raised browser exceptions: ${exceptions.join(' | ')}`);
     }
-    return { ...state, joystick: { movedRight, movedLeft } };
+    return {
+        ...state,
+        jump: { before: beforeJump, during: jumped, released: jumpReleased },
+        joystick: { movedRight, movedLeft }
+    };
 }
 
 async function smokePurchasedEgg(session, exceptions) {
@@ -1074,9 +1146,21 @@ async function startCampaignScene(session, step) {
     })()`);
     await waitForScene(session, step.sceneName);
     await delay(450);
-    await tap(session, 195, 390);
+    // Dismiss from the upper playfield so the same pointer cannot land on a
+    // control that becomes interactive while the entry overlay is fading.
+    await tap(session, 195, 140);
     await delay(500);
-    await pressEnter(session);
+    const entryAccepted = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+        return Boolean(
+            scene?.levelEntryDismissing ||
+            scene?.levelStarted ||
+            scene?.gameStarted
+        ) && !scene?.physics?.world?.isPaused;
+    })()`);
+    if (!entryAccepted) {
+        await pressEnter(session);
+    }
     await delay(500);
 }
 
@@ -1489,7 +1573,10 @@ async function smokeVillageUi(session, exceptions) {
         return true;
     })()`);
     if (!publicEntry) throw new Error('Base Builder production entry could not seed a companion');
-    await waitForScene(session, 'GameScene', 30000);
+    // GameScene generates creature animation frames and builds the Sanctuary
+    // before it becomes active. A cold mobile CI run can legitimately take
+    // longer after the six campaign WebGL sessions that precede this case.
+    await waitForScene(session, 'GameScene', 45000);
     const shopResult = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.openShop();
@@ -1592,7 +1679,7 @@ async function smokeVillageUi(session, exceptions) {
         // This case runs after six Phaser-heavy campaign sessions in the release
         // gate. Give the local preview enough time to decode the village artwork
         // on slower CI hosts before treating the route as broken.
-        { timeoutMs: 45000, message: 'Village Heart command panel' }
+        { timeoutMs: 60000, message: 'Village Heart command panel' }
     );
     await waitFor(
         () => evaluate(session, `(() => {
