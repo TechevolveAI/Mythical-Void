@@ -1859,10 +1859,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Enemy properties
         sprite.health = 2;
         sprite.damage = 1;
+        sprite.enemyType = 'voidSprite';
         sprite.speed = 80;
         sprite.detectionRange = 250;
         sprite.isChasing = false;
         this.enemies.add(sprite);
+        this.configureEnemyCombat(sprite, {
+            role: 'chaser',
+            maxHealth: 2,
+            cueOffsetY: -40,
+            onDefeat: enemy => this.killEnemy(enemy)
+        });
 
         // Add to platforms collider
         if (this.platforms) {
@@ -1984,11 +1991,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Patrol properties
         sprite.health = 3;
         sprite.damage = 1;
+        sprite.enemyType = 'branchCrawler';
         sprite.speed = 60;
         sprite.patrolLeft = zone.x - zone.width/2 + 30;
         sprite.patrolRight = zone.x + zone.width/2 - 30;
         sprite.direction = 1;
         this.enemies.add(sprite);
+        this.configureEnemyCombat(sprite, {
+            role: 'armored',
+            maxHealth: 3,
+            stompDamage: 1,
+            cueOffsetY: -34,
+            onDefeat: enemy => this.killEnemy(enemy)
+        });
 
         // Player collision
         if (this.player) {
@@ -2060,10 +2075,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Drifter properties
         sprite.health = 1;
         sprite.damage = 1;
+        sprite.enemyType = 'sporeDrifter';
         sprite.sporeRadius = 60;
         sprite.lastSporeTime = 0;
         sprite.sporeCooldown = 3000;
         this.enemies.add(sprite);
+        this.configureEnemyCombat(sprite, {
+            role: 'hazard',
+            maxHealth: 1,
+            cueOffsetY: -36,
+            onDefeat: enemy => this.killEnemy(enemy)
+        });
 
         // Float animation
         this.tweens.add({
@@ -2224,6 +2246,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Wisp properties
         sprite.health = 2;
         sprite.damage = 1;
+        sprite.enemyType = 'forestWisp';
         sprite.shootRange = 300;
         sprite.teleportRange = 150;
         sprite.homeX = x;
@@ -2232,6 +2255,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
         sprite.teleportCooldown = 6000;  // Increased from 4000 - teleport less often
         sprite.isStunned = false;  // Can't teleport while stunned
         this.enemies.add(sprite);
+        this.configureEnemyCombat(sprite, {
+            role: 'ranged',
+            maxHealth: 2,
+            cueOffsetY: -34,
+            onDefeat: enemy => this.killEnemy(enemy)
+        });
 
         // Pulse animation
         this.tweens.add({
@@ -2418,29 +2447,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Damage an enemy (called from player attacks)
      */
     damageEnemy(enemy, damage = 1) {
-        if (!enemy || !enemy.active) return;
-
-        enemy.health -= damage;
-
-        // Flash red
-        enemy.setTint(0xFF0000);
-        this.time.delayedCall(100, () => {
-            if (enemy.active) enemy.clearTint();
-        });
-
-        // Combat juice
-        if (this.combatJuice) {
-            this.combatJuice.showDamageNumber(enemy.x, enemy.y - 20, damage, false);
-            this.combatJuice.hitFlash(enemy, 0xFFFFFF, 80);
-        }
-
-        if (enemy.health <= 0) {
-            this.killEnemy(enemy);
-        }
-
-        if (window.AudioManager) {
-            window.AudioManager.playAttack();
-        }
+        return super.damageEnemy(enemy, damage);
     }
 
     /**
@@ -2448,6 +2455,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     killEnemy(enemy) {
         if (!enemy.active) return;
+
+        enemy.combatCue?.destroy?.();
+        enemy.combatCue = null;
 
         // Death particles
         const deathFX = this.add.graphics();

@@ -2805,7 +2805,9 @@ class PlatformerLevelScene extends Phaser.Scene {
                 : Math.max(1, Number(enemy.health) || 1);
             const stompDamage = Number.isFinite(options.stompDamage)
                 ? options.stompDamage
-                : defaultDamage;
+                : Number.isFinite(enemy.stompDamage)
+                    ? enemy.stompDamage
+                    : defaultDamage;
 
             if (typeof options.onStomp === 'function') {
                 options.onStomp(enemy, stompDamage);
@@ -2831,6 +2833,180 @@ class PlatformerLevelScene extends Phaser.Scene {
             player.setVelocity(horizontalDirection * horizontalForce, verticalForce);
         }
         return 'contact';
+    }
+
+    configureEnemyCombat(enemy, {
+        role = 'stompable',
+        maxHealth = enemy?.maxHealth,
+        stompable = enemy?.stompable !== false,
+        stompDamage = enemy?.stompDamage,
+        contactDamage = enemy?.damage,
+        cueRange = 320,
+        cueOffsetY = -52,
+        onDefeat = null
+    } = {}) {
+        if (!enemy) return null;
+
+        enemy.maxHealth = Math.max(
+            1,
+            Number(maxHealth) || Number(enemy.health) || 1
+        );
+        enemy.health = Math.max(
+            1,
+            Math.min(enemy.maxHealth, Number(enemy.health) || enemy.maxHealth)
+        );
+        enemy.combatRole = role;
+        enemy.stompable = stompable;
+        enemy.stompDamage = Number.isFinite(stompDamage)
+            ? Math.max(0, stompDamage)
+            : undefined;
+        enemy.damage = Math.max(1, Number(contactDamage) || 1);
+        enemy.combatCueRange = Math.max(180, Number(cueRange) || 320);
+        enemy.combatCueOffsetY = Number(cueOffsetY) || -52;
+        if (typeof onDefeat === 'function') {
+            enemy.onCombatDefeat = () => onDefeat(enemy);
+        }
+
+        this.createEnemyCombatCue(enemy);
+        return enemy;
+    }
+
+    createEnemyCombatCue(enemy) {
+        enemy?.combatCue?.destroy?.();
+        if (!enemy || !this.add?.graphics) return null;
+
+        enemy.combatCue = this.add.graphics().setDepth(
+            Math.max(875, (Number(enemy.depth) || 0) + 2)
+        );
+        this.drawEnemyCombatCue(enemy);
+        enemy.combatCue.setVisible(false);
+        return enemy.combatCue;
+    }
+
+    drawEnemyCombatCue(enemy) {
+        const cue = enemy?.combatCue;
+        if (!cue?.active) return false;
+
+        cue.clear();
+        const health = Math.max(0, Number(enemy.health) || 0);
+        const maxHealth = Math.max(1, Number(enemy.maxHealth) || health || 1);
+        const armored = enemy.combatRole === 'armored' || maxHealth >= 3;
+
+        if (enemy.combatImmune) {
+            cue.lineStyle(3, 0x8FE3CF, 0.95);
+            cue.strokeCircle(0, 0, 11);
+            cue.lineBetween(-8, 8, 8, -8);
+            cue.setAlpha(0.72);
+            return true;
+        }
+
+        cue.setAlpha(1);
+        if (enemy.stompable === false) {
+            cue.lineStyle(3, 0xFF6B6B, 0.95);
+            cue.strokeCircle(0, 1, 10);
+            cue.lineBetween(-7, -6, 7, 8);
+            cue.lineBetween(7, -6, -7, 8);
+        } else {
+            // A gold downward chevron is the universal safe-stomp signal.
+            cue.lineStyle(4, 0xF2C94C, 0.98);
+            cue.lineBetween(-9, -4, 0, 5);
+            cue.lineBetween(0, 5, 9, -4);
+        }
+
+        if (armored) {
+            const segments = Math.min(4, maxHealth);
+            const litSegments = Math.ceil((health / maxHealth) * segments);
+            const startX = -(segments * 7 - 2) / 2;
+            for (let index = 0; index < segments; index++) {
+                cue.fillStyle(
+                    index < litSegments ? 0xF4F4F4 : 0x3A3145,
+                    index < litSegments ? 0.95 : 0.7
+                );
+                cue.fillRect(startX + index * 7, -15, 5, 4);
+            }
+        }
+        return true;
+    }
+
+    updateEnemyCombatReadability() {
+        if (!this.player?.active || !this.enemies?.getChildren) return false;
+
+        this.enemies.getChildren().forEach(enemy => {
+            const cue = enemy?.combatCue;
+            if (!cue?.active) return;
+            const visible = enemy.active !== false && Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                enemy.x,
+                enemy.y
+            ) <= enemy.combatCueRange;
+            cue.setVisible(visible);
+            if (visible) {
+                cue.setPosition(
+                    enemy.x,
+                    enemy.y + enemy.combatCueOffsetY
+                );
+            }
+        });
+        return true;
+    }
+
+    showEnemyCombatBlock(enemy) {
+        if (!enemy?.active) return false;
+        const pulse = this.add.graphics()
+            .setPosition(enemy.x, enemy.y)
+            .setDepth(Math.max(876, (Number(enemy.depth) || 0) + 3));
+        pulse.lineStyle(4, 0x8FE3CF, 0.95);
+        pulse.strokeCircle(0, 0, 18);
+        this.tweens.add({
+            targets: pulse,
+            scale: 1.8,
+            alpha: 0,
+            duration: 240,
+            onComplete: () => pulse.destroy()
+        });
+        window.AudioManager?.playEnemyHit?.();
+        return true;
+    }
+
+    telegraphEnemyAttack(enemy, {
+        duration = 450,
+        color = 0xFF6B6B,
+        radius = 30,
+        targetX = this.player?.x,
+        targetY = this.player?.y,
+        onComplete = null
+    } = {}) {
+        if (!enemy?.active || enemy.attackTelegraphActive) return false;
+
+        enemy.attackTelegraphActive = true;
+        const cue = this.add.graphics()
+            .setPosition(enemy.x, enemy.y)
+            .setDepth(Math.max(874, (Number(enemy.depth) || 0) + 1));
+        cue.lineStyle(4, color, 0.92);
+        cue.strokeCircle(0, 0, Math.max(16, radius));
+        if (Number.isFinite(targetX) && Number.isFinite(targetY)) {
+            cue.lineStyle(2, color, 0.65);
+            cue.lineBetween(0, 0, targetX - enemy.x, targetY - enemy.y);
+        }
+        cue.setScale(0.55);
+
+        this.tweens.add({
+            targets: cue,
+            scale: 1.25,
+            alpha: 0.12,
+            duration: Math.max(180, duration),
+            ease: 'Sine.easeIn',
+            onUpdate: () => {
+                if (enemy.active) cue.setPosition(enemy.x, enemy.y);
+            },
+            onComplete: () => {
+                cue.destroy();
+                enemy.attackTelegraphActive = false;
+                if (enemy.active) onComplete?.();
+            }
+        });
+        return true;
     }
 
     /**
@@ -3127,6 +3303,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (!recoveryInputLocked && !this.isDucking) {
             this.handleJump(time);
         }
+
+        this.updateEnemyCombatReadability();
 
         // Update player facing direction
         this.updatePlayerFacing();
@@ -3853,6 +4031,10 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     damageEnemy(enemy, damage) {
         if (!enemy?.active) return false;
+        if (enemy.combatImmune) {
+            this.showEnemyCombatBlock(enemy);
+            return false;
+        }
         if (typeof enemy.onCombatDamage === 'function') {
             enemy.onCombatDamage(damage);
             return true;
@@ -3873,7 +4055,17 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.combatJuice.screenShake(damage, 80);
 
             // Hit flash on enemy (white flash)
-            this.combatJuice.hitFlash(enemy, 0xFFFFFF, 80);
+            if (typeof enemy.setTint === 'function') {
+                this.combatJuice.hitFlash(enemy, 0xFFFFFF, 80);
+            } else if (enemy.graphics?.active) {
+                this.tweens.add({
+                    targets: enemy.graphics,
+                    alpha: 0.2,
+                    duration: 80,
+                    yoyo: true,
+                    repeat: 1
+                });
+            }
 
             // Brief hit stop for heavy hits
             if (damage >= 2) {
@@ -3881,13 +4073,14 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         } else {
             // Fallback: Flash red
-            enemy.setTint(0xFF0000);
+            enemy.setTint?.(0xFF0000);
             this.time.delayedCall(100, () => {
-                if (enemy.active) enemy.clearTint();
+                if (enemy.active) enemy.clearTint?.();
             });
         }
 
         enemy.health -= finalDamage;
+        this.drawEnemyCombatCue(enemy);
 
         if (enemy.health <= 0) {
             this.defeatEnemy(enemy);
@@ -3903,6 +4096,8 @@ class PlatformerLevelScene extends Phaser.Scene {
             return false;
         }
         if (typeof enemy.onCombatDefeat === 'function') {
+            enemy.combatCue?.destroy?.();
+            enemy.combatCue = null;
             enemy.onCombatDefeat();
             return true;
         }
@@ -3936,6 +4131,8 @@ class PlatformerLevelScene extends Phaser.Scene {
             enemy.graphics.destroy?.();
             enemy.graphics = null;
         }
+        enemy.combatCue?.destroy?.();
+        enemy.combatCue = null;
         enemy.destroy();
         window.AchievementSystem?.recordEvent?.('enemy_defeated', {
             levelId: this.levelId || this.scene?.key || null

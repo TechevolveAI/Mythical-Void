@@ -75,4 +75,41 @@ describe('playable level combat contracts', () => {
         expect(source).toContain('typeof enemy.onCombatDamage === \'function\'');
         expect(source).toContain('Math.max(6, Number(enemy.health) || 1)');
     });
+
+    test('shared enemy combat communicates stomp, armor, immunity, and attack intent', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('configureEnemyCombat(enemy, {');
+        expect(source).toContain("enemy.combatRole === 'armored'");
+        expect(source).toContain('enemy.stompable === false');
+        expect(source).toContain('if (enemy.combatImmune)');
+        expect(source).toContain('telegraphEnemyAttack(enemy, {');
+        expect(source).toContain('enemy.combatCue?.destroy?.();');
+    });
+
+    test.each([
+        ['MythicalForestLevel.js', "role: 'armored'"],
+        ['CrystalCavesLevel.js', "role: 'armored'"],
+        ['ReefLevel.js', "role: 'charger'"],
+        ['VoidPeaksLevel.js', "role: 'armored'"]
+    ])('%s configures readable enemy combat roles', (fileName, roleContract) => {
+        const source = readLevel(fileName);
+
+        expect(source).toContain('this.configureEnemyCombat(');
+        expect(source).toContain(roleContract);
+    });
+
+    test('Reef warns before lunges and makes phased immunity physical', () => {
+        const source = readLevel('ReefLevel.js');
+
+        expect(source.match(/this\.telegraphEnemyAttack\(/g)).toHaveLength(2);
+        expect(source).toContain('drifter.combatImmune = drifter.isPhased;');
+        expect(source).toContain(
+            'drifter.body.checkCollision.none = drifter.isPhased;'
+        );
+        expect(source).toContain('this.updateEnemyCombatReadability();');
+    });
 });

@@ -1361,6 +1361,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.crystalSpider.isAttacking = false;
         this.crystalSpider.defeated = false;
         this.crystalSpider.onCombatDamage = amount => this.damageSpider(amount);
+        this.configureEnemyCombat(this.crystalSpider, {
+            role: 'armored',
+            maxHealth: 4,
+            stompDamage: 1,
+            cueOffsetY: -58
+        });
 
         // Make it hang upside down initially
         this.crystalSpider.setFlipY(true);
@@ -1823,6 +1829,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (!this.crystalSpider || !this.crystalSpider.active || this.crystalSpider.defeated) return;
 
         this.crystalSpider.health -= amount;
+        this.drawEnemyCombatCue(this.crystalSpider);
         this.updateSpiderHealthBar();
 
         // Flash effect
@@ -1859,6 +1866,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const spider = this.crystalSpider;
         spider.defeated = true;
         spider.onCombatDamage = null;
+        spider.combatCue?.destroy?.();
+        spider.combatCue = null;
 
         // Stop AI timers
         if (this.spiderAITimer) {
@@ -1979,6 +1988,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         bat.patrolStartX = x - 100;
         bat.patrolEndX = x + 100;
         bat.patrolDirection = 1;
+        this.configureEnemyCombat(bat, {
+            role: 'flyer',
+            maxHealth: 1,
+            cueOffsetY: -30
+        });
 
         // Flutter animation
         this.tweens.add({
@@ -2064,6 +2078,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         crawler.patrolStartX = x - 150;
         crawler.patrolEndX = x + 150;
         crawler.patrolDirection = 1;
+        this.configureEnemyCombat(crawler, {
+            role: 'armored',
+            maxHealth: 2,
+            stompDamage: 1,
+            cueOffsetY: -38
+        });
 
         // Patrol movement
         this.time.addEvent({

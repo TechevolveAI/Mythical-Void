@@ -113,6 +113,41 @@ describe('campaign traversal quality contracts', () => {
         }, enemy)).toBe('contact');
     });
 
+    test('armored enemy stomps apply the authored damage once per contact', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'ArmoredStompTest' });
+        const player = {
+            active: true,
+            x: 100,
+            y: 130,
+            body: {
+                center: { y: 150 },
+                bottom: 180,
+                velocity: { y: 80 }
+            },
+            setVelocityY: jest.fn()
+        };
+        const enemy = {
+            active: true,
+            x: 100,
+            y: 200,
+            health: 3,
+            stompDamage: 1,
+            body: { center: { y: 200 }, top: 175, height: 50 }
+        };
+        scene.time = { now: 1000 };
+        scene.jumpVelocity = -460;
+        scene.damageEnemy = jest.fn();
+        scene.showFloatingText = jest.fn();
+
+        expect(scene.resolveEnemyContact(player, enemy)).toBe('stomp');
+        expect(scene.damageEnemy).toHaveBeenCalledWith(enemy, 1);
+        expect(player.setVelocityY).toHaveBeenCalledWith(-285.2);
+
+        expect(scene.resolveEnemyContact(player, enemy)).toBe('ignored');
+        expect(scene.damageEnemy).toHaveBeenCalledTimes(1);
+    });
+
     test('the physics world includes fall space before pit recovery', () => {
         const source = read('PlatformerLevelScene.js');
 

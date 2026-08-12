@@ -422,6 +422,10 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             ),
             interactiveCount: scene?.input?._list?.length || 0,
             displayCount: scene?.children?.list?.length || 0,
+            enemyCount: scene?.enemies?.getChildren?.()
+                ?.filter(enemy => enemy?.active !== false).length || 0,
+            combatCueCount: scene?.enemies?.getChildren?.()
+                ?.filter(enemy => enemy?.active !== false && enemy?.combatCue?.active).length || 0,
             actualFps: window.mythicalGame?.loop?.actualFps || 0,
             canvasWidth: document.querySelector('canvas')?.width || 0,
             canvasHeight: document.querySelector('canvas')?.height || 0
@@ -436,6 +440,17 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     }
     if (!state.canvasWidth || !state.canvasHeight) {
         throw new Error(`${sceneName} rendered a blank-sized canvas`);
+    }
+    if (
+        ['mythicalForest', 'crystalCaves', 'reef', 'voidPeaks'].includes(route) &&
+        (
+            state.enemyCount < 1 ||
+            state.combatCueCount !== state.enemyCount
+        )
+    ) {
+        throw new Error(
+            `${sceneName} has enemies without combat readability cues: ${JSON.stringify(state)}`
+        );
     }
     trace('live gameplay verified', state);
     if (SMOKE_TRACE) {

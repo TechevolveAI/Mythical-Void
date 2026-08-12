@@ -451,6 +451,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             enemy.setVelocityX(index % 2 === 0 ? 45 : -45);
             enemy.setDepth(850);
 
+            this.configureEnemyCombat(enemy, {
+                role: 'armored',
+                maxHealth: enemyData.health,
+                stompDamage: 1,
+                cueOffsetY: -62
+            });
+
             this.enemies.add(enemy);
             this.physics.add.collider(enemy, this.platforms);
         });

@@ -1267,6 +1267,12 @@ class ReefLevel extends PlatformerLevelScene {
         body.baseY = y;
         body.phase = Math.random() * Math.PI * 2;
 
+        this.configureEnemyCombat(body, {
+            role: 'stompable',
+            maxHealth: 2,
+            cueOffsetY: -48
+        });
+
         return body;
     }
 
@@ -1332,7 +1338,14 @@ class ReefLevel extends PlatformerLevelScene {
         body.baseX = x;
         body.baseY = y;
         body.isCharging = false;
+        body.isTelegraphing = false;
         body.facingRight = true;
+
+        this.configureEnemyCombat(body, {
+            role: 'charger',
+            maxHealth: 2,
+            cueOffsetY: -34
+        });
 
         return body;
     }
@@ -1414,6 +1427,12 @@ class ReefLevel extends PlatformerLevelScene {
         body.baseY = y;
         body.isPhased = false;
         body.phaseTimer = 0;
+
+        this.configureEnemyCombat(body, {
+            role: 'phase',
+            maxHealth: 1,
+            cueOffsetY: -70
+        });
 
         return body;
     }
@@ -1510,6 +1529,14 @@ class ReefLevel extends PlatformerLevelScene {
         body.baseY = y;
         body.isLurking = true;
         body.isLunging = false;
+        body.isTelegraphing = false;
+
+        this.configureEnemyCombat(body, {
+            role: 'armored',
+            maxHealth: 5,
+            stompDamage: 1,
+            cueOffsetY: -76
+        });
 
         return body;
     }
@@ -1565,22 +1592,36 @@ class ReefLevel extends PlatformerLevelScene {
                 dart.isCharging = false;
                 dart.setVelocity(0, 0);
             }
-        } else {
+        } else if (!dart.isTelegraphing) {
             // Patrol
             const patrol = Math.sin(time / 1500 + dart.baseX) * 120;
             dart.x = dart.baseX + patrol;
 
             // Check for charge
             if (distToPlayer < 350 && Math.random() > 0.985) {
-                dart.isCharging = true;
-                dart.chargeTime = time;
-
-                const angle = Phaser.Math.Angle.Between(
-                    dart.x, dart.y, this.player.x, this.player.y
-                );
-
-                dart.setVelocity(Math.cos(angle) * 500, Math.sin(angle) * 500);
-                dart.facingRight = this.player.x > dart.x;
+                dart.isTelegraphing = true;
+                dart.setVelocity(0, 0);
+                this.telegraphEnemyAttack(dart, {
+                    duration: 420,
+                    color: 0x00FFFF,
+                    radius: 28,
+                    onComplete: () => {
+                        dart.isTelegraphing = false;
+                        dart.isCharging = true;
+                        dart.chargeTime = this.time.now;
+                        const angle = Phaser.Math.Angle.Between(
+                            dart.x,
+                            dart.y,
+                            this.player.x,
+                            this.player.y
+                        );
+                        dart.setVelocity(
+                            Math.cos(angle) * 500,
+                            Math.sin(angle) * 500
+                        );
+                        dart.facingRight = this.player.x > dart.x;
+                    }
+                });
             }
         }
 
@@ -1599,6 +1640,9 @@ class ReefLevel extends PlatformerLevelScene {
         if (time > drifter.phaseTimer + 4000) {
             drifter.phaseTimer = time;
             drifter.isPhased = !drifter.isPhased;
+            drifter.combatImmune = drifter.isPhased;
+            drifter.body.checkCollision.none = drifter.isPhased;
+            this.drawEnemyCombatCue(drifter);
 
             if (drifter.graphics) {
                 this.tweens.add({
@@ -1617,31 +1661,43 @@ class ReefLevel extends PlatformerLevelScene {
             wraith.x, wraith.y, this.player.x, this.player.y
         );
 
-        if (wraith.isLurking) {
+        if (wraith.isLurking && !wraith.isTelegraphing) {
             if (distToPlayer < 250) {
                 wraith.isLurking = false;
-                wraith.isLunging = true;
-
-                const angle = Phaser.Math.Angle.Between(
-                    wraith.x, wraith.y, this.player.x, this.player.y
-                );
-
-                wraith.setVelocity(Math.cos(angle) * 350, Math.sin(angle) * 350);
-
-                this.time.delayedCall(1200, () => {
-                    wraith.isLunging = false;
-
-                    this.tweens.add({
-                        targets: wraith,
-                        x: wraith.baseX,
-                        y: wraith.baseY,
-                        duration: 2500,
-                        ease: 'Sine.easeInOut',
-                        onComplete: () => {
-                            wraith.isLurking = true;
-                            wraith.setVelocity(0, 0);
-                        }
-                    });
+                wraith.isTelegraphing = true;
+                wraith.setVelocity(0, 0);
+                this.telegraphEnemyAttack(wraith, {
+                    duration: 520,
+                    color: 0xFF0066,
+                    radius: 48,
+                    onComplete: () => {
+                        wraith.isTelegraphing = false;
+                        wraith.isLunging = true;
+                        const angle = Phaser.Math.Angle.Between(
+                            wraith.x,
+                            wraith.y,
+                            this.player.x,
+                            this.player.y
+                        );
+                        wraith.setVelocity(
+                            Math.cos(angle) * 350,
+                            Math.sin(angle) * 350
+                        );
+                        this.time.delayedCall(1200, () => {
+                            wraith.isLunging = false;
+                            this.tweens.add({
+                                targets: wraith,
+                                x: wraith.baseX,
+                                y: wraith.baseY,
+                                duration: 2500,
+                                ease: 'Sine.easeInOut',
+                                onComplete: () => {
+                                    wraith.isLurking = true;
+                                    wraith.setVelocity(0, 0);
+                                }
+                            });
+                        });
+                    }
                 });
             }
         }
@@ -2671,21 +2727,7 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     damageEnemy(enemy, amount) {
-        enemy.health -= amount;
-
-        if (enemy.graphics) {
-            this.tweens.add({
-                targets: enemy.graphics,
-                alpha: 0.2,
-                duration: 80,
-                yoyo: true,
-                repeat: 2
-            });
-        }
-
-        if (enemy.health <= 0) {
-            this.defeatEnemy(enemy);
-        }
+        return super.damageEnemy(enemy, amount);
     }
 
     damageBoss(amount) {
@@ -2993,6 +3035,7 @@ class ReefLevel extends PlatformerLevelScene {
             this.updateShield(delta);
         }
         this.updateEnemies(time, delta);
+        this.updateEnemyCombatReadability();
 
         if (this.bossFightActive) {
             this.updateBoss(time, delta);
