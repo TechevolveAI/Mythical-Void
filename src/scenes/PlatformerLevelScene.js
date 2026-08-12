@@ -6355,7 +6355,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         elements.push(cage);
 
         const titleX = compact ? centerX : width * 0.06;
-        const titleY = compact ? height * 0.63 : height * 0.3;
+        const shortCompact = compact && height < 620;
+        const titleY = compact
+            ? (shortCompact ? height * 0.61 : height * 0.63)
+            : height * 0.3;
         const title = this.add.text(titleX, titleY, `${resident.name.toUpperCase()} // ${resident.role.toUpperCase()}`, {
             fontFamily: 'Arial, sans-serif',
             fontSize: compact ? '21px' : '32px',
@@ -6366,19 +6369,31 @@ class PlatformerLevelScene extends Phaser.Scene {
         }).setOrigin(compact ? 0.5 : 0, 0.5).setScrollFactor(0).setDepth(depth + 3);
         elements.push(title);
 
+        const compactStory = [
+            resident.releaseLine,
+            `${resident.name} chose to return with you.`,
+            resident.supportLabel
+        ].join('\n');
         const story = this.add.text(
             titleX,
-            compact ? height * 0.72 : height * 0.46,
-            `${resident.releaseLine}\n\nFREE, NOT COLLECTED. ${resident.name} chose to return with you.\n${resident.supportLabel}`,
+            compact
+                ? (shortCompact ? titleY + 26 : height * 0.72)
+                : height * 0.46,
+            compact
+                ? compactStory
+                : `${resident.releaseLine}\n\nFREE, NOT COLLECTED. ${resident.name} chose to return with you.\n${resident.supportLabel}`,
             {
                 fontFamily: 'Arial, sans-serif',
-                fontSize: compact ? '12px' : '16px',
+                fontSize: shortCompact ? '11px' : (compact ? '12px' : '16px'),
                 color: '#F4F4F4',
-                lineSpacing: compact ? 3 : 7,
+                lineSpacing: shortCompact ? 2 : (compact ? 3 : 7),
                 align: compact ? 'center' : 'left',
                 wordWrap: { width: compact ? width - 40 : width * 0.42 }
             }
-        ).setOrigin(compact ? 0.5 : 0, 0.5).setScrollFactor(0).setDepth(depth + 3);
+        ).setOrigin(
+            compact ? 0.5 : 0,
+            shortCompact ? 0 : 0.5
+        ).setScrollFactor(0).setDepth(depth + 3);
         elements.push(story);
 
         const button = this.add.text(

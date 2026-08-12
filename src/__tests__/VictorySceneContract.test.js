@@ -119,6 +119,9 @@ describe('VictoryScene campaign contract', () => {
     test('frames the finale as a protected shared outcome and priority', () => {
         expect(victorySceneSource).toContain('WHAT COMES FIRST?');
         expect(victorySceneSource).toContain(
+            'const compactChoiceHeight = Math.max(50, Math.min(56, height * 0.105));'
+        );
+        expect(victorySceneSource).toContain(
             'The coordinates are protected. Departure is deferred.'
         );
         expect(victorySceneSource).toContain(
@@ -137,7 +140,16 @@ describe('VictoryScene campaign contract', () => {
             'isCompact ? height * 0.74 : btnY'
         );
         expect(victorySceneSource).toContain(
-            'isCompact ? 0.86 : 0.84'
+            'isCompact ? 0.875 : 0.84'
+        );
+        expect(victorySceneSource).toContain(
+            'PREPARATION ONLY // NO TRANSMISSION\\nNO DEPARTURE'
+        );
+        expect(victorySceneSource).toContain(
+            'height * (isCompact ? 0.315 : 0.35)'
+        );
+        expect(victorySceneSource).toContain(
+            'isCompact ? 0.72 : 1'
         );
         expect(victorySceneSource).toContain("color: '#D7CDF6'");
         expect(victorySceneSource).not.toContain(

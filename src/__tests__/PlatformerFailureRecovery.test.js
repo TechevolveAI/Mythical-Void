@@ -32,4 +32,10 @@ describe('Platformer failure and mobile input recovery', () => {
         expect(source).toContain("button?.once?.('pointerup', () => this.scene.start('HubWorldScene'));"
         );
     });
+
+    test('uses a short-screen resident rescue layout without stacked copy overlap', () => {
+        expect(source).toContain('const shortCompact = compact && height < 620;');
+        expect(source).toContain("shortCompact ? titleY + 26 : height * 0.72");
+        expect(source).toContain('shortCompact ? 0 : 0.5');
+    });
 });

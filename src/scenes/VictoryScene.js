@@ -1135,13 +1135,15 @@ export default class VictoryScene extends Phaser.Scene {
             ? Math.min(320, width * 0.8)
             : Math.min(230, width * 0.27);
         const btnGap = 14;
+        const compactChoiceHeight = Math.max(50, Math.min(56, height * 0.105));
 
         this.createChoiceButton(
             isCompact ? width / 2 : width / 2 - btnWidth - btnGap,
             isCompact ? height * 0.50 : btnY,
             'DEFEND FIRST\nRestore communities', 0x31845A,
             () => this.showEndingConfirmation('remain_and_defend'),
-            btnWidth
+            btnWidth,
+            compactChoiceHeight
         );
 
         this.createChoiceButton(
@@ -1149,7 +1151,8 @@ export default class VictoryScene extends Phaser.Scene {
             isCompact ? height * 0.62 : btnY,
             'PREPARE HOMECOMING\nPreserve a secret route', 0x2769A8,
             () => this.showEndingConfirmation('prepare_homecoming'),
-            btnWidth
+            btnWidth,
+            compactChoiceHeight
         );
 
         this.createChoiceButton(
@@ -1157,17 +1160,20 @@ export default class VictoryScene extends Phaser.Scene {
             isCompact ? height * 0.74 : btnY,
             'PREPARE HONEST CONTACT\nBuild consent and proof', 0x9A4141,
             () => this.showEndingConfirmation('prepare_first_contact'),
-            btnWidth
+            btnWidth,
+            compactChoiceHeight
         );
 
         // Hint text
-        const hint = this.add.text(width / 2, height * (isCompact ? 0.86 : 0.84),
-            'This sets a preparation priority. It does not transmit or depart.', {
-            fontSize: '12px',
+        const hint = this.add.text(width / 2, height * (isCompact ? 0.875 : 0.84),
+            isCompact
+                ? 'PREPARATION ONLY // NO TRANSMISSION\nNO DEPARTURE'
+                : 'This sets a preparation priority. It does not transmit or depart.', {
+            fontSize: isCompact ? '10px' : '12px',
             color: '#D7CDF6',
             fontStyle: 'italic',
             align: 'center',
-            wordWrap: { width: width * 0.76 }
+            wordWrap: { width: width * (isCompact ? 0.82 : 0.76) }
         }).setOrigin(0.5).setDepth(101);
         this.elements.push(hint);
     }
@@ -1175,10 +1181,18 @@ export default class VictoryScene extends Phaser.Scene {
     /**
      * Create a choice button (larger than regular buttons)
      */
-    createChoiceButton(x, y, text, color, callback, widthOverride = null) {
+    createChoiceButton(
+        x,
+        y,
+        text,
+        color,
+        callback,
+        widthOverride = null,
+        heightOverride = null
+    ) {
         const { width } = this.scale;
         const btnWidth = widthOverride || Math.min(150, width * 0.35);
-        const btnHeight = 64;
+        const btnHeight = heightOverride || 64;
 
         const btn = this.add.graphics();
         btn.fillStyle(color, 1);
@@ -1362,7 +1376,8 @@ export default class VictoryScene extends Phaser.Scene {
             choice,
             pageIndex,
             width / 2,
-            height * (isCompact ? 0.34 : 0.35)
+            height * (isCompact ? 0.315 : 0.35),
+            isCompact ? 0.72 : 1
         );
 
         const body = this.add.text(
@@ -1434,7 +1449,7 @@ export default class VictoryScene extends Phaser.Scene {
         return true;
     }
 
-    createEndingTableau(choice, pageIndex, centerX, centerY) {
+    createEndingTableau(choice, pageIndex, centerX, centerY, visualScale = 1) {
         const priority = PROJECT_BEACON_PRIORITIES[choice];
         const art = this.add.graphics();
         art.setPosition(centerX, centerY);
@@ -1512,10 +1527,10 @@ export default class VictoryScene extends Phaser.Scene {
             art.fillCircle(60, 34, 6);
         }
 
-        art.setScale(0.92);
+        art.setScale(visualScale * 0.92);
         this.tweens.add({
             targets: art,
-            scale: 1,
+            scale: visualScale,
             alpha: { from: 0.65, to: 1 },
             duration: 1200,
             yoyo: true,
@@ -1523,6 +1538,7 @@ export default class VictoryScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
         this.elements.push(art);
+        return art;
     }
 
     showNewGamePlusConfirmation(choice) {
