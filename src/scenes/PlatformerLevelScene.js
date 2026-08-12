@@ -1424,7 +1424,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Create physics sprite
         this.player = this.physics.add.sprite(startX, startY, textureName);
         this.player.setCollideWorldBounds(true);
-        this.player.setBounce(0.1);
+        // Passive bounce creates tiny involuntary hops that swallow buffered
+        // mobile jumps and make flat-ground movement feel sticky.
+        this.player.setBounce(0);
         this.player.setDrag(100, 0);
 
         // Get actual texture dimensions for proper physics body sizing
@@ -3264,8 +3266,12 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Anti-stuck detection: Check if player is embedded in ground and rescue them
         this.checkAndFixStuckPlayer();
 
-        // Check if grounded
-        this.isGrounded = this.player.body.blocked.down || this.player.body.touching.down;
+        // A collision flag can survive for one frame after upward motion starts.
+        // Never treat a rising body as grounded or overwrite its jump state.
+        const isRising = this.player.body.velocity.y < -1;
+        this.isGrounded = Boolean(
+            this.player.body.blocked.down || this.player.body.touching.down
+        ) && !isRising;
 
         // Track coyote time - record when we were last grounded
         if (this.isGrounded) {

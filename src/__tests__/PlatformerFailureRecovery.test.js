@@ -38,4 +38,12 @@ describe('Platformer failure and mobile input recovery', () => {
         expect(source).toContain("shortCompact ? titleY + 26 : height * 0.72");
         expect(source).toContain('shortCompact ? 0 : 0.5');
     });
+
+    test('keeps flat-ground mobile jumps stable instead of passively bouncing', () => {
+        expect(source).toContain('this.player.setBounce(0);');
+        expect(source).toContain(
+            'const isRising = this.player.body.velocity.y < -1;'
+        );
+        expect(source).toContain(') && !isRising;');
+    });
 });

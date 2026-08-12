@@ -511,7 +511,11 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         await waitFor(
             () => evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                return Boolean(scene?.isGrounded || scene?.player?.body?.blocked?.down);
+                const supported = Boolean(
+                    scene?.isGrounded || scene?.player?.body?.blocked?.down
+                );
+                const velocityY = scene?.player?.body?.velocity?.y;
+                return supported && Number.isFinite(velocityY) && velocityY >= -1;
             })()`),
             { timeoutMs: 5000, message: `${sceneName} grounded before jump` }
         );
