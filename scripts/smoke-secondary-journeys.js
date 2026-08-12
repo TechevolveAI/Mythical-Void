@@ -1692,13 +1692,21 @@ async function smokeVillageUi(session, exceptions) {
         return { shopEntry: baseResult, construction, closeResult };
     }
 
-    await navigate(session, `${BASE_URL}/play/?testVillage=active`);
+    await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        game.scene.getScenes(true).forEach(active => {
+            game.scene.stop(active.scene.key);
+        });
+        game.scene.start('GameScene', {
+            villageCommandPreview: 'active',
+            forceMobileControls: true
+        });
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 45000);
     await waitFor(
         () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.is-visible'))`),
-        // This case runs after six Phaser-heavy campaign sessions in the release
-        // gate. Give the local preview enough time to decode the village artwork
-        // on slower CI hosts before treating the route as broken.
-        { timeoutMs: 60000, message: 'Village Heart command panel' }
+        { timeoutMs: 45000, message: 'Village Heart command panel' }
     );
     await waitFor(
         () => evaluate(session, `(() => {
