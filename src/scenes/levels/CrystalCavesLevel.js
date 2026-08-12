@@ -10,7 +10,7 @@ const CRYSTAL_GUARDIAN_DISPLAY_HEIGHT = 190;
 
 const CRYSTAL_GUARDIAN_ATTACK_WINDOWS = Object.freeze({
     ground_slam: 1400,
-    crystal_barrage: 2600,
+    crystal_barrage: 2900,
     charge: 1700
 });
 
@@ -18,6 +18,19 @@ const CRYSTAL_GUARDIAN_ATTACK_CUES = Object.freeze({
     ground_slam: 'GROUND PULSE // JUMP',
     crystal_barrage: 'CRYSTAL BARRAGE // MOVE BETWEEN SHOTS',
     charge: 'GUARDIAN CHARGE // GET BEHIND IT'
+});
+
+const CRYSTAL_GUARDIAN_ATTACK_PACING = Object.freeze({
+    ground_slam: { windup: 650, recovery: 850, color: 0x9B8CFF },
+    crystal_barrage: { windup: 750, recovery: 950, color: 0xF08CFF },
+    charge: { windup: 700, recovery: 1000, color: 0xFF6B6B }
+});
+
+const CRYSTAL_SPIDER_ATTACK_PACING = Object.freeze({
+    drop: { windup: 500, recovery: 800, color: 0xFFD166, cue: 'DROP // MOVE SIDEWAYS' },
+    pounce: { windup: 550, recovery: 900, color: 0xFF6B6B, cue: 'POUNCE // STEP BACK' },
+    web_shot: { windup: 500, recovery: 700, color: 0xE8F7FF, cue: 'WEB SHOT // CHANGE HEIGHT' },
+    web_drop: { windup: 400, recovery: 600, color: 0xE8F7FF, cue: 'WEB DROP // CLEAR THE LANE' }
 });
 
 /**
@@ -77,8 +90,18 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossInstructionText = null;
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer = null;
+        this.bossAttackWindupTimer = null;
+        this.bossRecoveryTimer = null;
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitioning = false;
+        this.bossPhasePending = false;
+        this.bossTelegraphs = new Set();
         this.bossAttackPreview = null;
         this.bossTargetScale = 1;
+
+        this.spiderAttackWindupTimer = null;
+        this.spiderRecoveryTimer = null;
+        this.spiderTelegraphs = new Set();
 
         // Enemy spawns
         this.enemySpawns = [];
@@ -135,6 +158,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossInstructionText = null;
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer = null;
+        this.bossAttackWindupTimer = null;
+        this.bossRecoveryTimer = null;
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitioning = false;
+        this.bossPhasePending = false;
+        this.bossTelegraphs = new Set();
         this.bossTargetScale = 1;
         this.bossAttackPreview = [
             'ground_slam',
@@ -143,6 +172,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         ].includes(data?.bossAttackPreview)
             ? data.bossAttackPreview
             : null;
+        this.spiderAttackWindupTimer = null;
+        this.spiderRecoveryTimer = null;
+        this.spiderTelegraphs = new Set();
 
         // Reset ambient audio
         this.ambientAudio = null;
@@ -1511,28 +1543,137 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     /**
+     * Give every miniboss attack a readable warning and a guaranteed opening.
+     */
+    beginSpiderAttack(attackType, execute, activeDuration = 0) {
+        const spider = this.crystalSpider;
+        if (!spider?.active || spider.defeated || spider.isAttacking) return false;
+
+        const pacing = CRYSTAL_SPIDER_ATTACK_PACING[attackType];
+        if (!pacing) return false;
+
+        spider.isAttacking = true;
+        spider.isRecovering = false;
+        spider.setVelocityX?.(0);
+        this.spiderNameText?.setText(pacing.cue);
+        this.createSpiderAttackTelegraph(attackType, pacing);
+
+        this.spiderAttackWindupTimer?.remove?.();
+        this.spiderAttackWindupTimer = this.time.delayedCall(pacing.windup, () => {
+            this.spiderAttackWindupTimer = null;
+            if (!spider.active || spider.defeated) return;
+
+            execute();
+            this.spiderRecoveryTimer?.remove?.();
+            this.spiderRecoveryTimer = this.time.delayedCall(activeDuration, () => {
+                if (!spider.active || spider.defeated) return;
+
+                spider.isRecovering = true;
+                this.showSpiderRecovery(pacing.recovery);
+                this.spiderRecoveryTimer = this.time.delayedCall(pacing.recovery, () => {
+                    if (spider.active && !spider.defeated) {
+                        spider.isAttacking = false;
+                        spider.isRecovering = false;
+                        spider.clearTint?.();
+                        this.spiderNameText?.setText('CRYSTAL SPIDER // CALM THE PULSE');
+                    }
+                    this.spiderRecoveryTimer = null;
+                });
+            });
+        });
+        return true;
+    }
+
+    createSpiderAttackTelegraph(attackType, pacing) {
+        const spider = this.crystalSpider;
+        if (!spider || !this.player) return null;
+
+        const warning = this.add.graphics();
+        const minX = Math.min(spider.x, this.player.x);
+        const minY = Math.min(spider.y, this.player.y);
+        const width = Math.max(36, Math.abs(this.player.x - spider.x));
+        const height = Math.max(36, Math.abs(this.player.y - spider.y));
+        warning.fillStyle(pacing.color, 0.14);
+        warning.lineStyle(3, pacing.color, 0.95);
+
+        if (attackType === 'drop' || attackType === 'web_drop') {
+            warning.fillRect(spider.x - 28, spider.y, 56, height);
+            warning.strokeRect(spider.x - 28, spider.y, 56, height);
+        } else if (attackType === 'pounce') {
+            warning.fillRect(minX - 25, minY - 25, width + 50, height + 50);
+            warning.strokeRect(minX - 25, minY - 25, width + 50, height + 50);
+        } else {
+            warning.lineBetween(spider.x, spider.y, this.player.x, this.player.y);
+            warning.strokeCircle(this.player.x, this.player.y, 24);
+        }
+
+        warning.setDepth(850).setAlpha(0.9);
+        this.spiderTelegraphs.add(warning);
+        this.tweens.add({
+            targets: warning,
+            alpha: 0.25,
+            duration: Math.max(100, Math.floor(pacing.windup / 4)),
+            yoyo: true,
+            repeat: 2,
+            onComplete: () => this.destroySpiderTelegraph(warning)
+        });
+        return warning;
+    }
+
+    showSpiderRecovery(duration) {
+        if (!this.crystalSpider?.active) return;
+
+        this.spiderNameText?.setText('OPENING // STRIKE NOW');
+        const opening = this.add.graphics();
+        opening.lineStyle(4, 0x8FE3CF, 0.95);
+        opening.strokeCircle(0, 0, 42);
+        opening.setPosition(this.crystalSpider.x, this.crystalSpider.y).setDepth(870);
+        this.spiderTelegraphs.add(opening);
+        this.tweens.add({
+            targets: opening,
+            alpha: 0,
+            scaleX: 1.45,
+            scaleY: 1.45,
+            duration,
+            ease: 'Sine.easeOut',
+            onComplete: () => this.destroySpiderTelegraph(opening)
+        });
+    }
+
+    destroySpiderTelegraph(graphic) {
+        if (!graphic) return;
+        this.tweens.killTweensOf?.(graphic);
+        this.spiderTelegraphs.delete(graphic);
+        graphic.destroy?.();
+    }
+
+    clearSpiderBossPacing() {
+        this.spiderAttackWindupTimer?.remove?.();
+        this.spiderAttackWindupTimer = null;
+        this.spiderRecoveryTimer?.remove?.();
+        this.spiderRecoveryTimer = null;
+        this.spiderTelegraphs.forEach(graphic => {
+            this.tweens.killTweensOf?.(graphic);
+            graphic.destroy?.();
+        });
+        this.spiderTelegraphs.clear();
+    }
+
+    /**
      * Spider drops from ceiling to attack
      */
     spiderDropDown() {
-        if (!this.crystalSpider || this.crystalSpider.isAttacking) return;
+        if (!this.crystalSpider) return;
 
         const spider = this.crystalSpider;
-        spider.isOnCeiling = false;
-        spider.isAttacking = true;
-        spider.setFlipY(false);
-        spider.body.setAllowGravity(true);
-
-        // Warning hiss
-        if (window.AudioManager) {
-            window.AudioManager.playError();
-        }
-
-        // After landing, reset attack state
-        this.time.delayedCall(800, () => {
-            if (spider.active) {
-                spider.isAttacking = false;
+        this.beginSpiderAttack('drop', () => {
+            spider.isOnCeiling = false;
+            spider.setFlipY(false);
+            spider.body.setAllowGravity(true);
+            if (window.AudioManager) {
+                window.AudioManager.playError();
             }
-        });
+        }, 800);
     }
 
     /**
@@ -1590,38 +1731,17 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (!this.crystalSpider) return;
 
         const spider = this.crystalSpider;
-        spider.isAttacking = true;
-
-        // Telegraph with color flash
-        spider.setTint(0xFF0000);
-
-        // Wind-up
-        this.time.delayedCall(400, () => {
-            if (!spider.active) return;
-
-            spider.clearTint();
-
-            // Jump towards player
+        this.beginSpiderAttack('pounce', () => {
             const angle = Phaser.Math.Angle.Between(spider.x, spider.y, this.player.x, this.player.y);
             const jumpSpeed = 350;
-
             spider.setVelocity(
                 Math.cos(angle) * jumpSpeed,
                 Math.sin(angle) * jumpSpeed - 200
             );
-
-            // Sound
             if (window.AudioManager) {
                 window.AudioManager.playAttack();
             }
-
-            // Reset after pounce
-            this.time.delayedCall(800, () => {
-                if (spider.active) {
-                    spider.isAttacking = false;
-                }
-            });
-        });
+        }, 800);
     }
 
     /**
@@ -1629,6 +1749,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      */
     spiderWebShot() {
         if (!this.crystalSpider || !this.player) return;
+
+        this.beginSpiderAttack('web_shot', () => this.launchSpiderWebShot(), 150);
+    }
+
+    launchSpiderWebShot() {
+        if (!this.crystalSpider?.active || !this.player) return;
 
         const spider = this.crystalSpider;
 
@@ -1680,6 +1806,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     spiderSprayWebDown() {
         if (!this.crystalSpider || !this.crystalSpider.active || this.crystalSpider.defeated) return;
         if (!this.crystalSpider.isOnCeiling) return; // Only spray when on ceiling
+
+        this.beginSpiderAttack('web_drop', () => this.launchSpiderWebDown(), 100);
+    }
+
+    launchSpiderWebDown() {
+        if (!this.crystalSpider?.active || !this.crystalSpider.isOnCeiling) return;
 
         const spider = this.crystalSpider;
 
@@ -1828,9 +1960,19 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     damageSpider(amount) {
         if (!this.crystalSpider || !this.crystalSpider.active || this.crystalSpider.defeated) return;
 
-        this.crystalSpider.health -= amount;
+        const recoveryBonus = this.crystalSpider.isRecovering ? 1 : 0;
+        const finalAmount = amount + recoveryBonus;
+        this.crystalSpider.health -= finalAmount;
         this.drawEnemyCombatCue(this.crystalSpider);
         this.updateSpiderHealthBar();
+        if (recoveryBonus) {
+            this.showFloatingText(
+                `OPENING -${finalAmount}`,
+                this.crystalSpider.x,
+                this.crystalSpider.y - 70,
+                '#8FE3CF'
+            );
+        }
 
         // Flash effect
         this.crystalSpider.setTint(0xFFFFFF);
@@ -1868,6 +2010,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         spider.onCombatDamage = null;
         spider.combatCue?.destroy?.();
         spider.combatCue = null;
+        this.clearSpiderBossPacing();
 
         // Stop AI timers
         if (this.spiderAITimer) {
@@ -3569,7 +3712,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Update boss AI movement and behavior
      */
     updateBossAI() {
-        if (!this.boss || !this.boss.active || !this.player) return;
+        if (!this.boss || !this.boss.active || !this.player || this.bossDefeated) return;
 
         const distToPlayer = Phaser.Math.Distance.Between(
             this.boss.x, this.boss.y,
@@ -3604,29 +3747,72 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Phase 2 behavior (below 50% health)
         if (this.bossHealth <= this.bossMaxHealth * 0.5 && this.bossPhase === 1) {
-            this.triggerPhase2();
+            this.requestCrystalBossPhase2();
         }
+    }
+
+    requestCrystalBossPhase2() {
+        if (this.boss?.isAttacking && !this.boss?.isRecovering) {
+            this.bossPhasePending = true;
+            return;
+        }
+
+        this.triggerPhase2();
     }
 
     /**
      * Trigger boss phase 2 (enraged)
      */
     triggerPhase2() {
-        console.log('[CrystalCavesLevel] Boss entering phase 2!');
-        this.bossPhase = 2;
+        if (
+            !this.boss?.active ||
+            this.bossDefeated ||
+            this.bossPhase !== 1 ||
+            this.bossPhaseTransitioning
+        ) return;
 
-        // Visual feedback
+        console.log('[CrystalCavesLevel] Boss entering phase 2!');
+        this.bossPhasePending = false;
+        this.bossPhase = 2;
+        this.bossPhaseTransitioning = true;
+        this.clearCrystalBossPacing();
+        this.boss.isAttacking = true;
+        this.boss.isRecovering = false;
+        this.boss.setVelocity?.(0, 0);
+        if (this.bossAITimer) {
+            this.bossAITimer.paused = true;
+        }
+        if (this.bossAttackTimer) {
+            this.bossAttackTimer.paused = true;
+        }
+
         window.FeedbackManager?.cameraShake?.(this, 500, 0.02);
         this.boss.setTint(0xFF6B6B);
 
-        // Flash warning
         const { width, height } = this.cameras.main;
-        const phaseText = this.add.text(width / 2, height / 2, 'THE WOUND SURGES!', {
-            fontSize: '28px',
-            color: '#FF4500',
+        const phaseRing = this.add.graphics();
+        phaseRing.lineStyle(7, 0xF08CFF, 0.95);
+        phaseRing.strokeCircle(0, 0, 76);
+        phaseRing.setPosition(this.boss.x, this.boss.y).setDepth(890);
+        this.bossTelegraphs.add(phaseRing);
+        this.tweens.add({
+            targets: phaseRing,
+            alpha: 0,
+            scaleX: 2.4,
+            scaleY: 2.4,
+            duration: 1500,
+            ease: 'Sine.easeOut',
+            onComplete: () => this.destroyCrystalBossTelegraph(phaseRing)
+        });
+
+        const phaseText = this.add.text(width / 2, height / 2, 'THE WOUND SURGES // WATCH THE NEW PATTERN', {
+            fontSize: width <= 480 ? '20px' : '28px',
+            color: '#FFB7FF',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 3
+            strokeThickness: 3,
+            align: 'center',
+            wordWrap: { width: width - 50 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
 
         this.tweens.add({
@@ -3637,14 +3823,27 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             onComplete: () => phaseText.destroy()
         });
 
-        // Speed up attack timer
-        if (this.bossAttackTimer) {
-            this.bossAttackTimer.remove();
-        }
-        this.bossAttackTimer = this.time.addEvent({
-            delay: 1800,
-            callback: () => this.bossPerformAttack(),
-            loop: true
+        this.bossPhaseTransitionTimer?.remove?.();
+        this.bossPhaseTransitionTimer = this.time.delayedCall(1650, () => {
+            this.bossPhaseTransitionTimer = null;
+            this.bossPhaseTransitioning = false;
+            if (!this.boss?.active || this.bossDefeated) return;
+
+            if (this.bossAITimer) {
+                this.bossAITimer.paused = false;
+            }
+            if (this.bossAttackTimer) {
+                this.bossAttackTimer.delay = 2200;
+                this.bossAttackTimer.paused = false;
+            }
+            this.showCrystalBossRecovery(950);
+            this.bossAttackUnlockTimer = this.time.delayedCall(950, () => {
+                if (this.boss) {
+                    this.boss.isAttacking = false;
+                    this.boss.isRecovering = false;
+                }
+                this.bossAttackUnlockTimer = null;
+            });
         });
 
         // Sound
@@ -3657,7 +3856,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Boss performs an attack
      */
     bossPerformAttack(forcedAttack = null) {
-        if (!this.boss || !this.boss.active || this.boss.isAttacking) return;
+        if (!this.boss || !this.boss.active || this.boss.isAttacking || this.bossPhaseTransitioning) return;
 
         const attackType = forcedAttack || {
             1: 'ground_slam',
@@ -3666,34 +3865,156 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }[Phaser.Math.Between(1, this.bossPhase >= 2 ? 3 : 2)];
         const attackWindow =
             CRYSTAL_GUARDIAN_ATTACK_WINDOWS[attackType] || 1400;
+        const pacing = CRYSTAL_GUARDIAN_ATTACK_PACING[attackType] ||
+            { windup: 650, recovery: 850, color: 0xFFD166 };
 
         this.boss.isAttacking = true;
+        this.boss.isRecovering = false;
         this.boss.setVelocityX(0);
         this.showBossAttackInstruction(
             CRYSTAL_GUARDIAN_ATTACK_CUES[attackType],
-            attackWindow
+            pacing.windup + attackWindow
+        );
+        this.createCrystalBossTelegraph(attackType, pacing);
+
+        this.bossAttackWindupTimer?.remove?.();
+        this.bossAttackWindupTimer = this.time.delayedCall(pacing.windup, () => {
+            this.bossAttackWindupTimer = null;
+            if (!this.boss?.active || this.bossDefeated || this.bossPhaseTransitioning) return;
+
+            switch (attackType) {
+                case 'ground_slam':
+                    this.bossGroundSlam();
+                    break;
+                case 'crystal_barrage':
+                    this.bossCrystalBarrage();
+                    break;
+                case 'charge':
+                    this.bossChargeAttack();
+                    break;
+            }
+        });
+
+        this.bossRecoveryTimer?.remove?.();
+        this.bossRecoveryTimer = this.time.delayedCall(
+            pacing.windup + attackWindow,
+            () => {
+                this.bossRecoveryTimer = null;
+                if (this.boss?.active && !this.bossDefeated && !this.bossPhaseTransitioning) {
+                    this.showCrystalBossRecovery(pacing.recovery);
+                }
+            }
         );
 
-        switch (attackType) {
-            case 'ground_slam':
-                this.bossGroundSlam();
-                break;
-            case 'crystal_barrage':
-                this.bossCrystalBarrage();
-                break;
-            case 'charge':
-                this.bossChargeAttack();
-                break;
+        // Keep attacks from overlapping through a guaranteed counterattack opening.
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = this.time.delayedCall(
+            pacing.windup + attackWindow + pacing.recovery,
+            () => {
+                if (this.boss && !this.bossPhaseTransitioning) {
+                    this.boss.isAttacking = false;
+                    this.boss.isRecovering = false;
+                }
+                this.bossAttackUnlockTimer = null;
+            }
+        );
+    }
+
+    createCrystalBossTelegraph(attackType, pacing) {
+        if (!this.boss || !this.player) return null;
+
+        const warning = this.add.graphics();
+        const direction = this.player.x < this.boss.x ? -1 : 1;
+        const laneX = direction > 0 ? this.boss.x + 45 : this.boss.x - 465;
+        const groundY = this.levelHeight - 110;
+        warning.fillStyle(pacing.color, 0.14);
+        warning.lineStyle(4, pacing.color, 0.95);
+
+        if (attackType === 'ground_slam') {
+            warning.fillRect(this.boss.x - 275, groundY - 20, 550, 40);
+            warning.strokeRect(this.boss.x - 275, groundY - 20, 550, 40);
+        } else if (attackType === 'charge') {
+            warning.fillRect(laneX, this.boss.y - 45, 420, 90);
+            warning.strokeRect(laneX, this.boss.y - 45, 420, 90);
+        } else {
+            const spread = 34;
+            for (let offset = -spread; offset <= spread; offset += spread) {
+                warning.lineBetween(
+                    this.boss.x,
+                    this.boss.y - 20,
+                    this.player.x + offset,
+                    this.player.y
+                );
+            }
+            warning.strokeCircle(this.player.x, this.player.y, 30);
         }
 
-        // Keep attacks from overlapping while projectiles and charge lanes remain active.
-        this.bossAttackUnlockTimer?.remove?.();
-        this.bossAttackUnlockTimer = this.time.delayedCall(attackWindow, () => {
-            if (this.boss) {
-                this.boss.isAttacking = false;
-            }
-            this.bossAttackUnlockTimer = null;
+        warning.setDepth(850).setAlpha(0.9);
+        this.bossTelegraphs.add(warning);
+        this.tweens.add({
+            targets: warning,
+            alpha: 0.25,
+            duration: Math.max(110, Math.floor(pacing.windup / 4)),
+            yoyo: true,
+            repeat: 2,
+            onComplete: () => this.destroyCrystalBossTelegraph(warning)
         });
+        return warning;
+    }
+
+    showCrystalBossRecovery(duration) {
+        if (!this.boss?.active) return;
+        if (this.bossPhasePending) {
+            this.bossPhasePending = false;
+            this.triggerPhase2();
+            return;
+        }
+
+        this.boss.isRecovering = true;
+        this.bossInstructionText
+            ?.setText('OPENING // STABILIZE THE PULSE')
+            ?.setColor('#8FE3CF');
+        const opening = this.add.graphics();
+        opening.lineStyle(5, 0x8FE3CF, 0.95);
+        opening.strokeCircle(0, 0, 82);
+        opening.setPosition(this.boss.x, this.boss.y).setDepth(890);
+        this.bossTelegraphs.add(opening);
+        this.tweens.add({
+            targets: opening,
+            alpha: 0,
+            scaleX: 1.5,
+            scaleY: 1.5,
+            duration,
+            ease: 'Sine.easeOut',
+            onComplete: () => this.destroyCrystalBossTelegraph(opening)
+        });
+    }
+
+    destroyCrystalBossTelegraph(graphic) {
+        if (!graphic) return;
+        this.tweens.killTweensOf?.(graphic);
+        this.bossTelegraphs.delete(graphic);
+        graphic.destroy?.();
+    }
+
+    clearCrystalBossPacing({ includePhase = false } = {}) {
+        this.bossAttackWindupTimer?.remove?.();
+        this.bossAttackWindupTimer = null;
+        this.bossRecoveryTimer?.remove?.();
+        this.bossRecoveryTimer = null;
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        if (includePhase) {
+            this.bossPhaseTransitionTimer?.remove?.();
+            this.bossPhaseTransitionTimer = null;
+            this.bossPhaseTransitioning = false;
+            this.bossPhasePending = false;
+        }
+        this.bossTelegraphs.forEach(graphic => {
+            this.tweens.killTweensOf?.(graphic);
+            graphic.destroy?.();
+        });
+        this.bossTelegraphs.clear();
     }
 
     showBossAttackInstruction(cue, duration = 1400) {
@@ -3851,50 +4172,39 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     bossChargeAttack() {
         console.log('[CrystalCavesLevel] Boss: Charge Attack!');
 
-        // Telegraph with glow
-        this.boss.setTint(0xFF0000);
+        const direction = this.player.x < this.boss.x ? -1 : 1;
+        this.boss.setVelocityX(400 * direction);
 
-        // Wind-up
-        this.time.delayedCall(500, () => {
-            if (!this.boss || !this.boss.active) return;
+        this.time.addEvent({
+            delay: 50,
+            callback: () => {
+                if (!this.boss || !this.boss.active) return;
+                const afterImage = this.add.graphics();
+                afterImage.fillStyle(0x7B68EE, 0.4);
+                afterImage.fillCircle(0, 0, 40);
+                afterImage.setPosition(this.boss.x, this.boss.y);
+                afterImage.setDepth(870);
 
-            // Charge towards player
-            const direction = this.player.x < this.boss.x ? -1 : 1;
-            this.boss.setVelocityX(400 * direction);
+                this.tweens.add({
+                    targets: afterImage,
+                    alpha: 0,
+                    scaleX: 0.5,
+                    scaleY: 0.5,
+                    duration: 300,
+                    onComplete: () => afterImage.destroy()
+                });
+            },
+            repeat: 8
+        });
 
-            // Trail effect
-            const trail = this.time.addEvent({
-                delay: 50,
-                callback: () => {
-                    if (!this.boss || !this.boss.active) return;
-                    const afterImage = this.add.graphics();
-                    afterImage.fillStyle(0x7B68EE, 0.4);
-                    afterImage.fillCircle(0, 0, 40);
-                    afterImage.setPosition(this.boss.x, this.boss.y);
-                    afterImage.setDepth(870);
-
-                    this.tweens.add({
-                        targets: afterImage,
-                        alpha: 0,
-                        scaleX: 0.5,
-                        scaleY: 0.5,
-                        duration: 300,
-                        onComplete: () => afterImage.destroy()
-                    });
-                },
-                repeat: 8
-            });
-
-            // Stop after duration
-            this.time.delayedCall(600, () => {
-                if (this.boss) {
-                    this.boss.setVelocityX(0);
-                    this.boss.clearTint();
-                    if (this.bossPhase >= 2) {
-                        this.boss.setTint(0xFF6B6B);
-                    }
+        this.time.delayedCall(600, () => {
+            if (this.boss) {
+                this.boss.setVelocityX(0);
+                this.boss.clearTint();
+                if (this.bossPhase >= 2) {
+                    this.boss.setTint(0xFF6B6B);
                 }
-            });
+            }
         });
 
         // Sound
@@ -3923,10 +4233,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     damageBoss(amount) {
         if (!this.boss || !this.boss.active) return;
 
-        this.bossHealth -= amount;
+        const recoveryBonus = this.boss.isRecovering ? 1 : 0;
+        const finalAmount = amount + recoveryBonus;
+        this.bossHealth -= finalAmount;
         this.updateBossHealthBar();
         this.showFloatingText(
-            `PULSE -${amount}`,
+            recoveryBonus
+                ? `OPEN PULSE -${finalAmount}`
+                : `PULSE -${finalAmount}`,
             this.boss.x,
             this.boss.y - 80,
             '#F0B6FF'
@@ -3962,9 +4276,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             window.AudioManager.playEnemyHit();
         }
 
-        // Check for defeat
         if (this.bossHealth <= 0) {
             this.onBossDefeated();
+        } else if (
+            this.bossHealth <= this.bossMaxHealth * 0.5 &&
+            this.bossPhase === 1
+        ) {
+            this.requestCrystalBossPhase2();
         }
     }
 
@@ -3988,8 +4306,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.bossAttackTimer) {
             this.bossAttackTimer.remove();
         }
-        this.bossAttackUnlockTimer?.remove?.();
-        this.bossAttackUnlockTimer = null;
+        this.clearCrystalBossPacing({ includePhase: true });
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
         this.bossPulseText?.setText('UNSTABLE PULSE // STABLE');
@@ -4457,6 +4774,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.spiderWebSprayTimer.remove();
             this.spiderWebSprayTimer = null;
         }
+        this.clearSpiderBossPacing();
         if (this.crystalSpider) {
             this.crystalSpider.destroy();
             this.crystalSpider = null;
@@ -4511,8 +4829,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.bossAttackTimer.remove();
             this.bossAttackTimer = null;
         }
-        this.bossAttackUnlockTimer?.remove?.();
-        this.bossAttackUnlockTimer = null;
+        this.clearCrystalBossPacing({ includePhase: true });
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
 

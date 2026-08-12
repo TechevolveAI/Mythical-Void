@@ -1938,6 +1938,188 @@ async function smokeForestArrival(session, exceptions) {
     return { brief, progression };
 }
 
+const GUARDIAN_PACING_CASES = Object.freeze([
+    {
+        sceneName: 'MythicalForestLevel',
+        attack: 'root_slam',
+        recoveryCheck: 'scene?.boss?.isRecovering === true',
+        phaseDeferral: true,
+        phaseThreshold: 0.5
+    },
+    {
+        sceneName: 'CrystalCavesLevel',
+        attack: 'ground_slam',
+        recoveryCheck: 'scene?.boss?.isRecovering === true',
+        phaseDeferral: true,
+        phaseThreshold: 0.5
+    },
+    {
+        sceneName: 'ReefLevel',
+        attack: 'dimensionalTear',
+        recoveryCheck: 'scene?.time?.now < scene?.bossRecoveryUntil',
+        phaseDeferral: true,
+        phaseThreshold: 0.6
+    },
+    {
+        sceneName: 'VoidPeaksLevel',
+        attack: 'gravityCrush',
+        recoveryCheck: 'scene?.time?.now < scene?.titanRecoveryUntil'
+    },
+    {
+        sceneName: 'AuroraDepthsLevel',
+        attack: 'flame_dive',
+        recoveryCheck: 'scene?.time?.now < scene?.bossRecoveryUntil'
+    },
+    {
+        sceneName: 'FinalVoidLevel',
+        attack: 'void_tendrils',
+        recoveryCheck: 'scene?.time?.now < scene?.bossRecoveryUntil',
+        triggerManually: true,
+        phaseDeferral: true,
+        phaseThreshold: 0.75
+    }
+]);
+
+async function smokeGuardianPacing(session, exceptions) {
+    const results = {};
+
+    for (const guardianCase of GUARDIAN_PACING_CASES) {
+        exceptions.length = 0;
+        const {
+            sceneName,
+            attack,
+            recoveryCheck,
+            triggerManually,
+            phaseDeferral,
+            phaseThreshold
+        } = guardianCase;
+        await navigate(session, `${BASE_URL}/play/?reset=true`);
+        await waitForScene(session, 'HatchingScene');
+        await evaluate(session, `(async () => {
+            const game = window.mythicalGame;
+            game.scene.getScenes(true).forEach(active => {
+                game.scene.stop(active.scene.key);
+            });
+            await window.SceneLoader.loadScene(game, ${JSON.stringify(sceneName)});
+            game.scene.start(${JSON.stringify(sceneName)}, {
+                testMode: true,
+                forceMobileControls: true,
+                platformerPreviewSize: 'mobile',
+                bossAttackPreview: ${JSON.stringify(attack)}
+            });
+            return true;
+        })()`);
+        await waitForScene(session, sceneName);
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                return Boolean(scene?.bossFightActive && scene?.boss?.active);
+            })()`),
+            { timeoutMs: 15000, message: `${sceneName} guardian spawn` }
+        );
+
+        if (triggerManually) {
+            await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                scene.executeBossAttack(${JSON.stringify(attack)});
+                return true;
+            })()`);
+        }
+
+        const attackState = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const attackActive = Boolean(
+                    scene?.boss?.isAttacking ||
+                    scene?.bossAttackLocked ||
+                    scene?.titanAttackLocked
+                );
+                if (!attackActive) return null;
+                return {
+                    attackActive,
+                    bossHealth: scene?.bossHealth,
+                    displayCount: scene?.children?.list?.length || 0
+                };
+            })()`),
+            { timeoutMs: 15000, message: `${sceneName} attack telegraph` }
+        );
+
+        let deferralState = null;
+        if (phaseDeferral) {
+            deferralState = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                scene.bossHealth = scene.bossMaxHealth * ${phaseThreshold} + 0.5;
+                scene.damageBoss(1);
+                scene.updateBoss?.(scene.time.now, 16);
+                return {
+                    phase: scene.bossPhase,
+                    pending: Boolean(
+                        scene.bossPhasePending || scene.pendingBossPhase
+                    ),
+                    attackActive: Boolean(
+                        scene?.boss?.isAttacking ||
+                        scene?.bossAttackLocked ||
+                        scene?.titanAttackLocked
+                    )
+                };
+            })()`);
+            if (
+                deferralState.phase !== 1 ||
+                !deferralState.pending ||
+                !deferralState.attackActive
+            ) {
+                throw new Error(
+                    `${sceneName} did not defer its phase during danger: ` +
+                    JSON.stringify(deferralState)
+                );
+            }
+        }
+
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                return Boolean(${recoveryCheck});
+            })()`),
+            { timeoutMs: 9000, message: `${sceneName} recovery opening` }
+        );
+
+        const recoveryState = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const before = scene.bossHealth;
+            scene.damageBoss(1);
+            return {
+                before,
+                after: scene.bossHealth,
+                bonusDamage: before - scene.bossHealth,
+                recoveryActive: Boolean(${recoveryCheck})
+            };
+        })()`);
+        if (
+            recoveryState.bonusDamage !== 2 ||
+            !recoveryState.recoveryActive ||
+            exceptions.length
+        ) {
+            throw new Error(
+                `${sceneName} guardian pacing failed: ${JSON.stringify({
+                    attackState,
+                    recoveryState,
+                    exceptions
+                })}`
+            );
+        }
+
+        results[sceneName] = {
+            attack,
+            attackState,
+            deferralState,
+            recoveryState
+        };
+        process.stdout.write(`PASS ${sceneName}GuardianPacing\n`);
+    }
+
+    return results;
+}
+
 async function main() {
     if (!fs.existsSync(CHROME_PATH)) {
         throw new Error(`Chrome was not found at ${CHROME_PATH}`);
@@ -2081,10 +2263,15 @@ async function main() {
         } else if (SMOKE_MODE === 'forest-arrival') {
             results.forestArrival = await smokeForestArrival(session, exceptions);
             process.stdout.write('PASS MythicalForestArrival\n');
+        } else if (SMOKE_MODE === 'guardian-pacing') {
+            results.guardianPacing = await smokeGuardianPacing(
+                session,
+                exceptions
+            );
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use interaction, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, or forest-arrival.'
+                'Use interaction, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
             );
         }
         console.log(JSON.stringify({

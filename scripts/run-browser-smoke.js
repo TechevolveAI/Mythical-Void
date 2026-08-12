@@ -171,6 +171,15 @@ async function main() {
             failures.push(`forest-arrival: ${error.message}`);
         }
 
+        console.log('\n[release-smoke] Guardian telegraph and recovery suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'guardian-pacing'
+            });
+        } catch (error) {
+            failures.push(`guardian-pacing: ${error.message}`);
+        }
+
         if (failures.length) {
             throw new Error(
                 `Release smoke failed (${failures.length} case${failures.length === 1 ? '' : 's'}):\n` +

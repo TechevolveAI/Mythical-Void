@@ -123,7 +123,7 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('BREAK VOID PRESSURE // KEEP THE UPLINK QUIET');
         expect(source).toContain('UPLINK EXPOSURE // ${exposure}/${this.bossMaxHealth}');
         expect(source).toContain('UPLINK EXPOSURE // CONTAINED');
-        expect(source).toContain('`EXPOSURE -${amount}`');
+        expect(source).toContain('`EXPOSURE -${finalAmount}`');
         expect(source).toContain('this.boss.setTint(0xA9F3E4)');
         expect(source).not.toContain('this.boss.setTint(0xFF0000)');
     });
@@ -138,7 +138,9 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('ECHO DIVES // KEEP MOVING');
         expect(source).toContain('const attackWindow = PHOENIX_ATTACK_WINDOWS[attackType] || 1900');
         expect(source).toContain('this.bossAttackUnlockTimer?.remove?.()');
-        expect(source).toContain('this.bossAttackUnlockTimer = this.time.delayedCall(attackWindow');
+        expect(source).toContain(
+            'PHOENIX_ATTACK_WINDUP + attackWindow + PHOENIX_RECOVERY_WINDOW'
+        );
         expect(source).not.toContain('this.time.delayedCall(1500, () => {');
     });
 

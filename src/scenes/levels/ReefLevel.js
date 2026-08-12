@@ -16,6 +16,11 @@ const REEF_GUARDIAN_ATTACK_CUES = Object.freeze({
     summonMinions: 'VOID ECHOES // CLEAR THE SWARM'
 });
 
+const REEF_GUARDIAN_PHASES = Object.freeze({
+    2: { label: 'CURRENT SHEAR // NEW PATTERN', color: 0xF2C94C },
+    3: { label: 'ROUTE COLLAPSE // HOLD THE LINE', color: 0xFF6B8A }
+});
+
 /**
  * ReefLevel - The Cosmic Abyss (Stellar Reef) underwater level
  *
@@ -81,6 +86,11 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossAttackLocked = false;
         this.bossAttackPreview = null;
         this.bossMinions = [];
+        this.bossRecoveryUntil = 0;
+        this.bossPhaseAdvanceLockedUntil = 0;
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitionActive = false;
+        this.pendingBossPhase = null;
         this.bossUsesArtwork = false;
         this.bossArtworkPhase = 0;
         this.bossTargetScale = 1;
@@ -138,6 +148,11 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer = null;
         this.bossAttackLocked = false;
+        this.bossRecoveryUntil = 0;
+        this.bossPhaseAdvanceLockedUntil = 0;
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitionActive = false;
+        this.pendingBossPhase = null;
         this.bossUsesArtwork = false;
         this.bossArtworkPhase = 0;
         this.bossTargetScale = 1;
@@ -2431,7 +2446,8 @@ class ReefLevel extends PlatformerLevelScene {
         if (
             !this.bossFightActive ||
             this.bossDefeated ||
-            this.bossAttackLocked
+            this.bossAttackLocked ||
+            this.time.now < this.bossRecoveryUntil
         ) return;
 
         const attacks = ['voidLunge', 'dimensionalTear', 'summonMinions'];
@@ -2465,6 +2481,114 @@ class ReefLevel extends PlatformerLevelScene {
                 this.bossAttackUnlockTimer = null;
             }
         );
+    }
+
+    createReefBossTelegraph({
+        x,
+        y,
+        radius = 50,
+        color = 0xE066FF,
+        duration = 600,
+        targetX = null,
+        targetY = null
+    }) {
+        const telegraph = this.add.graphics()
+            .setPosition(x, y)
+            .setDepth(395);
+        telegraph.lineStyle(4, color, 0.95);
+        telegraph.strokeCircle(0, 0, radius);
+        telegraph.fillStyle(color, 0.14);
+        telegraph.fillCircle(0, 0, radius);
+        if (Number.isFinite(targetX) && Number.isFinite(targetY)) {
+            telegraph.lineStyle(3, color, 0.75);
+            telegraph.lineBetween(0, 0, targetX - x, targetY - y);
+        }
+        telegraph.setScale(0.6);
+        this.tweens.add({
+            targets: telegraph,
+            scale: 1.08,
+            alpha: 0.35,
+            duration,
+            ease: 'Sine.easeIn',
+            onComplete: () => telegraph.destroy()
+        });
+        return telegraph;
+    }
+
+    openReefBossRecovery(duration = 850) {
+        if (!this.bossFightActive || this.bossDefeated) return;
+        if (this.pendingBossPhase) {
+            const nextPhase = this.pendingBossPhase;
+            this.pendingBossPhase = null;
+            this.enterReefBossPhase(nextPhase);
+            return;
+        }
+        this.bossRecoveryUntil = Math.max(
+            this.bossRecoveryUntil,
+            this.time.now + duration
+        );
+        this.showBossAttackInstruction('CURRENT EXPOSED // STRIKE NOW', duration);
+        this.showFloatingText(
+            'CURRENT EXPOSED // BONUS DAMAGE',
+            this.bossBody?.x || 5700,
+            (this.bossBody?.y || 700) - 110,
+            '#8FE3CF'
+        );
+    }
+
+    enterReefBossPhase(phase) {
+        if (phase <= this.bossPhase || this.bossPhaseTransitionActive) return;
+        const phaseData = REEF_GUARDIAN_PHASES[phase];
+        if (!phaseData) return;
+
+        this.pendingBossPhase = null;
+        this.bossPhase = phase;
+        this.bossPhaseTransitionActive = true;
+        this.bossAttackLocked = true;
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        this.bossBody?.setVelocity?.(0, 0);
+        this.createReefBossTelegraph({
+            x: this.bossBody?.x || 5700,
+            y: this.bossBody?.y || this.levelHeight - 500,
+            radius: 95,
+            color: phaseData.color,
+            duration: 900
+        });
+        this.showFloatingText(
+            phaseData.label,
+            this.bossBody?.x || 5700,
+            (this.bossBody?.y || 700) - 120,
+            `#${phaseData.color.toString(16).padStart(6, '0')}`
+        );
+        window.FeedbackManager?.cameraShake?.(this, 500, 0.012);
+
+        if (this.bossAttackTimer) {
+            this.bossAttackTimer.delay = phase === 3 ? 1850 : 2200;
+        }
+        this.bossPhaseTransitionTimer?.remove?.();
+        this.bossPhaseTransitionTimer = this.time.delayedCall(950, () => {
+            this.bossPhaseTransitionActive = false;
+            this.bossAttackLocked = false;
+            this.bossPhaseTransitionTimer = null;
+            this.bossPhaseAdvanceLockedUntil = this.time.now + 1200;
+            this.openReefBossRecovery(950);
+        });
+    }
+
+    requestReefBossPhase(phase) {
+        if (
+            this.bossAttackLocked &&
+            this.time.now >= this.bossRecoveryUntil
+        ) {
+            this.pendingBossPhase = Math.max(
+                this.pendingBossPhase || 0,
+                phase
+            );
+            return;
+        }
+
+        this.enterReefBossPhase(phase);
     }
 
     showBossAttackInstruction(cue, duration = 2200) {
@@ -2502,26 +2626,37 @@ class ReefLevel extends PlatformerLevelScene {
         const targetX = this.player.x;
         const targetY = this.player.y;
 
-        // Telegraph with glow
+        this.createReefBossTelegraph({
+            x: this.bossBody.x,
+            y: this.bossBody.y,
+            radius: 62,
+            color: 0xFF6B8A,
+            duration: 650,
+            targetX,
+            targetY
+        });
+
         this.tweens.add({
             targets: this.boss,
             alpha: 0.5,
-            duration: 400,
+            duration: 650,
             yoyo: true,
             onComplete: () => {
+                if (!this.bossFightActive || !this.bossBody?.active) return;
                 this.tweens.add({
                     targets: this.bossBody,
                     x: targetX,
                     y: targetY,
-                    duration: 400,
+                    duration: 360,
                     ease: 'Power3',
                     onComplete: () => {
                         this.tweens.add({
                             targets: this.bossBody,
                             x: 5700,
                             y: this.levelHeight - 500,
-                            duration: 1200,
-                            ease: 'Sine.easeInOut'
+                            duration: 850,
+                            ease: 'Sine.easeInOut',
+                            onComplete: () => this.openReefBossRecovery(750)
                         });
                     }
                 });
@@ -2537,36 +2672,69 @@ class ReefLevel extends PlatformerLevelScene {
         const tearX = this.player.x + (Math.random() - 0.5) * 100;
         const tearY = this.player.y + (Math.random() - 0.5) * 100;
 
-        // Expanding void tear
+        this.createReefBossTelegraph({
+            x: tearX,
+            y: tearY,
+            radius: 75,
+            color: 0xE066FF,
+            duration: 700
+        });
+
         tear.fillStyle(0x9B30FF, 0.8);
         tear.fillCircle(tearX, tearY, 10);
+        tear.setAlpha(0.15);
 
         this.tweens.add({
             targets: tear,
-            scaleX: 15,
-            scaleY: 15,
-            alpha: 0,
-            duration: 2000,
-            onComplete: () => tear.destroy()
+            alpha: 0.9,
+            duration: 700
         });
 
-        // Damage zone
         const damageZone = this.add.zone(tearX, tearY, 150, 150);
         this.physics.add.existing(damageZone, true);
+        damageZone.body.enable = false;
 
         const overlap = this.physics.add.overlap(this.player, damageZone, () => {
             this.takeDamage(1);
         });
 
-        this.time.delayedCall(2000, () => {
-            overlap.destroy();
-            damageZone.destroy();
+        this.time.delayedCall(700, () => {
+            if (!this.bossFightActive || !damageZone.active) {
+                overlap.destroy();
+                damageZone.destroy();
+                tear.destroy();
+                return;
+            }
+            damageZone.body.enable = true;
+            this.tweens.add({
+                targets: tear,
+                scaleX: 15,
+                scaleY: 15,
+                alpha: 0,
+                duration: 950,
+                onComplete: () => tear.destroy()
+            });
+            this.time.delayedCall(950, () => {
+                overlap.destroy();
+                damageZone.destroy();
+                this.openReefBossRecovery(700);
+            });
         });
     }
 
     bossSummonMinions() {
-        for (let i = 0; i < 4; i++) {
-            this.time.delayedCall(i * 250, () => {
+        const spawnX = this.bossBody?.x || 5700;
+        const spawnY = this.bossBody?.y || this.levelHeight - 500;
+        this.createReefBossTelegraph({
+            x: spawnX,
+            y: spawnY,
+            radius: 88,
+            color: 0xF2C94C,
+            duration: 700
+        });
+        for (let i = 0; i < 3; i++) {
+            this.time.delayedCall(700 + i * 220, () => {
+                if (!this.bossFightActive) return;
                 const minion = this.createVoidMinion(
                     5700 + (Math.random() - 0.5) * 200,
                     this.levelHeight - 400 + (Math.random() - 0.5) * 300
@@ -2574,6 +2742,7 @@ class ReefLevel extends PlatformerLevelScene {
                 this.bossMinions.push(minion);
             });
         }
+        this.time.delayedCall(1900, () => this.openReefBossRecovery(800));
     }
 
     createVoidMinion(x, y) {
@@ -2593,6 +2762,12 @@ class ReefLevel extends PlatformerLevelScene {
         body.body.setAllowGravity(false);
         body.graphics = minion;
         body.health = 1;
+        this.enemies.add(body);
+        this.configureEnemyCombat(body, {
+            role: 'stompable',
+            maxHealth: 1,
+            cueOffsetY: -32
+        });
 
         // Chase player
         this.tweens.add({
@@ -2606,15 +2781,10 @@ class ReefLevel extends PlatformerLevelScene {
                 minion.y = body.y - y;
             },
             onComplete: () => {
+                body.combatCue?.destroy?.();
                 body.destroy();
                 minion.destroy();
             }
-        });
-
-        this.physics.add.overlap(this.player, body, () => {
-            this.takeDamage(1);
-            body.destroy();
-            minion.destroy();
         });
 
         return body;
@@ -2641,14 +2811,14 @@ class ReefLevel extends PlatformerLevelScene {
 
         const healthPercent = this.bossHealth / this.bossMaxHealth;
 
-        if (healthPercent < 0.3 && this.bossPhase < 3) {
-            this.bossPhase = 3;
+        if (this.time.now < this.bossPhaseAdvanceLockedUntil) return;
+
+        if (healthPercent < 0.3 && this.bossPhase === 2) {
             console.log('[ReefLevel] Nyx\'voral entering phase 3!');
-            if (this.bossAttackTimer) this.bossAttackTimer.delay = 1500;
-        } else if (healthPercent < 0.6 && this.bossPhase < 2) {
-            this.bossPhase = 2;
+            this.requestReefBossPhase(3);
+        } else if (healthPercent < 0.6 && this.bossPhase === 1) {
             console.log('[ReefLevel] Nyx\'voral entering phase 2!');
-            if (this.bossAttackTimer) this.bossAttackTimer.delay = 2000;
+            this.requestReefBossPhase(2);
         }
     }
 
@@ -2733,10 +2903,14 @@ class ReefLevel extends PlatformerLevelScene {
     damageBoss(amount) {
         if (!this.bossFightActive || this.bossDefeated || !this.boss) return;
 
-        this.bossHealth -= amount;
+        const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
+        const finalAmount = amount + recoveryBonus;
+        this.bossHealth -= finalAmount;
         this.updateBossHealthBar();
         this.showFloatingText(
-            `ROUTE FRACTURE -${amount}`,
+            recoveryBonus
+                ? `EXPOSED CURRENT -${finalAmount}`
+                : `ROUTE FRACTURE -${finalAmount}`,
             this.bossBody?.x || 5700,
             (this.bossBody?.y || 700) - 85,
             '#F0B6FF'
@@ -2778,6 +2952,12 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
         this.bossAttackLocked = false;
+        this.bossPhaseTransitionTimer?.remove?.();
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitionActive = false;
+        this.pendingBossPhase = null;
+        this.bossRecoveryUntil = 0;
+        this.bossPhaseAdvanceLockedUntil = 0;
         this.bossRouteText?.setText('BROKEN ROUTE // RESTORED');
 
         if (this.bossBody?.body) {
@@ -2786,6 +2966,7 @@ class ReefLevel extends PlatformerLevelScene {
         }
         this.bossMinions.forEach(minion => {
             minion.graphics?.destroy?.();
+            minion.combatCue?.destroy?.();
             minion.destroy?.();
         });
         this.bossMinions = [];
@@ -3124,6 +3305,12 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
         this.bossAttackLocked = false;
+        this.bossPhaseTransitionTimer?.remove?.();
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitionActive = false;
+        this.pendingBossPhase = null;
+        this.bossRecoveryUntil = 0;
+        this.bossPhaseAdvanceLockedUntil = 0;
 
         // Clean up boss indicator
         if (this.bossIndicatorTimer) {
@@ -3146,6 +3333,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossBody = null;
         this.bossMinions.forEach(minion => {
             minion.graphics?.destroy?.();
+            minion.combatCue?.destroy?.();
             minion.destroy?.();
         });
         this.bossMinions = [];
