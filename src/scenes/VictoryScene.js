@@ -7,72 +7,96 @@
  * - Project Beacon restoration sequence
  * - A quiet reflection before the final decision
  * - Credits roll with game stats
- * - Two player-chosen campaign endings
+ * - Three player-chosen preparation priorities for the next saga chapter
  */
 
 import { devLog } from '../utils/devLogger.js';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
+import { CAMPAIGN_INTENTS, recordCampaignLegacyCapsule, recordCampaignPriority } from '../systems/CampaignLegacy.js';
 
-const PROJECT_BEACON_ENDINGS = Object.freeze({
-    earth: {
-        title: 'PROJECT BEACON: EARTHBOUND',
-        shortTitle: 'Return to Earth',
-        accent: 0x4FA8FF,
-        accentText: '#7FC8FF',
+const SHARED_FINALE_PAGE = Object.freeze({
+    log: 'UPLINK // HELD',
+    title: 'NO COORDINATES LEAVE',
+    body: 'The return vector is sealed, not transmitted. Wanderer-77 can fly again, but leaving now would abandon a world still recovering. You and your companion remain in the Fend.',
+    fieldNote: 'A route home is not permission to expose someone else\'s home.'
+});
+
+const PROJECT_BEACON_PRIORITIES = Object.freeze({
+    remain_and_defend: {
+        title: 'PRIORITY: REMAIN AND DEFEND',
+        shortTitle: 'Defend First',
+        accent: 0x45B97C,
+        accentText: '#8FE3B8',
         confirmation: [
-            'Send this world\'s coordinates with Project Beacon.',
-            'Begin the return journey with your companion beside you.'
+            'Restore the living currents and threatened settlements first.',
+            'Keep the return route sealed while the Fend recovers.'
         ],
-        confirmLabel: 'SEND THE BEACON',
+        confirmLabel: 'SET DEFENCE PRIORITY',
         pages: [
+            SHARED_FINALE_PAGE,
             {
-                log: 'TRANSMISSION // SENT',
-                title: 'A SIGNAL HOME',
-                body: 'Wanderer-7 sends the evidence and coordinates to Earth. Your voice follows the data: this is a living world, not a resource field.',
-                fieldNote: 'A report can be a warning. It can also be a promise.'
-            },
-            {
-                log: 'DEPARTURE // TWO ABOARD',
-                title: 'NOT A SPECIMEN',
-                body: 'Your companion enters the rebuilt ship by choice, carrying a small light from the Sanctuary. The first alien life to trust a human is coming to meet humanity.',
-                fieldNote: 'Trust begins with how you enter the room. We will enter together.'
-            },
-            {
-                log: 'COURSE // EARTH',
-                title: 'THE LONG WAY HOME',
-                body: 'You set a course for Earth carrying a witness, not a prize. Whatever waits at home, neither of you will face it alone.',
-                fieldNote: 'Sensei always said the return journey shows what the lesson changed.'
-            }
-        ]
-    },
-    void: {
-        title: 'PROJECT BEACON: PROTECTED',
-        shortTitle: 'Protect This World',
-        accent: 0xB58AE8,
-        accentText: '#D9B8FF',
-        confirmation: [
-            'Erase this world\'s coordinates from the uplink.',
-            'Remain here while searching for a safer answer for Earth.'
-        ],
-        confirmLabel: 'SILENCE THE UPLINK',
-        pages: [
-            {
-                log: 'UPLINK // SILENCED',
-                title: 'THE COORDINATES GO DARK',
-                body: 'You erase the route from Project Beacon. Earth receives no map to this world, and no company can arrive here claiming that discovery means ownership.',
-                fieldNote: 'Some things are protected by refusing to name where they are.'
-            },
-            {
-                log: 'SANCTUARY // ANSWERING',
-                title: 'THE WORLD ANSWERS',
-                body: 'Signals rise from the restored realms. Your companion stays at your side as the settlements welcome the first human they have chosen to trust.',
+                log: 'SANCTUARY // MOBILISING',
+                title: 'A WORLD STILL HURTING',
+                body: 'Signals rise from damaged regions beyond the Sanctuary. The communities know Wanderer-77 as the first human who listened before taking. Recovery becomes the next mission.',
                 fieldNote: 'I came here looking for life. Life found me first.'
             },
             {
-                log: 'MISSION // REWRITTEN',
-                title: 'A DIFFERENT BEACON',
-                body: 'Wanderer-7 becomes a shelter and observatory. You stay to help this world heal while searching for a way to help Earth without turning another home into fuel.',
+                log: 'NEXT CHAPTER // RECOVERY',
+                title: 'REMAIN AND DEFEND',
+                body: 'The repaired ship becomes shelter, observatory, and promise. Earth still matters. For now, helping the Fend survive is the honest first step toward helping both worlds.',
                 fieldNote: 'Sensei called it discipline: power is knowing what not to take.'
+            }
+        ]
+    },
+    prepare_homecoming: {
+        title: 'PRIORITY: PREPARE HOMECOMING',
+        shortTitle: 'Prepare Homecoming',
+        accent: 0x4FA8FF,
+        accentText: '#7FC8FF',
+        confirmation: [
+            'Preserve a secret Earth route and recover the Sensei channel.',
+            'Ask your companion about travel only after every risk is known.'
+        ],
+        confirmLabel: 'PREPARE THE ROUTE',
+        pages: [
+            SHARED_FINALE_PAGE,
+            {
+                log: 'PRIVATE CHANNEL // RECOVERED',
+                title: 'DOJO-23-77',
+                body: 'A pre-launch cipher survives in the navigation core: a private route to the friend who became Sensei. No message is sent. The channel is held for a future secret homecoming.',
+                fieldNote: 'Trust begins with how you enter the room.'
+            },
+            {
+                log: 'PASSAGE // NOT YET ASKED',
+                title: 'A WILLING PASSENGER',
+                body: 'The ship could support one companion after creature-tech adaptation. That is not consent. First you recover the Fend; later, your companion may choose whether Earth is part of their journey.',
+                fieldNote: 'A friend is never cargo, evidence, or a specimen.'
+            }
+        ]
+    },
+    prepare_first_contact: {
+        title: 'PRIORITY: PREPARE FIRST CONTACT',
+        shortTitle: 'Prepare Honest Contact',
+        accent: 0xE05D5D,
+        accentText: '#FF9A9A',
+        confirmation: [
+            'Build evidence, safeguards, and shared rules before any disclosure.',
+            'Give the Fend and your companion a veto over what Earth learns.'
+        ],
+        confirmLabel: 'BUILD THE PROTOCOL',
+        pages: [
+            SHARED_FINALE_PAGE,
+            {
+                log: 'BLACK BOX // SECURED',
+                title: 'PROOF WITHOUT A MAP',
+                body: 'The ship holds proof of survival and discovery without exposing the Fend. Before contact, both worlds will need evidence, boundaries, and people prepared to listen.',
+                fieldNote: 'Good technology carries responsibility with the signal.'
+            },
+            {
+                log: 'CONTACT // DEFERRED',
+                title: 'TRUST BEFORE TRANSMISSION',
+                body: 'Open first contact may come one day, after recovery and homecoming have taught both worlds what is at stake. Nothing is broadcast now. Consent becomes part of the mission.',
+                fieldNote: 'The first message should be a conversation, not a claim.'
             }
         ]
     }
@@ -83,11 +107,14 @@ export default class VictoryScene extends Phaser.Scene {
         super({ key: 'VictoryScene' });
         this.elements = [];
         this.phase = 'assembly'; // assembly, beacon, reflection, credits, complete
+        this.companionMediaRequest = 0;
     }
 
     init(data) {
         this.victoryData = data || {};
-        this.endingPreview = ['choice', 'earth', 'void'].includes(data?.endingPreview)
+        this.endingPreview = ['choice', ...CAMPAIGN_INTENTS].includes(
+            data?.endingPreview
+        )
             ? data.endingPreview
             : null;
         this.endingPreviewPage = Math.max(
@@ -150,6 +177,9 @@ export default class VictoryScene extends Phaser.Scene {
      */
     loadGameStats() {
         const state = window.GameState;
+        const highPowerReveals = state?.get(
+            'story.projectBeacon.highPowerReveals'
+        );
 
         this.gameStats = {
             creatureName: state?.get('creature.name') || 'Unknown Hero',
@@ -160,7 +190,10 @@ export default class VictoryScene extends Phaser.Scene {
             coinsCollected: state?.get('stats.coinsCollected') || 0,
             achievements: state?.get('achievements.unlocked')?.length || 0,
             creatureLevel: state?.get('creature.level') || 1,
-            rarity: state?.get('creature.genes.rarity') || 'common'
+            rarity: state?.get('creature.genes.rarity') || 'common',
+            highPowerReveal: Array.isArray(highPowerReveals)
+                ? highPowerReveals[highPowerReveals.length - 1] || null
+                : null
         };
 
         devLog('[VictoryScene] Game stats loaded:', this.gameStats);
@@ -543,6 +576,30 @@ export default class VictoryScene extends Phaser.Scene {
      */
     showReflectionPhase(width, height) {
         this.clearNonEssentialElements();
+        const mediaRequest = ++this.companionMediaRequest;
+        window.CompanionMediaService?.createCinematicStill?.(this, {
+            momentId: 'beacon_reflection',
+            stage: window.GameState?.get('creature.lifecycle.stage') || 'baby',
+            depth: 8,
+            alpha: 0.52,
+            duration: 7800,
+            isCurrent: () => (
+                this.phase === 'reflection' &&
+                this.companionMediaRequest === mediaRequest
+            )
+        }).then(tableau => {
+            if (!tableau) return;
+            if (
+                this.phase !== 'reflection' ||
+                this.companionMediaRequest !== mediaRequest
+            ) {
+                tableau.destroy();
+                return;
+            }
+            this.elements.push(...tableau.elements);
+        }).catch(error => {
+            devLog('[VictoryScene] Living portrait tableau unavailable:', error.message);
+        });
 
         const isCompact = width < 600;
         const shipY = height * (isCompact ? 0.55 : 0.57);
@@ -558,10 +615,17 @@ export default class VictoryScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(100);
         this.elements.push(title);
 
+        const reflectionCopy = this.gameStats.highPowerReveal
+            ? `${this.gameStats.creatureName} held five living systems together.\n` +
+                'On Earth, that power would be detectable across a city.\n' +
+                'Project Beacon can reach Earth. No signal has left.'
+            : 'Project Beacon can reach Earth.\n' +
+                'The same signal could reveal this world.\n' +
+                'For the first time, the directive waits for you.';
         const reflection = this.add.text(
             width / 2,
             height * 0.25,
-            'Project Beacon can reach Earth.\nThe same signal could reveal this world.\nFor the first time, the directive waits for you.',
+            reflectionCopy,
             {
                 fontSize: Math.min(16, width * 0.038) + 'px',
                 color: '#E8D5FF',
@@ -918,20 +982,20 @@ export default class VictoryScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(201);
         this.elements.push(subMsg);
 
-        const existingEnding = window.GameState?.get(
-            'story.projectBeacon.endingChoice'
+        const existingPriority = window.GameState?.get(
+            'story.projectBeacon.finale.priority'
         );
-        const hasEnding = ['earth', 'void'].includes(existingEnding);
+        const hasPriority = CAMPAIGN_INTENTS.includes(existingPriority);
 
-        // The first visit presents the decision. Later visits replay the saved ending.
+        // The first visit sets a priority. Later visits replay the saved handoff.
         const buttonY = height * 0.67;
         this.createButton(
             width / 2, buttonY,
-            hasEnding ? 'Revisit your ending' : 'Face the choice',
+            hasPriority ? 'Revisit your priority' : 'Choose what comes first',
             0x7B68EE,
             () => {
-                if (hasEnding) {
-                    this.showEndingEpilogue(existingEnding);
+                if (hasPriority) {
+                    this.showEndingEpilogue(existingPriority);
                     return;
                 }
                 this.showChoiceScene();
@@ -962,25 +1026,32 @@ export default class VictoryScene extends Phaser.Scene {
             || new Date().toISOString();
         state.set('story.projectBeacon.uplinkRestored', true);
         state.set('story.projectBeacon.uplinkRestoredAt', restoredAt);
+        state.set('story.projectBeacon.finale.sharedOutcome', {
+            coordinatesProtected: true,
+            uplinkMode: 'held',
+            departureStatus: 'deferred',
+            currentCommitment: 'remain_and_defend',
+            recordedAt: restoredAt
+        });
+        recordCampaignLegacyCapsule(state, { recordedAt: restoredAt });
         window.AchievementSystem?.recordEvent?.('campaign_completed', {
             restoredAt
         });
-        state.save?.();
         return true;
     }
 
     /**
-     * Show the Project Beacon choice without privileging either ending.
+     * Show the Project Beacon priority without changing the canonical outcome.
      */
     showChoiceScene({ allowExistingChoice = false } = {}) {
-        const existingEnding = window.GameState?.get(
-            'story.projectBeacon.endingChoice'
+        const existingPriority = window.GameState?.get(
+            'story.projectBeacon.finale.priority'
         );
         if (
             !allowExistingChoice
-            && ['earth', 'void'].includes(existingEnding)
+            && CAMPAIGN_INTENTS.includes(existingPriority)
         ) {
-            this.showEndingEpilogue(existingEnding);
+            this.showEndingEpilogue(existingPriority);
             return;
         }
 
@@ -1021,7 +1092,7 @@ export default class VictoryScene extends Phaser.Scene {
         this.elements.push(panel);
 
         // Title
-        const title = this.add.text(width / 2, height * 0.17, 'THE BEACON IS YOURS', {
+        const title = this.add.text(width / 2, height * 0.16, 'WHAT COMES FIRST?', {
             fontSize: Math.min(28, width * 0.07) + 'px',
             color: '#FFD700',
             fontStyle: 'bold',
@@ -1048,8 +1119,8 @@ export default class VictoryScene extends Phaser.Scene {
         }
 
         // Narrative text
-        const narrative = this.add.text(width / 2, height * (isCompact ? 0.43 : 0.44),
-            `Earth is waiting for Project Beacon.\nThis world trusts you with its location.\n${this.gameStats.creatureName} stays close. No signal leaves until you choose.`, {
+        const narrative = this.add.text(width / 2, height * (isCompact ? 0.38 : 0.40),
+            `The coordinates are protected. Departure is deferred.\n${this.gameStats.creatureName} stays beside you while the Fend recovers.\nChoose what Wanderer-77 prepares first.`, {
             fontSize: Math.min(14, width * 0.035) + 'px',
             color: '#E8D5FF',
             align: 'center',
@@ -1062,46 +1133,43 @@ export default class VictoryScene extends Phaser.Scene {
         const btnY = height * 0.62;
         const btnWidth = isCompact
             ? Math.min(320, width * 0.8)
-            : Math.min(220, width * 0.38);
-        const btnGap = 20;
+            : Math.min(230, width * 0.27);
+        const btnGap = 14;
 
-        // Return to Earth button
         this.createChoiceButton(
-            isCompact ? width / 2 : width / 2 - btnWidth / 2 - btnGap,
-            isCompact ? height * 0.60 : btnY,
-            'RETURN TO EARTH\nTransmit Project Beacon', 0x1E90FF,
-            () => this.showEndingConfirmation('earth'),
+            isCompact ? width / 2 : width / 2 - btnWidth - btnGap,
+            isCompact ? height * 0.50 : btnY,
+            'DEFEND FIRST\nRestore communities', 0x31845A,
+            () => this.showEndingConfirmation('remain_and_defend'),
             btnWidth
         );
 
-        // Protect the creature world button
         this.createChoiceButton(
-            isCompact ? width / 2 : width / 2 + btnWidth / 2 + btnGap,
-            isCompact ? height * 0.73 : btnY,
-            'PROTECT THIS WORLD\nSilence the uplink', 0x6750A4,
-            () => this.showEndingConfirmation('void'),
+            width / 2,
+            isCompact ? height * 0.62 : btnY,
+            'PREPARE HOMECOMING\nPreserve a secret route', 0x2769A8,
+            () => this.showEndingConfirmation('prepare_homecoming'),
+            btnWidth
+        );
+
+        this.createChoiceButton(
+            isCompact ? width / 2 : width / 2 + btnWidth + btnGap,
+            isCompact ? height * 0.74 : btnY,
+            'PREPARE HONEST CONTACT\nBuild consent and proof', 0x9A4141,
+            () => this.showEndingConfirmation('prepare_first_contact'),
             btnWidth
         );
 
         // Hint text
-        const hint = this.add.text(width / 2, height * 0.86,
-            'Choose what happens to the coordinates.', {
+        const hint = this.add.text(width / 2, height * (isCompact ? 0.86 : 0.84),
+            'This sets a preparation priority. It does not transmit or depart.', {
             fontSize: '12px',
-            color: '#8B7FBB',
+            color: '#D7CDF6',
             fontStyle: 'italic',
             align: 'center',
             wordWrap: { width: width * 0.76 }
         }).setOrigin(0.5).setDepth(101);
         this.elements.push(hint);
-
-        // Pulse hint
-        this.tweens.add({
-            targets: hint,
-            alpha: { from: 1, to: 0.5 },
-            duration: 1500,
-            yoyo: true,
-            repeat: -1
-        });
     }
 
     /**
@@ -1164,31 +1232,31 @@ export default class VictoryScene extends Phaser.Scene {
     }
 
     showEndingConfirmation(choice) {
-        const ending = PROJECT_BEACON_ENDINGS[choice];
-        if (!ending) {
+        const priority = PROJECT_BEACON_PRIORITIES[choice];
+        if (!priority) {
             return false;
         }
 
         const { width, height } = this.scale;
         const isCompact = width < 600;
         this.clearEndingView();
-        this.createEndingBackground(width, height, ending.accent);
+        this.createEndingBackground(width, height, priority.accent);
 
         const panel = this.add.graphics();
         panel.fillStyle(0x15122C, 0.97);
         panel.fillRoundedRect(width * 0.06, height * 0.06, width * 0.88, height * 0.88, 8);
-        panel.lineStyle(3, ending.accent, 0.9);
+        panel.lineStyle(3, priority.accent, 0.9);
         panel.strokeRoundedRect(width * 0.06, height * 0.06, width * 0.88, height * 0.88, 8);
         panel.setDepth(100);
         this.elements.push(panel);
 
-        const eyebrow = this.add.text(width / 2, height * 0.13, 'FINAL DECISION', {
+        const eyebrow = this.add.text(width / 2, height * 0.13, 'CAMPAIGN PRIORITY', {
             fontSize: '12px',
-            color: ending.accentText,
+            color: priority.accentText,
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(101);
 
-        const title = this.add.text(width / 2, height * 0.22, ending.shortTitle, {
+        const title = this.add.text(width / 2, height * 0.22, priority.shortTitle, {
             fontSize: isCompact ? '23px' : '30px',
             color: '#FFFFFF',
             fontStyle: 'bold',
@@ -1198,7 +1266,7 @@ export default class VictoryScene extends Phaser.Scene {
         const warning = this.add.text(
             width / 2,
             height * 0.33,
-            'This becomes the ending of this campaign.',
+            'This decides what you prepare first. No signal is sent.',
             {
                 fontSize: isCompact ? '14px' : '16px',
                 color: '#F2C14E',
@@ -1210,7 +1278,7 @@ export default class VictoryScene extends Phaser.Scene {
         const consequences = this.add.text(
             width / 2,
             height * 0.48,
-            ending.confirmation.map(line => `• ${line}`).join('\n\n'),
+            priority.confirmation.map(line => `• ${line}`).join('\n\n'),
             {
                 fontSize: isCompact ? '14px' : '16px',
                 color: '#E8D5FF',
@@ -1224,8 +1292,8 @@ export default class VictoryScene extends Phaser.Scene {
         this.createChoiceButton(
             width / 2,
             height * 0.68,
-            ending.confirmLabel,
-            ending.accent,
+            priority.confirmLabel,
+            priority.accent,
             () => {
                 if (this.recordEndingChoice(choice)) {
                     this.showEndingEpilogue(choice);
@@ -1247,33 +1315,33 @@ export default class VictoryScene extends Phaser.Scene {
      * Deliver the selected ending as three paced field-log moments.
      */
     showEndingEpilogue(choice, pageIndex = 0) {
-        const ending = PROJECT_BEACON_ENDINGS[choice];
-        if (!ending) {
+        const priority = PROJECT_BEACON_PRIORITIES[choice];
+        if (!priority) {
             return false;
         }
 
-        const page = ending.pages[pageIndex];
+        const page = priority.pages[pageIndex];
         if (!page) {
             return false;
         }
 
         const { width, height } = this.scale;
         const isCompact = width < 600;
-        const isLastPage = pageIndex === ending.pages.length - 1;
+        const isLastPage = pageIndex === priority.pages.length - 1;
         this.clearEndingView();
-        this.createEndingBackground(width, height, ending.accent);
+        this.createEndingBackground(width, height, priority.accent);
 
         const panel = this.add.graphics();
         panel.fillStyle(0x111126, 0.96);
         panel.fillRoundedRect(width * 0.05, height * 0.045, width * 0.9, height * 0.91, 8);
-        panel.lineStyle(3, ending.accent, 0.9);
+        panel.lineStyle(3, priority.accent, 0.9);
         panel.strokeRoundedRect(width * 0.05, height * 0.045, width * 0.9, height * 0.91, 8);
         panel.setDepth(100);
         this.elements.push(panel);
 
-        const route = this.add.text(width / 2, height * 0.095, ending.title, {
+        const route = this.add.text(width / 2, height * 0.095, priority.title, {
             fontSize: '12px',
-            color: ending.accentText,
+            color: priority.accentText,
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(101);
 
@@ -1327,7 +1395,7 @@ export default class VictoryScene extends Phaser.Scene {
         const progress = this.add.text(
             width / 2,
             height * 0.76,
-            `${String(pageIndex + 1).padStart(2, '0')} / ${String(ending.pages.length).padStart(2, '0')}`,
+            `${String(pageIndex + 1).padStart(2, '0')} / ${String(priority.pages.length).padStart(2, '0')}`,
             {
                 fontSize: '11px',
                 color: '#8E8AAE'
@@ -1357,7 +1425,7 @@ export default class VictoryScene extends Phaser.Scene {
                 width / 2,
                 height * 0.84,
                 'CONTINUE',
-                ending.accent,
+                priority.accent,
                 () => this.showEndingEpilogue(choice, pageIndex + 1)
             );
         }
@@ -1367,13 +1435,13 @@ export default class VictoryScene extends Phaser.Scene {
     }
 
     createEndingTableau(choice, pageIndex, centerX, centerY) {
-        const ending = PROJECT_BEACON_ENDINGS[choice];
+        const priority = PROJECT_BEACON_PRIORITIES[choice];
         const art = this.add.graphics();
         art.setPosition(centerX, centerY);
         art.setDepth(101);
-        art.lineStyle(2, ending.accent, 0.9);
+        art.lineStyle(2, priority.accent, 0.9);
 
-        if (choice === 'earth') {
+        if (choice === 'prepare_homecoming') {
             const earthX = pageIndex === 2 ? 68 : -62;
             const shipX = pageIndex === 2 ? -52 : 58;
 
@@ -1389,7 +1457,7 @@ export default class VictoryScene extends Phaser.Scene {
             art.fillTriangle(shipX, -16, shipX - 13, 15, shipX + 13, 15);
             art.fillStyle(0xF2C14E, 1);
             art.fillTriangle(shipX - 8, 15, shipX + 8, 15, shipX, 29);
-            art.lineStyle(2, ending.accent, 0.8);
+            art.lineStyle(2, priority.accent, 0.8);
             art.lineBetween(earthX + (earthX < 0 ? 45 : -45), 0, shipX, 0);
 
             if (pageIndex === 0) {
@@ -1407,7 +1475,7 @@ export default class VictoryScene extends Phaser.Scene {
         } else if (pageIndex === 0) {
             art.fillStyle(0x181735, 1);
             art.fillCircle(55, 0, 39);
-            art.lineStyle(3, ending.accent, 1);
+            art.lineStyle(3, priority.accent, 1);
             art.strokeCircle(55, 0, 48);
             art.fillStyle(0x8FE3CF, 1);
             art.fillCircle(45, -8, 7);
@@ -1420,12 +1488,12 @@ export default class VictoryScene extends Phaser.Scene {
             const nodes = [
                 [-70, 8], [-34, -28], [0, 0], [38, -22], [72, 10]
             ];
-            art.lineStyle(2, ending.accent, 0.65);
+            art.lineStyle(2, priority.accent, 0.65);
             nodes.slice(0, -1).forEach((node, index) => {
                 art.lineBetween(node[0], node[1], nodes[index + 1][0], nodes[index + 1][1]);
             });
             nodes.forEach(([x, y], index) => {
-                art.fillStyle(index === 2 ? 0x8FE3CF : ending.accent, 1);
+                art.fillStyle(index === 2 ? 0x8FE3CF : priority.accent, 1);
                 art.fillCircle(x, y, index === 2 ? 9 : 6);
                 art.strokeCircle(x, y, index === 2 ? 15 : 10);
             });
@@ -1458,15 +1526,15 @@ export default class VictoryScene extends Phaser.Scene {
     }
 
     showNewGamePlusConfirmation(choice) {
-        const ending = PROJECT_BEACON_ENDINGS[choice];
-        if (!ending) {
+        const priority = PROJECT_BEACON_PRIORITIES[choice];
+        if (!priority) {
             return false;
         }
 
         const { width, height } = this.scale;
         const isCompact = width < 600;
         this.clearEndingView();
-        this.createEndingBackground(width, height, ending.accent);
+        this.createEndingBackground(width, height, priority.accent);
 
         const panel = this.add.graphics();
         panel.fillStyle(0x15122C, 0.97);
@@ -1485,7 +1553,7 @@ export default class VictoryScene extends Phaser.Scene {
         const body = this.add.text(
             width / 2,
             height * 0.43,
-            `Your expeditions, ship parts, and ending will reset.\nPurchased route maps stay open.\n\n${this.gameStats.creatureName}, your bond, achievements, field kit, and katana upgrades will remain.`,
+            `Your expeditions, ship parts, and active priority will reset.\nPurchased route maps stay open.\n\n${this.gameStats.creatureName}, your bond, achievements, field kit, katana upgrades, and prior legacy record will remain.`,
             {
                 fontSize: isCompact ? '14px' : '16px',
                 color: '#E8E6F2',
@@ -1507,9 +1575,9 @@ export default class VictoryScene extends Phaser.Scene {
         this.createButton(
             width / 2,
             height * 0.79,
-            'KEEP ENDING',
+            'KEEP PRIORITY',
             0x4A4564,
-            () => this.showEndingEpilogue(choice, ending.pages.length - 1)
+            () => this.showEndingEpilogue(choice, priority.pages.length - 1)
         );
         return true;
     }
@@ -1553,16 +1621,19 @@ export default class VictoryScene extends Phaser.Scene {
         }
 
         const state = window.GameState;
-        if (!state || state.get('story.projectBeacon.endingChoice') !== choice) {
+        if (
+            !state
+            || state.get('story.projectBeacon.finale.priority') !== choice
+        ) {
             return false;
         }
 
         const completedAt = state.get(
-            'story.projectBeacon.endingEpilogueCompletedAt'
+            'story.projectBeacon.finale.epilogueCompletedAt'
         ) || new Date().toISOString();
-        state.set('story.projectBeacon.endingEpilogueSeen', true);
+        state.set('story.projectBeacon.finale.epilogueSeen', true);
         state.set(
-            'story.projectBeacon.endingEpilogueCompletedAt',
+            'story.projectBeacon.finale.epilogueCompletedAt',
             completedAt
         );
         state.save?.();
@@ -1570,10 +1641,10 @@ export default class VictoryScene extends Phaser.Scene {
     }
 
     /**
-     * Persist the player's final campaign decision for future story branches.
+     * Persist the player's preparation priority for the chronological saga.
      */
     recordEndingChoice(choice) {
-        if (!['earth', 'void'].includes(choice)) {
+        if (!CAMPAIGN_INTENTS.includes(choice)) {
             return false;
         }
 
@@ -1586,17 +1657,16 @@ export default class VictoryScene extends Phaser.Scene {
             return false;
         }
 
-        const existingChoice = state.get('story.projectBeacon.endingChoice');
-        if (['earth', 'void'].includes(existingChoice)) {
+        const existingChoice = state.get(
+            'story.projectBeacon.finale.priority'
+        );
+        if (CAMPAIGN_INTENTS.includes(existingChoice)) {
             return existingChoice === choice;
         }
 
-        state.set('story.projectBeacon.endingChoice', choice);
-        state.set('story.projectBeacon.endingChoiceDate', new Date().toISOString());
-        state.set('story.projectBeacon.endingEpilogueSeen', false);
-        state.set('story.projectBeacon.endingEpilogueCompletedAt', null);
-        state.save?.();
-        return true;
+        return Boolean(recordCampaignPriority(state, choice, {
+            recordedAt: new Date().toISOString()
+        }));
     }
 
     /**
@@ -1725,6 +1795,16 @@ export default class VictoryScene extends Phaser.Scene {
         state?.set('hubWorld.shipParts.collected', []);
         state?.set('hubWorld.shipParts.finalBossUnlocked', false);
         state?.set('hubWorld.shipCompletionCutsceneShown', false);
+        state?.set('world.currentVeilMission', {
+            schemaVersion: 1,
+            status: 'not_started',
+            stabilizedAnchorIds: [],
+            maskStatus: 'inactive',
+            transmissionStatus: 'not_sent',
+            startedAt: null,
+            completedAt: null,
+            history: []
+        });
 
         // Replay the campaign story while preserving the recovered field kit,
         // katana upgrades, creature bond, and achievements.
@@ -1735,8 +1815,77 @@ export default class VictoryScene extends Phaser.Scene {
             expeditionCheckpoint: null,
             pendingDebriefs: [],
             debriefsSeen: [],
+            highPowerReveals: [],
             uplinkRestored: false,
             uplinkRestoredAt: null,
+            finale: {
+                schemaVersion: 1,
+                sharedOutcome: null,
+                priority: null,
+                prioritySelectedAt: null,
+                epilogueSeen: false,
+                epilogueCompletedAt: null
+            },
+            sensei: {
+                ...(projectBeacon.sensei || {}),
+                encryptedContact: {
+                    ...(projectBeacon.sensei?.encryptedContact || {}),
+                    status: 'fragmented',
+                    contactAttempted: false,
+                    contactEstablished: false,
+                    recoveredAt: null
+                }
+            },
+            shipCapabilities: {
+                schemaVersion: 1,
+                stealthDescent: 'damaged',
+                secureReturnVector: 'unavailable',
+                manualLanding: 'unavailable',
+                blackBoxProof: 'missing',
+                passengerCapacity: 0,
+                creatureLifeSupport: 'not_assessed',
+                longRangeUplink: 'offline'
+            },
+            shipReconstruction: {
+                schemaVersion: 1,
+                completedStepIds: [],
+                firstInstalledAt: null,
+                completedAt: null,
+                history: []
+            },
+            shipFieldSupport: {
+                schemaVersion: 1,
+                lastServicedLevel: 0,
+                serviceCount: 0,
+                lastServicedAt: null,
+                history: []
+            },
+            shipArchive: {
+                schemaVersion: 1,
+                reviewedSectionIds: [],
+                firstReviewedAt: null,
+                completedAt: null,
+                history: []
+            },
+            protectedReturnProtocol: {
+                schemaVersion: 1,
+                completedStepIds: [],
+                packetStatus: 'not_prepared',
+                transmissionStatus: 'not_sent',
+                firstAppliedAt: null,
+                completedAt: null,
+                history: []
+            },
+            companionConsent: {
+                schemaVersion: 2,
+                activeCompanionId: null,
+                records: []
+            },
+            companionEarthMemory: {
+                schemaVersion: 1,
+                activeCompanionId: null,
+                records: []
+            },
             endingChoice: null,
             endingChoiceDate: null,
             endingEpilogueSeen: false,
@@ -1756,6 +1905,7 @@ export default class VictoryScene extends Phaser.Scene {
      * Clear non-essential elements for phase transitions
      */
     clearNonEssentialElements() {
+        this.companionMediaRequest += 1;
         // Keep stars and background, clear everything else except ship
         this.elements = this.elements.filter(el => {
             if (el === this.ship || this.stars.includes(el)) {
@@ -1773,6 +1923,7 @@ export default class VictoryScene extends Phaser.Scene {
      */
     shutdown() {
         devLog('[VictoryScene] Shutting down');
+        this.companionMediaRequest += 1;
 
         // Clear all timers
         if (this.time) {

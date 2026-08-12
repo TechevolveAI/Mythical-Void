@@ -12,32 +12,135 @@
  */
 
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
+import FusionConsentModal from '../ui/FusionConsentModal.js';
+import SharedFusionModal from '../ui/SharedFusionModal.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 const FUSION_ELIGIBLE_STAGES = new Set(['adult', 'elder']);
 const FUSION_ADULT_AGE_MS = 2 * 24 * 60 * 60 * 1000;
+const FUSION_STORY_COPY = Object.freeze({
+    title: 'FUSION POD // CURRENT SYNTHESIS',
+    subtitle: 'Two stable signatures form a new lineage. Both companions remain with you.',
+    empty: 'Select two family records to compare their Current signatures.'
+});
 
-export function isCreatureFusionEligible(creature, now = Date.now()) {
+export function getCreatureFusionReadiness(creature, now = Date.now()) {
+    const authoritativeReadiness = typeof window !== 'undefined'
+        ? window.GameState?.getCreatureFusionReadiness?.(creature, now)
+        : null;
+    if (authoritativeReadiness) {
+        return authoritativeReadiness;
+    }
+
     if (!creature || typeof creature !== 'object') {
-        return false;
+        return {
+            eligible: false,
+            reason: 'missing_creature',
+            stage: 'unknown',
+            readyAt: null,
+            remainingMs: null
+        };
     }
 
     const lifecycle = creature.lifecycle || {};
+    if (lifecycle.hasDeparted || lifecycle.departureDate) {
+        return {
+            eligible: false,
+            reason: 'departed',
+            stage: String(lifecycle.stage || 'unknown').toLowerCase(),
+            readyAt: null,
+            remainingMs: null
+        };
+    }
     const stage = typeof lifecycle.stage === 'string'
         ? lifecycle.stage.toLowerCase()
-        : null;
+        : '';
 
-    if (stage) {
-        return FUSION_ELIGIBLE_STAGES.has(stage);
+    if (FUSION_ELIGIBLE_STAGES.has(stage)) {
+        return {
+            eligible: true,
+            reason: 'ready',
+            stage,
+            readyAt: null,
+            remainingMs: 0
+        };
     }
 
     const rawBirthDate = lifecycle.birthDate ?? creature.hatchTime;
     const birthDate = typeof rawBirthDate === 'number'
         ? rawBirthDate
         : Date.parse(rawBirthDate);
+    if (!Number.isFinite(birthDate) || birthDate > now) {
+        return {
+            eligible: false,
+            reason: 'missing_birth_record',
+            stage: stage || 'unknown',
+            readyAt: null,
+            remainingMs: null
+        };
+    }
 
-    return Number.isFinite(birthDate) &&
-        birthDate <= now &&
-        now - birthDate >= FUSION_ADULT_AGE_MS;
+    const readyAt = birthDate + FUSION_ADULT_AGE_MS;
+    const remainingMs = Math.max(0, readyAt - now);
+    if (!stage && remainingMs === 0) {
+        return {
+            eligible: true,
+            reason: 'ready',
+            stage: 'adult',
+            readyAt,
+            remainingMs: 0
+        };
+    }
+
+    return {
+        eligible: false,
+        reason: remainingMs > 0 ? 'maturing' : 'lifecycle_sync',
+        stage: stage || 'unknown',
+        readyAt,
+        remainingMs
+    };
+}
+
+export function isCreatureFusionEligible(creature, now = Date.now()) {
+    return getCreatureFusionReadiness(creature, now).eligible;
+}
+
+export function formatFusionWaitTime(remainingMs) {
+    if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+        return 'ready for a lifecycle check';
+    }
+
+    const totalHours = Math.max(1, Math.ceil(remainingMs / (60 * 60 * 1000)));
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+    if (days === 0) return `${hours}h`;
+    if (hours === 0) return `${days}d`;
+    return `${days}d ${hours}h`;
+}
+
+export function getFallbackFusionCompatibility(parentA, parentB) {
+    const getIdentity = parent => String(
+        parent?.id ||
+        parent?.genes?.id ||
+        parent?.dna?.id ||
+        parent?.genes?.species ||
+        parent?.dna?.species ||
+        'unknown'
+    ).trim().toLowerCase();
+    const pairKey = [getIdentity(parentA), getIdentity(parentB)]
+        .sort()
+        .join('|');
+    let hash = 2166136261;
+    for (let index = 0; index < pairKey.length; index++) {
+        hash ^= pairKey.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
+    }
+    const percentage = 50 + ((hash >>> 0) % 41);
+    return {
+        percentage,
+        score: percentage,
+        maxScore: 100,
+        source: 'stable_identity_fallback'
+    };
 }
 
 function getGameState() {
@@ -67,12 +170,53 @@ class FusionPodScene extends Phaser.Scene {
         this.selectionModal = null;
         this.selectionModalElements = [];
         this.previewCreatures = null;
+        this.previewAutoSelect = false;
+        this.previewAutoStart = false;
+        this.fusionTransaction = null;
+        this.fusionOperationId = null;
+        this.fusionResultSeed = null;
+        this.fusionOffspringSequence = 0;
+        this.parentSlotElements = [];
+        this.selectionModalOpen = false;
+        this.previousTopOnly = true;
+        this.breedButtonEnabled = false;
+        this.cleanupComplete = false;
+        this.fusionConsentModal = null;
+        this.sharedFusionModal = null;
+        this.fusionConsentReceipt = null;
+        this.previewConsentOnly = false;
+        this.previewSharedFusionAvailable = false;
     }
 
     init(data = {}) {
+        this.parent1Index = null;
+        this.parent1Data = null;
+        this.parent2Index = null;
+        this.parent2Data = null;
+        this.compatibility = null;
+        this.breedingInProgress = false;
+        this.fusionTransaction = null;
+        this.fusionOperationId = null;
+        this.fusionResultSeed = null;
+        this.fusionOffspringSequence = 0;
+        this.cleanupComplete = false;
+        this.fusionConsentReceipt = null;
         this.previewCreatures = Array.isArray(data.previewCreatures)
             ? data.previewCreatures
             : null;
+        this.previewConsentOnly = Boolean(
+            this.previewCreatures && data.previewConsentOnly
+        );
+        this.previewAutoSelect = Boolean(
+            this.previewCreatures && data.previewAutoSelect
+        );
+        this.previewAutoStart = Boolean(
+            this.previewAutoSelect && data.previewAutoStart
+        );
+        this.previewSharedFusionAvailable = Boolean(
+            this.previewCreatures &&
+            data.previewSharedFusionAvailable
+        );
     }
 
     getFusionCollection() {
@@ -83,22 +227,71 @@ class FusionPodScene extends Phaser.Scene {
         console.log('[FusionPodScene] Creating fusion pod...');
 
         const { width, height } = this.scale;
+        this.events?.once?.('shutdown', this.shutdown, this);
+        this.events?.once?.('destroy', this.shutdown, this);
 
         // Stop other scenes to ensure clean display
         const scenesToStop = ['GameScene'];
         SceneTransitionHelper.pauseActiveScenes(this, scenesToStop);
 
-        // Check breeding requirements
-        const collection = this.getFusionCollection();
-        const adultCreatures = this.getAdultCreatures(collection);
+        // A page refresh or abandoned hatch reveal can leave a reserved
+        // result behind. Resume the exact staged creature rather than rolling
+        // different genes; an unstaged reservation is safe to cancel.
+        if (!this.previewCreatures) {
+            const resumableFusion = getGameState().getPendingFusionHatchData?.();
+            if (resumableFusion) {
+                window.UXEnhancements?.hideLoading?.();
+                this.scene.start('BreedingHatchScene', resumableFusion);
+                return;
+            }
+            const reservedFusion =
+                getGameState().getPendingReservedFusion?.();
+            if (reservedFusion) {
+                this.resumeReservedFusion(reservedFusion, width, height);
+                return;
+            }
+            getGameState().clearInterruptedFusion?.('pod_reentered');
+            getGameState().reconcileCreatureCollectionLifecycles?.({
+                persist: true
+            });
+            const fusionStatus = getGameState().getBreedingShrineStatus?.();
+            if (!fusionStatus?.unlocked) {
+                this.showRequirementNotMet(
+                    width,
+                    height,
+                    'locked',
+                    fusionStatus?.currentLevel || 1
+                );
+                return;
+            }
+        }
 
-        if (collection.length < 2) {
-            this.showRequirementNotMet(width, height, 'need_creatures', collection.length);
+        // Check fusion requirements after inactive creature lifecycles have
+        // been reconciled.
+        const collection = this.getFusionCollection();
+        const readiness = this.getCollectionReadiness(collection);
+        const adultCreatures = readiness
+            .filter(entry => entry.eligible)
+            .map(entry => entry.creature);
+        const sharedFusionAvailable =
+            this.isSharedFusionAvailable();
+
+        if (collection.length < 2 && !sharedFusionAvailable) {
+            this.showRequirementNotMet(width, height, 'need_creatures', {
+                collection,
+                readiness
+            });
             return;
         }
 
-        if (adultCreatures.length < 2) {
-            this.showRequirementNotMet(width, height, 'need_adults', adultCreatures.length);
+        if (
+            adultCreatures.length < 2 &&
+            !(sharedFusionAvailable && adultCreatures.length >= 1)
+        ) {
+            this.showRequirementNotMet(width, height, 'need_adults', {
+                collection,
+                readiness
+            });
             return;
         }
 
@@ -109,12 +302,66 @@ class FusionPodScene extends Phaser.Scene {
         this.createParentSlots(width, height);
         this.createCompatibilityDisplay(width, height);
         this.createBreedButton(width, height);
+        this.createSharedFusionButton();
         this.createCloseButton(width);
+
+        if (this.previewConsentOnly) {
+            this.time.delayedCall(80, () => {
+                const eligible = this.getAdultCreatures(
+                    this.getFusionCollection()
+                );
+                if (eligible.length < 2 || this.cleanupComplete) return;
+                this.parent1Data = eligible[0];
+                this.parent2Data = eligible[1];
+                this.parent1Index = 0;
+                this.parent2Index = 1;
+                this.calculateCompatibility();
+                this.refreshUI();
+                this.requestFusionConsent();
+            });
+        }
+
+        if (this.previewAutoSelect && !this.previewConsentOnly) {
+            this.time.delayedCall(50, () => {
+                const eligible = this.getAdultCreatures(this.getFusionCollection());
+                if (eligible.length < 2 || this.cleanupComplete) return;
+
+                const collection = this.getFusionCollection();
+                this.parent1Index = collection.indexOf(eligible[0]);
+                this.parent1Data = eligible[0];
+                this.parent2Index = collection.indexOf(eligible[1]);
+                this.parent2Data = eligible[1];
+                this.calculateCompatibility();
+                this.refreshUI();
+                if (this.previewAutoStart) {
+                    this.time.delayedCall(500, () => {
+                        if (!this.cleanupComplete) {
+                            const parents = [
+                                this.parent1Data,
+                                this.parent2Data
+                            ];
+                            const consentReceipt = window.FusionConsent
+                                ?.createLocalFusionConsentReceipt?.({
+                                    operationId:
+                                        this.fusionOperationId ||
+                                        `fusion_preview_${Date.now()}`,
+                                    parents
+                                });
+                            this.fusionOperationId =
+                                consentReceipt?.operationId ||
+                                this.fusionOperationId;
+                            this.fusionConsentReceipt = consentReceipt;
+                            this.attemptBreeding({ consentReceipt });
+                        }
+                    });
+                }
+            });
+        }
 
         // Play fusion pod ambient sound and start fusion music
         if (window.AudioManager) {
             window.AudioManager.playFusionAmbient?.();
-            window.AudioManager.playAreaMusic?.('fusion');
+            window.AudioManager.playAreaMusic?.('breeding');
         }
 
         // Hide loading overlay
@@ -125,11 +372,245 @@ class FusionPodScene extends Phaser.Scene {
         console.log('[FusionPodScene] Fusion pod created');
     }
 
+    isSharedFusionAvailable() {
+        if (this.previewSharedFusionAvailable) {
+            return true;
+        }
+        if (
+            this.previewCreatures ||
+            !window.SharedFusionInvitation
+        ) {
+            return false;
+        }
+        return window.SharedFusionInvitation
+            .getSharedFusionAvailability?.(
+                window.CloudSave
+            )?.available === true;
+    }
+
+    createSharedFusionButton() {
+        if (!this.isSharedFusionAvailable()) return;
+        const width = 58;
+        const height = 50;
+        const x = this.panelBounds.x + 7;
+        const y = this.breedButtonBounds.y;
+        const background = this.add.graphics()
+            .setDepth(201);
+        const draw = highlighted => {
+            background.clear();
+            background.fillStyle(
+                highlighted ? 0x176B4A : 0x102B26,
+                1
+            );
+            background.fillRoundedRect(
+                x,
+                y,
+                width,
+                height,
+                8
+            );
+            background.lineStyle(
+                2,
+                highlighted ? 0xFFFFFF : 0x5EE6A8,
+                1
+            );
+            background.strokeRoundedRect(
+                x,
+                y,
+                width,
+                height,
+                8
+            );
+        };
+        draw(false);
+        const label = this.add.text(
+            x + width / 2,
+            y + height / 2,
+            'LINK',
+            {
+                fontSize: '10px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(202);
+        const hitZone = this.add.zone(
+            x + width / 2,
+            y + height / 2,
+            width,
+            height
+        )
+            .setDepth(203)
+            .setInteractive({ useHandCursor: true });
+        let tooltip = null;
+        hitZone.on('pointerdown', () => {
+            this.openSharedFusion();
+        });
+        hitZone.on('pointerover', () => {
+            draw(true);
+            tooltip = this.add.text(
+                x,
+                y - 8,
+                'Protected Shared Fusion',
+                {
+                    fontSize: '10px',
+                    color: '#FFFFFF',
+                    backgroundColor: '#050807',
+                    padding: { x: 7, y: 4 }
+                }
+            ).setOrigin(0, 1).setDepth(204);
+        });
+        hitZone.on('pointerout', () => {
+            draw(false);
+            tooltip?.destroy?.();
+            tooltip = null;
+        });
+        this.elements.push(background, label, hitZone);
+    }
+
+    openSharedFusion() {
+        if (this.sharedFusionModal || !this.isSharedFusionAvailable()) {
+            return false;
+        }
+        const parents = this.getFusionCollection().filter(creature => (
+            window.FusionConsent
+                ?.getFusionCompanionReadiness?.(creature)?.willing
+        ));
+        if (parents.length < 1) return false;
+        this.sharedFusionModal = new SharedFusionModal(this);
+        return this.sharedFusionModal.show({
+            parents,
+            onClose: () => {
+                this.sharedFusionModal = null;
+                this.updateBreedButton();
+            },
+            onComplete: () => {
+                this.sharedFusionModal = null;
+                this.closeScene();
+            }
+        });
+    }
+
+    async resumeReservedFusion(transaction, width, height) {
+        this.fusionTransaction = transaction;
+        this.fusionOperationId = transaction.operationId;
+        const collection = getGameState().getCreatureCollection?.() || [];
+        const parents = transaction.parentIds?.map(parentId => (
+            collection.find(creature => creature?.id === parentId)
+        )) || [];
+
+        if (parents.length !== 2 || parents.some(parent => !parent)) {
+            this.showRequirementNotMet(
+                width,
+                height,
+                'reserved_recovery',
+                'Sync this Sanctuary save to restore both parent records.'
+            );
+            return;
+        }
+
+        [this.parent1Data, this.parent2Data] = parents;
+        window.UXEnhancements?.showLoading?.(
+            'Restoring reserved lineage...'
+        );
+
+        const executionResult = await this.executeServerFusionOutcome();
+        if (!executionResult.success || !executionResult.execution) {
+            this.showRequirementNotMet(
+                width,
+                height,
+                'reserved_recovery',
+                'The lineage service is still unavailable. The reserved result remains safe; return to the Pod to retry.'
+            );
+            return;
+        }
+
+        this.fusionTransaction = executionResult.transaction;
+        const hatchData = this.buildServerHatchData(
+            executionResult.execution.outcome
+        );
+        const staged = this.stageFusionHatchData(hatchData);
+        if (!staged.success) {
+            this.showRequirementNotMet(
+                width,
+                height,
+                'reserved_recovery',
+                'The result returned but could not be secured locally. The reservation remains safe; sync and retry.'
+            );
+            return;
+        }
+
+        window.UXEnhancements?.hideLoading?.();
+        this.shutdown();
+        this.scene.start('BreedingHatchScene', hatchData);
+    }
+
+    requestFusionConsent() {
+        if (!this.parent1Data || !this.parent2Data) return false;
+        this.fusionOperationId = this.fusionOperationId ||
+            (
+                this.previewCreatures
+                    ? `fusion_preview_consent_${Date.now()}`
+                    : getGameState().createPortableId?.('fusion')
+            );
+        const parents = [this.parent1Data, this.parent2Data];
+        const readiness = window.FusionConsent
+            ?.getFusionConsentReadiness?.(parents) || {
+            ready: true,
+            parents: parents.map(parent => ({
+                creatureId: parent.id,
+                name: parent.name,
+                willing: true
+            }))
+        };
+        this.fusionConsentModal?.destroy?.();
+        this.fusionConsentModal = new FusionConsentModal(this);
+        return this.fusionConsentModal.show({
+            parents,
+            readiness,
+            onConfirm: () => {
+                const receipt = this.previewCreatures
+                    ? window.FusionConsent
+                        ?.createLocalFusionConsentReceipt?.({
+                            operationId: this.fusionOperationId,
+                            parents
+                        })
+                    : window.FusionConsent?.recordLocalFusionConsent?.(
+                        getGameState(),
+                        {
+                            operationId: this.fusionOperationId,
+                            parents
+                        }
+                    );
+                if (!receipt) {
+                    this.showBreedingError(
+                        'Fusion paused: both companions must approach willingly.'
+                    );
+                    return;
+                }
+                this.fusionConsentReceipt = receipt;
+                if (!this.previewConsentOnly) {
+                    this.attemptBreeding({ consentReceipt: receipt });
+                }
+            },
+            onCancel: () => {
+                this.fusionOperationId = null;
+                this.fusionConsentReceipt = null;
+            }
+        });
+    }
+
     /**
      * Get fusion-eligible adult creatures from the collection.
      */
     getAdultCreatures(collection) {
         return collection.filter(creature => isCreatureFusionEligible(creature));
+    }
+
+    getCollectionReadiness(collection, now = Date.now()) {
+        return collection.map(creature => ({
+            creature,
+            ...getCreatureFusionReadiness(creature, now)
+        }));
     }
 
     /**
@@ -142,7 +623,7 @@ class FusionPodScene extends Phaser.Scene {
     /**
      * Show requirement not met screen
      */
-    showRequirementNotMet(width, height, reason, count) {
+    showRequirementNotMet(width, height, reason, context) {
         // CRITICAL: Hide any loading overlay first
         if (window.UXEnhancements) {
             window.UXEnhancements.hideLoading();
@@ -151,7 +632,9 @@ class FusionPodScene extends Phaser.Scene {
         this.createOverlay(width, height);
 
         const panelWidth = Math.min(350, width - 40);
-        const panelHeight = 280;
+        const panelHeight = ['need_adults', 'reserved_recovery'].includes(reason)
+            ? 330
+            : 280;
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
 
@@ -164,14 +647,44 @@ class FusionPodScene extends Phaser.Scene {
 
         let title, message, icon;
 
-        if (reason === 'need_creatures') {
+        if (reason === 'locked') {
+            icon = '◈';
+            title = 'Signal Not Yet Stable';
+            const currentLevel = Number(context) || 1;
+            message = `The Fusion Pod responds at companion Level 5.\n\nCurrent level: ${currentLevel}/5\n\nContinue expeditions and strengthen the bond.`;
+        } else if (reason === 'need_creatures') {
             icon = '🥚';
             title = 'More Creatures Needed';
-            message = `You need at least 2 creatures to fuse.\n\nYou have: ${count}/2 creatures\n\nHatch another egg to unlock fusion!`;
+            const collectionCount = context?.collection?.length || 0;
+            message = `Two family records are required.\n\nCollection: ${collectionCount}/2 creatures\n\nRescue or hatch another companion to continue.`;
+        } else if (reason === 'reserved_recovery') {
+            icon = '◇';
+            title = 'Reserved Lineage Safe';
+            message = `${context}\n\nNo new operation will be created and neither parent record has changed.`;
         } else {
             icon = '⏳';
-            title = 'Adults Required';
-            message = `Both creatures must be adults to fuse.\n\nAdult creatures: ${count}/2\n\nCreatures become adults on Day 3.\nKeep caring for them!`;
+            title = 'Signatures Still Forming';
+            const readiness = context?.readiness || [];
+            const readyCount = readiness.filter(entry => entry.eligible).length;
+            const statusLines = readiness
+                .filter(entry => !entry.eligible)
+                .slice(0, 2)
+                .map(entry => {
+                    const name = entry.creature?.name || 'Companion';
+                    if (entry.reason === 'maturing') {
+                        return `${name}: stable in ${formatFusionWaitTime(entry.remainingMs)}`;
+                    }
+                    if (entry.reason === 'wellbeing') {
+                        return `${name}: needs care before growth can continue`;
+                    }
+                    return `${name}: lifecycle record needs a sanctuary check`;
+                });
+            message = [
+                `Stable adult signatures: ${readyCount}/2`,
+                ...statusLines,
+                '',
+                'Both companions remain after synthesis.'
+            ].join('\n');
         }
 
         this.add.text(width / 2, panelY + 40, `${icon} ${title}`, {
@@ -180,12 +693,21 @@ class FusionPodScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(201);
 
-        this.add.text(width / 2, panelY + 130, message, {
+        this.add.text(
+            width / 2,
+            panelY + (
+                ['need_adults', 'reserved_recovery'].includes(reason)
+                    ? 155
+                    : 130
+            ),
+            message,
+            {
             fontSize: '14px',
             color: '#FFFFFF',
             align: 'center',
             wordWrap: { width: panelWidth - 40 }
-        }).setOrigin(0.5).setDepth(201);
+            }
+        ).setOrigin(0.5).setDepth(201);
 
         // Close button
         const closeBtn = this.add.text(width / 2, panelY + panelHeight - 40, 'Got it', {
@@ -232,11 +754,90 @@ class FusionPodScene extends Phaser.Scene {
         this.elements.push(this.overlay);
     }
 
-    createMainPanel(width, height) {
-        const panelWidth = Math.min(400, width - 30);
-        const panelHeight = Math.min(550, height - 60);
+    getResponsiveLayout(width, height) {
+        const shortLandscape = height < 520 && width > height;
+        const panelWidth = shortLandscape
+            ? Math.min(760, width - 30)
+            : Math.min(400, width - 30);
+        const panelHeight = shortLandscape
+            ? Math.min(370, height - 16)
+            : Math.min(550, height - 60);
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
+
+        if (shortLandscape) {
+            const leftCenterX = panelX + panelWidth * 0.27;
+            const rightCenterX = panelX + panelWidth * 0.75;
+            return {
+                shortLandscape,
+                panel: {
+                    x: panelX,
+                    y: panelY,
+                    width: panelWidth,
+                    height: panelHeight
+                },
+                titleY: panelY + 20,
+                subtitleY: panelY + 43,
+                slots: {
+                    centerX: leftCenterX,
+                    y: panelY + 76,
+                    width: 116,
+                    height: 150,
+                    gap: 18
+                },
+                compatibility: {
+                    centerX: rightCenterX,
+                    topY: panelY + 78,
+                    barWidth: Math.min(230, panelWidth * 0.34)
+                },
+                action: {
+                    x: panelX + panelWidth / 2 + 18,
+                    y: panelY + panelHeight - 66,
+                    width: panelWidth / 2 - 36,
+                    height: 48
+                }
+            };
+        }
+
+        return {
+            shortLandscape,
+            panel: {
+                x: panelX,
+                y: panelY,
+                width: panelWidth,
+                height: panelHeight
+            },
+            titleY: panelY + 28,
+            subtitleY: panelY + 52,
+            slots: {
+                centerX: width / 2,
+                y: panelY + 85,
+                width: 130,
+                height: 160,
+                gap: 30
+            },
+            compatibility: {
+                centerX: width / 2,
+                topY: panelY + 265,
+                barWidth: 200
+            },
+            action: {
+                x: panelX + 7,
+                y: panelY + panelHeight - 80,
+                width: panelWidth - 14,
+                height: 50
+            }
+        };
+    }
+
+    createMainPanel(width, height) {
+        this.layout = this.getResponsiveLayout(width, height);
+        const {
+            x: panelX,
+            y: panelY,
+            width: panelWidth,
+            height: panelHeight
+        } = this.layout.panel;
 
         this.panel = this.add.graphics();
         this.panel.fillStyle(0x1A1A3E, 0.95);
@@ -252,42 +853,57 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     createTitle(width) {
-        const titleText = this.add.text(width / 2, this.panelBounds.y + 30, '🧬 Fusion Pod 🧬', {
-            fontSize: '22px',
+        const centerX = this.panelBounds.x + this.panelBounds.width / 2;
+        const titleText = this.add.text(centerX, this.layout.titleY, FUSION_STORY_COPY.title, {
+            fontSize: this.layout.shortLandscape ? '15px' : '16px',
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5).setDepth(201);
 
-        const subtitleText = this.add.text(width / 2, this.panelBounds.y + 55, 'Select two adult creatures to fuse', {
-            fontSize: '12px',
-            color: '#AAAAAA'
-        }).setOrigin(0.5).setDepth(201);
+        const subtitleText = this.add.text(
+            centerX,
+            this.layout.subtitleY,
+            FUSION_STORY_COPY.subtitle,
+            {
+                fontSize: this.layout.shortLandscape ? '9px' : '10px',
+                color: '#AFC3CF',
+                align: 'center',
+                wordWrap: {
+                    width: this.layout.shortLandscape
+                        ? this.panelBounds.width - 120
+                        : this.panelBounds.width - 70
+                }
+            }
+        ).setOrigin(0.5).setDepth(201);
 
         this.elements.push(titleText, subtitleText);
     }
 
     createParentSlots(width, height) {
-        const slotWidth = 130;
-        const slotHeight = 160;
-        const gap = 30;
-        const startY = this.panelBounds.y + 85;
+        const {
+            centerX,
+            y: startY,
+            width: slotWidth,
+            height: slotHeight,
+            gap
+        } = this.layout.slots;
 
         // Parent 1 slot (left)
-        const slot1X = width / 2 - slotWidth - gap / 2;
+        const slot1X = centerX - slotWidth - gap / 2;
         this.createParentSlot(slot1X, startY, slotWidth, slotHeight, 1);
 
         // Center "+" symbol
-        const plusText = this.add.text(width / 2, startY + slotHeight / 2, '+', {
+        const plusText = this.add.text(centerX, startY + slotHeight / 2, '+', {
             fontSize: '32px',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(201);
-        this.elements.push(plusText);
+        this.parentSlotElements.push(plusText);
 
         // Parent 2 slot (right)
-        const slot2X = width / 2 + gap / 2;
+        const slot2X = centerX + gap / 2;
         this.createParentSlot(slot2X, startY, slotWidth, slotHeight, 2);
     }
 
@@ -301,8 +917,8 @@ class FusionPodScene extends Phaser.Scene {
         slot.setDepth(201);
 
         // Label
-        const label = this.add.text(x + width / 2, y + 15, `Parent ${slotNum}`, {
-            fontSize: '12px',
+        const label = this.add.text(x + width / 2, y + 15, `LINEAGE ${slotNum === 1 ? 'A' : 'B'}`, {
+            fontSize: '10px',
             color: '#88CCFF'
         }).setOrigin(0.5).setDepth(202);
 
@@ -354,7 +970,7 @@ class FusionPodScene extends Phaser.Scene {
             this.slot2Elements = { slot, label, content: displayContent, hitZone };
         }
 
-        this.elements.push(slot, label, hitZone, ...displayContent);
+        this.parentSlotElements.push(slot, label, hitZone, ...displayContent);
     }
 
     createCreatureDisplay(slotX, slotY, slotWidth, slotHeight, creature, slotNum) {
@@ -429,11 +1045,27 @@ class FusionPodScene extends Phaser.Scene {
         return 'unknown';
     }
 
-    openCreatureSelector(slotNum) {
+    getCreatureSelectorPage(creatures, requestedPage, pageSize) {
+        const totalPages = Math.max(1, Math.ceil(creatures.length / pageSize));
+        const page = Math.min(Math.max(0, requestedPage), totalPages - 1);
+        const start = page * pageSize;
+
+        return {
+            items: creatures.slice(start, start + pageSize),
+            page,
+            totalPages
+        };
+    }
+
+    openCreatureSelector(slotNum, requestedPage = 0) {
+        if (this.selectionModalOpen) {
+            return;
+        }
+
         console.log(`[FusionPodScene] Opening creature selector for slot ${slotNum}`);
 
-        // CRITICAL: Enable topOnly mode so only the topmost interactive object receives touch events
-        // This prevents the overlay from blocking touches on buttons above it
+        this.selectionModalOpen = true;
+        this.previousTopOnly = this.input?.topOnly ?? true;
         this.input.topOnly = true;
 
         const { width, height } = this.scale;
@@ -470,7 +1102,17 @@ class FusionPodScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(302);
 
-        const modalSubtitle = this.add.text(width / 2, modalY + 48, 'Only adult creatures can fuse', {
+        const rowHeight = 55;
+        const pageSize = Math.max(1, Math.floor((modalHeight - 150) / rowHeight));
+        const selectorPage = this.getCreatureSelectorPage(
+            adultCreatures,
+            requestedPage,
+            pageSize
+        );
+        const pageLabel = selectorPage.totalPages > 1
+            ? ` • Page ${selectorPage.page + 1}/${selectorPage.totalPages}`
+            : '';
+        const modalSubtitle = this.add.text(width / 2, modalY + 48, `Adults and elders${pageLabel}`, {
             fontSize: '11px',
             color: '#888888'
         }).setOrigin(0.5).setDepth(302);
@@ -479,10 +1121,8 @@ class FusionPodScene extends Phaser.Scene {
 
         // List creatures
         let rowY = modalY + 75;
-        const rowHeight = 55;
-        const maxVisible = Math.floor((modalHeight - 120) / rowHeight);
 
-        adultCreatures.slice(0, maxVisible).forEach((creature, idx) => {
+        selectorPage.items.forEach(creature => {
             // CRITICAL: Capture rowY value for this iteration to avoid closure bug
             const currentRowY = rowY;
 
@@ -582,8 +1222,42 @@ class FusionPodScene extends Phaser.Scene {
             rowY += rowHeight;
         });
 
+        if (selectorPage.totalPages > 1) {
+            const navigationY = modalY + modalHeight - 62;
+            const addPageButton = (x, label, nextPage, enabled) => {
+                const button = this.add.text(x, navigationY, label, {
+                    fontSize: '13px',
+                    color: enabled ? '#FFFFFF' : '#666666',
+                    backgroundColor: enabled ? '#4B3A78' : '#252535',
+                    padding: { x: 14, y: 8 }
+                }).setOrigin(0.5).setDepth(303);
+
+                if (enabled) {
+                    button.setInteractive({ useHandCursor: true });
+                    button.on('pointerdown', () => {
+                        this.closeSelectionModal();
+                        this.openCreatureSelector(slotNum, nextPage);
+                    });
+                }
+                this.selectionModalElements.push(button);
+            };
+
+            addPageButton(
+                width / 2 - 85,
+                'Previous',
+                selectorPage.page - 1,
+                selectorPage.page > 0
+            );
+            addPageButton(
+                width / 2 + 85,
+                'Next',
+                selectorPage.page + 1,
+                selectorPage.page < selectorPage.totalPages - 1
+            );
+        }
+
         // Close button with larger touch target for mobile
-        const closeBtn = this.add.text(width / 2, modalY + modalHeight - 30, 'Cancel', {
+        const closeBtn = this.add.text(width / 2, modalY + modalHeight - 24, 'Cancel', {
             fontSize: '16px',
             color: '#FFFFFF',
             backgroundColor: '#555555',
@@ -612,11 +1286,14 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     closeSelectionModal() {
+        if (!this.selectionModalOpen && this.selectionModalElements.length === 0) {
+            return;
+        }
+
         console.log('[FusionPodScene] Closing selection modal, destroying', this.selectionModalElements.length, 'elements');
 
-        // Reset input mode (was set to topOnly when modal opened)
         if (this.input) {
-            this.input.topOnly = false;
+            this.input.topOnly = this.previousTopOnly;
         }
 
         // Destroy all modal elements with proper cleanup
@@ -634,6 +1311,7 @@ class FusionPodScene extends Phaser.Scene {
         });
 
         this.selectionModalElements = [];
+        this.selectionModalOpen = false;
         console.log('[FusionPodScene] Selection modal closed');
     }
 
@@ -649,29 +1327,33 @@ class FusionPodScene extends Phaser.Scene {
             this.parent2Data = creature;
         }
 
-        // 2. Close modal IMMEDIATELY (no delay)
+        // 2. Calculate compatibility before rebuilding the display so the
+        // refreshed meter and action button render the new state immediately.
+        if (this.parent1Data && this.parent2Data) {
+            this.calculateCompatibility();
+        }
+
+        // 3. Close modal IMMEDIATELY (no delay)
         this.closeSelectionModal();
 
-        // 3. Play selection sound
+        // 4. Play selection sound
         window.AudioManager?.playButtonClick?.();
 
-        // 4. Refresh UI immediately (no delay - modal cleanup is synchronous)
+        // 5. Refresh UI immediately (no delay - modal cleanup is synchronous)
         this.refreshUI();
 
-        // 5. Animate the filled slot with visual feedback
+        // 6. Animate the filled slot with visual feedback
         this.animateSlotFill(slotNum, creature.name);
 
-        // 6. Auto-highlight empty slot to guide user to next action
+        // 7. Auto-highlight empty slot to guide user to next action
         if (slotNum === 1 && !this.parent2Data) {
             this.highlightEmptySlot(2);
         } else if (slotNum === 2 && !this.parent1Data) {
             this.highlightEmptySlot(1);
         }
 
-        // 7. Calculate compatibility if both filled
+        // 8. Play success sound when both parents are ready.
         if (this.parent1Data && this.parent2Data) {
-            this.calculateCompatibility();
-            // Play success sound when both parents selected
             window.AudioManager?.playLevelUp?.();
         }
     }
@@ -744,19 +1426,21 @@ class FusionPodScene extends Phaser.Scene {
      * Get the position of a slot for animation purposes
      */
     getSlotPosition(slotNum) {
-        const { width } = this.scale;
-        const slotWidth = 130;
-        const gap = 30;
-        const startY = this.panelBounds.y + 85;
+        const {
+            centerX,
+            y: startY,
+            width: slotWidth,
+            gap
+        } = this.layout.slots;
 
         if (slotNum === 1) {
             return {
-                x: width / 2 - slotWidth - gap / 2 + slotWidth / 2,
+                x: centerX - slotWidth - gap / 2 + slotWidth / 2,
                 y: startY
             };
         } else {
             return {
-                x: width / 2 + gap / 2 + slotWidth / 2,
+                x: centerX + gap / 2 + slotWidth / 2,
                 y: startY
             };
         }
@@ -765,30 +1449,15 @@ class FusionPodScene extends Phaser.Scene {
     refreshUI() {
         const { width, height } = this.scale;
 
-        // Clear and recreate slots
-        ['slot1Elements', 'slot2Elements'].forEach(key => {
-            if (this[key]) {
-                const { slot, label, content, hitZone } = this[key];
-                slot?.destroy?.();
-                label?.destroy?.();
-                hitZone?.destroy?.();
-                content?.forEach(el => el?.destroy?.());
-            }
-        });
+        this.parentSlotElements.forEach(element => element?.destroy?.());
+        this.parentSlotElements = [];
+        this.slot1Elements = null;
+        this.slot2Elements = null;
 
-        // Remove from elements array
-        this.elements = this.elements.filter(el => {
-            if (!el || !el.active) return false;
-            return true;
-        });
+        this.elements = this.elements.filter(element => element?.active);
 
-        // Recreate slots
         this.createParentSlots(width, height);
-
-        // Update compatibility display
         this.updateCompatibilityDisplay();
-
-        // Update breed button
         this.updateBreedButton();
     }
 
@@ -807,12 +1476,10 @@ class FusionPodScene extends Phaser.Scene {
                 genes2.mendelianGenes
             );
         } else {
-            // Fallback compatibility calculation
-            this.compatibility = {
-                percentage: Phaser.Math.Between(50, 90),
-                score: 70,
-                maxScore: 100
-            };
+            this.compatibility = getFallbackFusionCompatibility(
+                this.parent1Data,
+                this.parent2Data
+            );
         }
 
         console.log('[FusionPodScene] Compatibility:', this.compatibility);
@@ -823,8 +1490,11 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     createCompatibilityDisplay(width, height) {
-        const centerX = width / 2;
-        const topY = this.panelBounds.y + 265;
+        const {
+            centerX,
+            topY,
+            barWidth
+        } = this.layout.compatibility;
 
         // Compatibility label
         const label = this.add.text(centerX, topY, 'Genetic Compatibility', {
@@ -840,7 +1510,6 @@ class FusionPodScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(201);
 
         // Compatibility bar background
-        const barWidth = 200;
         const barHeight = 10;
         const barX = centerX - barWidth / 2;
         const barY = topY + 55;
@@ -854,15 +1523,15 @@ class FusionPodScene extends Phaser.Scene {
         this.compatBarFill.setDepth(202);
 
         // Explanation text
-        this.explanationText = this.add.text(centerX, topY + 75, 'Select both parents to see compatibility', {
+        this.explanationText = this.add.text(centerX, topY + 75, FUSION_STORY_COPY.empty, {
             fontSize: '10px',
-            color: '#888888',
+            color: '#8B99A3',
             align: 'center',
             wordWrap: { width: 250 }
         }).setOrigin(0.5).setDepth(201);
 
         // Offspring Predictions Section
-        this.predictionsLabel = this.add.text(centerX, topY + 105, '✨ Offspring Predictions ✨', {
+        this.predictionsLabel = this.add.text(centerX, topY + 105, 'PROJECTED LINEAGE', {
             fontSize: '11px',
             color: '#FFD700',
             fontStyle: 'bold'
@@ -941,11 +1610,13 @@ class FusionPodScene extends Phaser.Scene {
     updateCompatibilityDisplay() {
         if (!this.compatibilityText) return;
 
-        const { width } = this.scale;
-        const centerX = width / 2;
-        const barWidth = 200;
+        const {
+            centerX,
+            topY,
+            barWidth
+        } = this.layout.compatibility;
         const barX = centerX - barWidth / 2;
-        const barY = this.panelBounds.y + 320;
+        const barY = topY + 55;
 
         // Stop any running bonus tween before clearing predictions
         if (this.bonusLineTween) {
@@ -984,7 +1655,7 @@ class FusionPodScene extends Phaser.Scene {
             this.compatibilityText.setText('--');
             this.compatibilityText.setColor('#666666');
             this.compatBarFill?.clear();
-            this.explanationText?.setText('Select both parents to see compatibility');
+            this.explanationText?.setText(FUSION_STORY_COPY.empty);
 
             // Hide predictions
             this.predictionsLabel?.setAlpha(0);
@@ -1003,117 +1674,51 @@ class FusionPodScene extends Phaser.Scene {
         this.predictionsLabel?.setAlpha(1);
         this.predictionsContainer.setAlpha(1);
 
-        let yOffset = 0;
-        const lineHeight = 18;
-        const { width } = this.scale;
-        const contentWidth = Math.min(280, width - 60);
-
-        // Affinity icons
-        const affinityIcons = {
-            star: '⭐',
-            moon: '🌙',
-            nebula: '🌌',
-            crystal: '💎',
-            void: '🕳️',
-            aurora: '🌈'
+        const addProjectionLine = (text, color) => {
+            const line = this.add.text(
+                0,
+                this.predictionsContainer.list.length * 17,
+                text,
+                {
+                    fontSize: '10px',
+                    color,
+                    fontStyle: 'bold',
+                    align: 'center'
+                }
+            ).setOrigin(0.5, 0);
+            this.predictionsContainer.add(line);
         };
 
-        // --- Rarity Prediction ---
-        const rarityLine = this.add.text(0, yOffset,
-            `🎲 Expected Rarity: `, {
-                fontSize: '10px',
-                color: '#AAAAAA'
-            }).setOrigin(0.5, 0);
-        this.predictionsContainer.add(rarityLine);
-
-        const rarityValue = this.add.text(rarityLine.width / 2 + 5, yOffset,
-            predictions.baseRarity.toUpperCase(), {
-                fontSize: '10px',
-                color: predictions.baseRarityColor,
-                fontStyle: 'bold'
-            }).setOrigin(0, 0);
-        this.predictionsContainer.add(rarityValue);
-
-        yOffset += lineHeight;
-
-        // --- Upgrade Chance ---
-        if (predictions.potentialUpgradeRarity) {
-            const upgradeLine = this.add.text(0, yOffset,
-                `📈 ${predictions.upgradeChance}% chance for ${predictions.potentialUpgradeRarity.toUpperCase()}!`, {
-                    fontSize: '10px',
-                    color: predictions.potentialUpgradeColor,
-                    fontStyle: 'bold'
-                }).setOrigin(0.5, 0);
-            this.predictionsContainer.add(upgradeLine);
-            yOffset += lineHeight;
-        }
-
-        // --- Generation & Bonus ---
-        const genLine = this.add.text(0, yOffset,
-            `👶 Generation ${predictions.generation} (+${predictions.genBonus}% Cosmic Power)`, {
-                fontSize: '10px',
-                color: '#88CCFF'
-            }).setOrigin(0.5, 0);
-        this.predictionsContainer.add(genLine);
-        yOffset += lineHeight;
-
-        // --- Cosmic Affinity Options ---
-        if (predictions.affinityOptions.length > 0) {
-            const affinityStr = predictions.affinityOptions
-                .map(a => `${affinityIcons[a] || '✨'} ${a}`)
-                .join(' or ');
-            const affinityLine = this.add.text(0, yOffset,
-                `🌟 Possible Affinity: ${affinityStr}`, {
-                    fontSize: '10px',
-                    color: '#E6E6FA'
-                }).setOrigin(0.5, 0);
-            this.predictionsContainer.add(affinityLine);
-            yOffset += lineHeight;
-        }
-
-        // --- Body Type Heritage ---
-        if (predictions.bodyTypes.length > 0) {
-            const bodyStr = predictions.bodyTypes.length === 2
-                ? `May inherit ${predictions.bodyTypes[0]} or ${predictions.bodyTypes[1]} form`
-                : `Likely ${predictions.bodyTypes[0]} form`;
-            const bodyLine = this.add.text(0, yOffset, `🧬 ${bodyStr}`, {
-                fontSize: '10px',
-                color: '#9370DB'
-            }).setOrigin(0.5, 0);
-            this.predictionsContainer.add(bodyLine);
-            yOffset += lineHeight;
-        }
-
-        // --- Special Bonus for High Compatibility ---
+        const rarityProjection = predictions.potentialUpgradeRarity
+            ? `${predictions.baseRarity.toUpperCase()} • ${predictions.upgradeChance}% ${predictions.potentialUpgradeRarity.toUpperCase()}`
+            : predictions.baseRarity.toUpperCase();
+        addProjectionLine(`RARITY // ${rarityProjection}`, predictions.baseRarityColor);
+        addProjectionLine(
+            `GEN ${predictions.generation} // +${predictions.genBonus}% COSMIC POWER`,
+            '#88CCFF'
+        );
+        addProjectionLine(
+            `AFFINITY // ${predictions.affinityOptions.map(
+                affinity => String(affinity).toUpperCase()
+            ).join(' / ')}`,
+            '#E6E6FA'
+        );
         if (predictions.compatibility >= 80) {
-            yOffset += 5;
-            const bonusLine = this.add.text(0, yOffset,
-                `💫 BONUS: High compatibility = stronger offspring!`, {
-                    fontSize: '10px',
-                    color: '#FFD700',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5, 0);
-            this.predictionsContainer.add(bonusLine);
-
-            // Sparkle effect - track the tween for cleanup
-            if (this.bonusLineTween) {
-                this.bonusLineTween.stop();
-            }
-            this.bonusLineTween = this.tweens.add({
-                targets: bonusLine,
-                alpha: { from: 1, to: 0.6 },
-                duration: 800,
-                yoyo: true,
-                repeat: -1
-            });
+            addProjectionLine('RESONANCE BONUS // STRONG', '#FFD700');
         }
     }
 
     createBreedButton(width, height) {
-        const centerX = width / 2;
-        const buttonY = this.panelBounds.y + this.panelBounds.height - 110;
-        const btnWidth = 180;
-        const btnHeight = 45;
+        const buttonY = this.layout.action.y;
+        const sharedLinkLane = this.isSharedFusionAvailable() ? 65 : 0;
+        const actionX = this.layout.action.x + sharedLinkLane;
+        const actionWidth = this.layout.action.width - sharedLinkLane;
+        const centerX = actionX + actionWidth / 2;
+        const btnWidth = Math.min(
+            this.layout.shortLandscape ? 300 : 230,
+            actionWidth
+        );
+        const btnHeight = this.layout.action.height;
 
         this.breedButtonBg = this.add.graphics();
         this.breedButtonBg.setDepth(201);
@@ -1126,87 +1731,146 @@ class FusionPodScene extends Phaser.Scene {
 
         this.breedButtonBounds = { x: centerX - btnWidth / 2, y: buttonY, width: btnWidth, height: btnHeight };
 
+        this.breedButtonHitZone = this.add.zone(
+            centerX,
+            buttonY + btnHeight / 2,
+            btnWidth,
+            btnHeight
+        ).setDepth(203);
+        this.breedButtonHitZone.setInteractive({ useHandCursor: true });
+        this.breedButtonHitZone.on('pointerdown', () => {
+            if (!this.breedButtonEnabled) return;
+            console.log('[FusionPodScene] Begin Fusion button clicked!');
+            this.attemptBreeding();
+        });
+        this.breedButtonHitZone.on('pointerover', () => {
+            if (!this.breedButtonEnabled) return;
+            this.drawBreedButtonBackground(0x6B21A8, 0xFFD700);
+        });
+        this.breedButtonHitZone.on('pointerout', () => {
+            if (!this.breedButtonEnabled) return;
+            this.drawBreedButtonBackground(0x4B0082, 0xFFD700);
+        });
+
         this.updateBreedButton();
 
-        this.elements.push(this.breedButtonBg, this.breedButton);
+        this.elements.push(
+            this.breedButtonBg,
+            this.breedButton,
+            this.breedButtonHitZone
+        );
     }
 
-    updateBreedButton() {
-        if (!this.breedButton || !this.breedButtonBg) return;
-
-        const { x, y, width: btnWidth, height: btnHeight } = this.breedButtonBounds;
-        const canBreed = this.parent1Data && this.parent2Data;
-
-        // Check cooldown
-        const status = getGameState().getBreedingShrineStatus?.() || { canBreed: true, cooldownRemaining: 0 };
-        const onCooldown = status.cooldownRemaining > 0;
+    drawBreedButtonBackground(fillColor, borderColor) {
+        if (!this.breedButtonBg || !this.breedButtonBounds) return;
+        const {
+            x,
+            y,
+            width: btnWidth,
+            height: btnHeight
+        } = this.breedButtonBounds;
 
         this.breedButtonBg.clear();
+        this.breedButtonBg.fillStyle(fillColor, 1);
+        this.breedButtonBg.fillRoundedRect(x, y, btnWidth, btnHeight, 8);
+        this.breedButtonBg.lineStyle(2, borderColor, 1);
+        this.breedButtonBg.strokeRoundedRect(x, y, btnWidth, btnHeight, 8);
+    }
 
-        if (canBreed && !onCooldown) {
-            this.breedButtonBg.fillStyle(0x4B0082, 1);
-            this.breedButtonBg.fillRoundedRect(x, y, btnWidth, btnHeight, 10);
-            this.breedButtonBg.lineStyle(2, 0xFFD700, 1);
-            this.breedButtonBg.strokeRoundedRect(x, y, btnWidth, btnHeight, 10);
+    setBreedButtonEnabled(enabled) {
+        this.breedButtonEnabled = Boolean(enabled);
+        if (!this.breedButtonHitZone) return;
 
-            this.breedButton.setText('🥚 Begin Fusion 🥚');
-            this.breedButton.setColor('#FFFFFF');
-
-            // Make interactive - CRITICAL: Rectangle must use LOCAL coordinates relative to text origin (0.5, 0.5)
-            if (!this.breedButton.input) {
-                this.breedButton.setInteractive(
-                    new Phaser.Geom.Rectangle(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight),
-                    Phaser.Geom.Rectangle.Contains
-                );
-
-                this.breedButton.on('pointerdown', () => {
-                    console.log('[FusionPodScene] Begin Fusion button clicked!');
-                    this.attemptBreeding();
-                });
-                this.breedButton.on('pointerover', () => {
-                    this.breedButtonBg.clear();
-                    this.breedButtonBg.fillStyle(0x6B21A8, 1);
-                    this.breedButtonBg.fillRoundedRect(x, y, btnWidth, btnHeight, 10);
-                    this.breedButtonBg.lineStyle(2, 0xFFD700, 1);
-                    this.breedButtonBg.strokeRoundedRect(x, y, btnWidth, btnHeight, 10);
-                });
-                this.breedButton.on('pointerout', () => {
-                    this.breedButtonBg.clear();
-                    this.breedButtonBg.fillStyle(0x4B0082, 1);
-                    this.breedButtonBg.fillRoundedRect(x, y, btnWidth, btnHeight, 10);
-                    this.breedButtonBg.lineStyle(2, 0xFFD700, 1);
-                    this.breedButtonBg.strokeRoundedRect(x, y, btnWidth, btnHeight, 10);
-                });
-            }
-        } else if (onCooldown) {
-            this.breedButtonBg.fillStyle(0x333333, 1);
-            this.breedButtonBg.fillRoundedRect(x, y, btnWidth, btnHeight, 10);
-            this.breedButtonBg.lineStyle(2, 0x666666, 1);
-            this.breedButtonBg.strokeRoundedRect(x, y, btnWidth, btnHeight, 10);
-
-            this.breedButton.setText(`⏳ ${this.formatCooldown(status.cooldownRemaining)}`);
-            this.breedButton.setColor('#888888');
-            this.breedButton.disableInteractive();
+        if (this.breedButtonEnabled) {
+            this.breedButtonHitZone.setInteractive({ useHandCursor: true });
         } else {
-            this.breedButtonBg.fillStyle(0x333333, 1);
-            this.breedButtonBg.fillRoundedRect(x, y, btnWidth, btnHeight, 10);
-            this.breedButtonBg.lineStyle(2, 0x666666, 1);
-            this.breedButtonBg.strokeRoundedRect(x, y, btnWidth, btnHeight, 10);
-
-            this.breedButton.setText('🥚 Select Parents First');
-            this.breedButton.setColor('#888888');
-            this.breedButton.disableInteractive();
+            this.breedButtonHitZone.disableInteractive();
         }
     }
 
-    attemptBreeding() {
+    updateBreedButton() {
+        if (!this.breedButton || !this.breedButtonBg || !this.breedButtonHitZone) return;
+
+        const canBreed = this.parent1Data && this.parent2Data;
+
+        // Check cooldown
+        const status = this.previewCreatures
+            ? { canBreed: true, cooldownRemaining: 0 }
+            : getGameState().getBreedingShrineStatus?.() || {
+                canBreed: true,
+                cooldownRemaining: 0
+            };
+        const onCooldown = status.cooldownRemaining > 0;
+        const awaitingReconciliation =
+            status.reconciliationPending > 0;
+        const hasCapacity = this.previewCreatures ||
+            (getGameState().getCollectionStatus?.().count || 0) <
+                (getGameState().getCollectionStatus?.().max || 8);
+
+        if (
+            canBreed &&
+            status.canBreed !== false &&
+            hasCapacity &&
+            !awaitingReconciliation
+        ) {
+            this.drawBreedButtonBackground(0x4B0082, 0xFFD700);
+            this.breedButton.setText('BEGIN CURRENT SYNTHESIS');
+            this.breedButton.setColor('#FFFFFF');
+            this.setBreedButtonEnabled(true);
+        } else if (awaitingReconciliation) {
+            this.drawBreedButtonBackground(0x333333, 0xFF6666);
+            this.breedButton.setText('VERIFY PRIOR LINEAGE');
+            this.breedButton.setColor('#FFB3B3');
+            this.setBreedButtonEnabled(false);
+        } else if (onCooldown) {
+            this.drawBreedButtonBackground(0x333333, 0x666666);
+            this.breedButton.setText(`⏳ ${this.formatCooldown(status.cooldownRemaining)}`);
+            this.breedButton.setColor('#888888');
+            this.setBreedButtonEnabled(false);
+        } else if (!hasCapacity) {
+            this.drawBreedButtonBackground(0x333333, 0xFF6666);
+            this.breedButton.setText('Collection Full');
+            this.breedButton.setColor('#FF9999');
+            this.setBreedButtonEnabled(false);
+        } else {
+            this.drawBreedButtonBackground(0x333333, 0x666666);
+            this.breedButton.setText('SELECT TWO FAMILY RECORDS');
+            this.breedButton.setColor('#888888');
+            this.setBreedButtonEnabled(false);
+        }
+    }
+
+    attemptBreeding({ consentReceipt = null } = {}) {
         if (this.breedingInProgress || !this.parent1Data || !this.parent2Data) return;
+        if (!consentReceipt && !this.fusionConsentReceipt) {
+            this.requestFusionConsent();
+            return;
+        }
+        this.fusionConsentReceipt =
+            consentReceipt || this.fusionConsentReceipt;
+
+        const status = this.previewCreatures
+            ? { canBreed: true }
+            : getGameState().getBreedingShrineStatus?.();
+        if (status?.canBreed === false) {
+            const message = status.reconciliationPending > 0
+                ? 'Reconnect Cloud Save to verify the previous lineage first.'
+                : status.cooldownRemaining > 0
+                    ? `Fusion recharges in ${this.formatCooldown(status.cooldownRemaining)}`
+                    : 'Fusion Pod is not ready';
+            this.showBreedingError(message);
+            return;
+        }
 
         console.log('[FusionPodScene] Attempting fusion...');
         console.log('Parent 1:', this.parent1Data.name);
         console.log('Parent 2:', this.parent2Data.name);
 
         this.breedingInProgress = true;
+        this.setBreedButtonEnabled(false);
+        this.breedButton?.setText?.('SYNTHESIS IN PROGRESS');
+        this.breedButton?.setColor?.('#AFC3CF');
+        this.drawBreedButtonBackground(0x263245, 0x657682);
 
         // Show loading
         if (window.UXEnhancements) {
@@ -1226,38 +1890,118 @@ class FusionPodScene extends Phaser.Scene {
             });
         }
 
+        const parentIds = [this.parent1Data.id, this.parent2Data.id];
+        this.fusionOperationId = this.fusionOperationId || (
+            this.previewCreatures
+                ? `fusion_preview_${Date.now()}`
+                : getGameState().createPortableId?.('fusion') ||
+                    `fusion_${Date.now()}`
+        );
+        this.fusionResultSeed = window.FusionAuthority?.deriveResultSeed?.(
+            this.fusionOperationId,
+            parentIds
+        ) || this.fusionOperationId;
+        this.fusionOffspringSequence = 0;
+
         // Perform breeding after dramatic delay
-        this.time.delayedCall(2000, () => {
+        this.time.delayedCall(2000, async () => {
             try {
-                // Get genes from both parents
-                const parent1Genes = this.parent1Data.genes?.mendelianGenes ||
-                    window.BreedingEngine?.generateInitialGenes();
-                const parent2Genes = this.parent2Data.genes?.mendelianGenes ||
-                    window.BreedingEngine?.generateInitialGenes();
-
-                // Breed using BreedingEngine
                 let offspringGenes;
-                if (window.BreedingEngine) {
-                    offspringGenes = window.BreedingEngine.breedCreatures(parent1Genes, parent2Genes);
-                } else {
-                    offspringGenes = parent1Genes; // Fallback
-                }
-
-                // BIRTH EVENTS: Roll for special events during breeding FIRST
-                // (so we know if twins are coming before creating offspring)
                 let birthResult = { events: [], effects: {}, hasRareEvent: false };
-                if (window.BirthEventSystem) {
-                    birthResult = window.BirthEventSystem.rollBirthEvents(
-                        this.parent1Data,
-                        this.parent2Data,
-                        'common' // Initial rarity check - actual rarity determined per offspring
+                const restorePreflightRandom =
+                    window.FusionAuthority?.enterDeterministicRandomScope?.(
+                        `${this.fusionResultSeed}:preflight`,
+                        window.Phaser
                     );
+                try {
+                    const parent1Genes = this.parent1Data.genes?.mendelianGenes ||
+                        window.BreedingEngine?.generateInitialGenes();
+                    const parent2Genes = this.parent2Data.genes?.mendelianGenes ||
+                        window.BreedingEngine?.generateInitialGenes();
+
+                    offspringGenes = window.BreedingEngine
+                        ? window.BreedingEngine.breedCreatures(
+                            parent1Genes,
+                            parent2Genes
+                        )
+                        : parent1Genes;
+
+                    if (window.BirthEventSystem) {
+                        birthResult = window.BirthEventSystem.rollBirthEvents(
+                            this.parent1Data,
+                            this.parent2Data,
+                            'common'
+                        );
+                    }
+                } finally {
+                    restorePreflightRandom?.();
                 }
 
-                // Check for Twin Birth event
-                const isTwinBirth = birthResult.events.some(e => e.id === 'twinBirth');
+                const collectionStatus = this.previewCreatures
+                    ? {
+                        count: this.previewCreatures.length,
+                        max: this.previewCreatures.length + 2
+                    }
+                    : getGameState().getCollectionStatus?.() || {
+                        count: 0,
+                        max: 8
+                    };
+                const offspringCapacity = Math.max(
+                    1,
+                    Math.min(
+                        2,
+                        Number(collectionStatus.max) -
+                            Number(collectionStatus.count)
+                    )
+                );
+                const transactionResult = this.beginFusionTransaction(
+                    offspringCapacity
+                );
+                if (!transactionResult.success) {
+                    throw new Error(this.getFusionFailureMessage(transactionResult));
+                }
+                this.fusionTransaction = transactionResult.transaction;
+                const authorityResult = this.attachFusionAuthorityRequest();
+                if (!authorityResult.success) {
+                    throw new Error(this.getFusionFailureMessage(authorityResult));
+                }
+                this.fusionTransaction = authorityResult.transaction;
+                const reservationResult = await this.reserveFusionAuthority();
+                if (!reservationResult.success) {
+                    throw new Error(this.getFusionFailureMessage(reservationResult));
+                }
+                this.fusionTransaction = reservationResult.transaction;
+                const isTwinBirth =
+                    this.fusionTransaction.offspringCount === 2;
+                birthResult = this.alignLocalBirthResult(
+                    birthResult,
+                    isTwinBirth
+                );
+                const executionResult = await this.executeServerFusionOutcome();
+                if (!executionResult.success) {
+                    throw new Error(this.getFusionFailureMessage(executionResult));
+                }
+                if (executionResult.execution) {
+                    this.fusionTransaction = executionResult.transaction;
+                    const hatchData = this.buildServerHatchData(
+                        executionResult.execution.outcome
+                    );
+                    const staged = this.stageFusionHatchData(hatchData);
+                    if (!staged.success) {
+                        throw new Error(this.getFusionFailureMessage(staged));
+                    }
+                    this.shutdown();
+                    this.scene.start('BreedingHatchScene', hatchData);
+                    return;
+                }
 
-                if (isTwinBirth) {
+                const restoreGenerationRandom =
+                    window.FusionAuthority?.enterDeterministicRandomScope?.(
+                        `${this.fusionResultSeed}:generation`,
+                        window.Phaser
+                    );
+                try {
+                    if (isTwinBirth) {
                     console.log('[FusionPodScene] 👯 TWIN BIRTH! Creating two creatures...');
 
                     // Create TWO separate offspring with individual characteristics
@@ -1306,24 +2050,40 @@ class FusionPodScene extends Phaser.Scene {
                         window.UXEnhancements.hideLoading();
                     }
 
-                    // Launch BreedingHatchScene with TWIN data
-                    this.scene.start('BreedingHatchScene', {
+                    // Launch BreedingHatchScene with TWIN data. Clean the Pod
+                    // explicitly because DOM/canvas overlays must not depend
+                    // on a later scene-manager shutdown tick.
+                    const hatchData = {
                         isTwinBirth: true,
                         twin1: {
                             offspringGenes: twin1Result.offspringGenes,
-                            offspringData: twin1Result.offspringData
+                            offspringData: {
+                                ...twin1Result.offspringData,
+                                creatureId: this.fusionTransaction.offspringIds[0]
+                            }
                         },
                         twin2: {
                             offspringGenes: twin2Result.offspringGenes,
-                            offspringData: twin2Result.offspringData
+                            offspringData: {
+                                ...twin2Result.offspringData,
+                                creatureId: this.fusionTransaction.offspringIds[1]
+                            }
                         },
                         parent1: this.parent1Data,
                         parent2: this.parent2Data,
                         birthEvents: birthResult.events,
-                        hasRareEvent: true // Twins are always a rare event
-                    });
+                        hasRareEvent: true, // Twins are always a rare event
+                        fusionTransaction: this.fusionTransaction,
+                        previewOnly: Boolean(this.previewCreatures)
+                    };
+                    const staged = this.stageFusionHatchData(hatchData);
+                    if (!staged.success) {
+                        throw new Error(this.getFusionFailureMessage(staged));
+                    }
+                    this.shutdown();
+                    this.scene.start('BreedingHatchScene', hatchData);
 
-                } else {
+                    } else {
                     // Standard single offspring
                     const result = this.createOffspringData(offspringGenes);
 
@@ -1357,14 +2117,28 @@ class FusionPodScene extends Phaser.Scene {
                     }
 
                     // Launch the spectacular BreedingHatchScene
-                    this.scene.start('BreedingHatchScene', {
+                    const hatchData = {
                         offspringGenes: result.offspringGenes,
-                        offspringData: result.offspringData,
+                        offspringData: {
+                            ...result.offspringData,
+                            creatureId: this.fusionTransaction.offspringIds[0]
+                        },
                         parent1: this.parent1Data,
                         parent2: this.parent2Data,
                         birthEvents: birthResult.events,
-                        hasRareEvent: birthResult.hasRareEvent
-                    });
+                        hasRareEvent: birthResult.hasRareEvent,
+                        fusionTransaction: this.fusionTransaction,
+                        previewOnly: Boolean(this.previewCreatures)
+                    };
+                    const staged = this.stageFusionHatchData(hatchData);
+                    if (!staged.success) {
+                        throw new Error(this.getFusionFailureMessage(staged));
+                    }
+                    this.shutdown();
+                    this.scene.start('BreedingHatchScene', hatchData);
+                    }
+                } finally {
+                    restoreGenerationRandom?.();
                 }
 
             } catch (error) {
@@ -1373,16 +2147,318 @@ class FusionPodScene extends Phaser.Scene {
                 if (window.UXEnhancements) {
                     window.UXEnhancements.hideLoading();
                 }
+                const serverReserved =
+                    this.fusionTransaction?.authorityReservation
+                        ?.reservationMode === 'server_reserved';
+                if (
+                    this.fusionTransaction &&
+                    !this.previewCreatures &&
+                    !serverReserved
+                ) {
+                    getGameState().clearInterruptedFusion?.('generation_failed');
+                    this.fusionTransaction = null;
+                }
                 // Show more helpful error message
-                const errorMsg = error?.message || 'Unknown error';
-                this.showBreedingError(`Fusion failed: ${errorMsg.substring(0, 50)}`);
+                const errorMsg = serverReserved
+                    ? 'Connection interrupted. Reserved lineage is safe; re-enter the Pod to resume.'
+                    : error?.message || 'Unknown error';
+                this.showBreedingError(
+                    serverReserved
+                        ? errorMsg
+                        : `Fusion failed: ${errorMsg.substring(0, 50)}`
+                );
             }
 
             this.breedingInProgress = false;
+            if (!this.cleanupComplete) {
+                this.updateBreedButton();
+            }
         });
     }
 
+    alignLocalBirthResult(birthResult = {}, isTwinBirth = false) {
+        const events = (
+            Array.isArray(birthResult.events)
+                ? birthResult.events
+                : []
+        ).filter(event => event?.id !== 'twinBirth');
+        if (isTwinBirth) {
+            events.push({
+                id: 'twinBirth',
+                name: 'Twin Birth',
+                chance: 1,
+                rarity: 'ultraRare',
+                message: 'Two stable Current signatures emerged.',
+                triggeredAt: Date.now()
+            });
+        }
+        return {
+            ...birthResult,
+            events,
+            hasRareEvent: isTwinBirth ||
+                Boolean(birthResult.hasRareEvent)
+        };
+    }
+
+    beginFusionTransaction(offspringCapacity) {
+        if (this.previewCreatures) {
+            const operationId = this.fusionOperationId || `preview_fusion_${Date.now()}`;
+            const candidateOffspringIds = Array.from(
+                { length: offspringCapacity },
+                (_, index) => (
+                    `creature_preview_${Date.now()}_${index + 1}`
+                )
+            );
+            return {
+                success: true,
+                transaction: {
+                    schemaVersion: 2,
+                    operationId,
+                    parentIds: [this.parent1Data.id, this.parent2Data.id],
+                    candidateOffspringIds,
+                    offspringCapacity,
+                    offspringIds: [...candidateOffspringIds],
+                    offspringCount: offspringCapacity,
+                    createdAt: Date.now(),
+                    resultSeed: this.fusionResultSeed,
+                    status: 'pending',
+                    consentReceipt: this.fusionConsentReceipt
+                }
+            };
+        }
+
+        return getGameState().beginFusionTransaction?.(
+            [this.parent1Data.id, this.parent2Data.id],
+            offspringCapacity,
+            {
+                operationId: this.fusionOperationId,
+                resultSeed: this.fusionResultSeed,
+                consentReceipt: this.fusionConsentReceipt
+            }
+        ) || { success: false, reason: 'transaction_unavailable' };
+    }
+
+    attachFusionAuthorityRequest() {
+        const authority = window.FusionAuthority;
+        if (!authority?.createRequest) {
+            return {
+                success: true,
+                transaction: this.fusionTransaction
+            };
+        }
+
+        let authorityRequest;
+        try {
+            authorityRequest = authority.createRequest({
+                transaction: this.fusionTransaction,
+                parents: [this.parent1Data, this.parent2Data],
+                expectedSaveRevision: window.CloudSave?.remoteRevision || 0
+            });
+        } catch (error) {
+            return { success: false, reason: 'invalid_authority_request' };
+        }
+
+        if (this.previewCreatures) {
+            return {
+                success: true,
+                transaction: {
+                    ...this.fusionTransaction,
+                    authorityRequest
+                }
+            };
+        }
+
+        return getGameState().attachFusionAuthorityRequest?.(
+            this.fusionTransaction.operationId,
+            authorityRequest
+        ) || { success: false, reason: 'transaction_unavailable' };
+    }
+
+    async reserveFusionAuthority() {
+        const authorityRequest = this.fusionTransaction?.authorityRequest;
+        if (!authorityRequest || !window.FusionAuthority?.reserveOperation) {
+            return {
+                success: true,
+                transaction: this.fusionTransaction
+            };
+        }
+
+        let reservation;
+        try {
+            reservation = await window.FusionAuthority.reserveOperation(
+                authorityRequest,
+                { cloudSave: window.CloudSave }
+            );
+        } catch (error) {
+            return {
+                success: false,
+                reason: error?.code === '40001'
+                    ? 'save_revision_conflict'
+                    : 'authority_reservation_rejected'
+            };
+        }
+
+        if (this.previewCreatures) {
+            return {
+                success: true,
+                transaction: {
+                    ...this.fusionTransaction,
+                    offspringIds: [...reservation.offspringIds],
+                    offspringCount: reservation.offspringCount,
+                    authorityReservation: reservation
+                }
+            };
+        }
+
+        return getGameState().attachFusionAuthorityReservation?.(
+            this.fusionTransaction.operationId,
+            reservation
+        ) || { success: false, reason: 'transaction_unavailable' };
+    }
+
+    async executeServerFusionOutcome() {
+        const authority = window.FusionAuthority;
+        const authorityRequest = this.fusionTransaction?.authorityRequest;
+        const reservation = this.fusionTransaction?.authorityReservation;
+        if (
+            !authorityRequest ||
+            !reservation ||
+            reservation.reservationMode !== 'server_reserved'
+        ) {
+            return {
+                success: true,
+                execution: null,
+                transaction: this.fusionTransaction
+            };
+        }
+        if (!authority?.executeReservedOperation) {
+            return { success: false, reason: 'authority_execution_unavailable' };
+        }
+
+        let execution;
+        try {
+            execution = await authority.executeReservedOperation(
+                authorityRequest,
+                reservation,
+                { cloudSave: window.CloudSave }
+            );
+        } catch (error) {
+            return { success: false, reason: 'authority_execution_rejected' };
+        }
+
+        const attached = getGameState().attachFusionAuthorityExecution?.(
+            this.fusionTransaction.operationId,
+            execution
+        ) || { success: false, reason: 'transaction_unavailable' };
+        return {
+            ...attached,
+            execution
+        };
+    }
+
+    buildServerHatchData(outcome) {
+        const common = {
+            parent1: this.parent1Data,
+            parent2: this.parent2Data,
+            birthEvents: outcome.birthEvents || [],
+            hasRareEvent: Boolean(outcome.hasRareEvent),
+            fusionTransaction: this.fusionTransaction,
+            previewOnly: Boolean(this.previewCreatures),
+            serverGenerated: true
+        };
+        if (outcome.isTwinBirth) {
+            return {
+                ...common,
+                isTwinBirth: true,
+                twin1: outcome.offspring[0],
+                twin2: outcome.offspring[1]
+            };
+        }
+        return {
+            ...common,
+            offspringGenes: outcome.offspring[0].offspringGenes,
+            offspringData: outcome.offspring[0].offspringData
+        };
+    }
+
+    stageFusionHatchData(hatchData) {
+        if (this.previewCreatures) {
+            return { success: true, reason: 'preview' };
+        }
+
+        const operationId = this.fusionTransaction?.operationId;
+        if (!operationId) {
+            return { success: false, reason: 'transaction_not_found' };
+        }
+
+        let authorityReceipt =
+            this.fusionTransaction?.authorityExecution?.receipt || null;
+        const authorityRequest = this.fusionTransaction?.authorityRequest;
+        if (
+            !authorityReceipt &&
+            authorityRequest &&
+            window.FusionAuthority?.createLocalReceipt
+        ) {
+            try {
+                authorityReceipt = window.FusionAuthority.createLocalReceipt(
+                    authorityRequest,
+                    hatchData,
+                    Date.now(),
+                    this.fusionTransaction?.authorityReservation
+                );
+            } catch (error) {
+                return { success: false, reason: 'invalid_authority_receipt' };
+            }
+        }
+
+        return getGameState().stageFusionResult?.(
+            operationId,
+            hatchData,
+            authorityReceipt
+        ) || {
+            success: false,
+            reason: 'transaction_unavailable'
+        };
+    }
+
+    getFusionFailureMessage(result = {}) {
+        const messages = {
+            fusion_in_progress: 'Another fusion is already in progress.',
+            locked: 'Fusion Pod is still locked.',
+            cooldown: `Fusion recharges in ${this.formatCooldown(result.cooldownRemaining)}`,
+            invalid_parents: 'Choose two different creatures.',
+            ineligible_parents: 'Both creatures must be adults or elders.',
+            collection_capacity: result.required === 2
+                ? 'Twin signal detected, but two collection spaces are required.'
+                : 'Your creature collection is full.',
+            transaction_unavailable: 'Fusion records are unavailable. Please return and try again.',
+            transaction_not_found: 'Fusion record was interrupted. Please return and try again.',
+            invalid_result: 'The new lineage could not be preserved. Please try again.',
+            invalid_operation_id: 'Fusion could not create a secure operation record.',
+            fusion_consent_required: 'Both companions must approach willingly before Fusion.',
+            operation_replayed: 'This Fusion operation has already completed.',
+            invalid_authority_request: 'Parent ownership could not be verified.',
+            invalid_authority_reservation: 'Fusion authorization could not be saved.',
+            invalid_authority_receipt: 'The new lineage proof could not be verified.',
+            save_revision_conflict: 'Newer cloud progress was found. Sync before using Fusion.',
+            authority_reservation_rejected: 'These parent records could not be authorized.',
+            invalid_authority_execution: 'The server lineage result did not match this Fusion.',
+            authority_execution_unavailable: 'Fusion generation is temporarily unavailable.',
+            authority_execution_rejected: 'The server could not complete this lineage.'
+        };
+        return messages[result.reason] || 'Fusion could not begin.';
+    }
+
     createOffspringData(mendelianGenes) {
+        this.fusionOffspringSequence = (this.fusionOffspringSequence || 0) + 1;
+        const deterministicGenesId = [
+            'genes',
+            String(this.fusionOperationId || 'fusion')
+                .replace(/[^A-Za-z0-9_-]/g, '')
+                .slice(0, 96),
+            this.fusionOffspringSequence
+        ].join('_');
+
         // Determine generation (max of parents + 1)
         const parent1Gen = this.parent1Data.generation || 1;
         const parent2Gen = this.parent2Data.generation || 1;
@@ -1394,9 +2470,17 @@ class FusionPodScene extends Phaser.Scene {
         const parent2RarityIdx = rarities.indexOf(this.parent2Data.rarity || 'common');
         const avgRarityIdx = Math.floor((parent1RarityIdx + parent2RarityIdx) / 2);
 
-        // Offspring bonus: 20% chance for rarity upgrade
+        // Keep the actual roll aligned with the percentage shown in the Pod.
+        const compatibility = this.compatibility?.percentage || 50;
+        const rarityUpgradeChance = Math.min(
+            20 + Math.floor(compatibility / 10),
+            40
+        ) / 100;
         let offspringRarityIdx = avgRarityIdx;
-        if (Math.random() < 0.2 && avgRarityIdx < rarities.length - 1) {
+        if (
+            Math.random() < rarityUpgradeChance &&
+            avgRarityIdx < rarities.length - 1
+        ) {
             offspringRarityIdx = avgRarityIdx + 1;
         }
         const offspringRarity = rarities[offspringRarityIdx];
@@ -1425,14 +2509,17 @@ class FusionPodScene extends Phaser.Scene {
 
         // Create full creature genetics by merging base genetics with breeding traits
         const fullGenes = {
-            // Use base genetics ID or create new one
-            id: baseGenes?.id || `genes_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: deterministicGenesId,
             // Core species and visual data from CreatureGenetics
             species: baseGenes?.species || 'hybrid',
             rarity: offspringRarity,
             cosmicAffinity: baseGenes?.cosmicAffinity || this.blendCosmicAffinity(),
             personality: baseGenes?.personality || { core: 'curious' },
-            metadata: baseGenes?.metadata || { generatedAt: Date.now() },
+            metadata: {
+                ...(baseGenes?.metadata || {}),
+                generatedAt: this.fusionTransaction?.createdAt || Date.now(),
+                fusionResultSeed: this.fusionResultSeed
+            },
             // Traits - merge base genetics traits with breeding visuals
             traits: {
                 // CRITICAL: Include colorGenome, bodyShape, features from base for GraphicsEngine
@@ -1849,20 +2936,18 @@ class FusionPodScene extends Phaser.Scene {
     closeScene() {
         console.log('[FusionPodScene] Closing and returning to GameScene');
 
-        // Stop this scene first
+        this.shutdown();
         SceneTransitionHelper.stopScene(this, 'FusionPodScene');
 
-        // Start GameScene fresh (it was stopped, not paused)
+        if (this.scene.isPaused?.('GameScene')) {
+            SceneTransitionHelper.resumeScene(this, 'GameScene');
+            return;
+        }
+
         try {
             this.scene.start('GameScene');
-        } catch (e) {
-            console.error('[FusionPodScene] Failed to start GameScene:', e);
-            // Fallback: try to resume if it was paused
-            try {
-                this.scene.resume('GameScene');
-            } catch (e2) {
-                console.error('[FusionPodScene] Also failed to resume:', e2);
-            }
+        } catch (error) {
+            console.error('[FusionPodScene] Failed to return to GameScene:', error);
         }
     }
 
@@ -1888,12 +2973,20 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     shutdown() {
+        if (this.cleanupComplete) return;
+        this.cleanupComplete = true;
         console.log('[FusionPodScene] Shutting down...');
 
         // Stop fusion music
         window.AudioManager?.stopMusic?.();
 
         this.closeSelectionModal();
+        this.parentSlotElements.forEach(element => element?.destroy?.());
+        this.parentSlotElements = [];
+        this.fusionConsentModal?.destroy?.();
+        this.fusionConsentModal = null;
+        this.sharedFusionModal?.destroy?.();
+        this.sharedFusionModal = null;
 
         this.elements.forEach(el => {
             try {
@@ -1923,6 +3016,13 @@ class FusionPodScene extends Phaser.Scene {
         this.parent1Data = null;
         this.parent2Index = null;
         this.parent2Data = null;
+        this.fusionTransaction = null;
+        this.fusionOperationId = null;
+        this.fusionResultSeed = null;
+        this.fusionOffspringSequence = 0;
+        this.fusionConsentReceipt = null;
+        this.breedingInProgress = false;
+        this.breedButtonEnabled = false;
         this.compatibility = null;
 
         console.log('[FusionPodScene] Cleanup complete');

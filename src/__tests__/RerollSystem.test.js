@@ -218,7 +218,7 @@ describe('RerollSystem', () => {
             const advice = rerollSystem.getRerollAdvice('common');
 
             expect(advice.recommend).toBe(true);
-            expect(advice.message).toContain('Low risk');
+            expect(advice.message).toContain('75%');
         });
 
         test('should recommend reroll for uncommon', () => {
@@ -231,7 +231,7 @@ describe('RerollSystem', () => {
             const advice = rerollSystem.getRerollAdvice('rare');
 
             expect(advice.recommend).toBe(false);
-            expect(advice.message).toContain('Risky');
+            expect(advice.message).toContain('25%');
         });
 
         test('should not recommend reroll for epic', () => {
@@ -244,7 +244,7 @@ describe('RerollSystem', () => {
             const advice = rerollSystem.getRerollAdvice('legendary');
 
             expect(advice.recommend).toBe(false);
-            expect(advice.message).toContain("DON'T REROLL");
+            expect(advice.message).toContain('rarest variation');
         });
 
         test('should return common advice for unknown rarity', () => {

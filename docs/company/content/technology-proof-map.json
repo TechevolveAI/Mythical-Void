@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-11",
+  "purpose": "Source map for truthful public explanations of Mythical Void's genetics, browser engine, and AI media layer.",
+  "claims": [
+    {
+      "id": "TECH-001",
+      "claim": "Creature genetics combine species, appearance, personality, rarity, and cosmic affinity.",
+      "sources": ["src/systems/CreatureGenetics.js", "src/scenes/FusionPodScene.js"],
+      "publicStatus": "approved_for_plain_language_description",
+      "limits": "Do not claim infinite uniqueness or consciousness."
+    },
+    {
+      "id": "TECH-002",
+      "claim": "Phaser 3 runs the playable browser world.",
+      "sources": ["src/global-init.js", "src/scenes/GameScene.js", "src/scenes/HubWorldScene.js"],
+      "publicStatus": "approved_for_plain_language_description",
+      "limits": "Do not imply every feature works offline or that Phaser itself is an AI system."
+    },
+    {
+      "id": "TECH-003",
+      "claim": "Optional age-gated services can create AI-generated companion portraits and cinematic moments.",
+      "sources": ["src/systems/LivingPortraitService.js", "src/systems/CompanionMediaService.js", "netlify/functions/generate-companion-video.mjs"],
+      "publicStatus": "approved_with_experimental_and_age_gated_language",
+      "limits": "Do not claim unrestricted generation, child profiling, or that generated media replaces authored story content."
+    },
+    {
+      "id": "TECH-004",
+      "claim": "The game can show selected NASA public space content and space-weather signals as optional learning moments.",
+      "sources": ["src/systems/NASAContentSystem.js", "src/systems/SpaceWeatherSystem.js", "src/ui/NASAContentModal.js"],
+      "publicStatus": "approved_with_public_data_and_no_endorsement_language",
+      "limits": "Do not imply NASA endorses Mythical Void, that the game is an official NASA product, or that live data is guaranteed to be available."
+    }
+  ],
+  "approval": {
+    "publicationAuthority": "Kevin",
+    "externalPublishing": false,
+    "nextReviewTrigger": "Relevant source, safety boundary, provider, or public wording changes"
+  }
+}

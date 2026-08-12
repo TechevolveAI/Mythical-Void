@@ -16,6 +16,19 @@ const WAYPOINTS = Object.freeze({
     })
 });
 
+function getWaypointLabel(config, quest) {
+    if (quest.id !== 'beacon_living_signals') {
+        return config.label;
+    }
+
+    const total = Math.max(1, Number(quest.objective?.target) || 3);
+    const progress = Math.max(
+        0,
+        Math.min(total, Number(quest.progress) || 0)
+    );
+    return `${config.label} ${progress}/${total}`;
+}
+
 export function resolveProjectBeaconWaypointTarget(scene, quest, player) {
     if (!scene || !quest || quest.type !== 'story' || quest.completed || quest.claimed) {
         return null;
@@ -50,7 +63,7 @@ export function resolveProjectBeaconWaypointTarget(scene, quest, player) {
 
     return {
         missionId: quest.id,
-        label: config.label,
+        label: getWaypointLabel(config, quest),
         color: config.color,
         target
     };

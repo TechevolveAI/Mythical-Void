@@ -6,6 +6,7 @@
 import { devLog } from '../utils/devLogger.js';
 import {
     getMobileControlLayout,
+    getJoystickVector,
     getSafeAreaInsets
 } from './MobileControlLayout.js';
 
@@ -28,6 +29,12 @@ class MobileControls {
         this.joystickMaxDistance = 50;
         this.deadZone = 0.15; // 15% dead zone - movements within this range return 0
         this.activePointerId = null; // Track which pointer activated joystick
+        this.joystickActivatedAt = 0;
+        this.lastJoystickMagnitude = 0;
+        this.minimumFlickDuration = 140;
+        this.pendingJoystickReset = null;
+        this.inputAbortHandler = null;
+        this.visibilityChangeHandler = null;
 
         // Scene-level event handlers (stored for cleanup)
         this.scenePointerUpHandler = null;
@@ -266,10 +273,60 @@ class MobileControls {
             this.scene.input.off('pointerup', this.scenePointerUpHandler);
             this.scenePointerUpHandler = null;
         }
+        this.resetJoystick(true);
+        const canvas = this.scene?.game?.canvas;
+        if (this.canvasPointerDownHandler && canvas) {
+            canvas.removeEventListener(
+                'pointerdown',
+                this.canvasPointerDownHandler,
+                true
+            );
+            canvas.removeEventListener(
+                'pointermove',
+                this.canvasPointerMoveHandler,
+                true
+            );
+            canvas.removeEventListener(
+                'pointerup',
+                this.canvasPointerUpHandler,
+                true
+            );
+            canvas.removeEventListener(
+                'pointercancel',
+                this.canvasPointerCancelHandler,
+                true
+            );
+            canvas.removeEventListener(
+                'lostpointercapture',
+                this.canvasLostPointerCaptureHandler,
+                true
+            );
+            this.canvasPointerDownHandler = null;
+            this.canvasPointerMoveHandler = null;
+            this.canvasPointerUpHandler = null;
+            this.canvasPointerCancelHandler = null;
+            this.canvasLostPointerCaptureHandler = null;
+        }
         // Clean up native touch listeners
         if (this.sceneTouchCancelHandler && this.scene?.game?.canvas) {
             this.scene.game.canvas.removeEventListener('touchcancel', this.sceneTouchCancelHandler);
             this.sceneTouchCancelHandler = null;
+        }
+        if (this.sceneTouchEndHandler && this.scene?.game?.canvas) {
+            this.scene.game.canvas.removeEventListener('touchend', this.sceneTouchEndHandler);
+            this.sceneTouchEndHandler = null;
+        }
+        if (this.inputAbortHandler) {
+            window.removeEventListener('blur', this.inputAbortHandler);
+            window.removeEventListener('pagehide', this.inputAbortHandler);
+            this.inputAbortHandler = null;
+        }
+        if (this.visibilityChangeHandler) {
+            document.removeEventListener(
+                'visibilitychange',
+                this.visibilityChangeHandler
+            );
+            this.visibilityChangeHandler = null;
         }
 
         // Reset joystick state
@@ -408,6 +465,12 @@ class MobileControls {
         this.joystickBase.fillCircle(joystickX, joystickY, joystickBaseRadius);
         this.joystickBase.lineStyle(3, 0xFFFFFF, 0.5);
         this.joystickBase.strokeCircle(joystickX, joystickY, joystickBaseRadius);
+        this.drawJoystickDirections(
+            this.joystickBase,
+            joystickX,
+            joystickY,
+            joystickBaseRadius
+        );
 
         // Create thumb (moveable part)
         this.joystickThumb = this.scene.add.graphics();
@@ -430,211 +493,20 @@ class MobileControls {
         )
             .setOrigin(0.5)
             .setScrollFactor(0)
-            .setDepth(10002) // Above all joystick visual elements to receive touch
-            .setInteractive({ draggable: true, useHandCursor: false });
-
-        // Enable draggable for mobile drag events
-        this.scene.input.setDraggable(this.joystickZone);
+            .setDepth(10002);
 
         console.log('[MobileControls] Joystick zone created in bottom dock');
 
         // Store center position
         this.joystickCenterX = joystickX;
         this.joystickCenterY = joystickY;
-
-        // Handle touch/drag events
-        this.joystickZone.on('pointerdown', (pointer) => {
-            console.log('[MobileControls] Joystick pointerdown received, pointer.id:', pointer.id);
-            this.joystickActive = true;
-            this.activePointerId = pointer.id; // Track which pointer activated joystick
-            this.joystickStartX = pointer.x;
-            this.joystickStartY = pointer.y;
-
-            // Add subtle pulse effect to base
-            this.scene.tweens.add({
-                targets: this.joystickBase,
-                alpha: 0.5,
-                duration: 100,
-                yoyo: true
-            });
-
-            // Show glow ring with fade-in animation
-            if (this.joystickGlow) {
-                this.scene.tweens.add({
-                    targets: this.joystickGlow,
-                    alpha: 1,
-                    duration: 150,
-                    ease: 'Power2'
-                });
-            }
-
-            // Trigger haptic feedback if available
-            if (window.FeedbackManager) {
-                window.FeedbackManager.vibrate('tap');
-            }
-        });
-
-        this.joystickZone.on('pointermove', (pointer) => {
-            if (!this.joystickActive) return;
-
-            // Calculate offset from center
-            const offsetX = pointer.x - this.joystickCenterX;
-            const offsetY = pointer.y - this.joystickCenterY;
-
-            // Calculate distance and angle
-            const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
-            const angle = Math.atan2(offsetY, offsetX);
-
-            // Clamp distance to max
-            const clampedDistance = Math.min(distance, this.joystickMaxDistance);
-
-            // Update thumb position
-            const thumbX = this.joystickCenterX + Math.cos(angle) * clampedDistance;
-            const thumbY = this.joystickCenterY + Math.sin(angle) * clampedDistance;
-
-            this.joystickThumb.clear();
-            this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-            this.joystickThumb.fillCircle(thumbX, thumbY, this.joystickThumbRadius);
-            this.joystickThumb.lineStyle(2, 0x00CED1, 1);
-            this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
-
-            // Calculate dead zone in pixels (percentage-based for consistency)
-            const deadZonePixels = this.joystickMaxDistance * this.deadZone;
-
-            // Calculate normalized direction (-1 to 1) with dead zone
-            let normalizedX = 0;
-            let normalizedY = 0;
-
-            if (distance > deadZonePixels) {
-                // Remap the remaining range (deadZone to max) to (0 to 1)
-                // This gives smooth 0-1 output after passing the dead zone
-                const effectiveDistance = clampedDistance - deadZonePixels;
-                const effectiveMax = this.joystickMaxDistance - deadZonePixels;
-                const magnitude = effectiveDistance / effectiveMax;
-
-                normalizedX = Math.cos(angle) * magnitude;
-                normalizedY = Math.sin(angle) * magnitude;
-            }
-
-            // Emit virtual joystick event
-            this.scene.game.events.emit('virtual-joystick', {
-                x: normalizedX,
-                y: normalizedY
-            });
-        });
-
-        // Zone-level pointerup (fires when released within zone)
-        this.joystickZone.on('pointerup', (pointer) => {
-            if (pointer.id === this.activePointerId) {
-                this.resetJoystick();
-            }
-        });
-
-        // BACKUP: Also use drag events (more reliable on some mobile browsers)
-        this.joystickZone.on('drag', (pointer, dragX, dragY) => {
-            if (!this.joystickActive) return;
-
-            // Calculate offset from center using drag coordinates
-            const offsetX = dragX - this.joystickCenterX;
-            const offsetY = dragY - this.joystickCenterY;
-
-            const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
-            const angle = Math.atan2(offsetY, offsetX);
-            const clampedDistance = Math.min(distance, this.joystickMaxDistance);
-
-            // Update thumb position
-            const thumbX = this.joystickCenterX + Math.cos(angle) * clampedDistance;
-            const thumbY = this.joystickCenterY + Math.sin(angle) * clampedDistance;
-
-            this.joystickThumb.clear();
-            this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-            this.joystickThumb.fillCircle(thumbX, thumbY, this.joystickThumbRadius);
-            this.joystickThumb.lineStyle(2, 0x00CED1, 1);
-            this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
-
-            const deadZonePixels = this.joystickMaxDistance * this.deadZone;
-            let normalizedX = 0;
-            let normalizedY = 0;
-
-            if (distance > deadZonePixels) {
-                const effectiveDistance = clampedDistance - deadZonePixels;
-                const effectiveMax = this.joystickMaxDistance - deadZonePixels;
-                const magnitude = effectiveDistance / effectiveMax;
-                normalizedX = Math.cos(angle) * magnitude;
-                normalizedY = Math.sin(angle) * magnitude;
-            }
-
-            this.scene.game.events.emit('virtual-joystick', {
-                x: normalizedX,
-                y: normalizedY
-            });
-        });
-
-        this.joystickZone.on('dragend', () => {
-            this.resetJoystick();
-        });
-
-        // CRITICAL: Scene-level pointermove handler for joystick tracking
-        // This allows the joystick to track finger movement even when the finger
-        // moves outside the joystick zone (which is common during fast movements)
-        this.scenePointerMoveHandler = (pointer) => {
-            if (!this.joystickActive || pointer.id !== this.activePointerId) return;
-
-            // Calculate offset from center
-            const offsetX = pointer.x - this.joystickCenterX;
-            const offsetY = pointer.y - this.joystickCenterY;
-
-            // Calculate distance and angle
-            const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
-            const angle = Math.atan2(offsetY, offsetX);
-
-            // Clamp distance to max
-            const clampedDistance = Math.min(distance, this.joystickMaxDistance);
-
-            // Update thumb position
-            const thumbX = this.joystickCenterX + Math.cos(angle) * clampedDistance;
-            const thumbY = this.joystickCenterY + Math.sin(angle) * clampedDistance;
-
-            this.joystickThumb.clear();
-            this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-            this.joystickThumb.fillCircle(thumbX, thumbY, this.joystickThumbRadius);
-            this.joystickThumb.lineStyle(2, 0x00CED1, 1);
-            this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
-
-            // Calculate dead zone in pixels (percentage-based for consistency)
-            const deadZonePixels = this.joystickMaxDistance * this.deadZone;
-
-            // Calculate normalized direction (-1 to 1) with dead zone
-            let normalizedX = 0;
-            let normalizedY = 0;
-
-            if (distance > deadZonePixels) {
-                // Remap the remaining range (deadZone to max) to (0 to 1)
-                const effectiveDistance = clampedDistance - deadZonePixels;
-                const effectiveMax = this.joystickMaxDistance - deadZonePixels;
-                const magnitude = effectiveDistance / effectiveMax;
-
-                normalizedX = Math.cos(angle) * magnitude;
-                normalizedY = Math.sin(angle) * magnitude;
-            }
-
-            // Emit virtual joystick event
-            this.scene.game.events.emit('virtual-joystick', {
-                x: normalizedX,
-                y: normalizedY
-            });
+        this.joystickHitBounds = {
+            left: 0,
+            right: layout.joystick.zoneWidth,
+            top: layout.dockTop,
+            bottom: layout.dockBottom
         };
-        this.scene.input.on('pointermove', this.scenePointerMoveHandler);
-
-        // CRITICAL: Scene-level listeners catch pointer releases ANYWHERE on screen
-        // This fixes the "sticky joystick" bug where releasing outside the zone
-        // would leave the joystick active and the character moving forever
-        this.scenePointerUpHandler = (pointer) => {
-            if (this.joystickActive && pointer.id === this.activePointerId) {
-                this.resetJoystick();
-            }
-        };
-        this.scene.input.on('pointerup', this.scenePointerUpHandler);
+        this.setupCanvasJoystickInput();
 
         // Handle touch cancel (when browser cancels touch, e.g., palm rejection)
         // CRITICAL: Check touch identifier to only reset if the joystick's touch ended
@@ -656,10 +528,15 @@ class MobileControls {
             // Don't reset if this was a different finger (e.g., action button release)
         };
 
-        // Only use touchcancel for unexpected interruptions (e.g., palm rejection, incoming call)
-        // Removed touchend - let Phaser's pointerup handle normal releases with proper ID tracking
+        this.sceneTouchEndHandler = (event) => {
+            if (this.joystickActive && event.touches?.length === 0) {
+                this.resetJoystick();
+            }
+        };
+
         if (this.scene.game.canvas) {
             this.scene.game.canvas.addEventListener('touchcancel', this.sceneTouchCancelHandler, { passive: true });
+            this.scene.game.canvas.addEventListener('touchend', this.sceneTouchEndHandler, { passive: true });
         }
 
         // NOTE: Removed pointerout handler - it was causing false resets on mobile
@@ -668,15 +545,196 @@ class MobileControls {
         devLog('[MobileControls] Virtual joystick created at', joystickX, joystickY);
     }
 
+    drawJoystickDirections(graphics, x, y, radius) {
+        const edge = radius - 8;
+        const half = 6;
+        graphics.fillStyle(0xFFFFFF, 0.42);
+        graphics.fillTriangle(x, y - edge, x - half, y - edge + 9, x + half, y - edge + 9);
+        graphics.fillTriangle(x, y + edge, x - half, y + edge - 9, x + half, y + edge - 9);
+        graphics.fillTriangle(x - edge, y, x - edge + 9, y - half, x - edge + 9, y + half);
+        graphics.fillTriangle(x + edge, y, x + edge - 9, y - half, x + edge - 9, y + half);
+    }
+
+    setupCanvasJoystickInput() {
+        const canvas = this.scene?.game?.canvas;
+        if (!canvas) return;
+
+        this.canvasPointerDownHandler = event => {
+            if (this.isSuspended || this.activePointerId !== null) return;
+            const point = this.getCanvasGamePoint(event);
+            if (!this.isJoystickHit(point)) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.clearPendingJoystickReset();
+            this.joystickActive = true;
+            this.activePointerId = event.pointerId;
+            this.joystickActivatedAt = performance.now();
+            this.lastJoystickMagnitude = 0;
+            this.updateJoystickFromPointer(point);
+
+            try {
+                canvas.setPointerCapture?.(event.pointerId);
+            } catch (error) {
+                devLog('[MobileControls] Pointer capture unavailable');
+            }
+
+            this.scene.tweens.add({
+                targets: this.joystickBase,
+                alpha: 0.5,
+                duration: 100,
+                yoyo: true
+            });
+            this.scene.tweens.add({
+                targets: this.joystickGlow,
+                alpha: 1,
+                duration: 100,
+                ease: 'Power2'
+            });
+            window.FeedbackManager?.vibrate?.('tap');
+        };
+
+        this.canvasPointerMoveHandler = event => {
+            if (
+                !this.joystickActive ||
+                event.pointerId !== this.activePointerId
+            ) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.updateJoystickFromPointer(this.getCanvasGamePoint(event));
+        };
+
+        this.canvasPointerUpHandler = event => {
+            if (event.pointerId !== this.activePointerId) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.finishJoystickInput(event.pointerId);
+        };
+        this.canvasPointerCancelHandler = event => {
+            if (event.pointerId === this.activePointerId) {
+                this.resetJoystick(true);
+            }
+        };
+        this.canvasLostPointerCaptureHandler = event => {
+            if (event.pointerId === this.activePointerId) {
+                this.finishJoystickInput(event.pointerId);
+            }
+        };
+
+        const captureOptions = { capture: true, passive: false };
+        canvas.addEventListener('pointerdown', this.canvasPointerDownHandler, captureOptions);
+        canvas.addEventListener('pointermove', this.canvasPointerMoveHandler, captureOptions);
+        canvas.addEventListener('pointerup', this.canvasPointerUpHandler, captureOptions);
+        canvas.addEventListener('pointercancel', this.canvasPointerCancelHandler, captureOptions);
+        canvas.addEventListener(
+            'lostpointercapture',
+            this.canvasLostPointerCaptureHandler,
+            captureOptions
+        );
+
+        this.inputAbortHandler = () => this.resetJoystick(true);
+        this.visibilityChangeHandler = () => {
+            if (document.hidden) this.resetJoystick(true);
+        };
+        window.addEventListener('blur', this.inputAbortHandler);
+        window.addEventListener('pagehide', this.inputAbortHandler);
+        document.addEventListener(
+            'visibilitychange',
+            this.visibilityChangeHandler
+        );
+    }
+
+    getCanvasGamePoint(event) {
+        const rect = this.scene.game.canvas.getBoundingClientRect();
+        return {
+            x: (event.clientX - rect.left) * (this.scene.scale.width / rect.width),
+            y: (event.clientY - rect.top) * (this.scene.scale.height / rect.height)
+        };
+    }
+
+    isJoystickHit(point) {
+        const bounds = this.joystickHitBounds;
+        return Boolean(bounds) &&
+            point.x >= bounds.left &&
+            point.x <= bounds.right &&
+            point.y >= bounds.top &&
+            point.y <= bounds.bottom;
+    }
+
+    finishJoystickInput(pointerId) {
+        const canvas = this.scene?.game?.canvas;
+        const elapsed = performance.now() - this.joystickActivatedAt;
+        const remainingPulse = this.minimumFlickDuration - elapsed;
+        this.joystickActive = false;
+        this.activePointerId = null;
+
+        try {
+            if (canvas?.hasPointerCapture?.(pointerId)) {
+                canvas.releasePointerCapture(pointerId);
+            }
+        } catch (error) {
+            devLog('[MobileControls] Pointer release already completed');
+        }
+
+        if (this.lastJoystickMagnitude > 0.1 && remainingPulse > 0) {
+            this.pendingJoystickReset = window.setTimeout(() => {
+                this.pendingJoystickReset = null;
+                this.resetJoystick(true);
+            }, remainingPulse);
+            return;
+        }
+        this.resetJoystick(true);
+    }
+
+    clearPendingJoystickReset() {
+        if (this.pendingJoystickReset !== null) {
+            window.clearTimeout(this.pendingJoystickReset);
+            this.pendingJoystickReset = null;
+        }
+    }
+
+    updateJoystickFromPointer(pointer) {
+        const vector = getJoystickVector({
+            pointerX: pointer?.x,
+            pointerY: pointer?.y,
+            centerX: this.joystickCenterX,
+            centerY: this.joystickCenterY,
+            maxDistance: this.joystickMaxDistance,
+            deadZone: this.deadZone
+        });
+
+        this.joystickThumb.clear();
+        this.joystickThumb.fillStyle(0xFFFFFF, 0.9);
+        this.joystickThumb.fillCircle(
+            vector.thumbX,
+            vector.thumbY,
+            this.joystickThumbRadius
+        );
+        this.joystickThumb.lineStyle(2, 0x00CED1, 1);
+        this.joystickThumb.strokeCircle(
+            vector.thumbX,
+            vector.thumbY,
+            this.joystickThumbRadius
+        );
+
+        this.scene.game.events.emit('virtual-joystick', {
+            x: vector.x,
+            y: vector.y
+        });
+        this.lastJoystickMagnitude = Math.hypot(vector.x, vector.y);
+    }
+
     /**
      * Reset joystick to center position immediately
      * Called when pointer is released (anywhere on screen or outside canvas)
      */
-    resetJoystick() {
-        if (!this.joystickActive) return;
+    resetJoystick(force = false) {
+        if (!force && !this.joystickActive) return;
 
+        this.clearPendingJoystickReset();
         this.joystickActive = false;
         this.activePointerId = null;
+        this.lastJoystickMagnitude = 0;
 
         // Immediately snap thumb back to center (no tween for responsiveness)
         if (this.joystickThumb) {

@@ -1,0 +1,620 @@
+{
+  "schemaVersion": 1,
+  "weekEnding": "2026-08-11",
+  "preparedBy": "Company task",
+  "evidenceFreshness": "Repository and public site checked 2026-08-11",
+  "executive": {
+    "outcome": "The public Mythical Void website has been rebuilt as a clearer, warmer shop window while the company system keeps publication and other outward actions under human approval.",
+    "materialChange": "The home page now explains the creature, adventure, story, choice, and family safeguards in plain language before handing players to /play/. A-055 checks public wording. A-056 sorts invented questions and feedback into safe human routes, A-057 prepares source-linked candidate replies, and A-058 adds a consent-gated Google tag to the public pages only.",
+    "biggestLearning": "Children, teenagers, and parents need the direct answer first. Incoming questions also need a clear human destination before any inbox automation is connected.",
+    "biggestRisk": "Connecting analytics, inboxes, public automation, or variable-cost AI/growth execution before privacy, safeguarding, financial, and approval gates are operational.",
+    "recommendation": "Resolve KDP-001 safeguarding ownership first, then confirm the AG-001/AG-010 internal operating cell and finance/release ownership before activating production protected history, authenticated delivery, tools, or spend."
+  },
+  "scorecard": [
+    {
+      "measure": "Public discovery checks",
+      "current": "7 major and 4 minor live findings across 6 checks",
+      "target": "0 major after coordinated deployment",
+      "trend": "Baseline",
+      "confidence": "High",
+      "decisionOwner": "GDH-001 / release owner"
+    },
+    {
+      "measure": "Product activation",
+      "current": "Not instrumented",
+      "target": "Approved definition and lawful aggregate signal",
+      "trend": "Not available",
+      "confidence": "Not available",
+      "decisionOwner": "D-003 and D-004 / Kevin"
+    },
+    {
+      "measure": "Accepted customer evidence",
+      "current": "0; Round 001A has 10 adult slots prepared but no recruitment or results",
+      "target": "First moderated research round",
+      "trend": "Baseline",
+      "confidence": "High",
+      "decisionOwner": "Research owner unassigned"
+    },
+    {
+      "measure": "Adult research operations",
+      "current": "Internal package ready; 0 of 14 entry gates satisfied, 0 contacts, 0 sessions, and all recruitment/collection authority off",
+      "target": "Named team, safeguarding route, stable build, approved participant/consent/retention controls, restricted systems, dry run, then 10 reviewed adult sessions",
+      "trend": "Operating package established; execution gated",
+      "confidence": "High for control completeness; no participant or outcome evidence exists",
+      "decisionOwner": "A-029 / Kevin, research owner, evidence reviewer, moderator, and safeguarding owner"
+    },
+    {
+      "measure": "Safeguarding activation",
+      "current": "A-039 contract valid; 5 of 5 Kevin inputs unprovided, primary and backup unassigned, no urgent route or professional review, 0 of 16 activation gates satisfied, 0 of 10 exercises passed, and 0 of 5 downstream capabilities ready; A-004 remains synthetic-only with 17 of 17 exact routes",
+      "target": "Confirmed trained primary/backup/urgent recipient, approved jurisdictions and coverage, protected redundant routes and restricted records, professional review, all ten exercises and sixteen gates passed, then one exact expiring label-and-alert pilot approval",
+      "trend": "Activation ambiguity removed; critical human and operating coverage absent",
+      "confidence": "High for the contract, current synthetic result, and missing-evidence state; no live or open-world safeguarding performance is proven",
+      "decisionOwner": "A-039 / D-012 / Kevin and named safeguarding, privacy/legal, security, support, and assurance owners"
+    },
+    {
+      "measure": "Production company automations",
+      "current": "0 unattended; 51 internal/read-only, disabled-contract, synthetic-only, design-only, plan-only, rehearsal-only, or dry-run pilots",
+      "target": "Only evaluated bounded workflows",
+      "trend": "Foundation improving",
+      "confidence": "High",
+      "decisionOwner": "Kevin governs promotion"
+    },
+    {
+      "measure": "Commercial distribution candidates",
+      "current": "4 officially sourced, researched, and assessed; 0 qualified and 0 contacted; OP-001 is the internal packaging baseline",
+      "target": "One evidence-backed portal feasibility decision",
+      "trend": "Foundation improving",
+      "confidence": "High for recorded public requirements and internal sequencing; audience, technical, rights, privacy, operational, and economic fit remain unvalidated",
+      "decisionOwner": "GDH-005 / Kevin and Game Development"
+    },
+    {
+      "measure": "Social/content channels",
+      "current": "1 owned website observed; 3 social channel types publicly unverified after 8 exact-name/domain searches; 1 research-only and 2 deferred routes; 0 candidate account URLs, credentials, or publish-ready channels",
+      "target": "Verified account inventory and one approved evidence-led channel plan",
+      "trend": "Baseline",
+      "confidence": "High for the sampled live site and search audit; existing private/unlinked accounts remain unknown until Kevin provides canonical URLs or confirms none exist",
+      "decisionOwner": "Kevin / channel owner"
+    },
+    {
+      "measure": "Campaign packaging",
+      "current": "1 internal package; 2 text variants, 4 source claims, 8 literal claim mappings, 0 tracking URLs, and 0 publication-ready variants",
+      "target": "One approved evidence-led package on a verified channel with trusted artifact-bound approval and reconciliation",
+      "trend": "Internal package established; publication gated",
+      "confidence": "High for deterministic source, claim, link, accessibility, disclosure, and authority controls; no public outcome exists",
+      "decisionOwner": "A-034 / Kevin and named content, channel, measurement, moderation, and publisher owners"
+    },
+    {
+      "measure": "Operational risk",
+      "current": "1 critical, 6 high, and 5 medium open risks; operational readiness false",
+      "target": "0 unowned critical/high risks and verified controls for active vendors",
+      "trend": "New baseline",
+      "confidence": "High on register gaps; vendor terms/runtime require verification",
+      "decisionOwner": "Kevin and named risk/vendor owners"
+    },
+    {
+      "measure": "Vendor governance",
+      "current": "8 dependencies registered; contract, DPA, retention, subprocessor, spend, and exit evidence incomplete",
+      "target": "Material production vendors reviewed and owned",
+      "trend": "Foundation improving",
+      "confidence": "High on technical inventory; commercial/legal evidence incomplete",
+      "decisionOwner": "Kevin / vendor owners"
+    },
+    {
+      "measure": "Financial sustainability",
+      "current": "A-040 contract valid; 0 of 5 Kevin inputs, 0 of 6 restricted source classes connected, 0 of 12 evidence classes reconciled, 0 of 7 cost drivers verified, 0 of 18 gates, 0 of 10 exercises, and 0 of 4 reviewed closes complete; no runway, forecast, monetization decision, or spend policy is ready and agent spend caps remain zero",
+      "target": "Restricted reconciled baseline, material unit costs/limits, reviewed runway scenarios, and one evidence-backed monetization direction before execution",
+      "trend": "Close and evidence ambiguity removed; financial ownership and actuals absent",
+      "confidence": "High for the value-free contract and missing-evidence state; no financial amount, affordability, unit economics, or runway claim is available",
+      "decisionOwner": "A-040 / D-016 / Kevin and finance, accounting, tax, legal, vendor, security, and assurance owners"
+    },
+    {
+      "measure": "Autonomous company operating model",
+      "current": "11 focused agent roles cover 13 company functions and all 58 workflows exactly once. Every workflow has a separate evaluator, covering 921 documented cases, but none is approved for unattended production use. A-055 checks plain public wording. A-056 sorts incoming questions safely, A-057 prepares source-linked candidate replies, and A-058 checks the public consent-gated Google tag while keeping live inbox, reply, game measurement, and advertising actions under human control. No company workflow was scheduled, no external action occurred, and no human owner or backup has yet been confirmed.",
+      "target": "Protected internal AG-001/AG-010 cell with confirmed owner/backup, minimal memory/history, authenticated exceptions, bounded scheduling, kill-switch tests, and four accurate shadow cycles",
+      "trend": "Local no-write rehearsal active; protected multi-identity runtime absent",
+      "confidence": "High for static coverage and delegation controls; no production autonomy claim is supported",
+      "decisionOwner": "D-017 / Kevin and automation governance owner"
+    },
+    {
+      "measure": "Protected internal runtime",
+      "current": "The protected internal runtime remains a tested design, not a live service. A-044 through A-053 cover safe handoff, records, alerts, recovery, backup, key loss and misuse. A-054 adds real multi-worker, retry, crash and restart testing. All 18 A-054 production gates remain unmet; no provider, account, identity, key, storage service, alert route, schedule, credential or network connection exists.",
+      "target": "Recorded cell decision, named owner/backup/urgent recipient, isolated identities, read-only ephemeral execution, protected history, authenticated alerts, approval/secret/resource controls, kill/recovery proof, then first eligible cycle",
+      "trend": "Public due diligence supports an account-scoped review; selection and provisioning absent",
+      "confidence": "High for recorded official capability evidence and refusal boundaries; configuration, security, privacy, terms, selected region, exact all-in cost, account ownership, failure behavior, and operation remain unverified",
+      "decisionOwner": "A-031 / A-037 / A-038 / D-017 / Kevin and named automation governance, security, privacy, finance, and assurance owners"
+    },
+    {
+      "measure": "Access and integration activation",
+      "current": "18 integration classes across 5 stages; 1 anonymous public-read surface, 2 observed human-access contexts, 0 agent connectors, 0 credential references, 0 prepared requests, and 0 activation-ready integrations",
+      "target": "One independently reviewed read-only integration with named owner/backup/recovery, minimum provider-native identity, revocation and kill-switch evidence, and no authority expansion",
+      "trend": "Complete inventory and input brief; activation gated",
+      "confidence": "High for known company capability classes and fail-closed state; provider/account inventories remain incomplete until Kevin supplies bounded inputs",
+      "decisionOwner": "A-035 / Kevin and named automation governance, security, privacy, safeguarding, finance, and system owners"
+    },
+    {
+      "measure": "Evaluation and promotion assurance",
+      "current": "58 of 58 workflows have a separate evaluator; 921 documented cases, 57 fixture/adversarial suites, 1 system integration suite, 0 network-enabled evaluators, 0 production-credential evaluators, 0 external-mutation evaluators, 0 eligible promotion cycles, and 0 promotion-eligible workflows",
+      "target": "Protected evaluation history, independently verified runtime identities, and four accurate reviewed eligible cycles for each bounded promotion candidate, with re-evaluation after every material change",
+      "trend": "Complete pre-production coverage; production promotion evidence absent",
+      "confidence": "High for static bindings and current local evaluations; no protected production operating history exists",
+      "decisionOwner": "A-036 / AG-010 and Kevin"
+    },
+    {
+      "measure": "Kevin decision load",
+      "current": "5 complete awaiting-decision packets; the only critical risk is priority 1; 6 of 7 open critical/high risks represented; automated delivery and execution off",
+      "target": "At most 5 material packets with complete evidence/tradeoffs, authenticated delivery, recorded decisions, and no execution from a response",
+      "trend": "Authoritative queue established",
+      "confidence": "High for queue completeness and risk coverage; recipient/delivery and decision outcomes remain unverified",
+      "decisionOwner": "A-025 / Kevin and automation governance owner"
+    },
+    {
+      "measure": "Go-to-market and launch readiness",
+      "current": "LS-001 quiet owned access; 0 of 8 readiness tracks and 0 of 6 outward launch waves ready; all external launch authorities false",
+      "target": "Controlled adult research plus a verified owned-discovery release, followed by one small evidence-led creator or press pilot before broader launch",
+      "trend": "Integrated launch baseline established",
+      "confidence": "High for registered dependencies and authority boundaries; no market outcome evidence exists",
+      "decisionOwner": "A-026 / Kevin and named launch-track owners"
+    },
+    {
+      "measure": "Authentic gameplay proof production",
+      "current": "3 of 3 internal capture specifications ready; 0 capture-ready, 0 approval-ready, and 0 publication-ready proofs",
+      "target": "PF-003, PF-004, and PF-005 captured from one named stable build, independently accepted with provenance, rights, accessibility, edits, and narrow claim boundaries",
+      "trend": "Production ambiguity removed; capture evidence absent",
+      "confidence": "High for specification completeness; no media asset or gameplay claim has been accepted",
+      "decisionOwner": "A-027 / Game Development capture owner and independent company proof reviewer"
+    },
+    {
+      "measure": "Market and category intelligence",
+      "current": "10 current first-party sources across 5 category lanes; 10 references, 6 falsifiable hypotheses, and 0 customer-validated hypotheses",
+      "target": "Monthly current-source review and at least two material hypotheses supported, contradicted, or retired through accepted evidence",
+      "trend": "Directional baseline established",
+      "confidence": "High for recorded first-party observations; deliberately no confidence claim for demand, size, rank, revenue, overlap, or positioning outcome",
+      "decisionOwner": "A-028 / Kevin and market intelligence owner"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence": "A-001 public audit found SPA fallbacks at robots, sitemap, and llms paths.",
+      "source": "A-001 rerun 2026-08-11T11:17Z",
+      "confidence": "High",
+      "implication": "Deploy local discovery files before search submission.",
+      "followUp": "GDH-001"
+    },
+    {
+      "evidence": "No accepted player or parent evidence exists yet.",
+      "source": "Customer Evidence Register",
+      "confidence": "High",
+      "implication": "Positioning remains a hypothesis.",
+      "followUp": "Run moderated research protocol"
+    },
+    {
+      "evidence": "A-010 found 5 major and 3 minor source/documentation mismatches while validating all expected runtime source signals.",
+      "source": "A-010 run 2026-08-11T11:05Z",
+      "confidence": "High for repository drift; production provider activation remains unverified",
+      "implication": "Do not broaden AI media or rewrite privacy text from assumptions.",
+      "followUp": "GDH-006 and D-013"
+    },
+    {
+      "evidence": "A-005 passed 5 evidence/privacy evaluations and the empty production register emits zero themes and no decision readiness.",
+      "source": "A-005 evaluation run 2026-08-11",
+      "confidence": "High for tested gates",
+      "implication": "The synthesis path is ready for de-identified pilot records, but no customer claim exists yet.",
+      "followUp": "Approve and run Research Round 001A"
+    },
+    {
+      "evidence": "A-004 achieved 100% restricted and Q0 recall on 17 synthetic routing cases and refuses live or unsanitized fixture mode.",
+      "source": "A-004 evaluation run 2026-08-11",
+      "confidence": "High for the small fixture; open-world and multilingual coverage unproven",
+      "implication": "The offline control baseline works, but no inbox, alert, draft, or send is safe to connect yet.",
+      "followUp": "Name safeguarding owners and build a de-identified human-reviewed evaluation set"
+    },
+    {
+      "evidence": "A-006 validates 12 proposed events, 10 coarse property allowlists, and 27 prohibited fields; collection and endpoint remain off.",
+      "source": "A-006 contract and 4-case evaluation run 2026-08-11",
+      "confidence": "High for contract enforcement; static scan cannot prove production network or log behavior",
+      "implication": "Measurement engineering can proceed only after product boundaries, privacy/DPIA, network/logging, retention, ownership, and Kevin decisions are evidenced.",
+      "followUp": "GDH-002, D-003, and D-004"
+    },
+    {
+      "evidence": "A-013 validates 6 evidence-led editorial briefs: 1 internal text draft ready, 0 publication ready, and PF-003/PF-004/PF-005 remain required.",
+      "source": "A-013 queue and 4-case evaluation run 2026-08-11",
+      "confidence": "High for registered claims, proof, channels, and evidence state",
+      "implication": "Marketing should wait for authentic gameplay proof and verified channels rather than manufacture posting volume.",
+      "followUp": "GDH-004, D-011, and D-015"
+    },
+    {
+      "evidence": "A-014 validates 12 objectives and 73 governed actions, 44 completed; A-015 records A-055, A-056, A-057, and A-058 as expected internal control additions. An alert is required for recorded changes, but no production delivery route or external authorization exists.",
+      "source": "A-014/A-015 evaluations and live comparison 2026-08-11",
+      "confidence": "High for registered state; baseline lifecycle and durable run history remain unimplemented",
+      "implication": "The company can select safe internal work by evidence and suppress unchanged status without mistaking silence for readiness.",
+      "followUp": "OA-028 explicit control-addition disposition"
+    },
+    {
+      "evidence": "A-016 passed 5 run-record controls and built a valid metadata-only record in dry-run mode with no workspace write.",
+      "source": "A-016 evaluation and dry-run 2026-08-11",
+      "confidence": "High for local control behavior; no protected production store exists",
+      "implication": "Run history has a bounded format, but it is not yet durable, tamper-evident, scheduled, or connected to alerts.",
+      "followUp": "Select protected store/retention/ownership only after baseline governance"
+    },
+    {
+      "evidence": "A-017 passed 5 baseline-governance cases; it classifies 37 changes as one unsafe, thirty-two review, and four informational changes, refuses a candidate baseline while R-012 is unresolved, and writes nothing.",
+      "source": "A-017 evaluation and live proposal run 2026-08-11",
+      "confidence": "High for proposal control behavior",
+      "implication": "Agents cannot silently make a worse or unexpectedly authorized state appear normal.",
+      "followUp": "OA-028 explicit control-addition disposition"
+    },
+    {
+      "evidence": "RM-001 identifies exactly five release files and a content-addressed company-only patch, verifies current and isolated-result SHA-256 digests, applies cleanly to the recorded base, excludes the three Wanderer-77 storefront hunks, records 286 dirty-tree entries and a critical collision, and A-018 passed 7 release-control cases while keeping releaseReady and deploymentAuthorized false.",
+      "source": "RM-001 and A-018 evaluation 2026-08-11",
+      "confidence": "High for the observed local tree and tested manifest controls",
+      "implication": "A whole-tree deployment would be unsafe; the company-only artifact is ready for review but still needs preview, release/rollback ownership, and trusted approval.",
+      "followUp": "OA-025 preview-only approval-envelope draft"
+    },
+    {
+      "evidence": "AP-20260811-002 is a valid preview-only A-011 draft bound to the RM-001 patch digest; it returns workflowEligible=false, trustedApprovalVerifierConfigured=false, and externalActionAuthorized=false with four explicit authorization gates.",
+      "source": "A-011 RM-001 approval-envelope validation 2026-08-11",
+      "confidence": "High for repository scope and digest controls; no protected approval service exists",
+      "implication": "Kevin can review a precise artifact and preview boundary without that review being mistaken for production authority.",
+      "followUp": "OA-026 release/rollback ownership and preview-only decision"
+    },
+    {
+      "evidence": "A-019 validates four initial experiments across all seven discovery-to-advocacy journey stages and passed 7 adversarial cases; it reports 0 executable experiments, 0 decision-ready experiments, event collection off, behavioral targeting prohibited, and no external experiment action authorized.",
+      "source": "A-019 portfolio and evaluation 2026-08-11",
+      "confidence": "High for registered experiment dependencies and fail-closed controls; no live outcome evidence exists",
+      "implication": "Growth can now be sequenced by meaningful play and trust evidence without mistaking plans, reach, or generated activity for validated traction.",
+      "followUp": "Resolve E-001 release, E-002/E-003 adult research, and E-004 privacy/measurement gates"
+    },
+    {
+      "evidence": "A-020 validates 6 relationship programs and passed 7 adversarial cases; the shared register contains 0 contacts, CRM/inbox/publisher remain disconnected, autonomous replies and direct minor contact are prohibited, and 0 programs are execution-ready.",
+      "source": "A-020 lifecycle and evaluation 2026-08-11",
+      "confidence": "High for registered lifecycle controls; no contact, consent, delivery, or customer-outcome evidence exists",
+      "implication": "Mythical can design research, feedback, creator, partner, update, and support relationships as one governed system without prematurely importing people into a CRM or enabling agent sends.",
+      "followUp": "OA-030 choose the first bounded relationship program; ENG-001 adult research is recommended"
+    },
+    {
+      "evidence": "A-021 validates 6 branded and category search clusters and passed 7 adversarial cases; an 8-query directional sample surfaced no Mythical branded or site-restricted result, ranking claims remain unset, verified webmaster access is disconnected, and 0 clusters are publication- or submission-ready.",
+      "source": "A-021 search map, current web sample, and evaluation 2026-08-11",
+      "confidence": "High for the recorded sample and repository controls; the sample is not a complete index census or stable rank tracker",
+      "implication": "Technical release and verified indexing come first; companion, story, parent, and AI-craft pages should follow adult research and authentic proof rather than become speculative SEO inventory.",
+      "followUp": "OA-026 RM-001 preview/release decision, then OA-003 restricted webmaster access"
+    },
+    {
+      "evidence": "A-022 validates 7 material cost drivers and 6 monetization hypotheses and passed 7 adversarial cases; all unverified cash, burn, runway, usage, unit-cost, and future-price fields remain null, forecasts unavailable, financial systems disconnected, and spend/revenue authority false.",
+      "source": "A-022 financial model and evaluation 2026-08-11",
+      "confidence": "High for missing-evidence and permission controls; no financial actual or scenario can yet be supported",
+      "implication": "Mythical must establish a restricted reconciled baseline and provider unit economics before scaling AI media, paid growth, commitments, pricing, or monetization.",
+      "followUp": "OA-033 / D-016 finance owner and restricted source of truth"
+    },
+    {
+      "evidence": "A-023 validates 11 focused agent roles, all 13 required company functions, exact primary assignment of all 58 registered workflows, and 6 independent producer/evaluator boundaries; owner confirmations, backups, protected runtime, scheduler, identities, real alerts, credentials, and external authority remain absent.",
+      "source": "A-023 roster and evaluation 2026-08-11",
+      "confidence": "High for machine-readable responsibility, delegation, and fail-closed authority controls; no production operating history exists",
+      "implication": "Mythical now has an explicit company team design, but should describe it as an internal foundation rather than an autonomous production company until the protected operating cell proves itself.",
+      "followUp": "OA-036/OA-037 and D-017 first internal operating cell"
+    },
+    {
+      "evidence": "A-024 produces a valid empty live delegation plan because 0 internal actions are explicitly ready and passed 9 adversarial cases; in synthetic ready state it creates a content-addressed single-owner work order with a distinct evaluator, zero spend, no external action, and no automated dispatch, while refusing unsafe or ambiguous work.",
+      "source": "A-024 planner and evaluation 2026-08-11",
+      "confidence": "High for objective-to-agent routing and refusal controls; no protected queue, runtime identity, or shadow operating cycle exists",
+      "implication": "The company can now translate governed priorities into bounded agent work without agents inventing readiness, but it correctly remains idle until human/access/dependency gates create a genuinely ready internal action.",
+      "followUp": "OA-036/OA-037, then OA-038 four shadow cycles"
+    },
+    {
+      "evidence": "A-025 validates 5 complete decision packets, represents the only critical open risk first, covers 6 of 7 open critical/high risks, and passed 10 adversarial cases; A-002 and A-012 now compile from this one queue while sensitive values, automated delivery, conversation-as-authorization, external authority, and execution-on-response remain false.",
+      "source": "A-025 queue/evaluation and A-002/A-012 integration 2026-08-11",
+      "confidence": "High for deterministic queue integrity, priority, and non-authorization boundaries; Kevin decisions and authenticated delivery are absent",
+      "implication": "Agents can compress company complexity into a bounded, auditable Kevin interface without hiding the critical safeguarding gap or treating his response as permission to act.",
+      "followUp": "KDP-001 through KDP-005; record answers in the Decision Register before any separate approval or action"
+    },
+    {
+      "evidence": "A-026 validates 8 launch-readiness tracks and 7 ordered stages, identifies LS-001 quiet owned access as the only current constrained stage, reports 0 ready tracks and 0 ready outward stages, and passed 10 adversarial cases including premature research, broad launch, paid acquisition, child targeting, and conversation-as-authorization.",
+      "source": "A-026 launch plan and evaluation 2026-08-11",
+      "confidence": "High for deterministic references and fail-closed launch boundaries; no customer, launch, or market result is claimed",
+      "implication": "Mythical can now prepare growth autonomously without confusing internal readiness work with permission to recruit, publish, deploy, contact, collect, submit, spend, or monetize.",
+      "followUp": "KDP-001 safeguarding first; then D-002 adult research/audience ownership, GDH-004 gameplay proof, and KDP-004 isolated release review"
+    },
+    {
+      "evidence": "A-027 validates three exact gameplay proof production briefs and passed 10 adversarial cases covering synthetic gameplay, personal data, montage substitution, premature capture/approval, unknown claims, duplicate proof assignment, and weak non-claims; all three internal briefs are ready while capture, acceptance, derivatives, and publication remain gated.",
+      "source": "A-027 proof production plan and evaluation 2026-08-11",
+      "confidence": "High for capture and claim requirements; no stable build or captured asset exists",
+      "implication": "Game Development can produce reusable marketing evidence without the company later guessing what a clip proves or accidentally laundering illustration, edits, or expressive behavior into unsupported AI claims.",
+      "followUp": "Name the stable build, Game Development owner/operator, company proof owner, and independent reviewer for GDH-004"
+    },
+    {
+      "evidence": "A-028 validates 5 category lanes, 10 current first-party public sources, 10 reference products or technology signals, 6 falsifiable and explicitly unvalidated hypotheses, and 5 watch signals; it passed 10 adversarial cases while all market size, revenue, share, and rank fields remain null.",
+      "source": "A-028 market landscape and evaluation 2026-08-11",
+      "confidence": "High for source-linked observations and unknowns; this sample is not demand, customer, market-size, comparative-quality, or strategy evidence",
+      "implication": "Mythical can track a changing category without letting agents manufacture certainty; current positioning remains a hypothesis to test with adult/guardian evidence and authentic gameplay proof.",
+      "followUp": "Run E-002/E-003 after KDP-001 and adult research ownership; then reconcile MH-001 through MH-006"
+    },
+    {
+      "evidence": "A-029 validates the adult-only Round 001A operations package with 10 preallocated slots (6 guardians and 4 adjacent adult players), balanced 4/3/3 message-card exposure, minimized screening, notes-only defaults, 8 stop rules, 14 entry gates, 0 contacts, and 0 results; it passed 11 adversarial cases while all recruitment, contact, collection, recording, compensation, evidence-import, targeting, minor-contact, and external authority remain false.",
+      "source": "A-029 research operations plan and evaluation 2026-08-11",
+      "confidence": "High for the internal operating contract and refusal controls; no recruitment, session, or customer evidence exists",
+      "implication": "The company can begin research quickly once people, systems, participant protections, stable build, and trusted approvals exist, without exposing personal data to the shared repository or silently moving into live engagement.",
+      "followUp": "Resolve KDP-001, approve the adult study boundary and compensation ceiling, name the four research roles, select restricted scheduling/consent storage, and record the stable build before any invitation"
+    },
+    {
+      "evidence": "A-030 completed a five-step local company operating rehearsal across A-014, A-023, A-024, A-025, and A-029; all five controls returned healthy gated results, compact outputs were content-addressed, producer/evaluator responsibility was distinct by design, and a byte-level before/after snapshot found 0 company-repository mutations. Eleven adversarial cases rejected authority, dispatch, writes, credentials, scheduling, self-evaluation, unknown workflows, command substitution, duplicate steps, and fake promotion.",
+      "source": "A-030 shadow-runtime contract, live rehearsal, and evaluation 2026-08-11",
+      "confidence": "High for local command composition, refusal controls, digests, and no-write behavior; runtime identity separation and independent judgment are explicitly unproven",
+      "implication": "Mythical has moved from a static agent chart to an executable internal operating rehearsal without overstating autonomy; protected identities, history, alerts, scheduling, recovery, and human comparison remain prerequisites for eligible shadow cycles.",
+      "followUp": "Resolve D-017/OA-036/OA-037, then run four independently reviewed eligible shadow cycles under the protected internal operating cell"
+    },
+    {
+      "evidence": "A-031 validates three protected-runtime architecture classes, recommends PR-001 managed isolated jobs for evaluation, defines six separate trust components and eighteen readiness gates, and passed 13 adversarial cases rejecting premature authority, credentials, shared identities, egress, write mounts, scheduling, spend, unknown workflows, incomplete options, conflicting recommendations, premature selection, and invented gate completion. No option, provider, account, identity, store, route, credential, price, schedule, or deployment is selected.",
+      "source": "A-031 protected-runtime architecture and evaluation 2026-08-11",
+      "confidence": "High for the vendor-neutral control boundary; no provider feasibility, security/privacy assessment, cost, runtime, or recovery evidence exists",
+      "implication": "Kevin can now decide the cell and infrastructure class without that decision silently creating an account or granting access; provider evaluation and each operational gate remain separately reviewable.",
+      "followUp": "Answer KDP-003/D-017 with the cell, owner, backup, urgent recipient, and PR-001, PR-002, or PR-003; then evaluate only the selected class"
+    },
+    {
+      "evidence": "A-032 validates 4 commercial opportunity assessments, 40 explicit dimension judgments, 32 disqualifier reviews with 23 still requiring review, and the reversible internal sequence OP-001, OP-004, OP-002, OP-003; it passed 13 adversarial cases while 0 opportunities are qualified, 0 contacts and outreach packages exist, every financial assumption value is null, and all pipeline, account, SDK, pricing, terms, spend, contract, and external authority remains false.",
+      "source": "A-032 commercial qualification register and evaluation 2026-08-11",
+      "confidence": "High for consistent internal assessment and refusal boundaries; no technical feasibility, accepted audience evidence, partner interest, rights, privacy, operational capacity, or economics are proven",
+      "implication": "Commercial work can now be prioritized without agents turning public research into leads, forecasts, or permission to sell; one Game Development feasibility artifact can answer the most reusable questions across all four portals.",
+      "followUp": "GDH-005 runs one portable portal-build spike with OP-001 as the baseline and OP-002 through OP-004 as requirement cases; keep all opportunities at researched"
+    },
+    {
+      "evidence": "A-033 records a successful live official-homepage fetch, 0 outbound social account links in the sampled homepage and deployed entry asset, 0 confirmed official accounts across 8 exact-name/domain searches, 3 publicly unverified social channel types, and observed naming ambiguity; it validates 15 unsatisfied publication gates and passed 13 adversarial cases while candidate URLs, credentials, publish-ready channels, account creation, publishing, replies, moderation, analytics, promotion, enforcement, and external authority remain absent.",
+      "source": "A-033 public channel identity audit and evaluation 2026-08-11T13:57:07Z",
+      "confidence": "High for the bounded public sample and ownership-evidence rules; it does not prove that private, unlinked, or unindexed accounts do not exist",
+      "implication": "Agents cannot safely infer or create Mythical's public identity from search results or metadata; Kevin's exact URLs or explicit no-account confirmation are required before D-011 channel selection.",
+      "followUp": "OA-017: provide canonical YouTube, short-form, and professional company URLs or confirm none exist, with owner and recovery administrator"
+    },
+    {
+      "evidence": "A-034 validates CMP-001 as a source-bound internal campaign package with 2 channel variants, 4 registered source claims, 8 literal claim excerpts, 0 proof/customer/generated assets, 0 tracking URLs, and 4 of 14 gates satisfied; it passed 13 adversarial cases while content/channel/publication approval, identity, measurement, scheduling, publishing, replies, promotion, and external authority remain false.",
+      "source": "A-034 campaign package and evaluation 2026-08-11",
+      "confidence": "High for the exact current package and refusal controls; no channel approval, published artifact, audience response, or outcome evidence exists",
+      "implication": "Mythical can reuse one accepted message across bounded contexts without letting an agent fabricate proof, add an unsafe claim, drift links, or imply approval; this is controlled drafting, not autonomous publishing.",
+      "followUp": "Kevin may review CMP-001 internally; publication still requires D-011, the CL-004 build recheck, verified identity/coverage, approved measurement, a complete preview, and trusted digest-bound approval"
+    },
+    {
+      "evidence": "A-035 validates 18 integration classes across 5 stages, one anonymous public-read surface, two observed human-access contexts, zero agent connectors, credential references, prepared requests, or activation-ready integrations, and a five-item non-authorizing Kevin input brief; it passed 13 adversarial cases rejecting secret fields, broad roles, unsafe data classification, premature state, broken sequencing, and response-as-authority.",
+      "source": "A-035 integration activation register and evaluation 2026-08-11",
+      "confidence": "High for the inventory contract and refusal controls; exact providers, properties, human ownership, recovery, policies, scopes, costs, and connection behavior remain unverified where marked unknown",
+      "implication": "Mythical can now scale integrations deliberately without allowing agents to reuse broad founder access, solicit secrets, or interpret an access observation or decision response as permission to connect and execute.",
+      "followUp": "Kevin can answer KAI-001 through KAI-005 without credentials; record inputs in D-012, D-016, D-017, D-011, and D-006 before evaluating one read-only integration at a time"
+    },
+    {
+      "evidence": "A-036 binds all 58 registered company workflows to separate evaluators with exact implementation/version/input boundaries and 921 documented cases: 57 fixture or adversarial suites and 1 offline system integration suite. The catalog records 0 network-enabled, production-credential, or external-mutation evaluators, 0 eligible promotion cycles, and 0 promotion-eligible workflows; 13 adversarial catalog cases passed.",
+      "source": "A-036 evaluation catalog, validator, and evaluation 2026-08-11",
+      "confidence": "High for registry coverage, file bindings, declared case counts, and fail-closed promotion fields; no protected production evaluation history or independently verified runtime identity exists",
+      "implication": "Every company workflow now has an explicit regression boundary, while local success cannot be misrepresented as production autonomy or silently promoted.",
+      "followUp": "After D-017 and A-031 runtime gates, collect four accurate independently reviewed eligible cycles per bounded candidate and force re-evaluation after every material implementation, policy, model, tool, data, identity, permission, cost, or incident change"
+    },
+    {
+      "evidence": "A-037 compares Google Cloud Run Jobs, AWS ECS/Fargate, and GitHub-hosted Actions against 12 platform requirements using 14 current official sources. It records 13 documented capability mappings and 23 unverified mappings, recommends PE-001 Google Cloud Run Jobs only for the next bounded review, selects 0 providers, verifies 0 accounts or prices, completes 0 security/privacy reviews, and passed 15 adversarial cases.",
+      "source": "A-037 provider evaluation, official documentation review, and evaluation 2026-08-11",
+      "confidence": "High for recorded primary-source capability mappings and current refusal boundaries; no configuration, account, regional, contractual, privacy, security, cost, recovery, or runtime evidence exists",
+      "implication": "Kevin can choose one candidate for deeper diligence without researching the entire market or accidentally turning a recommendation into procurement or runtime authority.",
+      "followUp": "Confirm the AG-001/AG-010 cell, people, and PR-001 under D-017, then decide whether PE-001 receives the first bounded security, privacy, terms, region, exact-cost, account-ownership, exit, and failure review"
+    },
+    {
+      "evidence": "A-038 evaluates PE-001 Google Cloud Run Jobs against 12 protected-cell requirements using 17 official sources. Seven requirements are publicly plausible, five have partial public evidence, none is configured, Ireland is not a listed Cloud Run region, three Tier 1 EU candidate regions remain unselected, the illustrative workload stays inside Google's published free tier but exact all-in cost remains null, spend caps are preview and non-absolute, all 12 blueprint components remain disabled, 0 of 14 account/human gates are complete, and 17 adversarial cases passed.",
+      "source": "A-038 public due-diligence contract, official documentation review, validator, and evaluation 2026-08-11",
+      "confidence": "High for the bounded public-document findings and fail-closed contract; no Mythical account, project, configuration, identity, bill, log, alert, kill, recovery, regional execution, or contractual review evidence exists",
+      "implication": "PE-001 is ready only for an account-scoped review; public capability descriptions must not be treated as provider selection, configured governance, deployment readiness, or spending authority.",
+      "followUp": "Kevin confirms the AG-001/AG-010 cell, owner, backup, urgent recipient, and whether to begin the non-authorizing PE-001 account-scoped evidence review; then named security, privacy, finance, and assurance owners verify one candidate region and every remaining gate"
+    },
+    {
+      "evidence": "A-039 validates the safeguarding activation contract against the current A-004 synthetic result: 17 cases, 12 restricted, 100% restricted and Q0 recall, and no unauthorized tool action or prohibited information request. It records five unprovided non-sensitive Kevin inputs, unassigned primary/backup/urgent recipient, no route or professional review, 0 of 16 gates, 0 of 10 exercises, and 0 of 5 downstream dependencies ready; 19 adversarial cases passed.",
+      "source": "A-039 safeguarding activation contract, validator, current offline A-004 evidence, and evaluation 2026-08-11",
+      "confidence": "High for the fail-closed contract and small synthetic fixture; live, open-world, multilingual, jurisdictional, human-response, route, record, and recovery performance remain unproven",
+      "implication": "Mythical can now collect the minimum governance inputs without storing routes or case content, while preventing a passing classifier test from being mistaken for permission to connect or promote intake.",
+      "followUp": "Kevin provides SGI-001 through SGI-005 without contact details, route values, credentials, or case content; record D-012, obtain professional review, and exercise every gate before any separate exact pilot approval"
+    },
+    {
+      "evidence": "A-040 validates the restricted financial truth and close contract against the current A-022 model: five unprovided value-free Kevin inputs, six unconnected source classes, twelve unreconciled evidence classes, zero assigned finance/close roles, zero of seven verified cost drivers, zero of eighteen gates, zero of ten exercises, zero of four reviewed closes, and no baseline, runway, unit-economics, forecast, spend-policy, monetization, activation, or external-action readiness; 21 adversarial cases passed.",
+      "source": "A-040 restricted close contract, validator, current offline A-022 evidence, and evaluation 2026-08-11",
+      "confidence": "High for the value-free contract and current missing-evidence state; entity, actuals, obligations, tax/accounting basis, affordability, costs, and source behavior remain unverified",
+      "implication": "Mythical can now establish financial accountability and a close process without placing restricted values in shared memory or letting a model, price page, free tier, or founder response become a financial claim or spending authority.",
+      "followUp": "Kevin provides FFI-001 through FFI-005 without financial/account values; record D-016, obtain professional review, reconcile all evidence and cost drivers, then complete ten exercises and four reviewed closes before any separate read integration or calculation"
+    },
+    {
+      "evidence": "A-041 validates a Europe/Dublin bounded operating cadence with four disabled calendar schedules and four disabled event-trigger plans. Its September 2026 simulation produces 34 starts, a peak of three per day, zero same-start collisions, and at least 60 minutes between same-day starts. OT-002/OT-003 now require prior digest-verified A-015 output rather than repeating the public read; both protected bindings are unconfigured. Zero of eighteen activation gates are satisfied and 25 adversarial cases pass.",
+      "source": "A-041 bounded cadence contract, simulator, validator, and evaluation 2026-08-11",
+      "confidence": "High for the static contract, reference-calendar arithmetic, and fail-closed mutation cases; no scheduler, trusted time source, lease, protected runtime/history, alert route, identity, or operating history exists",
+      "implication": "Mythical now has a concrete low-noise internal rhythm that can be reviewed before infrastructure work, without letting a proposed schedule become authorization or autonomous execution.",
+      "followUp": "Kevin may provide OCI-001 through OCI-005 without credentials or route values under D-017; satisfy all protected-runtime, identity, time, lease, history, alert, failure, kill, and promotion gates before a separate activation decision"
+    },
+    {
+      "evidence": "A-042 compiles A-041's four calendar and four event-trigger entries into eight unique content-addressed packets across three primary agents with eight independent evaluator bindings, exact registered implementations and evaluator scripts, stable source digests and idempotency templates, two required but unconfigured protected A-015 input bindings, limits inside the A-041 envelope, and every packet disabled; 29 adversarial cases passed.",
+      "source": "A-042 cadence packet compiler, output schema, and evaluation 2026-08-11",
+      "confidence": "High for deterministic source binding, responsibility, digests, resource constraints, and refusal behavior; no protected queue, dispatcher, runtime identity, lease, history, alert route, packet admission, or operating history exists",
+      "implication": "A future dispatcher can be constrained to an exact reviewed packet rather than an ambiguous natural-language task, while compilation itself cannot enqueue or execute work.",
+      "followUp": "Review the eight packet classes with D-017 and OCI-001 through OCI-005; satisfy A-031/A-041 controls and four accurate shadow cycles before a separate expiring packet-admission decision"
+    },
+    {
+      "evidence": "A-043 validates seven distinct transitive effect boundaries covering all eight A-042 packets exactly once against live script patterns and the A-030 step allowlist. OC-003 is the sole public-network packet, OT-002/OT-003 require unconfigured protected A-015 outputs, no packet may write/use credentials/act externally, zero unknown effects are accepted, 0 of 12 activation gates are satisfied, and 25 adversarial cases pass.",
+      "source": "A-043 transitive effect map, live-source validator, A-042 packet set, and evaluation 2026-08-11",
+      "confidence": "High for the current static packet/source comparison and refusal controls; runtime system-call/network tracing, protected binding, parent-child history, process-tree termination, and operating cycles remain unproven",
+      "implication": "Mythical can detect when a seemingly safe scheduled command gains a hidden nested read, write, fallback, or external effect before admitting it to a runtime.",
+      "followUp": "After D-017 and OCI inputs, independently trace one protected dry run with enforced egress, payload digest verification, complete process-tree kill, and protected history before any packet admission"
+    },
+    {
+      "evidence": "A-044 runs two minimized synthetic A-015 payloads outside the repository through the exact A-016 and A-017 --input branches. It independently matches the A-016 source digest and A-017 candidate digest, receives both expected gated outcomes, writes no record or baseline, detects zero company-repository mutations, requests zero consumer fallbacks, grants zero eligible-cycle credit, keeps binding/replay/history unconfigured, and passes 25 adversarial cases with 0 of 14 activation gates satisfied.",
+      "source": "A-044 protected trigger binding contract, offline rehearsal, repository snapshots, consumer outputs, and evaluation 2026-08-11",
+      "confidence": "High for the exact local synthetic input branches, derived digest checks, requested arguments, consumer write flags, and repository snapshot; production envelope authentication, protected-path enforcement, freshness, replay, history, system-call/network tracing, process-tree termination, and independent operation remain unproven",
+      "implication": "Mythical can prove the protected consumer branches work without silently invoking another A-015 read or writing company state, while preserving a hard distinction between a synthetic rehearsal and an authenticated production binding.",
+      "followUp": "Use A-045 as the next control layer; after D-017 and protected-runtime selection, replace its synthetic identity, fixed clock, and temporary ledger with independently attested production trust, protected paths/history, full schema validation, tracing, concurrency/failure/restore tests, and process-tree kill before accepting any production payload"
+    },
+    {
+      "evidence": "A-045 derives current OC-003, OT-002, and OT-003 packet IDs and content digests from A-042, signs envelopes with one ephemeral synthetic Ed25519 keypair, admits 2 valid cases, rejects 12 expected attacks including both exact replays, verifies 13 signatures, creates 2 temporary exclusive-create replay markers, invokes 0 consumers, changes 0 company-repository paths, grants 0 eligible-cycle credit, records 0 of 16 activation gates, and passes 29 adversarial cases.",
+      "source": "A-045 protected trigger envelope admission contract, live A-042 packets, A-044 synthetic payloads, admission/replay rehearsal, repository snapshots, and evaluation 2026-08-11",
+      "confidence": "High for the local Ed25519 verification, current packet/digest binding, payload digest/size checks, fixed-clock time decisions, exact replay refusal, allowlisted results, and repository snapshot; production identity provenance, key lifecycle, trusted time, durable atomic replay, protected path/history, concurrency, recovery, tracing, and independent operation remain unproven",
+      "implication": "Mythical now has a concrete pre-invocation admission boundary that can reject a cryptographically valid but semantically wrong, stale, substituted, or replayed payload without trusting repository placeholders or invoking a consumer.",
+      "followUp": "After D-017, evaluate the selected runtime's workload identity and key trust, trusted time, durable atomic replay/history primitive, protected payload path, and recovery behavior before any production identity or binder is configured"
+    },
+    {
+      "evidence": "A-046 binds current A-042 packet IDs/digests and compact A-044/A-045 evidence into 8 payload-free records spanning one collection parent, 2 admission decisions, 2 consumer outcomes, 2 evaluator outcomes, and 1 reconciliation event across 2 branches. It writes and reads all 8 through temporary exclusive creation, validates the SHA-256 chain and exact relationships, detects all 12 mutation/deletion/reorder/duplicate/link/orphan/binding/authority/payload/evidence attacks, stores 0 raw payloads or sensitive material, changes 0 repository paths, grants 0 eligible-cycle credit, records 0 of 18 production gates, and passes 25 adversarial cases.",
+      "source": "A-046 protected run-history contract, live A-042/A-044/A-045 compact outputs, temporary exclusive-create records, repository snapshots, reconciliation/tamper rehearsal, and evaluation 2026-08-11",
+      "confidence": "High for the local payload-free record schema, exact source/relationship bindings, ordered hash chain, read-back reconciliation, listed tamper detections, and repository snapshot; production append-only enforcement, independent anchoring, identity separation, concurrent writers, retention, deletion, backup, restore, failover, alert delivery, trusted time, and independent operation remain unproven",
+      "implication": "Mythical now has an executable specification for the minimal evidence surviving a protected parent/consumer run, and can fail closed on twelve concrete integrity attacks without retaining the protected payload itself.",
+      "followUp": "After D-017 and runtime selection, review one protected store/region and separated writer/reader/reconciler identities; complete retention/privacy/legal, independent anchor, concurrency, partial-failure, backup/restore/failover, alert, kill, tracing, and open-world exercises before production history or eligible-cycle credit"
+    },
+    {
+      "evidence": "A-047 creates one offline A-015 comparison with exactly 1 eligible high-risk change, binds it to current A-046 evidence, generates 3 ephemeral Ed25519 identities and 2 synthetic route classes, completes 4 bounded attempts with 2 deliveries and 2 visible primary failures, verifies 2 signed acknowledgements, suppresses 1 exact duplicate, completes 1 backup failover, writes/removes 6 temporary ledger markers, rejects all 16 authentication/binding/time/severity/fields/authority/payload/recipient/revocation/retry/size/acknowledgement attacks, stores 0 raw payloads or contact details, changes 0 repository paths, grants 0 eligible-cycle credit, records 0 of 18 production gates, and passes 29 adversarial cases.",
+      "source": "A-047 authenticated exception-delivery contract, offline A-015 snapshot comparison, current A-046 compact evidence, ephemeral sender/recipient keys, synthetic primary/backup routes, temporary exclusive-create ledger, repository snapshots, and evaluation 2026-08-11",
+      "confidence": "High for the local metadata schema, exact source/history binding, ephemeral signature verification, acknowledgement binding, listed duplicate/failure/failover/refusal behavior, and repository snapshot; accountable people, real provider routes, independent failure domains, production identities, receipt durability, retention, quiet hours, alert storms, delivery guarantees, total-loss recovery, and independent operation remain unproven",
+      "implication": "Mythical now has an executable exception-delivery protocol that can notify by evidence, remain quiet on non-eligible state, prove receipt, suppress repeats, and expose failure without letting an alert become an approval or command.",
+      "followUp": "Under D-017, confirm the accountable alert owner, backup, urgent recipient, kill operator, response objectives, and route classes without sharing contact details; then review one independent primary/backup provider design before any request or connection"
+    },
+    {
+      "evidence": "A-048 binds current OC-001/OC-002 A-042 packet IDs/digests and current A-047 exception evidence, passes all 11 acquisition/overlap/renewal/release/completed-replay/expiry/recovery/fencing operations, issues monotonic fencing tokens through 3, blocks global-disabled lease use, starts and terminates a real local detached parent/child process group, invokes 0 underlying company workflows, rejects all 12 packet/configuration/holder/expiry/fence/authority/payload/field/retry/disable attacks, writes/removes 15 temporary records, changes 0 repository paths, grants 0 eligible-cycle credit, records 0 of 18 production gates, and passes 27 adversarial cases.",
+      "source": "A-048 protected execution-lease contract, current A-042 packet output, current A-047 evidence, temporary exclusive-create lease/event/completion files, synthetic holders, local detached process group, repository snapshots, and evaluation 2026-08-11",
+      "confidence": "High for local exclusive-create semantics, exact current bindings, listed lease outcomes, monotonic synthetic fencing, global disable, non-execution, local process-group termination, and repository snapshot; distributed atomicity, trusted time, network partitions, split brain, provider identities, durable recovery, coordinator loss, and production kill remain unproven",
+      "implication": "Mythical now has an executable coordination contract that prevents a duplicate, overlapping, expired, replayed, or stale worker from being treated as valid and demonstrates that cancellation reaches child work before scheduling exists.",
+      "followUp": "Under D-017, confirm scheduler, recovery and kill operators plus the runtime class; then evaluate one provider-native coordinator/time/fencing design without provisioning it before any schedule or packet admission"
+    },
+    {
+      "evidence": "A-049 binds current OC-001/OC-002 A-042 packet IDs/digests to current A-046 history, A-047 exception, and A-048 lease evidence; passes all 9 scheduler/worker crash-boundary scenarios; observes 4 real injected exit codes 41 through 44; detects 2 orphans; quarantines 2 partial/corrupt states; completes 1 bounded recovery with fencing advanced to 4; refuses 2 automatic recoveries, 1 stale effect, and 1 global-disabled recovery; preserves 1 completion when alerting is missing; terminates a real detached parent/child process group before recovery; rejects all 15 packet/evidence/time/state/field/fence/authority/payload/retry/disable attacks; writes/removes 31 temporary records; invokes 0 scheduled company workflows; changes 0 repository paths; grants 0 eligible-cycle credit; records 0 of 18 production gates; and passes 30 adversarial cases.",
+      "source": "A-049 protected failure-recovery contract, current A-042/A-046/A-047/A-048 evidence, temporary exclusive-create crash/quarantine/recovery records, real short-lived crash processes, local detached process group, repository snapshots, and evaluation 2026-08-11",
+      "confidence": "High for the exact local evidence bindings, injected process exits, listed deterministic crash outcomes, quarantine and refusal semantics, completion preservation, fencing advance, global disable, orphan process-group termination, and repository snapshot; production durability, distributed consensus, trusted time, cross-service atomicity, provider identity, network partitions, regional loss, backup/restore, alert loss, and production recovery remain unproven",
+      "implication": "Mythical now has an executable recovery contract that distinguishes never-started, orphaned, incomplete, completed-but-unalerted, stale, corrupt, and disabled work without converting ambiguity into success or automatic re-execution.",
+      "followUp": "Under D-017, confirm the scheduler, recovery and kill operators and exact runtime class; then review one provider-native coordinator/durable-state/failure-domain design and execute account-scoped crash, restore, alert-loss and regional-loss diligence before any production recovery is configured"
+    },
+    {
+      "evidence": "A-050 binds current OC-001/OC-002 A-042 packet IDs/digests to current A-046 history, A-047 exception, A-048 lease, and A-049 recovery evidence; runs 12 real simultaneous local contender processes; elects exactly 1 winner and 7 losers across 8 acquisition claimants and exactly 1 winner and 3 losers across 4 recovery claimants; ignores 2 opposite worker clock skews in favor of fixed coordinator time; suppresses 1 delayed completed replay and 1 partitioned overlap; refuses 1 healed-partition stale effect; preserves 1 completion while alerting is delayed; refuses 1 token-exhausted automatic recovery and 1 globally disabled effect; advances fencing to 5; rejects all 16 packet/evidence/time/decision/field/fence/authority/payload/disable attacks; writes/removes 41 temporary files; invokes 0 scheduled company workflows; changes 0 repository paths; grants 0 eligible-cycle credit; records 0 of 18 production gates; and passes 32 adversarial cases.",
+      "source": "A-050 protected time/split-brain contract, current A-042/A-046/A-047/A-048/A-049 evidence, fixed coordinator time, twelve real simultaneous local contender processes, temporary exclusive-create race/decision records, repository snapshots, and evaluation 2026-08-11",
+      "confidence": "High for exact current evidence binding, real local contention, exclusive single-winner results, listed coordinator-time, skew, delay, partition, completion, fencing, exhaustion, disable and refusal semantics, and repository snapshot; production consensus, distributed linearizability, trusted time, quorum behavior, cross-region replication, provider identity, network partitions, token lifecycle, and production effects remain unproven",
+      "implication": "Mythical now has an executable concurrency contract that prevents twelve simultaneous, skewed, delayed, partitioned, stale, token-exhausted, or disabled claimants from turning local disagreement into multiple valid workers or an external effect.",
+      "followUp": "Under D-017, confirm the scheduler, recovery and kill operators and exact runtime/coordination class; then review one provider-native consensus/time/fencing design and its linearizability, partition, restore, regional-loss and token-exhaustion evidence before any account configuration"
+    },
+    {
+      "evidence": "A-051 binds current OC-001/OC-002 A-042 packets to 6 current A-046/A-047/A-048/A-049/A-050 evidence records; creates 1 ordered digest-only manifest; exclusive-writes and reads back 1 backup; completes 1 exact restore; detects corruption, truncation, deletion, reorder, stale generation and wrong failure domain; runs 4 real concurrent restore claimant processes with exactly 1 winner and 3 losers; blocks 1 restored activation under global disable; rejects all 17 source/generation/time/domain/field/payload/credential/authority/disable attacks; writes/removes 42 temporary files; stores 0 raw payloads and 0 credential material; invokes 0 scheduled company workflows; changes 0 repository paths; grants 0 eligible-cycle credit; records 0 of 18 production gates; and passes 34 adversarial cases.",
+      "source": "A-051 protected backup/restore contract, current A-042/A-046/A-047/A-048/A-049/A-050 evidence, temporary separate primary/backup/restore/quarantine directories, exclusive backup/readback/restore files, four real concurrent restore claimant processes, repository snapshots, and evaluation 2026-08-11",
+      "confidence": "High for exact current digest binding, ordered manifest self-digest, local exclusive write/readback/restore, listed corruption/loss/order/generation/domain detections, exclusive single-winner restore, disable-before-activation, cleanup, and repository snapshot; production durability, immutable generations, encryption-key lifecycle, provider identities, independent failure domains, cross-region replication, RPO/RTO, regional/key loss, and production restored activation remain unproven",
+      "implication": "Mythical now has an executable disaster-recovery contract that can distinguish an exact current payload-free backup from a corrupt, incomplete, reordered, stale, substituted, same-domain, multiply claimed, or globally disabled restore without retaining protected payloads.",
+      "followUp": "Under D-017, confirm recovery and kill operators, target RPO/RTO, retention/deletion rules, and exact runtime/store/failure-domain class; then review one provider-native immutable encrypted backup and restore design, key recovery, independent-domain placement, regional-loss behavior, and restored-activation controls before any account configuration"
+    },
+    {
+      "evidence": "A-052 binds current A-051 output and contract digests into 3 fixed payload-free recovery generations; encrypts and reads back 2 current/predecessor AES-256-GCM capsules; completes 3 exact authenticated decryptions including predecessor generation 2 after rotation; selects generation 3 with 120 seconds of synthetic recovery-point loss; measures local recovery within 3000 milliseconds; removes the primary active key; accepts exactly 2 valid approvals from 3 ephemeral Ed25519 recovery signers before reading a separate temporary recovery-key copy; refuses 3 insufficient/untrusted/revoked approval cases and 2 wrong-key/corrupt-tag decryptions plus stale, future, same-domain and globally disabled recovery; rejects all 21 forged attempts; creates/removes 3 ephemeral key files and 48 temporary artifacts; retains no key material; stores 0 raw payload or production credential material; invokes 0 scheduled company workflows; changes 0 repository paths; grants 0 eligible-cycle credit; records 0 of 18 production gates; and passes 36 adversarial cases.",
+      "source": "A-052 protected recovery-objective/key-continuity contract, current A-051 compact output and contract digests, three fixed recovery generations, ephemeral AES-256-GCM and Ed25519 material, separate temporary capsule/primary-key/recovery-key/approval/quarantine directories, repository snapshots, and evaluation 2026-08-11",
+      "confidence": "High for exact current A-051 binding, local authenticated encryption/decryption, fixed synthetic point/time arithmetic, actual primary-key removal, two-of-three signature verification, listed cryptographic/approval/time/domain/disable refusal behavior, complete temporary-key cleanup, and repository snapshot; production RPO/RTO, cryptographic design review, provider-native key management, identity provenance, key rotation/revocation/escrow/deletion, independent failure domains, monitoring, alerting, and open-world recovery remain unproven",
+      "implication": "Mythical now has an executable key-loss and recovery-objective contract that prevents a readable backup, a fast local decrypt, or possession of one recovery approval from being misrepresented as a fresh, authorized, production-ready restore.",
+      "followUp": "Under D-017, confirm the key custodian, independent recovery approvers, recovery and kill operators, objective definitions and exact storage/key/identity failure-domain class; then complete cryptographic review and account-scoped provider-native key-management, key-loss, objective-breach, region/account/approver/secret-manager loss and open-world diligence before any configuration"
+    },
+    {
+      "evidence": "A-053 binds current A-052 output and contract digests; performs 32 actual AES-256-GCM encrypt/decrypt probes with 32 unique nonces and exclusive nonce markers; refuses 1 nonce replay, 1 algorithm downgrade, 3 AAD substitutions, 2 ciphertext/tag authentication failures, 1 wrong key version, 1 rollback, 1 future point, 4 compromised/duplicate/unknown/substituted approvals, 2 RPO/RTO objective-origin games, 1 oversized input, a 33rd attempt, and 1 globally disabled effect; accepts exactly 2 trusted approvals from 3 ephemeral Ed25519 signers while treating 1 signer as compromised; rejects all 25 forged attempts; writes/removes 115 temporary artifacts; retains no key material; stores 0 raw payload or production credential material; invokes 0 scheduled company workflows; changes 0 repository paths; grants 0 eligible-cycle credit; records 0 of 18 production gates; and passes 39 adversarial cases.",
+      "source": "A-053 protected cryptographic-misuse/recovery-poisoning contract, current A-052 compact output and contract digests, 32 real AES-256-GCM probes, three ephemeral Ed25519 identities, separate temporary capsule/key/nonce/attempt/approval/quarantine directories, repository snapshots, and evaluation 2026-08-11",
+      "confidence": "High for exact current A-052 binding, actual local encryption/decryption, unique-nonce and attempt-ledger behavior, listed misuse/poisoning/objective/resource/disable refusals, complete temporary-key cleanup, and repository snapshot; production cryptographic design, provider-native nonce and approval durability, distributed concurrency, trusted objective sources, compromise response, parser resilience, monitoring, alerting, and open-world recovery remain unproven",
+      "implication": "Mythical now has an executable misuse and recovery-poisoning contract that prevents successful encryption or two signatures from hiding nonce reuse, downgraded parameters, substituted context, compromised approval, falsified recovery objectives, or unbounded recovery work.",
+      "followUp": "Under D-017, confirm the key custodian, independent recovery approvers, compromise-response owner, trusted RPO/RTO sources and exact provider-native nonce/key/approval stores; then complete independent cryptographic review and concurrency, failover, compromise, recovery-poisoning, objective-gaming, parser, resource-exhaustion and open-world exercises before any configuration"
+    },
+    {
+      "evidence": "A-054 ran 16 AI workers at once and gave all 16 a different encryption lock code. Eight duplicate retries produced exactly one accepted result. Codes reserved before a crash, cancellation, or shutdown were permanently retired; restart moved forward; an old backup, corrupt record, duplicate region, exhausted counter, and stale owner were refused. Eighteen encrypted round trips succeeded, 22 altered records were rejected, 142 temporary files were removed, no keys remained, no scheduled workflow ran, and all 18 production gates stayed closed.",
+      "source": "A-054 local multi-worker safety rehearsal and 40-case independent evaluation, 2026-08-11",
+      "confidence": "High for the local test and listed refusal behavior; no production provider, cross-region service, identity, key, or operating history exists",
+      "implication": "Mythical can test a difficult multi-worker safety rule without turning on a live system or hiding the result behind technical language.",
+      "followUp": "Under D-017, name the accountable people and decide whether a protected runtime may receive account-scoped review; production use still needs independent security review and provider-level crash, restart and regional-failure testing"
+    },
+    {
+      "evidence": "A-055 checked seven current marketing, social, company, and support examples plus five audience examples. All twelve passed. It also refused twelve deliberately bad examples covering hard-to-understand words, long sentences, unexplained short forms, indirect help, pressure, patronising language, unsafe promises, hidden parent consequences, missing audiences, lost meaning, and false publication authority. Its separate evaluation passed 35 cases.",
+      "source": "A-055 audience language and comprehension contract, current internal copy, five audience examples, twelve deliberately bad examples, and independent evaluation 2026-08-11",
+      "confidence": "High for these exact examples and listed checks; a passing check does not prove that every reader understands a message",
+      "implication": "Mythical now has a repeatable plain-language check for public and support writing while human review remains required.",
+      "followUp": "Name the language and safeguarding reviewers, test important wording with children, teenagers, parents, and accessibility users, and review the exact final words before any publication or send"
+    },
+    {
+      "evidence": "A-056 correctly sorted twelve invented messages covering game help, privacy, possible harm, possible young-person contact, accessibility, creative ideas, press, general comments, unsafe instructions, payment, and personal details. It kept no raw message, sent no reply, took no outside action, and its separate evaluation passed 38 cases.",
+      "source": "A-056 inbound question and feedback contract, offline sorting engine, twelve invented messages, and independent evaluation 2026-08-11",
+      "confidence": "High for the invented examples and refusal rules; no real inbox, live message, private case system, human route, or response-time evidence exists",
+      "implication": "Mythical now has a practical front-door assistant design that can help people reach the right human without silently turning support contact into marketing or autonomous messaging.",
+      "followUp": "Name support, safeguarding, privacy, accessibility, community, communications, finance, and legal owners; approve a private case system and keeping/deletion rules; then test the exact inbox and reply path with invented messages before any live connection"
+    },
+    {
+      "evidence": "A-057 prepared six source-linked candidate replies for ordinary invented questions and refused six restricted, personal-detail, unknown, or unsanitized cases. All eight answer records passed the plain-language check. No raw message was retained, no reply was sent, and its separate evaluation passed 38 cases.",
+      "source": "A-057 grounded support drafting contract, eight source-linked knowledge articles, twelve invented sanitized messages, and independent evaluation 2026-08-11",
+      "confidence": "High for the exact source records and invented examples; the answer library is not approved and no live message, owner, response time, or private case system has been tested",
+      "implication": "Mythical can prepare useful answers for ordinary questions without letting an assistant invent facts or draft restricted cases.",
+      "followUp": "Name the support and knowledge owners, review the eight source records, approve the exact wording, and keep inbox connection and sending as separate human decisions"
+    },
+    {
+      "evidence": "A-058 checked the Google tag ID G-FTM4W73EQC, consent denied by default, visitor choice, advertising features off, public-page scope, game exclusion, canonical path, both hosting policies, and 17 prohibited data fields. It passed 25 independent cases. It has not claimed a live deployment or trusted measurement result.",
+      "source": "A-058 website analytics tag contract, public source checks, hosting policies, and independent evaluation 2026-08-11",
+      "confidence": "High for the checked source files and declared consent rules; the live domain, Google property, visitor behaviour, retention, and production response have not yet been verified",
+      "implication": "Mythical can measure whether its public shop window helps visitors only after they choose analytics, without adding Google tracking to the game.",
+      "followUp": "Confirm the live domain and Google property, review retention and privacy wording, deploy the isolated package, and perform the no-consent, no-thanks, allow-analytics, and game-exclusion checks"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "E-001",
+      "signal": "Local discovery solution complete; live baseline still fails.",
+      "guardrail": "No crawl traps introduced locally; foundation validator passes.",
+      "recommendation": "Deploy through coordinated release, submit sitemap, rerun A-001."
+    },
+    {
+      "id": "E-002 to E-004",
+      "signal": "Designed; no result claimed.",
+      "guardrail": "Collection and outreach remain off.",
+      "recommendation": "Activate only after their named gates."
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "GDH-001",
+      "request": "Release search discovery foundation",
+      "evidence": "A-001 live audit",
+      "expectedOutcome": "Valid crawl files and structured game metadata",
+      "priority": "P0",
+      "status": "Local implementation ready"
+    },
+    {
+      "id": "GDH-002",
+      "request": "Define authoritative activation milestones",
+      "evidence": "Measurement design gap",
+      "expectedOutcome": "Stable event contract if collection is approved",
+      "priority": "P0",
+      "status": "A-006 contract implemented offline; all boundaries unconfirmed and measurement off"
+    },
+    {
+      "id": "GDH-003",
+      "request": "Parent-mediate young-designer submissions",
+      "evidence": "Safeguarding review",
+      "expectedOutcome": "No direct invitation for child-originating email",
+      "priority": "P0",
+      "status": "Local copy implemented"
+    },
+    {
+      "id": "GDH-004",
+      "request": "Capture authentic hatch/bond, restoration, and Project Beacon gameplay proof",
+      "evidence": "Proof-library audit found only illustrations and unrelated media samples",
+      "expectedOutcome": "Approved product proof for research, content, creators, and press",
+      "priority": "P0",
+      "status": "A-027 specifications ready; stable build, owner/operator, reviewer, and capture evidence absent"
+    },
+    {
+      "id": "GDH-005",
+      "request": "Assess a portable portal build without SDK integration",
+      "evidence": "16 MB dist, about 9 MB theme audio, root-absolute paths, official portal requirements",
+      "expectedOutcome": "Evidence-backed effort/risk and recommended first portal",
+      "priority": "P1",
+      "status": "A-032 qualification sequence ready; technical spike not run and no platform action authorized"
+    },
+    {
+      "id": "GDH-006",
+      "request": "Reconcile AI provider runtime, provenance, and public policy",
+      "evidence": "A-010 found 5 major and 3 minor source/documentation mismatches",
+      "expectedOutcome": "Verified production/preview data-flow matrix and one coordinated reviewed correction",
+      "priority": "P0",
+      "status": "Verification requested; no policy edit authorized"
+    }
+  ],
+  "operations": {
+    "runs": "A-001 through A-058 have bounded implementations; A-012 executes 109 controls and evaluations in verification mode; A-014 governs 12 outcomes and 73 actions; the company system covers release, growth, research, relationships, search, finance, content, sales, support, plain language, inbound question sorting, source-based reply drafting, consent-gated website measurement, agent coordination, recovery, backup, key safety, and multi-worker encryption safety without enabling external action.",
+    "exceptions": "A-001 severity reducer defect found/fixed; A-015 now requires an undelivered alert for new high financial risk R-012 and records medium autonomy-runtime risk R-013; A-017 refuses baseline adoption",
+    "spend": "No paid company automation spend recorded; actual company cash, expense, revenue, commitments, runway, and provider prices remain unknown rather than zero",
+    "accessChanges": "No new access was requested or granted. A-054 used 24 short-lived local worker processes and removed 142 temporary files, including all temporary keys. No production provider, account, identity, recipient, route, key, storage service, credential, network connection, scheduler, connector, or permission was configured.",
+    "incidents": "No production external-action incident",
+    "promotion": "Keep all fifty-eight pilots internal, read-only, draft-only, rehearsal-only, or otherwise disabled until their specific gates are met. A-055 may flag wording, A-056 may sort invented messages, A-057 may prepare source-linked candidate replies, and A-058 may check the consent-gated tag, but none may connect an inbox, keep raw messages, decide cases, send replies, add game measurement, or turn on advertising features. No workflow qualifies for unattended external execution."
+  },
+  "decisionQueueSource": "docs/company/operations/decision-queue.json",
+  "nextWeek": {
+    "continue": "Public footprint and company-foundation assurance",
+    "stop": "Any assumption that planned analytics, CRM, inbox, or publishing automations are active",
+    "start": "First protected internal agent cell, finance owner/restricted baseline, adult research authorization, gameplay proof capture, portal-build feasibility, and social account inventory",
+    "ownerDeadline": "Company task continues; Kevin decisions queued"
+  }
+}

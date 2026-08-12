@@ -8,7 +8,23 @@ function loadShopScene(sceneWindow) {
         .replace("import Phaser from 'phaser';", '')
         .replace(
             "import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';",
-            'const SceneTransitionHelper = {};'
+            'const SceneTransitionHelper = SCENE_TRANSITION;'
+        )
+        .replace(
+            "import VillageCommandPanel from '../ui/VillageCommandPanel.js';",
+            'const VillageCommandPanel = VILLAGE_COMMAND_PANEL;'
+        )
+        .replace(
+            /import \{[\s\S]*?\} from '\.\.\/systems\/VillageSettlement\.js';/,
+            [
+                'const {',
+                '  assignCreatureToVillageBuilding,',
+                '  getVillageSnapshot,',
+                '  initializeVillageSettlement,',
+                '  placeVillageBuilding,',
+                '  reconcileVillageSettlement',
+                '} = VILLAGE_SETTLEMENT;'
+            ].join('\n')
         )
         .replace('export default class ShopScene', 'class ShopScene')
         .concat('\nmodule.exports = ShopScene;\n');
@@ -24,6 +40,20 @@ function loadShopScene(sceneWindow) {
         exports: {},
         console,
         window: sceneWindow,
+        SCENE_TRANSITION: {
+            stopScene: jest.fn(),
+            resumeScene: jest.fn()
+        },
+        VILLAGE_COMMAND_PANEL: class {
+            show = jest.fn(() => true);
+        },
+        VILLAGE_SETTLEMENT: {
+            initializeVillageSettlement: gameState => gameState?.villageSnapshot || null,
+            getVillageSnapshot: gameState => gameState?.villageSnapshot || null,
+            placeVillageBuilding: jest.fn(),
+            assignCreatureToVillageBuilding: jest.fn(),
+            reconcileVillageSettlement: jest.fn()
+        },
         Phaser: {
             Scene: PhaserScene
         }
@@ -53,7 +83,14 @@ function createScene({
     const sceneWindow = {
         GameState: {
             get,
-            addMapToCollection: jest.fn(() => mapWriteSucceeds)
+            addMapToCollection: jest.fn(() => mapWriteSucceeds),
+            villageSnapshot: {
+                unlock: {
+                    unlocked: true,
+                    reason: 'Your companion has awakened the Village Heart'
+                },
+                resources: { wood: 72, stone: 52, food: 30 }
+            }
         },
         EconomyManager: {
             purchase: jest.fn(() => true),
@@ -88,21 +125,25 @@ function createScene({
 describe('shop permanent route-map purchases', () => {
     const routeMap = {
         id: 'map_stellar_reef',
-        name: 'Stellar Reef Map',
-        price: 400,
+        name: 'Stellar Reef Survey',
+        price: 500,
         type: 'map',
         gateId: 'stellar_reef'
     };
 
-    test('does not charge for a route that is already open', () => {
+    test('can buy permanent survey support after a campaign route opens', () => {
         const { scene, sceneWindow } = createScene({ gateUnlocked: true });
 
         scene.purchaseItem(routeMap);
 
-        expect(sceneWindow.EconomyManager.purchase).not.toHaveBeenCalled();
-        expect(scene.showPurchaseError).toHaveBeenCalledWith(
-            'That route is already open.'
+        expect(sceneWindow.EconomyManager.purchase).toHaveBeenCalledWith(
+            500,
+            'Stellar Reef Survey'
         );
+        expect(sceneWindow.GameState.addMapToCollection).toHaveBeenCalledWith(
+            'stellar_reef'
+        );
+        expect(scene.showPurchaseSuccess).toHaveBeenCalledWith(routeMap);
         expect(scene.isPurchasing).toBe(false);
     });
 
@@ -145,8 +186,8 @@ describe('shop permanent route-map purchases', () => {
         scene.purchaseItem(routeMap);
 
         expect(sceneWindow.EconomyManager.purchase).toHaveBeenCalledWith(
-            400,
-            'Stellar Reef Map'
+            500,
+            'Stellar Reef Survey'
         );
         expect(sceneWindow.GameState.addMapToCollection).toHaveBeenCalledWith(
             'stellar_reef'
@@ -166,7 +207,7 @@ describe('shop permanent route-map purchases', () => {
         scene.purchaseItem(routeMap);
 
         expect(sceneWindow.EconomyManager.addCoins).toHaveBeenCalledWith(
-            400,
+            500,
             'shop_refund'
         );
         expect(scene.showPurchaseError).toHaveBeenCalledWith(
@@ -174,5 +215,26 @@ describe('shop permanent route-map purchases', () => {
         );
         expect(scene.showPurchaseSuccess).not.toHaveBeenCalled();
         expect(scene.isPurchasing).toBe(false);
+    });
+
+    test('opens the Base Builder directly from the Shop Build tab without charging coins', () => {
+        const { scene, sceneWindow } = createScene();
+
+        const item = scene.getVillageHeartItem();
+        const opened = scene.openVillageHeart();
+
+        expect(item).toEqual(expect.objectContaining({
+            id: 'village_heart',
+            price: null,
+            type: 'village',
+            name: 'Base Builder'
+        }));
+        expect(scene.getItemUnavailableState(item)).toEqual(expect.objectContaining({
+            unavailable: false,
+            label: 'BUILD'
+        }));
+        expect(opened).toBe(true);
+        expect(scene.villageCommandPanel.show).toHaveBeenCalledTimes(1);
+        expect(sceneWindow.EconomyManager.purchase).not.toHaveBeenCalled();
     });
 });

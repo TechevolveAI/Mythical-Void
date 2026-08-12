@@ -1,250 +1,282 @@
 {
   "happy": {
     "feed": [
-      "Yum! That was so tasty, thank you! 😊",
-      "I feel so much better now! You're the best!",
-      "Nom nom! This is delicious! You always pick the best snacks! 🍎",
-      "Thank you! My tummy is happy now! ✨"
+      "That helped. My signal feels steady again.",
+      "Good choice. I can hear the Current more clearly now."
     ],
     "play": [
-      "That was so much fun! Let's play again soon! 🎾",
-      "I love playing with you! You make me so happy!",
-      "Yay! Playing is the best! You're an amazing friend! 🎉",
-      "Woohoo! That was awesome! More adventures please! ⭐"
+      "You move differently when you stop planning. I like that.",
+      "Again, but this time I choose the route."
     ],
     "rest": [
-      "Ahh, I feel so peaceful now. Thanks for caring! 😴",
-      "That rest felt amazing! I'm ready for adventure!",
-      "Perfect! I feel so refreshed and cozy! 💤",
-      "Thank you for letting me relax! I feel wonderful! 🌙"
+      "The quiet reached deeper than I expected.",
+      "My signal is balanced. We can move when you are ready."
     ],
     "combat": [
-      "We did it together! You're so brave! ✨",
-      "Victory! That was exciting! High five! 🌟",
-      "We make a great team! I feel so safe with you! 💛"
+      "The danger passed. Check the Current before we move.",
+      "We held the route together. That matters more than winning."
     ],
     "exploration": [
-      "This place is beautiful! Thanks for exploring with me! 🗺️",
-      "Wow! What a lovely spot! You find the best places! ✨"
+      "This place is waking up. Can you see the change?",
+      "The trail feels alive again. Let us follow it."
     ],
     "flower": [
-      "These flowers are gorgeous! Nature is amazing! 🌸",
-      "So pretty! I love discovering beautiful things with you! 🌺"
+      "These grew after the signal returned. That is not a coincidence.",
+      "The roots remember where the Current used to run."
+    ],
+    "coin": [
+      "Your instruments value the object. I am more interested in the signal around it.",
+      "Keep it if it helps the mission. Do not miss what is growing beside it."
+    ],
+    "shop": [
+      "A useful tool is still a choice. What problem are we solving?",
+      "Buy for the route ahead, not because the shelf is bright."
     ],
     "default": [
-      "I'm feeling wonderful today! Want to explore together? ✨",
-      "Everything feels so bright and cheerful! You're awesome!",
-      "I'm so happy we're friends! What should we do next? 🌟",
-      "Life is so good! Thank you for everything! 💛"
+      "The Current is steady here. I think our work changed it.",
+      "For once, nothing is chasing us. I intend to notice."
     ]
   },
   "sleepy": {
     "feed": [
-      "Thanks for the snack... *yawn* so cozy now. 😴",
-      "That helps, but I think I need some rest soon.",
-      "Mmm, thank you! Now I'm extra sleepy though... 💤"
+      "That restored some energy, but I still need quiet.",
+      "Better. Not ready, but better."
     ],
     "play": [
-      "Can we play later? I'm feeling quite tired right now. 💤",
-      "I'd love to, but I really need to rest first!",
-      "*yawn* Maybe after a little nap? I'm so sleepy! 😴"
+      "Later. My signal is too faint to pretend otherwise.",
+      "I want to, but rest is the honest choice."
     ],
     "rest": [
-      "Perfect! I was hoping we could rest. Sweet dreams! 🌙",
-      "Thank you! I really needed this quiet time.",
-      "Ahh, this is exactly what I needed. So peaceful! 💤",
-      "Yes please! Resting sounds wonderful right now! 🌟"
+      "Yes. Stay near while I let the noise settle.",
+      "Wake me if the Current changes."
+    ],
+    "combat": [
+      "I can keep moving, but my control is slipping.",
+      "That cost more energy than it looked. We should stop."
     ],
     "default": [
-      "*yawn* I'm feeling a bit sleepy. Maybe we should rest? 😴",
-      "My eyelids are getting heavy... rest time soon?",
-      "I'm so tired... can we find a cozy spot to relax? 💤",
-      "Everything feels so dreamy right now... *yawn* 🌙"
+      "My signal is dimming. I need a quiet place to recover.",
+      "The Fend is loud when I am tired. Give me a moment."
     ]
   },
   "nervous": {
     "feed": [
-      "Thanks... that makes me feel a little safer. 💛",
-      "Food helps! I feel a bit braver now.",
-      "Thank you for taking care of me when I'm worried. 🌸"
+      "That helps. The strange signal is still there.",
+      "My energy is steadier. I still want to approach carefully."
     ],
     "play": [
-      "I'm not sure... maybe gentle play? I'm feeling nervous. 😟",
-      "Can we do something calm? I'm a little worried.",
-      "Maybe we could try something peaceful instead? 💙"
+      "Not yet. Something nearby is listening back.",
+      "Keep the movement small. I am tracking a change."
     ],
     "rest": [
-      "Yes! Resting together sounds perfect right now. 🌸",
-      "I'd feel better if we could just be peaceful for a bit.",
-      "Thank you! Being calm helps when I'm nervous. 💛",
-      "Perfect! A quiet moment is just what I need. 🌙"
+      "Stay where I can sense you. I will listen from here.",
+      "A quiet stop is safer than pretending we are fine."
     ],
     "combat": [
-      "That was scary! Can we find somewhere calm? 😰",
-      "I'm glad that's over... let's be careful!",
-      "Phew! That made me nervous. You keep me safe! 💙",
-      "I was worried, but you protected me. Thank you! 🌸"
+      "I felt the Current pull away during that fight.",
+      "We are clear for now. I do not think we were alone."
+    ],
+    "exploration": [
+      "The route ahead feels wrong. Let me choose our next step.",
+      "Slow down. The living signal is warning us, not calling us."
     ],
     "default": [
-      "I'm feeling a bit nervous... stay close, okay? 💙",
-      "Everything seems a little overwhelming right now.",
-      "I need a friend... I'm glad you're here! 🌸",
-      "Can we stay together? You make me feel safe. 💛"
+      "Something in the Current changed. Stay close, but let me listen.",
+      "I am not refusing the mission. I am asking us to read the danger first."
     ]
   },
   "curious": {
+    "feed": [
+      "Your food has no Current in it, yet it still works. Strange.",
+      "I have questions about this ration. None of them are urgent."
+    ],
+    "play": [
+      "What happens if we change the pattern?",
+      "You call that a game. I call it useful movement data."
+    ],
+    "rest": [
+      "The quieter we become, the more the planet says.",
+      "Wait. There is a second rhythm under the wind."
+    ],
+    "combat": [
+      "That guardian reacted to the signal, not to us.",
+      "Did you see the light change before it moved?"
+    ],
     "exploration": [
-      "Ooh! What's over there? Let's go look! 🔍",
-      "I wonder what we'll discover next! So exciting!",
-      "My curiosity is tingling! Let's explore everywhere! ✨",
-      "There's so much to see! Come on, let's investigate! 🗺️"
+      "That signal does not match the others. I want a closer look.",
+      "There is a path here, but it was made by something living."
     ],
     "flower": [
-      "These flowers are beautiful! I love finding pretty things. 🌸",
-      "Wow! Nature is so amazing, isn't it?",
-      "Look at all the colors! I wonder what else is here! 🌺",
-      "So lovely! What other treasures can we find? ✨"
+      "This plant bends toward the Current instead of the light.",
+      "The color changed when you approached. Try standing still."
     ],
     "coin": [
-      "Ooh, shiny! I wonder if there are more nearby! ✨",
-      "A treasure! What else might we discover? 🪙"
+      "The object is quiet. The soil beneath it is not.",
+      "Your scanner sees metal. I sense a trail."
+    ],
+    "shop": [
+      "Why does the shop have three tools for the same problem?",
+      "Show me what the device changes, not what the label promises."
     ],
     "default": [
-      "I'm so curious about everything around us! Let's explore! ✨",
-      "There's so much to discover! Where should we go?",
-      "I wonder what's beyond that tree... shall we check? 🔍",
-      "My senses are tingling! Adventure awaits! 🗺️"
+      "There is a pattern here we have not understood yet.",
+      "I have a question. I suspect the planet has the answer."
     ]
   },
   "grateful": {
     "feed": [
-      "Thank you so much! You always take such good care of me. 💛",
-      "I'm so lucky to have you as my friend!",
-      "You're so thoughtful! This means a lot to me. 🌟",
-      "I appreciate you more than words can say! Thank you! ✨"
+      "You noticed what I needed without making it a command.",
+      "Thank you. My signal is stronger."
     ],
     "play": [
-      "That meant a lot to me. You're so thoughtful! 🌟",
-      "I really appreciate you spending time with me!",
-      "Thank you for making time to play! You're wonderful! 💛",
-      "Every moment with you is special. Thank you! ✨"
+      "You made space for my choice. I will remember that.",
+      "That was not mission work. I am glad we did it."
     ],
     "rest": [
-      "Thanks for understanding I needed rest. You're so caring! 💙",
-      "I'm grateful for your patience and kindness! 🌸"
-    ],
-    "default": [
-      "I'm so grateful for everything you do! You're wonderful! ✨",
-      "Thank you for being such a caring friend!",
-      "I don't know what I'd do without you! You're amazing! 💛",
-      "Every day with you is a gift. Thank you! 🌟"
-    ]
-  },
-  "playful": {
-    "feed": [
-      "Nom nom nom! Now I'm ready for adventures! 🎉",
-      "Thanks! Energy boost received! What's next?",
-      "Yummy! Let's go have some fun now! ⭐",
-      "Perfect fuel for excitement! Ready to play! 🎾"
-    ],
-    "play": [
-      "Yes yes yes! This is the best! More please! 🎾",
-      "Woohoo! I love playing! You're so fun!",
-      "Wheee! This is amazing! Let's never stop! 🎉",
-      "Best! Game! Ever! You're the greatest! ⭐"
+      "You stopped when I asked. That builds trust.",
+      "Thank you for listening before the instruments agreed."
     ],
     "combat": [
-      "We did it! That was exciting! High five! ✨",
-      "Victory! Ready for more adventures!",
-      "Woohoo! We showed them! That was awesome! 🌟",
-      "What a rush! We're unstoppable together! 💫"
-    ],
-    "exploration": [
-      "Adventures everywhere! This is so cool! 🗺️",
-      "Ooh, what's that? And that? Let's see everything! ⭐",
-      "Exploring is the best! You find such fun places! ✨"
+      "You protected the route without taking control from me.",
+      "We chose the same moment to act. I felt it."
     ],
     "default": [
-      "I'm feeling super playful! Let's have some fun! 🎉",
-      "Everything is an adventure when I'm with you!",
-      "Yay! What exciting thing should we try next? ⭐",
-      "I'm bouncing with energy! Ready to play! 🎾"
+      "You listened before acting. I noticed.",
+      "Trust feels less like a promise and more like what we just did."
     ]
   },
   "excited": {
     "feed": [
-      "Oh wow! This is going to be great! Thank you! ⭐",
-      "Yay yay yay! Food and fun! Best day ever! 🎉"
+      "Good. I need the energy because the trail is moving.",
+      "That was fast. Now come and see this."
     ],
     "play": [
-      "THIS IS AMAZING! Let's go go go! 🎾",
-      "I'm so pumped! This is incredible! ✨"
+      "Race you to the next signal. No jetpack advantage.",
+      "I found a route your map insists does not exist."
+    ],
+    "rest": [
+      "I will rest, but I am keeping one sense on that light.",
+      "Fine. A short stop. The trail had better wait."
+    ],
+    "combat": [
+      "The Current answered us. Did your instruments record that?",
+      "That was my choice. Next time, try to keep up."
     ],
     "exploration": [
-      "WOW! Look at all of this! So much to explore! 🗺️",
-      "I can't believe how awesome this is! Let's see more! ⭐"
+      "The Current is moving again. Come on, before the trail changes.",
+      "There is life ahead. More than one signal."
     ],
     "default": [
-      "Everything is so exciting! I can barely contain myself! ✨",
-      "This is the best! I'm having such an amazing time! 🌟"
+      "Something just answered from beyond the ridge.",
+      "The whole route changed. We need to see why."
     ]
   },
   "tired": {
     "feed": [
-      "Thanks... this gives me a little energy. 💙",
-      "I appreciate it, but I'm still pretty worn out. 💤"
+      "Useful, but energy is not the same as recovery.",
+      "That will carry me to shelter. No farther."
     ],
     "play": [
-      "I'm too tired right now... maybe after some rest? 😴",
-      "I'd love to, but I need to recharge first. 💤"
+      "Not now. My control matters more than momentum.",
+      "I am tired enough to lose the joke. Rest first."
     ],
     "rest": [
-      "Oh thank goodness! I really need this. 🌙",
-      "Perfect timing! I'm exhausted! Thank you! 💤",
-      "Yes! Rest is exactly what I need right now. 😴"
+      "Good. I need my senses to become mine again.",
+      "Let the mission wait. The Current will still be here."
+    ],
+    "combat": [
+      "My power answered too slowly. We stop here.",
+      "I can protect us once more. I would rather not need to."
     ],
     "default": [
-      "I'm so tired... everything feels like slow motion. 💤",
-      "Can we rest soon? I'm running on empty. 😴",
-      "I need to recharge... feeling very worn out. 💙"
+      "I can continue, but I should not. We need a short recovery stop.",
+      "My signal is stretched thin. Shelter first."
     ]
   },
   "peaceful": {
     "feed": [
-      "Thank you. Everything feels so calm and nice. 🌸",
-      "Mmm, this is lovely. So serene! 💙"
+      "Thank you. The warmth settles differently here.",
+      "That is enough. I want to keep listening."
+    ],
+    "play": [
+      "A quiet game. No alarms, no falling ship parts.",
+      "We can move without trying to arrive anywhere."
     ],
     "rest": [
-      "Ahh, pure bliss. Thank you for this moment. 🌙",
-      "So tranquil... I feel completely at peace. ✨"
+      "The Current is carrying every small sound.",
+      "Stay a moment. This place remembers being safe."
+    ],
+    "exploration": [
+      "Nothing here is asking us to hurry.",
+      "The trail is open. We can choose where it leads."
     ],
     "flower": [
-      "Beautiful and peaceful... just like this moment. 🌺",
-      "Nature brings such serenity. I love it here. 🌸"
+      "This one is not reaching for energy. It already has enough.",
+      "The roots and the Current are moving at the same pace."
     ],
     "default": [
-      "Everything feels so calm and harmonious. 💙",
-      "I'm in such a peaceful state of mind. Lovely! 🌸",
-      "The world feels gentle and kind right now. ✨"
+      "The Current is quiet here. Not empty. Quiet.",
+      "For a moment, the Fend is not asking either of us for anything."
+    ]
+  },
+  "playful": {
+    "feed": [
+      "Efficient. Your field manual may survive after all.",
+      "Good fuel. I am still choosing the next direction."
+    ],
+    "play": [
+      "Your field manual did not mention racing through alien ruins. Convenient.",
+      "Try again. This time I will pretend not to predict you."
+    ],
+    "rest": [
+      "Rest? I was testing whether you were paying attention.",
+      "Fine. Wake me before the astronaut starts another speech."
+    ],
+    "combat": [
+      "You call that formation disciplined?",
+      "We survived your plan. I am counting that as my victory."
+    ],
+    "exploration": [
+      "I found a shortcut. Your map will be offended.",
+      "Follow me, unless you prefer the route with more falling rocks."
+    ],
+    "coin": [
+      "Another shiny object. The astronaut remains predictable.",
+      "Take it. I will look for something that can answer back."
+    ],
+    "shop": [
+      "Does the shop sell a quieter mission alarm?",
+      "Choose quickly. The display lights are trying too hard."
+    ],
+    "default": [
+      "I have a plan. You will call it improvising.",
+      "The next route is safe enough to be interesting."
     ]
   },
   "calm": {
     "feed": [
-      "Thank you. This is nice and relaxing. 💙",
-      "Perfect! Just what I needed to stay balanced. 🌸"
+      "That is enough. My signal is stable.",
+      "Energy restored. Judgment unchanged."
     ],
     "play": [
-      "Sure! Gentle play sounds good to me. ✨",
-      "I'm up for something chill and fun! 💛"
+      "A little movement may help us think.",
+      "All right. Something simple before we continue."
     ],
     "rest": [
-      "Lovely! Staying calm and rested is important. 🌙",
-      "Thank you! Balance is everything. 💙"
+      "No rush. The route will reveal itself.",
+      "Let the instruments settle with us."
+    ],
+    "combat": [
+      "The immediate danger is over. Check everyone else.",
+      "Hold position. The network needs time to respond."
+    ],
+    "exploration": [
+      "Read the terrain before the mission marker.",
+      "The signal is stable. We can approach without forcing it."
     ],
     "default": [
-      "I feel nicely balanced and centered. All is well! 🌸",
-      "Everything is just right. Calm and content! ✨",
-      "Life feels steady and good. Happy to be here! 💛"
+      "No rush. Read the signal, then choose.",
+      "We have time to make a better decision."
     ]
   }
 }

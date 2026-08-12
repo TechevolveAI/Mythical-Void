@@ -14,7 +14,7 @@
     "sections": [
       {
         "heading": "Information We Collect",
-        "content": "By default, Mythical Void stores your creatures, progress, and preferences locally on your device using browser localStorage. If you explicitly enable optional Cloud Save, a versioned copy of your game progress, an anonymous account identifier, and save timestamps are sent to our Supabase database so your progress can be recovered. Cloud Save is disabled by default."
+        "content": "By default, Mythical Void stores your creatures, progress, and preferences locally on your device using browser localStorage. If you explicitly enable optional Cloud Save, a versioned copy of your game progress, an anonymous account identifier, and save timestamps are sent to our Supabase database so your progress can be recovered. Cloud Save is disabled by default. If an eligible 16+ profile chooses personalized living media, bounded creature traits and an optional pixel-creature reference image are sent for image generation. A protected Living Portrait may then be used as the visual reference for a short personalized story video. The player-given creature name is not included in either request."
       },
       {
         "heading": "Local Storage",
@@ -22,7 +22,7 @@
       },
       {
         "heading": "Third-Party Services",
-        "content": "Mythical Void uses the following external services:\n• Supabase: When Cloud Save is enabled, Supabase provides authentication and database storage for your game progress and maintains security and service logs.\n• NASA APIs: We fetch publicly available astronomical images and data. No game profile is sent to NASA.\n• Netlify/Vercel: Our game is hosted on static hosting services that maintain standard server access logs such as IP addresses and timestamps."
+        "content": "Mythical Void uses the following external services:\n• Supabase: When Cloud Save or eligible personalized living media is enabled, Supabase provides anonymous authentication, private storage, and database storage and maintains security and service logs.\n• Replicate: For an eligible 16+ request, Replicate processes bounded creature appearance traits and an optional pixel-creature reference image to create a Living Portrait. That protected portrait may be used as the reference for a short story video. We do not send the player-given creature name, email address, location, or account credentials to either model.\n• NASA APIs: We fetch publicly available astronomical images and data. No game profile is sent to NASA.\n• Netlify: Our game and protected application functions are hosted on Netlify, which maintains standard server access logs such as IP addresses and timestamps."
       },
       {
         "heading": "Children's Privacy",
@@ -30,7 +30,7 @@
       },
       {
         "heading": "Data Security",
-        "content": "Local saves remain under your device's control. Optional cloud saves are protected through authenticated access and database policies that restrict each player to their own record. Guardian PIN data and local safety audit history are excluded from cloud uploads. You can disable Cloud Save or delete both its remote save and anonymous cloud identity from the in-game settings."
+        "content": "Local saves remain under your device's control. Optional cloud saves are protected through authenticated access and database policies that restrict each player to their own record. Living Portrait and personalized story-video files are copied into private storage; save files contain protected asset references rather than storage paths or expiring access links. Guardian PIN data and local safety audit history are excluded from cloud uploads. You can disable Cloud Save without deleting the existing copy, or delete the remote save, protected living media, and anonymous cloud identity from the in-game settings."
       },
       {
         "heading": "Changes to This Policy",

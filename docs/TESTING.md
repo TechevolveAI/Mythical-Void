@@ -2,18 +2,28 @@
 
 This document covers the testing strategy, existing tests, and required test coverage for the Mythical Void project.
 
-**Last Updated**: January 2026
+**Last Updated**: August 2026
 
-## Test Summary
+## Release Verification Layers
 
-- **Total Tests**: 152 passing
-- **Test Suites**: 6
-- **Test Runner**: Jest
+The release gate deliberately separates three kinds of evidence:
+
+1. **Finite Jest tests** validate systems and source contracts. `npm test` must exit
+   with success or failure and must never start a long-running server.
+2. **Genuine interaction smoke** sends browser touch/key events, verifies scene
+   entry, drives the mobile joystick in both horizontal directions, observes player
+   movement, and checks input release. It does not claim full campaign completion.
+3. **Fast campaign state-contract smoke** invokes progression and reconstruction
+   APIs directly to validate cross-system state wiring. It does not prove traversal,
+   guardian combat, victory UI, or an end-to-end player journey.
 
 ## Running Tests
 
 ```bash
-# Run all unit tests
+# Run all finite automated tests
+npm test
+
+# Equivalent explicit unit/contract command
 npm run test:unit
 
 # Run specific test file
@@ -25,9 +35,15 @@ npm run test:unit -- --watch
 # Run with coverage report
 npm run test:unit -- --coverage
 
-# Manual test framework (browser-based)
-npm test
+# Manual test framework (long-running browser server)
+npm run test:manual
 # Opens http://localhost:8080/test-framework.html
+
+# Run browser interaction and campaign state-contract smoke with a managed server
+npm run smoke:release
+
+# Full local release gate: finite tests, production build, then both smoke layers
+npm run test:release
 
 # Validate critical game flow (pre-commit hook)
 npm run validate-flow
@@ -37,8 +53,26 @@ npm run validate-flow
 
 - **Framework**: Jest
 - **Config**: `jest.config.cjs`
-- **Test Location**: `src/__tests__/`
+- **Test Locations**: `src/__tests__/` and `scripts/__tests__/`
 - **Mocking**: Tests mock `global.Phaser`, `global.window`, and `window.GameState`
+
+Numbered duplicate files such as `Example.test 2.js` are prohibited. They are
+usually stale filesystem conflict copies and Jest will execute them as additional
+test suites. `ReleaseTestGate.test.js` fails if one is introduced.
+
+## Browser Smoke Prerequisites
+
+- Google Chrome installed at the default macOS path, or `CHROME_PATH` set to its
+  executable.
+- Port `8125` available, or `MYTHICAL_VOID_SMOKE_PORT` set to another free port.
+- The smoke runner builds the production bundle and serves it through `vite preview`.
+- A browser fixture starts each level directly to keep the suite finite. Touch/key
+  events then dismiss the real entry UI and exercise the real mobile controls. This
+  verifies entry and immediate controls, not traversal or completion of the level.
+- Each interaction case runs in a fresh Chrome process so scene/input state cannot
+  leak from one level into another.
+- The runner continues after an individual case failure and prints an aggregate
+  release-blocker summary after all interaction and state-contract checks finish.
 
 ## Current Test Coverage
 

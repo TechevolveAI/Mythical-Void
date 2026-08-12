@@ -11,6 +11,12 @@ function loadPlatformerLevelScene(sceneWindow) {
             'const queueProjectBeaconDebrief = () => null;\n' +
             'const unlockProjectBeaconMilestone = () => null;'
         )
+        .replace(
+            /import \{\s*CENTERING_STANCE_DURATION_MS,[\s\S]*?\} from '\.\.\/systems\/SenseiMemory\.js';/,
+            'const CENTERING_STANCE_DURATION_MS = 1250;\n' +
+            'const getSenseiMemorySnapshot = () => ({ lesson: { status: "locked" } });\n' +
+            'const recordCenteringStancePractice = () => ({ changed: false });'
+        )
         .replace(/^import .*$/gm, '')
         .replace(/export default PlatformerLevelScene;/, 'module.exports = PlatformerLevelScene;');
 
@@ -174,11 +180,18 @@ describe('companion-led expedition recovery', () => {
 
         expect(platformerSource).not.toContain("'YOU FELL'");
         expect(platformerSource).toContain("recoveryPreview === 'checkpoint'");
+        expect(platformerSource).toContain(
+            'LETHAL FALL PREVENTED  //  1 HEART HELD'
+        );
+        expect(platformerSource).toContain(
+            'this.recoveryInputLockedUntil = this.time.now + 550'
+        );
+        expect(platformerSource).toContain('this.resetJoystick();');
         expect(platformerSource).toMatch(
             /shutdown\(\)[\s\S]*removeEventListener\('keydown', this\.deathKeyHandler\)/
         );
         expect(gameSource).toContain(
-            "['checkpoint', 'restart'].includes(testRecovery)"
+            "['checkpoint', 'restart', 'agency'].includes(testRecovery)"
         );
         expect(gameSource).toContain('recoveryPreview: testRecovery');
         expect(hatchingSource).toContain("previewParams.has('testRecovery')");

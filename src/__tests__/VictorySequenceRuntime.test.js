@@ -23,6 +23,52 @@ function loadVictoryScene(sceneWindow) {
         Phaser: { Scene: PhaserScene },
         devLog: jest.fn(),
         SceneTransitionHelper: {},
+        CAMPAIGN_INTENTS: [
+            'remain_and_defend',
+            'prepare_homecoming',
+            'prepare_first_contact'
+        ],
+        recordCampaignLegacyCapsule: jest.fn((gameState, {
+            recordedAt = null
+        } = {}) => {
+            const capsule = {
+                schemaVersion: 2,
+                sourceChapter: 'crashfall',
+                nextChapter: 'remain_and_defend',
+                recordedAt
+            };
+            gameState.set('story.projectBeacon.legacyCapsule', capsule);
+            gameState.save();
+            return capsule;
+        }),
+        recordCampaignPriority: jest.fn((gameState, priority, {
+            recordedAt = null
+        } = {}) => {
+            gameState.set('story.projectBeacon.finale', {
+                schemaVersion: 1,
+                sharedOutcome: {
+                    coordinatesProtected: true,
+                    uplinkMode: 'held',
+                    departureStatus: 'deferred',
+                    currentCommitment: 'remain_and_defend',
+                    recordedAt
+                },
+                priority,
+                prioritySelectedAt: recordedAt,
+                epilogueSeen: false,
+                epilogueCompletedAt: null
+            });
+            const capsule = {
+                schemaVersion: 2,
+                sourceChapter: 'crashfall',
+                nextChapter: 'remain_and_defend',
+                intent: priority,
+                recordedAt
+            };
+            gameState.set('story.projectBeacon.legacyCapsule', capsule);
+            gameState.save();
+            return capsule;
+        }),
         Date,
         Math,
         Object,
@@ -46,7 +92,15 @@ function createGameState() {
                 endingChoice: null,
                 endingChoiceDate: null,
                 endingEpilogueSeen: false,
-                endingEpilogueCompletedAt: null
+                endingEpilogueCompletedAt: null,
+                finale: {
+                    schemaVersion: 1,
+                    sharedOutcome: null,
+                    priority: null,
+                    prioritySelectedAt: null,
+                    epilogueSeen: false,
+                    epilogueCompletedAt: null
+                }
             }
         }
     };
@@ -131,6 +185,13 @@ describe('VictoryScene runtime sequence', () => {
         expect(gameState.get('story.projectBeacon.uplinkRestored')).toBe(true);
         expect(restoredAt).toEqual(expect.any(String));
         expect(gameState.get('story.projectBeacon.endingChoice')).toBeNull();
+        expect(gameState.get('story.projectBeacon.legacyCapsule')).toEqual(
+            expect.objectContaining({
+                sourceChapter: 'crashfall',
+                nextChapter: 'remain_and_defend',
+                recordedAt: restoredAt
+            })
+        );
         expect(achievementSystem.recordEvent).toHaveBeenCalledWith(
             'campaign_completed',
             { restoredAt }
@@ -156,7 +217,7 @@ describe('VictoryScene runtime sequence', () => {
         scene.init({ testMode: true });
 
         expect(scene.recordCampaignRestoration()).toBe(true);
-        expect(scene.recordEndingChoice('earth')).toBe(true);
+        expect(scene.recordEndingChoice('prepare_homecoming')).toBe(true);
         expect(gameState.get('story.projectBeacon.uplinkRestored')).toBe(false);
         expect(gameState.get('story.projectBeacon.endingChoice')).toBeNull();
         expect(gameState.set).not.toHaveBeenCalled();
@@ -164,22 +225,30 @@ describe('VictoryScene runtime sequence', () => {
         expect(achievementSystem.recordEvent).not.toHaveBeenCalled();
     });
 
-    test('commits one ending once and does not silently replace it', () => {
+    test('commits one priority once and does not silently replace it', () => {
         const gameState = createGameState();
         const VictoryScene = loadVictoryScene({ GameState: gameState });
         const scene = new VictoryScene();
 
-        expect(scene.recordEndingChoice('earth')).toBe(true);
-        const chosenAt = gameState.get('story.projectBeacon.endingChoiceDate');
-        expect(gameState.get('story.projectBeacon.endingChoice')).toBe('earth');
+        expect(scene.recordEndingChoice('prepare_homecoming')).toBe(true);
+        const chosenAt = gameState.get(
+            'story.projectBeacon.finale.prioritySelectedAt'
+        );
+        expect(gameState.get('story.projectBeacon.finale.priority')).toBe(
+            'prepare_homecoming'
+        );
         expect(chosenAt).toEqual(expect.any(String));
-        expect(gameState.get('story.projectBeacon.endingEpilogueSeen')).toBe(false);
+        expect(gameState.get('story.projectBeacon.finale.epilogueSeen')).toBe(false);
         expect(gameState.save).toHaveBeenCalledTimes(1);
 
-        expect(scene.recordEndingChoice('earth')).toBe(true);
-        expect(scene.recordEndingChoice('void')).toBe(false);
-        expect(gameState.get('story.projectBeacon.endingChoice')).toBe('earth');
-        expect(gameState.get('story.projectBeacon.endingChoiceDate')).toBe(chosenAt);
+        expect(scene.recordEndingChoice('prepare_homecoming')).toBe(true);
+        expect(scene.recordEndingChoice('remain_and_defend')).toBe(false);
+        expect(gameState.get('story.projectBeacon.finale.priority')).toBe(
+            'prepare_homecoming'
+        );
+        expect(gameState.get(
+            'story.projectBeacon.finale.prioritySelectedAt'
+        )).toBe(chosenAt);
         expect(gameState.save).toHaveBeenCalledTimes(1);
     });
 
@@ -188,19 +257,19 @@ describe('VictoryScene runtime sequence', () => {
         const VictoryScene = loadVictoryScene({ GameState: gameState });
         const scene = new VictoryScene();
 
-        scene.recordEndingChoice('void');
-        expect(scene.completeEndingEpilogue('earth')).toBe(false);
-        expect(scene.completeEndingEpilogue('void')).toBe(true);
+        scene.recordEndingChoice('remain_and_defend');
+        expect(scene.completeEndingEpilogue('prepare_homecoming')).toBe(false);
+        expect(scene.completeEndingEpilogue('remain_and_defend')).toBe(true);
 
         const completedAt = gameState.get(
-            'story.projectBeacon.endingEpilogueCompletedAt'
+            'story.projectBeacon.finale.epilogueCompletedAt'
         );
-        expect(gameState.get('story.projectBeacon.endingEpilogueSeen')).toBe(true);
+        expect(gameState.get('story.projectBeacon.finale.epilogueSeen')).toBe(true);
         expect(completedAt).toEqual(expect.any(String));
 
-        expect(scene.completeEndingEpilogue('void')).toBe(true);
+        expect(scene.completeEndingEpilogue('remain_and_defend')).toBe(true);
         expect(
-            gameState.get('story.projectBeacon.endingEpilogueCompletedAt')
+            gameState.get('story.projectBeacon.finale.epilogueCompletedAt')
         ).toBe(completedAt);
     });
 });

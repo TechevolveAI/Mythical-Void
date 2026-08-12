@@ -11,17 +11,30 @@ function readSynchsafeInteger(buffer, offset) {
 }
 
 describe('file-based audio assets', () => {
-    test('home theme uses a browser-safe MP3 source', () => {
+    test('home theme loads in the background with browser-safe fallbacks', () => {
         const sceneSource = fs.readFileSync(
             path.join(__dirname, '../scenes/HatchingScene.js'),
             'utf8'
         );
         const mp3Path = path.join(__dirname, '../../public/audio/theme-music.mp3');
+        const oggPath = path.join(__dirname, '../../public/audio/theme-music.ogg');
         const mp3 = fs.readFileSync(mp3Path);
+        const ogg = fs.readFileSync(oggPath);
 
+        expect(sceneSource).toContain('loadThemeMusicInBackground()');
         expect(sceneSource).toMatch(
-            /this\.load\.audio\('themeMusic',\s*'\/audio\/theme-music\.mp3'\)/
+            /showHomeContent\(\)[\s\S]*this\.loadThemeMusicInBackground\(\)/
         );
+        expect(sceneSource).toContain("'/audio/theme-music.ogg'");
+        expect(sceneSource).toContain("'/audio/theme-music.mp3'");
+        expect(sceneSource).toContain("'filecomplete-audio-themeMusic'");
+        expect(sceneSource).toContain('if (!this.sys.isActive() || this.isStartingGame) return;');
+        expect(sceneSource).toContain('if (this.themeMusic?.isPlaying) return;');
+        expect(sceneSource).not.toMatch(
+            /preload\(\)[\s\S]{0,200}this\.load\.audio\('themeMusic'/
+        );
+        expect(ogg.length).toBeGreaterThan(1_000_000);
+        expect(ogg.subarray(0, 4).toString('ascii')).toBe('OggS');
         expect(sceneSource).not.toContain(
             "this.load.audio('themeMusic', 'audio/theme-music.mp3')"
         );

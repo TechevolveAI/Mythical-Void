@@ -82,12 +82,21 @@ describe('first expedition field drill', () => {
         });
 
         expect(desktop.control).toContain('LEFT / RIGHT');
-        expect(mobile.control).toContain('MOVEMENT');
+        expect(mobile.control).toBe('MOVE THE JOYSTICK LEFT OR RIGHT');
         expect(desktop.heading).toBe(mobile.heading);
         expect(desktop.instruction).toBe(mobile.instruction);
         expect(desktop.instruction).toBe(
-            'Guide Nova forward. Stay together.'
+            'Move with Nova. The astronaut stays close.'
         );
+    });
+
+    test('names mobile controls by function and icon instead of color alone', () => {
+        expect(getFirstExpeditionDrillStep(1, { isMobile: true }).control)
+            .toBe('TAP JUMP (UP ARROW)');
+        expect(getFirstExpeditionDrillStep(2, { isMobile: true }).control)
+            .toBe('TAP KATANA (CROSSED BLADES)');
+        expect(getFirstExpeditionDrillStep(2, { isMobile: true }).instruction)
+            .toContain("astronaut's katana strike");
     });
 
     test('keeps player-created names readable and provides a warm fallback', () => {
@@ -99,5 +108,22 @@ describe('first expedition field drill', () => {
         expect(
             getFirstExpeditionCompanionName('ABCDEFGHIJKLMNOPQRSTUVW')
         ).toHaveLength(20);
+    });
+
+    test('provides a local-only katana-step preview for responsive QA', () => {
+        const gameSource = fs.readFileSync(
+            path.join(__dirname, '../game.js'),
+            'utf8'
+        );
+        const levelSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+
+        expect(gameSource).toContain("'katana-mobile'");
+        expect(gameSource).toContain('firstExpeditionDrillStepPreview:');
+        expect(levelSource).toContain(
+            'stepIndex: this.firstExpeditionDrillStepPreview'
+        );
     });
 });

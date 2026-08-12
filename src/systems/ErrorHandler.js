@@ -3,12 +3,365 @@
  * Provides user-friendly error messages and recovery mechanisms
  */
 
+const OBSERVABILITY_STORAGE_KEY = 'mythical_void_observability_v1';
+const OBSERVABILITY_ENDPOINT = '/api/observability-events';
+const OBSERVABILITY_SCHEMA_VERSION = 1;
+const OBSERVABILITY_QUEUE_LIMIT = 20;
+const OBSERVABILITY_BATCH_LIMIT = 10;
+const OBSERVABILITY_DEDUPE_MS = 30000;
+const OBSERVABILITY_EVENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const OBSERVABILITY_CATEGORIES = new Set([
+    'runtime',
+    'scene_transition',
+    'persistence',
+    'network',
+    'stuck_flow'
+]);
+
+const OBSERVABILITY_CODES = new Set([
+    'runtime_uncaught',
+    'promise_unhandled',
+    'phaser_error',
+    'scene_error',
+    'scene_loading_timeout',
+    'scene_no_active',
+    'local_save_failed',
+    'local_load_failed',
+    'cloud_save_failed',
+    'cloud_load_failed',
+    'cloud_sync_failed',
+    'cloud_sync_stalled',
+    'cloud_save_conflict',
+    'network_request_failed',
+    'game_boot_failed',
+    'unknown_critical'
+]);
+
+const OBSERVABILITY_SCENES = new Set([
+    'HatchingScene',
+    'PersonalityScene',
+    'NamingScene',
+    'SoulRevealScene',
+    'GameScene',
+    'ShopScene',
+    'InventoryScene',
+    'FusionPodScene',
+    'BreedingHatchScene',
+    'HubWorldScene',
+    'CreatureProfileScene',
+    'WelcomeBackScene',
+    'VoidMiniGameScene',
+    'AchievementMenuScene',
+    'AbilitySelectionScene',
+    'PlatformerLevel',
+    'PlatformerLevelScene',
+    'MythicalForestLevel',
+    'CrystalCavesLevel',
+    'ReefLevel',
+    'VoidPeaksLevel',
+    'AuroraDepthsLevel',
+    'FinalVoidLevel',
+    'VictoryScene',
+    'unknown'
+]);
+
+const OBSERVABILITY_PHASES = new Set([
+    'boot',
+    'runtime',
+    'start',
+    'create',
+    'transition',
+    'save',
+    'load',
+    'sync',
+    'unknown'
+]);
+
+const OBSERVABILITY_RECOVERY = new Set([
+    'continued',
+    'local_fallback',
+    'retry_scheduled',
+    'reload_offered',
+    'manual_retry',
+    'none',
+    'unknown'
+]);
+
+const OBSERVABILITY_CONNECTIVITY = new Set(['online', 'offline', 'unknown']);
+const OBSERVABILITY_VIEWPORT_CLASSES = new Set(['compact', 'medium', 'wide', 'unknown']);
+const OBSERVABILITY_SEVERITIES = new Set(['warning', 'error']);
+const OBSERVABILITY_EVENT_KEYS = new Set([
+    'schema_version',
+    'event_id',
+    'occurred_at',
+    'category',
+    'code',
+    'severity',
+    'scene',
+    'phase',
+    'recovery',
+    'connectivity',
+    'viewport_class',
+    'user_visible'
+]);
+
+function getDefaultStorage() {
+    try {
+        return typeof localStorage !== 'undefined' ? localStorage : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+function createEventId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+
+    const randomPart = Math.random().toString(16).slice(2).padEnd(12, '0').slice(0, 12);
+    return `00000000-0000-4000-8000-${randomPart}`;
+}
+
+function normalizeScene(scene) {
+    const sceneKey = typeof scene === 'string'
+        ? scene
+        : scene?.sys?.settings?.key || scene?.scene?.key;
+    return OBSERVABILITY_SCENES.has(sceneKey) ? sceneKey : 'unknown';
+}
+
+function getViewportClass() {
+    if (typeof window === 'undefined') return 'unknown';
+    const width = Number(window.visualViewport?.width || window.innerWidth || 0);
+    if (!Number.isFinite(width) || width <= 0) return 'unknown';
+    if (width < 480) return 'compact';
+    if (width < 900) return 'medium';
+    return 'wide';
+}
+
+function getConnectivity() {
+    if (typeof navigator === 'undefined' || typeof navigator.onLine !== 'boolean') {
+        return 'unknown';
+    }
+    return navigator.onLine ? 'online' : 'offline';
+}
+
+class PrivacyObservabilityTransport {
+    constructor(options = {}) {
+        this.endpoint = options.endpoint || OBSERVABILITY_ENDPOINT;
+        this.storage = options.storage || getDefaultStorage();
+        this.fetch = options.fetch || (
+            typeof fetch === 'function' ? fetch.bind(globalThis) : null
+        );
+        this.now = options.now || (() => Date.now());
+        this.queue = [];
+        this.flushPromise = null;
+        this.retryTimer = null;
+        this.recentFingerprints = new Map();
+        this.initialized = false;
+        this.boundFlush = () => this.flush();
+    }
+
+    initialize() {
+        if (this.initialized) return;
+        this.initialized = true;
+        this.queue = this.readQueue();
+        this.persistQueue();
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('online', this.boundFlush);
+            window.addEventListener('pagehide', this.boundFlush);
+        }
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', this.boundFlush);
+        }
+
+        this.flush();
+    }
+
+    destroy() {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('online', this.boundFlush);
+            window.removeEventListener('pagehide', this.boundFlush);
+        }
+        if (typeof document !== 'undefined') {
+            document.removeEventListener('visibilitychange', this.boundFlush);
+        }
+        if (this.retryTimer) {
+            clearTimeout(this.retryTimer);
+            this.retryTimer = null;
+        }
+        this.initialized = false;
+    }
+
+    capture(summary) {
+        const event = this.createSanitizedEvent(summary);
+        if (!event || this.isDuplicate(event)) return false;
+
+        this.queue.push(event);
+        this.queue = this.queue.slice(-OBSERVABILITY_QUEUE_LIMIT);
+        this.persistQueue();
+        this.flush();
+        return true;
+    }
+
+    createSanitizedEvent(summary = {}) {
+        if (!OBSERVABILITY_CODES.has(summary.code)) return null;
+
+        const category = OBSERVABILITY_CATEGORIES.has(summary.category)
+            ? summary.category
+            : 'runtime';
+        const severity = summary.severity === 'warning' ? 'warning' : 'error';
+        const phase = OBSERVABILITY_PHASES.has(summary.phase)
+            ? summary.phase
+            : 'unknown';
+        const recovery = OBSERVABILITY_RECOVERY.has(summary.recovery)
+            ? summary.recovery
+            : 'unknown';
+
+        return {
+            schema_version: OBSERVABILITY_SCHEMA_VERSION,
+            event_id: createEventId(),
+            occurred_at: new Date(this.now()).toISOString(),
+            category,
+            code: summary.code,
+            severity,
+            scene: normalizeScene(summary.scene),
+            phase,
+            recovery,
+            connectivity: getConnectivity(),
+            viewport_class: getViewportClass(),
+            user_visible: summary.userVisible === true
+        };
+    }
+
+    isDuplicate(event) {
+        const now = this.now();
+        const fingerprint = [
+            event.category,
+            event.code,
+            event.scene,
+            event.phase,
+            event.recovery
+        ].join(':');
+        const previous = this.recentFingerprints.get(fingerprint) || 0;
+
+        for (const [key, timestamp] of this.recentFingerprints) {
+            if (now - timestamp > OBSERVABILITY_DEDUPE_MS) {
+                this.recentFingerprints.delete(key);
+            }
+        }
+        if (previous > 0 && now - previous < OBSERVABILITY_DEDUPE_MS) return true;
+
+        this.recentFingerprints.set(fingerprint, now);
+        return false;
+    }
+
+    readQueue() {
+        try {
+            const stored = JSON.parse(this.storage?.getItem(OBSERVABILITY_STORAGE_KEY) || '[]');
+            if (!Array.isArray(stored)) return [];
+            return stored
+                .filter(event => this.isValidStoredEvent(event))
+                .slice(-OBSERVABILITY_QUEUE_LIMIT);
+        } catch (error) {
+            return [];
+        }
+    }
+
+    isValidStoredEvent(event) {
+        if (!event || typeof event !== 'object' || Array.isArray(event)) return false;
+        const keys = Object.keys(event);
+        return keys.length === OBSERVABILITY_EVENT_KEYS.size &&
+            keys.every(key => OBSERVABILITY_EVENT_KEYS.has(key)) &&
+            event.schema_version === OBSERVABILITY_SCHEMA_VERSION &&
+            OBSERVABILITY_EVENT_ID_PATTERN.test(event.event_id || '') &&
+            Number.isFinite(Date.parse(event.occurred_at)) &&
+            OBSERVABILITY_CATEGORIES.has(event.category) &&
+            OBSERVABILITY_CODES.has(event.code) &&
+            OBSERVABILITY_SEVERITIES.has(event.severity) &&
+            OBSERVABILITY_SCENES.has(event.scene) &&
+            OBSERVABILITY_PHASES.has(event.phase) &&
+            OBSERVABILITY_RECOVERY.has(event.recovery) &&
+            OBSERVABILITY_CONNECTIVITY.has(event.connectivity) &&
+            OBSERVABILITY_VIEWPORT_CLASSES.has(event.viewport_class) &&
+            typeof event.user_visible === 'boolean';
+    }
+
+    persistQueue() {
+        try {
+            if (this.queue.length === 0) {
+                this.storage?.removeItem(OBSERVABILITY_STORAGE_KEY);
+            } else {
+                this.storage?.setItem(
+                    OBSERVABILITY_STORAGE_KEY,
+                    JSON.stringify(this.queue)
+                );
+            }
+        } catch (error) {
+            // Remote delivery still proceeds when durable browser storage is unavailable.
+        }
+    }
+
+    async flush() {
+        if (this.flushPromise) return this.flushPromise;
+        if (!this.fetch || this.queue.length === 0) return false;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+
+        const events = this.queue.slice(0, OBSERVABILITY_BATCH_LIMIT);
+        this.flushPromise = this.send(events)
+            .then(delivered => {
+                if (delivered) {
+                    const deliveredIds = new Set(events.map(event => event.event_id));
+                    this.queue = this.queue.filter(event => !deliveredIds.has(event.event_id));
+                    this.persistQueue();
+                }
+                return delivered;
+            })
+            .finally(() => {
+                this.flushPromise = null;
+                if (this.initialized && this.queue.length > 0 && !this.retryTimer) {
+                    this.retryTimer = setTimeout(() => {
+                        this.retryTimer = null;
+                        this.flush();
+                    }, 10000);
+                }
+            });
+        return this.flushPromise;
+    }
+
+    async send(events) {
+        try {
+            const response = await this.fetch(this.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                keepalive: true,
+                body: JSON.stringify({ events })
+            });
+            return response?.ok === true;
+        } catch (error) {
+            // Avoid recursive reporting when the observability endpoint is unavailable.
+            return false;
+        }
+    }
+}
+
 class ErrorHandler {
     constructor() {
         this.errorQueue = [];
         this.maxErrors = 10;
         this.errorContainer = null;
         this.isInitialized = false;
+        this.observability = new PrivacyObservabilityTransport();
+        this.sceneWatchdog = null;
+        this.sceneStartDeadlines = new Map();
+        this.observedScenes = new WeakSet();
+        this.lastHealthySceneAt = Date.now();
+        this.noActiveSceneReported = false;
+        this.cloudStatus = null;
+        this.cloudSyncStartedAt = null;
+        this.cloudSyncStallReported = false;
 
         // Rate limiting for user-facing messages
         this.lastMessageTime = 0;
@@ -25,8 +378,7 @@ class ErrorHandler {
             /moz-extension/i,
             /safari-extension/i,
             /api\.nasa\.gov/i,  // NASA API errors - graceful fallbacks exist
-            /APOD/i,            // APOD specific errors
-            /fetch.*failed/i    // Network fetch failures
+            /APOD/i             // APOD specific errors
         ];
     }
 
@@ -41,6 +393,9 @@ class ErrorHandler {
 
         // Set up global error handlers
         this.setupGlobalHandlers();
+
+        // Start durable delivery for sanitized production diagnostics.
+        this.observability.initialize();
 
         // Set up Phaser error handling
         this.setupPhaserErrorHandling();
@@ -71,8 +426,7 @@ class ErrorHandler {
      * Set up global error handlers
      */
     setupGlobalHandlers() {
-        // Handle uncaught errors
-        window.addEventListener('error', (event) => {
+        const runtimeErrorHandler = (event) => {
             this.handleError({
                 type: 'runtime',
                 message: event.message,
@@ -82,22 +436,23 @@ class ErrorHandler {
                 error: event.error,
                 severity: 'error'
             });
+        };
 
-            // Prevent default error handling
-            event.preventDefault();
-        });
-
-        // Handle unhandled promise rejections
-        window.addEventListener('unhandledrejection', (event) => {
+        const rejectionHandler = (event) => {
             this.handleError({
                 type: 'promise',
                 message: event.reason?.message || 'Unhandled promise rejection',
                 error: event.reason,
                 severity: 'warning'
             });
+        };
 
-            // Prevent default handling
-            event.preventDefault();
+        window.addEventListener('error', runtimeErrorHandler);
+        window.addEventListener('unhandledrejection', rejectionHandler);
+        this._cleanupHandlers = this._cleanupHandlers || [];
+        this._cleanupHandlers.push(() => {
+            window.removeEventListener('error', runtimeErrorHandler);
+            window.removeEventListener('unhandledrejection', rejectionHandler);
         });
     }
 
@@ -115,16 +470,20 @@ class ErrorHandler {
                 severity: 'error'
             });
         };
-
-        game.events.on('error', phaserErrorHandler);
-        game.events.on('sceneerror', (error, scene) => {
+        const sceneErrorHandler = (error, scene) => {
             this.handleError({
                 type: 'phaser-scene',
                 message: scene ? `Error in scene ${scene.sys.settings.key}` : 'Scene error',
+                scene: scene?.sys?.settings?.key,
+                phase: 'runtime',
                 error,
                 severity: 'error'
             });
-        });
+        };
+
+        game.events.on('error', phaserErrorHandler);
+        game.events.on('sceneerror', sceneErrorHandler);
+        this.startHealthWatchdog(game);
 
         if (!this._cleanupHandlers) {
             this._cleanupHandlers = [];
@@ -132,15 +491,180 @@ class ErrorHandler {
         this._cleanupHandlers.push(() => {
             if (game.events && game.events.off) {
                 game.events.off('error', phaserErrorHandler);
-                game.events.off('sceneerror', phaserErrorHandler);
+                game.events.off('sceneerror', sceneErrorHandler);
             }
         });
+    }
+
+    /**
+     * Watch only lifecycle states that have an objective failure signal. Player
+     * inactivity is deliberately not treated as a stuck flow.
+     */
+    startHealthWatchdog(game) {
+        if (this.sceneWatchdog) clearInterval(this.sceneWatchdog);
+
+        const observeScenes = () => {
+            const scenes = Array.isArray(game.scene?.scenes) ? game.scene.scenes : [];
+            scenes.forEach(scene => this.observeSceneLifecycle(scene));
+            this.checkSceneHealth(game);
+            this.checkCloudSaveHealth();
+        };
+
+        observeScenes();
+        this.sceneWatchdog = setInterval(observeScenes, 1000);
+        this._cleanupHandlers = this._cleanupHandlers || [];
+        this._cleanupHandlers.push(() => {
+            clearInterval(this.sceneWatchdog);
+            this.sceneWatchdog = null;
+        });
+    }
+
+    observeSceneLifecycle(scene) {
+        if (!scene?.events || this.observedScenes.has(scene)) return;
+        this.observedScenes.add(scene);
+
+        const sceneKey = normalizeScene(scene);
+        const status = Number(scene.sys?.settings?.status);
+        // Phaser status 2-4 represents START, LOADING, and CREATING. Lazy
+        // scenes may enter these states before the watchdog first observes them.
+        if (status >= 2 && status <= 4) {
+            this.sceneStartDeadlines.set(sceneKey, Date.now() + 15000);
+        }
+        scene.events.on('start', () => {
+            this.sceneStartDeadlines.set(sceneKey, Date.now() + 15000);
+        });
+        scene.events.on('create', () => {
+            this.sceneStartDeadlines.delete(sceneKey);
+            this.lastHealthySceneAt = Date.now();
+            this.noActiveSceneReported = false;
+        });
+        scene.events.on('shutdown', () => {
+            this.sceneStartDeadlines.delete(sceneKey);
+        });
+        scene.events.once('destroy', () => {
+            this.sceneStartDeadlines.delete(sceneKey);
+        });
+    }
+
+    checkSceneHealth(game) {
+        const now = Date.now();
+        for (const [scene, deadline] of this.sceneStartDeadlines) {
+            if (now <= deadline) continue;
+            this.sceneStartDeadlines.delete(scene);
+            this.captureOperationalEvent({
+                category: 'stuck_flow',
+                code: 'scene_loading_timeout',
+                severity: 'error',
+                scene,
+                phase: 'start',
+                recovery: 'reload_offered',
+                userVisible: false
+            });
+        }
+
+        let activeScenes = [];
+        try {
+            activeScenes = game.scene?.getScenes?.(true) || [];
+        } catch (error) {
+            return;
+        }
+
+        if (activeScenes.length > 0) {
+            this.lastHealthySceneAt = now;
+            this.noActiveSceneReported = false;
+            return;
+        }
+
+        const pageVisible = typeof document === 'undefined' || document.visibilityState !== 'hidden';
+        const loopRunning = game.loop?.running !== false;
+        if (
+            pageVisible &&
+            loopRunning &&
+            !this.noActiveSceneReported &&
+            now - this.lastHealthySceneAt > 12000
+        ) {
+            this.noActiveSceneReported = true;
+            this.captureOperationalEvent({
+                category: 'stuck_flow',
+                code: 'scene_no_active',
+                severity: 'error',
+                scene: 'unknown',
+                phase: 'transition',
+                recovery: 'reload_offered',
+                userVisible: false
+            });
+        }
+    }
+
+    checkCloudSaveHealth() {
+        const manager = typeof window !== 'undefined' ? window.CloudSave : null;
+        if (!manager || typeof manager.getStatus !== 'function') return;
+
+        let status;
+        try {
+            status = manager.getStatus()?.status;
+        } catch (error) {
+            return;
+        }
+        if (typeof status !== 'string') return;
+
+        const previousStatus = this.cloudStatus;
+        this.cloudStatus = status;
+        if (status === 'syncing') {
+            if (previousStatus !== 'syncing') {
+                this.cloudSyncStartedAt = Date.now();
+                this.cloudSyncStallReported = false;
+            }
+            if (
+                !this.cloudSyncStallReported &&
+                Date.now() - this.cloudSyncStartedAt > 30000
+            ) {
+                this.cloudSyncStallReported = true;
+                this.captureOperationalEvent({
+                    category: 'stuck_flow',
+                    code: 'cloud_sync_stalled',
+                    severity: 'warning',
+                    scene: this.getCurrentScene(),
+                    phase: 'sync',
+                    recovery: 'local_fallback',
+                    userVisible: false
+                });
+            }
+            return;
+        }
+
+        this.cloudSyncStartedAt = null;
+        this.cloudSyncStallReported = false;
+        if (status === previousStatus) return;
+        if (status === 'error') {
+            this.captureOperationalEvent({
+                category: 'persistence',
+                code: 'cloud_sync_failed',
+                severity: 'warning',
+                scene: this.getCurrentScene(),
+                phase: 'sync',
+                recovery: 'local_fallback',
+                userVisible: false
+            });
+        } else if (status === 'conflict') {
+            this.captureOperationalEvent({
+                category: 'persistence',
+                code: 'cloud_save_conflict',
+                severity: 'warning',
+                scene: this.getCurrentScene(),
+                phase: 'sync',
+                recovery: 'manual_retry',
+                userVisible: false
+            });
+        }
     }
 
     /**
      * Handle an error with appropriate user feedback
      */
     handleError(errorInfo) {
+        errorInfo = this.normalizeErrorInfo(errorInfo);
+
         // Check if this error should be suppressed (browser extensions, etc.)
         const errorMessage = errorInfo.message || '';
         const isSuppressed = this.suppressedPatterns.some(pattern => pattern.test(errorMessage));
@@ -161,9 +685,22 @@ class ErrorHandler {
         }
         console.error('  Full error object:', errorInfo);
 
-        // Add to error queue
+        // Determine if error is recoverable
+        const isRecoverable = this.isErrorRecoverable(errorInfo);
+        const willShowMessage = errorInfo.severity === 'error' && this.shouldShowMessage();
+        const operationalEvent = this.createOperationalEvent(
+            errorInfo,
+            isRecoverable,
+            willShowMessage
+        );
+
+        // Keep only a non-identifying summary in memory. Raw messages, stacks,
+        // save data, and error objects are never queued or sent.
         this.errorQueue.push({
-            ...errorInfo,
+            code: operationalEvent?.code || 'unknown_critical',
+            category: operationalEvent?.category || 'runtime',
+            severity: errorInfo.severity,
+            scene: operationalEvent?.scene || 'unknown',
             timestamp: Date.now()
         });
 
@@ -172,18 +709,123 @@ class ErrorHandler {
             this.errorQueue.shift();
         }
 
-        // Determine if error is recoverable
-        const isRecoverable = this.isErrorRecoverable(errorInfo);
+        if (operationalEvent) {
+            this.captureOperationalEvent(operationalEvent);
+        }
 
         // Show user-friendly error message with rate limiting
         // Only show critical errors to avoid overwhelming users
-        if (errorInfo.severity === 'error' && this.shouldShowMessage()) {
+        if (willShowMessage) {
             this.showErrorMessage(errorInfo, isRecoverable);
         }
 
         // Auto-recover if possible
         if (isRecoverable) {
             this.attemptAutoRecovery(errorInfo);
+        }
+    }
+
+    normalizeErrorInfo(errorInfo) {
+        if (errorInfo && typeof errorInfo === 'object' && !Array.isArray(errorInfo)) {
+            return {
+                ...errorInfo,
+                message: typeof errorInfo.message === 'string'
+                    ? errorInfo.message
+                    : errorInfo.error?.message || 'Unknown error',
+                severity: errorInfo.severity === 'warning' ? 'warning' : 'error'
+            };
+        }
+        return {
+            type: 'runtime',
+            message: typeof errorInfo === 'string' ? errorInfo : 'Unknown error',
+            severity: 'error'
+        };
+    }
+
+    createOperationalEvent(errorInfo, isRecoverable, userVisible) {
+        const message = String(errorInfo.message || '').toLowerCase();
+        const type = String(errorInfo.type || '').toLowerCase();
+        let code = OBSERVABILITY_CODES.has(errorInfo.observabilityCode)
+            ? errorInfo.observabilityCode
+            : null;
+
+        if (!code && /failed to fetch|networkerror|network request/.test(message)) {
+            code = /cloud|save|sync/.test(message)
+                ? 'cloud_sync_failed'
+                : 'network_request_failed';
+        } else if (!code && (type === 'save' || /save/.test(message))) {
+            code = /cloud/.test(message) ? 'cloud_save_failed' : 'local_save_failed';
+        } else if (!code && (type === 'load' || /load/.test(message))) {
+            code = /cloud/.test(message) ? 'cloud_load_failed' : 'local_load_failed';
+        } else if (!code && ['phaser-scene', 'scene'].includes(type)) {
+            code = 'scene_error';
+        } else if (!code && type === 'phaser') {
+            code = 'phaser_error';
+        } else if (!code && type === 'promise') {
+            code = 'promise_unhandled';
+        } else if (!code && type === 'runtime') {
+            code = 'runtime_uncaught';
+        } else if (!code && type === 'network') {
+            code = 'network_request_failed';
+        } else if (!code && type === 'initialization') {
+            code = 'game_boot_failed';
+        } else if (!code && errorInfo.severity === 'error') {
+            code = 'unknown_critical';
+        }
+
+        if (!code) return null;
+
+        let category = 'runtime';
+        if (code.startsWith('scene_')) category = 'scene_transition';
+        if (/save|load|sync|conflict/.test(code)) category = 'persistence';
+        if (code === 'network_request_failed') category = 'network';
+
+        const phase = OBSERVABILITY_PHASES.has(errorInfo.phase)
+            ? errorInfo.phase
+            : code.includes('save') ? 'save'
+                : code.includes('load') ? 'load'
+                    : code.includes('sync') ? 'sync'
+                        : code.startsWith('scene_') ? 'transition'
+                            : type === 'initialization' ? 'boot' : 'runtime';
+
+        return {
+            category,
+            code,
+            severity: errorInfo.severity,
+            scene: errorInfo.scene || errorInfo.sceneKey || this.getCurrentScene(),
+            phase,
+            recovery: this.getRecoveryClassification(errorInfo, isRecoverable, code),
+            userVisible
+        };
+    }
+
+    getRecoveryClassification(errorInfo, isRecoverable, code = '') {
+        const message = String(errorInfo.message || '').toLowerCase();
+        if (code.startsWith('cloud_') || /cloud|sync/.test(message)) {
+            return 'local_fallback';
+        }
+        if (errorInfo.type === 'network' || /fetch|api/.test(message)) {
+            return 'retry_scheduled';
+        }
+        if (/save/.test(message)) return 'retry_scheduled';
+        if (isRecoverable && errorInfo.severity === 'error') return 'reload_offered';
+        return isRecoverable ? 'continued' : 'none';
+    }
+
+    captureOperationalEvent(event) {
+        try {
+            return this.observability.capture(event);
+        } catch (error) {
+            return false;
+        }
+    }
+
+    getCurrentScene() {
+        try {
+            const active = window.mythicalGame?.scene?.getScenes?.(true) || [];
+            return normalizeScene(active[active.length - 1]);
+        } catch (error) {
+            return 'unknown';
         }
     }
 
@@ -261,6 +903,22 @@ class ErrorHandler {
                         class="bg-transparent border-0 text-white cursor-pointer text-xl p-0 ml-3 opacity-70 hover:opacity-100 transition-opacity duration-200">×</button>
             </div>
         `;
+
+        const isLocalDebug = ['localhost', '127.0.0.1'].includes(
+            window.location.hostname
+        ) && new URLSearchParams(window.location.search).has('debugErrors');
+        if (isLocalDebug) {
+            const debugDetails = document.createElement('pre');
+            debugDetails.className = 'mt-2 text-xs whitespace-pre-wrap';
+            debugDetails.textContent = [
+                errorInfo.message || 'Unknown error',
+                errorInfo.source
+                    ? `${errorInfo.source}:${errorInfo.line || 0}:${errorInfo.column || 0}`
+                    : '',
+                errorInfo.error?.stack || errorInfo.stack || ''
+            ].filter(Boolean).join('\n');
+            errorElement.querySelector('.flex-1')?.appendChild(debugDetails);
+        }
 
         // Add to container (verify container still exists)
         if (this.errorContainer && document.body.contains(this.errorContainer)) {
@@ -454,6 +1112,19 @@ class ErrorHandler {
     }
 
     /**
+     * Compatibility proxy for systems that call ErrorHandler statically.
+     */
+    static handleError(error, context = 'runtime', severity = 'error') {
+        if (typeof window === 'undefined' || !window.errorHandler) return;
+        window.errorHandler.handleError({
+            type: context,
+            message: error?.message || String(error || 'Unknown error'),
+            error,
+            severity
+        });
+    }
+
+    /**
      * Get error statistics
      */
     getErrorStats() {
@@ -475,8 +1146,31 @@ class ErrorHandler {
             this.errorContainer.innerHTML = '';
         }
     }
+
+    destroy() {
+        (this._cleanupHandlers || []).forEach(cleanup => {
+            try {
+                cleanup();
+            } catch (error) {
+                // Cleanup is best-effort and must never interrupt shutdown.
+            }
+        });
+        this._cleanupHandlers = [];
+        this.observability.destroy();
+        this.isInitialized = false;
+    }
 }
 
 // Create global instance
-window.ErrorHandler = ErrorHandler;
-window.errorHandler = new ErrorHandler();
+if (typeof window !== 'undefined') {
+    window.ErrorHandler = ErrorHandler;
+    window.errorHandler = new ErrorHandler();
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        ErrorHandler,
+        PrivacyObservabilityTransport,
+        OBSERVABILITY_STORAGE_KEY
+    };
+}

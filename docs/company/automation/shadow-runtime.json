@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-11",
+  "status": "local_single_process_rehearsal",
+  "purpose": "Exercise Mythical's objective, responsibility, delegation, decision-interface, and adult-research controls as one evidence-bound internal operating cycle without dispatching agents or changing repository or external state.",
+  "authority": {
+    "automatedDispatchAuthorized": false,
+    "manualWorkExecutionAuthorized": false,
+    "externalActionAuthorized": false,
+    "repositoryWriteAuthorized": false,
+    "credentialUseAuthorized": false,
+    "restrictedDataAccessAuthorized": false,
+    "spendAuthorized": false,
+    "conversationIsAuthorization": false
+  },
+  "runtime": {
+    "singleProcessRehearsal": true,
+    "schedulerConfigured": false,
+    "isolatedServiceIdentitiesConfigured": false,
+    "protectedHistoryStoreConfigured": false,
+    "authenticatedAlertRouteConfigured": false,
+    "trustedApprovalVerifierConfigured": false,
+    "killSwitchExercisePassed": false,
+    "cycleRecordPersistenceEnabled": false,
+    "connectedCredentialIds": [],
+    "commandTimeoutMs": 30000,
+    "maximumSteps": 5
+  },
+  "roles": {
+    "orchestratorAgentId": "AG-001",
+    "assuranceAgentId": "AG-010",
+    "accountableHuman": "Kevin Murphy",
+    "ownerConfirmationRecorded": false,
+    "backupHuman": null,
+    "urgentExceptionRecipient": null
+  },
+  "steps": [
+    {
+      "id": "SH-001",
+      "purpose": "Compile the governed objective and action state.",
+      "workflowId": "A-014",
+      "primaryAgentId": "AG-001",
+      "evaluatorAgentId": "AG-010",
+      "command": "scripts/company/validate-objective-action-queue.cjs",
+      "expectedExitCodes": [0, 2],
+      "output": "json",
+      "mayWrite": false,
+      "mayUseCredentials": false,
+      "mayReadRestrictedData": false,
+      "mayCauseExternalAction": false
+    },
+    {
+      "id": "SH-002",
+      "purpose": "Verify function coverage, exact workflow ownership, and separation of duties.",
+      "workflowId": "A-023",
+      "primaryAgentId": "AG-010",
+      "evaluatorAgentId": "AG-001",
+      "command": "scripts/company/validate-agent-roster.cjs",
+      "expectedExitCodes": [0, 2],
+      "output": "json",
+      "mayWrite": false,
+      "mayUseCredentials": false,
+      "mayReadRestrictedData": false,
+      "mayCauseExternalAction": false
+    },
+    {
+      "id": "SH-003",
+      "purpose": "Convert only explicitly ready internal actions into gated work-order drafts.",
+      "workflowId": "A-024",
+      "primaryAgentId": "AG-001",
+      "evaluatorAgentId": "AG-010",
+      "command": "scripts/company/build-agent-delegation-plan.cjs",
+      "expectedExitCodes": [0, 2],
+      "output": "json",
+      "mayWrite": false,
+      "mayUseCredentials": false,
+      "mayReadRestrictedData": false,
+      "mayCauseExternalAction": false
+    },
+    {
+      "id": "SH-004",
+      "purpose": "Compile Kevin's bounded material decision interface without delivery or execution.",
+      "workflowId": "A-025",
+      "primaryAgentId": "AG-001",
+      "evaluatorAgentId": "AG-010",
+      "command": "scripts/company/validate-decision-queue.cjs",
+      "expectedExitCodes": [0, 2],
+      "output": "json",
+      "mayWrite": false,
+      "mayUseCredentials": false,
+      "mayReadRestrictedData": false,
+      "mayCauseExternalAction": false
+    },
+    {
+      "id": "SH-005",
+      "purpose": "Verify the next customer-research operation remains complete internally and gated externally.",
+      "workflowId": "A-029",
+      "primaryAgentId": "AG-005",
+      "evaluatorAgentId": "AG-010",
+      "command": "scripts/company/validate-adult-research-operations.cjs",
+      "expectedExitCodes": [0, 2],
+      "output": "json",
+      "mayWrite": false,
+      "mayUseCredentials": false,
+      "mayReadRestrictedData": false,
+      "mayCauseExternalAction": false
+    }
+  ],
+  "recordPolicy": {
+    "persistRecord": false,
+    "includeRawStepOutput": false,
+    "includeSensitivePayload": false,
+    "includeSecrets": false,
+    "retainCommandOutputDigest": true,
+    "retainCompactOutcome": true
+  },
+  "promotionEvidence": {
+    "minimumEligibleShadowCycles": 4,
+    "eligibleShadowCycleCount": 0,
+    "namedOwnerAndBackupReady": false,
+    "identitySeparationProven": false,
+    "protectedHistoryAndAlertingProven": false,
+    "killSwitchAndRecoveryProven": false,
+    "humanRoutingComparisonApproved": false,
+    "promotionAuthorized": false
+  }
+}

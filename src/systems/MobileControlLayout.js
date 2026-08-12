@@ -16,6 +16,61 @@ export function getSafeAreaInsets(root = document.documentElement) {
 }
 
 /**
+ * Convert a screen-space touch into a stable joystick vector and thumb point.
+ * Keeping this calculation pure prevents Phaser drag coordinates from
+ * competing with absolute pointer coordinates on touch browsers.
+ */
+export function getJoystickVector({
+    pointerX,
+    pointerY,
+    centerX,
+    centerY,
+    maxDistance,
+    deadZone = 0.15
+}) {
+    const x = Number(pointerX);
+    const y = Number(pointerY);
+    const originX = Number(centerX);
+    const originY = Number(centerY);
+    const radius = Number(maxDistance);
+    const normalizedDeadZone = Math.min(0.5, Math.max(0, Number(deadZone) || 0));
+
+    if (
+        !Number.isFinite(x) ||
+        !Number.isFinite(y) ||
+        !Number.isFinite(originX) ||
+        !Number.isFinite(originY) ||
+        !Number.isFinite(radius) ||
+        radius <= 0
+    ) {
+        return { x: 0, y: 0, thumbX: originX || 0, thumbY: originY || 0 };
+    }
+
+    const offsetX = x - originX;
+    const offsetY = y - originY;
+    const distance = Math.hypot(offsetX, offsetY);
+    if (distance === 0) {
+        return { x: 0, y: 0, thumbX: originX, thumbY: originY };
+    }
+
+    const clampedDistance = Math.min(distance, radius);
+    const unitX = offsetX / distance;
+    const unitY = offsetY / distance;
+    const deadZonePixels = radius * normalizedDeadZone;
+    const effectiveRange = Math.max(1, radius - deadZonePixels);
+    const magnitude = distance <= deadZonePixels
+        ? 0
+        : Math.min(1, (clampedDistance - deadZonePixels) / effectiveRange);
+
+    return {
+        x: unitX * magnitude,
+        y: unitY * magnitude,
+        thumbX: originX + unitX * clampedDistance,
+        thumbY: originY + unitY * clampedDistance
+    };
+}
+
+/**
  * Shared portrait-phone control geometry.
  *
  * All controls stay inside the dock. The world can continue rendering behind it,
@@ -72,3 +127,29 @@ export function getMobileControlLayout({
     };
 }
 
+/**
+ * Keep contextual gameplay guidance in the playable viewport, immediately
+ * above the opaque mobile control dock and clear of device safe areas.
+ */
+export function getMobileInteractionPromptLayout({
+    width,
+    height,
+    safeArea = { top: 0, right: 0, bottom: 0, left: 0 }
+}) {
+    const controls = getMobileControlLayout({ width, height, safeArea });
+    const compact = width < 380;
+    const horizontalInset = compact ? 10 : 12;
+    const dockGap = compact ? 8 : 10;
+
+    return {
+        x: width / 2,
+        y: Math.max(safeArea.top + 64, controls.dockTop - dockGap),
+        originY: 1,
+        maxWidth: Math.max(
+            180,
+            width - safeArea.left - safeArea.right - horizontalInset * 2
+        ),
+        fontSize: compact ? 13 : 14,
+        dockTop: controls.dockTop
+    };
+}

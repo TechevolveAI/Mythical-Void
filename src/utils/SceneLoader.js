@@ -242,8 +242,13 @@ class SceneLoaderClass {
             return false;
         }
 
-        // Check if scene is already in Phaser's scene manager
-        if (game.scene.getScene(sceneName)) {
+        // Phaser versions differ on whether getScene throws for an unknown key.
+        // Inspect the manager registry first so a lazy scene can always register.
+        const registeredScene = game.scene.keys?.[sceneName] ||
+            game.scene.scenes?.find?.(
+                scene => scene?.sys?.settings?.key === sceneName
+            );
+        if (registeredScene) {
             devLog(`[SceneLoader] ${sceneName} already registered`);
             return true;
         }
@@ -366,8 +371,9 @@ class SceneLoaderClass {
                 break;
 
             case 'HubWorldScene':
-                // User will likely enter a level
-                this.preloadChunk('levels');
+                // Mythical Forest is the first route. Later routes are preloaded
+                // when their gate is focused so the Hub does not fetch all levels.
+                this.preload('MythicalForestLevel');
                 break;
 
             default:

@@ -41,7 +41,7 @@ function loadGameSceneClass(sceneWindow) {
     const filePath = path.join(__dirname, '../scenes/GameScene.js');
     const source = fs.readFileSync(filePath, 'utf8');
     const transformed = source
-        .replace(/^import .*$/gm, '')
+        .replace(/^import[\s\S]*?;\n/gm, '')
         .replace(/import\.meta\.env\.DEV/g, 'false')
         .replace(/export default GameScene;/, 'module.exports = GameScene;');
 
@@ -269,15 +269,15 @@ describe('GameScene scene router', () => {
         );
         expect(sceneRouter.launchScene).toHaveBeenNthCalledWith(
             1,
-            'CreatureProfileScene',
-            undefined,
-            { bringToTop: true }
-        );
-        expect(sceneRouter.launchScene).toHaveBeenNthCalledWith(
-            2,
             'AbilitySelectionScene',
             undefined,
             { bringToTop: true }
+        );
+        expect(sceneRouter.pauseAndLaunchScene).toHaveBeenNthCalledWith(
+            3,
+            'CreatureProfileScene',
+            undefined,
+            { loadingMessage: 'Opening companion profile...', sound: 'buttonClick' }
         );
         expect(sceneRouter.startScene).toHaveBeenCalledWith(
             'HubWorldScene',
@@ -288,13 +288,18 @@ describe('GameScene scene router', () => {
 
     test('blocks Fusion Pod until the shrine is unlocked', () => {
         const { scene, sceneRouter } = createSceneInstance(GameScene, sceneWindow);
+        scene.getFusionPodWorldSnapshot = jest.fn(() => ({
+            statusLabel: 'FIELD CALIBRATION 4/5'
+        }));
         sceneWindow.GameState.getBreedingShrineStatus
             .mockReturnValueOnce({ unlocked: false })
             .mockReturnValueOnce({ unlocked: true });
 
         scene.openFusionPod();
 
-        expect(scene.showInteractionHint).toHaveBeenCalledWith(expect.stringContaining('Level 5'));
+        expect(scene.showInteractionHint).toHaveBeenCalledWith(
+            'FIELD CALIBRATION 4/5'
+        );
         expect(sceneRouter.pauseAndLaunchScene).not.toHaveBeenCalled();
 
         scene.openFusionPod();

@@ -68,6 +68,15 @@ class SanctuaryZones {
                 color: 0x4CAF50,
                 locked: false
             },
+            settlementDistrict: {
+                name: 'Fend Settlement',
+                description: 'A shared district shaped by the creatures who live here.',
+                bounds: { x: 340, y: h - 520, width: 760, height: 440 },
+                center: { x: 690, y: h - 280 },
+                icon: 'V',
+                color: 0x71E6B1,
+                locked: false
+            },
             trainingGrounds: {
                 name: 'Target Range',
                 description: 'Practice shooting at targets. Test your weapons!',
@@ -134,6 +143,33 @@ class SanctuaryZones {
                 name: 'Signal Garden',
                 description: 'Nurture a living signal with your companion.',
                 onInteract: 'tendSignalGarden'
+            },
+            villageHeart: {
+                zone: 'settlementDistrict',
+                position: {
+                    x: zones.settlementDistrict.bounds.x + 120,
+                    y: zones.settlementDistrict.center.y
+                },
+                size: { width: 150, height: 130 },
+                interactable: true,
+                interactRadius: 118,
+                name: 'Village Heart',
+                description: 'Plan shared structures and invite creature contributions.',
+                onInteract: 'openVillageCommand'
+            },
+            fusionPod: {
+                zone: 'livingArea',
+                position: {
+                    x: this.worldWidth / 2 + 270,
+                    y: this.worldHeight / 2 + 90
+                },
+                size: { width: 150, height: 150 },
+                interactable: true,
+                interactRadius: 118,
+                name: 'Fusion Pod',
+                description:
+                    'A dormant Fend interface that answers stable living signatures.',
+                onInteract: 'openFusionPod'
             },
             voidPortal: {
                 zone: 'crashSite',
@@ -238,6 +274,41 @@ class SanctuaryZones {
             x: this.worldWidth / 2 - 100,
             y: this.worldHeight / 2
         };
+    }
+
+    /**
+     * Keep restored players away from narrow world-edge pockets. Older builds
+     * could save a position between the Target Range and the outer bounds.
+     */
+    getSafeSpawnPosition(position, inset = 90) {
+        const x = Number(position?.x);
+        const y = Number(position?.y);
+        const valid = Number.isFinite(x) && Number.isFinite(y);
+        const insideSafeWorld = valid &&
+            x >= inset &&
+            x <= this.worldWidth - inset &&
+            y >= inset &&
+            y <= this.worldHeight - inset;
+
+        if (insideSafeWorld) {
+            return { x, y };
+        }
+
+        const range = this.zones.trainingGrounds;
+        const nearRange = valid &&
+            x >= range.bounds.x - 180 &&
+            y <= range.bounds.y + range.bounds.height + 160;
+        if (nearRange) {
+            return {
+                x: range.center.x,
+                y: Math.min(
+                    range.bounds.y + range.bounds.height - 55,
+                    range.center.y + 130
+                )
+            };
+        }
+
+        return this.getSpawnPosition();
     }
 }
 

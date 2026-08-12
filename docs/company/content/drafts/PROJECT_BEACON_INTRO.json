@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "CP-001",
+  "status": "draft",
+  "objective": "Test story-led comprehension with an adult/general audience.",
+  "audience": "Adult and general creature/narrative-game audience; not child-targeted advertising",
+  "channel": "Unassigned social text post",
+  "contentType": "text",
+  "copy": "Earth sent Project Beacon looking for hope. What it found was alive.\n\nIn Mythical Void, restore six living realms beside an alien companion in a free browser adventure. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
+  "claimsUsed": ["CL-001", "CL-002", "CL-004", "CL-008"],
+  "proofsUsed": [],
+  "sourceChecked": "2026-08-11",
+  "fictionSeparated": true,
+  "generatedMedia": false,
+  "approval": {
+    "required": true,
+    "approved": false,
+    "approver": "Kevin",
+    "expiresAt": null
+  },
+  "publication": {
+    "account": null,
+    "scheduledAt": null,
+    "externalActionId": null
+  },
+  "measurement": "No publication authorized; define a tagged destination and approved measure before scheduling."
+}

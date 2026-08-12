@@ -68,6 +68,21 @@ describe('VictoryScene campaign contract', () => {
         expect(victorySceneSource).not.toContain('showFlightPhase');
     });
 
+    test('carries the witnessed creature power into the finale responsibility', () => {
+        expect(victorySceneSource).toContain(
+            "'story.projectBeacon.highPowerReveals'"
+        );
+        expect(victorySceneSource).toContain(
+            'held five living systems together.'
+        );
+        expect(victorySceneSource).toContain(
+            'On Earth, that power would be detectable across a city.'
+        );
+        expect(victorySceneSource).toContain(
+            'Project Beacon can reach Earth. No signal has left.'
+        );
+    });
+
     test('uses restoration language and a real achievement event', () => {
         expect(victorySceneSource).toContain('Realms Restored');
         expect(victorySceneSource).toContain('Guardians Restored');
@@ -85,13 +100,15 @@ describe('VictoryScene campaign contract', () => {
         );
     });
 
-    test('persists only supported ending choices', () => {
-        expect(victorySceneSource).toContain("['earth', 'void'].includes(choice)");
+    test('persists only supported campaign priorities', () => {
         expect(victorySceneSource).toContain(
-            "set('story.projectBeacon.endingChoice', choice)"
+            'CAMPAIGN_INTENTS.includes(choice)'
         );
         expect(victorySceneSource).toContain(
-            "set('story.projectBeacon.endingChoiceDate', new Date().toISOString())"
+            'recordCampaignPriority(state, choice'
+        );
+        expect(victorySceneSource).toContain(
+            "'story.projectBeacon.finale.priority'"
         );
         expect(victorySceneSource).toMatch(
             /showEndingConfirmation\(choice\)[\s\S]*if \(this\.recordEndingChoice\(choice\)\)[\s\S]*this\.showEndingEpilogue\(choice\)/
@@ -99,73 +116,88 @@ describe('VictoryScene campaign contract', () => {
         expect(victorySceneSource).not.toContain('showComingSoonTeaser');
     });
 
-    test('frames the ending as the unresolved Project Beacon responsibility', () => {
-        expect(victorySceneSource).toContain('THE BEACON IS YOURS');
+    test('frames the finale as a protected shared outcome and priority', () => {
+        expect(victorySceneSource).toContain('WHAT COMES FIRST?');
         expect(victorySceneSource).toContain(
-            'This world trusts you with its location.'
+            'The coordinates are protected. Departure is deferred.'
         );
         expect(victorySceneSource).toContain(
-            'No signal leaves until you choose.'
+            'Choose what Wanderer-77 prepares first.'
         );
         expect(victorySceneSource).toContain(
-            'RETURN TO EARTH\\nTransmit Project Beacon'
+            'DEFEND FIRST\\nRestore communities'
         );
         expect(victorySceneSource).toContain(
-            'PROTECT THIS WORLD\\nSilence the uplink'
+            'PREPARE HOMECOMING\\nPreserve a secret route'
+        );
+        expect(victorySceneSource).toContain(
+            'PREPARE HONEST CONTACT\\nBuild consent and proof'
+        );
+        expect(victorySceneSource).toContain(
+            'isCompact ? height * 0.74 : btnY'
+        );
+        expect(victorySceneSource).toContain(
+            'isCompact ? 0.86 : 0.84'
+        );
+        expect(victorySceneSource).toContain("color: '#D7CDF6'");
+        expect(victorySceneSource).not.toContain(
+            'targets: hint,\n            alpha: { from: 1, to: 0.5 }'
         );
     });
 
-    test('delivers three explicit consequences for either player-selected ending', () => {
+    test('delivers three explicit consequences for every priority', () => {
         expect(victorySceneSource).toContain(
-            "title: 'PROJECT BEACON: EARTHBOUND'"
-        );
-        expect(victorySceneSource).toContain(
-            "title: 'PROJECT BEACON: PROTECTED'"
+            "title: 'PRIORITY: REMAIN AND DEFEND'"
         );
         expect(victorySceneSource).toContain(
-            "title: 'THE LONG WAY HOME'"
+            "title: 'PRIORITY: PREPARE HOMECOMING'"
         );
         expect(victorySceneSource).toContain(
-            "title: 'A DIFFERENT BEACON'"
+            "title: 'PRIORITY: PREPARE FIRST CONTACT'"
         );
         expect(victorySceneSource).toContain(
-            'this world heal while searching for a way to help Earth'
+            "title: 'DOJO-23-77'"
         );
         expect(victorySceneSource).toContain(
-            'first alien life to trust a human'
+            'That is not consent.'
         );
-        expect(victorySceneSource).not.toContain(
-            'THE STORY CONTINUES'
+        expect(victorySceneSource).toContain(
+            'Nothing is broadcast now.'
         );
+        expect(victorySceneSource).not.toContain('TRANSMISSION // SENT');
+        expect(victorySceneSource).not.toContain('COURSE // EARTH');
     });
 
     test('requires confirmation and exposes a protected New Game+ handoff', () => {
         expect(victorySceneSource).toContain(
-            'This becomes the ending of this campaign.'
+            'This decides what you prepare first. No signal is sent.'
         );
         expect(victorySceneSource).toContain('GO BACK');
         expect(victorySceneSource).toContain('REPLAY PROJECT BEACON?');
         expect(victorySceneSource).toContain(
-            'Your expeditions, ship parts, and ending will reset.'
+            'Your expeditions, ship parts, and active priority will reset.'
         );
         expect(victorySceneSource).toContain(
             'Purchased route maps stay open.'
         );
         expect(victorySceneSource).toContain(
-            'your bond, achievements, field kit, and katana upgrades will remain.'
+            'your bond, achievements, field kit, katana upgrades, and prior legacy record will remain.'
         );
-        expect(victorySceneSource).toContain('KEEP ENDING');
+        expect(victorySceneSource).toContain('KEEP PRIORITY');
     });
 
-    test('supports isolated local previews for the choice and both epilogues', () => {
+    test('supports isolated local previews for the choice and all priorities', () => {
         const gameSource = fs.readFileSync(
             path.join(__dirname, '../game.js'),
             'utf8'
         );
 
-        expect(gameSource).toContain(
-            "['choice', 'earth', 'void'].includes(testEnding)"
-        );
+        [
+            "'choice'",
+            "'remain_and_defend'",
+            "'prepare_homecoming'",
+            "'prepare_first_contact'"
+        ].forEach(route => expect(gameSource).toContain(route));
         expect(gameSource).toContain('endingPreview: testEnding');
         expect(gameSource).toContain(
             "endingPreviewPage: urlParams.get('endingPage')"
@@ -196,11 +228,35 @@ describe('VictoryScene campaign contract', () => {
         );
     });
 
+    test('reuses the protected companion portrait as a moving finale tableau', () => {
+        expect(victorySceneSource).toContain(
+            'window.CompanionMediaService?.createCinematicStill?.(this, {'
+        );
+        expect(victorySceneSource).toContain(
+            "momentId: 'beacon_reflection'"
+        );
+        expect(victorySceneSource).toContain(
+            "this.phase === 'reflection'"
+        );
+        expect(victorySceneSource).toContain(
+            'this.companionMediaRequest += 1;'
+        );
+    });
+
     test('New Game+ replays Project Beacon without erasing durable equipment', () => {
         expect(victorySceneSource).toMatch(
-            /startNewGamePlus\(\)[\s\S]*const projectBeacon = state\?\.get\('story\.projectBeacon'\)[\s\S]*firstExpeditionPromptSeen: false,[\s\S]*pendingDebriefs: \[\],[\s\S]*debriefsSeen: \[\],[\s\S]*uplinkRestored: false,[\s\S]*uplinkRestoredAt: null,[\s\S]*endingChoice: null,[\s\S]*endingChoiceDate: null,[\s\S]*endingEpilogueSeen: false,[\s\S]*endingEpilogueCompletedAt: null,[\s\S]*lastRouteUnlocked: null/
+            /startNewGamePlus\(\)[\s\S]*const projectBeacon = state\?\.get\('story\.projectBeacon'\)[\s\S]*firstExpeditionPromptSeen: false,[\s\S]*pendingDebriefs: \[\],[\s\S]*debriefsSeen: \[\],[\s\S]*highPowerReveals: \[\],[\s\S]*uplinkRestored: false,[\s\S]*uplinkRestoredAt: null,[\s\S]*finale: \{[\s\S]*priority: null,[\s\S]*epilogueSeen: false,[\s\S]*companionConsent: \{[\s\S]*schemaVersion: 2,[\s\S]*records: \[\][\s\S]*lastRouteUnlocked: null/
         );
         expect(victorySceneSource).toContain('...projectBeacon');
+        expect(victorySceneSource).toContain(
+            'protectedReturnProtocol: {'
+        );
+        expect(victorySceneSource).toContain(
+            "transmissionStatus: 'not_sent'"
+        );
+        expect(victorySceneSource).toContain(
+            "state?.set('world.currentVeilMission'"
+        );
         expect(victorySceneSource).toContain(
             "mapOwnedGateIds.has('stellar_reef')"
         );

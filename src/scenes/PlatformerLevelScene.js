@@ -8,6 +8,15 @@ import '../systems/ProjectBeaconFieldKit.js';
 import { getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
 import bossConfigs from '../config/bosses.json';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
+import { getCurrentRegionActionPresentation, recordCurrentRegionRestoration } from '../systems/CurrentEcology.js';
+import { getCurrentAtmosphereProjection } from '../systems/CurrentAtmosphere.js';
+import {
+    CENTERING_STANCE_DURATION_MS,
+    getSenseiMemorySnapshot,
+    recordCenteringStancePractice
+} from '../systems/SenseiMemory.js';
+import { companionMediaService } from '../systems/CompanionMediaService.js';
+import { getVillageGameplayEffects } from '../systems/VillageSettlement.js';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     crystalCaves: 'crystalGolem',
@@ -16,6 +25,95 @@ const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     mythicalForest: 'elderTreant',
     voidPeaks: 'cosmicTitan',
     finalVoid: 'voidEmpress'
+});
+
+const CAMPAIGN_LEVEL_BY_SCENE_LEVEL = Object.freeze({
+    mythical_forest_1: 'mythicalForest',
+    crystal_caves_1: 'crystalCaves',
+    reef_1: 'cosmicReef',
+    void_peaks_1: 'voidPeaks',
+    aurora_depths_1: 'auroraDepths',
+    final_void_1: 'finalVoid'
+});
+
+const ROUTE_SURVEY_SUPPORT_BY_LEVEL = Object.freeze({
+    crystal_caves_1: Object.freeze({
+        gateId: 'crystal_caves',
+        label: 'CRYSTAL CAVES SURVEY',
+        maxHealthBonus: 0,
+        maxEnergyBonus: 2,
+        guardCharges: 0
+    }),
+    reef_1: Object.freeze({
+        gateId: 'stellar_reef',
+        label: 'STELLAR REEF SURVEY',
+        maxHealthBonus: 1,
+        maxEnergyBonus: 0,
+        guardCharges: 0
+    }),
+    void_peaks_1: Object.freeze({
+        gateId: 'void_peaks',
+        label: 'VOID PEAKS SURVEY',
+        maxHealthBonus: 0,
+        maxEnergyBonus: 0,
+        guardCharges: 1
+    }),
+    aurora_depths_1: Object.freeze({
+        gateId: 'aurora_depths',
+        label: 'AURORA DEPTHS SURVEY',
+        maxHealthBonus: 1,
+        maxEnergyBonus: 1,
+        guardCharges: 0
+    })
+});
+
+function getRouteSurveySupport(gameState, levelId) {
+    const definition = ROUTE_SURVEY_SUPPORT_BY_LEVEL[levelId];
+    const mapsOwned = gameState?.get?.('hubWorld.mapsOwned');
+    if (!definition || !Array.isArray(mapsOwned) || !mapsOwned.includes(definition.gateId)) {
+        return {
+            active: false,
+            gateId: definition?.gateId || null,
+            label: definition?.label || null,
+            maxHealthBonus: 0,
+            maxEnergyBonus: 0,
+            guardCharges: 0
+        };
+    }
+    return { ...definition, active: true };
+}
+
+const CURRENT_NODE_LEVEL_CONFIG = Object.freeze({
+    mythical_forest_1: Object.freeze({
+        x: 700,
+        groundOffset: 145,
+        label: 'ROOT CURRENT'
+    }),
+    crystal_caves_1: Object.freeze({
+        x: 760,
+        groundOffset: 125,
+        label: 'CRYSTAL CURRENT'
+    }),
+    reef_1: Object.freeze({
+        x: 260,
+        groundOffset: 145,
+        label: 'REEF CURRENT'
+    }),
+    void_peaks_1: Object.freeze({
+        x: 520,
+        groundOffset: 130,
+        label: 'RIDGE CURRENT'
+    }),
+    aurora_depths_1: Object.freeze({
+        x: 560,
+        groundOffset: 130,
+        label: 'AURORA CURRENT'
+    }),
+    final_void_1: Object.freeze({
+        x: 420,
+        groundOffset: 130,
+        label: 'CURRENT HEART'
+    })
 });
 
 const EXPEDITION_CHECKPOINT_PATH =
@@ -150,6 +248,52 @@ class PlatformerLevelScene extends Phaser.Scene {
         };
         this.katanaEquipped = false;
         this.auroraGuardCharges = 0;
+        this.communityGuardCharges = 0;
+        this.guardianGuardCharges = 0;
+        this.fendCommunitySupport = {
+            maxHealthBonus: 0,
+            maxEnergyBonus: 0,
+            guardCharges: 0,
+            commonsNetwork: false
+        };
+        this.villageSupport = {
+            feedHappinessBonus: 0,
+            victoryCoinBonus: 0,
+            guardCharges: 0,
+            creatureCapacityBonus: 0,
+            maxEnergyBonus: 0,
+            activeBuildingIds: []
+        };
+        this.routeSurveySupport = {
+            active: false,
+            gateId: null,
+            label: null,
+            maxHealthBonus: 0,
+            maxEnergyBonus: 0,
+            guardCharges: 0
+        };
+        this.guardianTeamSupport = {
+            guardianId: null,
+            guardianName: null,
+            kind: null,
+            artwork: null,
+            textureKey: null,
+            color: 0x8FE3CF,
+            accent: 0xF4F4F4,
+            abilityId: null,
+            abilityName: null,
+            maxHealthBonus: 0,
+            maxEnergyBonus: 0,
+            guardCharges: 0,
+            shieldHits: 0,
+            speedMultiplier: 1,
+            jumpMultiplier: 1
+        };
+        this.guardianSupportEcho = null;
+        this.guardianSupportPulseTween = null;
+        this.guardianSupportAnnouncementTimer = null;
+        this.guardianShieldHitsRemaining = 0;
+        this.guardianInterventions = 0;
         this.katanaUpgradeDisplay = null;
         this.katanaArtifactModal = null;
         this.nextRangedDamageMultiplier = 1;
@@ -200,6 +344,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.virtualJoystickX = 0;  // -1 to 1 from virtual joystick
         this.virtualJumpPressed = false;
         this.mobileControlElements = []; // Track all mobile UI elements for cleanup
+        this.mobileControlTargets = {};
+        this.mobileControlCoach = null;
+        this.mobileControlCoachTween = null;
         this.actionButtonPointers = new Set(); // Track which pointers are on action buttons (prevents joystick reset)
 
         // Pause menu state
@@ -212,7 +359,31 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.levelCompletionResult = null;
         this.levelCompletionActive = false;
         this.levelCompletionKeyHandler = null;
+        this.companionMediaRequest = 0;
+        this.companionRescueTableau = null;
+        this.residentReleaseElements = [];
+        this.residentReleaseOpen = false;
+        this.residentReleaseTableau = null;
         this._returningToHub = false;
+        this.currentEcologyNode = null;
+        this.currentAtmosphere = null;
+        this.currentAtmosphereProjection = null;
+        this.currentEcologyModalElements = [];
+        this.currentEcologyModalActionButtons = new Map();
+        this.currentEcologyInteractKey = null;
+        this.currentEcologyPlayerNearby = false;
+        this.currentEcologyOperationSequence = 0;
+        this.autonomousRescueMomentElements = [];
+        this.autonomousRescueMomentTimer = null;
+        this.centeringStanceUnlocked = false;
+        this.centeringStanceUsed = false;
+        this.centeringStanceArmed = false;
+        this.centeringStanceStartedAt = null;
+        this.centeringStanceStatusText = null;
+        this.centeringStanceRunId = null;
+        this.centeringStancePreviewSize = null;
+        this.lastCombatActionAt = Number.NEGATIVE_INFINITY;
+        this.recoveryInputLockedUntil = 0;
     }
 
     init(data) {
@@ -222,13 +393,37 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.biomeId = data.biomeId || this.biomeId;
         }
         this.entryPreview = data?.entryPreview === true;
-        this.recoveryPreview = ['checkpoint', 'restart'].includes(data?.recoveryPreview)
+        this.currentEcologyPreview =
+            data?.currentEcologyPreview === true;
+        this.currentEcologyPreviewSize =
+            data?.currentEcologyPreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
+        this.recoveryPreview = ['checkpoint', 'restart', 'agency'].includes(data?.recoveryPreview)
             ? data.recoveryPreview
             : null;
+        this.autonomousRescuePreview = this.recoveryPreview === 'agency';
         this.forceMobileControls = data?.forceMobileControls === true;
+        this.platformerPreviewSize =
+            data?.platformerPreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
+        this.centeringStancePreview = ['armed', 'complete'].includes(
+            data?.centeringStancePreview
+        ) ? data.centeringStancePreview : null;
+        this.centeringStancePreviewSize =
+            data?.centeringStancePreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
         this.katanaPreview = ['crystal', 'aurora', 'full'].includes(
             data?.katanaPreview
         ) ? data.katanaPreview : null;
+        const guardianDefinitions =
+            window.GuardianResidents?.GUARDIAN_RESIDENT_DEFINITIONS || [];
+        this.guardianAllyPreview = guardianDefinitions.some(
+            guardian => guardian.id === data?.guardianAllyPreview
+        ) ? data.guardianAllyPreview : null;
+        this.rescuePortraitPreview = data?.rescuePortraitPreview === true;
 
         // CRITICAL: Reset ALL state on init (called on scene.restart())
         // The constructor only runs once when scene is first registered,
@@ -236,6 +431,40 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.resetGameState();
 
         console.log(`[PlatformerLevel] Initializing level: ${this.levelId} (biome: ${this.biomeId})`);
+    }
+
+    preload() {
+        this.preloadGuardianTeamSupportArtwork();
+        this.preloadRescuedResidentArtwork();
+    }
+
+    preloadRescuedResidentArtwork() {
+        const campaignLevelId = CAMPAIGN_LEVEL_BY_SCENE_LEVEL[this.levelId];
+        const resident = window.RescuedResidents
+            ?.getRescuedResidentByLevel?.(campaignLevelId);
+        if (
+            !resident?.artwork ||
+            !resident.textureKey ||
+            this.textures.exists(resident.textureKey)
+        ) {
+            return false;
+        }
+        this.load.image(resident.textureKey, resident.artwork);
+        return true;
+    }
+
+    preloadGuardianTeamSupportArtwork() {
+        const support = this.guardianTeamSupport;
+        if (
+            !support?.guardianId ||
+            !support?.textureKey ||
+            !support?.artwork ||
+            this.textures.exists(support.textureKey)
+        ) {
+            return false;
+        }
+        this.load.image(support.textureKey, support.artwork);
+        return true;
     }
 
     /**
@@ -280,6 +509,8 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Reset all game state - called on init() for restart support
      */
     resetGameState() {
+        this.playerSpeed = 180;
+        this.jumpVelocity = -420;
         const previewUpgradeIds = {
             crystal: ['crystal_edge'],
             aurora: ['aurora_guard'],
@@ -303,12 +534,81 @@ class PlatformerLevelScene extends Phaser.Scene {
             window.GameState?.get?.('story.projectBeacon.fieldKit.recovered')
         );
         this.auroraGuardCharges = this.katanaCombatProfile.guardCharges;
+        this.fendCommunitySupport = window.FendCommunity
+            ?.getFendCommunitySnapshot?.(window.GameState)?.support || {
+                maxHealthBonus: 0,
+                maxEnergyBonus: 0,
+                guardCharges: 0,
+                commonsNetwork: false
+            };
+        this.villageSupport = getVillageGameplayEffects(window.GameState);
+        this.routeSurveySupport = getRouteSurveySupport(
+            window.GameState,
+            this.levelId
+        );
+        this.guardianTeamSupport = window.GuardianResidents
+            ?.getActiveGuardianTeamSupport?.(window.GameState) || {
+                guardianId: null,
+                guardianName: null,
+                kind: null,
+                artwork: null,
+                textureKey: null,
+                color: 0x8FE3CF,
+                accent: 0xF4F4F4,
+                abilityId: null,
+                abilityName: null,
+                maxHealthBonus: 0,
+                maxEnergyBonus: 0,
+                guardCharges: 0,
+                shieldHits: 0,
+                speedMultiplier: 1,
+                jumpMultiplier: 1
+        };
+        this.rescuedResidentSupport = window.RescuedResidents
+            ?.getRescuedResidentSnapshot?.(window.GameState)?.support || {
+                maxHealthBonus: 0,
+                maxEnergyBonus: 0,
+                guardCharges: 0,
+                victoryCoinBonus: 0,
+                speedMultiplier: 1,
+                jumpMultiplier: 1
+            };
+        if (this.guardianAllyPreview) {
+            this.guardianTeamSupport = window.GuardianResidents
+                ?.createGuardianTeamSupport?.(
+                window.GuardianResidents.GUARDIAN_RESIDENT_DEFINITIONS.find(
+                    guardian => guardian.id === this.guardianAllyPreview
+                )
+            ) || this.guardianTeamSupport;
+        }
+        this.playerSpeed *= this.guardianTeamSupport.speedMultiplier *
+            this.rescuedResidentSupport.speedMultiplier;
+        this.jumpVelocity *= this.guardianTeamSupport.jumpMultiplier *
+            this.rescuedResidentSupport.jumpMultiplier;
+        this.maxHealth = 4 +
+            this.fendCommunitySupport.maxHealthBonus +
+            this.guardianTeamSupport.maxHealthBonus +
+            this.rescuedResidentSupport.maxHealthBonus +
+            this.routeSurveySupport.maxHealthBonus;
+        this.maxCrystalEnergy = 5 +
+            this.fendCommunitySupport.maxEnergyBonus +
+            this.guardianTeamSupport.maxEnergyBonus +
+            this.rescuedResidentSupport.maxEnergyBonus +
+            this.villageSupport.maxEnergyBonus +
+            this.routeSurveySupport.maxEnergyBonus;
+        this.communityGuardCharges = this.fendCommunitySupport.guardCharges +
+            this.rescuedResidentSupport.guardCharges +
+            this.villageSupport.guardCharges +
+            this.routeSurveySupport.guardCharges;
+        this.guardianGuardCharges = this.guardianTeamSupport.guardCharges;
+        this.guardianShieldHitsRemaining = this.guardianTeamSupport.shieldHits;
+        this.guardianInterventions = 0;
 
         // Reset combat state
-        this.health = this.maxHealth || 4;
-        this.crystalEnergy = this.maxCrystalEnergy || 5;
+        this.health = this.maxHealth;
+        this.crystalEnergy = this.maxCrystalEnergy;
         this.nextRangedDamageMultiplier = 1;
-        this.powerupShieldHits = 0;
+        this.powerupShieldHits = this.guardianTeamSupport.shieldHits;
         this.freeSpecialAttackCharges = 0;
         this.levelCoinMultiplier = 1;
         window.EconomyManager?.clearLevelCoinMultiplier?.();
@@ -331,16 +631,50 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Reset mobile control state
         this.virtualJoystickX = 0;
         this.virtualJumpPressed = false;
+        this.recoveryInputLockedUntil = 0;
 
         // Reset pause menu state
         this.pauseMenuActive = false;
         this.pauseMenuElements = [];
         this.powerupStatusMessage = null;
+        const senseiMemory = getSenseiMemorySnapshot(window.GameState);
+        this.centeringStanceUnlocked = Boolean(
+            this.centeringStancePreview ||
+            senseiMemory.lesson.unlocked
+        );
+        this.centeringStanceUsed = false;
+        this.centeringStanceArmed = false;
+        this.centeringStanceStartedAt = null;
+        this.centeringStanceStatusText?.destroy?.();
+        this.centeringStanceStatusText = null;
+        this.centeringStanceRunId = [
+            this.levelId || 'expedition',
+            Math.max(
+                0,
+                Number(window.GameState?.get?.('game.newGamePlusCount')) || 0
+            ),
+            Date.now().toString(36)
+        ].join(':');
+        this.lastCombatActionAt = Number.NEGATIVE_INFINITY;
         this._levelContentCreated = false;
         this._levelProgressionRecorded = false;
         this.levelCompletionResult = null;
         this.levelCompletionActive = false;
+        this.companionMediaRequest += 1;
+        this.companionRescueTableau?.destroy?.();
+        this.companionRescueTableau = null;
+        this.residentReleaseOpen = false;
+        this.residentReleaseTableau?.destroy?.();
+        this.residentReleaseTableau = null;
+        this.residentReleaseElements?.forEach(element => element?.destroy?.());
+        this.residentReleaseElements = [];
         this._returningToHub = false;
+        this.clearCurrentEcologyModal?.({ resume: false });
+        this.clearCurrentEcologyNode?.();
+        this.currentEcologyPlayerNearby = false;
+        this.currentEcologyOperationSequence = 0;
+        this.currentEcologyModalActionButtons = new Map();
+        this.clearAutonomousRescueMoment?.();
         if (this.levelCompletionKeyHandler) {
             window.removeEventListener('keydown', this.levelCompletionKeyHandler);
             this.levelCompletionKeyHandler = null;
@@ -372,6 +706,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Clear references (will be recreated in create())
         this.astronautFollower?.destroy();
         this.astronautFollower = null;
+        this.destroyGuardianTeamSupportEcho?.();
         this.player = null;
         this.platforms = null;
         this.enemies = null;
@@ -429,18 +764,62 @@ class PlatformerLevelScene extends Phaser.Scene {
             // 6. Create player
             this.createPlayer();
             this.createExpeditionAstronaut();
+            this.createGuardianTeamSupportEcho();
 
             // 7. Set up camera
             this.setupCamera();
+            if (
+                this.centeringStancePreviewSize === 'mobile' ||
+                this.currentEcologyPreviewSize === 'mobile' ||
+                this.platformerPreviewSize === 'mobile'
+            ) {
+                const viewportWidth = Math.min(
+                    390,
+                    this.scale.width
+                );
+                const viewportHeight = Math.min(
+                    720,
+                    this.scale.height
+                );
+                this.scale.resize(viewportWidth, viewportHeight);
+                this.cameras.main.setViewport(
+                    0,
+                    0,
+                    viewportWidth,
+                    viewportHeight
+                );
+            }
 
             // 8. Set up input
             this.setupInput();
 
             // 9. Create HUD
             this.createHUD();
+            this.time.delayedCall(850, () => this.showVillageSupportBriefing());
+            this.time.delayedCall(1450, () => this.showRouteSurveyBriefing());
+
+            if (this.centeringStancePreview) {
+                this.health = Math.max(1, this.maxHealth - 1);
+                this.updateHealthDisplay();
+                this.armCenteringStance();
+                this.showPlatformerMobileControls();
+                if (this.centeringStancePreview === 'complete') {
+                    this.time.delayedCall(450, () => {
+                        this.completeCenteringStance({
+                            commit: false
+                        });
+                    });
+                }
+            }
 
             // 10. Create level-specific content exactly once.
             this.createLevelSpecificContentOnce();
+            this.createCurrentEcologyNode();
+            if (this.guardianAllyPreview) {
+                this.time.delayedCall(250, () => {
+                    this.showPlatformerMobileControls();
+                });
+            }
 
             // 11. Restore the last authored Project Beacon signal, if this
             // expedition was interrupted by a reload or a return to the hub.
@@ -449,7 +828,18 @@ class PlatformerLevelScene extends Phaser.Scene {
             // 12. Set up collisions
             this.setupCollisions();
 
-            if (this.recoveryPreview) {
+            if (this.recoveryPreview === 'agency') {
+                this.health = 1;
+                this.checkpointPosition = {
+                    x: 340,
+                    y: this.levelHeight - 180
+                };
+                this.showPlatformerMobileControls();
+                this.player.setPosition(
+                    this.player.x,
+                    this.levelHeight + 240
+                );
+            } else if (this.recoveryPreview) {
                 this.checkpointPosition = this.recoveryPreview === 'checkpoint'
                     ? { x: 900, y: this.levelHeight - 160 }
                     : null;
@@ -474,6 +864,177 @@ class PlatformerLevelScene extends Phaser.Scene {
                 window.UXEnhancements.hideLoading();
             }
         }
+    }
+
+    showVillageSupportBriefing() {
+        const support = this.villageSupport || {};
+        const lines = [];
+        if (support.guardCharges > 0) {
+            lines.push(`CURRENT MASONRY // ${support.guardCharges} GUARD CHARGE`);
+        }
+        if (support.maxEnergyBonus > 0) {
+            lines.push(`DISCOVERY WORKSHOP // +${support.maxEnergyBonus} CRYSTAL ENERGY`);
+        }
+        if (support.victoryCoinBonus > 0) {
+            lines.push(`LIVING SAWMILL // +${support.victoryCoinBonus} VICTORY COINS`);
+        }
+        if (lines.length === 0 || this.sys?.isActive?.() === false) return false;
+
+        const width = this.cameras.main.width;
+        const compact = width < 600;
+        const panelWidth = Math.min(width - 28, compact ? 350 : 470);
+        const panelHeight = 38 + lines.length * (compact ? 14 : 16);
+        const y = compact ? 130 : 105;
+        const container = this.add.container(width / 2, y)
+            .setScrollFactor(0)
+            .setDepth(1650)
+            .setAlpha(0);
+        const background = this.add.rectangle(
+            0,
+            0,
+            panelWidth,
+            panelHeight,
+            0x07100F,
+            0.94
+        ).setStrokeStyle(1, 0x71E6B1, 0.82);
+        const signal = this.add.rectangle(
+            -panelWidth / 2 + 3,
+            0,
+            4,
+            panelHeight - 6,
+            0x71E6B1,
+            1
+        );
+        const title = this.add.text(
+            -panelWidth / 2 + 14,
+            -panelHeight / 2 + 9,
+            'VILLAGE SUPPORT ONLINE',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '10px' : '11px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        );
+        const details = this.add.text(
+            -panelWidth / 2 + 14,
+            -panelHeight / 2 + 25,
+            lines.join('\n'),
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '8px' : '9px',
+                color: '#F4F4F4',
+                lineSpacing: compact ? 3 : 5
+            }
+        );
+        container.add([background, signal, title, details]);
+        this.tweens.add({
+            targets: container,
+            alpha: 1,
+            y: y + 7,
+            duration: 260,
+            ease: 'Power2',
+            onComplete: () => {
+                this.time.delayedCall(3600, () => {
+                    if (!container.active) return;
+                    this.tweens.add({
+                        targets: container,
+                        alpha: 0,
+                        y: container.y - 6,
+                        duration: 360,
+                        onComplete: () => container.destroy(true)
+                    });
+                });
+            }
+        });
+        return true;
+    }
+
+    showRouteSurveyBriefing() {
+        const support = this.routeSurveySupport || {};
+        if (!support.active || this.sys?.isActive?.() === false) return false;
+
+        const lines = [];
+        if (support.maxHealthBonus > 0) {
+            lines.push(`+${support.maxHealthBonus} MAX HEALTH`);
+        }
+        if (support.maxEnergyBonus > 0) {
+            lines.push(`+${support.maxEnergyBonus} CRYSTAL ENERGY`);
+        }
+        if (support.guardCharges > 0) {
+            lines.push(`+${support.guardCharges} GUARD CHARGE`);
+        }
+
+        const width = this.cameras.main.width;
+        const compact = width < 600;
+        const panelWidth = Math.min(width - 28, compact ? 350 : 470);
+        const panelHeight = 52 + lines.length * (compact ? 14 : 16);
+        const y = compact ? 184 : 160;
+        const container = this.add.container(width / 2, y)
+            .setScrollFactor(0)
+            .setDepth(1650)
+            .setAlpha(0);
+        const background = this.add.rectangle(
+            0,
+            0,
+            panelWidth,
+            panelHeight,
+            0x08131A,
+            0.95
+        ).setStrokeStyle(1, 0x67E8C7, 0.9);
+        const title = this.add.text(
+            -panelWidth / 2 + 14,
+            -panelHeight / 2 + 9,
+            'ROUTE SURVEY ONLINE',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '10px' : '11px',
+                color: '#67E8C7',
+                fontStyle: 'bold'
+            }
+        );
+        const route = this.add.text(
+            -panelWidth / 2 + 14,
+            -panelHeight / 2 + 24,
+            support.label,
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '8px' : '9px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        );
+        const details = this.add.text(
+            -panelWidth / 2 + 14,
+            -panelHeight / 2 + 38,
+            lines.join('  //  '),
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '8px' : '9px',
+                color: '#F4F4F4'
+            }
+        );
+        container.add([background, title, route, details]);
+        this.tweens.add({
+            targets: container,
+            alpha: 1,
+            y: y + 7,
+            duration: 260,
+            ease: 'Power2',
+            onComplete: () => {
+                this.time.delayedCall(3600, () => {
+                    if (!container.active) return;
+                    this.tweens.add({
+                        targets: container,
+                        alpha: 0,
+                        y: container.y - 6,
+                        duration: 360,
+                        onComplete: () => container.destroy(true)
+                    });
+                });
+            }
+        });
+        return true;
     }
 
     /**
@@ -684,7 +1245,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Generate creature texture using existing system
         let textureName = 'platformerCreature';
 
-        if (this.graphicsEngine) {
+        if (this.guardianAllyPreview) {
+            this.createFallbackCreatureTexture();
+        } else if (this.graphicsEngine) {
             try {
                 const textures = this.graphicsEngine.createCreatureAnimationFrames();
                 if (textures && textures.length > 0) {
@@ -753,6 +1316,167 @@ class PlatformerLevelScene extends Phaser.Scene {
             ),
             katanaUpgradeIds: this.katanaCombatProfile.upgradeIds
         });
+    }
+
+    createGuardianTeamSupportEcho() {
+        this.destroyGuardianTeamSupportEcho();
+        const support = this.guardianTeamSupport;
+        if (!this.player || !support?.guardianId) return null;
+
+        const color = Number(support.color) || 0x8FE3CF;
+        const accent = Number(support.accent) || 0xF4F4F4;
+        const echo = this.add.container(this.player.x + 52, this.player.y - 68)
+            .setDepth(896)
+            .setAlpha(0.92);
+
+        const aura = this.add.graphics();
+        aura.fillStyle(color, 0.12);
+        aura.fillCircle(0, 0, 25);
+        aura.lineStyle(2, accent, 0.82);
+        aura.strokeCircle(0, 0, 18);
+        echo.add(aura);
+
+        const figureMount = this.add.container(0, 0);
+        let figure;
+        const usesArtwork = Boolean(
+            support.textureKey && this.textures.exists(support.textureKey)
+        );
+        if (usesArtwork) {
+            figure = this.add.image(0, 0, support.textureKey);
+            const artworkScale = Math.min(
+                48 / Math.max(1, figure.width),
+                54 / Math.max(1, figure.height)
+            );
+            figure.setScale(artworkScale).setAlpha(0.98);
+        } else {
+            figure = this.add.graphics();
+            figure.fillStyle(color, 0.95);
+            figure.lineStyle(2, accent, 1);
+            const drawGlyph = {
+                treant: () => {
+                    figure.fillRect(-3, -4, 6, 14);
+                    figure.strokeCircle(0, -8, 8);
+                    figure.lineBetween(-8, -8, -13, -13);
+                    figure.lineBetween(8, -8, 13, -13);
+                },
+                golem: () => {
+                    figure.fillPoints([
+                        { x: 0, y: -13 }, { x: 11, y: -2 },
+                        { x: 7, y: 12 }, { x: -7, y: 12 },
+                        { x: -11, y: -2 }
+                    ], true);
+                    figure.strokeCircle(0, -2, 4);
+                },
+                serpent: () => {
+                    figure.beginPath();
+                    figure.moveTo(-10, -10);
+                    figure.lineTo(8, -4);
+                    figure.lineTo(-7, 3);
+                    figure.lineTo(10, 10);
+                    figure.strokePath();
+                    figure.fillCircle(-10, -10, 3);
+                },
+                phoenix: () => {
+                    figure.fillTriangle(0, -13, -4, 8, 4, 8);
+                    figure.fillTriangle(-2, -2, -15, 5, -3, 10);
+                    figure.fillTriangle(2, -2, 15, 5, 3, 10);
+                },
+                titan: () => {
+                    figure.fillRect(-10, -9, 20, 18);
+                    figure.strokeCircle(0, -2, 5);
+                    figure.lineBetween(-7, 10, -11, 14);
+                    figure.lineBetween(7, 10, 11, 14);
+                },
+                empress: () => {
+                    figure.strokeCircle(0, 0, 10);
+                    figure.fillCircle(0, 0, 4);
+                    figure.fillTriangle(-10, -8, 0, -15, 10, -8);
+                }
+            }[support.kind];
+            (drawGlyph || (() => figure.fillCircle(0, 0, 9)))();
+        }
+        figureMount.add(figure);
+        echo.add(figureMount);
+
+        const label = this.add.text(0, -33, support.guardianName.toUpperCase(), {
+            fontSize: '9px',
+            color: '#F4F4F4',
+            fontStyle: 'bold',
+            backgroundColor: 'rgba(5, 12, 18, 0.82)',
+            padding: { x: 5, y: 2 }
+        }).setOrigin(0.5).setAlpha(0.82);
+        echo.add(label);
+
+        this.guardianSupportEcho = {
+            container: echo,
+            aura,
+            figure,
+            figureMount,
+            label,
+            usesArtwork
+        };
+        this.guardianSupportPulseTween = this.tweens.add({
+            targets: aura,
+            alpha: { from: 0.45, to: 1 },
+            scale: { from: 0.9, to: 1.16 },
+            duration: 1050,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        this.guardianSupportAnnouncementTimer = this.time.delayedCall(350, () => {
+            if (!this.guardianSupportEcho?.container?.active) return;
+            this.showFloatingText?.(
+                `${support.abilityName.toUpperCase()} ONLINE`,
+                echo.x,
+                echo.y - 24,
+                `#${accent.toString(16).padStart(6, '0')}`
+            );
+        });
+        return echo;
+    }
+
+    updateGuardianTeamSupportEcho(delta = 16.67) {
+        const echo = this.guardianSupportEcho?.container;
+        if (!echo?.active || !this.player?.active) return;
+        const followRight = this.player.facingRight !== false;
+        const targetX = this.player.x + (followRight ? 52 : -52);
+        const targetY = this.player.y - 68 + Math.sin(this.time.now / 320) * 5;
+        const response = Math.min(0.18, Math.max(0.05, (Number(delta) || 16.67) / 260));
+        echo.x = Phaser.Math.Linear(echo.x, targetX, response);
+        echo.y = Phaser.Math.Linear(echo.y, targetY, response);
+    }
+
+    pulseGuardianTeamSupportEcho(label = null) {
+        const echo = this.guardianSupportEcho;
+        if (!echo?.container?.active) return false;
+        this.guardianInterventions += 1;
+        const accent = Number(this.guardianTeamSupport?.accent) || 0xF4F4F4;
+        this.tweens.add({
+            targets: echo.figureMount,
+            scale: { from: 1, to: 1.65 },
+            duration: 220,
+            yoyo: true,
+            ease: 'Sine.easeOut'
+        });
+        if (label) {
+            this.showFloatingText?.(
+                label.toUpperCase(),
+                echo.container.x,
+                echo.container.y - 36,
+                `#${accent.toString(16).padStart(6, '0')}`
+            );
+        }
+        return true;
+    }
+
+    destroyGuardianTeamSupportEcho() {
+        this.guardianSupportAnnouncementTimer?.remove?.(false);
+        this.guardianSupportAnnouncementTimer = null;
+        this.guardianSupportPulseTween?.stop?.();
+        this.guardianSupportPulseTween = null;
+        this.guardianSupportEcho?.container?.destroy?.(true);
+        this.guardianSupportEcho = null;
     }
 
     /**
@@ -891,6 +1615,17 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.rangedKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
         this.rangedKey.on('down', () => this.performRangedAttack());
 
+        // Read or influence a nearby Current node without consuming the jump
+        // control. Touch players can tap the node directly.
+        this.currentEcologyInteractKey = this.input.keyboard.addKey(
+            Phaser.Input.Keyboard.KeyCodes.E
+        );
+        this.currentEcologyInteractKey.on('down', () => {
+            if (this.currentEcologyPlayerNearby) {
+                this.showCurrentEcologyModal();
+            }
+        });
+
         // ESC to pause/return
         this.input.keyboard.on('keydown-ESC', () => this.showPauseMenu());
 
@@ -949,8 +1684,20 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         console.log('[PlatformerLevel] Setting up BOTTOM-POSITIONED mobile controls');
+        this.clearMobileControlCoach();
+        this.mobileControlTargets = {};
 
-        const { width, height } = this.scale;
+        const compactPreview = [
+            this.centeringStancePreviewSize,
+            this.currentEcologyPreviewSize,
+            this.platformerPreviewSize
+        ].includes('mobile');
+        const width = compactPreview
+            ? Math.min(390, this.scale.width)
+            : this.scale.width;
+        const height = compactPreview
+            ? Math.min(720, this.scale.height)
+            : this.scale.height;
         const safeArea = this.getSafeAreaInsets();
         const layout = getMobileControlLayout({ width, height, safeArea });
         const bottomSafeMargin = safeArea.bottom;
@@ -1032,6 +1779,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.joystickBaseRadius = joystickBaseRadius;
         this.originalJoystickX = joystickX;
         this.originalJoystickY = joystickY;
+        this.mobileControlTargets.joystick = {
+            x: joystickX,
+            y: joystickY,
+            radius: joystickBaseRadius
+        };
 
         joystickZone.on('pointerdown', (pointer) => {
             this.joystickActive = true;
@@ -1149,11 +1901,11 @@ class PlatformerLevelScene extends Phaser.Scene {
             },
             {
                 id: 'melee',
-                label: '👊',
+                label: '⚔️',
                 x: meleeX,
                 y: meleeY,
                 size: meleeButtonSize,
-                color: 0xE74C3C, // Red - melee attack (free, frequent use)
+                color: 0xE74C3C, // Red - astronaut katana strike
                 action: () => this.performAttack(),
                 energyCost: 0,
                 opacity: controlOpacity
@@ -1186,7 +1938,8 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Create each button
         buttons.forEach(config => {
-            this.createPlatformerButton(config);
+            this.mobileControlTargets[config.id] =
+                this.createPlatformerButton(config);
         });
 
         // ============ MENU BUTTON (top-left) ============
@@ -1240,6 +1993,50 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.platformerControlsVisible = true;
         console.log('[PlatformerLevel] Mobile controls shown (intro dismissed)');
+    }
+
+    showMobileControlCoach(controlId) {
+        this.clearMobileControlCoach();
+        if (!this.isMobile) return false;
+
+        const target = this.mobileControlTargets?.[controlId];
+        if (!target) return false;
+
+        const ring = this.add.graphics()
+            .setPosition(target.x, target.y)
+            .setScrollFactor(0)
+            .setDepth(10003);
+        ring.lineStyle(4, 0xF3D77B, 0.98);
+        ring.strokeCircle(0, 0, target.radius + 9);
+        ring.lineStyle(8, 0xF3D77B, 0.18);
+        ring.strokeCircle(0, 0, target.radius + 14);
+
+        this.mobileControlCoach = ring;
+        this.mobileControlElements.push(ring);
+        this.mobileControlCoachTween = this.tweens.add({
+            targets: ring,
+            alpha: { from: 1, to: 0.42 },
+            scaleX: { from: 0.94, to: 1.08 },
+            scaleY: { from: 0.94, to: 1.08 },
+            duration: 620,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        return true;
+    }
+
+    clearMobileControlCoach() {
+        this.mobileControlCoachTween?.remove?.();
+        this.mobileControlCoachTween = null;
+        if (this.mobileControlCoach) {
+            const coach = this.mobileControlCoach;
+            this.mobileControlElements = this.mobileControlElements.filter(
+                element => element !== coach
+            );
+            coach.destroy?.();
+            this.mobileControlCoach = null;
+        }
     }
 
     /**
@@ -1442,6 +2239,8 @@ class PlatformerLevelScene extends Phaser.Scene {
                 onRelease();
             }
         });
+
+        return { id, x, y, radius, bg, icon, arrowGraphics, zone };
     }
 
     /**
@@ -1892,6 +2691,59 @@ class PlatformerLevelScene extends Phaser.Scene {
             guard.setPosition(0, row * 22);
             label.setPosition(26, row * 22 + 2);
             this.katanaUpgradeDisplay.add([guard, label]);
+            row += 1;
+        }
+
+        if (this.communityGuardCharges > 0 || this.fendCommunitySupport?.guardCharges > 0) {
+            const relay = this.add.graphics();
+            relay.lineStyle(2, 0xF4F4F4, 0.9);
+            relay.lineBetween(10, 3, 10, 18);
+            relay.lineStyle(2, 0x71E6B1, 1);
+            relay.strokeCircle(10, 5, 6);
+            relay.fillStyle(
+                this.communityGuardCharges > 0 ? 0xD94B4B : 0x4A5652,
+                1
+            );
+            relay.fillCircle(10, 5, 3);
+            const label = this.add.text(
+                26,
+                2,
+                `FEND RELAY  ${this.communityGuardCharges}`,
+                {
+                    fontSize: '11px',
+                    color: this.communityGuardCharges > 0 ? '#8FE3CF' : '#777F7C',
+                    fontStyle: 'bold'
+                }
+            );
+            relay.setPosition(0, row * 22);
+            label.setPosition(26, row * 22 + 2);
+            this.katanaUpgradeDisplay.add([relay, label]);
+            row += 1;
+        }
+
+        if (this.guardianTeamSupport?.guardianId) {
+            const ally = this.add.graphics();
+            ally.lineStyle(2, 0xF2C14E, 1);
+            ally.strokeCircle(10, 10, 8);
+            ally.fillStyle(0x8FE3CF, 1);
+            ally.fillCircle(10, 10, 3);
+            const chargeSuffix = this.guardianGuardCharges > 0
+                ? `  ${this.guardianGuardCharges}`
+                : '';
+            const label = this.add.text(
+                26,
+                2,
+                `ALLY ${this.guardianTeamSupport.guardianName.toUpperCase()} // ` +
+                    `${this.guardianTeamSupport.abilityName.toUpperCase()}${chargeSuffix}`,
+                {
+                    fontSize: '10px',
+                    color: '#F2C14E',
+                    fontStyle: 'bold'
+                }
+            );
+            ally.setPosition(0, row * 22);
+            label.setPosition(26, row * 22 + 2);
+            this.katanaUpgradeDisplay.add([ally, label]);
         }
     }
 
@@ -1998,20 +2850,29 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Check for fall out of bounds (kill zone)
         this.checkFallOutOfBounds();
 
-        // Handle ducking (must check before movement)
-        this.handleDuck();
+        const recoveryInputLocked = time < this.recoveryInputLockedUntil;
+        if (recoveryInputLocked) {
+            this.player.setVelocityX(0);
+            this.virtualJumpPressed = false;
+        } else {
+            // Handle ducking (must check before movement)
+            this.handleDuck();
 
-        // Handle movement (with smooth acceleration)
-        this.handleMovement();
+            // Handle movement (with smooth acceleration)
+            this.handleMovement();
+        }
+        this.updateCenteringStance(time);
 
         // Handle jumping (only if not ducking)
-        if (!this.isDucking) {
+        if (!recoveryInputLocked && !this.isDucking) {
             this.handleJump(time);
         }
 
         // Update player facing direction
         this.updatePlayerFacing();
         this.astronautFollower?.update(delta);
+        this.updateGuardianTeamSupportEcho(delta);
+        this.updateCurrentEcologyNodeProximity();
 
         // MOBILE UX: Update camera directional lead
         this.updateCameraLead();
@@ -2399,23 +3260,35 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Perform basic melee attack - override in subclass for creature-specific attacks.
      * Checks both regular enemies and the active guardian target.
      */
-    performAttack() {
+    performAttack({ targetXOverride = null, targetYOverride = null } = {}) {
         if (!this.player || this.levelCompletionActive || this.isPlayerDead) return;
+        if (
+            this.astronautFollower?.fieldKitRecovered &&
+            this.astronautFollower?.isStriking
+        ) {
+            return;
+        }
 
-        console.log('[PlatformerLevel] Melee attack performed');
+        this.lastCombatActionAt = this.time?.now || 0;
+        console.log('[PlatformerLevel] Astronaut katana strike performed');
         const combatProfile = this.katanaCombatProfile || {};
         const meleeDamage = Number(combatProfile.meleeDamage) || 2;
         const enemyMeleeRange = Number(combatProfile.enemyMeleeRange) || 70;
         const bossMeleeRange = Number(combatProfile.bossMeleeRange) || 80;
 
         // Create basic attack effect
-        const attackX = this.player.facingRight ?
-                        this.player.x + 50 :
-                        this.player.x - 50;
+        const attackX = Number.isFinite(targetXOverride)
+            ? targetXOverride
+            : this.player.facingRight
+                ? this.player.x + 50
+                : this.player.x - 50;
+        const attackY = Number.isFinite(targetYOverride)
+            ? targetYOverride
+            : this.player.y;
         const astronautStrike = this.astronautFollower?.performKatanaStrike({
             facingRight: this.player.facingRight,
             targetX: attackX,
-            targetY: this.player.y,
+            targetY: attackY,
             slashColor: combatProfile.slashColor || 0xE040FB,
             slashGlowColor: combatProfile.slashGlowColor || 0x7B68EE
         }) === true;
@@ -2425,7 +3298,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             const attackEffect = this.add.graphics();
             attackEffect.fillStyle(combatProfile.slashGlowColor || 0x7B68EE, 0.8);
             attackEffect.fillCircle(0, 0, 25);
-            attackEffect.setPosition(attackX, this.player.y);
+            attackEffect.setPosition(attackX, attackY);
             attackEffect.setDepth(899);
 
             const slash = this.add.graphics();
@@ -2434,7 +3307,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             const startAngle = this.player.facingRight ? -Math.PI / 2 : Math.PI / 2;
             slash.arc(0, 0, 40, startAngle - 0.5, startAngle + 1, false);
             slash.strokePath();
-            slash.setPosition(attackX, this.player.y);
+            slash.setPosition(attackX, attackY);
             slash.setDepth(899);
 
             this.tweens.add({
@@ -2454,7 +3327,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.enemies) {
             this.enemies.getChildren().forEach(enemy => {
                 const dist = Phaser.Math.Distance.Between(
-                    attackX, this.player.y,
+                    attackX, attackY,
                     enemy.x, enemy.y
                 );
                 if (dist < enemyMeleeRange) {
@@ -2467,7 +3340,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const bossTarget = this.getBossCombatTarget();
         if (bossTarget) {
             const dist = Phaser.Math.Distance.Between(
-                attackX, this.player.y,
+                attackX, attackY,
                 bossTarget.x, bossTarget.y
             );
             if (dist < bossMeleeRange) {
@@ -2475,7 +3348,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 if (typeof this.damageBoss === 'function') {
                     this.damageBoss(meleeDamage);
                     console.log(
-                        `[PlatformerLevel] Boss hit by melee attack! (${meleeDamage} damage)`
+                        `[PlatformerLevel] Boss hit by katana strike! (${meleeDamage} damage)`
                     );
 
                     // Extra combat juice for boss hits
@@ -2487,7 +3360,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         }
 
-        // Combat juice for melee attack (even if no hit)
+        // Combat feedback for the astronaut's katana strike, even without a hit.
         if (this.combatJuice) {
             this.combatJuice.screenShake(2, 60);
             this.combatJuice.hapticFeedback('light');
@@ -2507,6 +3380,7 @@ class PlatformerLevelScene extends Phaser.Scene {
     performRangedAttack() {
         if (!this.player || this.levelCompletionActive || this.isPlayerDead) return;
 
+        this.lastCombatActionAt = this.time?.now || 0;
         console.log('[PlatformerLevel] Ranged attack performed (unlimited ammo)');
         const rangedDamage = Math.max(
             1,
@@ -2647,6 +3521,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             return;
         }
 
+        this.lastCombatActionAt = this.time?.now || 0;
         console.log('[PlatformerLevel] Special attack: Super Obliterate!');
 
         if (useFreeCharge) {
@@ -2668,7 +3543,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.combatJuice.hapticFeedback('heavy');
             this.combatJuice.slowMotion(0.4, 400); // Brief slow-mo for impact
         } else {
-            this.cameras.main.shake(300, 0.02);
+            window.FeedbackManager?.cameraShake?.(this, 300, 0.02);
         }
 
         // Massive area effect
@@ -2814,12 +3689,18 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (this.powerupShieldHits > 0 && !bypassInvincibility) {
             this.powerupShieldHits -= 1;
+            const guardianBlock = this.guardianShieldHitsRemaining > 0;
+            if (guardianBlock) this.guardianShieldHitsRemaining -= 1;
+            const blockLabel = guardianBlock
+                ? this.guardianTeamSupport.abilityName
+                : 'SHIELD BLOCK';
             this.showFloatingText(
-                `SHIELD BLOCK · ${this.powerupShieldHits} LEFT`,
+                `${blockLabel.toUpperCase()} · ${this.powerupShieldHits} LEFT`,
                 this.player.x,
                 this.player.y - 60,
                 '#8FEAFF'
             );
+            if (guardianBlock) this.pulseGuardianTeamSupportEcho(blockLabel);
             window.FXLibrary?.stardustBurst?.(this, this.player.x, this.player.y, {
                 count: 10,
                 color: [0x8FEAFF, 0xFFFFFF],
@@ -2827,6 +3708,47 @@ class PlatformerLevelScene extends Phaser.Scene {
             });
             window.AudioManager?.playAchievement?.();
             console.log('[PlatformerLevel] Damage blocked by inventory Crystal Shield');
+            return;
+        }
+
+        if (this.guardianGuardCharges > 0 && !bypassInvincibility) {
+            this.guardianGuardCharges -= 1;
+            this.updateKatanaUpgradeDisplay();
+            this.showFloatingText?.(
+                'ROOT BRIDGE',
+                this.player.x,
+                this.player.y - 55,
+                '#B7E36D'
+            );
+            window.FXLibrary?.stardustBurst?.(this, this.player.x, this.player.y, {
+                count: 14,
+                color: [0xB7E36D, 0x3F7D44, 0xF4F4F4],
+                duration: 650
+            });
+            window.AudioManager?.playAchievement?.();
+            this.pulseGuardianTeamSupportEcho(
+                this.guardianTeamSupport.abilityName || 'Root Bridge'
+            );
+            console.log('[PlatformerLevel] Damage absorbed by Root Bridge');
+            return;
+        }
+
+        if (this.communityGuardCharges > 0 && !bypassInvincibility) {
+            this.communityGuardCharges -= 1;
+            this.updateKatanaUpgradeDisplay();
+            this.showFloatingText?.(
+                'FEND RELAY',
+                this.player.x,
+                this.player.y - 55,
+                '#8FE3CF'
+            );
+            window.FXLibrary?.stardustBurst?.(this, this.player.x, this.player.y, {
+                count: 14,
+                color: [0x71E6B1, 0xF4F4F4, 0xD94B4B],
+                duration: 650
+            });
+            window.AudioManager?.playAchievement?.();
+            console.log('[PlatformerLevel] Damage absorbed by the Fend Relay');
             return;
         }
 
@@ -2882,6 +3804,8 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.onPlayerDeath();
             return;
         }
+
+        this.armCenteringStance();
 
         // Start invincibility period
         this.isInvincible = true;
@@ -2944,6 +3868,157 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.player) {
             this.player.setAlpha(1);
         }
+    }
+
+    armCenteringStance() {
+        if (
+            !this.centeringStanceUnlocked ||
+            this.centeringStanceUsed ||
+            this.centeringStanceArmed ||
+            this.health >= this.maxHealth ||
+            this.isPlayerDead
+        ) {
+            return false;
+        }
+        this.centeringStanceArmed = true;
+        this.centeringStanceStartedAt = null;
+        this.updateCenteringStanceStatus(
+            'CENTERING STANCE // RELEASE MOVEMENT'
+        );
+        return true;
+    }
+
+    updateCenteringStance(time) {
+        if (
+            !this.centeringStanceArmed ||
+            this.centeringStanceUsed ||
+            !this.player?.body ||
+            this.isPlayerDead ||
+            this.levelCompletionActive
+        ) {
+            return;
+        }
+        const directionalInput =
+            this.cursors?.left?.isDown ||
+            this.cursors?.right?.isDown ||
+            this.cursors?.up?.isDown ||
+            this.cursors?.down?.isDown ||
+            this.wasdKeys?.A?.isDown ||
+            this.wasdKeys?.D?.isDown ||
+            this.wasdKeys?.W?.isDown ||
+            this.wasdKeys?.S?.isDown ||
+            Math.abs(this.virtualJoystickX || 0) > 0.2 ||
+            this.virtualJumpPressed;
+        const stable =
+            this.isGrounded &&
+            !directionalInput &&
+            !this.isDucking &&
+            !this.isInvincible &&
+            Math.abs(this.player.body.velocity.x) < 8 &&
+            Math.abs(this.player.body.velocity.y) < 25 &&
+            time - this.lastCombatActionAt > 500;
+
+        if (!stable) {
+            this.centeringStanceStartedAt = null;
+            this.updateCenteringStanceStatus(
+                this.isGrounded
+                    ? 'CENTERING STANCE // RELEASE MOVEMENT'
+                    : 'CENTERING STANCE // FIND SOLID GROUND'
+            );
+            return;
+        }
+
+        if (this.centeringStanceStartedAt === null) {
+            this.centeringStanceStartedAt = time;
+        }
+        const elapsed = Math.max(0, time - this.centeringStanceStartedAt);
+        const remaining = Math.max(
+            0,
+            CENTERING_STANCE_DURATION_MS - elapsed
+        );
+        this.updateCenteringStanceStatus(
+            `CENTERING STANCE // ${(remaining / 1000).toFixed(1)}s`
+        );
+        if (elapsed >= CENTERING_STANCE_DURATION_MS) {
+            this.completeCenteringStance({
+                commit: !this.centeringStancePreview
+            });
+        }
+    }
+
+    updateCenteringStanceStatus(label) {
+        if (!this.player) return;
+        if (!this.centeringStanceStatusText) {
+            this.centeringStanceStatusText = this.add.text(
+                this.player.x,
+                this.player.y - 78,
+                label,
+                {
+                    fontSize: this.detectMobile() ? '10px' : '12px',
+                    color: '#F4F4F4',
+                    backgroundColor: 'rgba(8, 16, 16, 0.9)',
+                    padding: { x: 9, y: 5 },
+                    fontStyle: 'bold',
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(1100);
+        }
+        this.centeringStanceStatusText
+            .setPosition(this.player.x, this.player.y - 78)
+            .setText(label);
+    }
+
+    completeCenteringStance({ commit = true } = {}) {
+        if (
+            this.centeringStanceUsed ||
+            !this.centeringStanceArmed ||
+            this.isPlayerDead
+        ) {
+            return false;
+        }
+        this.centeringStanceUsed = true;
+        this.centeringStanceArmed = false;
+        this.centeringStanceStartedAt = null;
+        this.centeringStanceStatusText?.destroy?.();
+        this.centeringStanceStatusText = null;
+        this.health = Math.min(this.maxHealth, this.health + 1);
+        this.updateHealthDisplay();
+        this.showFloatingText(
+            'CENTERING STANCE // SUIT RESEALED',
+            this.player.x,
+            this.player.y - 64,
+            '#8FE3CF'
+        );
+        window.FXLibrary?.stardustBurst?.(
+            this,
+            this.player.x,
+            this.player.y,
+            {
+                count: 18,
+                color: [0xD94B4B, 0x101616, 0xF4F4F4, 0x3FAE62],
+                duration: 800
+            }
+        );
+        window.AudioManager?.playAchievement?.();
+        const result = commit
+            ? recordCenteringStancePractice(window.GameState, {
+                levelId: this.levelId,
+                operationId:
+                    `sensei:centering:${this.centeringStanceRunId}`
+            })
+            : { changed: true, reason: 'preview' };
+        window.AchievementSystem?.recordEvent?.(
+            'story_interaction',
+            {
+                event: 'centering_stance_practiced',
+                levelId: this.levelId,
+                companionId: window.GameState?.get?.(
+                    'creature.genes.id'
+                ),
+                committed: commit
+            }
+        );
+        return result?.changed === true;
     }
 
     /**
@@ -3272,6 +4347,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.isRespawning) return;
         this.isRespawning = true;
 
+        if (this.health <= 1 && this.attemptAutonomousCreatureRescue('lethal_fall')) {
+            return;
+        }
+
         // Take 1 heart damage (bypass invincibility since it's a pit)
         this.health -= 1;
         this.updateHealthDisplay();
@@ -3304,6 +4383,102 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
     }
 
+    attemptAutonomousCreatureRescue(trigger = 'lethal_fall') {
+        const result = window.CreatureAgency?.attemptAutonomousRescue?.(
+            window.GameState,
+            {
+                levelId: this.levelId,
+                trigger,
+                commit: !this.autonomousRescuePreview
+            }
+        );
+        if (result?.changed !== true) return false;
+
+        this.health = Math.max(1, this.health);
+        this.damageTaken = (this.damageTaken || 0) + 1;
+        this.updateHealthDisplay();
+        this.respawnAtCheckpoint();
+        this.showAutonomousRescueMoment(result);
+        return true;
+    }
+
+    showAutonomousRescueMoment(result) {
+        this.clearAutonomousRescueMoment();
+        this.centeringStanceStatusText?.destroy?.();
+        this.centeringStanceStatusText = null;
+        const { width } = this.cameras.main;
+        const safeArea = this.getSafeAreaInsets();
+        const companionName = window.GameState?.get?.('creature.name')
+            || 'Your companion';
+        const powerName = result?.decision?.powerName || 'Protective Response';
+        const recoveryOutcome = result?.decision?.trigger === 'lethal_fall'
+            ? 'LETHAL FALL PREVENTED  //  1 HEART HELD'
+            : 'EXPEDITION LOSS PREVENTED  //  1 HEART HELD';
+        const maxWidth = Math.min(380, width - 32);
+        const y = Math.max(94, safeArea.top + 82);
+
+        window.FeedbackManager?.cameraFlash?.(this,
+            320,
+            (result?.profile?.color >> 16) & 0xFF,
+            (result?.profile?.color >> 8) & 0xFF,
+            result?.profile?.color & 0xFF
+        );
+        window.FXLibrary?.stardustBurst?.(
+            this,
+            this.player.x,
+            this.player.y,
+            {
+                count: 28,
+                color: [result?.profile?.color || 0x8FE3CF, 0xFFFFFF],
+                duration: 1300
+            }
+        );
+        window.AudioManager?.playAchievement?.();
+
+        const heading = this.add.text(
+            width / 2,
+            y,
+            `${String(companionName).slice(0, 24).toUpperCase()} MOVED FIRST`,
+            {
+                fontSize: width < 520 ? '15px' : '18px',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                align: 'center',
+                backgroundColor: 'rgba(8, 12, 18, 0.94)',
+                padding: { x: 16, y: 8 },
+                wordWrap: { width: maxWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(6200);
+        const detail = this.add.text(
+            width / 2,
+            y + 42,
+            `${powerName.toUpperCase()}  //  NO COMMAND GIVEN\n${recoveryOutcome}`,
+            {
+                fontSize: width < 520 ? '11px' : '13px',
+                color: '#8FE3CF',
+                align: 'center',
+                lineSpacing: 4,
+                backgroundColor: 'rgba(8, 12, 18, 0.94)',
+                padding: { x: 14, y: 7 },
+                wordWrap: { width: maxWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(6200);
+
+        this.autonomousRescueMomentElements = [heading, detail];
+        this.autonomousRescueMomentTimer = this.time.delayedCall(2600, () => {
+            this.clearAutonomousRescueMoment();
+        });
+    }
+
+    clearAutonomousRescueMoment() {
+        this.autonomousRescueMomentTimer?.remove?.(false);
+        this.autonomousRescueMomentTimer = null;
+        this.autonomousRescueMomentElements?.forEach(element => {
+            element?.destroy?.();
+        });
+        this.autonomousRescueMomentElements = [];
+    }
+
     /**
      * Respawn player at last checkpoint or safe position
      */
@@ -3318,6 +4493,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Teleport player
         this.player.setPosition(respawnPos.x, respawnPos.y);
         this.player.setVelocity(0, 0);
+        this.resetJoystick();
+        this.recoveryInputLockedUntil = this.time.now + 550;
 
         // Brief invincibility after respawn
         this.isInvincible = true;
@@ -3562,6 +4739,8 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.player.setPosition(this.checkpointPosition.x, this.checkpointPosition.y);
         this.player.setVelocity(0, 0);
+        this.resetJoystick();
+        this.recoveryInputLockedUntil = this.time.now + 550;
         this.player.setAlpha(1);
         this.player.setScale(1);
         this.player.clearTint?.();
@@ -3902,6 +5081,806 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.physics.resume();
     }
 
+    getCurrentEcologyNodeConfig() {
+        return CURRENT_NODE_LEVEL_CONFIG[this.levelId] || null;
+    }
+
+    isCurrentEcologyReadOnly() {
+        return Boolean(
+            this.currentEcologyPreview ||
+            this.entryPreview ||
+            this.recoveryPreview ||
+            this.centeringStancePreview ||
+            this.resultPreview ||
+            this.highPowerPreview ||
+            this.testMode
+        );
+    }
+
+    prepareCurrentEcologyPreview() {
+        if (!this.currentEcologyPreview) return false;
+        const node = this.currentEcologyNode;
+        if (this.player && node) {
+            this.player.setPosition(
+                Math.max(80, node.x - 90),
+                node.y
+            );
+            this.currentEcologyPlayerNearby = true;
+            node.prompt?.setVisible?.(true);
+            this.cameras.main.centerOn(node.x, node.y);
+        }
+        this.physics?.resume?.();
+        this.showPlatformerMobileControls?.();
+        this.time.delayedCall(250, () => {
+            this.showCurrentEcologyModal();
+        });
+        return true;
+    }
+
+    createCurrentEcologyNode() {
+        const config = this.getCurrentEcologyNodeConfig();
+        const ecology = window.CurrentEcology;
+        if (!config || !ecology?.getCurrentRegionSnapshot || !window.GameState) {
+            return null;
+        }
+
+        this.clearCurrentEcologyNode();
+        if (!this.isCurrentEcologyReadOnly()) {
+            ecology.applyCurrentArrivalConsequence?.(
+                window.GameState,
+                this.levelId
+            );
+        }
+        const snapshot = ecology.getCurrentRegionSnapshot(window.GameState, this.levelId);
+        if (!snapshot) return null;
+
+        const x = config.x;
+        const y = this.levelHeight - config.groundOffset;
+        const compactNodeLayout =
+            this.isMobile || this.cameras.main.height < 620;
+        const fieldWash = this.add.rectangle(
+            this.levelWidth / 2,
+            this.levelHeight / 2,
+            this.levelWidth,
+            this.levelHeight,
+            snapshot.projection.primaryColor,
+            0
+        ).setDepth(-15);
+        fieldWash.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        // Platform sprites in some realms use their world Y as depth. Keep this
+        // landmark above terrain while leaving the fixed HUD and modals above it.
+        const environment = this.add.graphics().setDepth(820);
+        const visual = this.add.graphics().setPosition(x, y).setDepth(840);
+        const label = this.add.text(
+            x,
+            y - (compactNodeLayout ? 80 : 78),
+            config.label,
+            {
+            fontSize: '12px',
+            color: '#FFFFFF',
+            backgroundColor: 'rgba(5, 8, 16, 0.82)',
+            padding: { x: 7, y: 4 }
+            }
+        ).setOrigin(0.5).setDepth(845);
+        const status = this.add.text(
+            x,
+            y + (compactNodeLayout ? -55 : 55),
+            '',
+            {
+            fontSize: '11px',
+            color: '#FFFFFF',
+            backgroundColor: 'rgba(5, 8, 16, 0.82)',
+            padding: { x: 7, y: 4 }
+            }
+        ).setOrigin(0.5).setDepth(845);
+        const echoStatus = this.add.text(
+            x,
+            y + (compactNodeLayout ? -30 : 80),
+            '',
+            {
+            fontSize: '10px',
+            color: '#FFFFFF',
+            backgroundColor: 'rgba(5, 8, 16, 0.82)',
+            padding: { x: 7, y: 4 },
+            align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(845).setVisible(false);
+        const prompt = this.add.text(
+            x,
+            y - (compactNodeLayout ? 115 : 110),
+            'TAP / E  READ CURRENT',
+            {
+            fontSize: '12px',
+            color: '#FFFFFF',
+            backgroundColor: 'rgba(5, 8, 16, 0.92)',
+            padding: { x: 9, y: 6 }
+            }
+        ).setOrigin(0.5).setDepth(846).setVisible(false);
+        const zone = this.add.zone(x, y, 120, 150)
+            .setInteractive({ useHandCursor: true })
+            .setDepth(847);
+        zone.on('pointerdown', () => this.showCurrentEcologyModal());
+
+        this.currentEcologyNode = {
+            config,
+            x,
+            y,
+            snapshot,
+            fieldWash,
+            environment,
+            visual,
+            label,
+            status,
+            echoStatus,
+            prompt,
+            zone,
+            pulseTween: null,
+            elements: [
+                fieldWash,
+                environment,
+                visual,
+                label,
+                status,
+                echoStatus,
+                prompt,
+                zone
+            ]
+        };
+        this.drawCurrentEcologyProjection(snapshot.projection);
+        return this.currentEcologyNode;
+    }
+
+    drawCurrentEcologyProjection(projection) {
+        const node = this.currentEcologyNode;
+        if (!node || !projection) return;
+
+        node.snapshot.projection = projection;
+        node.visual.clear();
+        node.visual.fillStyle(projection.secondaryColor, 0.88);
+        node.visual.fillCircle(0, 0, 42);
+        node.visual.lineStyle(5, projection.primaryColor, 0.95);
+        if (projection.nodeState === 'severed') {
+            node.visual.beginPath();
+            node.visual.arc(0, 0, 33, -1.2, 1.05);
+            node.visual.strokePath();
+            node.visual.beginPath();
+            node.visual.arc(0, 0, 33, 1.9, 4.1);
+            node.visual.strokePath();
+            node.visual.lineBetween(-18, -8, -4, 6);
+            node.visual.lineBetween(7, -10, 20, 4);
+        } else {
+            node.visual.strokeCircle(0, 0, 33);
+            node.visual.lineStyle(2, projection.accentColor, 0.75);
+            node.visual.strokeCircle(0, 0, 22);
+        }
+        node.visual.fillStyle(projection.primaryColor, 0.9);
+        node.visual.fillCircle(0, 0, 10);
+
+        node.environment.clear();
+        const visibleLife = Math.round(12 * projection.lifeDensity);
+        for (let index = 0; index < 12; index++) {
+            const direction = index % 2 === 0 ? -1 : 1;
+            const offsetX = direction * (65 + (index % 6) * 24);
+            const baseY = node.y + 36 + (index % 3) * 5;
+            const alive = index < visibleLife;
+            const stemHeight = 18 + (index % 4) * 7;
+            node.environment.lineStyle(
+                3,
+                alive ? projection.primaryColor : 0x3A3138,
+                alive ? 0.7 : 0.25
+            );
+            node.environment.lineBetween(
+                node.x + offsetX,
+                baseY,
+                node.x + offsetX,
+                baseY - stemHeight
+            );
+            node.environment.fillStyle(
+                alive ? projection.accentColor : 0x332B31,
+                alive ? 0.75 : 0.2
+            );
+            node.environment.fillCircle(
+                node.x + offsetX + direction * 4,
+                baseY - stemHeight,
+                alive ? 4 : 3
+            );
+        }
+
+        node.status.setText(
+            `${projection.label}  //  ${projection.vitality}% VITALITY`
+        );
+        node.status.setColor(`#${projection.primaryColor.toString(16).padStart(6, '0')}`);
+        const arrivalPresentation =
+            node.snapshot.arrivalConsequence?.presentation;
+        node.echoStatus.setVisible(Boolean(arrivalPresentation));
+        if (arrivalPresentation) {
+            node.echoStatus.setText(arrivalPresentation.statusLine);
+            node.echoStatus.setColor(
+                `#${arrivalPresentation.primaryColor
+                    .toString(16)
+                    .padStart(6, '0')}`
+            );
+        }
+        node.fieldWash.setFillStyle(
+            projection.primaryColor,
+            projection.glowAlpha * 0.1
+        );
+
+        if (node.pulseTween) {
+            node.pulseTween.stop();
+        }
+        node.visual.setScale(1).setAlpha(1);
+        node.pulseTween = this.tweens.add({
+            targets: node.visual,
+            scaleX: { from: 0.96, to: 1.08 },
+            scaleY: { from: 0.96, to: 1.08 },
+            alpha: { from: 0.72, to: 1 },
+            duration: projection.pulseRate,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        this.renderCurrentAtmosphere(node.snapshot);
+    }
+
+    renderCurrentAtmosphere(snapshot) {
+        const node = this.currentEcologyNode;
+        if (!node || !snapshot) return null;
+
+        this.clearCurrentAtmosphere();
+        const atmosphere = getCurrentAtmosphereProjection(snapshot);
+        const lifeForms = [];
+        const motes = [];
+        const tweens = [];
+        const elements = [];
+        const primaryColor = snapshot.projection.primaryColor;
+        const accentColor = snapshot.projection.accentColor;
+
+        for (let index = 0; index < 12; index++) {
+            const direction = index % 2 === 0 ? -1 : 1;
+            const lane = Math.floor(index / 2);
+            const x = node.x + direction * (82 + lane * 31);
+            const y = node.y - 12 - ((index * 37) % 92);
+            const life = this.add.graphics()
+                .setPosition(x, y)
+                .setDepth(830)
+                .setVisible(index < atmosphere.lifeFormCount);
+            life.fillStyle(primaryColor, 0.78);
+            life.fillEllipse(0, 0, 12, 7);
+            life.fillStyle(accentColor, 0.72);
+            life.fillTriangle(
+                direction * -4,
+                -1,
+                direction * -11,
+                -5,
+                direction * -10,
+                4
+            );
+            life.fillStyle(0xF4F4F4, 0.92);
+            life.fillCircle(direction * 3, -1, 1.4);
+            lifeForms.push(life);
+            elements.push(life);
+
+            if (index < atmosphere.lifeFormCount) {
+                tweens.push(this.tweens.add({
+                    targets: life,
+                    x: x + direction * atmosphere.driftRange,
+                    y: y - 4 - (index % 3) * 3,
+                    angle: direction * (3 + index % 4),
+                    duration:
+                        atmosphere.motionDurationMs + index * 47,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                }));
+            }
+        }
+
+        for (let index = 0; index < 24; index++) {
+            const column = index % 8;
+            const row = Math.floor(index / 8);
+            const x = node.x - 215 + column * 61 + row * 13;
+            const y = node.y - 116 + row * 48 + (column % 2) * 15;
+            const mote = this.add.circle(
+                x,
+                y,
+                1.5 + (index % 3) * 0.7,
+                index % 4 === 0 ? accentColor : primaryColor,
+                0.5 + (index % 3) * 0.12
+            ).setDepth(828).setVisible(index < atmosphere.moteCount);
+            mote.setBlendMode?.(Phaser.BlendModes.ADD);
+            motes.push(mote);
+            elements.push(mote);
+
+            if (index < atmosphere.moteCount) {
+                tweens.push(this.tweens.add({
+                    targets: mote,
+                    y: y - atmosphere.driftRange,
+                    x: x + ((index % 3) - 1) * 7,
+                    alpha: { from: 0.35, to: 0.9 },
+                    duration:
+                        atmosphere.motionDurationMs + index * 31,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                }));
+            }
+        }
+
+        const scars = this.add.graphics().setDepth(835);
+        for (let index = 0; index < atmosphere.scarCount; index++) {
+            const direction = index % 2 === 0 ? -1 : 1;
+            const startX = node.x + direction * (48 + (index % 4) * 18);
+            const startY = node.y - 34 + (index % 3) * 27;
+            scars.lineStyle(5, 0x111111, 0.8);
+            scars.beginPath();
+            scars.moveTo(startX, startY);
+            scars.lineTo(startX + direction * 9, startY + 8);
+            scars.lineTo(startX + direction * 4, startY + 17);
+            scars.lineTo(startX + direction * 14, startY + 25);
+            scars.strokePath();
+            scars.lineStyle(2, 0xD94B4B, 0.9);
+            scars.beginPath();
+            scars.moveTo(startX, startY);
+            scars.lineTo(startX + direction * 9, startY + 8);
+            scars.lineTo(startX + direction * 4, startY + 17);
+            scars.lineTo(startX + direction * 14, startY + 25);
+            scars.strokePath();
+        }
+        elements.push(scars);
+
+        const audioTimer = this.time.addEvent({
+            delay: atmosphere.soundscape.intervalMs,
+            loop: true,
+            callback: () => {
+                window.AudioManager?.playSound?.(
+                    atmosphere.soundscape.cueId,
+                    atmosphere.soundscape.volume
+                );
+            }
+        });
+
+        this.currentAtmosphereProjection = atmosphere;
+        this.currentAtmosphere = {
+            lifeForms,
+            motes,
+            scars,
+            tweens,
+            audioTimer,
+            elements
+        };
+        return atmosphere;
+    }
+
+    clearCurrentAtmosphere() {
+        const atmosphere = this.currentAtmosphere;
+        atmosphere?.audioTimer?.remove?.();
+        atmosphere?.tweens?.forEach(tween => {
+            tween?.stop?.();
+            tween?.remove?.();
+        });
+        atmosphere?.elements?.forEach(element => {
+            element?.destroy?.();
+        });
+        this.currentAtmosphere = null;
+        this.currentAtmosphereProjection = null;
+    }
+
+    refreshCurrentEcologyNode({ celebrate = false } = {}) {
+        const node = this.currentEcologyNode;
+        const snapshot = window.CurrentEcology?.getCurrentRegionSnapshot?.(
+            window.GameState,
+            this.levelId
+        );
+        if (!node || !snapshot) return null;
+
+        node.snapshot = snapshot;
+        this.drawCurrentEcologyProjection(snapshot.projection);
+        this.renderCurrentEcologyModalState();
+        if (celebrate) {
+            window.FeedbackManager?.cameraFlash?.(this, 450, 143, 227, 207);
+            window.FXLibrary?.stardustBurst?.(this, node.x, node.y, {
+                count: 28,
+                color: [
+                    snapshot.projection.primaryColor,
+                    snapshot.projection.accentColor
+                ],
+                duration: 1500
+            });
+        }
+        return snapshot;
+    }
+
+    updateCurrentEcologyNodeProximity() {
+        const node = this.currentEcologyNode;
+        if (!node || !this.player || this.currentEcologyModalElements.length > 0) {
+            return;
+        }
+
+        const distance = Phaser.Math.Distance.Between(
+            this.player.x,
+            this.player.y,
+            node.x,
+            node.y
+        );
+        const nearby = distance <= 165;
+        if (nearby !== this.currentEcologyPlayerNearby) {
+            this.currentEcologyPlayerNearby = nearby;
+            node.prompt.setVisible(nearby);
+        }
+    }
+
+    hasObservedCurrentEcologyNode() {
+        return Boolean(
+            this.currentEcologyNode?.snapshot?.region?.actionCounts?.observe > 0
+        );
+    }
+
+    getCurrentEcologyInstruction() {
+        if (!this.hasObservedCurrentEcologyNode()) {
+            return 'SCAN FIRST // Observe the living rhythm before Project Beacon changes it.';
+        }
+
+        return 'SCAN LOGGED // Protect or Redirect helps this habitat. Siphon gains power by weakening it.';
+    }
+
+    getCurrentEcologyActionButtonLabel(actionId) {
+        const presentation = getCurrentRegionActionPresentation(actionId);
+        if (!presentation) return actionId.toUpperCase();
+
+        const observed = this.hasObservedCurrentEcologyNode();
+        if (actionId === 'observe' && observed) {
+            return `${presentation.label}\nSCAN LOGGED`;
+        }
+        if (actionId !== 'observe' && !observed) {
+            return `${presentation.label}\nSCAN REQUIRED`;
+        }
+        return `${presentation.label}\n${presentation.effectLabel.replace(' / ', '\n')}`;
+    }
+
+    renderCurrentEcologyActionButtons() {
+        const observed = this.hasObservedCurrentEcologyNode();
+        this.currentEcologyModalActionButtons?.forEach((button, actionId) => {
+            const locked = actionId !== 'observe' && !observed;
+            const logged = actionId === 'observe' && observed;
+            const backgroundColor = locked || logged
+                ? '#343B49'
+                : actionId === 'siphon'
+                    ? '#7A2525'
+                    : actionId === 'observe'
+                        ? '#25627A'
+                        : '#287A72';
+            button
+                .setText(this.getCurrentEcologyActionButtonLabel(actionId))
+                .setBackgroundColor(backgroundColor)
+                .setAlpha(locked || logged ? 0.62 : 1);
+        });
+    }
+
+    handleCurrentEcologyAction(actionId) {
+        const observed = this.hasObservedCurrentEcologyNode();
+        if (actionId !== 'observe' && !observed) {
+            this.renderCurrentEcologyModalState(
+                'SCAN REQUIRED // Observe first. A living system should be understood before it is changed.'
+            );
+            window.AudioManager?.playError?.();
+            return {
+                changed: false,
+                reason: 'observation_required',
+                actionId
+            };
+        }
+        if (actionId === 'observe' && observed) {
+            this.renderCurrentEcologyModalState(
+                'SCAN LOGGED // The field record already contains this living rhythm.'
+            );
+            return {
+                changed: false,
+                reason: 'already_observed',
+                actionId
+            };
+        }
+        return this.applyCurrentEcologyAction(actionId);
+    }
+
+    showCurrentEcologyModal() {
+        const node = this.currentEcologyNode;
+        if (!node || this.currentEcologyModalElements.length > 0) return;
+
+        const layout = this.getLevelModalLayout({
+            maxWidth: 440,
+            maxHeight: 500,
+            margin: 16
+        });
+        const {
+            width, height, panelWidth, panelHeight, panelX, panelY,
+            contentWidth, y, font
+        } = layout;
+        this.currentEcologyWasPaused = Boolean(this.physics?.world?.isPaused);
+        this.physics?.pause?.();
+        this.hidePlatformerMobileControls?.();
+
+        const overlay = this.add.rectangle(0, 0, width, height, 0x050811, 0.88)
+            .setOrigin(0)
+            .setScrollFactor(0)
+            .setDepth(6100);
+        const panel = this.add.graphics().setScrollFactor(0).setDepth(6101);
+        panel.fillStyle(0x101522, 0.98);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+        panel.lineStyle(3, node.snapshot.projection.primaryColor, 1);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+
+        const title = this.add.text(width / 2, y(35), 'CURRENT FIELD INTERFACE', {
+            fontSize: font(21, 17),
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(6102);
+        const region = this.add.text(
+            width / 2,
+            y(66),
+            `${node.snapshot.definition.label.toUpperCase()}  //  ${node.snapshot.projection.label}`,
+            {
+                fontSize: font(13, 11),
+                fontFamily: 'Arial, sans-serif',
+                color: '#8FE3CF'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(6102);
+        const fieldLine = this.add.text(
+            width / 2,
+            y(103),
+            [
+                node.snapshot.projection.fieldLine,
+                this.currentAtmosphereProjection?.companionLine
+            ].filter(Boolean).join('\n'),
+            {
+                fontSize: font(14, 12),
+                fontFamily: 'Arial, sans-serif',
+                color: '#D8DEE9',
+                align: 'center',
+                wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(6102);
+
+        const barX = width / 2 - contentWidth / 2;
+        const barY = y(145);
+        const barBg = this.add.rectangle(
+            barX,
+            barY,
+            contentWidth,
+            14,
+            0x272D3A,
+            1
+        ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(6102);
+        const barFill = this.add.rectangle(
+            barX,
+            barY,
+            contentWidth * node.snapshot.projection.vitality / 100,
+            14,
+            node.snapshot.projection.primaryColor,
+            1
+        ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(6103);
+        const vitality = this.add.text(
+            width / 2,
+            y(170),
+            `LOCAL VITALITY ${node.snapshot.projection.vitality}%`,
+            {
+                fontSize: font(12, 10),
+                fontFamily: 'Arial, sans-serif',
+                color: '#FFFFFF'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(6102);
+        const resultText = this.add.text(
+            width / 2,
+            y(220),
+            node.snapshot.arrivalConsequence?.presentation
+                ? [
+                    node.snapshot.arrivalConsequence.presentation.label,
+                    node.snapshot.arrivalConsequence.presentation.fieldLine
+                ].join(' // ')
+                : this.getCurrentEcologyInstruction(),
+            {
+                fontSize: font(13, 11),
+                fontFamily: 'Arial, sans-serif',
+                color: '#F2C14E',
+                align: 'center',
+                wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(6102);
+
+        this.currentEcologyModalElements = [
+            overlay, panel, title, region, fieldLine, barBg, barFill,
+            vitality, resultText
+        ];
+        this.currentEcologyModalView = {
+            panel,
+            region,
+            fieldLine,
+            barFill,
+            vitality,
+            resultText,
+            barWidth: contentWidth
+        };
+
+        const actionIds = ['observe', 'protect', 'redirect', 'siphon'];
+        this.currentEcologyModalActionButtons = new Map();
+        actionIds.forEach((actionId, index) => {
+            const column = index % 2;
+            const row = Math.floor(index / 2);
+            const actionX = width / 2 + (column === 0 ? -contentWidth * 0.26 : contentWidth * 0.26);
+            const actionY = y(292 + row * 72);
+            const actionWidth = Math.max(96, contentWidth * 0.48);
+            const button = this.add.text(
+                actionX,
+                actionY,
+                this.getCurrentEcologyActionButtonLabel(actionId),
+                {
+                    fontSize: font(13, 11),
+                    fontFamily: 'Arial, sans-serif',
+                    color: '#FFFFFF',
+                    backgroundColor: '#343B49',
+                    fontStyle: 'bold',
+                    align: 'center',
+                    lineSpacing: 3,
+                    padding: { x: 8, y: 7 }
+                }
+            ).setFixedSize(actionWidth, 58)
+                .setOrigin(0.5).setScrollFactor(0).setDepth(6103)
+                .setInteractive({ useHandCursor: true });
+            button.on('pointerdown', () => this.handleCurrentEcologyAction(actionId));
+            this.currentEcologyModalActionButtons.set(actionId, button);
+            this.currentEcologyModalElements.push(button);
+        });
+        this.renderCurrentEcologyActionButtons();
+
+        const close = this.add.text(width / 2, y(450), 'RETURN TO EXPEDITION', {
+            fontSize: font(14, 12),
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            backgroundColor: '#3A4050',
+            padding: { x: 20, y: 12 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(6103)
+            .setInteractive({ useHandCursor: true });
+        close.on('pointerdown', () => this.clearCurrentEcologyModal());
+        this.currentEcologyModalElements.push(close);
+    }
+
+    renderCurrentEcologyModalState(message = null) {
+        const view = this.currentEcologyModalView;
+        const projection = this.currentEcologyNode?.snapshot?.projection;
+        if (!view || !projection) return;
+
+        view.panel.clear();
+        const layout = this.getLevelModalLayout({
+            maxWidth: 440,
+            maxHeight: 500,
+            margin: 16
+        });
+        view.panel.fillStyle(0x101522, 0.98);
+        view.panel.fillRoundedRect(
+            layout.panelX,
+            layout.panelY,
+            layout.panelWidth,
+            layout.panelHeight,
+            8
+        );
+        view.panel.lineStyle(3, projection.primaryColor, 1);
+        view.panel.strokeRoundedRect(
+            layout.panelX,
+            layout.panelY,
+            layout.panelWidth,
+            layout.panelHeight,
+            8
+        );
+        view.region.setText(
+            `${this.currentEcologyNode.snapshot.definition.label.toUpperCase()}  //  ${projection.label}`
+        );
+        view.fieldLine.setText([
+            projection.fieldLine,
+            this.currentAtmosphereProjection?.companionLine
+        ].filter(Boolean).join('\n'));
+        view.barFill.setFillStyle(projection.primaryColor, 1);
+        view.barFill.setDisplaySize(
+            view.barWidth * projection.vitality / 100,
+            view.barFill.height
+        );
+        view.vitality.setText(`LOCAL VITALITY ${projection.vitality}%`);
+        view.resultText.setText(message || this.getCurrentEcologyInstruction());
+        this.renderCurrentEcologyActionButtons();
+    }
+
+    applyCurrentEcologyAction(actionId) {
+        const ecology = window.CurrentEcology;
+        if (!ecology?.recordCurrentRegionAction || !window.GameState) return null;
+        if (this.isCurrentEcologyReadOnly()) {
+            this.renderCurrentEcologyModalState(
+                'PREVIEW ONLY // No save data or field resources were changed.'
+            );
+            return {
+                changed: false,
+                reason: 'preview_read_only',
+                actionId
+            };
+        }
+
+        const result = ecology.recordCurrentRegionAction(
+            window.GameState,
+            this.levelId,
+            actionId,
+            {
+                operationId: [
+                    'local',
+                    this.levelId,
+                    Date.now(),
+                    this.currentEcologyOperationSequence++
+                ].join('_')
+            }
+        );
+        if (!result) return null;
+
+        if (result.changed) {
+            this.refreshCurrentEcologyNode();
+            if (actionId === 'siphon') {
+                this.crystalEnergy = Math.min(
+                    this.maxCrystalEnergy || 5,
+                    (this.crystalEnergy || 0) + 1
+                );
+            }
+            this.showFloatingText(
+                result.action.companionLine,
+                this.player.x,
+                this.player.y - 75,
+                actionId === 'siphon' ? '#F28B82' : '#8FE3CF'
+            );
+            this.renderCurrentEcologyModalState(
+                `${result.action.result}\n${result.beforeVitality}% → ${result.afterVitality}%`
+            );
+        } else {
+            const message = {
+                already_observed: 'This rhythm is already in the field record.',
+                observation_required: 'SCAN REQUIRED // Observe before influencing this living system.',
+                guardian_restored: 'The guardian now protects this node. No extraction permitted.',
+                duplicate_operation: 'This field action was already recorded.'
+            }[result.reason] || 'The Current does not respond.';
+            this.renderCurrentEcologyModalState(message);
+        }
+        return result;
+    }
+
+    clearCurrentEcologyModal({ resume = true } = {}) {
+        this.currentEcologyModalElements?.forEach(element => {
+            element?.removeAllListeners?.();
+            element?.destroy?.();
+        });
+        this.currentEcologyModalElements = [];
+        this.currentEcologyModalActionButtons = new Map();
+        this.currentEcologyModalView = null;
+        if (
+            resume &&
+            !this.currentEcologyWasPaused &&
+            !this.levelCompletionActive &&
+            !this.isPlayerDead
+        ) {
+            this.physics?.resume?.();
+            this.showPlatformerMobileControls?.();
+        }
+        this.currentEcologyWasPaused = false;
+    }
+
+    clearCurrentEcologyNode() {
+        this.clearCurrentAtmosphere();
+        const node = this.currentEcologyNode;
+        if (!node) return;
+        node.pulseTween?.stop?.();
+        node.elements?.forEach(element => {
+            element?.removeAllListeners?.();
+            element?.destroy?.();
+        });
+        this.currentEcologyNode = null;
+        this.currentEcologyPlayerNearby = false;
+    }
+
     /**
      * Return to hub world
      */
@@ -3942,6 +5921,18 @@ class PlatformerLevelScene extends Phaser.Scene {
         window.EconomyManager?.clearLevelCoinMultiplier?.();
         this.katanaArtifactModal?.destroy?.();
         this.katanaArtifactModal = null;
+        this.companionMediaRequest += 1;
+        this.companionRescueTableau?.destroy?.();
+        this.companionRescueTableau = null;
+        this.residentReleaseOpen = false;
+        this.residentReleaseTableau?.destroy?.();
+        this.residentReleaseTableau = null;
+        this.residentReleaseElements?.forEach(element => element?.destroy?.());
+        this.residentReleaseElements = [];
+        this.clearCurrentEcologyModal({ resume: false });
+        this.clearCurrentEcologyNode();
+        this.clearAutonomousRescueMoment();
+        this.clearMobileControlCoach();
 
         // Remove keyboard listeners
         if (this.input && this.input.keyboard) {
@@ -3949,6 +5940,9 @@ class PlatformerLevelScene extends Phaser.Scene {
             if (this.attackKey) this.attackKey.off('down');
             if (this.specialKey) this.specialKey.off('down');
             if (this.rangedKey) this.rangedKey.off('down');
+            if (this.currentEcologyInteractKey) {
+                this.currentEcologyInteractKey.off('down');
+            }
         }
 
         // Clean up mobile controls
@@ -3961,7 +5955,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                     // Element may already be destroyed
                 }
             });
-            this.mobileControlElements = [];
+        this.mobileControlElements = [];
         }
 
         // Reset mobile control state
@@ -3969,6 +5963,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.virtualJoystickX = 0;
         this.virtualJumpPressed = false;
         this.joystickThumb = null;
+        this.mobileControlTargets = {};
 
         // Clean up pause menu
         if (this.pauseEscHandler) {
@@ -4038,6 +6033,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Null references
         this.astronautFollower?.destroy();
         this.astronautFollower = null;
+        this.destroyGuardianTeamSupportEcho();
         this.player = null;
         this.platforms = null;
         this.enemies = null;
@@ -4127,6 +6123,304 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     /**
+     * Keep the rescue payoff connected to the persistent Sanctuary resident.
+     */
+    getGuardianSanctuaryArrivalCopy({ compact = false } = {}) {
+        const guardian = this.levelCompletionResult?.guardianResident;
+        const resident = this.levelCompletionResult?.rescuedResident;
+        if (resident) {
+            return compact
+                ? `${resident.name} FREED -> SANCTUARY // ${resident.role}`
+                : `LOCAL RESCUED // ${resident.name}\n${resident.role} // ${resident.supportLabel}`;
+        }
+        if (!guardian) return null;
+
+        if (!guardian.newlyRescued) {
+            return compact
+                ? `${guardian.name} // SANCTUARY RESIDENT`
+                : `SANCTUARY RESIDENT // ${guardian.name}\n${guardian.role} remains on duty near Wanderer-77.`;
+        }
+
+        return compact
+            ? `${guardian.name} -> SANCTUARY // ${guardian.role}`
+            : `SANCTUARY ARRIVAL // ${guardian.name}\n${guardian.role} // ${guardian.routine}`;
+    }
+
+    getVillageCompletionCopy({ compact = false } = {}) {
+        const support = this.villageSupport || {};
+        const lines = [];
+        if (support.victoryCoinBonus > 0) {
+            lines.push(`SAWMILL +${support.victoryCoinBonus} COINS`);
+        }
+        if (support.guardCharges > 0) {
+            lines.push(`MASONRY ${support.guardCharges} GUARD`);
+        }
+        if (support.maxEnergyBonus > 0) {
+            lines.push(`WORKSHOP +${support.maxEnergyBonus} ENERGY`);
+        }
+        if (lines.length === 0) return '';
+        return compact
+            ? `VILLAGE // ${lines.join(' · ')}`
+            : `Village support active: ${lines.join(' · ')}`;
+    }
+
+    showRescuedResidentReleaseMoment(resident) {
+        if (!resident?.newlyRescued || this.residentReleaseOpen) return false;
+        this.residentReleaseOpen = true;
+        const { width, height } = this.cameras.main;
+        const compact = width < 620 || height < 620;
+        const depth = 8200;
+        const centerX = width / 2;
+        const artX = compact ? centerX : width * 0.67;
+        const artY = compact ? height * 0.36 : height * 0.47;
+        const artSize = Math.min(compact ? width * 0.46 : width * 0.34, height * 0.55);
+        const elements = [];
+
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x02080B, 0.97);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setScrollFactor(0).setDepth(depth).setInteractive(
+            new Phaser.Geom.Rectangle(0, 0, width, height),
+            Phaser.Geom.Rectangle.Contains
+        );
+        elements.push(overlay);
+
+        const mediaService = window.CompanionMediaService || companionMediaService;
+        Promise.resolve(mediaService?.createCinematicStill?.(this, {
+            momentId: `resident_release_${resident.id}`,
+            stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby',
+            depth: depth + 1,
+            alpha: 0.24,
+            veilAlpha: 0.08,
+            duration: 60000,
+            isCurrent: () => (
+                this.residentReleaseOpen &&
+                this.sys?.isActive?.() !== false
+            )
+        })).then(tableau => {
+            if (!tableau) return;
+            if (!this.residentReleaseOpen || this.sys?.isActive?.() === false) {
+                tableau.destroy?.();
+                return;
+            }
+            this.residentReleaseTableau = tableau;
+        }).catch(() => null);
+
+        const header = this.add.text(
+            compact ? centerX : width * 0.06,
+            compact ? 30 : height * 0.12,
+            'PROJECT BEACON // LIFE SIGNAL RELEASED',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '12px' : '16px',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(compact ? 0.5 : 0, 0.5).setScrollFactor(0).setDepth(depth + 3);
+        elements.push(header);
+
+        const pixel = this.add.graphics();
+        pixel.fillStyle(resident.color, 1);
+        pixel.fillRoundedRect(artX - 32, artY - 30, 64, 70, 12);
+        pixel.fillStyle(0xF4F4F4, 1);
+        pixel.fillCircle(artX - 13, artY - 8, 10);
+        pixel.fillCircle(artX + 13, artY - 8, 10);
+        pixel.fillStyle(0x101616, 1);
+        pixel.fillCircle(artX - 12, artY - 8, 4);
+        pixel.fillCircle(artX + 14, artY - 8, 4);
+        pixel.setScrollFactor(0).setDepth(depth + 2);
+        elements.push(pixel);
+
+        let artwork = null;
+        if (this.textures.exists(resident.textureKey)) {
+            artwork = this.add.image(artX, artY, resident.textureKey)
+                .setScrollFactor(0)
+                .setDepth(depth + 2)
+                .setAlpha(0);
+            const scale = Math.min(
+                artSize / Math.max(1, artwork.width),
+                artSize / Math.max(1, artwork.height)
+            );
+            artwork.setScale(scale);
+            elements.push(artwork);
+        }
+
+        const cage = this.add.graphics();
+        cage.lineStyle(compact ? 6 : 8, 0xA7B0B8, 0.95);
+        for (let offset = -60; offset <= 60; offset += 30) {
+            cage.lineBetween(artX + offset, artY - artSize * 0.42, artX + offset, artY + artSize * 0.42);
+        }
+        cage.lineBetween(artX - 75, artY - artSize * 0.42, artX + 75, artY - artSize * 0.42);
+        cage.lineBetween(artX - 75, artY + artSize * 0.42, artX + 75, artY + artSize * 0.42);
+        cage.setScrollFactor(0).setDepth(depth + 4);
+        elements.push(cage);
+
+        const titleX = compact ? centerX : width * 0.06;
+        const titleY = compact ? height * 0.63 : height * 0.3;
+        const title = this.add.text(titleX, titleY, `${resident.name.toUpperCase()} // ${resident.role.toUpperCase()}`, {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: compact ? '21px' : '32px',
+            color: '#F2C14E',
+            fontStyle: 'bold',
+            align: compact ? 'center' : 'left',
+            wordWrap: { width: compact ? width - 32 : width * 0.45 }
+        }).setOrigin(compact ? 0.5 : 0, 0.5).setScrollFactor(0).setDepth(depth + 3);
+        elements.push(title);
+
+        const story = this.add.text(
+            titleX,
+            compact ? height * 0.72 : height * 0.46,
+            `${resident.releaseLine}\n\nFREE, NOT COLLECTED. ${resident.name} chose to return with you.\n${resident.supportLabel}`,
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '12px' : '16px',
+                color: '#F4F4F4',
+                lineSpacing: compact ? 3 : 7,
+                align: compact ? 'center' : 'left',
+                wordWrap: { width: compact ? width - 40 : width * 0.42 }
+            }
+        ).setOrigin(compact ? 0.5 : 0, 0.5).setScrollFactor(0).setDepth(depth + 3);
+        elements.push(story);
+
+        const button = this.add.text(
+            centerX,
+            height - (compact ? 44 : 60),
+            `RETURN WITH ${resident.name.toUpperCase()}`,
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '15px' : '19px',
+                color: '#061116',
+                backgroundColor: '#8FE3CF',
+                fontStyle: 'bold',
+                padding: { x: compact ? 20 : 30, y: 12 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 5)
+            .setInteractive({ useHandCursor: true });
+        elements.push(button);
+
+        const close = () => {
+            if (!this.residentReleaseOpen) return;
+            this.residentReleaseOpen = false;
+            this.residentReleaseTableau?.destroy?.();
+            this.residentReleaseTableau = null;
+            elements.forEach(element => element?.destroy?.());
+            this.residentReleaseElements = [];
+            window.AudioManager?.playButtonClick?.();
+        };
+        button.on('pointerup', close);
+        this.time.delayedCall(700, () => {
+            if (!this.residentReleaseOpen) return;
+            this.tweens.add({ targets: cage, alpha: 0, scaleX: 1.35, duration: 500 });
+            this.tweens.add({ targets: pixel, alpha: artwork ? 0 : 1, duration: 450 });
+            if (artwork) {
+                this.tweens.add({ targets: artwork, alpha: 1, duration: 700 });
+            }
+            window.AudioManager?.playAchievement?.();
+        });
+        this.residentReleaseElements = elements;
+        return true;
+    }
+
+    /**
+     * Let the player's exact living-form portrait witness each first rescue.
+     * This only resolves stored art; it never starts generation or blocks rewards.
+     */
+    showCompanionGuardianRescueTableau(guardian) {
+        const mediaService = window.CompanionMediaService ||
+            companionMediaService;
+        if (
+            !guardian?.newlyRescued ||
+            !mediaService?.createCinematicStill
+        ) {
+            return false;
+        }
+
+        this.companionMediaRequest += 1;
+        const requestId = this.companionMediaRequest;
+        const guardianId = String(guardian.id || 'guardian')
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]/g, '_')
+            .slice(0, 32);
+        const momentId = `guardian_rescue_${guardianId}`;
+        this.companionRescueTableau?.destroy?.();
+        this.companionRescueTableau = null;
+
+        Promise.resolve(
+            mediaService.createCinematicStill(this, {
+                momentId,
+                stage: window.GameState?.get?.(
+                    'creature.lifecycle.stage'
+                ) || 'baby',
+                record: this.rescuePortraitPreview
+                    ? {
+                        identityKey: 'preview_companion_23:baby:portrait',
+                        stage: 'baby',
+                        imageUrl: '/marketing/nova.webp',
+                        assetRef: null,
+                        storage: 'preview'
+                    }
+                    : null,
+                depth: 1800,
+                alpha: 0.62,
+                duration: 5600,
+                isCurrent: () => (
+                    this.levelCompletionActive &&
+                    this.companionMediaRequest === requestId &&
+                    this.sys?.isActive?.() !== false
+                )
+            })
+        ).then(tableau => {
+            if (!tableau) return;
+            if (
+                this.companionMediaRequest !== requestId ||
+                this.sys?.isActive?.() === false
+            ) {
+                tableau.destroy?.();
+                return;
+            }
+            const width = this.cameras?.main?.width || this.scale.width;
+            const height = this.cameras?.main?.height || this.scale.height;
+            const companionName = this.rescuePortraitPreview
+                ? 'Nova'
+                : window.GameState?.get?.('creature.name') || 'Your companion';
+            const allianceLabel = this.add.text(
+                width / 2,
+                height * 0.8,
+                `FIRST ALLIANCE // ${companionName.toUpperCase()}`,
+                {
+                    fontSize: width < 600 ? '13px' : '17px',
+                    color: '#F2C14E',
+                    fontStyle: 'bold',
+                    stroke: '#03040A',
+                    strokeThickness: 4,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(1995).setScrollFactor(0);
+            const arrivalLabel = this.add.text(
+                width / 2,
+                height * 0.85,
+                `${guardian.name} will return to the Sanctuary.`,
+                {
+                    fontSize: width < 600 ? '11px' : '14px',
+                    color: '#B9DAD7',
+                    stroke: '#03040A',
+                    strokeThickness: 3,
+                    align: 'center',
+                    wordWrap: { width: width * 0.82 }
+                }
+            ).setOrigin(0.5).setDepth(1995).setScrollFactor(0);
+            tableau.elements.push(allianceLabel, arrivalLabel);
+            this.companionRescueTableau = tableau;
+        }).catch(error => {
+            console.warn(
+                '[PlatformerLevel] Companion rescue portrait unavailable:',
+                error.message
+            );
+        });
+        return true;
+    }
+
+    /**
      * Apply the progression shared by every completed platformer level.
      * This is intentionally idempotent for a single scene run because victory
      * callbacks can overlap while their final animations are still active.
@@ -4160,10 +6454,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         let katanaUpgradeAwarded = false;
         let katanaUpgrade = null;
         let nextGateUnlock = null;
+        let currentRestoration = null;
+        let guardianResident = null;
+        let guardianExpedition = null;
+        let rescuedResident = null;
         const configuredVictoryCoins = calculateVictoryCoins(
             achievementLevelId,
             rewardBonusCount
-        );
+        ) + (this.rescuedResidentSupport?.victoryCoinBonus || 0) +
+            (this.villageSupport?.victoryCoinBonus || 0);
         let coinsAwarded = 0;
 
         this.recordLevelSuccess();
@@ -4208,15 +6507,57 @@ class PlatformerLevelScene extends Phaser.Scene {
             speedrunThreshold
         };
 
-        if (window.AchievementSystem?.recordEvent) {
-            window.AchievementSystem.recordEvent('level_completed', completionData);
-        } else if (gameState) {
+        if (gameState) {
+            currentRestoration = recordCurrentRegionRestoration(
+                gameState,
+                achievementLevelId,
+                { save: false }
+            );
+            if (currentRestoration?.changed) {
+                this.refreshCurrentEcologyNode({ celebrate: true });
+            }
+            guardianResident = window.GuardianResidents
+                ?.recordGuardianRescue?.(
+                    gameState,
+                    achievementLevelId,
+                    { save: false }
+                ) || null;
+            guardianExpedition = window.GuardianResidents
+                ?.recordGuardianExpedition?.(gameState, {
+                    levelId: achievementLevelId,
+                    noDamage,
+                    interventionCount: this.guardianInterventions,
+                    save: false
+                }) || null;
+            rescuedResident = window.RescuedResidents
+                ?.recordRescuedResident?.(
+                    gameState,
+                    achievementLevelId,
+                    { save: false }
+                ) || null;
+        }
+
+        // Campaign progression is authoritative GameState, not an achievement
+        // side effect. Record it first so a badge evaluation failure can never
+        // strand a player after they have completed an expedition.
+        if (gameState) {
             gameState.set(completionPath, true);
             if (noDamage) {
                 gameState.set(`levels.${achievementLevelId}.noDamageRun`, true);
             }
             if (speedrunThreshold > 0 && completionTime < speedrunThreshold) {
                 gameState.set(`levels.${achievementLevelId}.speedrun`, true);
+            }
+        }
+
+        if (window.AchievementSystem?.recordEvent) {
+            try {
+                window.AchievementSystem.recordEvent('level_completed', completionData);
+            } catch (error) {
+                console.warn(
+                    '[PlatformerLevel] Achievement processing failed after level completion:',
+                    error
+                );
             }
         }
 
@@ -4243,14 +6584,14 @@ class PlatformerLevelScene extends Phaser.Scene {
                 const nextCompletedCount = completedCount + 1;
                 gameState.set('stats.levelsCompleted', nextCompletedCount);
                 queueProjectBeaconDebrief(gameState, {
-                    completionNumber: nextCompletedCount,
                     levelId: achievementLevelId,
                     shipPartId
                 });
                 nextGateUnlock = unlockProjectBeaconMilestone(
                     gameState,
-                    nextCompletedCount
+                    achievementLevelId
                 );
+                gameState.syncCanonicalCampaignGates?.();
             }
 
             const bond = gameState.get('creature.bond');
@@ -4294,8 +6635,65 @@ class PlatformerLevelScene extends Phaser.Scene {
             coinsAwarded,
             nextGateId: nextGateUnlock?.gateId || null,
             nextGateUnlocked: nextGateUnlock?.newlyUnlocked === true,
+            currentEcology: currentRestoration
+                ? {
+                    changed: currentRestoration.changed,
+                    regionId: currentRestoration.regionId,
+                    regionLabel: currentRestoration.regionLabel,
+                    beforeVitality: currentRestoration.beforeVitality,
+                    afterVitality: currentRestoration.afterVitality,
+                    networkVitality: currentRestoration.summary.vitality,
+                    restoredCount: currentRestoration.summary.restoredCount,
+                    totalRegions: currentRestoration.summary.totalRegions,
+                    networkStatus: currentRestoration.summary.networkStatus
+                }
+                : null,
+            guardianResident: guardianResident
+                ? {
+                    id: guardianResident.guardian.id,
+                    name: guardianResident.guardian.name,
+                    newlyRescued: guardianResident.changed,
+                    role: guardianResident.guardian.role,
+                    routine: guardianResident.guardian.routine,
+                    futureAbility: guardianResident.guardian.futureAbility
+                }
+                : null,
+            guardianExpedition: guardianExpedition?.changed
+                ? {
+                    guardianId: guardianExpedition.entry.guardianId,
+                    levelId: guardianExpedition.entry.levelId,
+                    interventionCount:
+                        guardianExpedition.entry.interventionCount,
+                    noDamage: guardianExpedition.entry.noDamage
+                }
+                : null,
+            rescuedResident: rescuedResident
+                ? {
+                    id: rescuedResident.resident.id,
+                    name: rescuedResident.resident.name,
+                    newlyRescued: rescuedResident.changed,
+                    role: rescuedResident.resident.role,
+                    kind: rescuedResident.resident.kind,
+                    artwork: rescuedResident.resident.artwork,
+                    textureKey: rescuedResident.resident.textureKey,
+                    color: rescuedResident.resident.color,
+                    accent: rescuedResident.resident.accent,
+                    releaseLine: rescuedResident.resident.releaseLine,
+                    sanctuaryLine: rescuedResident.resident.sanctuaryLine,
+                    supportLabel: rescuedResident.resident.supportLabel
+                }
+                : null,
             firstCompletion: !wasCompleted
         };
+
+        const residentReleaseShown = this.showRescuedResidentReleaseMoment(
+            this.levelCompletionResult.rescuedResident
+        );
+        if (!residentReleaseShown) {
+            this.showCompanionGuardianRescueTableau(
+                this.levelCompletionResult.guardianResident
+            );
+        }
 
         return this.levelCompletionResult;
     }

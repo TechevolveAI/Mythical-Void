@@ -20,6 +20,7 @@ class TutorialSystem {
                 id: 'movement',
                 title: 'Movement',
                 message: 'Use WASD or Arrow Keys to move your creature around the world',
+                messageMobile: 'Use the lower-left joystick to move around the Fend.',
                 condition: (gameState, scene) => {
                     // Check if player has moved significantly from start
                     const pos = gameState.world.currentPosition;
@@ -31,6 +32,7 @@ class TutorialSystem {
                 id: 'interaction',
                 title: 'Interaction',
                 message: 'Press SPACE when near flowers to interact and gain XP',
+                messageMobile: 'Move near a flower, then tap the hand button to interact.',
                 condition: (gameState, scene) => {
                     // Check if player has interacted with flowers
                     return (gameState.world.discoveredObjects.flowers || 0) >= 1;
@@ -41,6 +43,7 @@ class TutorialSystem {
                 id: 'care',
                 title: 'Creature Care',
                 message: 'Press TAB to open Care Corner, then choose Feed, Play, or Rest for your creature',
+                messageMobile: 'Tap your companion, choose Care, then Feed, Play, or Rest.',
                 condition: (gameState, scene) => {
                     // Check if player has performed any care action
                     const care = gameState.creature.care;
@@ -52,6 +55,7 @@ class TutorialSystem {
                 id: 'levelUp',
                 title: 'Level Up',
                 message: 'Keep exploring and interacting to gain XP and level up your creature!',
+                messageMobile: 'Explore, help, and interact to earn XP and grow stronger together.',
                 condition: (gameState, scene) => {
                     // Check if creature has reached level 2
                     return (gameState.creature.level || 1) >= 2;

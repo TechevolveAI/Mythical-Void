@@ -1,4 +1,10 @@
 import { getProjectBeaconLog } from '../systems/ProjectBeaconStory.js';
+import {
+    completeRemainAndDefendCampaign
+} from '../systems/RemainAndDefendCampaign.js';
+import {
+    recordCampaignLegacyCapsule
+} from '../systems/CampaignLegacy.js';
 
 /**
  * Persistent, spoiler-safe campaign recap for Project Beacon.
@@ -15,7 +21,9 @@ class ProjectBeaconLogModal {
     }
 
     show(tab = 'mission') {
-        this.activeTab = tab === 'archive' ? 'archive' : 'mission';
+        this.activeTab = ['mission', 'recovery', 'archive'].includes(tab)
+            ? tab
+            : 'mission';
         this.isVisible = true;
         this.render();
     }
@@ -30,9 +38,10 @@ class ProjectBeaconLogModal {
 
         const log = getProjectBeaconLog(this.getGameState());
         const { width, height } = this.scene.cameras.main;
-        const compact = width < 600;
+        const short = height < 520;
+        const compact = width < 600 || height < 650;
         const panelWidth = Math.min(700, width - 24);
-        const panelHeight = Math.min(compact ? 700 : 610, height - 24);
+        const panelHeight = Math.min(compact ? 700 : 690, height - 24);
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
         const contentLeft = panelX + (compact ? 20 : 30);
@@ -72,11 +81,37 @@ class ProjectBeaconLogModal {
             color: '#F2C14E',
             fontStyle: 'bold'
         });
-        this.addText(contentLeft, panelY + 48, `${log.phase}  •  ${log.year}`, {
-            fontSize: compact ? '11px' : '12px',
-            color: '#8FE3CF',
-            fontStyle: 'bold'
+        this.addText(
+            contentLeft,
+            panelY + 48,
+            compact
+                ? `${log.phase}  •  F${log.ship.flightNumber}  •  ${log.year}`
+                : `${log.phase}  •  FLIGHT ${log.ship.flightNumber}  •  ${log.year}`,
+            {
+                fontSize: compact ? '11px' : '12px',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        );
+
+        const livery = this.scene.add.graphics();
+        const liveryX = compact
+            ? panelX + panelWidth - 78
+            : panelX + panelWidth - 94;
+        const liveryY = compact
+            ? panelY + 7
+            : panelY + 51;
+        log.ship.livery.forEach((color, index) => {
+            livery.fillStyle(Phaser.Display.Color.HexStringToColor(color).color, 1);
+            livery.fillRect(
+                liveryX + (index * 13),
+                liveryY,
+                10,
+                5
+            );
         });
+        livery.setScrollFactor(0).setDepth(17603);
+        this.elements.push(livery);
 
         const close = this.addText(panelX + panelWidth - 24, panelY + 28, 'X', {
             fontSize: '17px',
@@ -89,14 +124,21 @@ class ProjectBeaconLogModal {
         this.createTab(
             contentLeft,
             panelY + 78,
-            contentWidth / 2 - 4,
+            contentWidth / 3 - 5,
             'MISSION',
             'mission'
         );
         this.createTab(
-            contentLeft + contentWidth / 2 + 4,
+            contentLeft + contentWidth / 3 + 1,
             panelY + 78,
-            contentWidth / 2 - 4,
+            contentWidth / 3 - 2,
+            compact ? 'RECOVER' : 'RECOVERY',
+            'recovery'
+        );
+        this.createTab(
+            contentLeft + (contentWidth / 3) * 2 + 5,
+            panelY + 78,
+            contentWidth / 3 - 5,
             'FIELD REPORTS',
             'archive'
         );
@@ -104,6 +146,18 @@ class ProjectBeaconLogModal {
         if (this.activeTab === 'archive') {
             this.renderArchive(log, {
                 compact,
+                short,
+                panelX,
+                panelY,
+                panelWidth,
+                panelHeight,
+                contentLeft,
+                contentWidth
+            });
+        } else if (this.activeTab === 'recovery') {
+            this.renderRecovery(log, {
+                compact,
+                short,
                 panelX,
                 panelY,
                 panelWidth,
@@ -114,6 +168,7 @@ class ProjectBeaconLogModal {
         } else {
             this.renderMission(log, {
                 compact,
+                short,
                 panelX,
                 panelY,
                 panelWidth,
@@ -151,7 +206,7 @@ class ProjectBeaconLogModal {
         y += detail.height + 22;
 
         const progressY = y;
-        this.addLabel(contentLeft, progressY, 'WANDERER-7 SYSTEMS');
+        this.addLabel(contentLeft, progressY, `${log.ship.name.toUpperCase()} SYSTEMS`);
         this.addText(contentLeft + contentWidth, progressY, `${log.recoveredSystems}/${log.totalSystems}`, {
             fontSize: '12px',
             color: '#8FE3CF',
@@ -183,18 +238,154 @@ class ProjectBeaconLogModal {
         });
         y += log.systems.length * rowHeight + 18;
 
+        this.addLabel(contentLeft, y, 'CURRENT NETWORK');
+        y += 22;
+        this.addText(
+            contentLeft,
+            y,
+            `${log.currentEcology.networkStatusLabel}  •  ` +
+                `${log.currentEcology.vitality}% VITALITY  •  ` +
+                `${log.currentEcology.restoredCount}/${log.currentEcology.totalRegions} REGIONS\n` +
+                `CARE ${log.currentEcology.careActions}  •  ` +
+                `BEACON SIPHONS ${log.currentEcology.extractionActions}`,
+            {
+                fontSize: compact ? '11px' : '13px',
+                color: '#8FE3CF',
+                fontStyle: 'bold',
+                lineSpacing: 3,
+                wordWrap: { width: contentWidth }
+            }
+        );
+        y += compact ? 48 : 52;
+
+        this.addLabel(contentLeft, y, 'FEND COMMUNITY');
+        y += 22;
+        const communityProject = log.fendCommunity.complete
+            ? 'LIVING COMMONS ESTABLISHED'
+            : log.fendCommunity.nextProject?.ready
+                ? `${log.fendCommunity.nextProject.label} READY`
+                : `NEXT: ${log.fendCommunity.nextProject?.label || 'LIVING COMMONS'}`;
+        const guardianFocus = log.guardianResidents.taskFocusResident;
+        const guardianFocusLine = guardianFocus
+            ? guardianFocus.taskStatus === 'ready'
+                ? `GUARDIAN READY  •  ${guardianFocus.name.toUpperCase()}  •  ${guardianFocus.task.title.toUpperCase()}\n`
+                : guardianFocus.taskStatus === 'active'
+                    ? `GUARDIAN TASK  •  ${guardianFocus.name.toUpperCase()}  •  ${guardianFocus.taskProgress.progress}/${guardianFocus.taskProgress.target}\n`
+                    : `GUARDIAN REQUEST  •  SPEAK WITH ${guardianFocus.name.toUpperCase()}\n`
+            : '';
+        const compactCulture = log.fendCulture.complete
+            ? `  •  LISTEN ${log.fendCulture.selectedPriority.shortLabel}`
+            : log.fendCulture.ready
+                ? '  •  LISTEN READY'
+                : '';
+        const compactBoundary =
+            log.companionConsent.ready || log.companionConsent.complete
+                ? `EARTH ${log.companionConsent.reviewedCount}/${log.companionConsent.totalTopics} ` +
+                    `${log.companionConsent.complete ? 'RECORDED' : 'RETURN'}  •  `
+                : '';
+        const compactCommunityText =
+            `COMMONS ${log.fendCommunity.stage}/${log.fendCommunity.totalStages}  •  ${communityProject}\n` +
+            `GUARDIANS ${log.guardianResidents.rescuedCount}/${log.guardianResidents.totalResidents}  •  ` +
+            `TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.totalResidents}  •  ` +
+            `SUPPORT ${log.guardianResidents.supportedResidentCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `SYNERGY ${log.guardianResidents.synergyCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `ALLY ${log.guardianResidents.activeTeamResident?.name?.toUpperCase() || 'NONE'}\n` +
+            guardianFocusLine +
+            `SETTLERS ${log.fendResidents.metCount}/${log.fendResidents.totalResidents}  •  ` +
+            `REQUESTS ${log.fendResidents.completedCount}/${log.fendResidents.totalResidents}` +
+            `${compactCulture}\n` +
+            `${compactBoundary}HEART +${log.fendCommunity.support.maxHealthBonus}  •  ` +
+            `CHARGE +${log.fendCommunity.support.maxEnergyBonus}  •  ` +
+            `RELAY ${log.fendCommunity.support.guardCharges}`;
+        const detailedCommunityText =
+            `${log.fendCommunity.stage}/${log.fendCommunity.totalStages} PROJECTS  •  ${communityProject}\n` +
+            `GUARDIANS ${log.guardianResidents.rescuedCount}/${log.guardianResidents.totalResidents}  •  ` +
+            `TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.totalResidents}  •  ` +
+            `SUPPORT ${log.guardianResidents.supportedResidentCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `SYNERGY ${log.guardianResidents.synergyCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `ALLY ${log.guardianResidents.activeTeamResident?.name?.toUpperCase() || 'NONE'}\n` +
+            guardianFocusLine +
+            `SETTLERS ${log.fendResidents.metCount}/${log.fendResidents.totalResidents}  •  ` +
+            `REQUESTS ${log.fendResidents.completedCount}/${log.fendResidents.totalResidents}\n` +
+            (
+                log.fendCulture.complete
+                    ? `FIRST LISTENING  •  ${log.fendCulture.selectedPriority.shortLabel}\n`
+                    : log.fendCulture.ready
+                        ? 'FIRST LISTENING  •  READY AT THE COMMONS\n'
+                        : ''
+            ) +
+            (
+                log.companionConsent.ready || log.companionConsent.complete
+                    ? `EARTH BOUNDARIES  ${log.companionConsent.reviewedCount}/${log.companionConsent.totalTopics}  •  ` +
+                        `${log.companionConsent.complete ? 'RECORDED' : 'RETURN TO WANDERER-77'}\n`
+                    : ''
+            ) +
+            `SUPPORT  HEART +${log.fendCommunity.support.maxHealthBonus}  •  ` +
+            `CHARGE +${log.fendCommunity.support.maxEnergyBonus}  •  ` +
+            `RELAY ${log.fendCommunity.support.guardCharges}`;
+        this.addText(
+            contentLeft,
+            y,
+            compact ? compactCommunityText : detailedCommunityText,
+            {
+                fontSize: compact ? '9px' : '12px',
+                color: '#EAF7F4',
+                fontStyle: 'bold',
+                lineSpacing: 3,
+                wordWrap: { width: contentWidth }
+            }
+        );
+        y += compact
+            ? (guardianFocus ? 86 : 73)
+            : (
+                log.companionConsent.ready ||
+                log.companionConsent.complete
+                    ? 110
+                    : log.fendCulture.ready || log.fendCulture.complete
+                        ? 96
+                        : 82
+            ) + (guardianFocus ? 14 : 0);
+
         this.addLabel(contentLeft, y, 'TRUST RECORD');
         y += 24;
-        const trustLine = `${log.companion.name}  •  Bond level ${log.companion.bondLevel}`;
-        this.addText(contentLeft, y, trustLine, {
+        const rescueRecord = log.companion.autonomousRescues > 0
+            ? `  •  CHOSE TO INTERVENE ${log.companion.autonomousRescues}×`
+            : '';
+        const lineageRecord = log.companion.lineageRecords > 0
+            ? `  •  LINEAGES STABILIZED ${log.companion.lineageRecords}`
+            : '';
+        const highPowerRecord = log.companion.highPowerReveals > 0
+            ? `\nEXTREME POWER WITNESSED ${log.companion.highPowerReveals}×` +
+                '  •  FIVE SYSTEMS STABILIZED'
+            : '';
+        const senseiRecord = log.senseiMemory.ready ||
+            log.senseiMemory.recalledCount > 0
+            ? `\nPERSONAL ARCHIVE ${log.senseiMemory.recalledCount}/${log.senseiMemory.totalMemories}` +
+                (
+                    log.senseiMemory.ready
+                        ? '  •  MEMORY AVAILABLE AT WANDERER-77'
+                        : log.senseiMemory.lesson.unlocked
+                            ? `  •  CENTERING STANCE ${log.senseiMemory.lesson.status.toUpperCase()}`
+                            : ''
+                )
+            : '';
+        const trustLine =
+            `${log.companion.name}  •  Bond level ${log.companion.bondLevel}` +
+            rescueRecord +
+            lineageRecord +
+            highPowerRecord +
+            senseiRecord;
+        const trustText = this.addText(contentLeft, y, trustLine, {
             fontSize: compact ? '13px' : '15px',
             color: '#F2C14E',
             fontStyle: 'bold',
             wordWrap: { width: contentWidth }
         });
-        y += 30;
+        y += trustText.height + 14;
 
-        const note = log.latestReport?.fieldNote
+        const note = log.trustEvidence
+            ? 'On Earth, power at this scale would be detectable across a city.'
+            : log.latestReport?.fieldNote
             || 'First contact offered trust before the mission had words for it.';
         const noteText = this.addText(contentLeft, y, `"${note}"`, {
             fontSize: compact ? '11px' : '13px',
@@ -207,6 +398,222 @@ class ProjectBeaconLogModal {
         if (y + noteText.height > panelY + panelHeight - 24) {
             noteText.setVisible(false);
         }
+    }
+
+    renderRecovery(log, layout) {
+        const {
+            compact,
+            short,
+            panelY,
+            panelHeight,
+            contentLeft,
+            contentWidth
+        } = layout;
+        const campaign = log.remainAndDefend;
+        let y = panelY + (short ? 119 : 124);
+
+        this.addLabel(contentLeft, y, 'REMAIN AND DEFEND // RECOVERY CHAPTER');
+        this.addText(
+            contentLeft + contentWidth,
+            y,
+            `${campaign.completedCount}/${campaign.totalPhases}`,
+            {
+                fontSize: '11px',
+                color: campaign.complete ? '#8FE3CF' : '#F2C14E',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(1, 0);
+        y += short ? 19 : 25;
+
+        const progress = this.scene.add.graphics();
+        progress.fillStyle(0x172A34, 1);
+        const progressHeight = short ? 6 : 8;
+        progress.fillRoundedRect(
+            contentLeft,
+            y,
+            contentWidth,
+            progressHeight,
+            progressHeight / 2
+        );
+        progress.fillStyle(campaign.complete ? 0x71E6B1 : 0x66C7D4, 1);
+        progress.fillRoundedRect(
+            contentLeft,
+            y,
+            contentWidth * (campaign.progressPercent / 100),
+            progressHeight,
+            progressHeight / 2
+        );
+        progress.setScrollFactor(0).setDepth(17603);
+        this.elements.push(progress);
+        y += short ? 14 : 23;
+
+        if (!campaign.unlocked) {
+            this.addText(
+                contentLeft,
+                y,
+                'The recovery chapter begins after Wanderer-77 is restored, the coordinates are protected, and you choose what comes first.',
+                {
+                    fontSize: compact ? '12px' : '14px',
+                    color: '#C7D2DA',
+                    lineSpacing: 5,
+                    wordWrap: { width: contentWidth }
+                }
+            );
+            return;
+        }
+
+        const rowHeight = short ? 28 : compact ? 36 : 39;
+        const columnCount = short ? 2 : 1;
+        const rowsPerColumn = Math.ceil(
+            campaign.phases.length / columnCount
+        );
+        const columnGap = short ? 18 : 0;
+        const columnWidth = short
+            ? (contentWidth - columnGap) / 2
+            : contentWidth;
+        campaign.phases.forEach((phase, index) => {
+            const column = short
+                ? Math.floor(index / rowsPerColumn)
+                : 0;
+            const rowIndex = short ? index % rowsPerColumn : index;
+            const rowX =
+                contentLeft + column * (columnWidth + columnGap);
+            const rowY = y + rowIndex * rowHeight;
+            const current = phase.status === 'current';
+            const row = this.scene.add.graphics();
+            if (current) {
+                row.fillStyle(0x143340, 1);
+                row.fillRoundedRect(
+                    rowX - 4,
+                    rowY - 5,
+                    columnWidth + 8,
+                    rowHeight - 2,
+                    5
+                );
+                row.lineStyle(1, 0x66C7D4, 0.8);
+                row.strokeRoundedRect(
+                    rowX - 4,
+                    rowY - 5,
+                    columnWidth + 8,
+                    rowHeight - 2,
+                    5
+                );
+            }
+            row.setScrollFactor(0).setDepth(17602);
+            this.elements.push(row);
+
+            const marker = phase.complete
+                ? '✓'
+                : current
+                    ? '→'
+                    : '·';
+            const color = phase.complete
+                ? '#8FE3CF'
+                : current
+                    ? '#F2C14E'
+                    : '#657682';
+            this.addText(rowX, rowY, marker, {
+                fontSize: short ? '11px' : '14px',
+                color,
+                fontStyle: 'bold'
+            });
+            this.addText(
+                rowX + (short ? 18 : 24),
+                rowY,
+                `${phase.number}. ${phase.label}`,
+                {
+                    fontSize: short ? '9px' : compact ? '10px' : '12px',
+                    color: current ? '#FFFFFF' : color,
+                    fontStyle: current || phase.complete ? 'bold' : 'normal'
+                }
+            );
+            if (!compact && !short) {
+                this.addText(
+                    contentLeft + contentWidth,
+                    rowY + 1,
+                    phase.status.toUpperCase(),
+                    {
+                        fontSize: '9px',
+                        color,
+                        fontStyle: 'bold'
+                    }
+                ).setOrigin(1, 0);
+            }
+        });
+        y += rowsPerColumn * rowHeight + (short ? 7 : 13);
+
+        if (short && campaign.councilReady && !campaign.complete) {
+            this.createActionButton(
+                contentLeft,
+                panelY + panelHeight - 48 - 12,
+                contentWidth,
+                48,
+                'HOLD THE COMMONS COUNCIL',
+                () => this.completeRecoveryChapter()
+            );
+            return;
+        }
+
+        this.addLabel(contentLeft, y, campaign.complete
+            ? 'CHAPTER RECORD'
+            : 'CURRENT OBJECTIVE');
+        y += 21;
+        const objective = this.addText(
+            contentLeft,
+            y,
+            campaign.complete
+                ? 'The Fend can defend together. No Earth contact was attempted, and any future homecoming remains consent-led.'
+                : campaign.currentPhase.objective,
+            {
+                fontSize: compact ? '11px' : '13px',
+                color: campaign.complete ? '#8FE3CF' : '#DCE8ED',
+                lineSpacing: 4,
+                wordWrap: { width: contentWidth }
+            }
+        );
+
+        if (campaign.councilReady && !campaign.complete) {
+            const buttonHeight = 48;
+            const buttonY =
+                panelY + panelHeight - buttonHeight - (short ? 12 : 18);
+            if (y + objective.height > buttonY - 12) {
+                objective.setVisible(false);
+            }
+            this.createActionButton(
+                contentLeft,
+                buttonY,
+                contentWidth,
+                buttonHeight,
+                'HOLD THE COMMONS COUNCIL',
+                () => this.completeRecoveryChapter()
+            );
+        }
+    }
+
+    completeRecoveryChapter() {
+        const gameState = this.getGameState();
+        const result = completeRemainAndDefendCampaign(gameState, {
+            save: false
+        });
+        if (!result?.changed) {
+            window.AudioManager?.playError?.();
+            return result;
+        }
+        recordCampaignLegacyCapsule(gameState, {
+            intent: result.snapshot.priority,
+            recordedAt: result.state.completedAt
+        });
+        window.AchievementSystem?.recordEvent?.(
+            'story_interaction',
+            {
+                event: 'remain_and_defend_completed',
+                phaseCount: result.snapshot.totalPhases,
+                transmissionStatus: 'not_sent'
+            }
+        );
+        window.AudioManager?.playAchievement?.();
+        this.render();
+        return result;
     }
 
     renderArchive(log, layout) {
@@ -324,6 +731,33 @@ class ProjectBeaconLogModal {
             });
             this.elements.push(zone);
         }
+    }
+
+    createActionButton(x, y, width, height, label, onActivate) {
+        const background = this.scene.add.graphics();
+        background.fillStyle(0x1D5961, 1);
+        background.fillRoundedRect(x, y, width, height, 6);
+        background.lineStyle(2, 0x8FE3CF, 1);
+        background.strokeRoundedRect(x, y, width, height, 6);
+        background.setScrollFactor(0).setDepth(17602);
+        this.elements.push(background);
+
+        this.addText(x + width / 2, y + height / 2, label, {
+            fontSize: '12px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        const zone = this.scene.add.zone(
+            x + width / 2,
+            y + height / 2,
+            width,
+            height
+        );
+        zone.setScrollFactor(0).setDepth(17604);
+        zone.setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', onActivate);
+        this.elements.push(zone);
     }
 
     addLabel(x, y, text) {

@@ -16,6 +16,34 @@ function jsonResponse(status: number, body: Record<string, unknown>) {
     });
 }
 
+async function removeAllMediaFiles(
+    adminClient: ReturnType<typeof createClient>,
+    userId: string,
+    bucket: 'creature-portraits' | 'companion-videos'
+) {
+    const pageSize = 1000;
+    const removalBatchSize = 100;
+
+    while (true) {
+        const { data: portraitFiles, error: listError } =
+            await adminClient.storage
+                .from(bucket)
+                .list(userId, { limit: pageSize, offset: 0 });
+        if (listError) throw listError;
+        if (!portraitFiles?.length) return;
+
+        const paths = portraitFiles.map(file => `${userId}/${file.name}`);
+        for (let index = 0; index < paths.length; index += removalBatchSize) {
+            const { error: storageError } = await adminClient.storage
+                .from(bucket)
+                .remove(paths.slice(index, index + removalBatchSize));
+            if (storageError) throw storageError;
+        }
+
+        if (portraitFiles.length < pageSize) return;
+    }
+}
+
 Deno.serve(async (request) => {
     if (request.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
@@ -64,22 +92,19 @@ Deno.serve(async (request) => {
         }
     });
 
-    const { data: portraitFiles, error: listError } = await adminClient.storage
-        .from('creature-portraits')
-        .list(user.id, { limit: 1000 });
-    if (listError) {
-        console.error('[delete-cloud-identity] Portrait listing failed:', listError.message);
-        return jsonResponse(500, { error: 'Cloud identity could not be deleted' });
-    }
-    if (portraitFiles?.length) {
-        const paths = portraitFiles.map(file => `${user.id}/${file.name}`);
-        const { error: storageError } = await adminClient.storage
-            .from('creature-portraits')
-            .remove(paths);
-        if (storageError) {
-            console.error('[delete-cloud-identity] Portrait deletion failed:', storageError.message);
-            return jsonResponse(500, { error: 'Cloud identity could not be deleted' });
-        }
+    try {
+        await removeAllMediaFiles(adminClient, user.id, 'companion-videos');
+        await removeAllMediaFiles(adminClient, user.id, 'creature-portraits');
+    } catch (mediaError) {
+        console.error(
+            '[delete-cloud-identity] Living media deletion failed:',
+            mediaError instanceof Error
+                ? mediaError.message
+                : String(mediaError)
+        );
+        return jsonResponse(500, {
+            error: 'Cloud identity could not be deleted'
+        });
     }
 
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);

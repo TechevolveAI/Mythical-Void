@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/automation-registry.schema.json",
+  "title": "Mythical company automation registry",
+  "type": "object",
+  "required": ["schemaVersion", "workflows"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "workflows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "status",
+          "autonomy",
+          "purpose",
+          "owner",
+          "dataZones",
+          "externalEffect",
+          "implementation",
+          "approval",
+          "killSwitch"
+        ],
+        "properties": {
+          "id": { "pattern": "^A-[0-9]{3}$" },
+          "name": { "type": "string", "minLength": 3 },
+          "version": { "type": "integer", "minimum": 1 },
+          "status": {
+            "enum": ["designed", "pilot", "active", "paused", "retired"]
+          },
+          "autonomy": { "enum": ["A0", "A1", "A2", "A3", "A4"] },
+          "purpose": { "type": "string", "minLength": 10 },
+          "owner": { "type": "string", "minLength": 2 },
+          "dataZones": {
+            "type": "array",
+            "items": { "enum": ["Z0", "Z1", "Z2", "Z3"] },
+            "uniqueItems": true
+          },
+          "externalEffect": { "type": "boolean" },
+          "implementation": { "type": ["string", "null"] },
+          "approval": {
+            "type": "object",
+            "required": ["required", "role"],
+            "properties": {
+              "required": { "type": "boolean" },
+              "role": { "type": ["string", "null"] }
+            },
+            "additionalProperties": false
+          },
+          "killSwitch": { "type": "string", "minLength": 5 },
+          "promotionCondition": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

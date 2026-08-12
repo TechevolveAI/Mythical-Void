@@ -1,10 +1,10 @@
 {
   "common": {
     "name": "Common",
-    "displayName": "Lovely Companion",
+    "displayName": "Common Signal",
     "emoji": "🟢",
-    "description": "Every creature is special; this one is a Lovely Companion.",
-    "celebrationMessage": "You hatched a wonderful companion!",
+    "description": "A stable Current signature. Classification does not predict the bond it may form.",
+    "celebrationMessage": "First contact confirmed. A living signal has answered.",
     "visual": {
       "frame": "#7CFC00",
       "frameBorder": 2,
@@ -36,10 +36,10 @@
   },
   "unusual": {
     "name": "Unusual",
-    "displayName": "Special Friend",
+    "displayName": "Unusual Signal",
     "emoji": "🟠",
-    "description": "Every creature is special; this one is a Special Friend.",
-    "celebrationMessage": "You hatched a delightfully unusual companion!",
+    "description": "An unusual Current signature with traits outside the mission archive.",
+    "celebrationMessage": "First contact confirmed. The signal carries an unusual Current pattern.",
     "visual": {
       "frame": "#FFA500",
       "frameBorder": 2,
@@ -71,10 +71,10 @@
   },
   "rare": {
     "name": "Rare",
-    "displayName": "Remarkable Companion",
+    "displayName": "Rare Signal",
     "emoji": "🩷",
-    "description": "Every creature is special; this one is a Remarkable Companion.",
-    "celebrationMessage": "Amazing! You hatched a rare and remarkable companion!",
+    "description": "A rare Current signature with uncommon field potential.",
+    "celebrationMessage": "First contact confirmed. The field scan has recorded a rare signal.",
     "visual": {
       "frame": "#FF6B81",
       "frameBorder": 3,
@@ -106,10 +106,10 @@
   },
   "epic": {
     "name": "Epic",
-    "displayName": "Extraordinary Companion",
+    "displayName": "Epic Signal",
     "emoji": "🟣",
-    "description": "Every creature is special; this one is an Extraordinary Companion.",
-    "celebrationMessage": "WOW! You hatched an epic companion with extraordinary abilities!",
+    "description": "An epic Current signature with exceptional resonance.",
+    "celebrationMessage": "First contact confirmed. Exceptional resonance is moving through the signal.",
     "visual": {
       "frame": "#9B59B6",
       "frameBorder": 3,
@@ -144,10 +144,10 @@
   },
   "legendary": {
     "name": "Legendary",
-    "displayName": "Legendary Companion",
+    "displayName": "Legendary Signal",
     "emoji": "⭐",
-    "description": "Every creature is special; this one is a Legendary Companion.",
-    "celebrationMessage": "INCREDIBLE! A legendary companion has chosen you as their friend!",
+    "description": "A legendary Current signature absent from every Project Beacon record.",
+    "celebrationMessage": "First contact confirmed. This signature has no match in the mission archive.",
     "visual": {
       "frame": "#FFD700",
       "frameBorder": 4,
@@ -183,10 +183,10 @@
   },
   "mythic": {
     "name": "Mythic",
-    "displayName": "Mythic Companion",
+    "displayName": "Mythic Signal",
     "emoji": "🌌",
-    "description": "Every creature is special; this one is a Mythic Companion of legend.",
-    "celebrationMessage": "EXTRAORDINARY! A mythic companion from legend has bonded with you!",
+    "description": "A mythic Current signature that exceeds Project Beacon's instruments.",
+    "celebrationMessage": "First contact confirmed. The signal exceeds every known field model.",
     "visual": {
       "frame": "#9370DB",
       "frameBorder": 4,
@@ -223,10 +223,10 @@
   },
   "secret": {
     "name": "Secret",
-    "displayName": "???  Glitched Companion",
+    "displayName": "Unknown Signal",
     "emoji": "❓",
-    "description": "Every creature is special; this one is... something beyond understanding.",
-    "celebrationMessage": "?!?! Something impossible just happened! A glitched companion!",
+    "description": "An unclassified Current signature that the field scanner cannot resolve.",
+    "celebrationMessage": "First contact confirmed. The signal exists beyond the scanner's limits.",
     "visual": {
       "frame": "#00FFFF",
       "frameBorder": 4,

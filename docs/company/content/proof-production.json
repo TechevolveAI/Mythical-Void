@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-11",
+  "status": "specifications_ready_capture_gated",
+  "authority": {
+    "captureAuthorized": false,
+    "proofApprovalAuthorized": false,
+    "derivativeProductionAuthorized": false,
+    "publicationAuthorized": false,
+    "externalActionAuthorized": false,
+    "syntheticGameplayPermitted": false,
+    "personalDataInCapturePermitted": false,
+    "thirdPartyAudioWithoutRightsPermitted": false
+  },
+  "sourceBuild": {
+    "repository": "Mythical-Void",
+    "commit": null,
+    "buildId": null,
+    "buildSha256": null,
+    "releaseLabel": null,
+    "stableBuildApproved": false,
+    "cleanCaptureFixtureVerified": false,
+    "gameDevelopmentOwner": "Unassigned",
+    "approvalRef": "GDH-004"
+  },
+  "productionPolicy": {
+    "continuousMasterRequired": true,
+    "observablePlayerActionRequired": true,
+    "observableGameResponseRequired": true,
+    "editDecisionListRequired": true,
+    "rawMasterRetentionRequired": true,
+    "firstPartyFixtureRequired": true,
+    "debugOverlayPermitted": false,
+    "externalNotificationsPermitted": false,
+    "enteredPlayerOrCreatureIdentifiersPermitted": false,
+    "generatedPixelsVoiceOrAnimationPermitted": false,
+    "montageMayReplaceContinuousEvidence": false,
+    "claimSupportMustBeNarrowlyStated": true
+  },
+  "briefs": [
+    {
+      "id": "PB-001",
+      "proofId": "PF-003",
+      "title": "Hatch through first bond",
+      "status": "spec_ready_gated",
+      "internalBriefReady": true,
+      "captureReady": false,
+      "proofApprovalReady": false,
+      "publicationReady": false,
+      "owner": "Proof owner unassigned",
+      "captureOperator": "Unassigned",
+      "independentReviewer": "Unassigned",
+      "claimRefs": ["CL-005", "CL-006"],
+      "editorialRefs": ["CQ-001", "CQ-003"],
+      "workflowRefs": ["A-003", "A-013", "A-026"],
+      "handoffRefs": ["GDH-004"],
+      "riskRefs": ["R-006"],
+      "objectiveActionRefs": ["OA-007", "OA-008", "OA-043"],
+      "captureObjective": "Show a continuous authentic hatch interaction followed by one concrete first bond response, with enough context to distinguish procedural appearance, animation, and any specific remembered state.",
+      "startingState": "Clean company-controlled local fixture before the committed hatch action; no entered name or personal save data visible.",
+      "requiredBeats": [
+        { "id": "PB-001-B1", "beat": "Show the playable pre-hatch state and the player's committed hatch action without a cut." },
+        { "id": "PB-001-B2", "beat": "Show the in-engine reveal long enough to observe the creature's appearance and animation." },
+        { "id": "PB-001-B3", "beat": "Show the player action that creates or tests the first bond response." },
+        { "id": "PB-001-B4", "beat": "Show the concrete game response and stable aftermath; name the exact state only if verified in the build." }
+      ],
+      "claimSupport": [
+        { "claimId": "CL-005", "level": "example_only", "boundary": "One visible procedural result supports variation, not global uniqueness or collision-free generation." },
+        { "claimId": "CL-006", "level": "conditional_specific_example", "boundary": "Use only if the capture names and visibly demonstrates a specific implemented remembered state; animation or affection alone is insufficient." }
+      ],
+      "doesNotProve": [
+        "global creature uniqueness",
+        "unrestricted or human-like memory",
+        "sentience consciousness or understanding",
+        "all possible creature appearances",
+        "retention or return behavior"
+      ],
+      "captureSettings": {
+        "masterAspectRatio": "16:9",
+        "minimumResolution": "1920x1080",
+        "frameRate": "30_or_60_fps_record_exact_value",
+        "gameAudioRequired": true,
+        "microphoneRequired": false,
+        "networkDependentFeaturesPermitted": false,
+        "debugOverlayPermitted": false
+      },
+      "requiredOutputs": ["continuous_raw_master", "captioned_review_copy", "accessible_still", "edit_decision_list"],
+      "accessibilityDraft": "A player begins the hatch sequence. An alien creature emerges, animates in the game, and responds to the player's first bonding action.",
+      "privacyAndRightsChecks": ["company-controlled fixture", "no player or child identity", "no entered creature name", "no desktop or account notification", "first-party game audio only", "no debug secret or token"],
+      "rawMaster": { "path": null, "sha256": null, "durationSeconds": null },
+      "reviewCopy": { "path": null, "sha256": null },
+      "accessibleStill": { "path": null, "sha256": null },
+      "editDecisionList": [],
+      "capturedAt": null,
+      "approvedAt": null,
+      "expiryTrigger": "Hatch, genetics, first-bond, memory, creature animation, UI, or audio behavior changes."
+    },
+    {
+      "id": "PB-002",
+      "proofId": "PF-004",
+      "title": "Player-led realm restoration",
+      "status": "spec_ready_gated",
+      "internalBriefReady": true,
+      "captureReady": false,
+      "proofApprovalReady": false,
+      "publicationReady": false,
+      "owner": "Proof owner unassigned",
+      "captureOperator": "Unassigned",
+      "independentReviewer": "Unassigned",
+      "claimRefs": ["CL-004"],
+      "editorialRefs": ["CQ-002"],
+      "workflowRefs": ["A-003", "A-013", "A-026"],
+      "handoffRefs": ["GDH-004"],
+      "riskRefs": ["R-006"],
+      "objectiveActionRefs": ["OA-007", "OA-008", "OA-043"],
+      "captureObjective": "Show one legible damaged realm state, the player's relevant action, the restoration transition, and a stable restored state in authentic gameplay.",
+      "startingState": "Clean company-controlled fixture at the selected realm before its restoration commitment, with the damaged state clearly visible.",
+      "requiredBeats": [
+        { "id": "PB-002-B1", "beat": "Establish the damaged realm state and readable environmental difference." },
+        { "id": "PB-002-B2", "beat": "Show the player's relevant action or committed success state." },
+        { "id": "PB-002-B3", "beat": "Show the restoration transition without replacing it with concept or pre-rendered marketing art." },
+        { "id": "PB-002-B4", "beat": "Hold on the stable restored state from a comparable view long enough to understand the change." }
+      ],
+      "claimSupport": [
+        { "claimId": "CL-004", "level": "partial_experience_evidence", "boundary": "One captured realm supports the restoration mechanic; a separate current-build check must verify the six-realm count." }
+      ],
+      "doesNotProve": [
+        "that all six realms are complete in the captured build",
+        "that every player action permanently changes every realm",
+        "procedural or AI generation of the realm",
+        "player retention or satisfaction",
+        "final visual quality on every supported device"
+      ],
+      "captureSettings": {
+        "masterAspectRatio": "16:9",
+        "minimumResolution": "1920x1080",
+        "frameRate": "30_or_60_fps_record_exact_value",
+        "gameAudioRequired": true,
+        "microphoneRequired": false,
+        "networkDependentFeaturesPermitted": false,
+        "debugOverlayPermitted": false
+      },
+      "requiredOutputs": ["continuous_raw_master", "captioned_review_copy", "accessible_still", "edit_decision_list"],
+      "accessibilityDraft": "A damaged realm is visible before the player completes the restoring action. The environment transforms and settles into its restored state.",
+      "privacyAndRightsChecks": ["company-controlled fixture", "no player or child identity", "no entered name", "no desktop or account notification", "first-party game audio only", "no debug secret or token"],
+      "rawMaster": { "path": null, "sha256": null, "durationSeconds": null },
+      "reviewCopy": { "path": null, "sha256": null },
+      "accessibleStill": { "path": null, "sha256": null },
+      "editDecisionList": [],
+      "capturedAt": null,
+      "approvedAt": null,
+      "expiryTrigger": "Realm count, selected realm, restoration mechanics, art, UI, transition, or audio changes."
+    },
+    {
+      "id": "PB-003",
+      "proofId": "PF-005",
+      "title": "Project Beacon discovery or choice",
+      "status": "spec_ready_gated",
+      "internalBriefReady": true,
+      "captureReady": false,
+      "proofApprovalReady": false,
+      "publicationReady": false,
+      "owner": "Proof owner unassigned",
+      "captureOperator": "Unassigned",
+      "independentReviewer": "Unassigned",
+      "claimRefs": ["CL-008"],
+      "editorialRefs": ["CQ-002", "CQ-006"],
+      "workflowRefs": ["A-003", "A-013", "A-026"],
+      "handoffRefs": ["GDH-004"],
+      "riskRefs": ["R-006"],
+      "objectiveActionRefs": ["OA-007", "OA-008", "OA-043"],
+      "captureObjective": "Show an authentic Project Beacon discovery or player choice with enough fictional context and immediate game response to understand the tension, without revealing the ending.",
+      "startingState": "Clean company-controlled fixture immediately before an approved spoiler-bounded Project Beacon discovery or choice.",
+      "requiredBeats": [
+        { "id": "PB-003-B1", "beat": "Establish concise in-game Project Beacon context and the available player action." },
+        { "id": "PB-003-B2", "beat": "Show the player making or confirming the discovery or choice." },
+        { "id": "PB-003-B3", "beat": "Show the immediate authored game response without editing in a different consequence." },
+        { "id": "PB-003-B4", "beat": "End before ending spoilers while retaining enough aftermath to understand the narrative tension." }
+      ],
+      "claimSupport": [
+        { "claimId": "CL-008", "level": "fiction_context_evidence", "boundary": "Supports the Project Beacon premise as fiction; does not establish real science, adaptive narrative, or downstream consequence unless visibly captured." }
+      ],
+      "doesNotProve": [
+        "branching consequences not visible in the capture",
+        "AI-authored or dynamically generated narrative",
+        "scientific accuracy or a real-world mission",
+        "the game's ending",
+        "every possible player choice"
+      ],
+      "captureSettings": {
+        "masterAspectRatio": "16:9",
+        "minimumResolution": "1920x1080",
+        "frameRate": "30_or_60_fps_record_exact_value",
+        "gameAudioRequired": true,
+        "microphoneRequired": false,
+        "networkDependentFeaturesPermitted": false,
+        "debugOverlayPermitted": false
+      },
+      "requiredOutputs": ["continuous_raw_master", "captioned_review_copy", "accessible_still", "edit_decision_list"],
+      "accessibilityDraft": "Project Beacon's mission is presented in the game. The player makes a discovery or choice, and the story responds without revealing the ending.",
+      "privacyAndRightsChecks": ["company-controlled fixture", "no player or child identity", "no entered name", "no desktop or account notification", "first-party game audio only", "no debug secret or token", "approved spoiler boundary"],
+      "rawMaster": { "path": null, "sha256": null, "durationSeconds": null },
+      "reviewCopy": { "path": null, "sha256": null },
+      "accessibleStill": { "path": null, "sha256": null },
+      "editDecisionList": [],
+      "capturedAt": null,
+      "approvedAt": null,
+      "expiryTrigger": "Project Beacon story, choice, dialogue, consequence, UI, spoiler boundary, or audio changes."
+    }
+  ]
+}

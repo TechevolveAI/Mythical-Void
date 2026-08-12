@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/schemas/evaluation-catalog.schema.json",
+  "title": "Mythical workflow evaluation and promotion catalog",
+  "type": "object",
+  "required": ["schemaVersion", "asOf", "status", "purpose", "authority", "policy", "workflows", "coverageComplete", "productionEvaluationHistoryProtected", "independentRuntimeIdentityVerified", "promotionReady", "externalActionAuthorized"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "asOf": { "type": "string", "format": "date" },
+    "status": { "const": "complete_current_evaluation_coverage_promotion_gated" },
+    "purpose": { "type": "string", "minLength": 50 },
+    "authority": { "type": "object", "additionalProperties": { "const": false } },
+    "policy": { "type": "object" },
+    "workflows": { "type": "array", "minItems": 1 },
+    "coverageComplete": { "const": true },
+    "productionEvaluationHistoryProtected": { "const": false },
+    "independentRuntimeIdentityVerified": { "const": false },
+    "promotionReady": { "const": false },
+    "externalActionAuthorized": { "const": false }
+  },
+  "additionalProperties": false
+}

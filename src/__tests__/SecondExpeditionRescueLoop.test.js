@@ -14,6 +14,11 @@ function loadLevelClass() {
             "import PlatformerLevelScene from '../PlatformerLevelScene.js';",
             'const PlatformerLevelScene = class { constructor(config) { this.sceneConfig = config; } };'
         )
+        .replace(
+            /import \{\s*buildCreaturePowerProfile,[\s\S]*?\} from '\.\.\/\.\.\/systems\/CreaturePowerProfile\.js';/,
+            'const buildCreaturePowerProfile = () => ({ affinityPower: { id: "radiant_pulse", name: "Radiant Pulse" }, color: 0xFFD54F });\n' +
+            'const recordCreaturePowerEvent = () => ({ changed: true });'
+        )
         .replace('export default CrystalCavesLevel;', 'module.exports = CrystalCavesLevel;');
     const sandbox = {
         module: { exports: {} },
@@ -75,10 +80,14 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain(
             'this.add.zone(x, this.levelHeight / 2, 190, this.levelHeight)'
         );
-        expect(source).toContain('Your companion tends the fractured crystal.');
-        expect(source).toContain('The cave answers with a steadier pulse.');
+        expect(source).toContain('`${companionName}: ${powerProfile.affinityPower.name}`');
+        expect(source).toContain('THE FRACTURED CURRENT STABILIZES');
+        expect(source).toContain("eventId: 'crystal_grove_response'");
+        expect(source).toContain("outcome: 'fractured_current_stabilized'");
+        expect(source).toContain('powerProfile.color');
         expect(source).toContain("event: 'crystal_grove_tended'");
         expect(source).toContain('LIVING PULSE RESTORED');
+        expect(source).toContain('[ REQUIRED ] Reach the fractured grove');
     });
 
     test('keeps all five Star Fragments collectible before the Core finale', () => {
@@ -97,12 +106,58 @@ describe('second expedition rescue loop', () => {
         const source = readLevel();
 
         expect(source).toContain('THE CAVE GUARDIAN IS HURTING');
-        expect(source).toContain('Stabilize the wounded pulse');
+        expect(source).toContain('CRYSTAL GUARDIAN // WOUNDED');
+        expect(source).toContain('STRIKE THE UNSTABLE PULSE');
+        expect(source).toContain(
+            'UNSTABLE PULSE // ${unstablePulse}/${this.bossMaxHealth}'
+        );
+        expect(source).toContain('UNSTABLE PULSE // STABLE');
+        expect(source).toContain('`PULSE -${amount}`');
         expect(source).toContain('GUARDIAN PULSE STABLE');
         expect(source).toContain('CRYSTAL GUARDIAN RESTORED');
         expect(source).toContain('Guardian Gifts: Crystal Core');
         expect(source).toContain("katanaUpgradeId: 'crystal_edge'");
         expect(source).not.toContain('💎 CRYSTAL GOLEM DEFEATED 💎');
+    });
+
+    test('names the safe response and full lock window for each guardian hazard', () => {
+        const source = readLevel();
+
+        expect(source).toContain("ground_slam: 'GROUND PULSE // JUMP'");
+        expect(source).toContain(
+            "crystal_barrage: 'CRYSTAL BARRAGE // MOVE BETWEEN SHOTS'"
+        );
+        expect(source).toContain(
+            "charge: 'GUARDIAN CHARGE // GET BEHIND IT'"
+        );
+        expect(source).toContain('ground_slam: 1400');
+        expect(source).toContain('crystal_barrage: 2600');
+        expect(source).toContain('charge: 1700');
+        expect(source).toContain('this.time.delayedCall(attackWindow');
+        expect(source).toContain('this.bossAttackUnlockTimer?.remove?.()');
+    });
+
+    test('supports deterministic mobile previews for every guardian attack', () => {
+        const source = readLevel();
+        const gameSource = fs.readFileSync(
+            path.join(__dirname, '../game.js'),
+            'utf8'
+        );
+
+        expect(source).toContain("'ground_slam'");
+        expect(source).toContain("'crystal_barrage'");
+        expect(source).toContain("'charge'");
+        expect(source).toContain('data?.bossAttackPreview');
+        expect(source).toContain(
+            'this.bossPerformAttack(this.bossAttackPreview)'
+        );
+        expect(source).toContain('if (this.bossAttackPreview)');
+        expect(source).toMatch(
+            /if \(this\.bossAttackPreview\)[\s\S]*this\.bossPerformAttack\(this\.bossAttackPreview\)[\s\S]*else \{[\s\S]*this\.startBossAI\(\)/
+        );
+        expect(gameSource).toContain("'ground_slam'");
+        expect(gameSource).toContain("'crystal_barrage'");
+        expect(gameSource).toContain("'charge'");
     });
 
     test('requires both rescue objectives before the Crystal Core can answer', () => {
@@ -156,11 +211,38 @@ describe('second expedition rescue loop', () => {
 
         expect(source).toContain('const barY = isMobileLayout ? 118 : 55');
         expect(source).toContain('this.isMobile || width <= 480 || height < 620');
-        expect(source).toContain('isShortLandscape ? 82 : 92');
-        expect(source).toContain('ANCHORS: ${this.beaconAnchorsActivated}/3');
-        expect(source).toContain('FRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}');
+        expect(source).toContain('isShortLandscape ? 76 : 72');
+        expect(source).toContain('FOLLOW THE CAVE PULSE →');
+        expect(source).toContain('FRACTURED GROVE AHEAD');
+        expect(source).toContain('REACH IT TOGETHER →');
+        expect(source).toContain('TOUCH THE CORE TO ANSWER');
+        expect(source).toContain('STRIKE THE UNSTABLE PULSE');
+        expect(source).toContain('OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
+    });
+
+    test('changes the live objective from route-finding to companion rescue and guardian contact', () => {
+        const CrystalCavesLevel = loadLevelClass();
+        const scene = new CrystalCavesLevel();
+        scene.starFragmentsCollected = 0;
+        scene.totalStarFragments = 5;
+        scene.beaconAnchorsActivated = 0;
+        scene.crystalWoundTended = false;
+        scene.caveRouteAligned = false;
+        scene.bossFightActive = false;
+        scene.bossDefeated = false;
+
+        expect(scene.getCrystalObjectiveText()).toContain('ROUTE 1/3 // ECHO PASS');
+        scene.beaconAnchorsActivated = 2;
+        expect(scene.getCrystalObjectiveText()).toContain('FRACTURED GROVE AHEAD');
+        scene.crystalWoundTended = true;
+        expect(scene.getCrystalObjectiveText()).toContain('ROUTE 3/3 // GUARDIAN THRESHOLD');
+        scene.beaconAnchorsActivated = 3;
+        scene.caveRouteAligned = true;
+        expect(scene.getCrystalObjectiveText()).toContain('CRYSTAL CORE AHEAD');
+        scene.bossFightActive = true;
+        expect(scene.getCrystalObjectiveText()).toContain('STABILIZE THE GUARDIAN');
     });
 });

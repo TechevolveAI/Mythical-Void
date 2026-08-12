@@ -203,12 +203,6 @@ class ResponsiveManager {
      * Set up touch support
      */
     setupTouchSupport() {
-        // Prevent default touch behaviors
-        const preventHandler = (event) => this.preventDefaults(event);
-        this.addManagedEvent(document, 'touchstart', preventHandler, { passive: false });
-        this.addManagedEvent(document, 'touchmove', preventHandler, { passive: false });
-        this.addManagedEvent(document, 'touchend', preventHandler, { passive: false });
-
         // Add touch-specific styles
         const styleAdded = this.addTouchStyles();
         if (styleAdded) {
@@ -221,24 +215,10 @@ class ResponsiveManager {
             });
         }
 
-        // NOTE: Virtual joystick/buttons are now handled by MobileControls.js
-        // This system only handles touch styles and touch-to-mouse mapping
-
-        // Set up touch-to-mouse event mapping
-        this.setupTouchToMouse();
-    }
-
-    /**
-     * Prevent default touch behaviors
-     */
-    preventDefaults(e) {
-        // Allow scrolling on specific elements
-        if (e.target.classList && e.target.classList.contains('allow-scroll')) {
-            return;
-        }
-        
-        e.preventDefault();
-        e.stopPropagation();
+        // Phaser and MobileControls own canvas Pointer Events. Synthetic mouse
+        // events here created a second press/release stream on mobile Safari,
+        // which could cancel a held joystick direction. Canvas touch-action CSS
+        // prevents browser panning without interfering with DOM inputs/modals.
     }
 
     /**
@@ -331,45 +311,6 @@ class ResponsiveManager {
     // NOTE: Virtual controls (joystick, action buttons) are now handled by
     // MobileControls.js which provides a proper Phaser-based implementation.
     // The legacy DOM-based virtual control methods have been removed.
-
-    /**
-     * Set up touch to mouse event mapping
-     */
-    setupTouchToMouse() {
-        const canvas = this.game.canvas;
-        if (!canvas) return;
-        
-        // Map touch events to mouse events
-        const touchStartHandler = (e) => {
-            if (e.cancelable) e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            canvas.dispatchEvent(mouseEvent);
-        };
-
-        const touchMoveHandler = (e) => {
-            if (e.cancelable) e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            canvas.dispatchEvent(mouseEvent);
-        };
-
-        const touchEndHandler = (e) => {
-            if (e && e.cancelable) e.preventDefault();
-            const mouseEvent = new MouseEvent('mouseup', {});
-            canvas.dispatchEvent(mouseEvent);
-        };
-
-        this.addManagedEvent(canvas, 'touchstart', touchStartHandler, { passive: false });
-        this.addManagedEvent(canvas, 'touchmove', touchMoveHandler, { passive: false });
-        this.addManagedEvent(canvas, 'touchend', touchEndHandler, { passive: false });
-    }
 
     /**
      * Set up orientation handling

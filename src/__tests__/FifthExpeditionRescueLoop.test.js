@@ -23,6 +23,7 @@ describe('fifth expedition rescue loop', () => {
         expect(createMethod).toContain('super.create()');
         expect(createMethod).not.toContain('this.createLevelContent()');
         expect(testMode).toContain('this.startBossFight()');
+        expect(testMode).toContain('this.showPlatformerMobileControls()');
         expect(testMode).not.toContain('this.spawnShadowPhoenix()');
         expect(testMode).not.toContain('this.createTestArenaPlatform()');
         expect(startLevel).toContain('this.createLevelSpecificContentOnce()');
@@ -53,10 +54,20 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain(
             'this.setCheckpoint(prism.x, this.levelHeight - 130, {'
         );
-        expect(source).toContain('Project Beacon is carrying farther than expected.');
-        expect(source).toContain('Your companion bends the signal down, away from the sky.');
-        expect(source).toContain("Earth's symbol appears. Your companion stays beside you.");
+        expect(source).toContain('const companionName = this.getCompanionName()');
+        expect(source).toContain('Project Beacon can reach Earth from here.');
+        expect(source).toContain('If Earth hears this, anyone can. Help me turn it down.');
+        expect(source).toContain('It is quiet. The choice can wait.');
+        expect(source).toContain('EARTH CONTACT POSSIBLE // NOTHING TRANSMITTED');
         expect(source).toContain("event: 'beacon_exposure_risk_discovered'");
+    });
+
+    test('visibly refracts every aligned uplink beam down into the Fend', () => {
+        const source = readLevel();
+
+        expect(source).toContain('graphics.lineBetween(x, y - 50, x, y + 58)');
+        expect(source).toContain('graphics.lineBetween(x, y + 58, x - 34, y + 92)');
+        expect(source).not.toContain('graphics.lineBetween(x, y - 50, x, 50)');
     });
 
     test('keeps the Phoenix shield closed until the uplink risk is understood', () => {
@@ -90,7 +101,9 @@ describe('fifth expedition rescue loop', () => {
             'this.isMobile || screenWidth <= 480 || screenHeight < 620'
         );
         expect(source).toContain('const barY = isMobileLayout ? 118 : 60');
-        expect(source).toContain('isShortLandscape ? 82 : 212');
+        expect(source).toContain('isShortLandscape ? 76 : 72');
+        expect(source).toContain('QUIET ALIGNMENT ${current}/3 // ${nextPrism}');
+        expect(source).toContain('EARTH CAN BE REACHED BY CHOICE');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
@@ -100,7 +113,51 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain("'PHOENIX >'");
         expect(source).toContain("'< PHOENIX'");
         expect(source).toContain('THE PHOENIX IS SHIELDING THE UPLINK');
-        expect(source).toContain('Release the Void pressure');
+        expect(source).toContain('BREAK VOID PRESSURE // KEEP THE UPLINK QUIET');
+    });
+
+    test('frames the Phoenix encounter as containing exposure rather than harming an ally', () => {
+        const source = readLevel();
+
+        expect(source).toContain('AURORA PHOENIX // SHIELDING US');
+        expect(source).toContain('BREAK VOID PRESSURE // KEEP THE UPLINK QUIET');
+        expect(source).toContain('UPLINK EXPOSURE // ${exposure}/${this.bossMaxHealth}');
+        expect(source).toContain('UPLINK EXPOSURE // CONTAINED');
+        expect(source).toContain('`EXPOSURE -${amount}`');
+        expect(source).toContain('this.boss.setTint(0xA9F3E4)');
+        expect(source).not.toContain('this.boss.setTint(0xFF0000)');
+    });
+
+    test('teaches counterplay and prevents Phoenix hazards from overlapping', () => {
+        const source = readLevel();
+
+        expect(source).toContain('FLAME DIVE // DODGE ACROSS ITS PATH');
+        expect(source).toContain('SHADOW FEATHERS // MOVE THROUGH THE GAPS');
+        expect(source).toContain('SHADOW FIRE // LEAVE THE GROUND PATH');
+        expect(source).toContain('REBIRTH RING // JUMP THROUGH THE WAVE');
+        expect(source).toContain('ECHO DIVES // KEEP MOVING');
+        expect(source).toContain('const attackWindow = PHOENIX_ATTACK_WINDOWS[attackType] || 1900');
+        expect(source).toContain('this.bossAttackUnlockTimer?.remove?.()');
+        expect(source).toContain('this.bossAttackUnlockTimer = this.time.delayedCall(attackWindow');
+        expect(source).not.toContain('this.time.delayedCall(1500, () => {');
+    });
+
+    test('supports deterministic local previews for every Phoenix attack', () => {
+        const source = readLevel();
+        const gameSource = fs.readFileSync(
+            path.join(__dirname, '../game.js'),
+            'utf8'
+        );
+
+        expect(source).toContain("'flame_dive'");
+        expect(source).toContain("'shadow_feathers'");
+        expect(source).toContain("'fire_trail'");
+        expect(source).toContain("'rebirth_nova'");
+        expect(source).toContain("'shadow_clones'");
+        expect(source).toContain('this.executeBossAttack(this.bossAttackPreview)');
+        expect(source).toContain('if (this.bossAttackPreview) return;');
+        expect(gameSource).toContain("'flame_dive'");
+        expect(gameSource).toContain("'shadow_clones'");
     });
 
     test('prevents delayed damage after the guardian restoration begins', () => {
@@ -158,7 +215,7 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('AURORA PHOENIX RESTORED');
         expect(source).toContain('QUIET UPLINK READY');
         expect(source).toContain('Phoenix Gift: Aurora Reactor');
-        expect(source).toContain('Exposure Risk: Confirmed');
+        expect(source).toContain('Earth Contact: Possible, not transmitted');
         expect(source).toContain("achievementLevelId: 'auroraDepths'");
         expect(source).toContain("shipPartId: 'aurora_reactor'");
         expect(source).not.toContain('SHADOW PHOENIX EXTINGUISHED');

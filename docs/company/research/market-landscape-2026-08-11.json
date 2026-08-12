@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-11",
+  "status": "directional_research_not_market_validation",
+  "scope": "Public first-party product and technology pages sampled to understand adjacent player promises, access modes, interaction patterns, creator mechanics, and AI-character expectations.",
+  "authority": {
+    "externalResearchWritesAuthorized": false,
+    "outreachAuthorized": false,
+    "accountCreationAuthorized": false,
+    "positioningChangeAuthorized": false,
+    "publicComparisonAuthorized": false,
+    "pricingDecisionAuthorized": false,
+    "behavioralTargetingAuthorized": false,
+    "minorTargetingPermitted": false
+  },
+  "evidencePolicy": {
+    "marketSizingPermitted": false,
+    "marketShareOrRankClaimsPermitted": false,
+    "competitorRevenueClaimsPermitted": false,
+    "generatedPersonasCountAsCustomers": false,
+    "publicProductClaimsCountAsDemandEvidence": false,
+    "sourceFactsAndMythicalInferencesMustBeSeparated": true,
+    "firstPartySourcesPreferred": true,
+    "maximumRoutineSourceAgeDays": 90,
+    "recheckOnMaterialProductOrPricingChange": true
+  },
+  "categories": [
+    { "id": "MC-001", "name": "Browser virtual pets and persistent worlds", "question": "How do immediate access, care, collection, customization, and community create recurring value?" },
+    { "id": "MC-002", "name": "Systemic and procedural pet simulation", "question": "How do variation, breeding, behavior, and expressive systems generate personal stories?" },
+    { "id": "MC-003", "name": "Creature exploration and restoration adventure", "question": "How do empathy, discovery, action, and environmental stakes support a complete journey?" },
+    { "id": "MC-004", "name": "Large-scale creature-catching RPG", "question": "Which expectations are set by broad worlds, collection, combat, progression, and distinctive creature abilities?" },
+    { "id": "MC-005", "name": "AI characters and companions", "question": "Which interaction, memory, animation, autonomy, safety, cost, and disclosure expectations are emerging?" }
+  ],
+  "sources": [
+    { "id": "MS-001", "name": "Neopets — About Neopets", "url": "https://portal.neopets.com/about-neopets", "firstParty": true, "observedAt": "2026-08-11", "access": "public" },
+    { "id": "MS-002", "name": "Wobbledogs official site", "url": "https://www.wobbledogs.com/", "firstParty": true, "observedAt": "2026-08-11", "access": "public" },
+    { "id": "MS-003", "name": "Flock — Annapurna Interactive", "url": "https://www.annapurnainteractive.com/en/games/flock", "firstParty": true, "observedAt": "2026-08-11", "access": "public" },
+    { "id": "MS-004", "name": "Creatures of Ava — Inverge Studios", "url": "https://invergestudios.com/creatures-of-ava/", "firstParty": true, "observedAt": "2026-08-11", "access": "public" },
+    { "id": "MS-005", "name": "Whimside official site", "url": "https://whimside.com/home/", "firstParty": true, "observedAt": "2026-08-11", "access": "public" },
+    { "id": "MS-006", "name": "Aniimo official site", "url": "https://aniimo.com/", "firstParty": true, "observedAt": "2026-08-11", "access": "public" },
+    { "id": "MS-007", "name": "Dobu Labs official game page", "url": "https://dobudob.com/", "firstParty": true, "observedAt": "2026-08-11", "access": "public" },
+    { "id": "MS-008", "name": "Beanlings browser pet page", "url": "https://beanlings.com/s/browser-pet-game", "firstParty": true, "observedAt": "2026-08-11", "access": "public" },
+    { "id": "MS-009", "name": "Sensipets official site", "url": "https://www.sensipets.com/", "firstParty": true, "observedAt": "2026-08-11", "access": "public" },
+    { "id": "MS-010", "name": "NVIDIA ACE for Games", "url": "https://developer.nvidia.com/ace", "firstParty": true, "observedAt": "2026-08-11", "access": "public" }
+  ],
+  "references": [
+    {
+      "id": "MR-001",
+      "name": "Neopets",
+      "referenceType": "established_adjacent",
+      "categoryIds": ["MC-001"],
+      "sourceIds": ["MS-001"],
+      "observedFacts": [
+        "The first-party page presents Neopets as an online virtual pet game centered on adoption, customization, interaction, storytelling, collecting, care, and social play.",
+        "The classic Neopets experience is presented as playable in a browser."
+      ],
+      "mythicalInference": "Browser pet care and world exploration are familiar; Mythical needs to prove why one relationship and a finite adventure create a different reason to begin and return.",
+      "unknowns": ["Current audience overlap with Mythical", "Comparable activation or retention", "Relative trust or guardian comprehension"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    },
+    {
+      "id": "MR-002",
+      "name": "Wobbledogs",
+      "referenceType": "mechanic_adjacent",
+      "categoryIds": ["MC-002"],
+      "sourceIds": ["MS-002"],
+      "observedFacts": ["The first-party site describes a 3D pet simulation sandbox about raising a hive of mutating, physically simulated dogs."],
+      "mythicalInference": "Systemic mutation is an immediately legible source of surprise and sharing; Mythical should show procedural variation without making absolute uniqueness claims.",
+      "unknowns": ["Audience overlap", "Which systemic moments drive sharing", "Whether Mythical's narrative depth improves or distracts from the pet fantasy"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    },
+    {
+      "id": "MR-003",
+      "name": "Flock",
+      "referenceType": "experience_adjacent",
+      "categoryIds": ["MC-003"],
+      "sourceIds": ["MS-003"],
+      "observedFacts": ["The publisher describes a multiplayer cooperative game about flight, discovery, nurturing a herd, charming creatures, collection, and sharing with friends."],
+      "mythicalInference": "Creature discovery can be sold through a visually coherent activity and emotional tone; Mythical's equivalent needs equally clear proof of the hatch/bond and restoration actions.",
+      "unknowns": ["Audience overlap", "Solo versus cooperative preference", "Relative importance of collection and relationship"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    },
+    {
+      "id": "MR-004",
+      "name": "Creatures of Ava",
+      "referenceType": "theme_and_genre_adjacent",
+      "categoryIds": ["MC-003"],
+      "sourceIds": ["MS-004"],
+      "observedFacts": ["The studio presents the game as an empathy-led action-adventure and creature-saver experience."],
+      "mythicalInference": "A restoration or saving premise can carry action-adventure stakes without an extraction-first frame; Mythical must make its Earth-versus-living-world tension distinct and concrete.",
+      "unknowns": ["Audience overlap", "Player response to restoration framing", "Whether Mythical's Project Beacon premise is understood without explanation"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    },
+    {
+      "id": "MR-005",
+      "name": "Whimside",
+      "referenceType": "indie_and_creator_adjacent",
+      "categoryIds": ["MC-002"],
+      "sourceIds": ["MS-005"],
+      "observedFacts": [
+        "The first-party page positions a low-pressure creature collection companion that occupies part of the screen.",
+        "It presents breeding combinations, creature traits, room customization, and a Twitch integration with viewer participation."
+      ],
+      "mythicalInference": "Creator compatibility can be a product behavior, not just an outreach channel; Mythical should first prove that its living moments are watchable before considering integration work.",
+      "unknowns": ["Audience overlap", "Creator adoption", "Whether active adventure or passive companionship better fits Mythical's intended sessions"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    },
+    {
+      "id": "MR-006",
+      "name": "Aniimo",
+      "referenceType": "scale_and_expectation_adjacent",
+      "categoryIds": ["MC-004"],
+      "sourceIds": ["MS-006"],
+      "observedFacts": ["The official site presents a next-generation creature-catching open-world RPG across console, PC, and mobile, with exploration, training, battle, an interactive world, and a Twine mechanic."],
+      "mythicalInference": "Mythical should not compete on content volume or production scale; browser immediacy, one relationship, authored moral tension, and responsible implementation need to be unmistakable alternatives.",
+      "unknowns": ["Launch outcome", "Audience overlap", "Player response to scale versus intimacy", "Comparable acquisition economics"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    },
+    {
+      "id": "MR-007",
+      "name": "Dobu Labs",
+      "referenceType": "close_browser_story_adjacent",
+      "categoryIds": ["MC-001", "MC-005"],
+      "sourceIds": ["MS-007"],
+      "observedFacts": ["The public game page presents a free 3D browser virtual pet with a lab creature, an AI overseer, an escape story, and dialogue that affects the ending."],
+      "mythicalInference": "Browser access plus pet care, AI framing, story, and choice already coexist in a close adjacent proposition; Mythical's differentiation cannot rest on those nouns alone and must be proven through relationship depth, restoration, animation, and execution quality.",
+      "unknowns": ["Implementation details", "Audience scale or overlap", "Depth of choice or companion systems", "Trust and data boundaries"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    },
+    {
+      "id": "MR-008",
+      "name": "Beanlings",
+      "referenceType": "browser_search_adjacent",
+      "categoryIds": ["MC-001", "MC-002"],
+      "sourceIds": ["MS-008"],
+      "observedFacts": ["The first-party page explicitly targets free browser pet-game discovery and presents creature raising without a download."],
+      "mythicalInference": "Generic browser-pet queries already have focused pages; Mythical needs canonical category language plus stronger proof and story differentiation rather than keyword imitation.",
+      "unknowns": ["Audience overlap", "Search visibility by region", "Activation or retention", "Current feature depth"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    },
+    {
+      "id": "MR-009",
+      "name": "Sensipets",
+      "referenceType": "browser_systems_adjacent",
+      "categoryIds": ["MC-001", "MC-002"],
+      "sourceIds": ["MS-009"],
+      "observedFacts": ["The first-party page presents a browser-based virtual pet game with worlds, community, and companion genetics or lineage systems."],
+      "mythicalInference": "Genetics is not a sufficient category position by itself; Mythical should connect variation to a visible relationship and authored journey.",
+      "unknowns": ["Audience overlap", "Current system depth", "Community and safety model", "Activation or retention"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    },
+    {
+      "id": "MR-010",
+      "name": "NVIDIA ACE for Games",
+      "referenceType": "technology_expectation_signal",
+      "categoryIds": ["MC-005"],
+      "sourceIds": ["MS-010"],
+      "observedFacts": ["NVIDIA presents ACE as technology for autonomous game characters and assistants, including characters that plan, act, reflect, converse, guide, and animate."],
+      "mythicalInference": "Broad AI-character language is becoming less differentiating and more expectation-heavy; Mythical should describe exact player-visible memory, agency, animation, limits, and human authorship.",
+      "unknowns": ["Player demand for any specific capability", "Fit with Mythical's architecture", "Cost and safety implications", "Audience trust response"],
+      "estimatedUsers": null,
+      "revenue": null,
+      "marketShare": null,
+      "competitiveRank": null
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "MH-001",
+      "title": "Relationship-plus-journey whitespace",
+      "status": "unvalidated",
+      "statement": "One companion inside a complete browser restoration adventure with moral choice is more distinctive than a collection-first or care-loop-first proposition.",
+      "sourceReferenceIds": ["MR-001", "MR-002", "MR-003", "MR-004", "MR-006", "MR-007", "MR-008", "MR-009"],
+      "experimentRefs": ["E-002"],
+      "proofIds": ["PF-003", "PF-004", "PF-005"],
+      "decisionRefs": ["D-002"],
+      "falsifier": "Intended adults and players cannot accurately recall relationship, restoration, and choice after authentic proof, or consistently prefer a simpler familiar category promise.",
+      "decisionUse": "Positioning hierarchy and launch creative"
+    },
+    {
+      "id": "MH-002",
+      "title": "Gameplay leads and AI explains",
+      "status": "unvalidated",
+      "statement": "Leading with the playable emotional promise produces better qualified comprehension and trust than leading with AI or procedural technology.",
+      "sourceReferenceIds": ["MR-002", "MR-007", "MR-010"],
+      "experimentRefs": ["E-002", "E-003"],
+      "proofIds": ["PF-003"],
+      "decisionRefs": ["D-002", "D-013"],
+      "falsifier": "Accurate AI-led language materially improves qualified comprehension and play intent without increasing misleading expectations or trust concern.",
+      "decisionUse": "Homepage message, creator/press framing, and company narrative"
+    },
+    {
+      "id": "MH-003",
+      "title": "Adult-controlled discovery first",
+      "status": "unvalidated",
+      "statement": "Adult, guardian, creator, press, partner, and general creature/narrative discovery can reach the intended player without behavioral targeting toward children.",
+      "sourceReferenceIds": ["MR-001", "MR-003", "MR-004", "MR-005"],
+      "experimentRefs": ["E-002", "E-003"],
+      "proofIds": ["PF-003", "PF-004"],
+      "decisionRefs": ["D-002", "D-012"],
+      "falsifier": "Moderated evidence shows the framing is unclear or inaccessible to intended players, or a safer lawful alternative performs materially better.",
+      "decisionUse": "Audience architecture and channel sequencing"
+    },
+    {
+      "id": "MH-004",
+      "title": "Trust must be inspectable product evidence",
+      "status": "unvalidated",
+      "statement": "Specific local-first, age, data, AI, support, and governance evidence improves adult permission and partner confidence more than a generic safety claim.",
+      "sourceReferenceIds": ["MR-001", "MR-007", "MR-010"],
+      "experimentRefs": ["E-003"],
+      "proofIds": [],
+      "decisionRefs": ["D-006", "D-012", "D-013"],
+      "falsifier": "Guardians and partners cannot find or explain the evidence, or it does not address their material concerns.",
+      "decisionUse": "Parent/trust pages, partner package, and company story"
+    },
+    {
+      "id": "MH-005",
+      "title": "Visible living moments are the acquisition unit",
+      "status": "unvalidated",
+      "statement": "Hatch/bond, restoration, and Project Beacon proof produce stronger qualified comprehension and meaningful play than generic feature lists.",
+      "sourceReferenceIds": ["MR-002", "MR-003", "MR-004", "MR-005"],
+      "experimentRefs": ["E-002"],
+      "proofIds": ["PF-003", "PF-004", "PF-005"],
+      "decisionRefs": ["D-011"],
+      "falsifier": "Matched approved tests show no improvement in qualified comprehension or meaningful play relative to factual text.",
+      "decisionUse": "Proof priorities, editorial sequence, creator package, and search pages"
+    },
+    {
+      "id": "MH-006",
+      "title": "Browser access is leverage only with reliability",
+      "status": "unvalidated",
+      "statement": "No-download and no-account starting access reduces friction only when boot, performance, input, save, audio, and device behavior are reliable.",
+      "sourceReferenceIds": ["MR-001", "MR-007", "MR-008", "MR-009"],
+      "experimentRefs": ["E-001", "E-004"],
+      "proofIds": [],
+      "decisionRefs": ["D-003", "D-004", "D-015"],
+      "falsifier": "Observed first sessions show browser convenience is not understood or technical friction dominates the proposition.",
+      "decisionUse": "Release readiness, portal feasibility, and access messaging"
+    }
+  ],
+  "watchSignals": [
+    { "id": "MW-001", "signal": "Reference-product launch, platform, access, or pricing-model change", "cadence": "monthly_and_event_driven", "action": "Recheck the first-party source and reassess only affected inferences." },
+    { "id": "MW-002", "signal": "New companion memory, autonomy, conversation, animation, or AI disclosure claim", "cadence": "monthly", "action": "Record exact language and evidence boundary; do not copy or escalate Mythical claims automatically." },
+    { "id": "MW-003", "signal": "Creator/community mechanic or distribution pattern with observable fit", "cadence": "monthly", "action": "Route a sourced hypothesis to A-007 or A-019 without outreach or integration." },
+    { "id": "MW-004", "signal": "Trust, child-safety, privacy, moderation, or monetization controversy or policy change", "cadence": "event_driven", "action": "Escalate to governance and reassess risk; do not exploit the event for marketing." },
+    { "id": "MW-005", "signal": "Accepted Mythical customer evidence contradicts the category position", "cadence": "per_evidence_review", "action": "Prioritize customer evidence, record the contradiction, and request a positioning decision." }
+  ],
+  "currentRecommendation": {
+    "status": "working_hypothesis_not_approved_strategy",
+    "position": "Browser creature-raising action-adventure with a living companion and choice-driven science-fiction world.",
+    "messageOrder": ["relationship", "restoration_adventure", "moral_choice", "browser_access", "trust", "technology_as_evidence"],
+    "prohibitedClaims": ["first", "only", "category_defining", "market_leading", "every_creature_is_unique", "fully_autonomous", "sentient", "child_safe_ai"],
+    "requiredNextEvidence": ["accepted adult and guardian research", "PF-003", "PF-004", "PF-005", "stable release and first-session observation"],
+    "externalActionAllowed": false
+  }
+}

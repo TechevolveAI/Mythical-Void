@@ -4,6 +4,22 @@ const SHADOW_PHOENIX_TEXTURE = 'shadowPhoenix';
 const SHADOW_PHOENIX_ASSET = '/game/guardians/shadow-phoenix.webp';
 const SHADOW_PHOENIX_DISPLAY_SIZE = 230;
 
+const PHOENIX_ATTACK_WINDOWS = Object.freeze({
+    flame_dive: 1900,
+    shadow_feathers: 1700,
+    fire_trail: 2500,
+    rebirth_nova: 1900,
+    shadow_clones: 2200
+});
+
+const PHOENIX_ATTACK_CUES = Object.freeze({
+    flame_dive: 'FLAME DIVE // DODGE ACROSS ITS PATH',
+    shadow_feathers: 'SHADOW FEATHERS // MOVE THROUGH THE GAPS',
+    fire_trail: 'SHADOW FIRE // LEAVE THE GROUND PATH',
+    rebirth_nova: 'REBIRTH RING // JUMP THROUGH THE WAVE',
+    shadow_clones: 'ECHO DIVES // KEEP MOVING'
+});
+
 /**
  * AuroraDepthsLevel - Aurora Depths platformer level
  *
@@ -53,6 +69,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossHealthBar = null;
         this.bossNameText = null;
         this.bossSubtitle = null;
+        this.bossExposureText = null;
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer = null;
+        this.bossAttackPreview = null;
         this.bossBarConfig = null;
         this.bossIndicator = null;
         this.bossTargetScale = 1;
@@ -90,6 +110,18 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossHealthBar = null;
         this.bossNameText = null;
         this.bossSubtitle = null;
+        this.bossExposureText = null;
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer = null;
+        this.bossAttackPreview = [
+            'flame_dive',
+            'shadow_feathers',
+            'fire_trail',
+            'rebirth_nova',
+            'shadow_clones'
+        ].includes(data?.bossAttackPreview)
+            ? data.bossAttackPreview
+            : null;
         this.bossBarConfig = null;
         this.bossIndicator = null;
         this.bossTargetScale = 1;
@@ -111,11 +143,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     preload() {
+        super.preload();
         this.load.image(SHADOW_PHOENIX_TEXTURE, SHADOW_PHOENIX_ASSET);
     }
 
     create() {
         super.create();
+
+        if (this.prepareCurrentEcologyPreview()) return;
 
         if (!this.entryPreview && window.AchievementSystem?.recordEvent) {
             window.AchievementSystem.recordEvent('level_entered', { levelId: 'auroraDepths' });
@@ -144,6 +179,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             );
         }
 
+        this.showPlatformerMobileControls();
+
         this.time.delayedCall(500, () => this.startBossFight());
     }
 
@@ -160,6 +197,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             contentWidth, contentLeft, contentRight, y, font, buttonPadding
         } = layout;
         const resume = this.getExpeditionResumePresentation();
+        const companionName = this.getCompanionName();
 
         this.physics.pause();
 
@@ -191,7 +229,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(title);
 
-        const subtitle = this.add.text(width / 2, y(90), '"Your companion lowers the light toward home"', {
+        const subtitle = this.add.text(width / 2, y(90), `"${companionName} lowers the light toward home"`, {
             fontSize: font(16, 14),
             color: '#7FFFD4',
             fontStyle: 'italic',
@@ -215,7 +253,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(mission);
 
-        const mainObj = this.add.text(width / 2, y(172), 'Align the three aurora prisms', {
+        const mainObj = this.add.text(width / 2, y(172), `Help ${companionName} contain an uplink that can reach Earth`, {
             fontSize: font(20, 17),
             color: '#7FFFD4',
             fontStyle: 'bold',
@@ -260,6 +298,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             enterBtn.disableInteractive();
             overlay.disableInteractive();
             this.clearLevelEntryKeyHandler();
+            this.physics.resume();
+            this.showPlatformerMobileControls();
+            this.startLevel();
             this.tweens.add({
                 targets: entryElements,
                 alpha: 0,
@@ -268,9 +309,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                     entryElements.forEach(el => {
                         if (el && el.destroy) el.destroy();
                     });
-                    this.physics.resume();
-                    this.showPlatformerMobileControls();
-                    this.startLevel();
                 }
             });
         };
@@ -296,6 +334,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             window.removeEventListener('keydown', this.levelEntryKeyHandler);
         }
         this.levelEntryKeyHandler = null;
+    }
+
+    getCompanionName() {
+        return String(
+            window.GameState?.get?.('creature.name') || 'Your companion'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
     }
 
     startLevel() {
@@ -431,31 +475,53 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     createHUD() {
         super.createHUD();
 
+        // Keep objectives readable above the playfield and mobile controls.
         const { width, height } = this.cameras.main;
         const isShortLandscape = width > height && height < 620;
         this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
         this.objectiveDisplay = this.add.text(
             width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 82 : 212) : height - 30,
+            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
             this.getAuroraObjectiveText(),
             {
-                fontSize: this.isCompactObjectiveHUD ? '11px' : '15px',
-                color: '#A9F3E4',
-                backgroundColor: 'rgba(6, 24, 31, 0.82)',
-                padding: { x: 8, y: 5 },
-                align: 'right'
+                fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#EFFFFB',
+                backgroundColor: 'rgba(6, 24, 31, 0.92)',
+                padding: { x: 10, y: 7 },
+                lineSpacing: 2,
+                align: 'left',
+                wordWrap: {
+                    width: this.isCompactObjectiveHUD ? 215 : 340
+                }
             }
-        ).setOrigin(1, this.isCompactObjectiveHUD ? 0 : 1)
+        ).setOrigin(1, 0)
             .setScrollFactor(0)
             .setDepth(1000);
     }
 
     getAuroraObjectiveText() {
-        const uplinkState = this.uplinkRiskUnderstood ? 'EXPOSURE FOUND' : 'TRACING';
-        if (this.isCompactObjectiveHUD) {
-            return `PRISMS: ${this.prismsAligned}/3\nUPLINK: ${uplinkState}\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optional = `OPTIONAL // AURORA FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+
+        if (this.bossDefeated) {
+            return `QUIET UPLINK READY\nEARTH CONTACT NOT TRANSMITTED\n${optional}`;
         }
-        return `PRISMS: ${this.prismsAligned}/3  |  UPLINK: ${uplinkState}\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        if (this.bossFightActive) {
+            return `STABILIZE THE PHOENIX\nKEEP THE UPLINK SHIELDED\n${optional}`;
+        }
+        if (this.uplinkRiskUnderstood) {
+            return `UPLINK CONTAINED // EXPOSURE 0%\nEARTH CAN BE REACHED BY CHOICE\n${optional}`;
+        }
+
+        const nextPrism = [
+            'LOWER PRISM',
+            'HEART PRISM',
+            'SKY PRISM'
+        ][this.prismsAligned] || 'SKY PRISM';
+        const current = Math.min(this.prismsAligned + 1, 3);
+        const exposure = Math.max(0, 100 - this.prismsAligned * 33);
+        return `QUIET ALIGNMENT ${current}/3 // ${nextPrism}\nEXPOSURE ${exposure}% // KEEP THE BEAM DOWN\n${optional}`;
     }
 
     showObjectiveToast() {
@@ -664,7 +730,18 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         if (aligned) {
             graphics.lineStyle(2, 0x7FFFD4, 0.7);
-            graphics.lineBetween(x, y - 50, x, 50);
+            // The companion refracts the uplink into the Fend instead of the sky.
+            graphics.lineBetween(x, y - 50, x, y + 58);
+            graphics.lineBetween(x, y + 58, x - 34, y + 92);
+            graphics.fillStyle(0xF2C94C, 0.9);
+            graphics.fillTriangle(
+                x - 34,
+                y + 99,
+                x - 43,
+                y + 82,
+                x - 24,
+                y + 88
+            );
             graphics.strokeCircle(x, y - 50, 38);
         }
     }
@@ -691,10 +768,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             '#A9F3E4'
         );
 
+        const companionName = this.getCompanionName();
         const companionLines = [
-            'Project Beacon is carrying farther than expected.',
-            'Your companion bends the signal down, away from the sky.',
-            "Earth's symbol appears. Your companion stays beside you."
+            `${companionName}: "Project Beacon can reach Earth from here."`,
+            `${companionName}: "If Earth hears this, anyone can. Help me turn it down."`,
+            `${companionName}: "It is quiet. The choice can wait."`
         ];
         this.time.delayedCall(600, () => {
             this.showFloatingText(
@@ -707,6 +785,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         if (this.prismsAligned === 3) {
             this.uplinkRiskUnderstood = true;
+            this.time.delayedCall(1350, () => {
+                this.showFloatingText(
+                    'EARTH CONTACT POSSIBLE // NOTHING TRANSMITTED',
+                    prism.x,
+                    prism.y - 205,
+                    '#F2C94C'
+                );
+            });
             window.AchievementSystem?.recordEvent?.('story_interaction', {
                 event: 'beacon_exposure_risk_discovered'
             });
@@ -788,7 +874,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossFightActive = true;
 
         this.physics.pause();
-        this.cameras.main.flash(220, 0, 230, 118);
+        window.FeedbackManager?.cameraFlash?.(this, 220, 0, 230, 118);
 
         const { width, height } = this.cameras.main;
         const warningText = this.add.text(width / 2, height / 2, 'THE PHOENIX IS SHIELDING THE UPLINK', {
@@ -803,7 +889,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             wordWrap: { width: width - 50 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
 
-        this.cameras.main.shake(650, 0.012);
+        window.FeedbackManager?.cameraShake?.(this, 650, 0.012);
 
         if (window.AudioManager) {
             window.AudioManager.playError();
@@ -973,8 +1059,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             duration: 1000,
             ease: 'Back.easeOut',
             onComplete: () => {
-                this.startBossAI();
-                this.cameras.main.shake(300, 0.01);
+                if (this.bossAttackPreview) {
+                    this.time.delayedCall(800, () => {
+                        this.executeBossAttack(this.bossAttackPreview);
+                    });
+                } else {
+                    this.startBossAI();
+                }
+                window.FeedbackManager?.cameraShake?.(this, 300, 0.01);
 
                 if (window.AudioManager) {
                     window.AudioManager.playError();
@@ -1034,7 +1126,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossUI.setScrollFactor(0);
         this.bossUI.setDepth(1500);
 
-        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'AURORA PHOENIX', {
+        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'AURORA PHOENIX // SHIELDING US', {
             fontSize: isMobileLayout ? '18px' : '22px',
             color: '#A9F3E4',
             fontStyle: 'bold',
@@ -1043,8 +1135,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         }).setOrigin(0.5);
         this.bossUI.add(this.bossNameText);
 
-        this.bossSubtitle = this.add.text(screenWidth / 2, barY - 8, 'Release the Void pressure', {
-            fontSize: '11px',
+        this.bossSubtitle = this.add.text(screenWidth / 2, barY - 8, 'BREAK VOID PRESSURE // KEEP THE UPLINK QUIET', {
+            fontSize: isMobileLayout ? '12px' : '13px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
             color: '#D8FFF6',
             stroke: '#061319',
             strokeThickness: 2
@@ -1060,6 +1154,16 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         this.bossHealthBar = this.add.graphics();
         this.bossUI.add(this.bossHealthBar);
+
+        this.bossExposureText = this.add.text(screenWidth / 2, barY + 9, '', {
+            fontSize: isMobileLayout ? '11px' : '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            stroke: '#061319',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        this.bossUI.add(this.bossExposureText);
 
         this.updateBossHealthBar();
         this.createBossIndicator();
@@ -1079,18 +1183,19 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         const healthPercent = this.bossHealth / this.bossMaxHealth;
         const currentWidth = barWidth * healthPercent;
+        const exposure = Math.max(0, Math.ceil(this.bossHealth));
 
-        const healthColor = healthPercent > 0.6
-            ? 0x7FFFD4
-            : healthPercent > 0.3
-                ? 0xF2C94C
-                : 0xFF6B4A;
-
-        this.bossHealthBar.fillStyle(healthColor, 1);
+        // This meter tracks the Void's exposure pressure, not Phoenix life.
+        this.bossHealthBar.fillStyle(0xA86BFF, 1);
         this.bossHealthBar.fillRoundedRect(barX, barY, currentWidth, barHeight, 6);
 
         this.bossHealthBar.fillStyle(0xFFFFFF, 0.2);
         this.bossHealthBar.fillRoundedRect(barX, barY, currentWidth, barHeight / 2, { tl: 6, tr: 6, bl: 0, br: 0 });
+        this.bossExposureText?.setText(
+            exposure > 0
+                ? `UPLINK EXPOSURE // ${exposure}/${this.bossMaxHealth}`
+                : 'UPLINK EXPOSURE // CONTAINED'
+        );
     }
 
     createBossIndicator() {
@@ -1175,6 +1280,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         if (!this.boss?.active || this.boss.isAttacking || this.bossDefeated) return;
 
         this.boss.isAttacking = true;
+        const attackWindow = PHOENIX_ATTACK_WINDOWS[attackType] || 1900;
+        this.showBossAttackInstruction(
+            PHOENIX_ATTACK_CUES[attackType],
+            attackWindow
+        );
 
         switch (attackType) {
             case 'flame_dive':
@@ -1194,11 +1304,41 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 break;
         }
 
-        this.time.delayedCall(1500, () => {
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = this.time.delayedCall(attackWindow, () => {
             if (this.boss?.active && !this.bossDefeated) {
                 this.boss.isAttacking = false;
             }
+            this.bossAttackUnlockTimer = null;
         });
+    }
+
+    showBossAttackInstruction(cue, duration = 1900) {
+        if (!cue || !this.bossSubtitle) return;
+
+        this.bossInstructionTimer?.remove?.();
+        this.bossSubtitle
+            .setText(cue)
+            .setColor('#FFD166')
+            .setScale(1.04);
+        this.tweens.add({
+            targets: this.bossSubtitle,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 180,
+            ease: 'Sine.easeOut'
+        });
+        if (this.bossAttackPreview) return;
+
+        this.bossInstructionTimer = this.time.delayedCall(
+            Math.max(650, duration - 250),
+            () => {
+                this.bossSubtitle
+                    ?.setText('BREAK VOID PRESSURE // KEEP THE UPLINK QUIET')
+                    ?.setColor('#D8FFF6');
+                this.bossInstructionTimer = null;
+            }
+        );
     }
 
     bossFlameDive() {
@@ -1326,10 +1466,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     bossRebirthNova() {
         if (!this.boss?.active || this.bossDefeated) return;
 
-        this.cameras.main.flash(500, 255, 69, 0);
+        window.FeedbackManager?.cameraFlash?.(this, 500, 255, 69, 0);
 
         const { width, height } = this.cameras.main;
-        const warning = this.add.text(width / 2, height / 3, '🔥 REBIRTH NOVA! 🔥', {
+        const warning = this.add.text(width / 2, height / 3, 'REBIRTH RING // JUMP', {
             fontSize: '28px',
             color: '#FF4500',
             fontStyle: 'bold',
@@ -1430,7 +1570,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossHealth = Math.max(0, this.bossHealth - amount);
         this.updateBossHealthBar();
 
-        this.boss.setTint(0xFF0000);
+        this.showFloatingText(
+            `EXPOSURE -${amount}`,
+            this.boss.x,
+            this.boss.y - 100,
+            '#A9F3E4'
+        );
+
+        this.boss.setTint(0xA9F3E4);
         this.time.delayedCall(100, () => {
             if (this.boss?.active && !this.bossDefeated) {
                 this.boss.clearTint();
@@ -1463,7 +1610,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     triggerPhase2() {
         this.bossPhase = 2;
-        this.cameras.main.shake(500, 0.02);
+        window.FeedbackManager?.cameraShake?.(this, 500, 0.02);
         this.boss.setTint(0x4169E1);
 
         const { width, height } = this.cameras.main;
@@ -1492,7 +1639,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     triggerPhase3() {
         this.bossPhase = 3;
-        this.cameras.main.shake(500, 0.03);
+        window.FeedbackManager?.cameraShake?.(this, 500, 0.03);
         this.boss.setTint(0x00BFFF);
 
         const { width, height } = this.cameras.main;
@@ -1527,6 +1674,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossFightActive = false;
 
         this.bossAITimer?.remove?.();
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        this.bossExposureText?.setText('UPLINK EXPOSURE // CONTAINED');
 
         if (this.boss?.body) {
             this.boss.body.enable = false;
@@ -1538,8 +1690,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossBody?.setVelocity?.(0, 0);
         this.tweens.killTweensOf(this.boss);
         this.boss?.setTint?.(0xA9F3E4);
-        this.cameras.main.flash(420, 169, 243, 228);
-        this.cameras.main.shake(350, 0.012);
+        window.FeedbackManager?.cameraFlash?.(this, 420, 169, 243, 228);
+        window.FeedbackManager?.cameraShake?.(this, 350, 0.012);
         this.showFloatingText(
             'PHOENIX SIGNAL STABLE',
             this.boss?.x || 4400,
@@ -1671,7 +1823,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         panel.setScrollFactor(0);
         panel.setDepth(2501);
 
-        this.add.text(width / 2, y(40), 'QUIET UPLINK READY', {
+        this.add.text(width / 2, y(40), 'FINAL ROUTE IDENTIFIED', {
             fontSize: font(28, 23),
             color: '#00E676',
             fontStyle: 'bold',
@@ -1691,7 +1843,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             (katanaUpgrade
                 ? `Creature-Tech: ${katanaUpgrade.name} ${upgradeStatus}\n`
                 : '') +
-            'Exposure Risk: Confirmed',
+            'Earth Contact: Possible, not transmitted\n' +
+            this.getVillageCompletionCopy({ compact: true }) + '\n' +
+            this.getGuardianSanctuaryArrivalCopy({ compact: true }),
             {
             fontSize: font(17, 14),
             color: '#FFD700',
@@ -1702,12 +1856,21 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
         const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
-        this.add.text(width / 2, y(195), `Ship Parts: ${shipParts.length}/${totalRequired}`, {
+        this.add.text(
+            width / 2,
+            y(195),
+            `Ship Parts: ${shipParts.length}/${totalRequired}\n` +
+            'Install the Aurora Reactor at Wanderer-77. The Final Void opens next.',
+            {
             fontSize: font(16, 14),
-            color: '#7FFFD4'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+            color: '#7FFFD4',
+            align: 'center',
+            lineSpacing: 4,
+            wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
-        const returnBtn = this.add.text(width / 2, y(250), '[ RETURN TO HUB ]', {
+        const returnBtn = this.add.text(width / 2, y(260), '[ INSTALL AURORA REACTOR ]', {
             fontSize: font(20, 17),
             color: '#00E676',
             backgroundColor: '#1A3A4A',
@@ -1735,6 +1898,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossHealthBar = null;
         this.bossNameText = null;
         this.bossSubtitle = null;
+        this.bossExposureText = null;
         this.bossBarConfig = null;
         this.bossIndicator?.destroy?.();
         this.bossIndicator = null;
@@ -1744,6 +1908,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         this.bossAITimer?.remove?.();
         this.bossAITimer = null;
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
 
         this.auroraLights.forEach(aurora => aurora.graphics.destroy());
         this.auroraLights = [];

@@ -14,6 +14,14 @@ function loadHubWorldScene(sceneWindow = {}) {
             'const getProjectBeaconDebrief = () => null;\n' +
             'const getProjectBeaconFirstExpeditionHandoff = () => null;'
         )
+        .replace(
+            "import { getExpeditionDiagnosticSnapshot } from '../systems/ExpeditionDiagnostics.js';",
+            'const getExpeditionDiagnosticSnapshot = () => ({ available: false, lines: [] });'
+        )
+        .replace(
+            "import { getShipReconstructionSnapshot } from '../systems/ShipReconstruction.js';",
+            'const getShipReconstructionSnapshot = () => ({ finalVoidReady: false, steps: [] });'
+        )
         .replace('export default class HubWorldScene', 'class HubWorldScene')
         .concat('\nmodule.exports = HubWorldScene;\n');
 
@@ -50,7 +58,42 @@ describe('HubWorldScene gate grid', () => {
         HubWorldScene = loadHubWorldScene();
     });
 
-    test('fits seven gates above the mobile details panel in three rows', () => {
+    test('focuses the newly opened route after the final pending field log', () => {
+        const scene = new HubWorldScene();
+        const notice = {
+            y: 74,
+            setOrigin: jest.fn().mockReturnThis(),
+            setDepth: jest.fn().mockReturnThis(),
+            setAlpha: jest.fn().mockReturnThis(),
+            destroy: jest.fn()
+        };
+        scene.dims = { width: 390, height: 844, isMobile: true };
+        scene.gates = [
+            { id: 'mythical_forest', data: { unlocked: true, name: 'Mythical Forest' } },
+            { id: 'crystal_caves', data: { unlocked: true, name: 'Crystal Caves' } }
+        ];
+        scene.selectGate = jest.fn();
+        scene.add = { text: jest.fn(() => notice) };
+        scene.tweens = { add: jest.fn() };
+        scene.time = { delayedCall: jest.fn() };
+
+        expect(scene.focusProjectBeaconNextRoute({
+            nextGate: { id: 'crystal_caves' }
+        })).toBe(true);
+        expect(scene.selectGate).toHaveBeenCalledWith(1);
+        expect(scene.add.text).toHaveBeenCalledWith(
+            195,
+            74,
+            'NEW ROUTE OPEN // CRYSTAL CAVES',
+            expect.any(Object)
+        );
+        expect(scene.time.delayedCall).toHaveBeenCalledWith(
+            2400,
+            expect.any(Function)
+        );
+    });
+
+    test('fits seven gates above the mobile details panel in two rows', () => {
         const scene = new HubWorldScene();
         scene.dims = {
             width: 390,
@@ -60,12 +103,13 @@ describe('HubWorldScene gate grid', () => {
         };
 
         const layout = scene.getGateGridLayout(7);
-        const finalRowCenter = layout.startY + 2 * (layout.gateHeight + layout.gapY);
+        const finalRowCenter = layout.startY + layout.gateHeight + layout.gapY;
         const finalLabelBottom = finalRowCenter + layout.gateSize + 30;
         const detailsPanelTop = 844 - 280 + 20;
 
-        expect(layout.gatesPerRow).toBe(3);
-        expect(layout.gateSize).toBe(32);
+        expect(layout.gatesPerRow).toBe(4);
+        expect(layout.gateSize).toBe(30);
+        expect(layout.gateWidth * 4 + layout.gapX * 3).toBeLessThanOrEqual(390);
         expect(finalLabelBottom).toBeLessThan(detailsPanelTop);
     });
 
@@ -129,7 +173,7 @@ describe('HubWorldScene gate grid', () => {
         );
 
         expect(hubSource).toContain(
-            "info += '\\n🗺️ Route map ready • Free'"
+            "info += '\\nRoute discovered • Ready to open'"
         );
         expect(hubSource).toContain(
             'this.actionButton = this.add.graphics().setPosition(actionBtnX, actionBtnY)'
@@ -275,14 +319,17 @@ describe('complete Hub preview route', () => {
         )?.[0] || '';
 
         expect(previewBlock).toContain(
-            "['complete', 'firstRoute', 'routeMap', 'checkpoint'].includes(testHub)"
+            "'diagnostics'"
         );
-        expect(previewBlock).toContain('{ progressionPreview: testHub }');
+        expect(previewBlock).toContain('progressionPreview: testHub');
+        expect(previewBlock).toContain("urlParams.get('previewSize') === 'mobile'");
         expect(previewBlock).not.toContain('GameState.set');
-        expect(hubSource).toContain("this.progressionPreview === 'complete'");
+        expect(hubSource).toContain("['complete', 'finalApproach'].includes(");
         expect(hubSource).toContain("this.progressionPreview === 'firstRoute'");
         expect(hubSource).toContain("this.progressionPreview === 'routeMap'");
         expect(hubSource).toContain("this.progressionPreview === 'checkpoint'");
+        expect(hubSource).toContain("this.progressionPreview === 'diagnostics'");
+        expect(hubSource).toContain("this.progressionPreview === 'finalApproach'");
         expect(hatchingSource).toContain("previewParams.has('testHub')");
     });
 });
@@ -403,20 +450,20 @@ describe('permanent route-map Hub handoff', () => {
         );
     });
 
-    test('offers owned maps as free route activation in the gate modal', () => {
+    test('offers owned maps as free activation only after campaign prerequisites', () => {
         const hubSource = fs.readFileSync(
             path.join(__dirname, '../scenes/HubWorldScene.js'),
             'utf8'
         );
 
         expect(hubSource).toContain(
-            'const canUnlock = hasRouteMap || canAfford'
+            'const prerequisitesMet = campaignAccess?.prerequisitesMet !== false'
         );
         expect(hubSource).toContain(
-            "'ROUTE MAP READY\\nNo coins required'"
+            'const canUnlock = prerequisitesMet && shipRequirementsMet'
         );
         expect(hubSource).toContain(
-            "hasRouteMap ? 'OPEN' : 'UNLOCK'"
+            'Complete ${campaignAccess.nextRequiredRoute.label} first'
         );
     });
 });

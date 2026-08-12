@@ -147,28 +147,28 @@ class RerollSystem {
         const advice = {
             common: {
                 recommend: true,
-                message: "🟢 Low risk! Reroll has good odds of improvement.",
-                odds: "75% chance to get Uncommon or better!"
+                message: "75% chance of a less common variation.",
+                odds: "75% chance to read Uncommon or above."
             },
             uncommon: {
                 recommend: true,
-                message: "🟠 Worth trying! Still decent odds.",
-                odds: "40% chance to get Rare or better."
+                message: "40% chance of a rarer variation.",
+                odds: "40% chance to read Rare or above."
             },
             rare: {
                 recommend: false,
-                message: "🔴 Risky! You might get worse.",
-                odds: "Only 25% chance to get Epic or Legendary."
+                message: "25% chance of a rarer variation.",
+                odds: "25% chance to read Epic or Legendary."
             },
             epic: {
                 recommend: false,
-                message: "🟣 Very risky! Epic is already great!",
-                odds: "Only 2% chance for Legendary, 92% chance for worse!"
+                message: "2% chance of a Legendary variation.",
+                odds: "Most rescans will read a more common variation."
             },
             legendary: {
                 recommend: false,
-                message: "🟨 DON'T REROLL! This is the best!",
-                odds: "You have the top tier - keep it!"
+                message: "Current reading is the rarest variation.",
+                odds: "A rescan cannot improve this classification."
             }
         };
 

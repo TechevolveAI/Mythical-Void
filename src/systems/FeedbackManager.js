@@ -7,6 +7,7 @@ class FeedbackManager {
     constructor() {
         this.hapticEnabled = true;
         this.screenShakeEnabled = true;
+        this.reducedMotionEnabled = false;
         this.initialized = false;
     }
 
@@ -33,7 +34,16 @@ class FeedbackManager {
         if (window.GameState) {
             this.hapticEnabled = window.GameState.get('settings.hapticEnabled') !== false;
             this.screenShakeEnabled = window.GameState.get('settings.screenShakeEnabled') !== false;
+            const savedReducedMotion = window.GameState.get(
+                'settings.reducedMotion'
+            );
+            this.reducedMotionEnabled = typeof savedReducedMotion === 'boolean'
+                ? savedReducedMotion
+                : this.systemPrefersReducedMotion();
+        } else {
+            this.reducedMotionEnabled = this.systemPrefersReducedMotion();
         }
+        this.applyReducedMotionClass();
     }
 
     /**
@@ -43,8 +53,22 @@ class FeedbackManager {
         if (window.GameState) {
             window.GameState.set('settings.hapticEnabled', this.hapticEnabled);
             window.GameState.set('settings.screenShakeEnabled', this.screenShakeEnabled);
+            window.GameState.set('settings.reducedMotion', this.reducedMotionEnabled);
             window.GameState.save?.();
         }
+    }
+
+    systemPrefersReducedMotion() {
+        return typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    applyReducedMotionClass() {
+        if (typeof document === 'undefined') return;
+        document.body?.classList?.toggle(
+            'reduced-motion',
+            this.reducedMotionEnabled
+        );
     }
 
     // ==========================================
@@ -134,7 +158,7 @@ class FeedbackManager {
      * @param {number} duration - Optional custom duration in ms
      */
     screenShake(scene, intensity = 'medium', duration = null) {
-        if (!this.screenShakeEnabled) return;
+        if (!this.screenShakeEnabled || this.reducedMotionEnabled) return;
         if (!scene || !scene.cameras || !scene.cameras.main) return;
 
         const preset = this.shakeIntensities[intensity] || this.shakeIntensities.medium;
@@ -155,7 +179,7 @@ class FeedbackManager {
      * @param {number} intensityY - Vertical shake intensity
      */
     screenShakeCustom(scene, duration, intensityX, intensityY) {
-        if (!this.screenShakeEnabled) return;
+        if (!this.screenShakeEnabled || this.reducedMotionEnabled) return;
         if (!scene || !scene.cameras || !scene.cameras.main) return;
 
         try {
@@ -163,6 +187,18 @@ class FeedbackManager {
         } catch (e) {
             // Fail silently
         }
+    }
+
+    cameraShake(scene, ...args) {
+        if (!this.screenShakeEnabled || this.reducedMotionEnabled) return false;
+        scene?.cameras?.main?.shake?.(...args);
+        return true;
+    }
+
+    cameraFlash(scene, ...args) {
+        if (this.reducedMotionEnabled) return false;
+        scene?.cameras?.main?.flash?.(...args);
+        return true;
     }
 
     // ==========================================
@@ -328,6 +364,13 @@ class FeedbackManager {
         return this.screenShakeEnabled;
     }
 
+    toggleReducedMotion() {
+        this.reducedMotionEnabled = !this.reducedMotionEnabled;
+        this.applyReducedMotionClass();
+        this.savePreferences();
+        return this.reducedMotionEnabled;
+    }
+
     /**
      * Set haptic enabled state
      * @param {boolean} enabled - Whether haptics should be enabled
@@ -354,7 +397,8 @@ class FeedbackManager {
         return {
             hapticEnabled: this.hapticEnabled,
             hapticSupported: this.hapticSupported,
-            screenShakeEnabled: this.screenShakeEnabled
+            screenShakeEnabled: this.screenShakeEnabled,
+            reducedMotionEnabled: this.reducedMotionEnabled
         };
     }
 }

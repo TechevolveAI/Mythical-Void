@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "id": "RM-001",
+  "status": "proposed_unapproved",
+  "createdAt": "2026-08-11T11:45:00Z",
+  "purpose": "Release the owned-site discovery foundation and parent-mediated community-submission copy without bundling unrelated Game Development work.",
+  "baseCommit": "1d5c14736ded3480c36f92167353f23a78c4bbef",
+  "deploymentAuthorized": false,
+  "releaseReady": false,
+  "approver": "Kevin plus Game Development release owner",
+  "approvalRefs": ["D-015", "GDH-001", "GDH-003"],
+  "workingTreeObservation": {
+    "observedAt": "2026-08-11T11:44:00Z",
+    "dirty": true,
+    "trackedChanged": 116,
+    "untracked": 170,
+    "deleted": 1,
+    "totalEntries": 286,
+    "collisionRisk": "critical",
+    "currentWholeTreeDeployPermitted": false
+  },
+  "files": [
+    {
+      "path": "public/robots.txt",
+      "sha256": "a7489edd3de9926d04417a8426ed80a99f46d51976a138f350818f57b54122e3",
+      "isolatedResultSha256": "a7489edd3de9926d04417a8426ed80a99f46d51976a138f350818f57b54122e3",
+      "scope": "full_file",
+      "trackedAtBase": false,
+      "isolationRequired": false,
+      "intendedChange": "Publish an allow policy and canonical sitemap declaration."
+    },
+    {
+      "path": "public/sitemap.xml",
+      "sha256": "2ebd458341de5ca581ca669e67faed3a669aee4be920b2651749ba3d0d223dd7",
+      "isolatedResultSha256": "2ebd458341de5ca581ca669e67faed3a669aee4be920b2651749ba3d0d223dd7",
+      "scope": "full_file",
+      "trackedAtBase": false,
+      "isolationRequired": false,
+      "intendedChange": "Publish canonical storefront, privacy, and terms URLs in a valid sitemap."
+    },
+    {
+      "path": "public/llms.txt",
+      "sha256": "2503bed8fde89eb2dde093ebfff75edeeae47fafa23ca1aef5776cd6ca7f2a1b",
+      "isolatedResultSha256": "2503bed8fde89eb2dde093ebfff75edeeae47fafa23ca1aef5776cd6ca7f2a1b",
+      "scope": "full_file",
+      "trackedAtBase": false,
+      "isolationRequired": false,
+      "intendedChange": "Publish a factual project summary using qualified procedural-variety language."
+    },
+    {
+      "path": "index.html",
+      "sha256": "ed200456d65870342fcc78d2eeca46ca85ed95d13264095e89adfa77059f600b",
+      "isolatedResultSha256": "ed200456d65870342fcc78d2eeca46ca85ed95d13264095e89adfa77059f600b",
+      "scope": "selected_hunks_in_shared_file",
+      "trackedAtBase": true,
+      "isolationRequired": true,
+      "intendedChange": "Add robots metadata, Open Graph site name, and VideoGame JSON-LD with qualified procedural-variety wording."
+    },
+    {
+      "path": "src/site/storefront.js",
+      "sha256": "4b846758683d8b0b92a230832c0cdb97b6366572e3ffe52581f250949920816b",
+      "isolatedResultSha256": "babedff233460e59f8e93a74bd906c6b9d75bad5d5234bb6de5585d577905280",
+      "scope": "selected_hunk_in_shared_file",
+      "trackedAtBase": true,
+      "isolationRequired": true,
+      "intendedChange": "Require a parent/guardian sender for a young designer and prohibit unnecessary child identifiers."
+    }
+  ],
+  "artifact": {
+    "path": "docs/company/operations/release-manifests/artifacts/RM-001-company-only.patch",
+    "sha256": "237902bfceb9117a268444fd9a1ad57d62a5aa997ebf3b243c63c03f5d838c62",
+    "status": "generated_unapproved",
+    "createdAt": "2026-08-11T11:52:00Z",
+    "baseApplicationVerified": true,
+    "baseApplicationVerifiedAt": "2026-08-11T11:52:00Z",
+    "appliedFileCount": 5,
+    "workspaceApplied": false,
+    "staged": false,
+    "committed": false,
+    "deployed": false,
+    "isolationAssertion": "Applying this artifact to baseCommit changes only the five listed paths; the storefront result preserves all three Wanderer-7 base strings and contains no Wanderer-77 string."
+  },
+  "sharedFileIsolation": [
+    {
+      "path": "index.html",
+      "companyMarkers": ["meta name=\"robots\"", "og:site_name", "application/ld+json", "procedurally varied alien companion"],
+      "knownUnrelatedDiff": "None identified in the current index.html diff, but the repository contains extensive concurrent work and the full file still requires release-owner review."
+    },
+    {
+      "path": "src/site/storefront.js",
+      "companyMarkers": ["For a young designer, a parent or guardian must send the idea.", "Parent or guardian: send a design"],
+      "knownUnrelatedDiff": "The same diff also changes Wanderer-7 to Wanderer-77 in three locations; those Game Development hunks are excluded from RM-001 unless its owner explicitly adds them."
+    }
+  ],
+  "explicitExclusions": [
+    "All source, test, asset, function, database, configuration, dependency, and documentation changes not listed in files",
+    "Wanderer-7 to Wanderer-77 storefront changes",
+    "Gemini/Replicate runtime, configuration, compliance, deployment, and privacy-policy corrections",
+    "New guardian and duplicate marketing assets",
+    "Portal SDK, analytics, inbox, social, CRM, account, payment, or contract changes",
+    "All docs/company and scripts/company artifacts from the production web bundle unless the release owner deliberately preserves repository documentation"
+  ],
+  "validationEvidence": [
+    {
+      "command": "npm run build",
+      "status": "passed_with_existing_warnings",
+      "observedAt": "2026-08-11T11:55:00Z",
+      "notes": "Build passed; existing ES2024 target, Vite CJS, stale browser data, mixed dynamic/static import, and large Phaser chunk warnings remain."
+    },
+    {
+      "command": "node scripts/company/validate-foundations.cjs",
+      "status": "passed",
+      "observedAt": "2026-08-11T11:55:00Z",
+      "notes": "Structured metadata, discovery files, company links, automation registry, and submission safety checks passed."
+    },
+    {
+      "command": "node scripts/company/run-company-control-plane.cjs --verify",
+      "status": "healthy_but_gated",
+      "observedAt": "2026-08-11T11:55:00Z",
+      "notes": "Exit 2 is expected because evidence, ownership, policy, and approval gates remain; no control was broken."
+    },
+    {
+      "command": "git diff --check -- index.html src/site/storefront.js public/robots.txt public/sitemap.xml public/llms.txt",
+      "status": "passed",
+      "observedAt": "2026-08-11T11:55:00Z",
+      "notes": "No whitespace errors in the release scope."
+    },
+    {
+      "command": "node scripts/company/audit-public-footprint.cjs",
+      "status": "live_baseline_gated",
+      "observedAt": "2026-08-11T11:17:00Z",
+      "notes": "Production still has 7 major and 4 minor findings; robots, sitemap, and llms paths return the SPA HTML shell."
+    }
+  ],
+  "postDeployChecks": [
+    "Confirm the deployed source/build identifier matches the approved isolated release artifact.",
+    "Run A-001 and require 0 major findings across all 6 checks.",
+    "Verify /robots.txt and /llms.txt return text/plain rather than HTML.",
+    "Verify /sitemap.xml returns XML containing the canonical URLs.",
+    "Verify homepage robots metadata and valid VideoGame JSON-LD.",
+    "Verify privacy and terms routes still render.",
+    "Verify storefront community copy requires a parent/guardian sender and omits the listed child identifiers.",
+    "Smoke-test the Play route and primary storefront navigation.",
+    "Record the Netlify deploy ID, source revision, artifact digest, approver, timestamp, and rollback target."
+  ],
+  "rollback": {
+    "owner": "Unassigned Game Development release owner",
+    "lastKnownGoodDeployId": null,
+    "lastKnownGoodArtifactDigest": null,
+    "evidenceComplete": false,
+    "plan": "Before approval, identify and verify the last known good production artifact. On a failed check, stop further company releases, redeploy that exact artifact through the owning release workflow, rerun smoke/A-001 checks, and record the incident."
+  },
+  "releaseGates": [
+    "Game Development release owner accepts D-015 and an isolated patch/artifact.",
+    "Exact selected hunks are reviewed so shared-file Game Development changes are not silently bundled.",
+    "Last known good Netlify deploy/artifact and rollback operator are recorded.",
+    "A complete preview or equivalent artifact review passes.",
+    "Kevin approves the exact release and deployment window.",
+    "Post-deploy checks and source-to-deploy evidence owner are available."
+  ]
+}

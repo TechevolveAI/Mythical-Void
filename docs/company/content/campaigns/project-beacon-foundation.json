@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "id": "CMP-001",
+  "workflowRef": "A-034",
+  "status": "internal_package_ready_publication_gated",
+  "purpose": "Create a reusable Project Beacon foundation from the accepted CP-001 draft without adding claims, evidence, identities, tracking, targeting, or publication authority.",
+  "authority": {
+    "contentApprovalAuthorized": false,
+    "channelApprovalAuthorized": false,
+    "accountCreationAuthorized": false,
+    "credentialConnectionAuthorized": false,
+    "measurementActivationAuthorized": false,
+    "schedulingAuthorized": false,
+    "publishingAuthorized": false,
+    "replyingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionAuthorized": false,
+    "minorTargetingPermitted": false,
+    "conversationIsAuthorization": false
+  },
+  "source": {
+    "editorialRef": "CQ-006",
+    "contentPackageRef": "CP-001",
+    "contentPackagePath": "docs/company/content/drafts/PROJECT_BEACON_INTRO.json",
+    "claimsRegistryPath": "docs/company/content/claims.json",
+    "channelRegistryPath": "docs/company/content/channels.json",
+    "channelIdentityPath": "docs/company/content/channel-identity.json",
+    "sourceChecked": "2026-08-11",
+    "claimIds": ["CL-001", "CL-002", "CL-004", "CL-008"],
+    "proofIds": [],
+    "customerEvidenceIds": []
+  },
+  "canonical": {
+    "language": "en",
+    "audience": "Adult and general creature/narrative-game audience; not child-targeted advertising",
+    "copy": "Earth sent Project Beacon looking for hope. What it found was alive.\n\nIn Mythical Void, restore six living realms beside an alien companion in a free browser adventure. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
+    "fictionSeparated": true,
+    "generatedMedia": false
+  },
+  "destination": {
+    "canonicalUrl": "https://mythicalvoid.com/",
+    "allowedHosts": ["mythicalvoid.com"],
+    "observedLiveAsOf": "2026-08-11T13:57:07Z",
+    "taggedUrl": null,
+    "measurementPlanApproved": false,
+    "trackingParametersAuthorized": false
+  },
+  "transformationContract": {
+    "allowed": ["shorten", "reorder", "adapt_tone_to_named_channel"],
+    "prohibited": [
+      "add_unregistered_claim",
+      "strengthen_or_absolutize_claim",
+      "mix_fiction_with_real_world_claim",
+      "invent_gameplay_or_customer_proof",
+      "add_unapproved_destination_or_tracking",
+      "add_generated_media_or_undisclosed_asset",
+      "imply_channel_identity_or_publication_approval"
+    ],
+    "allVariantClaimsMustBeSourceClaims": true,
+    "literalClaimEvidenceRequired": true,
+    "customerEvidenceRequiredForTestimonials": true,
+    "unapprovedHashtagsAllowed": false
+  },
+  "variants": [
+    {
+      "id": "WV-001",
+      "channelRef": "CH-001",
+      "context": "owned_web_summary",
+      "audience": "General players and adult/guardian discovery audiences",
+      "language": "en",
+      "copy": "Earth sent Project Beacon looking for hope. What it found was alive.\n\nIn Mythical Void, restore six living realms beside an alien companion in a free browser adventure. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
+      "claimIds": ["CL-001", "CL-002", "CL-004", "CL-008"],
+      "claimEvidence": [
+        { "claimId": "CL-001", "excerpt": "a free browser adventure" },
+        { "claimId": "CL-002", "excerpt": "No download or account is required to start." },
+        { "claimId": "CL-004", "excerpt": "restore six living realms" },
+        { "claimId": "CL-008", "excerpt": "Earth sent Project Beacon looking for hope." }
+      ],
+      "proofIds": [],
+      "customerEvidenceIds": [],
+      "destinationUrl": "https://mythicalvoid.com/",
+      "hashtags": [],
+      "generatedMedia": false,
+      "publicationReady": false
+    },
+    {
+      "id": "WV-002",
+      "channelRef": "CH-004",
+      "context": "professional_company_context",
+      "audience": "Industry, partners, talent, press, and professional peers",
+      "language": "en",
+      "copy": "Project Beacon sent you to find hope for Earth. What it found was alive.\n\nMythical Void is a free browser adventure: explore and restore six living realms beside an alien companion. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
+      "claimIds": ["CL-001", "CL-002", "CL-004", "CL-008"],
+      "claimEvidence": [
+        { "claimId": "CL-001", "excerpt": "a free browser adventure" },
+        { "claimId": "CL-002", "excerpt": "No download or account is required to start." },
+        { "claimId": "CL-004", "excerpt": "explore and restore six living realms" },
+        { "claimId": "CL-008", "excerpt": "Project Beacon sent you to find hope for Earth." }
+      ],
+      "proofIds": [],
+      "customerEvidenceIds": [],
+      "destinationUrl": "https://mythicalvoid.com/",
+      "hashtags": [],
+      "generatedMedia": false,
+      "publicationReady": false
+    }
+  ],
+  "accessibility": {
+    "textOnly": true,
+    "languageDeclared": true,
+    "plainTextLinkVisible": true,
+    "emojiDependentMeaning": false,
+    "altTextRequired": false,
+    "captionsRequired": false,
+    "reviewCompleteForCurrentText": true
+  },
+  "disclosure": {
+    "generatedAssetPresent": false,
+    "generatedAssetDisclosureRequired": false,
+    "gameplayMediaPresent": false,
+    "testimonialOrCustomerQuotePresent": false,
+    "paidOrPartnerRelationshipClaimed": false
+  },
+  "approval": {
+    "contentApproved": false,
+    "channelApproved": false,
+    "publicationApproved": false,
+    "approvedBy": null,
+    "approvalEnvelopeRef": null,
+    "artifactDigestBound": false,
+    "externalExecutorConfigured": false
+  },
+  "publicationGates": {
+    "sourceAndClaimProvenanceValid": true,
+    "fictionBoundaryValid": true,
+    "destinationAllowlistValid": true,
+    "accessibilityReviewComplete": true,
+    "deployedBuildClaimRecheckComplete": false,
+    "channelDecisionRecorded": false,
+    "canonicalChannelIdentityVerified": false,
+    "ownerRecoveryAndCredentialReady": false,
+    "moderationSafeguardingAndIncidentCoverageReady": false,
+    "measurementAndPrivacyApproved": false,
+    "completeChannelPreviewApproved": false,
+    "trustedArtifactBoundApprovalRecorded": false,
+    "publisherAndKillSwitchTested": false,
+    "postPublicationReconciliationReady": false
+  },
+  "internalPackageReady": true,
+  "publicationReady": false
+}

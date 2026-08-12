@@ -1,6 +1,6 @@
 export const PROJECT_BEACON_FIELD_KIT = Object.freeze({
     id: 'wanderer_7_field_kit',
-    name: 'Wanderer-7 Field Kit',
+    name: 'Wanderer-77 Field Kit',
     katana: Object.freeze({
         id: 'earth_field_katana',
         name: 'Earth-forged Field Katana',
@@ -115,6 +115,10 @@ export function installProjectBeaconKatanaUpgrade(gameState, upgradeId, {
         name: upgrade.name,
         source: upgrade.source,
         sourceLevelId: upgrade.sourceLevelId,
+        witnessCompanionId:
+            gameState.get('creature.id')
+            || gameState.get('creature.genes.id')
+            || 'active_companion',
         installedAt
     };
     const nextFieldKit = {

@@ -22,7 +22,7 @@ The living form must not become a random replacement. It is generated from an im
 
 Portrait metadata is saved per evolution stage with provider/model provenance and an AI-generated label. Provider output is currently marked temporary because Replicate API files expire; production generation remains behind the separate `ENABLE_AI_PORTRAITS` gate until the storage and usage-control work below is complete.
 
-`LivingPortraitService` now owns one deduplicated background job per creature identity and evolution stage. The hatch reveal and the later portrait modal reuse the same request instead of spending twice or producing competing versions.
+`LivingPortraitService` now owns one deduplicated background job per creature identity and evolution stage. The hatch reveal, reload recovery, and later portrait modal reuse the same private server job instead of spending twice or producing competing versions. Completed identities are re-signed from private storage; failed attempts may create a replacement job without consuming new-identity quota.
 
 ## Recommended Player Experience
 
@@ -33,6 +33,7 @@ Portrait metadata is saved per evolution stage with provider/model provenance an
 5. If generation takes longer, play continues and the finished portrait is saved to the creature profile.
 6. The profile and portrait modal reuse the hatch job and stored result.
 7. Evolution creates one new stage portrait while preserving the same face, palette, markings, and mutation anchors.
+8. When new-identity capacity is exhausted, the UI reports the estimated retry window while Sanctuary entry remains immediately available.
 
 Generation cannot be guaranteed to finish instantaneously. The product target is **instant perceived response**: prewarm early, never show an empty loader, never block gameplay indefinitely, and reveal the result at the first emotionally appropriate moment.
 
@@ -64,7 +65,9 @@ These are required before enabling production generation:
 - key objects by user ID, creature ID, stage, identity hash, and portrait revision
 - require a Supabase-authenticated player, including anonymous accounts
 - permit one automatic draft per creature stage, then apply a small regeneration limit
-- enforce server-side idempotency and per-user/IP rate limits
+- enforce server-side identity idempotency before quota checks
+- count only the first reservation for an immutable user/identity pair toward the rolling new-identity quota; failed retries and style changes are exempt
+- return `retryAt` and `retryAfterSeconds` for deferred new identities so clients can explain when generation will resume
 - store provider, model, prompt version, input hash, generation time, and moderation outcome
 - provide delete/export controls alongside cloud-save privacy controls
 - never send player free-form prompts directly to the media provider
@@ -90,7 +93,9 @@ Start with 4-8 second clips. Keep dialogue, subtitles, and music in the game lay
 - save the resulting MP4, thumbnail, and model metadata to owned storage
 - invalidate a clip only when its portrait revision or story-beat version changes
 
-Current video APIs are asynchronous and temporary output URLs expire, so webhooks plus owned storage are required. Reusable character assets can improve consistency later, after the initial portrait-to-video tests demonstrate that the creature survives motion without identity drift.
+The production path uses a protected, provider-agnostic asynchronous job with the accepted Living Portrait as the exact image-to-video reference. Google Veo Fast through a server-only paid Gemini API key is preferred, with Replicate available as a server-side fallback. Netlify's managed Gemini gateway remains suitable for the Living Portrait image, but its current model list does not include Veo. The browser receives only an opaque application reference; provider job IDs, credentials, source storage paths, and provider output URLs remain server-only. Finished MP4 files are copied into the private `companion-videos` bucket before temporary provider output expires. The first Forest clip starts as soon as the protected Living Portrait job succeeds, is checked again at the Forest invitation and gate, and falls back immediately to the in-engine motion tableau if it is not ready.
+
+Reusable character assets can improve consistency later, after the initial portrait-to-video evaluation demonstrates that the creature survives motion without identity drift.
 
 ## Evaluation
 

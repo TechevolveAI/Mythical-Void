@@ -27,6 +27,14 @@ class BreedingHatchScene extends Phaser.Scene {
         this.parent1Sprite = null;
         this.parent2Sprite = null;
         this.offspringSprite = null;
+        this.fusionTransaction = null;
+        this.previewOnly = false;
+        this.completionSubmitted = false;
+        this.nameDomElements = [];
+        this.namingElements = [];
+        this.previousDomContainerStyles = null;
+        this.cleanupComplete = false;
+        this.phaseTitle = null;
     }
 
     init(data) {
@@ -48,15 +56,167 @@ class BreedingHatchScene extends Phaser.Scene {
 
         this.parent1Data = data?.parent1 || null;
         this.parent2Data = data?.parent2 || null;
+        this.fusionTransaction = data?.fusionTransaction || null;
+        this.previewOnly = Boolean(data?.previewOnly);
+        this.completionSubmitted = false;
+        this.cleanupComplete = false;
+        this.nameDomElements = [];
+        this.namingElements = [];
+        this.previousDomContainerStyles = null;
+        this.phaseTitle = null;
         // Birth events from BirthEventSystem
         this.birthEvents = data?.birthEvents || [];
         this.hasRareEvent = data?.hasRareEvent || false;
+    }
+
+    sanitizeCreatureName(value, fallback = 'New Creature') {
+        const sanitized = String(value || '')
+            .replace(/[^\p{L}\p{N} '\-_]/gu, '')
+            .trim()
+            .slice(0, 20);
+        return sanitized || fallback;
+    }
+
+    createNativeNameInput({
+        x,
+        y,
+        width,
+        value,
+        label,
+        accent,
+        onInput,
+        onSubmit = null
+    }) {
+        if (typeof document === 'undefined' || typeof this.add?.dom !== 'function') {
+            return null;
+        }
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.maxLength = 20;
+        input.inputMode = 'text';
+        input.enterKeyHint = 'done';
+        input.autocomplete = 'off';
+        input.autocorrect = 'off';
+        input.spellcheck = false;
+        input.autocapitalize = 'words';
+        input.value = value;
+        input.setAttribute('aria-label', label);
+        Object.assign(input.style, {
+            width: `${width}px`,
+            height: '38px',
+            boxSizing: 'border-box',
+            border: `2px solid ${accent}`,
+            borderRadius: '6px',
+            background: '#15152f',
+            color: '#FFFFFF',
+            caretColor: accent,
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '16px',
+            lineHeight: 'normal',
+            padding: '0 10px',
+            outline: 'none',
+            textAlign: 'center',
+            pointerEvents: 'auto',
+            touchAction: 'manipulation',
+            appearance: 'none',
+            WebkitAppearance: 'none'
+        });
+
+        const domElement = this.add.dom(x, y, input).setOrigin(0.5).setDepth(205);
+        input.addEventListener('input', () => {
+            const sanitized = this.sanitizeCreatureName(input.value, '');
+            if (input.value !== sanitized) input.value = sanitized;
+            onInput(sanitized);
+        });
+        input.addEventListener('keydown', event => {
+            event.stopPropagation();
+            if (event.key === 'Enter' && typeof onSubmit === 'function') {
+                event.preventDefault();
+                input.blur();
+                onSubmit();
+            }
+        });
+        input.addEventListener('focus', () => {
+            input.style.boxShadow = `0 0 0 3px ${accent}33`;
+        });
+        input.addEventListener('blur', () => {
+            input.style.boxShadow = 'none';
+        });
+
+        if (this.game?.domContainer) {
+            if (!this.previousDomContainerStyles) {
+                this.previousDomContainerStyles = {
+                    zIndex: this.game.domContainer.style.zIndex,
+                    pointerEvents: this.game.domContainer.style.pointerEvents
+                };
+            }
+            this.game.domContainer.style.zIndex = '220';
+            this.game.domContainer.style.pointerEvents = 'auto';
+        }
+
+        this.nameDomElements.push({ input, domElement });
+        return domElement;
+    }
+
+    createNativeConfirmButton({ x, y, width, label, onSubmit }) {
+        if (typeof document === 'undefined' || typeof this.add?.dom !== 'function') {
+            return null;
+        }
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = label;
+        button.setAttribute('aria-label', label);
+        Object.assign(button.style, {
+            width: `${width}px`,
+            minHeight: '44px',
+            border: '2px solid #D8E35A',
+            borderRadius: '6px',
+            background: '#2F9E44',
+            color: '#FFFFFF',
+            fontFamily: 'Arial, sans-serif',
+            fontSize: '14px',
+            fontWeight: '700',
+            padding: '8px 12px',
+            cursor: 'pointer',
+            pointerEvents: 'auto',
+            touchAction: 'manipulation'
+        });
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            onSubmit?.();
+        });
+
+        const domElement = this.add.dom(x, y, button).setOrigin(0.5).setDepth(206);
+        this.nameDomElements.push({ input: button, domElement });
+        return domElement;
+    }
+
+    restoreDomContainerStyles() {
+        if (!this.game?.domContainer || !this.previousDomContainerStyles) return;
+        this.game.domContainer.style.zIndex = this.previousDomContainerStyles.zIndex;
+        this.game.domContainer.style.pointerEvents = this.previousDomContainerStyles.pointerEvents;
+        this.previousDomContainerStyles = null;
+    }
+
+    clearNamingControls() {
+        this.nameDomElements.forEach(({ input, domElement }) => {
+            input?.remove?.();
+            domElement?.destroy?.();
+        });
+        this.nameDomElements = [];
+        this.namingElements.forEach(element => element?.destroy?.());
+        this.namingElements = [];
+        this.restoreDomContainerStyles();
     }
 
     create() {
         console.log('[BreedingHatchScene] Creating breeding hatch scene...');
 
         const { width, height } = this.scale;
+        this.events?.once?.('shutdown', this.shutdown, this);
+        this.events?.once?.('destroy', this.shutdown, this);
 
         // Stop other scenes
         SceneTransitionHelper.stopScenes(this, ['GameScene', 'FusionPodScene']);
@@ -74,6 +234,29 @@ class BreedingHatchScene extends Phaser.Scene {
 
         // Start the cinematic sequence
         this.startIntroPhase(width, height);
+    }
+
+    fitTextToWidth(textObject, maxWidth, minFontSize = 12) {
+        if (!textObject || !Number.isFinite(maxWidth) || textObject.width <= maxWidth) {
+            return textObject;
+        }
+
+        const currentFontSize = Number.parseFloat(textObject.style?.fontSize) || 16;
+        const fittedFontSize = Math.max(
+            minFontSize,
+            Math.floor(currentFontSize * (maxWidth / textObject.width))
+        );
+        textObject.setFontSize(fittedFontSize);
+        return textObject;
+    }
+
+    getSafeHeadingFontSize(value, maxWidth, preferredFontSize, minFontSize) {
+        const characterCount = Math.max(1, String(value || '').length);
+        const estimatedFontSize = Math.floor(maxWidth / (characterCount * 0.72));
+        return Math.max(
+            minFontSize,
+            Math.min(preferredFontSize, estimatedFontSize)
+        );
     }
 
     createCosmicBackground(width, height) {
@@ -137,15 +320,24 @@ class BreedingHatchScene extends Phaser.Scene {
 
     startIntroPhase(width, height) {
         this.phase = 'intro';
+        const titleCopy = 'CURRENT SYNTHESIS // ACTIVE';
+        const titleFontSize = this.getSafeHeadingFontSize(
+            titleCopy,
+            width - 36,
+            28,
+            15
+        );
 
         // Title
-        const title = this.add.text(width / 2, 50, '✨ Cosmic Union ✨', {
-            fontSize: '28px',
+        const title = this.add.text(width / 2, 50, titleCopy, {
+            fontSize: `${titleFontSize}px`,
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(100).setAlpha(0);
+        this.fitTextToWidth(title, width - 36, 15);
+        this.phaseTitle = title;
         this.elements.push(title);
 
         // Fade in title
@@ -368,7 +560,7 @@ class BreedingHatchScene extends Phaser.Scene {
         this.createDNAHelix(centerX, centerY);
 
         // Fusion message
-        const fusionText = this.add.text(centerX, height - 150, 'Combining Cosmic Genetics...', {
+        const fusionText = this.add.text(centerX, height - 150, 'ALIGNING TWO CURRENT SIGNATURES...', {
             fontSize: '16px',
             color: '#88FFCC',
             fontStyle: 'italic'
@@ -481,6 +673,11 @@ class BreedingHatchScene extends Phaser.Scene {
     startRevealPhase(width, height) {
         this.phase = 'reveal';
         const centerY = height / 2 - 30;
+
+        if (this.phaseTitle?.active) {
+            this.phaseTitle.destroy();
+        }
+        this.phaseTitle = null;
 
         // Screen flash
         const flash = this.add.graphics();
@@ -744,13 +941,21 @@ class BreedingHatchScene extends Phaser.Scene {
         });
 
         // "New Life!" title
-        const newLifeText = this.add.text(centerX, centerY - 100, '🎉 New Life Created! 🎉', {
-            fontSize: '24px',
+        const revealCopy = 'NEW CURRENT SIGNATURE // STABLE';
+        const revealFontSize = this.getSafeHeadingFontSize(
+            revealCopy,
+            width - 36,
+            24,
+            14
+        );
+        const newLifeText = this.add.text(centerX, centerY - 100, revealCopy, {
+            fontSize: `${revealFontSize}px`,
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3
         }).setOrigin(0.5).setDepth(100).setAlpha(0);
+        this.fitTextToWidth(newLifeText, width - 36, 14);
         this.elements.push(newLifeText);
 
         this.tweens.add({
@@ -1112,9 +1317,11 @@ class BreedingHatchScene extends Phaser.Scene {
         const namePrefixes = ['Star', 'Moon', 'Nova', 'Cosmic', 'Nebula', 'Crystal'];
         const nameSuffixes = ['ling', 'spark', 'wing', 'heart', 'soul', 'glow'];
 
-        this.twin1Name = namePrefixes[Phaser.Math.Between(0, namePrefixes.length - 1)] +
+        this.twin1Name = this.fusionTransaction?.proposedNames?.[0] ||
+            namePrefixes[Phaser.Math.Between(0, namePrefixes.length - 1)] +
             nameSuffixes[Phaser.Math.Between(0, nameSuffixes.length - 1)];
-        this.twin2Name = namePrefixes[Phaser.Math.Between(0, namePrefixes.length - 1)] +
+        this.twin2Name = this.fusionTransaction?.proposedNames?.[1] ||
+            namePrefixes[Phaser.Math.Between(0, namePrefixes.length - 1)] +
             nameSuffixes[Phaser.Math.Between(0, nameSuffixes.length - 1)];
 
         // Make sure names are different
@@ -1124,12 +1331,13 @@ class BreedingHatchScene extends Phaser.Scene {
         }
 
         // Prompt text
-        const promptText = this.add.text(width / 2, promptY - 40, 'Name Your Twins:', {
+        const promptText = this.add.text(width / 2, promptY - 40, 'Name both new companions:', {
             fontSize: '16px',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(200);
         this.elements.push(promptText);
+        this.namingElements.push(promptText);
 
         // Twin 1 name box
         const box1 = this.add.graphics();
@@ -1139,6 +1347,7 @@ class BreedingHatchScene extends Phaser.Scene {
         box1.strokeRoundedRect(width * 0.25 - 70, promptY - 5, 140, 35, 8);
         box1.setDepth(200);
         this.elements.push(box1);
+        this.namingElements.push(box1);
 
         const name1Text = this.add.text(width * 0.25, promptY + 12, this.twin1Name, {
             fontSize: '14px',
@@ -1146,6 +1355,7 @@ class BreedingHatchScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(201);
         this.elements.push(name1Text);
+        this.namingElements.push(name1Text);
 
         // Twin 2 name box
         const box2 = this.add.graphics();
@@ -1155,6 +1365,7 @@ class BreedingHatchScene extends Phaser.Scene {
         box2.strokeRoundedRect(width * 0.75 - 70, promptY - 5, 140, 35, 8);
         box2.setDepth(200);
         this.elements.push(box2);
+        this.namingElements.push(box2);
 
         const name2Text = this.add.text(width * 0.75, promptY + 12, this.twin2Name, {
             fontSize: '14px',
@@ -1162,36 +1373,43 @@ class BreedingHatchScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(201);
         this.elements.push(name2Text);
+        this.namingElements.push(name2Text);
 
-        // Editable zones
-        const zone1 = this.add.zone(width * 0.25 - 70, promptY - 5, 140, 35).setOrigin(0, 0);
-        zone1.setInteractive().setDepth(202);
-        zone1.on('pointerdown', () => {
-            const newName = prompt('Name Twin 1:', this.twin1Name);
-            if (newName && newName.trim().length > 0) {
-                this.twin1Name = newName.trim().substring(0, 20);
-                name1Text.setText(this.twin1Name);
+        name1Text.setVisible(false);
+        name2Text.setVisible(false);
+        this.createNativeNameInput({
+            x: width * 0.25,
+            y: promptY + 12,
+            width: 140,
+            value: this.twin1Name,
+            label: 'Name first twin',
+            accent: '#88CCFF',
+            onInput: value => {
+                this.twin1Name = value;
             }
         });
-
-        const zone2 = this.add.zone(width * 0.75 - 70, promptY - 5, 140, 35).setOrigin(0, 0);
-        zone2.setInteractive().setDepth(202);
-        zone2.on('pointerdown', () => {
-            const newName = prompt('Name Twin 2:', this.twin2Name);
-            if (newName && newName.trim().length > 0) {
-                this.twin2Name = newName.trim().substring(0, 20);
-                name2Text.setText(this.twin2Name);
-            }
+        this.createNativeNameInput({
+            x: width * 0.75,
+            y: promptY + 12,
+            width: 140,
+            value: this.twin2Name,
+            label: 'Name second twin',
+            accent: '#FF88CC',
+            onInput: value => {
+                this.twin2Name = value;
+            },
+            onSubmit: () => this.completeTwinBreeding()
         });
 
         // Confirm button
-        const confirmBtn = this.add.text(width / 2, promptY + 55, '✓ Welcome Both to the Family!', {
+        const confirmBtn = this.add.text(width / 2, promptY + 55, 'CONFIRM BOTH LINEAGE RECORDS', {
             fontSize: '16px',
             color: '#FFFFFF',
             backgroundColor: '#00AA00',
             padding: { x: 20, y: 10 }
         }).setOrigin(0.5).setDepth(200).setInteractive();
         this.elements.push(confirmBtn);
+        this.namingElements.push(confirmBtn);
 
         confirmBtn.on('pointerdown', () => {
             this.completeTwinBreeding();
@@ -1199,24 +1417,40 @@ class BreedingHatchScene extends Phaser.Scene {
 
         confirmBtn.on('pointerover', () => confirmBtn.setStyle({ backgroundColor: '#00DD00' }));
         confirmBtn.on('pointerout', () => confirmBtn.setStyle({ backgroundColor: '#00AA00' }));
+        const nativeConfirm = this.createNativeConfirmButton({
+            x: width / 2,
+            y: promptY + 55,
+            width: 260,
+            label: 'Confirm both lineage records',
+            onSubmit: () => this.completeTwinBreeding()
+        });
+        if (nativeConfirm) {
+            confirmBtn.disableInteractive();
+            confirmBtn.setVisible(false);
+        }
     }
 
     /**
      * Complete breeding for BOTH twins
      */
-    completeTwinBreeding() {
+    async completeTwinBreeding() {
+        if (this.completionSubmitted) return;
+        this.completionSubmitted = true;
+        this.twin1Name = this.sanitizeCreatureName(this.twin1Name, 'First Twin');
+        this.twin2Name = this.sanitizeCreatureName(this.twin2Name, 'Second Twin');
+        this.clearNamingControls();
         console.log('[BreedingHatchScene] Completing twin breeding:', this.twin1Name, '&', this.twin2Name);
 
         const { width, height } = this.scale;
-        const addedCreatures = [];
-
-        // Create and add BOTH twins to collection
-        [
+        const creatureData = [
             { data: this.twin1, name: this.twin1Name, textureName: this.twin1TextureName, index: 1 },
             { data: this.twin2, name: this.twin2Name, textureName: this.twin2TextureName, index: 2 }
-        ].forEach(twin => {
-            const creatureData = {
-                id: `creature_${Date.now()}_twin${twin.index}_${Math.random().toString(36).substr(2, 9)}`,
+        ];
+        const twinIds = creatureData.map(twin => twin.data?.offspringData?.creatureId);
+        const committedTwinData = creatureData.map(twin => {
+            const now = Date.now();
+            return {
+                id: twin.data?.offspringData?.creatureId,
                 name: twin.name,
                 genes: twin.data?.offspringGenes,
                 dna: twin.data?.offspringGenes,
@@ -1226,19 +1460,20 @@ class BreedingHatchScene extends Phaser.Scene {
                 level: 1,
                 experience: 0,
                 textureName: twin.textureName || null,
-                hatchTime: Date.now(),
+                hatchTime: now,
                 lifecycle: {
-                    birthDate: Date.now(),
+                    birthDate: now,
                     stage: 'baby',
-                    lastStageChange: Date.now(),
+                    lastStageChange: now,
                     evolutionHistory: []
                 },
                 cosmicAffinity: twin.data?.offspringGenes?.cosmicAffinity,
                 rarity: twin.data?.offspringData?.rarity || 'common',
-                addedAt: Date.now(),
+                addedAt: now,
                 isOffspring: true,
                 isTwin: true,
                 twinIndex: twin.index,
+                twinSiblingId: twin.index === 1 ? twinIds[1] : twinIds[0],
                 twinSiblingName: twin.index === 1 ? this.twin2Name : this.twin1Name,
                 generation: twin.data?.offspringData?.generation || 2,
                 parentIds: twin.data?.offspringData?.parentIds || [],
@@ -1246,42 +1481,36 @@ class BreedingHatchScene extends Phaser.Scene {
                 birthEvents: twin.data?.offspringData?.birthEvents || [],
                 secretAbilities: twin.data?.offspringData?.secretAbilities || []
             };
-
-            // Handle both old boolean return and new object return for backward compatibility
-            const result = window.GameState?.addCreatureToCollection?.(creatureData);
-            const isSuccess = result === true || (result && result.success);
-            if (isSuccess) {
-                addedCreatures.push(creatureData);
-                console.log(`[BreedingHatchScene] Twin ${twin.index} added:`, twin.name);
-            } else {
-                console.log(`[BreedingHatchScene] Twin ${twin.index} failed:`, result?.reason || 'unknown');
-            }
         });
+        const commitStatus = this.add.text(
+            width / 2,
+            height / 2,
+            'SECURING LINEAGE RECORDS...',
+            {
+                fontSize: '18px',
+                color: '#FFD700',
+                stroke: '#000000',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(300);
+        const result = await this.commitFusionCreatures(committedTwinData);
+        commitStatus.destroy();
+        const addedCreatures = result.success
+            ? (result.offspring || committedTwinData)
+            : [];
 
         if (addedCreatures.length === 2) {
-            // Set the FIRST twin as active creature
-            const firstTwin = addedCreatures[0];
-
-            window.GameState?.set('creature.name', firstTwin.name);
-            window.GameState?.set('creature.genes', firstTwin.genes);
-            window.GameState?.set('creature.dna', firstTwin.dna);
-            window.GameState?.set('creature.personality', null);
-            window.GameState?.set('creature.personalityState', null);
-            window.GameState?.set('creature.stats', firstTwin.stats);
-            window.GameState?.set('creature.level', 1);
-            window.GameState?.set('creature.experience', 0);
-            window.GameState?.set('creature.textureName', null);
-            window.GameState?.set('creature.lifecycle', firstTwin.lifecycle);
-            window.GameState?.set('creature.rarity', firstTwin.rarity);
-            window.GameState?.set('creature.cosmicAffinity', firstTwin.cosmicAffinity);
-            window.GameState?.set('creature.generation', firstTwin.generation);
-            window.GameState?.set('creature.hatched', true);
-            window.GameState?.set('creature.named', true);
-            window.GameState?.save?.();
+            addedCreatures.forEach(creature => {
+                window.AchievementSystem?.recordEvent?.('creature_hatched', {
+                    hatchId: creature.id,
+                    rarity: creature.rarity,
+                    species: creature.genes?.species || 'unknown'
+                });
+            });
 
             // Success message
             const successText = this.add.text(width / 2, height / 2,
-                `✅ ${this.twin1Name} & ${this.twin2Name}\njoined your family!`, {
+                `${this.twin1Name} & ${this.twin2Name}\nLINEAGE RECORDS CONFIRMED`, {
                 fontSize: '18px',
                 color: '#00FF00',
                 fontStyle: 'bold',
@@ -1310,53 +1539,47 @@ class BreedingHatchScene extends Phaser.Scene {
             this.time.delayedCall(3000, () => {
                 this.returnToGame();
             });
-        } else if (addedCreatures.length === 1) {
-            // Only one twin added (collection might be almost full)
-            const successText = this.add.text(width / 2, height / 2,
-                `✅ ${addedCreatures[0].name} joined!\n⚠️ Collection full for second twin`, {
-                fontSize: '16px',
-                color: '#FFAA00',
-                stroke: '#000000',
-                strokeThickness: 3,
-                align: 'center'
-            }).setOrigin(0.5).setDepth(300);
-
-            window.AudioManager?.playPurchase?.();
-
-            this.time.delayedCall(2500, () => {
-                this.returnToGame();
-            });
         } else {
-            // Collection full
-            const errorText = this.add.text(width / 2, height / 2, '❌ Collection is full!', {
+            this.completionSubmitted = false;
+            const errorText = this.add.text(
+                width / 2,
+                height / 2,
+                this.getCommitFailureMessage(result.reason),
+                {
                 fontSize: '18px',
                 color: '#FF6666',
                 stroke: '#000000',
-                strokeThickness: 3
-            }).setOrigin(0.5).setDepth(300);
+                strokeThickness: 3,
+                align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(300);
 
             window.AudioManager?.playError?.();
-
-            this.time.delayedCall(2000, () => {
+            if (!result.recoverable) {
+                window.GameState?.clearInterruptedFusion?.(
+                    `commit_failed:${result.reason || 'unknown'}`
+                );
+            }
+            this.time.delayedCall(2500, () => {
+                errorText.destroy();
+                if (result.recoverable) {
+                    const resumeData =
+                        window.GameState?.getPendingFusionHatchData?.();
+                    if (resumeData) {
+                        this.scene.restart(resumeData);
+                        return;
+                    }
+                }
                 this.returnToGame();
             });
         }
     }
 
     showInheritanceInfo(width, height, creatureY) {
-        const panelY = creatureY + 80;
         const offspringData = this.offspringData || {};
+        const panelY = Math.min(creatureY + 70, height - 325);
+        const panelHeight = 175;
 
-        // Calculate panel height based on content
-        let panelHeight = 180; // Base height
-        if (this.birthEvents && this.birthEvents.length > 0) {
-            panelHeight += 20 + (this.birthEvents.length * 16); // Header + events
-        }
-        if (offspringData.secretAbilities && offspringData.secretAbilities.length > 0) {
-            panelHeight += 20 + (offspringData.secretAbilities.length * 16); // Header + abilities
-        }
-
-        // Inheritance panel
         const panel = this.add.graphics();
         panel.fillStyle(0x1A1A3E, 0.9);
         panel.fillRoundedRect(width / 2 - 160, panelY, 320, panelHeight, 15);
@@ -1371,45 +1594,10 @@ class BreedingHatchScene extends Phaser.Scene {
             duration: 300
         });
 
-        let y = panelY + 20;
-
-        // From Parent 1
         const p1Name = offspringData.parentNames?.[0] || 'Parent 1';
-        const from1 = this.add.text(width / 2, y, `From ${p1Name}:`, {
-            fontSize: '12px',
-            color: '#88CCFF',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(101).setAlpha(0);
-        this.elements.push(from1);
-        y += 18;
-
         const traits1 = offspringData.inheritedTraits?.fromParent1 || ['Body Shape', 'Pattern'];
-        const traits1Text = this.add.text(width / 2, y, traits1.join(', '), {
-            fontSize: '11px',
-            color: '#FFFFFF'
-        }).setOrigin(0.5).setDepth(101).setAlpha(0);
-        this.elements.push(traits1Text);
-        y += 25;
-
-        // From Parent 2
         const p2Name = offspringData.parentNames?.[1] || 'Parent 2';
-        const from2 = this.add.text(width / 2, y, `From ${p2Name}:`, {
-            fontSize: '12px',
-            color: '#FF88CC',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(101).setAlpha(0);
-        this.elements.push(from2);
-        y += 18;
-
         const traits2 = offspringData.inheritedTraits?.fromParent2 || ['Eye Color', 'Markings'];
-        const traits2Text = this.add.text(width / 2, y, traits2.join(', '), {
-            fontSize: '11px',
-            color: '#FFFFFF'
-        }).setOrigin(0.5).setDepth(101).setAlpha(0);
-        this.elements.push(traits2Text);
-        y += 25;
-
-        // Generation & Rarity
         const gen = offspringData.generation || 2;
         const rarity = offspringData.rarity || 'common';
         const rarityColors = {
@@ -1420,89 +1608,56 @@ class BreedingHatchScene extends Phaser.Scene {
             legendary: '#FFD700'
         };
 
-        const genRarityText = this.add.text(width / 2, y, `Generation ${gen} • ${rarity.toUpperCase()}`, {
-            fontSize: '14px',
-            color: rarityColors[rarity] || '#FFFFFF',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(101).setAlpha(0);
-        this.elements.push(genRarityText);
-        y += 22;
-
-        // Offspring bonus
-        const bonus = offspringData.offspringBonus;
-        if (bonus) {
-            const bonusText = this.add.text(width / 2, y, `✨ ${bonus.description}`, {
-                fontSize: '12px',
-                color: '#88FF88'
-            }).setOrigin(0.5).setDepth(101).setAlpha(0);
-            this.elements.push(bonusText);
-            y += 20;
-        }
-
-        // BIRTH EVENTS: Show any triggered special events
-        const birthEventElements = [];
-        if (this.birthEvents && this.birthEvents.length > 0) {
-            // Show birth events header
-            const eventHeader = this.add.text(width / 2, y, '🎊 Special Birth Events:', {
-                fontSize: '12px',
-                color: '#FFD700',
-                fontStyle: 'bold'
-            }).setOrigin(0.5).setDepth(101).setAlpha(0);
-            this.elements.push(eventHeader);
-            birthEventElements.push(eventHeader);
-            y += 18;
-
-            // Show each event
-            this.birthEvents.forEach(event => {
-                const eventText = this.add.text(width / 2, y, event.message, {
-                    fontSize: '11px',
-                    color: this.getBirthEventColor(event.rarity)
-                }).setOrigin(0.5).setDepth(101).setAlpha(0);
-                this.elements.push(eventText);
-                birthEventElements.push(eventText);
-                y += 16;
-            });
-
-            // Play extra celebration for rare events
-            if (this.hasRareEvent) {
-                this.time.delayedCall(500, () => {
-                    window.AudioManager?.playAchievement?.();
-                    if (window.FXLibrary) {
-                        window.FXLibrary.stardustBurst(this, width / 2, height / 2, {
-                            count: 50,
-                            color: [0xFFD700, 0xFF69B4, 0x9370DB],
-                            duration: 2500
-                        });
-                    }
-                });
+        const lines = [
+            {
+                text: `FROM ${p1Name.toUpperCase()} // ${traits1.join(', ')}`,
+                color: '#88CCFF'
+            },
+            {
+                text: `FROM ${p2Name.toUpperCase()} // ${traits2.join(', ')}`,
+                color: '#FF88CC'
+            },
+            {
+                text: `GENERATION ${gen} // ${rarity.toUpperCase()}`,
+                color: rarityColors[rarity] || '#FFFFFF'
             }
-        }
-
-        // SECRET ABILITIES: Show any unlocked abilities
-        const abilityElements = [];
-        if (offspringData.secretAbilities && offspringData.secretAbilities.length > 0) {
-            const abilityHeader = this.add.text(width / 2, y, '🌟 Secret Abilities Unlocked:', {
-                fontSize: '12px',
-                color: '#FF69B4',
-                fontStyle: 'bold'
-            }).setOrigin(0.5).setDepth(101).setAlpha(0);
-            this.elements.push(abilityHeader);
-            abilityElements.push(abilityHeader);
-            y += 18;
-
-            offspringData.secretAbilities.forEach(ability => {
-                const abilityText = this.add.text(width / 2, y, `${ability.icon} ${ability.name}`, {
-                    fontSize: '11px',
-                    color: '#E0BBE4'
-                }).setOrigin(0.5).setDepth(101).setAlpha(0);
-                this.elements.push(abilityText);
-                abilityElements.push(abilityText);
-                y += 16;
+        ];
+        if (offspringData.offspringBonus?.description) {
+            lines.push({
+                text: `LINEAGE EFFECT // ${offspringData.offspringBonus.description}`,
+                color: '#88FF88'
             });
         }
+        (this.birthEvents || []).slice(0, 2).forEach(event => {
+            lines.push({
+                text: `SPECIAL EVENT // ${event.message}`,
+                color: this.getBirthEventColor(event.rarity)
+            });
+        });
+        (offspringData.secretAbilities || []).slice(0, 2).forEach(ability => {
+            lines.push({
+                text: `ABILITY // ${ability.name}`,
+                color: '#E0BBE4'
+            });
+        });
 
-        // Animate in sequence
-        const textElements = [from1, traits1Text, from2, traits2Text, genRarityText, ...birthEventElements, ...abilityElements];
+        const textElements = lines.slice(0, 7).map((line, index) => {
+            const text = this.add.text(
+                width / 2,
+                panelY + 18 + index * 21,
+                line.text,
+                {
+                    fontSize: '11px',
+                    color: line.color,
+                    fontStyle: 'bold',
+                    align: 'center',
+                    wordWrap: { width: 286 }
+                }
+            ).setOrigin(0.5, 0).setDepth(101).setAlpha(0);
+            this.elements.push(text);
+            return text;
+        });
+
         textElements.forEach((el, i) => {
             this.tweens.add({
                 targets: el,
@@ -1513,7 +1668,22 @@ class BreedingHatchScene extends Phaser.Scene {
             });
         });
 
-        // Show naming prompt after info displayed
+        if (this.hasRareEvent) {
+            this.time.delayedCall(500, () => {
+                window.AudioManager?.playAchievement?.();
+                window.FXLibrary?.stardustBurst?.(
+                    this,
+                    width / 2,
+                    height / 2,
+                    {
+                        count: 50,
+                        color: [0xFFD700, 0xFF69B4, 0x9370DB],
+                        duration: 2500
+                    }
+                );
+            });
+        }
+
         this.time.delayedCall(1500, () => {
             this.showNamingPrompt(width, height);
         });
@@ -1525,17 +1695,19 @@ class BreedingHatchScene extends Phaser.Scene {
         const promptY = height - 100;
 
         // Name your offspring text
-        const promptText = this.add.text(width / 2, promptY - 30, 'Name Your New Creature:', {
+        const promptText = this.add.text(width / 2, promptY - 30, 'Name the new companion:', {
             fontSize: '16px',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(200);
         this.elements.push(promptText);
+        this.namingElements.push(promptText);
 
         // Generate default name
         const namePrefixes = ['Star', 'Moon', 'Nova', 'Cosmic', 'Nebula', 'Crystal', 'Void', 'Astral'];
         const nameSuffixes = ['ling', 'spark', 'wing', 'heart', 'soul', 'glow', 'beam', 'dust'];
-        const defaultName = namePrefixes[Phaser.Math.Between(0, namePrefixes.length - 1)] +
+        const defaultName = this.fusionTransaction?.proposedNames?.[0] ||
+            namePrefixes[Phaser.Math.Between(0, namePrefixes.length - 1)] +
             nameSuffixes[Phaser.Math.Between(0, nameSuffixes.length - 1)];
 
         // Name display (tap to edit)
@@ -1548,6 +1720,7 @@ class BreedingHatchScene extends Phaser.Scene {
         nameBox.strokeRoundedRect(width / 2 - 100, promptY - 5, 200, 40, 8);
         nameBox.setDepth(200);
         this.elements.push(nameBox);
+        this.namingElements.push(nameBox);
 
         const nameText = this.add.text(width / 2, promptY + 15, this.offspringName, {
             fontSize: '18px',
@@ -1555,15 +1728,17 @@ class BreedingHatchScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(201);
         this.elements.push(nameText);
+        this.namingElements.push(nameText);
 
         // Confirm button
-        const confirmBtn = this.add.text(width / 2, promptY + 60, '✓ Welcome to the Family!', {
+        const confirmBtn = this.add.text(width / 2, promptY + 60, 'CONFIRM LINEAGE RECORD', {
             fontSize: '16px',
             color: '#FFFFFF',
             backgroundColor: '#00AA00',
             padding: { x: 20, y: 10 }
         }).setOrigin(0.5).setDepth(200).setInteractive();
         this.elements.push(confirmBtn);
+        this.namingElements.push(confirmBtn);
 
         confirmBtn.on('pointerdown', () => {
             this.completeBreeding();
@@ -1571,27 +1746,44 @@ class BreedingHatchScene extends Phaser.Scene {
 
         confirmBtn.on('pointerover', () => confirmBtn.setStyle({ backgroundColor: '#00DD00' }));
         confirmBtn.on('pointerout', () => confirmBtn.setStyle({ backgroundColor: '#00AA00' }));
+        const nativeConfirm = this.createNativeConfirmButton({
+            x: width / 2,
+            y: promptY + 60,
+            width: 250,
+            label: 'Confirm lineage record',
+            onSubmit: () => this.completeBreeding()
+        });
+        if (nativeConfirm) {
+            confirmBtn.disableInteractive();
+            confirmBtn.setVisible(false);
+        }
 
-        // Make name editable on mobile
-        const nameZone = this.add.zone(width / 2 - 100, promptY - 5, 200, 40).setOrigin(0, 0);
-        nameZone.setInteractive().setDepth(202);
-
-        nameZone.on('pointerdown', () => {
-            // Simple prompt for name change
-            const newName = prompt('Enter creature name:', this.offspringName);
-            if (newName && newName.trim().length > 0) {
-                this.offspringName = newName.trim().substring(0, 20);
-                nameText.setText(this.offspringName);
-            }
+        nameText.setVisible(false);
+        this.createNativeNameInput({
+            x: width / 2,
+            y: promptY + 15,
+            width: 200,
+            value: this.offspringName,
+            label: 'Name fused creature',
+            accent: '#FFD700',
+            onInput: value => {
+                this.offspringName = value;
+            },
+            onSubmit: () => this.completeBreeding()
         });
     }
 
-    completeBreeding() {
+    async completeBreeding() {
+        if (this.completionSubmitted) return;
+        this.completionSubmitted = true;
+        this.offspringName = this.sanitizeCreatureName(this.offspringName, 'New Creature');
+        this.clearNamingControls();
         console.log('[BreedingHatchScene] Completing breeding with name:', this.offspringName);
 
         // Create creature data for collection
+        const now = Date.now();
         const creatureData = {
-            id: `creature_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: this.offspringData?.creatureId,
             name: this.offspringName,
             genes: this.offspringGenes,
             dna: this.offspringGenes,
@@ -1601,16 +1793,16 @@ class BreedingHatchScene extends Phaser.Scene {
             level: 1,
             experience: 0,
             textureName: this.offspringTextureName || null, // Store rendered texture
-            hatchTime: Date.now(),
+            hatchTime: now,
             lifecycle: {
-                birthDate: Date.now(),
+                birthDate: now,
                 stage: 'baby',
-                lastStageChange: Date.now(),
+                lastStageChange: now,
                 evolutionHistory: []
             },
             cosmicAffinity: this.offspringGenes?.cosmicAffinity,
             rarity: this.offspringData?.rarity || 'common',
-            addedAt: Date.now(),
+            addedAt: now,
             isOffspring: true,
             generation: this.offspringData?.generation || 2,
             parentIds: this.offspringData?.parentIds || [],
@@ -1623,61 +1815,42 @@ class BreedingHatchScene extends Phaser.Scene {
             dualAffinity: this.offspringData?.dualAffinity || null
         };
 
-        // Add to collection - returns object with { success, reason, creature }
-        const result = window.GameState?.addCreatureToCollection?.(creatureData);
-
-        // Handle both old boolean return and new object return for backward compatibility
-        const isSuccess = result === true || (result && result.success);
+        const { width, height } = this.scale;
+        const commitStatus = this.add.text(
+            width / 2,
+            height / 2,
+            'SECURING LINEAGE RECORD...',
+            {
+                fontSize: '18px',
+                color: '#FFD700',
+                stroke: '#000000',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(300);
+        const result = await this.commitFusionCreatures([creatureData]);
+        commitStatus.destroy();
+        const isSuccess = result.success;
         const failureReason = result?.reason || 'unknown';
 
-        const { width, height } = this.scale;
-
         if (isSuccess) {
-            // CRITICAL: Set the new baby as the active creature
-            // This ensures the player sees their new baby when returning to GameScene
-            console.log('[BreedingHatchScene] Setting new baby as active creature');
-
-            // Set all active creature properties
-            window.GameState?.set('creature.name', creatureData.name);
-            window.GameState?.set('creature.genes', creatureData.genes);
-            window.GameState?.set('creature.dna', creatureData.dna);
-            window.GameState?.set('creature.personality', creatureData.personality);
-            window.GameState?.set('creature.personalityState', creatureData.personalityState);
-            window.GameState?.set('creature.stats', creatureData.stats);
-            window.GameState?.set('creature.level', creatureData.level);
-            window.GameState?.set('creature.experience', creatureData.experience);
-            // CRITICAL: Preserve the rendered texture name so the creature looks the same
-            // Setting to null would cause regeneration with different random values
-            window.GameState?.set('creature.textureName', this.offspringTextureName || null);
-            window.GameState?.set('creature.lifecycle', creatureData.lifecycle);
-            window.GameState?.set('creature.rarity', creatureData.rarity);
-            window.GameState?.set('creature.cosmicAffinity', creatureData.cosmicAffinity);
-            window.GameState?.set('creature.generation', creatureData.generation);
-            window.GameState?.set('creature.parentIds', creatureData.parentIds);
-            window.GameState?.set('creature.isOffspring', true);
-            window.GameState?.set('creature.offspringBonus', creatureData.offspringBonus);
-            window.GameState?.set('creature.hatched', true);
-            window.GameState?.set('creature.named', true);
-
+            const committedCreature = result.offspring?.[0] || creatureData;
             window.AchievementSystem?.recordEvent?.('creature_hatched', {
-                hatchId: creatureData.id,
-                rarity: creatureData.rarity,
-                species: creatureData.genes?.species || 'unknown'
+                hatchId: committedCreature.id,
+                rarity: committedCreature.rarity,
+                species: committedCreature.genes?.species || 'unknown'
             });
 
-            // Save the state
-            window.GameState?.save?.();
-
-            console.log('[BreedingHatchScene] Baby creature set as active:', creatureData.name, 'stage:', creatureData.lifecycle.stage);
+            console.log('[BreedingHatchScene] Fused creature set as active:', committedCreature.name, 'stage:', committedCreature.lifecycle.stage);
 
             // Success message
-            const successText = this.add.text(width / 2, height / 2, `✅ ${this.offspringName} joined your family!`, {
+            const successText = this.add.text(width / 2, height / 2, `${this.offspringName}\nLINEAGE RECORD CONFIRMED`, {
                 fontSize: '20px',
                 color: '#00FF00',
                 fontStyle: 'bold',
                 stroke: '#000000',
                 strokeThickness: 4
             }).setOrigin(0.5).setDepth(300);
+            this.fitTextToWidth(successText, width - 36, 14);
 
             window.AudioManager?.playPurchase?.();
 
@@ -1695,15 +1868,9 @@ class BreedingHatchScene extends Phaser.Scene {
                 this.returnToGame();
             });
         } else {
+            this.completionSubmitted = false;
             // Show appropriate error message based on failure reason
-            let errorMessage = '❌ Something went wrong!';
-            if (failureReason === 'full') {
-                errorMessage = '❌ Collection is full (8/8)!\nRelease a creature to make room.';
-            } else if (failureReason === 'duplicate') {
-                // This shouldn't happen for bred offspring, but handle it gracefully
-                console.warn('[BreedingHatchScene] Duplicate creature detected - this is unusual for breeding');
-                errorMessage = '⚠️ Creature already exists!\nPlease try breeding again.';
-            }
+            const errorMessage = this.getCommitFailureMessage(failureReason);
 
             console.log('[BreedingHatchScene] Failed to add creature:', failureReason);
 
@@ -1717,13 +1884,61 @@ class BreedingHatchScene extends Phaser.Scene {
 
             window.AudioManager?.playError?.();
 
+            if (!result.recoverable) {
+                window.GameState?.clearInterruptedFusion?.(
+                    `commit_failed:${failureReason}`
+                );
+            }
             this.time.delayedCall(2500, () => {
+                errorText.destroy();
+                if (result.recoverable) {
+                    const resumeData =
+                        window.GameState?.getPendingFusionHatchData?.();
+                    if (resumeData) {
+                        this.scene.restart(resumeData);
+                        return;
+                    }
+                }
                 this.returnToGame();
             });
         }
     }
 
+    async commitFusionCreatures(creatures) {
+        if (this.previewOnly) {
+            return { success: true, reason: 'preview' };
+        }
+
+        const operationId = this.fusionTransaction?.operationId;
+        if (!operationId) {
+            return { success: false, reason: 'transaction_not_found' };
+        }
+
+        return await window.GameState?.finalizeFusionTransaction?.(
+            operationId,
+            creatures
+        ) ||
+            { success: false, reason: 'transaction_unavailable' };
+    }
+
+    getCommitFailureMessage(reason) {
+        const messages = {
+            collection_capacity: 'Collection space changed.\nNo creatures were added.',
+            duplicate: 'This fusion was already recorded.',
+            transaction_not_found: 'Fusion record was interrupted.\nReturn to the Pod and try again.',
+            transaction_unavailable: 'Fusion records are unavailable.\nReturn to the Pod and try again.',
+            offspring_count_mismatch: 'Fusion result was incomplete.\nNo creatures were added.',
+            offspring_identity_mismatch: 'Fusion identity check failed.\nNo creatures were added.',
+            invalid_names: 'Choose a short name using letters or numbers.',
+            server_finalize_unavailable: 'Cloud lineage service is unavailable.\nYour result is safe to retry.',
+            server_finalize_failed: 'Cloud lineage could not be confirmed.\nYour result is safe to retry.',
+            server_commit_state_invalid: 'Cloud lineage needs to be restored.\nYour result is safe to retry.'
+        };
+        return messages[reason] || 'Fusion could not be saved.\nNo creatures were added.';
+    }
+
     returnToGame() {
+        this.shutdown();
         this.scene.start('GameScene');
     }
 
@@ -1756,7 +1971,11 @@ class BreedingHatchScene extends Phaser.Scene {
     }
 
     shutdown() {
+        if (this.cleanupComplete) return;
+        this.cleanupComplete = true;
         console.log('[BreedingHatchScene] Shutting down...');
+
+        this.clearNamingControls();
 
         // Destroy all tracked elements
         this.elements.forEach(el => {
@@ -1789,6 +2008,9 @@ class BreedingHatchScene extends Phaser.Scene {
         this.offspringGenes = null;
         this.parent1Data = null;
         this.parent2Data = null;
+        this.fusionTransaction = null;
+        this.previewOnly = false;
+        this.completionSubmitted = false;
 
         // Clean up graphics engine
         this.graphicsEngine = null;

@@ -2230,19 +2230,34 @@ class GraphicsEngine {
         graphics.fillCircle(tailX + 15, engineY - 5, 8);
 
         // === IDENTIFICATION MARKINGS ===
-        // "V-01" designation on hull
-        graphics.fillStyle(0x263238, 0.8);
-        graphics.fillRect(centerX - 5, centerY - 13, 25, 10);
-        graphics.fillStyle(0xFFFFFF, 0.9);
-        // Simplified text representation with lines
-        graphics.lineStyle(2, 0xFFFFFF, 0.9);
-        // "V"
-        graphics.lineBetween(centerX - 2, centerY - 11, centerX + 2, centerY - 5);
-        graphics.lineBetween(centerX + 2, centerY - 5, centerX + 6, centerY - 11);
-        // "-"
-        graphics.lineBetween(centerX + 9, centerY - 8, centerX + 13, centerY - 8);
-        // "0"
-        graphics.strokeCircle(centerX + 17, centerY - 8, 2.5);
+        // Flight 23 livery: red, black, white, and green travel together.
+        const registryX = centerX - 8;
+        const registryY = centerY - 14;
+        graphics.fillStyle(0x050505, 0.92);
+        graphics.fillRect(registryX, registryY, 43, 12);
+        [0xD72638, 0x050505, 0xFFFFFF, 0x138A36].forEach((color, index) => {
+            graphics.fillStyle(color, 1);
+            graphics.fillRect(registryX + (index * 4), registryY, 4, 3);
+        });
+
+        // Compact W77-23 registry, drawn as hull-safe linework.
+        graphics.lineStyle(1.5, 0xFFFFFF, 0.95);
+        graphics.lineBetween(registryX + 2, registryY + 5, registryX + 4, registryY + 10);
+        graphics.lineBetween(registryX + 4, registryY + 10, registryX + 6, registryY + 7);
+        graphics.lineBetween(registryX + 6, registryY + 7, registryX + 8, registryY + 10);
+        graphics.lineBetween(registryX + 8, registryY + 10, registryX + 10, registryY + 5);
+        [13, 18].forEach(offset => {
+            graphics.lineBetween(registryX + offset, registryY + 5, registryX + offset + 4, registryY + 5);
+            graphics.lineBetween(registryX + offset + 4, registryY + 5, registryX + offset + 1, registryY + 10);
+        });
+        graphics.lineBetween(registryX + 24, registryY + 8, registryX + 27, registryY + 8);
+        graphics.lineBetween(registryX + 30, registryY + 6, registryX + 34, registryY + 5);
+        graphics.lineBetween(registryX + 34, registryY + 5, registryX + 30, registryY + 10);
+        graphics.lineBetween(registryX + 30, registryY + 10, registryX + 34, registryY + 10);
+        graphics.lineBetween(registryX + 37, registryY + 5, registryX + 41, registryY + 5);
+        graphics.lineBetween(registryX + 41, registryY + 5, registryX + 39, registryY + 7);
+        graphics.lineBetween(registryX + 39, registryY + 7, registryX + 41, registryY + 9);
+        graphics.lineBetween(registryX + 41, registryY + 9, registryX + 37, registryY + 10);
 
         // === STATUS LIGHTS ===
         // Power still flickering
@@ -7525,7 +7540,17 @@ class GraphicsEngine {
 
         // Special feature effects
         specialFeatures.forEach(feature => {
-            this.addSpecialFeatureEffect(graphics, feature, center, genetics);
+            try {
+                this.addSpecialFeatureEffect(graphics, feature, center, genetics);
+            } catch (error) {
+                const featureType = typeof feature === 'string'
+                    ? feature
+                    : feature?.type || 'unknown';
+                console.warn(
+                    `graphics:warn [GraphicsEngine] Optional feature "${featureType}" could not render`,
+                    error
+                );
+            }
         });
 
         // Legendary creatures get extra sparkles (scaled by stage glow)
@@ -8241,6 +8266,170 @@ class GraphicsEngine {
         }
     }
 
+    addAuroraWingTips(graphics, center, colors, intensity = 0.5) {
+        const strength = Math.max(0.1, Math.min(1, Number(intensity) || 0.5));
+        const wingColors = [colors.primary, colors.secondary, colors.accent];
+        const sides = [-1, 1];
+
+        sides.forEach(side => {
+            wingColors.forEach((color, index) => {
+                const x = center.x + side * (30 + index * 5);
+                const y = center.y - 8 + index * 8;
+                graphics.fillStyle(color, (0.18 + index * 0.08) * strength);
+                graphics.fillTriangle(
+                    center.x + side * 16,
+                    center.y - 6 + index * 4,
+                    x,
+                    y - 8,
+                    x + side * 8,
+                    y + 8
+                );
+                graphics.fillStyle(0xFFFFFF, 0.35 * strength);
+                graphics.fillCircle(x + side * 3, y, 1.5 + strength);
+            });
+        });
+    }
+
+    addPrismaticScales(graphics, center, colors, variant = 'standard', intensity = 0.5) {
+        const strength = Math.max(0.1, Math.min(1, Number(intensity) || 0.5));
+        const palettes = {
+            aurora: [0x00FF7F, 0x00CED1, 0x9370DB, 0xFF69B4],
+            opalescent: [0xFFE4E1, 0xE6E6FA, 0xB0E0E6, 0xF0FFF0],
+            standard: [colors.primary, colors.secondary, colors.accent, 0xFFFFFF]
+        };
+        const palette = palettes[variant] || palettes.standard;
+
+        for (let row = 0; row < 4; row++) {
+            for (let column = 0; column < 5; column++) {
+                const x = center.x - 16 + column * 8 + (row % 2) * 4;
+                const y = center.y - 10 + row * 8;
+                const color = palette[(row + column) % palette.length];
+                graphics.fillStyle(color, (0.22 + row * 0.04) * strength);
+                graphics.fillTriangle(x - 4, y - 3, x + 4, y - 3, x, y + 4);
+            }
+        }
+    }
+
+    addRealityDistortion(graphics, center, colors, intensity = 0.5) {
+        const strength = Math.max(0.1, Math.min(1, Number(intensity) || 0.5));
+        [0, 1, 2].forEach(index => {
+            graphics.lineStyle(
+                1 + index,
+                index % 2 === 0 ? colors.primary : colors.accent,
+                (0.28 - index * 0.06) * strength
+            );
+            graphics.strokeEllipse(
+                center.x + (index - 1) * 3,
+                center.y,
+                68 + index * 12,
+                48 + index * 8
+            );
+        });
+    }
+
+    addCosmicResonance(graphics, center, colors, intensity = 0.5) {
+        const strength = Math.max(0.1, Math.min(1, Number(intensity) || 0.5));
+        const resonanceColors = [colors.primary, colors.secondary, colors.accent];
+
+        resonanceColors.forEach((color, index) => {
+            const radius = 28 + index * 10;
+            graphics.lineStyle(2, color, (0.35 - index * 0.07) * strength);
+            graphics.strokeCircle(center.x, center.y, radius);
+        });
+        for (let index = 0; index < 6; index++) {
+            const angle = (index / 6) * Math.PI * 2;
+            graphics.lineStyle(1, colors.accent, 0.35 * strength);
+            graphics.lineBetween(
+                center.x + Math.cos(angle) * 20,
+                center.y + Math.sin(angle) * 20,
+                center.x + Math.cos(angle) * 48,
+                center.y + Math.sin(angle) * 48
+            );
+        }
+    }
+
+    addStellarCore(graphics, center, color, variant = 'standard', intensity = 0.5) {
+        const strength = Math.max(0.1, Math.min(1, Number(intensity) || 0.5));
+        const coreY = center.y + 6;
+        graphics.fillStyle(color, 0.18 * strength);
+        graphics.fillCircle(center.x, coreY, 18);
+        graphics.fillStyle(color, 0.4 * strength);
+        graphics.fillCircle(center.x, coreY, 10);
+        graphics.fillStyle(0xFFFFFF, 0.75 * strength);
+        graphics.fillCircle(center.x, coreY, variant === 'pulsing' ? 5 : 4);
+        this.drawStar(graphics, center.x, coreY, 5, 2, 4);
+    }
+
+    addTimeRipples(graphics, center, colors, intensity = 0.5) {
+        const strength = Math.max(0.1, Math.min(1, Number(intensity) || 0.5));
+        [0, 1, 2, 3].forEach(index => {
+            graphics.lineStyle(
+                1,
+                index % 2 === 0 ? colors.secondary : colors.accent,
+                (0.34 - index * 0.06) * strength
+            );
+            graphics.strokeEllipse(
+                center.x,
+                center.y + 12,
+                32 + index * 16,
+                12 + index * 7
+            );
+        });
+    }
+
+    addDimensionalShadows(graphics, center, intensity = 0.5) {
+        const strength = Math.max(0.1, Math.min(1, Number(intensity) || 0.5));
+        const shadows = [
+            { x: -10, y: 5, color: 0x160028 },
+            { x: 9, y: 2, color: 0x001B2E },
+            { x: 0, y: 12, color: 0x000000 }
+        ];
+        shadows.forEach((shadow, index) => {
+            graphics.fillStyle(shadow.color, (0.16 + index * 0.05) * strength);
+            graphics.fillEllipse(
+                center.x + shadow.x,
+                center.y + shadow.y,
+                54 - index * 6,
+                42 - index * 4
+            );
+        });
+    }
+
+    addNebulaTrail(graphics, center, colors, variant = 'standard', intensity = 0.5) {
+        const strength = Math.max(0.1, Math.min(1, Number(intensity) || 0.5));
+        const trailColors = [colors.primary, colors.secondary, colors.accent];
+        for (let index = 0; index < 6; index++) {
+            const distance = 22 + index * 8;
+            const drift = variant === 'spiral' ? Math.sin(index) * 8 : index * 2;
+            graphics.fillStyle(
+                trailColors[index % trailColors.length],
+                Math.max(0.04, (0.24 - index * 0.03) * strength)
+            );
+            graphics.fillEllipse(
+                center.x - distance,
+                center.y + 12 + drift,
+                18 - index,
+                10 - index * 0.7
+            );
+        }
+    }
+
+    addStardustEmanation(graphics, center, color, variant = 'standard', intensity = 0.5) {
+        const strength = Math.max(0.1, Math.min(1, Number(intensity) || 0.5));
+        const count = variant === 'dense' ? 12 : 8;
+        for (let index = 0; index < count; index++) {
+            const angle = (index / count) * Math.PI * 2;
+            const distance = 34 + (index % 3) * 8;
+            const x = center.x + Math.cos(angle) * distance;
+            const y = center.y + Math.sin(angle) * distance;
+            graphics.fillStyle(color, (0.35 + (index % 2) * 0.2) * strength);
+            graphics.fillCircle(x, y, 1 + (index % 3) * 0.5);
+            if (index % 3 === 0) {
+                this.drawStar(graphics, x, y, 3, 1, 4);
+            }
+        }
+    }
+
     /**
      * Calculate growth stage modifiers based on creature level
      * @param {number} level - Creature level (1-99+)
@@ -8843,7 +9032,7 @@ class GraphicsEngine {
      * @param {number} frame - Animation frame (0-based)
      * @returns {Object} Creature render result with texture name
      */
-    createCreatureFromDNA(dna, frame = 0, stage = 'adult') {
+    createCreatureFromDNA(dna, frame = 0, stage = 'adult', geneticsOverride = null) {
         if (!dna) {
             console.warn('graphics:warn [GraphicsEngine] No DNA provided, using default creature');
             return this.createSpaceMythicCreature({ frame });
@@ -8856,7 +9045,9 @@ class GraphicsEngine {
             // This ensures the random colors from hatching are preserved
             let colors;
             const gameState = typeof window !== 'undefined' && window.GameState ? window.GameState : null;
-            const genetics = gameState?.get('creature.genes') || gameState?.getActiveCreature?.()?.genes;
+            const genetics = geneticsOverride
+                || gameState?.get('creature.genes')
+                || gameState?.getActiveCreature?.()?.genes;
 
             if (genetics?.traits?.colorGenome) {
                 // Use random colors from genetics colorGenome
@@ -8924,6 +9115,16 @@ class GraphicsEngine {
             // Pass fullStageConfig for proper eye/head scaling at different lifecycle stages
             this.renderHeadArchetype(graphics, center, sizeObj, dna.headArchetype, stageColors, dna.hybridTag, fullStageConfig);
 
+            // DNA sets the anatomy; species adds a stable visual signature so
+            // different genetic lineages do not collapse into one silhouette.
+            this.addSpeciesIdentityFeatures(
+                graphics,
+                center,
+                sizeObj,
+                genetics?.species,
+                colors
+            );
+
             // Add elemental aura effects (drawn on graphics for texture)
             // Use average of width/height for aura radius
             const auraSize = (sizeObj.width + sizeObj.height) / 2;
@@ -8940,6 +9141,76 @@ class GraphicsEngine {
                 cosmicAffinity: { color: colors.accent }
             };
             this.addStageEffects(graphics, stage, fullStageConfig, center, sizeObj, minimalGenetics);
+
+            // DNA owns the visible anatomy, while genetics owns the individual
+            // palette and rare traits. Render both into the same canonical sprite.
+            if (genetics?.traits?.features) {
+                const resolver = window.StageVisualResolver
+                    ? new window.StageVisualResolver()
+                    : null;
+                const resolvedTraits = resolver?.resolveTraitsForStage?.(
+                    genetics,
+                    stage
+                ) || null;
+                const markings = resolvedTraits?.markings
+                    || genetics.traits.features.markings;
+                const markingOpacity = resolvedTraits?.markings?.opacity
+                    ?? fullStageConfig.markingOpacity
+                    ?? 1;
+
+                if (markings && markingOpacity > 0.1) {
+                    this.addEnhancedMarkings(
+                        graphics,
+                        center,
+                        sizeObj,
+                        markings,
+                        genetics.traits.colorGenome,
+                        markingOpacity
+                    );
+                }
+
+                this.addRarityEffects(
+                    graphics,
+                    genetics,
+                    center,
+                    sizeObj,
+                    fullStageConfig.glowIntensity || 1
+                );
+                this.addCosmicAffinityEffects(
+                    graphics,
+                    genetics.cosmicAffinity,
+                    fullStageConfig.glowIntensity || 1
+                );
+                this.addPersonalityEffects(
+                    graphics,
+                    genetics.personality,
+                    center,
+                    sizeObj
+                );
+
+                const mutations = resolvedTraits?.wackyMutations
+                    || genetics.traits.features.wackyMutations
+                    || [];
+                if (mutations.length > 0) {
+                    this.renderWackyMutations(
+                        graphics,
+                        center,
+                        sizeObj,
+                        mutations,
+                        stageColors
+                    );
+                }
+
+                if (genetics.isShiny && genetics.shinyType) {
+                    this.applyShinyEffects(
+                        graphics,
+                        center,
+                        sizeObj,
+                        genetics.shinyType,
+                        genetics.traits.colorGenome
+                    );
+                }
+            }
 
             translation.restore();
 
@@ -9091,7 +9362,13 @@ class GraphicsEngine {
         // Stage-based head size multiplier (babies have proportionally larger heads)
         const headMultiplier = stageConfig?.headSizeMultiplier || 1.0;
         const eyeMultiplier = stageConfig?.eyeSizeMultiplier || 1.0;
-        const headSize = size.width * 0.4 * headMultiplier;
+        const silhouetteProfile = this.getDNAHeadSilhouetteProfile(
+            headArchetype
+        );
+        const headSize = size.width * 0.4 * headMultiplier *
+            silhouetteProfile.headScale;
+        const archetypeEyeMultiplier = eyeMultiplier *
+            silhouetteProfile.eyeScale;
 
         console.log(`graphics:debug [GraphicsEngine] DNA Head rendering - headMultiplier: ${headMultiplier}, eyeMultiplier: ${eyeMultiplier}`);
 
@@ -9101,23 +9378,138 @@ class GraphicsEngine {
         const isGlitchy = hybridTag === 'glitchy';
 
         // Main head features - pass eye multiplier for proper scaling
-        this.drawHeadFeatures(graphics, center.x, headY, headSize, headArchetype, colors, eyeMultiplier);
+        this.drawHeadFeatures(
+            graphics,
+            center.x,
+            headY,
+            headSize,
+            headArchetype,
+            colors,
+            archetypeEyeMultiplier
+        );
 
         // Add hybrid features
         if (isDualHybrid || isTripleHybrid) {
             // Draw subtle second head features (smaller, offset)
             const secondHeadArchetype = this.getComplementaryHeadType(headArchetype);
             graphics.setAlpha(0.4);
-            this.drawHeadFeatures(graphics, center.x + headSize * 0.3, headY - 2, headSize * 0.7, secondHeadArchetype, colors, eyeMultiplier);
+            this.drawHeadFeatures(graphics, center.x + headSize * 0.3, headY - 2, headSize * 0.7, secondHeadArchetype, colors, archetypeEyeMultiplier * 0.85);
             graphics.setAlpha(1.0);
         }
 
         if (isGlitchy) {
             // Add glitch effect - offset RGB channels
             graphics.setAlpha(0.3);
-            this.drawHeadFeatures(graphics, center.x - 2, headY, headSize, headArchetype, { ...colors, head: 0x00FFFF }, eyeMultiplier);
-            this.drawHeadFeatures(graphics, center.x + 2, headY, headSize, headArchetype, { ...colors, head: 0xFF00FF }, eyeMultiplier);
+            this.drawHeadFeatures(graphics, center.x - 2, headY, headSize, headArchetype, { ...colors, head: 0x00FFFF }, archetypeEyeMultiplier);
+            this.drawHeadFeatures(graphics, center.x + 2, headY, headSize, headArchetype, { ...colors, head: 0xFF00FF }, archetypeEyeMultiplier);
             graphics.setAlpha(1.0);
+        }
+    }
+
+    getDNAHeadSilhouetteProfile(headArchetype) {
+        const profiles = {
+            feline: { headScale: 0.92, eyeScale: 0.88 },
+            canine: { headScale: 0.86, eyeScale: 0.78 },
+            avian: { headScale: 0.76, eyeScale: 0.72 },
+            reptile: { headScale: 0.9, eyeScale: 0.68 },
+            aquatic: { headScale: 0.8, eyeScale: 0.74 },
+            simian: { headScale: 0.88, eyeScale: 0.82 },
+            insectoid: { headScale: 0.75, eyeScale: 0.66 },
+            rodent: { headScale: 0.78, eyeScale: 0.76 },
+            cervine: { headScale: 0.76, eyeScale: 0.72 }
+        };
+        return profiles[headArchetype] || profiles.feline;
+    }
+
+    addSpeciesIdentityFeatures(graphics, center, size, species, colors) {
+        const accent = this.extractHexColor(colors?.accent, 0xFFD700);
+        const wings = this.extractHexColor(colors?.wings, accent);
+        const body = this.extractHexColor(colors?.body, 0x9370DB);
+        const x = center.x;
+        const y = center.y;
+        const width = size.width;
+        const height = size.height;
+
+        switch (species) {
+            case 'stellarWyrm':
+                graphics.lineStyle(2, accent, 0.9);
+                graphics.lineBetween(x - width * 0.42, y + height * 0.2, x - width * 0.7, y + height * 0.42);
+                graphics.lineBetween(x + width * 0.42, y + height * 0.2, x + width * 0.7, y + height * 0.42);
+                graphics.fillStyle(accent, 0.95);
+                this.drawTinyStar(graphics, x - width * 0.72, y + height * 0.44, 4);
+                this.drawTinyStar(graphics, x + width * 0.72, y + height * 0.44, 4);
+                break;
+            case 'crystalDrake':
+                graphics.fillStyle(accent, 0.9);
+                [-0.42, 0, 0.42].forEach(offset => {
+                    graphics.fillTriangle(
+                        x + width * offset - 5,
+                        y - height * 0.2,
+                        x + width * offset,
+                        y - height * 0.52,
+                        x + width * offset + 5,
+                        y - height * 0.2
+                    );
+                });
+                break;
+            case 'nebulaSprite':
+                graphics.fillStyle(wings, 0.48);
+                graphics.fillEllipse(x - width * 0.62, y, width * 0.42, height * 0.58);
+                graphics.fillEllipse(x + width * 0.62, y, width * 0.42, height * 0.58);
+                graphics.fillStyle(accent, 0.76);
+                graphics.fillCircle(x - width * 0.82, y - height * 0.25, 3);
+                graphics.fillCircle(x + width * 0.84, y + height * 0.12, 2.5);
+                break;
+            case 'voidStalker':
+                graphics.lineStyle(3, accent, 0.72);
+                graphics.strokeEllipse(x, y + height * 0.03, width * 1.55, height * 1.18);
+                graphics.fillStyle(0x080611, 0.88);
+                graphics.fillTriangle(
+                    x - width * 0.58,
+                    y - height * 0.35,
+                    x - width * 0.88,
+                    y - height * 0.62,
+                    x - width * 0.72,
+                    y - height * 0.18
+                );
+                break;
+            case 'cosmicGuardian':
+                graphics.fillStyle(body, 0.92);
+                graphics.fillRoundedRect(x - width * 0.78, y - height * 0.15, width * 0.34, height * 0.34, 5);
+                graphics.fillRoundedRect(x + width * 0.44, y - height * 0.15, width * 0.34, height * 0.34, 5);
+                graphics.lineStyle(2, accent, 0.9);
+                graphics.strokeRoundedRect(x - width * 0.78, y - height * 0.15, width * 0.34, height * 0.34, 5);
+                graphics.strokeRoundedRect(x + width * 0.44, y - height * 0.15, width * 0.34, height * 0.34, 5);
+                break;
+            case 'auroraPhoenix':
+                graphics.fillStyle(wings, 0.82);
+                graphics.fillTriangle(x - width * 0.25, y, x - width * 0.96, y - height * 0.28, x - width * 0.68, y + height * 0.25);
+                graphics.fillTriangle(x + width * 0.25, y, x + width * 0.96, y - height * 0.28, x + width * 0.68, y + height * 0.25);
+                graphics.fillStyle(accent, 0.95);
+                graphics.fillTriangle(x - 4, y - height * 0.58, x, y - height * 0.84, x + 4, y - height * 0.58);
+                break;
+            case 'crystalElemental':
+                graphics.fillStyle(accent, 0.86);
+                [
+                    [-0.78, -0.08],
+                    [0.78, -0.08],
+                    [-0.58, 0.42],
+                    [0.58, 0.42]
+                ].forEach(([offsetX, offsetY]) => {
+                    const shardX = x + width * offsetX;
+                    const shardY = y + height * offsetY;
+                    graphics.fillTriangle(
+                        shardX,
+                        shardY - 7,
+                        shardX - 5,
+                        shardY + 5,
+                        shardX + 5,
+                        shardY + 5
+                    );
+                });
+                break;
+            default:
+                break;
         }
     }
 

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/approval-envelope.schema.json",
+  "title": "Mythical external-action approval envelope",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "status",
+    "workflowId",
+    "workflowVersion",
+    "actionClass",
+    "requestedBy",
+    "approvedBy",
+    "approvedAt",
+    "approvalEvidenceRef",
+    "decisionRef",
+    "issuedAt",
+    "validUntil",
+    "environment",
+    "targets",
+    "allowedOperations",
+    "prohibitedOperations",
+    "maxActions",
+    "spend",
+    "dataZones",
+    "artifact",
+    "idempotencyKey",
+    "dryRunEvidence",
+    "rollbackPlan",
+    "auditDestination"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "pattern": "^AP-[0-9]{8}-[0-9]{3,}$" },
+    "status": { "enum": ["draft", "approved", "revoked", "executed"] },
+    "workflowId": { "pattern": "^A-[0-9]{3}$" },
+    "workflowVersion": { "type": "integer", "minimum": 1 },
+    "actionClass": {
+      "enum": ["publish", "outreach", "production_change", "data_collection", "account_change", "customer_response", "spend", "contract", "other"]
+    },
+    "requestedBy": { "type": "string", "minLength": 2, "maxLength": 120 },
+    "approvedBy": { "type": ["string", "null"], "maxLength": 120 },
+    "approvedAt": { "type": ["string", "null"], "format": "date-time" },
+    "approvalEvidenceRef": { "type": ["string", "null"], "maxLength": 240 },
+    "decisionRef": { "type": "string", "minLength": 3, "maxLength": 120 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "validUntil": { "type": "string", "format": "date-time" },
+    "environment": { "enum": ["preview", "production", "external_service"] },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": ["system", "account", "destination"],
+        "properties": {
+          "system": { "type": "string", "minLength": 2, "maxLength": 80 },
+          "account": { "type": "string", "minLength": 2, "maxLength": 120 },
+          "destination": { "type": "string", "minLength": 2, "maxLength": 240 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "allowedOperations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 2, "maxLength": 80 }
+    },
+    "prohibitedOperations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 2, "maxLength": 160 }
+    },
+    "maxActions": { "type": "integer", "minimum": 1, "maximum": 100 },
+    "spend": {
+      "type": "object",
+      "required": ["currency", "maximumMinorUnits"],
+      "properties": {
+        "currency": { "pattern": "^[A-Z]{3}$" },
+        "maximumMinorUnits": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "dataZones": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["Z0", "Z1", "Z2", "Z3"] }
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 3, "maxLength": 240 },
+        "sha256": { "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "idempotencyKey": { "type": "string", "minLength": 12, "maxLength": 160 },
+    "dryRunEvidence": { "type": "string", "minLength": 3, "maxLength": 500 },
+    "rollbackPlan": { "type": "string", "minLength": 3, "maxLength": 500 },
+    "auditDestination": { "type": "string", "minLength": 3, "maxLength": 240 }
+  },
+  "additionalProperties": false
+}

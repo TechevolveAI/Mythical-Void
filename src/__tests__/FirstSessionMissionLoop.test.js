@@ -180,6 +180,59 @@ describe('first-session Project Beacon mission loop', () => {
         expect(controlsSource).not.toContain('Attack enemies');
     });
 
+    test('leads every opening mission with one scannable objective', () => {
+        const questTrackerSource = fs.readFileSync(
+            path.join(__dirname, '../systems/ui/QuestTracker.js'),
+            'utf8'
+        );
+
+        projectBeacon.fieldMissions.forEach(mission => {
+            expect(mission.objectiveLabel).toMatch(/^[A-Z0-9 -]+$/);
+            expect(mission.objectiveLabel.length).toBeLessThanOrEqual(42);
+        });
+        expect(questTrackerSource).toContain(
+            '`OBJECTIVE // ${quest.objectiveLabel || quest.description}`'
+        );
+        expect(questTrackerSource).toContain("color: '#8FE3CF'");
+        expect(questTrackerSource).toContain(
+            '? (hasLongCopy ? 220 : 184)'
+        );
+    });
+
+    test('keeps veteran HUD systems out of the first mobile trust action', () => {
+        const gameSceneSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/GameScene.js'),
+            'utf8'
+        );
+        const mobileHudSource = fs.readFileSync(
+            path.join(__dirname, '../systems/ui/MobileHUD.js'),
+            'utf8'
+        );
+
+        expect(gameSceneSource).toContain(
+            'updateFirstContactFocusMode()'
+        );
+        expect(gameSceneSource).toContain(
+            "'beacon_first_contact'"
+        );
+        expect(gameSceneSource).toContain(
+            'this.mobileHUD?.setFocusMode?.(mobileFocusActive)'
+        );
+        expect(gameSceneSource).toContain(
+            'this.questTracker?.container?.setVisible?.(!mobileFocusActive)'
+        );
+        expect(mobileHudSource).toContain('setFocusMode(active)');
+        expect(mobileHudSource).toContain('this.focusModeActive');
+        expect(gameSceneSource).toContain('if (creatures.length < 2)');
+
+        const hintPanelSource = fs.readFileSync(
+            path.join(__dirname, '../ui/ControlsHintPanel.js'),
+            'utf8'
+        );
+        expect(hintPanelSource).toContain('window.innerWidth < 600');
+        expect(hintPanelSource).toContain("'(pointer: coarse)'");
+    });
+
     test('provides a non-mutating field-controls preview route', () => {
         const gameSource = fs.readFileSync(
             path.join(__dirname, '../game.js'),
@@ -437,6 +490,8 @@ describe('first-session Project Beacon mission loop', () => {
         }));
         expect(gameSceneSource).toContain("case 'care':");
         expect(gameSceneSource).toContain('this.toggleCarePanel();');
+        expect(gameSceneSource).toContain('this.carePanelManager?.init();');
+        expect(gameSceneSource).not.toContain('if (this.scale.width >= 600) {\n                this.carePanelManager?.init();');
     });
 
     test('only offers AI Art when optional API features are enabled', () => {
@@ -548,10 +603,20 @@ describe('first-session Project Beacon mission loop', () => {
         );
         expect(gameSceneSource).not.toContain("this.input.keyboard?.on('keydown-TAB'");
         expect(tutorialSource).toMatch(/TAB to open Care Corner/);
+        expect(tutorialSource).toMatch(/lower-left joystick/);
+        expect(tutorialSource).toMatch(/tap the hand button/i);
+        expect(gameSceneSource).toContain(
+            'const message = isMobile && tutorial.messageMobile'
+        );
+        expect(gameSceneSource).toContain(
+            'wordWrap: { width: Math.max(250, width - 36) }'
+        );
         expect(accessibilitySource).toContain('<dt>F / Y / R</dt>');
         expect(accessibilitySource).toContain('<dt>C</dt><dd>Switch creatures</dd>');
         expect(accessibilitySource).toContain('<dt>T</dt><dd>Chat with creature</dd>');
         expect(gameSource).toContain("urlParams.get('testCare') === 'panel'");
+        expect(gameSceneSource).toContain("name: 'Connect'");
+        expect(gameSceneSource).toContain("preferredAction: 'pet'");
         expect(gameSource).toContain('if (!game.isBooted)');
         expect(gameSceneSource).toContain('this.createCarePanelPreview();');
     });
@@ -615,8 +680,8 @@ describe('first-session Project Beacon mission loop', () => {
         manager.togglePanel();
 
         expect(manager.panelVisible).toBe(true);
-        expect(manager.panelElements).toHaveLength(12);
-        const closeButton = manager.panelElements[2];
+        expect(manager.panelElements).toHaveLength(13);
+        const closeButton = manager.panelElements[3];
         closeButton.handlers.pointerdown();
         expect(manager.panelVisible).toBe(false);
 

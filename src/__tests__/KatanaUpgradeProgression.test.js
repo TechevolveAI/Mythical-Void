@@ -11,6 +11,12 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             'const queueProjectBeaconDebrief = () => null;\n' +
             'const unlockProjectBeaconMilestone = () => null;'
         )
+        .replace(
+            /import \{\s*CENTERING_STANCE_DURATION_MS,[\s\S]*?\} from '\.\.\/systems\/SenseiMemory\.js';/,
+            'const CENTERING_STANCE_DURATION_MS = 1250;\n' +
+            'const getSenseiMemorySnapshot = () => ({ lesson: { status: "locked" } });\n' +
+            'const recordCenteringStancePractice = () => ({ changed: false });'
+        )
         .replace(/^import .*$/gm, '')
         .replace(
             /export default PlatformerLevelScene;/,
@@ -320,8 +326,8 @@ describe('creature-tech katana combat progression', () => {
 
         scene.performAttack();
 
-        expect(scene.damageEnemy).toHaveBeenCalledWith(enemy, 3);
-        expect(scene.damageBoss).toHaveBeenCalledWith(3);
+        expect(scene.damageEnemy).toHaveBeenCalledWith(enemy, 4);
+        expect(scene.damageBoss).toHaveBeenCalledWith(4);
         expect(attackGraphics.fillStyle).toHaveBeenCalledWith(0x66C7D4, 0.6);
         expect(attackGraphics.lineStyle).toHaveBeenCalledWith(5, 0x8FE3CF, 1);
     });

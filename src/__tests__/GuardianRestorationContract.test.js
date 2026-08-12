@@ -89,8 +89,9 @@ describe('guardian restoration campaign contract', () => {
             "urlParams.get('testGuardianResult') === 'finalVoid'"
         );
         expect(gameSource).toContain(
-            "game.scene.start('FinalVoidLevel', { resultPreview: true })"
+            "game.scene.start('FinalVoidLevel', {"
         );
+        expect(gameSource).toContain('resultPreview: true');
         expect(finalVoidSource).toContain(
             "previewParams.get('testGuardianResult') === 'finalVoid'"
         );
@@ -98,8 +99,14 @@ describe('guardian restoration campaign contract', () => {
             'this.testMode = data?.testMode || this.resultPreview'
         );
         expect(finalVoidSource).toMatch(
-            /if \(this\.resultPreview\) \{\s*this\.levelCompletionResult = \{ coinsAwarded: 900 \};/
+            /if \(this\.resultPreview\) \{[\s\S]*?this\.levelCompletionResult = \{\s*coinsAwarded: 900,\s*guardianResident: \{/
         );
+        expect(finalVoidSource).toContain(
+            "window.RescuedResidents\n                ?.getRescuedResidentByLevel?.('finalVoid')"
+        );
+        expect(finalVoidSource).toContain('rescuedResident: resident');
+        expect(finalVoidSource).toContain("id: 'void_empress'");
+        expect(finalVoidSource).toContain("role: 'Current Witness'");
         expect(finalVoidSource).toContain(
             'if (!this.resultPreview && window.AchievementSystem?.recordEvent)'
         );

@@ -40,12 +40,21 @@ describe('third expedition rescue loop', () => {
     test('turns waypoint synchronization into the companion-led route discovery', () => {
         const source = readLevel();
 
-        expect(source).toContain('Your companion answers the ancient signal.');
-        expect(source).toContain(
-            'Three signals align. A route appears through the Void.'
-        );
+        expect(source).toContain('const companionName = this.getCompanionName()');
+        expect(source).toContain('This signal did not come from Earth.');
+        expect(source).toContain('It is a traveler relay. Someone crossed before us.');
+        expect(source).toContain('I can hold the route open. Stay with me.');
         expect(source).toContain('this.reefRouteAligned = true');
         expect(source).toContain("event: 'reef_route_aligned'");
+    });
+
+    test('makes the Reef current a visible and mechanically stronger katana link', () => {
+        const source = readLevel();
+
+        expect(source).toContain('CURRENT LINK ACTIVE // KATANA STRIKES AMPLIFIED');
+        expect(source).toContain('const currentLinkedDamage = meleeDamage + 1');
+        expect(source).toContain('this.damageBoss(currentLinkedDamage)');
+        expect(source).toContain('reefAmplified: true');
     });
 
     test('requires both the aligned route and the actual Drive pickup before the boss', () => {
@@ -82,8 +91,75 @@ describe('third expedition rescue loop', () => {
         expect(defeat).toContain('this.bossMinions.forEach');
         expect(defeat).toContain('PASSAGE GUARDIAN STABLE');
         expect(source).toContain('STELLAR PASSAGE RESTORED');
-        expect(source).toContain("Nyx'voral's Trust: Returned");
+        expect(source).toContain(
+            'this.getGuardianSanctuaryArrivalCopy({ compact: true })'
+        );
+        expect(source).not.toContain("Nyx'voral's Trust: Returned");
         expect(source).not.toContain("`Nyx'voral Defeated: ✓`");
+    });
+
+    test('presents Nyx\'voral as trapped inside a repairable passage', () => {
+        const source = readLevel();
+
+        expect(source).toContain("NYX\\'VORAL // TRAPPED");
+        expect(source).toContain(
+            'CURRENT LINK ACTIVE // KATANA STRIKES AMPLIFIED'
+        );
+        expect(source).toContain(
+            'BROKEN ROUTE // ${routeFracture}/${this.bossMaxHealth}'
+        );
+        expect(source).toContain('BROKEN ROUTE // RESTORED');
+        expect(source).toContain('`ROUTE FRACTURE -${amount}`');
+    });
+
+    test('names the counterplay and prevents overlap for every Reef hazard', () => {
+        const source = readLevel();
+
+        expect(source).toContain(
+            "voidLunge: 'VOID LUNGE // DODGE ACROSS ITS PATH'"
+        );
+        expect(source).toContain(
+            "dimensionalTear: 'DIMENSIONAL TEAR // LEAVE THE RIFT'"
+        );
+        expect(source).toContain(
+            "summonMinions: 'VOID ECHOES // CLEAR THE SWARM'"
+        );
+        expect(source).toContain('voidLunge: 2600');
+        expect(source).toContain('dimensionalTear: 2200');
+        expect(source).toContain('summonMinions: 3400');
+        expect(source).toContain('this.bossAttackLocked = true');
+        expect(source).toContain('this.time.delayedCall(\n            attackWindow');
+    });
+
+    test('supports deterministic mobile previews for each Reef hazard', () => {
+        const source = readLevel();
+        const gameSource = fs.readFileSync(
+            path.join(__dirname, '../game.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('data?.bossAttackPreview');
+        expect(source).toContain('this.bossAttack(this.bossAttackPreview)');
+        expect(source).toMatch(
+            /if \(this\.bossAttackPreview\)[\s\S]*this\.bossAttack\(this\.bossAttackPreview\)[\s\S]*else \{[\s\S]*this\.startBossAI\(\)/
+        );
+        expect(gameSource).toContain("'voidLunge'");
+        expect(gameSource).toContain("'dimensionalTear'");
+        expect(gameSource).toContain("'summonMinions'");
+    });
+
+    test('points the off-screen indicator at the moving guardian body', () => {
+        const source = readLevel();
+
+        expect(source).toContain(
+            'const bossWorldX = this.bossBody?.x ?? this.boss.x'
+        );
+        expect(source).toContain(
+            'const bossWorldY = this.bossBody?.y ?? this.boss.y'
+        );
+        expect(source).toContain('const bossScreenX = bossWorldX - camera.scrollX');
+        expect(source).toContain('const bossScreenY = bossWorldY - camera.scrollY');
+        expect(source).not.toContain('const bossScreenX = this.boss.x - camera.scrollX');
     });
 
     test('separates compact objective and guardian UI from mobile controls', () => {
@@ -91,10 +167,10 @@ describe('third expedition rescue loop', () => {
 
         expect(source).toContain('const y = isMobileLayout ? 118 : 55');
         expect(source).toContain('this.isMobile || width <= 480 || height < 620');
-        expect(source).toContain('isShortLandscape ? 82 : 92');
-        expect(source).toContain(
-            'return `DRIVE: ${driveState}\\nWAYPOINTS: ${this.beaconAnchorsActivated}/3\\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`'
-        );
+        expect(source).toContain('isShortLandscape ? 76 : 72');
+        expect(source).toContain('ROUTE ${current}/3 // ${nextWaypoint}');
+        expect(source).toContain('PASSAGE GUARDIAN AHEAD');
+        expect(source).toContain('DIMENSIONAL DRIVE MISSING');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );

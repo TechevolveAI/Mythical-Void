@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/schemas/campaign-package.schema.json",
+  "title": "Mythical campaign package and content atomization contract",
+  "type": "object",
+  "required": ["schemaVersion", "id", "workflowRef", "status", "purpose", "authority", "source", "canonical", "destination", "transformationContract", "variants", "accessibility", "disclosure", "approval", "publicationGates", "internalPackageReady", "publicationReady"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "pattern": "^CMP-[0-9]{3,}$" },
+    "workflowRef": { "const": "A-034" },
+    "status": { "const": "internal_package_ready_publication_gated" },
+    "purpose": { "type": "string", "minLength": 40 },
+    "authority": { "type": "object", "additionalProperties": { "const": false } },
+    "source": { "type": "object" },
+    "canonical": { "type": "object" },
+    "destination": { "type": "object" },
+    "transformationContract": { "type": "object" },
+    "variants": { "type": "array", "minItems": 1 },
+    "accessibility": { "type": "object" },
+    "disclosure": { "type": "object" },
+    "approval": { "type": "object" },
+    "publicationGates": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "boolean" } },
+    "internalPackageReady": { "type": "boolean" },
+    "publicationReady": { "const": false }
+  },
+  "additionalProperties": false
+}

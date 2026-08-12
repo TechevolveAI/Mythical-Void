@@ -572,11 +572,11 @@ export default class QuestTracker {
         const authoredLength = `${quest.briefing || quest.description || ''} ${guidance || ''}`.length;
         const hasLongCopy = authoredLength > 180;
         const panelHeight = isMobile
-            ? (hasLongCopy ? 190 : 158)
-            : (hasLongCopy ? 164 : 142);
+            ? (hasLongCopy ? 220 : 184)
+            : (hasLongCopy ? 190 : 166);
         const panelX = (width - panelWidth) / 2;
-        const mobilePanelLimit = Math.max(180, height - panelHeight - 150);
-        const panelY = isMobile ? Math.min(215, mobilePanelLimit) : 76;
+        const mobilePanelLimit = Math.max(12, height - panelHeight - 150);
+        const panelY = isMobile ? Math.min(190, mobilePanelLimit) : 76;
         const depth = 14500;
 
         const panel = this.scene.add.graphics();
@@ -611,9 +611,22 @@ export default class QuestTracker {
             }
         ).setScrollFactor(0).setDepth(depth + 1);
 
-        const briefing = this.scene.add.text(
+        const objective = this.scene.add.text(
             panelX + 16,
             panelY + 62,
+            `OBJECTIVE // ${quest.objectiveLabel || quest.description}`,
+            {
+                fontSize: isMobile ? '11px' : '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8FE3CF',
+                fontStyle: 'bold',
+                wordWrap: { width: panelWidth - 32 }
+            }
+        ).setScrollFactor(0).setDepth(depth + 1);
+
+        const briefing = this.scene.add.text(
+            panelX + 16,
+            panelY + 86,
             quest.briefing || quest.description,
             {
                 fontSize: isMobile ? '12px' : '13px',
@@ -644,7 +657,15 @@ export default class QuestTracker {
             .setInteractive({ useHandCursor: true });
         close.on('pointerdown', () => this.clearStoryMissionBriefing());
 
-        this.storyBannerElements = [panel, eyebrow, title, briefing, instruction, close];
+        this.storyBannerElements = [
+            panel,
+            eyebrow,
+            title,
+            objective,
+            briefing,
+            instruction,
+            close
+        ];
         this.storyBannerElements.forEach(element => element.setAlpha(0));
         this.scene.tweens.add({
             targets: this.storyBannerElements,

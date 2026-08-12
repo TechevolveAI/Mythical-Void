@@ -53,13 +53,21 @@ describe('level registry coverage', () => {
         });
     });
 
-    test('every victory returns through the Hub so queued debriefs appear immediately', () => {
+    test('victories return through the Hub, except the final manual repair handoff', () => {
         Object.keys(completionContracts).forEach(sceneKey => {
             const levelSource = readSource(`scenes/levels/${sceneKey}.js`);
 
-            expect(levelSource).toContain('[ RETURN TO HUB ]');
-            expect(levelSource).toContain('this.returnToHub()');
-            expect(levelSource).not.toContain('this.returnToSanctuary()');
+            if (sceneKey === 'FinalVoidLevel') {
+                expect(levelSource).toContain('[ INSTALL AT WANDERER-77 ]');
+                expect(levelSource).toContain('continueFinaleAfterRepair: true');
+            } else if (sceneKey === 'AuroraDepthsLevel') {
+                expect(levelSource).toContain('[ INSTALL AURORA REACTOR ]');
+                expect(levelSource).toContain('this.returnToHub()');
+            } else {
+                expect(levelSource).toContain('[ RETURN TO HUB ]');
+                expect(levelSource).toContain('this.returnToHub()');
+                expect(levelSource).not.toContain('this.returnToSanctuary()');
+            }
         });
 
         const baseLevelSource = readSource('scenes/PlatformerLevelScene.js');
@@ -83,6 +91,12 @@ describe('level registry coverage', () => {
             expect(levelSource).toContain('startTestMode()');
             expect(levelSource).toContain('if (this.testMode)');
         });
+    });
+
+    test('level-entry QA can reproduce the real mobile viewport contract', () => {
+        const gameSource = readSource('game.js');
+        expect(gameSource).toContain('platformerPreviewSize:');
+        expect(gameSource).toContain("urlParams.get('previewSize') === 'mobile'");
     });
 
     test('final unlock and New Game+ reference the current five-level campaign', () => {

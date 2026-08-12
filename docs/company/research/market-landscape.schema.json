@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/schemas/market-landscape.schema.json",
+  "title": "Mythical market and category intelligence snapshot",
+  "type": "object",
+  "required": ["schemaVersion", "asOf", "status", "scope", "authority", "evidencePolicy", "categories", "sources", "references", "hypotheses", "watchSignals", "currentRecommendation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "asOf": { "type": "string", "format": "date" },
+    "status": { "const": "directional_research_not_market_validation" },
+    "scope": { "type": "string" },
+    "authority": { "type": "object", "additionalProperties": { "type": "boolean" } },
+    "evidencePolicy": { "type": "object" },
+    "categories": { "type": "array", "minItems": 5 },
+    "sources": { "type": "array", "minItems": 8 },
+    "references": { "type": "array", "minItems": 8 },
+    "hypotheses": { "type": "array", "minItems": 5 },
+    "watchSignals": { "type": "array", "minItems": 5 },
+    "currentRecommendation": { "type": "object" }
+  },
+  "additionalProperties": false
+}

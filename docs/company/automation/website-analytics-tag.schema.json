@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/schemas/website-analytics-tag.schema.json",
+  "title": "Mythical public website analytics tag contract",
+  "type": "object",
+  "required": ["schemaVersion", "asOf", "status", "purpose", "decisionRefs", "riskRefs", "workflowRefs", "tag", "authority", "sourceChecks", "prohibitedData", "activationGates", "tagImplementationReadyForReview", "productionDeployed", "externalActionAuthorized", "nextDecision"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "asOf": { "type": "string", "format": "date" },
+    "status": { "const": "consent_gated_public_shop_window_tag_ready_for_production_review" },
+    "purpose": { "type": "string", "minLength": 500 },
+    "sourceChecks": { "type": "array", "minItems": 6, "maxItems": 6 },
+    "prohibitedData": { "type": "array", "minItems": 15 },
+    "activationGates": { "type": "array", "minItems": 12, "maxItems": 12 },
+    "tagImplementationReadyForReview": { "const": true },
+    "productionDeployed": { "const": false },
+    "externalActionAuthorized": { "const": false },
+    "nextDecision": { "type": "string", "minLength": 500 }
+  },
+  "additionalProperties": false
+}

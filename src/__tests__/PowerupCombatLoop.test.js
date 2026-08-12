@@ -121,6 +121,34 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             'const prefetchKatanaArtifactArtwork = () => {};'
         )
         .replace(
+            "import { getCurrentRegionActionPresentation, recordCurrentRegionRestoration } from '../systems/CurrentEcology.js';",
+            'const getCurrentRegionActionPresentation = () => null;\n' +
+            'const recordCurrentRegionRestoration = () => ({ changed: false });'
+        )
+        .replace(
+            "import { getCurrentAtmosphereProjection } from '../systems/CurrentAtmosphere.js';",
+            'const getCurrentAtmosphereProjection = () => ({\n' +
+            '  lifeFormCount: 0, moteCount: 0, scarCount: 0,\n' +
+            '  motionDurationMs: 3000, driftRange: 12,\n' +
+            '  companionLine: "",\n' +
+            '  soundscape: { cueId: "current_life", intervalMs: 6000, volume: 0.1 }\n' +
+            '});'
+        )
+        .replace(
+            /import \{\s*CENTERING_STANCE_DURATION_MS,[\s\S]*?\} from '\.\.\/systems\/SenseiMemory\.js';/,
+            'const CENTERING_STANCE_DURATION_MS = 1250;\n' +
+            'const getSenseiMemorySnapshot = () => ({ lesson: { status: "locked" } });\n' +
+            'const recordCenteringStancePractice = () => ({ changed: false });'
+        )
+        .replace(
+            "import { companionMediaService } from '../systems/CompanionMediaService.js';",
+            'const companionMediaService = window.CompanionMediaService || {};'
+        )
+        .replace(
+            "import { getVillageGameplayEffects } from '../systems/VillageSettlement.js';",
+            'const getVillageGameplayEffects = () => ({ maxEnergyBonus: 0, guardCharges: 0, victoryCoinBonus: 0 });'
+        )
+        .replace(
             'export default PlatformerLevelScene;',
             'module.exports = PlatformerLevelScene;'
         );

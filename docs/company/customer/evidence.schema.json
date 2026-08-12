@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/customer-evidence.schema.json",
+  "title": "Mythical de-identified customer evidence register",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "purpose",
+    "registerContainsPersonalData",
+    "externalSharingAuthorized",
+    "minimumDistinctEvidenceForTheme",
+    "records"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "purpose": { "type": "string", "minLength": 10 },
+    "registerContainsPersonalData": { "const": false },
+    "externalSharingAuthorized": { "const": false },
+    "minimumDistinctEvidenceForTheme": { "type": "integer", "minimum": 3 },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "observedDate",
+          "acceptedDate",
+          "sourceType",
+          "audienceRole",
+          "recruitmentContext",
+          "protocolRef",
+          "productVersion",
+          "journey",
+          "observation",
+          "interpretation",
+          "alternativeExplanations",
+          "confidence",
+          "themes",
+          "evidenceOwner",
+          "nextDecision",
+          "retentionDeleteDate",
+          "rawDataRef",
+          "containsPersonalData",
+          "humanReviewed",
+          "synthetic"
+        ],
+        "properties": {
+          "id": { "pattern": "^CE-[0-9]{3,}$" },
+          "status": { "enum": ["accepted", "withdrawn", "rejected"] },
+          "observedDate": { "type": "string", "format": "date" },
+          "acceptedDate": { "type": ["string", "null"], "format": "date" },
+          "sourceType": {
+            "enum": [
+              "moderated_playtest",
+              "adult_interview",
+              "parent_guardian_interview",
+              "voluntary_survey",
+              "support_case",
+              "public_review",
+              "creator_partner_conversation"
+            ]
+          },
+          "audienceRole": {
+            "enum": ["player", "parent_guardian", "creator", "partner", "press", "unknown"]
+          },
+          "recruitmentContext": { "type": "string", "minLength": 3, "maxLength": 240 },
+          "protocolRef": { "type": "string", "minLength": 3, "maxLength": 240 },
+          "productVersion": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "journey": {
+            "enum": ["discover", "understand", "start", "hatch", "bond", "explore", "restore", "return", "share", "seek_help"]
+          },
+          "observation": { "type": "string", "minLength": 3, "maxLength": 500 },
+          "interpretation": { "type": "string", "minLength": 3, "maxLength": 500 },
+          "alternativeExplanations": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 3, "maxLength": 300 }
+          },
+          "confidence": { "enum": ["low", "medium", "high"] },
+          "themes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "positioning",
+                "trust",
+                "performance",
+                "accessibility",
+                "controls",
+                "story",
+                "companion",
+                "progression",
+                "difficulty",
+                "safety",
+                "privacy",
+                "ai",
+                "support",
+                "commercial"
+              ]
+            }
+          },
+          "evidenceOwner": { "type": "string", "minLength": 2, "maxLength": 120 },
+          "nextDecision": { "type": "string", "minLength": 3, "maxLength": 300 },
+          "retentionDeleteDate": { "type": "string", "format": "date" },
+          "rawDataRef": { "type": "string", "minLength": 3, "maxLength": 240 },
+          "containsPersonalData": { "const": false },
+          "humanReviewed": { "type": "boolean" },
+          "synthetic": { "const": false }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

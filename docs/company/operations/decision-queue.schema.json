@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/decision-queue.schema.json",
+  "title": "Mythical Kevin decision queue",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "asOf",
+    "status",
+    "maximumPackets",
+    "deliveryConfigured",
+    "deliveryRoute",
+    "conversationIsAuthorization",
+    "externalActionsAuthorized",
+    "sensitiveValuesIncluded",
+    "packets"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "asOf": { "type": "string", "format": "date" },
+    "status": { "enum": ["active_review_queue", "paused", "archived"] },
+    "maximumPackets": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "deliveryConfigured": { "type": "boolean" },
+    "deliveryRoute": { "type": ["string", "null"] },
+    "conversationIsAuthorization": { "type": "boolean" },
+    "externalActionsAuthorized": { "type": "boolean" },
+    "sensitiveValuesIncluded": { "type": "boolean" },
+    "packets": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "priority",
+          "severity",
+          "status",
+          "decisionId",
+          "objectiveActionId",
+          "riskIds",
+          "decision",
+          "recommendation",
+          "whyNow",
+          "evidenceRefs",
+          "optionsAndTradeoffs",
+          "riskIfDeferred",
+          "scopeAndCost",
+          "approvalExpiry",
+          "rollbackOrReversal",
+          "decisionOwner",
+          "requiredReviewers",
+          "decisionIsAuthorization",
+          "externalActionAuthorized",
+          "containsRestrictedData",
+          "mayExecuteOnResponse"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^KDP-[0-9]{3}$" },
+          "priority": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "severity": { "enum": ["critical", "high", "medium", "low"] },
+          "status": { "enum": ["awaiting_kevin", "answered_pending_record", "deferred", "closed"] },
+          "decisionId": { "type": "string", "pattern": "^D-[0-9]{3}$" },
+          "objectiveActionId": { "type": "string", "pattern": "^OA-[0-9]{3}$" },
+          "riskIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^R-[0-9]{3}$" } },
+          "decision": { "type": "string", "minLength": 10 },
+          "recommendation": { "type": "string", "minLength": 10 },
+          "whyNow": { "type": "string", "minLength": 10 },
+          "evidenceRefs": { "type": "array", "minItems": 3, "uniqueItems": true, "items": { "type": "string" } },
+          "optionsAndTradeoffs": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["option", "upside", "tradeoff", "recommended"],
+              "properties": {
+                "option": { "type": "string", "minLength": 3 },
+                "upside": { "type": "string", "minLength": 5 },
+                "tradeoff": { "type": "string", "minLength": 5 },
+                "recommended": { "type": "boolean" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "riskIfDeferred": { "type": "string", "minLength": 10 },
+          "scopeAndCost": { "type": "string", "minLength": 10 },
+          "approvalExpiry": { "type": "string", "minLength": 10 },
+          "rollbackOrReversal": { "type": "string", "minLength": 10 },
+          "decisionOwner": { "type": "string", "minLength": 2 },
+          "requiredReviewers": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+          "decisionIsAuthorization": { "const": false },
+          "externalActionAuthorized": { "const": false },
+          "containsRestrictedData": { "const": false },
+          "mayExecuteOnResponse": { "const": false }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

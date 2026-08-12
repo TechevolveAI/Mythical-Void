@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/schemas/cadence-work-packets.schema.json",
+  "title": "Mythical disabled cadence work-packet set",
+  "type": "object",
+  "required": ["workflow", "mode", "packetSetValid", "sourceDigests", "calendarPacketCount", "eventTriggerPacketCount", "totalPacketCount", "uniquePacketIdCount", "uniqueContentDigestCount", "primaryAgentCount", "independentEvaluatorBindingCount", "protectedInputBindingPacketCount", "configuredInputBindingPacketCount", "allPacketsDisabled", "allCommandsAllowlisted", "allImplementationsRegistered", "allEvaluatorsBound", "allResourceLimitsWithinCadenceEnvelope", "allAuthorityFalse", "packetSetReadyForReview", "protectedDispatchReady", "automatedDispatchAuthorized", "externalActionAuthorized", "packets", "failures", "nextAction"],
+  "properties": {
+    "workflow": { "const": "A-042" },
+    "mode": { "type": "string", "minLength": 80 },
+    "packetSetValid": { "type": "boolean" },
+    "sourceDigests": {
+      "type": "object",
+      "required": ["cadenceSha256", "registrySha256", "rosterSha256", "evaluationCatalogSha256"],
+      "additionalProperties": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+    },
+    "calendarPacketCount": { "type": "integer", "minimum": 0 },
+    "eventTriggerPacketCount": { "type": "integer", "minimum": 0 },
+    "totalPacketCount": { "type": "integer", "minimum": 0 },
+    "uniquePacketIdCount": { "type": "integer", "minimum": 0 },
+    "uniqueContentDigestCount": { "type": "integer", "minimum": 0 },
+    "primaryAgentCount": { "type": "integer", "minimum": 0 },
+    "independentEvaluatorBindingCount": { "type": "integer", "minimum": 0 },
+    "protectedInputBindingPacketCount": { "type": "integer", "minimum": 0 },
+    "configuredInputBindingPacketCount": { "type": "integer", "minimum": 0 },
+    "allPacketsDisabled": { "type": "boolean" },
+    "allCommandsAllowlisted": { "type": "boolean" },
+    "allImplementationsRegistered": { "type": "boolean" },
+    "allEvaluatorsBound": { "type": "boolean" },
+    "allResourceLimitsWithinCadenceEnvelope": { "type": "boolean" },
+    "allAuthorityFalse": { "type": "boolean" },
+    "packetSetReadyForReview": { "type": "boolean" },
+    "protectedDispatchReady": { "const": false },
+    "automatedDispatchAuthorized": { "const": false },
+    "externalActionAuthorized": { "const": false },
+    "packets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["schemaVersion", "packetId", "sourceType", "sourceId", "workflowId", "workflowVersion", "primaryAgentId", "evaluatorAgentId", "implementationPath", "evaluatorPath", "command", "status", "maxAutonomy", "dataZones", "declaredNetworkMode", "expectedExitCodes", "inputBinding", "constraints", "idempotencyKeyTemplate", "sourceDigests", "contentDigestSha256"],
+        "properties": {
+          "schemaVersion": { "const": 1 },
+          "packetId": { "type": "string", "pattern": "^CWP-[A-F0-9]{16}$" },
+          "sourceType": { "enum": ["calendar_schedule", "event_trigger"] },
+          "sourceId": { "type": "string", "pattern": "^O[CT]-[0-9]{3}$" },
+          "workflowId": { "type": "string", "pattern": "^A-[0-9]{3}$" },
+          "workflowVersion": { "type": "integer", "minimum": 1 },
+          "primaryAgentId": { "type": "string", "pattern": "^AG-[0-9]{3}$" },
+          "evaluatorAgentId": { "type": "string", "pattern": "^AG-[0-9]{3}$" },
+          "implementationPath": { "type": "string", "pattern": "^scripts/company/[a-z0-9-]+\\.cjs$" },
+          "evaluatorPath": { "type": "string", "pattern": "^scripts/company/test-[a-z0-9-]+\\.cjs$" },
+          "command": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+          "status": { "enum": ["compiled_disabled", "compiled_disabled_manual_review_required"] },
+          "maxAutonomy": { "enum": ["A0", "A1"] },
+          "dataZones": { "type": "array", "uniqueItems": true, "items": { "enum": ["Z0", "Z1", "Z2", "Z3"] } },
+          "declaredNetworkMode": { "enum": ["none", "public_read_via_nested_A-001_only"] },
+          "expectedExitCodes": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "enum": [0, 2] } },
+          "inputBinding": { "type": ["object", "null"] },
+          "constraints": { "type": "object" },
+          "idempotencyKeyTemplate": { "type": "string", "minLength": 40 },
+          "sourceDigests": { "type": "object" },
+          "contentDigestSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "failures": { "type": "array", "items": { "type": "string" } },
+    "nextAction": { "type": "string", "minLength": 120 }
+  },
+  "additionalProperties": false
+}

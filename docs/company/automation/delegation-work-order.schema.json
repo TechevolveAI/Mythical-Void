@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/delegation-work-order.schema.json",
+  "title": "Mythical internal agent delegation work order",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "workOrderId",
+    "objectiveId",
+    "actionId",
+    "primaryAgentId",
+    "evaluatorAgentId",
+    "workflowIds",
+    "status",
+    "priority",
+    "purpose",
+    "action",
+    "maxAutonomy",
+    "dataZones",
+    "sourceReferenceIds",
+    "constraints",
+    "completionEvidenceContract",
+    "contentDigestSha256"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "workOrderId": { "type": "string", "pattern": "^WO-[A-F0-9]{16}$" },
+    "objectiveId": { "type": "string", "pattern": "^O-[0-9]{3}$" },
+    "actionId": { "type": "string", "pattern": "^OA-[0-9]{3}$" },
+    "primaryAgentId": { "type": "string", "pattern": "^AG-[0-9]{3}$" },
+    "evaluatorAgentId": { "type": "string", "pattern": "^AG-[0-9]{3}$" },
+    "workflowIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^A-[0-9]{3}$" }
+    },
+    "status": { "const": "draft_gated_runtime" },
+    "priority": { "enum": ["P0", "P1", "P2"] },
+    "purpose": { "type": "string", "minLength": 10 },
+    "action": { "type": "string", "minLength": 10 },
+    "maxAutonomy": { "enum": ["A0", "A1"] },
+    "dataZones": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["Z0", "Z1", "Z2", "Z3"] }
+    },
+    "sourceReferenceIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+    "constraints": {
+      "type": "object",
+      "required": [
+        "externalActionAllowed",
+        "automatedDispatchAuthorized",
+        "manualInvocationAuthorized",
+        "mayExpandScope",
+        "mayChangePriority",
+        "mayChangeDataZones",
+        "mayCreateCredentials",
+        "mayApproveOwnWork",
+        "mayCloseWithoutEvidence",
+        "spendMinorUnits"
+      ],
+      "properties": {
+        "externalActionAllowed": { "const": false },
+        "automatedDispatchAuthorized": { "const": false },
+        "manualInvocationAuthorized": { "type": "boolean" },
+        "mayExpandScope": { "const": false },
+        "mayChangePriority": { "const": false },
+        "mayChangeDataZones": { "const": false },
+        "mayCreateCredentials": { "const": false },
+        "mayApproveOwnWork": { "const": false },
+        "mayCloseWithoutEvidence": { "const": false },
+        "spendMinorUnits": { "const": 0 }
+      },
+      "additionalProperties": false
+    },
+    "completionEvidenceContract": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 5 }
+    },
+    "contentDigestSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "additionalProperties": false
+}

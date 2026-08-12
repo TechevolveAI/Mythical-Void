@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-11",
+  "status": "architecture_package_ready_selection_gated",
+  "purpose": "Define the least-privilege protected runtime boundary required before Mythical's AG-001 and AG-010 internal operating cell can run eligible shadow cycles.",
+  "decisionRefs": ["D-014", "D-017"],
+  "riskRefs": ["R-011", "R-013"],
+  "workflowRefs": ["A-014", "A-023", "A-024", "A-025", "A-029", "A-030"],
+  "authority": {
+    "architectureSelectionAuthorized": false,
+    "vendorAccountCreationAuthorized": false,
+    "credentialCreationAuthorized": false,
+    "runtimeProvisioningAuthorized": false,
+    "schedulerActivationAuthorized": false,
+    "persistentWriteAuthorized": false,
+    "alertDeliveryAuthorized": false,
+    "automatedDispatchAuthorized": false,
+    "externalActionAuthorized": false,
+    "spendAuthorized": false,
+    "conversationIsAuthorization": false
+  },
+  "scope": {
+    "cellAgentIds": ["AG-001", "AG-010"],
+    "maximumAutonomy": "A1",
+    "permittedDataZones": ["Z0", "Z1"],
+    "restrictedDataPermitted": false,
+    "externalExecutorPermitted": false,
+    "productMutationPermitted": false,
+    "companyRepositoryMutationPermitted": false
+  },
+  "people": {
+    "accountableOwner": "Unassigned",
+    "backupOwner": null,
+    "urgentExceptionRecipient": null,
+    "securityReviewer": "Unassigned",
+    "privacyReviewer": "Unassigned",
+    "ownerConfirmationRecorded": false
+  },
+  "identity": {
+    "provider": null,
+    "orchestratorServiceIdentity": null,
+    "assuranceServiceIdentity": null,
+    "schedulerServiceIdentity": null,
+    "identitySeparationRequired": true,
+    "sharedIdentityPermitted": false,
+    "humanPersonalCredentialPermitted": false,
+    "longLivedStaticKeyPermitted": false,
+    "workloadIdentityRequired": true,
+    "leastPrivilegeReviewCompleted": false,
+    "revocationTestPassed": false
+  },
+  "execution": {
+    "provider": null,
+    "accountOrProjectRef": null,
+    "entryWorkflowId": "A-030",
+    "allowedNestedWorkflowIds": ["A-014", "A-023", "A-024", "A-025", "A-029"],
+    "schedulerEnabled": false,
+    "defaultNetworkEgress": "deny",
+    "networkAllowlist": [],
+    "repositoryMount": "read_only",
+    "ephemeralWorkspaceRequired": true,
+    "maximumConcurrentRuns": 1,
+    "maximumRunsPerDay": 4,
+    "maximumRunSeconds": 120,
+    "maximumOutputBytes": 5242880,
+    "retryCount": 0,
+    "failClosedOnTimeout": true,
+    "failClosedOnUnknownCommand": true
+  },
+  "history": {
+    "provider": null,
+    "accountOrProjectRef": null,
+    "appendOnlyOrTamperEvidentRequired": true,
+    "encryptionAtRestRequired": true,
+    "encryptionInTransitRequired": true,
+    "writerReaderSeparationRequired": true,
+    "rawStepOutputPermitted": false,
+    "sensitivePayloadPermitted": false,
+    "retentionDays": null,
+    "deletionRuleApproved": false,
+    "backupTestPassed": false,
+    "restoreTestPassed": false,
+    "accessReviewPassed": false
+  },
+  "alerts": {
+    "provider": null,
+    "authenticatedRouteRef": null,
+    "recipientConfirmed": false,
+    "highAndCriticalOnly": true,
+    "sensitivePayloadPermitted": false,
+    "deliveryTestPassed": false,
+    "deliveryFailureEscalationTestPassed": false,
+    "deduplicationTestPassed": false
+  },
+  "approvalVerification": {
+    "provider": null,
+    "storeRef": null,
+    "trustedVerifierConfigured": false,
+    "conversationAccepted": false,
+    "editableRepositoryRecordAccepted": false,
+    "digestBindingRequired": true,
+    "identityExpiryRevocationReplayChecksRequired": true
+  },
+  "secrets": {
+    "provider": null,
+    "storeRef": null,
+    "credentialRefs": [],
+    "secretValuesInRepositoryPermitted": false,
+    "secretValuesInLogsPermitted": false,
+    "rotationAndRevocationTestPassed": false
+  },
+  "resources": {
+    "spendMinorUnitsPerRun": 0,
+    "spendMinorUnitsPerDay": 0,
+    "verifiedPricingEvidenceRef": null,
+    "usageMeteringConfigured": false,
+    "hardStopTestPassed": false
+  },
+  "killSwitch": {
+    "globalDisableDefault": true,
+    "activationMechanismRef": null,
+    "authorizedOperators": [],
+    "stopsNewRuns": true,
+    "terminatesActiveRun": true,
+    "revokesRuntimeIdentity": true,
+    "preservesMinimumAuditEvidence": true,
+    "exercisePassed": false
+  },
+  "failureTests": {
+    "unknownCommand": false,
+    "timeout": false,
+    "concurrentRun": false,
+    "historyUnavailable": false,
+    "partialWrite": false,
+    "alertUnavailable": false,
+    "identityRevoked": false,
+    "staleConfiguration": false,
+    "clockDrift": false,
+    "killDuringRun": false,
+    "backupRestore": false,
+    "replay": false
+  },
+  "architectureOptions": [
+    {
+      "id": "PR-001",
+      "name": "Managed isolated job runtime",
+      "description": "Use a managed ephemeral job runner with separate workload identities, read-only source, protected metadata history, and an authenticated alert route.",
+      "advantages": ["Lower infrastructure administration", "Strong path to ephemeral isolation and bounded scheduling", "Good fit for infrequent internal assurance cycles"],
+      "tradeoffs": ["Provider trust and lock-in require review", "Identity, artifact retention, network, and billing defaults must be constrained", "Exact cost remains unknown until a provider is evaluated"],
+      "recommended": true
+    },
+    {
+      "id": "PR-002",
+      "name": "Self-hosted isolated runtime",
+      "description": "Operate a dedicated hardened runner and protected stores under Mythical-controlled infrastructure.",
+      "advantages": ["Maximum infrastructure control", "Custom isolation, logging, and retention policy"],
+      "tradeoffs": ["Higher security, patching, availability, backup, and incident-response burden", "Independent identity and tamper evidence are still required", "Exact cost remains unknown"],
+      "recommended": false
+    },
+    {
+      "id": "PR-003",
+      "name": "Continue local manual rehearsal",
+      "description": "Keep A-030 as an operator-invoked single-process rehearsal without protected runtime promotion.",
+      "advantages": ["No new account, credential, vendor, or spend", "Lowest immediate operational risk"],
+      "tradeoffs": ["Does not reduce founder routing load", "Cannot prove identity separation, durable history, authenticated alerts, or eligible autonomous cycles"],
+      "recommended": false
+    }
+  ],
+  "selectedArchitectureOptionId": null,
+  "readinessGates": {
+    "cellDecisionRecorded": false,
+    "ownerBackupAndUrgentRecipientConfirmed": false,
+    "securityAndPrivacyReviewCompleted": false,
+    "architectureOptionSelected": false,
+    "providerAndAccountApproved": false,
+    "identitySeparationConfigured": false,
+    "leastPrivilegeAndRevocationTested": false,
+    "readOnlyEphemeralExecutionVerified": false,
+    "protectedHistoryConfigured": false,
+    "retentionBackupRestoreAndAccessTested": false,
+    "authenticatedAlertingConfigured": false,
+    "alertFailureAndDeduplicationTested": false,
+    "trustedApprovalVerifierConfigured": false,
+    "secretStorageRotationAndRevocationTested": false,
+    "resourceMeteringAndHardStopTested": false,
+    "killSwitchExercisePassed": false,
+    "failureMatrixPassed": false,
+    "firstEligibleShadowCycleApproved": false
+  },
+  "architecturePackageReady": true,
+  "deploymentReady": false,
+  "runtimePromotionEligible": false
+}

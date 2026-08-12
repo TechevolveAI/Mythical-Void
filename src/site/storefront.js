@@ -1,30 +1,23 @@
 import './storefront.css';
+import { mountAnalyticsConsent } from './analytics-consent.js';
 
-const creatures = [
-    { name: 'Nova', trait: 'Star affinity · Curious', image: '/marketing/nova.webp' },
-    { name: 'Wisp', trait: 'Void affinity · Playful', image: '/marketing/wisp.webp' },
-    { name: 'Pebble', trait: 'Crystal affinity · Gentle', image: '/marketing/pebble.webp' },
-    { name: 'Zephyr', trait: 'Nebula affinity · Wise', image: '/marketing/zephyr.webp' },
-    { name: 'Luna', trait: 'Moon affinity · Energetic', image: '/marketing/luna.webp' },
-    { name: 'Bloom', trait: 'Legendary cosmic', image: '/marketing/bloom.webp' }
-];
-
-const features = [
-    ['DNA', 'Unique genetics', 'Colors, markings, personalities, and abilities combine to make every companion one of a kind.'],
-    ['RESTORE', 'Six living realms', 'Explore distinct biomes, free each guardian from the Void, and recover the systems your ship needs.'],
-    ['BOND', 'A creature that remembers', 'Care, exploration, and the choices you make shape your companion over time.'],
-    ['BEACON', 'A mission that changes', 'Earth sent you to find life and hope. What you discover makes Project Beacon personal.'],
-    ['GROW', 'Evolution and legacy', 'Unlock new stages and build a lineage that carries rare traits into future generations.'],
-    ['CHOICE', 'Find your way home', 'Repair The Wanderer-7, then decide what home means after everything you have found.']
+const showcaseScenes = [
+    { name: 'Shared Habitat', image: '/game/village/shared-habitat.webp', detail: 'The Fend', mission: 'Build a home' },
+    { name: 'Village Heart', image: '/game/village/village-heart-command.webp', detail: 'The Fend', mission: 'Restore together' },
+    { name: 'Discovery Workshop', image: '/game/village/discovery-workshop.webp', detail: 'Field systems', mission: 'Learn by doing' },
+    { name: 'Crystal Guardian', image: '/game/guardians/crystal-guardian.webp', detail: 'Lost guardian', mission: 'Restore, don’t destroy' },
+    { name: 'Elder Treant', image: '/game/guardians/elder-treant.webp', detail: 'Lost guardian', mission: 'Listen first' },
+    { name: 'Void Empress', image: '/game/guardians/void-empress.webp', detail: 'The Final Void', mission: 'Choose what matters' }
 ];
 
 const faqs = [
-    ['How do I start playing?', 'Choose any Play Now button. The game opens at /play/ in this same website, with no account or download required.'],
-    ['Will my progress be saved?', 'Yes. Your progress is stored locally in this browser. Optional Cloud Save can protect a private copy linked to this browser, but this release does not yet transfer progress to another device.'],
-    ['What devices can I use?', 'Mythical Void is designed for current desktop and mobile browsers. A keyboard is recommended for the platforming levels.'],
-    ['Is the game really free?', 'Yes. The current early-access browser game is free to play and does not require payment information.'],
-    ['Is it suitable for younger players?', 'The adventure is designed to be family friendly, with fantasy combat and no gore. Parents can review the safety notes below.'],
-    ['Do I need an account?', 'No. There is no account gate, email signup, or profile required to hatch your first creature.']
+    ['How do I start playing?', 'Choose any Play Now button. The game opens here in your browser. You do not need to download anything or create an account.'],
+        ['Will my progress be saved?', 'Yes. Your progress stays in this browser. An optional private online copy can protect it, but this early version does not yet move progress to another device.'],
+    ['What can I play on?', 'You can play in a current desktop or mobile browser. A keyboard is recommended for the platforming parts of the adventure.'],
+    ['Is it really free?', 'Yes. The current early-access game is free. It does not ask for payment details.'],
+    ['How does NASA fit into the game?', 'Some parts of the adventure can show NASA’s public space pictures and space-weather information. They are optional learning moments that help players notice how the real universe connects to the story.'],
+    ['Is it suitable for younger players?', 'The adventure is made for families. It includes fantasy battles, but no gore or adult themes. Parents and guardians can read the safety notes below.'],
+    ['Do I need an account?', 'No. You can hatch your first creature without sharing a name or email address.']
 ];
 
 const app = document.querySelector('#app');
@@ -45,8 +38,8 @@ function updatePageMetadata({ title, description, path = '/' }) {
 
 const playLink = (label, className = 'button button-primary') => `
     <a class="${className}" href="/play/">
-        <span aria-hidden="true">▶</span>
         <span>${label}</span>
+        <span class="button-arrow" aria-hidden="true">→</span>
     </a>
 `;
 
@@ -55,10 +48,11 @@ function renderLegalPage(type) {
     updatePageMetadata({
         title: `${isPrivacy ? 'Privacy & Safety' : 'Terms of Use'} | Mythical Void`,
         description: isPrivacy
-            ? 'How Mythical Void handles local progress, optional cloud saves, safety, and player privacy.'
+            ? 'How Mythical Void handles game saves, safety, and player privacy.'
             : 'Terms for playing the Mythical Void early-access browser adventure.',
         path: isPrivacy ? '/privacy/' : '/terms/'
     });
+
     app.innerHTML = `
         <main class="legal-page">
             <a class="brand legal-brand" href="/" aria-label="Return to Mythical Void home">
@@ -66,57 +60,63 @@ function renderLegalPage(type) {
                 <span>MYTHICAL VOID</span>
             </a>
             <article>
-                <p class="eyebrow">${isPrivacy ? 'PRIVACY & SAFETY' : 'TERMS OF USE'}</p>
-                <h1>${isPrivacy ? 'Built for play, not profiles.' : 'A fair way to explore the void.'}</h1>
+                <p class="kicker">${isPrivacy ? 'PRIVACY & SAFETY' : 'TERMS OF USE'}</p>
+                <h1>${isPrivacy ? 'Built for play, not profiles.' : 'A fair way to explore the Void.'}</h1>
                 ${isPrivacy ? `
-                    <p>Mythical Void does not require an account, email address, or payment information to begin playing.</p>
+                    <p>You do not need an account, email address, or payment information to begin playing Mythical Void.</p>
                     <h2>Game saves</h2>
-                    <p>Your creature and progress are saved locally by default. If you explicitly enable optional Cloud Save, a versioned copy of your progress, an anonymous account identifier, and save timestamps are stored with Supabase. Guardian PIN data and local safety audit history are excluded.</p>
-                    <h2>Technical services</h2>
-                    <p>Supabase provides optional cloud authentication and storage. The game may also request public space-weather or game-support data from external services. Those providers may receive standard technical request information such as an IP address.</p>
+                    <p>Your creature and progress stay in this browser by default. If you choose to turn on Cloud Save, an anonymous account number, your saved game, and the times it was saved are stored securely. A parent PIN and local safety history are never included.</p>
+                    <h2>Online services</h2>
+                    <p>Cloud Save uses Supabase. The game may also ask trusted outside services for public space-weather or game-help information. Like most online services, they may receive basic connection information such as an internet address.</p>
+                    <h2>Optional website analytics</h2>
+                    <p>The public website may use Google Analytics to count visits and improve the shop window. It is off by default. If you choose “Allow analytics”, Google receives limited visit information for the public website only. It is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
                     <h2>Children</h2>
-                    <p>Local play remains available without Cloud Save. Cloud Save must not be enabled for a child unless a parent or guardian has provided any consent required where the child lives.</p>
+                    <p>Children can play without Cloud Save. A child should only use Cloud Save when a parent or guardian has given any permission required where they live.</p>
                     <h2>Contact</h2>
-                    <p>If you email us, we use the information you send only to respond to your message. Parents and guardians can contact <a href="mailto:parents@mythicalvoid.com">parents@mythicalvoid.com</a>.</p>
+                    <p>Our parent and guardian contact channel is being prepared. When it opens, messages will be used only to reply and to keep young players safe.</p>
                 ` : `
-                    <p>Mythical Void is an early-access browser game provided for personal, non-commercial play.</p>
+                    <p>Mythical Void is an early-access browser game for personal play.</p>
                     <h2>Your save</h2>
-                    <p>Progress is stored locally in your browser by default. Optional Cloud Save may be offered with separate privacy controls, but uninterrupted synchronization cannot be guaranteed.</p>
-                    <h2>Respectful use</h2>
-                    <p>Do not attempt to disrupt the service, impersonate the project, or reuse its artwork and game content as your own commercial product.</p>
+                    <p>Your progress stays in this browser by default. Cloud Save may be available, but we cannot promise that it will always work without interruption.</p>
+                    <h2>Play fairly</h2>
+                    <p>Please do not disrupt the game, pretend to be the Mythical Void team, or sell the game's artwork and content as your own.</p>
                     <h2>Early access</h2>
-                    <p>Features may change as the game develops. The game is provided as available, without a promise of uninterrupted operation.</p>
+                    <p>The game is still growing, so features may change. We provide it as it is available.</p>
                 `}
-                <p class="legal-updated">Last updated: July 2026</p>
+                <p class="legal-updated">Last updated: August 2026</p>
                 <a class="text-link" href="/">← Return to the website</a>
             </article>
         </main>
     `;
+    mountAnalyticsConsent();
 }
 
 function renderStorefront() {
     updatePageMetadata({
-        title: 'Mythical Void - Your Creature. Your Journey.',
-        description: 'Bond with a one-of-a-kind alien companion, restore six living realms, and decide what home means in this free browser adventure.',
+        title: 'Mythical Void | Project Beacon',
+        description: 'Recover Wanderer-77, restore the Fend, and decide what Project Beacon should tell Earth. Play free in your browser.',
         path: '/'
     });
+
     app.innerHTML = `
-        <a class="skip-link" href="#main-content">Skip to content</a>
+        <a class="skip-link" href="#main-content">Skip to the adventure</a>
+
         <header class="site-header" data-header>
             <div class="header-inner">
                 <a class="brand" href="#hero" aria-label="Mythical Void home">
                     <img src="/marketing/mythical-void-logo.webp" alt="">
                     <span>MYTHICAL VOID</span>
                 </a>
-                <button class="menu-button" type="button" aria-label="Open navigation" aria-expanded="false" data-menu-button>
+                <button class="menu-button" type="button" aria-label="Open menu" aria-expanded="false" data-menu-button>
                     <span></span><span></span><span></span>
                 </button>
                 <nav class="site-nav" aria-label="Main navigation" data-menu>
+                    <a href="#adventure">The adventure</a>
+                    <a href="#how-it-works">How it works</a>
+                    <a href="#studio">The studio</a>
                     <a href="#creatures">Creatures</a>
-                    <a href="#features">Features</a>
-                    <a href="#story">Story</a>
-                    <a href="#parents">For parents</a>
-                    <a href="#faq">FAQ</a>
+                    <a href="#story">The story</a>
+                    <a href="#parents">For grown-ups</a>
                     ${playLink('Play now', 'button button-small')}
                 </nav>
             </div>
@@ -124,146 +124,218 @@ function renderStorefront() {
 
         <main id="main-content">
             <section class="hero" id="hero">
-                <div class="hero-stars" aria-hidden="true"></div>
-                <img class="hero-creature" src="/marketing/nova.webp" alt="Nova, a mint-green cosmic creature with large starry eyes">
-                <div class="hero-content">
-                    <p class="eyebrow">PROJECT BEACON // FREE BROWSER ADVENTURE</p>
-                    <h1><span>Mythical</span> Void</h1>
-                    <p class="hero-copy">Your creature. Your journey. Bond with the first alien life to trust a human, restore six living realms, and decide what home truly means.</p>
-                    <div class="hero-actions">
-                        ${playLink('Start your adventure')}
-                        <a class="button button-secondary" href="#creatures">Meet the creatures</a>
+                <img class="hero-world" src="/game/project-beacon-crash-site.webp" alt="" fetchpriority="high">
+                <div class="hero-glow" aria-hidden="true"></div>
+                <div class="hero-orbit" aria-hidden="true"></div>
+                <div class="hero-inner">
+                    <div class="hero-copy-block">
+                        <p class="kicker"><span></span> A free creature adventure</p>
+                        <h1>Somewhere in the Void, <em>a friend is waiting.</em></h1>
+                        <p class="hero-copy">Hatch a creature unlike any other. Grow together. Save its world. Then make a choice that could change both your homes forever.</p>
+                        <div class="hero-actions">
+                            ${playLink('Play now — it’s free')}
+                            <a class="button button-quiet" href="#adventure">See the adventure</a>
+                        </div>
+                        <ul class="trust-list" aria-label="Quick game facts">
+                            <li>Plays in your browser</li>
+                            <li>No account needed</li>
+                            <li>Made for families</li>
+                        </ul>
                     </div>
-                    <ul class="trust-list" aria-label="Game details">
-                        <li>No download</li>
-                        <li>No signup</li>
-                        <li>Free to play</li>
-                    </ul>
+
+                    <div class="hero-creature" aria-label="The Wanderer-77 crash site from the game">
+                        <div class="signal-card">
+                            <span class="signal-label">PROJECT BEACON // CRASH SITE</span>
+                            <img src="/game/project-beacon-crash-site.webp" alt="The Wanderer-77 crash site in the game" fetchpriority="high">
+                            <div class="signal-footer">
+                                <strong>Wanderer-77 is down.</strong>
+                                <span>Recover the field kit. Find out what survived.</span>
+                            </div>
+                        </div>
+                        <span class="orbit-word orbit-word-one">CURIOUS</span>
+                        <span class="orbit-word orbit-word-two">BRAVE</span>
+                    </div>
                 </div>
-                <a class="scroll-cue" href="#different" aria-label="Explore the website">↓</a>
+                <a class="scroll-cue" href="#adventure"><span>Begin the story</span><b aria-hidden="true">↓</b></a>
             </section>
 
-            <section class="difference section-band" id="different">
+            <section class="adventure-section" id="adventure">
                 <div class="section-inner">
-                    <div class="section-heading compact-heading">
-                        <p class="eyebrow">WHY MYTHICAL VOID</p>
-                        <h2>A companion that is yours alone</h2>
+                    <div class="section-heading centred">
+                        <p class="kicker">YOUR ADVENTURE</p>
+                        <h2>One little creature.<br>One enormous journey.</h2>
+                        <p>Mythical Void is part creature companion, part action adventure, and part story shaped by your choices.</p>
                     </div>
-                    <div class="difference-grid">
-                        <div><strong>1 of 1</strong><span>Procedural creature genetics</span></div>
-                        <div><strong>6</strong><span>Living realms to restore</span></div>
-                        <div><strong>1 choice</strong><span>That changes what home means</span></div>
+                    <div class="adventure-path">
+                        <article class="path-card path-card-hatch">
+                            <span class="path-number">01</span>
+                            <div class="path-icon" aria-hidden="true">✦</div>
+                            <h3>Recover what survived</h3>
+                            <p>Wanderer-77 is down. Find the field kit, read the signal, and begin Project Beacon from the crash site.</p>
+                        </article>
+                        <div class="path-line" aria-hidden="true">···</div>
+                        <article class="path-card path-card-explore">
+                            <span class="path-number">02</span>
+                            <div class="path-icon" aria-hidden="true">⌁</div>
+                            <h3>Clear the corruption</h3>
+                            <p>Run, leap, fight beside your companion, and break the Void pressure holding each guardian.</p>
+                        </article>
+                        <div class="path-line" aria-hidden="true">···</div>
+                        <article class="path-card path-card-choose">
+                            <span class="path-number">03</span>
+                            <div class="path-icon" aria-hidden="true">◇</div>
+                            <h3>Restore, then choose</h3>
+                            <p>When a guardian is safe, its world changes. What you repair first helps decide what Project Beacon becomes.</p>
+                        </article>
                     </div>
                 </div>
             </section>
 
-            <section class="showroom" id="creatures">
-                <div class="section-inner showroom-layout">
-                    <div class="showroom-copy">
-                        <p class="eyebrow">CREATURE SHOWROOM</p>
-                        <h2>Every creature is unique</h2>
-                        <p>Procedural genetics shape appearance, affinity, personality, and potential. These companions are glimpses of what could hatch.</p>
-                        <div class="creature-selector" role="list" aria-label="Creature examples">
-                            ${creatures.map((creature, index) => `
-                                <button class="${index === 0 ? 'active' : ''}" type="button" data-creature="${index}" aria-label="Show ${creature.name}" aria-pressed="${index === 0}">
-                                    <img src="${creature.image}" alt="" loading="${index > 2 ? 'lazy' : 'eager'}">
+            <section class="systems-section" id="how-it-works">
+                <div class="section-inner">
+                    <div class="section-heading centred">
+                        <p class="kicker">WHY MYTHICAL VOID IS DIFFERENT</p>
+                        <h2>A game world that remembers how you play.</h2>
+                        <p>Under the story is a set of living systems designed to make each companion and each expedition feel personal.</p>
+                    </div>
+                    <div class="systems-grid">
+                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your companion is built from a profile—not picked from one poster.</p><a href="/play/">See it in the game →</a></article>
+                        <article class="system-card"><span class="system-index">02</span><h3>A living browser world</h3><p>Phaser 3 is the game engine underneath the adventure. It lets the movement, exploration, battles, guardians, village, and story scenes happen right in your browser.</p><a href="/play/">Enter the Fend →</a></article>
+                        <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your companion’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="#parents">Read the family notes →</a></article>
+                        <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures, Mars images, and space-weather signals. It gives curious players a friendly way to ask questions, spot patterns, and discover that the space around the story is real.</p><a href="#studio">See the STEM promise →</a></article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="creature-section" id="creatures">
+                <div class="section-inner creature-layout">
+                    <div class="creature-stage">
+                        <div class="creature-halo" aria-hidden="true"></div>
+                        <img src="/game/village/shared-habitat.webp" alt="A shared habitat in the restored village" data-featured-image>
+                        <div class="creature-nameplate" aria-live="polite">
+                            <span>BUILD A HOME IN THE FEND</span>
+                            <strong data-featured-name>Shared Habitat</strong>
+                        </div>
+                    </div>
+                    <div class="creature-copy">
+                        <p class="kicker">SEE THE REAL GAME</p>
+                        <h2>Your companion grows inside a living world.</h2>
+                        <p>The game is about more than a character portrait. You repair the Fend, recover Wanderer-77, work with its people, and decide what Project Beacon should become.</p>
+                        <div class="creature-details" aria-live="polite">
+                            <div><span>PLACE</span><strong data-featured-personality>The Fend</strong></div>
+                            <div><span>MISSION</span><strong data-featured-colour>Restore, then choose</strong></div>
+                        </div>
+                        <div class="creature-selector" role="list" aria-label="Choose a creature to see">
+                            ${showcaseScenes.map((scene, index) => `
+                                <button class="${index === 0 ? 'active' : ''}" type="button" data-creature="${index}" aria-label="Show ${scene.name}" aria-pressed="${index === 0}">
+                                    <img src="${scene.image}" alt="" loading="${index > 2 ? 'lazy' : 'eager'}">
+                                    <span>${scene.name}</span>
                                 </button>
                             `).join('')}
                         </div>
-                    </div>
-                    <div class="featured-creature" aria-live="polite">
-                        <div class="creature-image-stage">
-                            <img src="${creatures[0].image}" alt="${creatures[0].name}" data-featured-image>
-                        </div>
-                        <div>
-                            <p class="eyebrow">POSSIBLE COMPANION</p>
-                            <h3 data-featured-name>${creatures[0].name}</h3>
-                            <p data-featured-trait>${creatures[0].trait}</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="feature-section section-band" id="features">
-                <div class="section-inner">
-                    <div class="section-heading">
-                        <p class="eyebrow">MORE THAN NURTURING</p>
-                        <h2>A universe of possibilities</h2>
-                        <p>Raise a companion, then take that bond into a complete action-adventure.</p>
-                    </div>
-                    <div class="feature-grid">
-                        ${features.map(([label, title, copy]) => `
-                            <article class="feature-card">
-                                <span class="feature-label">${label}</span>
-                                <h3>${title}</h3>
-                                <p>${copy}</p>
-                            </article>
-                        `).join('')}
+                        ${playLink('Discover your creature')}
                     </div>
                 </div>
             </section>
 
             <section class="story-section" id="story">
-                <img src="/marketing/cosmic-forest.webp" alt="A vast cosmic tree glowing in a strange forest" loading="lazy">
-                <div class="story-copy">
-                    <p class="eyebrow">PROJECT BEACON // 2026</p>
-                    <h2>Sent to help Earth. Stranded somewhere alive.</h2>
-                    <p>You are the astronaut-pilot of The Wanderer-7, launched from a desperate Earth to find life, recover samples, and send home a reason for hope. Then the mission crashes into the Void.</p>
-                    <p>A creature hatches in the wreckage. It is intelligent, vulnerable, and the first alien life to trust a human. As you help restore its world, Project Beacon's orders begin to mean something very different.</p>
-                    <a class="text-link" href="#journey">Follow the journey →</a>
+                <div class="story-picture">
+                    <img src="/game/village/village-heart-command.webp" alt="The village heart command area in the game" loading="lazy">
+                    <span class="picture-note">THE FEND // RECOVERY IN PROGRESS</span>
+                </div>
+                <div class="story-copy-block">
+                    <p class="kicker">THE STORY</p>
+                    <h2>Earth sent you looking for hope.</h2>
+                    <p>You are the astronaut-pilot of The Wanderer-77, launched from a desperate Earth to find life, recover samples, and send home a reason for hope. Then your ship crashes in the Void.</p>
+                    <p>A creature hatches in the wreckage. It is intelligent, vulnerable, and the first alien life to trust a human.</p>
+                    <p>As you restore its world, your old mission starts to feel very different. In the end, you decide what Project Beacon should tell Earth—and decide what home means.</p>
+                    <a class="text-link" href="#worlds">See what stands in your way <span aria-hidden="true">→</span></a>
                 </div>
             </section>
 
-            <section class="guardian-section">
-                <img src="/marketing/scorpion-guardian.webp" alt="A towering cosmic scorpion guardian" loading="lazy">
-                <div class="guardian-copy">
-                    <p class="eyebrow">GUARDIAN ENCOUNTERS</p>
-                    <h2>Restore the guardians</h2>
-                    <p>Each guardian has been wounded or distorted by the Void. Learn its patterns, survive the encounter, and fight beside your companion to bring it back to itself.</p>
-                    ${playLink('Answer the signal')}
-                </div>
-            </section>
-
-            <section class="journey-section section-band" id="journey">
-                <div class="section-inner">
-                    <div class="section-heading">
-                        <p class="eyebrow">YOUR JOURNEY</p>
-                        <h2>From first spark to final choice</h2>
+            <section class="worlds-section" id="worlds">
+                <div class="section-inner worlds-layout">
+                    <div class="worlds-copy">
+                        <p class="kicker">SIX WORLDS TO RESTORE</p>
+                        <h2>You are fighting the corruption, not the guardian.</h2>
+                        <p>In each guardian encounter, the purple corruption is the thing you reduce. Learn the guardian’s attacks, move with your companion, and clear the pressure around it. When the corruption reaches zero, the guardian is restored and the world can move forward.</p>
+                        <ul class="world-facts">
+                            <li><span>6</span> strange worlds</li>
+                            <li><span>6</span> lost guardians</li>
+                            <li><span>1</span> friend beside you</li>
+                        </ul>
+                        ${playLink('Answer the signal')}
                     </div>
-                    <ol class="journey-steps">
-                        <li><span>01</span><h3>Survive the crash</h3><p>Find a strange egg glowing among the wreckage of The Wanderer-7.</p></li>
-                        <li><span>02</span><h3>Bond and grow</h3><p>Hatch, name, care for, and learn the nature of your companion.</p></li>
-                        <li><span>03</span><h3>Restore and report</h3><p>Cross six realms, restore their living systems, and decide what Project Beacon should tell Earth.</p></li>
-                    </ol>
+                    <div class="guardian-card">
+                        <span class="guardian-warning">THE VOID HAS FOUND IT</span>
+                        <img src="/game/guardians/void-empress.webp" alt="The Void Empress guardian from the game" loading="lazy">
+                        <div>
+                            <strong>Corruption signal: unstable</strong>
+                            <span>Clear the pressure. Let the guardian return.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="choice-section">
+                <div class="section-inner choice-inner">
+                    <p class="kicker">A STORY WITH HEART</p>
+                    <blockquote>“What if the thing you were sent to find became the friend you could not leave behind?”</blockquote>
+                    <div class="choice-tags" aria-label="What the game is about">
+                        <span>Friendship</span><span>Courage</span><span>Discovery</span><span>Choice</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="studio-section" id="studio">
+                <div class="section-inner studio-layout">
+                    <div>
+                        <p class="kicker">THE MYTHICAL STUDIO</p>
+                        <h2>Small team. Big worlds. Careful AI.</h2>
+                    </div>
+                    <div class="studio-copy">
+                        <p>Mythical is an independent studio in Ireland building games where animation, story, systems, and intelligent companions belong in the same world.</p>
+                        <p>We use AI as a creative tool for new kinds of companion moments—not as a shortcut around people, safety, or good writing. The player stays in control, and the important choices stay understandable.</p>
+                        <div class="studio-principles" aria-label="Mythical studio principles">
+                            <span>Human-led stories</span><span>AI with boundaries</span><span>Made for curious minds</span>
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <section class="parents-section" id="parents">
                 <div class="section-inner parents-layout">
-                    <div>
-                        <p class="eyebrow">FOR PARENTS & GUARDIANS</p>
-                        <h2>Play built around curiosity and care</h2>
-                        <p>Mythical Void combines exploration and age-appropriate fantasy combat with problem solving, responsibility, emotional connection, and restoration rather than destruction.</p>
-                        <a class="text-link" href="mailto:parents@mythicalvoid.com">Contact the project →</a>
+                    <div class="parents-copy">
+                        <p class="kicker">FOR PARENTS & GUARDIANS</p>
+                        <h2>A big adventure with thoughtful choices.</h2>
+                        <p>Mythical Void mixes exploration and age-appropriate fantasy battles with problem solving, care, responsibility, and restoration rather than destruction.</p>
+                        <p class="parent-answer"><strong>The short answer:</strong> children can start playing without an account, an email address, or payment details.</p>
+                        <span class="text-link text-link-muted">Parent contact opens soon <span aria-hidden="true">→</span></span>
                     </div>
                     <ul class="safety-list">
-                        <li><strong>No account required</strong><span>Players can begin without sharing a name or email address.</span></li>
-                        <li><strong>No payments</strong><span>The current browser game is free and asks for no payment details.</span></li>
-                        <li><strong>Local by default</strong><span>Progress stays in this browser unless an eligible player explicitly enables the optional browser-linked Cloud Save.</span></li>
-                        <li><strong>Family-friendly world</strong><span>Fantasy action without gore or adult themes.</span></li>
+                        <li><span aria-hidden="true">✓</span><div><strong>No account needed</strong><p>Start without sharing a name or email.</p></div></li>
+                        <li><span aria-hidden="true">✓</span><div><strong>No payments</strong><p>The current browser game is free.</p></div></li>
+                        <li><span aria-hidden="true">✓</span><div><strong>Saved here by default</strong><p>Progress stays in this browser unless Cloud Save is chosen.</p></div></li>
+                        <li><span aria-hidden="true">✓</span><div><strong>Family-friendly world</strong><p>Fantasy action without gore or adult themes.</p></div></li>
                     </ul>
                 </div>
             </section>
 
-            <section class="contest-section section-band">
-                <div class="section-inner contest-layout">
+            <section class="community-section">
+                <div class="section-inner community-layout">
                     <div>
-                        <p class="eyebrow">COMMUNITY DESIGN LAB</p>
-                        <h2>Design a boss. Shape the game.</h2>
+                        <p class="kicker">COMMUNITY CREATURE LAB</p>
+                        <h2>Your imagination can shape the Void.</h2>
                     </div>
                     <div>
-                        <p>Draw a guardian, name its powers, and tell us which realm it protects. Young designers should ask a parent or guardian before emailing artwork.</p>
-                        <a class="button button-secondary" href="mailto:hello@mythicalvoid.com?subject=Mythical%20Void%20boss%20design">Send a design</a>
+                        <p>Draw a guardian, name its powers, and tell us which world it protects. For a young designer, a parent or guardian must send the idea. Please do not include the child's surname, face, voice, school, location, or contact details.</p>
+                            <span class="button button-outline button-disabled">Design submissions open soon</span>
+                        <p class="community-feedback-note">Played already? A parent, guardian, or adult player will soon be able to help us improve the next version. Our feedback channel is being prepared now:</p>
+                        <div class="feedback-links" aria-label="Feedback options">
+                            <span>Tell us what worked</span>
+                            <span>Tell us what was confusing</span>
+                            <span>Share an idea</span>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -271,8 +343,9 @@ function renderStorefront() {
             <section class="faq-section" id="faq">
                 <div class="section-inner faq-layout">
                     <div class="section-heading">
-                        <p class="eyebrow">FAQ</p>
-                        <h2>Before you enter the void</h2>
+                        <p class="kicker">GOOD TO KNOW</p>
+                        <h2>Questions before you play?</h2>
+                            <p>Here are the quick answers. A parent and guardian help channel will be added when our contact setup is ready.</p>
                     </div>
                     <div class="faq-list">
                         ${faqs.map(([question, answer], index) => `
@@ -286,35 +359,39 @@ function renderStorefront() {
             </section>
 
             <section class="final-cta">
-                <img src="/marketing/nova.webp" alt="" loading="lazy">
-                <div>
-                    <p class="eyebrow">THE EGG IS WAITING</p>
-                    <h2>Your creature. Your story.</h2>
-                    <p>No download. No signup. Just you and the void.</p>
-                    ${playLink('Play now - free')}
+                <img src="/game/project-beacon-crash-site.webp" alt="" loading="lazy">
+                <div class="final-cta-copy">
+                    <p class="kicker">THE SIGNAL IS GETTING STRONGER</p>
+                    <h2>Your creature is waiting.</h2>
+                    <p>Free to play. No download. No account needed.</p>
+                    ${playLink('Play Mythical Void')}
                 </div>
             </section>
         </main>
 
         <footer>
             <div class="footer-inner">
-                <a class="brand" href="#hero">
-                    <img src="/marketing/mythical-void-logo.webp" alt="">
-                    <span>MYTHICAL VOID</span>
-                </a>
-                <p>Raise your creature. Restore the guardians. Choose what home means.</p>
-                <nav aria-label="Footer">
+                <div class="footer-brand">
+                    <a class="brand" href="#hero">
+                        <img src="/marketing/mythical-void-logo.webp" alt="">
+                        <span>MYTHICAL VOID</span>
+                    </a>
+                    <p>Your creature. Your journey. Your choice.</p>
+                </div>
+                <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
+                    <a href="#parents">For grown-ups</a>
                     <a href="/privacy/">Privacy & safety</a>
                     <a href="/terms/">Terms</a>
-                    <a href="mailto:hello@mythicalvoid.com">Contact</a>
+                        <span class="footer-link-muted">Contact opens soon</span>
                 </nav>
-                <small>© ${new Date().getFullYear()} Mythical Void</small>
+                <small>© ${new Date().getFullYear()} Mythical Void. Made in Ireland for curious minds everywhere.</small>
             </div>
         </footer>
     `;
 
     bindInteractions();
+    mountAnalyticsConsent();
 }
 
 function bindInteractions() {
@@ -324,23 +401,18 @@ function bindInteractions() {
     const setMenuOpen = (open, { restoreFocus = false } = {}) => {
         if (!menuButton || !menu) return;
         menuButton.setAttribute('aria-expanded', String(open));
-        menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+        menuButton.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
         menu.classList.toggle('open', open);
         document.body.classList.toggle('nav-open', open);
-        if (!open && restoreFocus) {
-            menuButton.focus();
-        }
+        if (restoreFocus) menuButton.focus();
     };
 
     menuButton?.addEventListener('click', () => {
-        const isOpen = menuButton.getAttribute('aria-expanded') === 'true';
-        setMenuOpen(!isOpen);
+        setMenuOpen(menuButton.getAttribute('aria-expanded') !== 'true');
     });
 
     menu?.querySelectorAll('a').forEach((link) => {
-        link.addEventListener('click', () => {
-            setMenuOpen(false);
-        });
+        link.addEventListener('click', () => setMenuOpen(false));
     });
 
     document.addEventListener('keydown', (event) => {
@@ -349,36 +421,35 @@ function bindInteractions() {
         }
     });
 
-    document.addEventListener('pointerdown', (event) => {
-        if (
-            menuButton?.getAttribute('aria-expanded') === 'true' &&
-            !menu?.contains(event.target) &&
-            !menuButton.contains(event.target)
-        ) {
+    document.addEventListener('click', (event) => {
+        if (menuButton?.getAttribute('aria-expanded') === 'true'
+            && !menu?.contains(event.target)
+            && !menuButton.contains(event.target)) {
             setMenuOpen(false);
         }
     });
 
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 900) {
-            setMenuOpen(false);
-        }
-    });
-
+    const creatureButtons = [...app.querySelectorAll('[data-creature]')];
     const image = app.querySelector('[data-featured-image]');
     const name = app.querySelector('[data-featured-name]');
-    const trait = app.querySelector('[data-featured-trait]');
-    const creatureButtons = app.querySelectorAll('[data-creature]');
+    const personality = app.querySelector('[data-featured-personality]');
+    const colour = app.querySelector('[data-featured-colour]');
 
     creatureButtons.forEach((button) => {
         button.addEventListener('click', () => {
-            const creature = creatures[Number(button.dataset.creature)];
-            if (!creature) return;
+            const scene = showcaseScenes[Number(button.dataset.creature)];
+            if (!scene || !image || !name || !personality || !colour) return;
 
-            image.src = creature.image;
-            image.alt = creature.name;
-            name.textContent = creature.name;
-            trait.textContent = creature.trait;
+            image.classList.add('changing');
+            window.setTimeout(() => {
+                image.src = scene.image;
+                image.alt = scene.name;
+                name.textContent = scene.name;
+                personality.textContent = scene.detail;
+                colour.textContent = scene.mission;
+                image.classList.remove('changing');
+            }, 120);
+
             creatureButtons.forEach((candidate) => {
                 const selected = candidate === button;
                 candidate.classList.toggle('active', selected);

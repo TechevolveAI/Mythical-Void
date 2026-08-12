@@ -35,9 +35,9 @@ describe('storefront and game deployment integration', () => {
 
     test('describes the current browser-linked cloud-save scope accurately', () => {
         expect(storefront).toContain(
-            'this release does not yet transfer progress to another device'
+            'this early version does not yet move progress to another device'
         );
-        expect(storefront).toContain('optional browser-linked Cloud Save');
+        expect(storefront).toContain('An optional private online copy can protect it');
         expect(storefront).not.toContain('protect progress across supported devices');
     });
 
@@ -61,7 +61,9 @@ describe('storefront and game deployment integration', () => {
         [
             'assets/',
             'marketing/',
+            'game/',
             'audio/',
+            String.raw`og\.png`,
             String.raw`sw\.js`,
             String.raw`apple-touch-icon\.png`
         ]

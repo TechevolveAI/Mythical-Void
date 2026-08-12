@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "status": "proposed",
+  "mode": "M1_identifier_free_aggregate",
+  "collectionEnabled": false,
+  "externalEndpoint": null,
+  "reportingLanguage": "events_and_attempts_not_users",
+  "limits": {
+    "maximumPayloadBytes": 1024,
+    "aggregateRetentionMonths": 13,
+    "aggregateRetentionApproved": false,
+    "rawApplicationBodyLoggingPermitted": false,
+    "minimumReportedCellCount": null,
+    "infrastructureLogRetentionVerified": false,
+    "killSwitchTested": false
+  },
+  "approvalGates": {
+    "D-003": "proposed",
+    "D-004": "proposed",
+    "kevinApproved": false,
+    "privacyReviewComplete": false,
+    "dpiaComplete": false,
+    "gameDevelopmentBoundariesConfirmed": false,
+    "networkDataFlowVerified": false,
+    "deletionAndIncidentOwnersNamed": false
+  },
+  "allowedProperties": {
+    "schema_version": ["1"],
+    "release_channel": ["production", "preview"],
+    "build_bucket": ["approved_public_build", "other"],
+    "route": ["storefront", "play", "other"],
+    "viewport_class": ["small", "medium", "large", "other"],
+    "input_class": ["touch", "keyboard", "mixed", "unknown", "other"],
+    "runtime_class": ["mobile_web", "desktop_web", "unknown", "other"],
+    "campaign_code": ["server_allowlisted_only", "none", "other"],
+    "error_code": ["boot_blocked", "asset_blocked", "runtime_blocked", "degraded", "other"],
+    "performance_class": ["good", "degraded", "poor", "other"]
+  },
+  "prohibitedFields": [
+    "account_id",
+    "advertising_id",
+    "age",
+    "age_band",
+    "birth_date",
+    "cookie_id",
+    "creature_data",
+    "creature_id",
+    "creature_name",
+    "email",
+    "exact_dimensions",
+    "fingerprint",
+    "free_text",
+    "full_url",
+    "genetics",
+    "ip_address",
+    "location",
+    "name",
+    "query_string",
+    "raw_referrer",
+    "save_data",
+    "session_id",
+    "stack_trace",
+    "story_choice",
+    "timestamp",
+    "user_agent",
+    "user_id"
+  ],
+  "events": [
+    {
+      "name": "storefront_loaded",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "route", "viewport_class", "runtime_class", "campaign_code"],
+      "authoritativeBoundary": "Storefront becomes usable; implementation boundary unconfirmed",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "play_selected",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "route", "input_class", "campaign_code"],
+      "authoritativeBoundary": "Player activates an approved Play link; implementation boundary unconfirmed",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "game_boot_ready",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "viewport_class", "input_class", "runtime_class"],
+      "authoritativeBoundary": "Interactive core game ready state; Game Development definition required",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "age_settings_applied",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket"],
+      "authoritativeBoundary": "Local privacy mode applied without transmitting the selected band; Game Development definition required",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "hatch_started",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "input_class", "runtime_class"],
+      "authoritativeBoundary": "First committed hatch interaction begins; Game Development definition required",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "hatch_completed",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "runtime_class"],
+      "authoritativeBoundary": "Creature reveal completes; Game Development definition required",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "first_bond_completed",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "runtime_class"],
+      "authoritativeBoundary": "First meaningful bond interaction commits; exact product definition required",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "first_expedition_started",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "runtime_class"],
+      "authoritativeBoundary": "First expedition becomes active; Game Development definition required",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "first_realm_completed",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "runtime_class"],
+      "authoritativeBoundary": "First realm success commits to local state; Game Development definition required",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "return_session_started",
+      "mode": "M2_deferred",
+      "properties": [],
+      "authoritativeBoundary": "Not available in M1",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "client_error",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "route", "runtime_class", "error_code"],
+      "authoritativeBoundary": "Allowlisted blocking/degraded category only; no message or stack trace",
+      "boundaryConfirmed": false
+    },
+    {
+      "name": "performance_bucket",
+      "mode": "M1",
+      "properties": ["schema_version", "release_channel", "build_bucket", "route", "viewport_class", "input_class", "runtime_class", "performance_class"],
+      "authoritativeBoundary": "One coarse summary after a fixed window; thresholds unconfirmed",
+      "boundaryConfirmed": false
+    }
+  ]
+}

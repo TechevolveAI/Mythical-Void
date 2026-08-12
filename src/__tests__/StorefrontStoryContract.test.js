@@ -19,11 +19,12 @@ describe('storefront Project Beacon story contract', () => {
     test('matches the implemented 2026 astronaut opening', () => {
         expect(projectBeacon.year).toBe(2026);
         expect(projectBeacon.openingPages[0].content).toContain(
-            'Wanderer-7 missed its target'
+            'Wanderer-77 missed its target'
         );
-        expect(storefront).toContain('PROJECT BEACON // 2026');
+        expect(projectBeacon.openingPages[0].subtitle).toContain('Flight 23');
+        expect(storefront).toContain('Earth sent you looking for hope.');
         expect(storefront).toContain(
-            'You are the astronaut-pilot of The Wanderer-7'
+            'You are the astronaut-pilot of The Wanderer-77'
         );
         expect(storefront).toContain('launched from a desperate Earth');
         expect(storefront).not.toContain('You were a scientist aboard');
@@ -37,14 +38,14 @@ describe('storefront Project Beacon story contract', () => {
             'It is intelligent, vulnerable'
         );
         expect(metadata).toContain(
-            'Bond with a one-of-a-kind alien companion'
+            'Recover Wanderer-77, restore the Fend'
         );
     });
 
     test('describes boss encounters as restoration instead of conquest', () => {
-        expect(storefront).toContain('Restore the guardians');
+        expect(storefront).toContain('fighting the corruption, not the guardian');
         expect(storefront).toContain(
-            'Each guardian has been wounded or distorted by the Void.'
+            'the purple corruption is the thing you reduce'
         );
         expect(storefront).toContain('restoration rather than destruction');
         expect(storefront).not.toContain('defeat their guardians');
@@ -74,7 +75,7 @@ describe('storefront Project Beacon story contract', () => {
 
     test('publishes absolute social media assets and route-aware canonical metadata', () => {
         expect(metadata).toContain(
-            'content="https://mythicalvoid.com/marketing/nova.webp"'
+            'content="https://mythicalvoid.com/game/project-beacon-crash-site.webp"'
         );
         expect(metadata).toContain(
             '<link rel="canonical" href="https://mythicalvoid.com/">'
@@ -84,5 +85,25 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain(
             "path: isPrivacy ? '/privacy/' : '/terms/'"
         );
+        expect(storefront).toContain('WHY MYTHICAL VOID IS DIFFERENT');
+        expect(storefront).toContain('Genetics with real variety');
+        expect(storefront).toContain('Phaser 3');
+        expect(storefront).toContain('Story moments made for your friend');
+    });
+
+    test('explains the NASA connection as a child-friendly STEM layer', () => {
+        expect(storefront).toContain('Real space science');
+        expect(storefront).toContain('NASA’s public space data');
+        expect(storefront).toContain('space-weather signals');
+        expect(storefront).toContain('See the STEM promise');
+        expect(storefront).toContain('How does NASA fit into the game?');
+        expect(storefront).toContain('optional learning moments');
+    });
+
+    test('does not promise contact channels before they exist', () => {
+        expect(storefront).toContain('Our parent and guardian contact channel is being prepared');
+        expect(storefront).toContain('Our feedback channel is being prepared now');
+        expect(storefront).not.toContain('mailto:hello@mythicalvoid.com');
+        expect(storefront).not.toContain('mailto:parents@mythicalvoid.com');
     });
 });

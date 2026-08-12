@@ -21,6 +21,8 @@
   VITE_ENABLE_API_FEATURES = "false"
   ENABLE_AI_PORTRAITS = "false"
   VITE_ENABLE_AI_PORTRAITS = "false"
+  ENABLE_AI_VIDEOS = "false"
+  VITE_ENABLE_AI_VIDEOS = "false"
 
 # Redirect rules for single-page application behavior
 [[redirects]]
@@ -57,10 +59,11 @@
     # Content Security Policy (restrictive for security)
     Content-Security-Policy = """
       default-src 'self';
-      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+      script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com;
       style-src 'self' 'unsafe-inline';
-      img-src 'self' data: blob: https://*.nasa.gov https://apod.nasa.gov https://mars.nasa.gov https://mkcmdbzcihjgidjuypqe.supabase.co;
-      connect-src 'self' https://mkcmdbzcihjgidjuypqe.supabase.co https://api.x.ai https://api.nasa.gov;
+      img-src 'self' data: blob: https://*.nasa.gov https://apod.nasa.gov https://mars.nasa.gov https://mkcmdbzcihjgidjuypqe.supabase.co https://www.google-analytics.com;
+      media-src 'self' blob: https://mkcmdbzcihjgidjuypqe.supabase.co;
+      connect-src 'self' https://mkcmdbzcihjgidjuypqe.supabase.co https://api.x.ai https://api.nasa.gov https://www.google-analytics.com https://region1.google-analytics.com;
       font-src 'self';
       object-src 'none';
       base-uri 'self';
@@ -107,6 +110,8 @@
   VITE_ENABLE_API_FEATURES = "true"
   ENABLE_AI_PORTRAITS = "true"
   VITE_ENABLE_AI_PORTRAITS = "true"
+  ENABLE_AI_VIDEOS = "true"
+  VITE_ENABLE_AI_VIDEOS = "true"
 
 [context.deploy-preview.environment]
   NODE_ENV = "staging"
@@ -114,6 +119,8 @@
   VITE_ENABLE_API_FEATURES = "true"
   ENABLE_AI_PORTRAITS = "true"
   VITE_ENABLE_AI_PORTRAITS = "true"
+  ENABLE_AI_VIDEOS = "true"
+  VITE_ENABLE_AI_VIDEOS = "true"
 
 [context.branch-deploy.environment]
   NODE_ENV = "development"
@@ -121,6 +128,8 @@
   VITE_ENABLE_API_FEATURES = "true"
   ENABLE_AI_PORTRAITS = "true"
   VITE_ENABLE_AI_PORTRAITS = "true"
+  ENABLE_AI_VIDEOS = "true"
+  VITE_ENABLE_AI_VIDEOS = "true"
 
 # Form handling (future use for feedback/contact forms)
 [forms]

@@ -36,6 +36,7 @@ const RARITY_COLOR_FAMILIES = Object.freeze({
 class CreatureGenetics {
     constructor() {
         this.initialized = false;
+        this.geneticIdCounter = 0;
         this.config = null;
         
         // Space-Mythic species templates
@@ -265,7 +266,13 @@ class CreatureGenetics {
             console.log(`genetics:info [CreatureGenetics] Using provided rarity: ${rarity}`);
         } else if (rarityOrSeed !== null) {
             seed = rarityOrSeed; // Use as seed
-            Math.seedrandom(seed); // Would need seedrandom library, fallback to Math.random
+            if (typeof Math.seedrandom === 'function') {
+                Math.seedrandom(seed);
+            } else {
+                console.warn(
+                    'genetics:warn [CreatureGenetics] Seeded generation requested without a seeded random provider'
+                );
+            }
         }
 
         const startTime = Date.now();
@@ -657,11 +664,20 @@ class CreatureGenetics {
      * Generate unique genetic identifier
      */
     generateGeneticId(species, visualTraits, personality) {
+        this.geneticIdCounter = (this.geneticIdCounter + 1) % 1679616;
+        const randomSuffix = (
+            typeof globalThis !== 'undefined' &&
+            typeof globalThis.crypto?.randomUUID === 'function'
+        )
+            ? globalThis.crypto.randomUUID().replace(/-/g, '').slice(0, 8)
+            : Math.random().toString(36).slice(2, 10).padEnd(8, '0');
         const components = [
             species.substring(0, 3).toUpperCase(),
             personality.core.substring(0, 3).toUpperCase(),
             Math.floor(visualTraits.colorIntensity * 100).toString(16),
-            Date.now().toString(36).slice(-4)
+            Date.now().toString(36).slice(-6),
+            this.geneticIdCounter.toString(36).padStart(4, '0'),
+            randomSuffix
         ];
         
         return components.join('-');

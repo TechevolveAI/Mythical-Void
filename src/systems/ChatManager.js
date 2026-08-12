@@ -4,6 +4,7 @@
  */
 
 import { devLog } from '../utils/devLogger.js';
+import { CREATURE_CONVERSATION } from './CreatureConversationVoice.js';
 
 class ChatManager {
     constructor() {
@@ -25,7 +26,7 @@ class ChatManager {
         // Use embedded fallback responses directly
         // Note: Config JSON files are bundled with the build, not served as static files
         // The fetch approach would fail in production, so we use fallback responses
-        this.responses = this.getFallbackResponses();
+        this.responses = CREATURE_CONVERSATION;
         this.isInitialized = true;
         devLog('[ChatManager] Initialized with embedded responses');
     }
@@ -160,7 +161,7 @@ class ChatManager {
      * Determine mood from stats
      */
     getMoodFromStats(stats) {
-        const happiness = stats.happiness || 50;
+        const happiness = stats.happiness ?? 50;
         if (happiness >= 80) return 'happy';
         if (happiness >= 50) return 'neutral';
         if (happiness >= 30) return 'sad';
@@ -175,7 +176,7 @@ class ChatManager {
 
         if (choice.includes('play') || choice.includes('fun')) return 'play';
         if (choice.includes('feel') || choice.includes('doing')) return 'feelings';
-        if (choice.includes('adventure') || choice.includes('explore')) return 'adventure';
+        if (choice.includes('adventure') || choice.includes('explore') || choice.includes('route') || choice.includes('sanctuary')) return 'adventure';
         if (choice.includes('eat') || choice.includes('hungry')) return 'food';
         if (choice.includes('love') || choice.includes('friend')) return 'affection';
         if (choice.includes('tell') || choice.includes('story')) return 'story';
@@ -210,63 +211,7 @@ class ChatManager {
      * Get fallback responses if config fails to load
      */
     getFallbackResponses() {
-        return {
-            greetings: {
-                curious: {
-                    happy: ['*{name} bounces excitedly to see you!*'],
-                    neutral: ['*{name} tilts head curiously*'],
-                    sad: ['*{name} looks up at you with big eyes*'],
-                    upset: ['*{name} seems a bit down*']
-                },
-                playful: {
-                    happy: ['*{name} does a happy spin!*'],
-                    neutral: ['*{name} playfully nudges you*'],
-                    sad: ['*{name} tries to smile*'],
-                    upset: ['*{name} looks like they need cheering up*']
-                },
-                gentle: {
-                    happy: ['*{name} nuzzles you warmly*'],
-                    neutral: ['*{name} approaches gently*'],
-                    sad: ['*{name} looks at you softly*'],
-                    upset: ['*{name} seems to need comfort*']
-                },
-                wise: {
-                    happy: ['*{name} greets you with knowing eyes*'],
-                    neutral: ['*{name} regards you thoughtfully*'],
-                    sad: ['*{name} seems contemplative*'],
-                    upset: ['*{name} appears troubled*']
-                },
-                energetic: {
-                    happy: ['*{name} zooms around you excitedly!*'],
-                    neutral: ['*{name} bounces in place*'],
-                    sad: ['*{name} has less bounce than usual*'],
-                    upset: ['*{name} seems unusually still*']
-                }
-            },
-            playerOptions: {
-                general: [
-                    'How are you feeling?',
-                    'Want to play?',
-                    'Tell me about your day',
-                    'You\'re my best friend!'
-                ],
-                followup: [
-                    'That sounds fun!',
-                    'Tell me more',
-                    'You\'re the best!',
-                    'Let\'s go on an adventure!'
-                ]
-            },
-            creatureResponses: {
-                general: {
-                    curious: ['*{name} chirps happily and explores nearby*'],
-                    playful: ['*{name} does a little dance*'],
-                    gentle: ['*{name} purrs contentedly*'],
-                    wise: ['*{name} nods sagely*'],
-                    energetic: ['*{name} zooms in circles!*']
-                }
-            }
-        };
+        return CREATURE_CONVERSATION;
     }
 
     /**
@@ -274,10 +219,10 @@ class ChatManager {
      */
     getFallbackOptions() {
         return [
-            'How are you feeling?',
-            'Want to play?',
-            'Tell me about your day',
-            'You\'re my best friend!'
+            'What changed while I was away?',
+            'How is your signal?',
+            'Which route would you choose?',
+            'Do you need food, movement, or quiet?'
         ];
     }
 

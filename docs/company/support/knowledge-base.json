@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "status": "draft",
+  "approvedForSupportDrafts": false,
+  "lastVerified": "2026-08-11",
+  "articles": [
+    {
+      "id": "KB-001",
+      "intent": "account_required",
+      "claimIds": ["CL-001"],
+      "source": "src/site/storefront.js",
+      "summary": "Players can begin Mythical Void without an account, name, or email address.",
+      "candidateReply": "You can start playing Mythical Void without an account, name, or email address. Choose Play Now to begin in your browser.",
+      "reviewOwner": "Unassigned"
+    },
+    {
+      "id": "KB-002",
+      "intent": "local_save",
+      "claimIds": ["CL-004"],
+      "source": "src/config/legal.json",
+      "summary": "Progress is stored locally by default; clearing browser data can remove a local-only save.",
+      "candidateReply": "Your progress is saved in this browser by default. Clearing the browser’s stored data can remove a local-only save.",
+      "reviewOwner": "Unassigned"
+    },
+    {
+      "id": "KB-003",
+      "intent": "price",
+      "claimIds": ["CL-002"],
+      "source": "src/site/storefront.js",
+      "summary": "The current browser game is free and asks for no payment details.",
+      "candidateReply": "The current browser game is free to play and does not ask for payment details.",
+      "reviewOwner": "Unassigned"
+    },
+    {
+      "id": "KB-004",
+      "intent": "browser_support",
+      "claimIds": [],
+      "source": "src/site/storefront.js",
+      "summary": "The game runs in a current desktop or mobile browser, and a keyboard is recommended for platforming sections.",
+      "candidateReply": "You can play in a current desktop or mobile browser. A keyboard is recommended for the platforming parts of the adventure.",
+      "reviewOwner": "Unassigned"
+    },
+    {
+      "id": "KB-005",
+      "intent": "family_suitability",
+      "claimIds": [],
+      "source": "src/site/storefront.js",
+      "summary": "The adventure is made for families and includes fantasy battles without gore or adult themes.",
+      "candidateReply": "The adventure is made for families. It includes fantasy battles, but no gore or adult themes. A parent or guardian can read the privacy and safety page before play.",
+      "reviewOwner": "Unassigned"
+    },
+    {
+      "id": "KB-006",
+      "intent": "cloud_save",
+      "claimIds": [],
+      "source": "src/site/storefront.js",
+      "summary": "Cloud Save is optional, and children can play without it.",
+      "candidateReply": "Cloud Save is optional. Children can play without it. A child should only use Cloud Save when a parent or guardian has given any permission required where they live.",
+      "reviewOwner": "Unassigned"
+    },
+    {
+      "id": "KB-007",
+      "intent": "parent_contact",
+      "claimIds": [],
+      "source": "src/site/storefront.js",
+      "summary": "The parent and guardian contact channel is planned but is not open yet.",
+      "candidateReply": "Our parent and guardian contact channel is being prepared and is not open yet. When it opens, please do not include unnecessary personal details about a child.",
+      "reviewOwner": "Unassigned"
+    },
+    {
+      "id": "KB-008",
+      "intent": "community_submission",
+      "claimIds": [],
+      "source": "src/site/storefront.js",
+      "summary": "A parent or guardian must send a young designer’s idea without the child’s surname, face, voice, school, location, or contact details.",
+      "candidateReply": "A parent or guardian may send a young designer’s idea. Please do not include the child’s surname, face, voice, school, location, or contact details.",
+      "reviewOwner": "Unassigned"
+    }
+  ]
+}

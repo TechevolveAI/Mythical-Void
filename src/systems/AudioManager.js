@@ -961,6 +961,42 @@ class AudioManager {
         ]);
 
         // ==========================================
+        // THE CURRENT - ECOLOGY-DRIVEN SOUNDSCAPE
+        // ==========================================
+
+        this.createToneSequence('current_fracture', [
+            { frequency: 116.54, duration: 0.22, volume: 0.05 },
+            { frequency: 103.83, duration: 0.28, volume: 0.04 },
+            { frequency: 92.50, duration: 0.38, volume: 0.025 }
+        ]);
+
+        this.createToneSequence('current_fading', [
+            { frequency: 174.61, duration: 0.24, volume: 0.035 },
+            { frequency: 164.81, duration: 0.3, volume: 0.03 },
+            { frequency: 146.83, duration: 0.42, volume: 0.02 }
+        ]);
+
+        this.createToneSequence('current_life', [
+            { frequency: 293.66, duration: 0.12, volume: 0.03 },
+            { frequency: 369.99, duration: 0.16, volume: 0.035 },
+            { frequency: 440, duration: 0.24, volume: 0.025 }
+        ]);
+
+        this.createToneSequence('current_harmony', [
+            { frequency: 261.63, duration: 0.14, volume: 0.025 },
+            { frequency: 329.63, duration: 0.14, volume: 0.03 },
+            { frequency: 392, duration: 0.18, volume: 0.03 },
+            { frequency: 523.25, duration: 0.3, volume: 0.02 }
+        ]);
+
+        this.createToneSequence('current_crosscurrent', [
+            { frequency: 220, duration: 0.16, volume: 0.03 },
+            { frequency: 277.18, duration: 0.12, volume: 0.028 },
+            { frequency: 207.65, duration: 0.18, volume: 0.025 },
+            { frequency: 329.63, duration: 0.24, volume: 0.02 }
+        ]);
+
+        // ==========================================
         // UI MICROINTERACTION SOUNDS
         // ==========================================
 

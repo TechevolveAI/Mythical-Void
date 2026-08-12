@@ -13,8 +13,27 @@ function loadPlatformerLevelScene(sceneWindow) {
             'const unlockProjectBeaconMilestone = window.unlockProjectBeaconMilestone;'
         )
         .replace(
+            /import \{\s*CENTERING_STANCE_DURATION_MS,[\s\S]*?\} from '\.\.\/systems\/SenseiMemory\.js';/,
+            'const CENTERING_STANCE_DURATION_MS = 1250;\n' +
+            'const getSenseiMemorySnapshot = () => ({ lesson: { status: "locked" } });\n' +
+            'const recordCenteringStancePractice = () => ({ changed: false });'
+        )
+        .replace(
             "import bossConfigs from '../config/bosses.json';",
             'const bossConfigs = BOSS_CONFIG;'
+        )
+        .replace(
+            "import { getCurrentRegionActionPresentation, recordCurrentRegionRestoration } from '../systems/CurrentEcology.js';",
+            'const getCurrentRegionActionPresentation = () => null;\n' +
+            'const recordCurrentRegionRestoration = window.recordCurrentRegionRestoration;'
+        )
+        .replace(
+            "import { companionMediaService } from '../systems/CompanionMediaService.js';",
+            'const companionMediaService = window.CompanionMediaService || {};'
+        )
+        .replace(
+            "import { getVillageGameplayEffects } from '../systems/VillageSettlement.js';",
+            'const getVillageGameplayEffects = () => ({ maxEnergyBonus: 0, guardCharges: 0, victoryCoinBonus: 0 });'
         )
         .replace(/^import .*$/gm, '')
         .replace(/export default PlatformerLevelScene;/, 'module.exports = PlatformerLevelScene;');
@@ -70,7 +89,8 @@ function createGameState(initialState) {
         get,
         set,
         save: jest.fn(),
-        emit: jest.fn()
+        emit: jest.fn(),
+        syncCanonicalCampaignGates: jest.fn()
     };
 }
 
@@ -82,10 +102,27 @@ describe('PlatformerLevelScene completion progression', () => {
     beforeEach(() => {
         sceneWindow = {
             queueProjectBeaconDebrief: jest.fn(),
-            unlockProjectBeaconMilestone: jest.fn(() => ({
-                gateId: 'crystal_caves',
-                label: 'Crystal Caves',
-                newlyUnlocked: true
+            unlockProjectBeaconMilestone: jest.fn((_gameState, levelId) => (
+                levelId === 'mythicalForest'
+                    ? {
+                        gateId: 'crystal_caves',
+                        label: 'Crystal Caves',
+                        newlyUnlocked: true
+                    }
+                    : null
+            )),
+            recordCurrentRegionRestoration: jest.fn(() => ({
+                changed: true,
+                regionId: 'aurora_depths',
+                regionLabel: 'Aurora Depths',
+                beforeVitality: 30,
+                afterVitality: 80,
+                summary: {
+                    vitality: 38,
+                    restoredCount: 1,
+                    totalRegions: 6,
+                    networkStatus: 'recovering'
+                }
             }))
         };
         PlatformerLevelScene = loadPlatformerLevelScene(sceneWindow);
@@ -184,6 +221,18 @@ describe('PlatformerLevelScene completion progression', () => {
                 }
             }))
         };
+        sceneWindow.GuardianResidents = {
+            recordGuardianRescue: jest.fn(() => ({
+                changed: true,
+                guardian: {
+                    id: 'shadow_phoenix',
+                    name: 'Aurora Phoenix',
+                    role: 'Sky Sentinel',
+                    routine: 'Surveys the Sanctuary sky',
+                    futureAbility: 'Aurora Lift'
+                }
+            }))
+        };
     });
 
     test('records reward, badge state, unique completion stats, and bond progress once per run', () => {
@@ -220,8 +269,27 @@ describe('PlatformerLevelScene completion progression', () => {
             katanaUpgrade: expect.objectContaining({
                 name: 'Aurora Guard'
             }),
-            nextGateId: 'crystal_caves',
-            nextGateUnlocked: true,
+            nextGateId: null,
+            nextGateUnlocked: false,
+            currentEcology: {
+                changed: true,
+                regionId: 'aurora_depths',
+                regionLabel: 'Aurora Depths',
+                beforeVitality: 30,
+                afterVitality: 80,
+                networkVitality: 38,
+                restoredCount: 1,
+                totalRegions: 6,
+                networkStatus: 'recovering'
+            },
+            guardianResident: {
+                id: 'shadow_phoenix',
+                name: 'Aurora Phoenix',
+                newlyRescued: true,
+                role: 'Sky Sentinel',
+                routine: 'Surveys the Sanctuary sky',
+                futureAbility: 'Aurora Lift'
+            },
             firstCompletion: true,
             noDamage: true,
             coinsAwarded: 1000
@@ -241,6 +309,20 @@ describe('PlatformerLevelScene completion progression', () => {
             'aurora_guard',
             { save: false }
         );
+        expect(sceneWindow.recordCurrentRegionRestoration).toHaveBeenCalledWith(
+            gameState,
+            'auroraDepths',
+            { save: false }
+        );
+        expect(sceneWindow.GuardianResidents.recordGuardianRescue)
+            .toHaveBeenCalledWith(gameState, 'auroraDepths', { save: false });
+        expect(scene.getGuardianSanctuaryArrivalCopy()).toBe(
+            'SANCTUARY ARRIVAL // Aurora Phoenix\n' +
+            'Sky Sentinel // Surveys the Sanctuary sky'
+        );
+        expect(scene.getGuardianSanctuaryArrivalCopy({ compact: true })).toBe(
+            'Aurora Phoenix -> SANCTUARY // Sky Sentinel'
+        );
         expect(sceneWindow.AchievementSystem.recordEvent).toHaveBeenCalledTimes(1);
         expect(sceneWindow.AchievementSystem.recordEvent).toHaveBeenCalledWith(
             'level_completed',
@@ -259,15 +341,18 @@ describe('PlatformerLevelScene completion progression', () => {
         expect(sceneWindow.queueProjectBeaconDebrief).toHaveBeenCalledWith(
             gameState,
             expect.objectContaining({
-                completionNumber: 1,
                 levelId: 'auroraDepths',
                 shipPartId: 'aurora_reactor'
             })
         );
+        expect(
+            sceneWindow.queueProjectBeaconDebrief.mock.calls[0][1]
+        ).not.toHaveProperty('completionNumber');
         expect(sceneWindow.unlockProjectBeaconMilestone).toHaveBeenCalledWith(
             gameState,
-            1
+            'auroraDepths'
         );
+        expect(gameState.syncCanonicalCampaignGates).toHaveBeenCalledTimes(1);
         expect(gameState.get('creature.bond')).toEqual(expect.objectContaining({
             level: 2,
             experience: 55,
@@ -332,6 +417,7 @@ describe('PlatformerLevelScene completion progression', () => {
 
         expect(sceneWindow.unlockProjectBeaconMilestone).not.toHaveBeenCalled();
         expect(sceneWindow.queueProjectBeaconDebrief).not.toHaveBeenCalled();
+        expect(gameState.syncCanonicalCampaignGates).not.toHaveBeenCalled();
         expect(result).toEqual(expect.objectContaining({
             firstCompletion: false,
             nextGateId: null,
@@ -342,6 +428,34 @@ describe('PlatformerLevelScene completion progression', () => {
             1000,
             'boss_victory:auroraDepths'
         );
+    });
+
+    test('unlocks the next milestone from the completed canonical level ID', () => {
+        const scene = new PlatformerLevelScene({
+            key: 'MythicalForestLevel',
+            levelId: 'mythical_forest_1'
+        });
+
+        const result = scene.completeLevelProgression({
+            achievementLevelId: 'mythicalForest',
+            shipPartId: 'forest_core'
+        });
+
+        expect(sceneWindow.queueProjectBeaconDebrief).toHaveBeenCalledWith(
+            gameState,
+            {
+                levelId: 'mythicalForest',
+                shipPartId: 'forest_core'
+            }
+        );
+        expect(sceneWindow.unlockProjectBeaconMilestone).toHaveBeenCalledWith(
+            gameState,
+            'mythicalForest'
+        );
+        expect(result).toEqual(expect.objectContaining({
+            nextGateId: 'crystal_caves',
+            nextGateUnlocked: true
+        }));
     });
 
     test('falls back to GameState when optional progression managers are unavailable', () => {
@@ -368,6 +482,46 @@ describe('PlatformerLevelScene completion progression', () => {
         expect(gameState.get('levels.auroraDepths.speedrun')).toBe(true);
         expect(gameState.get('player.cosmicCoins')).toBe(1025);
         expect(gameState.get('stats.coinsCollected')).toBe(1000);
+    });
+
+    test('preserves campaign progress when achievement processing fails', () => {
+        sceneWindow.AchievementSystem.recordEvent.mockImplementation(() => {
+            throw new Error('achievement fixture failed');
+        });
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const scene = new PlatformerLevelScene({
+            key: 'MythicalForestLevel',
+            levelId: 'mythical_forest_1'
+        });
+        scene.levelStartTime = Date.now() - 1000;
+        scene.damageTaken = 0;
+
+        const result = scene.completeLevelProgression({
+            achievementLevelId: 'mythicalForest',
+            shipPartId: 'forest_core'
+        });
+
+        expect(result).toEqual(expect.objectContaining({
+            firstCompletion: true,
+            nextGateId: 'crystal_caves',
+            nextGateUnlocked: true
+        }));
+        expect(gameState.get('levels.mythicalForest.completed')).toBe(true);
+        expect(gameState.get('hubWorld.shipParts.collected')).toContain('forest_core');
+        expect(gameState.get('stats.levelsCompleted')).toBe(1);
+        expect(sceneWindow.queueProjectBeaconDebrief).toHaveBeenCalledWith(
+            gameState,
+            expect.objectContaining({ levelId: 'mythicalForest' })
+        );
+        expect(sceneWindow.unlockProjectBeaconMilestone).toHaveBeenCalledWith(
+            gameState,
+            'mythicalForest'
+        );
+        expect(gameState.save).toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledWith(
+            '[PlatformerLevel] Achievement processing failed after level completion:',
+            expect.any(Error)
+        );
     });
 
     test('grants every configured boss reward and both collectible bonuses', () => {
@@ -457,13 +611,13 @@ describe('local level-entry preview route', () => {
 
         expect(gameSource).toContain("urlParams.get('testLevelEntry')");
         expect(gameSource).toMatch(
-            /game\.scene\.start\(sceneName,\s*\{\s*entryPreview: true,\s*forceMobileControls,\s*katanaPreview\s*\}\)/
+            /game\.scene\.start\(sceneName,\s*\{\s*entryPreview: true,\s*forceMobileControls,\s*katanaPreview,\s*platformerPreviewSize:/
         );
         expect(hatchingSource).toContain("previewParams.has('testLevelEntry')");
 
         levelFiles.forEach((fileName) => {
             const source = fs.readFileSync(path.join(__dirname, '../scenes/levels', fileName), 'utf8');
-            expect(source).toContain('this.bindLevelCompletionReturn();');
+            expect(source).toContain('this.bindLevelCompletionReturn(');
             expect(source).toContain('this.levelCompletionActive');
             if (fileName === 'FinalVoidLevel.js') {
                 expect(source).toMatch(

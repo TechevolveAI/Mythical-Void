@@ -1,3 +1,9 @@
+import {
+    getCreatureCareProfile,
+    getCreatureCareReaction
+} from './CreatureCareVoice.js';
+import { getVillageGameplayEffects } from './VillageSettlement.js';
+
 /**
  * CareSystem - High-level interface for creature care mechanics
  * Handles care actions, daily bonuses, and care status management
@@ -16,7 +22,7 @@ class CareSystem {
         this.careActions = {
             feed: {
                 name: 'Feed',
-                description: 'Give your creature food to increase happiness',
+                description: 'Share a field ration to steady the companion signal',
                 happinessBonus: 15,
                 dailyLimit: 3,
                 icon: '🍎',
@@ -24,7 +30,7 @@ class CareSystem {
             },
             play: {
                 name: 'Play',
-                description: 'Play with your creature to make it happy',
+                description: 'Run a movement exercise chosen for this companion',
                 happinessBonus: 10,
                 dailyLimit: 2,
                 icon: '🎾',
@@ -32,15 +38,23 @@ class CareSystem {
             },
             rest: {
                 name: 'Rest',
-                description: 'Let your creature rest and recover',
+                description: 'Pause together for a quiet recovery cycle',
                 happinessBonus: 5,
                 dailyLimit: -1, // Unlimited
                 icon: '😴',
                 cooldown: 30000 // 30 second cooldown between rests
+            },
+            pet: {
+                name: 'Connect',
+                description: 'Share a calm signal with your companion',
+                happinessBonus: 8,
+                dailyLimit: -1,
+                icon: '◇',
+                cooldown: 5000
             }
         };
 
-        this.lastRestTime = 0;
+        this.lastActionTimes = {};
     }
 
     /**
@@ -84,8 +98,8 @@ class CareSystem {
             if (count >= action.dailyLimit) return false;
         }
 
-        // Check cooldown for rest (affected by Time Warp ability)
-        if (actionType === 'rest') {
+        // Check action cooldowns (affected by Time Warp ability)
+        if (action.cooldown > 0) {
             const now = Date.now();
             let effectiveCooldown = action.cooldown;
 
@@ -93,7 +107,7 @@ class CareSystem {
             const cooldownReduction = window.SecretAbilityManager?.getSanctuaryModifiers?.()?.cooldownReduction || 1;
             effectiveCooldown = Math.round(effectiveCooldown * cooldownReduction);
 
-            if (now - this.lastRestTime < effectiveCooldown) return false;
+            if (now - (this.lastActionTimes[actionType] || 0) < effectiveCooldown) return false;
         }
 
         return true;
@@ -111,6 +125,14 @@ class CareSystem {
         const personalityBonus = this.calculatePersonalityBonus(actionType, genetics);
         const baseBonusHappiness = this.careActions[actionType].happinessBonus;
         let totalHappinessBonus = Math.round(baseBonusHappiness * personalityBonus.multiplier);
+        let villageBonus = 0;
+
+        if (actionType === 'feed') {
+            villageBonus = getVillageGameplayEffects(
+                getGameState()
+            ).feedHappinessBonus;
+            totalHappinessBonus += villageBonus;
+        }
 
         // Apply ability bonus (e.g., Gentle Aura: +50% care effectiveness)
         if (window.SecretAbilityManager?.applyCareBonus) {
@@ -120,9 +142,8 @@ class CareSystem {
         const success = getGameState().performCareAction(actionType, totalHappinessBonus);
 
         if (success) {
-            if (actionType === 'rest') {
-                this.lastRestTime = Date.now();
-            }
+            this.lastActionTimes[actionType] = Date.now();
+            const careMoment = this.getCareMomentContext(actionType, genetics);
 
             // Play appropriate sound effect for the care action
             this.playCareSound(actionType);
@@ -138,8 +159,14 @@ class CareSystem {
                 success: true,
                 action: actionType,
                 happinessBonus: totalHappinessBonus,
+                villageBonus,
                 personalityBonus: personalityBonus,
-                message: this.getPersonalizedCareMessage(actionType, genetics, personalityBonus)
+                careMoment,
+                message: this.getPersonalizedCareMessage(
+                    actionType,
+                    genetics,
+                    careMoment
+                )
             };
         }
 
@@ -242,61 +269,72 @@ class CareSystem {
     /**
      * Get personalized care action message
      */
-    getPersonalizedCareMessage(actionType, genetics, personalityBonus) {
-        if (!genetics) {
-            return `Your creature enjoyed the ${actionType}!`;
+    getPersonalizedCareMessage(actionType, genetics, careMoment = null) {
+        return getCreatureCareReaction(actionType, genetics, careMoment || {});
+    }
+
+    getCareSignal(genetics = null) {
+        const profile = getCreatureCareProfile(genetics);
+        const status = this.getCareStatus();
+        const history = getGameState().get('creature.care.careHistory') || [];
+        const recentActions = history
+            .slice(-2)
+            .map(entry => entry?.action)
+            .filter(Boolean);
+        const energy = Number(
+            getGameState().get('creature.stats.energy')
+        );
+        let recommendedAction = profile.preferredAction;
+        let needLabel = 'NATURAL RHYTHM';
+        let reason = profile.observation;
+
+        if (Number.isFinite(energy) && energy <= 35) {
+            recommendedAction = 'rest';
+            needLabel = 'RECOVERY REQUEST';
+            reason = 'Energy is low enough that quiet recovery should come before another activity.';
+        } else if (
+            recentActions.length === 2 &&
+            recentActions.every(action => action === recentActions[0])
+        ) {
+            recommendedAction = recentActions[0] === profile.secondaryAction
+                ? profile.preferredAction
+                : profile.secondaryAction;
+            needLabel = 'VARIATION REQUEST';
+            reason = 'The same care signal was repeated; this companion is asking for a different rhythm.';
+        } else if (Number(status?.happiness) < 65) {
+            needLabel = 'CONNECTION REQUEST';
+            reason = 'The companion signal is quieter and responds best to its natural care rhythm.';
+        } else if (Number(status?.happiness) >= 90) {
+            needLabel = 'STEADY SIGNAL';
+            reason = 'The companion is steady; care is optional and never an obligation.';
         }
 
-        const species = genetics.species;
-        const personality = genetics.personality.core;
-        const rarity = genetics.rarity;
-
-        const messages = {
-            feed: {
-                high: `Your ${rarity} ${species} absolutely loves these cosmic nutrients! Their ${personality} nature shines through their delight.`,
-                medium: `Your ${species} enjoys the meal, especially with their ${personality} personality.`,
-                low: `Your ${species} accepts the food, though it's not their favorite activity.`
-            },
-            play: {
-                high: `Your ${species} is overjoyed! This ${actionType} perfectly matches their ${personality} spirit and ${rarity} energy.`,
-                medium: `Your ${species} has fun playing, their ${personality} nature coming through.`,
-                low: `Your ${species} plays along, though they might prefer other activities.`
-            },
-            pet: {
-                high: `Your ${species} melts into your touch! Their ${personality} soul craves this affection.`,
-                medium: `Your ${species} enjoys the gentle attention, purring contentedly.`,
-                low: `Your ${species} tolerates the petting, though they seem somewhat indifferent.`
-            },
-            rest: {
-                high: `Your ${species} settles into perfect peaceful sleep, their ${personality} nature finding deep comfort.`,
-                medium: `Your ${species} rests comfortably, their ${personality} energy recharging.`,
-                low: `Your ${species} rests, though they seem restless and might prefer activity.`
-            },
-            clean: {
-                high: `Your ${species} absolutely loves the cosmic cleansing! Their ${personality} nature appreciates the purity.`,
-                medium: `Your ${species} enjoys the refreshing cleaning session.`,
-                low: `Your ${species} endures the cleaning, though they don't seem particularly enthusiastic.`
-            },
-            photo: {
-                high: `Your ${species} poses beautifully! Their ${personality} personality loves being captured in this moment.`,
-                medium: `Your ${species} poses nicely, their ${personality} nature showing through.`,
-                low: `Your ${species} sits still for the photo, though they seem eager to move on.`
-            }
+        return {
+            ...profile,
+            recommendedAction,
+            needLabel,
+            reason
         };
+    }
 
-        const actionMessages = messages[actionType];
-        if (!actionMessages) {
-            return `Your ${species} reacted to the ${actionType}!`;
+    getCareMomentContext(actionType, genetics = null) {
+        const history = getGameState().get('creature.care.careHistory') || [];
+        const actions = history.map(entry => entry?.action).filter(Boolean);
+        let consecutiveActionCount = 0;
+        for (let index = actions.length - 1; index >= 0; index -= 1) {
+            if (actions[index] !== actionType) break;
+            consecutiveActionCount += 1;
         }
+        const profile = getCreatureCareProfile(genetics);
+        const status = this.getCareStatus();
 
-        // Select message based on personality bonus strength
-        if (personalityBonus.multiplier >= 1.3) {
-            return actionMessages.high;
-        } else if (personalityBonus.multiplier >= 1.0) {
-            return actionMessages.medium;
-        } else {
-            return actionMessages.low;
-        }
+        return {
+            actionCount: actions.filter(action => action === actionType).length,
+            consecutiveActionCount,
+            isPreferred: profile.preferredAction === actionType,
+            happiness: Number(status?.happiness),
+            energy: Number(getGameState().get('creature.stats.energy'))
+        };
     }
 
     /**
@@ -316,7 +354,7 @@ class CareSystem {
     /**
      * Get care action information for UI
      */
-    getCareActionInfo(actionType) {
+    getCareActionInfo(actionType, genetics = null) {
         const action = this.careActions[actionType];
         const status = this.getCareStatus();
 
@@ -325,6 +363,7 @@ class CareSystem {
         const count = status.dailyCare[`${actionType}Count`];
         const limit = action.dailyLimit;
         const canPerform = this.canPerformAction(actionType);
+        const signal = this.getCareSignal(genetics);
 
         return {
             ...action,
@@ -332,17 +371,19 @@ class CareSystem {
             limit: limit,
             remaining: limit > 0 ? Math.max(0, limit - count) : 'unlimited',
             canPerform: canPerform,
-            isUnlimited: limit === -1
+            isUnlimited: limit === -1,
+            isPreferred: signal.preferredAction === actionType,
+            isRecommended: signal.recommendedAction === actionType
         };
     }
 
     /**
      * Get all care actions info for UI
      */
-    getAllCareActionsInfo() {
+    getAllCareActionsInfo(genetics = null) {
         const actions = {};
         Object.keys(this.careActions).forEach(actionType => {
-            actions[actionType] = this.getCareActionInfo(actionType);
+            actions[actionType] = this.getCareActionInfo(actionType, genetics);
         });
         return actions;
     }
@@ -351,12 +392,12 @@ class CareSystem {
      * Get happiness level description
      */
     getHappinessDescription(happiness) {
-        if (happiness >= 80) return { level: 'ecstatic', description: 'Your creature is very happy!', color: '#FFD700' };
-        if (happiness >= 65) return { level: 'happy', description: 'Your creature is happy!', color: '#90EE90' };
-        if (happiness >= 50) return { level: 'content', description: 'Your creature is content.', color: '#87CEEB' };
-        if (happiness >= 35) return { level: 'tired', description: 'Your creature seems tired.', color: '#FFA500' };
-        if (happiness >= 20) return { level: 'unhappy', description: 'Your creature is unhappy.', color: '#FF6347' };
-        return { level: 'miserable', description: 'Your creature is miserable.', color: '#DC143C' };
+        if (happiness >= 80) return { level: 'resonant', description: 'Companion signal is bright and responsive.', color: '#FFD700' };
+        if (happiness >= 65) return { level: 'steady', description: 'Companion signal is steady.', color: '#90EE90' };
+        if (happiness >= 50) return { level: 'settled', description: 'Companion signal is settled.', color: '#87CEEB' };
+        if (happiness >= 35) return { level: 'quiet', description: 'Companion signal is quiet.', color: '#FFA500' };
+        if (happiness >= 20) return { level: 'withdrawn', description: 'Companion is keeping close to the Sanctuary.', color: '#FF8A8A' };
+        return { level: 'recovering', description: 'Companion is in a protected recovery cycle.', color: '#C78BFF' };
     }
 
     /**
@@ -371,20 +412,20 @@ class CareSystem {
         let reward = '';
 
         if (streak === 0) {
-            description = 'Start caring for your creature daily!';
-            reward = 'Begin your care streak';
+            description = 'No shared care cycle recorded yet.';
+            reward = 'Care remains optional';
         } else if (streak < 3) {
-            description = `You've cared for your creature for ${streak} day${streak > 1 ? 's' : ''} in a row!`;
-            reward = 'Keep it up!';
+            description = `${streak} shared care day${streak > 1 ? 's' : ''} recorded.`;
+            reward = 'A small field record is forming';
         } else if (streak < 7) {
-            description = `${streak} day care streak! Your creature loves the attention!`;
-            reward = 'Small happiness bonus every day';
+            description = `${streak} shared care days have revealed a recognizable rhythm.`;
+            reward = 'Care responses become easier to read';
         } else if (streak < 14) {
-            description = `Amazing ${streak} day streak! Your bond is growing stronger!`;
-            reward = 'Increased happiness from care actions';
+            description = `${streak} shared care days are logged in the companion record.`;
+            reward = 'The bond record holds more context';
         } else {
-            description = `Incredible ${streak} day care streak! You have an unbreakable bond!`;
-            reward = 'Maximum happiness bonuses';
+            description = `${streak} shared care days show a long-running partnership.`;
+            reward = 'The complete care rhythm is legible';
         }
 
         return {
@@ -407,14 +448,14 @@ class CareSystem {
         // Happiness-based recommendations
         if (status.happiness < 50) {
             recommendations.push({
-                type: 'urgent',
-                message: 'Your creature is unhappy! Care for it immediately.',
+                type: 'normal',
+                message: 'Companion signal is quiet. Choose a care action when you are ready.',
                 actions: ['feed', 'play']
             });
         } else if (status.happiness < 80) {
             recommendations.push({
                 type: 'normal',
-                message: 'Your creature would appreciate some care.',
+                message: 'A shared care cycle could make the companion signal easier to read.',
                 actions: ['feed', 'play', 'rest']
             });
         }
@@ -489,6 +530,7 @@ class CareSystem {
         getGameState().set('creature.care.dailyCare', {
             feedCount: 0,
             playCount: 0,
+            petCount: 0,
             restCount: 0,
             lastReset: Date.now()
         });

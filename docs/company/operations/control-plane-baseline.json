@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-11T11:32:51.697Z",
+  "onlinePublicReadIncluded": true,
+  "controlPlaneHealthy": true,
+  "externalActionAuthorized": false,
+  "controlStates": {
+    "FOUNDATION": "passed",
+    "A-001": "gated",
+    "A-002": "passed",
+    "A-003": "passed",
+    "A-004": "gated",
+    "A-005": "gated",
+    "A-006": "gated",
+    "A-007": "passed",
+    "A-008": "passed",
+    "A-009": "gated",
+    "A-010": "gated",
+    "A-011": "gated",
+    "A-013": "gated",
+    "A-014": "gated"
+  },
+  "publicFootprint": {
+    "checks": 6,
+    "findings": 11,
+    "major": 7,
+    "minor": 4
+  },
+  "riskStates": {
+    "R-001": { "severity": "critical", "status": "open" },
+    "R-002": { "severity": "high", "status": "open" },
+    "R-003": { "severity": "high", "status": "open" },
+    "R-004": { "severity": "medium", "status": "open" },
+    "R-005": { "severity": "medium", "status": "open" },
+    "R-006": { "severity": "medium", "status": "open" },
+    "R-007": { "severity": "high", "status": "open" },
+    "R-008": { "severity": "high", "status": "open" },
+    "R-009": { "severity": "medium", "status": "open" },
+    "R-010": { "severity": "medium", "status": "accepted_temporarily" },
+    "R-011": { "severity": "high", "status": "open" }
+  },
+  "signals": {
+    "acceptedEvidenceCount": 0,
+    "providerPolicyFindingCount": 8,
+    "publicationReadyCount": 0
+  }
+}

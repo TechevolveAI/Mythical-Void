@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-11",
+  "status": "active_review_queue",
+  "maximumPackets": 5,
+  "deliveryConfigured": false,
+  "deliveryRoute": null,
+  "conversationIsAuthorization": false,
+  "externalActionsAuthorized": false,
+  "sensitiveValuesIncluded": false,
+  "packets": [
+    {
+      "id": "KDP-001",
+      "priority": 1,
+      "severity": "critical",
+      "status": "awaiting_kevin",
+      "decisionId": "D-012",
+      "objectiveActionId": "OA-011",
+      "riskIds": ["R-001"],
+      "decision": "Provide SGI-001 through SGI-005: safeguarding primary, backup, urgent route reference and recovery, geographic scope/jurisdictions, and coverage/response targets.",
+      "recommendation": "Name and confirm a primary and backup, then use A-039 to complete protected routing, professional review, restricted-record, exercise, and approval gates before promoting submissions or connecting any inbox/community automation; otherwise pause affected free-text intake.",
+      "whyNow": "R-001 is the only critical open company risk, the current owner is unassigned, and A-039 shows 0 of 16 activation gates and 0 of 10 exercises satisfied despite a passing synthetic classifier fixture.",
+      "evidenceRefs": ["D-012", "OA-011", "R-001", "A-004", "A-020", "A-029", "A-035", "A-039"],
+      "optionsAndTradeoffs": [
+        {
+          "option": "Name primary and backup",
+          "upside": "Creates accountable urgent routing and allows a restricted evaluation path to begin.",
+          "tradeoff": "Requires real coverage, documented jurisdictional escalation, and periodic exercises.",
+          "recommended": true
+        },
+        {
+          "option": "Pause public free-text intake",
+          "upside": "Avoids accepting cases that Mythical cannot reliably route.",
+          "tradeoff": "Reduces community and support availability until ownership exists.",
+          "recommended": false
+        }
+      ],
+      "riskIfDeferred": "Mythical could invite sensitive or child-originating contact without a reliable human response path.",
+      "scopeAndCost": "SGI-001 through SGI-005 only; do not place contact details, route values, credentials, case content, or restricted records in the shared repository. No spend is approved and cost is unknown.",
+      "approvalExpiry": "Reconfirm before intake promotion and whenever coverage, geography, route, or safeguarding policy changes.",
+      "rollbackOrReversal": "Pause the affected intake and disconnect future inbox/community access until replacement coverage is verified.",
+      "decisionOwner": "Kevin Murphy",
+      "requiredReviewers": ["Named safeguarding owner", "Privacy/legal specialist where jurisdiction requires"],
+      "decisionIsAuthorization": false,
+      "externalActionAuthorized": false,
+      "containsRestrictedData": false,
+      "mayExecuteOnResponse": false
+    },
+    {
+      "id": "KDP-002",
+      "priority": 2,
+      "severity": "high",
+      "status": "awaiting_kevin",
+      "decisionId": "D-016",
+      "objectiveActionId": "OA-033",
+      "riskIds": ["R-007", "R-008", "R-012"],
+      "decision": "Provide FFI-001 through FFI-005: finance roles, restricted process class/recovery, reporting perimeter, close cadence/evidence classes, and material cost/exception ownership without financial values.",
+      "recommendation": "Name an interim accountable finance owner and separated close roles, choose a professionally reviewed restricted process, then use A-040 to reconcile all twelve evidence classes and seven cost drivers through four reviewed closes before financial automation or scale decisions.",
+      "whyNow": "No credible runway, unit economics, affordability, pricing, hiring, or scale decision is possible while A-040 records zero assigned roles, zero connected sources, zero reconciled evidence, zero verified cost drivers, and zero reviewed closes.",
+      "evidenceRefs": ["D-016", "OA-033", "R-007", "R-008", "R-012", "A-022", "A-035", "A-040"],
+      "optionsAndTradeoffs": [
+        {
+          "option": "Kevin as interim owner with professional review",
+          "upside": "Establishes accountability quickly while preserving specialist accounting and tax oversight.",
+          "tradeoff": "Adds founder workload and still requires a restricted system and external professional support.",
+          "recommended": true
+        },
+        {
+          "option": "Appoint another finance owner",
+          "upside": "Creates stronger separation and reduces founder operational load.",
+          "tradeoff": "Requires identifying, onboarding, and governing a trusted person or provider.",
+          "recommended": false
+        },
+        {
+          "option": "Keep financial execution paused",
+          "upside": "Preserves confidentiality and prevents unsupported commitments.",
+          "tradeoff": "Blocks credible runway, spend, pricing, hiring, and monetization decisions.",
+          "recommended": false
+        }
+      ],
+      "riskIfDeferred": "Variable AI costs, vendors, hiring, campaigns, or pricing could be considered without verified affordability or obligations.",
+      "scopeAndCost": "FFI-001 through FFI-005 only; cash, revenue, expense, bank, invoice, payroll, tax, investor, customer, account, credential, and other restricted values stay outside the shared repository. No spend is approved and cost is unknown.",
+      "approvalExpiry": "Review after each of the first four closes and whenever entity, currency, accounting policy, provider economics, or authority changes.",
+      "rollbackOrReversal": "Disconnect future finance reads, revoke service access, keep spend caps at zero, and return forecasts to unavailable if reconciliation fails.",
+      "decisionOwner": "Kevin Murphy",
+      "requiredReviewers": ["Finance/accounting reviewer", "Tax/legal reviewer as applicable"],
+      "decisionIsAuthorization": false,
+      "externalActionAuthorized": false,
+      "containsRestrictedData": false,
+      "mayExecuteOnResponse": false
+    },
+    {
+      "id": "KDP-003",
+      "priority": 3,
+      "severity": "high",
+      "status": "awaiting_kevin",
+      "decisionId": "D-017",
+      "objectiveActionId": "OA-036",
+      "riskIds": ["R-011", "R-013"],
+      "decision": "Choose the first autonomous-company operating cell, accountable owner, backup, and urgent exception recipient.",
+      "recommendation": "Confirm AG-001 Company Orchestrator plus independent AG-010 Governance and Assurance for internal work only, with Kevin accountable and separately named backup, urgent recipient, recovery operator, kill operator, key custodian, independent recovery approvers, and compromise-response owner; confirm PR-001, the proposed A-041 cadence expectations, and whether PE-001 Google Cloud Run Jobs may receive an account-scoped review. A-043 through A-049 prove protected effects, handoff, history, delivery, lease, fencing, crash, quarantine and recovery semantics; A-050 through A-053 prove one-winner coordination, safe backup and key recovery, and refusal of cryptographic misuse; A-054 shows that sixteen workers and eight retries cannot reuse the same encryption lock code after races, crashes, old-state restore, failover, rotation, cancellation, exhaustion, or shutdown. Production runtime, identities, storage, keys, nonce service, alerts, scheduling and dispatch remain disabled. This does not select a provider or authorize terms, billing, an account/project, credentials, provisioning, scheduling, persistence, recovery, alert delivery, packet admission, dispatch, or spend.",
+      "whyNow": "The offline rehearsals now cover safe handoff, recovery, backup, key loss, misuse, and real multi-worker nonce races. A-054 adds the missing proof that retries, crashes, failover, restored old state, key rotation, cancellation and shutdown do not silently reuse an encryption lock code. The remaining decision is who owns the first internal agent cell, who acts as backup and emergency contact, which protected runtime class to review, and whether account-scoped review may begin—not whether to connect tools immediately.",
+      "evidenceRefs": ["D-017", "OA-036", "OA-037", "OA-059", "OA-060", "OA-061", "OA-062", "OA-063", "OA-064", "OA-065", "OA-066", "OA-067", "OA-068", "OA-069", "OA-070", "OA-071", "OA-072", "R-007", "R-008", "R-011", "R-012", "R-013", "A-023", "A-024", "A-030", "A-031", "A-035", "A-036", "A-037", "A-038", "A-041", "A-042", "A-043", "A-044", "A-045", "A-046", "A-047", "A-048", "A-049", "A-050", "A-051", "A-052", "A-053", "A-054"],
+      "optionsAndTradeoffs": [
+        {
+          "option": "Confirm the cell and PR-001 managed isolated job class",
+          "upside": "Provides the shortest governed path to independently identified, ephemeral, read-only, bounded internal cycles with lower infrastructure administration.",
+          "tradeoff": "A provider still needs security, privacy, identity, retention, network, billing, incident, and exit review; exact cost is unknown and no access is authorized by this choice.",
+          "recommended": true
+        },
+        {
+          "option": "Confirm the cell and PR-002 self-hosted class",
+          "upside": "Gives Mythical maximum control over runtime isolation, storage, networking, retention, and recovery.",
+          "tradeoff": "Creates materially higher security, patching, availability, monitoring, backup, and incident-response responsibility; exact cost is unknown.",
+          "recommended": false
+        },
+        {
+          "option": "Use PR-003 and continue local manual rehearsal",
+          "upside": "Adds no account, credential, vendor, or spend while preserving the current safe A-030 rehearsal.",
+          "tradeoff": "Kevin remains the routing layer and identity separation, durable history, authenticated alerts, and eligible autonomy evidence do not accumulate.",
+          "recommended": false
+        }
+      ],
+      "riskIfDeferred": "The company architecture remains design-only and founder coordination cannot scale with game development and external activity.",
+      "scopeAndCost": "Decision covers the internal cell, named people, and architecture class only. Provider, implementation, security/privacy review, and operating costs remain unknown; zero external action and zero agent spend authority.",
+      "approvalExpiry": "Reconfirm before adding any scheduler, identity, data source, connector, external executor, higher autonomy, or new data zone.",
+      "rollbackOrReversal": "Stop the planner/runtime, revoke future service identities, preserve minimal audit evidence, and return all roles to design/manual state.",
+      "decisionOwner": "Kevin Murphy",
+      "requiredReviewers": ["Automation governance owner", "Security/privacy reviewer before runtime connection"],
+      "decisionIsAuthorization": false,
+      "externalActionAuthorized": false,
+      "containsRestrictedData": false,
+      "mayExecuteOnResponse": false
+    },
+    {
+      "id": "KDP-004",
+      "priority": 4,
+      "severity": "high",
+      "status": "awaiting_kevin",
+      "decisionId": "D-015",
+      "objectiveActionId": "OA-026",
+      "riskIds": ["R-003", "R-005"],
+      "decision": "Assign the coordinated release and rollback owners and decide whether to authorize an isolated preview of RM-001.",
+      "recommendation": "Route the exact company-only artifact through the Game Development release workflow, verify a preview and rollback evidence, and keep production deployment separately gated.",
+      "whyNow": "The local discovery and safer-submission changes are isolatable and tested, while production still has seven major public-discovery findings and the shared tree remains collision-prone.",
+      "evidenceRefs": ["D-015", "OA-026", "R-003", "R-005", "A-001", "A-018", "GDH-001", "RM-001"],
+      "optionsAndTradeoffs": [
+        {
+          "option": "Authorize isolated preview after naming owners",
+          "upside": "Produces deployment and rollback evidence without bundling unrelated Game Development changes or authorizing production.",
+          "tradeoff": "Requires coordinated release-owner time and a trusted preview boundary.",
+          "recommended": true
+        },
+        {
+          "option": "Defer the preview",
+          "upside": "Avoids touching the active shared release path.",
+          "tradeoff": "Live findability and safer submission wording remain unresolved.",
+          "recommended": false
+        }
+      ],
+      "riskIfDeferred": "Search discovery remains weak and public submission copy remains stale; a later whole-tree release could still bundle unrelated work.",
+      "scopeAndCost": "Exactly the five RM-001 files in the recorded patch; preview only, no production deploy, no sitemap submission, and cost not approved.",
+      "approvalExpiry": "Any source, artifact digest, base revision, file scope, owner, preview target, or release window change invalidates the decision packet.",
+      "rollbackOrReversal": "Discard the preview and artifact proposal; production remains unchanged unless a later separately authenticated release is approved.",
+      "decisionOwner": "Kevin Murphy",
+      "requiredReviewers": ["Game Development release owner", "Rollback owner"],
+      "decisionIsAuthorization": false,
+      "externalActionAuthorized": false,
+      "containsRestrictedData": false,
+      "mayExecuteOnResponse": false
+    },
+    {
+      "id": "KDP-005",
+      "priority": 5,
+      "severity": "high",
+      "status": "awaiting_kevin",
+      "decisionId": "D-014",
+      "objectiveActionId": "OA-020",
+      "riskIds": ["R-011"],
+      "decision": "Choose the trusted approval boundary required before any future agent external executor.",
+      "recommendation": "Keep A-011 non-authorizing while selecting an authenticated, tamper-evident approval store and separately permissioned executor that can enforce digest, target, expiry, revocation, replay, budget, policy, audit, reconciliation, and kill-switch controls.",
+      "whyNow": "No external executor should be connected until human identity and exact action scope can be verified independently of editable repository files or conversation.",
+      "evidenceRefs": ["D-014", "OA-020", "R-011", "A-011", "A-023", "A-024", "A-035"],
+      "optionsAndTradeoffs": [
+        {
+          "option": "Select and evaluate a protected approval boundary",
+          "upside": "Creates a safe route toward bounded publication, outreach, collection, deployment, or spend pilots.",
+          "tradeoff": "Requires security/privacy design, separate identities, audit storage, failure testing, and ongoing administration.",
+          "recommended": true
+        },
+        {
+          "option": "Keep all external execution manual",
+          "upside": "Avoids premature trust infrastructure and credential exposure.",
+          "tradeoff": "External company operations remain founder-operated and cannot gain bounded autonomy.",
+          "recommended": false
+        }
+      ],
+      "riskIfDeferred": "External workflows remain manual; connecting one without this decision would create an unacceptable authorization ambiguity.",
+      "scopeAndCost": "Trust-boundary selection and evaluation only; no connector, credential, external action, vendor purchase, or spend is authorized by this packet.",
+      "approvalExpiry": "Review before each new executor class and after identity, policy, model, tool, target, budget, credential, or incident change.",
+      "rollbackOrReversal": "Disable the verifier/executor, revoke service credentials, invalidate outstanding approvals, reconcile actions, and revert the affected workflow to manual mode.",
+      "decisionOwner": "Kevin Murphy",
+      "requiredReviewers": ["Automation governance owner", "Security/privacy reviewer"],
+      "decisionIsAuthorization": false,
+      "externalActionAuthorized": false,
+      "containsRestrictedData": false,
+      "mayExecuteOnResponse": false
+    }
+  ]
+}

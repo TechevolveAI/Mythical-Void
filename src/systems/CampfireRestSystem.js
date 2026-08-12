@@ -700,6 +700,13 @@ class CampfireRestSystem {
             }
         }
 
+        if (!skipped) {
+            window.GuardianResidents?.recordGuardianActivity?.(
+                window.GameState,
+                'campfireRests'
+            );
+        }
+
         // Show completion message
         this.showCompletionMessage(scene, bonuses, skipped);
 

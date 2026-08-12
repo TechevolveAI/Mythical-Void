@@ -10,7 +10,14 @@ describe('first-session Project Beacon framing', () => {
     const framing = projectBeacon.firstSessionFraming;
 
     test('introduces mission pressure before first contact', () => {
-        expect(framing.homeSubtitle).toBe('PROJECT BEACON // WANDERER-7');
+        expect(framing.homeSubtitle).toBe('PROJECT BEACON // WANDERER-77');
+        expect(projectBeacon.ship).toEqual(expect.objectContaining({
+            name: 'Wanderer-77',
+            flightNumber: 23,
+            registry: 'W77-23',
+            signalChannel: 'BEACON CHANNEL 23',
+            livery: ['#D72638', '#050505', '#FFFFFF', '#138A36']
+        }));
         expect(framing.homeCta).toBe('BEGIN PROJECT BEACON');
         expect(framing.homePromise).toMatch(/astronaut.*beacon.*living world/i);
         expect(framing.homeCards.map(card => card.title)).toEqual([
@@ -69,5 +76,13 @@ describe('first-session Project Beacon framing', () => {
         expect(source).toContain('const arrowY = eggTop - 4;');
         expect(framing.tapPromptMobile.length)
             .toBeLessThan(framing.tapPromptDesktop.length);
+    });
+
+    test('fits the Project Beacon start action on every narrow canvas', () => {
+        expect(source).toContain("const buttonFontSize = width <= 360");
+        expect(source).toContain("? '18px'");
+        expect(source).toContain(": width < 600");
+        expect(source).toContain("? '22px'");
+        expect(source).toContain('fontSize: buttonFontSize');
     });
 });

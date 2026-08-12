@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!assets/|marketing/|audio/|sw\\.js|apple-touch-icon\\.png).*)",
+      "source": "/((?!assets/|marketing/|game/|audio/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }
   ],
@@ -30,7 +30,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.nasa.gov https://apod.nasa.gov https://mars.nasa.gov https://replicate.delivery https://*.replicate.delivery; connect-src 'self' https://mkcmdbzcihjgidjuypqe.supabase.co https://api.x.ai https://api.nasa.gov https://api.replicate.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.nasa.gov https://apod.nasa.gov https://mars.nasa.gov https://replicate.delivery https://*.replicate.delivery https://www.google-analytics.com; connect-src 'self' https://mkcmdbzcihjgidjuypqe.supabase.co https://api.x.ai https://api.nasa.gov https://api.replicate.com https://www.google-analytics.com https://region1.google-analytics.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
     }

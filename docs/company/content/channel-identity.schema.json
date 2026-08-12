@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/schemas/channel-identity.schema.json",
+  "title": "Mythical public channel identity and publishing readiness",
+  "type": "object",
+  "required": ["schemaVersion", "asOf", "status", "purpose", "authority", "publicObservation", "verificationStandard", "channels", "publishingPreflight", "accountInventoryDecisionReady", "impersonationMonitoringReady", "publishingReady"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "asOf": { "type": "string", "format": "date-time" },
+    "status": { "const": "public_audit_complete_verification_gated" },
+    "purpose": { "type": "string", "minLength": 30 },
+    "authority": { "type": "object", "additionalProperties": { "const": false } },
+    "publicObservation": { "type": "object" },
+    "verificationStandard": { "type": "object" },
+    "channels": { "type": "array", "minItems": 1 },
+    "publishingPreflight": { "type": "object" },
+    "accountInventoryDecisionReady": { "type": "boolean" },
+    "impersonationMonitoringReady": { "type": "boolean" },
+    "publishingReady": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

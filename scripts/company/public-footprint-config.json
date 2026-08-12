@@ -1,0 +1,11 @@
+{
+  "origin": "https://mythicalvoid.com",
+  "checks": [
+    { "path": "/", "kind": "home", "expectedContentType": "text/html" },
+    { "path": "/robots.txt", "kind": "robots", "expectedContentType": "text/plain" },
+    { "path": "/sitemap.xml", "kind": "sitemap", "expectedContentType": "application/xml" },
+    { "path": "/llms.txt", "kind": "llms", "expectedContentType": "text/plain" },
+    { "path": "/privacy/", "kind": "page", "expectedContentType": "text/html" },
+    { "path": "/terms/", "kind": "page", "expectedContentType": "text/html" }
+  ]
+}

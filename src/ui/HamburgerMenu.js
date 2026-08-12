@@ -23,10 +23,10 @@ export default class HamburgerMenu {
             { key: 'profile', label: 'Creature Profile', icon: '🐾', shortcut: 'P', action: () => this.navigateToProfile() },
             { key: 'achievements', label: 'Achievements', icon: '🏆', shortcut: 'A', action: () => this.navigateToAchievements() },
             { key: 'inventory', label: 'Inventory', icon: '🎒', shortcut: 'I', action: () => this.navigateToInventory() },
-            { key: 'beaconlog', label: 'Beacon Log', icon: '📡', shortcut: 'B', action: () => this.showBeaconLog() },
+            { key: 'beaconlog', label: 'Beacon Log', icon: '📡', shortcut: null, action: () => this.showBeaconLog() },
             { key: 'shop', label: 'Shop', icon: '🛒', shortcut: 'S', action: () => this.navigateToShop() },
             { key: 'hub', label: 'Hub World', icon: '🌌', shortcut: 'H', action: () => this.navigateToHub() },
-            { key: 'fusion', label: 'Fusion Pod', icon: '🧬', shortcut: 'F', action: () => this.navigateToFusion() },
+            { key: 'fusion', label: 'Fusion Pod', icon: '🧬', shortcut: 'B', action: () => this.navigateToFusion() },
             { key: 'collection', label: 'Switch Creature', icon: '🔄', shortcut: 'C', action: () => this.showCreatureSwitcher() },
             { key: 'spacenews', label: 'Space News', icon: '🚀', shortcut: 'N', action: () => this.showSpaceNews() },
             { key: 'settings', label: 'Settings', icon: '⚙️', shortcut: 'O', action: () => this.showSettings() },
@@ -312,6 +312,10 @@ export default class HamburgerMenu {
      */
     navigateToProfile() {
         devLog('[HamburgerMenu] Navigate to Profile');
+        if (typeof this.scene.openCreatureProfile === 'function') {
+            this.scene.openCreatureProfile();
+            return;
+        }
         this.scene.scene.start('CreatureProfileScene');
     }
 
@@ -324,22 +328,44 @@ export default class HamburgerMenu {
 
     navigateToInventory() {
         devLog('[HamburgerMenu] Navigate to Inventory');
+        if (typeof this.scene.openInventory === 'function') {
+            this.scene.openInventory();
+            return;
+        }
         this.scene.scene.start('InventoryScene');
     }
 
     navigateToShop() {
         devLog('[HamburgerMenu] Navigate to Shop');
+        if (typeof this.scene.openShop === 'function') {
+            this.scene.openShop();
+            return;
+        }
         this.scene.scene.start('ShopScene');
     }
 
     navigateToHub() {
         devLog('[HamburgerMenu] Navigate to Hub');
+        if (typeof this.scene.openHubWorld === 'function') {
+            this.scene.openHubWorld();
+            return;
+        }
         this.scene.scene.start('HubWorldScene');
     }
 
     navigateToFusion() {
         devLog('[HamburgerMenu] Navigate to Fusion Pod');
-        this.scene.scene.start('FusionPodScene');
+        if (typeof this.scene.openFusionPod === 'function') {
+            this.close();
+            this.scene.openFusionPod();
+            return;
+        }
+
+        const gameScene = this.scene.scene.get?.('GameScene');
+        if (typeof gameScene?.openFusionPod === 'function') {
+            this.close();
+            gameScene.openFusionPod();
+        }
     }
 
     showCreatureSwitcher() {

@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-11",
+  "status": "offline_synthetic_binding_rehearsal_ready_live_binding_gated",
+  "purpose": "Define and rehearse the exact protected A-015 payload handoff into A-016 and A-017 using minimized synthetic inputs, content-digest checks, explicit no-fallback commands, and repository mutation detection without configuring a production binding, replay store, history store, runtime, network path, or execution authority.",
+  "decisionRefs": ["D-014", "D-017"],
+  "riskRefs": ["R-011", "R-013"],
+  "workflowRefs": ["A-015", "A-016", "A-017", "A-041", "A-042", "A-043"],
+  "authority": {
+    "productionPayloadUseAuthorized": false,
+    "protectedInputBindingAuthorized": false,
+    "packetExecutionAuthorized": false,
+    "schedulerActivationAuthorized": false,
+    "triggerActivationAuthorized": false,
+    "networkActivationAuthorized": false,
+    "historyPersistenceAuthorized": false,
+    "repositoryWriteAuthorized": false,
+    "credentialUseAuthorized": false,
+    "automatedDispatchAuthorized": false,
+    "spendAuthorized": false,
+    "externalActionAuthorized": false,
+    "conversationIsAuthorization": false
+  },
+  "bindingDesign": {
+    "sourceWorkflowId": "A-015",
+    "sourceWorkflowVersion": 1,
+    "acceptedPayloadKind": "validated_A-015_comparison",
+    "protectedPathRequired": true,
+    "sourceDigestAlgorithm": "sha256",
+    "sourceDigestRequired": true,
+    "parentPacketIdRequired": true,
+    "sourceRunIdRequired": true,
+    "consumerPacketIdRequired": true,
+    "targetWorkflowIdRequired": true,
+    "payloadSchemaValidationRequired": true,
+    "freshnessValidationRequired": true,
+    "maxAgeSeconds": null,
+    "replayProtectionRequired": true,
+    "replayStoreConfigured": false,
+    "historyStoreConfigured": false,
+    "bindingConfigured": false,
+    "placeholderCountsAsConfigured": false,
+    "productionPayloadAccepted": false,
+    "missingBindingBehavior": "reject_without_fallback",
+    "digestMismatchBehavior": "reject_without_consumer_invocation",
+    "stalePayloadBehavior": "reject_without_consumer_invocation",
+    "replayedPayloadBehavior": "reject_without_consumer_invocation",
+    "targetMismatchBehavior": "reject_without_consumer_invocation",
+    "pathProtection": {
+      "outsideRepositoryRequired": true,
+      "symlinkRejected": true,
+      "ownerCheckRequired": true,
+      "modeCheckRequired": true,
+      "implementedInLiveBinding": false
+    }
+  },
+  "consumers": [
+    {
+      "id": "PTC-001",
+      "sourceTriggerId": "OT-002",
+      "targetWorkflowId": "A-016",
+      "implementationPath": "scripts/company/build-company-run-record.cjs",
+      "commandTemplate": ["scripts/company/build-company-run-record.cjs", "--input", "{protected_trigger_payload_path}"],
+      "inputArgumentRequired": true,
+      "defaultInvocationPermitted": false,
+      "outputDirectoryArgumentPermitted": false,
+      "networkMode": "none",
+      "expectedExitCodes": [0],
+      "expectedAssertions": {
+        "recordValid": true,
+        "recordWritten": false,
+        "writerMode": "dry_run",
+        "sourceDigestMatchesPayload": true,
+        "externalActionAuthorized": false
+      }
+    },
+    {
+      "id": "PTC-002",
+      "sourceTriggerId": "OT-003",
+      "targetWorkflowId": "A-017",
+      "implementationPath": "scripts/company/propose-control-plane-baseline-update.cjs",
+      "commandTemplate": ["scripts/company/propose-control-plane-baseline-update.cjs", "--input", "{protected_trigger_payload_path}"],
+      "inputArgumentRequired": true,
+      "defaultInvocationPermitted": false,
+      "outputDirectoryArgumentPermitted": false,
+      "networkMode": "none",
+      "expectedExitCodes": [2],
+      "expectedAssertions": {
+        "proposalValid": true,
+        "proposalRequired": true,
+        "proposalEligible": true,
+        "baselineWritten": false,
+        "candidateDigestMatchesSnapshot": true,
+        "externalActionAuthorized": false
+      }
+    }
+  ],
+  "syntheticScenarios": [
+    {
+      "id": "PTS-001",
+      "consumerId": "PTC-001",
+      "description": "A minimized synthetic A-015 comparison containing one high and one medium control-plane change exercises the A-016 dry-run input branch.",
+      "payload": {
+        "workflow": "A-015",
+        "comparisonValid": true,
+        "baselineCapturedAt": "2026-08-11T10:00:00.000Z",
+        "currentCapturedAt": "2026-08-11T10:05:00.000Z",
+        "changeCount": 2,
+        "severityCounts": { "medium": 1, "high": 1 },
+        "alertRequired": true,
+        "humanReviewRecommended": true,
+        "externalActionAuthorized": false,
+        "failures": [],
+        "changes": [
+          { "id": "SYN-HIGH", "severity": "high", "category": "risk", "before": "open", "after": "worsened" },
+          { "id": "SYN-MEDIUM", "severity": "medium", "category": "control", "before": "absent", "after": "gated" }
+        ]
+      }
+    },
+    {
+      "id": "PTS-002",
+      "consumerId": "PTC-002",
+      "description": "A minimized informational-only synthetic A-015 comparison exercises the A-017 proposal branch while keeping baseline adoption disabled.",
+      "payload": {
+        "workflow": "A-015",
+        "comparisonValid": true,
+        "baselineCapturedAt": "2026-08-11T10:00:00.000Z",
+        "currentCapturedAt": "2026-08-11T10:05:00.000Z",
+        "changeCount": 1,
+        "severityCounts": { "informational": 1 },
+        "alertRequired": false,
+        "humanReviewRecommended": false,
+        "externalActionAuthorized": false,
+        "failures": [],
+        "changes": [
+          { "id": "SYN-INFO", "severity": "informational", "category": "risk", "before": "open", "after": "mitigated" }
+        ],
+        "currentSnapshot": {
+          "schemaVersion": 1,
+          "capturedAt": "2026-08-11T10:05:00.000Z",
+          "externalActionAuthorized": false
+        }
+      }
+    }
+  ],
+  "rehearsalAssertions": {
+    "syntheticPayloadOnly": true,
+    "productionPayloadsPermitted": false,
+    "temporaryDirectoryOutsideRepositoryRequired": true,
+    "exactInputArgumentRequired": true,
+    "outputDirectoryArgumentPermitted": false,
+    "defaultInvocationPermitted": false,
+    "repositoryMutationPermitted": false,
+    "networkAccessPermitted": false,
+    "credentialUsePermitted": false,
+    "historyPersistencePermitted": false,
+    "consumerCommandFallbackPermitted": false,
+    "eligibleCycleCreditPermitted": false,
+    "externalActionPermitted": false
+  },
+  "activationGates": [
+    { "id": "PT-G01", "gate": "D-017 records the accountable operating cell, owner, backup, urgent recipient, kill operator, and selected protected-runtime class", "satisfied": false },
+    { "id": "PT-G02", "gate": "A protected runtime identity is isolated from development and independently attested", "satisfied": false },
+    { "id": "PT-G03", "gate": "Append-only protected parent and child run history is configured with retention, access, recovery, and reconciliation", "satisfied": false },
+    { "id": "PT-G04", "gate": "A durable idempotency and replay store atomically rejects duplicate payload and packet digests", "satisfied": false },
+    { "id": "PT-G05", "gate": "Protected-path ownership, mode, location, symlink, replacement, and cleanup controls pass in the selected runtime", "satisfied": false },
+    { "id": "PT-G06", "gate": "Parent packet, source run, consumer packet, target workflow, payload schema, and SHA-256 digest are authenticated together", "satisfied": false },
+    { "id": "PT-G07", "gate": "Trusted-time freshness policy and an exact maximum payload age are independently approved, enforced, and tested", "satisfied": false },
+    { "id": "PT-G08", "gate": "Consumer argument allowlists require one protected input and reject missing, additional, substituted, and write-enabling arguments", "satisfied": false },
+    { "id": "PT-G09", "gate": "Missing, malformed, stale, replayed, mismatched, or unreadable payloads cause no fallback collection or consumer invocation", "satisfied": false },
+    { "id": "PT-G10", "gate": "Logs, errors, alerts, and history retain only approved metadata and cannot expose protected payload content", "satisfied": false },
+    { "id": "PT-G11", "gate": "Timeout, cancellation, kill, partial-write, replacement, and recovery tests terminate the complete process tree", "satisfied": false },
+    { "id": "PT-G12", "gate": "Runtime tracing confirms zero unexpected network, file, credential, subprocess, write, or external effects", "satisfied": false },
+    { "id": "PT-G13", "gate": "Four accurate independently reviewed protected shadow cycles reconcile parent and child evidence without replay or fallback", "satisfied": false },
+    { "id": "PT-G14", "gate": "Separate expiring admission approves exact packet, payload-envelope, consumer, policy, identity, and effect digests", "satisfied": false }
+  ],
+  "consumerCount": 2,
+  "syntheticScenarioCount": 2,
+  "configuredBindingCount": 0,
+  "configuredReplayStoreCount": 0,
+  "configuredHistoryStoreCount": 0,
+  "satisfiedActivationGateCount": 0,
+  "bindingContractReadyForReview": true,
+  "runtimeBindingReady": false,
+  "packetExecutionReady": false,
+  "externalActionAuthorized": false,
+  "nextDecision": "Review this synthetic rehearsal with D-017 and the A-041 through A-043 evidence. Do not accept a production payload or configure a binding until identity, protected path, authenticated envelope, digest, freshness, replay, history, logging, kill, runtime tracing, shadow-cycle, and exact expiring admission gates are independently satisfied."
+}

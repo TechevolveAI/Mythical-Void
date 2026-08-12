@@ -283,5 +283,15 @@ describe('Expedition astronaut', () => {
         expect(platformerSource).toContain(
             'this.astronautFollower?.performKatanaStrike'
         );
+        expect(platformerSource).toContain(
+            'performAttack({ targetXOverride = null, targetYOverride = null } = {})'
+        );
+        expect(platformerSource).toContain('targetX: attackX');
+        expect(platformerSource).toContain('targetY: attackY');
+        expect(platformerSource).toContain("label: '⚔️'");
+        expect(platformerSource).toMatch(
+            /astronautFollower\?\.fieldKitRecovered[\s\S]*astronautFollower\?\.isStriking[\s\S]*return;/
+        );
+        expect(platformerSource).not.toContain("label: '👊'");
     });
 });

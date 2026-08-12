@@ -15,7 +15,7 @@ export const LIVING_SIGNAL_DEFINITIONS = Object.freeze([
         position: Object.freeze({ x: 410, y: 530 }),
         color: 0xBFA6FF,
         accent: 0x66C7D4,
-        response: 'A pulse returns the Wanderer-7 distress rhythm, softened into a greeting.',
+        response: 'A pulse returns the Wanderer-77 distress rhythm, softened into a greeting.',
         companionLine: 'Your signal sounded lonely.',
         fieldNote: 'The planet heard the crash before I understood that it could listen.'
     }),

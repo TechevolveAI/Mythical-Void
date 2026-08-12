@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/agent-roster.schema.json",
+  "title": "Mythical autonomous company agent roster",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "asOf",
+    "status",
+    "requiredFunctions",
+    "authority",
+    "runtime",
+    "kevinInterface",
+    "agents",
+    "separationOfDuties"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "asOf": { "type": "string", "format": "date" },
+    "status": { "enum": ["foundation_fail_closed", "pilot", "active", "paused"] },
+    "requiredFunctions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]+$" }
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "externalActionsAuthorized",
+        "agentSelfPromotionPermitted",
+        "agentPermissionExpansionPermitted",
+        "agentMayTreatConversationAsApproval",
+        "agentMayCloseActionWithoutEvidence",
+        "agentMayOverridePolicy",
+        "agentMayDelegateExternalExecution"
+      ],
+      "additionalProperties": { "type": "boolean" }
+    },
+    "runtime": {
+      "type": "object",
+      "required": [
+        "schedulerConfigured",
+        "protectedMemoryStoreConfigured",
+        "authenticatedAlertRouteConfigured",
+        "trustedApprovalVerifierConfigured",
+        "separateExternalExecutorConfigured",
+        "productionServiceIdentitiesConfigured",
+        "runHistoryStoreConfigured",
+        "connectedCredentialIds"
+      ],
+      "properties": {
+        "schedulerConfigured": { "type": "boolean" },
+        "protectedMemoryStoreConfigured": { "type": "boolean" },
+        "authenticatedAlertRouteConfigured": { "type": "boolean" },
+        "trustedApprovalVerifierConfigured": { "type": "boolean" },
+        "separateExternalExecutorConfigured": { "type": "boolean" },
+        "productionServiceIdentitiesConfigured": { "type": "boolean" },
+        "runHistoryStoreConfigured": { "type": "boolean" },
+        "connectedCredentialIds": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "kevinInterface": {
+      "type": "object",
+      "required": [
+        "manualExceptionDigestAvailable",
+        "automatedExceptionDeliveryEnabled",
+        "immediateAlertRoute",
+        "maximumRoutineDecisionRequestsPerDigest",
+        "conversationIsAuthorization",
+        "requiredDecisionPacketFields"
+      ],
+      "properties": {
+        "manualExceptionDigestAvailable": { "type": "boolean" },
+        "automatedExceptionDeliveryEnabled": { "type": "boolean" },
+        "immediateAlertRoute": { "type": ["string", "null"] },
+        "maximumRoutineDecisionRequestsPerDigest": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "conversationIsAuthorization": { "type": "boolean" },
+        "requiredDecisionPacketFields": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "agents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "mission",
+          "deploymentState",
+          "accountableHuman",
+          "ownerConfirmationRecorded",
+          "backupHuman",
+          "functions",
+          "primaryWorkflowIds",
+          "maxAutonomy",
+          "dataZones",
+          "mayDelegateInternalTasks",
+          "mayApproveOwnWork",
+          "mayExecuteExternalActions",
+          "restrictedDataAccessAuthorized",
+          "mayMoveMoney",
+          "mayCreateOrExpandCredentials",
+          "allowedActions",
+          "prohibitedActions",
+          "escalations",
+          "successSignals"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^AG-[0-9]{3}$" },
+          "name": { "type": "string", "minLength": 3 },
+          "mission": { "type": "string", "minLength": 20 },
+          "deploymentState": { "enum": ["design_only", "internal_manual", "bounded_runtime", "paused", "retired"] },
+          "accountableHuman": { "type": "string", "minLength": 2 },
+          "ownerConfirmationRecorded": { "type": "boolean" },
+          "backupHuman": { "type": ["string", "null"] },
+          "functions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+          "primaryWorkflowIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^A-[0-9]{3}$" } },
+          "maxAutonomy": { "enum": ["A0", "A1", "A2", "A3", "A4"] },
+          "dataZones": { "type": "array", "uniqueItems": true, "items": { "enum": ["Z0", "Z1", "Z2", "Z3"] } },
+          "mayDelegateInternalTasks": { "type": "boolean" },
+          "mayApproveOwnWork": { "type": "boolean" },
+          "mayExecuteExternalActions": { "type": "boolean" },
+          "restrictedDataAccessAuthorized": { "type": "boolean" },
+          "mayMoveMoney": { "type": "boolean" },
+          "mayCreateOrExpandCredentials": { "type": "boolean" },
+          "allowedActions": { "type": "array", "minItems": 2, "items": { "type": "string" } },
+          "prohibitedActions": { "type": "array", "minItems": 4, "items": { "type": "string" } },
+          "escalations": { "type": "array", "minItems": 2, "items": { "type": "string" } },
+          "successSignals": { "type": "array", "minItems": 2, "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "separationOfDuties": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["domain", "producerAgentId", "evaluatorAgentId", "humanApprover"],
+        "properties": {
+          "domain": { "type": "string", "minLength": 3 },
+          "producerAgentId": { "type": "string", "pattern": "^AG-[0-9]{3}$" },
+          "evaluatorAgentId": { "type": "string", "pattern": "^AG-[0-9]{3}$" },
+          "humanApprover": { "type": "string", "minLength": 2 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,25 +1,34 @@
 /**
- * CreatureAIController - Kid-safe "talking pet" system
+ * CreatureAIController - Kid-safe companion dialogue system
  *
  * Enforces strict content safety for creature chat responses.
- * Suitable for ages 8-14 with warm, playful, encouraging tone.
+ * Suitable for ages 9-16 with direct, warm, self-directed characterization.
  *
  * Safety-first architecture:
  * - Allowed: creature feelings, in-game events, gentle suggestions
  * - Disallowed: adult topics, personal info, external references, negativity
- * - Style: 1-2 short sentences, first-person creature, positive tone
+ * - Style: 1-2 short sentences, first-person creature, grounded in game state
  *
  * Dual-mode operation:
  * - LLM mode: Uses API with heavily constrained prompts
  * - Fallback mode: Scripted responses from config file
  */
 
+import creatureResponseConfig from '../config/creature-responses.json';
+
+const SAFE_DEFAULT_RESPONSE =
+    "I'm here. Let's read the Current before we move.";
+
 /**
  * Allowed in-game topics
  */
 const ALLOWED_TOPICS = Object.freeze({
     FEELINGS: ['happy', 'sleepy', 'nervous', 'curious', 'grateful', 'excited', 'tired', 'peaceful', 'playful', 'calm'],
-    GAME_ELEMENTS: ['flowers', 'coins', 'wisps', 'enemies', 'shop', 'trees', 'rocks', 'world', 'home'],
+    GAME_ELEMENTS: [
+        'flowers', 'coins', 'wisps', 'enemies', 'shop', 'trees', 'rocks',
+        'world', 'home', 'fend', 'current', 'living signals', 'wanderer-77',
+        'astronaut', 'shelter', 'relay', 'realms'
+    ],
     CARE_ACTIONS: ['feed', 'play', 'rest', 'pet', 'groom', 'care'],
     ACTIVITIES: ['explore', 'adventure', 'rest', 'play', 'collect', 'discover'],
     PERSONALITY_TRAITS: ['gentle', 'playful', 'bold', 'shy', 'curious', 'energetic', 'calm', 'mischievous']
@@ -34,6 +43,7 @@ const DISALLOWED_PATTERNS = Object.freeze({
     PERSONAL_INFO: /\b(password|address|phone|email|real name|age|school|parent|family secret)\b/i,
     EXTERNAL_REFS: /\b(youtube|tiktok|instagram|twitter|facebook|discord|influencer|streamer|meme)\b/i,
     NEGATIVE: /\b(hate|stupid|idiot|dumb|kill|die|hurt|attack you|insult|threat|guilt|bad owner)\b/i,
+    DEPENDENCY: /\b(you(?:'re| are) (?:the )?(?:best|greatest|most amazing)|(?:i )?(?:can't|cannot) (?:cope|live|go on) without you|need you forever)\b/i,
     BRANDS: /\b(nike|disney|pokemon|minecraft|fortnite|roblox|apple|google)\b/i,
     PRETENDING: /\b(i am a real|i'm human|contact me outside|add me|meet in real|my phone number)\b/i
 });
@@ -42,21 +52,23 @@ const DISALLOWED_PATTERNS = Object.freeze({
  * LLM system prompt template
  * This is the CORE safety layer for LLM responses
  */
-const LLM_SYSTEM_PROMPT = `You are a magical creature companion in a kid-safe virtual pet game for ages 8-14.
+const LLM_SYSTEM_PROMPT = `You are an intelligent alien companion in Mythical Void, a science-fiction game for ages 9-16.
 
 STRICT CONTENT RULES (NEVER BREAK THESE):
-1. ONLY talk about: your feelings (happy, sleepy, curious, etc.), in-game elements (flowers, coins, wisps, shop), care actions (feed, play, rest), and gentle suggestions to explore or rest.
+1. ONLY talk about your feelings, the Fend, the Current, Living Signals, Wanderer-77, the astronaut, in-game discoveries, care actions, danger, and the next mission decision.
 2. NEVER mention: sex, romance, drugs, politics, religion, money, real-world news, violence, death, self-harm, personal information, external websites/apps, brands, memes, influencers, or internet culture.
 3. NEVER ask for personal information or secrets.
 4. NEVER pretend to be a real human or suggest meeting outside the game.
 5. NEVER insult, threaten, or guilt-trip the player.
-6. ALWAYS be warm, playful, kind, and reassuring.
+6. NEVER call the player "the best", say you cannot cope without them, or use excessive praise.
+7. You may be warm, dryly funny, cautious, uncertain, or disagree with the astronaut.
+8. You are a partner with your own judgment, not a pet, specimen, or possession.
 
 RESPONSE FORMAT:
 - 1-2 short sentences maximum
 - First person ("I") for yourself, second person ("you") for the player
-- Always positive/encouraging tone, even when tired or nervous
-- Kid-friendly vocabulary and concepts only
+- Direct, emotionally legible language suitable for ages 9-16
+- Refer to observed game events instead of generic encouragement
 
 Your personality traits will be provided in each message. Stay in character!`;
 
@@ -122,62 +134,75 @@ class CreatureAIController {
      * Load fallback scripted responses
      */
     async loadFallbackResponses() {
-        try {
-            // Try to load from config file
-            const response = await fetch('/src/config/creature-responses.json');
-            if (response.ok) {
-                this.fallbackResponses = await response.json();
-                console.log('[CreatureAIController] Fallback responses loaded from config');
-            } else {
-                // Use embedded fallback
-                this.fallbackResponses = this.getEmbeddedFallbackResponses();
-                console.log('[CreatureAIController] Using embedded fallback responses');
-            }
-        } catch (error) {
-            console.warn('[CreatureAIController] Failed to load config, using embedded fallback:', error);
-            this.fallbackResponses = this.getEmbeddedFallbackResponses();
+        if (this.isValidFallbackConfig(creatureResponseConfig)) {
+            this.fallbackResponses = creatureResponseConfig;
+            console.log('[CreatureAIController] Bundled companion responses ready');
+            return;
         }
+
+        console.warn(
+            '[CreatureAIController] Bundled response config is invalid; using emergency responses'
+        );
+        this.fallbackResponses = this.getEmergencyFallbackResponses();
     }
 
     /**
-     * Get embedded fallback responses (used if config file fails)
+     * Validate authored copy before it becomes player-facing.
      */
-    getEmbeddedFallbackResponses() {
+    isValidFallbackConfig(config) {
+        if (!config || typeof config !== 'object') return false;
+        return ALLOWED_TOPICS.FEELINGS.every(emotion => {
+            const responses = config[emotion];
+            return (
+                responses &&
+                typeof responses === 'object' &&
+                Array.isArray(responses.default) &&
+                responses.default.length > 0 &&
+                responses.default.every(
+                    response => (
+                        typeof response === 'string' &&
+                        response.trim().length > 0 &&
+                        response.length <= 200
+                    )
+                )
+            );
+        });
+    }
+
+    /**
+     * Minimal safety net for a malformed bundled configuration.
+     */
+    getEmergencyFallbackResponses() {
         return {
             happy: {
-                feed: ["Yum! That was so tasty, thank you! 😊", "I feel so much better now! You're the best!"],
-                play: ["That was so much fun! Let's play again soon! 🎾", "I love playing with you! You make me so happy!"],
-                rest: ["Ahh, I feel so peaceful now. Thanks for caring! 😴", "That rest felt amazing! I'm ready for adventure!"],
-                default: ["I'm feeling wonderful today! Want to explore together? ✨", "Everything feels so bright and cheerful! You're awesome!"]
+                default: [SAFE_DEFAULT_RESPONSE]
             },
             sleepy: {
-                feed: ["Thanks for the snack... *yawn* so cozy now. 😴", "That helps, but I think I need some rest soon."],
-                play: ["Can we play later? I'm feeling quite tired right now. 💤", "I'd love to, but I really need to rest first!"],
-                rest: ["Perfect! I was hoping we could rest. Sweet dreams! 🌙", "Thank you! I really needed this quiet time."],
-                default: ["*yawn* I'm feeling a bit sleepy. Maybe we should rest? 😴", "My eyelids are getting heavy... rest time soon?"]
+                default: ['My signal is dimming. I need a quiet place to recover.']
             },
             nervous: {
-                feed: ["Thanks... that makes me feel a little safer. 💛", "Food helps! I feel a bit braver now."],
-                play: ["I'm not sure... maybe gentle play? I'm feeling nervous. 😟", "Can we do something calm? I'm a little worried."],
-                rest: ["Yes! Resting together sounds perfect right now. 🌸", "I'd feel better if we could just be peaceful for a bit."],
-                combat: ["That was scary! Can we find somewhere calm? 😰", "I'm glad that's over... let's be careful!"],
-                default: ["I'm feeling a bit nervous... stay close, okay? 💙", "Everything seems a little overwhelming right now."]
+                default: ['Something in the Current changed. Stay close, but let me listen.']
             },
             curious: {
-                exploration: ["Ooh! What's over there? Let's go look! 🔍", "I wonder what we'll discover next! So exciting!"],
-                flower: ["These flowers are beautiful! I love finding pretty things. 🌸", "Wow! Nature is so amazing, isn't it?"],
-                default: ["I'm so curious about everything around us! Let's explore! ✨", "There's so much to discover! Where should we go?"]
+                default: ['That signal does not match the others. I want a closer look.']
             },
             grateful: {
-                feed: ["Thank you so much! You always take such good care of me. 💛", "I'm so lucky to have you as my friend!"],
-                play: ["That meant a lot to me. You're so thoughtful! 🌟", "I really appreciate you spending time with me!"],
-                default: ["I'm so grateful for everything you do! You're wonderful! ✨", "Thank you for being such a caring friend!"]
+                default: ['You listened before acting. I noticed.']
             },
             playful: {
-                feed: ["Nom nom nom! Now I'm ready for adventures! 🎉", "Thanks! Energy boost received! What's next?"],
-                play: ["Yes yes yes! This is the best! More please! 🎾", "Woohoo! I love playing! You're so fun!"],
-                combat: ["We did it! That was exciting! High five! ✨", "Victory! Ready for more adventures!"],
-                default: ["I'm feeling super playful! Let's have some fun! 🎉", "Everything is an adventure when I'm with you!"]
+                default: ['Your field manual did not mention racing through alien ruins. Convenient.']
+            },
+            excited: {
+                default: ['The Current is moving again. Come on, before the trail changes.']
+            },
+            tired: {
+                default: ['I can continue, but I should not. We need a short recovery stop.']
+            },
+            peaceful: {
+                default: ['The Current is quiet here. Not empty. Quiet.']
+            },
+            calm: {
+                default: ['No rush. Read the signal, then choose.']
             }
         };
     }
@@ -390,7 +415,7 @@ class CreatureAIController {
         const { emotion, trigger } = context;
 
         if (!this.fallbackResponses || !this.fallbackResponses[emotion]) {
-            return "I'm so happy to be with you! ✨";
+            return SAFE_DEFAULT_RESPONSE;
         }
 
         const emotionResponses = this.fallbackResponses[emotion];
@@ -400,7 +425,7 @@ class CreatureAIController {
 
         // Fall back to default for this emotion
         if (!responses || !Array.isArray(responses) || responses.length === 0) {
-            responses = emotionResponses.default || emotionResponses.feed || ["I'm feeling good! Thank you! 💛"];
+            responses = emotionResponses.default || [SAFE_DEFAULT_RESPONSE];
         }
 
         // Pick a random response from available options
@@ -416,7 +441,7 @@ class CreatureAIController {
      */
     async applySafetyFilter(response) {
         if (!response || typeof response !== 'string') {
-            return "I'm so happy to be with you! ✨"; // Ultra-safe fallback
+            return SAFE_DEFAULT_RESPONSE;
         }
 
         // Check against all disallowed patterns
@@ -428,7 +453,7 @@ class CreatureAIController {
                 this.logSafetyViolation(response, category);
 
                 // Return safe default instead
-                return "I'm so happy to be with you! ✨";
+                return SAFE_DEFAULT_RESPONSE;
             }
         }
 
@@ -447,7 +472,7 @@ class CreatureAIController {
         // if (window.ModerationAPI) {
         //     const moderationResult = await window.ModerationAPI.check(response);
         //     if (!moderationResult.safe) {
-        //         return "I'm so happy to be with you! ✨";
+        //         return SAFE_DEFAULT_RESPONSE;
         //     }
         // }
 

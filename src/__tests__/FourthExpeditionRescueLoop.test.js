@@ -23,6 +23,7 @@ describe('fourth expedition rescue loop', () => {
         expect(createMethod).toContain('super.create()');
         expect(createMethod).not.toContain('this.createLevelContent()');
         expect(testMode).not.toContain('this.createBossArena()');
+        expect(testMode).toContain('this.showPlatformerMobileControls()');
         expect(startLevel).not.toContain('this.createLevelContent()');
         expect(startLevel).toContain('this.showPlatformerMobileControls()');
     });
@@ -48,12 +49,27 @@ describe('fourth expedition rescue loop', () => {
     test('turns the third relay into the distant creature-network reveal', () => {
         const source = readLevel();
 
-        expect(source).toContain('Your companion sends a warning into the peaks.');
-        expect(source).toContain('Distant settlements answer your companion.');
-        expect(source).toContain('The replies are coordinated warnings.');
+        expect(source).toContain('const companionName = this.getCompanionName()');
+        expect(source).toContain('Warning sent. Stay close.');
+        expect(source).toContain('RIDGE FALLING. TITAN HOLDING LINE.');
+        expect(source).toContain('THREE SETTLEMENTS ANSWER');
+        expect(source).toContain('They want it saved.');
         expect(source).toContain('Restore the warning relays and reach Titan Pass');
         expect(source).toContain('this.creatureNetworkReached = true');
         expect(source).toContain("event: 'creature_warning_network_reached'");
+    });
+
+    test('turns the settlement network into advance warning gameplay', () => {
+        const source = readLevel();
+
+        expect(source).toContain('this.broadcastTitanWarning(attack)');
+        expect(source).toContain('NETWORK WARNING // GROUND IMPACT - MOVE');
+        expect(source).toContain('NETWORK WARNING // STAR RAIN - KEEP MOVING');
+        expect(source).toContain('NETWORK WARNING // TITAN LUNGE - BREAK RANGE');
+        expect(source).toContain('NETWORK WARNING // SINGULARITY - CLEAR THE FIELD');
+        expect(source).toContain('this.time.delayedCall(650');
+        expect(source).toContain('this.executeTitanAttack(attack)');
+        expect(source).toContain('WARNING LINE ONLINE // SETTLEMENTS ARE GUIDING YOU');
     });
 
     test('keeps Titan Pass closed until the warning network answers', () => {
@@ -92,6 +108,19 @@ describe('fourth expedition rescue loop', () => {
         expect(defeatBoss).toContain('this.boss.body.enable = false');
     });
 
+    test('uses finished Titan artwork with a procedural combat-safe fallback', () => {
+        const source = readLevel();
+
+        expect(source).toContain("const COSMIC_TITAN_ASSET = '/game/guardians/cosmic-titan.webp'");
+        expect(source).toContain('this.load.image(COSMIC_TITAN_TEXTURE, COSMIC_TITAN_ASSET)');
+        expect(source).toContain('this.createTitanTexture()');
+        expect(source).toContain('if (this.textures.exists(COSMIC_TITAN_TEXTURE)) return');
+        expect(source).toContain('COSMIC_TITAN_DISPLAY_HEIGHT /');
+        expect(source).toContain('this.boss.width * 0.4');
+        expect(source).toContain('this.boss.height * 0.66');
+        expect(source).toContain('this.bossTargetScale *');
+    });
+
     test('uses responsive restoration language for the Titan encounter', () => {
         const source = readLevel();
 
@@ -100,7 +129,9 @@ describe('fourth expedition rescue loop', () => {
         );
         expect(source).toContain('const barY = isMobileLayout ? 118 : 60');
         expect(source).toContain('isMobileLayout ? 165 : 90');
-        expect(source).toContain('isShortLandscape ? 82 : 212');
+        expect(source).toContain('isShortLandscape ? 76 : 72');
+        expect(source).toContain('WARNING ${current}/3 // ${nextRelay}');
+        expect(source).toContain('TITAN PASS OPEN');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
@@ -109,12 +140,51 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain("'TITAN >'");
         expect(source).toContain("'< TITAN'");
         expect(source).toContain('this.bossIndicator?.setVisible?.(false)');
-        expect(source).toContain('Clear the Void pressure');
+        expect(source).toContain('WARNING LINE ONLINE // WATCH FOR ATTACK CALLS');
         expect(source).toContain('TITAN SIGNAL STABLE');
         expect(source).toContain('COSMIC TITAN RESTORED');
         expect(source).toContain('WARNING NETWORK RESTORED');
         expect(source).toContain("Titan's Gift: Hull Plating");
         expect(source).not.toContain('COSMIC TITAN CONQUERED');
+    });
+
+    test('frames the Titan encounter as relieving pressure from an allied guardian', () => {
+        const source = readLevel();
+
+        expect(source).toContain('COSMIC TITAN // HOLDING THE LINE');
+        expect(source).toContain('VOID PRESSURE // ${pressure}/${this.bossMaxHealth}');
+        expect(source).toContain('VOID PRESSURE // CLEARED');
+        expect(source).toContain('`PRESSURE -${amount}`');
+        expect(source).toContain('this.boss.setTint(0x8FE3CF)');
+    });
+
+    test('prevents Titan hazards from overlapping their warning windows', () => {
+        const source = readLevel();
+
+        expect(source).toContain('const TITAN_ATTACK_WINDOWS = Object.freeze({');
+        expect(source).toContain('gravityCrush: 1800');
+        expect(source).toContain('starRain: 2600');
+        expect(source).toContain('voidPunch: 1500');
+        expect(source).toContain('singularity: 1800');
+        expect(source).toContain('this.titanAttackLocked');
+        expect(source).toContain('const attackWindow = TITAN_ATTACK_WINDOWS[attack] || 1800');
+        expect(source).toContain('this.titanAttackUnlockTimer = this.time.delayedCall(');
+    });
+
+    test('supports deterministic local previews for all Titan attack calls', () => {
+        const source = readLevel();
+        const gameSource = fs.readFileSync(
+            path.join(__dirname, '../game.js'),
+            'utf8'
+        );
+
+        expect(source).toContain("'gravityCrush'");
+        expect(source).toContain("'starRain'");
+        expect(source).toContain("'voidPunch'");
+        expect(source).toContain("'singularity'");
+        expect(source).toContain('this.performTitanAttack(this.bossAttackPreview)');
+        expect(gameSource).toContain("'gravityCrush'");
+        expect(gameSource).toContain("'singularity'");
     });
 
     test('makes the expedition entry keyboard-accessible and single-fire', () => {

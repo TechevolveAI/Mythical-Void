@@ -11,7 +11,12 @@ export default class ControlsHintPanel {
         this.scene = scene;
         this.elements = [];
         this.isVisible = false;
-        this.isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+        const coarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches;
+        const touchCapable = 'ontouchstart' in window ||
+            navigator.maxTouchPoints > 0 ||
+            coarsePointer;
+        this.isMobile = window.innerWidth < 600 ||
+            (touchCapable && window.innerWidth < 1024);
 
         // Configuration
         this.position = options.position || 'top-right'; // 'top-right', 'top-left', 'bottom-right', 'bottom-left'

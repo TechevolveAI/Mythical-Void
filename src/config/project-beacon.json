@@ -1,15 +1,27 @@
 {
   "title": "Project Beacon",
   "year": 2026,
+  "ship": {
+    "name": "Wanderer-77",
+    "flightNumber": 23,
+    "registry": "W77-23",
+    "signalChannel": "BEACON CHANNEL 23",
+    "livery": [
+      "#D72638",
+      "#050505",
+      "#FFFFFF",
+      "#138A36"
+    ]
+  },
   "firstSessionFraming": {
-    "homeSubtitle": "PROJECT BEACON // WANDERER-7",
+    "homeSubtitle": "PROJECT BEACON // WANDERER-77",
     "homeCta": "BEGIN PROJECT BEACON",
     "homePromise": "One astronaut. A silent beacon. A living world.",
     "homeCards": [
       {
         "icon": "🛰️",
         "title": "SURVIVE",
-        "description": "Wanderer-7\nis down"
+        "description": "Wanderer-77\nis down"
       },
       {
         "icon": "✨",
@@ -23,7 +35,7 @@
       }
     ],
     "hatchTitle": "FIRST CONTACT",
-    "hatchSubtitle": "PROJECT BEACON // WANDERER-7",
+    "hatchSubtitle": "PROJECT BEACON // WANDERER-77",
     "firstHatchPrompt": "A living signal answers beside the wreck.\nApproach gently. You are not alone.",
     "returningHatchPrompt": "The living signal is inside the egg. Approach gently.",
     "tapPromptDesktop": "CLICK EGG // ANSWER SIGNAL",
@@ -39,9 +51,9 @@
   "openingPages": [
     {
       "title": "PROJECT BEACON",
-      "subtitle": "Mission Log // 2026",
+      "subtitle": "Flight 23 // Mission Log // 2026",
       "icon": "📡",
-      "content": "Wanderer-7 missed its target and fell beyond mapped space.\n\nYou survived. Earth is still waiting for the mission that was meant to help it endure.",
+      "content": "Wanderer-77 missed its target and fell beyond mapped space.\n\nYou survived. Earth is still waiting for the mission that was meant to help it endure.",
       "color": "#66C7D4"
     },
     {
@@ -53,7 +65,7 @@
     },
     {
       "title": "IMPACT",
-      "subtitle": "Wanderer-7 // Systems Critical",
+      "subtitle": "Wanderer-77 // Systems Critical",
       "icon": "🚀",
       "content": "The hull is breached and the emergency beacon is silent.\n\nYour Earth-forged field katana survived in its case. Most of the science bay did not.",
       "color": "#EF767A"
@@ -77,6 +89,7 @@
     {
       "id": "beacon_first_contact",
       "name": "Establish Trust",
+      "objectiveLabel": "OFFER FOOD OR PLAY ONCE",
       "description": "Offer food or play once.",
       "briefing": "The hatchling is watching what you do. Begin without instruments.",
       "fieldNote": "Easy. Sensei said trust begins with how you enter the room. We entered through the roof.",
@@ -97,11 +110,12 @@
     {
       "id": "beacon_field_kit",
       "name": "Recover the Field Kit",
-      "description": "Return to Wanderer-7 and recover the field gear that survived.",
-      "briefing": "Wanderer-7 is broken, but the field case still answers your suit. Recover what Earth sent with you.",
+      "objectiveLabel": "RECOVER THE FIELD KIT AT WANDERER-77",
+      "description": "Return to Wanderer-77 and recover the field gear that survived.",
+      "briefing": "Wanderer-77 is broken, but the field case still answers your suit. Recover what Earth sent with you.",
       "fieldNote": "Best materials on Earth. I would settle for a handle that survived the landing.",
-      "guidanceDesktop": "Follow the FIELD KIT marker and interact beside Wanderer-7.",
-      "guidanceMobile": "Follow the FIELD KIT marker and tap the interact button beside Wanderer-7.",
+      "guidanceDesktop": "Follow the FIELD KIT marker and interact beside Wanderer-77.",
+      "guidanceMobile": "Follow the FIELD KIT marker and tap the interact button beside Wanderer-77.",
       "icon": "🥋",
       "type": "story",
       "objective": {
@@ -118,11 +132,12 @@
     {
       "id": "beacon_living_signals",
       "name": "Survey Living Signals",
-      "description": "Approach all three pulsating signals with your companion and stay nearby until each responds.",
-      "briefing": "The scanner calls them anomalies. Your companion approaches them like familiar voices. Walk to each pulse and remain close while your companion listens.",
+      "objectiveLabel": "LISTEN AT 3 MARKED PULSES",
+      "description": "Listen at all three pulses with your companion. They are traces of the planet's living Current, not transmissions from Earth.",
+      "briefing": "These pulses are not messages from Earth. They move through the planet's living Current, and your companion recognizes them like familiar voices. Walk into each pulse and hold position while your companion listens.",
       "fieldNote": "Three readings. No samples until I understand what I am touching.",
-      "guidanceDesktop": "Follow the LIVING SIGNAL marker. Approach the pulse and stay close until it answers.",
-      "guidanceMobile": "Follow the LIVING SIGNAL marker. Move beside the pulse and stay close until it answers.",
+      "guidanceDesktop": "Follow the LIVING SIGNAL marker. Walk into the pulse and hold position until it answers.",
+      "guidanceMobile": "Follow the LIVING SIGNAL marker. Use the joystick to enter the pulse, then hold position.",
       "icon": "🔍",
       "type": "story",
       "objective": {
@@ -143,6 +158,7 @@
     {
       "id": "beacon_world_gate",
       "name": "Reach the World Gate",
+      "objectiveLabel": "ENTER THE WORLD GATE",
       "description": "Find and enter the gate leading beyond the Sanctuary.",
       "briefing": "Your companion knows a path beyond the crash site. This time, you are the one being asked to follow.",
       "fieldNote": "First rule of unfamiliar ground: notice who already knows where to step.",
@@ -165,8 +181,8 @@
   "firstExpeditionHandoff": {
     "title": "THE PATH ANSWERS",
     "route": "ROOTLIGHT ROUTE // MYTHICAL FOREST",
-    "finding": "The pattern from Rootlight reappears inside the gate. Your companion steps forward, then looks back to make sure you are following.",
-    "companionMoment": "This is where the signal wanted us to go.",
+    "finding": "The same living Current you found at Rootlight is moving through the gate. Your companion steps forward, then looks back to make sure you are following.",
+    "companionMoment": "The Current led us here. Something beyond this gate is calling for help.",
     "fieldNote": "Sensei would say a path is a promise made one step at a time.",
     "primaryAction": "BEGIN EXPEDITION",
     "secondaryAction": "LOOK AROUND"
@@ -182,7 +198,7 @@
       "id": "crystal_core",
       "name": "Crystal Core Engine",
       "icon": "🔮",
-      "function": "Stabilizes Wanderer-7's damaged propulsion."
+      "function": "Stabilizes Wanderer-77's damaged propulsion."
     },
     {
       "id": "dimensional_drive",
@@ -207,16 +223,16 @@
     {
       "id": "beacon_debrief_1",
       "completionNumber": 1,
-      "title": "IT KNEW THE WAY",
+      "title": "A GIFT, NOT A SAMPLE",
       "icon": "✨",
       "color": "#8FE3CF",
       "nextGate": {
         "id": "crystal_caves",
         "label": "Crystal Caves"
       },
-      "finding": "The recovered ship system was hidden inside a living structure. Your companion found a path that disturbed nothing, then waited for you to follow.",
-      "companionMoment": "That was not luck. It understood what you needed, and chose how to help.",
-      "fieldNote": "Sensei would call that good footwork. Mine involved considerably more falling."
+      "finding": "The 'structure' was an injured Elder guardian. Clearing the purple corruption restored its living Current. The Forest Core was offered after the rescue. It was not taken.",
+      "companionMoment": "Your companion stayed close through the fight, then approached first when the guardian recovered.",
+      "fieldNote": "Sensei taught that control means knowing when to stop. The guardian offered the Core after we did."
     },
     {
       "id": "beacon_debrief_2",

@@ -5,12 +5,17 @@ class CloudSaveSettingsModal {
     constructor(scene, options = {}) {
         this.scene = scene;
         this.getManager = options.getManager || (() => window.CloudSave || null);
+        this.getGameState = options.getGameState || (() => (
+            this.getManager()?.gameState || window.GameState || null
+        ));
+        this.reloadPage = options.reloadPage || (() => window.location.reload());
         this.openPrivacyPolicy = options.openPrivacyPolicy || null;
         this.elements = [];
         this.isVisible = false;
         this.busy = false;
         this.consentChecked = false;
         this.confirmingDelete = false;
+        this.confirmingRestoreBackup = null;
         this.notice = '';
         this.uiCamera = null;
         this.lifecycleBound = false;
@@ -21,6 +26,7 @@ class CloudSaveSettingsModal {
         this.isVisible = true;
         this.consentChecked = false;
         this.confirmingDelete = false;
+        this.confirmingRestoreBackup = null;
         this.notice = '';
         this.render();
     }
@@ -87,20 +93,43 @@ class CloudSaveSettingsModal {
             if (!this.busy) this.hide();
         });
 
+        const recoveryBackup = this.getLatestRecoveryBackup();
         const statusInfo = this.getStatusInfo(status);
         const statusY = panelY + 72;
+        const compactRecovery = Boolean(recoveryBackup && panelWidth < 380);
+        const statusHeight = compactRecovery ? 48 : 38;
         const statusBar = this.scene.add.graphics();
         statusBar.fillStyle(statusInfo.background, 1);
-        statusBar.fillRoundedRect(panelX + 24, statusY - 19, contentWidth, 38, 6);
+        statusBar.fillRoundedRect(
+            panelX + 24,
+            statusY - statusHeight / 2,
+            contentWidth,
+            statusHeight,
+            6
+        );
         statusBar.setScrollFactor(0).setDepth(17502);
         this.elements.push(statusBar);
-        this.addText(panelX + 38, statusY, statusInfo.label, {
+        this.addText(
+            panelX + 38,
+            compactRecovery ? statusY - 8 : statusY,
+            statusInfo.label,
+            {
             fontSize: '14px',
             color: statusInfo.color,
             fontStyle: 'bold'
-        }).setOrigin(0, 0.5);
+            }
+        ).setOrigin(0, 0.5);
+        if (recoveryBackup) {
+            this.renderRecoveryStatusAction(
+                panelX,
+                panelWidth,
+                statusY,
+                recoveryBackup,
+                compactRecovery
+            );
+        }
 
-        let y = panelY + 116;
+        let y = panelY + (compactRecovery ? 126 : 116);
         const summary = this.getSummary(status);
         const summaryText = this.addText(panelX + 24, y, summary, {
             fontSize: '14px',
@@ -123,16 +152,27 @@ class CloudSaveSettingsModal {
         );
         y += limitation.height + 24;
 
-        if (!status.configured) {
-            this.renderUnavailable(panelX, panelY, panelWidth, panelHeight, y);
-        } else if (!status.ageEligible) {
-            this.renderAgeRestricted(panelX, panelWidth, y, status.ageGroup);
-        } else if (this.confirmingDelete) {
-            this.renderDeleteConfirmation(panelX, panelY, panelWidth, panelHeight, y);
-        } else if (status.enabled) {
-            this.renderEnabled(status, panelX, panelY, panelWidth, panelHeight, y);
+        if (this.confirmingRestoreBackup) {
+            this.renderRestoreConfirmation(
+                panelX,
+                panelY,
+                panelWidth,
+                panelHeight,
+                y,
+                this.confirmingRestoreBackup
+            );
         } else {
-            this.renderDisabled(panelX, panelY, panelWidth, panelHeight, y);
+            if (!status.configured) {
+                this.renderUnavailable(panelX, panelY, panelWidth, panelHeight, y);
+            } else if (!status.ageEligible) {
+                this.renderAgeRestricted(panelX, panelWidth, y, status.ageGroup);
+            } else if (this.confirmingDelete) {
+                this.renderDeleteConfirmation(panelX, panelY, panelWidth, panelHeight, y);
+            } else if (status.enabled) {
+                this.renderEnabled(status, panelX, panelY, panelWidth, panelHeight, y);
+            } else {
+                this.renderDisabled(panelX, panelY, panelWidth, panelHeight, y);
+            }
         }
 
         if (this.notice) {
@@ -219,6 +259,93 @@ class CloudSaveSettingsModal {
         );
     }
 
+    getLatestRecoveryBackup() {
+        try {
+            return this.getGameState()?.getLocalSaveBackups?.()?.[0] || null;
+        } catch (error) {
+            console.warn('[CloudSaveSettings] Recovery copies unavailable:', error);
+            return null;
+        }
+    }
+
+    renderRecoveryStatusAction(panelX, panelWidth, statusY, backup, compact) {
+        const action = this.addText(
+            compact ? panelX + 38 : panelX + panelWidth - 38,
+            compact ? statusY + 10 : statusY,
+            compact ? 'RESTORE PREVIOUS SAVE' : 'RESTORE SAVE',
+            {
+                fontSize: compact ? '10px' : '11px',
+                color: '#8FD9FF',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(compact ? 0 : 1, 0.5);
+        action.setInteractive({ useHandCursor: true });
+        action.on('pointerdown', () => {
+            if (this.busy) return;
+            this.confirmingDelete = false;
+            this.confirmingRestoreBackup = backup;
+            this.notice = '';
+            this.render();
+        });
+    }
+
+    renderRestoreConfirmation(panelX, panelY, panelWidth, panelHeight, y, backup) {
+        const warning = this.addText(
+            panelX + 24,
+            y,
+            'Restore the previous local save? A safety copy of your current progress will be made first, then the game will reload.',
+            {
+                fontSize: '14px',
+                color: '#FFD39C',
+                wordWrap: { width: panelWidth - 48 },
+                align: 'center',
+                lineSpacing: 4
+            }
+        ).setOrigin(0, 0);
+        const centerX = panelX + panelWidth / 2;
+        const buttonWidth = Math.min(300, panelWidth - 64);
+        const firstY = Math.min(
+            panelY + panelHeight - 170,
+            y + warning.height + 46
+        );
+        this.createButton(
+            centerX,
+            firstY,
+            this.busy ? 'Restoring...' : 'Restore Previous Save',
+            () => this.restoreLocalBackup(backup.id),
+            { disabled: this.busy, width: buttonWidth, color: 0x7A6228 }
+        );
+        this.createButton(
+            centerX,
+            firstY + 54,
+            'Cancel',
+            () => {
+                this.confirmingRestoreBackup = null;
+                this.render();
+            },
+            { disabled: this.busy, width: buttonWidth, color: 0x33485C }
+        );
+    }
+
+    restoreLocalBackup(backupId) {
+        if (this.busy) return;
+        this.busy = true;
+        this.notice = '';
+        this.render();
+
+        const restored = this.getGameState()?.restoreLocalSaveBackup?.(backupId) === true;
+        if (!restored) {
+            this.busy = false;
+            this.notice = 'That recovery copy could not be restored. Current progress was not changed.';
+            this.render();
+            return;
+        }
+
+        this.notice = 'Previous progress restored. Reloading...';
+        this.render();
+        setTimeout(() => this.reloadPage(), 150);
+    }
+
     renderEnabled(status, panelX, panelY, panelWidth, panelHeight, y) {
         const lastSynced = status.lastSyncedAt
             ? new Date(status.lastSyncedAt).toLocaleString()
@@ -270,7 +397,7 @@ class CloudSaveSettingsModal {
         const warning = this.addText(
             panelX + 24,
             y,
-            'Delete the remote save and anonymous cloud identity? Your current local progress will stay on this device, and Cloud Save will be turned off.',
+            'Delete the remote save, protected Living Portraits, and anonymous cloud identity? Current gameplay progress will stay on this device, authored portrait studies remain available, and Cloud Save will be turned off.',
             {
                 fontSize: '14px',
                 color: '#FFD1D1',
@@ -370,7 +497,9 @@ class CloudSaveSettingsModal {
         this.render();
         try {
             const result = await action();
-            if (result?.status === 'error') {
+            if (result?.status === 'conflict') {
+                this.notice = 'Another device saved newer progress. Your progress on this device is still safe.';
+            } else if (result?.status === 'error') {
                 this.notice = failureMessage;
             } else {
                 this.notice = successMessage;
@@ -391,6 +520,9 @@ class CloudSaveSettingsModal {
         if (this.busy || status.status === 'syncing' || status.status === 'connecting') {
             return { label: 'Connecting securely...', color: '#BFEAFF', background: 0x203846 };
         }
+        if (status.status === 'conflict') {
+            return { label: 'Newer progress found on another device', color: '#FFE0A3', background: 0x493A24 };
+        }
         if (status.status === 'error') {
             return { label: 'Needs attention - local save active', color: '#FFB3B3', background: 0x47272D };
         }
@@ -406,6 +538,9 @@ class CloudSaveSettingsModal {
     getSummary(status) {
         if (!status.enabled) {
             return 'Cloud Save is optional. The game continues to save locally when it is off or the network is unavailable.';
+        }
+        if (status.status === 'conflict') {
+            return 'Another device saved newer progress while this game was open. Progress on this device has been kept and nothing was overwritten.';
         }
         if (status.lastSyncDirection === 'restored') {
             return 'Cloud progress was restored to this browser. Your local save is now the primary working copy.';

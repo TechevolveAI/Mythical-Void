@@ -4,10 +4,15 @@
  */
 
 import EconomyHudManager from '../systems/ui/EconomyHudManager.js';
+import { getSanctuaryCheckInCopy } from '../systems/SanctuaryCheckIn.js';
 import CarePanelManager from '../systems/ui/CarePanelManager.js';
 import WorldBuilder from '../systems/world/WorldBuilder.js';
 import ChatOverlay from '../ui/ChatOverlay.js';
 import MobileHUD from '../systems/ui/MobileHUD.js';
+import {
+    getMobileControlLayout,
+    getSafeAreaInsets
+} from '../systems/MobileControlLayout.js';
 import QuestTracker from '../systems/ui/QuestTracker.js';
 import ControlsTutorialOverlay from '../ui/ControlsTutorialOverlay.js';
 import ControlsHintPanel from '../ui/ControlsHintPanel.js';
@@ -19,17 +24,116 @@ import AchievementNotification from '../ui/AchievementNotification.js';
 import CreatureRadialMenu from '../ui/CreatureRadialMenu.js';
 import AbilityHUD from '../ui/AbilityHUD.js';
 import AIArtModal from '../ui/AIArtModal.js';
+import LivingFormHandoff from '../ui/LivingFormHandoff.js';
 import GameSceneSceneRouter from './controllers/GameSceneSceneRouter.js';
 import GameSceneHudController from './controllers/GameSceneHudController.js';
 import projectBeacon from '../config/project-beacon.json';
 import { recoverProjectBeaconFieldKit as recoverFieldKitState, getProjectBeaconKatanaUpgradeIds } from '../systems/ProjectBeaconFieldKit.js';
 import { normalizeSignalGardenState, tendSignalGarden } from '../systems/SignalGarden.js';
 import { LIVING_SIGNAL_DEFINITIONS, normalizeLivingSignalState, observeLivingSignal } from '../systems/LivingSignalSurvey.js';
+import { recordCurrentSignalObservation } from '../systems/CurrentEcology.js';
+import {
+    FEND_COMMUNITY_PROJECTS,
+    advanceFendCommunityProject,
+    formatFendCommunityObjective,
+    getFendCommunitySnapshot
+} from '../systems/FendCommunity.js';
+import {
+    FEND_RESIDENT_DEFINITIONS,
+    formatFendResidentObjective,
+    getFendResidentsSnapshot,
+    interactWithFendResident
+} from '../systems/FendResidents.js';
+import {
+    assistGuardianRoutine,
+    createGuardianExpeditionDebrief,
+    formatGuardianRoutineRecovery,
+    GUARDIAN_RESIDENT_DEFINITIONS,
+    GUARDIAN_ROUTINE_RECOVERY_MS,
+    GUARDIAN_SYNERGY_ASSISTS,
+    getGuardianResidentsSnapshot,
+    interactWithGuardianResident,
+    recordGuardianActivity
+} from '../systems/GuardianResidents.js';
+import {
+    getGuardianCompanionRecognition
+} from '../systems/GuardianCompanionRecognition.js';
+import {
+    getRescuedResidentSnapshot,
+    interactWithRescuedResident
+} from '../systems/RescuedResidents.js';
+import { companionMediaService } from '../systems/CompanionMediaService.js';
+import {
+    FEND_COMMONS_PRIORITIES,
+    formatFendCultureObjective,
+    getFendCultureResidentResponse,
+    getFendCultureSnapshot,
+    recordFirstListeningDecision
+} from '../systems/FendCulture.js';
 import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import ProjectBeaconWaypoint from '../systems/ui/ProjectBeaconWaypoint.js';
 import ProjectBeaconLogModal from '../ui/ProjectBeaconLogModal.js';
 import SettingsModal from '../ui/SettingsModal.js';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
+import CompanionConsentModal from '../ui/CompanionConsentModal.js';
+import CompanionEarthMemoryModal from '../ui/CompanionEarthMemoryModal.js';
+import SenseiMemoryModal from '../ui/SenseiMemoryModal.js';
+import ShipEvidenceBoardModal from '../ui/ShipEvidenceBoardModal.js';
+import CurrentVeilModal from '../ui/CurrentVeilModal.js';
+import VillageCommandPanel from '../ui/VillageCommandPanel.js';
+import { recordCampaignLegacyCapsule } from '../systems/CampaignLegacy.js';
+import { getHomecomingHandoffSnapshot } from '../systems/HomecomingHandoff.js';
+import {
+    COMPANION_BOUNDARY_TOPICS,
+    getCompanionConsentSnapshot,
+    recordCompanionBoundaryTopic
+} from '../systems/CompanionConsent.js';
+import {
+    EARTH_MEMORY_DEFINITIONS,
+    getCompanionEarthMemorySnapshot,
+    shareCompanionEarthMemory
+} from '../systems/CompanionEarthMemory.js';
+import {
+    SENSEI_MEMORY_DEFINITIONS,
+    getSenseiMemorySnapshot,
+    recordSenseiMemory
+} from '../systems/SenseiMemory.js';
+import {
+    getShipEvidenceSnapshot,
+    recordShipEvidenceSection
+} from '../systems/ShipEvidence.js';
+import {
+    getShipReconstructionSnapshot,
+    installShipReconstructionStep,
+    serviceCompanionAtPoweredBerth
+} from '../systems/ShipReconstruction.js';
+import {
+    applyProtectedReturnStep,
+    getProtectedReturnSnapshot
+} from '../systems/ProtectedReturnProtocol.js';
+import {
+    formatCurrentVeilObjective,
+    getCurrentVeilSnapshot,
+    stabilizeCurrentVeilAnchor,
+    startCurrentVeilMission,
+    verifyCurrentVeilPacket
+} from '../systems/CurrentVeilMission.js';
+import {
+    getRemainAndDefendSnapshot
+} from '../systems/RemainAndDefendCampaign.js';
+import {
+    getFusionPodLandmarkSnapshot
+} from '../systems/FusionPodLandmark.js';
+import {
+    assignCreatureToVillageBuilding,
+    getVillageSnapshot,
+    initializeVillageSettlement,
+    markVillageGuidanceSeen,
+    placeVillageBuilding,
+    reconcileVillageSettlement,
+    VILLAGE_BUILDING_ARTWORK,
+    VILLAGE_RESOURCE_DEFINITIONS
+} from '../systems/VillageSettlement.js';
 // MapNavigationButtons removed - redundant with HamburgerMenu navigation
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
@@ -82,6 +186,12 @@ class GameScene extends Phaser.Scene {
         this.voidPortal = null;
         this.campfire = null;
         this.signalGarden = null;
+        this.villageHeartLandmark = null;
+        this.nearVillageHeart = false;
+        this.villageCommandPanel = null;
+        this.villageReconcileTimer = null;
+        this.villageRenderSignature = null;
+        this.fusionPodLandmark = null;
         this.sanctuaryKeepsakes = null;
         this.livingSignals = [];
         this.activeLivingSignalId = null;
@@ -98,6 +208,51 @@ class GameScene extends Phaser.Scene {
         this.nearVoidPortal = false;
         this.nearCampfire = false;
         this.nearSignalGarden = false;
+        this.nearFusionPod = false;
+        this.fusionPodIndicator = null;
+        this.fusionPodIndicatorTween = null;
+        this.fusionDiscoveryIntroductionTimer = null;
+        this.nearFendResidentId = null;
+        this.fendResidentOverlapColliders = [];
+        this.nearGuardianResidentId = null;
+        this.guardianResidentOverlapColliders = [];
+        this.nearRescuedResidentId = null;
+        this.rescuedResidentOverlapColliders = [];
+        this.rescuedResidentExchangeElements = [];
+        this.rescuedResidentExchangeOpen = false;
+        this.guardianExchangeElements = [];
+        this.guardianExchangeOpen = false;
+        this.guardianCareActivityElements = [];
+        this.guardianCareActivityOpen = false;
+        this.guardianCareActivityTimer = null;
+        this.guardianRecognitionCooldowns = new Map();
+        this.guardianRecognitionElements = [];
+        this.guardianRecognitionTimer = null;
+        this.guardianTrustCinematic = null;
+        this.guardianTrustCinematicRequest = 0;
+        this.livingPortraitReadyNotice = null;
+        this.livingPortraitNoticeTimer = null;
+        this.livingPortraitNoticePendingIdentity = null;
+        this.nearCurrentVeilAnchorId = null;
+        this.currentVeilOverlapColliders = [];
+        this.residentExchangeElements = [];
+        this.residentExchangeOpen = false;
+        this.fendListeningElements = [];
+        this.fendListeningOpen = false;
+        this.companionConsentModal = null;
+        this.companionEarthMemoryModal = null;
+        this.senseiMemoryModal = null;
+        this.shipEvidenceBoardModal = null;
+        this.currentVeilModal = null;
+        this.recoveryLogModal = null;
+        this.shipEvidencePreview = null;
+        this.shipEvidencePreviewSize = null;
+        this.currentVeilPreview = null;
+        this.currentVeilPreviewSize = null;
+        this.senseiMemoryPreview = null;
+        this.senseiMemoryPreviewSize = null;
+        this.companionEarthMemoryPreview = null;
+        this.companionEarthMemoryPreviewSize = null;
         // Time-slow tool state (unlocked after 3 campfire rest sessions)
         this.timeSlowActive = false;
         this.timeSlowCooldown = false;
@@ -127,13 +282,26 @@ class GameScene extends Phaser.Scene {
         this.missionBriefingPreview = null;
         this.missionBriefingPreviewSize = null;
         this.mapRecoveryPreview = false;
+        this.interactionPromptPreview = false;
         this.mapRecoveryStatusText = null;
         this.mapRecoveryActors = [];
         this.carePanelPreview = false;
         this.signalGardenPreview = null;
+        this.guardianResidentPreview = null;
+        this.guardianExchangePreview = null;
+        this.guardianRecognitionPreview = null;
+        this.guardianTaskPreview = null;
+        this.communityPreview = null;
+        this.communityMomentPreview = null;
+        this.fendCulturePreview = null;
         this.sanctuaryDecorationPreview = null;
+        this.fusionStoryPreview = false;
+        this.fusionStoryPreviewSize = null;
+        this.kinshipBeaconPreview = null;
         this.signalGardenPreviewElements = [];
         this.livingSignalPreview = null;
+        this.livingSignalPreviewSize = null;
+        this.livingSignalProgressPreview = null;
         this.livingSignalPreviewElements = [];
         this.waypointPreviewElements = [];
         this.collectibles = [];
@@ -165,6 +333,8 @@ class GameScene extends Phaser.Scene {
         this.statsText = null;
         this.statsPulseAnimation = null;
         this.interactionText = null;
+        this.interactionHintTimer = null;
+        this.interactionTextResizeHandler = null;
         this.portalIndicator = null;
         this.portalPulseAnim = null;
         this.signalGardenIndicator = null;
@@ -214,7 +384,35 @@ class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        // Sprites will be created in create() method
+        const previewCount = Number.isFinite(this.guardianResidentPreview)
+            ? this.guardianResidentPreview
+            : null;
+        const rescuedIds = previewCount !== null
+            ? new Set(
+                GUARDIAN_RESIDENT_DEFINITIONS
+                    .slice(0, previewCount)
+                    .map(resident => resident.id)
+            )
+            : new Set(
+                getGuardianResidentsSnapshot(window.GameState)
+                    .rescuedResidents
+                    .map(resident => resident.id)
+            );
+
+        GUARDIAN_RESIDENT_DEFINITIONS.forEach(resident => {
+            if (
+                rescuedIds.has(resident.id) &&
+                !this.textures.exists(resident.textureKey)
+            ) {
+                this.load.image(resident.textureKey, resident.artwork);
+            }
+        });
+
+        Object.values(VILLAGE_BUILDING_ARTWORK).forEach(artwork => {
+            if (!this.textures.exists(artwork.key)) {
+                this.load.image(artwork.key, artwork.url);
+            }
+        });
     }
 
     /**
@@ -233,18 +431,253 @@ class GameScene extends Phaser.Scene {
         this.missionBriefingPreview = data?.missionBriefingPreview || null;
         this.missionBriefingPreviewSize = data?.missionBriefingPreviewSize || null;
         this.carePanelPreview = data?.carePanelPreview === true;
-        this.signalGardenPreview = data?.signalGardenPreview || null;
+        this.checkInPreview = [
+            'curious',
+            'playful',
+            'gentle',
+            'wise',
+            'energetic'
+        ].includes(data?.checkInPreview) ? data.checkInPreview : null;
+        this.checkInBonusPreview = data?.checkInBonusPreview === true;
+        this.communityMomentPreview = Number.isFinite(
+            Number(data?.communityMomentPreview)
+        )
+            ? Math.max(
+                1,
+                Math.min(4, Math.floor(Number(data.communityMomentPreview)))
+            )
+            : null;
+        this.fendCulturePreview = [
+            'ready',
+            ...FEND_COMMONS_PRIORITIES.map(priority => priority.id)
+        ].includes(data?.fendCulturePreview)
+            ? data.fendCulturePreview
+            : null;
+        this.residentExchangePreview = Number.isFinite(
+            Number(data?.residentExchangePreview)
+        )
+            ? Math.max(
+                1,
+                Math.min(4, Math.floor(Number(data.residentExchangePreview)))
+            )
+            : null;
+        this.residentPreview = Number.isFinite(Number(data?.residentPreview))
+            ? Math.max(
+                0,
+                Math.min(4, Math.floor(Number(data.residentPreview)))
+            )
+            : this.residentExchangePreview
+                ?? (this.fendCulturePreview ? 4 : null);
+        this.guardianResidentPreview = Number.isFinite(
+            Number(data?.guardianResidentPreview)
+        )
+            ? Math.max(
+                0,
+                Math.min(
+                    GUARDIAN_RESIDENT_DEFINITIONS.length,
+                    Math.floor(Number(data.guardianResidentPreview))
+                )
+            )
+            : null;
+        this.guardianExchangePreview = Number.isFinite(
+            Number(data?.guardianExchangePreview)
+        )
+            ? Math.max(
+                1,
+                Math.min(
+                    GUARDIAN_RESIDENT_DEFINITIONS.length,
+                    Math.floor(Number(data.guardianExchangePreview))
+                )
+            )
+            : null;
+        this.guardianRecognitionPreview = Number.isFinite(
+            Number(data?.guardianRecognitionPreview)
+        )
+            ? Math.max(
+                1,
+                Math.min(
+                    GUARDIAN_RESIDENT_DEFINITIONS.length,
+                    Math.floor(Number(data.guardianRecognitionPreview))
+                )
+            )
+            : null;
+        this.guardianTaskPreview = [
+            'accepted',
+            'ready',
+            'completed',
+            'selected',
+            'synergy',
+            'debrief'
+        ].includes(data?.guardianTaskPreview)
+            ? data.guardianTaskPreview
+            : null;
+        this.livingPortraitReadyPreview = data?.livingPortraitReadyPreview === true;
+        if (
+            this.guardianResidentPreview === null &&
+            (
+                this.guardianExchangePreview !== null ||
+                this.guardianRecognitionPreview !== null
+            )
+        ) {
+            this.guardianResidentPreview = GUARDIAN_RESIDENT_DEFINITIONS.length;
+        }
+        const requestedCommunityPreview = this.communityMomentPreview
+            ?? (this.fendCulturePreview ? 4 : null)
+            ?? this.residentPreview
+            ?? data?.communityPreview;
+        this.communityPreview = Number.isFinite(Number(requestedCommunityPreview))
+            ? Math.max(
+                0,
+                Math.min(4, Math.floor(Number(requestedCommunityPreview)))
+            )
+            : null;
+        this.signalGardenPreview = data?.signalGardenPreview
+            || (
+                this.communityPreview !== null ||
+                this.guardianResidentPreview !== null
+                    ? 'bloom'
+                    : null
+            );
+        this.villageCommandPreview = [
+            'empty',
+            'building',
+            'active'
+        ].includes(data?.villageCommandPreview)
+            ? data.villageCommandPreview
+            : null;
         this.sanctuaryDecorationPreview = Number.isFinite(Number(data?.sanctuaryDecorationPreview))
             ? Math.max(0, Math.min(3, Math.floor(Number(data.sanctuaryDecorationPreview))))
             : null;
+        this.fusionStoryPreview = data?.fusionStoryPreview === true;
+        this.fusionStoryPreviewSize = data?.fusionStoryPreviewSize || null;
+        this.fusionLandmarkPreview = [
+            'dormant',
+            'calibrating',
+            'maturing',
+            'ready'
+        ].includes(data?.fusionLandmarkPreview)
+            ? data.fusionLandmarkPreview
+            : null;
+        this.kinshipBeaconPreview = [
+            true,
+            'local',
+            'shared'
+        ].includes(data?.kinshipBeaconPreview)
+            ? (
+                data.kinshipBeaconPreview === 'shared'
+                    ? 'shared'
+                    : 'local'
+            )
+            : null;
         this.livingSignalPreview = data?.livingSignalPreview || null;
+        this.livingSignalPreviewSize = data?.livingSignalPreviewSize === 'mobile'
+            ? 'mobile'
+            : null;
+        const hasLivingSignalProgressPreview =
+            data?.livingSignalProgressPreview !== null &&
+            data?.livingSignalProgressPreview !== undefined;
+        this.livingSignalProgressPreview = hasLivingSignalProgressPreview &&
+            Number.isFinite(Number(data.livingSignalProgressPreview))
+            ? Phaser.Math.Clamp(Number(data.livingSignalProgressPreview), 0, 1)
+            : null;
         this.controlsPreview = data?.controlsPreview === true;
         this.storyPreview = data?.storyPreview === true;
-        this.beaconLogPreview = ['mission', 'archive'].includes(data?.beaconLogPreview)
+        this.beaconLogPreview = [
+            'mission',
+            'recovery',
+            'archive',
+            'memory'
+        ].includes(
+            data?.beaconLogPreview
+        )
             ? data.beaconLogPreview
             : null;
+        this.beaconLogPreviewSize =
+            data?.beaconLogPreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
+        this.companionConsentPreview = [
+            'menu',
+            'route',
+            'evidence',
+            'power',
+            'complete'
+        ].includes(data?.companionConsentPreview)
+            ? data.companionConsentPreview
+            : null;
+        this.companionEarthMemoryPreview = [
+            'menu',
+            'dojo',
+            'ocean',
+            'city',
+            'shared'
+        ].includes(data?.companionEarthMemoryPreview)
+            ? data.companionEarthMemoryPreview
+            : null;
+        this.companionEarthMemoryPreviewSize =
+            data?.companionEarthMemoryPreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
+        this.senseiMemoryPreview = [
+            'footing',
+            'trust',
+            'restraint',
+            'confirmed'
+        ].includes(data?.senseiMemoryPreview)
+            ? data.senseiMemoryPreview
+            : null;
+        this.senseiMemoryPreviewSize =
+            data?.senseiMemoryPreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
+        this.shipEvidencePreview = [
+            'berth',
+            'repair_0',
+            'repair_3',
+            'repair_final',
+            'repair_complete',
+            'systems',
+            'evidence',
+            'boundaries',
+            'complete',
+            'protocol_0',
+            'protocol_3',
+            'protocol_complete',
+            'handoff'
+        ].includes(data?.shipEvidencePreview)
+            ? data.shipEvidencePreview
+            : null;
+        this.shipEvidencePreviewSize =
+            data?.shipEvidencePreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
+        this.continueFinaleAfterRepair =
+            data?.continueFinaleAfterRepair === true;
+        this.shipReconstructionHandoff =
+            data?.shipReconstructionHandoff === true;
+        this.shipReconstructionNextGateLabel =
+            typeof data?.shipReconstructionNextGateLabel === 'string'
+                ? data.shipReconstructionNextGateLabel
+                    .trim()
+                    .replace(/\s+/g, ' ')
+                    .slice(0, 40)
+                : null;
+        this.currentVeilPreview = [
+            'available',
+            'active',
+            'verification',
+            'complete'
+        ].includes(data?.currentVeilPreview)
+            ? data.currentVeilPreview
+            : null;
+        this.currentVeilPreviewSize =
+            data?.currentVeilPreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
         this.settingsPreview = data?.settingsPreview === true;
         this.mapRecoveryPreview = data?.mapRecoveryPreview === true;
+        this.interactionPromptPreview = data?.interactionPromptPreview === true;
+        this.openVillageHeartOnCreate = data?.openVillageHeart === true;
 
         // Handle biome data from HubWorldScene
         if (data?.biome) {
@@ -253,6 +686,8 @@ class GameScene extends Phaser.Scene {
         } else {
             this.currentBiome = 'nebula'; // Default biome
         }
+        this.nearVillageHeart = false;
+        this.villageRenderSignature = null;
 
         // Store any spawn position data
         if (data?.spawnPosition) {
@@ -281,6 +716,12 @@ class GameScene extends Phaser.Scene {
             this.sceneRouter = new GameSceneSceneRouter(this);
             this.hudController = new GameSceneHudController(this);
 
+            if (this.interactionPromptPreview) {
+                this.createInteractionPromptPreview();
+                console.log('[GameScene] Interaction prompt preview created successfully');
+                return;
+            }
+
             if (this.mapRecoveryPreview) {
                 this.createMapRecoveryPreview();
                 console.log('[GameScene] Map recovery preview created successfully');
@@ -299,6 +740,36 @@ class GameScene extends Phaser.Scene {
                 return;
             }
 
+            if (this.companionConsentPreview) {
+                this.createCompanionConsentPreview();
+                console.log('[GameScene] Companion consent preview created successfully');
+                return;
+            }
+
+            if (this.companionEarthMemoryPreview) {
+                this.createCompanionEarthMemoryPreview();
+                console.log('[GameScene] Companion Earth memory preview created successfully');
+                return;
+            }
+
+            if (this.senseiMemoryPreview) {
+                this.createSenseiMemoryPreview();
+                console.log('[GameScene] Sensei memory preview created successfully');
+                return;
+            }
+
+            if (this.shipEvidencePreview) {
+                this.createShipEvidencePreview();
+                console.log('[GameScene] Ship evidence preview created successfully');
+                return;
+            }
+
+            if (this.currentVeilPreview) {
+                this.createCurrentVeilPreview();
+                console.log('[GameScene] Quiet Current preview created successfully');
+                return;
+            }
+
             if (this.controlsPreview) {
                 this.controlsTutorial = new ControlsTutorialOverlay(this);
                 this.controlsTutorial.show({ force: true });
@@ -312,9 +783,31 @@ class GameScene extends Phaser.Scene {
                 return;
             }
 
+            if (this.checkInPreview) {
+                this.createFieldKitPreviewBackdrop();
+                this.showDailyGreetingOverlay(
+                    'Nova',
+                    {
+                        available: this.checkInBonusPreview,
+                        streak: 23,
+                        rewards: { xp: 25, stardust: 12 }
+                    },
+                    null,
+                    this.checkInPreview
+                );
+                console.log('[GameScene] Sanctuary check-in preview created successfully');
+                return;
+            }
+
             if (this.carePanelPreview) {
                 this.createCarePanelPreview();
                 console.log('[GameScene] Care Corner preview created successfully');
+                return;
+            }
+
+            if (this.villageCommandPreview) {
+                this.createVillageCommandPreview();
+                console.log('[GameScene] Village command preview created successfully');
                 return;
             }
 
@@ -327,6 +820,24 @@ class GameScene extends Phaser.Scene {
             if (this.sanctuaryDecorationPreview !== null) {
                 this.createSanctuaryDecorationPreview();
                 console.log('[GameScene] Sanctuary decoration preview created successfully');
+                return;
+            }
+
+            if (this.kinshipBeaconPreview) {
+                this.createKinshipBeaconPreview();
+                console.log('[GameScene] Kinship Beacon preview created successfully');
+                return;
+            }
+
+            if (this.fusionLandmarkPreview) {
+                this.createFusionLandmarkPreview();
+                console.log('[GameScene] Fusion Pod landmark preview created successfully');
+                return;
+            }
+
+            if (this.fusionStoryPreview) {
+                this.createFusionStoryPreview();
+                console.log('[GameScene] Fusion story preview created successfully');
                 return;
             }
 
@@ -467,6 +978,9 @@ class GameScene extends Phaser.Scene {
                 worldWidth: this.worldWidth,
                 worldHeight: this.worldHeight
             });
+            if (this.currentBiome === 'nebula') {
+                initializeVillageSettlement(window.GameState);
+            }
             const worldPieces = this.worldBuilder.build();
             this.worldBackground = worldPieces.background;
             this.trees = worldPieces.trees;
@@ -480,7 +994,12 @@ class GameScene extends Phaser.Scene {
             this.voidPortal = worldPieces.voidPortal || null;
             this.campfire = worldPieces.campfire || null;
             this.signalGarden = worldPieces.signalGarden || null;
+            this.villageHeartLandmark =
+                worldPieces.villageHeartLandmark || null;
+            this.fusionPodLandmark =
+                worldPieces.fusionPodLandmark || null;
             this.sanctuaryKeepsakes = worldPieces.sanctuaryKeepsakes || null;
+            this.kinshipBeacon = worldPieces.kinshipBeacon || null;
             this.sanctuaryZones = worldPieces.sanctuaryZones || null;
             this.targetRange = worldPieces.targetRange || null;
 
@@ -560,6 +1079,28 @@ class GameScene extends Phaser.Scene {
                         this
                     );
                 }
+                if (this.villageHeartLandmark?.zone) {
+                    this.physics.add.overlap(
+                        this.player,
+                        this.villageHeartLandmark.zone,
+                        this.handleVillageHeartProximity,
+                        null,
+                        this
+                    );
+                }
+                if (this.fusionPodLandmark?.zone) {
+                    this.physics.add.overlap(
+                        this.player,
+                        this.fusionPodLandmark.zone,
+                        this.handleFusionPodProximity,
+                        null,
+                        this
+                    );
+                }
+                this.setupFendResidentOverlaps();
+                this.setupGuardianResidentOverlaps();
+                this.setupRescuedResidentOverlaps();
+                this.setupCurrentVeilAnchorOverlaps();
 
                 // Target range interactions
                 if (this.targetRange && this.targetRange.allTargets) {
@@ -571,6 +1112,8 @@ class GameScene extends Phaser.Scene {
                     this.physics.add.overlap(this.player, this.returnPortal, this.handleReturnPortalProximity, null, this);
                 }
             }
+
+            this.startVillageReconciliation();
 
             // Create cosmic coins for collection
             this.createCosmicCoins();
@@ -584,10 +1127,8 @@ class GameScene extends Phaser.Scene {
             // Create UI elements
             this.createUI();
 
-            // The mobile radial menu exposes care directly; keyboard players use Care Corner.
-            if (this.scale.width >= 600) {
-                this.carePanelManager?.init();
-            }
+            // Touch players open this through the creature radial menu; keyboard players use TAB.
+            this.carePanelManager?.init();
 
             this.showWelcomeToastIfNeeded();
 
@@ -595,6 +1136,10 @@ class GameScene extends Phaser.Scene {
             if (window.MobileControls) {
                 this.mobileControls = new window.MobileControls(this);
                 this.mobileControls.show();
+                this.hudController?.layoutInteractionText?.(
+                    this.scale.width,
+                    this.scale.height
+                );
                 console.log('[GameScene] Mobile controls initialized');
             }
 
@@ -611,6 +1156,17 @@ class GameScene extends Phaser.Scene {
             this.questTracker = new QuestTracker(this);
             this.questTracker.create();
             window.QuestManager?.ensureProjectBeaconQuest?.();
+            this.updateFirstContactFocusMode();
+            ['questProgressUpdated', 'questCompleted', 'questRewardClaimed']
+                .forEach(event => {
+                    const unsubscribe = window.QuestManager?.on?.(
+                        event,
+                        () => this.updateFirstContactFocusMode()
+                    );
+                    if (typeof unsubscribe === 'function') {
+                        this.gameStateUnsubscribers.push(unsubscribe);
+                    }
+                });
             console.log('[GameScene] Quest Tracker initialized');
 
             // Initialize floating chat bubble (follows player)
@@ -656,6 +1212,12 @@ class GameScene extends Phaser.Scene {
             this.hamburgerMenu.create();
             console.log('[GameScene] Hamburger menu initialized');
 
+            if (this.openVillageHeartOnCreate) {
+                this.time.delayedCall(180, () => {
+                    if (!this._isShuttingDown) this.openVillageCommand();
+                });
+            }
+
             // MapNavigationButtons removed - redundant with HamburgerMenu
             // Mobile users can access all navigation via the hamburger menu
 
@@ -681,6 +1243,22 @@ class GameScene extends Phaser.Scene {
             
             // Listen for GameState events
             this.setupGameStateListeners();
+            this.time.delayedCall(700, () => {
+                void this.recoverLivingPortraitAfterArrival();
+            });
+            this.time.delayedCall(1400, () => {
+                if (this.livingPortraitReadyPreview) {
+                    void this.maybeShowLivingPortraitReadyNotice({
+                        identityKey: 'preview_companion_23:baby:portrait',
+                        stage: 'baby',
+                        imageUrl: '/marketing/nova.webp',
+                        assetRef: null,
+                        storage: 'preview'
+                    }, { preview: true });
+                    return;
+                }
+                void this.maybeShowLivingPortraitReadyNotice();
+            });
 
             // Set up periodic timers for achievements and tutorials
             this.setupPeriodicTimers();
@@ -691,6 +1269,10 @@ class GameScene extends Phaser.Scene {
             // Use OnboardingManager to sequence all popups properly
             // This replaces the scattered delayed calls for controls, story, greeting, and NASA content
             this.time.delayedCall(500, () => {
+                if (
+                    this.continueFinaleAfterRepair ||
+                    this.shipReconstructionHandoff
+                ) return;
                 if (window.OnboardingManager) {
                     window.OnboardingManager.initialize(this);
                     window.OnboardingManager.onQueueComplete = ({ firstSanctuaryVisit } = {}) => {
@@ -780,6 +1362,28 @@ class GameScene extends Phaser.Scene {
                     this.showVoidReturnToast(this.voidScore);
                 });
                 this.returningFromVoid = false;
+            }
+
+            if (this.continueFinaleAfterRepair) {
+                this.time.delayedCall(700, () => {
+                    if (this._isShuttingDown) return;
+                    const reconstruction = getShipReconstructionSnapshot(
+                        window.GameState
+                    );
+                    if (reconstruction.complete) {
+                        this.finishFinaleAfterCommandRepair();
+                        return;
+                    }
+                    this.showShipEvidenceBoard();
+                });
+            } else if (this.shipReconstructionHandoff) {
+                this.time.delayedCall(700, () => {
+                    if (this._isShuttingDown) return;
+                    this.showInteractionHint(
+                        'WANDERER-77 // RECOVERED SYSTEM READY TO INSTALL'
+                    );
+                    this.showShipEvidenceBoard();
+                });
             }
 
             console.log('[GameScene] Scene created successfully');
@@ -881,29 +1485,182 @@ class GameScene extends Phaser.Scene {
         heading.setVisible(width >= 900);
 
         const actionInfo = {
-            feed: { icon: '🍎', name: 'Feed', currentCount: 0, limit: 3, canPerform: true },
-            play: { icon: '🎾', name: 'Play', currentCount: 0, limit: 2, canPerform: true },
-            rest: { icon: '😴', name: 'Rest', currentCount: 0, limit: -1, isUnlimited: true, canPerform: true }
+            feed: { icon: '🍎', name: 'Feed', currentCount: 0, limit: 3, canPerform: true, isPreferred: false },
+            play: { icon: '🎾', name: 'Play', currentCount: 0, limit: 2, canPerform: true, isPreferred: false },
+            rest: { icon: '😴', name: 'Rest', currentCount: 0, limit: -1, isUnlimited: true, canPerform: true, isPreferred: false },
+            pet: { icon: '◇', name: 'Connect', currentCount: 0, limit: -1, isUnlimited: true, canPerform: true, isPreferred: true }
         };
         const previewCareSystem = {
+            careActions: { pet: { name: 'Connect' } },
             getAllCareActionsInfo: () => actionInfo,
+            getCareSignal: () => ({
+                label: 'Steady presence',
+                preferredAction: 'pet'
+            }),
             getCareStatus: () => ({
-                dailyCare: { feedCount: 0, playCount: 0, restCount: 0 }
+                dailyCare: { feedCount: 0, playCount: 0, petCount: 0, restCount: 0 }
             })
         };
 
         this.carePanelManager = new CarePanelManager(this, {
             careSystem: previewCareSystem,
             playerProvider: () => ({ x: companionX, y: companionY }),
-            geneticsProvider: () => null
+            geneticsProvider: () => ({ personality: { core: 'gentle' } })
         });
         this.carePanelManager.init();
         this.carePanelManager.togglePanel();
         this.waypointPreviewElements.push(backdrop, companion, heading);
     }
 
+    createVillageCommandPreview() {
+        this.createFieldKitPreviewBackdrop();
+        const now = Date.now();
+        const companions = [
+            {
+                id: 'preview-nova',
+                name: 'Nova',
+                stats: { energy: 92, happiness: 86 },
+                personalityState: { axes: { curiosity: 42, energy: 38 } },
+                cosmicAffinity: 'nebula'
+            },
+            {
+                id: 'preview-ember',
+                name: 'Ember',
+                stats: { energy: 88, happiness: 75 },
+                personalityState: { axes: { energy: 44, temperament: 35 } },
+                cosmicAffinity: 'star'
+            },
+            {
+                id: 'preview-lumen',
+                name: 'Lumen',
+                stats: { energy: 74, happiness: 90 },
+                personalityState: { axes: { temperament: -18 } },
+                cosmicAffinity: 'crystal'
+            }
+        ];
+        const previewData = {
+            world: {
+                fendCommunity: {
+                    builtProjectIds: ['trailhead_shelter'],
+                    contributionHistory: []
+                },
+                village: {}
+            },
+            creature: {
+                ...companions[0],
+                hatched: true
+            },
+            creatures: companions
+        };
+        const getPath = path => String(path)
+            .split('.')
+            .reduce((value, key) => value?.[key], previewData);
+        const setPath = (path, value) => {
+            const keys = String(path).split('.');
+            const finalKey = keys.pop();
+            const parent = keys.reduce((target, key) => {
+                if (!target[key] || typeof target[key] !== 'object') target[key] = {};
+                return target[key];
+            }, previewData);
+            parent[finalKey] = value;
+        };
+        const previewState = {
+            get: getPath,
+            set: setPath,
+            save: () => {},
+            emit: () => {},
+            getActiveCreature: () => previewData.creature
+        };
+        initializeVillageSettlement(previewState, { now, save: false });
+
+        if (this.villageCommandPreview === 'building') {
+            placeVillageBuilding(previewState, {
+                definitionId: 'forager_hut',
+                plotId: 'root_01',
+                now,
+                save: false
+            });
+        }
+
+        if (this.villageCommandPreview === 'active') {
+            [
+                ['forager_hut', 'root_01', companions[0].id],
+                ['sawmill', 'root_02', companions[1].id],
+                ['current_masonry', 'root_03', companions[2].id]
+            ].forEach(([definitionId, plotId, creatureId], index) => {
+                const startedAt = now - 30000 + index;
+                const placed = placeVillageBuilding(previewState, {
+                    definitionId,
+                    plotId,
+                    now: startedAt,
+                    save: false
+                });
+                reconcileVillageSettlement(previewState, { now, save: false });
+                assignCreatureToVillageBuilding(previewState, {
+                    buildingId: placed.buildingId,
+                    creatureId,
+                    now,
+                    save: false
+                });
+            });
+        }
+
+        const previewSnapshot = getVillageSnapshot(previewState);
+        this.worldBuilder = new WorldBuilder(this, this.graphicsEngine, {
+            worldWidth: this.scale.width,
+            worldHeight: this.scale.height
+        });
+        this.villageHeartLandmark = this.worldBuilder.createVillageHeart({
+            position: {
+                x: Math.max(130, this.scale.width * 0.5),
+                y: Math.max(150, this.scale.height * 0.54)
+            },
+            size: { width: 150, height: 130 }
+        }, previewSnapshot);
+
+        this.villageCommandPanel = new VillageCommandPanel(this);
+        this.villageCommandPanel.show({
+            getSnapshot: () => getVillageSnapshot(previewState),
+            onPlace: request => {
+                const result = placeVillageBuilding(previewState, {
+                    ...request,
+                    save: false
+                });
+                this.worldBuilder.refreshVillageSettlement(
+                    this.villageHeartLandmark,
+                    result.snapshot
+                );
+                return result;
+            },
+            onAssign: request => {
+                const result = assignCreatureToVillageBuilding(previewState, {
+                    ...request,
+                    save: false
+                });
+                this.worldBuilder.refreshVillageSettlement(
+                    this.villageHeartLandmark,
+                    result.snapshot
+                );
+                return result;
+            },
+            onTick: () => {
+                const snapshot = reconcileVillageSettlement(previewState, {
+                    save: false
+                });
+                this.worldBuilder.refreshVillageSettlement(
+                    this.villageHeartLandmark,
+                    snapshot
+                );
+                return snapshot;
+            }
+        });
+    }
+
     createSignalGardenPreview() {
         const { width, height } = this.scale;
+        this.cameras.main.stopFollow();
+        this.cameras.main.setScroll(0, 0);
+        this.cameras.main.setZoom(1);
         this.cameras.main.setBackgroundColor('#071411');
 
         const backdrop = this.add.graphics();
@@ -932,11 +1689,20 @@ class GameScene extends Phaser.Scene {
             color: '#D8FFF0',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        const stageLabel = this.add.text(width / 2, heading.y + 32, this.signalGardenPreview.toUpperCase(), {
+        const stageLabel = this.add.text(
+            width / 2,
+            heading.y + 32,
+            this.communityPreview !== null
+                ? this.fendCulturePreview
+                    ? 'LIVING COMMONS // FIRST LISTENING'
+                    : `COMMUNITY STAGE ${this.communityPreview}/4`
+                : this.signalGardenPreview.toUpperCase(),
+            {
             fontSize: '13px',
             fontFamily: 'Arial, sans-serif',
             color: '#F2C86B'
-        }).setOrigin(0.5);
+            }
+        ).setOrigin(0.5);
 
         const GraphicsEngine = getGraphicsEngine();
         this.graphicsEngine = new GraphicsEngine(this);
@@ -953,8 +1719,365 @@ class GameScene extends Phaser.Scene {
             description: 'Nurture a living signal with your companion.',
             interactRadius: 115
         }, this.signalGardenPreview);
+        if (this.communityPreview !== null) {
+            this.worldBuilder.refreshFendCommunity(
+                this.signalGarden,
+                this.communityPreview
+            );
+        }
+        if (this.residentPreview !== null) {
+            const residentSnapshot = this.createFendResidentPreviewSnapshot(
+                this.residentPreview
+            );
+            this.worldBuilder.refreshFendResidents(
+                this.signalGarden,
+                residentSnapshot
+            );
+            if (this.residentExchangePreview !== null) {
+                this.time.delayedCall(250, () => {
+                    this.showFendResidentExchange({
+                        changed: true,
+                        reason: 'request_accepted',
+                        resident: residentSnapshot.activeResident,
+                        snapshot: residentSnapshot
+                    });
+                });
+            }
+        }
+        if (this.guardianResidentPreview !== null) {
+            const guardianSnapshot = this.createGuardianResidentPreviewSnapshot(
+                this.guardianResidentPreview,
+                this.guardianTaskPreview,
+                this.guardianExchangePreview
+            );
+            this.worldBuilder.refreshGuardianResidents(
+                this.signalGarden,
+                guardianSnapshot
+            );
+            if (this.guardianExchangePreview !== null) {
+                const resident = guardianSnapshot.rescuedResidents[
+                    this.guardianExchangePreview - 1
+                ];
+                this.time.delayedCall(250, () => {
+                    const previewReason = {
+                        accepted: 'guardian_task_accepted',
+                        ready: 'guardian_task_progress',
+                        completed: 'guardian_task_completed',
+                        selected: 'guardian_team_selected',
+                        synergy: 'guardian_synergy_unlocked',
+                        debrief: 'guardian_expedition_debrief'
+                    }[this.guardianTaskPreview] || 'guardian_first_meeting';
+                    const previewMessage = {
+                        accepted: resident.task.briefing,
+                        ready: resident.task.objective,
+                        completed: resident.task.completionLine,
+                        selected: resident.teamAbility.activationLine,
+                        synergy: resident.synergy.memory,
+                        debrief: createGuardianExpeditionDebrief(
+                            { get: path => path === 'creature.name' ? 'Kira' : null },
+                            resident,
+                            {
+                                levelId: 'crystalCaves',
+                                interventionCount: 1
+                            }
+                        )
+                    }[this.guardianTaskPreview] || resident.rescueMemory;
+                    this.showGuardianResidentExchange({
+                        changed: true,
+                        reason: previewReason,
+                        resident,
+                        message: previewMessage,
+                        snapshot: guardianSnapshot
+                    });
+                });
+            }
+            if (this.guardianRecognitionPreview !== null) {
+                const resident = guardianSnapshot.rescuedResidents[
+                    this.guardianRecognitionPreview - 1
+                ];
+                const recognitionPreviewState = {
+                    get(path) {
+                        const state = {
+                            creature: {
+                                name: 'Kira',
+                                personality: 'curious',
+                                genes: {
+                                    id: 'preview_kira_23',
+                                    personality: { core: 'curious' },
+                                    cosmicAffinity: { element: 'nebula' },
+                                    traits: {
+                                        bodyShape: { type: 'serpentine' },
+                                        features: {
+                                            wackyMutations: [
+                                                { type: 'extra_eyes' }
+                                            ],
+                                            specialFeatures: [
+                                                { type: 'bioluminescent_spots' }
+                                            ]
+                                        }
+                                    }
+                                },
+                                dna: {
+                                    id: 'preview_kira_dna_23',
+                                    bodyArchetype: 'serpentine',
+                                    hybridTag: 'single-species'
+                                }
+                            }
+                        };
+                        return path.split('.').reduce(
+                            (value, key) => value?.[key],
+                            state
+                        );
+                    }
+                };
+                const recognition = getGuardianCompanionRecognition(
+                    recognitionPreviewState,
+                    resident.id
+                );
+                this.time.delayedCall(500, () => {
+                    this.showGuardianCompanionRecognitionMoment(
+                        recognition,
+                        resident,
+                        { duration: 6000 }
+                    );
+                });
+            }
+        }
+        if (this.livingPortraitReadyPreview) {
+            this.time.delayedCall(350, () => {
+                void this.maybeShowLivingPortraitReadyNotice({
+                    identityKey: 'preview_companion_23:baby:portrait',
+                    stage: 'baby',
+                    imageUrl: '/marketing/nova.webp',
+                    assetRef: null,
+                    storage: 'preview'
+                }, { preview: true });
+            });
+        }
+        if (this.fendCulturePreview) {
+            const cultureSnapshot = this.createFendCulturePreviewSnapshot(
+                this.fendCulturePreview
+            );
+            this.worldBuilder.refreshFendCulture(
+                this.signalGarden,
+                cultureSnapshot
+            );
+            this.time.delayedCall(250, () => {
+                this.showFendCommonsListening({
+                    previewPriority: this.fendCulturePreview === 'ready'
+                        ? null
+                        : this.fendCulturePreview
+                });
+            });
+        }
 
         this.signalGardenPreviewElements = [backdrop, heading, stageLabel];
+        if (this.communityMomentPreview !== null) {
+            this.time.delayedCall(250, () => {
+                const project = FEND_COMMUNITY_PROJECTS[
+                    this.communityMomentPreview - 1
+                ];
+                this.showFendCommunityProjectMoment({
+                    project,
+                    snapshot: {
+                        stage: this.communityMomentPreview
+                    }
+                });
+            });
+        }
+    }
+
+    createFendResidentPreviewSnapshot(stage) {
+        const boundedStage = Math.max(
+            0,
+            Math.min(FEND_RESIDENT_DEFINITIONS.length, Number(stage) || 0)
+        );
+        const activeIndex = Math.max(0, boundedStage - 1);
+        const residents = FEND_RESIDENT_DEFINITIONS.map((definition, index) => {
+            const available = index < boundedStage;
+            const completed = available && index < activeIndex;
+            const active = available && index === activeIndex;
+            return {
+                ...definition,
+                available,
+                met: available,
+                completed,
+                active,
+                ready: false,
+                status: completed
+                    ? 'completed'
+                    : active
+                        ? 'active'
+                        : 'locked'
+            };
+        });
+        const activeResident = residents.find(resident => resident.active) || null;
+        return {
+            state: {
+                metResidentIds: residents
+                    .filter(resident => resident.met)
+                    .map(resident => resident.id),
+                completedRequestIds: residents
+                    .filter(resident => resident.completed)
+                    .map(resident => resident.request.id),
+                activeRequestId: activeResident?.request.id || null
+            },
+            residents,
+            availableResidents: residents.filter(resident => resident.available),
+            activeResident,
+            nextResident: activeResident,
+            metCount: boundedStage,
+            completedCount: Math.max(0, boundedStage - 1),
+            totalResidents: FEND_RESIDENT_DEFINITIONS.length,
+            complete: false
+        };
+    }
+
+    createGuardianResidentPreviewSnapshot(count, taskState = null, taskResidentIndex = null) {
+        const activePreviewId = Number.isFinite(Number(taskResidentIndex))
+            ? GUARDIAN_RESIDENT_DEFINITIONS[
+                Math.max(0, Math.min(
+                    GUARDIAN_RESIDENT_DEFINITIONS.length - 1,
+                    Number(taskResidentIndex) - 1
+                ))
+            ]?.id
+            : null;
+        const rescuedResidents = GUARDIAN_RESIDENT_DEFINITIONS
+            .slice(0, count)
+            .map(resident => {
+                const isTaskResident = resident.id === activePreviewId;
+                const taskAccepted = isTaskResident && Boolean(taskState);
+                const ready = isTaskResident && [
+                    'ready', 'completed', 'selected', 'synergy', 'debrief'
+                ].includes(taskState);
+                const completed = isTaskResident && [
+                    'completed', 'selected', 'synergy', 'debrief'
+                ].includes(taskState);
+                const activeTeam = isTaskResident && [
+                    'selected', 'synergy', 'debrief'
+                ].includes(taskState);
+                const synergyUnlocked = isTaskResident && taskState === 'synergy';
+                const routineAssistCount = synergyUnlocked
+                    ? GUARDIAN_SYNERGY_ASSISTS
+                    : completed ? 1 : 0;
+                return {
+                    ...resident,
+                    rescued: true,
+                    met: taskAccepted,
+                    interactionCount: taskAccepted ? 2 : 0,
+                    taskAccepted,
+                    taskStatus: activeTeam
+                        ? 'selected'
+                        : completed
+                            ? 'completed'
+                            : ready
+                                ? 'ready'
+                                : taskAccepted
+                                    ? 'active'
+                                    : 'locked',
+                    taskProgress: {
+                        progress: ready ? resident.task.target : 0,
+                        target: resident.task.target,
+                        ready,
+                        completed
+                    },
+                    teamAbilityUnlocked: completed,
+                    activeTeam,
+                    routineAssistCount,
+                    routineSupported: completed,
+                    lastRoutineAssistAt: null,
+                    routineReadyAt: null,
+                    routineReady: taskAccepted,
+                    routineWaitMs: 0,
+                    routineStatus: taskAccepted ? 'ready' : 'locked',
+                    trustProgress: Math.min(GUARDIAN_SYNERGY_ASSISTS, routineAssistCount),
+                    trustTarget: GUARDIAN_SYNERGY_ASSISTS,
+                    synergyUnlocked,
+                    expeditionCount: taskState === 'debrief' ? 1 : 0,
+                    lastExpedition: taskState === 'debrief'
+                        ? {
+                            guardianId: resident.id,
+                            levelId: 'crystalCaves',
+                            interventionCount: 1,
+                            noDamage: false
+                        }
+                        : null,
+                    expeditionDebriefReady: taskState === 'debrief',
+                    dialogueLine: resident.rescueMemory
+                };
+            });
+        return {
+            residents: GUARDIAN_RESIDENT_DEFINITIONS.map(resident => (
+                rescuedResidents.find(entry => entry.id === resident.id) || {
+                    ...resident,
+                    rescued: false,
+                    met: false,
+                    taskAccepted: false,
+                    taskStatus: 'locked',
+                    taskProgress: {
+                        progress: 0,
+                        target: resident.task.target,
+                        ready: false,
+                        completed: false
+                    },
+                    teamAbilityUnlocked: false,
+                    activeTeam: false,
+                    routineAssistCount: 0,
+                    routineSupported: false,
+                    lastRoutineAssistAt: null,
+                    routineReadyAt: null,
+                    routineReady: false,
+                    routineWaitMs: 0,
+                    routineStatus: 'locked',
+                    trustProgress: 0,
+                    trustTarget: GUARDIAN_SYNERGY_ASSISTS,
+                    synergyUnlocked: false,
+                    expeditionCount: 0,
+                    lastExpedition: null,
+                    expeditionDebriefReady: false
+                }
+            )),
+            rescuedResidents,
+            rescuedCount: rescuedResidents.length,
+            totalResidents: GUARDIAN_RESIDENT_DEFINITIONS.length,
+            completedTaskCount: rescuedResidents.filter(
+                resident => resident.teamAbilityUnlocked
+            ).length,
+            routineAssistCount: rescuedResidents.reduce(
+                (total, resident) => total + resident.routineAssistCount,
+                0
+            ),
+            supportedResidentCount: rescuedResidents.filter(
+                resident => resident.routineSupported
+            ).length,
+            synergyCount: rescuedResidents.filter(
+                resident => resident.synergyUnlocked
+            ).length,
+            activeTeamResident: rescuedResidents.find(
+                resident => resident.activeTeam
+            ) || null,
+            careFocusResident: rescuedResidents.find(
+                resident => resident.routineReady
+            ) || null
+        };
+    }
+
+    createFendCulturePreviewSnapshot(priorityId = 'ready') {
+        const selectedPriority = FEND_COMMONS_PRIORITIES.find(
+            priority => priority.id === priorityId
+        ) || null;
+        return {
+            ready: !selectedPriority,
+            complete: Boolean(selectedPriority),
+            selectedPriority,
+            priorities: FEND_COMMONS_PRIORITIES,
+            state: {
+                firstListening: {
+                    status: selectedPriority ? 'complete' : 'ready',
+                    selectedPriority: selectedPriority?.id || null
+                }
+            }
+        };
     }
 
     createLivingSignalPreview() {
@@ -1004,15 +2127,28 @@ class GameScene extends Phaser.Scene {
             }
         }, false);
         this.livingSignals = [previewSignal];
-        this.showLivingSignalMoment({
-            signal: definition,
-            progress: LIVING_SIGNAL_DEFINITIONS.findIndex(
+        if (this.livingSignalProgressPreview !== null) {
+            this.setLivingSignalListeningProgress(
+                previewSignal,
+                this.livingSignalProgressPreview
+            );
+        } else {
+            const previewProgress = LIVING_SIGNAL_DEFINITIONS.findIndex(
                 signal => signal.id === definition.id
-            ) + 1,
-            total: LIVING_SIGNAL_DEFINITIONS.length,
-            completed: definition.id ===
-                LIVING_SIGNAL_DEFINITIONS[LIVING_SIGNAL_DEFINITIONS.length - 1].id
-        }, { preview: true });
+            ) + 1;
+            this.setLivingSignalLinkedState(
+                previewSignal,
+                previewProgress,
+                LIVING_SIGNAL_DEFINITIONS.length
+            );
+            this.showLivingSignalMoment({
+                signal: definition,
+                progress: previewProgress,
+                total: LIVING_SIGNAL_DEFINITIONS.length,
+                completed: definition.id ===
+                    LIVING_SIGNAL_DEFINITIONS[LIVING_SIGNAL_DEFINITIONS.length - 1].id
+            }, { preview: true });
+        }
         this.livingSignalPreviewElements = [backdrop, heading];
     }
 
@@ -1025,23 +2161,32 @@ class GameScene extends Phaser.Scene {
         const state = normalizeLivingSignalState(
             window.GameState?.get('world.livingSignals')
         );
-        this.livingSignals = LIVING_SIGNAL_DEFINITIONS.map(definition => (
-            this.createLivingSignalVisual(
+        this.livingSignals = LIVING_SIGNAL_DEFINITIONS.map(definition => {
+            const observedIndex = state.observedIds.indexOf(definition.id);
+            return this.createLivingSignalVisual(
                 definition,
-                state.observedIds.includes(definition.id)
-            )
-        ));
+                observedIndex >= 0,
+                {
+                    progress: observedIndex + 1,
+                    total: LIVING_SIGNAL_DEFINITIONS.length
+                }
+            );
+        });
     }
 
-    createLivingSignalVisual(definition, observed = false) {
+    createLivingSignalVisual(
+        definition,
+        observed = false,
+        { progress = 0, total = LIVING_SIGNAL_DEFINITIONS.length } = {}
+    ) {
         const { x, y } = definition.position;
         const container = this.add.container(x, y).setDepth(y + 4);
         const aura = this.add.graphics();
-        aura.fillStyle(definition.color, observed ? 0.08 : 0.18);
+        aura.fillStyle(definition.color, observed ? 0.16 : 0.18);
         aura.fillCircle(0, 0, 42);
-        aura.lineStyle(2, definition.color, observed ? 0.25 : 0.75);
+        aura.lineStyle(2, definition.color, observed ? 0.68 : 0.75);
         aura.strokeCircle(0, 0, 33);
-        aura.lineStyle(1, definition.accent, observed ? 0.18 : 0.55);
+        aura.lineStyle(1, definition.accent, observed ? 0.52 : 0.55);
         aura.strokeCircle(0, 0, 22);
 
         const form = this.add.graphics();
@@ -1073,10 +2218,15 @@ class GameScene extends Phaser.Scene {
             form.fillCircle(0, -17, 6);
         }
 
+        const listeningProgress = this.add.graphics();
+        listeningProgress.setVisible(false);
+
         const label = this.add.text(
             0,
             51,
-            observed ? 'SIGNAL HEARD' : 'LIVING SIGNAL // APPROACH',
+            observed
+                ? `CURRENT LINKED // ${progress}/${total}`
+                : 'LIVING SIGNAL // LISTEN TOGETHER',
             {
                 fontSize: '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -1086,7 +2236,7 @@ class GameScene extends Phaser.Scene {
                 padding: { x: 5, y: 3 }
             }
         ).setOrigin(0.5);
-        container.add([aura, form, label]);
+        container.add([aura, listeningProgress, form, label]);
 
         const pulseTween = this.tweens.add({
             targets: aura,
@@ -1098,7 +2248,7 @@ class GameScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        return {
+        const visual = {
             id: definition.id,
             signalId: definition.id,
             signalData: definition,
@@ -1110,16 +2260,105 @@ class GameScene extends Phaser.Scene {
             aura,
             form,
             label,
+            listeningProgress,
             pulseTween
         };
+        if (observed) {
+            this.setLivingSignalLinkedState(visual, progress, total);
+        }
+        return visual;
     }
 
-    refreshLivingSignalVisual(signal) {
+    setLivingSignalLinkedState(
+        signal,
+        progress = 1,
+        total = LIVING_SIGNAL_DEFINITIONS.length
+    ) {
         if (!signal) return;
+
         signal.observed = true;
-        signal.label?.setText('SIGNAL HEARD');
-        signal.label?.setColor('#829B96');
-        signal.container?.setAlpha(0.58);
+        signal.listeningProgress?.clear?.();
+        signal.listeningProgress?.setVisible?.(false);
+        signal.label?.setText(`CURRENT LINKED // ${progress}/${total}`);
+        signal.label?.setColor('#8FE3CF');
+        signal.container?.setAlpha?.(0.96);
+
+        if (!signal.linkVisual) {
+            const linkVisual = this.add.graphics();
+            const color = signal.signalData?.color || 0x8FE3CF;
+            const accent = signal.signalData?.accent || 0xF2C14E;
+            linkVisual.lineStyle(2, color, 0.58);
+            linkVisual.lineBetween(0, 17, -34, 31);
+            linkVisual.lineBetween(0, 17, 34, 27);
+            linkVisual.lineBetween(0, 17, 0, 42);
+            linkVisual.fillStyle(accent, 0.9);
+            linkVisual.fillCircle(-34, 31, 4);
+            linkVisual.fillCircle(34, 27, 4);
+            linkVisual.fillCircle(0, 42, 4);
+            signal.container?.addAt?.(linkVisual, 0);
+            signal.linkVisual = linkVisual;
+        }
+
+        signal.pulseTween?.stop?.();
+        signal.linkTween?.stop?.();
+        signal.linkTween = this.tweens.add({
+            targets: [signal.aura, signal.linkVisual].filter(Boolean),
+            alpha: { from: 0.62, to: 0.96 },
+            duration: 1800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    setLivingSignalListeningProgress(signal, progress = 0) {
+        if (!signal || signal.observed) return;
+
+        const boundedProgress = Phaser.Math.Clamp(Number(progress) || 0, 0, 1);
+        const percent = Math.round(boundedProgress * 100);
+        signal.listeningProgress?.clear?.();
+
+        if (boundedProgress > 0) {
+            signal.listeningProgress
+                ?.lineStyle?.(5, signal.signalData?.accent || 0xF2C14E, 1);
+            signal.listeningProgress?.beginPath?.();
+            signal.listeningProgress?.arc?.(
+                0,
+                0,
+                38,
+                -Math.PI / 2,
+                -Math.PI / 2 + (Math.PI * 2 * boundedProgress),
+                false
+            );
+            signal.listeningProgress?.strokePath?.();
+            signal.listeningProgress?.setVisible?.(true);
+            signal.label?.setText(`LISTENING ${percent}% // HOLD STILL`);
+            signal.label?.setColor('#F2C14E');
+            return;
+        }
+
+        signal.listeningProgress?.setVisible?.(false);
+        signal.label?.setText('LIVING SIGNAL // LISTEN TOGETHER');
+        signal.label?.setColor('#D8FFF0');
+    }
+
+    resetActiveLivingSignalListening() {
+        if (!this.activeLivingSignalId) return;
+        const activeSignal = this.livingSignals.find(
+            signal => signal?.signalId === this.activeLivingSignalId
+        );
+        this.setLivingSignalListeningProgress(activeSignal, 0);
+        this.activeLivingSignalId = null;
+        this.livingSignalDwellMs = 0;
+    }
+
+    refreshLivingSignalVisual(
+        signal,
+        progress = 1,
+        total = LIVING_SIGNAL_DEFINITIONS.length
+    ) {
+        if (!signal) return;
+        this.setLivingSignalLinkedState(signal, progress, total);
     }
 
     createWaypointPreview() {
@@ -1194,7 +2433,17 @@ class GameScene extends Phaser.Scene {
     }
 
     createBeaconLogPreview() {
-        const { width, height } = this.scale;
+        if (this.beaconLogPreviewSize === 'mobile') {
+            const viewportWidth = Math.min(390, this.scale.width);
+            const viewportHeight = Math.min(720, this.scale.height);
+            this.cameras.main.setViewport(
+                (this.scale.width - viewportWidth) / 2,
+                (this.scale.height - viewportHeight) / 2,
+                viewportWidth,
+                viewportHeight
+            );
+        }
+        const { width, height } = this.cameras.main;
         this.cameras.main.setBackgroundColor('#061019');
 
         const backdrop = this.add.graphics();
@@ -1207,10 +2456,16 @@ class GameScene extends Phaser.Scene {
             backdrop.lineBetween(x, height, x + height * 0.35, height * 0.68);
         }
 
+        const recoveryPreview = this.beaconLogPreview === 'recovery';
+        const previewCompanionId = 'preview_companion_23';
         const previewState = {
             creature: {
                 name: 'Luma',
-                bond: { level: 5 }
+                bond: { level: 5 },
+                genes: { id: previewCompanionId },
+                agencyHistory: recoveryPreview
+                    ? [{ type: 'high_power_rescue' }]
+                    : []
             },
             quests: {
                 completed: projectBeacon.fieldMissions.map(mission => mission.id)
@@ -1220,17 +2475,181 @@ class GameScene extends Phaser.Scene {
                     currentMission: 'field_sequence_complete',
                     pendingDebriefs: [{ id: 'beacon_debrief_3' }],
                     debriefsSeen: ['beacon_debrief_1', 'beacon_debrief_2'],
+                    fieldKit: {
+                        recovered: [
+                            'memory',
+                            'recovery'
+                        ].includes(this.beaconLogPreview)
+                    },
+                    missionLogSeen: [
+                        'memory',
+                        'recovery'
+                    ].includes(this.beaconLogPreview),
+                    companionConsent: recoveryPreview
+                        ? {
+                            schemaVersion: 2,
+                            activeCompanionId: previewCompanionId,
+                            records: [{
+                                companionId: previewCompanionId,
+                                travelStatus: 'decision_deferred',
+                                disclosureStatus:
+                                    'astronaut_survival_only',
+                                locationBoundary:
+                                    'coordinates_withheld',
+                                informedRisks: true,
+                                willingPassenger: null,
+                                vetoRecognized: true,
+                                powerBoundary:
+                                    'emergency_life_first',
+                                reviewedTopicIds: [
+                                    'route',
+                                    'evidence',
+                                    'power'
+                                ],
+                                history: []
+                            }]
+                        }
+                        : {},
+                    sensei: {
+                        memoryLedger: recoveryPreview
+                            ? {
+                                schemaVersion: 1,
+                                recalledMemoryIds: [
+                                    'begin_with_your_footing',
+                                    'trust_begins_with_how_you_enter',
+                                    'power_is_knowing_what_not_to_take'
+                                ],
+                                lesson: {
+                                    id: 'centering_stance',
+                                    status: 'available',
+                                    practiceCount: 0
+                                },
+                                history: []
+                            }
+                            : {}
+                    },
                     lastRouteUnlocked: {
                         gateId: 'void_peaks',
                         label: 'Void Peaks'
                     },
-                    uplinkRestored: false,
+                    uplinkRestored: recoveryPreview,
+                    finale: recoveryPreview
+                        ? { priority: 'prepare_homecoming' }
+                        : { priority: null },
+                    shipArchive: recoveryPreview
+                        ? {
+                            reviewedSectionIds: [
+                                'systems',
+                                'evidence',
+                                'boundaries'
+                            ]
+                        }
+                        : {},
+                    protectedReturnProtocol: recoveryPreview
+                        ? {
+                            completedStepIds: [
+                                'survival_packet',
+                                'route_quarantine',
+                                'living_witness_seal',
+                                'uplink_hold'
+                            ],
+                            packetStatus: 'sealed_ready_not_sent'
+                        }
+                        : {},
+                    shipCapabilities: recoveryPreview
+                        ? {
+                            passengerCapacity: 1,
+                            secureReturnVector: 'sealed'
+                        }
+                        : {},
                     endingChoice: null
                 }
             },
+            world: recoveryPreview
+                ? {
+                    currentEcology: {
+                        restoredRegionIds: [
+                            'mythical_forest',
+                            'crystal_caves',
+                            'stellar_reef',
+                            'void_peaks',
+                            'aurora_depths',
+                            'current_heart'
+                        ]
+                    },
+                    signalGarden: {
+                        tendCount: 3,
+                        stage: 'bloom'
+                    },
+                    fendCommunity: {
+                        builtProjectIds: [
+                            'trailhead_shelter',
+                            'current_well',
+                            'wayfinder_relay',
+                            'living_commons'
+                        ]
+                    },
+                    fendResidents: {
+                        metResidentIds: [
+                            'kiri',
+                            'mara',
+                            'tovan',
+                            'ilyra'
+                        ],
+                        completedRequestIds: [
+                            'shelter_calibration',
+                            'well_return_flow',
+                            'relay_three_signals',
+                            'commons_witness'
+                        ]
+                    },
+                    guardianResidents: {
+                        schemaVersion: 4,
+                        rescuedIds: [
+                            'elder_treant',
+                            'crystal_golem',
+                            'nyxvoral',
+                            'shadow_phoenix',
+                            'cosmic_titan'
+                        ],
+                        metIds: ['cosmic_titan'],
+                        interactions: { cosmic_titan: 2 },
+                        acceptedTaskIds: ['cosmic_titan'],
+                        completedTaskIds: [],
+                        taskBaselines: { cosmic_titan: 0 },
+                        activityEvidence: {
+                            gardenVisits: 0,
+                            campfireRests: 0,
+                            targetHits: 3
+                        },
+                        expeditionHistory: [],
+                        pendingExpeditionDebrief: null,
+                        activeTeamGuardianId: null
+                    },
+                    fendCulture: {
+                        firstListening: {
+                            selectedPriority: 'restoration'
+                        }
+                    },
+                    currentVeilMission: {
+                        status: 'complete',
+                        stabilizedAnchorIds: [
+                            'root_echo',
+                            'well_echo',
+                            'relay_echo'
+                        ]
+                    }
+                }
+                : {},
             hubWorld: {
                 shipParts: {
-                    collected: ['forest_core', 'crystal_core', 'dimensional_drive']
+                    collected: recoveryPreview
+                        ? projectBeacon.shipSystems.map(system => system.id)
+                        : [
+                            'forest_core',
+                            'crystal_core',
+                            'dimensional_drive'
+                        ]
                 }
             }
         };
@@ -1240,13 +2659,1063 @@ class GameScene extends Phaser.Scene {
                     (value, key) => value?.[key],
                     previewState
                 );
-            }
+            },
+            set(path, value) {
+                const keys = path.split('.');
+                const finalKey = keys.pop();
+                const target = keys.reduce((current, key) => {
+                    current[key] ||= {};
+                    return current[key];
+                }, previewState);
+                target[finalKey] = value;
+            },
+            save() {},
+            emit() {}
         };
 
         this.beaconLogModal = new ProjectBeaconLogModal(this, {
             getGameState: () => previewGameState
         });
-        this.beaconLogModal.show(this.beaconLogPreview);
+        this.beaconLogModal.show(
+            this.beaconLogPreview === 'memory'
+                ? 'mission'
+                : this.beaconLogPreview
+        );
+    }
+
+    createCompanionConsentPreviewSnapshot() {
+        const complete = this.companionConsentPreview === 'complete';
+        const reviewedTopicIds = complete
+            ? COMPANION_BOUNDARY_TOPICS.map(topic => topic.id)
+            : [...(this.companionConsentPreviewReviewedIds || [])];
+        const topics = COMPANION_BOUNDARY_TOPICS.map(topic => ({
+            ...topic,
+            reviewed: reviewedTopicIds.includes(topic.id)
+        }));
+        return {
+            record: {
+                companionId: 'preview_companion_23',
+                travelStatus: complete ||
+                    reviewedTopicIds.length === topics.length
+                    ? 'decision_deferred'
+                    : 'not_yet_asked',
+                disclosureStatus: reviewedTopicIds.includes('evidence')
+                    ? 'astronaut_survival_only'
+                    : 'withheld',
+                locationBoundary: reviewedTopicIds.includes('route')
+                    ? 'coordinates_withheld'
+                    : 'not_discussed',
+                informedRisks: complete ||
+                    reviewedTopicIds.length === topics.length,
+                willingPassenger: null,
+                vetoRecognized: true,
+                powerBoundary: reviewedTopicIds.includes('power')
+                    ? 'emergency_life_first'
+                    : 'not_discussed',
+                reviewedTopicIds
+            },
+            unlocked: true,
+            ready: !complete && reviewedTopicIds.length < topics.length,
+            complete: complete || reviewedTopicIds.length === topics.length,
+            reviewedCount: reviewedTopicIds.length,
+            totalTopics: topics.length,
+            topics,
+            nextTopic: topics.find(topic => !topic.reviewed) || null
+        };
+    }
+
+    createCompanionConsentPreview() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#061019');
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x061019, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x17252D, 1);
+        backdrop.fillRoundedRect(
+            width * 0.1,
+            height * 0.52,
+            width * 0.8,
+            height * 0.23,
+            12
+        );
+        backdrop.lineStyle(2, 0x66C7D4, 0.55);
+        backdrop.strokeRoundedRect(
+            width * 0.1,
+            height * 0.52,
+            width * 0.8,
+            height * 0.23,
+            12
+        );
+        for (let index = 0; index < 32; index++) {
+            backdrop.fillStyle(
+                index % 4 === 0 ? 0x8FE3CF : 0xDCE8ED,
+                0.42
+            );
+            backdrop.fillCircle(
+                (index * 97) % width,
+                (index * 53) % Math.max(1, height * 0.48),
+                index % 5 === 0 ? 2 : 1
+            );
+        }
+        this.waypointPreviewElements.push(backdrop);
+
+        this.companionConsentPreviewReviewedIds =
+            this.companionConsentPreview === 'complete'
+                ? COMPANION_BOUNDARY_TOPICS.map(topic => topic.id)
+                : [];
+        this.companionConsentModal = new CompanionConsentModal(this, {
+            snapshotProvider: () => (
+                this.createCompanionConsentPreviewSnapshot()
+            ),
+            onReview: topicId => {
+                if (
+                    !this.companionConsentPreviewReviewedIds.includes(topicId)
+                ) {
+                    this.companionConsentPreviewReviewedIds.push(topicId);
+                }
+                const topic = COMPANION_BOUNDARY_TOPICS.find(
+                    entry => entry.id === topicId
+                );
+                return {
+                    changed: true,
+                    reason: this.companionConsentPreviewReviewedIds.length ===
+                        COMPANION_BOUNDARY_TOPICS.length
+                        ? 'boundary_review_complete'
+                        : 'boundary_reviewed',
+                    topic,
+                    snapshot: this.createCompanionConsentPreviewSnapshot()
+                };
+            },
+            onClose: () => {
+                this.companionConsentModal = null;
+            }
+        });
+        this.companionConsentModal.show(
+            this.companionConsentPreview === 'complete'
+                ? 'complete'
+                : this.companionConsentPreview === 'menu'
+                    ? 'menu'
+                    : 'topic',
+            COMPANION_BOUNDARY_TOPICS.some(
+                topic => topic.id === this.companionConsentPreview
+            )
+                ? this.companionConsentPreview
+                : null
+        );
+    }
+
+    createCompanionEarthMemoryPreviewSnapshot() {
+        const selectedId = this.companionEarthMemoryPreviewSelectedId;
+        const selectedMemory = EARTH_MEMORY_DEFINITIONS.find(
+            memory => memory.id === selectedId
+        ) || null;
+        return {
+            record: {
+                companionId: 'preview_companion_23',
+                status: selectedMemory ? 'shared' : 'not_shared',
+                selectedMemoryId: selectedMemory?.id || null,
+                invitationStatus: 'not_offered',
+                travelConsentRecorded: false,
+                transmissionStatus: 'not_sent'
+            },
+            companionId: 'preview_companion_23',
+            unlocked: true,
+            ready: !selectedMemory,
+            complete: Boolean(selectedMemory),
+            memories: EARTH_MEMORY_DEFINITIONS,
+            selectedMemory,
+            companionInitiated: true,
+            invitationStatus: 'not_offered',
+            travelConsentRecorded: false,
+            transmissionStatus: 'not_sent'
+        };
+    }
+
+    createCompanionEarthMemoryPreview() {
+        if (this.companionEarthMemoryPreviewSize === 'mobile') {
+            const viewportWidth = Math.min(390, this.scale.width);
+            const viewportHeight = Math.min(720, this.scale.height);
+            this.cameras.main.setViewport(
+                (this.scale.width - viewportWidth) / 2,
+                (this.scale.height - viewportHeight) / 2,
+                viewportWidth,
+                viewportHeight
+            );
+        }
+        const { width, height } = this.cameras.main;
+        this.cameras.main.setBackgroundColor('#061019');
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x061019, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x17252D, 1);
+        backdrop.fillRect(0, height * 0.57, width, height * 0.22);
+        for (let index = 0; index < 36; index++) {
+            backdrop.fillStyle(
+                index % 4 === 0 ? 0x8FE3CF : 0xDCE8ED,
+                0.45
+            );
+            backdrop.fillCircle(
+                (index * 89) % width,
+                (index * 47) % Math.max(1, height * 0.54),
+                index % 6 === 0 ? 2 : 1
+            );
+        }
+        this.waypointPreviewElements.push(backdrop);
+
+        const previewMemoryId = {
+            dojo: 'dojo_dawn',
+            ocean: 'ocean_after_storm',
+            city: 'city_lights',
+            shared: 'ocean_after_storm'
+        }[this.companionEarthMemoryPreview];
+        this.companionEarthMemoryPreviewSelectedId = previewMemoryId || null;
+        this.companionEarthMemoryModal = new CompanionEarthMemoryModal(this, {
+            snapshotProvider: () => (
+                this.createCompanionEarthMemoryPreviewSnapshot()
+            ),
+            onShare: memoryId => {
+                const memory = EARTH_MEMORY_DEFINITIONS.find(
+                    entry => entry.id === memoryId
+                );
+                if (!memory) return null;
+                this.companionEarthMemoryPreviewSelectedId = memory.id;
+                return {
+                    changed: true,
+                    reason: 'earth_memory_shared',
+                    memory,
+                    snapshot: this.createCompanionEarthMemoryPreviewSnapshot()
+                };
+            },
+            onClose: () => {
+                this.companionEarthMemoryModal = null;
+            }
+        });
+        this.companionEarthMemoryModal.show(
+            previewMemoryId ? 'shared' : 'menu'
+        );
+    }
+
+    createSenseiMemoryPreviewSnapshot({ recalled = false } = {}) {
+        const previewId = {
+            footing: 'begin_with_your_footing',
+            trust: 'trust_begins_with_how_you_enter',
+            restraint: 'power_is_knowing_what_not_to_take',
+            confirmed: 'begin_with_your_footing'
+        }[this.senseiMemoryPreview];
+        const activeMemory = SENSEI_MEMORY_DEFINITIONS.find(
+            memory => memory.id === previewId
+        ) || SENSEI_MEMORY_DEFINITIONS[0];
+        const recalledCount = Math.min(
+            SENSEI_MEMORY_DEFINITIONS.length,
+            activeMemory.order - 1 + (recalled ? 1 : 0)
+        );
+        const recalledIds = SENSEI_MEMORY_DEFINITIONS
+            .slice(0, recalledCount)
+            .map(memory => memory.id);
+        const memories = SENSEI_MEMORY_DEFINITIONS.map(memory => ({
+            ...memory,
+            unlocked: memory.order <= activeMemory.order,
+            recalled: recalledIds.includes(memory.id)
+        }));
+
+        return {
+            memories,
+            nextMemory: recalled ? null : activeMemory,
+            ready: !recalled,
+            complete:
+                recalledCount === SENSEI_MEMORY_DEFINITIONS.length,
+            recalledCount,
+            totalMemories: SENSEI_MEMORY_DEFINITIONS.length,
+            lesson: {
+                id: 'centering_stance',
+                status: recalledCount > 0 ? 'available' : 'locked',
+                unlocked: recalledCount > 0,
+                durationMs: 1250
+            }
+        };
+    }
+
+    createSenseiMemoryPreview() {
+        const { width, height } = this.scale;
+        if (this.senseiMemoryPreviewSize === 'mobile') {
+            const viewportWidth = Math.min(390, width);
+            const viewportHeight = Math.min(720, height);
+            this.cameras.main.setViewport(
+                (width - viewportWidth) / 2,
+                (height - viewportHeight) / 2,
+                viewportWidth,
+                viewportHeight
+            );
+        }
+        this.cameras.main.setBackgroundColor('#060A0B');
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x060A0B, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x111819, 1);
+        backdrop.fillRoundedRect(
+            width * 0.12,
+            height * 0.56,
+            width * 0.76,
+            height * 0.2,
+            8
+        );
+        backdrop.lineStyle(2, 0xF4F4F4, 0.35);
+        backdrop.strokeRoundedRect(
+            width * 0.12,
+            height * 0.56,
+            width * 0.76,
+            height * 0.2,
+            8
+        );
+        this.waypointPreviewElements.push(backdrop);
+
+        let previewRecalled = this.senseiMemoryPreview === 'confirmed';
+        this.senseiMemoryModal = new SenseiMemoryModal(this, {
+            snapshotProvider: () => (
+                this.createSenseiMemoryPreviewSnapshot({
+                    recalled: previewRecalled
+                })
+            ),
+            onRecall: memoryId => {
+                const memory = SENSEI_MEMORY_DEFINITIONS.find(
+                    entry => entry.id === memoryId
+                );
+                previewRecalled = true;
+                return {
+                    changed: true,
+                    reason: memory?.lessonId
+                        ? 'lesson_unlocked'
+                        : 'memory_recalled',
+                    memory,
+                    snapshot: this.createSenseiMemoryPreviewSnapshot({
+                        recalled: true
+                    })
+                };
+            },
+            onClose: () => {
+                this.senseiMemoryModal = null;
+            }
+        });
+        const activeMemoryId = {
+            footing: 'begin_with_your_footing',
+            trust: 'trust_begins_with_how_you_enter',
+            restraint: 'power_is_knowing_what_not_to_take',
+            confirmed: 'begin_with_your_footing'
+        }[this.senseiMemoryPreview];
+        this.senseiMemoryModal.show(
+            activeMemoryId,
+            this.senseiMemoryPreview === 'confirmed'
+                ? 'confirmed'
+                : 'memory'
+        );
+    }
+
+    createShipEvidencePreview() {
+        const { width, height } = this.scale;
+        if (this.shipEvidencePreviewSize === 'mobile') {
+            const viewportWidth = Math.min(390, width);
+            const viewportHeight = Math.min(720, height);
+            this.cameras.main.setViewport(
+                (width - viewportWidth) / 2,
+                (height - viewportHeight) / 2,
+                viewportWidth,
+                viewportHeight
+            );
+        }
+        this.cameras.main.setBackgroundColor('#04090B');
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x04090B, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x101A20, 1);
+        backdrop.fillRect(0, height * 0.58, width, height * 0.42);
+        backdrop.lineStyle(2, 0x8FE3CF, 0.32);
+        backdrop.lineBetween(0, height * 0.58, width, height * 0.58);
+        this.waypointPreviewElements.push(backdrop);
+
+        const reviewedByMode = {
+            berth: ['systems', 'evidence', 'boundaries'],
+            repair_0: [],
+            repair_3: ['systems', 'evidence', 'boundaries'],
+            repair_final: ['systems', 'evidence', 'boundaries'],
+            repair_complete: ['systems', 'evidence', 'boundaries'],
+            systems: [],
+            evidence: ['systems'],
+            boundaries: ['systems', 'evidence'],
+            complete: ['systems', 'evidence', 'boundaries'],
+            protocol_0: ['systems', 'evidence', 'boundaries'],
+            protocol_3: ['systems', 'evidence', 'boundaries'],
+            protocol_complete: ['systems', 'evidence', 'boundaries'],
+            handoff: ['systems', 'evidence', 'boundaries']
+        };
+        const protocolStepsByMode = {
+            protocol_0: [],
+            protocol_3: [
+                'survival_packet',
+                'route_quarantine',
+                'living_witness_seal'
+            ],
+            protocol_complete: [
+                'survival_packet',
+                'route_quarantine',
+                'living_witness_seal',
+                'uplink_hold'
+            ],
+            handoff: [
+                'survival_packet',
+                'route_quarantine',
+                'living_witness_seal',
+                'uplink_hold'
+            ]
+        };
+        const protocolPreview =
+            this.shipEvidencePreview.startsWith('protocol_');
+        const reconstructionCompletedByMode = {
+            berth: ['living_power_lattice'],
+            repair_0: [],
+            repair_3: [
+                'living_power_lattice',
+                'propulsion_control',
+                'sealed_return_vector'
+            ],
+            repair_final: [
+                'living_power_lattice',
+                'propulsion_control',
+                'sealed_return_vector',
+                'resonance_hull',
+                'uplink_hold'
+            ],
+            repair_complete: [
+                'living_power_lattice',
+                'propulsion_control',
+                'sealed_return_vector',
+                'resonance_hull',
+                'uplink_hold',
+                'black_box_recovery'
+            ],
+            handoff: [
+                'living_power_lattice',
+                'propulsion_control',
+                'sealed_return_vector',
+                'resonance_hull',
+                'uplink_hold',
+                'black_box_recovery'
+            ]
+        };
+        const reconstructionPartsByMode = {
+            berth: ['forest_core'],
+            repair_0: ['forest_core'],
+            repair_3: [
+                'forest_core',
+                'crystal_core',
+                'dimensional_drive',
+                'hull_plating'
+            ],
+            repair_final: [
+                'forest_core',
+                'crystal_core',
+                'dimensional_drive',
+                'hull_plating',
+                'aurora_reactor',
+                'command_module'
+            ],
+            repair_complete: [
+                'forest_core',
+                'crystal_core',
+                'dimensional_drive',
+                'hull_plating',
+                'aurora_reactor',
+                'command_module'
+            ],
+            handoff: [
+                'forest_core',
+                'crystal_core',
+                'dimensional_drive',
+                'hull_plating',
+                'aurora_reactor',
+                'command_module'
+            ]
+        };
+        const previewState = {
+            stats: { levelsCompleted: 3 },
+            levels: {
+                mythicalForest: { completed: true },
+                crystalCaves: { completed: true }
+            },
+            creature: {
+                hatched: true,
+                name: 'Aster',
+                genes: { id: 'preview_companion_23' },
+                stats: this.shipEvidencePreview === 'berth'
+                    ? {
+                        health: 48,
+                        energy: 32,
+                        happiness: 84
+                    }
+                    : {
+                        health: 100,
+                        energy: 100,
+                        happiness: 100
+                    },
+                agencyHistory: [
+                    { type: 'high_power_rescue' }
+                ]
+            },
+            hubWorld: {
+                shipParts: {
+                    collected:
+                        reconstructionPartsByMode[
+                            this.shipEvidencePreview
+                        ] || [
+                            'forest_core',
+                            'crystal_core',
+                            'dimensional_drive'
+                        ]
+                }
+            },
+            world: {
+                currentEcology: {
+                    schemaVersion: 2,
+                    observedSignalIds: ['echo_bloom', 'memory_stone'],
+                    restoredRegionIds: [
+                        'mythical_forest',
+                        'crystal_caves'
+                    ],
+                    regions: {},
+                    history: []
+                },
+                fendCulture: {
+                    schemaVersion: 1,
+                    firstListening: {
+                        status: 'complete',
+                        heldAt: '2026-07-31T00:23:00.000Z',
+                        operationId: 'preview_first_listening_23',
+                        selectedPriority: 'restoration'
+                    },
+                    history: []
+                }
+            },
+            story: {
+                projectBeacon: {
+                    missionLogSeen: true,
+                    fieldKit: { recovered: true },
+                    sensei: {
+                        encryptedContact: {
+                            contactAttempted: false,
+                            contactEstablished: false
+                        }
+                    },
+                    shipCapabilities: {
+                        stealthDescent: 'repaired',
+                        secureReturnVector: 'sealed',
+                        manualLanding: 'available',
+                        blackBoxProof: 'recovered',
+                        passengerCapacity: 1,
+                        creatureLifeSupport: 'prototype_required',
+                        longRangeUplink: 'held_exposure_risk'
+                    },
+                    shipReconstruction: {
+                        schemaVersion: 1,
+                        completedStepIds:
+                            reconstructionCompletedByMode[
+                                this.shipEvidencePreview
+                            ] || [],
+                        firstInstalledAt: null,
+                        completedAt: null,
+                        history: []
+                    },
+                    shipFieldSupport: {
+                        schemaVersion: 1,
+                        lastServicedLevel: 0,
+                        serviceCount: 0,
+                        lastServicedAt: null,
+                        history: []
+                    },
+                    shipArchive: {
+                        schemaVersion: 1,
+                        reviewedSectionIds: [
+                            ...reviewedByMode[this.shipEvidencePreview]
+                        ],
+                        firstReviewedAt: null,
+                        completedAt: null,
+                        history: []
+                    },
+                    protectedReturnProtocol: {
+                        schemaVersion: 1,
+                        completedStepIds:
+                            protocolStepsByMode[
+                                this.shipEvidencePreview
+                            ] || [],
+                        packetStatus: 'not_prepared',
+                        transmissionStatus: 'not_sent',
+                        firstAppliedAt: null,
+                        completedAt: null,
+                        history: []
+                    },
+                    companionConsent: {
+                        schemaVersion: 2,
+                        activeCompanionId: 'preview_companion_23',
+                        records: protocolPreview
+                            ? [{
+                                companionId: 'preview_companion_23',
+                                travelStatus: 'decision_deferred',
+                                disclosureStatus:
+                                    'astronaut_survival_only',
+                                locationBoundary:
+                                    'coordinates_withheld',
+                                informedRisks: true,
+                                willingPassenger: null,
+                                vetoRecognized: true,
+                                powerBoundary:
+                                    'emergency_life_first',
+                                reviewedTopicIds: [
+                                    'route',
+                                    'evidence',
+                                    'power'
+                                ],
+                                history: [],
+                                recordedAt:
+                                    '2026-07-31T00:23:00.000Z',
+                                lastReviewedAt:
+                                    '2026-07-31T00:23:00.000Z'
+                            }]
+                            : []
+                    }
+                }
+            }
+        };
+        const previewGameState = {
+            get(path) {
+                return path.split('.').reduce(
+                    (value, key) => value?.[key],
+                    previewState
+                );
+            },
+            set(path, value) {
+                const keys = path.split('.');
+                const finalKey = keys.pop();
+                const parent = keys.reduce((target, key) => {
+                    target[key] = target[key] || {};
+                    return target[key];
+                }, previewState);
+                parent[finalKey] = value;
+            },
+            save() {}
+        };
+
+        this.shipEvidenceBoardModal = new ShipEvidenceBoardModal(this, {
+            snapshotProvider: () => (
+                getShipEvidenceSnapshot(previewGameState)
+            ),
+            onReview: sectionId => (
+                recordShipEvidenceSection(
+                    previewGameState,
+                    sectionId,
+                    { save: false }
+                )
+            ),
+            reconstructionSnapshotProvider: () => (
+                getShipReconstructionSnapshot(previewGameState)
+            ),
+            onReconstructionStep: stepId => (
+                installShipReconstructionStep(
+                    previewGameState,
+                    stepId,
+                    { save: false }
+                )
+            ),
+            onCompanionService: () => (
+                serviceCompanionAtPoweredBerth(
+                    previewGameState,
+                    { save: false }
+                )
+            ),
+            protocolSnapshotProvider: () => (
+                getProtectedReturnSnapshot(previewGameState)
+            ),
+            handoffSnapshotProvider: () => (
+                this.shipEvidencePreview === 'handoff'
+                    ? {
+                        available: true,
+                        readyForHomecoming: false,
+                        completedCount: 5,
+                        totalRequirements: 6,
+                        rows: [
+                            {
+                                id: 'companion_continuity',
+                                label: 'COMPANION CONTINUITY',
+                                status: 'VERIFIED',
+                                tone: 'protected',
+                                detail:
+                                    'Aster\'s identity, lineage, bond, and powers are portable.'
+                            },
+                            {
+                                id: 'living_world_record',
+                                label: 'LIVING WORLD RECORD',
+                                status: 'VERIFIED',
+                                tone: 'protected',
+                                detail:
+                                    'All six living regions and their Current history are preserved.'
+                            },
+                            {
+                                id: 'earth_equipment',
+                                label: 'EARTH EQUIPMENT',
+                                status: 'VERIFIED',
+                                tone: 'protected',
+                                detail:
+                                    'The Earth-forged katana and five recovered ship systems are recorded.'
+                            },
+                            {
+                                id: 'remain_and_defend',
+                                label: 'REMAIN AND DEFEND',
+                                status: 'VERIFIED',
+                                tone: 'protected',
+                                detail:
+                                    'The Fend recovery chapter is complete before any Earth return.'
+                            },
+                            {
+                                id: 'protected_return',
+                                label: 'PROTECTED RETURN',
+                                status: 'PENDING',
+                                tone: 'pending',
+                                detail:
+                                    'Repair concealed descent before a secret Earth landing can be safe.'
+                            },
+                            {
+                                id: 'consent_and_contact',
+                                label: 'CONSENT & SENSEI SEED',
+                                status: 'VERIFIED',
+                                tone: 'protected',
+                                detail:
+                                    'The companion keeps veto power and the unused Sensei route is recoverable.'
+                            }
+                        ]
+                    }
+                    : getHomecomingHandoffSnapshot(
+                        previewGameState
+                    )
+            ),
+            onProtocolStep: stepId => (
+                applyProtectedReturnStep(
+                    previewGameState,
+                    stepId,
+                    { save: false }
+                )
+            ),
+            onClose: () => {
+                this.shipEvidenceBoardModal = null;
+            }
+        });
+        this.shipEvidenceBoardModal.show(
+            this.shipEvidencePreview === 'handoff'
+                ? 'handoff'
+            : this.shipEvidencePreview === 'berth'
+                ? 'reconstruction'
+            : this.shipEvidencePreview.startsWith('repair_')
+                ? 'reconstruction'
+            : protocolPreview
+                ? 'protocol'
+                : this.shipEvidencePreview === 'complete'
+                ? 'boundaries'
+                : this.shipEvidencePreview
+        );
+    }
+
+    createCurrentVeilPreview() {
+        const { width, height } = this.scale;
+        if (this.currentVeilPreviewSize === 'mobile') {
+            const viewportWidth = Math.min(390, width);
+            const viewportHeight = Math.min(720, height);
+            this.cameras.main.setViewport(
+                (width - viewportWidth) / 2,
+                (height - viewportHeight) / 2,
+                viewportWidth,
+                viewportHeight
+            );
+        }
+        this.cameras.main.setBackgroundColor('#04090B');
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x04090B, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x10231F, 1);
+        backdrop.fillRect(0, height * 0.62, width, height * 0.38);
+        backdrop.lineStyle(2, 0x71E6B1, 0.34);
+        backdrop.lineBetween(
+            0,
+            height * 0.62,
+            width,
+            height * 0.62
+        );
+        this.waypointPreviewElements.push(backdrop);
+
+        const stabilizedByMode = {
+            available: [],
+            active: ['root_echo'],
+            verification: [
+                'root_echo',
+                'well_echo',
+                'relay_echo'
+            ],
+            complete: [
+                'root_echo',
+                'well_echo',
+                'relay_echo'
+            ]
+        };
+        const statusByMode = {
+            available: 'not_started',
+            active: 'active',
+            verification: 'verification_ready',
+            complete: 'complete'
+        };
+        const previewState = {
+            creature: {
+                hatched: true,
+                name: 'Aster',
+                genes: { id: 'preview_companion_23' }
+            },
+            stats: { levelsCompleted: 6 },
+            world: {
+                signalGarden: {
+                    stage: 'bloom',
+                    tendCount: 4
+                },
+                livingSignals: {
+                    observedIds: [
+                        'echo_bloom',
+                        'memory_stone',
+                        'rootlight'
+                    ]
+                },
+                currentEcology: {
+                    schemaVersion: 2,
+                    observedSignalIds: [
+                        'echo_bloom',
+                        'memory_stone',
+                        'rootlight'
+                    ],
+                    restoredRegionIds: [
+                        'mythical_forest',
+                        'crystal_caves'
+                    ],
+                    regions: {},
+                    history: []
+                },
+                fendCommunity: {
+                    schemaVersion: 1,
+                    builtProjectIds: FEND_COMMUNITY_PROJECTS.map(
+                        project => project.id
+                    ),
+                    contributionHistory: [],
+                    foundedAt: '2026-07-31T00:23:00.000Z',
+                    lastContributionAt:
+                        '2026-07-31T00:23:00.000Z'
+                },
+                fendResidents: {
+                    schemaVersion: 1,
+                    metResidentIds: FEND_RESIDENT_DEFINITIONS.map(
+                        resident => resident.id
+                    ),
+                    activeRequestId: null,
+                    activeRequestBaseline: null,
+                    completedRequestIds:
+                        FEND_RESIDENT_DEFINITIONS.map(
+                            resident => resident.request.id
+                        ),
+                    history: [],
+                    firstMetAt:
+                        '2026-07-31T00:23:00.000Z',
+                    lastInteractionAt:
+                        '2026-07-31T00:23:00.000Z'
+                },
+                fendCulture: {
+                    schemaVersion: 1,
+                    firstListening: {
+                        status: 'complete',
+                        heldAt: '2026-07-31T00:23:00.000Z',
+                        operationId:
+                            'preview_first_listening_23',
+                        selectedPriority:
+                            FEND_COMMONS_PRIORITIES[0].id
+                    },
+                    history: []
+                },
+                currentVeilMission: {
+                    schemaVersion: 1,
+                    status: statusByMode[
+                        this.currentVeilPreview
+                    ],
+                    stabilizedAnchorIds: [
+                        ...stabilizedByMode[
+                            this.currentVeilPreview
+                        ]
+                    ],
+                    maskStatus: 'inactive',
+                    transmissionStatus: 'not_sent',
+                    startedAt:
+                        this.currentVeilPreview === 'available'
+                            ? null
+                            : '2026-07-31T01:23:00.000Z',
+                    completedAt:
+                        this.currentVeilPreview === 'complete'
+                            ? '2026-07-31T01:27:00.000Z'
+                            : null,
+                    history: []
+                }
+            },
+            story: {
+                projectBeacon: {
+                    fieldKit: { recovered: true },
+                    finale: {
+                        priority: 'remain_and_defend'
+                    },
+                    shipCapabilities: {
+                        stealthDescent: 'repaired',
+                        secureReturnVector: 'sealed',
+                        manualLanding: 'available',
+                        blackBoxProof: 'recovered',
+                        passengerCapacity: 1,
+                        creatureLifeSupport:
+                            'prototype_required',
+                        longRangeUplink:
+                            'held_exposure_risk'
+                    },
+                    shipArchive: {
+                        schemaVersion: 1,
+                        reviewedSectionIds: [
+                            'systems',
+                            'evidence',
+                            'boundaries'
+                        ],
+                        history: []
+                    },
+                    protectedReturnProtocol: {
+                        schemaVersion: 1,
+                        completedStepIds: [
+                            'survival_packet',
+                            'route_quarantine',
+                            'living_witness_seal',
+                            'uplink_hold'
+                        ],
+                        packetStatus:
+                            'sealed_ready_not_sent',
+                        transmissionStatus: 'not_sent',
+                        history: []
+                    },
+                    companionConsent: {
+                        schemaVersion: 2,
+                        activeCompanionId:
+                            'preview_companion_23',
+                        records: [{
+                            companionId:
+                                'preview_companion_23',
+                            travelStatus:
+                                'decision_deferred',
+                            disclosureStatus:
+                                'astronaut_survival_only',
+                            locationBoundary:
+                                'coordinates_withheld',
+                            informedRisks: true,
+                            willingPassenger: null,
+                            vetoRecognized: true,
+                            powerBoundary:
+                                'emergency_life_first',
+                            reviewedTopicIds: [
+                                'route',
+                                'evidence',
+                                'power'
+                            ],
+                            history: []
+                        }]
+                    }
+                }
+            }
+        };
+        const previewGameState = {
+            get(path) {
+                return path.split('.').reduce(
+                    (value, key) => value?.[key],
+                    previewState
+                );
+            },
+            set(path, value) {
+                const keys = path.split('.');
+                const finalKey = keys.pop();
+                const parent = keys.reduce((target, key) => {
+                    target[key] = target[key] || {};
+                    return target[key];
+                }, previewState);
+                parent[finalKey] = value;
+            },
+            save() {},
+            emit() {}
+        };
+
+        if (
+            this.currentVeilPreview !== 'available' &&
+            this.currentVeilPreviewSize !== 'mobile'
+        ) {
+            const gardenX = width / 2 - 150;
+            const gardenY = height / 2;
+            const gardenBase = this.add.graphics()
+                .setDepth(gardenY - 3);
+            gardenBase.fillStyle(0x142D2A, 0.96);
+            gardenBase.fillRoundedRect(
+                gardenX - 86,
+                gardenY - 38,
+                172,
+                76,
+                22
+            );
+            gardenBase.lineStyle(3, 0x71E6B1, 0.72);
+            gardenBase.strokeRoundedRect(
+                gardenX - 86,
+                gardenY - 38,
+                172,
+                76,
+                22
+            );
+            const gardenZone = this.add.zone(
+                gardenX,
+                gardenY,
+                180,
+                140
+            );
+            this.physics.add.existing(gardenZone, true);
+            gardenZone.setDepth(gardenY);
+            this.signalGarden = {
+                zone: gardenZone,
+                currentVeilAnchors: [],
+                currentVeilNetwork: null
+            };
+            this.worldBuilder = new WorldBuilder(this, null, {
+                worldWidth: width,
+                worldHeight: height
+            });
+            this.worldBuilder.refreshCurrentVeilMission(
+                this.signalGarden,
+                getCurrentVeilSnapshot(previewGameState)
+            );
+            this.waypointPreviewElements.push(
+                gardenBase,
+                gardenZone
+            );
+        }
+
+        this.currentVeilModal = new CurrentVeilModal(this, {
+            snapshotProvider: () => (
+                getCurrentVeilSnapshot(previewGameState)
+            ),
+            onStart: () => (
+                startCurrentVeilMission(
+                    previewGameState,
+                    { save: false }
+                )
+            ),
+            onClose: () => {
+                this.currentVeilModal = null;
+            }
+        });
+        this.currentVeilModal.show();
     }
 
     createSettingsPreview() {
@@ -1287,11 +3756,13 @@ class GameScene extends Phaser.Scene {
         const previewFeedback = {
             screenShakeEnabled: true,
             hapticEnabled: true,
+            reducedMotionEnabled: false,
             getSettings() {
                 return {
                     screenShakeEnabled: this.screenShakeEnabled,
                     hapticEnabled: this.hapticEnabled,
-                    hapticSupported: true
+                    hapticSupported: true,
+                    reducedMotionEnabled: this.reducedMotionEnabled
                 };
             },
             toggleScreenShake() {
@@ -1299,6 +3770,9 @@ class GameScene extends Phaser.Scene {
             },
             toggleHaptic() {
                 this.hapticEnabled = !this.hapticEnabled;
+            },
+            toggleReducedMotion() {
+                this.reducedMotionEnabled = !this.reducedMotionEnabled;
             }
         };
 
@@ -1639,6 +4113,195 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(2000);
     }
 
+    createKinshipBeaconPreview() {
+        const camera = this.cameras.main;
+        const isShared = this.kinshipBeaconPreview === 'shared';
+        camera.setBackgroundColor('#102329');
+        camera.setBounds(0, 0, this.worldWidth, this.worldHeight);
+        camera.centerOn(520, 1015);
+        camera.setZoom(Math.min(camera.width / 700, camera.height / 560));
+
+        const ground = this.add.graphics();
+        ground.fillStyle(0x102329, 1);
+        ground.fillRect(100, 680, 850, 700);
+        ground.fillStyle(0x193B3B, 1);
+        ground.fillEllipse(520, 1040, 620, 410);
+        ground.lineStyle(4, 0x44746E, 0.65);
+        ground.strokeEllipse(520, 1040, 620, 410);
+        ground.setDepth(680);
+
+        this.worldBuilder = new WorldBuilder(this, null, {
+            worldWidth: this.worldWidth,
+            worldHeight: this.worldHeight
+        });
+        this.kinshipBeacon = this.worldBuilder.createKinshipBeacon({
+            schemaVersion: 2,
+            unlocked: true,
+            lineageCount: isShared ? 2 : 1,
+            sharedLineageCount: isShared ? 1 : 0
+        });
+
+        this.add.text(
+            520,
+            800,
+            isShared
+                ? 'SHARED LINEAGE // TWO SANCTUARIES'
+                : 'FIRST LINEAGE // SANCTUARY RECORD',
+            {
+            fontSize: camera.width < 600 ? '19px' : '25px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F4F4F4',
+            fontStyle: 'bold',
+            stroke: '#081514',
+            strokeThickness: 5
+            }
+        ).setOrigin(0.5).setDepth(2000);
+    }
+
+    createFusionLandmarkPreview() {
+        const camera = this.cameras.main;
+        const state = this.fusionLandmarkPreview;
+        const x = 1200;
+        const y = 900;
+        const snapshots = {
+            dormant: {
+                state: 'dormant',
+                tone: 'dormant',
+                statusLabel: 'TWO LIVING SIGNALS REQUIRED'
+            },
+            calibrating: {
+                state: 'calibrating',
+                tone: 'calibrating',
+                statusLabel: 'FIELD CALIBRATION 3/5'
+            },
+            maturing: {
+                state: 'maturing',
+                tone: 'calibrating',
+                statusLabel: 'ADULT SIGNALS 1/2'
+            },
+            ready: {
+                state: 'ready',
+                tone: 'ready',
+                statusLabel: 'TWO ADULT SIGNALS READY'
+            }
+        };
+
+        camera.setBackgroundColor('#102329');
+        camera.setBounds(0, 0, this.worldWidth, this.worldHeight);
+        camera.centerOn(x, y);
+        camera.setZoom(Math.min(camera.width / 700, camera.height / 560));
+
+        const ground = this.add.graphics();
+        ground.fillStyle(0x102329, 1);
+        ground.fillRect(x - 430, y - 350, 860, 700);
+        ground.fillStyle(0x193B3B, 1);
+        ground.fillEllipse(x, y + 28, 610, 365);
+        ground.lineStyle(4, 0x44746E, 0.65);
+        ground.strokeEllipse(x, y + 28, 610, 365);
+        ground.setDepth(y - 300);
+
+        this.worldBuilder = new WorldBuilder(this, null, {
+            worldWidth: this.worldWidth,
+            worldHeight: this.worldHeight
+        });
+        this.fusionPodLandmark =
+            this.worldBuilder.createFusionPodLandmark(
+                {
+                    position: { x, y },
+                    size: { width: 150, height: 150 },
+                    interactable: true,
+                    interactRadius: 118,
+                    name: 'Fusion Pod',
+                    onInteract: 'openFusionPod'
+                },
+                snapshots[state]
+            );
+
+        const figure = (offsetX, color) => {
+            const companion = this.add.graphics()
+                .setPosition(x + offsetX, y + 38)
+                .setDepth(y + 3);
+            companion.fillStyle(0x101616, 0.95);
+            companion.fillEllipse(0, 24, 42, 14);
+            companion.fillStyle(color, 1);
+            companion.fillRoundedRect(-14, -4, 28, 32, 9);
+            companion.fillStyle(0xF4F4F4, 1);
+            companion.fillCircle(0, -14, 16);
+            companion.fillStyle(0x101616, 1);
+            companion.fillCircle(-5, -15, 3);
+            companion.fillCircle(5, -15, 3);
+            return companion;
+        };
+        figure(-118, 0xC73A3A);
+        if (state !== 'dormant') {
+            figure(118, 0x3FAE62);
+        }
+
+        this.add.text(
+            x,
+            y - 170,
+            'FEND CURRENT ARCHIVE // FUSION POD',
+            {
+                fontSize: camera.width < 600 ? '18px' : '24px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'bold',
+                stroke: '#081514',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5).setDepth(2000);
+        this.add.text(
+            x,
+            y - 135,
+            snapshots[state].statusLabel,
+            {
+                fontSize: '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: state === 'ready' ? '#71E6B1' : '#F2C14E',
+                fontStyle: 'bold',
+                stroke: '#081514',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(2000);
+    }
+
+    createFusionStoryPreview() {
+        const camera = this.cameras.main;
+        if (this.fusionStoryPreviewSize === 'mobile') {
+            const viewportWidth = Math.min(390, this.scale.width);
+            const viewportHeight = Math.min(720, this.scale.height);
+            camera.setViewport(
+                (this.scale.width - viewportWidth) / 2,
+                (this.scale.height - viewportHeight) / 2,
+                viewportWidth,
+                viewportHeight
+            );
+        }
+        const { width, height } = camera;
+        camera.setBackgroundColor('#071514');
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x071514, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x153A34, 1);
+        backdrop.fillRect(0, height * 0.68, width, height * 0.32);
+        backdrop.lineStyle(2, 0x71E6B1, 0.28);
+        for (let x = -height; x < width; x += 70) {
+            backdrop.lineBetween(x, height, x + height * 0.3, height * 0.68);
+        }
+
+        this.showBreedingUnlockTutorial({
+            preview: true,
+            creatures: [
+                { id: 'preview_alpha', name: 'Luma' },
+                { id: 'preview_beta', name: 'Sola' }
+            ],
+            discovery: {
+                state: 'two_signals',
+                introductionAcknowledged: false
+            }
+        });
+    }
+
     /**
      * Notify creature of game events (call from other systems)
      * @param {string} eventType - 'level_complete', 'level_failed', 'boss_defeated', etc.
@@ -1745,6 +4408,27 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    createInteractionPromptPreview() {
+        const { width, height } = this.scale;
+        this.cameras.main.setBackgroundColor('#08141B');
+
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x08141B, 1);
+        backdrop.fillRect(0, 0, width, height);
+        backdrop.fillStyle(0x173A3C, 0.8);
+        backdrop.fillRect(0, height * 0.58, width, height * 0.42);
+        backdrop.setDepth(-10);
+
+        if (window.MobileControls) {
+            this.mobileControls = new window.MobileControls(this);
+            this.mobileControls.show(true);
+        }
+        this.getHudController().createInteractionPrompt(width, height);
+        this.showInteractionHint(
+            'Press SPACE to visit the Cozy Cosmic Boutique'
+        );
+    }
+
     setupCamera() {
         const camera = this.cameras?.main;
 
@@ -1752,8 +4436,6 @@ class GameScene extends Phaser.Scene {
             console.warn('[GameScene] Camera not ready yet, skipping setup');
             return;
         }
-
-        camera.setBounds(0, 0, this.worldWidth, this.worldHeight);
 
         if (this.player) {
             camera.startFollow(this.player, true, 0.12, 0.12);
@@ -1768,10 +4450,46 @@ class GameScene extends Phaser.Scene {
         const zoom = isMobile ? 0.85 : 1.0;
 
         camera.setZoom(zoom);
+        this.applyMobileCameraBounds(camera, isMobile, zoom);
         camera.setRoundPixels(true);
         camera.setBackgroundColor('#050214');
 
         this.currentCameraZoom = zoom;
+
+        if (!this.mobileCameraResizeHandler) {
+            this.mobileCameraResizeHandler = () => {
+                const mobile = window.responsiveManager?.isMobile ??
+                    window.innerWidth < 768;
+                const nextZoom = mobile ? 0.85 : 1.0;
+                camera.setZoom(nextZoom);
+                this.applyMobileCameraBounds(camera, mobile, nextZoom);
+                this.currentCameraZoom = nextZoom;
+            };
+            this.scale.on('resize', this.mobileCameraResizeHandler);
+        }
+    }
+
+    applyMobileCameraBounds(camera, isMobile, zoom) {
+        let reservedWorldHeight = 0;
+        if (isMobile) {
+            const layout = getMobileControlLayout({
+                width: this.scale.width,
+                height: this.scale.height,
+                safeArea: getSafeAreaInsets()
+            });
+            const playerClearance = 28;
+            reservedWorldHeight = Math.ceil(
+                (layout.dockHeight + playerClearance) / Math.max(zoom, 0.1)
+            );
+        }
+
+        camera.setBounds(
+            0,
+            0,
+            this.worldWidth,
+            this.worldHeight + reservedWorldHeight
+        );
+        this.mobileControlDockWorldReserve = reservedWorldHeight;
     }
 
     /**
@@ -1811,7 +4529,10 @@ class GameScene extends Phaser.Scene {
 
         // Check if user has seen enough to disable navigation hints
         const timesVisited = window.GameState?.get('session.sanctuaryVisits') || 0;
-        const showNavigation = timesVisited < 5; // Show for first 5 visits
+        const villageSnapshot = getVillageSnapshot(window.GameState);
+        const villageNeedsGuidance = villageSnapshot.unlock.unlocked &&
+            !villageSnapshot.state.guidanceSeen;
+        const showNavigation = timesVisited < 5 || villageNeedsGuidance;
 
         // Track visit
         window.GameState?.set('session.sanctuaryVisits', timesVisited + 1);
@@ -1858,6 +4579,17 @@ class GameScene extends Phaser.Scene {
                 y: this.shop.y,
                 color: 0xFFD700,
                 description: 'Buy eggs & items'
+            });
+        }
+
+        if (this.villageHeartLandmark && villageSnapshot.unlock.unlocked) {
+            destinations.push({
+                name: villageNeedsGuidance ? 'Village Heart: New' : 'Village Heart',
+                icon: 'V',
+                x: this.villageHeartLandmark.zone.x,
+                y: this.villageHeartLandmark.zone.y,
+                color: 0x71E6B1,
+                description: 'Plan the shared settlement'
             });
         }
 
@@ -2646,7 +5378,7 @@ class GameScene extends Phaser.Scene {
             head: 0xDDA0DD,  // Default plum
             wings: 0x8A2BE2  // Default blue violet
         };
-        
+
         // Create enhanced player creature sprites (4 frames for walking animation)
         // Note: This is now handled in createPlayer() using genetics, but kept for compatibility
         for (let i = 0; i < 4; i++) {
@@ -2718,6 +5450,26 @@ class GameScene extends Phaser.Scene {
             // Default to center of world
             startX = this.worldWidth / 2;
             startY = this.worldHeight / 2;
+        }
+
+        if (
+            this.currentBiome === 'nebula' &&
+            this.sanctuaryZones?.getSafeSpawnPosition
+        ) {
+            const safePosition = this.sanctuaryZones.getSafeSpawnPosition({
+                x: startX,
+                y: startY
+            });
+            const recovered = safePosition.x !== Number(startX) ||
+                safePosition.y !== Number(startY);
+            startX = safePosition.x;
+            startY = safePosition.y;
+            if (recovered) {
+                console.warn(
+                    '[GameScene] Recovered player from unsafe Sanctuary perimeter'
+                );
+                getGameState().updateWorldExploration({ x: startX, y: startY });
+            }
         }
         
         // Get creature genetics for proper sprite creation
@@ -3421,7 +6173,7 @@ class GameScene extends Phaser.Scene {
             // DEV MODE: Cycle lifecycle stages with L key (QA tool for testing)
             this.devStageIndex = 0;
             const stageOrder = ['baby', 'juvenile', 'adult', 'elder'];
-            const stageDaysL = { baby: 0, juvenile: 1, adult: 3, elder: 10 };
+            const stageDaysL = { baby: 0, juvenile: 1, adult: 2, elder: 9 };
             this.input.keyboard.on('keydown-L', () => {
                 // Cycle to next stage
                 this.devStageIndex = (this.devStageIndex + 1) % stageOrder.length;
@@ -3865,12 +6617,16 @@ class GameScene extends Phaser.Scene {
         const creatures = window.GameState?.getCreatureCollection() || [];
         const isMobile = this.isMobile();
 
+        this.rosterElements = [];
+        this.rosterCountText = null;
+        if (creatures.length < 2) {
+            return;
+        }
+
         // Position: On mobile, position below hamburger menu area (~120px from top)
         // On desktop, position in top-left below header
         const baseX = 16;
         const baseY = isMobile ? 120 : 85;
-
-        this.rosterElements = [];
 
         // Background panel
         const panelWidth = isMobile ? 160 : 180;
@@ -4682,7 +7438,7 @@ class GameScene extends Phaser.Scene {
         });
         bonusText.setOrigin(0.5);
         bonusText.setScrollFactor(0);
-        
+
         // Announce to screen reader
         if (window.UXEnhancements) {
             window.UXEnhancements.announce('Daily bonus claimed successfully!', 'assertive');
@@ -4867,12 +7623,96 @@ class GameScene extends Phaser.Scene {
     /**
      * Handle player proximity to the Signal Garden.
      */
+    getFusionPodWorldSnapshot() {
+        const sharedAvailable = window.SharedFusionInvitation
+            ?.getSharedFusionAvailability?.(
+                window.CloudSave
+            )?.available === true;
+        return getFusionPodLandmarkSnapshot(
+            window.GameState,
+            { sharedAvailable }
+        );
+    }
+
+    refreshFusionPodWorldLandmark() {
+        if (
+            this.currentBiome !== 'nebula' ||
+            !this.worldBuilder ||
+            !this.fusionPodLandmark
+        ) {
+            return null;
+        }
+        const snapshot = this.getFusionPodWorldSnapshot();
+        this.worldBuilder.refreshFusionPodLandmark(
+            this.fusionPodLandmark,
+            snapshot
+        );
+        if (this.nearFusionPod) {
+            this.showInteractionHint(
+                `Press SPACE · ${snapshot.interactionLabel}`
+            );
+        }
+        return snapshot;
+    }
+
+    handleFusionPodProximity() {
+        if (this.nearFusionPod) return;
+
+        this.nearFusionPod = true;
+        const snapshot = this.refreshFusionPodWorldLandmark() ||
+            this.getFusionPodWorldSnapshot();
+        this.showInteractionHint(
+            `Press SPACE · ${snapshot.interactionLabel}`
+        );
+        this.mobileControls?.updateInteractIcon('🧬');
+
+        const zone = this.fusionPodLandmark?.zone;
+        if (!zone || this.fusionPodIndicator) return;
+        this.fusionPodIndicator = this.add.graphics();
+        this.fusionPodIndicator.setDepth((zone.depth || zone.y) - 1);
+        this.fusionPodIndicatorTween = this.tweens.add({
+            targets: { scale: 1 },
+            scale: 1.1,
+            duration: 1150,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+            onUpdate: (_tween, target) => {
+                if (!this.fusionPodIndicator || !zone.active) return;
+                this.fusionPodIndicator.clear();
+                this.fusionPodIndicator.lineStyle(
+                    3,
+                    snapshot.tone === 'ready'
+                        ? 0x71E6B1
+                        : 0xF2C14E,
+                    0.5
+                );
+                this.fusionPodIndicator.strokeCircle(
+                    zone.x,
+                    zone.y,
+                    72 * target.scale
+                );
+            }
+        });
+    }
+
     handleSignalGardenProximity() {
         if (this.nearSignalGarden) return;
 
         this.nearSignalGarden = true;
         console.log('[GameScene] Player near Signal Garden');
-        this.showInteractionHint('Press SPACE to tend the Signal Garden 🌱');
+        const community = getFendCommunitySnapshot(window.GameState);
+        const culture = getFendCultureSnapshot(window.GameState);
+        const action = culture.ready
+            ? 'Hold the First Listening'
+            : community.nextProject?.ready
+                ? `Build ${community.nextProject.shortLabel}`
+                : culture.complete
+                    ? culture.selectedPriority.shortLabel
+                    : community.complete
+                        ? 'Tend the Living Commons'
+                        : 'Tend garden';
+        this.showInteractionHint(`Press SPACE · ${action}`);
         this.mobileControls?.updateInteractIcon('🌱');
 
         const gardenZone = this.signalGarden?.zone;
@@ -4901,8 +7741,1895 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    handleVillageHeartProximity() {
+        if (this.nearVillageHeart) return;
+        this.nearVillageHeart = true;
+        const snapshot = reconcileVillageSettlement(window.GameState)
+            || getVillageSnapshot(window.GameState);
+        const needsGuidance = snapshot.unlock.unlocked &&
+            !snapshot.state.guidanceSeen;
+        if (needsGuidance) {
+            markVillageGuidanceSeen(window.GameState);
+        }
+        this.showInteractionHint(
+            snapshot.unlock.unlocked
+                ? needsGuidance
+                    ? 'Village Heart awakened · Press SPACE to place your first structure'
+                    : 'Press SPACE · Open Village Heart'
+                : `Village Heart offline · ${snapshot.unlock.reason}`
+        );
+        this.mobileControls?.updateInteractIcon('V');
+    }
+
+    getVillageRenderSignature(snapshot) {
+        return JSON.stringify({
+            unlocked: snapshot?.unlock?.unlocked === true,
+            buildings: snapshot?.buildings?.map(building => ({
+                id: building.id,
+                status: building.status,
+                creatureId: building.assignedCreatureId,
+                multiplier: building.workProfile?.multiplier || null
+            })) || []
+        });
+    }
+
+    refreshVillageSettlementWorld(snapshot = null, { force = false } = {}) {
+        if (!this.villageHeartLandmark || !this.worldBuilder) return null;
+        const nextSnapshot = snapshot || getVillageSnapshot(window.GameState);
+        const signature = this.getVillageRenderSignature(nextSnapshot);
+        if (!force && signature === this.villageRenderSignature) {
+            return nextSnapshot;
+        }
+        this.villageRenderSignature = signature;
+        this.worldBuilder.refreshVillageSettlement(
+            this.villageHeartLandmark,
+            nextSnapshot
+        );
+        return nextSnapshot;
+    }
+
+    notifyVillageProgress(previous, next) {
+        if (!previous || !next) return;
+        const previousComplete = new Set(
+            previous.buildings
+                .filter(building => building.status === 'complete')
+                .map(building => building.id)
+        );
+        const completed = next.buildings.find(building => (
+            building.status === 'complete' && !previousComplete.has(building.id)
+        ));
+        if (completed) {
+            this.showVillageCompletionMoment(completed);
+            this.showInteractionHint(
+                `${completed.definition.shortLabel} online · ${completed.definition.immediateImpact}`
+            );
+            window.AudioManager?.playAchievement?.();
+            return;
+        }
+
+        if (!this.nearVillageHeart) return;
+        const gains = VILLAGE_RESOURCE_DEFINITIONS
+            .map(resource => ({
+                label: resource.label,
+                amount: Math.max(
+                    0,
+                    (next.resources[resource.id] || 0) -
+                    (previous.resources[resource.id] || 0)
+                )
+            }))
+            .filter(gain => gain.amount > 0);
+        if (gains.length > 0) {
+            this.showInteractionHint(
+                `Village production · ${gains.map(gain => `+${gain.amount} ${gain.label}`).join(' · ')}`
+            );
+            window.AudioManager?.playCoin?.();
+        }
+    }
+
+    showVillageCompletionMoment(building) {
+        if (
+            this.currentBiome !== 'nebula' ||
+            !building?.definition ||
+            this.sys?.isActive?.() === false
+        ) {
+            return false;
+        }
+
+        this.villageCompletionMoment?.destroy?.(true);
+        const { width } = this.cameras.main;
+        const compact = width < 600;
+        const panelWidth = Math.min(width - (compact ? 24 : 48), compact ? 350 : 480);
+        const panelHeight = compact ? 110 : 122;
+        const x = width / 2;
+        const y = compact ? 116 : 96;
+        const container = this.add.container(x, y)
+            .setScrollFactor(0)
+            .setDepth(1750)
+            .setAlpha(0);
+        const panel = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x07100F, 0.96)
+            .setStrokeStyle(2, 0x71E6B1, 0.9);
+        const signal = this.add.rectangle(-panelWidth / 2 + 4, 0, 5, panelHeight - 10, 0xF2C14E, 1);
+        const art = VILLAGE_BUILDING_ARTWORK[building.definitionId];
+        const artwork = art && this.textures.exists(art.key)
+            ? this.add.image(-panelWidth / 2 + 58, 0, art.key)
+                .setDisplaySize(compact ? 92 : 108, compact ? 58 : 68)
+            : null;
+        const textX = -panelWidth / 2 + (artwork ? (compact ? 116 : 132) : 20);
+        const heading = this.add.text(textX, -panelHeight / 2 + 17, 'VILLAGE HEART // STRUCTURE ONLINE', {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: compact ? '10px' : '11px',
+            fontStyle: 'bold',
+            color: '#F2C14E'
+        });
+        const title = this.add.text(textX, -panelHeight / 2 + 37, building.definition.label, {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: compact ? '17px' : '21px',
+            fontStyle: 'bold',
+            color: '#F4F4F4'
+        });
+        const impact = this.add.text(textX, -panelHeight / 2 + 64, building.definition.immediateImpact, {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: compact ? '10px' : '12px',
+            color: '#8FE3CF',
+            wordWrap: { width: panelWidth - (artwork ? (compact ? 136 : 154) : 40) }
+        });
+        container.add([panel, signal, ...(artwork ? [artwork] : []), heading, title, impact]);
+        this.villageCompletionMoment = container;
+
+        this.tweens.add({
+            targets: container,
+            alpha: 1,
+            y: y + 8,
+            duration: 260,
+            ease: 'Sine.easeOut'
+        });
+        this.time.delayedCall(4200, () => {
+            if (this.villageCompletionMoment !== container) return;
+            this.tweens.add({
+                targets: container,
+                alpha: 0,
+                duration: 320,
+                onComplete: () => {
+                    container.destroy(true);
+                    if (this.villageCompletionMoment === container) {
+                        this.villageCompletionMoment = null;
+                    }
+                }
+            });
+        });
+        return true;
+    }
+
+    startVillageReconciliation() {
+        this.villageReconcileTimer?.remove?.();
+        this.villageReconcileTimer = null;
+        if (this.currentBiome !== 'nebula' || !this.villageHeartLandmark) return;
+        this.refreshVillageSettlementWorld(getVillageSnapshot(window.GameState), {
+            force: true
+        });
+        this.villageReconcileTimer = this.time.addEvent({
+            delay: 5000,
+            loop: true,
+            callback: () => {
+                if (this._isShuttingDown) return;
+                const previous = getVillageSnapshot(window.GameState);
+                const snapshot = reconcileVillageSettlement(window.GameState);
+                this.notifyVillageProgress(previous, snapshot);
+                this.refreshVillageSettlementWorld(snapshot);
+            }
+        });
+    }
+
+    openVillageCommand() {
+        const snapshot = initializeVillageSettlement(window.GameState);
+        this.refreshVillageSettlementWorld(snapshot, { force: true });
+        if (!snapshot?.unlock?.unlocked) {
+            this.showInteractionHint(snapshot?.unlock?.reason || 'Village Heart is offline');
+            window.AudioManager?.playError?.();
+            return false;
+        }
+        if (!this.villageCommandPanel) {
+            this.villageCommandPanel = new VillageCommandPanel(this);
+        }
+        return this.villageCommandPanel.show({
+            getSnapshot: () => getVillageSnapshot(window.GameState),
+            onPlace: request => {
+                const result = placeVillageBuilding(window.GameState, request);
+                this.refreshVillageSettlementWorld(result.snapshot, { force: true });
+                if (result.changed) {
+                    window.AudioManager?.playAchievement?.();
+                    window.AchievementSystem?.recordEvent?.('story_interaction', {
+                        event: 'village_construction_started',
+                        buildingId: result.buildingId
+                    });
+                } else {
+                    window.AudioManager?.playError?.();
+                }
+                return result;
+            },
+            onAssign: request => {
+                const result = assignCreatureToVillageBuilding(
+                    window.GameState,
+                    request
+                );
+                this.refreshVillageSettlementWorld(result.snapshot, { force: true });
+                if (result.changed) {
+                    this.recordBondActivity('community');
+                    window.AudioManager?.playButtonClick?.();
+                } else {
+                    window.AudioManager?.playError?.();
+                }
+                return result;
+            },
+            onTick: () => {
+                const previous = getVillageSnapshot(window.GameState);
+                const next = reconcileVillageSettlement(window.GameState);
+                this.notifyVillageProgress(previous, next);
+                this.refreshVillageSettlementWorld(next);
+                return next;
+            },
+            onClose: () => {
+                this.showInteractionHint('Village Heart plan saved');
+            }
+        });
+    }
+
+    handleFendResidentProximity(_player, zone) {
+        const residentId = zone?.residentId;
+        if (!residentId || this.nearFendResidentId === residentId) return;
+
+        const snapshot = getFendResidentsSnapshot(window.GameState);
+        const resident = snapshot.residents.find(entry => entry.id === residentId);
+        if (!resident?.available) return;
+
+        this.nearFendResidentId = residentId;
+        const currentVeil = getCurrentVeilSnapshot(window.GameState);
+        const recovery = getRemainAndDefendSnapshot(window.GameState);
+        let action;
+        if (residentId === 'ilyra' && recovery.councilReady) {
+            action = 'Hold Commons Council';
+        } else if (residentId === 'ilyra' && recovery.complete) {
+            action = 'Review recovery chapter';
+        } else if (residentId === 'ilyra' && currentVeil.available) {
+            action = 'Begin Quiet Current';
+        } else if (residentId === 'ilyra' && currentVeil.active) {
+            action =
+                `Quiet Current ${currentVeil.stabilizedCount}/` +
+                `${currentVeil.totalAnchors}`;
+        } else if (
+            residentId === 'ilyra' &&
+            currentVeil.verificationReady
+        ) {
+            action = 'Review living mask';
+        } else if (residentId === 'ilyra' && currentVeil.complete) {
+            action = 'Review protected route';
+        } else if (resident.completed) {
+            action = `Speak with ${resident.name}`;
+        } else if (resident.ready) {
+            action = `Complete ${resident.request.title}`;
+        } else if (resident.active) {
+            action = `Review ${resident.request.title}`;
+        } else {
+            action = `Meet ${resident.name}`;
+        }
+        this.showInteractionHint(`Press SPACE · ${action}`);
+        this.mobileControls?.updateInteractIcon('!');
+    }
+
+    setupFendResidentOverlaps() {
+        this.fendResidentOverlapColliders?.forEach(collider => {
+            collider?.destroy?.();
+        });
+        this.fendResidentOverlapColliders = [];
+        if (!this.player) return;
+
+        this.signalGarden?.residents?.forEach(resident => {
+            if (!resident?.zone) return;
+            const collider = this.physics.add.overlap(
+                this.player,
+                resident.zone,
+                this.handleFendResidentProximity,
+                null,
+                this
+            );
+            this.fendResidentOverlapColliders.push(collider);
+        });
+    }
+
+    handleGuardianResidentProximity(_player, zone) {
+        const guardianId = zone?.guardianResidentId;
+        if (!guardianId || this.nearGuardianResidentId === guardianId) return;
+        const resident = getGuardianResidentsSnapshot(window.GameState)
+            .rescuedResidents
+            .find(entry => entry.id === guardianId);
+        if (!resident) return;
+
+        this.nearGuardianResidentId = guardianId;
+        const lastRecognitionAt = this.guardianRecognitionCooldowns.get(
+            guardianId
+        ) || 0;
+        if (Date.now() - lastRecognitionAt >= 23000) {
+            const recognition = getGuardianCompanionRecognition(
+                window.GameState,
+                guardianId
+            );
+            if (recognition?.line) {
+                this.guardianRecognitionCooldowns.set(guardianId, Date.now());
+                this.showGuardianCompanionRecognitionMoment(
+                    recognition,
+                    resident
+                );
+            }
+        }
+        const action = resident.taskStatus === 'ready'
+            ? `Complete ${resident.task.title}`
+            : resident.expeditionDebriefReady
+                ? 'Debrief shared expedition'
+            : resident.routineReady
+                ? `Check in: ${resident.routineCare.action}`
+            : resident.taskStatus === 'available'
+                ? `Ask about ${resident.task.title}`
+                : resident.taskStatus === 'completed'
+                    ? `Choose ${resident.teamAbility.name}`
+                    : resident.activeTeam
+                        ? `Assist: ${resident.routineCare.action}`
+                        : `Speak with ${resident.name}`;
+        this.showInteractionHint(`Press SPACE · ${action}`);
+        this.mobileControls?.updateInteractIcon('!');
+    }
+
+    setupGuardianResidentOverlaps() {
+        this.guardianResidentOverlapColliders?.forEach(collider => {
+            collider?.destroy?.();
+        });
+        this.guardianResidentOverlapColliders = [];
+        if (!this.player) return;
+
+        this.signalGarden?.guardianResidents?.forEach(resident => {
+            if (!resident?.zone) return;
+            const collider = this.physics.add.overlap(
+                this.player,
+                resident.zone,
+                this.handleGuardianResidentProximity,
+                null,
+                this
+            );
+            this.guardianResidentOverlapColliders.push(collider);
+        });
+    }
+
+    handleRescuedResidentProximity(_player, zone) {
+        const residentId = zone?.rescuedResidentId;
+        if (!residentId || this.nearRescuedResidentId === residentId) return;
+        const resident = getRescuedResidentSnapshot(window.GameState)
+            .rescued
+            .find(entry => entry.id === residentId);
+        if (!resident) return;
+
+        this.nearRescuedResidentId = residentId;
+        this.showInteractionHint(
+            `Press SPACE · Check supplies with ${resident.name}`
+        );
+        this.mobileControls?.updateInteractIcon('!');
+    }
+
+    setupRescuedResidentOverlaps() {
+        this.rescuedResidentOverlapColliders?.forEach(collider => {
+            collider?.destroy?.();
+        });
+        this.rescuedResidentOverlapColliders = [];
+        if (!this.player) return;
+
+        this.signalGarden?.rescuedResidents?.forEach(resident => {
+            if (!resident?.zone) return;
+            const collider = this.physics.add.overlap(
+                this.player,
+                resident.zone,
+                this.handleRescuedResidentProximity,
+                null,
+                this
+            );
+            this.rescuedResidentOverlapColliders.push(collider);
+        });
+    }
+
+    interactWithRescuedResident() {
+        if (!this.nearRescuedResidentId || !window.GameState) return;
+        const result = interactWithRescuedResident(
+            window.GameState,
+            this.nearRescuedResidentId
+        );
+        if (!result?.resident) return;
+
+        this.recordBondActivity('community');
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'rescued_resident_check_in',
+            residentId: result.resident.id,
+            interactionCount: result.interactionCount
+        });
+        window.AudioManager?.playButtonClick?.();
+        this.showRescuedResidentExchange(result);
+    }
+
+    showRescuedResidentExchange(result) {
+        if (!result?.resident || this.rescuedResidentExchangeOpen) return;
+
+        this.rescuedResidentExchangeOpen = true;
+        this.player?.body?.setVelocity?.(0, 0);
+        const { width, height } = this.scale;
+        const compact = width < 620 || height < 650;
+        const resident = result.resident;
+        const bandHeight = Math.min(compact ? 390 : 430, height - 28);
+        const top = (height - bandHeight) / 2;
+        const depth = 16100;
+        const elements = [];
+
+        const overlay = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth)
+            .setInteractive(
+                new Phaser.Geom.Rectangle(0, 0, width, height),
+                Phaser.Geom.Rectangle.Contains
+            );
+        overlay.fillStyle(0x020807, 0.95);
+        overlay.fillRect(0, 0, width, height);
+        overlay.fillStyle(0x101616, 1);
+        overlay.fillRect(0, top, width, bandHeight);
+        overlay.lineStyle(3, resident.accent, 0.95);
+        overlay.lineBetween(0, top, width, top);
+        overlay.lineBetween(0, top + bandHeight, width, top + bandHeight);
+        elements.push(overlay);
+
+        const addText = (y, value, style = {}) => {
+            const entry = this.add.text(width / 2, y, value, {
+                fontFamily: 'Arial, sans-serif',
+                align: 'center',
+                wordWrap: { width: Math.min(width - 38, 700) },
+                color: '#EAF7F4',
+                ...style
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2);
+            elements.push(entry);
+            return entry;
+        };
+
+        addText(top + 32, 'SANCTUARY // RESCUED RESIDENT', {
+            fontSize: compact ? '11px' : '13px',
+            color: '#8FE3CF',
+            fontStyle: 'bold'
+        });
+        addText(top + 73, `${resident.name.toUpperCase()} // ${resident.role.toUpperCase()}`, {
+            fontSize: compact ? '21px' : '28px',
+            color: '#F2C14E',
+            fontStyle: 'bold'
+        });
+        addText(top + (compact ? 145 : 154), `"${result.line}"`, {
+            fontSize: compact ? '15px' : '18px',
+            color: '#F4F4F4',
+            fontStyle: 'italic',
+            lineSpacing: 5
+        });
+        addText(top + (compact ? 238 : 260), result.supportLabel.toUpperCase(), {
+            fontSize: compact ? '12px' : '14px',
+            color: '#8FE3CF',
+            fontStyle: 'bold'
+        });
+        addText(
+            top + (compact ? 290 : 320),
+            `SUPPLY CHECK ${result.interactionCount} // SUPPORT APPLIES ON THE NEXT EXPEDITION`,
+            {
+                fontSize: compact ? '10px' : '12px',
+                color: '#AFC3CF'
+            }
+        );
+        const continueButton = addText(top + bandHeight - 38, '[ RETURN TO SANCTUARY ]', {
+            fontSize: compact ? '15px' : '17px',
+            color: '#101616',
+            backgroundColor: '#8FE3CF',
+            fontStyle: 'bold',
+            padding: { x: compact ? 16 : 24, y: 10 }
+        }).setInteractive({ useHandCursor: true });
+
+        const close = () => {
+            if (!this.rescuedResidentExchangeOpen) return;
+            this.rescuedResidentExchangeOpen = false;
+            elements.forEach(element => element?.destroy?.());
+            this.rescuedResidentExchangeElements = [];
+            this.input.keyboard?.off?.('keydown-ENTER', close);
+            this.input.keyboard?.off?.('keydown-SPACE', close);
+        };
+        overlay.once('pointerup', close);
+        continueButton.once('pointerup', close);
+        this.input.keyboard?.once?.('keydown-ENTER', close);
+        this.input.keyboard?.once?.('keydown-SPACE', close);
+        this.rescuedResidentExchangeElements = elements;
+    }
+
+    interactWithGuardianResident() {
+        if (!this.nearGuardianResidentId || !window.GameState) return;
+        const result = interactWithGuardianResident(
+            window.GameState,
+            this.nearGuardianResidentId
+        );
+        if (!result || result.reason === 'guardian_not_rescued') return;
+        this.recordBondActivity('community');
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'guardian_resident_conversation',
+            guardianId: result.resident.id,
+            interactionCount: result.resident.interactionCount,
+            outcome: result.reason
+        });
+        if (result.reason === 'guardian_task_completed') {
+            window.AudioManager?.playAchievement?.();
+        } else {
+            window.AudioManager?.playButtonClick?.();
+        }
+        this.worldBuilder?.refreshGuardianResidents(
+            this.signalGarden,
+            result.snapshot
+        );
+        this.setupGuardianResidentOverlaps();
+        this.showGuardianResidentExchange(result);
+    }
+
+    assistGuardianResidentRoutine(guardianId) {
+        if (!guardianId || !window.GameState) return;
+        const previewing = this.guardianExchangePreview !== null;
+        const result = previewing
+            ? this.createGuardianRoutineAssistPreviewResult(guardianId)
+            : assistGuardianRoutine(window.GameState, guardianId);
+        if (!result?.resident) return;
+        if (result.changed && !previewing) {
+            this.recordBondActivity('community');
+            window.AchievementSystem?.recordEvent?.('care_action', {
+                type: 'guardian_routine',
+                guardianId,
+                routineAssistCount: result.resident.routineAssistCount
+            });
+        }
+        if (result.reason === 'guardian_synergy_unlocked') {
+            window.AudioManager?.playAchievement?.();
+        } else {
+            window.AudioManager?.playButtonClick?.();
+        }
+        if (result.changed) {
+            this.worldBuilder?.refreshGuardianResidents(
+                this.signalGarden,
+                result.snapshot
+            );
+            this.setupGuardianResidentOverlaps();
+        }
+        this.showGuardianResidentExchange(result);
+    }
+
+    createGuardianRoutineAssistPreviewResult(guardianId) {
+        const residentIndex = GUARDIAN_RESIDENT_DEFINITIONS.findIndex(
+            resident => resident.id === guardianId
+        ) + 1;
+        if (residentIndex <= 0) return null;
+        const snapshot = this.createGuardianResidentPreviewSnapshot(
+            GUARDIAN_RESIDENT_DEFINITIONS.length,
+            this.guardianTaskPreview || 'accepted',
+            residentIndex
+        );
+        const resident = snapshot.residents.find(entry => entry.id === guardianId);
+        if (!resident) return null;
+        const routineAssistCount = resident.routineAssistCount + 1;
+        const updatedResident = {
+            ...resident,
+            routineAssistCount,
+            routineSupported: true,
+            routineReady: false,
+            routineWaitMs: GUARDIAN_ROUTINE_RECOVERY_MS,
+            routineStatus: 'recovering',
+            trustProgress: Math.min(GUARDIAN_SYNERGY_ASSISTS, routineAssistCount)
+        };
+        const replaceResident = entry => (
+            entry.id === guardianId ? updatedResident : entry
+        );
+        const updatedSnapshot = {
+            ...snapshot,
+            residents: snapshot.residents.map(replaceResident),
+            rescuedResidents: snapshot.rescuedResidents.map(replaceResident),
+            routineAssistCount: snapshot.routineAssistCount + 1,
+            supportedResidentCount: Math.max(1, snapshot.supportedResidentCount)
+        };
+        return {
+            changed: true,
+            reason: 'guardian_routine_assisted',
+            message: resident.routineCare.responses[0],
+            resident: updatedResident,
+            snapshot: updatedSnapshot
+        };
+    }
+
+    showGuardianResidentExchange(result) {
+        if (!result?.resident || this.guardianExchangeOpen) return;
+        this.guardianExchangeOpen = true;
+        this.player?.body?.setVelocity?.(0, 0);
+        const { width, height } = this.scale;
+        const compact = width < 620 || height < 650;
+        const bandHeight = Math.min(compact ? 470 : 500, height - 24);
+        const top = (height - bandHeight) / 2;
+        const depth = 16200;
+        const elements = [];
+        const trustMemory = result.reason === 'guardian_synergy_unlocked';
+        const expeditionDebrief =
+            result.reason === 'guardian_expedition_debrief';
+        const companionFieldMemory = trustMemory || expeditionDebrief;
+        const cinematicRequest = ++this.guardianTrustCinematicRequest;
+        this.guardianTrustCinematic?.destroy?.();
+        this.guardianTrustCinematic = null;
+        if (companionFieldMemory) {
+            const mediaService = window.CompanionMediaService || companionMediaService;
+            const previewRecord = this.guardianExchangePreview !== null
+                ? {
+                    identityKey: 'preview_companion_23:baby:portrait',
+                    stage: 'baby',
+                    imageUrl: '/marketing/nova.webp',
+                    assetRef: null,
+                    storage: 'preview'
+                }
+                : null;
+            Promise.resolve(mediaService?.createCinematicStill?.(this, {
+                momentId: expeditionDebrief
+                    ? `guardian_debrief_${result.resident.id}`
+                    : `guardian_trust_${result.resident.id}`,
+                stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby',
+                record: previewRecord,
+                depth: depth - 10,
+                alpha: expeditionDebrief ? 0.9 : 0.82,
+                veilAlpha: expeditionDebrief ? 0.14 : 0.3,
+                duration: 7200,
+                isCurrent: () => (
+                    this.guardianExchangeOpen &&
+                    this.guardianTrustCinematicRequest === cinematicRequest &&
+                    this.sys?.isActive?.() !== false
+                )
+            })).then(cinematic => {
+                if (!cinematic) return;
+                if (
+                    !this.guardianExchangeOpen ||
+                    this.guardianTrustCinematicRequest !== cinematicRequest
+                ) {
+                    cinematic.destroy?.();
+                    return;
+                }
+                this.guardianTrustCinematic = cinematic;
+            }).catch(() => {
+                // Stored portrait continuity is an enhancement, never a blocker.
+            });
+        }
+        const overlay = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth)
+            .setInteractive(
+                new Phaser.Geom.Rectangle(0, 0, width, height),
+                Phaser.Geom.Rectangle.Contains
+            );
+        overlay.fillStyle(0x020807, companionFieldMemory
+            ? expeditionDebrief ? 0.18 : 0.28
+            : 0.95);
+        overlay.fillRect(0, 0, width, height);
+        overlay.fillStyle(0x101616, companionFieldMemory
+            ? expeditionDebrief ? 0.56 : 0.64
+            : 0.99);
+        overlay.fillRect(0, top, width, bandHeight);
+        overlay.lineStyle(2, result.resident.accent, 1);
+        overlay.lineBetween(0, top, width, top);
+        overlay.lineBetween(0, top + bandHeight, width, top + bandHeight);
+        elements.push(overlay);
+
+        const textWidth = Math.min(width - 40, 720);
+        const addText = (
+            y,
+            value,
+            style = {},
+            x = width / 2,
+            wrapWidth = textWidth
+        ) => {
+            const text = this.add.text(x, y, value, {
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                align: 'center',
+                wordWrap: { width: wrapWidth },
+                ...style
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 1);
+            elements.push(text);
+            return text;
+        };
+        addText(top + 30, trustMemory
+            ? 'FIRST ALLIANCE // TRUST MEMORY UNLOCKED'
+            : expeditionDebrief
+                ? 'ALLIANCE DEBRIEF // SHARED EXPEDITION MEMORY'
+                : 'SANCTUARY RESIDENT // RESTORED GUARDIAN', {
+            fontSize: compact ? '12px' : '14px',
+            fontStyle: 'bold',
+            color: '#8FE3CF'
+        });
+        addText(top + 66, result.resident.name.toUpperCase(), {
+            fontSize: compact ? '23px' : '29px',
+            fontStyle: 'bold',
+            color: '#F4F4F4'
+        });
+        addText(top + 96, `${result.resident.role}  //  ${result.resident.routine}`, {
+            fontSize: compact ? '12px' : '14px',
+            color: '#F2C14E'
+        });
+        const portraitBounds = compact
+            ? { x: 16, y: top + 112, width: 92, height: 100 }
+            : { x: (width / 2) - 360, y: top + 108, width: 120, height: 122 };
+        const portraitFrame = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth + 1);
+        portraitFrame.fillStyle(0x08100F, 0.96);
+        portraitFrame.fillRoundedRect(
+            portraitBounds.x,
+            portraitBounds.y,
+            portraitBounds.width,
+            portraitBounds.height,
+            6
+        );
+        portraitFrame.lineStyle(2, result.resident.accent, 0.9);
+        portraitFrame.strokeRoundedRect(
+            portraitBounds.x,
+            portraitBounds.y,
+            portraitBounds.width,
+            portraitBounds.height,
+            6
+        );
+        elements.push(portraitFrame);
+
+        if (this.textures.exists(result.resident.textureKey)) {
+            const portrait = this.add.image(
+                portraitBounds.x + (portraitBounds.width / 2),
+                portraitBounds.y + (portraitBounds.height / 2),
+                result.resident.textureKey
+            ).setScrollFactor(0).setDepth(depth + 2);
+            const portraitScale = Math.min(
+                (portraitBounds.width - 10) / portrait.width,
+                (portraitBounds.height - 10) / portrait.height
+            );
+            portrait.setScale(portraitScale);
+            elements.push(portrait);
+        }
+
+        addText(top + (compact ? 161 : 168), `“${result.message || result.resident.dialogueLine || result.resident.rescueMemory}”`, {
+            fontSize: compact ? '15px' : '17px',
+            fontStyle: 'italic',
+            lineSpacing: 5
+        }, compact ? (width / 2) + 56 : (width / 2) + 74,
+        compact ? width - 152 : 500);
+        const taskProgress = result.resident.taskProgress;
+        const taskStatusLabel = result.resident.taskStatus === 'selected'
+            ? 'COMPLETE'
+            : result.resident.taskStatus.toUpperCase();
+        addText(
+            top + (compact ? 260 : 274),
+            `COOPERATIVE TASK // ${result.resident.task.title.toUpperCase()} // ${taskStatusLabel}`,
+            {
+                fontSize: compact ? '11px' : '13px',
+                fontStyle: 'bold',
+                color: taskProgress.ready ? '#F2C14E' : '#8FE3CF'
+            }
+        );
+        addText(
+            top + (compact ? 301 : 317),
+            `${result.resident.task.objective}\nPROGRESS ${taskProgress.progress}/${taskProgress.target}`,
+            {
+                fontSize: compact ? '12px' : '14px',
+                color: '#D8FFF0',
+                lineSpacing: 4
+            }
+        );
+        const careStatus = result.resident.routineReady
+            ? 'CARE READY'
+            : result.resident.routineStatus === 'recovering'
+                ? `CARE RECOVERING ${formatGuardianRoutineRecovery(result.resident.routineWaitMs)}`
+                : 'CARE AVAILABLE AFTER FIRST MEETING';
+        addText(top + (compact ? 346 : 356),
+            `${careStatus} // ${result.resident.routineCare.action.toUpperCase()}\n` +
+            (result.resident.synergyUnlocked
+                ? `TRUST ${result.resident.trustProgress}/${result.resident.trustTarget} // ${result.resident.synergy.name.toUpperCase()}`
+                : `TRUST ${result.resident.trustProgress}/${result.resident.trustTarget} // HELP WITH THREE SANCTUARY ROUTINES`), {
+                fontSize: compact ? '10px' : '12px',
+                fontStyle: 'bold',
+                color: result.resident.routineReady ? '#F2C14E' : '#D8FFF0',
+                lineSpacing: 3
+            });
+        const abilityPrefix = result.resident.activeTeam
+            ? expeditionDebrief
+                ? `EXPEDITIONS TOGETHER ${result.resident.expeditionCount}`
+                : 'ACTIVE EXPEDITION ALLY'
+            : result.resident.teamAbilityUnlocked
+                ? 'TEAM ABILITY UNLOCKED'
+                : 'TEAM ABILITY LOCKED';
+        addText(top + bandHeight - 86, `${abilityPrefix} // ${result.resident.teamAbility.name}`, {
+            fontSize: compact ? '12px' : '14px',
+            fontStyle: 'bold',
+            color: result.resident.activeTeam ? '#F2C14E' : '#8FE3CF'
+        });
+        const close = addText(top + bandHeight - 42, '[ CONTINUE ]', {
+            fontSize: compact ? '16px' : '18px',
+            fontStyle: 'bold',
+            color: '#101616',
+            backgroundColor: '#8FE3CF',
+            padding: { x: compact ? 15 : 26, y: 11 }
+        }).setInteractive({ useHandCursor: true });
+        let assist = null;
+        if (result.resident.met) {
+            close.setX(width * 0.72);
+            const assistLabel = result.resident.routineReady
+                ? '[ ASSIST ROUTINE ]'
+                : `[ RECOVERING ${formatGuardianRoutineRecovery(result.resident.routineWaitMs)} ]`;
+            assist = addText(top + bandHeight - 42, assistLabel, {
+                fontSize: compact ? '12px' : '16px',
+                fontStyle: 'bold',
+                color: result.resident.routineReady ? '#F4F4F4' : '#A7B7B3',
+                backgroundColor: result.resident.routineReady ? '#1D5961' : '#28302F',
+                padding: { x: compact ? 9 : 18, y: 11 }
+            }).setX(width * 0.29);
+            if (result.resident.routineReady) {
+                assist.setInteractive({ useHandCursor: true });
+            }
+        }
+
+        const dismiss = () => {
+            if (!this.guardianExchangeOpen) return;
+            this.guardianExchangeOpen = false;
+            this.guardianTrustCinematicRequest += 1;
+            this.guardianTrustCinematic?.destroy?.();
+            this.guardianTrustCinematic = null;
+            elements.forEach(element => element?.destroy?.());
+            this.guardianExchangeElements = [];
+            this.input.keyboard?.off?.('keydown-ENTER', dismiss);
+            this.input.keyboard?.off?.('keydown-SPACE', dismiss);
+        };
+        close.on('pointerup', dismiss);
+        assist?.on?.('pointerup', () => {
+            if (!result.resident.routineReady) return;
+            const resident = result.resident;
+            dismiss();
+            this.time.delayedCall(0, () => {
+                this.showGuardianCareActivity(resident);
+            });
+        });
+        overlay.on('pointerup', dismiss);
+        this.input.keyboard?.once?.('keydown-ENTER', dismiss);
+        this.input.keyboard?.once?.('keydown-SPACE', dismiss);
+        this.guardianExchangeElements = elements;
+    }
+
+    destroyGuardianCareActivity() {
+        this.guardianCareActivityTimer?.remove?.();
+        this.guardianCareActivityTimer = null;
+        this.guardianCareActivityElements?.forEach(element => element?.destroy?.());
+        this.guardianCareActivityElements = [];
+        this.guardianCareActivityOpen = false;
+        this.input.keyboard?.off?.('keydown-ESC', this.guardianCareCancelHandler);
+        this.guardianCareCancelHandler = null;
+    }
+
+    destroyGuardianCompanionRecognitionMoment() {
+        this.guardianRecognitionTimer?.remove?.();
+        this.guardianRecognitionTimer = null;
+        this.guardianRecognitionElements?.forEach(
+            element => element?.destroy?.()
+        );
+        this.guardianRecognitionElements = [];
+    }
+
+    showGuardianCompanionRecognitionMoment(recognition, resident, {
+        duration = 4200
+    } = {}) {
+        if (!recognition?.line || !resident) return;
+        this.destroyGuardianCompanionRecognitionMoment();
+        const { width, height } = this.scale;
+        const compact = width < 620;
+        const panelWidth = Math.min(width - 24, compact ? 366 : 540);
+        const panelHeight = compact ? 136 : 116;
+        const top = compact
+            ? Math.max(124, Math.min(height * 0.16, 154))
+            : 76;
+        const depth = 15850;
+        const panel = this.add.rectangle(
+            0,
+            panelHeight / 2,
+            panelWidth,
+            panelHeight,
+            0x101616,
+            0.97
+        )
+            .setStrokeStyle(2, resident.accent || 0x8FE3CF, 1);
+        const children = [panel];
+
+        const addText = (y, value, style = {}) => {
+            const text = this.add.text(0, y, value, {
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                align: 'center',
+                ...style
+            }).setOrigin(0.5);
+            children.push(text);
+            return text;
+        };
+        addText(
+            21,
+            `COMPANION RECOGNITION // ${resident.name.toUpperCase()}`,
+            {
+                fontSize: compact ? '10px' : '12px',
+                fontStyle: 'bold',
+                color: '#8FE3CF'
+            }
+        );
+        addText(47, recognition.cue, {
+            fontSize: compact ? '10px' : '11px',
+            fontStyle: 'bold',
+            color: '#F2C14E',
+            wordWrap: { width: panelWidth - 26 }
+        });
+        addText(compact ? 92 : 84, `“${recognition.line}”`, {
+            fontSize: compact ? '13px' : '14px',
+            fontStyle: 'italic',
+            lineSpacing: 3,
+            wordWrap: { width: panelWidth - 30 }
+        });
+        const container = this.add.container(width / 2, top, children)
+            .setScrollFactor(0)
+            .setDepth(depth);
+        this.guardianRecognitionElements = [container];
+        this.guardianRecognitionTimer = this.time.delayedCall(
+            duration,
+            () => this.destroyGuardianCompanionRecognitionMoment()
+        );
+    }
+
+    showGuardianCareActivity(resident) {
+        const steps = resident?.routineCare?.steps;
+        if (
+            !resident?.routineReady ||
+            !Array.isArray(steps) ||
+            steps.length === 0 ||
+            this.guardianCareActivityOpen
+        ) {
+            return;
+        }
+
+        this.destroyGuardianCareActivity();
+        this.guardianCareActivityOpen = true;
+        this.player?.body?.setVelocity?.(0, 0);
+        const { width, height } = this.scale;
+        const compact = width < 620 || height < 700;
+        const bandHeight = Math.min(compact ? 650 : 620, height - 24);
+        const top = (height - bandHeight) / 2;
+        const depth = 16300;
+        const elements = [];
+        let currentStep = 0;
+        let inputLocked = false;
+
+        const overlay = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth)
+            .setInteractive(
+                new Phaser.Geom.Rectangle(0, 0, width, height),
+                Phaser.Geom.Rectangle.Contains
+            );
+        overlay.fillStyle(0x020807, 0.97);
+        overlay.fillRect(0, 0, width, height);
+        overlay.fillStyle(0x101616, 1);
+        overlay.fillRect(0, top, width, bandHeight);
+        overlay.lineStyle(2, resident.accent, 1);
+        overlay.lineBetween(0, top, width, top);
+        overlay.lineBetween(0, top + bandHeight, width, top + bandHeight);
+        elements.push(overlay);
+
+        const addText = (x, y, value, style = {}) => {
+            const text = this.add.text(x, y, value, {
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                align: 'center',
+                ...style
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2);
+            elements.push(text);
+            return text;
+        };
+
+        addText(width / 2, top + 27, 'SANCTUARY CARE // LIVING ROUTINE', {
+            fontSize: compact ? '11px' : '14px',
+            fontStyle: 'bold',
+            color: '#8FE3CF'
+        });
+        addText(width / 2, top + 58, resident.name.toUpperCase(), {
+            fontSize: compact ? '22px' : '28px',
+            fontStyle: 'bold'
+        });
+
+        const portraitX = compact ? 52 : (width / 2) - 330;
+        const portraitY = top + (compact ? 124 : 166);
+        const portraitSize = compact ? 76 : 126;
+        if (this.textures.exists(resident.textureKey)) {
+            const portrait = this.add.image(portraitX, portraitY, resident.textureKey)
+                .setScrollFactor(0)
+                .setDepth(depth + 2);
+            const portraitScale = Math.min(
+                portraitSize / Math.max(1, portrait.width),
+                portraitSize / Math.max(1, portrait.height)
+            );
+            portrait.setScale(portraitScale);
+            elements.push(portrait);
+        }
+
+        const promptX = compact ? (width / 2) + 42 : (width / 2) + 52;
+        const promptWidth = compact ? Math.max(190, width - 130) : 610;
+        addText(promptX, top + (compact ? 119 : 105), resident.routineCare.prompt, {
+            fontSize: compact ? '13px' : '15px',
+            color: '#D8FFF0',
+            lineSpacing: compact ? 3 : 5,
+            wordWrap: { width: promptWidth }
+        });
+
+        const progress = addText(
+            compact ? promptX : (width / 2) + 52,
+            top + (compact ? 191 : 156),
+            `STEP 1/${steps.length}`,
+            {
+                fontSize: compact ? '12px' : '13px',
+                fontStyle: 'bold',
+                color: '#F2C14E'
+            }
+        );
+        const feedback = addText(width / 2, top + (compact ? 229 : 207),
+            'Move carefully. The guardian will respond after each step.', {
+                fontSize: compact ? '12px' : '14px',
+                fontStyle: 'italic',
+                color: '#A7B7B3',
+                lineSpacing: 3,
+                wordWrap: { width: Math.min(width - 40, 720) }
+            });
+
+        const rowWidth = Math.min(compact ? width - 32 : 620, 620);
+        const rowHeight = compact ? 54 : 58;
+        const rowStartY = top + (compact ? 294 : 286);
+        const rowGap = compact ? 64 : 72;
+        const rows = steps.map((step, index) => {
+            const y = rowStartY + (index * rowGap);
+            const background = this.add.graphics()
+                .setScrollFactor(0)
+                .setDepth(depth + 1)
+                .setInteractive(
+                    new Phaser.Geom.Rectangle(
+                        (width - rowWidth) / 2,
+                        y - (rowHeight / 2),
+                        rowWidth,
+                        rowHeight
+                    ),
+                    Phaser.Geom.Rectangle.Contains
+                );
+            const label = addText(width / 2, y, '', {
+                fontSize: compact ? '13px' : '15px',
+                fontStyle: 'bold',
+                wordWrap: { width: rowWidth - 28 }
+            });
+            elements.push(background);
+            return { background, label, step, index, y };
+        });
+
+        const renderRows = () => {
+            rows.forEach(row => {
+                const complete = row.index < currentStep;
+                const active = row.index === currentStep && currentStep < steps.length;
+                row.background.clear();
+                row.background.fillStyle(
+                    complete ? 0x163A31 : active ? 0x1D5961 : 0x1A2221,
+                    1
+                );
+                row.background.fillRect(
+                    (width - rowWidth) / 2,
+                    row.y - (rowHeight / 2),
+                    rowWidth,
+                    rowHeight
+                );
+                row.background.lineStyle(2, complete ? 0x8FE3CF : active ? resident.accent : 0x3A4744, active ? 1 : 0.7);
+                row.background.strokeRect(
+                    (width - rowWidth) / 2,
+                    row.y - (rowHeight / 2),
+                    rowWidth,
+                    rowHeight
+                );
+                row.label.setText(
+                    `${complete ? 'DONE' : `0${row.index + 1}`}  //  ${row.step.action.toUpperCase()}`
+                );
+                row.label.setColor(complete ? '#8FE3CF' : active ? '#F4F4F4' : '#778582');
+                if (active && !inputLocked) {
+                    row.background.setInteractive();
+                } else {
+                    row.background.disableInteractive();
+                }
+            });
+        };
+
+        const cancel = addText(width / 2, top + bandHeight - 30, '[ CANCEL CARE ]', {
+            fontSize: compact ? '13px' : '15px',
+            fontStyle: 'bold',
+            color: '#D8FFF0',
+            backgroundColor: '#28302F',
+            padding: { x: 20, y: 13 }
+        }).setInteractive({ useHandCursor: true });
+
+        const finishActivity = () => {
+            if (!this.guardianCareActivityOpen) return;
+            const guardianId = resident.id;
+            this.destroyGuardianCareActivity();
+            this.assistGuardianResidentRoutine(guardianId);
+        };
+        const selectStep = index => {
+            if (
+                !this.guardianCareActivityOpen ||
+                inputLocked ||
+                index !== currentStep
+            ) {
+                return;
+            }
+            inputLocked = true;
+            window.AudioManager?.playButtonClick?.();
+            window.navigator?.vibrate?.(18);
+            feedback.setText(steps[index].feedback).setColor('#F4F4F4');
+            currentStep += 1;
+            progress.setText(
+                currentStep >= steps.length
+                    ? 'CARE COMPLETE // ROUTINE STABLE'
+                    : `STEP ${currentStep + 1}/${steps.length}`
+            );
+            renderRows();
+            this.guardianCareActivityTimer?.remove?.();
+            this.guardianCareActivityTimer = this.time.delayedCall(
+                currentStep >= steps.length ? 750 : 260,
+                () => {
+                    this.guardianCareActivityTimer = null;
+                    if (currentStep >= steps.length) {
+                        finishActivity();
+                        return;
+                    }
+                    inputLocked = false;
+                    renderRows();
+                }
+            );
+        };
+
+        rows.forEach(row => {
+            row.background.on('pointerup', () => selectStep(row.index));
+        });
+        cancel.on('pointerup', () => this.destroyGuardianCareActivity());
+        this.guardianCareCancelHandler = () => this.destroyGuardianCareActivity();
+        this.input.keyboard?.once?.('keydown-ESC', this.guardianCareCancelHandler);
+        renderRows();
+        this.guardianCareActivityElements = elements;
+    }
+
+    handleCurrentVeilAnchorProximity(_player, zone) {
+        const anchorId = zone?.currentVeilAnchorId;
+        if (
+            !anchorId ||
+            this.nearCurrentVeilAnchorId === anchorId
+        ) {
+            return;
+        }
+        const snapshot = getCurrentVeilSnapshot(window.GameState);
+        const anchor = snapshot.anchors.find(
+            entry => entry.id === anchorId
+        );
+        if (!snapshot.active || !anchor || anchor.stabilized) return;
+
+        this.nearCurrentVeilAnchorId = anchorId;
+        this.showInteractionHint(
+            `Press SPACE · Stabilize ${anchor.label}`
+        );
+        this.mobileControls?.updateInteractIcon('◉');
+    }
+
+    setupCurrentVeilAnchorOverlaps() {
+        this.currentVeilOverlapColliders?.forEach(collider => {
+            collider?.destroy?.();
+        });
+        this.currentVeilOverlapColliders = [];
+        if (!this.player) return;
+
+        this.signalGarden?.currentVeilAnchors?.forEach(anchor => {
+            if (!anchor?.zone || anchor.stabilized) return;
+            const collider = this.physics.add.overlap(
+                this.player,
+                anchor.zone,
+                this.handleCurrentVeilAnchorProximity,
+                null,
+                this
+            );
+            this.currentVeilOverlapColliders.push(collider);
+        });
+    }
+
+    refreshCurrentVeilWorld() {
+        if (!window.GameState || !this.signalGarden) return;
+        this.worldBuilder?.refreshCurrentVeilMission(
+            this.signalGarden,
+            getCurrentVeilSnapshot(window.GameState)
+        );
+        this.setupCurrentVeilAnchorOverlaps();
+    }
+
+    showCurrentVeilMission({ verifyPacket = false } = {}) {
+        if (
+            this.currentVeilModal?.isVisible ||
+            !window.GameState
+        ) {
+            return;
+        }
+
+        if (verifyPacket) {
+            const result = verifyCurrentVeilPacket(window.GameState);
+            if (result?.changed) {
+                this.recordBondActivity('community');
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'current_veil_packet_verified',
+                        transmissionStatus: 'not_sent'
+                    }
+                );
+                recordCampaignLegacyCapsule(window.GameState, {
+                    intent: window.GameState.get(
+                        'story.projectBeacon.finale.priority'
+                    ),
+                    recordedAt:
+                        result.snapshot.state.completedAt ||
+                        new Date().toISOString()
+                });
+                window.AudioManager?.playAchievement?.();
+                this.refreshCurrentVeilWorld();
+            } else if (
+                result &&
+                result.reason !== 'mission_complete'
+            ) {
+                window.AudioManager?.playError?.();
+            }
+        }
+
+        const snapshot = getCurrentVeilSnapshot(window.GameState);
+        if (!snapshot.prerequisitesMet) return;
+        this.currentVeilModal = new CurrentVeilModal(this, {
+            snapshotProvider: () => (
+                getCurrentVeilSnapshot(window.GameState)
+            ),
+            onStart: () => {
+                const result = startCurrentVeilMission(
+                    window.GameState
+                );
+                if (!result?.changed) {
+                    window.AudioManager?.playError?.();
+                    return result;
+                }
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'current_veil_started',
+                        anchorCount: result.snapshot.totalAnchors
+                    }
+                );
+                recordCampaignLegacyCapsule(window.GameState, {
+                    intent: window.GameState.get(
+                        'story.projectBeacon.finale.priority'
+                    ),
+                    recordedAt:
+                        result.snapshot.state.startedAt ||
+                        new Date().toISOString()
+                });
+                window.AudioManager?.playButtonClick?.();
+                this.refreshCurrentVeilWorld();
+                return result;
+            },
+            onClose: () => {
+                this.currentVeilModal = null;
+                const current = getCurrentVeilSnapshot(
+                    window.GameState
+                );
+                this.showInteractionHint(
+                    formatCurrentVeilObjective(current)
+                );
+            }
+        });
+        this.currentVeilModal.show();
+    }
+
+    showRemainAndDefendCampaign() {
+        if (!window.GameState) return;
+        if (!this.recoveryLogModal) {
+            this.recoveryLogModal = new ProjectBeaconLogModal(this);
+        }
+        this.recoveryLogModal.show('recovery');
+    }
+
+    interactWithCurrentVeilAnchor() {
+        if (
+            !this.nearCurrentVeilAnchorId ||
+            !window.GameState
+        ) {
+            return;
+        }
+        const result = stabilizeCurrentVeilAnchor(
+            window.GameState,
+            this.nearCurrentVeilAnchorId
+        );
+        if (!result?.changed) {
+            window.AudioManager?.playError?.();
+            return;
+        }
+        this.nearCurrentVeilAnchorId = null;
+        this.recordBondActivity('community');
+        window.AchievementSystem?.recordEvent?.(
+            'story_interaction',
+            {
+                event: 'current_veil_anchor_stabilized',
+                anchorId: result.anchor.id,
+                verificationReady:
+                    result.snapshot.verificationReady
+            }
+        );
+        recordCampaignLegacyCapsule(window.GameState, {
+            intent: window.GameState.get(
+                'story.projectBeacon.finale.priority'
+            ),
+            recordedAt: new Date().toISOString()
+        });
+        window.AudioManager?.playAchievement?.();
+        this.refreshCurrentVeilWorld();
+        this.showCurrentVeilMission();
+    }
+
+    interactWithFendResident() {
+        if (!this.nearFendResidentId || !window.GameState) return;
+
+        const residentId = this.nearFendResidentId;
+        const currentVeil = getCurrentVeilSnapshot(window.GameState);
+        const recovery = getRemainAndDefendSnapshot(window.GameState);
+        if (
+            residentId === 'ilyra' &&
+            (recovery.councilReady || recovery.complete)
+        ) {
+            this.showRemainAndDefendCampaign();
+            return;
+        }
+        if (
+            residentId === 'ilyra' &&
+            (
+                currentVeil.available ||
+                currentVeil.active ||
+                currentVeil.verificationReady ||
+                currentVeil.complete
+            )
+        ) {
+            this.showCurrentVeilMission();
+            return;
+        }
+        const result = interactWithFendResident(
+            window.GameState,
+            residentId
+        );
+        if (!result) return;
+
+        if (result.reason === 'other_request_active') {
+            this.showInteractionHint(
+                formatFendResidentObjective(result.snapshot)
+            );
+            window.AudioManager?.playError?.();
+            return;
+        }
+
+        if (result.reason === 'duplicate_operation') {
+            const current = getFendResidentsSnapshot(window.GameState);
+            this.showFendResidentExchange({
+                changed: false,
+                reason: 'request_in_progress',
+                resident: current.activeResident || result.resident,
+                snapshot: current
+            });
+            return;
+        }
+
+        this.worldBuilder?.refreshFendResidents(
+            this.signalGarden,
+            result.snapshot || getFendResidentsSnapshot(window.GameState)
+        );
+        this.setupFendResidentOverlaps();
+
+        if (result.changed && result.reason === 'request_completed') {
+            this.recordBondActivity('community');
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'fend_resident_request_completed',
+                residentId,
+                requestId: result.resident.request.id
+            });
+            window.AudioManager?.playAchievement?.();
+        }
+
+        this.showFendResidentExchange(result);
+    }
+
+    showFendResidentExchange(result) {
+        if (!result?.resident || this.residentExchangeOpen) return;
+
+        this.residentExchangeOpen = true;
+        this.player?.body?.setVelocity?.(0, 0);
+        const { width, height } = this.scale;
+        const compact = width < 620 || height < 650;
+        const resident = result.resident;
+        const completed =
+            result.changed && result.reason === 'request_completed';
+        const alreadyCompleted =
+            !result.changed && result.reason === 'request_completed';
+        const returning = result.reason === 'request_completed'
+            || result.reason === 'request_in_progress';
+        const activeSnapshot = result.snapshot
+            || getFendResidentsSnapshot(window.GameState);
+        const cultureSnapshot = getFendCultureSnapshot(window.GameState);
+        const cultureResponse = alreadyCompleted && cultureSnapshot.complete
+            ? getFendCultureResidentResponse(
+                resident.id,
+                cultureSnapshot.selectedPriority.id
+            )
+            : null;
+        const currentResident = activeSnapshot.residents.find(
+            entry => entry.id === resident.id
+        ) || resident;
+        const centerY = height / 2;
+        const bandHeight = Math.min(
+            compact ? 430 : 470,
+            Math.max(350, height - 32)
+        );
+        const top = centerY - (bandHeight / 2);
+        const depth = 16000;
+        const elements = [];
+
+        const overlay = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth)
+            .setInteractive(
+                new Phaser.Geom.Rectangle(0, 0, width, height),
+                Phaser.Geom.Rectangle.Contains
+            );
+        overlay.fillStyle(0x020807, 0.95);
+        overlay.fillRect(0, 0, width, height);
+        overlay.fillStyle(0x101616, 0.99);
+        overlay.fillRect(0, top, width, bandHeight);
+        overlay.lineStyle(2, resident.accent, 0.95);
+        overlay.lineBetween(0, top, width, top);
+        overlay.lineBetween(0, top + bandHeight, width, top + bandHeight);
+        elements.push(overlay);
+
+        const textWidth = Math.min(width - 40, 720);
+        const addText = (y, value, style = {}) => {
+            const text = this.add.text(width / 2, y, value, {
+                fontFamily: 'Arial, sans-serif',
+                align: 'center',
+                wordWrap: { width: textWidth },
+                color: '#EAF7F4',
+                ...style
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 1);
+            elements.push(text);
+            return text;
+        };
+
+        addText(
+            top + 34,
+            completed
+                ? 'FEND COMMONS // REQUEST COMPLETE'
+                : cultureResponse
+                    ? 'FEND COMMONS // AFTER THE LISTENING'
+                : alreadyCompleted
+                    ? 'FEND COMMONS // FIELD EXCHANGE'
+                : 'FEND COMMONS // COOPERATIVE REQUEST',
+            {
+                fontSize: compact ? '11px' : '13px',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        );
+        addText(
+            top + 72,
+            `${resident.name.toUpperCase()} // ${resident.role.toUpperCase()}`,
+            {
+                fontSize: compact ? '21px' : '27px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        );
+        addText(
+            top + 109,
+            resident.request.title.toUpperCase(),
+            {
+                fontSize: compact ? '14px' : '17px',
+                color: '#D8FFF0',
+                fontStyle: 'bold'
+            }
+        );
+
+        const primaryLine = completed
+            ? resident.request.completionLine
+            : cultureResponse
+                ? cultureResponse
+            : alreadyCompleted
+                ? resident.request.completionLine
+            : !returning
+                ? resident.introduction
+                : resident.request.briefing;
+        addText(
+            top + (compact ? 166 : 173),
+            `“${primaryLine}”`,
+            {
+                fontSize: compact ? '14px' : '17px',
+                color: '#F4F4F4',
+                fontStyle: 'italic',
+                lineSpacing: 5
+            }
+        );
+        addText(
+            top + (compact ? 244 : 258),
+            completed
+                ? resident.request.actionLine
+                : cultureResponse
+                    ? formatFendCultureObjective(cultureSnapshot)
+                : alreadyCompleted
+                    ? resident.request.actionLine
+                : resident.request.briefing,
+            {
+                fontSize: compact ? '13px' : '15px',
+                color: '#BFD8D2',
+                lineSpacing: 4
+            }
+        );
+
+        const objective = completed
+            ? 'TRUST +8  //  COMMUNITY MEMORY RECORDED'
+            : cultureResponse
+                ? `${cultureSnapshot.selectedPriority.shortLabel}  //  ALL VOICES REMAIN`
+            : alreadyCompleted
+                ? 'SHARED WORK REMAINS IN THE COMMONS RECORD'
+            : currentResident.ready
+                ? `READY // RETURN TO ${resident.name.toUpperCase()}`
+                : resident.request.objective.toUpperCase();
+        addText(
+            top + (compact ? 318 : 342),
+            objective,
+            {
+                fontSize: compact ? '11px' : '13px',
+                color: completed || currentResident.ready
+                    ? '#F2C14E'
+                    : '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        );
+        addText(
+            top + bandHeight - 28,
+            'TAP TO RETURN',
+            {
+                fontSize: '11px',
+                color: '#AFC3CF'
+            }
+        );
+
+        const close = () => {
+            if (!this.residentExchangeOpen) return;
+            this.residentExchangeOpen = false;
+            elements.forEach(element => element?.destroy?.());
+            this.residentExchangeElements = [];
+        };
+        overlay.once('pointerup', close);
+        this.residentExchangeElements = elements;
+    }
+
+    showFendCommonsListening({
+        result = null,
+        previewPriority = undefined
+    } = {}) {
+        if (this.fendListeningOpen) return;
+
+        const previewMode = previewPriority !== undefined;
+        const snapshot = result?.snapshot || (
+            previewMode
+                ? this.createFendCulturePreviewSnapshot(
+                    previewPriority || 'ready'
+                )
+                : getFendCultureSnapshot(window.GameState)
+        );
+        const selectedPriority = result?.priority
+            || snapshot.selectedPriority
+            || null;
+        const confirmation = Boolean(selectedPriority);
+        if (!confirmation && !snapshot.ready) return;
+
+        this.fendListeningOpen = true;
+        this.player?.body?.setVelocity?.(0, 0);
+        const { width, height } = this.scale;
+        const compact = width < 620 || height < 680;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const bandHeight = Math.min(
+            confirmation ? (compact ? 390 : 430) : (compact ? 570 : 600),
+            height - 24
+        );
+        const top = centerY - (bandHeight / 2);
+        const depth = 16400;
+        const elements = [];
+
+        const overlay = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth)
+            .setInteractive(
+                new Phaser.Geom.Rectangle(0, 0, width, height),
+                Phaser.Geom.Rectangle.Contains
+            );
+        overlay.fillStyle(0x020807, 0.96);
+        overlay.fillRect(0, 0, width, height);
+        overlay.fillStyle(0x101616, 1);
+        overlay.fillRect(0, top, width, bandHeight);
+        overlay.lineStyle(2, 0xF4F4F4, 0.9);
+        overlay.lineBetween(0, top, width, top);
+        overlay.lineBetween(0, top + bandHeight, width, top + bandHeight);
+        elements.push(overlay);
+
+        const colors = [0xD94B4B, 0x101616, 0xF4F4F4, 0x3FAE62];
+        const colorBar = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth + 1);
+        const segmentWidth = width / colors.length;
+        colors.forEach((color, index) => {
+            colorBar.fillStyle(color, 1);
+            colorBar.fillRect(index * segmentWidth, top, segmentWidth, 5);
+        });
+        elements.push(colorBar);
+
+        const textWidth = Math.min(width - 36, 720);
+        const addText = (y, value, style = {}) => {
+            const text = this.add.text(centerX, y, value, {
+                fontFamily: 'Arial, sans-serif',
+                align: 'center',
+                wordWrap: { width: textWidth },
+                color: '#EAF7F4',
+                ...style
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 3);
+            elements.push(text);
+            return text;
+        };
+
+        addText(top + 30, 'FEND COMMONS // THE FIRST LISTENING', {
+            fontSize: compact ? '11px' : '13px',
+            color: '#8FE3CF',
+            fontStyle: 'bold'
+        });
+        addText(
+            top + 63,
+            confirmation
+                ? selectedPriority.shortLabel
+                : 'NO ONE SPEAKS TWICE UNTIL EVERY VOICE HAS BEEN HEARD',
+            {
+                fontSize: compact ? '17px' : '22px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        );
+
+        if (confirmation) {
+            addText(top + (compact ? 126 : 142), `“${selectedPriority.decisionLine}”`, {
+                fontSize: compact ? '15px' : '18px',
+                color: '#F4F4F4',
+                fontStyle: 'italic',
+                lineSpacing: 5
+            });
+            addText(top + (compact ? 220 : 247), selectedPriority.companionLine, {
+                fontSize: compact ? '13px' : '15px',
+                color: '#BFD8D2',
+                lineSpacing: 4
+            });
+            addText(
+                top + bandHeight - 72,
+                'THIS SETS WHAT BEGINS FIRST. REFUGE, RESTORATION, AND WARNING ALL REMAIN.',
+                {
+                    fontSize: compact ? '10px' : '12px',
+                    color: '#8FE3CF',
+                    fontStyle: 'bold'
+                }
+            );
+            addText(top + bandHeight - 28, 'TAP TO RETURN', {
+                fontSize: '11px',
+                color: '#AFC3CF'
+            });
+        } else {
+            addText(
+                top + (compact ? 104 : 110),
+                'Kiri, Mara, and Tovan name three urgent needs. Ilyra asks you and your companion to choose what the Commons begins first.',
+                {
+                    fontSize: compact ? '12px' : '14px',
+                    color: '#BFD8D2',
+                    lineSpacing: 4
+                }
+            );
+
+            const buttonWidth = Math.min(width - 32, 690);
+            const buttonHeight = compact ? 82 : 88;
+            const buttonStartY = top + (compact ? 160 : 170);
+            FEND_COMMONS_PRIORITIES.forEach((priority, index) => {
+                const buttonY = buttonStartY + (index * (buttonHeight + 8));
+                const button = this.add.graphics()
+                    .setScrollFactor(0)
+                    .setDepth(depth + 1);
+                button.fillStyle(index === 0 ? 0x162B27 : 0x0A1716, 1);
+                button.fillRoundedRect(
+                    centerX - (buttonWidth / 2),
+                    buttonY,
+                    buttonWidth,
+                    buttonHeight,
+                    6
+                );
+                button.lineStyle(
+                    2,
+                    index === 0 ? 0xD94B4B : index === 1 ? 0x3FAE62 : 0xF4F4F4,
+                    0.95
+                );
+                button.strokeRoundedRect(
+                    centerX - (buttonWidth / 2),
+                    buttonY,
+                    buttonWidth,
+                    buttonHeight,
+                    6
+                );
+                button.setInteractive(
+                    new Phaser.Geom.Rectangle(
+                        centerX - (buttonWidth / 2),
+                        buttonY,
+                        buttonWidth,
+                        buttonHeight
+                    ),
+                    Phaser.Geom.Rectangle.Contains
+                );
+                elements.push(button);
+
+                const optionText = this.add.text(
+                    centerX - (buttonWidth / 2) + 16,
+                    buttonY + 12,
+                    priority.label,
+                    {
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: compact ? '13px' : '15px',
+                        color: '#F2C14E',
+                        fontStyle: 'bold'
+                    }
+                ).setScrollFactor(0).setDepth(depth + 2);
+                elements.push(optionText);
+
+                const caseText = this.add.text(
+                    centerX - (buttonWidth / 2) + 16,
+                    buttonY + 37,
+                    priority.caseLine,
+                    {
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: compact ? '10px' : '12px',
+                        color: '#D8E4E0',
+                        wordWrap: { width: buttonWidth - 32 },
+                        lineSpacing: 2
+                    }
+                ).setScrollFactor(0).setDepth(depth + 2);
+                elements.push(caseText);
+
+                button.on('pointerover', () => button.setAlpha(0.82));
+                button.on('pointerout', () => button.setAlpha(1));
+                button.once('pointerup', () => {
+                    const recorded = previewMode
+                        ? {
+                            changed: true,
+                            reason: 'first_listening_completed',
+                            priority,
+                            snapshot: this.createFendCulturePreviewSnapshot(
+                                priority.id
+                            )
+                        }
+                        : recordFirstListeningDecision(
+                            window.GameState,
+                            priority.id
+                        );
+                    if (!recorded?.priority) {
+                        window.AudioManager?.playError?.();
+                        return;
+                    }
+
+                    this.closeFendCommonsListening();
+                    this.worldBuilder?.refreshFendCulture(
+                        this.signalGarden,
+                        recorded.snapshot
+                    );
+                    if (!previewMode && recorded.changed) {
+                        this.recordBondActivity('community');
+                        window.AchievementSystem?.recordEvent?.(
+                            'story_interaction',
+                            {
+                                event: 'fend_first_listening_completed',
+                                priorityId: priority.id
+                            }
+                        );
+                        window.AudioManager?.playAchievement?.();
+                    }
+                    this.showFendCommonsListening({
+                        result: recorded,
+                        previewPriority: previewMode ? priority.id : undefined
+                    });
+                });
+            });
+
+            addText(top + bandHeight - 25, 'CHOOSE WHAT BEGINS FIRST', {
+                fontSize: '10px',
+                color: '#AFC3CF'
+            });
+        }
+
+        if (confirmation) {
+            overlay.once('pointerup', () => {
+                this.closeFendCommonsListening();
+                this.showInteractionHint(
+                    formatFendCultureObjective(
+                        result?.snapshot || snapshot
+                    )
+                );
+            });
+        }
+        this.fendListeningElements = elements;
+    }
+
+    closeFendCommonsListening() {
+        if (!this.fendListeningOpen) return;
+        this.fendListeningOpen = false;
+        this.fendListeningElements?.forEach(element => element?.destroy?.());
+        this.fendListeningElements = [];
+    }
+
     tendSignalGarden() {
         if (!window.GameState || !this.signalGarden) return;
+
+        const guardianActivity = recordGuardianActivity(
+            window.GameState,
+            'gardenVisits'
+        );
+        if (guardianActivity?.changed) {
+            this.worldBuilder?.refreshGuardianResidents(
+                this.signalGarden,
+                guardianActivity.snapshot
+            );
+            this.setupGuardianResidentOverlaps();
+        }
+
+        const cultureBefore = getFendCultureSnapshot(window.GameState);
+        if (cultureBefore.ready) {
+            this.showFendCommonsListening();
+            return;
+        }
+
+        const communityBefore = getFendCommunitySnapshot(window.GameState);
+        if (communityBefore.nextProject?.ready) {
+            const contribution = advanceFendCommunityProject(window.GameState);
+            if (contribution?.changed) {
+                this.worldBuilder?.refreshFendCommunity(
+                    this.signalGarden,
+                    contribution.snapshot.stage
+                );
+                this.worldBuilder?.refreshFendResidents(
+                    this.signalGarden,
+                    getFendResidentsSnapshot(window.GameState)
+                );
+                this.setupFendResidentOverlaps();
+                this.showFendCommunityProjectMoment(contribution);
+                window.AchievementSystem?.recordEvent?.('story_interaction', {
+                    event: 'fend_community_project_completed',
+                    projectId: contribution.project.id,
+                    stage: contribution.snapshot.stage
+                });
+                return;
+            }
+        }
 
         const currentState = normalizeSignalGardenState(
             window.GameState.get('world.signalGarden')
@@ -4910,7 +9637,12 @@ class GameScene extends Phaser.Scene {
         const result = tendSignalGarden(currentState);
 
         if (!result.success) {
-            this.showInteractionHint(result.message);
+            const community = getFendCommunitySnapshot(window.GameState);
+            this.showInteractionHint(
+                community.complete
+                    ? result.message
+                    : formatFendCommunityObjective(community)
+            );
             window.AudioManager?.playError?.();
             return;
         }
@@ -4942,6 +9674,14 @@ class GameScene extends Phaser.Scene {
             '#71E6B1'
         );
         this.showCreatureResponse(result.companionLine);
+        const communityAfter = getFendCommunitySnapshot(window.GameState);
+        if (communityAfter.nextProject?.ready) {
+            this.time.delayedCall(900, () => {
+                this.showInteractionHint(
+                    `${communityAfter.nextProject.label} is ready · press SPACE`
+                );
+            });
+        }
 
         if (window.FXLibrary?.stardustBurst) {
             window.FXLibrary.stardustBurst(this, gardenZone.x, gardenZone.y - 30, {
@@ -4950,6 +9690,124 @@ class GameScene extends Phaser.Scene {
                 duration: 1400
             });
         }
+        window.AudioManager?.playAchievement?.();
+    }
+
+    showFendCommunityProjectMoment(contribution) {
+        if (!contribution?.project || this.communityMomentOpen) return;
+
+        this.communityMomentOpen = true;
+        const { width, height } = this.scale;
+        const compact = width < 620 || height < 600;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const elements = [];
+        const overlay = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(9000)
+            .setInteractive(
+                new Phaser.Geom.Rectangle(0, 0, width, height),
+                Phaser.Geom.Rectangle.Contains
+            );
+        overlay.fillStyle(0x020807, 0.93);
+        overlay.fillRect(0, 0, width, height);
+        overlay.fillStyle(0x12352C, 0.94);
+        overlay.fillRect(0, centerY - (compact ? 170 : 210), width, compact ? 340 : 420);
+        overlay.lineStyle(2, 0x71E6B1, 0.85);
+        overlay.lineBetween(0, centerY - (compact ? 170 : 210), width, centerY - (compact ? 170 : 210));
+        overlay.lineBetween(0, centerY + (compact ? 170 : 210), width, centerY + (compact ? 170 : 210));
+        elements.push(overlay);
+
+        const addCenteredText = (y, value, style) => {
+            const text = this.add.text(centerX, y, value, {
+                fontFamily: 'Arial, sans-serif',
+                align: 'center',
+                wordWrap: { width: Math.min(width - 40, 680) },
+                ...style
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(9001);
+            elements.push(text);
+            return text;
+        };
+
+        addCenteredText(
+            centerY - (compact ? 130 : 158),
+            `PROJECT BEACON // COMMUNITY ${contribution.snapshot.stage}/4`,
+            {
+                fontSize: compact ? '11px' : '13px',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        );
+
+        const sigil = this.add.graphics().setScrollFactor(0).setDepth(9001);
+        sigil.lineStyle(3, 0xF4F4F4, 0.9);
+        sigil.strokeCircle(centerX, centerY - (compact ? 79 : 93), compact ? 27 : 34);
+        sigil.lineStyle(4, 0x3FAE62, 1);
+        sigil.lineBetween(
+            centerX - 17,
+            centerY - (compact ? 79 : 93),
+            centerX,
+            centerY - (compact ? 62 : 76)
+        );
+        sigil.lineBetween(
+            centerX,
+            centerY - (compact ? 62 : 76),
+            centerX + 20,
+            centerY - (compact ? 101 : 115)
+        );
+        sigil.fillStyle(0xD94B4B, 1);
+        sigil.fillCircle(centerX + 20, centerY - (compact ? 101 : 115), 5);
+        elements.push(sigil);
+
+        addCenteredText(
+            centerY - (compact ? 22 : 22),
+            contribution.project.label,
+            {
+                fontSize: compact ? '25px' : '34px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        );
+        addCenteredText(
+            centerY + (compact ? 28 : 42),
+            contribution.project.description,
+            {
+                fontSize: compact ? '14px' : '17px',
+                color: '#EAF7F4',
+                lineSpacing: 5
+            }
+        );
+        addCenteredText(
+            centerY + (compact ? 91 : 112),
+            contribution.project.supportLine.toUpperCase(),
+            {
+                fontSize: compact ? '12px' : '14px',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        );
+        addCenteredText(
+            centerY + (compact ? 137 : 169),
+            'TAP TO RETURN',
+            {
+                fontSize: '11px',
+                color: '#AFC3CF'
+            }
+        );
+
+        const close = () => {
+            if (!this.communityMomentOpen) return;
+            this.communityMomentOpen = false;
+            elements.forEach(element => element?.destroy?.());
+            this.communityMomentElements = [];
+            this.showInteractionHint(this.communityMomentPreview !== null
+                ? `Community stage ${this.communityMomentPreview}/4 preview`
+                : formatFendCommunityObjective(contribution.snapshot)
+            );
+        };
+        this.communityMomentElements = elements;
+        overlay.once('pointerdown', close);
+        this.time.delayedCall(6000, close);
         window.AudioManager?.playAchievement?.();
     }
 
@@ -5088,6 +9946,7 @@ class GameScene extends Phaser.Scene {
 
         // Add points
         this.targetRangeScore += points;
+        recordGuardianActivity(window.GameState, 'targetHits');
         if (this.targetRangeScoreText) {
             this.targetRangeScoreText.setText(`🎯 Score: ${this.targetRangeScore}`);
         }
@@ -5169,7 +10028,7 @@ class GameScene extends Phaser.Scene {
         target.body.enable = false;
 
         // Screen shake for explosion
-        this.cameras.main.shake(200, 0.01);
+        window.FeedbackManager?.cameraShake?.(this, 200, 0.01);
 
         // Respawn after 3 seconds
         this.time.delayedCall(3000, () => {
@@ -5690,7 +10549,7 @@ class GameScene extends Phaser.Scene {
         this.sceneRouter.showLoading('Traveling to the Hub...');
 
         // Screen effect - magical transition
-        this.cameras.main.flash(300, 147, 112, 219); // Purple flash
+        window.FeedbackManager?.cameraFlash?.(this, 300, 147, 112, 219); // Purple flash
 
         // Fade out and transition to hub
         this.cameras.main.fadeOut(500, 0, 0, 0);
@@ -5739,7 +10598,7 @@ class GameScene extends Phaser.Scene {
         this.sceneRouter.showLoading('Entering the Void...');
 
         // Screen effect - get sucked into the void
-        this.cameras.main.shake(500, 0.015);
+        window.FeedbackManager?.cameraShake?.(this, 500, 0.015);
 
         // Fade to black and start void mini-game
         this.cameras.main.fadeOut(600, 0, 0, 0);
@@ -5879,9 +10738,50 @@ class GameScene extends Phaser.Scene {
             console.log('[GameScene] Player near Crashed Ship');
 
             const fieldKitRecovered = this.hasRecoveredProjectBeaconFieldKit();
+            const senseiMemory = getSenseiMemorySnapshot(window.GameState);
+            const shipEvidence = getShipEvidenceSnapshot(window.GameState);
+            const shipReconstruction =
+                getShipReconstructionSnapshot(window.GameState);
+            const consent = getCompanionConsentSnapshot(window.GameState);
+            const earthMemory = getCompanionEarthMemorySnapshot(
+                window.GameState
+            );
+            const protectedReturn = getProtectedReturnSnapshot(
+                window.GameState
+            );
+            const currentVeil = getCurrentVeilSnapshot(
+                window.GameState
+            );
             this.showInteractionHint(
-                fieldKitRecovered
-                    ? 'Press SPACE to examine your ship 🚀'
+                fieldKitRecovered && senseiMemory.ready
+                    ? `Press SPACE · Personal memory ${senseiMemory.recalledCount + 1}/${senseiMemory.totalMemories}`
+                    : fieldKitRecovered && shipReconstruction.ready
+                        ? `Press SPACE · Install ${shipReconstruction.readyStep.partName}`
+                    : fieldKitRecovered &&
+                        shipReconstruction.fieldSupport.ready
+                        ? 'Press SPACE · Powered berth ready'
+                    : fieldKitRecovered && shipEvidence.ready
+                        ? `Press SPACE · Ship archive ${shipEvidence.reviewedCount}/${shipEvidence.totalSections}`
+                    : fieldKitRecovered && consent.ready
+                        ? `Press SPACE · Earth boundaries ${consent.reviewedCount}/${consent.totalTopics}`
+                    : fieldKitRecovered && earthMemory.ready
+                        ? 'Press SPACE · Your companion has an Earth question'
+                    : fieldKitRecovered && earthMemory.complete
+                        ? 'Press SPACE · Review your shared Earth memory'
+                    : fieldKitRecovered && protectedReturn.ready
+                        ? `Press SPACE · Return safeguards ${protectedReturn.completedCount}/${protectedReturn.totalSteps}`
+                    : fieldKitRecovered && protectedReturn.complete
+                        ? currentVeil.verificationReady
+                            ? 'Press SPACE · Verify living mask'
+                            : currentVeil.active
+                                ? `Press SPACE · Quiet Current ${currentVeil.stabilizedCount}/${currentVeil.totalAnchors}`
+                                : currentVeil.complete
+                                    ? 'Press SPACE · Living mask verified'
+                                    : 'Press SPACE · Protected return sealed'
+                    : fieldKitRecovered && shipEvidence.available
+                        ? 'Press SPACE · Open ship and evidence board'
+                    : fieldKitRecovered
+                        ? 'Press SPACE to examine your ship 🚀'
                     : 'Press SPACE to recover the field kit 🥋'
             );
 
@@ -5889,6 +10789,430 @@ class GameScene extends Phaser.Scene {
                 this.mobileControls.updateInteractIcon(fieldKitRecovered ? '🚀' : '🥋');
             }
         }
+    }
+
+    showSenseiMemory() {
+        if (
+            this.senseiMemoryModal?.isVisible ||
+            !window.GameState
+        ) {
+            return;
+        }
+        const snapshot = getSenseiMemorySnapshot(window.GameState);
+        if (!snapshot.ready || !snapshot.nextMemory) return;
+
+        this.senseiMemoryModal = new SenseiMemoryModal(this, {
+            snapshotProvider: () => (
+                getSenseiMemorySnapshot(window.GameState)
+            ),
+            onRecall: memoryId => {
+                const result = recordSenseiMemory(
+                    window.GameState,
+                    memoryId
+                );
+                if (!result?.changed) {
+                    window.AudioManager?.playError?.();
+                    return result;
+                }
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'sensei_memory_recalled',
+                        memoryId,
+                        lessonUnlocked:
+                            result.reason === 'lesson_unlocked'
+                    }
+                );
+                recordCampaignLegacyCapsule(window.GameState, {
+                    intent: window.GameState.get(
+                        'story.projectBeacon.finale.priority'
+                    ),
+                    recordedAt: new Date().toISOString()
+                });
+                window.AudioManager?.playAchievement?.();
+                return result;
+            },
+            onClose: () => {
+                this.senseiMemoryModal = null;
+                const current = getSenseiMemorySnapshot(
+                    window.GameState
+                );
+                this.showInteractionHint(
+                    current.lesson.unlocked
+                        ? 'Centering Stance · release movement after a hit'
+                        : `Personal archive ${current.recalledCount}/${current.totalMemories}`
+                );
+            }
+        });
+        this.senseiMemoryModal.show(snapshot.nextMemory.id);
+    }
+
+    showShipEvidenceBoard() {
+        if (
+            this.shipEvidenceBoardModal?.isVisible ||
+            !window.GameState
+        ) {
+            return;
+        }
+        const snapshot = getShipEvidenceSnapshot(window.GameState);
+        const reconstruction = getShipReconstructionSnapshot(
+            window.GameState
+        );
+        const protocol = getProtectedReturnSnapshot(window.GameState);
+        if (!snapshot.available) return;
+
+        this.shipEvidenceBoardModal = new ShipEvidenceBoardModal(this, {
+            snapshotProvider: () => (
+                getShipEvidenceSnapshot(window.GameState)
+            ),
+            reconstructionSnapshotProvider: () => (
+                getShipReconstructionSnapshot(window.GameState)
+            ),
+            onReconstructionStep: stepId => {
+                const result = installShipReconstructionStep(
+                    window.GameState,
+                    stepId
+                );
+                if (!result?.changed) {
+                    window.AudioManager?.playError?.();
+                    return result;
+                }
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'ship_system_installed',
+                        stepId,
+                        complete: result.snapshot.complete
+                    }
+                );
+                recordCampaignLegacyCapsule(window.GameState, {
+                    intent: window.GameState.get(
+                        'story.projectBeacon.finale.priority'
+                    ),
+                    recordedAt:
+                        result.snapshot.state.completedAt ||
+                        new Date().toISOString()
+                });
+                if (result.snapshot.complete) {
+                    window.AudioManager?.playAchievement?.();
+                    if (
+                        this.continueFinaleAfterRepair ||
+                        (
+                            this.shipReconstructionHandoff &&
+                            this.shipReconstructionNextGateLabel ===
+                                'The Final Void'
+                        )
+                    ) {
+                        this.time.delayedCall(700, () => {
+                            this.shipEvidenceBoardModal?.hide?.();
+                        });
+                    }
+                } else {
+                    window.AudioManager?.playButtonClick?.();
+                }
+                return result;
+            },
+            onCompanionService: () => {
+                const result = serviceCompanionAtPoweredBerth(
+                    window.GameState
+                );
+                if (!result?.changed) {
+                    window.AudioManager?.playError?.();
+                    return result;
+                }
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'powered_berth_service',
+                        levelMilestone:
+                            result.snapshot.fieldSupport.state
+                                .lastServicedLevel,
+                        energyRestored: result.energyRestored,
+                        healthRestored: result.healthRestored
+                    }
+                );
+                this.updateStatsDisplay?.();
+                window.AudioManager?.playAchievement?.();
+                return result;
+            },
+            onReview: sectionId => {
+                const result = recordShipEvidenceSection(
+                    window.GameState,
+                    sectionId
+                );
+                if (!result?.changed) {
+                    window.AudioManager?.playError?.();
+                    return result;
+                }
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'ship_archive_reviewed',
+                        sectionId,
+                        complete: result.snapshot.complete
+                    }
+                );
+                if (result.snapshot.complete) {
+                    recordCampaignLegacyCapsule(window.GameState, {
+                        intent: window.GameState.get(
+                            'story.projectBeacon.finale.priority'
+                        ),
+                        recordedAt:
+                            result.snapshot.state.completedAt ||
+                            new Date().toISOString()
+                    });
+                    window.AudioManager?.playAchievement?.();
+                } else {
+                    window.AudioManager?.playButtonClick?.();
+                }
+                return result;
+            },
+            protocolSnapshotProvider: () => (
+                getProtectedReturnSnapshot(window.GameState)
+            ),
+            handoffSnapshotProvider: () => (
+                getHomecomingHandoffSnapshot(window.GameState)
+            ),
+            onProtocolStep: stepId => {
+                const result = applyProtectedReturnStep(
+                    window.GameState,
+                    stepId
+                );
+                if (!result?.changed) {
+                    window.AudioManager?.playError?.();
+                    return result;
+                }
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'protected_return_safeguard',
+                        stepId,
+                        complete: result.snapshot.complete
+                    }
+                );
+                recordCampaignLegacyCapsule(window.GameState, {
+                    intent: window.GameState.get(
+                        'story.projectBeacon.finale.priority'
+                    ),
+                    recordedAt:
+                        result.snapshot.state.completedAt ||
+                        new Date().toISOString()
+                });
+                if (result.snapshot.complete) {
+                    window.AudioManager?.playAchievement?.();
+                } else {
+                    window.AudioManager?.playButtonClick?.();
+                }
+                return result;
+            },
+            onClose: () => {
+                this.shipEvidenceBoardModal = null;
+                if (
+                    this.continueFinaleAfterRepair &&
+                    !this._isShuttingDown &&
+                    getShipReconstructionSnapshot(window.GameState).complete
+                ) {
+                    this.finishFinaleAfterCommandRepair();
+                    return;
+                }
+                const current = getShipEvidenceSnapshot(
+                    window.GameState
+                );
+                const currentReconstruction =
+                    getShipReconstructionSnapshot(window.GameState);
+                const currentProtocol =
+                    getProtectedReturnSnapshot(window.GameState);
+                const currentHandoff =
+                    getHomecomingHandoffSnapshot(window.GameState);
+                if (this.shipReconstructionHandoff) {
+                    const nextRoute = this.shipReconstructionNextGateLabel
+                        ? ` // HUB ROUTE: ${this.shipReconstructionNextGateLabel.toUpperCase()}`
+                        : '';
+                    this.shipReconstructionHandoff = false;
+                    if (
+                        currentReconstruction.complete &&
+                        this.shipReconstructionNextGateLabel === 'The Final Void'
+                    ) {
+                        this.showInteractionHint(
+                            'FIVE SYSTEMS ONLINE // RETURNING TO THE FINAL ROUTE'
+                        );
+                        this.time.delayedCall(420, () => {
+                            if (!this._isShuttingDown) {
+                                this.scene.start('HubWorldScene');
+                            }
+                        });
+                        return;
+                    }
+                    this.showInteractionHint(
+                        currentReconstruction.ready
+                            ? `INSTALL ${currentReconstruction.readyStep.partName.toUpperCase()} BEFORE THE NEXT EXPEDITION`
+                            : `WANDERER-77 SYSTEM ONLINE${nextRoute}`
+                    );
+                    return;
+                }
+                this.showInteractionHint(
+                    currentHandoff.readyForHomecoming
+                        ? 'Homecoming record verified · no transmission'
+                    : currentReconstruction.ready
+                        ? `Ship reconstruction ${currentReconstruction.completedCount}/${currentReconstruction.totalSteps}`
+                    : currentReconstruction.fieldSupport.ready
+                        ? 'Powered berth ready · companion service available'
+                    : currentProtocol.complete
+                        ? 'Protected return sealed · report held'
+                        : currentProtocol.available
+                            ? `Return safeguards ${currentProtocol.completedCount}/${currentProtocol.totalSteps}`
+                        : current.complete
+                            ? 'Ship archive reviewed · no transmission'
+                        : `Ship archive ${current.reviewedCount}/${current.totalSections}`
+                );
+            }
+        });
+        this.shipEvidenceBoardModal.show(
+            reconstruction.ready ||
+                reconstruction.fieldSupport.ready
+                ? 'reconstruction'
+                : snapshot.nextSection?.id ||
+                (protocol.available ? 'protocol' : 'systems')
+        );
+    }
+
+    finishFinaleAfterCommandRepair() {
+        if (!this.continueFinaleAfterRepair || this._isShuttingDown) {
+            return false;
+        }
+        this.continueFinaleAfterRepair = false;
+        window.AchievementSystem?.recordEvent?.('game_complete', {});
+        this.time.delayedCall(180, () => {
+            if (!this._isShuttingDown) {
+                this.scene.start('VictoryScene');
+            }
+        });
+        return true;
+    }
+
+    showCompanionBoundaryReview() {
+        if (
+            this.companionConsentModal?.isVisible ||
+            !window.GameState
+        ) {
+            return;
+        }
+        const snapshot = getCompanionConsentSnapshot(window.GameState);
+        if (!snapshot.ready && !snapshot.complete) return;
+
+        this.companionConsentModal = new CompanionConsentModal(this, {
+            snapshotProvider: () => (
+                getCompanionConsentSnapshot(window.GameState)
+            ),
+            onReview: topicId => {
+                const result = recordCompanionBoundaryTopic(
+                    window.GameState,
+                    topicId
+                );
+                if (!result?.changed) {
+                    window.AudioManager?.playError?.();
+                    return result;
+                }
+
+                this.recordBondActivity('community');
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'companion_boundary_reviewed',
+                        companionId: result.snapshot.companionId,
+                        topicId,
+                        complete: result.snapshot.complete
+                    }
+                );
+                if (result.snapshot.complete) {
+                    recordCampaignLegacyCapsule(window.GameState, {
+                        intent: result.snapshot.priority,
+                        recordedAt:
+                            result.record.recordedAt ||
+                            new Date().toISOString()
+                    });
+                    window.AudioManager?.playAchievement?.();
+                } else {
+                    window.AudioManager?.playButtonClick?.();
+                }
+                return result;
+            },
+            onClose: () => {
+                this.companionConsentModal = null;
+                const current = getCompanionConsentSnapshot(
+                    window.GameState
+                );
+                if (current.complete) {
+                    this.showInteractionHint(
+                        'Earth boundaries recorded · travel remains undecided'
+                    );
+                }
+            }
+        });
+        this.companionConsentModal.show(
+            snapshot.complete ? 'complete' : 'menu'
+        );
+    }
+
+    showCompanionEarthMemory() {
+        if (
+            this.companionEarthMemoryModal?.isVisible ||
+            !window.GameState
+        ) {
+            return;
+        }
+        const snapshot = getCompanionEarthMemorySnapshot(window.GameState);
+        if (!snapshot.ready && !snapshot.complete) return;
+
+        this.companionEarthMemoryModal = new CompanionEarthMemoryModal(this, {
+            snapshotProvider: () => (
+                getCompanionEarthMemorySnapshot(window.GameState)
+            ),
+            onShare: memoryId => {
+                const result = shareCompanionEarthMemory(
+                    window.GameState,
+                    memoryId
+                );
+                if (!result?.changed) {
+                    window.AudioManager?.playError?.();
+                    return result;
+                }
+                this.recordBondActivity('community');
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'companion_earth_memory_shared',
+                        companionId: result.snapshot.companionId,
+                        memoryId,
+                        invitationStatus: 'not_offered',
+                        transmissionStatus: 'not_sent'
+                    }
+                );
+                recordCampaignLegacyCapsule(window.GameState, {
+                    intent: window.GameState.get(
+                        'story.projectBeacon.finale.priority'
+                    ),
+                    recordedAt:
+                        result.record.sharedAt || new Date().toISOString()
+                });
+                window.AudioManager?.playAchievement?.();
+                return result;
+            },
+            onClose: () => {
+                this.companionEarthMemoryModal = null;
+                const current = getCompanionEarthMemorySnapshot(
+                    window.GameState
+                );
+                if (current.complete) {
+                    this.showInteractionHint(
+                        'Earth memory shared · no invitation or transmission'
+                    );
+                }
+            }
+        });
+        this.companionEarthMemoryModal.show(
+            snapshot.complete ? 'shared' : 'menu'
+        );
     }
 
     /**
@@ -6370,7 +11694,12 @@ class GameScene extends Phaser.Scene {
      * @param {Object} dailyBonus - Daily bonus info
      * @param {Function} onComplete - Optional callback when dismissed
      */
-    showDailyGreetingOverlay(creatureName, dailyBonus, onComplete = null) {
+    showDailyGreetingOverlay(
+        creatureName,
+        dailyBonus,
+        onComplete = null,
+        personalityCoreOverride = null
+    ) {
         const { width, height } = this.scale;
 
         // Create overlay
@@ -6382,7 +11711,7 @@ class GameScene extends Phaser.Scene {
 
         // Greeting panel
         const panelWidth = Math.min(400, width - 40);
-        const panelHeight = dailyBonus.available ? 280 : 200;
+        const panelHeight = dailyBonus.available ? 330 : 240;
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
 
@@ -6394,31 +11723,21 @@ class GameScene extends Phaser.Scene {
         panel.setScrollFactor(0);
         panel.setDepth(5001);
 
-        // Greeting messages based on time of day
-        const hour = new Date().getHours();
-        let timeGreeting;
-        if (hour < 12) {
-            timeGreeting = 'Good morning!';
-        } else if (hour < 17) {
-            timeGreeting = 'Good afternoon!';
-        } else {
-            timeGreeting = 'Good evening!';
-        }
-
-        // Random greeting variations
-        const greetings = [
-            `${timeGreeting}\n${creatureName} bounces excitedly to see you!`,
-            `${timeGreeting}\n${creatureName} was waiting for you!`,
-            `${timeGreeting}\n${creatureName}'s eyes light up!`,
-            `${timeGreeting}\n${creatureName} does a happy wiggle!`,
-            `${timeGreeting}\n${creatureName} chirps with joy!`
-        ];
-        const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+        const personalityCore = personalityCoreOverride || window.GameState?.get(
+            'creature.genes.personality.core'
+        ) || window.GameState?.get(
+            'creature.genetics.personality.core'
+        ) || 'curious';
+        const checkIn = getSanctuaryCheckInCopy({
+            name: creatureName,
+            personalityCore
+        });
+        const greeting = `${checkIn.statusLine}\n${checkIn.line}`;
 
         // Title
-        const title = this.add.text(width / 2, panelY + 25, '✨ Welcome Back! ✨', {
-            fontSize: '22px',
-            color: '#FFD700',
+        const title = this.add.text(width / 2, panelY + 25, checkIn.title, {
+            fontSize: '20px',
+            color: '#8FE3CF',
             fontStyle: 'bold'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
 
@@ -6427,7 +11746,8 @@ class GameScene extends Phaser.Scene {
             fontSize: '16px',
             color: '#FFFFFF',
             align: 'center',
-            lineSpacing: 6
+            lineSpacing: 6,
+            wordWrap: { width: panelWidth - 48 }
         }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(5002);
 
         const elements = [overlay, panel, title, greetingText];
@@ -6443,8 +11763,8 @@ class GameScene extends Phaser.Scene {
 
         // If daily bonus available, show it
         if (dailyBonus.available) {
-            const bonusText = this.add.text(width / 2, panelY + 130,
-                `🎁 Daily Login Bonus: Day ${dailyBonus.streak}\n+${dailyBonus.rewards.xp} XP  +${dailyBonus.rewards.stardust} Stardust`,
+            const bonusText = this.add.text(width / 2, panelY + 180,
+                `SUPPLY CACHE // CYCLE ${dailyBonus.streak}\n+${dailyBonus.rewards.xp} XP  //  +${dailyBonus.rewards.stardust} STARDUST`,
                 {
                     fontSize: '15px',
                     color: '#90EE90',
@@ -6455,8 +11775,8 @@ class GameScene extends Phaser.Scene {
             elements.push(bonusText);
 
             // Claim button
-            const claimBtn = this.add.text(width / 2, panelY + panelHeight - 45, '🎁 Claim Bonus!', {
-                fontSize: '18px',
+            const claimBtn = this.add.text(width / 2, panelY + panelHeight - 45, 'LOG SUPPLIES', {
+                fontSize: '16px',
                 color: '#FFFFFF',
                 backgroundColor: '#4CAF50',
                 padding: { x: 20, y: 10 }
@@ -6485,8 +11805,8 @@ class GameScene extends Phaser.Scene {
             claimBtn.on('pointerout', () => claimBtn.setStyle({ backgroundColor: '#4CAF50' }));
         } else {
             // Just show a close button
-            const closeBtn = this.add.text(width / 2, panelY + panelHeight - 35, 'Continue', {
-                fontSize: '18px',
+            const closeBtn = this.add.text(width / 2, panelY + panelHeight - 35, 'RETURN TO SANCTUARY', {
+                fontSize: '15px',
                 color: '#FFFFFF',
                 backgroundColor: '#7B68EE',
                 padding: { x: 25, y: 10 }
@@ -6549,8 +11869,8 @@ class GameScene extends Phaser.Scene {
         const fusionStatus = getGameState().getBreedingShrineStatus?.();
 
         if (!fusionStatus?.unlocked) {
-            const creatureLevel = getGameState().get('creature.level') || 1;
-            this.showInteractionHint(`Fusion Pod unlocks at Level 5 (Current: ${creatureLevel})`);
+            const landmark = this.getFusionPodWorldSnapshot();
+            this.showInteractionHint(landmark.statusLabel);
             window.AudioManager?.playError?.();
             return;
         }
@@ -6652,31 +11972,34 @@ class GameScene extends Phaser.Scene {
         }, null);
 
         if (!nearest || nearest.distance > 150) {
-            this.activeLivingSignalId = null;
-            this.livingSignalDwellMs = 0;
+            this.resetActiveLivingSignalListening();
             return;
         }
 
         if (!this.livingSignalApproachHintShown) {
             this.livingSignalApproachHintShown = true;
             this.showInteractionHint(
-                'Living signal: approach with your companion and stay close.'
+                'Not an Earth transmission. Move into the pulse with your companion.'
             );
         }
 
         if (nearest.distance > 82) {
-            this.activeLivingSignalId = null;
-            this.livingSignalDwellMs = 0;
+            this.resetActiveLivingSignalListening();
             return;
         }
 
         if (this.activeLivingSignalId !== nearest.signal.signalId) {
+            this.resetActiveLivingSignalListening();
             this.activeLivingSignalId = nearest.signal.signalId;
             this.livingSignalDwellMs = 0;
-            this.showInteractionHint('Stay close. Your companion is listening.');
+            this.showInteractionHint('Hold position. Your companion is listening.');
         }
 
         this.livingSignalDwellMs += Math.min(Number(delta) || 16.67, 100);
+        this.setLivingSignalListeningProgress(
+            nearest.signal,
+            this.livingSignalDwellMs / 800
+        );
         if (this.livingSignalDwellMs >= 800) {
             this.activeLivingSignalId = null;
             this.livingSignalDwellMs = 0;
@@ -6692,13 +12015,22 @@ class GameScene extends Phaser.Scene {
             signal.signalId
         );
         if (!result.success) {
-            this.refreshLivingSignalVisual(signal);
+            this.refreshLivingSignalVisual(
+                signal,
+                result.progress,
+                result.total
+            );
             return false;
         }
 
         window.GameState.set('world.livingSignals', result.state);
+        const ecologyResult = recordCurrentSignalObservation(
+            window.GameState,
+            signal.signalId,
+            { save: false }
+        );
         window.GameState.visitArea?.(`signal:${signal.signalId}`);
-        this.refreshLivingSignalVisual(signal);
+        this.refreshLivingSignalVisual(signal, result.progress, result.total);
         window.QuestManager?.trackProgress?.('observe_living_signal', {
             signalId: signal.signalId
         });
@@ -6715,7 +12047,11 @@ class GameScene extends Phaser.Scene {
             signalId: signal.signalId
         });
 
-        this.showLivingSignalMoment(result);
+        window.GameState.save?.();
+        this.showLivingSignalMoment({
+            ...result,
+            ecology: ecologyResult?.summary || null
+        });
         this.showCreatureResponse(result.signal.companionLine);
         this.showFloatingText(
             `SIGNAL ${result.progress}/${result.total} +4 Bond`,
@@ -6738,11 +12074,17 @@ class GameScene extends Phaser.Scene {
         this.clearLivingSignalMoment();
 
         const { width, height } = this.scale;
-        const isMobile = width < 600;
-        const panelWidth = Math.min(isMobile ? width - 24 : 520, width - 24);
-        const panelHeight = isMobile ? 190 : 166;
+        const isMobile = width < 600 || this.livingSignalPreviewSize === 'mobile';
+        const mobileViewportWidth = this.livingSignalPreviewSize === 'mobile'
+            ? 390
+            : width;
+        const panelWidth = Math.min(
+            isMobile ? mobileViewportWidth - 24 : 520,
+            width - 24
+        );
+        const panelHeight = isMobile ? 232 : 188;
         const panelX = (width - panelWidth) / 2;
-        const mobileYLimit = height - panelHeight - 150;
+        const mobileYLimit = Math.max(12, height - panelHeight - 150);
         const panelY = isMobile
             ? Math.min(Math.max(230, height * 0.52), mobileYLimit)
             : height - panelHeight - 24;
@@ -6755,10 +12097,13 @@ class GameScene extends Phaser.Scene {
         panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.setScrollFactor(0).setDepth(depth);
 
+        const currentStatus = result.ecology?.awarenessLabel || (
+            result.completed ? 'NETWORK CONFIRMED' : 'LINK ESTABLISHED'
+        );
         const eyebrow = this.add.text(
             panelX + 16,
             panelY + 13,
-            `PROJECT BEACON // LIVING SIGNAL ${result.progress}/${result.total}`,
+            `CURRENT NETWORK // ${currentStatus} // ${result.progress}/${result.total}`,
             {
                 fontSize: isMobile ? '10px' : '11px',
                 fontFamily: 'Arial, sans-serif',
@@ -6793,12 +12138,27 @@ class GameScene extends Phaser.Scene {
         ).setScrollFactor(0).setDepth(depth + 1);
         const fieldNote = this.add.text(
             panelX + 16,
-            panelY + panelHeight - 14,
+            panelY + (isMobile ? 154 : 132),
             `FIELD NOTE // ${result.signal.fieldNote}`,
             {
                 fontSize: isMobile ? '10px' : '11px',
                 fontFamily: 'Arial, sans-serif',
                 color: '#F2C14E',
+                fontStyle: 'bold',
+                wordWrap: { width: panelWidth - 32 }
+            }
+        ).setScrollFactor(0).setDepth(depth + 1);
+        const nextInstruction = result.completed
+            ? 'NEXT // Follow your companion toward the World Gate.'
+            : `NEXT // Follow the marked pulse. Listen ${result.progress}/${result.total}.`;
+        const next = this.add.text(
+            panelX + 16,
+            panelY + panelHeight - 14,
+            nextInstruction,
+            {
+                fontSize: isMobile ? '11px' : '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8FE3CF',
                 fontStyle: 'bold',
                 wordWrap: { width: panelWidth - 32 }
             }
@@ -6817,6 +12177,7 @@ class GameScene extends Phaser.Scene {
             response,
             companion,
             fieldNote,
+            next,
             close
         ];
 
@@ -6931,12 +12292,320 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
+     * Present a late-arriving living portrait without stopping Sanctuary play.
+     * The hatch and naming scenes get first claim; this is the guaranteed
+     * background-generation handoff for players who continue quickly.
+     */
+    async maybeShowLivingPortraitReadyNotice(record = null, {
+        attempt = 0,
+        preview = false
+    } = {}) {
+        if (this._isShuttingDown || !this.sys?.isActive?.()) return false;
+        const mediaService = window.CompanionMediaService || companionMediaService;
+        let portrait = record;
+        if (!portrait?.imageUrl && !preview) {
+            portrait = await mediaService?.resolvePortrait?.(
+                window.GameState?.get?.('creature.lifecycle.stage') || 'baby'
+            ).catch?.(() => null);
+        }
+        if (!portrait?.identityKey || !portrait?.imageUrl) return false;
+        if (
+            !preview &&
+            mediaService?.hasAppearance?.('first_living_form', portrait.identityKey)
+        ) {
+            return false;
+        }
+        if (
+            this.livingPortraitReadyNotice?.identityKey === portrait.identityKey ||
+            this.livingPortraitNoticePendingIdentity === portrait.identityKey
+        ) {
+            return false;
+        }
+        if (this.isLivingPortraitNoticeBlocked()) {
+            if (attempt < 20) {
+                this.livingPortraitNoticeTimer?.remove?.();
+                this.livingPortraitNoticeTimer = this.time.delayedCall(
+                    1500,
+                    () => void this.maybeShowLivingPortraitReadyNotice(
+                        portrait,
+                        { attempt: attempt + 1, preview }
+                    )
+                );
+            }
+            return false;
+        }
+
+        this.livingPortraitNoticePendingIdentity = portrait.identityKey;
+        try {
+            const textureKey = await mediaService?.ensureTexture?.(this, portrait);
+            if (
+                !textureKey ||
+                this._isShuttingDown ||
+                !this.sys?.isActive?.()
+            ) {
+                return false;
+            }
+            if (this.isLivingPortraitNoticeBlocked()) {
+                this.livingPortraitNoticePendingIdentity = null;
+                this.livingPortraitNoticeTimer?.remove?.();
+                this.livingPortraitNoticeTimer = this.time.delayedCall(
+                    1500,
+                    () => void this.maybeShowLivingPortraitReadyNotice(
+                        portrait,
+                        { attempt: attempt + 1, preview }
+                    )
+                );
+                return false;
+            }
+            this.showLivingPortraitReadyNotice(portrait, textureKey, { preview });
+            return true;
+        } finally {
+            this.livingPortraitNoticePendingIdentity = null;
+        }
+    }
+
+    async recoverLivingPortraitAfterArrival() {
+        if (this._isShuttingDown || !this.sys?.isActive?.()) return null;
+        const portraitService = window.LivingPortraitService;
+        if (!portraitService?.getEligibility?.().eligible) return null;
+
+        const stage = window.GameState?.get?.('creature.lifecycle.stage') || 'baby';
+        const existing = window.GameState?.getCreaturePortrait?.(stage);
+        if (existing?.assetRef) {
+            const resolved = await portraitService.resolve(existing)
+                .catch(() => null);
+            if (resolved?.imageUrl) {
+                await this.maybeShowLivingPortraitReadyNotice(resolved);
+            }
+            return resolved;
+        }
+
+        const genes = window.GameState?.get?.('creature.genes');
+        const dna = window.GameState?.get?.('creature.dna');
+        if (!genes || !dna) return null;
+        const creatureData = {
+            name: window.GameState?.get?.('creature.name') || 'Companion',
+            stage,
+            genes,
+            dna,
+            personality: window.GameState?.get?.('creature.personality')
+        };
+        const job = portraitService.prewarm?.({
+            creatureData,
+            sprite: this.player,
+            source: 'sanctuary_recovery'
+        });
+        if (!job?.then) return null;
+        const record = await job.catch(() => null);
+        if (record?.imageUrl) {
+            await this.maybeShowLivingPortraitReadyNotice(record);
+        }
+        return record;
+    }
+
+    isLivingPortraitNoticeBlocked() {
+        return Boolean(
+            this.guardianExchangeOpen ||
+            this.guardianCareActivityOpen ||
+            this.residentExchangeOpen ||
+            this.fendListeningOpen ||
+            this.controlsTutorial?.isVisible ||
+            this.storyModalElements?.length ||
+            this.greetingElements?.length ||
+            this.livingSignalMomentElements?.length ||
+            this.isFieldKitModalOpen ||
+            this.fusionDiscoveryModalOpen ||
+            this.hamburgerMenu?.isOpen ||
+            this.carePanelManager?.panelVisible ||
+            this.creatureRadialMenu?.isVisible
+        );
+    }
+
+    showLivingPortraitReadyNotice(record, textureKey, { preview = false } = {}) {
+        this.destroyLivingPortraitReadyNotice();
+        if (!preview && this.showLivingPortraitReveal(record)) {
+            return;
+        }
+        const { width, height } = this.scale;
+        const compact = width < 620;
+        const panelWidth = Math.min(compact ? width - 24 : 430, 430);
+        const panelHeight = compact ? 104 : 112;
+        const noticeY = Math.max(160, Math.min(height * 0.24, 200));
+        const depth = 15900;
+        const container = this.add.container(width / 2, noticeY)
+            .setScrollFactor(0)
+            .setDepth(depth)
+            .setAlpha(0);
+        const panel = this.add.graphics();
+        panel.fillStyle(0x081312, 0.97);
+        panel.fillRoundedRect(
+            -panelWidth / 2,
+            -panelHeight / 2,
+            panelWidth,
+            panelHeight,
+            7
+        );
+        panel.lineStyle(2, 0x8FE3CF, 1);
+        panel.strokeRoundedRect(
+            -panelWidth / 2,
+            -panelHeight / 2,
+            panelWidth,
+            panelHeight,
+            7
+        );
+        panel.setInteractive(
+            new Phaser.Geom.Rectangle(
+                -panelWidth / 2,
+                -panelHeight / 2,
+                panelWidth,
+                panelHeight
+            ),
+            Phaser.Geom.Rectangle.Contains
+        );
+        const portrait = this.add.image(
+            (-panelWidth / 2) + 54,
+            0,
+            textureKey
+        );
+        const portraitScale = Math.min(
+            76 / Math.max(1, portrait.width),
+            76 / Math.max(1, portrait.height)
+        );
+        portrait.setScale(portraitScale);
+        const copyX = (-panelWidth / 2) + 105;
+        const copyWidth = panelWidth - 124;
+        const title = this.add.text(copyX, -30, 'LIVING FORM READY', {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: compact ? '14px' : '16px',
+            fontStyle: 'bold',
+            color: '#F2C14E'
+        });
+        const companionName = window.GameState?.get?.('creature.name') || 'Your companion';
+        const copy = this.add.text(
+            copyX,
+            -5,
+            `${companionName}'s protected field portrait has arrived.`,
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '12px' : '13px',
+                color: '#F4F4F4',
+                wordWrap: { width: copyWidth }
+            }
+        );
+        const action = this.add.text(copyX, 31, 'TAP TO VIEW COMPANION PROFILE', {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: compact ? '9px' : '10px',
+            fontStyle: 'bold',
+            color: '#8FE3CF'
+        });
+        container.add([panel, portrait, title, copy, action]);
+
+        let dismissed = false;
+        let timer = null;
+        const dismiss = ({ openProfile = false } = {}) => {
+            if (dismissed) return;
+            dismissed = true;
+            timer?.remove?.();
+            this.tweens.killTweensOf(container);
+            container.destroy?.(true);
+            if (this.livingPortraitReadyNotice?.container === container) {
+                this.livingPortraitReadyNotice = null;
+            }
+            if (openProfile && this.sceneRouter) this.openCreatureProfile();
+        };
+        panel.on('pointerup', () => dismiss({ openProfile: true }));
+        this.tweens.add({
+            targets: container,
+            alpha: 1,
+            y: noticeY + 8,
+            duration: 320,
+            ease: 'Sine.easeOut'
+        });
+        timer = this.time.delayedCall(9000, () => {
+            this.tweens.add({
+                targets: container,
+                alpha: 0,
+                y: container.y - 8,
+                duration: 300,
+                onComplete: () => dismiss()
+            });
+        });
+        this.livingPortraitReadyNotice = {
+            identityKey: record.identityKey,
+            container,
+            destroy: dismiss
+        };
+        if (!preview) {
+            (window.CompanionMediaService || companionMediaService)
+                ?.recordAppearance?.('first_living_form', record);
+        }
+        window.AudioManager?.playAchievement?.();
+    }
+
+    showLivingPortraitReveal(record) {
+        if (!record?.imageUrl || !this.game?.domContainer) return false;
+        const domContainer = this.game.domContainer;
+        const previousStyles = {
+            zIndex: domContainer.style.zIndex,
+            pointerEvents: domContainer.style.pointerEvents
+        };
+        domContainer.style.zIndex = '110';
+        domContainer.style.pointerEvents = 'auto';
+
+        const reveal = new LivingFormHandoff(this);
+        const restore = () => {
+            domContainer.style.zIndex = previousStyles.zIndex;
+            domContainer.style.pointerEvents = previousStyles.pointerEvents;
+            if (this.livingPortraitReadyNotice?.reveal === reveal) {
+                this.livingPortraitReadyNotice = null;
+            }
+        };
+        const shown = reveal.show({
+            name: window.GameState?.get?.('creature.name') || 'Companion',
+            species: window.GameState?.get?.('creature.genes.species'),
+            stage: record.stage || window.GameState?.get?.(
+                'creature.lifecycle.stage'
+            ) || 'baby',
+            affinity: window.GameState?.get?.(
+                'creature.genes.cosmicAffinity.element'
+            ) || 'star',
+            portraitPromise: Promise.resolve(record),
+            mode: 'late_reveal',
+            onContinue: restore
+        });
+        if (!shown) {
+            restore();
+            return false;
+        }
+
+        this.livingPortraitReadyNotice = {
+            identityKey: record.identityKey,
+            reveal,
+            destroy: () => {
+                reveal.destroy?.();
+                restore();
+            }
+        };
+        window.AudioManager?.playAchievement?.();
+        return true;
+    }
+
+    destroyLivingPortraitReadyNotice() {
+        this.livingPortraitNoticeTimer?.remove?.();
+        this.livingPortraitNoticeTimer = null;
+        this.livingPortraitReadyNotice?.destroy?.();
+        this.livingPortraitReadyNotice = null;
+        this.livingPortraitNoticePendingIdentity = null;
+    }
+
+    /**
      * Open creature profile scene
      */
     openCreatureProfile() {
         console.log('[GameScene] Opening creature profile');
-        this.sceneRouter.launchScene('CreatureProfileScene', undefined, {
-            bringToTop: true
+        this.sceneRouter.pauseAndLaunchScene('CreatureProfileScene', undefined, {
+            loadingMessage: 'Opening companion profile...',
+            sound: 'buttonClick'
         });
     }
 
@@ -7078,6 +12747,7 @@ class GameScene extends Phaser.Scene {
             photo: 2,
             garden: 5,
             signal: 4,
+            community: 8,
             chat: 4,
             level_complete: 10
         };
@@ -7159,16 +12829,36 @@ class GameScene extends Phaser.Scene {
 
     showInteractionHint(message) {
         if (!this.interactionText?.active) return;
-        this.interactionText.setText(message);
+        const isProximityPrompt = /^\s*Press SPACE\b/i.test(message);
+        const touchControlsActive = Boolean(
+            this.mobileControls?.isMobile ||
+            this.mobileHUD?.isVisible ||
+            window.responsiveManager?.isMobile
+        );
+        const displayMessage = touchControlsActive
+            ? message
+                .replace(/^\s*Press SPACE\s*·\s*/i, 'Tap ✋ · ')
+                .replace(/^\s*Press SPACE\s+to\s+/i, 'Tap ✋ to ')
+                .replace(/^\s*Press SPACE\s+/i, 'Tap ✋ ')
+            : message;
+
+        this.interactionHintTimer?.remove?.(false);
+        this.interactionHintTimer = null;
+        this.interactionText.setText(displayMessage);
         this.interactionText.setVisible(true);
 
-        // Hide the hint after 3 seconds
-        this.time.delayedCall(3000, () => {
+        // Proximity prompts remain available until the player leaves the zone.
+        if (isProximityPrompt) return;
+
+        this.interactionHintTimer = this.time.delayedCall(3000, () => {
+            this.interactionHintTimer = null;
             this.interactionText?.setVisible(false);
         });
     }
 
     hideInteractionHint() {
+        this.interactionHintTimer?.remove?.(false);
+        this.interactionHintTimer = null;
         this.interactionText?.setVisible(false);
     }
 
@@ -7209,9 +12899,22 @@ class GameScene extends Phaser.Scene {
     }
 
     handleSpaceInteraction() {
-        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCampfire:', this.nearCampfire, 'nearSignalGarden:', this.nearSignalGarden, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
+        console.log('[GameScene] SPACE pressed - nearShop:', this.nearShop, 'nearHubPortal:', this.nearHubPortal, 'nearCampfire:', this.nearCampfire, 'nearFendResidentId:', this.nearFendResidentId, 'nearCurrentVeilAnchorId:', this.nearCurrentVeilAnchorId, 'nearSignalGarden:', this.nearSignalGarden, 'nearVillageHeart:', this.nearVillageHeart, 'nearFusionPod:', this.nearFusionPod, 'nearCrashedShip:', this.nearCrashedShip, 'nearReturnPortal:', this.nearReturnPortal, 'nearbyFlower:', !!this.nearbyFlower);
 
-        if (this.isFieldKitModalOpen) {
+        if (
+            this.isFieldKitModalOpen ||
+            this.residentExchangeOpen ||
+            this.guardianExchangeOpen ||
+            this.rescuedResidentExchangeOpen ||
+            this.guardianCareActivityOpen ||
+            this.fendListeningOpen ||
+            this.senseiMemoryModal?.isVisible ||
+            this.shipEvidenceBoardModal?.isVisible ||
+            this.companionConsentModal?.isVisible ||
+            this.companionEarthMemoryModal?.isVisible ||
+            this.currentVeilModal?.isVisible ||
+            this.villageCommandPanel?.domElement
+        ) {
             return;
         }
 
@@ -7268,6 +12971,133 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        const VILLAGE_HEART_INTERACT_DISTANCE = 135;
+        if (
+            !this.nearVillageHeart &&
+            this.villageHeartLandmark?.zone &&
+            this.player
+        ) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.villageHeartLandmark.zone.x,
+                this.villageHeartLandmark.zone.y
+            );
+            if (distance <= VILLAGE_HEART_INTERACT_DISTANCE) {
+                this.nearVillageHeart = true;
+            }
+        }
+
+        const FUSION_POD_INTERACT_DISTANCE = 130;
+        if (
+            !this.nearFusionPod &&
+            this.fusionPodLandmark?.zone &&
+            this.player
+        ) {
+            const distToFusionPod = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.fusionPodLandmark.zone.x,
+                this.fusionPodLandmark.zone.y
+            );
+            if (distToFusionPod <= FUSION_POD_INTERACT_DISTANCE) {
+                console.log(
+                    '[GameScene] Distance fallback: Player within range of Fusion Pod'
+                );
+                this.nearFusionPod = true;
+            }
+        }
+
+        if (
+            !this.nearGuardianResidentId &&
+            this.signalGarden?.guardianResidents &&
+            this.player
+        ) {
+            const nearestGuardian = this.signalGarden.guardianResidents
+                .map(resident => ({
+                    resident,
+                    distance: Phaser.Math.Distance.Between(
+                        this.player.x,
+                        this.player.y,
+                        resident.zone.x,
+                        resident.zone.y
+                    )
+                }))
+                .sort((left, right) => left.distance - right.distance)[0];
+            if (nearestGuardian?.distance <= 104) {
+                this.nearGuardianResidentId = nearestGuardian.resident.id;
+            }
+        }
+
+        if (
+            !this.nearRescuedResidentId &&
+            this.signalGarden?.rescuedResidents &&
+            this.player
+        ) {
+            const nearestRescuedResident = this.signalGarden.rescuedResidents
+                .map(resident => ({
+                    resident,
+                    distance: Phaser.Math.Distance.Between(
+                        this.player.x,
+                        this.player.y,
+                        resident.zone.x,
+                        resident.zone.y
+                    )
+                }))
+                .sort((left, right) => left.distance - right.distance)[0];
+            if (nearestRescuedResident?.distance <= 92) {
+                this.nearRescuedResidentId =
+                    nearestRescuedResident.resident.id;
+            }
+        }
+
+        if (!this.nearFendResidentId && this.signalGarden?.residents && this.player) {
+            const nearestResident = this.signalGarden.residents
+                .map(resident => ({
+                    resident,
+                    distance: Phaser.Math.Distance.Between(
+                        this.player.x,
+                        this.player.y,
+                        resident.zone.x,
+                        resident.zone.y
+                    )
+                }))
+                .sort((left, right) => left.distance - right.distance)[0];
+            if (nearestResident?.distance <= 88) {
+                this.nearFendResidentId = nearestResident.resident.id;
+            }
+        }
+
+        if (
+            !this.nearCurrentVeilAnchorId &&
+            this.signalGarden?.currentVeilAnchors &&
+            this.player
+        ) {
+            const snapshot = getCurrentVeilSnapshot(window.GameState);
+            if (snapshot.active) {
+                const nearestAnchor = this.signalGarden
+                    .currentVeilAnchors
+                    .filter(anchor => !anchor.stabilized)
+                    .map(anchor => ({
+                        anchor,
+                        distance: Phaser.Math.Distance.Between(
+                            this.player.x,
+                            this.player.y,
+                            anchor.zone.x,
+                            anchor.zone.y
+                        )
+                    }))
+                    .sort(
+                        (left, right) =>
+                            left.distance - right.distance
+                    )[0];
+                if (nearestAnchor?.distance <= 92) {
+                    this.nearCurrentVeilAnchorId =
+                        nearestAnchor.anchor.id;
+                }
+            }
+        }
+
         // Check for shop entry first
         if (this.nearShop) {
             console.log('[GameScene] Entering shop from SPACE handler');
@@ -7293,17 +13123,115 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
+        if (this.nearRescuedResidentId) {
+            console.log('[GameScene] Checking in with rescued resident');
+            this.interactWithRescuedResident();
+            return;
+        }
+
+        if (this.nearGuardianResidentId) {
+            console.log('[GameScene] Speaking with restored guardian from SPACE handler');
+            this.interactWithGuardianResident();
+            return;
+        }
+
+        if (this.nearFendResidentId) {
+            console.log('[GameScene] Speaking with Fend resident from SPACE handler');
+            this.interactWithFendResident();
+            return;
+        }
+
+        if (this.nearCurrentVeilAnchorId) {
+            console.log('[GameScene] Stabilizing Quiet Current anchor from SPACE handler');
+            this.interactWithCurrentVeilAnchor();
+            return;
+        }
+
+        if (this.nearVillageHeart) {
+            console.log('[GameScene] Opening Village Heart from SPACE handler');
+            this.openVillageCommand();
+            return;
+        }
+
         if (this.nearSignalGarden) {
             console.log('[GameScene] Tending Signal Garden from SPACE handler');
             this.tendSignalGarden();
             return;
         }
 
+        if (this.nearFusionPod) {
+            console.log('[GameScene] Inspecting Fusion Pod from SPACE handler');
+            this.openFusionPod();
+            return;
+        }
+
         // Check for crashed ship interaction
         if (this.nearCrashedShip) {
             if (this.hasRecoveredProjectBeaconFieldKit()) {
-                console.log('[GameScene] Viewing ship memories from SPACE handler');
-                this.showShipMemories();
+                const senseiMemory = getSenseiMemorySnapshot(
+                    window.GameState
+                );
+                const shipEvidence = getShipEvidenceSnapshot(
+                    window.GameState
+                );
+                const shipReconstruction =
+                    getShipReconstructionSnapshot(window.GameState);
+                const consent = getCompanionConsentSnapshot(
+                    window.GameState
+                );
+                const earthMemory = getCompanionEarthMemorySnapshot(
+                    window.GameState
+                );
+                const protectedReturn = getProtectedReturnSnapshot(
+                    window.GameState
+                );
+                const currentVeil = getCurrentVeilSnapshot(
+                    window.GameState
+                );
+                if (senseiMemory.ready) {
+                    console.log('[GameScene] Reviewing Sensei memory from SPACE handler');
+                    this.showSenseiMemory();
+                } else if (shipReconstruction.ready) {
+                    console.log('[GameScene] Installing recovered Wanderer-77 system from SPACE handler');
+                    this.showShipEvidenceBoard();
+                } else if (shipReconstruction.fieldSupport.ready) {
+                    console.log('[GameScene] Servicing companion at powered berth from SPACE handler');
+                    this.showShipEvidenceBoard();
+                } else if (shipEvidence.ready) {
+                    console.log('[GameScene] Reviewing ship evidence from SPACE handler');
+                    this.showShipEvidenceBoard();
+                } else if (consent.ready) {
+                    console.log('[GameScene] Reviewing Earth boundaries from SPACE handler');
+                    this.showCompanionBoundaryReview();
+                } else if (
+                    earthMemory.ready || earthMemory.complete
+                ) {
+                    console.log('[GameScene] Sharing an Earth memory from SPACE handler');
+                    this.showCompanionEarthMemory();
+                } else if (
+                    protectedReturn.ready ||
+                    (
+                        protectedReturn.available &&
+                        !protectedReturn.complete
+                    )
+                ) {
+                    console.log('[GameScene] Applying protected return protocol from SPACE handler');
+                    this.showShipEvidenceBoard();
+                } else if (currentVeil.verificationReady) {
+                    console.log('[GameScene] Verifying Quiet Current mask from SPACE handler');
+                    this.showCurrentVeilMission({
+                        verifyPacket: true
+                    });
+                } else if (currentVeil.active) {
+                    console.log('[GameScene] Reviewing Quiet Current field work from SPACE handler');
+                    this.showCurrentVeilMission();
+                } else if (shipEvidence.available) {
+                    console.log('[GameScene] Opening reviewed ship archive from SPACE handler');
+                    this.showShipEvidenceBoard();
+                } else {
+                    console.log('[GameScene] Viewing ship memories from SPACE handler');
+                    this.showShipMemories();
+                }
                 this.nearCrashedShip = false;
             } else {
                 console.log('[GameScene] Recovering field kit from SPACE handler');
@@ -7474,6 +13402,16 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.mapRecoveryPreview) {
+            return;
+        }
+
+        if (
+            this.residentExchangeOpen ||
+            this.guardianExchangeOpen ||
+            this.guardianCareActivityOpen ||
+            this.fendListeningOpen
+        ) {
+            this.player?.body?.setVelocity?.(0, 0);
             return;
         }
 
@@ -7665,6 +13603,175 @@ class GameScene extends Phaser.Scene {
                     !this.nearCampfire
                 ) {
                     this.mobileControls.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        if (
+            this.nearVillageHeart &&
+            this.villageHeartLandmark?.zone &&
+            this.player
+        ) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.villageHeartLandmark.zone.x,
+                this.villageHeartLandmark.zone.y
+            );
+            if (distance > 140) {
+                this.nearVillageHeart = false;
+                this.hideInteractionHint();
+                if (
+                    this.mobileControls &&
+                    !this.nearbyFlower &&
+                    !this.nearShop &&
+                    !this.nearHubPortal &&
+                    !this.nearCrashedShip &&
+                    !this.nearReturnPortal &&
+                    !this.nearCampfire &&
+                    !this.nearSignalGarden
+                ) {
+                    this.mobileControls.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        if (
+            this.nearFusionPod &&
+            this.fusionPodLandmark?.zone &&
+            this.player
+        ) {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                this.fusionPodLandmark.zone.x,
+                this.fusionPodLandmark.zone.y
+            );
+            if (distance > 130) {
+                console.log(
+                    '[GameScene] Player moved away from Fusion Pod, distance:',
+                    distance
+                );
+                this.nearFusionPod = false;
+                this.hideInteractionHint();
+                this.fusionPodIndicatorTween?.stop?.();
+                this.fusionPodIndicatorTween = null;
+                this.fusionPodIndicator?.destroy?.();
+                this.fusionPodIndicator = null;
+                if (
+                    this.mobileControls &&
+                    !this.nearbyFlower &&
+                    !this.nearShop &&
+                    !this.nearHubPortal &&
+                    !this.nearCrashedShip &&
+                    !this.nearReturnPortal &&
+                    !this.nearCampfire &&
+                    !this.nearSignalGarden
+                ) {
+                    this.mobileControls.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        if (this.nearFendResidentId && this.signalGarden?.residents && this.player) {
+            const resident = this.signalGarden.residents.find(
+                entry => entry.id === this.nearFendResidentId
+            );
+            const distance = resident
+                ? Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    resident.zone.x,
+                    resident.zone.y
+                )
+                : Number.POSITIVE_INFINITY;
+            if (distance > 88) {
+                this.nearFendResidentId = null;
+                if (!this.nearSignalGarden) {
+                    this.hideInteractionHint();
+                    this.mobileControls?.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        if (
+            this.nearGuardianResidentId &&
+            this.signalGarden?.guardianResidents &&
+            this.player
+        ) {
+            const resident = this.signalGarden.guardianResidents.find(
+                entry => entry.id === this.nearGuardianResidentId
+            );
+            const distance = resident
+                ? Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    resident.zone.x,
+                    resident.zone.y
+                )
+                : Number.POSITIVE_INFINITY;
+            if (distance > 104) {
+                this.nearGuardianResidentId = null;
+                if (!this.nearSignalGarden && !this.nearFendResidentId) {
+                    this.hideInteractionHint();
+                    this.mobileControls?.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        if (
+            this.nearRescuedResidentId &&
+            this.signalGarden?.rescuedResidents &&
+            this.player
+        ) {
+            const resident = this.signalGarden.rescuedResidents.find(
+                entry => entry.id === this.nearRescuedResidentId
+            );
+            const distance = resident
+                ? Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    resident.zone.x,
+                    resident.zone.y
+                )
+                : Number.POSITIVE_INFINITY;
+            if (distance > 92) {
+                this.nearRescuedResidentId = null;
+                if (
+                    !this.nearSignalGarden &&
+                    !this.nearFendResidentId &&
+                    !this.nearGuardianResidentId
+                ) {
+                    this.hideInteractionHint();
+                    this.mobileControls?.updateInteractIcon('👆');
+                }
+            }
+        }
+
+        if (
+            this.nearCurrentVeilAnchorId &&
+            this.signalGarden?.currentVeilAnchors &&
+            this.player
+        ) {
+            const anchor = this.signalGarden.currentVeilAnchors.find(
+                entry => entry.id === this.nearCurrentVeilAnchorId
+            );
+            const distance = anchor
+                ? Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    anchor.zone.x,
+                    anchor.zone.y
+                )
+                : Number.POSITIVE_INFINITY;
+            if (distance > 92) {
+                this.nearCurrentVeilAnchorId = null;
+                if (
+                    !this.nearSignalGarden &&
+                    !this.nearFendResidentId
+                ) {
+                    this.hideInteractionHint();
+                    this.mobileControls?.updateInteractIcon('👆');
                 }
             }
         }
@@ -8035,14 +14142,20 @@ class GameScene extends Phaser.Scene {
 
     showTutorialHint(tutorial) {
         this.isShowingTutorial = true;
-        const hint = this.add.text(this.scale.width / 2, 140, tutorial.message, {
-            fontSize: '16px',
+        const { width } = this.scale;
+        const isMobile = width < 600;
+        const message = isMobile && tutorial.messageMobile
+            ? tutorial.messageMobile
+            : tutorial.message;
+        const hint = this.add.text(width / 2, isMobile ? 185 : 140, message, {
+            fontSize: isMobile ? '13px' : '16px',
             color: '#87CEEB',
             stroke: '#000000',
             strokeThickness: 2,
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: { x: 16, y: 8 },
-            align: 'center'
+            padding: { x: isMobile ? 10 : 16, y: 8 },
+            align: 'center',
+            wordWrap: { width: Math.max(250, width - 36) }
         }).setOrigin(0.5);
         hint.setScrollFactor(0);
         hint.setDepth(4050);
@@ -8202,14 +14315,22 @@ class GameScene extends Phaser.Scene {
 
         // Listen for state changes to update UI
         this.registerGameStateListener('stateChanged', (data) => {
-            if (data.path.startsWith('creature.stats') ||
-                data.path.startsWith('creature.care') ||
-                data.path.startsWith('world.discoveredObjects') ||
-                data.path.startsWith('dailyBonus')) {
+            const path = String(data?.path || '');
+            if (path.startsWith('creature.stats') ||
+                path.startsWith('creature.care') ||
+                path.startsWith('world.discoveredObjects') ||
+                path.startsWith('dailyBonus')) {
                 this.updateStatsDisplay();
                 this.carePanelManager?.updateHint();
                 this.carePanelManager?.updateButtons();
                 this.updateDailyBonusButton();
+            }
+            if (
+                path === 'creature.level' ||
+                path.startsWith('creatures') ||
+                path.startsWith('breedingShrine')
+            ) {
+                this.refreshFusionPodWorldLandmark();
             }
         });
 
@@ -8218,10 +14339,42 @@ class GameScene extends Phaser.Scene {
             this.showPersonalityShiftCelebration(data);
         });
 
-        // Listen for breeding unlock event (when player gets 2nd creature)
-        this.registerGameStateListener('breedingUnlocked', (data) => {
-            this.showBreedingUnlockTutorial(data);
+        // The second companion reveals a Fend kinship protocol. Readiness is a
+        // later level/lifecycle gate, so discovery and operation stay distinct.
+        this.registerGameStateListener('fusionPodDiscovered', (data) => {
+            this.refreshFusionPodWorldLandmark();
+            this.scheduleFusionDiscoveryIntroduction(data);
         });
+        this.registerGameStateListener('breedingCompleted', (data) => {
+            this.refreshFusionPodWorldLandmark();
+            if (
+                this.currentBiome === 'nebula' &&
+                this.worldBuilder &&
+                data?.kinshipBeacon
+            ) {
+                this.kinshipBeacon = this.worldBuilder.refreshKinshipBeacon(
+                    this.kinshipBeacon,
+                    data.kinshipBeacon
+                );
+            }
+        });
+
+        this.registerGameStateListener(
+            'creaturePortraitGenerationSucceeded',
+            data => {
+                const record = window.GameState?.getCreaturePortrait?.(
+                    data?.stage || 'baby'
+                );
+                void this.maybeShowLivingPortraitReadyNotice(record);
+            }
+        );
+
+        const pendingDiscovery = window.GameState?.syncFusionDiscovery?.();
+        if (pendingDiscovery?.shouldIntroduce) {
+            this.scheduleFusionDiscoveryIntroduction(null, {
+                initialDelay: 900
+            });
+        }
 
         // Listen for scene events from MobileHUD
         if (this.events) {
@@ -8273,6 +14426,84 @@ class GameScene extends Phaser.Scene {
         });
 
         console.log('[GameScene] Periodic timers set up');
+    }
+
+    isFusionDiscoveryIntroductionBlocked() {
+        const activeStoryQuest = window.QuestManager
+            ?.getQuestsByType?.('story')?.[0];
+        const establishingTrust = activeStoryQuest?.id ===
+            'beacon_first_contact' &&
+            !activeStoryQuest.completed &&
+            !activeStoryQuest.claimed;
+
+        return Boolean(
+            establishingTrust ||
+            window.OnboardingManager?.isProcessing ||
+            this.controlsTutorial?.isVisible ||
+            this.storyModalElements?.length ||
+            this.greetingElements?.length ||
+            this.livingSignalMomentElements?.length ||
+            this.questTracker?.storyBannerElements?.length ||
+            this.isFieldKitModalOpen ||
+            this.fusionDiscoveryModalOpen ||
+            this.hamburgerMenu?.isOpen ||
+            this.carePanelManager?.panelVisible ||
+            this.creatureRadialMenu?.isVisible
+        );
+    }
+
+    updateFirstContactFocusMode() {
+        const activeStoryQuest = window.QuestManager
+            ?.getQuestsByType?.('story')?.[0];
+        const firstContactActive = activeStoryQuest?.id ===
+            'beacon_first_contact' &&
+            !activeStoryQuest.completed &&
+            !activeStoryQuest.claimed;
+        const mobileFocusActive = Boolean(
+            this.mobileHUD?.isVisible && firstContactActive
+        );
+
+        this.mobileHUD?.setFocusMode?.(mobileFocusActive);
+        this.questTracker?.container?.setVisible?.(!mobileFocusActive);
+        this.firstContactFocusModeActive = mobileFocusActive;
+    }
+
+    scheduleFusionDiscoveryIntroduction(
+        _payload = null,
+        { initialDelay = 650, retryDelay = 900 } = {}
+    ) {
+        this.fusionDiscoveryIntroductionTimer?.remove?.();
+        this.fusionDiscoveryIntroductionTimer = null;
+
+        const attemptIntroduction = () => {
+            this.fusionDiscoveryIntroductionTimer = null;
+            if (this._isShuttingDown) return;
+
+            const pending = window.GameState?.syncFusionDiscovery?.();
+            if (!pending?.shouldIntroduce) return;
+
+            if (this.isFusionDiscoveryIntroductionBlocked()) {
+                this.fusionDiscoveryIntroductionTimer =
+                    this.time.delayedCall(retryDelay, attemptIntroduction);
+                return;
+            }
+
+            const creatures = (window.GameState?.get('creatures') || [])
+                .map(creature => ({
+                    id: creature.id,
+                    name: creature.name
+                }));
+            this.showBreedingUnlockTutorial({
+                creatureCount: creatures.length,
+                creatures,
+                discovery: pending.discovery
+            });
+        };
+
+        this.fusionDiscoveryIntroductionTimer = this.time.delayedCall(
+            initialDelay,
+            attemptIntroduction
+        );
     }
 
     /**
@@ -8397,7 +14628,7 @@ class GameScene extends Phaser.Scene {
         }
 
         // Screen flash
-        this.cameras.main.flash(300, 255, 215, 0);
+        window.FeedbackManager?.cameraFlash?.(this, 300, 255, 215, 0);
 
         // Show celebration message
         const message = this.add.text(centerX, height * 0.2, config?.message || `Your creature evolved!`, {
@@ -8481,31 +14712,33 @@ class GameScene extends Phaser.Scene {
         const creatureName = window.GameState?.get('creature.name') || 'Your creature';
         const daysAway = result.daysAway;
 
-        const title = this.add.text(width / 2, height * 0.25, 'Welcome Back...', {
-            fontSize: '32px',
-            color: '#87CEEB',
+        const title = this.add.text(width / 2, height * 0.25, 'SANCTUARY RETURN', {
+            fontSize: '28px',
+            color: '#8FE3CF',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 4
         }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
 
-        const message = this.add.text(width / 2, height * 0.4, `${creatureName} missed you!\nYou were away for ${daysAway} day${daysAway > 1 ? 's' : ''}.`, {
+        const message = this.add.text(width / 2, height * 0.4, `${creatureName} stayed close to the crash site for ${daysAway} day${daysAway > 1 ? 's' : ''}.\nTheir care rhythm now needs attention.`, {
             fontSize: '18px',
             color: '#FFFFFF',
             align: 'center',
             stroke: '#000000',
-            strokeThickness: 2
+            strokeThickness: 2,
+            wordWrap: { width: width - 48 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
 
-        const hint = this.add.text(width / 2, height * 0.55, 'Care for your creature to make them happy again!', {
+        const hint = this.add.text(width / 2, height * 0.55, 'Begin with food, rest, or quiet play. Progress is never lost.', {
             fontSize: '14px',
             color: '#FFD700',
-            align: 'center'
+            align: 'center',
+            wordWrap: { width: width - 48 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
 
         // Close button
-        const closeBtn = this.add.text(width / 2, height * 0.7, 'OK', {
-            fontSize: '20px',
+        const closeBtn = this.add.text(width / 2, height * 0.7, 'RECONNECT', {
+            fontSize: '18px',
             color: '#FFFFFF',
             backgroundColor: '#4A4A8E',
             padding: { x: 30, y: 12 }
@@ -8524,10 +14757,7 @@ class GameScene extends Phaser.Scene {
             closeBtn.destroy();
         });
 
-        // Play sad sound when showing the return message
-        if (window.AudioManager) {
-            window.AudioManager.playSad();
-        }
+        window.AudioManager?.playReturnWelcome?.();
     }
 
     /**
@@ -8795,134 +15025,175 @@ class GameScene extends Phaser.Scene {
      * @param {Object} data - Event data with creature info
      */
     showBreedingUnlockTutorial(data) {
-        // Check if already seen
-        if (window.GameState?.get('tutorial.breedingUnlockSeen')) {
+        const preview = data?.preview === true;
+        const discovery = preview
+            ? data.discovery
+            : window.GameState?.syncFusionDiscovery?.().discovery;
+        if (
+            (!preview && this.fusionDiscoveryModalOpen) ||
+            discovery?.introductionAcknowledged
+        ) {
             return;
         }
 
-        console.log('[GameScene] Showing breeding unlock tutorial');
-
+        this.fusionDiscoveryModalOpen = true;
+        const restoreMobileControls =
+            this.mobileControls?.suspend?.() === true;
+        console.log('[GameScene] Showing Fend Fusion discovery');
         const { width, height } = this.cameras.main;
-
-        // Create dark overlay
         const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillStyle(0x000000, 0.78);
         overlay.fillRect(0, 0, width, height);
         overlay.setScrollFactor(0).setDepth(3000);
+        const inputShield = this.add.zone(
+            width / 2,
+            height / 2,
+            width,
+            height
+        ).setScrollFactor(0).setDepth(3000).setInteractive();
 
-        // Modal panel
-        const panelWidth = Math.min(350, width - 40);
-        const panelHeight = 380;
+        const compact = width < 430;
+        const panelWidth = Math.min(380, width - 32);
+        const panelHeight = Math.min(420, height - 32);
+        const shortPanel = panelHeight < 390;
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
-
         const panel = this.add.graphics();
-        panel.fillStyle(0x1A1A3E, 0.98);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-        panel.lineStyle(3, 0xFFD700, 1);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+        panel.fillStyle(0x101616, 0.98);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+        panel.lineStyle(3, 0x71E6B1, 1);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.setScrollFactor(0).setDepth(3001);
+        const contentX = panelX + 22;
+        const contentWidth = panelWidth - 44;
 
-        // Title
-        const title = this.add.text(width / 2, panelY + 35, '🧬 Breeding Unlocked! 🧬', {
-            fontSize: '22px',
-            color: '#FFD700',
+        const maraKnown = (
+            window.GameState?.get('world.fendResidents.metResidentIds') || []
+        ).includes('mara');
+        const title = this.add.text(
+            contentX,
+            panelY + 20,
+            maraKnown ? 'MARA // CURRENT LISTENER' : 'FEND CURRENT ARCHIVE',
+            {
+            fontSize: compact ? '14px' : '16px',
+            color: '#F4F4F4',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 2
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
+        }).setOrigin(0, 0).setScrollFactor(0).setDepth(3002);
 
-        // Explanation
-        let y = panelY + 80;
-
-        const intro = this.add.text(width / 2, y, 'You now have 2 creatures!', {
-            fontSize: '16px',
-            color: '#FFFFFF',
+        const subtitle = this.add.text(
+            contentX,
+            panelY + (shortPanel ? 42 : 48),
+            'TWO SIGNALS // KINSHIP PROTOCOL',
+            {
+            fontSize: compact || shortPanel ? '11px' : '12px',
+            color: '#71E6B1',
             fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-        y += 35;
+        }).setOrigin(0, 0).setScrollFactor(0).setDepth(3002);
 
-        const description = this.add.text(width / 2, y,
-            'Visit the Breeding Shrine to combine\nyour creatures and create offspring\nwith traits from both parents!', {
-                fontSize: '13px',
-                color: '#CCCCCC',
-                align: 'center'
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-        y += 70;
+        const names = (data?.creatures || [])
+            .map(creature => creature?.name)
+            .filter(Boolean)
+            .slice(0, 2);
+        const companionLine = names.length === 2
+            ? `${names[0]} and ${names[1]} are both secure in the Sanctuary.`
+            : 'Both companions are secure in the Sanctuary.';
+        const discoveryLine =
+            'A dormant Fend record has answered their two living signatures.';
+        const intro = this.add.text(
+            contentX,
+            panelY + (shortPanel ? 66 : 76),
+            shortPanel
+                ? `${companionLine}\n${discoveryLine}`
+                : `${companionLine}\n\n${discoveryLine}`,
+            {
+                fontSize: compact || shortPanel ? '12px' : '13px',
+                color: '#FFFFFF',
+                align: 'left',
+                lineSpacing: 5,
+                wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0, 0).setScrollFactor(0).setDepth(3002);
 
-        // How it works section
-        const howItWorks = this.add.text(width / 2, y, 'How Breeding Works:', {
-            fontSize: '14px',
-            color: '#88CCFF',
+        const principle = this.add.text(
+            contentX,
+            panelY + (shortPanel ? 132 : 176),
+            'FUSION PRESERVES BOTH PARENTS',
+            {
+            fontSize: compact || shortPanel ? '11px' : '12px',
+            color: '#F2C14E',
             fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-        y += 25;
+        }).setOrigin(0, 0).setScrollFactor(0).setDepth(3002);
 
-        const steps = [
-            '1. Both creatures must be Adults (Day 3+)',
-            '2. Select two different creatures',
-            '3. Higher compatibility = better offspring!',
-            '4. Offspring inherit traits from both parents'
-        ];
+        const status = discovery?.state === 'stable'
+            ? 'POD STATUS // STABLE'
+            : 'POD STATUS // DORMANT INTERFACE FOUND';
+        const requirements = this.add.text(
+            contentX,
+            panelY + (shortPanel ? 156 : 207),
+            `${status}\n\nCalibrate at field level 5.\nWait until both companions are adults.\nPreview inherited traits before confirming.`,
+            {
+                fontSize: compact || shortPanel ? '11px' : '12px',
+                color: '#D7DEE0',
+                align: 'left',
+                lineSpacing: 4,
+                wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0, 0).setScrollFactor(0).setDepth(3002);
 
-        const stepTexts = [];
-        steps.forEach(step => {
-            const stepText = this.add.text(width / 2, y, step, {
-                fontSize: '11px',
-                color: '#AAAAAA'
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-            stepTexts.push(stepText);
-            y += 20;
-        });
+        const consequence = this.add.text(
+            width / 2,
+            panelY + panelHeight - (shortPanel ? 76 : 96),
+            'Your first lineage will light a permanent Kinship Beacon here.',
+            {
+                fontSize: compact ? '11px' : '12px',
+                color: '#8FE3CF',
+                align: 'center',
+                wordWrap: { width: panelWidth - 40 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
-        y += 15;
-
-        // Bonus info
-        const bonusText = this.add.text(width / 2, y, '✨ Offspring get bonus Cosmic Power!', {
-            fontSize: '12px',
-            color: '#88FF88'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
-
-        // Got it button
-        const btnY = panelY + panelHeight - 50;
-        const btn = this.add.text(width / 2, btnY, 'Got it!', {
-            fontSize: '18px',
+        const btnY = panelY + panelHeight - (shortPanel ? 30 : 42);
+        const btn = this.add.text(width / 2, btnY, 'LOG SIGNAL', {
+            fontSize: compact ? '15px' : '16px',
             color: '#FFFFFF',
-            backgroundColor: '#4B0082',
-            padding: { x: 40, y: 12 }
+            backgroundColor: '#3FAE62',
+            padding: { x: 38, y: 11 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive();
 
         btn.on('pointerdown', () => {
-            // Mark tutorial as seen
-            window.GameState?.set('tutorial.breedingUnlockSeen', true);
-
-            // Cleanup
-            overlay.destroy();
-            panel.destroy();
-            title.destroy();
-            intro.destroy();
-            description.destroy();
-            howItWorks.destroy();
-            stepTexts.forEach(t => t.destroy());
-            bonusText.destroy();
-            btn.destroy();
-
-            // Play confirmation sound
+            if (!preview) {
+                window.GameState?.acknowledgeFusionDiscovery?.();
+            }
+            [
+                overlay,
+                inputShield,
+                panel,
+                title,
+                subtitle,
+                intro,
+                principle,
+                requirements,
+                consequence,
+                btn
+            ].forEach(element => element?.destroy?.());
+            this.fusionDiscoveryModalOpen = false;
+            if (restoreMobileControls) {
+                this.mobileControls?.resume?.();
+            }
             window.AudioManager?.playButtonClick?.();
         });
 
-        btn.on('pointerover', () => btn.setStyle({ backgroundColor: '#6B21A8' }));
-        btn.on('pointerout', () => btn.setStyle({ backgroundColor: '#4B0082' }));
-
-        // Play celebration sound
+        btn.on('pointerover', () => btn.setStyle({ backgroundColor: '#2E8B57' }));
+        btn.on('pointerout', () => btn.setStyle({ backgroundColor: '#3FAE62' }));
         window.AudioManager?.playLevelUp?.();
 
-        // Particle burst
         if (window.FXLibrary) {
             window.FXLibrary.stardustBurst(this, width / 2, height / 2, {
-                count: 25,
-                color: [0xFFD700, 0x9370DB, 0xFF69B4],
-                duration: 2000
+                count: 18,
+                color: [0xF4F4F4, 0x3FAE62, 0xC73A3A],
+                duration: 1777
             });
         }
     }
@@ -9278,6 +15549,24 @@ class GameScene extends Phaser.Scene {
             this.aiArtModal.cleanup();
             this.aiArtModal = null;
         }
+        this.companionConsentModal?.destroy?.();
+        this.companionConsentModal = null;
+        this.companionEarthMemoryModal?.destroy?.();
+        this.companionEarthMemoryModal = null;
+        this.senseiMemoryModal?.destroy?.();
+        this.senseiMemoryModal = null;
+        this.shipEvidenceBoardModal?.destroy?.();
+        this.shipEvidenceBoardModal = null;
+        this.currentVeilModal?.destroy?.();
+        this.currentVeilModal = null;
+        this.villageCommandPanel?.destroy?.();
+        this.villageCommandPanel = null;
+        this.villageReconcileTimer?.remove?.();
+        this.villageReconcileTimer = null;
+        this.villageHeartLandmark = null;
+        this.nearVillageHeart = false;
+        this.recoveryLogModal?.destroy?.();
+        this.recoveryLogModal = null;
 
         this.closeFieldKitModal?.();
         this.closeFieldKitModal = null;
@@ -9292,6 +15581,49 @@ class GameScene extends Phaser.Scene {
         this.waypointPreviewElements = [];
         this.signalGardenPreviewElements?.forEach(element => element?.destroy?.());
         this.signalGardenPreviewElements = [];
+        this.communityMomentElements?.forEach(element => element?.destroy?.());
+        this.communityMomentElements = [];
+        this.communityMomentOpen = false;
+        this.residentExchangeElements?.forEach(element => element?.destroy?.());
+        this.residentExchangeElements = [];
+        this.residentExchangeOpen = false;
+        this.guardianExchangeElements?.forEach(element => element?.destroy?.());
+        this.guardianExchangeElements = [];
+        this.guardianExchangeOpen = false;
+        this.rescuedResidentExchangeElements?.forEach(
+            element => element?.destroy?.()
+        );
+        this.rescuedResidentExchangeElements = [];
+        this.rescuedResidentExchangeOpen = false;
+        this.destroyGuardianCareActivity();
+        this.guardianRecognitionCooldowns?.clear?.();
+        this.destroyGuardianCompanionRecognitionMoment();
+        this.guardianTrustCinematicRequest += 1;
+        this.guardianTrustCinematic?.destroy?.();
+        this.guardianTrustCinematic = null;
+        this.destroyLivingPortraitReadyNotice();
+        this.closeFendCommonsListening?.();
+        this.fendListeningElements = [];
+        this.fendListeningOpen = false;
+        this.fendResidentOverlapColliders?.forEach(collider => {
+            collider?.destroy?.();
+        });
+        this.fendResidentOverlapColliders = [];
+        this.guardianResidentOverlapColliders?.forEach(collider => {
+            collider?.destroy?.();
+        });
+        this.guardianResidentOverlapColliders = [];
+        this.nearGuardianResidentId = null;
+        this.rescuedResidentOverlapColliders?.forEach(collider => {
+            collider?.destroy?.();
+        });
+        this.rescuedResidentOverlapColliders = [];
+        this.nearRescuedResidentId = null;
+        this.currentVeilOverlapColliders?.forEach(collider => {
+            collider?.destroy?.();
+        });
+        this.currentVeilOverlapColliders = [];
+        this.nearCurrentVeilAnchorId = null;
         this.clearLivingSignalMoment();
         this.livingSignalPreviewElements?.forEach(element => element?.destroy?.());
         this.livingSignalPreviewElements = [];
@@ -9328,6 +15660,15 @@ class GameScene extends Phaser.Scene {
                 this.game.events.off('virtual-key', this.virtualKeyHandler, this);
                 this.virtualKeyHandler = null;
             }
+        }
+
+        if (this.mobileCameraResizeHandler) {
+            this.scale?.off?.('resize', this.mobileCameraResizeHandler);
+            this.mobileCameraResizeHandler = null;
+        }
+        if (this.interactionTextResizeHandler) {
+            this.scale?.off?.('resize', this.interactionTextResizeHandler);
+            this.interactionTextResizeHandler = null;
         }
 
         // Remove scene event listeners
@@ -9543,6 +15884,8 @@ class GameScene extends Phaser.Scene {
         this.statsText = null;
         this.interactionText?.destroy();
         this.interactionText = null;
+        this.interactionHintTimer?.remove?.(false);
+        this.interactionHintTimer = null;
         if (this.combatButton?.destroy) {
             this.combatButton.destroy(true);
             this.combatButton = null;
@@ -9724,7 +16067,7 @@ class GameScene extends Phaser.Scene {
     regenerateCreatureTexture(newStage) {
         if (window.GameState) {
             const stageOrder = ['baby', 'juvenile', 'adult', 'elder'];
-            const stageDays = { baby: 0, juvenile: 1, adult: 3, elder: 10 };
+            const stageDays = { baby: 0, juvenile: 1, adult: 2, elder: 9 };
 
             // Calculate birthDate to match the stage
             const daysNeeded = stageDays[newStage] || 0;

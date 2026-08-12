@@ -44,11 +44,30 @@ describe('shop, inventory, and field-kit interconnection', () => {
     });
 
     test('gives every purchased item a clear destination', () => {
-        expect(shopSource.match(/usageHint:/g)?.length).toBe(16);
+        expect(shopSource.match(/usageHint:/g)?.length).toBe(17);
         expect(shopSource).toContain('Expedition pause menu > Power-ups');
         expect(shopSource).toContain('Inventory > select egg > Hatch');
-        expect(shopSource).toContain('Route opened in the Hub');
+        expect(shopSource).toContain('Permanent survey support active');
         expect(inventorySource).toContain('item.usageHint || this.getDefaultUsageHint(item)');
+    });
+
+    test('preserves existing companions when another egg is hatched', () => {
+        expect(shopSource).toContain(
+            'preserve both family records in your sanctuary'
+        );
+        expect(inventorySource).toContain(
+            "'s family record stays safe."
+        );
+        expect(inventorySource).toContain(
+            'No companion is replaced or consumed.'
+        );
+        expect(inventorySource).toContain(
+            'answers a second signal.'
+        );
+        expect(inventorySource).not.toContain('replace your current companion');
+        expect(inventorySource).not.toContain('will be gone forever');
+        expect(inventorySource).not.toContain('Farewell,');
+        expect(shopSource).not.toContain('replace your current companion');
     });
 
     test('shows the equipped katana and every canonical ship component', () => {

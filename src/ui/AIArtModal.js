@@ -237,6 +237,43 @@ class AIArtModal {
         if (existingPortrait?.imageUrl) {
             this.generatedImageUrl = existingPortrait.imageUrl;
             this.displayGeneratedImage(existingPortrait.imageUrl);
+        } else if (
+            existingPortrait?.assetRef &&
+            window.LivingPortraitService?.resolve
+        ) {
+            this.isGenerating = true;
+            this.previewText?.setText(
+                'Opening the protected living portrait...'
+            );
+            this.generateBtn?.setText('Opening...');
+            this.generateBtn?.setStyle({ backgroundColor: '#555555' });
+            window.LivingPortraitService.resolve(existingPortrait)
+                .then(record => {
+                    if (!record?.imageUrl) return;
+                    this.generatedImageUrl = record.imageUrl;
+                    if (this.isVisible) {
+                        this.displayGeneratedImage(record.imageUrl);
+                    }
+                })
+                .catch(error => {
+                    if (this.isVisible) {
+                        const serviceMessage =
+                            window.LivingPortraitService?.describeError?.(error) ||
+                            error.message;
+                        this.previewText?.setText(
+                            `Portrait unavailable\n${serviceMessage}`
+                        );
+                    }
+                })
+                .finally(() => {
+                    this.isGenerating = false;
+                    if (this.isVisible && !this.generatedImageUrl) {
+                        this.generateBtn?.setText('Open Portrait');
+                        this.generateBtn?.setStyle({
+                            backgroundColor: '#7B68EE'
+                        });
+                    }
+                });
         } else if (this.isGenerating) {
             this.previewText?.setText('A living portrait is already forming...\nYou can close this and keep playing.');
             this.generateBtn?.setText('Generating...');
@@ -320,7 +357,10 @@ class AIArtModal {
 
         } catch (error) {
             console.error('[AIArtModal] Generation error:', error);
-            this.previewText?.setText(`Portrait unavailable\n${error.message}\n\nTry again later`);
+            const serviceMessage =
+                window.LivingPortraitService?.describeError?.(error) ||
+                error.message;
+            this.previewText?.setText(`Portrait unavailable\n${serviceMessage}`);
 
             if (window.AudioManager) {
                 window.AudioManager.playError();
@@ -328,7 +368,7 @@ class AIArtModal {
         } finally {
             this.isGenerating = false;
             if (this.isVisible) {
-                this.generateBtn?.setText('Generate Again');
+                this.generateBtn?.setText('Retry Portrait');
                 this.generateBtn?.setStyle({ backgroundColor: '#9370DB' });
             }
         }

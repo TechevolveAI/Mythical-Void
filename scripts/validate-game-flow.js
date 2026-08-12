@@ -31,10 +31,14 @@ const CRITICAL_PATTERNS = {
         'HatchCinematics.play'
     ],
     'src/systems/GameState.js': [
-        // Save/load methods
+        // Transactional save/load and durable journey-resume methods
         'localStorage.setItem(this.saveKey',
         'localStorage.getItem(this.saveKey)',
-        'this.state = this.deepMerge(this.state, migrated);'
+        'const prepared = this.prepareSaveCandidate(saveData);',
+        'this.commitPreparedSave(prepared, {',
+        'gameStarted: currentSession.gameStarted === true || savedJourneyHasStarted',
+        'snapshot.session = {',
+        'gameStarted: this.state.session?.gameStarted === true'
     ],
     'src/systems/KidMode.js': [
         // Kid Mode core functions

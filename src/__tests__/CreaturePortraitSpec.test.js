@@ -48,17 +48,28 @@ function createGenes() {
     };
 }
 
+function createDna() {
+    return {
+        id: 'dna-nebula-23',
+        bodyArchetype: 'winged',
+        headArchetype: 'insectoid',
+        hybridTag: 'dual-hybrid',
+        elementalAura: 'storm'
+    };
+}
+
 describe('CreaturePortraitSpec', () => {
     test('normalizes creature genetics into an exact visual identity', () => {
         const spec = CreaturePortraitSpec.create({
             genes: createGenes(),
+            dna: createDna(),
             name: 'Bloom',
             stage: 'baby'
         });
 
         expect(spec).toEqual(expect.objectContaining({
             schemaVersion: 1,
-            promptVersion: 'living-portrait-v1',
+            promptVersion: 'living-portrait-v5-individual-biology',
             creatureId: 'NEB-GEN-1234',
             name: 'Bloom',
             stage: 'baby',
@@ -75,6 +86,17 @@ describe('CreaturePortraitSpec', () => {
         });
         expect(spec.eyes.unusualPlacement).toBe('forehead');
         expect(spec.markings.animated).toBe(true);
+        expect(spec.morphology).toEqual({
+            dnaId: 'dna-nebula-23',
+            bodyArchetype: 'winged',
+            headArchetype: 'insectoid',
+            hybridType: 'dual-hybrid',
+            elementalAura: 'storm'
+        });
+        expect(spec.silhouette).toEqual(expect.objectContaining({
+            bodyType: 'winged',
+            geneticBodyType: 'avian'
+        }));
         expect(CreaturePortraitSpec.isValid(spec)).toBe(true);
     });
 

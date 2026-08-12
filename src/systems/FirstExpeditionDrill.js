@@ -6,9 +6,9 @@ export const FIRST_EXPEDITION_DRILL_STEPS = Object.freeze([
         id: 'footing',
         action: 'move',
         heading: 'KIHON 1/3 // FIND YOUR FOOTING',
-        instruction: 'Guide {companion} forward. Stay together.',
+        instruction: 'Move with {companion}. The astronaut stays close.',
         desktopControl: 'A / D  OR  LEFT / RIGHT',
-        mobileControl: 'SLIDE THE MOVEMENT CONTROL'
+        mobileControl: 'MOVE THE JOYSTICK LEFT OR RIGHT'
     }),
     Object.freeze({
         id: 'root',
@@ -16,15 +16,15 @@ export const FIRST_EXPEDITION_DRILL_STEPS = Object.freeze([
         heading: 'KIHON 2/3 // CLEAR THE ROOT',
         instruction: 'Help {companion} clear the first root.',
         desktopControl: 'SPACE / W / UP',
-        mobileControl: 'TAP THE GREEN JUMP CONTROL'
+        mobileControl: 'TAP JUMP (UP ARROW)'
     }),
     Object.freeze({
         id: 'knot',
         action: 'melee',
         heading: 'KIHON 3/3 // RESTORE THE PATH',
-        instruction: 'Clear the glowing corruption knot.',
+        instruction: 'Call the astronaut\'s katana strike on the glowing knot.',
         desktopControl: 'X // EARTH-FORGED FIELD KATANA',
-        mobileControl: 'TAP THE RED MELEE CONTROL'
+        mobileControl: 'TAP KATANA (CROSSED BLADES)'
     })
 ]);
 

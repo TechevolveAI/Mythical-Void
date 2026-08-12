@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "purpose": "De-identified, human-reviewed customer evidence eligible for A-005 synthesis",
+  "registerContainsPersonalData": false,
+  "externalSharingAuthorized": false,
+  "minimumDistinctEvidenceForTheme": 3,
+  "records": []
+}

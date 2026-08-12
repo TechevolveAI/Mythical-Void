@@ -46,4 +46,16 @@ describe('ResponsiveManager', () => {
         expect(game.scale.resize).toHaveBeenCalledWith(1280, 720);
         expect(text.setFontSize).not.toHaveBeenCalled();
     });
+
+    test('does not synthesize mouse events from native touch input', () => {
+        const manager = new ResponsiveManager();
+        manager.addTouchStyles = jest.fn(() => false);
+        manager.addManagedEvent = jest.fn();
+
+        manager.setupTouchSupport();
+
+        expect(manager.addManagedEvent).not.toHaveBeenCalled();
+        expect(ResponsiveManager.prototype.setupTouchToMouse).toBeUndefined();
+        expect(ResponsiveManager.prototype.preventDefaults).toBeUndefined();
+    });
 });

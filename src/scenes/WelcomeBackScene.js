@@ -18,12 +18,15 @@ class WelcomeBackScene extends Phaser.Scene {
         this.offlineMinutes = 0;
         this.elements = [];
         this.currentEventIndex = 0;
+        this.returnPortraitPreview = false;
+        this.returnPortraitRequest = 0;
     }
 
     init(data) {
         this.events = data?.events || [];
         this.offlineMinutes = data?.offlineMinutes || 0;
         this.returnScene = data?.returnScene || 'GameScene';
+        this.returnPortraitPreview = data?.returnPortraitPreview === true;
     }
 
     create() {
@@ -40,6 +43,9 @@ class WelcomeBackScene extends Phaser.Scene {
 
         // Title
         this.createTitle(width, height);
+
+        // Re-establish the returning player's bond before listing system events.
+        this.createCompanionReturnIdentity(width);
 
         // Events list
         this.createEventsList(width, height);
@@ -90,7 +96,7 @@ class WelcomeBackScene extends Phaser.Scene {
         }
 
         // Floating particle effect
-        if (window.FXLibrary) {
+        if (window.FXLibrary?.ambientSparkles) {
             window.FXLibrary.ambientSparkles(this, width / 2, height / 2, {
                 count: 10,
                 area: { width: width * 0.8, height: height * 0.6 },
@@ -142,10 +148,9 @@ class WelcomeBackScene extends Phaser.Scene {
         const centerX = width / 2;
         const titleY = this.panelBounds.y + 35;
 
-        // Main title with sparkle effect
-        const title = this.add.text(centerX, titleY, 'Welcome Back!', {
-            fontSize: '28px',
-            color: '#FFD700',
+        const title = this.add.text(centerX, titleY, 'SANCTUARY FIELD REPORT', {
+            fontSize: '23px',
+            color: '#8FE3CF',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3
@@ -164,7 +169,7 @@ class WelcomeBackScene extends Phaser.Scene {
 
         // Time away display
         const timeAway = this.formatTimeAway(this.offlineMinutes);
-        const subtitle = this.add.text(centerX, titleY + 35, `You were away for ${timeAway}`, {
+        const subtitle = this.add.text(centerX, titleY + 35, `${timeAway} since last field check`, {
             fontSize: '14px',
             color: '#AAAAAA'
         }).setOrigin(0.5).setDepth(101);
@@ -178,26 +183,11 @@ class WelcomeBackScene extends Phaser.Scene {
 
         this.elements.push(subtitle);
 
-        // Creatures were busy message
-        const busyText = this.add.text(centerX, titleY + 60, 'While you were away, your creatures were busy!', {
-            fontSize: '12px',
-            color: '#88CCFF',
-            fontStyle: 'italic'
-        }).setOrigin(0.5).setDepth(101);
-
-        this.tweens.add({
-            targets: busyText,
-            alpha: { from: 0, to: 1 },
-            duration: 500,
-            delay: 400
-        });
-
-        this.elements.push(busyText);
     }
 
     createEventsList(width, height) {
-        const startY = this.panelBounds.y + 110;
-        const listHeight = this.panelBounds.height - 180;
+        const startY = this.panelBounds.y + 172;
+        const listHeight = this.panelBounds.height - 242;
         const eventHeight = 60;
         const maxVisible = Math.floor(listHeight / eventHeight);
 
@@ -206,7 +196,7 @@ class WelcomeBackScene extends Phaser.Scene {
 
         if (displayEvents.length === 0) {
             // No events message
-            const noEvents = this.add.text(width / 2, startY + listHeight / 2, 'Your creatures rested peacefully', {
+            const noEvents = this.add.text(width / 2, startY + listHeight / 2, 'No urgent changes were recorded.', {
                 fontSize: '14px',
                 color: '#888888',
                 fontStyle: 'italic'
@@ -235,6 +225,142 @@ class WelcomeBackScene extends Phaser.Scene {
         }
     }
 
+    getReturnCompanion() {
+        if (this.returnPortraitPreview) {
+            return {
+                name: 'Nova',
+                stage: 'baby',
+                record: {
+                    identityKey: 'preview_companion_23:baby:portrait',
+                    stage: 'baby',
+                    imageUrl: '/marketing/nova.webp',
+                    assetRef: null,
+                    storage: 'preview'
+                }
+            };
+        }
+
+        const stage = window.GameState?.get('creature.lifecycle.stage') || 'baby';
+        const name = window.GameState?.get('creature.name') ||
+            this.events.find(event => event?.creatureName)?.creatureName ||
+            'Your companion';
+
+        return {
+            name,
+            stage,
+            record: window.GameState?.getCreaturePortrait?.(stage) || null
+        };
+    }
+
+    createCompanionReturnIdentity(width) {
+        const companion = this.getReturnCompanion();
+        const left = this.panelBounds.x + 18;
+        const top = this.panelBounds.y + 92;
+        const portraitSize = 58;
+        const portraitX = left + portraitSize / 2;
+        const portraitY = top + portraitSize / 2;
+        const copyX = left + portraitSize + 14;
+        const copyWidth = this.panelBounds.width - portraitSize - 68;
+
+        const divider = this.add.graphics();
+        divider.lineStyle(1, 0x8FE3CF, 0.35);
+        divider.lineBetween(left, top + 66, left + this.panelBounds.width - 36, top + 66);
+        divider.setDepth(101);
+        this.elements.push(divider);
+
+        const name = this.add.text(copyX, top + 5, companion.name.toUpperCase(), {
+            fontSize: '15px',
+            color: '#FFFFFF',
+            fontStyle: 'bold'
+        }).setDepth(102);
+        const signal = this.add.text(copyX, top + 27, 'LIVING FORM // RETURN SIGNAL', {
+            fontSize: '10px',
+            color: '#F2C14E',
+            fontStyle: 'bold'
+        }).setDepth(102);
+        const status = this.add.text(copyX, top + 44, 'Sanctuary watch maintained.', {
+            fontSize: '10px',
+            color: '#B9DAD7',
+            wordWrap: { width: copyWidth }
+        }).setDepth(102);
+        this.elements.push(name, signal, status);
+
+        const frame = this.add.graphics();
+        frame.fillStyle(0x07100F, 0.98);
+        frame.fillRoundedRect(left, top, portraitSize, portraitSize, 5);
+        frame.lineStyle(2, companion.record ? 0x8FE3CF : 0x516466, 0.95);
+        frame.strokeRoundedRect(left, top, portraitSize, portraitSize, 5);
+        frame.setDepth(101);
+        this.elements.push(frame);
+
+        const placeholder = this.add.text(
+            portraitX,
+            portraitY,
+            companion.record ? 'SIGNAL\nRESOLVING' : 'PIXEL\nIDENTITY',
+            {
+                fontSize: '8px',
+                color: companion.record ? '#8FE3CF' : '#7F9695',
+                align: 'center',
+                fontStyle: 'bold',
+                lineSpacing: 2
+            }
+        ).setOrigin(0.5).setDepth(102);
+        this.elements.push(placeholder);
+
+        if (!companion.record) return;
+
+        const requestId = ++this.returnPortraitRequest;
+        const recordPromise = this.returnPortraitPreview
+            ? Promise.resolve(companion.record)
+            : window.CompanionMediaService?.resolvePortrait?.(companion.stage);
+
+        Promise.resolve(recordPromise)
+            .then(resolved => {
+                if (!resolved?.imageUrl) return null;
+                return Promise.resolve(
+                    window.CompanionMediaService?.ensureTexture?.(this, resolved)
+                ).then(textureKey => ({ resolved, textureKey }));
+            })
+            .then(result => {
+                if (
+                    !result?.textureKey ||
+                    requestId !== this.returnPortraitRequest ||
+                    !this.scene.isActive()
+                ) {
+                    return;
+                }
+
+                const portrait = this.add.image(
+                    portraitX,
+                    portraitY,
+                    result.textureKey
+                ).setDisplaySize(portraitSize - 6, portraitSize - 6).setDepth(102);
+                placeholder.destroy();
+                this.elements.push(portrait);
+
+                if (!this.returnPortraitPreview) {
+                    window.CompanionMediaService?.recordAppearance?.(
+                        'sanctuary_return',
+                        result.resolved,
+                        'motion_still'
+                    );
+                }
+            })
+            .catch(error => {
+                if (
+                    requestId !== this.returnPortraitRequest ||
+                    !placeholder.active
+                ) {
+                    return;
+                }
+                placeholder.setText('PORTRAIT\nIN ARCHIVE');
+                console.warn(
+                    '[WelcomeBackScene] Living portrait unavailable:',
+                    error.message
+                );
+            });
+    }
+
     createEventCard(event, x, y, cardWidth, cardHeight, index) {
         // Card background
         const card = this.add.graphics();
@@ -247,7 +373,6 @@ class WelcomeBackScene extends Phaser.Scene {
         this.tweens.add({
             targets: card,
             alpha: 1,
-            x: { from: x - 30, to: x },
             duration: 300,
             delay: 500 + (index * 100),
             ease: 'Power2'
@@ -309,13 +434,13 @@ class WelcomeBackScene extends Phaser.Scene {
 
     createContinueButton(width, height) {
         const btnY = this.panelBounds.y + this.panelBounds.height - 45;
-        const btnWidth = 160;
+        const btnWidth = 220;
         const btnHeight = 40;
         const btnX = width / 2 - btnWidth / 2;
 
         // Button background
         const btnBg = this.add.graphics();
-        btnBg.fillStyle(0x4B0082, 1);
+        btnBg.fillStyle(0x6FE7DD, 1);
         btnBg.fillRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
         btnBg.lineStyle(2, 0xFFD700, 1);
         btnBg.strokeRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
@@ -333,9 +458,9 @@ class WelcomeBackScene extends Phaser.Scene {
         this.elements.push(btnBg);
 
         // Button text
-        const btnText = this.add.text(width / 2, btnY + btnHeight / 2, 'Continue', {
-            fontSize: '16px',
-            color: '#FFFFFF',
+        const btnText = this.add.text(width / 2, btnY + btnHeight / 2, 'RETURN TO SANCTUARY', {
+            fontSize: '14px',
+            color: '#061116',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(102);
 
@@ -354,11 +479,11 @@ class WelcomeBackScene extends Phaser.Scene {
         hitZone.setInteractive({ useHandCursor: true });
         hitZone.setDepth(103);
 
-        hitZone.on('pointerdown', () => this.onContinue());
+        hitZone.on('pointerup', () => this.onContinue());
 
         hitZone.on('pointerover', () => {
             btnBg.clear();
-            btnBg.fillStyle(0x6B21A8, 1);
+            btnBg.fillStyle(0x8AF5EC, 1);
             btnBg.fillRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
             btnBg.lineStyle(2, 0xFFD700, 1);
             btnBg.strokeRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
@@ -366,7 +491,7 @@ class WelcomeBackScene extends Phaser.Scene {
 
         hitZone.on('pointerout', () => {
             btnBg.clear();
-            btnBg.fillStyle(0x4B0082, 1);
+            btnBg.fillStyle(0x6FE7DD, 1);
             btnBg.fillRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
             btnBg.lineStyle(2, 0xFFD700, 1);
             btnBg.strokeRoundedRect(btnX, btnY, btnWidth, btnHeight, 10);
@@ -374,21 +499,22 @@ class WelcomeBackScene extends Phaser.Scene {
 
         this.elements.push(hitZone);
 
-        // "Skip" text for quick access
-        const skipText = this.add.text(width / 2, btnY + btnHeight + 15, 'Press any key to continue', {
-            fontSize: '10px',
-            color: '#666666'
-        }).setOrigin(0.5).setDepth(101);
+        if (width >= 600) {
+            const skipText = this.add.text(width / 2, btnY + btnHeight + 15, 'Press any key to continue', {
+                fontSize: '10px',
+                color: '#666666'
+            }).setOrigin(0.5).setDepth(101);
 
-        skipText.setAlpha(0);
-        this.tweens.add({
-            targets: skipText,
-            alpha: 1,
-            duration: 500,
-            delay: 1500
-        });
+            skipText.setAlpha(0);
+            this.tweens.add({
+                targets: skipText,
+                alpha: 1,
+                duration: 500,
+                delay: 1500
+            });
 
-        this.elements.push(skipText);
+            this.elements.push(skipText);
+        }
 
         // Keyboard shortcut to skip
         this.input.keyboard.once('keydown', () => this.onContinue());
@@ -419,6 +545,8 @@ class WelcomeBackScene extends Phaser.Scene {
 
     shutdown() {
         console.log('[WelcomeBackScene] Shutting down...');
+
+        this.returnPortraitRequest += 1;
 
         this.elements.forEach(el => el?.destroy?.());
         this.elements = [];

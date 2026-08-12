@@ -66,10 +66,10 @@ class ChatOverlay {
 
         // Create response buttons
         const options = window.ChatManager?.getResponseOptions('general') || [
-            'How are you?',
-            'Let\'s play!',
-            'Tell me something',
-            'You\'re my best friend!'
+            'What changed while I was away?',
+            'How is your signal?',
+            'Which route would you choose?',
+            'Do you need food, movement, or quiet?'
         ];
         this.createResponseButtons(options);
 
@@ -133,7 +133,7 @@ class ChatOverlay {
     createHeader() {
         const { x, y, width } = this.panelBounds;
         const creatureName = window.GameState?.get('creature.name') || 'Creature';
-        const personality = window.GameState?.get('creature.personality')?.core || 'curious';
+        const personality = window.GameState?.get('creature.genes')?.personality?.core || 'curious';
 
         // Avatar container (circular)
         const avatarSize = 50;

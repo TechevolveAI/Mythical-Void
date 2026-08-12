@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/run-record.schema.json",
+  "title": "Mythical company control-plane run record",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "createdAt",
+    "workflowId",
+    "workflowVersion",
+    "mode",
+    "baselineCapturedAt",
+    "currentCapturedAt",
+    "result",
+    "sourceDigestSha256",
+    "externalActionAuthorized",
+    "sensitivePayloadIncluded",
+    "retentionClass",
+    "writerMode"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recordId": { "pattern": "^RUN-[0-9]{8}T[0-9]{6}Z-[a-f0-9]{12}$" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "workflowId": { "const": "A-015" },
+    "workflowVersion": { "const": 1 },
+    "mode": { "const": "read_only_change_comparison" },
+    "baselineCapturedAt": { "type": "string", "format": "date-time" },
+    "currentCapturedAt": { "type": "string", "format": "date-time" },
+    "result": {
+      "type": "object",
+      "required": ["comparisonValid", "changeCount", "severityCounts", "alertRequired", "humanReviewRecommended"],
+      "properties": {
+        "comparisonValid": { "type": "boolean" },
+        "changeCount": { "type": "integer", "minimum": 0 },
+        "severityCounts": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "alertRequired": { "type": "boolean" },
+        "humanReviewRecommended": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "sourceDigestSha256": { "pattern": "^[a-f0-9]{64}$" },
+    "externalActionAuthorized": { "const": false },
+    "sensitivePayloadIncluded": { "const": false },
+    "retentionClass": { "const": "company_control_metadata" },
+    "writerMode": { "enum": ["dry_run", "exclusive_create_local_pilot"] }
+  },
+  "additionalProperties": false
+}

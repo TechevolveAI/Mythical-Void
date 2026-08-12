@@ -42,6 +42,9 @@ import './systems/UITheme.js';
 import './systems/MemoryManager.js';
 import './systems/ResponsiveManager.js';
 import './systems/UXEnhancements.js';
+import './systems/FusionConsent.js';
+import './systems/FusionAuthority.js';
+import './systems/SharedFusionInvitationService.js';
 import './systems/KidMode.js';
 import './systems/AudioManager.js';
 import './systems/FXLibrary.js';
@@ -62,6 +65,12 @@ import './systems/BreedingEngine.js';
 import './systems/StageVisualResolver.js';
 import './systems/CreatureAnimationController.js';
 import './systems/ThoughtBubbleSystem.js';
+import './systems/CreatureAgency.js';
+import './systems/SenseiMemory.js';
+import './systems/ShipEvidence.js';
+import './systems/ProtectedReturnProtocol.js';
+import './systems/CurrentVeilMission.js';
+import './systems/CompanionIdentityArchive.js';
 
 // ============================================
 // GAME STATE & MANAGERS
@@ -105,6 +114,14 @@ import './systems/OnboardingManager.js';
 import './systems/CombatJuice.js';
 import './systems/CloudSaveManager.js';
 import './systems/LivingPortraitService.js';
+import './systems/CompanionMediaService.js';
+import './systems/FendCommunity.js';
+import './systems/FendResidents.js';
+import './systems/GuardianResidents.js';
+import './systems/RescuedResidents.js';
+import './systems/FendCulture.js';
+import './systems/CompanionConsent.js';
+import './systems/RemainAndDefendCampaign.js';
 
 // ============================================
 // SCENES - Onboarding Flow (Critical Path)

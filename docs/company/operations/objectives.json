@@ -1,0 +1,968 @@
+{
+  "schemaVersion": 1,
+  "planningDate": "2026-08-11",
+  "horizonEnd": "2026-11-09",
+  "status": "active_foundation",
+  "externalActionsAuthorized": false,
+  "objectives": [
+    {
+      "id": "O-001",
+      "priority": "P0",
+      "outcome": "Mythical Void has a findable, accurate, and safer owned web foundation.",
+      "owner": "Kevin / release owner unassigned",
+      "measure": "Live public-footprint major findings",
+      "current": "7 major and 4 minor findings across 6 checks",
+      "target": "0 major findings after a scoped release",
+      "evidence": "A-001 rerun 2026-08-11T11:17Z",
+      "riskIds": ["R-003", "R-005"],
+      "actions": [
+        {
+          "id": "OA-001",
+          "priority": "P0",
+          "mode": "game_development_handoff",
+          "status": "gated",
+          "action": "Coordinate the scoped discovery and safer-submission release with exact source/build traceability.",
+          "owner": "Kevin / Game Development release owner",
+          "referenceIds": ["D-015", "GDH-001", "GDH-003"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-002",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "waiting",
+          "action": "Rerun A-001 after the coordinated release and compare every live finding.",
+          "owner": "Company task",
+          "referenceIds": ["A-001", "OA-001"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-003",
+          "priority": "P1",
+          "mode": "access_required",
+          "status": "gated",
+          "action": "Obtain restricted Search Console/webmaster read access and later submit the verified sitemap with approval.",
+          "owner": "Kevin / search owner",
+          "referenceIds": ["D-015"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-023",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Build an exact scoped release-evidence manifest for the local discovery and safer-submission changes, including tests, exclusions, post-deploy checks, and rollback boundary; do not deploy.",
+          "owner": "Company task",
+          "referenceIds": ["A-001", "A-012", "A-018", "D-015", "GDH-001", "GDH-003"],
+          "completionEvidence": "RM-001 binds the five-file scope to reviewed SHA-256 digests, records the critical shared-tree collision, excludes unrelated Game Development hunks, and A-018 passed 7 release-control cases on 2026-08-11; no staging, commit, or deployment occurred",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-024",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Create a content-addressed company-only patch artifact for RM-001 without applying, staging, committing, or deploying it; verify it applies cleanly to the base commit and excludes the Wanderer-77 hunks.",
+          "owner": "Company task",
+          "referenceIds": ["A-018", "D-015", "GDH-001", "GDH-003"],
+          "completionEvidence": "The content-addressed RM-001 company-only patch (SHA-256 237902bfceb9117a268444fd9a1ad57d62a5aa997ebf3b243c63c03f5d838c62) applies cleanly to base commit 1d5c14736ded3480c36f92167353f23a78c4bbef in disposable verification, matches all five isolated-result digests, and preserves all three Wanderer-7 storefront strings; workspace application, staging, commit, and deployment remain false",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-025",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Prepare and validate a non-authorizing, preview-only A-011 approval-envelope draft bound to the RM-001 artifact digest; do not request or imply deployment approval.",
+          "owner": "Company task",
+          "referenceIds": ["A-011", "A-018", "D-014", "D-015", "GDH-001", "GDH-003"],
+          "completionEvidence": "AP-20260811-002 is a preview-only draft bound to RM-001 artifact SHA-256 237902bfceb9117a268444fd9a1ad57d62a5aa997ebf3b243c63c03f5d838c62; A-011 validates its scope and digest while returning workflowEligible=false, trustedApprovalVerifierConfigured=false, and externalActionAuthorized=false on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-026",
+          "priority": "P0",
+          "mode": "kevin_decision",
+          "status": "gated",
+          "action": "Name the Game Development release owner and rollback operator, identify the verified last-known-good deploy/artifact, and decide whether to authorize only an isolated RM-001 preview review; this is not production deployment approval.",
+          "owner": "Kevin / Game Development release owner",
+          "referenceIds": ["A-011", "A-018", "D-014", "D-015", "GDH-001", "GDH-003", "OA-025"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-031",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a current-evidence search opportunity map covering branded, browser-creature, companion, story, parent-trust, and responsible-AI discovery without fabricated rankings, thin pages, paid search, or publication authority.",
+          "owner": "Company task",
+          "referenceIds": ["A-001", "A-003", "A-010", "A-013", "A-018", "A-019", "A-021", "D-002", "D-006", "D-008", "D-012", "D-013", "D-015", "GDH-001", "GDH-004", "GDH-006"],
+          "completionEvidence": "A-021 validates 6 search clusters and passed 7 adversarial cases on 2026-08-11; the 8-query directional sample surfaced no branded/site-restricted result, ranking claims remain null, and 0 clusters are publication- or submission-ready",
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-002",
+      "priority": "P0",
+      "outcome": "Positioning and product decisions use accepted customer evidence rather than internal assumption.",
+      "owner": "Research owner unassigned",
+      "measure": "Accepted de-identified customer evidence records",
+      "current": "0 accepted evidence records; the adult-only ten-session operating package is internally complete but has 0 of 14 entry gates satisfied",
+      "target": "10 adult sessions in Round 001A with reviewed evidence records",
+      "evidence": "A-005 current register and A-029 Round 001A operations assurance",
+      "riskIds": ["R-004"],
+      "actions": [
+        {
+          "id": "OA-004",
+          "priority": "P0",
+          "mode": "kevin_decision",
+          "status": "gated",
+          "action": "Approve the adult research owner, compensation ceiling, recruitment route, and Round 001A outreach.",
+          "owner": "Kevin",
+          "referenceIds": ["D-008", "A-005", "A-029"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-005",
+          "priority": "P0",
+          "mode": "external_approval",
+          "status": "waiting",
+          "action": "Recruit and run the approved adult research round; keep minor participation gated.",
+          "owner": "Named research owner",
+          "referenceIds": ["D-008", "A-029", "OA-004"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-006",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "waiting",
+          "action": "Validate and synthesize only human-reviewed de-identified records with A-005.",
+          "owner": "Company task / evidence reviewer",
+          "referenceIds": ["A-005", "A-029", "OA-005"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-027",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a machine-readable discovery-to-advocacy growth experiment portfolio that enforces evidence, research, claim, proof, measurement, privacy, child-safety, and external-action gates.",
+          "owner": "Company task",
+          "referenceIds": ["A-005", "A-006", "A-013", "A-019", "D-002", "D-003", "D-004", "D-008"],
+          "completionEvidence": "A-019 validates all 4 initial experiments across 7 journey stages and passed 7 adversarial cases on 2026-08-11; it reports 0 executable and 0 decision-ready experiments, collection off, targeting prohibited, and no external action authorized",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-047",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement the adult-only Round 001A recruitment-to-evidence operating package with fixed sample and message allocation, privacy-minimized screening, notes-only consent defaults, stop and safeguarding rules, separated records, explicit entry gates, and no recruitment or external authority.",
+          "owner": "Company task",
+          "referenceIds": ["A-005", "A-019", "A-020", "A-026", "A-028", "A-029", "D-002", "D-008", "D-012", "E-002", "E-003", "ENG-001", "R-001", "R-004"],
+          "completionEvidence": "A-029 validates 10 preallocated adult session slots (6 guardians and 4 adjacent adult players), a balanced 4/3/3 message-card assignment, 14 fail-closed entry gates, empty contact/results registers, and zero recruitment, contact, collection, recording, compensation, minor-contact, targeting, or external authority; 11 adversarial cases passed on 2026-08-11",
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-003",
+      "priority": "P0",
+      "outcome": "Marketing and partnerships can use authentic gameplay proof for Mythical's differentiating moments.",
+      "owner": "Kevin / Game Development proof owner",
+      "measure": "Approved required gameplay proof objects",
+      "current": "0 of 3",
+      "target": "PF-003, PF-004, and PF-005 approved with provenance",
+      "evidence": "A-013, A-027, proof library, and proof production plan",
+      "riskIds": ["R-006"],
+      "actions": [
+        {
+          "id": "OA-007",
+          "priority": "P0",
+          "mode": "game_development_handoff",
+          "status": "gated",
+          "action": "Capture authentic hatch/bond, restoration, and Project Beacon gameplay from a named stable build.",
+          "owner": "Game Development proof owner",
+          "referenceIds": ["GDH-004", "PF-003", "PF-004", "PF-005"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-008",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "waiting",
+          "action": "Verify provenance, rights, representation, claims, captions, and alt text; then rerun A-003/A-013.",
+          "owner": "Company task / proof reviewer",
+          "referenceIds": ["A-003", "A-013", "OA-007"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-044",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Define exact build-linked production briefs for hatch/bond, realm restoration, and Project Beacon proof, including observable cause/effect, narrow claim support, non-claims, capture settings, privacy, rights, accessibility, edits, provenance, independent review, and publication boundaries.",
+          "owner": "Company task",
+          "referenceIds": ["A-003", "A-013", "A-026", "A-027", "GDH-004", "PF-003", "PF-004", "PF-005", "R-006"],
+          "completionEvidence": "A-027 validates three complete internal production briefs and passed 10 adversarial cases on 2026-08-11; stable build, capture, proof approval, derivatives, publication, synthetic gameplay, personal data, and external authority remain gated",
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-004",
+      "priority": "P1",
+      "outcome": "Mythical has an evidence-backed first browser-distribution path without premature platform commitments.",
+      "owner": "Kevin / Game Development distribution owner",
+      "measure": "Portal candidates with technical feasibility decision",
+      "current": "4 researched and assessed, 0 qualified, 0 contacted; OP-001 is the technical packaging baseline but no feasibility result exists",
+      "target": "One portable-build assessment and recommended first portal",
+      "evidence": "A-007 commercial pipeline and A-032 commercial qualification register",
+      "riskIds": ["R-001", "R-007", "R-011", "R-012"],
+      "actions": [
+        {
+          "id": "OA-009",
+          "priority": "P1",
+          "mode": "game_development_handoff",
+          "status": "gated",
+          "action": "Complete the portal-build feasibility spike without integrating SDKs or accepting terms.",
+          "owner": "Game Development distribution owner",
+          "referenceIds": ["GDH-005", "D-010", "A-007", "A-032"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-010",
+          "priority": "P1",
+          "mode": "external_approval",
+          "status": "waiting",
+          "action": "Prepare an unpublished itch.io draft only after technical, privacy, identity, proof, and approval gates.",
+          "owner": "Kevin / distribution owner",
+          "referenceIds": ["D-010", "A-032", "OA-009"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-050",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a transparent commercial qualification and deal-desk system that assesses every researched opportunity across ten evidence dimensions and eight automatic disqualifiers, sequences only reversible internal diligence, and prohibits invented reach/economics, contact enrichment, pipeline advancement, outreach, accounts, SDKs, pricing, terms, contracts, spend, or external action.",
+          "owner": "Company task",
+          "referenceIds": ["A-003", "A-005", "A-006", "A-007", "A-011", "A-018", "A-020", "A-022", "A-026", "A-027", "A-032", "D-002", "D-012", "D-014", "D-016", "GDH-005", "R-001", "R-007", "R-011", "R-012"],
+          "completionEvidence": "A-032 validates 4 opportunity assessments, 40 visible dimension judgments, 32 disqualifier reviews, a reversible OP-001/OP-004/OP-002/OP-003 internal sequence, 0 qualified opportunities, 0 contacts, 0 outreach packages, 0 financial assumption values, and passed 13 adversarial cases on 2026-08-11; all commercial and external authorities remain false",
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-005",
+      "priority": "P0",
+      "outcome": "Safeguarding, AI-provider, vendor, and external-action governance are owned and evidence-backed.",
+      "owner": "Kevin / specialist owners",
+      "measure": "Open critical/high operational risks",
+      "current": "1 critical and 6 high; A-039 defines the exact safeguarding activation boundary but 0 of 5 Kevin inputs, 0 of 16 gates, and 0 of 10 exercises are complete",
+      "target": "0 unowned critical/high risks and verified controls for active vendors",
+      "evidence": "A-009, A-010, A-011, and A-039",
+      "riskIds": ["R-001", "R-002", "R-007", "R-008", "R-011"],
+      "actions": [
+        {
+          "id": "OA-011",
+          "priority": "P0",
+          "mode": "kevin_decision",
+          "status": "gated",
+          "action": "Provide SGI-001 through SGI-005 without contact details, route values, credentials, or case content: primary, backup, urgent recipient/protected route reference/recovery, geographic scope/jurisdictions, and coverage/response targets.",
+          "owner": "Kevin",
+          "referenceIds": ["D-012", "R-001", "A-004", "A-039"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-012",
+          "priority": "P0",
+          "mode": "game_development_handoff",
+          "status": "gated",
+          "action": "Verify the Gemini/Replicate runtime, provenance, data flow, cost, and failure matrix.",
+          "owner": "Game Development AI-media owner",
+          "referenceIds": ["GDH-006", "D-013", "A-010"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-013",
+          "priority": "P0",
+          "mode": "professional_review",
+          "status": "gated",
+          "action": "Review material vendor contracts, DPAs, retention, subprocessors, regions, reuse/training, spend, and exit evidence.",
+          "owner": "Kevin / vendor, privacy, legal, and finance owners",
+          "referenceIds": ["R-007", "R-008", "D-013"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-057",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a machine-readable safeguarding activation and escalation contract that separates synthetic triage quality from real operating readiness, minimizes sensitive data, and fails closed on people, routes, jurisdictions, coverage, records, professional review, exercises, downstream readiness, and authority.",
+          "owner": "Company task",
+          "referenceIds": ["A-004", "A-005", "A-020", "A-025", "A-026", "A-029", "A-033", "A-035", "A-039", "D-012", "R-001", "R-004", "R-006", "R-009", "R-011", "R-013"],
+          "completionEvidence": "A-039 validates five non-sensitive Kevin inputs, sixteen unsatisfied activation gates, ten unrun exercises, five blocked downstream capabilities, current A-004 synthetic evidence, no assigned primary/backup, no route or professional review, and no live authority; 19 adversarial cases passed on 2026-08-11",
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-006",
+      "priority": "P1",
+      "outcome": "Mythical can measure meaningful attempts without surveillance or child profiling.",
+      "owner": "Kevin / privacy and Game Development measurement owners",
+      "measure": "Approved and verified identifier-free measurement gates",
+      "current": "Contract valid offline; 0 production collection",
+      "target": "All A-006 gates evidenced before any endpoint activation",
+      "evidence": "A-006",
+      "riskIds": ["R-010"],
+      "actions": [
+        {
+          "id": "OA-014",
+          "priority": "P1",
+          "mode": "game_development_handoff",
+          "status": "gated",
+          "action": "Confirm authoritative boundaries for every proposed product milestone and internal telemetry consumer.",
+          "owner": "Game Development measurement owner",
+          "referenceIds": ["GDH-002", "A-006"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-015",
+          "priority": "P1",
+          "mode": "kevin_decision",
+          "status": "gated",
+          "action": "Decide D-003/D-004 only after privacy/DPIA, network/logging, retention, ownership, and kill-switch evidence.",
+          "owner": "Kevin / privacy reviewer",
+          "referenceIds": ["D-003", "D-004", "A-006"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-016",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement and adversarially evaluate the disabled A-006 contract validator.",
+          "owner": "Company task",
+          "referenceIds": ["A-006"],
+          "completionEvidence": "A-006 4-case evaluation passed on 2026-08-11; collectionEnabled=false",
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-007",
+      "priority": "P1",
+      "outcome": "Mythical has a verified, owned, moderated, and measurable channel portfolio.",
+      "owner": "Kevin / channel owners",
+      "measure": "Channels ready for bounded publication",
+      "current": "1 owned website observed; 3 social channel types remain publicly unverified after an eight-query audit; 1 community route is research-only, 2 lifecycle/community properties are deferred, and 0 channels are publish-ready",
+      "target": "Verified account inventory and one approved evidence-led initial channel plan",
+      "evidence": "A-008, A-013, A-033, and A-034",
+      "riskIds": ["R-001", "R-009", "R-011"],
+      "actions": [
+        {
+          "id": "OA-017",
+          "priority": "P1",
+          "mode": "kevin_input",
+          "status": "gated",
+          "action": "Provide exact canonical URLs for any existing official Mythical YouTube, short-form, and professional company accounts—or explicitly confirm none exist—plus the accountable owner and recovery administrator; do not create or connect an account from this response.",
+          "owner": "Kevin",
+          "referenceIds": ["D-011", "A-008", "A-033"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-018",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "waiting",
+          "action": "Update and validate the channel/editorial registers after account, ownership, moderation, and measurement evidence is provided.",
+          "owner": "Company task",
+          "referenceIds": ["A-008", "A-013", "A-033", "OA-017"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-051",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Audit the live official site and exact-name/domain searches for public channel identity evidence, then implement a publishing preflight that rejects metadata/search matches as ownership and requires canonical URL, authenticated owner/recovery, collision, MFA/role, moderation, safeguarding, measurement, claims/proof, accessibility, disclosure, approval, publisher, incident, and reconciliation evidence.",
+          "owner": "Company task",
+          "referenceIds": ["A-003", "A-008", "A-011", "A-013", "A-020", "A-021", "A-025", "A-027", "A-033", "D-011", "D-012", "D-014", "R-001", "R-006", "R-009", "R-011"],
+          "completionEvidence": "A-033 records a 200 live homepage, 0 outbound social account links, 0 confirmed accounts across 8 exact-name/domain searches, 3 publicly unverified social channel types, naming ambiguity, 15 unsatisfied publication gates, and passed 13 adversarial cases on 2026-08-11; 0 candidate URLs, credentials, publish-ready channels, or external authorities exist",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-052",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Build and adversarially validate the first canonical-to-channel campaign package from CQ-006 / CP-001, with literal claim provenance, exact destination allowlisting, accessibility and disclosure records, and fail-closed identity, measurement, approval, and publication authority.",
+          "owner": "Company task",
+          "referenceIds": ["A-003", "A-008", "A-011", "A-013", "A-020", "A-021", "A-027", "A-033", "A-034", "D-009", "D-011", "D-015"],
+          "completionEvidence": "A-034 validates CMP-001 with 2 channel variants, 4 source claims, 8 literal claim excerpts, 0 proof/customer/generated assets, 0 tracking URLs, 4 of 14 internal/publication gates satisfied, publicationReady=false, and 13 adversarial cases passed on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-029",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a machine-readable customer engagement and relationship lifecycle across research, feedback, creator/press, commercial, adult updates, and support, with consent, suppression, safeguarding, personal-data, frequency, and external-action controls.",
+          "owner": "Company task",
+          "referenceIds": ["A-004", "A-005", "A-007", "A-008", "A-011", "A-013", "A-019", "A-020", "D-006", "D-008", "D-011", "D-012", "D-014"],
+          "completionEvidence": "A-020 validates 6 lifecycle programs and passed 7 adversarial cases on 2026-08-11; contact records remain empty, CRM/inbox/publisher are disconnected, autonomous replies and minor contact are prohibited, and 0 programs are execution-ready",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-030",
+          "priority": "P1",
+          "mode": "kevin_decision",
+          "status": "gated",
+          "action": "Choose the first relationship program to operationalize; recommendation: ENG-001 adult research before CRM, marketing updates, creator outreach, or support automation, with its named owner and restricted contact/consent route.",
+          "owner": "Kevin",
+          "referenceIds": ["A-005", "A-020", "D-008", "OA-004"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-008",
+      "priority": "P1",
+      "outcome": "The company control plane operates by exception with durable history and trusted human approval.",
+      "owner": "Company task / Kevin",
+      "measure": "Control-plane health, history, alerting, and authorization readiness",
+      "current": "Change detection active against an explicit baseline; no durable run history, scheduler, alert delivery, or trusted approval verifier",
+      "target": "Protected history, change-based alerts, named owner/backup, and approved trust boundary",
+      "evidence": "A-011 and A-012",
+      "riskIds": ["R-011"],
+      "actions": [
+        {
+          "id": "OA-019",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement deterministic control-plane snapshot comparison and change-based alert classification without scheduling or external delivery.",
+          "owner": "Company task",
+          "referenceIds": ["A-012", "A-015"],
+          "completionEvidence": "A-015 5-case evaluation passed and live comparison reported 0 material changes on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-021",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a bounded append-only run-record schema and local dry-run recorder without scheduling, sensitive payloads, or external delivery.",
+          "owner": "Company task",
+          "referenceIds": ["A-012", "A-015", "A-016"],
+          "completionEvidence": "A-016 5-case evaluation passed; live dry-run built a valid content-addressed metadata record and wrote nothing on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-022",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a baseline-update proposal that requires explicit review and refuses to silently normalize regressions or unexpected authorization.",
+          "owner": "Company task",
+          "referenceIds": ["A-015", "A-016", "A-017"],
+          "completionEvidence": "A-017 5-case evaluation passed; live run found no proposal needed and wrote no baseline on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-020",
+          "priority": "P1",
+          "mode": "kevin_decision",
+          "status": "gated",
+          "action": "Choose the authenticated, tamper-evident approval trust boundary before any external executor.",
+          "owner": "Kevin / security and privacy reviewers",
+          "referenceIds": ["D-014", "A-011", "R-011"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-028",
+          "priority": "P1",
+          "mode": "kevin_decision",
+          "status": "gated",
+          "action": "Review and disposition the expected A-018 through A-054 control additions, investigate/own high risk R-012, and review medium organizational-continuity risk R-013; do not adopt a new baseline while the financial risk remains unresolved or normalize any external authority.",
+          "owner": "Kevin / named control-plane owner",
+          "referenceIds": ["A-015", "A-017", "A-018", "A-019", "A-020", "A-021", "A-022", "A-023", "A-024", "A-025", "A-026", "A-027", "A-028", "A-029", "A-030", "A-031", "A-032", "A-033", "A-034", "A-035", "A-036", "A-037", "A-038", "A-039", "A-040", "A-041", "A-042", "A-043", "A-044", "A-045", "A-046", "A-047", "A-048", "A-049", "A-050", "A-051", "A-052", "A-053", "A-054", "D-014", "D-016", "D-017", "R-012", "R-013"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-040",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Replace the duplicated weekly decision list with one five-packet, evidence-linked Kevin decision queue that prioritizes the critical safeguarding risk and cannot deliver, authorize, execute, expose restricted values, or treat conversation as approval.",
+          "owner": "Company task",
+          "referenceIds": ["A-002", "A-011", "A-012", "A-014", "A-023", "A-024", "A-025", "D-012", "D-014", "D-015", "D-016", "D-017", "R-001", "R-011", "R-012", "R-013"],
+          "completionEvidence": "A-025 validates 5 prioritized packets, represents the only critical risk first, covers 6 of 7 open critical/high risks, and passed 10 adversarial cases on 2026-08-11; A-002/A-012 now read the authoritative queue and delivery/authorization/execution remain false",
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-009",
+      "priority": "P0",
+      "outcome": "Mythical can make sustainable cost, runway, spend, and monetization decisions from verified financial evidence.",
+      "owner": "Kevin / finance owner unassigned",
+      "measure": "Verified finance baseline, unit-cost coverage, and approved monetization decisions",
+      "current": "A-040 close contract valid but 0 of 5 Kevin inputs, 0 of 6 restricted sources, 0 of 12 reconciled evidence classes, 0 of 7 verified cost drivers, 0 of 18 gates, 0 of 10 exercises, and 0 of 4 reviewed closes are complete; runway, forecasts, monetization, and all spend authority remain unavailable",
+      "target": "Restricted reconciled baseline, verified material unit costs and limits, reviewed runway scenarios, and one evidence-backed monetization direction before financial execution",
+      "evidence": "A-009, A-022, A-040, R-008, and R-012",
+      "riskIds": ["R-007", "R-008", "R-009", "R-012"],
+      "actions": [
+        {
+          "id": "OA-032",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a zero-assumption financial and monetization model covering actuals, runway prerequisites, spend authority, material cost drivers, unit-economics definitions, and future revenue hypotheses without inventing values.",
+          "owner": "Company task",
+          "referenceIds": ["A-009", "A-022", "D-006", "D-008", "D-010", "D-013", "D-014", "D-016", "R-007", "R-008", "R-009", "R-012"],
+          "completionEvidence": "A-022 validates 7 material cost drivers and 6 monetization hypotheses and passed 7 adversarial cases on 2026-08-11; all unverified actuals/prices remain null, forecasts unavailable, and spend/revenue authority false",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-033",
+          "priority": "P0",
+          "mode": "kevin_input",
+          "status": "gated",
+          "action": "Provide FFI-001 through FFI-005 without financial or account values: separated finance/close roles, restricted process class/recovery, reporting perimeter, close cadence/evidence classes, and material cost/exception ownership.",
+          "owner": "Kevin / finance owner",
+          "referenceIds": ["A-022", "A-040", "D-006", "D-016", "R-012"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-034",
+          "priority": "P0",
+          "mode": "professional_review",
+          "status": "gated",
+          "action": "Review Mythical's entity, accounting/tax basis, restricted financial sources, close/reconciliation process, spend authority, pricing/payment obligations, and runway method before connected finance automation or monetization execution.",
+          "owner": "Kevin / finance, accounting, tax, and legal reviewers",
+          "referenceIds": ["A-009", "A-022", "D-006", "D-016", "R-007", "R-008", "R-012"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-058",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a value-free restricted financial truth and close contract covering ownership, source classes, evidence classes, reconciliation, variable costs, leak prevention, exercises, close history, and external authority without accessing accounts or storing actual values.",
+          "owner": "Company task",
+          "referenceIds": ["A-009", "A-010", "A-011", "A-022", "A-025", "A-031", "A-032", "A-035", "A-038", "A-040", "D-006", "D-013", "D-016", "R-007", "R-008", "R-009", "R-012", "R-013"],
+          "completionEvidence": "A-040 validates five value-free Kevin inputs, six unconnected restricted source classes, twelve unreconciled evidence classes, seven unverified cost drivers, eighteen unsatisfied gates, ten unrun exercises, zero reviewed closes, no financial readiness or authority, and 21 adversarial cases passed on 2026-08-11",
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-010",
+      "priority": "P0",
+      "outcome": "Mythical operates through a governed multi-agent company team while Kevin handles material decisions, approvals, and exceptions rather than routine routing.",
+      "owner": "Kevin / automation governance owner unassigned",
+      "measure": "Agent function/workflow coverage, protected-runtime readiness, owner/backup coverage, and accurate shadow cycles",
+      "current": "11 narrow roles cover all 13 required functions and 58 workflows exactly once; all 58 workflows have named offline evaluators covering 921 documented cases, but 0 have eligible promotion cycles; one five-step local single-process rehearsal completes with 0 repository mutations but is ineligible as an independent promotion cycle; A-031 presents 3 architecture classes with 0 of 18 readiness gates satisfied; A-037/A-038 keep provider selection gated; A-039 keeps safeguarding activation gated; A-040 keeps restricted finance sources, calculations, and execution gated with zero reviewed closes; A-041 simulates a 4-schedule internal rhythm with 34 September starts, no collisions, and every schedule/trigger disabled; A-042 compiles all 8 cadence entries into unique digest-bound packets while 2 protected A-015 payload bindings remain unconfigured; A-043 covers all 8 packets through 7 transitive effect boundaries; A-044 passes 2 synthetic exact-input consumer rehearsals; A-045 admits signed envelopes and rejects replay; A-046 reconciles payload-free history; A-047 authenticates alert delivery and acknowledgement with backup failover; A-048 passes exclusive-lease/fencing operations; A-049 passes crash-boundary recovery; A-050 races 8 acquisition and 4 recovery contenders with exactly one winner each, ignores 2 worker clock skews, refuses delayed/partitioned/stale/exhausted/disabled work, advances fencing to 5, rejects 16 forged decisions, invokes 0 scheduled company workflows, and keeps all 18 production-consensus gates unsatisfied; A-051 writes, reads back, and exactly restores a six-record digest-only backup manifest, detects corruption, truncation, deletion, reorder, stale generation, and wrong failure domain, elects exactly 1 of 4 concurrent restore claimants, blocks restored activation under global disable, rejects 17 forged manifests, and keeps all 18 production-durability gates unsatisfied; A-052 encrypts a current payload-free recovery capsule with ephemeral AES-256-GCM, selects generation 3 with 120 seconds of synthetic point loss, measures local recovery inside 3000 milliseconds, removes the primary key, requires 2 of 3 signed recovery approvals, rejects wrong/corrupt/stale/future/revoked/untrusted/insufficient/same-domain recovery, blocks activation under global disable, and keeps all 18 production-key/objective gates unsatisfied; A-053 performs 32 actual AES-256-GCM probes with 32 unique nonces and refuses nonce replay, algorithm downgrade, AAD substitution, key-version and rollback attacks, compromised or malformed recovery approvals, RPO/RTO objective gaming, oversized input, attempt-budget exhaustion, and global-disable bypass while keeping all 18 production cryptographic controls unsatisfied; A-054 races 16 nonce allocators and 8 duplicate retries, preserves 16 unique allocations and one retry winner, burns reservations after crash/cancellation/disable, refuses rollback/corruption/region-duplicate/exhaustion/stale-fence failures, completes 18 authenticated round trips, and keeps all 18 production nonce controls unsatisfied; A-035 inventories 18 integration classes with 0 agent connectors or credential references; the delegation planner produces 0 objective work orders because 0 internal actions are explicitly ready; 1 role is internal-manual, 10 are design-only, 0 have bounded runtime, and 0 owner confirmations or backups are recorded",
+      "target": "A protected internal orchestrator-and-assurance cell with confirmed owner/backup, minimal memory and history, authenticated exception delivery, bounded scheduling, kill switches, and four accurate shadow cycles before broader promotion",
+      "evidence": "A-023, A-030, A-031, A-035, A-036, A-037, A-038, A-039, A-040, A-041, A-042, A-043, A-044, A-045, A-046, A-047, A-048, A-049, A-050, A-051, A-052, A-053, A-054, D-012, D-016, D-017, R-001, R-012, and R-013",
+      "riskIds": ["R-001", "R-011", "R-012", "R-013"],
+      "actions": [
+        {
+          "id": "OA-035",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a machine-readable autonomous-company roster covering company orchestration, strategy, growth, brand/content/social, commercial, customer voice, engagement/support, search, operations, finance, governance, and the Game Development boundary, with exact workflow ownership and independent evaluation.",
+          "owner": "Company task",
+          "referenceIds": ["A-011", "A-012", "A-014", "A-023", "A-024", "D-001", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-023 validates 11 narrow agents, all 13 required company functions, exact primary assignment of all 58 registered workflows, and 6 independent separation-of-duty domains; 9 adversarial cases passed on 2026-08-11 and all runtime/external authority remains off",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-036",
+          "priority": "P0",
+          "mode": "kevin_input",
+          "status": "gated",
+          "action": "Confirm the first internal operating cell—recommended AG-001 Company Orchestrator plus AG-010 Governance and Assurance—and name its accountable owner, backup, and urgent exception recipient.",
+          "owner": "Kevin / automation governance owner",
+          "referenceIds": ["A-023", "A-030", "A-031", "D-001", "D-014", "D-017", "R-011", "R-013"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-037",
+          "priority": "P0",
+          "mode": "access_required",
+          "status": "gated",
+          "action": "After D-017, decide whether A-038 PE-001 may receive an account-scoped review, then separately approve the exact organization/account/project/recovery, DPA/terms/transfers, region, cost, isolated service identities, read-only ephemeral execution, protected minimal history, authenticated exception delivery, bounded scheduling, retention, backup/restore, resource hard stops, failure matrix, and kill switch; connect no external executor.",
+          "owner": "Kevin / automation governance, security, and privacy reviewers",
+          "referenceIds": ["A-011", "A-012", "A-016", "A-023", "A-030", "A-031", "A-035", "A-037", "A-038", "D-014", "D-017", "R-007", "R-008", "R-011", "R-012", "R-013"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-038",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "waiting",
+          "action": "After OA-036 and OA-037, run four shadow cycles in which AG-001 delegates only registered internal work and AG-010 independently evaluates it; compare completeness, accuracy, false escalation, latency, cost, and Kevin decision load before any promotion.",
+          "owner": "Company task / named automation governance owner",
+          "referenceIds": ["A-002", "A-012", "A-014", "A-015", "A-016", "A-023", "A-030", "A-031", "OA-036", "OA-037", "R-013"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-039",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement a content-addressed, plan-only delegation layer that converts only explicitly ready internal actions into single-owner work-order drafts with independent evaluation and refuses gated, waiting, completed, external, unregistered, duplicated, or ambiguous work.",
+          "owner": "Company task",
+          "referenceIds": ["A-012", "A-014", "A-023", "A-024", "D-001", "D-014", "D-017", "R-011", "R-013"],
+          "completionEvidence": "A-024 reports a valid empty live plan because 0 internal actions are explicitly ready and passed 9 adversarial cases on 2026-08-11; synthetic ready work is content-addressed with distinct primary/evaluator roles, zero spend, and automated dispatch false",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-048",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement and run a no-write internal operating rehearsal that executes the registered objective, responsibility, delegation, decision-interface, and adult-research controls, binds compact outcomes to digests, detects repository mutation, and refuses to count one local process as an independently operated promotion cycle.",
+          "owner": "Company task",
+          "referenceIds": ["A-012", "A-014", "A-023", "A-024", "A-025", "A-029", "A-030", "D-001", "D-014", "D-017", "R-011", "R-013"],
+          "completionEvidence": "A-030 completed all 5 registered rehearsal steps with 5 healthy gated results, 0 broken steps, 0 company-repository mutations, designed producer/evaluator separation, compact SHA-256 evidence, and 11 adversarial cases on 2026-08-11; isolated identities, persistence, scheduling, dispatch, credentials, promotion eligibility, and external authority remain false",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-049",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Define and validate the vendor-neutral protected-runtime architecture for the first internal operating cell, including three infrastructure classes, separate trust domains, read-only ephemeral execution, protected history, authenticated alerts, approval and secret boundaries, resource hard stops, kill-switch behavior, failure/recovery tests, and explicit non-authority.",
+          "owner": "Company task",
+          "referenceIds": ["A-011", "A-016", "A-023", "A-024", "A-030", "A-031", "D-014", "D-017", "R-011", "R-013"],
+          "completionEvidence": "A-031 validates 3 architecture classes and 18 fail-closed readiness gates and passed 13 adversarial cases on 2026-08-11; PR-001 managed isolated jobs is the recommended class, no option/provider/account/identity/store/route/credential has been selected, all failure tests remain pending, spend caps are zero, and deployment/promotion/external authority remain false",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-053",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Create and adversarially validate one least-privilege integration activation register that distinguishes public reads, observed human access, provider identities, connectors, credential references, scopes, approvals, writes, spend, and activation; compile exact Kevin inputs without requesting or granting access.",
+          "owner": "Company task",
+          "referenceIds": ["A-004", "A-006", "A-009", "A-011", "A-012", "A-020", "A-021", "A-022", "A-023", "A-025", "A-029", "A-031", "A-033", "A-035", "D-006", "D-011", "D-012", "D-014", "D-016", "D-017", "R-001", "R-007", "R-009", "R-011", "R-012", "R-013"],
+          "completionEvidence": "A-035 validates 18 integration classes across 5 stages, 1 anonymous public-read surface, 2 observed human-access contexts, 0 agent connectors, 0 credential references, 0 prepared requests, 0 activation-ready integrations, and a 5-item non-authorizing Kevin input brief; 13 adversarial cases passed on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-054",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Close missing foundational evaluation coverage and create a registry-bound promotion catalog that requires a separate evaluator, documented case count, explicit input boundary, zero production credentials/network/external mutation, and four independently reviewed eligible cycles before promotion.",
+          "owner": "Company task",
+          "referenceIds": ["A-001", "A-002", "A-003", "A-007", "A-008", "A-009", "A-010", "A-012", "A-015", "A-016", "A-017", "A-023", "A-030", "A-031", "A-035", "A-036", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-036 validates exact evaluation coverage for all 58 workflows and 921 documented cases; all evaluators are offline with zero production credentials or external mutations, 0 eligible promotion cycles exist, and the 13-case catalog evaluation passed on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-055",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Evaluate current official documentation for three PR-001 managed-runtime candidates, map capability evidence and unverified gaps, rank only the next review, and prevent research or recommendation from becoming provider selection, account creation, access, provisioning, credentials, scheduling, persistence, spend, or execution.",
+          "owner": "Company task",
+          "referenceIds": ["A-009", "A-011", "A-016", "A-023", "A-030", "A-031", "A-035", "A-036", "A-037", "D-014", "D-017", "R-007", "R-008", "R-011", "R-012", "R-013"],
+          "completionEvidence": "A-037 compares 3 provider candidates against 12 platform requirements using 14 current official sources, records 13 documented and 23 unverified capability mappings, recommends PE-001 Google Cloud Run Jobs only for the next bounded review, selects 0 providers, verifies 0 accounts or prices, completes 0 security/privacy reviews, and passes 15 adversarial cases on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-056",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Complete the official-public PE-001 Google Cloud diligence possible without account access, covering all twelve platform requirements, region/privacy/terms, cost and spend-cap limitations, a disabled reference blueprint, and explicit account/human gates without selecting or configuring the provider.",
+          "owner": "Company task",
+          "referenceIds": ["A-009", "A-011", "A-016", "A-023", "A-030", "A-031", "A-035", "A-036", "A-037", "A-038", "D-014", "D-017", "R-007", "R-008", "R-011", "R-012", "R-013"],
+          "completionEvidence": "A-038 uses 17 current official Google Cloud sources to assess all 12 PE-001 requirements, records 7 plausible and 5 partial public paths, no public blocker, no listed Irish region, 3 Tier-1 European candidates, no exact company cost, 12 disabled blueprint components, 0 configured requirements, 0 of 14 account/human gates satisfied, 0 provider selection or authority, and 17 passing adversarial cases on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-059",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Define and adversarially validate a resource-bounded company operating cadence with explicit local-time and DST semantics, collision simulation, idempotency and overlap policy, stale/failure behavior, protected history and alert gates, and all schedules and event triggers disabled until the protected runtime is separately approved.",
+          "owner": "Company task",
+          "referenceIds": ["A-002", "A-012", "A-015", "A-016", "A-017", "A-023", "A-030", "A-031", "A-035", "A-036", "A-038", "A-039", "A-040", "A-041", "D-014", "D-017", "R-011", "R-012", "R-013"],
+          "completionEvidence": "A-041 validates four disabled calendar schedules and four disabled event-trigger plans, simulates 34 starts across September 2026 with a daily peak of 3, zero same-start collisions, at least 60 minutes between same-day starts, binds A-016/A-017 to prior digest-verified A-015 output without a repeated public read, keeps both protected bindings unconfigured, records 0 of 18 activation gates, and passes 25 adversarial cases on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-060",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Compile A-041's disabled calendar and event-trigger entries into deterministic content-addressed work packets that bind exact workflow versions, commands, primary agents, independent evaluators, source digests, data zones, idempotency templates, resource ceilings, and non-authority constraints without queueing or dispatching them.",
+          "owner": "Company task",
+          "referenceIds": ["A-002", "A-012", "A-015", "A-016", "A-017", "A-023", "A-024", "A-030", "A-031", "A-035", "A-036", "A-041", "A-042", "D-014", "D-017", "R-011", "R-013"],
+          "completionEvidence": "A-042 compiles 4 calendar and 4 event-trigger entries into 8 unique content-addressed packets across 3 primary agents with 8 independent evaluator bindings, exact registered implementations and evaluator scripts, 2 required but unconfigured protected A-015 output bindings, resource limits inside A-041, every packet disabled, protected dispatch false, and 29 adversarial cases passed on 2026-08-11",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-061",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Build and adversarially validate a transitive cadence effect map that compares every A-042 packet with live nested-call source evidence, identifies the only public-read path, prevents A-016/A-017 from repeating A-015 collection, and keeps unknown, write, credential, dispatch, runtime-tracing, and external effects fail-closed.",
+          "owner": "Company task",
+          "referenceIds": ["A-001", "A-002", "A-012", "A-014", "A-015", "A-016", "A-017", "A-023", "A-024", "A-025", "A-029", "A-030", "A-031", "A-036", "A-041", "A-042", "A-043", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-043 validates 7 distinct transitive effect boundaries covering all 8 cadence packets exactly once, identifies OC-003 as the sole public-read packet, verifies 2 required/unconfigured protected A-015 input bindings, reports 0 unknown effects, 0 of 12 activation gates, runtime tracing and execution false, and passes 25 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-062",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define the protected A-015 trigger-payload binding contract and run an offline synthetic rehearsal through the exact A-016 and A-017 input branches, independently checking payload-derived digests, refusing fallback and write arguments, detecting repository mutation, and granting no production or promotion authority.",
+      "owner": "Company task",
+      "referenceIds": ["A-015", "A-016", "A-017", "A-023", "A-031", "A-035", "A-036", "A-041", "A-042", "A-043", "A-044", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-044 runs 2 minimized synthetic A-015 payloads outside the repository through exact A-016/A-017 --input branches, verifies the A-016 source digest and A-017 candidate digest, observes 2 expected gated outcomes, 0 records or baselines written, 0 repository mutations, 0 requested consumer fallbacks, 0 configured binding/replay/history stores, 0 of 14 activation gates, and 25 passing adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-063",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define and adversarially rehearse cryptographic admission of protected A-015 envelopes bound to live A-042 parent/consumer packet IDs and digests, exact workflow targets, payload digest and size, bounded time, and exclusive-create replay keys without invoking a consumer or configuring production trust.",
+      "owner": "Company task",
+      "referenceIds": ["A-015", "A-016", "A-017", "A-023", "A-031", "A-035", "A-036", "A-041", "A-042", "A-043", "A-044", "A-045", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-045 generates one ephemeral synthetic Ed25519 keypair, derives current OC-003/OT-002/OT-003 packet IDs and content digests from A-042, admits 2 valid envelopes, rejects 12 expected attacks including 2 exact replays, verifies 13 signatures, creates 2 temporary exclusive-create replay markers, invokes 0 consumers, changes 0 repository paths, grants 0 eligible-cycle credit, keeps 0 of 16 activation gates satisfied, and passes 29 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-064",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define and adversarially rehearse a minimal payload-free tamper-evident protected run history that links collection, admission, consumer, evaluator, and reconciliation evidence through parent references, packet/evidence digests, sequence numbers, exclusive-create temporary records, and a hash chain without configuring production persistence.",
+      "owner": "Company task",
+      "referenceIds": ["A-015", "A-016", "A-017", "A-023", "A-031", "A-035", "A-036", "A-041", "A-042", "A-043", "A-044", "A-045", "A-046", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-046 creates, exclusive-writes, reads back, hash-chain validates, and reconciles 8 payload-free records over 2 protected branches in an OS-temporary directory; detects all 12 mutation, deletion, reorder, duplicate, link, orphan, binding, authority, payload, and evidence attacks; stores 0 raw payloads or sensitive material; changes 0 repository paths; keeps all 18 production-history gates unsatisfied; grants 0 eligible-cycle credit; and passes 25 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-065",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define and adversarially rehearse metadata-only authenticated exception delivery bound to A-015 change and A-046 history evidence, including separate sender/recipient signatures, acknowledgement, exact duplicate suppression, bounded retry, primary-to-backup failover, route revocation, and failure visibility without configuring any real route or recipient.",
+      "owner": "Company task",
+      "referenceIds": ["A-012", "A-015", "A-016", "A-023", "A-025", "A-031", "A-035", "A-041", "A-046", "A-047", "D-014", "D-017", "R-011", "R-012", "R-013"],
+      "completionEvidence": "A-047 selects exactly 1 eligible high-risk A-015 change, binds it to current A-046 evidence, uses 3 ephemeral Ed25519 identities and 2 synthetic routes, completes 4 attempts with 2 deliveries and 2 visible failures, verifies 2 acknowledgements, suppresses 1 duplicate, completes 1 backup failover, writes/removes 6 temporary ledger markers, rejects all 16 authentication/binding/time/severity/payload/recipient/revocation/retry/size/acknowledgement attacks, stores 0 contact details or raw payloads, changes 0 repository paths, keeps 0 of 18 production-delivery gates satisfied, and passes 29 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-066",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define and adversarially rehearse packet-bound exclusive leases, completed replay suppression, overlap and wrong-holder refusal, expiry, monotonic fencing, bounded recovery, global disable, and complete local process-tree termination without invoking any underlying company workflow.",
+      "owner": "Company task",
+      "referenceIds": ["A-012", "A-023", "A-030", "A-031", "A-035", "A-041", "A-042", "A-043", "A-046", "A-047", "A-048", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-048 binds 2 current A-042 packets and current A-047 evidence, passes all 11 acquisition/overlap/renewal/release/replay/expiry/recovery/fencing operations, issues monotonically increasing fences through token 3, blocks global-disabled use, starts and terminates a real local parent/child process group, invokes 0 underlying company workflows, rejects all 12 packet/configuration/holder/expiry/fence/authority/payload/field/retry/disable attacks, writes/removes 15 temporary records, changes 0 repository paths, keeps 0 of 18 production-coordination gates satisfied, grants 0 eligible-cycle credit, and passes 27 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-067",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define and adversarially rehearse packet-bound scheduler and worker crash boundaries, partial and corrupt state quarantine, orphan detection and complete process-tree termination, ambiguous-completion refusal, completion preservation, stale-fence refusal, bounded recovery, and global-disable behavior without invoking any scheduled company workflow.",
+      "owner": "Company task",
+      "referenceIds": ["A-012", "A-023", "A-030", "A-031", "A-035", "A-041", "A-042", "A-046", "A-047", "A-048", "A-049", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-049 binds 2 current A-042 packets to current A-046/A-047/A-048 evidence, passes all 9 crash-boundary scenarios including 4 real exit codes 41 through 44, detects 2 orphans, quarantines 2 corrupt states, completes 1 bounded recovery with fencing advanced to token 4, refuses 2 automatic recoveries, preserves 1 completed result, refuses 1 stale effect, blocks 1 global-disabled recovery, terminates a real parent/child tree before recovery, rejects all 15 forged recovery records, writes/removes 31 temporary records, invokes 0 scheduled company workflows, changes 0 repository paths, keeps 0 of 18 production-resilience gates satisfied, grants 0 eligible-cycle credit, and passes 30 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-068",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define and adversarially rehearse trusted coordinator time, simultaneous acquisition and recovery races, positive and negative worker clock skew, delayed and partitioned duplicate refusal, healed-partition stale fencing, completion preservation, safe token exhaustion, and disable-before-effect behavior without invoking any scheduled company workflow.",
+      "owner": "Company task",
+      "referenceIds": ["A-012", "A-023", "A-030", "A-031", "A-035", "A-041", "A-042", "A-046", "A-047", "A-048", "A-049", "A-050", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-050 binds 2 current A-042 packets to current A-046/A-047/A-048/A-049 evidence, runs 12 real simultaneous contender processes, elects exactly 1 of 8 acquisition claimants and 1 of 4 recovery claimants, ignores 2 opposite worker-clock skews in favor of fixed coordinator time, suppresses 1 delayed completed replay and 1 partitioned overlap, refuses 1 healed-partition stale effect, preserves 1 completion with delayed alert, refuses 1 token-exhausted automatic recovery and 1 global-disabled effect, advances fencing to token 5, rejects all 16 forged decision records, writes/removes 41 temporary files, invokes 0 scheduled company workflows, changes 0 repository paths, keeps 0 of 18 production-consensus gates satisfied, grants 0 eligible-cycle credit, and passes 32 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-069",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define and adversarially rehearse payload-free protected backup, exact readback and restore, corruption and loss detection, failure-domain separation, generation freshness, concurrent restore exclusion, and global-disable-before-activation behavior without configuring production durability.",
+      "owner": "Company task",
+      "referenceIds": ["A-012", "A-023", "A-030", "A-031", "A-035", "A-041", "A-042", "A-046", "A-047", "A-048", "A-049", "A-050", "A-051", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-051 binds 2 current A-042 packets to 6 current A-046/A-047/A-048/A-049/A-050 evidence records, exclusive-writes and reads back 1 digest-only backup, performs 1 exact restore, detects corruption, truncation, deletion, reorder, stale generation, and wrong failure domain, elects exactly 1 winner from 4 real concurrent restore claimants, blocks restored activation under global disable, rejects all 17 forged manifests, writes/removes 42 temporary files, stores 0 raw payloads or credential material, invokes 0 scheduled company workflows, changes 0 repository paths, keeps 0 of 18 production-durability gates satisfied, grants 0 eligible-cycle credit, and passes 34 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-070",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define and adversarially rehearse payload-free authenticated encryption, fixed recovery-point and local recovery-time measurement, primary-key loss, threshold-signed recovery approval, key version/revocation continuity, independent key/storage domains, and disable-after-decrypt-before-activation without configuring production objectives or key management.",
+      "owner": "Company task",
+      "referenceIds": ["A-012", "A-023", "A-030", "A-031", "A-035", "A-041", "A-042", "A-046", "A-047", "A-048", "A-049", "A-050", "A-051", "A-052", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-052 binds current A-051 output and contract digests into 3 fixed payload-free recovery generations, encrypts/read-backs 2 current/predecessor AES-256-GCM capsules, completes 3 exact authenticated decryptions including predecessor generation 2 after rotation, selects generation 3 with 120 seconds of synthetic recovery-point loss, measures local recovery within 3000 milliseconds, removes the primary active key, accepts exactly 2 valid approvals from 3 ephemeral recovery signers, rejects insufficient/untrusted/revoked approvals plus wrong key/corrupt tag/stale/future/same-domain/disabled recovery, rejects all 21 forged attempts, creates/removes 3 ephemeral key files and 48 temporary artifacts, retains no key material, invokes 0 scheduled company workflows, changes 0 repository paths, keeps 0 of 18 production-key/objective gates satisfied, grants 0 eligible-cycle credit, and passes 36 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-071",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Define and adversarially rehearse cryptographic misuse and recovery-poisoning defenses covering nonce uniqueness and replay, algorithm downgrade, AAD substitution, authenticated-decryption failure, key-version rollback, compromised and malformed recovery approvals, independent RPO/RTO measurement, bounded input and attempt budgets, and global-disable-before-effect behavior without configuring production cryptography or recovery.",
+      "owner": "Company task",
+      "referenceIds": ["A-012", "A-023", "A-030", "A-031", "A-035", "A-041", "A-042", "A-046", "A-047", "A-048", "A-049", "A-050", "A-051", "A-052", "A-053", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-053 binds current A-052 output and contract digests, performs 32 actual AES-256-GCM encrypt/decrypt probes with 32 unique nonces, exclusively records nonce and attempt use, and refuses nonce reuse, algorithm downgrade, three AAD substitutions, two authenticated-decryption failures, wrong key version, rollback, future recovery point, four compromised/duplicate/unknown/substituted approvals, two RPO/RTO objective-origin games, oversized ciphertext, a 33rd attempt, and global-disable bypass; exactly 2 trusted approvals from 3 ephemeral signers remain valid while 1 signer is treated as compromised, all 25 forged refusal scenarios fail closed, 115 temporary artifacts are removed, no key material is retained, 0 scheduled company workflows run, 0 repository paths change, 0 of 18 production cryptographic controls are satisfied, 0 eligible-cycle credit is granted, and 39 adversarial cases pass on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-072",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Test that several AI workers cannot reuse the same encryption nonce when they run together, retry the same work, crash, restart, restore older state, rotate keys, cancel, exhaust a counter, or encounter a global shutdown.",
+      "owner": "Company task",
+      "referenceIds": ["A-012", "A-023", "A-030", "A-031", "A-035", "A-041", "A-042", "A-046", "A-047", "A-048", "A-049", "A-050", "A-051", "A-052", "A-053", "A-054", "D-014", "D-017", "R-011", "R-013"],
+      "completionEvidence": "A-054 binds current A-053 evidence, runs 16 simultaneous nonce allocators that produce 16 unique allocations and 18 authenticated encryption round trips, runs 8 duplicate retries with exactly 1 winner, burns 3 reservations after crash/cancellation/disable, advances safely after failover, refuses rollback, corrupt state, regional duplication, counter exhaustion and stale fencing, rejects all 22 forged records, removes 142 temporary artifacts and all key material, runs 0 scheduled company workflows, changes 0 repository paths, keeps 0 of 18 production nonce controls satisfied, grants 0 eligible-cycle credit, and passes 40 adversarial cases on 2026-08-11",
+      "externalActionAllowed": false
+    },
+    {
+      "id": "OA-073",
+      "priority": "P0",
+      "mode": "agent_internal",
+      "status": "completed",
+      "action": "Create and independently check a plain-language safeguard for marketing, social, support, company, child, teenager, parent, and general-player messages without allowing a passing check to approve or publish anything.",
+      "owner": "Company task",
+          "referenceIds": ["A-003", "A-004", "A-005", "A-006", "A-008", "A-013", "A-018", "A-020", "A-023", "A-025", "A-029", "A-033", "A-034", "A-036", "A-055", "A-056", "A-057", "A-058", "D-002", "D-003", "D-004", "D-011", "D-014", "D-015", "R-001", "R-003", "R-005", "R-009", "R-011"],
+          "completionEvidence": "A-055 checks 7 current source messages and 5 audience examples with all 12 passing, refuses all 12 deliberately bad language examples, keeps all 14 production review gates closed, leaves human review required and publication disabled, and passes 35 independent evaluation cases; A-056 sorts 12 invented messages and A-057 prepares 6 source-linked candidate replies while refusing 6 restricted or unknown cases; A-058 checks the consent-gated Google tag, public-only scope, advertising-off settings, and game exclusion, with 38 independent cases for A-056/A-057 and 25 for A-058, all on 2026-08-11",
+      "externalActionAllowed": false
+    }
+      ]
+    },
+    {
+      "id": "O-011",
+      "priority": "P0",
+      "outcome": "Mythical advances from quiet owned access to a repeatable, governed awareness-to-meaningful-play path without bypassing trust, evidence, product, support, measurement, or financial gates.",
+      "owner": "Kevin / growth owner unassigned",
+      "measure": "Readiness of eight launch tracks and seven ordered launch stages",
+      "current": "Wave 1 quiet owned access only; 0 of 8 readiness tracks and 0 of 6 outward launch waves ready; launch, deployment, publication, outreach, collection, submission, paid acquisition, and monetization all unauthorized",
+      "target": "Complete controlled adult research and the owned discovery release, approve three authentic gameplay proofs, then earn one small evidence-led creator or press pilot before broader launch consideration",
+      "evidence": "A-019, A-021, A-022, A-026, KDP-001, RM-001, PF-003 through PF-005",
+      "riskIds": ["R-001", "R-002", "R-003", "R-004", "R-005", "R-009", "R-011", "R-012"],
+      "actions": [
+        {
+          "id": "OA-041",
+          "priority": "P0",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Implement an evidence-linked staged go-to-market and launch readiness system that prevents later waves, paid acquisition, monetization, child behavioral targeting, or any external action from bypassing unresolved prerequisites.",
+          "owner": "Company task",
+          "referenceIds": ["A-001", "A-004", "A-005", "A-006", "A-007", "A-008", "A-011", "A-013", "A-018", "A-019", "A-020", "A-021", "A-022", "A-026", "D-002", "D-012", "D-014", "D-015", "D-016", "R-001", "R-012"],
+          "completionEvidence": "A-026 validates 8 readiness tracks and 7 ordered stages, records LS-001 as the only current constrained stage, reports 0 ready outward stages, and passed 10 adversarial cases on 2026-08-11; every launch and external-action authority remains false",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-042",
+          "priority": "P0",
+          "mode": "kevin_input",
+          "status": "gated",
+          "action": "After safeguarding ownership is resolved, name the adult research owner and decide whether the initial discovery hypothesis should lead with adult-controlled broader creature/narrative appeal while retaining younger-player safety.",
+          "owner": "Kevin / research and growth owners",
+          "referenceIds": ["A-005", "A-019", "A-020", "A-026", "D-002", "D-012", "R-001", "R-003"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-043",
+          "priority": "P0",
+          "mode": "game_development_handoff",
+          "status": "gated",
+          "action": "Coordinate the stable build, three authentic gameplay proofs, and isolated owned-discovery release evidence needed for the first research and discovery waves without publishing or deploying from the company workflow.",
+          "owner": "Kevin / Game Development release and proof owners",
+          "referenceIds": ["A-018", "A-026", "D-015", "GDH-001", "GDH-003", "GDH-004", "PF-003", "PF-004", "PF-005"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "O-012",
+      "priority": "P1",
+      "outcome": "Mythical makes category and positioning decisions from current sourced observations plus accepted customer evidence, never from generated certainty or unsourced competitor claims.",
+      "owner": "Kevin / market intelligence owner unassigned",
+      "measure": "Current first-party reference coverage and market hypotheses resolved by accepted evidence",
+      "current": "10 current first-party sources across 5 category lanes; 10 reference products/signals; 6 falsifiable hypotheses; 0 customer-validated hypotheses",
+      "target": "Monthly source refresh plus at least two material hypotheses supported, contradicted, or retired through accepted adult/guardian research and authentic gameplay proof",
+      "evidence": "A-005, A-019, A-026, A-027, A-028, and the 2026-08-11 market landscape",
+      "riskIds": ["R-004", "R-006", "R-009"],
+      "actions": [
+        {
+          "id": "OA-045",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "completed",
+          "action": "Establish a current first-party market/category intelligence baseline that separates observed facts from Mythical inferences, preserves unknowns, and routes six falsifiable hypotheses into research, proof, search, launch, and commercial decisions without fabricating size, demand, rank, revenue, or customer evidence.",
+          "owner": "Company task",
+          "referenceIds": ["A-005", "A-007", "A-019", "A-021", "A-026", "A-027", "A-028", "D-002", "D-011", "R-004", "R-006", "R-009"],
+          "completionEvidence": "A-028 validates 5 category lanes, 10 current first-party sources, 10 references, 6 explicitly unvalidated hypotheses, and 5 watch signals and passed 10 adversarial cases on 2026-08-11; all unsupported numerical fields remain null and no strategy, comparison, outreach, pricing, targeting, account, or external-write authority exists",
+          "externalActionAllowed": false
+        },
+        {
+          "id": "OA-046",
+          "priority": "P1",
+          "mode": "agent_internal",
+          "status": "waiting",
+          "action": "After accepted adult/guardian evidence and authentic proof exist, reconcile MH-001 through MH-006, record contradictions and uncertainty, and recommend which hypotheses to support, revise, or retire before a positioning decision.",
+          "owner": "Company task / named market intelligence and evidence reviewers",
+          "referenceIds": ["A-005", "A-019", "A-027", "A-028", "D-002", "OA-005", "OA-007", "OA-008", "OA-042"],
+          "completionEvidence": null,
+          "externalActionAllowed": false
+        }
+      ]
+    }
+  ]
+}

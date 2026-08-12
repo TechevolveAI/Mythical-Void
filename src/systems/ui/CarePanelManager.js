@@ -13,6 +13,7 @@ class CarePanelManager {
         this.panelElements = [];
         this.careButtons = {};
         this.hintText = null;
+        this.signalText = null;
     }
 
     init() {
@@ -34,9 +35,13 @@ class CarePanelManager {
         this.hintText.setScrollFactor(0);
         this.hintText.setOrigin(0, 1);
         this.hintText.setDepth(2000);
+        this.hintText.setVisible(width >= 600);
     }
 
     createPanel() {
+        const { width: viewportWidth } = this.scene.scale;
+        this.panelX = Math.max(8, Math.round((viewportWidth - 320) / 2));
+        this.panelCenterX = this.panelX + 160;
         const textureKey = 'carePanelTexture';
         if (!this.scene.textures.exists(textureKey)) {
             const graphics = this.scene.make.graphics({ add: false });
@@ -48,16 +53,16 @@ class CarePanelManager {
             graphics.destroy();
         }
 
-        const bg = this.scene.add.image(40, 40, textureKey);
+        const bg = this.scene.add.image(this.panelX, 40, textureKey);
         bg.setOrigin(0, 0);
         bg.setScrollFactor(0);
         bg.setDepth(1900);
         bg.setVisible(false);
         this.panelElements.push(bg);
 
-        const title = this.scene.add.text(200, 60, '💖 Care Corner', {
-            fontSize: '20px',
-            color: '#FFD700',
+        const title = this.scene.add.text(this.panelCenterX, 57, 'COMPANION LINK', {
+            fontSize: '18px',
+            color: '#FFFFFF',
             fontFamily: 'Poppins, Arial, sans-serif',
             fontStyle: 'bold'
         }).setOrigin(0.5, 0);
@@ -66,7 +71,19 @@ class CarePanelManager {
         title.setVisible(false);
         this.panelElements.push(title);
 
-        const closeButton = this.scene.add.text(340, 50, '✕', {
+        this.signalText = this.scene.add.text(this.panelCenterX, 88, '', {
+            fontSize: '12px',
+            color: '#9EF1D0',
+            fontFamily: 'Poppins, Arial, sans-serif',
+            align: 'center',
+            wordWrap: { width: 270 }
+        }).setOrigin(0.5, 0);
+        this.signalText.setScrollFactor(0);
+        this.signalText.setDepth(1901);
+        this.signalText.setVisible(false);
+        this.panelElements.push(this.signalText);
+
+        const closeButton = this.scene.add.text(this.panelX + 300, 50, '✕', {
             fontSize: '22px',
             color: '#FF8A8A',
             fontFamily: 'Arial, sans-serif'
@@ -81,14 +98,15 @@ class CarePanelManager {
 
     createCareButtons() {
         if (!this.careSystem) return;
-        const actions = this.careSystem.getAllCareActionsInfo();
-        const startY = 120;
-        const spacing = 60;
+        const genetics = this.geneticsProvider ? this.geneticsProvider() : null;
+        const actions = this.careSystem.getAllCareActionsInfo(genetics);
+        const startY = 155;
+        const spacing = 58;
         let index = 0;
         Object.entries(actions).forEach(([actionType, info]) => {
             if (!info) return;
             const y = startY + index * spacing;
-            const button = this.createCareButton(200, y, 240, 50, info.icon || '✨', info.name || actionType, actionType);
+            const button = this.createCareButton(this.panelCenterX, y, 240, 50, info.icon || '+', info.name || actionType, actionType);
             this.careButtons[actionType] = button;
             index++;
         });
@@ -143,9 +161,10 @@ class CarePanelManager {
             zone.setVisible(this.panelVisible);
         });
         if (this.panelVisible) {
+            this.updateSignal();
             this.updateButtons();
             if (window.UXEnhancements) {
-                window.UXEnhancements.announce('Care Corner open. Tap a button to care for your buddy.');
+                window.UXEnhancements.announce('Companion link open. Choose a care action.');
             }
         }
     }
@@ -156,7 +175,12 @@ class CarePanelManager {
             const genetics = this.geneticsProvider ? this.geneticsProvider() : null;
             const result = await this.careSystem.performCareAction(actionType, genetics);
             if (result?.success) {
-                this.showCareEffect(actionType, result.happinessBonus);
+                this.showCareEffect(
+                    actionType,
+                    result.happinessBonus,
+                    result.villageBonus
+                );
+                this.updateSignal();
                 this.updateButtons();
                 this.updateHint();
 
@@ -170,8 +194,9 @@ class CarePanelManager {
                     window.AchievementSystem.recordEvent('care_action', { type: actionType });
                 }
 
-                // INTEGRATION EXAMPLE: Get creature's response via CreatureAIController
-                if (window.CreatureAIController) {
+                if (result.message) {
+                    this.showCreatureResponse(result.message);
+                } else if (window.CreatureAIController) {
                     try {
                         const response = await window.CreatureAIController.respondToCareAction(actionType);
                         this.showCreatureResponse(response);
@@ -241,10 +266,15 @@ class CarePanelManager {
         this.updateHint();
     }
 
-    showCareEffect(actionType, happinessBonus) {
+    showCareEffect(actionType, happinessBonus, villageBonus = 0) {
         const creatureName = getGameState()?.get('creature.name') || 'your buddy';
         const actionCopy = this.getActionCopy(actionType);
-        const message = `${creatureName} ${actionCopy}${happinessBonus ? ` (+${happinessBonus} joy)` : ''}`;
+        const support = villageBonus > 0
+            ? `\nFORAGER HUT SUPPORT +${villageBonus}`
+            : '';
+        const message = `${creatureName} ${actionCopy}${
+            happinessBonus ? ` (+${happinessBonus} joy)` : ''
+        }${support}`;
 
         const player = this.playerProvider ? this.playerProvider() : null;
         const x = player ? player.x : 400;
@@ -255,7 +285,8 @@ class CarePanelManager {
             color: '#FFD1DC',
             stroke: '#000000',
             strokeThickness: 2,
-            fontFamily: 'Arial, sans-serif'
+            fontFamily: 'Arial, sans-serif',
+            align: 'center'
         }).setOrigin(0.5);
 
         this.scene.tweens.add({
@@ -271,7 +302,7 @@ class CarePanelManager {
     showCareMessage(actionType, happinessBonus, errorMessage = null) {
         const copy = this.getActionCopy(actionType);
         const text = errorMessage ? `${copy} — ${errorMessage}` : `${copy} +${happinessBonus} joy`;
-        const toast = this.scene.add.text(400, 140, text, {
+        const toast = this.scene.add.text(this.scene.scale.width / 2, 140, text, {
             fontSize: '16px',
             color: errorMessage ? '#FF8A8A' : '#90EE90',
             backgroundColor: 'rgba(0,0,0,0.7)',
@@ -290,39 +321,61 @@ class CarePanelManager {
 
     getActionCopy(actionType) {
         const friendly = {
-            feed: 'loved the tasty snack! 🍎',
-            play: 'giggles after playtime! 🎲',
-            rest: 'is dozing happily. 😴',
-            pet: 'purrs after those cuddles! 🤗',
-            clean: 'sparkles after the bubble bath! 🫧',
+            feed: 'takes the ration and steadies their signal.',
+            play: 'joins the movement exercise.',
+            rest: 'settles into a quiet recovery cycle.',
+            pet: 'answers the contact with a steady pulse.',
+            clean: 'returns with a clearer signal.',
             stats: 'stats ready'
         };
-        return friendly[actionType] || 'feels cared for!';
+        return friendly[actionType] || 'responds to the care signal.';
+    }
+
+    updateSignal() {
+        if (!this.signalText || !this.careSystem?.getCareSignal) return;
+        const genetics = this.geneticsProvider ? this.geneticsProvider() : null;
+        const signal = this.careSystem.getCareSignal(genetics);
+        const actionName = this.careSystem.careActions?.[signal.recommendedAction]?.name
+            || signal.recommendedAction;
+        this.signalText.setText(
+            `${signal.label} // ${signal.needLabel}: ${actionName.toUpperCase()}`
+        );
     }
 
     updateButtons() {
         if (!this.careSystem) return;
-        const careActions = this.careSystem.getAllCareActionsInfo();
+        const genetics = this.geneticsProvider ? this.geneticsProvider() : null;
+        const careActions = this.careSystem.getAllCareActionsInfo(genetics);
         Object.entries(this.careButtons).forEach(([actionType, button]) => {
             const info = careActions[actionType];
             if (!info) return;
             const countText = info.isUnlimited ? '∞' : `${info.currentCount}/${info.limit}`;
             const status = info.canPerform ? 'Ready' : 'Later';
-            button.text.setText(`${info.icon || '✨'} ${info.name} (${countText}) – ${status}`);
+            const preference = info.isRecommended
+                ? ' // REQUESTED'
+                : info.isPreferred
+                    ? ' // RESONANT'
+                    : '';
+            button.text.setText(`${info.icon || '+'} ${info.name} (${countText}) - ${status}${preference}`);
             button.bg.setTintFill(info.canPerform ? 0x228B22 : 0x666666);
         });
     }
 
     updateHint() {
         if (!this.hintText || !this.careSystem) {
-            this.hintText?.setText('Care Corner unavailable');
+            this.hintText?.setText('Companion link unavailable');
             return;
         }
         const status = this.careSystem.getCareStatus();
         if (!status) return;
         const feedLeft = 3 - status.dailyCare.feedCount;
         const playLeft = 2 - status.dailyCare.playCount;
-        this.hintText.setText(`TAB: Care Corner • Feed ${feedLeft} • Play ${playLeft} • Rest anytime`);
+        const genetics = this.geneticsProvider ? this.geneticsProvider() : null;
+        const signal = this.careSystem.getCareSignal?.(genetics);
+        const rhythm = signal?.recommendedAction
+            ? ` • ${signal.needLabel}: ${signal.recommendedAction}`
+            : '';
+        this.hintText.setText(`TAB: Companion Link • Feed ${feedLeft} • Play ${playLeft}${rhythm}`);
     }
 
     destroy() {
@@ -347,6 +400,7 @@ class CarePanelManager {
             this.hintText.destroy();
             this.hintText = null;
         }
+        this.signalText = null;
 
         console.log('[CarePanelManager] Cleanup complete');
     }

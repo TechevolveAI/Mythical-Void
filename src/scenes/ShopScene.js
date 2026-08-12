@@ -5,13 +5,21 @@
 
 import Phaser from 'phaser';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
+import VillageCommandPanel from '../ui/VillageCommandPanel.js';
+import {
+    assignCreatureToVillageBuilding,
+    getVillageSnapshot,
+    initializeVillageSettlement,
+    placeVillageBuilding,
+    reconcileVillageSettlement
+} from '../systems/VillageSettlement.js';
 
 export default class ShopScene extends Phaser.Scene {
     constructor() {
         super({ key: 'ShopScene' });
 
         this.graphicsEngine = null;
-        this.selectedCategory = 'eggs'; // eggs, food, powerups, utilities
+        this.selectedCategory = 'eggs'; // eggs, food, powerups, utilities, base
         this.selectedItemIndex = 0;
         this.shopItems = null;
         this.categoryButtons = [];
@@ -22,6 +30,7 @@ export default class ShopScene extends Phaser.Scene {
         this._isShuttingDown = false;
         this.previewOpenRoutes = new Set();
         this.previewVoidCrystalCapacity = false;
+        this.villageCommandPanel = null;
     }
 
     init(data = {}) {
@@ -482,18 +491,26 @@ export default class ShopScene extends Phaser.Scene {
         }
 
         const mapsOwned = window.GameState?.get('hubWorld.mapsOwned') || [];
-        const gate = window.GameState?.get(`hubWorld.gates.${item.gateId}`);
         return this.previewOpenRoutes.has(item.gateId) ||
-            mapsOwned.includes(item.gateId) ||
-            gate?.unlocked === true;
+            mapsOwned.includes(item.gateId);
     }
 
     getItemUnavailableState(item) {
+        if (item?.type === 'village') {
+            const unlocked = item.villageSnapshot?.unlock?.unlocked === true;
+            return {
+                unavailable: !unlocked,
+                label: unlocked ? 'BUILD' : 'HATCH',
+                message: item.villageSnapshot?.unlock?.reason ||
+                    'Hatch a companion to wake the Base Builder.'
+            };
+        }
+
         if (this.isRouteMapUnavailable(item)) {
             return {
                 unavailable: true,
-                label: 'OPEN',
-                message: 'That route is already open.'
+                label: 'OWNED',
+                message: 'That permanent route survey is already active.'
             };
         }
 
@@ -525,6 +542,75 @@ export default class ShopScene extends Phaser.Scene {
         };
     }
 
+    getVillageHeartItem() {
+        const snapshot = initializeVillageSettlement(window.GameState);
+        const resources = snapshot?.resources || { wood: 0, stone: 0, food: 0 };
+        const unlocked = snapshot?.unlock?.unlocked === true;
+
+        return {
+            id: 'village_heart',
+            name: 'Base Builder',
+            description: unlocked
+                ? `Build with field supplies: ${resources.wood} wood, ${resources.stone} stone, ${resources.food} food.`
+                : 'Hatch a companion first. Their signal will bring the Base Builder online.',
+            icon: '🏡',
+            type: 'village',
+            price: null,
+            villageSnapshot: snapshot,
+            usageHint: 'Shop > Build > Base Builder > Choose a structure > Construct'
+        };
+    }
+
+    openVillageHeart() {
+        const item = this.getVillageHeartItem();
+        const availability = this.getItemUnavailableState(item);
+        if (availability.unavailable) {
+            this.showPurchaseError(availability.message);
+            window.AudioManager?.playError?.();
+            return false;
+        }
+
+        window.AudioManager?.playButtonClick?.();
+        return this.openVillageBuilder();
+    }
+
+    openVillageBuilder() {
+        if (!this.villageCommandPanel) {
+            this.villageCommandPanel = new VillageCommandPanel(this);
+        }
+
+        return this.villageCommandPanel.show({
+            getSnapshot: () => getVillageSnapshot(window.GameState),
+            onPlace: request => {
+                const result = placeVillageBuilding(window.GameState, request);
+                if (result.changed) {
+                    window.AudioManager?.playAchievement?.();
+                    window.AchievementSystem?.recordEvent?.('story_interaction', {
+                        event: 'village_construction_started',
+                        buildingId: result.buildingId
+                    });
+                } else {
+                    window.AudioManager?.playError?.();
+                }
+                return result;
+            },
+            onAssign: request => {
+                const result = assignCreatureToVillageBuilding(window.GameState, request);
+                if (result.changed) {
+                    window.AudioManager?.playButtonClick?.();
+                } else {
+                    window.AudioManager?.playError?.();
+                }
+                return result;
+            },
+            onTick: () => reconcileVillageSettlement(window.GameState),
+            onClose: () => {
+                this.villageCommandPanel = null;
+                if (!this._isShuttingDown) this.displayCategory('base');
+            }
+        });
+    }
+
     /**
      * Create category menu (responsive tabs)
      */
@@ -533,17 +619,20 @@ export default class ShopScene extends Phaser.Scene {
             { id: 'eggs', label: 'Eggs', icon: '🥚' },
             { id: 'food', label: 'Food', icon: '🍎' },
             { id: 'powerups', label: 'Power', icon: '⚡' },
-            { id: 'utilities', label: 'Items', icon: '🎒' }
+            { id: 'utilities', label: 'Gear', icon: '🎒' },
+            { id: 'base', label: 'Build', icon: '🏡' }
         ];
 
         const { width, headerHeight, catalogX, categoryHeight, categoryButtonWidth, margin, isMobile } = this.dims;
-        const spacing = margin / 2; // Tighter spacing for 4 buttons
+        const spacing = margin / 2;
         const startY = headerHeight + margin;
 
         // Calculate button positions (centered on mobile, left-aligned on desktop)
-        // Adjusted button width for 4 categories
-        const adjustedButtonWidth = isMobile ? (width - margin * 2 - spacing * 3) / 4 : categoryButtonWidth * 0.85;
-        const totalWidth = (adjustedButtonWidth * 4) + (spacing * 3);
+        const categoryCount = categories.length;
+        const adjustedButtonWidth = isMobile
+            ? (width - margin * 2 - spacing * (categoryCount - 1)) / categoryCount
+            : categoryButtonWidth * 0.85;
+        const totalWidth = (adjustedButtonWidth * categoryCount) + (spacing * (categoryCount - 1));
         const startX = isMobile ? (width - totalWidth) / 2 : catalogX;
 
         categories.forEach((category, index) => {
@@ -706,7 +795,9 @@ export default class ShopScene extends Phaser.Scene {
         // Reset scroll position
         this.scrollY = 0;
 
-        const items = this.shopItems[categoryId] || [];
+        const items = categoryId === 'base'
+            ? [this.getVillageHeartItem()]
+            : this.shopItems[categoryId] || [];
         const { catalogX, catalogStartY, catalogWidth, itemHeight, itemSpacing, padding } = this.dims;
 
         const startX = catalogX + padding;
@@ -721,6 +812,7 @@ export default class ShopScene extends Phaser.Scene {
             const y = startY + (itemHeight + itemSpacing) * index;
             const availability = this.getItemUnavailableState(item);
             const itemUnavailable = availability.unavailable;
+            const isVillageAccess = item.type === 'village';
 
             // Item row background
             const itemBg = this.add.graphics();
@@ -761,13 +853,20 @@ export default class ShopScene extends Phaser.Scene {
             const priceX = buyBtnX + buyBtnWidth / 2;
             const priceY = y + (this.dims.isMobile ? 18 : itemHeight / 2);
 
-            const priceText = this.add.text(priceX, priceY, itemUnavailable ? '' : `${item.price}`, {
-                fontSize: itemUnavailable ? (this.dims.isMobile ? '13px' : '15px') : this.dims.priceSize,
+            const priceText = this.add.text(
+                priceX,
+                priceY,
+                itemUnavailable ? '' : (isVillageAccess ? 'SUPPLIES' : `${item.price}`),
+                {
+                fontSize: isVillageAccess
+                    ? (this.dims.isMobile ? '10px' : '12px')
+                    : itemUnavailable ? (this.dims.isMobile ? '13px' : '15px') : this.dims.priceSize,
                 fontFamily: 'Arial Black',
-                color: itemUnavailable ? '#8FE3CF' : '#FFD700',
+                color: itemUnavailable ? '#8FE3CF' : isVillageAccess ? '#8FE3CF' : '#FFD700',
                 stroke: '#000000',
                 strokeThickness: 2
-            });
+                }
+            );
             priceText.setOrigin(0.5, 0.5);
 
             // Coin icon next to price
@@ -777,7 +876,7 @@ export default class ShopScene extends Phaser.Scene {
             coinIcon.fillCircle(coinIconX, priceY, this.dims.isMobile ? 8 : 10);
             coinIcon.fillStyle(0xFFA500, 1);
             coinIcon.fillCircle(coinIconX, priceY, this.dims.isMobile ? 6 : 7);
-            coinIcon.setVisible(!itemUnavailable);
+            coinIcon.setVisible(!itemUnavailable && !isVillageAccess);
 
             // Buy button
             const buyBtnY = y + (this.dims.isMobile ? 43 : 15);
@@ -803,14 +902,18 @@ export default class ShopScene extends Phaser.Scene {
                 zone.setInteractive({ useHandCursor: true });
 
                 zone.on('pointerdown', () => {
+                    if (isVillageAccess) {
+                        this.openVillageHeart();
+                        return;
+                    }
                     this.showPurchaseConfirmation(item);
                 });
 
                 zone.on('pointerover', () => {
                     buyBtn.clear();
-                    buyBtn.fillStyle(0x00DD00, 1);
+                    buyBtn.fillStyle(isVillageAccess ? 0x008F8A : 0x00DD00, 1);
                     buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
-                    buyBtn.lineStyle(3, 0x00FF00);
+                    buyBtn.lineStyle(3, isVillageAccess ? 0x8FE3CF : 0x00FF00);
                     buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
                     // Show item tooltip (only on desktop)
@@ -821,9 +924,9 @@ export default class ShopScene extends Phaser.Scene {
 
                 zone.on('pointerout', () => {
                     buyBtn.clear();
-                    buyBtn.fillStyle(0x00AA00, 0.9);
+                    buyBtn.fillStyle(isVillageAccess ? 0x006C6C : 0x00AA00, 0.9);
                     buyBtn.fillRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
-                    buyBtn.lineStyle(2, 0x00FF00);
+                    buyBtn.lineStyle(2, isVillageAccess ? 0x5BE3D7 : 0x00FF00);
                     buyBtn.strokeRoundedRect(buyBtnX, buyBtnY, buyBtnWidth, buyBtnHeight, 8);
 
                     // Hide item tooltip
@@ -1255,7 +1358,7 @@ export default class ShopScene extends Phaser.Scene {
 
         // Success message
         const destination = item.type === 'map'
-            ? 'Route opened in the Hub'
+            ? 'Permanent survey support active'
             : (item.usageHint || 'Added to Inventory');
         const successText = this.add.text(
             width / 2,
@@ -1560,7 +1663,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'cosmic_egg',
                     name: 'Cosmic Egg',
-                    description: 'Hatch a new creature to replace your current companion. All rarities possible.',
+                    description: 'Hatch another companion and preserve both family records in your sanctuary.',
                     icon: '🥚',
                     price: 250,
                     type: 'egg',
@@ -1571,7 +1674,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'stellar_egg',
                     name: 'Stellar Egg',
-                    description: 'Premium egg with NO common creatures! Hatch a guaranteed uncommon or better.',
+                    description: 'Hatch another companion from an uncommon-or-higher stellar signal.',
                     icon: '🌟',
                     price: 1000,
                     type: 'egg',
@@ -1691,48 +1794,48 @@ export default class ShopScene extends Phaser.Scene {
                     usageHint: 'Inventory > Use to place in Sanctuary'
                 },
                 {
-                    id: 'map_stellar_reef',
-                    name: 'Stellar Reef Map',
-                    description: 'Unlocks the Stellar Reef gate in the Hub World',
-                    icon: '🗺️',
-                    price: 400,
-                    type: 'map',
-                    gateId: 'stellar_reef',
-                    usageHint: 'Opens the Stellar Reef route immediately',
-                    effect: 'Unlocks Stellar Reef biome'
-                },
-                {
                     id: 'map_crystal_caves',
-                    name: 'Crystal Caves Map',
-                    description: 'Unlocks the Crystal Caves gate in the Hub World',
+                    name: 'Crystal Caves Survey',
+                    description: 'Permanent expedition support: +2 crystal energy in Crystal Caves',
                     icon: '🗺️',
-                    price: 800,
+                    price: 500,
                     type: 'map',
                     gateId: 'crystal_caves',
-                    usageHint: 'Opens the Crystal Caves route immediately',
-                    effect: 'Unlocks Crystal Caves biome'
+                    usageHint: 'Active automatically on every Crystal Caves expedition',
+                    effect: '+2 max crystal energy in Crystal Caves'
+                },
+                {
+                    id: 'map_stellar_reef',
+                    name: 'Stellar Reef Survey',
+                    description: 'Permanent expedition support: +1 max health in Stellar Reef',
+                    icon: '🗺️',
+                    price: 500,
+                    type: 'map',
+                    gateId: 'stellar_reef',
+                    usageHint: 'Active automatically on every Stellar Reef expedition',
+                    effect: '+1 max health in Stellar Reef'
                 },
                 {
                     id: 'map_void_peaks',
-                    name: 'Void Peaks Map',
-                    description: 'Unlocks the Void Peaks gate in the Hub World',
+                    name: 'Void Peaks Survey',
+                    description: 'Permanent expedition support: +1 guard charge in Void Peaks',
                     icon: '🗺️',
-                    price: 1500,
+                    price: 750,
                     type: 'map',
                     gateId: 'void_peaks',
-                    usageHint: 'Opens the Void Peaks route immediately',
-                    effect: 'Unlocks Void Peaks biome'
+                    usageHint: 'Active automatically on every Void Peaks expedition',
+                    effect: '+1 guard charge in Void Peaks'
                 },
                 {
                     id: 'map_aurora_depths',
-                    name: 'Aurora Depths Map',
-                    description: 'Unlocks the Aurora Depths gate - the rarest biome!',
+                    name: 'Aurora Depths Survey',
+                    description: 'Permanent expedition support: +1 health and +1 energy in Aurora Depths',
                     icon: '🗺️',
-                    price: 4000,
+                    price: 1000,
                     type: 'map',
                     gateId: 'aurora_depths',
-                    usageHint: 'Opens the Aurora Depths route immediately',
-                    effect: 'Unlocks Aurora Depths biome'
+                    usageHint: 'Active automatically on every Aurora Depths expedition',
+                    effect: '+1 max health and +1 max energy in Aurora Depths'
                 }
             ]
         };
@@ -1748,6 +1851,9 @@ export default class ShopScene extends Phaser.Scene {
             return;
         }
         this._isShuttingDown = true;
+
+        this.villageCommandPanel?.destroy?.();
+        this.villageCommandPanel = null;
 
         console.log('[ShopScene] Shutting down - cleaning up event listeners');
 

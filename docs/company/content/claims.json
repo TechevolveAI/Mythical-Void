@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "claims": [
+    {
+      "id": "CL-001",
+      "class": "C1",
+      "status": "usable",
+      "approvedText": "Play free in your browser.",
+      "conditions": "Current release only; do not promise that future offerings will always be free."
+    },
+    {
+      "id": "CL-002",
+      "class": "C1",
+      "status": "usable",
+      "approvedText": "No download or account is required to start.",
+      "conditions": "Do not expand into a no-data-collection claim."
+    },
+    {
+      "id": "CL-003",
+      "class": "C1",
+      "status": "usable",
+      "approvedText": "Progress is stored locally by default.",
+      "conditions": "Mention optional services when the context is privacy or data handling."
+    },
+    {
+      "id": "CL-004",
+      "class": "C1",
+      "status": "usable",
+      "approvedText": "Explore and restore six living realms.",
+      "conditions": "Recheck against the deployed build before campaign publication."
+    },
+    {
+      "id": "CL-005",
+      "class": "C3",
+      "status": "qualified",
+      "approvedText": "Procedural genetics shape creature appearance, affinity, personality, and potential.",
+      "conditions": "Do not guarantee global uniqueness or collision-free outcomes."
+    },
+    {
+      "id": "CL-006",
+      "class": "C3",
+      "status": "qualified",
+      "approvedText": "Your companion can remember specific parts of the journey you share.",
+      "conditions": "Show or name the specific implemented memory; never say it remembers everything."
+    },
+    {
+      "id": "CL-007",
+      "class": "C3",
+      "status": "qualified",
+      "approvedText": "The current adventure uses family-friendly fantasy combat without gore.",
+      "conditions": "Not a formal age rating or universal safety guarantee."
+    },
+    {
+      "id": "CL-008",
+      "class": "C2",
+      "status": "usable",
+      "approvedText": "Project Beacon sent you to find hope for Earth.",
+      "conditions": "Fictional story claim; keep separate from real-world science or company claims."
+    },
+    {
+      "id": "CL-009",
+      "class": "C1",
+      "status": "restricted_recheck",
+      "approvedText": "Optional personalized creature media is unavailable to under-16 profiles in this release.",
+      "conditions": "Reverify client, server, production flags, vendor flow, and privacy copy for every use."
+    },
+    {
+      "id": "CL-010",
+      "class": "C4",
+      "status": "internal_only",
+      "approvedText": "Mythical is building an AI-first operating model.",
+      "conditions": "Do not describe the company as fully autonomous."
+    },
+    {
+      "id": "CL-011",
+      "class": "C5",
+      "status": "restricted",
+      "approvedText": "Mythical aims to operate with top-class governance.",
+      "conditions": "Do not claim certification, independent assurance, or achieved leadership without evidence."
+    },
+    {
+      "id": "CL-012",
+      "class": "C3",
+      "status": "blocked_absolute",
+      "approvedText": "Creatures are generated from varied procedural genetics.",
+      "conditions": "The phrases 1 of 1, every creature is unique, and no two creatures are alike are blocked pending proof."
+    }
+  ]
+}

@@ -8,7 +8,7 @@
 
 (function initializeCreaturePortraitSpec(globalScope) {
     const SCHEMA_VERSION = 1;
-    const PROMPT_VERSION = 'living-portrait-v1';
+    const PROMPT_VERSION = 'living-portrait-v5-individual-biology';
     const VALID_STAGES = new Set(['baby', 'juvenile', 'adult', 'elder']);
     const VALID_RARITIES = new Set(['common', 'uncommon', 'rare', 'epic', 'legendary']);
 
@@ -77,7 +77,7 @@
         return (hash >>> 0).toString(16).padStart(8, '0');
     }
 
-    function create({ genes, name, stage = 'baby' } = {}) {
+    function create({ genes, dna = null, name, stage = 'baby' } = {}) {
         if (!genes || typeof genes !== 'object') {
             throw new Error('Creature genetics are required to create a portrait identity');
         }
@@ -94,6 +94,21 @@
         const rarity = VALID_RARITIES.has(genes.rarity) ? genes.rarity : 'common';
         const mutations = normalizeFeatureList(features.wackyMutations);
         const extraEyes = mutations.find(mutation => mutation.type === 'extra_eyes');
+        const morphology = {
+            dnaId: cleanText(dna?.id, 'unrecorded-dna', 96),
+            bodyArchetype: cleanText(
+                dna?.bodyArchetype,
+                traits.bodyShape?.type || 'balanced',
+                32
+            ),
+            headArchetype: cleanText(dna?.headArchetype, 'unknown', 32),
+            hybridType: cleanText(dna?.hybridTag, 'single-species', 32),
+            elementalAura: cleanText(
+                dna?.elementalAura,
+                affinity.element || 'cosmic',
+                32
+            )
+        };
 
         const spec = {
             schemaVersion: SCHEMA_VERSION,
@@ -103,8 +118,14 @@
             stage: normalizedStage,
             species: cleanText(genes.species, 'cosmic creature', 48),
             rarity,
+            morphology,
             silhouette: {
-                bodyType: cleanText(traits.bodyShape?.type, 'balanced', 32),
+                bodyType: morphology.bodyArchetype,
+                geneticBodyType: cleanText(
+                    traits.bodyShape?.type,
+                    morphology.bodyArchetype,
+                    32
+                ),
                 bodyIntensity: clampNumber(traits.bodyShape?.intensity, 0.5),
                 wingType: cleanText(wings.type, 'none', 32),
                 wingSpan: clampNumber(wings.span, 1, 0, 2)
@@ -139,7 +160,8 @@
                 element: cleanText(affinity.element, 'star', 32),
                 description: cleanText(affinity.description, 'connected to stellar energy', 120),
                 power: clampNumber(affinity.powerLevel, 0.5),
-                visualEffects: cleanStringArray(affinity.visualEffects, 5)
+                visualEffects: cleanStringArray(affinity.visualEffects, 5),
+                abilities: cleanStringArray(affinity.specialAbilities, 5)
             },
             variants: {
                 shiny: Boolean(genes.isShiny),

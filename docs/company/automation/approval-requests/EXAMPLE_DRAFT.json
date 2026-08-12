@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "AP-20260811-001",
+  "status": "draft",
+  "workflowId": "A-003",
+  "workflowVersion": 1,
+  "actionClass": "publish",
+  "requestedBy": "Company task",
+  "approvedBy": null,
+  "approvedAt": null,
+  "approvalEvidenceRef": null,
+  "decisionRef": "D-009 remains proposed",
+  "issuedAt": "2026-08-11T11:20:00Z",
+  "validUntil": "2026-08-12T11:20:00Z",
+  "environment": "external_service",
+  "targets": [
+    {
+      "system": "Unconnected publishing system",
+      "account": "No account selected",
+      "destination": "No destination selected"
+    }
+  ],
+  "allowedOperations": ["preview only"],
+  "prohibitedOperations": ["publish", "schedule", "send", "create account", "accept terms", "spend"],
+  "maxActions": 1,
+  "spend": {
+    "currency": "EUR",
+    "maximumMinorUnits": 0
+  },
+  "dataZones": ["Z0", "Z1"],
+  "artifact": {
+    "path": "docs/company/content/drafts/PROJECT_BEACON_INTRO.json",
+    "sha256": "2cbde583482de635a256932c5038b5e4810f3c9b77a6f6ee1313e935112639d3"
+  },
+  "idempotencyKey": "example-not-authorized-cp-001",
+  "dryRunEvidence": "A-003 package validation passes; no visual proof, account, destination, or measurement is approved.",
+  "rollbackPlan": "Discard the draft; no external state has changed.",
+  "auditDestination": "Company automation run log when one exists"
+}

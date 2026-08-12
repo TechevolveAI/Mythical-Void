@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/schemas/proof-production.schema.json",
+  "title": "Mythical gameplay proof production plan",
+  "type": "object",
+  "required": ["schemaVersion", "asOf", "status", "authority", "sourceBuild", "productionPolicy", "briefs"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "asOf": { "type": "string", "format": "date" },
+    "status": { "const": "specifications_ready_capture_gated" },
+    "authority": { "type": "object", "additionalProperties": { "type": "boolean" } },
+    "sourceBuild": { "type": "object" },
+    "productionPolicy": { "type": "object" },
+    "briefs": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "proofId", "title", "status", "internalBriefReady", "captureReady", "proofApprovalReady", "publicationReady", "owner", "captureOperator", "independentReviewer", "claimRefs", "editorialRefs", "workflowRefs", "handoffRefs", "riskRefs", "objectiveActionRefs", "captureObjective", "startingState", "requiredBeats", "claimSupport", "doesNotProve", "captureSettings", "requiredOutputs", "accessibilityDraft", "privacyAndRightsChecks", "rawMaster", "reviewCopy", "accessibleStill", "editDecisionList", "capturedAt", "approvedAt", "expiryTrigger"]
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -122,7 +122,9 @@ describe('player settings persistence', () => {
 
     test('FeedbackManager saves haptic and screen-shake changes immediately', () => {
         const gameState = {
-            get: jest.fn(() => true),
+            get: jest.fn(pathName => pathName === 'settings.reducedMotion'
+                ? false
+                : true),
             set: jest.fn(),
             save: jest.fn()
         };
@@ -135,10 +137,68 @@ describe('player settings persistence', () => {
 
         manager.toggleHaptic();
         manager.toggleScreenShake();
+        manager.toggleReducedMotion();
 
         expect(gameState.set).toHaveBeenCalledWith('settings.hapticEnabled', false);
         expect(gameState.set).toHaveBeenCalledWith('settings.screenShakeEnabled', false);
-        expect(gameState.save).toHaveBeenCalledTimes(2);
+        expect(gameState.set).toHaveBeenCalledWith('settings.reducedMotion', true);
+        expect(gameState.save).toHaveBeenCalledTimes(3);
+    });
+
+    test('reduced motion suppresses direct camera shake and flash effects', () => {
+        const gameState = {
+            get: jest.fn(pathName => pathName === 'settings.reducedMotion'
+                ? false
+                : true),
+            set: jest.fn(),
+            save: jest.fn()
+        };
+        const FeedbackManager = loadFeedbackManager(
+            { GameState: gameState },
+            { vibrate: jest.fn() }
+        );
+        const manager = new FeedbackManager();
+        const shake = jest.fn();
+        const flash = jest.fn();
+        const scene = { cameras: { main: { shake, flash } } };
+        manager.init();
+
+        expect(manager.cameraShake(scene, 300, 0.02)).toBe(true);
+        expect(manager.cameraFlash(scene, 300, 255, 255, 255)).toBe(true);
+        manager.toggleReducedMotion();
+        expect(manager.cameraShake(scene, 300, 0.02)).toBe(false);
+        expect(manager.cameraFlash(scene, 300, 255, 255, 255)).toBe(false);
+
+        expect(shake).toHaveBeenCalledTimes(1);
+        expect(flash).toHaveBeenCalledTimes(1);
+        expect(manager.getSettings().reducedMotionEnabled).toBe(true);
+    });
+
+    test('routes scene-level flashes and shakes through the preference manager', () => {
+        const sceneRoot = path.join(__dirname, '../scenes');
+        const sceneFiles = [];
+        const collectFiles = directory => {
+            fs.readdirSync(directory, { withFileTypes: true }).forEach(entry => {
+                const entryPath = path.join(directory, entry.name);
+                if (entry.isDirectory()) collectFiles(entryPath);
+                if (entry.isFile() && entry.name.endsWith('.js')) {
+                    sceneFiles.push(entryPath);
+                }
+            });
+        };
+        collectFiles(sceneRoot);
+        const sceneSource = sceneFiles
+            .map(filePath => fs.readFileSync(filePath, 'utf8'))
+            .join('\n');
+
+        expect(sceneSource).not.toContain('this.cameras.main.shake(');
+        expect(sceneSource).not.toContain('this.cameras.main.flash(');
+        expect(
+            sceneSource.match(/FeedbackManager\?\.cameraShake/g)?.length || 0
+        ).toBeGreaterThanOrEqual(20);
+        expect(
+            sceneSource.match(/FeedbackManager\?\.cameraFlash/g)?.length || 0
+        ).toBeGreaterThanOrEqual(20);
     });
 
     test('ships the settings surface while guarding cheat tools to development builds', () => {
@@ -167,11 +227,18 @@ describe('player settings persistence', () => {
         expect(modalSource).toContain('setSFXVolume');
         expect(modalSource).toContain('toggleScreenShake');
         expect(modalSource).toContain('toggleHaptic');
+        expect(modalSource).toContain('Reduced flashes and motion');
+        expect(modalSource).toContain('toggleReducedMotion');
+        expect(modalSource).toContain(
+            '{ disabled: feedbackSettings.reducedMotionEnabled }'
+        );
         expect(modalSource).toContain('this.scene.physics.pause()');
         expect(modalSource).toContain('this.scene.physics?.resume?.()');
         expect(modalSource).toContain('panelBlocker.setInteractive()');
         expect(gameSource).toContain("urlParams.has('testSettings')");
         expect(gameSource).toContain('settingsPreview: true');
         expect(sceneSource).toContain('createSettingsPreview()');
+        expect(sceneSource).toContain('reducedMotionEnabled: false');
+        expect(sceneSource).toContain('toggleReducedMotion()');
     });
 });

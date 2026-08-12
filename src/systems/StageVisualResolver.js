@@ -493,14 +493,14 @@ class StageVisualResolver {
 
             const intensityScale = stageIntensityScale[stage] || 1.0;
 
-            // Baby stage: show mutations at very low intensity as "destiny hints"
+            // Baby stage: every mutation gets a subtle but real identity hint.
+            // Hiding low-dominance mutations made hatched creatures appear less
+            // varied than their persisted genetics and confused portrait inputs.
             if (stage === 'baby') {
-                // Only show mutations if they have high dominance (very visible genes)
                 return geneticMutations
-                    .filter(m => m.dominance > 0.7)
                     .map(m => ({
                         ...m,
-                        intensity: m.intensity * intensityScale * 0.5 // Very subtle
+                        intensity: Math.max(0.12, m.intensity * intensityScale)
                     }));
             }
 

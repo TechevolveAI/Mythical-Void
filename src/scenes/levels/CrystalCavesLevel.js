@@ -1,4 +1,24 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
+import {
+    buildCreaturePowerProfile,
+    recordCreaturePowerEvent
+} from '../../systems/CreaturePowerProfile.js';
+
+const CRYSTAL_GUARDIAN_TEXTURE = 'crystalGuardianArtwork';
+const CRYSTAL_GUARDIAN_ASSET = '/game/guardians/crystal-guardian.webp';
+const CRYSTAL_GUARDIAN_DISPLAY_HEIGHT = 190;
+
+const CRYSTAL_GUARDIAN_ATTACK_WINDOWS = Object.freeze({
+    ground_slam: 1400,
+    crystal_barrage: 2600,
+    charge: 1700
+});
+
+const CRYSTAL_GUARDIAN_ATTACK_CUES = Object.freeze({
+    ground_slam: 'GROUND PULSE // JUMP',
+    crystal_barrage: 'CRYSTAL BARRAGE // MOVE BETWEEN SHOTS',
+    charge: 'GUARDIAN CHARGE // GET BEHIND IT'
+});
 
 /**
  * CrystalCavesLevel - Crystal Caves platformer level
@@ -53,6 +73,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossAttackTimer = null;
         this.bossHealthBar = null;
         this.bossNameText = null;
+        this.bossPulseText = null;
+        this.bossInstructionText = null;
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer = null;
+        this.bossAttackPreview = null;
+        this.bossTargetScale = 1;
 
         // Enemy spawns
         this.enemySpawns = [];
@@ -75,6 +101,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.coreGateHintUntil = 0;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
+    }
+
+    preload() {
+        super.preload();
+        this.load.image(CRYSTAL_GUARDIAN_TEXTURE, CRYSTAL_GUARDIAN_ASSET);
     }
 
     /**
@@ -100,6 +131,18 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossAttackTimer = null;
         this.bossHealthBar = null;
         this.bossNameText = null;
+        this.bossPulseText = null;
+        this.bossInstructionText = null;
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer = null;
+        this.bossTargetScale = 1;
+        this.bossAttackPreview = [
+            'ground_slam',
+            'crystal_barrage',
+            'charge'
+        ].includes(data?.bossAttackPreview)
+            ? data.bossAttackPreview
+            : null;
 
         // Reset ambient audio
         this.ambientAudio = null;
@@ -163,6 +206,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             contentWidth, contentLeft, contentRight, y, font, buttonPadding
         } = layout;
         const resume = this.getExpeditionResumePresentation();
+        const companionName = this.getCompanionName();
 
         // Pause game briefly
         this.physics.pause();
@@ -197,7 +241,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Subtitle
-        const subtitle = this.add.text(width / 2, y(86), '"Your companion hears pain beneath the stone"', {
+        const subtitle = this.add.text(width / 2, y(86), `"${companionName} hears pain beneath the stone"`, {
             fontSize: font(16, 14),
             color: '#9370DB',
             fontStyle: 'italic',
@@ -226,7 +270,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Main objective
-        const mainObj = this.add.text(width / 2, y(172), "Follow the cave's pulse to the Crystal Core", {
+        const mainObj = this.add.text(width / 2, y(172), 'Answer the wounded Current and reach the Crystal Core', {
             fontSize: font(20, 17),
             color: '#00FFFF',
             fontStyle: 'bold',
@@ -241,7 +285,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             secondaryY,
             resume
                 ? `[ BEACON ] ${resume.label} link restored`
-                : '[ ] Activate Beacon anchors',
+                : '[ REQUIRED ] Follow 3 Beacon pulses',
             {
             fontSize: font(16, 14),
             color: '#AAAAAA',
@@ -249,13 +293,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             }
         ).setScrollFactor(0).setDepth(3002);
 
-        const grove = this.add.text(contentLeft, y(250), '[ ] Tend the fractured crystal grove', {
+        const grove = this.add.text(contentLeft, y(250), '[ REQUIRED ] Reach the fractured grove', {
             fontSize: font(16, 14),
             color: '#AAAAAA',
             wordWrap: { width: contentWidth }
         }).setScrollFactor(0).setDepth(3002);
 
-        const relic = this.add.text(contentLeft, y(280), '[ OPTIONAL ] Collect Star Fragments (0/5)', {
+        const relic = this.add.text(contentLeft, y(280), '[ OPTIONAL ] Collect 5 Star Fragments', {
             fontSize: font(16, 14),
             color: '#AAAAAA',
             wordWrap: { width: contentWidth }
@@ -295,6 +339,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             enterBtn.disableInteractive();
             overlay.disableInteractive();
             this.clearLevelEntryKeyHandler();
+            this.physics.resume();
+            this.showPlatformerMobileControls();
             this.tweens.add({
                 targets: allElements,
                 alpha: 0,
@@ -303,10 +349,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                     allElements.forEach(el => {
                         if (el && el.destroy) el.destroy();
                     });
-                    // Resume game
-                    this.physics.resume();
-                    // Show mobile controls now that intro is dismissed
-                    this.showPlatformerMobileControls();
                 }
             });
         };
@@ -341,6 +383,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             window.removeEventListener('keydown', this.levelEntryKeyHandler);
         }
         this.levelEntryKeyHandler = null;
+    }
+
+    getCompanionName() {
+        return String(
+            window.GameState?.get?.('creature.name') || 'Your companion'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
     }
 
     /**
@@ -883,7 +931,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }
 
         // Screen shake
-        this.cameras.main.shake(200, 0.01);
+        window.FeedbackManager?.cameraShake?.(this, 200, 0.01);
 
         // Sound
         if (window.AudioManager) {
@@ -1018,6 +1066,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         });
 
         const anchorNumber = this.beaconAnchorsActivated;
+        const companionName = this.getCompanionName();
         this.showFloatingText(
             `PROJECT BEACON ANCHOR ${anchorNumber}/3`,
             checkpoint.x,
@@ -1028,7 +1077,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (anchorNumber === 1) {
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
-                    'Your companion matches the cave pulse.',
+                    `${companionName}: "Echo Pass locked. The cave remembers us."`,
+                    checkpoint.x,
+                    checkpoint.respawnY - 72,
+                    '#D6EEF2'
+                );
+            });
+        } else if (anchorNumber === 2) {
+            this.time.delayedCall(650, () => {
+                this.showFloatingText(
+                    `${companionName}: "The wound is close. Slow down."`,
                     checkpoint.x,
                     checkpoint.respawnY - 72,
                     '#D6EEF2'
@@ -1039,7 +1097,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.refreshCrystalCoreHint();
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
-                    'Three living pulses align. The guardian can hear us.',
+                    `${companionName}: "The guardian is answering."`,
                     checkpoint.x,
                     checkpoint.respawnY - 72,
                     '#F2C94C'
@@ -1142,6 +1200,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.crystalWoundTended = true;
         this.refreshCrystalCoreHint();
         const grove = this.woundedCrystalGrove;
+        const companionName = this.getCompanionName();
+        const powerProfile = buildCreaturePowerProfile(window.GameState, {
+            context: 'fend'
+        });
         grove.zone?.destroy?.();
         grove.zone = null;
         this.drawWoundedCrystalGrove(grove.visual, grove.x, grove.groundY, true);
@@ -1149,18 +1211,48 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.setCheckpoint(grove.x, this.levelHeight - 150);
 
         this.showFloatingText(
-            'Your companion tends the fractured crystal.',
+            `${companionName}: ${powerProfile.affinityPower.name}`,
             grove.x,
             grove.groundY - 175,
-            '#8FE3CF'
+            `#${powerProfile.color.toString(16).padStart(6, '0')}`
         );
         this.time.delayedCall(850, () => {
             this.showFloatingText(
-                'The cave answers with a steadier pulse.',
+                'THE FRACTURED CURRENT STABILIZES',
                 grove.x,
                 grove.groundY - 205,
                 '#D6EEF2'
             );
+        });
+
+        const wave = this.add.graphics()
+            .setPosition(grove.x, grove.groundY - 48)
+            .setDepth(90);
+        wave.lineStyle(5, powerProfile.color, 0.95);
+        wave.strokeEllipse(0, 0, 120, 72);
+        wave.lineStyle(2, 0xFFFFFF, 0.75);
+        wave.strokeEllipse(0, 0, 150, 92);
+        this.tweens.add({
+            targets: wave,
+            alpha: 0,
+            scaleX: 2.4,
+            scaleY: 2.4,
+            duration: 850,
+            ease: 'Cubic.easeOut',
+            onComplete: () => wave.destroy()
+        });
+        window.FXLibrary?.stardustBurst?.(this, grove.x, grove.groundY - 55, {
+            count: 28,
+            color: [powerProfile.color, 0x8FE3CF, 0xFFFFFF],
+            duration: 1200
+        });
+        recordCreaturePowerEvent(window.GameState, {
+            eventId: 'crystal_grove_response',
+            powerId: powerProfile.affinityPower.id,
+            context: 'fend',
+            magnitude: 'major',
+            outcome: 'fractured_current_stabilized',
+            save: false
         });
 
         window.AchievementSystem?.recordEvent?.('story_interaction', {
@@ -2367,7 +2459,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             }
 
             // Camera flash
-            this.cameras.main.flash(300, 0, 255, 255);
+            window.FeedbackManager?.cameraFlash?.(this, 300, 0, 255, 255);
         }
 
         // Destroy collected item
@@ -3019,7 +3111,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             ? 'The Core signal is incomplete. Align the Beacon anchors.'
             : 'Your companion still hears the fractured grove.';
         this.showFloatingText(message, this.player.x, this.player.y - 70, '#F2C94C');
-        this.cameras.main.flash(180, 242, 193, 78);
+        window.FeedbackManager?.cameraFlash?.(this, 180, 242, 193, 78);
         this.coreGateHintUntil = now + 1800;
     }
 
@@ -3034,7 +3126,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.physics.pause();
 
         // Flash warning
-        this.cameras.main.flash(500, 150, 0, 200);
+        window.FeedbackManager?.cameraFlash?.(this, 500, 150, 0, 200);
 
         // Warning text
         const { width, height } = this.cameras.main;
@@ -3092,7 +3184,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.cameras.main.zoomTo(1.1, 1000);
 
         // Shake the ground
-        this.cameras.main.shake(1500, 0.015);
+        window.FeedbackManager?.cameraShake?.(this, 1500, 0.015);
 
         // After atmosphere change, spawn the boss
         this.time.delayedCall(1500, () => {
@@ -3176,8 +3268,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     spawnCrystalGolem() {
         console.log('[CrystalCavesLevel] Spawning Crystal Golem!');
 
-        // Create boss texture
-        const textureKey = this.createCrystalGolemTexture();
+        // Finished guardian art is preferred; the procedural texture remains a
+        // size-independent fallback if the asset cannot be loaded.
+        const textureKey = this.textures.exists(CRYSTAL_GUARDIAN_TEXTURE)
+            ? CRYSTAL_GUARDIAN_TEXTURE
+            : this.createCrystalGolemTexture();
 
         // Spawn position - center of boss arena (section 5)
         const spawnX = 4300;
@@ -3188,8 +3283,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.boss.setCollideWorldBounds(true);
         this.boss.setBounce(0);
         this.boss.setDepth(880);
-        this.boss.body.setSize(80, 100);
-        this.boss.body.setOffset(20, 20);
+        this.bossTargetScale = textureKey === CRYSTAL_GUARDIAN_TEXTURE
+            ? CRYSTAL_GUARDIAN_DISPLAY_HEIGHT / this.boss.height
+            : 1;
+        const bodyWidth = this.boss.width * 0.48;
+        const bodyHeight = this.boss.height * 0.68;
+        this.boss.body.setSize(bodyWidth, bodyHeight);
+        this.boss.body.setOffset(
+            (this.boss.width - bodyWidth) / 2,
+            this.boss.height * 0.23
+        );
 
         // Initialize boss state
         this.bossHealth = this.bossMaxHealth;
@@ -3206,20 +3309,20 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Spawn animation - rise from ground
         this.boss.setAlpha(0);
-        this.boss.setScale(0.5);
+        this.boss.setScale(this.bossTargetScale * 0.5);
         this.tweens.add({
             targets: this.boss,
             alpha: 1,
-            scaleX: 1.2,
-            scaleY: 1.2,
+            scaleX: this.bossTargetScale * 1.2,
+            scaleY: this.bossTargetScale * 1.2,
             duration: 1000,
             ease: 'Power2',
             onComplete: () => {
                 // Settle to normal size
                 this.tweens.add({
                     targets: this.boss,
-                    scaleX: 1,
-                    scaleY: 1,
+                    scaleX: this.bossTargetScale,
+                    scaleY: this.bossTargetScale,
                     duration: 300
                 });
             }
@@ -3228,8 +3331,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Create boss health bar
         this.createBossHealthBar();
 
-        // Start boss AI
-        this.startBossAI();
+        // Keep authored attack previews deterministic for mobile QA.
+        if (this.bossAttackPreview) {
+            this.time.delayedCall(650, () => {
+                this.bossPerformAttack(this.bossAttackPreview);
+            });
+        } else {
+            this.startBossAI();
+        }
 
         // Ground slam effect
         if (window.FXLibrary) {
@@ -3267,7 +3376,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossUI.setDepth(1500);
 
         // Boss name with enhanced visibility
-        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'CRYSTAL GUARDIAN', {
+        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'CRYSTAL GUARDIAN // WOUNDED', {
             fontSize: isMobileLayout ? '18px' : '22px',
             color: '#A9F3E4',
             fontStyle: 'bold',
@@ -3277,13 +3386,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossUI.add(this.bossNameText);
 
         // Subtitle
-        const subtitle = this.add.text(screenWidth / 2, barY - 8, 'Stabilize the wounded pulse', {
+        this.bossInstructionText = this.add.text(screenWidth / 2, barY - 8, 'STRIKE THE UNSTABLE PULSE', {
             fontSize: '11px',
+            fontFamily: 'Arial, sans-serif',
             color: '#D8FFF6',
+            fontStyle: 'bold',
             stroke: '#160D24',
-            strokeThickness: 2
+            strokeThickness: 2,
+            align: 'center'
         }).setOrigin(0.5);
-        this.bossUI.add(subtitle);
+        this.bossUI.add(this.bossInstructionText);
 
         // Health bar background with glow
         const barBg = this.add.graphics();
@@ -3300,6 +3412,21 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Health bar fill
         this.bossHealthBar = this.add.graphics();
         this.bossUI.add(this.bossHealthBar);
+
+        this.bossPulseText = this.add.text(
+            screenWidth / 2,
+            barY + 17,
+            '',
+            {
+                fontSize: isMobileLayout ? '11px' : '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                stroke: '#160D24',
+                strokeThickness: 2
+            }
+        ).setOrigin(0.5);
+        this.bossUI.add(this.bossPulseText);
 
         this.updateBossHealthBar();
 
@@ -3324,19 +3451,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const { x, y, width, height } = this.bossBarConfig;
         const healthPercent = this.bossHealth / this.bossMaxHealth;
         const fillWidth = (width - 4) * healthPercent;
+        const unstablePulse = Math.max(0, Math.ceil(this.bossHealth));
 
         this.bossHealthBar.clear();
 
-        // Health fill color based on health
-        let fillColor = 0xFF4500; // Orange-red
-        if (healthPercent > 0.5) {
-            fillColor = 0x7B68EE; // Purple when healthy
-        } else if (healthPercent > 0.25) {
-            fillColor = 0xFFA500; // Orange when damaged
-        }
-
-        // Health fill
-        this.bossHealthBar.fillStyle(fillColor, 1);
+        // This meter is the unstable pulse remaining, not guardian life.
+        this.bossHealthBar.fillStyle(0xE040FB, 1);
         this.bossHealthBar.fillRoundedRect(x, y + 4, fillWidth, height, 4);
 
         // Inner highlight
@@ -3344,6 +3464,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.bossHealthBar.fillStyle(0xFFFFFF, 0.2);
             this.bossHealthBar.fillRoundedRect(x + 2, y + 6, fillWidth - 4, height / 3, 2);
         }
+        this.bossPulseText?.setText(
+            unstablePulse > 0
+                ? `UNSTABLE PULSE // ${unstablePulse}/${this.bossMaxHealth}`
+                : 'UNSTABLE PULSE // STABLE'
+        );
     }
 
     /**
@@ -3485,7 +3610,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossPhase = 2;
 
         // Visual feedback
-        this.cameras.main.shake(500, 0.02);
+        window.FeedbackManager?.cameraShake?.(this, 500, 0.02);
         this.boss.setTint(0xFF6B6B);
 
         // Flash warning
@@ -3525,30 +3650,73 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     /**
      * Boss performs an attack
      */
-    bossPerformAttack() {
+    bossPerformAttack(forcedAttack = null) {
         if (!this.boss || !this.boss.active || this.boss.isAttacking) return;
 
-        const attackType = Phaser.Math.Between(1, this.bossPhase >= 2 ? 3 : 2);
+        const attackType = forcedAttack || {
+            1: 'ground_slam',
+            2: 'crystal_barrage',
+            3: 'charge'
+        }[Phaser.Math.Between(1, this.bossPhase >= 2 ? 3 : 2)];
+        const attackWindow =
+            CRYSTAL_GUARDIAN_ATTACK_WINDOWS[attackType] || 1400;
 
         this.boss.isAttacking = true;
         this.boss.setVelocityX(0);
+        this.showBossAttackInstruction(
+            CRYSTAL_GUARDIAN_ATTACK_CUES[attackType],
+            attackWindow
+        );
 
         switch (attackType) {
-            case 1:
+            case 'ground_slam':
                 this.bossGroundSlam();
                 break;
-            case 2:
+            case 'crystal_barrage':
                 this.bossCrystalBarrage();
                 break;
-            case 3:
+            case 'charge':
                 this.bossChargeAttack();
                 break;
         }
 
-        // End attack state after a delay
-        this.time.delayedCall(1200, () => {
-            if (this.boss) this.boss.isAttacking = false;
+        // Keep attacks from overlapping while projectiles and charge lanes remain active.
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = this.time.delayedCall(attackWindow, () => {
+            if (this.boss) {
+                this.boss.isAttacking = false;
+            }
+            this.bossAttackUnlockTimer = null;
         });
+    }
+
+    showBossAttackInstruction(cue, duration = 1400) {
+        if (!cue || !this.bossInstructionText) return;
+
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionText
+            .setText(cue)
+            .setColor('#FFD166')
+            .setScale(1.04);
+        this.tweens.add({
+            targets: this.bossInstructionText,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 180,
+            ease: 'Sine.easeOut'
+        });
+        if (this.bossAttackPreview) {
+            return;
+        }
+        this.bossInstructionTimer = this.time.delayedCall(
+            Math.max(600, duration - 250),
+            () => {
+                this.bossInstructionText
+                    ?.setText('STRIKE THE UNSTABLE PULSE')
+                    ?.setColor('#D8FFF6');
+                this.bossInstructionTimer = null;
+            }
+        );
     }
 
     /**
@@ -3565,7 +3733,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             yoyo: true,
             onYoyo: () => {
                 // Slam down
-                this.cameras.main.shake(300, 0.03);
+                window.FeedbackManager?.cameraShake?.(this, 300, 0.03);
 
                 // Create shockwave
                 const shockwave = this.add.graphics();
@@ -3751,6 +3919,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         this.bossHealth -= amount;
         this.updateBossHealthBar();
+        this.showFloatingText(
+            `PULSE -${amount}`,
+            this.boss.x,
+            this.boss.y - 80,
+            '#F0B6FF'
+        );
 
         // Flash effect
         this.boss.setTint(0xFFFFFF);
@@ -3808,14 +3982,19 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.bossAttackTimer) {
             this.bossAttackTimer.remove();
         }
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionTimer = null;
+        this.bossPulseText?.setText('UNSTABLE PULSE // STABLE');
 
         // The guardian calms as the unstable pulse clears.
         this.boss.setVelocity(0, 0);
         this.boss.body.setAllowGravity(false);
         this.boss.setTint(0x8FE3CF);
 
-        this.cameras.main.shake(350, 0.01);
-        this.cameras.main.flash(450, 143, 227, 207);
+        window.FeedbackManager?.cameraShake?.(this, 350, 0.01);
+        window.FeedbackManager?.cameraFlash?.(this, 450, 143, 227, 207);
         this.showFloatingText(
             'GUARDIAN PULSE STABLE',
             this.boss.x,
@@ -3842,8 +4021,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: this.boss,
             alpha: 0.15,
-            scaleX: 0.88,
-            scaleY: 0.88,
+            scaleX: this.bossTargetScale * 0.88,
+            scaleY: this.bossTargetScale * 0.88,
             duration: 1800,
             onComplete: () => {
                 if (this.boss) this.boss.destroy();
@@ -3952,7 +4131,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.physics.pause();
 
         // Celebration effects
-        this.cameras.main.flash(500, 0, 255, 255);
+        window.FeedbackManager?.cameraFlash?.(this, 500, 0, 255, 255);
 
         if (window.FXLibrary && this.crystalCore) {
             for (let i = 0; i < 5; i++) {
@@ -4069,11 +4248,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const guardianGifts = katanaUpgrade
             ? `Guardian Gifts: Crystal Core + ${katanaUpgrade.name} ${upgradeStatus}`
             : 'Guardian Gift: Crystal Core';
-        this.add.text(width / 2, y(310), guardianGifts, {
-            fontSize: font(16, 14),
+        this.add.text(
+            width / 2,
+            y(300),
+            `${guardianGifts}\n${this.getVillageCompletionCopy({ compact: true })}\n${this.getGuardianSanctuaryArrivalCopy({ compact: true })}`,
+            {
+            fontSize: font(14, 12),
             color: '#00FFFF',
             fontStyle: 'bold',
             align: 'center',
+            lineSpacing: 3,
             wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
@@ -4117,25 +4301,51 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
         this.objectiveDisplay = this.add.text(
             width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 82 : 92) : height - 30,
+            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
             this.getCrystalObjectiveText(),
             {
-            fontSize: this.isCompactObjectiveHUD ? '11px' : '15px',
-            color: '#9370DB',
-            backgroundColor: 'rgba(26, 16, 37, 0.7)',
-            padding: { x: 8, y: 5 },
-            align: 'right'
-        }).setOrigin(1, this.isCompactObjectiveHUD ? 0 : 1)
+            fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4EDFF',
+            backgroundColor: 'rgba(26, 16, 37, 0.92)',
+            padding: { x: 10, y: 7 },
+            lineSpacing: 2,
+            align: 'left',
+            wordWrap: {
+                width: this.isCompactObjectiveHUD ? 205 : 330
+            }
+        }).setOrigin(1, 0)
             .setScrollFactor(0)
             .setDepth(1000);
     }
 
     getCrystalObjectiveText() {
-        const pulseState = this.crystalWoundTended ? 'STABLE' : 'SEARCHING';
-        if (this.isCompactObjectiveHUD) {
-            return `PULSE: ${pulseState}\nANCHORS: ${this.beaconAnchorsActivated}/3\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optional = `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+
+        if (this.bossDefeated) {
+            return `CURRENT STABILIZED\nTHE GUARDIAN IS SAFE\n${optional}`;
         }
-        return `PULSE: ${pulseState}\nANCHORS: ${this.beaconAnchorsActivated}/3  |  FRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        if (this.bossFightActive) {
+            return `STABILIZE THE GUARDIAN\nSTRIKE THE UNSTABLE PULSE\n${optional}`;
+        }
+        if (this.canActivateCrystalCore()) {
+            return `CRYSTAL CORE AHEAD\nTOUCH THE CORE TO ANSWER\n${optional}`;
+        }
+        if (!this.crystalWoundTended && this.beaconAnchorsActivated >= 2) {
+            return `FRACTURED GROVE AHEAD\nREACH IT TOGETHER →\n${optional}`;
+        }
+
+        const nextAnchor = [
+            'ECHO PASS',
+            'LIVING CHAMBER',
+            'GUARDIAN THRESHOLD'
+        ][this.beaconAnchorsActivated] || 'GUARDIAN THRESHOLD';
+        const current = Math.min(this.beaconAnchorsActivated + 1, 3);
+        const pulse = this.crystalWoundTended
+            ? 'FOLLOW THE STEADY PULSE →'
+            : 'FOLLOW THE CAVE PULSE →';
+        return `ROUTE ${current}/3 // ${nextAnchor}\n${pulse}\n${optional}`;
     }
 
     /**
@@ -4292,6 +4502,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.bossAttackTimer.remove();
             this.bossAttackTimer = null;
         }
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionTimer = null;
 
         // Clean up boss indicator
         if (this.bossIndicatorTimer) {
@@ -4319,6 +4533,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.bossUI.destroy();
             this.bossUI = null;
         }
+        this.bossPulseText = null;
+        this.bossInstructionText = null;
         if (this.bossHealthBar) {
             this.bossHealthBar.destroy();
             this.bossHealthBar = null;

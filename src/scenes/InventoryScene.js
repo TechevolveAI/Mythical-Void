@@ -30,7 +30,7 @@ export default class InventoryScene extends Phaser.Scene {
         this.currentFilter = 'all'; // all, food, accessories, consumables
 
         // Farewell animation state - prevents accidental closure during animation
-        this.farewellInProgress = false;
+        this.hatchTransitionInProgress = false;
         this.sortButtons = [];
         this.filterButtons = [];
         this._isShuttingDown = false;
@@ -890,7 +890,7 @@ export default class InventoryScene extends Phaser.Scene {
 
         const katanaName = fieldKit.recovered
             ? (katana.name || 'Earth-forged Field Katana')
-            : 'Return to the Wanderer-7 crash site';
+            : 'Return to the Wanderer-77 crash site';
         const kitName = this.add.text(margin + 18, currentY + 39, katanaName, {
             fontSize: isMobile ? '14px' : '17px',
             fontFamily: 'Arial',
@@ -969,7 +969,7 @@ export default class InventoryScene extends Phaser.Scene {
             width / 2,
             instructionY,
             progress.isComplete
-                ? 'All systems recovered. The Wanderer-7 can launch.'
+                ? 'All systems recovered. Install and calibrate them at Wanderer-77.'
                 : 'Guardian rescues recover the remaining ship systems.',
             {
                 fontSize: isMobile ? '11px' : '13px',
@@ -2188,15 +2188,15 @@ export default class InventoryScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
-        // Warning message
-        const warning = this.add.text(width / 2, panelY + 85, `⚠️ ${creatureName} will be gone forever!`, {
+        // Companion continuity message
+        const warning = this.add.text(width / 2, panelY + 85, `${creatureName}'s family record stays safe.`, {
             fontSize: isMobile ? '14px' : '16px',
-            color: '#FF6B6B',
+            color: '#8FE3CF',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(202);
 
         // Rarity odds
-        const oddsTitle = this.add.text(width / 2, panelY + 130, 'Rarity Chances:', {
+        const oddsTitle = this.add.text(width / 2, panelY + 130, 'Possible Field Classifications:', {
             fontSize: isMobile ? '14px' : '16px',
             color: '#FFFFFF',
             fontStyle: 'bold'
@@ -2215,8 +2215,8 @@ export default class InventoryScene extends Phaser.Scene {
 
         // Info text
         const infoText = isStellar
-            ? '✨ Premium egg - No common creatures!'
-            : 'A new creature will take their place.';
+            ? 'Stellar eggs exclude common field classifications.'
+            : 'The new hatch joins your sanctuary as another companion.';
         const info = this.add.text(width / 2, panelY + 220, infoText, {
             fontSize: isMobile ? '13px' : '15px',
             color: '#CCCCCC',
@@ -2225,9 +2225,9 @@ export default class InventoryScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(202);
 
         // Final confirmation text
-        const confirm = this.add.text(width / 2, panelY + 260, 'This cannot be undone.', {
+        const confirm = this.add.text(width / 2, panelY + 260, 'No companion is replaced or consumed.', {
             fontSize: isMobile ? '12px' : '14px',
-            color: '#FF9999',
+            color: '#FFFFFF',
             fontStyle: 'italic'
         }).setOrigin(0.5).setDepth(202);
 
@@ -2246,7 +2246,7 @@ export default class InventoryScene extends Phaser.Scene {
         hatchBtn.strokeRoundedRect(hatchBtnX, btnY, btnWidth, btnHeight, 10);
         hatchBtn.setDepth(202);
 
-        const hatchLabel = this.add.text(hatchBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Hatch It!', {
+        const hatchLabel = this.add.text(hatchBtnX + btnWidth / 2, btnY + btnHeight / 2, 'HATCH', {
             fontSize: isMobile ? '16px' : '18px',
             color: '#FFFFFF',
             fontStyle: 'bold'
@@ -2266,7 +2266,7 @@ export default class InventoryScene extends Phaser.Scene {
         cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         cancelBtn.setDepth(202);
 
-        const cancelLabel = this.add.text(cancelBtnX + btnWidth / 2, btnY + btnHeight / 2, 'Keep Pet', {
+        const cancelLabel = this.add.text(cancelBtnX + btnWidth / 2, btnY + btnHeight / 2, 'NOT YET', {
             fontSize: isMobile ? '16px' : '18px',
             color: '#FFFFFF',
             fontStyle: 'bold'
@@ -2290,7 +2290,7 @@ export default class InventoryScene extends Phaser.Scene {
             hatchTriggered = true;
             try {
                 console.log('[InventoryScene] ========================================');
-                console.log('[InventoryScene] Hatch It! button clicked');
+                console.log('[InventoryScene] Hatch button clicked');
                 console.log('[InventoryScene] Egg type:', item.eggType);
                 console.log('[InventoryScene] Selected slot:', this.selectedSlot);
 
@@ -2313,14 +2313,16 @@ export default class InventoryScene extends Phaser.Scene {
                 if (window.InventoryManager) {
                     const removed = window.InventoryManager.removeItem(this.selectedSlot, 1);
                     console.log('[InventoryScene] Item removed from inventory:', removed);
+                    if (!removed) {
+                        throw new Error('The selected egg could not be reserved for hatching');
+                    }
                 }
 
-                // Show farewell animation then transition to hatching
-                console.log('[InventoryScene] Calling showFarewellAnimation with eggType:', eggTypeToHatch);
-                this.showFarewellAnimation(eggTypeToHatch);
-                console.log('[InventoryScene] showFarewellAnimation called successfully');
+                // Confirm sanctuary continuity, then transition to hatching.
+                console.log('[InventoryScene] Starting sanctuary hatch transition:', eggTypeToHatch);
+                this.showSanctuaryHatchTransition(eggTypeToHatch);
             } catch (err) {
-                console.error('[InventoryScene] ERROR in Hatch It! handler:', err);
+                console.error('[InventoryScene] ERROR in hatch handler:', err);
                 console.error('[InventoryScene] Error stack:', err.stack);
 
                 // Emergency fallback - try to transition directly
@@ -2532,12 +2534,10 @@ export default class InventoryScene extends Phaser.Scene {
     }
 
     /**
-     * Show farewell animation for current creature before hatching new one
+     * Show the active companion answering a second sanctuary signal.
      */
-    showFarewellAnimation(eggType) {
-        console.log('[InventoryScene] ========================================');
-        console.log('[InventoryScene] showFarewellAnimation() called');
-        console.log('[InventoryScene] Egg type:', eggType);
+    showSanctuaryHatchTransition(eggType) {
+        console.log('[InventoryScene] Starting sanctuary hatch transition:', eggType);
 
         // Defensive check for dims
         if (!this.dims) {
@@ -2556,8 +2556,7 @@ export default class InventoryScene extends Phaser.Scene {
         console.log('[InventoryScene] Creature name:', creatureName);
 
         // Prevent accidental closure during animation
-        this.farewellInProgress = true;
-        console.log('[InventoryScene] Set farewellInProgress = true');
+        this.hatchTransitionInProgress = true;
 
         try {
 
@@ -2610,17 +2609,30 @@ export default class InventoryScene extends Phaser.Scene {
                 creatureSprite.setDepth(301);
                 console.log('[InventoryScene] Creature sprite created successfully');
             } else {
-                console.warn('[InventoryScene] Could not create creature sprite - showing farewell without visual');
+                console.warn('[InventoryScene] Could not create creature sprite for hatch transition');
             }
         }
 
-        // Farewell text
-        const farewellText = this.add.text(width / 2, height / 2 + 80, `Farewell, ${creatureName}...`, {
-            fontSize: '28px',
-            color: '#FFFFFF',
-            fontStyle: 'italic'
+        const signalText = this.add.text(width / 2, height / 2 + 75, `${creatureName} answers a second signal.`, {
+            fontSize: '24px',
+            color: '#8FE3CF',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: Math.min(520, width - 40) }
         }).setOrigin(0.5).setDepth(301);
-        farewellText.setAlpha(0);
+        signalText.setAlpha(0);
+
+        const continuityText = this.add.text(
+            width / 2,
+            height / 2 + 120,
+            'Their place in your sanctuary is secure.',
+            {
+                fontSize: '16px',
+                color: '#FFFFFF',
+                align: 'center',
+                wordWrap: { width: Math.min(520, width - 40) }
+            }
+        ).setOrigin(0.5).setDepth(301).setAlpha(0);
 
         // Sparkle particles around creature
         const sparkles = [];
@@ -2639,15 +2651,15 @@ export default class InventoryScene extends Phaser.Scene {
             sparkles.push(sparkle);
         }
 
-        // Play melancholy sound
+        // Use the familiar companion cue to keep the moment warm and continuous.
         if (window.AudioManager) {
             window.AudioManager.playPet(); // Soft, gentle sound
         }
 
         // Animation sequence
-        // 1. Fade in text and sparkles
+        // 1. Reveal the second signal.
         this.tweens.add({
-            targets: farewellText,
+            targets: [signalText, continuityText],
             alpha: 1,
             duration: 800,
             ease: 'Power2'
@@ -2662,14 +2674,13 @@ export default class InventoryScene extends Phaser.Scene {
             });
         });
 
-        // 2. After 1.5s, fade out creature with sparkles floating up
+        // 2. The active companion makes room beside them for the incoming signal.
         this.time.delayedCall(1500, () => {
             if (creatureSprite) {
                 this.tweens.add({
                     targets: creatureSprite,
-                    alpha: 0,
-                    scale: 0.5,
-                    y: creatureSprite.y - 50,
+                    x: creatureSprite.x - Math.min(70, width * 0.12),
+                    scale: 1.25,
                     duration: 1000,
                     ease: 'Power2'
                 });
@@ -2687,7 +2698,7 @@ export default class InventoryScene extends Phaser.Scene {
             });
 
             this.tweens.add({
-                targets: farewellText,
+                targets: [signalText, continuityText],
                 alpha: 0,
                 delay: 500,
                 duration: 500
@@ -2748,22 +2759,17 @@ export default class InventoryScene extends Phaser.Scene {
                     spawnPosition: oldPosition
                 };
 
-                // Store references before stopping scenes
-                const game = this.game;
-                const sceneManager = game.scene;
-
-                // Stop current scenes and transition to HatchingScene
-                if (sceneManager.isActive('GameScene')) {
+                // Start the destination while this scene still owns a live scene
+                // plugin. Stopping Inventory first used to cancel its own delayed
+                // launch during shutdown, leaving the player on an error screen.
+                const sceneManager = this.game?.scene;
+                if (!sceneManager) {
+                    throw new Error('Scene manager unavailable during egg hatch');
+                }
+                if (sceneManager.isActive?.('GameScene')) {
                     sceneManager.stop('GameScene');
                 }
-                sceneManager.stop('InventoryScene');
-
-                // Use setTimeout to ensure scenes are fully stopped before starting new one
-                // Track timeout ID for cleanup (prevents memory leaks)
-                const timeoutId = setTimeout(() => {
-                    sceneManager.start('HatchingScene', hatchData);
-                }, 100);
-                this.pendingTimeouts.push(timeoutId);
+                this.scene.start('HatchingScene', hatchData);
 
             } catch (err) {
                 console.error('[InventoryScene] Error during scene transition:', err);
@@ -2774,17 +2780,11 @@ export default class InventoryScene extends Phaser.Scene {
                     const sceneManager = this.game?.scene;
                     if (sceneManager) {
                         sceneManager.stop('GameScene');
-                        sceneManager.stop('InventoryScene');
-
-                        // Track timeout ID for cleanup (prevents memory leaks)
-                        const fallbackTimeoutId = setTimeout(() => {
-                            sceneManager.start('HatchingScene', {
-                                isEggHatch: true,
-                                eggType: eggType,
-                                spawnPosition: { x: 400, y: 300 }
-                            });
-                        }, 100);
-                        this.pendingTimeouts.push(fallbackTimeoutId);
+                        sceneManager.start('HatchingScene', {
+                            isEggHatch: true,
+                            eggType: eggType,
+                            spawnPosition: { x: 400, y: 300 }
+                        });
                     }
                 } catch (fallbackErr) {
                     console.error('[InventoryScene] Fallback transition also failed:', fallbackErr);
@@ -2793,7 +2793,7 @@ export default class InventoryScene extends Phaser.Scene {
         });
 
         } catch (err) {
-            console.error('[InventoryScene] Error in showFarewellAnimation:', err);
+            console.error('[InventoryScene] Error in sanctuary hatch transition:', err);
 
             // Emergency fallback - skip animation and go directly to HatchingScene
             try {
@@ -2816,17 +2816,11 @@ export default class InventoryScene extends Phaser.Scene {
                 const sceneManager = this.game?.scene;
                 if (sceneManager) {
                     sceneManager.stop('GameScene');
-                    sceneManager.stop('InventoryScene');
-
-                    // Track timeout ID for cleanup (prevents memory leaks)
-                    const emergencyTimeoutId = setTimeout(() => {
-                        sceneManager.start('HatchingScene', {
-                            isEggHatch: true,
-                            eggType: eggType || 'cosmic',
-                            spawnPosition: { x: 400, y: 300 }
-                        });
-                    }, 100);
-                    this.pendingTimeouts.push(emergencyTimeoutId);
+                    sceneManager.start('HatchingScene', {
+                        isEggHatch: true,
+                        eggType: eggType || 'cosmic',
+                        spawnPosition: { x: 400, y: 300 }
+                    });
                 }
             } catch (fallbackErr) {
                 console.error('[InventoryScene] Emergency fallback also failed:', fallbackErr);
@@ -2901,9 +2895,9 @@ export default class InventoryScene extends Phaser.Scene {
      * Exit inventory and return to GameScene
      */
     exitInventory() {
-        // Prevent closing during farewell animation
-        if (this.farewellInProgress) {
-            console.log('[InventoryScene] Cannot close - farewell animation in progress');
+        // Prevent closing during the hatch transition.
+        if (this.hatchTransitionInProgress) {
+            console.log('[InventoryScene] Cannot close - hatch transition in progress');
             return;
         }
 

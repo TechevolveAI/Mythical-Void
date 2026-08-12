@@ -11,6 +11,12 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             'const queueProjectBeaconDebrief = () => null;\n' +
             'const unlockProjectBeaconMilestone = () => null;'
         )
+        .replace(
+            /import \{\s*CENTERING_STANCE_DURATION_MS,[\s\S]*?\} from '\.\.\/systems\/SenseiMemory\.js';/,
+            'const CENTERING_STANCE_DURATION_MS = 1250;\n' +
+            'const getSenseiMemorySnapshot = () => ({ lesson: { status: "locked" } });\n' +
+            'const recordCenteringStancePractice = () => ({ changed: false });'
+        )
         .replace(/^import .*$/gm, '')
         .replace(/export default PlatformerLevelScene;/, 'module.exports = PlatformerLevelScene;');
 
@@ -108,6 +114,54 @@ describe('first expedition rescue loop', () => {
             940,
             '#8FE3CF'
         );
+    });
+
+    test('lets the companion prevent one otherwise lethal expedition fall', () => {
+        const agencyResult = {
+            changed: true,
+            decision: {
+                powerName: 'Solar Shelter'
+            },
+            profile: {
+                color: 0xFFD54F
+            }
+        };
+        const sceneWindow = {
+            GameState: {},
+            CreatureAgency: {
+                attemptAutonomousRescue: jest.fn(() => agencyResult)
+            }
+        };
+        const PlatformerLevelScene = loadPlatformerLevelScene(sceneWindow);
+        const scene = new PlatformerLevelScene({
+            key: 'MythicalForestLevel',
+            levelId: 'mythical_forest_1'
+        });
+        scene.health = 1;
+        scene.isRespawning = false;
+        scene.updateHealthDisplay = jest.fn();
+        scene.respawnAtCheckpoint = jest.fn(() => {
+            scene.isRespawning = false;
+        });
+        scene.showAutonomousRescueMoment = jest.fn();
+        scene.onPlayerDeath = jest.fn();
+
+        scene.onPitFall();
+
+        expect(
+            sceneWindow.CreatureAgency.attemptAutonomousRescue
+        ).toHaveBeenCalledWith(sceneWindow.GameState, {
+            levelId: 'mythical_forest_1',
+            trigger: 'lethal_fall',
+            commit: true
+        });
+        expect(scene.health).toBe(1);
+        expect(scene.damageTaken).toBe(1);
+        expect(scene.respawnAtCheckpoint).toHaveBeenCalledTimes(1);
+        expect(scene.showAutonomousRescueMoment).toHaveBeenCalledWith(
+            agencyResult
+        );
+        expect(scene.onPlayerDeath).not.toHaveBeenCalled();
     });
 
     test('persists and restores a versioned Project Beacon route checkpoint', () => {
@@ -362,10 +416,12 @@ describe('first expedition rescue loop', () => {
             'this.isMobile || width <= 480 || height < 620'
         );
         expect(source).toContain(
-            'isShortLandscape ? 82 : 212'
+            'isShortLandscape ? 76 : 72'
         );
-        expect(source).toContain('ANCHORS: ${this.beaconAnchorsActivated}/3');
-        expect(source).toContain('FRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}');
+        expect(source).toContain('FOLLOW THE CURRENT →');
+        expect(source).toContain('ROUTE ${current}/3 // ${nextAnchor}');
+        expect(source).toContain('STRIKE THE PURPLE CORRUPTION');
+        expect(source).toContain('OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
@@ -403,7 +459,22 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain("advanceFirstExpeditionDrill('jump')");
         expect(source).toContain("advanceFirstExpeditionDrill('melee')");
         expect(drillSource).toContain('EARTH-FORGED FIELD KATANA');
-        expect(source).toContain('Sensei calls that good kihon.');
+        expect(drillSource).toContain('TAP JUMP (UP ARROW)');
+        expect(drillSource).toContain('TAP KATANA (CROSSED BLADES)');
+        expect(source).toContain("answers the astronaut's katana stance");
+        expect(source).toContain('KATANA STRIKE // HOLD THE STANCE');
+        expect(source).toContain('!drill.katanaStrikePending');
+        expect(source).toContain('this.time.delayedCall(220');
+        expect(source).toContain('const knotInRange = Boolean(');
+        expect(source).toContain(
+            'targetXOverride: knotInRange ? drillKnot.x : null'
+        );
+        expect(source).toContain(
+            'targetYOverride: knotInRange ? drillKnot.y : null'
+        );
+        expect(source).toContain("step.action === 'move' ? 'joystick' : step.action");
+        expect(source).toContain('this.showMobileControlCoach?.(');
+        expect(source).toContain('POWER WITNESSED');
         expect(source).toContain(
             'companionName: getFirstExpeditionCompanionName('
         );
@@ -420,13 +491,73 @@ describe('first expedition rescue loop', () => {
             '"${companionName} hears a living path through the roots"'
         );
         expect(source).toContain(
-            '`${companionName} waits. The light holds.`'
+            '`${companionName}: "Rootway locked. We can return here."`'
         );
         expect(source).toContain(
-            '`${companionName} copies your stance. Sensei calls that good kihon.`'
+            '`${companionName}: "The Current is stronger. Keep going."`'
+        );
+        expect(source).toContain(
+            '`${companionName}: "The guardian hears us. Stay close."`'
+        );
+        expect(source).toContain(
+            "`${companionName} answers the astronaut's katana stance with `"
         );
         expect(source).toContain(
             '!this.firstExpeditionDrill?.panelVisible'
+        );
+    });
+
+    test('keeps the first guardian rescue shorter than later endurance fights', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('this.bossMaxHealth = 12;');
+        expect(source).toContain('STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN');
+        expect(source).toContain('ELDER TREANT RESTORED');
+        expect(source).toContain('ELDER TREANT // TRAPPED');
+        expect(source).toContain(
+            'VOID CORRUPTION // ${corruptionRemaining}/${this.bossMaxHealth}'
+        );
+        expect(source).toContain('VOID CORRUPTION // CLEARED');
+        expect(source).toContain('`CORRUPTION -${amount}`');
+    });
+
+    test('holds each guardian attack lock through its full hazard window', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+        const attackSource = source.match(
+            /executeBossAttack\(attackType\)\s*\{([\s\S]*?)\n    \}\n\n    showBossAttackInstruction/
+        )?.[1] || '';
+
+        expect(source).toContain('root_slam: 1700');
+        expect(source).toContain('vine_whip: 1500');
+        expect(source).toContain('spore_cloud: 3600');
+        expect(source).toContain('nature_fury: 4800');
+        expect(attackSource).toContain(
+            'FOREST_GUARDIAN_ATTACK_WINDOWS[attackType]'
+        );
+        expect(attackSource).toContain('this.boss.isAttacking = true');
+        expect(attackSource).toContain('this.time.delayedCall(attackWindow');
+        expect(attackSource).toContain('this.boss.isAttacking = false');
+    });
+
+    test('names the safe response for every first-guardian hazard', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('ROOTS RISING // JUMP');
+        expect(source).toContain('VINE WHIP // MOVE BEHIND IT');
+        expect(source).toContain('SPORE CLOUD // LEAVE THE CIRCLE');
+        expect(source).toContain('FALLING LEAVES // KEEP MOVING');
+        expect(source).toContain('showBossAttackInstruction(');
+        expect(source).toContain(
+            'STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN'
         );
     });
 
@@ -463,12 +594,23 @@ describe('first expedition rescue loop', () => {
         );
 
         expect(gameSource).toContain(
-            "urlParams.get('testExpeditionDrill') === 'mobile'"
+            "const expeditionDrillPreview = urlParams.get('testExpeditionDrill')"
         );
+        expect(gameSource).toContain("'power-mobile'");
         expect(gameSource).toContain('forceMobileControls');
         expect(gameSource).toContain("companionNamePreview: 'Nova'");
         expect(platformerSource).toContain(
             'if (this.forceMobileControls)'
+        );
+        expect(gameSource).toContain("'checkpoint', 'restart', 'agency'");
+        expect(gameSource).toContain(
+            "urlParams.get('forceMobileControls') === '1'"
+        );
+        expect(platformerSource).toContain(
+            "this.recoveryPreview === 'agency'"
+        );
+        expect(platformerSource).toMatch(
+            /this\.recoveryPreview === 'agency'[\s\S]*this\.showPlatformerMobileControls\(\)/
         );
     });
 
@@ -491,11 +633,34 @@ describe('first expedition rescue loop', () => {
         );
 
         expect(source).toContain('Free the guardian and recover the Forest Core');
-        expect(source).toContain('Clear the Void corruption');
+        expect(source).toContain('STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN');
         expect(source).toContain('THE GUARDIAN IS IN PAIN');
         expect(source).toContain('ELDER TREANT RESTORED');
         expect(source).toContain("Guardian's Gift: Forest Core");
+        expect(source).not.toContain(
+            'showDamageNumber(this.boss.x, this.boss.y - 80, amount, false)'
+        );
         expect(source).not.toContain('ELDER TREANT DEFEATED');
+    });
+
+    test('keeps boss and guardian QA routes local to development', () => {
+        const gameSource = fs.readFileSync(
+            path.join(__dirname, '../game.js'),
+            'utf8'
+        );
+        const hatchingSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/HatchingScene.js'),
+            'utf8'
+        );
+
+        expect(gameSource).toContain('if (isLocalPreview && testBoss)');
+        expect(gameSource).toContain('bossAttackPreview: [');
+        expect(gameSource).toContain("urlParams.get('testAttack')");
+        expect(gameSource).toContain('platformerPreviewSize:');
+        expect(gameSource).toContain("urlParams.get('previewSize') === 'mobile'");
+        expect(hatchingSource).toMatch(
+            /if \(\s*isLocalPreview &&\s*\([\s\S]*previewParams\.has\('testBoss'\)/
+        );
     });
 
     test('preserves the responsive corruption bar layout after boss damage', () => {

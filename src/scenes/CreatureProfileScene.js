@@ -14,6 +14,14 @@
 import Phaser from 'phaser';
 import evolutionConfig from '../config/evolution.json';
 import { devLog } from '../utils/devLogger.js';
+import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
+import CompanionIdentityArchiveModal from '../ui/CompanionIdentityArchiveModal.js';
+import {
+    COMPANION_IDENTITY_CHAPTERS,
+    getCompanionIdentityArchiveSnapshot,
+    recordCompanionIdentityChapter
+} from '../systems/CompanionIdentityArchive.js';
+import { companionMediaService } from '../systems/CompanionMediaService.js';
 
 export default class CreatureProfileScene extends Phaser.Scene {
     constructor() {
@@ -24,6 +32,37 @@ export default class CreatureProfileScene extends Phaser.Scene {
         this.scrollY = 0;
         this.maxScroll = 0;
         this.isRestarting = false;
+        this.identityArchiveModal = null;
+        this.identityArchivePreview = null;
+        this.identityArchivePreviewSize = null;
+        this.identityArchivePreviewState = null;
+        this.profilePortraitPreview = false;
+        this.profilePortraitPreviewSize = null;
+        this.profilePortraitRequest = 0;
+        this.fieldMemoryReplay = null;
+        this.fieldMemoryReplayRequest = 0;
+    }
+
+    init(data) {
+        this.identityArchivePreview = [
+            'identity',
+            'living_form',
+            'shared_journey',
+            'inheritance',
+            'shared_inheritance',
+            'complete'
+        ].includes(data?.identityArchivePreview)
+            ? data.identityArchivePreview
+            : null;
+        this.identityArchivePreviewSize =
+            data?.identityArchivePreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
+        this.profilePortraitPreview = data?.profilePortraitPreview === true;
+        this.profilePortraitPreviewSize =
+            data?.profilePortraitPreviewSize === 'mobile'
+                ? 'mobile'
+                : null;
     }
 
     create() {
@@ -32,13 +71,19 @@ export default class CreatureProfileScene extends Phaser.Scene {
         // Reset restarting flag
         this.isRestarting = false;
 
+        if (this.identityArchivePreview) {
+            this.createIdentityArchivePreview();
+            return;
+        }
+
         // Initialize graphics engine
         if (window.GraphicsEngine) {
             this.graphicsEngine = new window.GraphicsEngine(this);
         }
 
         const { width, height } = this.scale;
-        this.isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+        this.isMobile = this.profilePortraitPreviewSize === 'mobile' ||
+            ('ontouchstart' in window && window.innerWidth < 768);
 
         // Create background
         this.createBackground();
@@ -247,6 +292,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
         // Create creature display (centered, large)
         currentY = this.createCreatureDisplay(creatureData, currentY);
+        currentY = this.createIdentityArchiveEntry(currentY);
 
         // Create info sections
         currentY = this.createBasicInfoSection(creatureData, currentY);
@@ -265,7 +311,567 @@ export default class CreatureProfileScene extends Phaser.Scene {
         this.maxScroll = Math.max(0, currentY - height + 100);
     }
 
+    createIdentityArchiveEntry(startY) {
+        const snapshot = getCompanionIdentityArchiveSnapshot(
+            window.GameState
+        );
+        if (!snapshot.available) return startY;
+        const { width } = this.scale;
+        const margin = this.isMobile ? 16 : 24;
+        const top = startY + 14;
+        const height = 56;
+        const band = this.add.graphics();
+        band.fillStyle(0x0A1819, 0.98);
+        band.fillRoundedRect(
+            margin,
+            top,
+            width - margin * 2,
+            height,
+            6
+        );
+        band.lineStyle(2, 0x71E6B1, 0.8);
+        band.strokeRoundedRect(
+            margin,
+            top,
+            width - margin * 2,
+            height,
+            6
+        );
+        band.setDepth(11);
+        this.elements.push(band);
+
+        const title = this.add.text(
+            margin + 14,
+            top + 14,
+            'SHARED COMPANION RECORD',
+            {
+                fontSize: this.isMobile ? '11px' : '13px',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        ).setDepth(12);
+        const status = this.add.text(
+            margin + 14,
+            top + 34,
+            snapshot.complete
+                ? 'ARCHIVE COMPLETE // PORTABLE'
+                : `${snapshot.reviewedCount}/${snapshot.totalChapters} CHAPTERS REVIEWED`,
+            {
+                fontSize: this.isMobile ? '9px' : '10px',
+                color: '#AFC3CF'
+            }
+        ).setDepth(12);
+        const action = this.add.text(
+            width - margin - 14,
+            top + height / 2,
+            snapshot.complete ? 'OPEN' : 'REVIEW',
+            {
+                fontSize: this.isMobile ? '11px' : '12px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(1, 0.5).setDepth(12);
+        const zone = this.add.zone(
+            width / 2,
+            top + height / 2,
+            width - margin * 2,
+            height
+        ).setDepth(13).setInteractive({ useHandCursor: true });
+        zone.on('pointerup', () => this.openIdentityArchive());
+        this.elements.push(title, status, action, zone);
+        return top + height + 10;
+    }
+
+    openIdentityArchive({
+        gameState = window.GameState,
+        chapterId = null
+    } = {}) {
+        if (
+            this.identityArchiveModal?.isVisible ||
+            !gameState
+        ) {
+            return;
+        }
+        const snapshot = getCompanionIdentityArchiveSnapshot(gameState);
+        if (!snapshot.available) return;
+        this.identityArchiveModal = new CompanionIdentityArchiveModal(this, {
+            snapshotProvider: () => (
+                getCompanionIdentityArchiveSnapshot(gameState)
+            ),
+            onReview: id => {
+                const result = recordCompanionIdentityChapter(
+                    gameState,
+                    id
+                );
+                if (!result?.changed) {
+                    window.AudioManager?.playError?.();
+                    return result;
+                }
+                window.AchievementSystem?.recordEvent?.(
+                    'story_interaction',
+                    {
+                        event: 'companion_identity_chapter_reviewed',
+                        chapterId: id,
+                        complete: result.snapshot.complete
+                    }
+                );
+                window.AudioManager?.playButtonClick?.();
+                return result;
+            },
+            onReplay: memory => {
+                this.showCompanionFieldMemoryReplay(memory, { gameState });
+            },
+            onClose: () => {
+                this.identityArchiveModal = null;
+            }
+        });
+        this.identityArchiveModal.show(
+            chapterId || snapshot.nextChapter?.id || 'identity'
+        );
+    }
+
+    showCompanionFieldMemoryReplay(memory, {
+        gameState = window.GameState
+    } = {}) {
+        if (!memory?.momentId || !gameState) return false;
+        this.identityArchiveModal?.destroy?.();
+        this.identityArchiveModal = null;
+        this.destroyCompanionFieldMemoryReplay();
+        const requestId = ++this.fieldMemoryReplayRequest;
+        const mediaService = window.CompanionMediaService ||
+            companionMediaService;
+        const previewRecord = this.identityArchivePreview
+            ? {
+                identityKey:
+                    'preview_companion_23:juvenile:portrait',
+                stage: 'juvenile',
+                imageUrl: '/marketing/nova.webp',
+                assetRef: null,
+                storage: 'preview'
+            }
+            : null;
+
+        Promise.resolve(mediaService?.createCinematicStill?.(this, {
+            momentId: memory.momentId,
+            stage: gameState.get?.('creature.lifecycle.stage') || 'baby',
+            record: previewRecord,
+            depth: 18000,
+            alpha: 0.94,
+            veilAlpha: 0.16,
+            duration: 9000,
+            isCurrent: () => (
+                this.fieldMemoryReplayRequest === requestId &&
+                this.sys?.isActive?.() !== false
+            )
+        })).then(tableau => {
+            if (
+                !tableau ||
+                this.fieldMemoryReplayRequest !== requestId ||
+                this.sys?.isActive?.() === false
+            ) {
+                tableau?.destroy?.();
+                if (this.fieldMemoryReplayRequest === requestId) {
+                    this.openIdentityArchive({
+                        gameState,
+                        chapterId: 'shared_journey'
+                    });
+                }
+                return;
+            }
+            const { width, height } = this.scale;
+            const depth = 18004;
+            const elements = [];
+            const dismiss = () => {
+                if (this.fieldMemoryReplayRequest !== requestId) return;
+                this.destroyCompanionFieldMemoryReplay();
+                this.openIdentityArchive({
+                    gameState,
+                    chapterId: 'shared_journey'
+                });
+            };
+            const inputZone = this.add.zone(
+                width / 2,
+                height / 2,
+                width,
+                height
+            ).setScrollFactor(0).setDepth(depth).setInteractive();
+            inputZone.on('pointerup', dismiss);
+            elements.push(inputZone);
+            const eyebrow = this.add.text(
+                width / 2,
+                Math.max(42, height * 0.1),
+                'PRIVATE FIELD MEMORY // EXACT COMPANION ART',
+                {
+                    fontFamily: 'Arial, sans-serif',
+                    fontSize: width < 620 ? '11px' : '14px',
+                    fontStyle: 'bold',
+                    color: '#8FE3CF',
+                    stroke: '#03040A',
+                    strokeThickness: 4,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 1);
+            const title = this.add.text(
+                width / 2,
+                Math.max(76, height * 0.16),
+                memory.label,
+                {
+                    fontFamily: 'Arial, sans-serif',
+                    fontSize: width < 620 ? '24px' : '34px',
+                    fontStyle: 'bold',
+                    color: '#F4F4F4',
+                    stroke: '#03040A',
+                    strokeThickness: 5,
+                    align: 'center',
+                    wordWrap: { width: width - 36 }
+                }
+            ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 1);
+            const recordedViews = Math.max(
+                1,
+                Number(memory.viewCount) || 1
+            );
+            const stage = this.add.text(
+                width / 2,
+                height * 0.78,
+                `${String(memory.stage || 'baby').toUpperCase()} // ` +
+                    `${recordedViews} RECORDED VIEW${recordedViews === 1 ? '' : 'S'}`,
+                {
+                    fontFamily: 'Arial, sans-serif',
+                    fontSize: width < 620 ? '11px' : '14px',
+                    fontStyle: 'bold',
+                    color: '#F2C14E',
+                    stroke: '#03040A',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 1);
+            const close = this.add.text(
+                width / 2,
+                height * 0.88,
+                '[ RETURN TO ARCHIVE ]',
+                {
+                    fontFamily: 'Arial, sans-serif',
+                    fontSize: width < 620 ? '14px' : '17px',
+                    fontStyle: 'bold',
+                    color: '#07110F',
+                    backgroundColor: '#8FE3CF',
+                    padding: { x: 18, y: 12 }
+                }
+            ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2)
+                .setInteractive({ useHandCursor: true });
+            close.on('pointerup', dismiss);
+            elements.push(eyebrow, title, stage, close);
+            const keyboardHandler = event => {
+                if (event.key !== 'Escape' && event.key !== 'Enter') return;
+                event.preventDefault();
+                dismiss();
+            };
+            window.addEventListener('keydown', keyboardHandler);
+            this.fieldMemoryReplay = {
+                tableau,
+                elements,
+                keyboardHandler,
+                requestId
+            };
+            window.AudioManager?.playAchievement?.();
+        }).catch(() => {
+            if (this.fieldMemoryReplayRequest !== requestId) return;
+            window.AudioManager?.playError?.();
+            this.openIdentityArchive({
+                gameState,
+                chapterId: 'shared_journey'
+            });
+        });
+        return true;
+    }
+
+    destroyCompanionFieldMemoryReplay() {
+        this.fieldMemoryReplayRequest += 1;
+        const replay = this.fieldMemoryReplay;
+        if (!replay) return;
+        if (replay.keyboardHandler) {
+            window.removeEventListener('keydown', replay.keyboardHandler);
+        }
+        replay.tableau?.destroy?.();
+        replay.elements?.forEach(element => element?.destroy?.());
+        this.fieldMemoryReplay = null;
+    }
+
+    createIdentityArchivePreview() {
+        const { width, height } = this.scale;
+        const sharedLineagePreview =
+            this.identityArchivePreview === 'shared_inheritance';
+        if (this.identityArchivePreviewSize === 'mobile') {
+            const viewportWidth = Math.min(390, width);
+            const viewportHeight = Math.min(720, height);
+            this.cameras.main.setViewport(
+                (width - viewportWidth) / 2,
+                (height - viewportHeight) / 2,
+                viewportWidth,
+                viewportHeight
+            );
+        }
+        this.cameras.main.setBackgroundColor('#030709');
+        const backdrop = this.add.graphics();
+        backdrop.fillStyle(0x030709, 1);
+        backdrop.fillRect(0, 0, width, height);
+        this.elements.push(backdrop);
+
+        const reviewedByMode = {
+            identity: [],
+            living_form: ['identity'],
+            shared_journey: ['identity', 'living_form'],
+            inheritance: [
+                'identity',
+                'living_form',
+                'shared_journey'
+            ],
+            shared_inheritance: [
+                'identity',
+                'living_form',
+                'shared_journey'
+            ],
+            complete: COMPANION_IDENTITY_CHAPTERS.map(
+                chapter => chapter.id
+            )
+        };
+        const state = {
+            stats: { levelsCompleted: 5 },
+            creature: {
+                id: 'preview_companion_23',
+                hatched: true,
+                name: 'Aster',
+                level: 8,
+                genes: {
+                    id: 'preview_companion_23',
+                    species: 'nebulaSprite',
+                    rarity: 'epic',
+                    cosmicAffinity: {
+                        element: 'star',
+                        powerLevel: 0.83
+                    }
+                },
+                lifecycle: { stage: 'juvenile' },
+                linkedSiblingId: sharedLineagePreview
+                    ? 'protected_preview_sibling_77'
+                    : null,
+                lineage: {
+                    schemaVersion: 2,
+                    creatureId: 'preview_companion_23',
+                    origin: sharedLineagePreview
+                        ? 'shared_fusion'
+                        : 'fusion',
+                    generation: 2,
+                    parentIds: sharedLineagePreview
+                        ? [
+                            'parent_23',
+                            'protected-parent-v1:' +
+                                'preview_remote_parent_77'
+                        ]
+                        : ['parent_23', 'parent_77'],
+                    fusionOperationId: 'fusion:preview:23',
+                    linkedSiblingId: sharedLineagePreview
+                        ? 'protected_preview_sibling_77'
+                        : null,
+                    createdAt: '2026-07-31T00:23:00.000Z'
+                },
+                bond: {
+                    level: 11,
+                    totalInteractions: 77,
+                    careActions: 23,
+                    conversations: 9,
+                    levelsCompleted: 5
+                },
+                portraits: {
+                    schemaVersion: 1,
+                    activeStage: null,
+                    byStage: {}
+                },
+                powerHistory: [{
+                    eventId: 'preview_worldglass',
+                    powerId: 'daybreak_event',
+                    context: 'fend',
+                    magnitude: 'extreme',
+                    outcome: 'living_network_stabilized',
+                    occurredAt: '2026-07-31T00:23:00.000Z'
+                }],
+                agencyHistory: [{
+                    type: 'autonomous_rescue'
+                }, {
+                    type: 'high_power_rescue'
+                }],
+                identityArchive: {
+                    schemaVersion: 1,
+                    creatureId: 'preview_companion_23',
+                    reviewedChapterIds: [
+                        ...reviewedByMode[this.identityArchivePreview]
+                    ],
+                    firstReviewedAt: null,
+                    completedAt: null,
+                    history: []
+                }
+            },
+            creatures: [],
+            story: {
+                companionMedia: {
+                    appearances: {
+                        firstLivingForm: {
+                            momentId: 'first_living_form',
+                            identityKey:
+                                'preview_companion_23:juvenile:portrait',
+                            stage: 'juvenile',
+                            renderMode: 'motion_still',
+                            viewCount: 1,
+                            lastViewedAt: 1785453000000
+                        },
+                        guardianRescue: {
+                            momentId:
+                                'guardian_rescue_elder_treant',
+                            identityKey:
+                                'preview_companion_23:juvenile:portrait',
+                            stage: 'juvenile',
+                            renderMode: 'motion_still',
+                            viewCount: 1,
+                            lastViewedAt: 1785454000000
+                        },
+                        guardianDebrief: {
+                            momentId:
+                                'guardian_debrief_elder_treant',
+                            identityKey:
+                                'preview_companion_23:juvenile:portrait',
+                            stage: 'juvenile',
+                            renderMode: 'motion_still',
+                            viewCount: 1,
+                            lastViewedAt: 1785455000000
+                        }
+                    }
+                },
+                projectBeacon: {
+                    fieldKit: {
+                        katana: {
+                            id: 'earth_field_katana',
+                            configuration: 'creature_tech_adapted',
+                            installedUpgrades: [{
+                                id: 'crystal_edge',
+                                witnessCompanionId:
+                                    'preview_companion_23'
+                            }, {
+                                id: 'aurora_guard',
+                                witnessCompanionId:
+                                    'preview_companion_23'
+                            }]
+                        }
+                    },
+                    sensei: {
+                        memoryLedger: {
+                            history: [{
+                                type: 'memory_recalled',
+                                memoryId:
+                                    'begin_with_your_footing',
+                                companionId:
+                                    'preview_companion_23'
+                            }]
+                        }
+                    },
+                    shipArchive: {
+                        history: [{
+                            type: 'section_reviewed',
+                            sectionId: 'evidence',
+                            companionId: 'preview_companion_23'
+                        }]
+                    }
+                }
+            },
+            world: {
+                sanctuaryDecorations: {
+                    kinshipBeacon: {
+                        schemaVersion: 2,
+                        unlocked: true,
+                        lineageCount: sharedLineagePreview ? 2 : 1,
+                        sharedLineageCount:
+                            sharedLineagePreview ? 1 : 0
+                    }
+                },
+                fendCulture: {
+                    firstListening: {
+                        selectedPriority: 'restoration'
+                    }
+                }
+            }
+        };
+        const gameState = {
+            get(path) {
+                return path.split('.').reduce(
+                    (value, key) => value?.[key],
+                    state
+                );
+            },
+            set(path, value) {
+                const keys = path.split('.');
+                const finalKey = keys.pop();
+                const target = keys.reduce((current, key) => {
+                    current[key] ||= {};
+                    return current[key];
+                }, state);
+                target[finalKey] = value;
+            },
+            save() {},
+            emit() {}
+        };
+        this.identityArchivePreviewState = gameState;
+        this.openIdentityArchive({
+            gameState,
+            chapterId: [
+                'complete',
+                'shared_inheritance'
+            ].includes(this.identityArchivePreview)
+                ? 'inheritance'
+                : this.identityArchivePreview
+        });
+    }
+
     getCreatureData() {
+        if (this.profilePortraitPreview) {
+            const genes = window.CreatureGenetics
+                ?.generateCreatureGenetics?.('epic');
+            const dna = window.CreatureDNA?.generateDNA?.({
+                forcedRarity: 'epic'
+            });
+            return {
+                id: genes?.id || 'preview_companion_23',
+                name: 'Nova',
+                species: genes?.species || 'nebulaSprite',
+                rarity: 'epic',
+                genes,
+                dna,
+                lifecycle: { stage: 'baby', evolutionHistory: [] },
+                birthDate: Date.now(),
+                stage: 'baby',
+                evolutionHistory: [],
+                stats: { health: 100, happiness: 94, energy: 88 },
+                level: 3,
+                experience: 230,
+                personality: genes?.personality || { core: 'curious' },
+                personalityState: null,
+                cosmicAffinity: genes?.cosmicAffinity || {
+                    element: 'nebula'
+                },
+                mood: 'happy',
+                textureName: null,
+                isOffspring: false,
+                generation: 1,
+                parentIds: [],
+                offspringBonus: null,
+                birthEvents: [],
+                secretAbilities: ['current_sense'],
+                isShiny: false,
+                hasDualAffinity: false,
+                dualAffinity: null,
+                hasAncientLineage: false,
+                ancientProphecy: null,
+                bond: { level: 3, experience: 23 }
+            };
+        }
+
         const gs = window.GameState;
         if (!gs) return null;
 
@@ -335,18 +941,30 @@ export default class CreatureProfileScene extends Phaser.Scene {
         const { width } = this.scale;
         const centerX = width / 2;
         const creatureY = startY + 80;
+        const currentStage = data.stage || 'baby';
+        const portraitRecord = this.getProfilePortraitRecord(currentStage);
+        const hasLivingPortrait = Boolean(
+            portraitRecord ||
+            this.profilePortraitPreview ||
+            window.LivingPortraitService?.getEligibility?.().eligible
+        );
+        const identitySpread = this.isMobile ? 70 : 96;
+        const pixelX = hasLivingPortrait
+            ? centerX - identitySpread
+            : centerX;
+        const livingX = centerX + identitySpread;
+        const portraitSize = this.isMobile ? 108 : 132;
 
         // Glow behind creature
         const glow = this.add.graphics();
         const glowColor = this.getRarityColor(data.rarity);
         glow.fillStyle(glowColor, 0.2);
-        glow.fillCircle(centerX, creatureY, 80);
+        glow.fillCircle(pixelX, creatureY, hasLivingPortrait ? 58 : 80);
         glow.fillStyle(glowColor, 0.1);
-        glow.fillCircle(centerX, creatureY, 100);
+        glow.fillCircle(pixelX, creatureY, hasLivingPortrait ? 72 : 100);
         this.elements.push(glow);
 
         // Check if cached texture matches current stage
-        const currentStage = data.stage || 'baby';
         const textureMatchesStage = data.textureName && data.textureName.includes(`_${currentStage}`);
 
         devLog(`[CreatureProfileScene] Creature data:`, {
@@ -361,7 +979,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
         if (data.textureName && this.textures.exists(data.textureName) && textureMatchesStage) {
             // Use cached texture only if it matches the current stage
             devLog(`[CreatureProfileScene] Using cached texture: ${data.textureName}`);
-            this.creatureSprite = this.add.image(centerX, creatureY, data.textureName);
+            this.creatureSprite = this.add.image(pixelX, creatureY, data.textureName);
             this.creatureSprite.setScale(this.isMobile ? 1.0 : 1.2);
         } else if (this.graphicsEngine) {
             // Generate new texture for current stage
@@ -374,7 +992,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
                 // Prefer DNA-based rendering (more reliable)
                 devLog(`[CreatureProfileScene] Generating from DNA for stage: ${currentStage}`);
                 result = this.graphicsEngine.createCreatureFromDNA(
-                    data.dna, 0, currentStage
+                    data.dna, 0, currentStage, data.genes
                 );
             } else if (hasValidGenes) {
                 // Fallback to genes if no DNA
@@ -389,7 +1007,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
             if (result?.textureName) {
                 devLog(`[CreatureProfileScene] Generated new texture: ${result.textureName}`);
-                this.creatureSprite = this.add.image(centerX, creatureY, result.textureName);
+                this.creatureSprite = this.add.image(pixelX, creatureY, result.textureName);
                 this.creatureSprite.setScale(this.isMobile ? 1.0 : 1.2);
 
                 // Update GameState with new texture name so it's cached correctly
@@ -414,8 +1032,31 @@ export default class CreatureProfileScene extends Phaser.Scene {
             });
         }
 
+        if (hasLivingPortrait) {
+            this.createLivingPortraitFrame({
+                x: livingX,
+                y: creatureY,
+                size: portraitSize,
+                record: portraitRecord,
+                stage: currentStage,
+                creatureData: data
+            });
+            const pixelLabel = this.add.text(
+                pixelX,
+                creatureY + (portraitSize / 2) + 12,
+                'PIXEL FORM',
+                {
+                    fontSize: this.isMobile ? '9px' : '11px',
+                    color: '#8FE3CF',
+                    fontStyle: 'bold'
+                }
+            ).setOrigin(0.5).setDepth(12);
+            this.elements.push(pixelLabel);
+        }
+
         // Creature name
-        const nameText = this.add.text(centerX, creatureY + 70, data.name, {
+        const nameY = creatureY + (hasLivingPortrait ? 94 : 70);
+        const nameText = this.add.text(centerX, nameY, data.name, {
             fontSize: this.isMobile ? '24px' : '28px',
             color: '#FFFFFF',
             fontStyle: 'bold'
@@ -423,14 +1064,14 @@ export default class CreatureProfileScene extends Phaser.Scene {
         this.elements.push(nameText);
 
         // Species subtitle
-        const speciesText = this.add.text(centerX, creatureY + 100, data.species, {
+        const speciesText = this.add.text(centerX, nameY + 30, data.species, {
             fontSize: this.isMobile ? '13px' : '15px',
             color: '#AAAAAA'
         }).setOrigin(0.5).setDepth(11);
         this.elements.push(speciesText);
 
         // "What Makes You Special" summary card
-        const cardY = creatureY + 130;
+        const cardY = nameY + 60;
         const cardPadding = this.isMobile ? 12 : 16;
         const cardWidth = width - cardPadding * 2;
 
@@ -522,7 +1163,158 @@ export default class CreatureProfileScene extends Phaser.Scene {
             return cardY + cardHeight + 10;
         }
 
-        return creatureY + 130;
+        return cardY;
+    }
+
+    getProfilePortraitRecord(stage) {
+        if (this.profilePortraitPreview) {
+            return {
+                identityKey: 'preview_companion_23:baby:portrait',
+                stage: 'baby',
+                imageUrl: '/marketing/nova.webp',
+                assetRef: null,
+                storage: 'preview'
+            };
+        }
+        return window.GameState?.getCreaturePortrait?.(stage) || null;
+    }
+
+    async waitForProfilePortrait(stage, initialRecord = null, creatureData = null) {
+        const mediaService = window.CompanionMediaService || companionMediaService;
+        if (initialRecord) {
+            return mediaService?.resolvePortrait?.(stage) || initialRecord;
+        }
+
+        const portraitService = window.LivingPortraitService;
+        const activeJob = portraitService?.getActiveJob?.(stage);
+        if (activeJob?.promise) {
+            return activeJob.promise;
+        }
+
+        if (
+            portraitService?.getEligibility?.().eligible &&
+            portraitService?.generate &&
+            creatureData?.genes
+        ) {
+            return portraitService.generate({
+                creatureData: {
+                    name: creatureData.name,
+                    stage,
+                    genes: creatureData.genes,
+                    dna: creatureData.dna
+                },
+                sprite: this.creatureSprite,
+                style: 'cinematic',
+                source: 'profile_recovery'
+            });
+        }
+
+        const deadline = Date.now() + 240000;
+        while (Date.now() < deadline && this.scene?.isActive?.()) {
+            const persisted = window.GameState?.getCreaturePortrait?.(stage);
+            if (persisted) {
+                return mediaService?.resolvePortrait?.(stage) || persisted;
+            }
+
+            const pendingJob = portraitService?.getActiveJob?.(stage);
+            if (pendingJob?.promise) {
+                return pendingJob.promise;
+            }
+
+            await new Promise(resolve => window.setTimeout(resolve, 750));
+        }
+
+        throw new Error('Living portrait is not available yet');
+    }
+
+    createLivingPortraitFrame({ x, y, size, record, stage, creatureData }) {
+        const frame = this.add.graphics();
+        frame.fillStyle(0x07100F, 0.98);
+        frame.fillRoundedRect(
+            x - (size / 2),
+            y - (size / 2),
+            size,
+            size,
+            6
+        );
+        frame.lineStyle(2, 0x8FE3CF, 0.95);
+        frame.strokeRoundedRect(
+            x - (size / 2),
+            y - (size / 2),
+            size,
+            size,
+            6
+        );
+        frame.setDepth(9);
+        const placeholder = this.add.text(x, y, 'LIVING FORM\nRESOLVING', {
+            fontSize: this.isMobile ? '9px' : '11px',
+            color: '#8FE3CF',
+            align: 'center',
+            fontStyle: 'bold',
+            lineSpacing: 3
+        }).setOrigin(0.5).setDepth(10);
+        const label = this.add.text(
+            x,
+            y + (size / 2) + 12,
+            'LIVING FORM',
+            {
+                fontSize: this.isMobile ? '9px' : '11px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(12);
+        this.elements.push(frame, placeholder, label);
+
+        const requestId = ++this.profilePortraitRequest;
+        const recordPromise = this.profilePortraitPreview
+            ? Promise.resolve(record)
+            : this.waitForProfilePortrait(stage, record, creatureData);
+        Promise.resolve(recordPromise)
+            .then(resolved => {
+                if (!resolved?.imageUrl) return null;
+                return Promise.resolve(
+                    window.CompanionMediaService?.ensureTexture?.(
+                        this,
+                        resolved
+                    )
+                ).then(textureKey => ({ resolved, textureKey }));
+            })
+            .then(result => {
+                if (
+                    !result?.textureKey ||
+                    requestId !== this.profilePortraitRequest ||
+                    !this.scene.isActive()
+                ) {
+                    return;
+                }
+                const portrait = this.add.image(
+                    x,
+                    y,
+                    result.textureKey
+                ).setDisplaySize(size - 8, size - 8).setDepth(10);
+                placeholder.destroy();
+                this.elements.push(portrait);
+                if (!this.profilePortraitPreview) {
+                    window.CompanionMediaService?.recordAppearance?.(
+                        'companion_profile',
+                        result.resolved,
+                        'motion_still'
+                    );
+                }
+            })
+            .catch(error => {
+                if (
+                    requestId !== this.profilePortraitRequest ||
+                    !placeholder.active
+                ) {
+                    return;
+                }
+                placeholder.setText('LIVING FORM\nAVAILABLE IN ARCHIVE');
+                devLog(
+                    '[CreatureProfileScene] Living portrait unavailable:',
+                    error.message
+                );
+            });
     }
 
     createBasicInfoSection(data, startY) {
@@ -2632,6 +3424,13 @@ export default class CreatureProfileScene extends Phaser.Scene {
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
         }
+
+        const resumeSanctuary = this.scene.isPaused?.('GameScene') === true;
+        SceneTransitionHelper.stopScene(this, 'CreatureProfileScene');
+        if (resumeSanctuary) {
+            SceneTransitionHelper.resumeScene(this, 'GameScene');
+            return;
+        }
         this.scene.start('GameScene');
     }
 
@@ -2690,6 +3489,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
     shutdown() {
         console.log('[CreatureProfileScene] Shutting down');
+        this.profilePortraitRequest += 1;
 
         // Remove keyboard listeners
         if (this.input?.keyboard) {
@@ -2705,6 +3505,9 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
         // Clear tweens
         this.tweens?.killAll();
+        this.identityArchiveModal?.destroy?.();
+        this.identityArchiveModal = null;
+        this.destroyCompanionFieldMemoryReplay();
 
         // Destroy elements
         this.elements.forEach(el => el?.destroy?.());

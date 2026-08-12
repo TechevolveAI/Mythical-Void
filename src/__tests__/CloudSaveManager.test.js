@@ -12,7 +12,7 @@ function createStorage() {
 
 function createClient(options = {}) {
     const calls = {
-        upserts: [],
+        rpcs: [],
         deletes: 0
     };
 
@@ -26,14 +26,6 @@ function createClient(options = {}) {
         maybeSingle: jest.fn(async () => ({
             data: options.remoteSave ?? null,
             error: options.fetchError ?? null
-        })),
-        upsert: jest.fn(function upsert(payload) {
-            calls.upserts.push(payload);
-            return this;
-        }),
-        single: jest.fn(async () => ({
-            data: { revision: options.uploadRevision ?? 1, updated_at: '2026-07-26T00:00:00Z' },
-            error: options.uploadError ?? null
         })),
         delete: jest.fn(function deleteRow() {
             calls.deletes += 1;
@@ -56,6 +48,16 @@ function createClient(options = {}) {
         functions: {
             invoke: jest.fn(async () => ({ data: { deleted: true }, error: null }))
         },
+        rpc: jest.fn(async (name, args) => {
+            calls.rpcs.push({ name, args });
+            return {
+                data: {
+                    revision: options.uploadRevision ?? (Number(args.p_expected_revision) + 1),
+                    updated_at: '2026-07-26T00:00:00Z'
+                },
+                error: options.uploadError ?? null
+            };
+        }),
         from: jest.fn(() => builder)
     };
 
@@ -125,12 +127,22 @@ describe('CloudSaveManager', () => {
             expect.stringContaining('"policyVersion":"2026-07-26"')
         );
         expect(client.auth.signInAnonymously).toHaveBeenCalledTimes(1);
-        expect(calls.upserts).toHaveLength(1);
-        expect(calls.upserts[0]).toEqual(expect.objectContaining({
-            user_id: 'player-1',
-            save_slot: 'primary',
-            save_version: '1.1.0'
-        }));
+        expect(calls.rpcs).toHaveLength(1);
+        expect(calls.rpcs[0]).toEqual({
+            name: 'save_game_state',
+            args: expect.objectContaining({
+                p_save_slot: 'primary',
+                p_save_version: '1.1.0',
+                p_expected_revision: 0,
+                p_client_saved_at: new Date(1000).toISOString(),
+                p_game_state: expect.objectContaining({
+                    version: '1.1.0',
+                    creature: { name: 'Nova' }
+                })
+            })
+        });
+        expect(calls.rpcs[0].args.p_game_state.session).toBeUndefined();
+        expect(calls.rpcs[0].args.p_game_state.safety.guardian.pinHash).toBeNull();
         expect(status.status).toBe('synced');
         expect(status.lastSyncDirection).toBe('uploaded');
     });
@@ -247,7 +259,7 @@ describe('CloudSaveManager', () => {
             source: 'cloud',
             persist: true
         });
-        expect(calls.upserts).toHaveLength(0);
+        expect(calls.rpcs).toHaveLength(0);
         expect(manager.remoteRevision).toBe(4);
         expect(manager.getStatus().lastSyncDirection).toBe('restored');
     });
@@ -278,7 +290,7 @@ describe('CloudSaveManager', () => {
             source: 'cloud',
             persist: true
         });
-        expect(calls.upserts).toHaveLength(0);
+        expect(calls.rpcs).toHaveLength(0);
         expect(status).toEqual(expect.objectContaining({
             status: 'synced',
             lastSyncDirection: 'restored'
@@ -311,9 +323,95 @@ describe('CloudSaveManager', () => {
             source: 'cloud',
             persist: true
         });
-        expect(calls.upserts).toHaveLength(0);
+        expect(calls.rpcs).toHaveLength(0);
         expect(manager.remoteRevision).toBe(7);
         expect(status.status).toBe('synced');
+    });
+
+    test('preserves local progress when another device wins the revision race', async () => {
+        const storage = createStorage();
+        storage.setItem('mythical_void_cloud_save_enabled', 'true');
+        const revisionConflict = {
+            code: '40001',
+            message: 'save_revision_conflict',
+            details: JSON.stringify({
+                expectedRevision: 4,
+                currentRevision: 5
+            })
+        };
+        const { client } = createClient({
+            remoteSave: {
+                save_version: '1.1.0',
+                revision: 4,
+                game_state: { version: '1.1.0', savedAt: 5000 },
+                client_saved_at: new Date(5000).toISOString()
+            },
+            uploadError: revisionConflict
+        });
+        const localSave = createGameState(6000).createSaveSnapshot();
+        const manager = new CloudSaveManager({
+            client,
+            gameState: createGameState(6000),
+            storage,
+            now: () => 7000
+        });
+
+        manager.queueUpload(localSave);
+
+        await expect(manager.flush()).rejects.toBe(revisionConflict);
+        expect(manager.pendingSave).toEqual(localSave);
+        expect(manager.getStatus()).toEqual(expect.objectContaining({
+            status: 'conflict',
+            hasConflict: true,
+            hasError: true,
+            conflict: {
+                expectedRevision: 4,
+                currentRevision: 5,
+                detectedAt: 7000
+            }
+        }));
+    });
+
+    test('a later sync restores the winning revision and clears the stale pending copy', async () => {
+        const storage = createStorage();
+        storage.setItem('mythical_void_cloud_save_enabled', 'true');
+        const { client, builder } = createClient();
+        const gameState = createGameState(6000);
+        const manager = new CloudSaveManager({ client, gameState, storage });
+        manager.pendingSave = gameState.createSaveSnapshot();
+        manager.status = 'conflict';
+        manager.lastConflict = {
+            expectedRevision: 4,
+            currentRevision: 5,
+            detectedAt: 7000
+        };
+        const remoteState = {
+            version: '1.1.0',
+            savedAt: 7000,
+            creature: { name: 'Current Keeper' }
+        };
+        builder.maybeSingle.mockResolvedValue({
+            data: {
+                save_version: '1.1.0',
+                revision: 5,
+                game_state: remoteState,
+                client_saved_at: new Date(7000).toISOString()
+            },
+            error: null
+        });
+
+        const status = await manager.synchronize();
+
+        expect(gameState.applyExternalSave).toHaveBeenCalledWith(remoteState, {
+            source: 'cloud',
+            persist: true
+        });
+        expect(manager.pendingSave).toBeNull();
+        expect(status).toEqual(expect.objectContaining({
+            status: 'synced',
+            hasConflict: false,
+            lastSyncDirection: 'restored'
+        }));
     });
 
     test('serializes synchronization through an origin-wide exclusive lock', async () => {
@@ -360,6 +458,239 @@ describe('CloudSaveManager', () => {
         expect(manager.pendingSave).toBe(newerSave);
     });
 
+    test('adopts an authoritative server mutation and clears queued local state', async () => {
+        const storage = createStorage();
+        storage.setItem('mythical_void_cloud_save_enabled', 'true');
+        const { client } = createClient();
+        const gameState = createGameState(3000);
+        const manager = new CloudSaveManager({
+            client,
+            gameState,
+            storage,
+            now: () => 5000
+        });
+        manager.remoteRevision = 4;
+        manager.pendingSave = { version: '1.1.0', savedAt: 4000 };
+        const authoritativeState = {
+            version: '1.1.0',
+            savedAt: 5000,
+            creatures: [{ id: 'server_child', name: 'Nova' }]
+        };
+
+        const result = await manager.performServerMutation(async () => ({
+            revision: 5,
+            gameState: authoritativeState
+        }));
+
+        expect(result.revision).toBe(5);
+        expect(gameState.applyExternalSave).toHaveBeenCalledWith(
+            authoritativeState,
+            {
+                source: 'cloud_server_mutation',
+                persist: true
+            }
+        );
+        expect(manager.pendingSave).toBeNull();
+        expect(manager.remoteRevision).toBe(5);
+        expect(manager.getStatus()).toEqual(expect.objectContaining({
+            status: 'synced',
+            lastSyncDirection: 'server_mutation'
+        }));
+    });
+
+    test('retains queued local state when a server mutation fails', async () => {
+        const storage = createStorage();
+        storage.setItem('mythical_void_cloud_save_enabled', 'true');
+        const { client } = createClient();
+        const manager = new CloudSaveManager({
+            client,
+            gameState: createGameState(3000),
+            storage,
+            syncDelayMs: 60000
+        });
+        const queued = { version: '1.1.0', savedAt: 4000 };
+        manager.pendingSave = queued;
+        const failure = new Error('network unavailable');
+
+        await expect(manager.performServerMutation(async () => {
+            throw failure;
+        })).rejects.toBe(failure);
+
+        expect(manager.pendingSave).toBe(queued);
+        expect(manager.syncTimer).toBeNull();
+        expect(manager.getStatus()).toEqual(expect.objectContaining({
+            status: 'error',
+            hasError: true
+        }));
+    });
+
+    test('never uploads an unresolved server Fusion snapshot through normal sync', async () => {
+        const storage = createStorage();
+        storage.setItem('mythical_void_cloud_save_enabled', 'true');
+        const { client, calls } = createClient({
+            remoteSave: {
+                save_version: '1.1.0',
+                revision: 7,
+                game_state: {
+                    version: '1.1.0',
+                    savedAt: 3000,
+                    breedingShrine: { completedOperationIds: [] }
+                },
+                client_saved_at: new Date(3000).toISOString()
+            }
+        });
+        const manager = new CloudSaveManager({
+            client,
+            gameState: createGameState(9000),
+            storage
+        });
+        const pendingFusionSave = {
+            version: '1.1.0',
+            savedAt: 9000,
+            breedingShrine: {
+                pendingFusion: {
+                    operationId: 'fusion_pending_23',
+                    authorityReservation: {
+                        reservationMode: 'server_reserved'
+                    }
+                }
+            }
+        };
+
+        manager.queueUpload(pendingFusionSave);
+        const status = await manager.flush();
+
+        expect(calls.rpcs).toHaveLength(0);
+        expect(manager.pendingSave).toBe(pendingFusionSave);
+        expect(status).toEqual(expect.objectContaining({
+            status: 'pending_server_mutation',
+            lastSyncDirection: 'deferred'
+        }));
+    });
+
+    test('restores a committed remote lineage over an unresolved local snapshot', async () => {
+        const storage = createStorage();
+        storage.setItem('mythical_void_cloud_save_enabled', 'true');
+        const remoteState = {
+            version: '1.1.0',
+            savedAt: 5000,
+            creatures: [{ id: 'server_child', name: 'Nova' }],
+            breedingShrine: {
+                completedOperationIds: ['fusion_pending_23'],
+                pendingFusion: null
+            }
+        };
+        const { client, calls } = createClient({
+            remoteSave: {
+                save_version: '1.1.0',
+                revision: 8,
+                game_state: remoteState,
+                client_saved_at: new Date(5000).toISOString()
+            }
+        });
+        const gameState = createGameState(9000);
+        const manager = new CloudSaveManager({
+            client,
+            gameState,
+            storage
+        });
+        const pendingFusionSave = {
+            version: '1.1.0',
+            savedAt: 9000,
+            breedingShrine: {
+                pendingFusion: {
+                    operationId: 'fusion_pending_23',
+                    authorityReservation: {
+                        reservationMode: 'server_reserved'
+                    }
+                }
+            }
+        };
+        manager.pendingSave = pendingFusionSave;
+
+        await manager.synchronizeSnapshot(pendingFusionSave);
+
+        expect(gameState.applyExternalSave).toHaveBeenCalledWith(remoteState, {
+            source: 'cloud',
+            persist: true
+        });
+        expect(calls.rpcs).toHaveLength(0);
+        expect(manager.pendingSave).toBeNull();
+        expect(manager.remoteRevision).toBe(8);
+    });
+
+    test('refuses an ordinary upload while an offline Fusion receipt is pending', async () => {
+        const storage = createStorage();
+        storage.setItem('mythical_void_cloud_save_enabled', 'true');
+        const { client, calls } = createClient();
+        const manager = new CloudSaveManager({
+            client,
+            gameState: createGameState(),
+            storage
+        });
+        const snapshot = {
+            version: '1.1.0',
+            savedAt: 9000,
+            breedingShrine: {
+                reconciliationQueue: [{
+                    operationId: 'fusion_offline_23'
+                }]
+            }
+        };
+
+        await expect(manager.upload(snapshot, 7)).rejects.toThrow(
+            'Fusion receipt must reconcile before cloud upload.'
+        );
+        expect(calls.rpcs).toHaveLength(0);
+    });
+
+    test('hands the oldest offline receipt to authority before normal synchronization', async () => {
+        const originalAuthority = globalThis.FusionAuthority;
+        const storage = createStorage();
+        storage.setItem('mythical_void_cloud_save_enabled', 'true');
+        const { client } = createClient();
+        const record = {
+            operationId: 'fusion_offline_23',
+            request: {},
+            receipt: {}
+        };
+        const gameState = createGameState();
+        gameState.createSaveSnapshot.mockReturnValue({
+            version: '1.1.0',
+            savedAt: 9000,
+            breedingShrine: {
+                reconciliationQueue: [record]
+            }
+        });
+        const reconcileOfflineReceipt = jest.fn(async () => ({
+            operationId: record.operationId,
+            finalization: { revision: 8 }
+        }));
+        globalThis.FusionAuthority = { reconcileOfflineReceipt };
+        const manager = new CloudSaveManager({
+            client,
+            gameState,
+            storage
+        });
+        manager.pendingSave = gameState.createSaveSnapshot();
+
+        const result = await manager.reconcileFusionReceipts();
+
+        expect(reconcileOfflineReceipt).toHaveBeenCalledWith(
+            record,
+            { cloudSave: manager }
+        );
+        expect(result).toEqual(expect.objectContaining({
+            operationId: record.operationId
+        }));
+        expect(manager.pendingSave).toBeNull();
+        expect(manager.getStatus()).toEqual(expect.objectContaining({
+            status: 'synced',
+            lastSyncDirection: 'fusion_reconciled'
+        }));
+        globalThis.FusionAuthority = originalAuthority;
+    });
+
     test('removes local-only safety data from cloud payloads', () => {
         const manager = new CloudSaveManager({
             client: {},
@@ -376,6 +707,54 @@ describe('CloudSaveManager', () => {
         expect(cloud.safety.auditLog).toEqual([]);
         expect(cloud.memory.deletionLog).toEqual([]);
         expect(local.safety.guardian.pinHash).toBe('secret');
+    });
+
+    test('keeps durable portrait references but removes signed display URLs', () => {
+        const manager = new CloudSaveManager({
+            client: {},
+            gameState: createGameState(),
+            storage: createStorage()
+        });
+        const assetRef =
+            'portrait-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074';
+        const portrait = {
+            schemaVersion: 2,
+            identityKey: 'creature:baby:23',
+            stage: 'baby',
+            status: 'ready',
+            storage: 'supabase-private',
+            assetRef,
+            imageUrl: 'https://private.example/signed',
+            expiresAt: 23000
+        };
+        const local = {
+            creature: {
+                portraits: {
+                    schemaVersion: 2,
+                    activeStage: 'baby',
+                    byStage: { baby: { ...portrait } }
+                }
+            },
+            creatures: [{
+                portraits: {
+                    schemaVersion: 2,
+                    activeStage: 'baby',
+                    byStage: { baby: { ...portrait } }
+                }
+            }]
+        };
+
+        const cloud = manager.sanitizeForCloud(local);
+        const serialized = JSON.stringify(cloud);
+
+        expect(serialized).toContain(assetRef);
+        expect(serialized).not.toContain('private.example');
+        expect(
+            cloud.creature.portraits.byStage.baby
+        ).not.toHaveProperty('expiresAt');
+        expect(local.creature.portraits.byStage.baby.imageUrl).toContain(
+            'private.example'
+        );
     });
 
     test('deletes only the signed-in player cloud save', async () => {
@@ -419,7 +798,7 @@ describe('CloudSaveManager', () => {
 
     test('keeps local saving available when cloud upload fails and can retry', async () => {
         const storage = createStorage();
-        const { client, builder } = createClient({
+        const { client } = createClient({
             uploadError: new Error('network unavailable')
         });
         const manager = new CloudSaveManager({
@@ -434,7 +813,7 @@ describe('CloudSaveManager', () => {
         expect(failedStatus.status).toBe('error');
         expect(failedStatus.hasError).toBe(true);
 
-        builder.single.mockResolvedValue({
+        client.rpc.mockResolvedValue({
             data: { revision: 1, updated_at: '2026-07-26T00:00:00Z' },
             error: null
         });
@@ -469,7 +848,7 @@ describe('CloudSaveManager', () => {
         }));
         expect(storage.removeItem).toHaveBeenCalledWith('mythical_void_cloud_save_enabled');
         expect(storage.removeItem).toHaveBeenCalledWith('mythical_void_cloud_save_consent');
-        expect(calls.upserts).toHaveLength(0);
+        expect(calls.rpcs).toHaveLength(0);
         jest.useRealTimers();
     });
 });

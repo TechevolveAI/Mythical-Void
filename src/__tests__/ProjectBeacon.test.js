@@ -110,12 +110,30 @@ describe('Project Beacon opening', () => {
         expect(campaignText).not.toMatch(/return to Earth|stay in the Void|choose Earth|choose the Void/i);
     });
 
+    test('records the first recovery as a guardian gift rather than extraction', () => {
+        const firstDebrief = projectBeacon.campaignDebriefs[0];
+        const firstReport = [
+            firstDebrief.title,
+            firstDebrief.finding,
+            firstDebrief.companionMoment,
+            firstDebrief.fieldNote
+        ].join(' ');
+
+        expect(firstReport).toMatch(/gift, not a sample/i);
+        expect(firstReport).toMatch(/Elder guardian/i);
+        expect(firstReport).toMatch(/offered after the rescue/i);
+        expect(firstReport).toMatch(/It was not taken/i);
+        expect(firstReport).toMatch(/knowing when to stop/i);
+    });
+
     test('authors the first-expedition handoff as an invitation, not a plot choice', () => {
         const handoff = projectBeacon.firstExpeditionHandoff;
         const handoffText = Object.values(handoff).join(' ');
 
         expect(handoff.route).toMatch(/ROOTLIGHT ROUTE.*MYTHICAL FOREST/i);
         expect(handoff.finding).toMatch(/companion/i);
+        expect(handoff.finding).toMatch(/living Current/i);
+        expect(handoff.companionMoment).toMatch(/calling for help/i);
         expect(handoff.fieldNote).toMatch(/Sensei/i);
         expect(handoff.primaryAction).toBe('BEGIN EXPEDITION');
         expect(handoff.secondaryAction).toBe('LOOK AROUND');

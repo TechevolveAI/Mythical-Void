@@ -1,5 +1,16 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
 
+const COSMIC_TITAN_TEXTURE = 'cosmicTitan';
+const COSMIC_TITAN_ASSET = '/game/guardians/cosmic-titan.webp';
+const COSMIC_TITAN_DISPLAY_HEIGHT = 300;
+
+const TITAN_ATTACK_WINDOWS = Object.freeze({
+    gravityCrush: 1800,
+    starRain: 2600,
+    voidPunch: 1500,
+    singularity: 1800
+});
+
 /**
  * VoidPeaksLevel - mountain platformer level before the final void.
  *
@@ -29,6 +40,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossDefeated = false;
         this.bossFightActive = false;
         this.boss = null;
+        this.bossTargetScale = 1;
         this.bossHealth = 0;
         this.bossMaxHealth = 15;
         this.bossPhase = 1;
@@ -40,6 +52,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.replySignals = [];
         this.bossGateHintUntil = 0;
         this.cosmicEggAwarded = false;
+        this.titanWarningTimer = null;
+        this.titanAttackUnlockTimer = null;
+        this.titanAttackLocked = false;
+        this.bossAttackPreview = null;
+        this.bossPressureText = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
     }
@@ -52,6 +69,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossDefeated = false;
         this.bossFightActive = false;
         this.boss = null;
+        this.bossTargetScale = 1;
         this.bossHealth = 0;
         this.bossPhase = 1;
         this.bossAttackTimer = null;
@@ -62,14 +80,33 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.replySignals = [];
         this.bossGateHintUntil = 0;
         this.cosmicEggAwarded = false;
+        this.titanWarningTimer = null;
+        this.titanAttackUnlockTimer = null;
+        this.titanAttackLocked = false;
+        this.bossAttackPreview = [
+            'gravityCrush',
+            'starRain',
+            'voidPunch',
+            'singularity'
+        ].includes(data?.bossAttackPreview)
+            ? data.bossAttackPreview
+            : null;
+        this.bossPressureText = null;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
 
         console.log('[VoidPeaksLevel] Level state reset');
     }
 
+    preload() {
+        super.preload();
+        this.load.image(COSMIC_TITAN_TEXTURE, COSMIC_TITAN_ASSET);
+    }
+
     create() {
         super.create();
+
+        if (this.prepareCurrentEcologyPreview()) return;
 
         if (!this.entryPreview && window.AchievementSystem?.recordEvent) {
             window.AchievementSystem.recordEvent('level_entered', { levelId: 'voidPeaks' });
@@ -93,6 +130,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             this.player.setPosition(4200, this.levelHeight - 210);
         }
 
+        this.showPlatformerMobileControls();
+
         this.time.delayedCall(500, () => this.startBossFight());
     }
 
@@ -104,6 +143,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             contentWidth, contentLeft, y, font, buttonPadding
         } = layout;
         const resume = this.getExpeditionResumePresentation();
+        const companionName = this.getCompanionName();
         this.physics.pause();
 
         const entryElements = [];
@@ -134,7 +174,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(title);
 
-        const subtitle = this.add.text(width / 2, y(92), '"Your companion hears answers on the wind"', {
+        const subtitle = this.add.text(width / 2, y(92), `"${companionName} hears answers on the wind"`, {
             fontSize: font(16, 14),
             color: '#DA70D6',
             fontStyle: 'italic',
@@ -158,7 +198,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(mission);
 
-        const objective = this.add.text(width / 2, y(172), 'Restore the three warning relays', {
+        const objective = this.add.text(width / 2, y(172), `Carry ${companionName}'s warning to three settlements`, {
             fontSize: font(19, 16),
             color: '#8FE3CF',
             align: 'center',
@@ -201,14 +241,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             enterBtn.disableInteractive();
             overlay.disableInteractive();
             this.clearLevelEntryKeyHandler();
+            this.physics.resume();
+            this.startLevel();
             this.tweens.add({
                 targets: entryElements,
                 alpha: 0,
                 duration: 700,
                 onComplete: () => {
                     entryElements.forEach(el => el?.destroy?.());
-                    this.physics.resume();
-                    this.startLevel();
                 }
             });
         };
@@ -232,6 +272,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             window.removeEventListener('keydown', this.levelEntryKeyHandler);
         }
         this.levelEntryKeyHandler = null;
+    }
+
+    getCompanionName() {
+        return String(
+            window.GameState?.get?.('creature.name') || 'Your companion'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
     }
 
     startLevel() {
@@ -439,30 +485,52 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     createHUD() {
         super.createHUD();
 
+        // Keep objectives above the playfield and away from mobile controls.
         const { width, height } = this.cameras.main;
         const isShortLandscape = width > height && height < 620;
         this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
         this.objectiveDisplay = this.add.text(
             width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 82 : 212) : height - 30,
+            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
             this.getPeakObjectiveText(),
             {
-                fontSize: this.isCompactObjectiveHUD ? '11px' : '15px',
-                color: '#8FE3CF',
-                backgroundColor: 'rgba(12, 4, 22, 0.78)',
-                padding: { x: 8, y: 5 },
-                align: 'right'
+                fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F8F2FF',
+                backgroundColor: 'rgba(12, 4, 22, 0.92)',
+                padding: { x: 10, y: 7 },
+                lineSpacing: 2,
+                align: 'left',
+                wordWrap: {
+                    width: this.isCompactObjectiveHUD ? 205 : 330
+                }
             }
-        ).setOrigin(1, this.isCompactObjectiveHUD ? 0 : 1)
+        ).setOrigin(1, 0)
             .setScrollFactor(0)
             .setDepth(1000);
     }
 
     getPeakObjectiveText() {
-        if (this.isCompactObjectiveHUD) {
-            return `RELAYS: ${this.beaconRelaysActivated}/3\nREPLIES: ${this.creatureNetworkReached ? 'HEARD' : 'LISTENING'}\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optional = `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+
+        if (this.bossDefeated) {
+            return `WARNING NETWORK RESTORED\nTHE TITAN IS SAFE\n${optional}`;
         }
-        return `RELAYS: ${this.beaconRelaysActivated}/3  |  REPLIES: ${this.creatureNetworkReached ? 'HEARD' : 'LISTENING'}\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        if (this.bossFightActive) {
+            return `STABILIZE THE TITAN\nREAD THE NETWORK WARNINGS\n${optional}`;
+        }
+        if (this.creatureNetworkReached) {
+            return `TITAN PASS OPEN\nFOLLOW THE REPLY LIGHTS →\n${optional}`;
+        }
+
+        const nextRelay = [
+            'LOWER RELAY',
+            'RIDGE RELAY',
+            'SUMMIT RELAY'
+        ][this.beaconRelaysActivated] || 'SUMMIT RELAY';
+        const current = Math.min(this.beaconRelaysActivated + 1, 3);
+        return `WARNING ${current}/3 // ${nextRelay}\nCLIMB TOWARD THE SIGNAL →\n${optional}`;
     }
 
     createSignalRelays() {
@@ -553,10 +621,20 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             '#8FE3CF'
         );
 
+        const companionName = this.getCompanionName();
         if (this.beaconRelaysActivated === 1) {
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
-                    'Your companion sends a warning into the peaks.',
+                    `${companionName}: "Warning sent. Stay close."`,
+                    relay.x,
+                    relay.y - 155,
+                    '#D6EEF2'
+                );
+            });
+        } else if (this.beaconRelaysActivated === 2) {
+            this.time.delayedCall(650, () => {
+                this.showFloatingText(
+                    'UNKNOWN REPLY: "RIDGE FALLING. TITAN HOLDING LINE."',
                     relay.x,
                     relay.y - 155,
                     '#D6EEF2'
@@ -621,7 +699,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         this.time.delayedCall(600, () => {
             this.showFloatingText(
-                'Distant settlements answer your companion.',
+                `THREE SETTLEMENTS ANSWER ${this.getCompanionName().toUpperCase()}`,
                 relay.x,
                 relay.y - 150,
                 '#F2C94C'
@@ -629,7 +707,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
         this.time.delayedCall(1500, () => {
             this.showFloatingText(
-                'The replies are coordinated warnings.',
+                'They are warning you about the Titan. They want it saved.',
                 relay.x,
                 relay.y - 185,
                 '#D6EEF2'
@@ -794,8 +872,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         console.log('[VoidPeaksLevel] Starting Cosmic Titan boss fight!');
         this.bossFightActive = true;
         this.physics.pause();
-        this.cameras.main.flash(220, 75, 0, 130);
-        this.cameras.main.shake(450, 0.012);
+        window.FeedbackManager?.cameraFlash?.(this, 220, 75, 0, 130);
+        window.FeedbackManager?.cameraShake?.(this, 450, 0.012);
 
         if (this.player) {
             this.player.setPosition(4180, this.levelHeight - 295);
@@ -828,26 +906,46 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     spawnCosmicTitan() {
         this.createTitanTexture();
 
-        this.boss = this.physics.add.sprite(4720, this.levelHeight - 435, 'cosmicTitan');
+        this.boss = this.physics.add.sprite(
+            4720,
+            this.levelHeight - 435,
+            COSMIC_TITAN_TEXTURE
+        );
         this.boss.setImmovable(true);
         this.boss.setCollideWorldBounds(true);
         this.boss.body.setAllowGravity(false);
-        this.boss.body.setSize(120, 140);
+        this.bossTargetScale = COSMIC_TITAN_DISPLAY_HEIGHT /
+            Math.max(1, this.boss.height);
+        this.boss.body.setSize(
+            this.boss.width * 0.4,
+            this.boss.height * 0.66
+        );
+        this.boss.body.setOffset(
+            this.boss.width * 0.3,
+            this.boss.height * 0.2
+        );
+        this.boss.setScale(this.bossTargetScale);
         this.boss.health = this.bossMaxHealth;
         this.boss.setDepth(920);
 
         this.bossHealth = this.bossMaxHealth;
         this.createBossHealthBar();
         this.physics.resume();
-        this.bossAttackTimer = this.time.addEvent({
-            delay: 2600,
-            callback: () => this.performTitanAttack(),
-            loop: true
-        });
+        if (this.bossAttackPreview) {
+            this.time.delayedCall(1200, () => {
+                this.performTitanAttack(this.bossAttackPreview);
+            });
+        } else {
+            this.bossAttackTimer = this.time.addEvent({
+                delay: 2600,
+                callback: () => this.performTitanAttack(),
+                loop: true
+            });
+        }
     }
 
     createTitanTexture() {
-        if (this.textures.exists('cosmicTitan')) return;
+        if (this.textures.exists(COSMIC_TITAN_TEXTURE)) return;
 
         const g = this.make.graphics({ add: false });
         g.fillStyle(0x16091F, 1);
@@ -861,7 +959,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         g.fillCircle(80, 130, 24);
         g.lineStyle(5, 0xFF4500, 0.9);
         g.strokeRoundedRect(34, 44, 92, 132, 22);
-        g.generateTexture('cosmicTitan', 160, 190);
+        g.generateTexture(COSMIC_TITAN_TEXTURE, 160, 190);
         g.destroy();
     }
 
@@ -873,7 +971,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const barY = isMobileLayout ? 118 : 60;
         this.bossBarConfig = { x: barX, y: barY, width: barWidth, height: 18 };
 
-        this.bossNameText = this.add.text(width / 2, barY - 28, 'COSMIC TITAN', {
+        this.bossNameText = this.add.text(width / 2, barY - 28, 'COSMIC TITAN // HOLDING THE LINE', {
             fontSize: isMobileLayout ? '18px' : '22px',
             color: '#A9F3E4',
             fontStyle: 'bold',
@@ -881,8 +979,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             strokeThickness: 3
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3000);
 
-        this.bossSubtitle = this.add.text(width / 2, barY - 8, 'Clear the Void pressure', {
-            fontSize: '11px',
+        this.bossSubtitle = this.add.text(width / 2, barY - 8, 'WARNING LINE ONLINE // WATCH FOR ATTACK CALLS', {
+            fontSize: isMobileLayout ? '12px' : '13px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
             color: '#D8FFF6',
             stroke: '#160D24',
             strokeThickness: 2
@@ -891,6 +991,15 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossHealthBar = this.add.graphics();
         this.bossHealthBar.setScrollFactor(0);
         this.bossHealthBar.setDepth(2999);
+
+        this.bossPressureText = this.add.text(width / 2, barY + 9, '', {
+            fontSize: isMobileLayout ? '11px' : '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            stroke: '#160D24',
+            strokeThickness: 2
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(3000);
         this.updateBossHealthBar();
         this.createBossIndicator();
     }
@@ -919,6 +1028,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         );
         this.bossHealthBar.lineStyle(2, 0x8FE3CF, 0.85);
         this.bossHealthBar.strokeRoundedRect(x, y, barWidth, barHeight, 9);
+        const pressure = Math.max(0, Math.ceil(this.bossHealth));
+        this.bossPressureText?.setText(
+            pressure > 0
+                ? `VOID PRESSURE // ${pressure}/${this.bossMaxHealth}`
+                : 'VOID PRESSURE // CLEARED'
+        );
     }
 
     createBossIndicator() {
@@ -959,14 +1074,56 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }
     }
 
-    performTitanAttack() {
-        if (!this.boss?.active || !this.player?.active || this.bossDefeated) return;
+    performTitanAttack(forcedAttack = null) {
+        if (
+            !this.boss?.active ||
+            !this.player?.active ||
+            this.bossDefeated ||
+            this.titanAttackLocked
+        ) return;
 
         const attacks = ['gravityCrush', 'starRain'];
         if (this.bossPhase >= 2) attacks.push('voidPunch');
         if (this.bossPhase >= 3) attacks.push('singularity');
 
-        const attack = Phaser.Utils.Array.GetRandom(attacks);
+        const attack = forcedAttack || Phaser.Utils.Array.GetRandom(attacks);
+        const attackWindow = TITAN_ATTACK_WINDOWS[attack] || 1800;
+        this.titanAttackLocked = true;
+        this.broadcastTitanWarning(attack);
+
+        this.titanAttackUnlockTimer?.remove?.();
+        this.titanAttackUnlockTimer = this.time.delayedCall(
+            attackWindow,
+            () => {
+                this.titanAttackLocked = false;
+                this.titanAttackUnlockTimer = null;
+            }
+        );
+    }
+
+    broadcastTitanWarning(attack) {
+        const warnings = {
+            gravityCrush: 'NETWORK WARNING // GROUND IMPACT - MOVE',
+            starRain: 'NETWORK WARNING // STAR RAIN - KEEP MOVING',
+            voidPunch: 'NETWORK WARNING // TITAN LUNGE - BREAK RANGE',
+            singularity: 'NETWORK WARNING // SINGULARITY - CLEAR THE FIELD'
+        };
+
+        this.bossSubtitle?.setText?.(warnings[attack] || 'NETWORK WARNING // PRESSURE SURGE');
+        this.titanWarningTimer?.remove?.();
+        this.titanWarningTimer = this.time.delayedCall(650, () => {
+            this.titanWarningTimer = null;
+            if (!this.boss?.active || this.bossDefeated) return;
+            this.executeTitanAttack(attack);
+            this.time.delayedCall(1050, () => {
+                if (!this.bossDefeated) {
+                    this.bossSubtitle?.setText?.('WARNING LINE ONLINE // SETTLEMENTS ARE GUIDING YOU');
+                }
+            });
+        });
+    }
+
+    executeTitanAttack(attack) {
         if (attack === 'gravityCrush') {
             this.gravityCrush();
         } else if (attack === 'starRain') {
@@ -991,7 +1148,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             if (dist < 115) {
                 this.takeDamage(2);
             }
-            this.cameras.main.shake(180, 0.01);
+            window.FeedbackManager?.cameraShake?.(this, 180, 0.01);
             marker.destroy();
         });
     }
@@ -1063,15 +1220,25 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.boss.health = this.bossHealth;
         this.updateBossHealthBar();
 
-        this.boss.setTint(0xFFFFFF);
+        this.showFloatingText(
+            `PRESSURE -${amount}`,
+            this.boss.x,
+            this.boss.y - 115,
+            '#8FE3CF'
+        );
+
+        this.boss.setTint(0x8FE3CF);
         this.time.delayedCall(90, () => this.boss?.clearTint?.());
 
         const healthRatio = this.bossHealth / this.bossMaxHealth;
         const nextPhase = healthRatio <= 0.15 ? 4 : healthRatio <= 0.4 ? 3 : healthRatio <= 0.7 ? 2 : 1;
         if (nextPhase > this.bossPhase) {
             this.bossPhase = nextPhase;
-            this.cameras.main.shake(350, 0.018);
-            this.boss.setScale(1 + (this.bossPhase - 1) * 0.08);
+            window.FeedbackManager?.cameraShake?.(this, 350, 0.018);
+            this.boss.setScale(
+                this.bossTargetScale *
+                (1 + (this.bossPhase - 1) * 0.08)
+            );
         }
 
         if (this.bossHealth <= 0) {
@@ -1086,6 +1253,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossDefeated = true;
         this.bossFightActive = false;
         this.bossAttackTimer?.remove?.();
+        this.titanWarningTimer?.remove?.();
+        this.titanWarningTimer = null;
+        this.titanAttackUnlockTimer?.remove?.();
+        this.titanAttackUnlockTimer = null;
+        this.titanAttackLocked = false;
+        this.bossPressureText?.setText('VOID PRESSURE // CLEARED');
 
         if (window.AchievementSystem?.recordEvent) {
             window.AchievementSystem.recordEvent('guardian_restored', { bossId: 'cosmic_titan' });
@@ -1096,7 +1269,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }
         this.boss?.setVelocity?.(0, 0);
         this.boss?.setTint?.(0x8FE3CF);
-        this.cameras.main.flash(450, 143, 227, 207);
+        window.FeedbackManager?.cameraFlash?.(this, 450, 143, 227, 207);
         this.showFloatingText(
             'TITAN SIGNAL STABLE',
             this.boss?.x || 4720,
@@ -1118,7 +1291,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: this.boss,
             alpha: 0.12,
-            scale: 0.88,
+            scale: this.bossTargetScale * 0.88,
             duration: 1800,
             ease: 'Sine.easeInOut',
             onComplete: () => {
@@ -1129,7 +1302,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
 
         this.tweens.add({
-            targets: [this.bossNameText, this.bossSubtitle, this.bossHealthBar],
+            targets: [
+                this.bossNameText,
+                this.bossSubtitle,
+                this.bossHealthBar,
+                this.bossPressureText
+            ],
             alpha: 0,
             duration: 500
         });
@@ -1204,9 +1382,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             width / 2,
             y(130),
             `Distant Replies: Confirmed\n` +
+            `Network Witness: ${this.getCompanionName()}\n` +
             `Titan's Gift: Hull Plating\n` +
             `Guardian Reward: ${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins\n` +
-            `Ship Parts: ${shipParts.length}/${totalRequired}`,
+            `Ship Parts: ${shipParts.length}/${totalRequired}\n` +
+            this.getVillageCompletionCopy({ compact: true }) + '\n' +
+            this.getGuardianSanctuaryArrivalCopy({ compact: true }),
             {
             fontSize: font(18, 16),
             color: '#FFFFFF',
@@ -1228,12 +1409,19 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     shutdown() {
         this.clearLevelEntryKeyHandler();
         this.bossAttackTimer?.remove?.();
+        this.titanWarningTimer?.remove?.();
+        this.titanWarningTimer = null;
+        this.titanAttackUnlockTimer?.remove?.();
+        this.titanAttackUnlockTimer = null;
+        this.titanAttackLocked = false;
         this.peakHazards = [];
         this.boss?.destroy?.();
         this.boss = null;
         this.bossHealthBar?.destroy?.();
         this.bossNameText?.destroy?.();
         this.bossSubtitle?.destroy?.();
+        this.bossPressureText?.destroy?.();
+        this.bossPressureText = null;
         this.bossIndicator?.destroy?.();
         this.bossIndicator = null;
         this.bossBarConfig = null;

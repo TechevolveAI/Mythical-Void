@@ -13,6 +13,7 @@ export default class MobileHUD {
         this.scene = scene;
         this.elements = [];
         this.isVisible = false;
+        this.focusModeActive = false;
 
         // Top bar elements
         this.topBarBg = null;
@@ -227,7 +228,7 @@ export default class MobileHUD {
 
                 // Update visual days for testing (approximate)
                 const stageDays = { baby: 1, juvenile: 4, adult: 10, elder: 35 };
-                const stageDaysBirth = { baby: 0, juvenile: 1, adult: 3, elder: 10 };
+                const stageDaysBirth = { baby: 0, juvenile: 1, adult: 2, elder: 9 };
                 window.GameState?.set('creature.lifecycle.daysAlive', stageDays[nextStage]);
 
                 // Set birthDate for proper eligibility checks
@@ -523,7 +524,7 @@ export default class MobileHUD {
      * Update streak display
      */
     updateStreak() {
-        if (!this.isVisible || !this.streakText) return;
+        if (!this.isVisible || this.focusModeActive || !this.streakText) return;
 
         const streak = window.GameState?.get('dailyBonus.streak') || 0;
 
@@ -1193,7 +1194,7 @@ export default class MobileHUD {
      * Update mood indicator based on personality state
      */
     updateMood() {
-        if (!this.isVisible || !this.moodIndicator) return;
+        if (!this.isVisible || this.focusModeActive || !this.moodIndicator) return;
 
         const personalityState = window.GameState?.get('creature.personalityState');
         if (!personalityState) return;
@@ -1372,7 +1373,7 @@ export default class MobileHUD {
      * Update all HUD elements
      */
     update() {
-        if (!this.isVisible) return;
+        if (!this.isVisible || this.focusModeActive) return;
 
         this.updateStats();
         this.updateLevel();
@@ -1387,7 +1388,7 @@ export default class MobileHUD {
      * Update stage indicator based on lifecycle state
      */
     updateStage() {
-        if (!this.isVisible || !this.stageIndicator) return;
+        if (!this.isVisible || this.focusModeActive || !this.stageIndicator) return;
 
         const currentStage = window.GameState?.get('creature.lifecycle.stage') || 'baby';
 
@@ -1442,7 +1443,7 @@ export default class MobileHUD {
      * Update stat displays - compact view with threshold-based visibility
      */
     updateStats() {
-        if (!this.isVisible) return;
+        if (!this.isVisible || this.focusModeActive) return;
 
         const stats = window.GameState?.get('creature.stats') || { health: 100, happiness: 100, energy: 100 };
         const SHOW_THRESHOLD = 50;  // Show stat if below 50%
@@ -1601,7 +1602,7 @@ export default class MobileHUD {
      * Update level display
      */
     updateLevel() {
-        if (!this.isVisible || !this.levelText) return;
+        if (!this.isVisible || this.focusModeActive || !this.levelText) return;
 
         const level = window.GameState?.get('creature.level') || 1;
         this.levelText.setText(String(level));
@@ -1612,7 +1613,7 @@ export default class MobileHUD {
      * Update XP bar
      */
     updateXP() {
-        if (!this.isVisible || !this.xpBarFill) return;
+        if (!this.isVisible || this.focusModeActive || !this.xpBarFill) return;
 
         const xp = window.GameState?.get('creature.experience') || 0;
         const fillWidth = (xp / 100) * this.xpBarWidth;
@@ -1638,7 +1639,7 @@ export default class MobileHUD {
      * Update coin display
      */
     updateCoins() {
-        if (!this.isVisible || !this.coinText) return;
+        if (!this.isVisible || this.focusModeActive || !this.coinText) return;
 
         const coins = window.EconomyManager?.getBalance() || 0;
 
@@ -1660,6 +1661,7 @@ export default class MobileHUD {
      * Show critical stat warning animation
      */
     showCriticalWarning(statKey) {
+        if (this.focusModeActive) return;
         const indicator = this.statIndicators.find(i => i.key === statKey);
         if (!indicator) return;
 
@@ -1687,13 +1689,23 @@ export default class MobileHUD {
         this.isVisible = false;
     }
 
+    setFocusMode(active) {
+        this.focusModeActive = Boolean(active);
+        this.elements.forEach(element => {
+            element?.setVisible?.(!this.focusModeActive);
+        });
+        if (!this.focusModeActive) {
+            this.update();
+        }
+    }
+
     /**
      * Show the mobile HUD
      */
     show() {
         this.elements.forEach((el) => {
             if (el && el.setVisible) {
-                el.setVisible(true);
+                el.setVisible(!this.focusModeActive);
             }
         });
         this.isVisible = true;

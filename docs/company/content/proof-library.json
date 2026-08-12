@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "proofs": [
+    {
+      "id": "PF-001",
+      "title": "Wanderer-77 crash-site game asset",
+      "asset": "public/game/project-beacon-crash-site.webp",
+      "kind": "game_world_asset",
+      "status": "source_bound",
+      "capturedFromBuild": null,
+      "shows": "The crash site of the Wanderer-77 expedition ship.",
+      "doesNotProve": ["complete gameplay sequence", "player outcome", "animation"],
+      "claims": ["CL-001", "CL-008"],
+      "rights": "First-party game asset in the Mythical Void repository",
+      "generatedMediaProvenance": "Not used as generated marketing proof",
+      "alt": "The Wanderer-77 crash site in the Mythical Void game.",
+      "expiryTrigger": "Asset provenance, rights, or representation changes"
+    },
+    {
+      "id": "PF-002",
+      "title": "Fend village game asset",
+      "asset": "public/game/village/village-heart-command.webp",
+      "kind": "game_world_asset",
+      "status": "source_bound",
+      "capturedFromBuild": null,
+      "shows": "The command area at the heart of the Fend village.",
+      "doesNotProve": ["completed restoration", "player choice outcome", "animation"],
+      "claims": ["CL-004", "CL-008"],
+      "rights": "First-party game asset in the Mythical Void repository",
+      "generatedMediaProvenance": "Not used as generated marketing proof",
+      "alt": "The village heart command area in the Mythical Void game.",
+      "expiryTrigger": "Asset provenance, rights, or representation changes"
+    },
+    {
+      "id": "PF-003",
+      "title": "Hatch and first bond gameplay proof",
+      "productionBriefId": "PB-001",
+      "asset": null,
+      "kind": "gameplay_capture",
+      "status": "required_missing",
+      "capturedFromBuild": null,
+      "shows": "Required: continuous authentic capture from hatch interaction through a concrete first bond response.",
+      "doesNotProve": [],
+      "claims": ["CL-005", "CL-006"],
+      "rights": "Must be first-party capture with no player personal data",
+      "generatedMediaProvenance": "Not applicable unless edited with generated elements",
+      "alt": "Required after capture",
+      "expiryTrigger": "Relevant gameplay or UI changes"
+    },
+    {
+      "id": "PF-004",
+      "title": "Realm restoration gameplay proof",
+      "productionBriefId": "PB-002",
+      "asset": null,
+      "kind": "gameplay_capture",
+      "status": "required_missing",
+      "capturedFromBuild": null,
+      "shows": "Required: authentic before-and-after realm restoration with enough context to understand player action.",
+      "doesNotProve": [],
+      "claims": ["CL-004"],
+      "rights": "Must be first-party capture with no player personal data",
+      "generatedMediaProvenance": "Not applicable unless edited with generated elements",
+      "alt": "Required after capture",
+      "expiryTrigger": "Relevant gameplay, realm art, or UI changes"
+    },
+    {
+      "id": "PF-005",
+      "title": "Project Beacon choice gameplay proof",
+      "productionBriefId": "PB-003",
+      "asset": null,
+      "kind": "gameplay_capture",
+      "status": "required_missing",
+      "capturedFromBuild": null,
+      "shows": "Required: authentic story discovery or choice that demonstrates Project Beacon's living-world tension without spoiling the ending.",
+      "doesNotProve": [],
+      "claims": ["CL-008"],
+      "rights": "Must be first-party capture with no player personal data",
+      "generatedMediaProvenance": "Not applicable unless edited with generated elements",
+      "alt": "Required after capture",
+      "expiryTrigger": "Relevant story, dialogue, or UI changes"
+    }
+  ]
+}

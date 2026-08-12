@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/schemas/grounded-support-drafting.schema.json",
+  "title": "Mythical grounded support drafting contract",
+  "type": "object",
+  "required": ["schemaVersion", "asOf", "status", "purpose", "decisionRefs", "riskRefs", "workflowRefs", "authority", "knowledgeBoundary", "answerBindings", "operatingRules", "syntheticCases", "expectedResults", "productionReadiness", "activationGates", "groundedDraftingReadyForReview", "liveSupportDraftingReady", "humanReviewRequired", "externalActionAuthorized", "nextDecision"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "asOf": { "type": "string", "format": "date" },
+    "status": { "const": "offline_grounded_support_drafting_ready_human_review_required" },
+    "purpose": { "type": "string", "minLength": 500 },
+    "answerBindings": { "type": "array", "minItems": 8, "maxItems": 8 },
+    "syntheticCases": { "type": "array", "minItems": 12, "maxItems": 12 },
+    "activationGates": { "type": "array", "minItems": 14, "maxItems": 14 },
+    "groundedDraftingReadyForReview": { "const": true },
+    "liveSupportDraftingReady": { "const": false },
+    "humanReviewRequired": { "const": true },
+    "externalActionAuthorized": { "const": false },
+    "nextDecision": { "type": "string", "minLength": 500 }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,136 @@
+diff --git a/public/robots.txt b/public/robots.txt
+new file mode 100644
+--- /dev/null
++++ b/public/robots.txt
+@@ -0,0 +1,4 @@
++User-agent: *
++Allow: /
++
++Sitemap: https://mythicalvoid.com/sitemap.xml
+diff --git a/public/sitemap.xml b/public/sitemap.xml
+new file mode 100644
+--- /dev/null
++++ b/public/sitemap.xml
+@@ -0,0 +1,18 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
++  <url>
++    <loc>https://mythicalvoid.com/</loc>
++    <changefreq>weekly</changefreq>
++    <priority>1.0</priority>
++  </url>
++  <url>
++    <loc>https://mythicalvoid.com/privacy/</loc>
++    <changefreq>monthly</changefreq>
++    <priority>0.3</priority>
++  </url>
++  <url>
++    <loc>https://mythicalvoid.com/terms/</loc>
++    <changefreq>monthly</changefreq>
++    <priority>0.3</priority>
++  </url>
++</urlset>
+diff --git a/public/llms.txt b/public/llms.txt
+new file mode 100644
+--- /dev/null
++++ b/public/llms.txt
+@@ -0,0 +1,27 @@
++# Mythical Void
++
++> Mythical Void is a free, family-friendly browser action-adventure about a
++> stranded astronaut and a procedurally varied alien companion. Players bond with their
++> companion, restore six living realms, recover their ship, and make choices
++> about what discovery and home should mean.
++
++Canonical website: https://mythicalvoid.com/
++Play in a browser: https://mythicalvoid.com/play/
++Privacy and safety: https://mythicalvoid.com/privacy/
++Terms of use: https://mythicalvoid.com/terms/
++
++Key facts:
++
++- The current browser release is free to play.
++- No account, email address, payment information, or download is required to
++  start playing.
++- Game progress is stored locally by default.
++- The game is designed to be family friendly and contains fantasy combat
++  without gore.
++- Creature genetics create varied appearances, affinities, personalities, and
++  abilities.
++- The story follows Project Beacon and the damaged ship Wanderer-77 across six
++  living realms.
++
++For general enquiries: hello@mythicalvoid.com
++For parents and guardians: parents@mythicalvoid.com
+diff --git a/index.html b/index.html
+--- a/index.html
++++ b/index.html
+@@ -4,16 +4,18 @@
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+     <meta name="description" content="Bond with a one-of-a-kind alien companion, restore six living realms, and decide what home means in this free browser adventure.">
+     <meta name="keywords" content="Mythical Void, creature game, browser game, free game, creature raising, action adventure">
++    <meta name="robots" content="index, follow, max-image-preview:large">
+     <meta name="theme-color" content="#090711">
+     <meta property="og:title" content="Mythical Void - Your Creature. Your Journey.">
+     <meta property="og:description" content="Project Beacon sent you to find life. What hatches in the Void changes the mission. Play free in your browser.">
+     <meta property="og:image" content="https://mythicalvoid.com/marketing/nova.webp">
+     <meta property="og:image:alt" content="Nova, a mint-green cosmic creature from Mythical Void">
+     <meta property="og:url" content="https://mythicalvoid.com/">
+     <meta property="og:type" content="website">
++    <meta property="og:site_name" content="Mythical Void">
+     <meta name="twitter:card" content="summary_large_image">
+     <meta name="twitter:title" content="Mythical Void - Your Creature. Your Journey.">
+     <meta name="twitter:description" content="Raise your creature. Restore the guardians. Choose what home means.">
+     <meta name="twitter:image" content="https://mythicalvoid.com/marketing/nova.webp">
+     <meta name="twitter:image:alt" content="Nova, a mint-green cosmic creature from Mythical Void">
+@@ -20,9 +22,31 @@
+     <link rel="canonical" href="https://mythicalvoid.com/">
+     <link rel="icon" href="/marketing/mythical-void-logo.webp">
+     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+     <title>Mythical Void - Your Creature. Your Journey.</title>
++    <script type="application/ld+json">
++    {
++      "@context": "https://schema.org",
++      "@type": "VideoGame",
++      "name": "Mythical Void",
++      "url": "https://mythicalvoid.com/",
++      "image": "https://mythicalvoid.com/marketing/nova.webp",
++      "description": "A free, family-friendly browser action-adventure about bonding with a procedurally varied alien companion, restoring six living realms, and deciding what home means.",
++      "genre": ["Action-adventure", "Creature raising", "Science fantasy"],
++      "playMode": "SinglePlayer",
++      "applicationCategory": "Game",
++      "operatingSystem": "Any modern web browser",
++      "isFamilyFriendly": true,
++      "offers": {
++        "@type": "Offer",
++        "price": "0",
++        "priceCurrency": "EUR",
++        "availability": "https://schema.org/InStock",
++        "url": "https://mythicalvoid.com/play/"
++      }
++    }
++    </script>
+ </head>
+ <body>
+     <div id="app"></div>
+     <script type="module" src="/src/main.js"></script>
+ </body>
+diff --git a/src/site/storefront.js b/src/site/storefront.js
+--- a/src/site/storefront.js
++++ b/src/site/storefront.js
+@@ -260,12 +260,12 @@ function renderStorefront() {
+                     <div>
+                         <p class="eyebrow">COMMUNITY DESIGN LAB</p>
+                         <h2>Design a boss. Shape the game.</h2>
+                     </div>
+                     <div>
+-                        <p>Draw a guardian, name its powers, and tell us which realm it protects. Young designers should ask a parent or guardian before emailing artwork.</p>
+-                        <a class="button button-secondary" href="mailto:hello@mythicalvoid.com?subject=Mythical%20Void%20boss%20design">Send a design</a>
++                        <p>Draw a guardian, name its powers, and tell us which realm it protects. For a young designer, a parent or guardian must send the idea. Please do not include the child's surname, face, voice, school, location, or contact details.</p>
++                        <a class="button button-secondary" href="mailto:hello@mythicalvoid.com?subject=Mythical%20Void%20boss%20design">Parent or guardian: send a design</a>
+                     </div>
+                 </div>
+             </section>
+ 
+             <section class="faq-section" id="faq">

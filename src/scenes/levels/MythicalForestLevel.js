@@ -6,6 +6,32 @@ import {
     getFirstExpeditionCompanionName,
     getFirstExpeditionDrillStep
 } from '../../systems/FirstExpeditionDrill.js';
+import {
+    buildCreaturePowerProfile,
+    recordCreaturePowerEvent
+} from '../../systems/CreaturePowerProfile.js';
+import { companionMediaService } from '../../systems/CompanionMediaService.js';
+import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../../config/cinematic-media.js';
+
+const ELDER_TREANT_TEXTURE = 'elderTreant';
+const ELDER_TREANT_ASSET = '/game/guardians/elder-treant.webp';
+const ELDER_TREANT_DISPLAY_HEIGHT = 310;
+const FOREST_ARRIVAL_TEXTURE = 'mythicalForestArrival';
+const FOREST_ARRIVAL_CINEMATIC_VERSION = 2;
+
+const FOREST_GUARDIAN_ATTACK_WINDOWS = Object.freeze({
+    root_slam: 1700,
+    vine_whip: 1500,
+    spore_cloud: 3600,
+    nature_fury: 4800
+});
+
+const FOREST_GUARDIAN_ATTACK_CUES = Object.freeze({
+    root_slam: 'ROOTS RISING // JUMP',
+    vine_whip: 'VINE WHIP // MOVE BEHIND IT',
+    spore_cloud: 'SPORE CLOUD // LEAVE THE CIRCLE',
+    nature_fury: 'FALLING LEAVES // KEEP MOVING'
+});
 
 /**
  * MythicalForestLevel - Mystical Forest platformer level
@@ -48,13 +74,21 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Boss state
         this.boss = null;
+        this.bossTargetScale = 1;
         this.bossHealth = 0;
-        this.bossMaxHealth = 50;  // INCREASED from 10 - boss should be a real challenge!
+        // Six clean katana hits are enough to teach the rescue fight without
+        // making the first guardian more durable than late-game bosses.
+        this.bossMaxHealth = 12;
         this.bossPhase = 1;
         this.bossAttackTimer = null;
         this.bossHealthBar = null;
+        this.bossCorruptionText = null;
         this.bossBarLayout = null;
         this.bossNameText = null;
+        this.bossInstructionText = null;
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer = null;
+        this.bossAttackPreview = null;
 
         // Forest particles
         this.forestParticles = [];
@@ -89,10 +123,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.firstExpeditionDrill = null;
         this.firstExpeditionDrillElements = [];
         this.firstExpeditionDrillPreview = false;
+        this.firstExpeditionDrillAutoCompletePreview = false;
+        this.firstExpeditionDrillStepPreview = 0;
         this.firstExpeditionCompanionNamePreview = null;
         this.levelEntryElements = [];
         this.levelEntryKeyHandler = null;
         this.levelEntryDismissing = false;
+        this.forestArrivalElements = [];
+        this.forestArrivalRequest = 0;
     }
 
     /**
@@ -104,6 +142,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Check if this is a test/preview mode - spawn boss immediately
         this.testMode = data?.testMode || false;
         this.firstExpeditionDrillPreview = data?.firstExpeditionDrillPreview === true;
+        this.firstExpeditionDrillAutoCompletePreview =
+            this.firstExpeditionDrillPreview &&
+            data?.firstExpeditionDrillAutoCompletePreview === true;
+        this.firstExpeditionDrillStepPreview =
+            this.firstExpeditionDrillPreview &&
+            Number.isInteger(data?.firstExpeditionDrillStepPreview)
+                ? Phaser.Math.Clamp(data.firstExpeditionDrillStepPreview, 0, 2)
+                : 0;
         this.firstExpeditionCompanionNamePreview =
             this.firstExpeditionDrillPreview &&
             typeof data?.companionNamePreview === 'string'
@@ -118,12 +164,25 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Reset boss state
         this.boss = null;
+        this.bossTargetScale = 1;
         this.bossHealth = 0;
         this.bossPhase = 1;
         this.bossAttackTimer = null;
         this.bossHealthBar = null;
+        this.bossCorruptionText = null;
         this.bossBarLayout = null;
         this.bossNameText = null;
+        this.bossInstructionText = null;
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer = null;
+        this.bossAttackPreview = [
+            'root_slam',
+            'vine_whip',
+            'spore_cloud',
+            'nature_fury'
+        ].includes(data?.bossAttackPreview)
+            ? data.bossAttackPreview
+            : null;
 
         // Reset particles
         this.forestParticles = [];
@@ -160,8 +219,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
         console.log('[MythicalForestLevel] Level state reset');
     }
 
+    preload() {
+        super.preload();
+        this.load.image(ELDER_TREANT_TEXTURE, ELDER_TREANT_ASSET);
+        this.load.image(
+            FOREST_ARRIVAL_TEXTURE,
+            CINEMATIC_MEDIA.mythicalForestArrival.poster
+        );
+    }
+
     create() {
         super.create();
+
+        if (this.prepareCurrentEcologyPreview()) return;
 
         // Record level entry
         if (!this.entryPreview && window.AchievementSystem?.recordEvent) {
@@ -178,9 +248,174 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.startTestMode();
         } else if (this.firstExpeditionDrillPreview) {
             this.startLevel();
+        } else if (this.shouldShowFirstForestArrivalCinematic()) {
+            this.showFirstForestArrivalCinematic(() => this.showLevelEntry());
         } else {
             this.showLevelEntry();
         }
+    }
+
+    shouldShowFirstForestArrivalCinematic() {
+        return Number(window.GameState?.get?.(
+            'story.projectBeacon.firstForestCinematicVersion'
+        )) < FOREST_ARRIVAL_CINEMATIC_VERSION;
+    }
+
+    clearForestArrivalBackdrop() {
+        this.forestArrivalElements.forEach(element => {
+            element?.stop?.();
+            element?.removeVideoElement?.();
+            element?.destroy?.();
+        });
+        this.forestArrivalElements = [];
+    }
+
+    createForestArrivalMotionBackdrop(width, height, depth, fallback) {
+        if (!shouldPlayCinematicMedia() || !this.add?.video) return null;
+        try {
+            const video = this.add.video(width / 2, height / 2)
+                .setOrigin(0.5)
+                .setDisplaySize(
+                    Math.max(width, height * (16 / 9)),
+                    Math.max(height, width * (9 / 16))
+                )
+                .setAlpha(0)
+                .setDepth(depth)
+                .setScrollFactor(0);
+            video.loadURL(CINEMATIC_MEDIA.mythicalForestArrival.url, true, 'anonymous');
+            video.setMute?.(true);
+            video.video?.setAttribute?.('playsinline', '');
+            video.once?.('playing', () => {
+                video.setAlpha(0.92);
+                fallback?.setAlpha?.(0.16);
+            });
+            video.once?.('error', () => video.destroy?.());
+            video.play?.(true);
+            return video;
+        } catch (error) {
+            console.warn('[MythicalForestLevel] Forest motion backdrop unavailable:', error);
+            return null;
+        }
+    }
+
+    showFirstForestArrivalCinematic(onComplete) {
+        const requestId = ++this.forestArrivalRequest;
+        const { width, height } = this.cameras.main;
+        const depth = 3200;
+        const scenicElements = [];
+        const foregroundElements = [];
+        let completed = false;
+
+        this.physics.pause();
+
+        const backgroundImage = this.add.image(
+            width / 2,
+            height / 2,
+            FOREST_ARRIVAL_TEXTURE
+        ).setOrigin(0.5)
+            .setDisplaySize(
+                Math.max(width, height * (16 / 9)),
+                Math.max(height, width * (9 / 16))
+            )
+            .setDepth(depth)
+            .setScrollFactor(0);
+        scenicElements.push(backgroundImage);
+        const motionBackdrop = this.createForestArrivalMotionBackdrop(
+            width,
+            height,
+            depth + 1,
+            backgroundImage
+        );
+        if (motionBackdrop) scenicElements.push(motionBackdrop);
+
+        const background = this.add.graphics()
+            .fillStyle(0x020706, 0.38)
+            .fillRect(0, 0, width, height)
+            .setScrollFactor(0)
+            .setDepth(depth + 2);
+        const status = this.add.text(
+            width / 2,
+            height * 0.12,
+            'PROJECT BEACON // FIELD BRIEF',
+            {
+                fontSize: width < 600 ? '13px' : '18px',
+                color: '#8FE3CF',
+                fontStyle: 'bold',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 4);
+        const caption = this.add.text(
+            width / 2,
+            height * 0.78,
+            'A signal is moving through the forest. Follow it and find out who needs help.',
+            {
+                fontSize: width < 600 ? '17px' : '24px',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                align: 'center',
+                wordWrap: { width: width * 0.82 },
+                stroke: '#020706',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 4).setAlpha(0.94);
+        const continueText = this.add.text(
+            width / 2,
+            height * 0.9,
+            'TAP TO BEGIN',
+            {
+                fontSize: width < 600 ? '12px' : '14px',
+                color: '#B9DAD7',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 4).setAlpha(0.78);
+        const skipZone = this.add.zone(0, 0, width, height)
+            .setOrigin(0)
+            .setScrollFactor(0)
+            .setDepth(depth + 5)
+            .setInteractive({ useHandCursor: true });
+        foregroundElements.push(background, status, caption, continueText, skipZone);
+        this.forestArrivalElements = scenicElements;
+
+        const finish = ({ viewed = false } = {}) => {
+            if (completed) return false;
+            completed = true;
+            this.forestArrivalRequest += 1;
+            if (viewed) {
+                window.GameState?.set?.(
+                    'story.projectBeacon.firstForestCinematicSeen',
+                    true
+                );
+                window.GameState?.set?.(
+                    'story.projectBeacon.firstForestCinematicVersion',
+                    FOREST_ARRIVAL_CINEMATIC_VERSION
+                );
+                window.GameState?.save?.();
+            }
+            foregroundElements.forEach(element => element?.destroy?.());
+            // Keep the scenery in place beneath the mission panel so the
+            // transition remains visual, without obscuring its tap target.
+            scenicElements.forEach(element => element?.setDepth?.(2990));
+            this.physics.resume();
+            onComplete?.();
+            return true;
+        };
+        skipZone.on('pointerdown', () => finish({ viewed: true }));
+
+        const mediaService = window.CompanionMediaService || companionMediaService;
+        Promise.resolve(mediaService?.prepareCinematic?.(this, {
+            momentId: 'first_forest_arrival',
+            stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby'
+        })).catch(() => null);
+
+        this.tweens.add({
+            targets: [caption, continueText],
+            alpha: 1,
+            duration: 500,
+            ease: 'Sine.easeOut'
+        });
+        this.time.delayedCall(5200, () => finish({ viewed: true }));
+
+        return true;
     }
 
     /**
@@ -199,10 +434,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (this.player) {
             this.player.setPosition(200, this.levelHeight - 200);
         }
+        this.bossFightActive = true;
+        this.showPlatformerMobileControls();
 
         // Spawn the boss immediately
         this.time.delayedCall(500, () => {
             this.spawnElderTreant();
+            if (this.bossAttackPreview) {
+                this.time.delayedCall(1100, () => {
+                    this.executeBossAttack(this.bossAttackPreview);
+                });
+            }
         });
     }
 
@@ -342,7 +584,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             secondaryY,
             resume
                 ? `[ BEACON ] ${resume.label} link restored`
-                : '[ ] Activate Beacon anchors',
+                : '[ REQUIRED ] Follow the Current through 3 Beacon anchors',
             {
             fontSize: font(16, 14),
             color: '#AAAAAA',
@@ -351,7 +593,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         ).setScrollFactor(0).setDepth(3002);
         entryElements.push(obj1);
 
-        const obj2 = this.add.text(contentLeft, y(250), '[ OPTIONAL ] Collect Star Fragments (0/5)', {
+        const obj2 = this.add.text(contentLeft, y(250), '[ OPTIONAL ] Collect 5 Star Fragments', {
             fontSize: font(16, 14),
             color: '#AAAAAA',
             wordWrap: { width: contentWidth }
@@ -385,7 +627,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
             enterBtn.disableInteractive();
             overlay.disableInteractive();
 
-            // Fade out ALL elements and start level
+            this.clearForestArrivalBackdrop();
+
+            // Gameplay starts immediately after an accepted input. Visual cleanup
+            // can finish independently and can no longer strand a mobile player.
+            this.physics.resume();
+            this.startLevel();
+
+            // Fade out ALL entry elements after the level is live.
             this.tweens.add({
                 targets: entryElements,
                 alpha: 0,
@@ -395,8 +644,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
                         if (el && el.destroy) el.destroy();
                     });
                     this.levelEntryElements = [];
-                    this.physics.resume();
-                    this.startLevel();
                 }
             });
             return true;
@@ -470,27 +717,50 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.objectiveDisplay = this.add.text(
             width - (this.isCompactObjectiveHUD ? 12 : 20),
             this.isCompactObjectiveHUD
-                ? (isShortLandscape ? 82 : 212)
-                : height - 30,
+                ? (isShortLandscape ? 76 : 72)
+                : 20,
             this.getForestObjectiveText(),
             {
-                fontSize: this.isCompactObjectiveHUD ? '11px' : '15px',
-                color: '#8FE3CF',
-                backgroundColor: 'rgba(7, 20, 17, 0.82)',
-                padding: { x: 8, y: 5 },
-                align: 'right'
+                fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#E9FFF8',
+                backgroundColor: 'rgba(7, 20, 17, 0.92)',
+                padding: { x: 10, y: 7 },
+                lineSpacing: 2,
+                align: 'left',
+                wordWrap: {
+                    width: this.isCompactObjectiveHUD ? 190 : 320
+                }
             }
-        ).setOrigin(1, this.isCompactObjectiveHUD ? 0 : 1)
+        ).setOrigin(1, 0)
             .setScrollFactor(0)
             .setDepth(1000);
     }
 
     getForestObjectiveText() {
-        const signalState = this.forestRouteAligned ? 'ALIGNED' : 'SEARCHING';
-        if (this.isCompactObjectiveHUD) {
-            return `SIGNAL: ${signalState}\nANCHORS: ${this.beaconAnchorsActivated}/3\nFRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optional = `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+
+        if (this.bossDefeated) {
+            return `CURRENT RESTORED\nTHE GUARDIAN IS SAFE\n${optional}`;
         }
-        return `SIGNAL: ${signalState}\nANCHORS: ${this.beaconAnchorsActivated}/3  |  FRAGMENTS: ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+
+        if (this.bossFightActive) {
+            return `RESTORE THE GUARDIAN\nSTRIKE THE PURPLE CORRUPTION\n${optional}`;
+        }
+
+        if (this.forestRouteAligned) {
+            return `GUARDIAN AHEAD\nCLEAR THE PURPLE CORRUPTION\n${optional}`;
+        }
+
+        const nextAnchor = [
+            'ROOTWAY',
+            'CROWN PATH',
+            'GUARDIAN APPROACH'
+        ][this.beaconAnchorsActivated] || 'GUARDIAN APPROACH';
+        const current = Math.min(this.beaconAnchorsActivated + 1, 3);
+
+        return `ROUTE ${current}/3 // ${nextAnchor}\nFOLLOW THE CURRENT →\n${optional}`;
     }
 
     startFirstExpeditionDrill({ force = false } = {}) {
@@ -511,7 +781,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             active: true,
             preview: this.firstExpeditionDrillPreview,
             panelVisible: true,
-            stepIndex: 0,
+            stepIndex: this.firstExpeditionDrillStepPreview,
             startX: this.player.x,
             companionName: getFirstExpeditionCompanionName(
                 this.firstExpeditionCompanionNamePreview ||
@@ -521,6 +791,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         };
         this.createFirstExpeditionDrillPanel();
         this.renderFirstExpeditionDrillStep();
+        if (this.firstExpeditionDrillAutoCompletePreview) {
+            ['move', 'jump', 'melee'].forEach((action, index) => {
+                this.time.delayedCall(350 + index * 250, () => {
+                    this.advanceFirstExpeditionDrill(action);
+                });
+            });
+        }
         return true;
     }
 
@@ -637,6 +914,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         ui.heading.setText(step.heading);
         ui.instruction.setText(step.instruction);
         ui.control.setText(step.control);
+        this.showMobileControlCoach?.(
+            step.action === 'move' ? 'joystick' : step.action
+        );
         ui.progress.clear();
 
         const spacing = 16;
@@ -694,12 +974,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
         drill.active = false;
         const ui = this.firstExpeditionDrillUI;
         const companionName = drill.companionName || 'Your companion';
+        const powerProfile = buildCreaturePowerProfile(window.GameState, {
+            context: 'fend'
+        });
         ui?.heading?.setText('FIELD DRILL COMPLETE');
         ui?.instruction?.setText(
-            `${companionName} copies your stance. Sensei calls that good kihon.`
+            `${companionName} answers the astronaut's katana stance with ` +
+            `${powerProfile.affinityPower.name}.`
         );
-        ui?.control?.setText('THE LIVING PATH IS OPEN');
+        ui?.control?.setText(
+            `POWER WITNESSED // ${powerProfile.affinityLabel.toUpperCase()}`
+        );
         ui?.progress?.clear();
+        this.showFirstExpeditionPowerResponse(
+            powerProfile,
+            drill.knot
+        );
 
         if (drill.knot?.active) {
             this.tweens.killTweensOf(drill.knot);
@@ -718,6 +1008,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 completed: true,
                 completedAt: new Date().toISOString()
             });
+            recordCreaturePowerEvent(window.GameState, {
+                eventId: 'forest_knot_response',
+                powerId: powerProfile.affinityPower.id,
+                context: 'fend',
+                magnitude: 'major',
+                outcome: 'living_path_opened',
+                save: false
+            });
             window.GameState.save?.();
         }
 
@@ -725,7 +1023,50 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.time.delayedCall(2400, () => this.clearFirstExpeditionDrill());
     }
 
+    showFirstExpeditionPowerResponse(profile, knot) {
+        if (!profile || !knot?.active) {
+            return;
+        }
+
+        const wave = this.add.graphics()
+            .setPosition(knot.x, knot.y)
+            .setDepth(90);
+        wave.lineStyle(5, profile.color, 0.95);
+        wave.strokeCircle(0, 0, 24);
+        wave.lineStyle(2, 0xFFFFFF, 0.8);
+        wave.strokeCircle(0, 0, 34);
+
+        this.tweens.add({
+            targets: wave,
+            alpha: 0,
+            scaleX: 4,
+            scaleY: 4,
+            duration: 700,
+            ease: 'Cubic.easeOut',
+            onComplete: () => wave.destroy()
+        });
+        window.FeedbackManager?.cameraFlash?.(this, 220, 143, 227, 207);
+        window.FXLibrary?.stardustBurst?.(this, knot.x, knot.y, {
+            count: 24,
+            color: [profile.color, 0x8FE3CF, 0xFFFFFF],
+            duration: 1000
+        });
+        const cameraView = this.cameras.main.worldView;
+        const labelX = Phaser.Math.Clamp(
+            knot.x,
+            cameraView.x + 110,
+            cameraView.right - 110
+        );
+        this.showFloatingText(
+            profile.affinityPower.name.toUpperCase(),
+            labelX,
+            knot.y - 70,
+            '#FFFFFF'
+        );
+    }
+
     clearFirstExpeditionDrill() {
+        this.clearMobileControlCoach?.();
         this.firstExpeditionDrillElements.forEach(element => {
             element?.removeAllListeners?.();
             element?.destroy?.();
@@ -768,18 +1109,40 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     performAttack() {
         if (this.levelCompletionActive) return;
-        super.performAttack();
-
         const drill = this.firstExpeditionDrill;
+        const playerAttackX = this.player.facingRight
+            ? this.player.x + 50
+            : this.player.x - 50;
+        const drillKnot = drill?.active &&
+            drill.stepIndex === 2 &&
+            drill.knot?.active
+            ? drill.knot
+            : null;
+        const knotInRange = Boolean(
+            drillKnot && Math.abs(playerAttackX - drillKnot.x) <= 105
+        );
+        super.performAttack({
+            targetXOverride: knotInRange ? drillKnot.x : null,
+            targetYOverride: knotInRange ? drillKnot.y : null
+        });
+
         if (!drill?.active || drill.stepIndex !== 2 || !drill.knot?.active) {
             return;
         }
 
-        const attackX = this.player.facingRight
-            ? this.player.x + 50
-            : this.player.x - 50;
-        if (Math.abs(attackX - drill.knot.x) <= 105) {
-            this.advanceFirstExpeditionDrill('melee');
+        if (
+            knotInRange &&
+            !drill.katanaStrikePending
+        ) {
+            drill.katanaStrikePending = true;
+            this.firstExpeditionDrillUI?.control?.setText(
+                'KATANA STRIKE // HOLD THE STANCE'
+            );
+            this.time.delayedCall(220, () => {
+                if (!drill.active) return;
+                drill.katanaStrikePending = false;
+                this.advanceFirstExpeditionDrill('melee');
+            });
         }
     }
 
@@ -999,13 +1362,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
             '#8FE3CF'
         );
 
+        const companionName = getFirstExpeditionCompanionName(
+            window.GameState?.get?.('creature.name')
+        );
         if (anchorNumber === 1) {
-            const companionName = getFirstExpeditionCompanionName(
-                window.GameState?.get?.('creature.name')
-            );
             this.time.delayedCall(700, () => {
                 this.showFloatingText(
-                    `${companionName} waits. The light holds.`,
+                    `${companionName}: "Rootway locked. We can return here."`,
+                    checkpoint.x,
+                    checkpoint.respawnY - 70,
+                    '#D6EEF2'
+                );
+            });
+        } else if (anchorNumber === 2) {
+            this.time.delayedCall(700, () => {
+                this.showFloatingText(
+                    `${companionName}: "The Current is stronger. Keep going."`,
                     checkpoint.x,
                     checkpoint.respawnY - 70,
                     '#D6EEF2'
@@ -1015,7 +1387,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.forestRouteAligned = true;
             this.time.delayedCall(700, () => {
                 this.showFloatingText(
-                    'Three living signals align. The guardian can hear us.',
+                    `${companionName}: "The guardian hears us. Stay close."`,
                     checkpoint.x,
                     checkpoint.respawnY - 70,
                     '#F2C94C'
@@ -2435,7 +2807,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         // Screen flash
-        this.cameras.main.flash(200, 255, 215, 0);
+        window.FeedbackManager?.cameraFlash?.(this, 200, 255, 215, 0);
 
         // Check if all collected
         if (this.starFragmentsCollected >= this.totalStarFragments) {
@@ -2780,7 +3152,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                                 this.player.y - 70,
                                 '#F2C94C'
                             );
-                            this.cameras.main.flash(180, 242, 193, 78);
+                            window.FeedbackManager?.cameraFlash?.(this, 180, 242, 193, 78);
                             this.bossGateHintUntil = now + 1800;
                         }
                         return;
@@ -2829,7 +3201,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.physics.pause();
 
         // Flash warning
-        this.cameras.main.flash(500, 34, 139, 34); // Forest green flash
+        window.FeedbackManager?.cameraFlash?.(this, 500, 34, 139, 34); // Forest green flash
 
         // Warning text
         const { width, height } = this.cameras.main;
@@ -2842,7 +3214,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
 
         // Screen shake
-        this.cameras.main.shake(1500, 0.015);
+        window.FeedbackManager?.cameraShake?.(this, 1500, 0.015);
 
         // Play boss intro sound
         if (window.AudioManager) {
@@ -2881,7 +3253,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Create the Elder Treant boss texture - translating the image to code
+     * Keep a procedural fallback so a failed asset request cannot block combat.
      *
      * The image shows:
      * - Angry tree face with menacing expression
@@ -2893,7 +3265,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * - Purple foliage at base
      */
     createElderTreantTexture() {
-        const textureKey = 'elderTreant';
+        const textureKey = ELDER_TREANT_TEXTURE;
         if (this.textures.exists(textureKey)) return textureKey;
 
         const graphics = this.make.graphics({ add: false });
@@ -3203,9 +3575,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.boss.setCollideWorldBounds(true);
         this.boss.setBounce(0);
         this.boss.setDepth(880);
-        this.boss.body.setSize(120, 160);
-        this.boss.body.setOffset(40, 30);
-        this.boss.setScale(1.5); // Make it imposing
+        this.bossTargetScale = ELDER_TREANT_DISPLAY_HEIGHT /
+            Math.max(1, this.boss.height);
+        this.boss.body.setSize(
+            this.boss.width * 0.48,
+            this.boss.height * 0.68
+        );
+        this.boss.body.setOffset(
+            this.boss.width * 0.26,
+            this.boss.height * 0.2
+        );
+        this.boss.setScale(this.bossTargetScale);
 
         // Initialize boss state
         this.bossHealth = this.bossMaxHealth;
@@ -3228,20 +3608,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Add entrance animation
         this.boss.setAlpha(0);
-        this.boss.setScale(0.5);
+        this.boss.setScale(this.bossTargetScale * 0.35);
 
         this.tweens.add({
             targets: this.boss,
             alpha: 1,
-            scale: 1.5,
+            scale: this.bossTargetScale,
             duration: 1000,
             ease: 'Back.easeOut',
             onComplete: () => {
                 // Start boss AI
-                this.startBossAI();
+                if (!this.bossAttackPreview) {
+                    this.startBossAI();
+                }
 
                 // Camera shake for dramatic effect
-                this.cameras.main.shake(300, 0.01);
+                window.FeedbackManager?.cameraShake?.(this, 300, 0.01);
 
                 if (window.AudioManager) {
                     window.AudioManager.playError();
@@ -3309,7 +3691,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossUI.setDepth(1500);
 
         // Boss name
-        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, '🌳 ELDER TREANT 🌳', {
+        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'ELDER TREANT // TRAPPED', {
             fontSize: isMobileLayout ? '18px' : '22px',
             color: '#90EE90',
             fontStyle: 'bold',
@@ -3319,13 +3701,21 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossUI.add(this.bossNameText);
 
         // Subtitle
-        const subtitle = this.add.text(screenWidth / 2, barY - 8, 'Clear the Void corruption', {
+        this.bossInstructionText = this.add.text(
+            screenWidth / 2,
+            barY - 8,
+            'STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN',
+            {
             fontSize: '11px',
+            fontFamily: 'Arial, sans-serif',
             color: '#B8F3C8',
+            fontStyle: 'bold',
             stroke: '#142016',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-        this.bossUI.add(subtitle);
+            strokeThickness: 2,
+            align: 'center'
+            }
+        ).setOrigin(0.5);
+        this.bossUI.add(this.bossInstructionText);
 
         // Health bar background
         const bgBar = this.add.graphics();
@@ -3338,6 +3728,21 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Health bar
         this.bossHealthBar = this.add.graphics();
         this.bossUI.add(this.bossHealthBar);
+
+        this.bossCorruptionText = this.add.text(
+            screenWidth / 2,
+            barY + (barHeight / 2),
+            '',
+            {
+                fontSize: isMobileLayout ? '11px' : '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                stroke: '#2A0B38',
+                strokeThickness: 2
+            }
+        ).setOrigin(0.5);
+        this.bossUI.add(this.bossCorruptionText);
 
         // Initial draw
         this.updateBossHealthBar(barX, barY, barWidth, barHeight);
@@ -3364,6 +3769,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         const healthPercent = this.bossHealth / this.bossMaxHealth;
         const currentWidth = barWidth * healthPercent;
+        const corruptionRemaining = Math.max(0, Math.ceil(this.bossHealth));
 
         // The bar represents corruption remaining, not the guardian's life.
         this.bossHealthBar.fillStyle(0x8B2FC9, 1);
@@ -3372,6 +3778,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Shiny overlay
         this.bossHealthBar.fillStyle(0xFFFFFF, 0.2);
         this.bossHealthBar.fillRoundedRect(barX, barY, currentWidth, barHeight / 2, { tl: 6, tr: 6, bl: 0, br: 0 });
+        this.bossCorruptionText?.setText(
+            corruptionRemaining > 0
+                ? `VOID CORRUPTION // ${corruptionRemaining}/${this.bossMaxHealth}`
+                : 'VOID CORRUPTION // CLEARED'
+        );
     }
 
     /**
@@ -3417,6 +3828,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (!this.boss || this.boss.isAttacking) return;
 
         this.boss.isAttacking = true;
+        const attackWindow = FOREST_GUARDIAN_ATTACK_WINDOWS[attackType] || 1800;
+        this.showBossAttackInstruction(
+            FOREST_GUARDIAN_ATTACK_CUES[attackType],
+            attackWindow
+        );
 
         switch (attackType) {
             case 'root_slam':
@@ -3433,12 +3849,40 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 break;
         }
 
-        // Reset attack state after cooldown
-        this.time.delayedCall(1500, () => {
+        // Keep the guardian locked until every active hazard has resolved.
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = this.time.delayedCall(attackWindow, () => {
             if (this.boss) {
                 this.boss.isAttacking = false;
             }
+            this.bossAttackUnlockTimer = null;
         });
+    }
+
+    showBossAttackInstruction(cue, duration = 1800) {
+        if (!cue || !this.bossInstructionText) return;
+
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionText
+            .setText(cue)
+            .setColor('#FFD166')
+            .setScale(1.04);
+        this.tweens.add({
+            targets: this.bossInstructionText,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 180,
+            ease: 'Sine.easeOut'
+        });
+        this.bossInstructionTimer = this.time.delayedCall(
+            Math.max(600, duration - 250),
+            () => {
+                this.bossInstructionText
+                    ?.setText('STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN')
+                    ?.setColor('#B8F3C8');
+                this.bossInstructionTimer = null;
+            }
+        );
     }
 
     /**
@@ -3464,7 +3908,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.combatJuice.screenShake(7, 200);
             this.combatJuice.hapticFeedback('heavy');
         } else {
-            this.cameras.main.shake(200, 0.01);
+            window.FeedbackManager?.cameraShake?.(this, 200, 0.01);
         }
 
         // Create root spikes
@@ -3611,7 +4055,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         // Screen flash
-        this.cameras.main.flash(500, 34, 139, 34);
+        window.FeedbackManager?.cameraFlash?.(this, 500, 34, 139, 34);
 
         // Warning text
         const { width, height } = this.cameras.main;
@@ -3696,8 +4140,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
             // Register hit for combo system
             this.combatJuice.registerHit(amount);
 
-            // Show damage number on boss
-            this.combatJuice.showDamageNumber(this.boss.x, this.boss.y - 80, amount, false);
+            this.showFloatingText(
+                `CORRUPTION -${amount}`,
+                this.boss.x,
+                this.boss.y - 80,
+                '#D9B8FF'
+            );
 
             // Screen shake - bigger for bosses
             this.combatJuice.screenShake(5, 150);
@@ -3708,8 +4156,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             // Brief hit stop for satisfying impact
             this.combatJuice.hitStop(40);
         } else {
-            // Fallback: Flash boss red
-            this.boss.setTint(0xFF0000);
+            // Fallback: flash the corruption color, not a damage-state red.
+            this.boss.setTint(0x8B2FC9);
             this.time.delayedCall(100, () => {
                 if (this.boss) this.boss.clearTint();
             });
@@ -3741,7 +4189,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.combatJuice.phaseTransition(this.boss, 2, '🌿 CORRUPTION SURGES! 🌿');
         } else {
             // Fallback: original transition
-            this.cameras.main.shake(500, 0.02);
+            window.FeedbackManager?.cameraShake?.(this, 500, 0.02);
             this.boss.setTint(0xFF6B6B);
 
             const { width, height } = this.cameras.main;
@@ -3784,6 +4232,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (this.bossAITimer) {
             this.bossAITimer.remove();
         }
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionTimer = null;
+        this.bossCorruptionText?.setText('VOID CORRUPTION // CLEARED');
 
         // The guardian recovers and withdraws after the corruption is cleared.
         this.boss.setVelocity(0, 0);
@@ -3791,7 +4244,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.boss.clearTint?.();
         this.boss.setTint(0x8FE3CF);
 
-        this.cameras.main.flash(600, 143, 227, 207);
+        window.FeedbackManager?.cameraFlash?.(this, 600, 143, 227, 207);
         window.FXLibrary?.stardustBurst?.(this, this.boss.x, this.boss.y, {
             count: 35,
             color: [0x8FE3CF, 0x90EE90, 0xFFFFFF],
@@ -3808,8 +4261,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: this.boss,
             alpha: 0,
-            scaleX: 1.08,
-            scaleY: 1.08,
+            scaleX: this.bossTargetScale * 1.08,
+            scaleY: this.bossTargetScale * 1.08,
             y: this.boss.y - 25,
             duration: 2000,
             onComplete: () => {
@@ -3840,7 +4293,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     showBossVictory() {
         this.bindLevelCompletionReturn();
 
-        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 340 });
+        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 370 });
         const {
             width, panelWidth, panelHeight, panelX, panelY,
             contentWidth, y, font, buttonPadding
@@ -3858,6 +4311,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         const coinsEarned = completionResult?.coinsAwarded || 0;
+        const ecology = completionResult?.currentEcology;
 
         // Victory text
         const victoryText = this.add.text(width / 2, y(45), '🌳 ELDER TREANT RESTORED 🌳', {
@@ -3887,21 +4341,36 @@ class MythicalForestLevel extends PlatformerLevelScene {
         panel.setScrollFactor(0).setDepth(2499);
 
         // Rewards header
-        this.add.text(width / 2, y(105), '✨ TRUST RETURNED ✨', {
-            fontSize: font(24, 20),
+        this.add.text(width / 2, y(100), 'LIVING CURRENT RECOVERING', {
+            fontSize: font(22, 18),
             color: '#90EE90',
             fontStyle: 'bold'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
+        this.add.text(
+            width / 2,
+            y(140),
+            ecology
+                ? `${ecology.regionLabel}: ${ecology.beforeVitality}% -> ${ecology.afterVitality}%`
+                : 'The forest roots carry life again.',
+            {
+                fontSize: font(15, 13),
+                color: '#D8FFF0',
+                fontStyle: 'bold',
+                align: 'center',
+                wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+
         // Coins earned
-        this.add.text(width / 2, y(155), `💰 ${coinsEarned} Coins`, {
-            fontSize: font(20, 17),
+        this.add.text(width / 2, y(182), `💰 ${coinsEarned} Coins`, {
+            fontSize: font(18, 16),
             color: '#FFD700'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         // Ship part notification
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        this.add.text(width / 2, y(200), `🌳 Guardian's Gift: Forest Core`, {
+        this.add.text(width / 2, y(222), `🌳 Guardian's Gift: Forest Core`, {
             fontSize: font(18, 15),
             color: '#90EE90',
             align: 'center',
@@ -3909,13 +4378,25 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
-        this.add.text(width / 2, y(235), `Ship Parts: ${shipParts.length}/${totalRequired}`, {
-            fontSize: font(14, 13),
-            color: '#7FFFD4'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+        this.add.text(
+            width / 2,
+            y(260),
+            (ecology
+                ? `Current regions: ${ecology.restoredCount}/${ecology.totalRegions}  |  Ship parts: ${shipParts.length}/${totalRequired}`
+                : `Ship Parts: ${shipParts.length}/${totalRequired}`) +
+                `\n${this.getVillageCompletionCopy({ compact: true })}` +
+                `\n${this.getGuardianSanctuaryArrivalCopy({ compact: true })}`,
+            {
+            fontSize: font(13, 11),
+            color: '#7FFFD4',
+            align: 'center',
+            lineSpacing: 4,
+            wordWrap: { width: contentWidth }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         // Continue button
-        const continueBtn = this.add.text(width / 2, y(290), '[ RETURN TO HUB ]', {
+        const continueBtn = this.add.text(width / 2, y(320), '[ RETURN TO HUB ]', {
             fontSize: font(18, 16),
             color: '#FFFFFF',
             backgroundColor: '#228B22',
@@ -3939,6 +4420,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     shutdown() {
         console.log('[MythicalForestLevel] Shutting down');
+        this.forestArrivalRequest += 1;
+        this.forestArrivalElements.forEach(element => element?.destroy?.());
+        this.forestArrivalElements = [];
         this.clearLevelEntryKeyHandler();
         this.levelEntryElements = [];
         this.clearFirstExpeditionDrill();
@@ -3963,6 +4447,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.bossUI.destroy();
             this.bossUI = null;
         }
+        this.bossInstructionText = null;
+        this.bossCorruptionText = null;
         this.bossBarLayout = null;
 
         if (this.bossGlow) {
@@ -3973,6 +4459,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (this.bossAITimer) {
             this.bossAITimer.remove();
         }
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionTimer = null;
 
         // Clean up enemies
         this.voidSprites.forEach(e => e.destroy());

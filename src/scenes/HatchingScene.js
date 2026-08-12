@@ -9,6 +9,7 @@ import evolutionConfig from '../config/evolution.json';
 import rarityConfig from '../config/rarity-config.json';
 import legalConfig from '../config/legal.json';
 import projectBeacon from '../config/project-beacon.json';
+import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../config/cinematic-media.js';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 import MobileHelpers from '../utils/mobile-helpers.js';
 const firstSessionFraming = projectBeacon.firstSessionFraming;
@@ -79,6 +80,7 @@ class HatchingScene extends Phaser.Scene {
         this.rarityInfo = null;
         this.eggTextureName = null;
         this.isStartingGame = false; // Reset START button state
+        this.themeMusicLoadRequested = false;
 
         // Set egg hatching properties from passed data
         this.isEggHatch = data?.isEggHatch || false;
@@ -87,8 +89,6 @@ class HatchingScene extends Phaser.Scene {
     }
 
     preload() {
-        // Preload theme music for home screen
-        this.load.audio('themeMusic', '/audio/theme-music.mp3');
         this.load.image(
             'projectBeaconCrashSite',
             '/game/project-beacon-crash-site.webp'
@@ -100,11 +100,10 @@ class HatchingScene extends Phaser.Scene {
         const previewParams = new URLSearchParams(window.location.search);
         const isLocalPreview = ['localhost', '127.0.0.1'].includes(window.location.hostname);
         if (
-            previewParams.has('testBoss') ||
-            previewParams.has('testGuardianResult') ||
+            isLocalPreview &&
             (
-                isLocalPreview &&
-                (
+                    previewParams.has('testBoss') ||
+                    previewParams.has('testGuardianResult') ||
                     previewParams.has('testDebrief') ||
                     previewParams.has('testLevelEntry') ||
                     previewParams.has('testExpeditionDrill') ||
@@ -112,19 +111,39 @@ class HatchingScene extends Phaser.Scene {
                     previewParams.has('testFieldKit') ||
                     previewParams.has('testWaypoint') ||
                     previewParams.has('testGarden') ||
+                    previewParams.has('testCommunity') ||
+                    previewParams.has('testCommunityMoment') ||
+                    previewParams.has('testResidents') ||
+                    previewParams.has('testGuardians') ||
+                    previewParams.has('testGuardianExchange') ||
+                    previewParams.has('testGuardianRecognition') ||
+                    previewParams.has('testResidentExchange') ||
+                    previewParams.has('testFendCulture') ||
+                    previewParams.has('testConsent') ||
+                    previewParams.has('testEarthMemory') ||
+                    previewParams.has('testSenseiMemory') ||
+                    previewParams.has('testShipBoard') ||
+                    previewParams.has('testCurrentVeil') ||
+                    previewParams.has('testIdentityArchive') ||
+                    previewParams.has('testProfilePortrait') ||
+                    previewParams.has('testWelcomeBackPortrait') ||
+                    previewParams.has('testCurrentEcho') ||
                     previewParams.has('testLivingSignal') ||
                     previewParams.has('testMissionBriefing') ||
+                    previewParams.has('testCheckIn') ||
                     previewParams.has('testControls') ||
                     previewParams.has('testStory') ||
                     previewParams.has('testSoulReveal') ||
                     previewParams.has('testBeaconLog') ||
                     previewParams.has('testSettings') ||
                     previewParams.has('testRecovery') ||
+                    previewParams.has('testGuardianAlly') ||
+                    previewParams.has('testStance') ||
                     previewParams.has('testFusion') ||
                     previewParams.has('testAchievements') ||
                     previewParams.has('testCloudSave') ||
-                    previewParams.has('testEnding')
-                )
+                    previewParams.has('testEnding') ||
+                    previewParams.has('testHighPower')
             )
         ) {
             return;
@@ -230,8 +249,33 @@ class HatchingScene extends Phaser.Scene {
         // Check for storage issues (incognito mode, etc.)
         this.checkStorageAndWarn();
 
-        // Start playing theme music (loops continuously)
-        this.startThemeMusic();
+        // Render first, then fetch the long soundtrack without blocking input.
+        this.loadThemeMusicInBackground();
+    }
+
+    loadThemeMusicInBackground() {
+        if (this.cache.audio.exists('themeMusic')) {
+            this.startThemeMusic();
+            return;
+        }
+        if (this.themeMusicLoadRequested) return;
+
+        this.themeMusicLoadRequested = true;
+        this.load.once('filecomplete-audio-themeMusic', () => {
+            this.themeMusicLoadRequested = false;
+            if (!this.sys.isActive() || this.isStartingGame) return;
+            this.startThemeMusic();
+        });
+        this.load.once('loaderror', file => {
+            if (file?.key !== 'themeMusic') return;
+            this.themeMusicLoadRequested = false;
+            console.warn('[HatchingScene] Theme music could not be loaded');
+        });
+        this.load.audio('themeMusic', [
+            '/audio/theme-music.ogg',
+            '/audio/theme-music.mp3'
+        ]);
+        this.load.start();
     }
 
     /**
@@ -239,6 +283,8 @@ class HatchingScene extends Phaser.Scene {
      * Respects AudioManager mute settings
      */
     startThemeMusic() {
+        if (this.themeMusic?.isPlaying) return;
+
         // Check if audio is loaded
         if (!this.cache.audio.exists('themeMusic')) {
             console.log('[HatchingScene] Theme music not loaded yet');
@@ -1268,7 +1314,7 @@ class HatchingScene extends Phaser.Scene {
         const instructionFontSize = Math.max(16, Math.min(20, width * 0.045));
 
         // Main title
-        const titleText = this.add.text(centerX, height * 0.08, firstSessionFraming.hatchTitle, {
+        this.hatchTitleText = this.add.text(centerX, height * 0.08, firstSessionFraming.hatchTitle, {
             fontSize: `${titleFontSize}px`,
             color: '#FFD54F',
             stroke: '#071418',
@@ -1279,7 +1325,7 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Subtitle
-        const subtitleText = this.add.text(centerX, height * 0.13, firstSessionFraming.hatchSubtitle, {
+        this.hatchSubtitleText = this.add.text(centerX, height * 0.13, firstSessionFraming.hatchSubtitle, {
             fontSize: `${subtitleFontSize}px`,
             color: '#FFFFFF',
             stroke: '#000000',
@@ -1467,7 +1513,8 @@ class HatchingScene extends Phaser.Scene {
         const rarityKey = this.creatureDNA?.raritySignature || 'common';
         const rarityConfig = this.rarityConfig?.[rarityKey] || this.rarityConfig?.common || {};
         const hatchEffects = rarityConfig.hatchingEffects || {};
-        const celebrationMsg = rarityConfig.celebrationMessage || 'You hatched a wonderful companion!';
+        const celebrationMsg = rarityConfig.celebrationMessage ||
+            'First contact confirmed. A living signal has answered.';
 
         // Play celebration sound
         if (window.AudioManager) {
@@ -1482,7 +1529,7 @@ class HatchingScene extends Phaser.Scene {
         if (isEpicOrHigher) {
             // Camera shake effect
             if (hatchEffects.cameraShake && this.cameras.main) {
-                this.cameras.main.shake(300, 0.005);
+                window.FeedbackManager?.cameraShake?.(this, 300, 0.005);
             }
 
             // Camera zoom effect
@@ -1547,32 +1594,39 @@ class HatchingScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         // Get rarity display name and visual config
-        const displayName = rarityConfig.displayName || 'Companion';
+        const displayName = rarityConfig.displayName || 'Living Signal';
         const visualConfig = rarityConfig.visual || {};
         const frameColor = visualConfig.frame ? parseInt(visualConfig.frame.replace('#', ''), 16) : 0x7CFC00;
         const badge = visualConfig.badge || '✨';
+        const isCompact = width <= 520;
+        const bannerWidth = Math.min(500, width - 24);
+        const bannerHeight = isCompact ? 104 : 100;
+        const bannerX = (width - bannerWidth) / 2;
+        const bannerY = height * 0.15;
 
         // Create banner background
         const bannerBg = this.add.graphics();
         bannerBg.fillStyle(0x000000, 0.7);
-        bannerBg.fillRoundedRect(width / 2 - 250, height * 0.15, 500, 100, 15);
+        bannerBg.fillRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 15);
         bannerBg.lineStyle(3, frameColor, 1);
-        bannerBg.strokeRoundedRect(width / 2 - 250, height * 0.15, 500, 100, 15);
+        bannerBg.strokeRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 15);
         bannerBg.setDepth(1000);
 
         // Create banner text
-        const bannerText = this.add.text(width / 2, height * 0.15 + 30, `${badge} ${displayName}!`, {
-            fontSize: '28px',
+        const bannerText = this.add.text(width / 2, bannerY + 29, `${badge} ${displayName}`, {
+            fontSize: isCompact ? '22px' : '28px',
             color: '#FFD700',
             fontStyle: 'bold',
-            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
+            fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+            align: 'center'
         }).setOrigin(0.5).setDepth(1001);
 
-        const messageText = this.add.text(width / 2, height * 0.15 + 65, message, {
-            fontSize: '16px',
+        const messageText = this.add.text(width / 2, bannerY + 67, message, {
+            fontSize: isCompact ? '14px' : '16px',
             color: '#FFFFFF',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
-            wordWrap: { width: 480 }
+            align: 'center',
+            wordWrap: { width: bannerWidth - 28 }
         }).setOrigin(0.5).setDepth(1001);
 
         // Fade in animation
@@ -1750,7 +1804,7 @@ class HatchingScene extends Phaser.Scene {
 
         // Create vision message with more emphasis
         const visionMessageY = width < 600 ? height * 0.72 : height * 0.1;
-        const visionMessage = this.add.text(centerX, visionMessageY, visionConfig.visionMessage || '✨ Behold their magnificent destiny... ✨', {
+        const visionMessage = this.add.text(centerX, visionMessageY, visionConfig.visionMessage || 'PROJECTED MATURITY // SIGNAL POTENTIAL', {
             fontSize: width < 600 ? '20px' : '26px',
             color: '#FFD700',
             fontStyle: 'bold italic',
@@ -1827,7 +1881,7 @@ class HatchingScene extends Phaser.Scene {
             console.log('hatch:info [HatchingScene] Starting transition from adult vision to baby...');
 
             // Show transition message with baby reveal message
-            const transitionMsg = visionConfig.transitionMessage || 'Watch them grow into this incredible form!';
+            const transitionMsg = visionConfig.transitionMessage || 'One possible future. Trust and experience will shape the rest.';
             visionMessage.setText(transitionMsg);
             visionMessage.setColor('#FFFFFF');
 
@@ -1856,7 +1910,7 @@ class HatchingScene extends Phaser.Scene {
                             }
 
                             // Update message for baby reveal
-                            const babyMsg = visionConfig.babyRevealMessage || '🐣 Your journey together begins now!';
+                            const babyMsg = visionConfig.babyRevealMessage || 'FIRST CONTACT // PRESENT FORM';
                             visionMessage.setText(babyMsg);
                             visionMessage.setColor('#98FB98');
 
@@ -2103,6 +2157,10 @@ class HatchingScene extends Phaser.Scene {
             // Store genetics data on the sprite for later access
             this.creature.genetics = this.creatureGenetics;
 
+            // Start the protected living-form realization as soon as the exact
+            // hatch texture exists. Hatching and naming now hide provider time.
+            this.beginLivingPortraitPrewarm();
+
             console.log('hatch:info [HatchingScene] Step 5: Fading in creature...');
             // Fade in the creature
             this.tweens.add({
@@ -2144,6 +2202,7 @@ class HatchingScene extends Phaser.Scene {
 
             // Save genetics to GameState
             this.saveCreatureGenetics();
+            this.exportLocalPortraitQASpecimen();
 
         } else {
             // Fallback to default creature
@@ -2222,6 +2281,76 @@ class HatchingScene extends Phaser.Scene {
         console.log('hatch:info [HatchingScene] === showCreature() complete ===');
     }
 
+    beginLivingPortraitPrewarm() {
+        if (
+            this.portraitPromise ||
+            !this.creature ||
+            !this.creatureGenetics ||
+            !window.LivingPortraitService?.prewarm
+        ) {
+            return;
+        }
+
+        this.portraitPromise = window.LivingPortraitService.prewarm({
+            creatureData: {
+                name: 'Mythical Creature',
+                stage: 'baby',
+                genes: this.creatureGenetics,
+                dna: this.creatureDNA
+            },
+            sprite: this.creature,
+            style: 'cinematic',
+            source: 'post_hatch'
+        });
+        this.portraitPromise?.catch?.(error => {
+            console.warn(
+                'hatch:warn [HatchingScene] Living portrait prewarm unavailable:',
+                error.message
+            );
+        });
+    }
+
+    exportLocalPortraitQASpecimen() {
+        const isLocal = ['localhost', '127.0.0.1'].includes(
+            window.location?.hostname
+        );
+        const isRequested = new URLSearchParams(window.location?.search)
+            .has('portraitQa');
+        if (
+            !isLocal ||
+            !isRequested ||
+            !this.creature ||
+            !this.creatureGenetics ||
+            !window.CreaturePortraitSpec?.create ||
+            !window.LivingPortraitService?.captureReference
+        ) {
+            return;
+        }
+
+        const portraitSpec = window.CreaturePortraitSpec.create({
+            name: 'Astra-23',
+            stage: 'baby',
+            genes: this.creatureGenetics,
+            dna: this.creatureDNA
+        });
+        const referenceImage = window.LivingPortraitService.captureReference(
+            this.creature
+        );
+        if (!portraitSpec || !referenceImage) return;
+
+        const exportElement = document.getElementById('portrait-qa-specimen')
+            || document.createElement('script');
+        exportElement.id = 'portrait-qa-specimen';
+        exportElement.type = 'application/json';
+        exportElement.textContent = JSON.stringify({
+            portraitSpec,
+            referenceImage
+        });
+        if (!exportElement.isConnected) {
+            document.body.appendChild(exportElement);
+        }
+    }
+
     /**
      * Show critical error message to user
      */
@@ -2245,11 +2374,16 @@ class HatchingScene extends Phaser.Scene {
     }
 
     createSparkles() {
+        const { width, height } = this.scale;
+        const centerX = width / 2;
+        const centerY = height * 0.45;
+        const horizontalSpread = Math.min(100, width * 0.22);
+        const verticalSpread = Math.min(80, height * 0.1);
         const sparkles = [];
         for (let i = 0; i < 8; i++) {
             const sparkle = this.add.image(
-                400 + Phaser.Math.Between(-100, 100),
-                300 + Phaser.Math.Between(-80, 80),
+                centerX + Phaser.Math.Between(-horizontalSpread, horizontalSpread),
+                centerY + Phaser.Math.Between(-verticalSpread, verticalSpread),
                 'magicalSparkle'
             );
             sparkle.setScale(0);
@@ -2455,7 +2589,12 @@ class HatchingScene extends Phaser.Scene {
             });
 
             try {
-                const creatureResult = this.graphicsEngine.createCreatureFromDNA(this.creatureDNA, 0, stage);
+                const creatureResult = this.graphicsEngine.createCreatureFromDNA(
+                    this.creatureDNA,
+                    0,
+                    stage,
+                    this.creatureGenetics
+                );
 
                 if (!creatureResult || !creatureResult.textureName) {
                     console.warn('hatch:warn [HatchingScene] DNA rendering failed, falling back to genetics');
@@ -3035,13 +3174,17 @@ class HatchingScene extends Phaser.Scene {
             const { width, height } = this.scale;
             const centerX = width / 2;
             const bannerWidth = Math.min(width * 0.9, 500);
-            const bannerHeight = Math.min(height * 0.12, 80);
+            const bannerHeight = Math.min(height * 0.105, 76);
             const bannerX = centerX - (bannerWidth / 2);
-            const bannerY = height * 0.08;
+            const bannerY = height * 0.055;
 
             // Responsive font sizes
-            const titleSize = Math.max(20, Math.min(28, width * 0.065));
-            const subtitleSize = Math.max(14, Math.min(18, width * 0.042));
+            const titleSize = Math.max(17, Math.min(24, width * 0.052));
+            const subtitleSize = Math.max(13, Math.min(17, width * 0.038));
+
+            // The classification result owns the header area while this decision is open.
+            [this.hatchTitleText, this.hatchSubtitleText, this.instructionText, this.progressText]
+                .forEach(element => element?.setVisible(false));
 
             // Create banner background
             const bannerBg = this.add.graphics();
@@ -3051,7 +3194,7 @@ class HatchingScene extends Phaser.Scene {
             bannerBg.strokeRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 10);
 
             // Rarity title
-            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.35), `${rarityInfo.emoji} ${rarityInfo.name} Creature!`, {
+            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.34), `FIELD CLASSIFICATION // ${rarityInfo.name.toUpperCase()}`, {
                 fontSize: `${titleSize}px`,
                 color: rarityInfo.displayColor,
                 fontStyle: 'bold',
@@ -3061,7 +3204,7 @@ class HatchingScene extends Phaser.Scene {
             }).setOrigin(0.5);
 
             // Creature name/species
-            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.75), `${this.creatureGenetics.species} • ${this.creatureGenetics.personality.core}`, {
+            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.74), `${this.creatureGenetics.species} // ${this.creatureGenetics.personality.core}`, {
                 fontSize: `${subtitleSize}px`,
                 color: '#FFFFFF',
                 wordWrap: { width: bannerWidth * 0.9 }
@@ -3129,11 +3272,11 @@ class HatchingScene extends Phaser.Scene {
             const isMobile = width < 600;
 
             // Responsive sizing
-            const buttonWidth = isMobile ? Math.min(width * 0.4, 140) : 150;
+            const buttonWidth = isMobile ? Math.min(width * 0.43, 164) : 180;
             const buttonHeight = isMobile ? Math.min(height * 0.07, 50) : 50;
-            const buttonSpacing = isMobile ? width * 0.05 : 50;
-            const buttonY = height * 0.78; // 78% from top
-            const fontSize = Math.max(18, Math.min(22, width * 0.05));
+            const buttonSpacing = isMobile ? width * 0.035 : 32;
+            const buttonY = height * 0.79;
+            const fontSize = Math.max(13, Math.min(18, width * 0.04));
 
             // Calculate button positions (centered pair)
             const keepX = canReroll ?
@@ -3148,7 +3291,7 @@ class HatchingScene extends Phaser.Scene {
             keepBg.lineStyle(3, 0xFFD54F);
             keepBg.strokeRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 10);
 
-            const keepText = this.add.text(keepX + (buttonWidth / 2), buttonY + (buttonHeight / 2), '✓ KEEP', {
+            const keepText = this.add.text(keepX + (buttonWidth / 2), buttonY + (buttonHeight / 2), 'CONFIRM CONTACT', {
                 fontSize: `${fontSize}px`,
                 color: '#FFFFFF',
                 fontStyle: 'bold'
@@ -3168,7 +3311,7 @@ class HatchingScene extends Phaser.Scene {
                 rerollBg.lineStyle(3, 0xFFD54F);
                 rerollBg.strokeRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 10);
 
-                rerollText = this.add.text(rerollX + (buttonWidth / 2), buttonY + (buttonHeight / 2), '🔄 REROLL', {
+                rerollText = this.add.text(rerollX + (buttonWidth / 2), buttonY + (buttonHeight / 2), 'RESCAN SIGNAL', {
                     fontSize: `${fontSize}px`,
                     color: '#FFFFFF',
                     fontStyle: 'bold'
@@ -3182,10 +3325,10 @@ class HatchingScene extends Phaser.Scene {
 
             // Advice text
             const advice = window.rerollSystem.getRerollAdvice(this.creatureGenetics.rarity);
-            const adviceFontSize = Math.max(13, Math.min(14, width * 0.036));
-            const adviceText = this.add.text(centerX, height * 0.7, advice.message, {
+            const adviceFontSize = Math.max(12, Math.min(14, width * 0.034));
+            const adviceText = this.add.text(centerX, height * 0.715, `SCAN ESTIMATE // ${advice.message}`, {
                 fontSize: `${adviceFontSize}px`,
-                color: '#FFFF00',
+                color: '#FFD54F',
                 align: 'center',
                 wordWrap: { width: width * 0.9 }
             }).setOrigin(0.5);
@@ -3196,13 +3339,13 @@ class HatchingScene extends Phaser.Scene {
             const hasSeenRerollTutorial = gameState.get('tutorial.rerollSeen') || false;
 
             if (!hasSeenRerollTutorial && canReroll) {
-                const tutorialFontSize = Math.max(14, Math.min(16, width * 0.04));
-                tutorialHint = this.add.text(centerX, height * 0.63,
-                    '💡 Choose KEEP to continue, or REROLL for a different creature!\nRerolls are limited - use them wisely!', {
+                const tutorialFontSize = Math.max(13, Math.min(15, width * 0.036));
+                tutorialHint = this.add.text(centerX, height * 0.625,
+                    'Confirm this first-contact reading, or spend your one rescan before the signal stabilizes.', {
                     fontSize: `${tutorialFontSize}px`,
                     color: '#FFFFFF',
-                    backgroundColor: 'rgba(123, 31, 162, 0.8)',
-                    padding: { x: 15, y: 10 },
+                    backgroundColor: 'rgba(7, 20, 24, 0.88)',
+                    padding: { x: 12, y: 9 },
                     align: 'center',
                     fontFamily: 'Arial, sans-serif',
                     wordWrap: { width: width * 0.85 }
@@ -3305,9 +3448,9 @@ class HatchingScene extends Phaser.Scene {
         // End reroll session
         window.rerollSystem.endHatchSession();
 
-        // Show "Great choice!" message
-        const confirmText = this.add.text(400, 480, '✨ Great choice! ✨', {
-            fontSize: '24px',
+        const { width, height } = this.scale;
+        const confirmText = this.add.text(width / 2, height * 0.7, 'CONTACT CONFIRMED', {
+            fontSize: `${Math.max(18, Math.min(24, width * 0.055))}px`,
             color: '#FFD54F',
             stroke: '#000000',
             strokeThickness: 3
@@ -3516,7 +3659,7 @@ class HatchingScene extends Phaser.Scene {
         keepBg.lineStyle(3, 0xFFD54F);
         keepBg.strokeRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
 
-        const keepText = this.add.text(centerX, buttonY + (buttonHeight / 2), '✓ KEEP THIS ONE', {
+        const keepText = this.add.text(centerX, buttonY + (buttonHeight / 2), 'CONFIRM CONTACT', {
             fontSize: `${fontSize}px`,
             color: '#FFFFFF',
             fontStyle: 'bold'
@@ -3524,7 +3667,7 @@ class HatchingScene extends Phaser.Scene {
 
         const keepZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
 
-        const finalText = this.add.text(centerX, height * 0.7, '✅ This is your final creature!', {
+        const finalText = this.add.text(centerX, height * 0.7, 'SIGNAL LOCKED // RESCAN COMPLETE', {
             fontSize: `${textFontSize}px`,
             color: '#90EE90',
             wordWrap: { width: width * 0.9 }
@@ -3656,6 +3799,8 @@ class HatchingScene extends Phaser.Scene {
             this.projectBeaconBackground = background;
         }
 
+        this.createProjectBeaconMotionBackdrop(width, height);
+
         const contrastVeil = this.add.rectangle(
             width / 2,
             height / 2,
@@ -3666,6 +3811,33 @@ class HatchingScene extends Phaser.Scene {
         );
         this.projectBeaconBackgroundFallback = fallback;
         this.projectBeaconContrastVeil = contrastVeil;
+    }
+
+    createProjectBeaconMotionBackdrop(width, height) {
+        if (!shouldPlayCinematicMedia() || !this.add?.video) return null;
+        const videoX = width < 600 ? width * 0.92 : width * 0.65;
+        const video = this.add.video(videoX, height / 2)
+            .setOrigin(0.5)
+            .setDisplaySize(
+                Math.max(width, height * (16 / 9)),
+                Math.max(height, width * (9 / 16))
+            )
+            .setAlpha(0);
+        video.loadURL(CINEMATIC_MEDIA.projectBeaconHome.url, true, 'anonymous');
+        video.setMute?.(true);
+        video.video?.setAttribute?.('playsinline', '');
+        video.once?.('playing', () => {
+            video.setAlpha(0.94);
+            this.projectBeaconBackground?.setAlpha(0.14);
+        });
+        video.once?.('error', () => video.destroy?.());
+        video.play?.(true);
+        this.events.once('shutdown', () => {
+            video.stop?.();
+            video.removeVideoElement?.();
+        });
+        this.projectBeaconMotionBackdrop = video;
+        return video;
     }
 
     /**
@@ -3836,9 +4008,15 @@ class HatchingScene extends Phaser.Scene {
         shine.fillRoundedRect(-buttonWidth/2 + 8, -buttonHeight/2 + 8, buttonWidth - 16, buttonHeight/2 - 10, 14);
 
         // POWER WORDS - Action-oriented, benefit-focused (responsive font size)
-        const fontSize = MobileHelpers.getFontSize(this.scale, 28);
+        // Canvas width is authoritative here. Browser device detection can report a
+        // desktop-class user agent on narrow embedded and accessibility viewports.
+        const buttonFontSize = width <= 360
+            ? '18px'
+            : width < 600
+                ? '22px'
+                : MobileHelpers.getFontSize(this.scale, 28);
         const buttonText = this.add.text(0, 0, firstSessionFraming.homeCta, {
-            fontSize: fontSize,
+            fontSize: buttonFontSize,
             color: '#FFFFFF',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
             fontStyle: '900',

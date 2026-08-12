@@ -1,6 +1,20 @@
 import Phaser from 'phaser';
 import biomeConfigs from '../../config/biomes.json';
 import SanctuaryZones from './SanctuaryZones.js';
+import { FEND_RESIDENT_DEFINITIONS } from '../FendResidents.js';
+import {
+    GUARDIAN_RESIDENT_DEFINITIONS,
+    GUARDIAN_SOCIAL_EXCHANGES
+} from '../GuardianResidents.js';
+import { RESCUED_RESIDENT_DEFINITIONS } from '../RescuedResidents.js';
+import { CURRENT_VEIL_ANCHORS } from '../CurrentVeilMission.js';
+import { getFusionPodLandmarkSnapshot } from '../FusionPodLandmark.js';
+import {
+    getVillageSnapshot,
+    VILLAGE_BUILDING_ARTWORK,
+    VILLAGE_BUILDING_DEFINITIONS,
+    VILLAGE_PLOTS
+} from '../VillageSettlement.js';
 
 /**
  * WorldBuilder - Creates biome-specific game world environments
@@ -222,9 +236,16 @@ class WorldBuilder {
         // Create Target Practice Range
         const targetRange = this.createTargetRange(landmarks.targetRange);
         const signalGarden = this.createSignalGarden(landmarks.signalGarden);
+        const villageHeartLandmark = this.createVillageHeart(
+            landmarks.villageHeart
+        );
         const sanctuaryKeepsakes = this.createSanctuaryKeepsakes();
+        const kinshipBeacon = this.createKinshipBeacon();
+        const fusionPodLandmark = this.createFusionPodLandmark(
+            landmarks.fusionPod
+        );
 
-        console.log('[WorldBuilder] Created Sanctuary landmarks: crashedShip, hubPortal, voidPortal, campfire, targetRange, signalGarden, sanctuaryKeepsakes');
+        console.log('[WorldBuilder] Created Sanctuary landmarks, including persistent lineage records');
 
         return {
             crashedShip,
@@ -233,8 +254,613 @@ class WorldBuilder {
             campfire,
             targetRange,
             signalGarden,
-            sanctuaryKeepsakes
+            villageHeartLandmark,
+            sanctuaryKeepsakes,
+            kinshipBeacon,
+            fusionPodLandmark
         };
+    }
+
+    createVillageHeart(landmarkData, snapshotOverride = null) {
+        const x = landmarkData.position.x;
+        const y = landmarkData.position.y;
+        const zone = this.scene.add.zone(
+            x,
+            y,
+            landmarkData.size.width,
+            landmarkData.size.height
+        );
+        this.scene.physics.add.existing(zone, true);
+        zone.setDepth(y);
+        zone.landmarkId = 'villageHeart';
+        zone.landmarkData = landmarkData;
+
+        const heart = this.scene.add.graphics().setPosition(x, y).setDepth(y + 2);
+        const glow = this.scene.add.graphics().setPosition(x, y).setDepth(y + 1);
+        const label = this.scene.add.text(x, y + 78, 'VILLAGE HEART', {
+            fontSize: '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F4F4F4',
+            fontStyle: 'bold',
+            stroke: '#050505',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(y + 4);
+        const statusLabel = this.scene.add.text(x, y + 95, '', {
+            fontSize: '9px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#8FE3CF',
+            fontStyle: 'bold',
+            stroke: '#050505',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(y + 4);
+
+        const landmark = {
+            zone,
+            heart,
+            glow,
+            label,
+            statusLabel,
+            buildingElements: [],
+            buildingTweens: [],
+            pulseTween: null,
+            snapshot: null
+        };
+        const snapshot = snapshotOverride || (
+            typeof window !== 'undefined' && window.GameState
+                ? getVillageSnapshot(window.GameState)
+                : null
+        );
+        this.refreshVillageSettlement(landmark, snapshot);
+        this.villageHeart = landmark;
+        return landmark;
+    }
+
+    refreshVillageSettlement(landmark, snapshot = null) {
+        if (!landmark?.heart) return;
+        landmark.pulseTween?.stop?.();
+        landmark.buildingTweens?.forEach(tween => tween?.stop?.());
+        landmark.buildingElements?.forEach(element => element?.destroy?.(true));
+        landmark.buildingTweens = [];
+        landmark.buildingElements = [];
+        landmark.snapshot = snapshot;
+
+        const unlocked = snapshot?.unlock?.unlocked === true;
+        const { heart, glow, label, statusLabel } = landmark;
+        heart.clear();
+        glow.clear();
+
+        glow.fillStyle(unlocked ? 0x3FAE62 : 0x53616A, unlocked ? 0.16 : 0.1);
+        glow.fillCircle(0, 0, unlocked ? 72 : 58);
+        glow.lineStyle(2, unlocked ? 0x71E6B1 : 0x748087, unlocked ? 0.42 : 0.28);
+        glow.strokeCircle(0, 0, unlocked ? 61 : 50);
+
+        heart.fillStyle(0x050505, 0.98);
+        heart.fillEllipse(0, 38, 112, 30);
+        heart.fillStyle(0x101616, 1);
+        heart.fillRoundedRect(-42, -31, 84, 66, 8);
+        heart.lineStyle(3, 0xF4F4F4, 0.9);
+        heart.strokeRoundedRect(-42, -31, 84, 66, 8);
+        heart.lineStyle(4, unlocked ? 0x3FAE62 : 0x53616A, 1);
+        heart.strokeCircle(0, 0, 24);
+        heart.lineStyle(3, unlocked ? 0xD94B4B : 0x748087, 0.95);
+        heart.lineBetween(-26, 22, 0, -4);
+        heart.lineBetween(0, -4, 26, 22);
+        heart.fillStyle(0xF4F4F4, unlocked ? 1 : 0.52);
+        heart.fillCircle(0, -4, 7);
+        heart.fillStyle(unlocked ? 0xF2C14E : 0x53616A, 1);
+        heart.fillCircle(0, -4, 3);
+
+        label.setColor(unlocked ? '#F4F4F4' : '#93A2A9');
+        statusLabel
+            .setText(unlocked
+                ? `${snapshot.buildings.length}/${VILLAGE_PLOTS.length} FOUNDATIONS`
+                : 'AWAITING FIRST LIGHT SHELTER'
+            )
+            .setColor(unlocked ? '#8FE3CF' : '#93A2A9');
+
+        landmark.pulseTween = this.scene.tweens.add({
+            targets: glow,
+            alpha: { from: unlocked ? 0.72 : 0.42, to: 1 },
+            scaleX: { from: 0.96, to: 1.05 },
+            scaleY: { from: 0.96, to: 1.05 },
+            duration: unlocked ? 1450 : 2300,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // A wide settlement reads well beside the Village Heart on desktop, but
+        // those same world offsets put half of the working structures outside a
+        // phone viewport. Keep the mobile district deliberately compact so its
+        // built plots are visible around the landmark rather than off-screen.
+        const compactSettlement = this.scene.scale.width <= 600;
+        const plotOffsets = compactSettlement
+            ? [
+                { x: -128, y: -144 },
+                { x: 128, y: -144 },
+                { x: -128, y: 34 },
+                { x: 128, y: 34 },
+                { x: 0, y: 154 }
+            ]
+            : [
+                { x: 150, y: -118 },
+                { x: 300, y: -88 },
+                { x: 170, y: 72 },
+                { x: 330, y: 96 },
+                { x: 470, y: -12 }
+            ];
+        const buildingByPlot = new Map(
+            snapshot?.buildings?.map(building => [building.plotId, building]) || []
+        );
+        VILLAGE_PLOTS.forEach((plot, index) => {
+            const offset = plotOffsets[index];
+            const plotX = landmark.zone.x + offset.x;
+            const plotY = landmark.zone.y + offset.y;
+            const building = buildingByPlot.get(plot.id) || null;
+            const container = this.scene.add.container(plotX, plotY).setDepth(plotY + 2);
+            const drawing = this.scene.add.graphics();
+            let artwork = null;
+            let currentSignal = null;
+            drawing.fillStyle(0x050505, 0.58);
+            drawing.fillEllipse(0, 28, 104, 28);
+            drawing.lineStyle(
+                building ? 2 : 1,
+                building ? 0x71E6B1 : 0x53616A,
+                building ? 0.72 : 0.42
+            );
+            drawing.strokeEllipse(0, 24, 96, 30);
+            if (building) {
+                const art = VILLAGE_BUILDING_ARTWORK[building.definitionId];
+                if (art && this.scene.textures.exists(art.key)) {
+                    const constructing = building.status === 'constructing';
+                    drawing.fillStyle(0x07100F, 0.9);
+                    drawing.fillRoundedRect(-64, -45, 128, 72, 7);
+                    drawing.lineStyle(2, constructing ? 0xF2C14E : 0x71E6B1, 0.92);
+                    drawing.strokeRoundedRect(-64, -45, 128, 72, 7);
+                    artwork = this.scene.add.image(0, -9, art.key)
+                        .setDisplaySize(118, 66)
+                        .setAlpha(constructing ? 0.58 : 0.92);
+                    currentSignal = this.scene.add.graphics();
+                    currentSignal.fillStyle(0x71E6B1, 0.95);
+                    currentSignal.fillCircle(0, 0, 3);
+                    currentSignal.lineStyle(1, 0xF4F4F4, 0.85);
+                    currentSignal.strokeCircle(0, 0, 5);
+                    currentSignal.setPosition(-48, 19);
+                    currentSignal.setBlendMode?.(Phaser.BlendModes.ADD);
+                    if (constructing) {
+                        drawing.lineStyle(2, 0xF2C14E, 0.82);
+                        drawing.lineBetween(-56, -38, 56, 19);
+                        drawing.lineBetween(-56, 19, 56, -38);
+                        drawing.lineBetween(-48, -45, -48, 27);
+                        drawing.lineBetween(48, -45, 48, 27);
+                    }
+                } else {
+                    this.drawVillageBuilding(
+                        drawing,
+                        building.definitionId,
+                        building.status
+                    );
+                }
+            } else {
+                drawing.lineStyle(1, 0x8FE3CF, 0.25);
+                drawing.strokeRoundedRect(-33, -5, 66, 33, 5);
+                drawing.lineBetween(-25, 11, 25, 11);
+            }
+            const definition = building
+                ? VILLAGE_BUILDING_DEFINITIONS.find(entry => entry.id === building.definitionId)
+                : null;
+            const plotLabel = this.scene.add.text(
+                0,
+                45,
+                definition?.shortLabel || plot.label,
+                {
+                    fontSize: '9px',
+                    fontFamily: 'Arial, sans-serif',
+                    color: building ? '#F4F4F4' : '#788A92',
+                    fontStyle: 'bold',
+                    stroke: '#050505',
+                    strokeThickness: 3
+                }
+            ).setOrigin(0.5);
+            const stateLabel = this.scene.add.text(
+                0,
+                -48,
+                building
+                    ? building.status === 'complete'
+                        ? building.creature
+                            ? `${building.creature.name.toUpperCase()} ${Math.round(building.workProfile.multiplier * 100)}%`
+                            : 'READY FOR CONTRIBUTION'
+                        : 'CONSTRUCTING'
+                    : '',
+                {
+                    fontSize: '8px',
+                    fontFamily: 'Arial, sans-serif',
+                    color: building?.status === 'complete' ? '#8FE3CF' : '#F2C14E',
+                    fontStyle: 'bold',
+                    backgroundColor: building ? '#101616' : undefined,
+                    padding: building ? { x: 4, y: 2 } : undefined,
+                    stroke: '#050505',
+                    strokeThickness: 2
+                }
+            ).setOrigin(0.5);
+            container.add([
+                drawing,
+                ...(artwork ? [artwork] : []),
+                ...(currentSignal ? [currentSignal] : []),
+                plotLabel,
+                stateLabel
+            ]);
+            landmark.buildingElements.push(container);
+            if (artwork && building?.status === 'complete') {
+                landmark.buildingTweens.push(this.scene.tweens.add({
+                    targets: artwork,
+                    y: { from: -11, to: -7 },
+                    scaleX: { from: artwork.scaleX * 1.01, to: artwork.scaleX },
+                    scaleY: { from: artwork.scaleY * 1.01, to: artwork.scaleY },
+                    duration: 2300 + index * 170,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                }));
+            }
+            if (currentSignal) {
+                landmark.buildingTweens.push(this.scene.tweens.add({
+                    targets: currentSignal,
+                    x: { from: -48, to: 48 },
+                    alpha: { from: 0.3, to: 1 },
+                    duration: 1800 + index * 140,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                }));
+            }
+            if (building?.status === 'constructing') {
+                landmark.buildingTweens.push(this.scene.tweens.add({
+                    targets: container,
+                    alpha: { from: 0.55, to: 1 },
+                    duration: 520,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                }));
+            }
+        });
+    }
+
+    drawVillageBuilding(graphics, definitionId, status) {
+        const alpha = status === 'constructing' ? 0.58 : 1;
+        graphics.fillStyle(0x101616, alpha);
+        graphics.lineStyle(2, 0xF4F4F4, alpha * 0.9);
+
+        if (definitionId === 'forager_hut') {
+            graphics.fillRoundedRect(-28, -16, 56, 43, 5);
+            graphics.strokeRoundedRect(-28, -16, 56, 43, 5);
+            graphics.fillStyle(0x3FAE62, alpha);
+            graphics.fillTriangle(-36, -15, 0, -43, 36, -15);
+            graphics.fillStyle(0xF2C14E, alpha);
+            graphics.fillCircle(0, 6, 5);
+        } else if (definitionId === 'sawmill') {
+            graphics.fillRoundedRect(-34, -19, 68, 46, 4);
+            graphics.strokeRoundedRect(-34, -19, 68, 46, 4);
+            graphics.lineStyle(4, 0xD94B4B, alpha);
+            graphics.strokeCircle(23, 10, 13);
+            graphics.lineBetween(23, -3, 23, 23);
+            graphics.lineBetween(10, 10, 36, 10);
+        } else if (definitionId === 'current_masonry') {
+            graphics.fillStyle(0x101616, alpha);
+            graphics.fillRoundedRect(-34, 4, 68, 23, 4);
+            graphics.lineStyle(2, 0xF4F4F4, alpha);
+            graphics.strokeRoundedRect(-34, 4, 68, 23, 4);
+            graphics.fillStyle(0x71E6B1, alpha);
+            graphics.fillTriangle(-26, 4, -10, -34, 4, 4);
+            graphics.fillStyle(0xF4F4F4, alpha);
+            graphics.fillTriangle(-4, 4, 10, -26, 24, 4);
+        } else if (definitionId === 'habitat') {
+            graphics.fillStyle(0x101616, alpha);
+            graphics.fillRoundedRect(-38, -6, 76, 34, 5);
+            graphics.lineStyle(3, 0xF4F4F4, alpha);
+            graphics.strokeRoundedRect(-38, -6, 76, 34, 5);
+            graphics.lineStyle(5, 0x3FAE62, alpha);
+            graphics.beginPath();
+            graphics.arc(0, -5, 33, Math.PI, 0, false);
+            graphics.strokePath();
+            graphics.fillStyle(0xD94B4B, alpha);
+            graphics.fillCircle(0, 9, 5);
+        } else {
+            graphics.fillRoundedRect(-36, -21, 72, 48, 4);
+            graphics.strokeRoundedRect(-36, -21, 72, 48, 4);
+            graphics.lineStyle(4, 0x3FAE62, alpha);
+            graphics.lineBetween(-20, -4, 20, -4);
+            graphics.lineBetween(0, -35, 0, -21);
+            graphics.fillStyle(0xD94B4B, alpha);
+            graphics.fillCircle(0, -36, 5);
+            graphics.fillStyle(0xF2C14E, alpha);
+            graphics.fillCircle(-18, 12, 4);
+            graphics.fillCircle(0, 12, 4);
+            graphics.fillCircle(18, 12, 4);
+        }
+
+        if (status === 'constructing') {
+            graphics.lineStyle(2, 0xF2C14E, 0.9);
+            graphics.lineBetween(-43, -42, -43, 30);
+            graphics.lineBetween(43, -42, 43, 30);
+            graphics.lineBetween(-43, -35, 43, -35);
+        }
+    }
+
+    createFusionPodLandmark(landmarkData, snapshotOverride = null) {
+        const x = landmarkData.position.x;
+        const y = landmarkData.position.y;
+        const zone = this.scene.add.zone(
+            x,
+            y,
+            landmarkData.size.width,
+            landmarkData.size.height
+        );
+        this.scene.physics.add.existing(zone, true);
+        zone.setDepth(y);
+        zone.landmarkId = 'fusionPod';
+        zone.landmarkData = landmarkData;
+
+        const group = this.scene.add.container(x, y).setDepth(y + 2);
+        const foundation = this.scene.add.graphics();
+        foundation.fillStyle(0x050505, 0.96);
+        foundation.fillEllipse(0, 42, 134, 38);
+        foundation.lineStyle(3, 0xF4F4F4, 0.85);
+        foundation.strokeEllipse(0, 37, 112, 30);
+        foundation.fillStyle(0x101616, 1);
+        foundation.fillRoundedRect(-48, -31, 96, 70, 16);
+        foundation.lineStyle(3, 0xF4F4F4, 0.9);
+        foundation.strokeRoundedRect(-48, -31, 96, 70, 16);
+
+        const current = this.scene.add.graphics();
+        current.lineStyle(5, 0x3FAE62, 1);
+        current.strokeCircle(0, -1, 27);
+        current.lineStyle(3, 0xC73A3A, 0.95);
+        current.beginPath();
+        current.moveTo(-38, 26);
+        current.lineTo(-18, 8);
+        current.strokePath();
+        current.beginPath();
+        current.moveTo(38, 26);
+        current.lineTo(18, 8);
+        current.strokePath();
+        current.fillStyle(0xF4F4F4, 1);
+        current.fillCircle(-11, -3, 6);
+        current.fillCircle(11, -3, 6);
+
+        const glow = this.scene.add.graphics();
+        group.add([glow, foundation, current]);
+
+        const label = this.scene.add.text(
+            x,
+            y + 72,
+            'FUSION POD',
+            {
+                fontSize: '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'bold',
+                stroke: '#050505',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(y + 4);
+        const statusLabel = this.scene.add.text(
+            x,
+            y + 91,
+            '',
+            {
+                fontSize: '9px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#AFC3CF',
+                fontStyle: 'bold',
+                stroke: '#050505',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5).setDepth(y + 4);
+
+        const landmark = {
+            zone,
+            group,
+            glow,
+            label,
+            statusLabel,
+            pulseTween: null,
+            snapshot: null
+        };
+        this.refreshFusionPodLandmark(
+            landmark,
+            snapshotOverride
+        );
+        return landmark;
+    }
+
+    refreshFusionPodLandmark(landmark, snapshotOverride = null) {
+        if (!landmark?.glow) return landmark;
+        const sharedAvailable = typeof window !== 'undefined'
+            ? window.SharedFusionInvitation
+                ?.getSharedFusionAvailability?.(
+                    window.CloudSave
+                )?.available === true
+            : false;
+        const snapshot = snapshotOverride ||
+            getFusionPodLandmarkSnapshot(
+                typeof window !== 'undefined' ? window.GameState : null,
+                { sharedAvailable }
+            );
+        const tones = {
+            dormant: { color: 0x657682, alpha: 0.12 },
+            calibrating: { color: 0xF2C14E, alpha: 0.16 },
+            warning: { color: 0xC73A3A, alpha: 0.17 },
+            ready: { color: 0x71E6B1, alpha: 0.22 }
+        };
+        const tone = tones[snapshot.tone] || tones.dormant;
+
+        landmark.pulseTween?.stop?.();
+        landmark.glow.clear();
+        landmark.glow.fillStyle(tone.color, tone.alpha);
+        landmark.glow.fillCircle(0, -1, 61);
+        landmark.glow.lineStyle(3, tone.color, 0.72);
+        landmark.glow.strokeCircle(0, -1, 51);
+        landmark.statusLabel
+            ?.setText(snapshot.statusLabel)
+            .setColor(`#${tone.color.toString(16).padStart(6, '0')}`);
+        landmark.pulseTween = this.scene.tweens.add({
+            targets: landmark.glow,
+            alpha: {
+                from: snapshot.tone === 'dormant' ? 0.5 : 0.7,
+                to: 1
+            },
+            scaleX: { from: 0.96, to: 1.05 },
+            scaleY: { from: 0.96, to: 1.05 },
+            duration: snapshot.tone === 'ready' ? 1150 : 1777,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.snapshot = snapshot;
+        return landmark;
+    }
+
+    createKinshipBeacon(stateOverride = null) {
+        const storedState = typeof window !== 'undefined'
+            ? window.GameState?.get?.(
+                'world.sanctuaryDecorations.kinshipBeacon'
+            )
+            : null;
+        const state = stateOverride || storedState || {};
+        if (!state.unlocked) {
+            return {
+                unlocked: false,
+                lineageCount: 0,
+                group: null,
+                pulseTween: null
+            };
+        }
+
+        const lineageCount = Math.max(1, Math.floor(Number(state.lineageCount) || 1));
+        const sharedLineageCount = Math.max(
+            0,
+            Math.floor(Number(state.sharedLineageCount) || 0)
+        );
+        const x = 520;
+        const y = 1015;
+        const group = this.scene.add.container(x, y).setDepth(y);
+
+        const foundation = this.scene.add.graphics();
+        foundation.fillStyle(0x101616, 0.98);
+        foundation.fillEllipse(0, 28, 112, 34);
+        foundation.fillStyle(0xF4F4F4, 0.9);
+        foundation.fillRoundedRect(-37, 11, 74, 20, 6);
+        foundation.lineStyle(3, 0x101616, 1);
+        foundation.strokeRoundedRect(-37, 11, 74, 20, 6);
+
+        const current = this.scene.add.graphics();
+        current.lineStyle(5, 0x3FAE62, 1);
+        current.beginPath();
+        current.moveTo(0, 14);
+        current.lineTo(0, -45);
+        current.strokePath();
+        current.lineStyle(3, 0xF4F4F4, 0.92);
+        current.strokeCircle(0, -55, 30);
+        current.lineStyle(4, 0xC73A3A, 0.95);
+        current.beginPath();
+        current.moveTo(-18, -42);
+        current.lineTo(0, -62);
+        current.lineTo(18, -42);
+        current.strokePath();
+
+        const glow = this.scene.add.graphics();
+        glow.fillStyle(0x71E6B1, 0.13);
+        glow.fillCircle(0, -54, 48);
+        glow.lineStyle(2, 0xF4F4F4, 0.42);
+        glow.strokeCircle(0, -54, 42);
+
+        const nodes = this.scene.add.graphics();
+        if (sharedLineageCount > 0) {
+            nodes.lineStyle(3, 0xF4F4F4, 0.9);
+            nodes.beginPath();
+            nodes.moveTo(-18, -42);
+            nodes.lineTo(18, -42);
+            nodes.strokePath();
+            nodes.lineStyle(2, 0x71E6B1, 0.62);
+            nodes.strokeCircle(-18, -42, 12);
+            nodes.lineStyle(2, 0xC73A3A, 0.7);
+            nodes.strokeCircle(18, -42, 12);
+            nodes.fillStyle(0x3FAE62, 1);
+            nodes.fillCircle(-18, -42, 6);
+            nodes.fillStyle(0xC73A3A, 1);
+            nodes.fillCircle(18, -42, 6);
+        } else {
+            nodes.fillStyle(0xF4F4F4, 1);
+            nodes.fillCircle(-18, -42, 6);
+            nodes.fillCircle(18, -42, 6);
+        }
+        nodes.fillStyle(0x3FAE62, 1);
+        nodes.fillCircle(0, -62, 7);
+
+        group.add([glow, foundation, current, nodes]);
+        const pulseTween = this.scene.tweens.add({
+            targets: glow,
+            alpha: { from: 0.55, to: 1 },
+            scaleX: { from: 0.94, to: 1.08 },
+            scaleY: { from: 0.94, to: 1.08 },
+            duration: 1777,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        const label = this.scene.add.text(
+            x,
+            y + 62,
+            sharedLineageCount > 0
+                ? 'KINSHIP BEACON // LINKED SANCTUARIES'
+                : lineageCount === 1
+                    ? 'KINSHIP BEACON // FIRST LINEAGE'
+                    : `KINSHIP BEACON // ${lineageCount} LINEAGES`,
+            {
+                fontSize: sharedLineageCount > 0 ? '12px' : '13px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'bold',
+                stroke: '#101616',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(y + 63);
+        const statusLabel = sharedLineageCount > 0
+            ? this.scene.add.text(
+                x,
+                y + 81,
+                `${sharedLineageCount} SHARED ${sharedLineageCount === 1 ? 'LINEAGE' : 'LINEAGES'} // PEER IDENTITY PROTECTED`,
+                {
+                    fontSize: '9px',
+                    fontFamily: 'Arial, sans-serif',
+                    color: '#71E6B1',
+                    fontStyle: 'bold',
+                    stroke: '#101616',
+                    strokeThickness: 3
+                }
+            ).setOrigin(0.5).setDepth(y + 64)
+            : null;
+
+        return {
+            unlocked: true,
+            lineageCount,
+            sharedLineageCount,
+            group,
+            label,
+            statusLabel,
+            pulseTween
+        };
+    }
+
+    refreshKinshipBeacon(beacon, stateOverride = null) {
+        beacon?.pulseTween?.stop?.();
+        beacon?.group?.destroy?.(true);
+        beacon?.label?.destroy?.();
+        beacon?.statusLabel?.destroy?.();
+        return this.createKinshipBeacon(stateOverride);
     }
 
     createSanctuaryKeepsakes(countOverride = null) {
@@ -353,7 +979,10 @@ class WorldBuilder {
         const growth = this.scene.add.graphics().setPosition(centerX, centerY);
         growth.setDepth(centerY + 1);
 
-        const label = this.scene.add.text(centerX, centerY - 72, 'SIGNAL GARDEN', {
+        const community = this.scene.add.graphics().setPosition(centerX, centerY);
+        community.setDepth(centerY);
+
+        const label = this.scene.add.text(centerX, centerY - 102, 'SIGNAL GARDEN', {
             fontSize: '13px',
             fontFamily: 'Arial, sans-serif',
             color: '#D8FFF0',
@@ -369,12 +998,51 @@ class WorldBuilder {
             zone,
             bed,
             growth,
+            community,
             label,
             pulseTween: null,
+            communityPulseTween: null,
+            cultureElements: [],
+            culturePulseTween: null,
+            currentVeilAnchors: [],
+            currentVeilNetwork: null,
+            residents: [],
+            guardianResidents: [],
+            rescuedResidents: [],
             stage: 'seed'
         };
 
         this.refreshSignalGarden(garden, stageOverride || storedStage || 'seed');
+        const communityStage = typeof window !== 'undefined'
+            ? window.FendCommunity?.getFendCommunitySnapshot?.(window.GameState)?.stage
+            : 0;
+        this.refreshFendCommunity(garden, communityStage || 0);
+        const residentSnapshot = typeof window !== 'undefined'
+            ? window.FendResidents?.getFendResidentsSnapshot?.(window.GameState)
+            : null;
+        this.refreshFendResidents(garden, residentSnapshot);
+        const guardianSnapshot = typeof window !== 'undefined'
+            ? window.GuardianResidents?.getGuardianResidentsSnapshot?.(
+                window.GameState
+            )
+            : null;
+        this.refreshGuardianResidents(garden, guardianSnapshot);
+        const rescuedResidentSnapshot = typeof window !== 'undefined'
+            ? window.RescuedResidents?.getRescuedResidentSnapshot?.(
+                window.GameState
+            )
+            : null;
+        this.refreshRescuedResidents(garden, rescuedResidentSnapshot);
+        const cultureSnapshot = typeof window !== 'undefined'
+            ? window.FendCulture?.getFendCultureSnapshot?.(window.GameState)
+            : null;
+        this.refreshFendCulture(garden, cultureSnapshot);
+        const currentVeilSnapshot = typeof window !== 'undefined'
+            ? window.CurrentVeilMission?.getCurrentVeilSnapshot?.(
+                window.GameState
+            )
+            : null;
+        this.refreshCurrentVeilMission(garden, currentVeilSnapshot);
         this.signalGarden = garden;
         return garden;
     }
@@ -440,6 +1108,1044 @@ class WorldBuilder {
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
+        });
+    }
+
+    refreshFendCommunity(garden, requestedStage = 0) {
+        if (!garden?.community) return;
+
+        const stage = Math.max(0, Math.min(4, Math.floor(Number(requestedStage) || 0)));
+        const graphics = garden.community;
+        garden.communityPulseTween?.stop?.();
+        graphics.clear();
+        graphics.setAlpha(1);
+        graphics.setScale(1);
+
+        if (stage >= 1) {
+            // First Light Shelter: a compact field canopy using the mission colors.
+            graphics.fillStyle(0x101616, 0.98);
+            graphics.fillRoundedRect(-102, -32, 54, 48, 6);
+            graphics.lineStyle(3, 0xF4F4F4, 0.9);
+            graphics.strokeRoundedRect(-102, -32, 54, 48, 6);
+            graphics.fillStyle(0x3FAE62, 1);
+            graphics.fillTriangle(-108, -29, -75, -60, -42, -29);
+            graphics.lineStyle(3, 0xD94B4B, 0.92);
+            graphics.lineBetween(-99, 16, -99, -34);
+            graphics.fillStyle(0xF2C14E, 0.95);
+            graphics.fillCircle(-75, -5, 4);
+        }
+
+        if (stage >= 2) {
+            // Current Well: returned energy visibly circulates instead of being stored.
+            graphics.fillStyle(0x101616, 0.98);
+            graphics.fillEllipse(78, 8, 60, 28);
+            graphics.lineStyle(4, 0x71E6B1, 1);
+            graphics.strokeEllipse(78, -1, 48, 25);
+            graphics.lineStyle(2, 0xF4F4F4, 0.72);
+            graphics.strokeEllipse(78, -1, 31, 16);
+            graphics.fillStyle(0x8FE3CF, 0.9);
+            graphics.fillCircle(78, -1, 8);
+            graphics.lineStyle(2, 0xD94B4B, 0.82);
+            graphics.lineBetween(55, 16, 101, 16);
+        }
+
+        if (stage >= 3) {
+            // Wayfinder Relay: a small shared warning network, not a command tower.
+            graphics.lineStyle(5, 0x101616, 1);
+            graphics.lineBetween(78, -22, 78, -83);
+            graphics.lineStyle(3, 0xF4F4F4, 0.9);
+            graphics.lineBetween(70, -24, 86, -24);
+            graphics.lineBetween(78, -82, 61, -68);
+            graphics.lineBetween(78, -82, 95, -68);
+            graphics.fillStyle(0xD94B4B, 1);
+            graphics.fillCircle(78, -83, 6);
+            graphics.lineStyle(2, 0x71E6B1, 0.55);
+            graphics.strokeCircle(78, -83, 15);
+            graphics.strokeCircle(78, -83, 26);
+        }
+
+        if (stage >= 4) {
+            // Living Commons: distinct creature-scale lights gather around the garden.
+            graphics.lineStyle(4, 0x71E6B1, 0.75);
+            graphics.beginPath();
+            graphics.arc(0, 6, 128, Math.PI * 1.12, Math.PI * 1.88, false);
+            graphics.strokePath();
+            [
+                [-111, -45, 0xD94B4B],
+                [-58, -94, 0xF4F4F4],
+                [0, -112, 0x3FAE62],
+                [58, -94, 0xF4F4F4],
+                [111, -45, 0xD94B4B]
+            ].forEach(([x, y, color]) => {
+                graphics.fillStyle(0x101616, 1);
+                graphics.fillCircle(x, y, 9);
+                graphics.fillStyle(color, 1);
+                graphics.fillCircle(x, y, 5);
+            });
+        }
+
+        garden.communityStage = stage;
+        garden.label
+            ?.setText(stage >= 4
+                ? 'FEND COMMONS'
+                : stage > 0
+                    ? `FEND SETTLEMENT  ${stage}/4`
+                    : 'SIGNAL GARDEN'
+            )
+            .setY(garden.zone.y - (
+                stage >= 4 ? 145 : stage >= 3 ? 122 : 102
+            ));
+        garden.communityPulseTween = stage > 0
+            ? this.scene.tweens.add({
+                targets: graphics,
+                alpha: { from: 0.86, to: 1 },
+                duration: stage >= 3 ? 1250 : 1750,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            })
+            : null;
+    }
+
+    /**
+     * Render authored Fend residents around the settlement. Their interaction
+     * zones remain separate from the garden so touch controls resolve cleanly.
+     */
+    refreshFendResidents(garden, snapshot = null) {
+        if (!garden?.zone) return;
+
+        garden.residents?.forEach(resident => {
+            resident.pulseTween?.stop?.();
+            resident.container?.destroy?.(true);
+            resident.zone?.destroy?.();
+        });
+        garden.residents = [];
+
+        const availableIds = new Set(
+            snapshot?.availableResidents?.map(resident => resident.id) || []
+        );
+        const statuses = new Map(
+            snapshot?.residents?.map(resident => [resident.id, resident]) || []
+        );
+        const offsets = [
+            { x: 126, y: 54 },
+            { x: 112, y: -54 },
+            { x: -112, y: 54 },
+            { x: -138, y: -70 }
+        ];
+
+        FEND_RESIDENT_DEFINITIONS.forEach((definition, index) => {
+            if (!availableIds.has(definition.id)) return;
+
+            const offset = offsets[index];
+            const x = garden.zone.x + offset.x;
+            const y = garden.zone.y + offset.y;
+            const status = statuses.get(definition.id) || {};
+            const container = this.scene.add.container(x, y).setDepth(y + 3);
+            const figure = this.scene.add.graphics();
+
+            figure.fillStyle(0x101616, 0.9);
+            figure.fillEllipse(0, 23, 34, 11);
+            figure.fillStyle(definition.color, 1);
+            figure.fillRoundedRect(-12, -3, 24, 31, 8);
+            figure.lineStyle(2, definition.accent, 0.95);
+            figure.strokeRoundedRect(-12, -3, 24, 31, 8);
+            figure.fillStyle(definition.accent, 1);
+            figure.fillCircle(0, -12, 13);
+            figure.lineStyle(2, 0x101616, 0.8);
+            figure.strokeCircle(0, -12, 13);
+            figure.fillStyle(0x101616, 1);
+            figure.fillCircle(-4, -13, 2);
+            figure.fillCircle(4, -13, 2);
+
+            const roleMarks = [
+                () => {
+                    figure.lineStyle(3, 0xD94B4B, 1);
+                    figure.lineBetween(-15, -25, 15, -25);
+                },
+                () => {
+                    figure.lineStyle(2, 0x8FE3CF, 1);
+                    figure.strokeCircle(0, -12, 18);
+                },
+                () => {
+                    figure.lineStyle(3, 0xF2C14E, 1);
+                    figure.lineBetween(-8, -29, 0, -37);
+                    figure.lineBetween(0, -37, 8, -29);
+                },
+                () => {
+                    figure.fillStyle(0x3FAE62, 1);
+                    figure.fillCircle(-10, -28, 4);
+                    figure.fillCircle(0, -32, 4);
+                    figure.fillCircle(10, -28, 4);
+                }
+            ];
+            roleMarks[index]?.();
+
+            const markerLabel = status.completed
+                ? 'OK'
+                : status.ready
+                    ? '!'
+                    : status.active
+                        ? '...'
+                        : '+';
+            const marker = this.scene.add.text(18, -34, markerLabel, {
+                fontSize: status.active ? '11px' : '12px',
+                fontFamily: 'Arial, sans-serif',
+                color: status.ready ? '#F2C14E' : '#D8FFF0',
+                fontStyle: 'bold',
+                backgroundColor: '#101616',
+                padding: { x: 4, y: 2 }
+            }).setOrigin(0.5);
+            const name = this.scene.add.text(0, 39, definition.name.toUpperCase(), {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#D8FFF0',
+                fontStyle: 'bold',
+                stroke: '#081514',
+                strokeThickness: 3
+            }).setOrigin(0.5);
+            container.add([figure, marker, name]);
+
+            const zone = this.scene.add.zone(x, y, 72, 84);
+            this.scene.physics.add.existing(zone, true);
+            zone.setDepth(y);
+            zone.residentId = definition.id;
+
+            const pulseTween = this.scene.tweens.add({
+                targets: container,
+                y: y - 3,
+                duration: 1200 + (index * 130),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            garden.residents.push({
+                id: definition.id,
+                definition,
+                status,
+                container,
+                zone,
+                pulseTween
+            });
+        });
+    }
+
+    /**
+     * Restored expedition guardians return in calm forms and patrol distinct
+     * Sanctuary routes. Their collision zones follow them, so they are living
+     * residents rather than static trophies around the Signal Garden.
+     */
+    refreshGuardianResidents(garden, snapshot = null) {
+        if (!garden?.zone) return;
+
+        garden.guardianSocialTimer?.remove?.();
+        garden.guardianSocialTimer = null;
+        this.clearGuardianResidentSocialMoment(garden);
+        garden.guardianResidents?.forEach(resident => {
+            resident.moveTween?.stop?.();
+            resident.idleTween?.stop?.();
+            resident.routineTween?.stop?.();
+            resident.ambientTween?.stop?.();
+            resident.ambientTimer?.remove?.();
+            resident.routineTimer?.remove?.();
+            resident.container?.destroy?.(true);
+            resident.zone?.destroy?.();
+        });
+        garden.guardianResidents = [];
+
+        const rescuedIds = new Set(
+            snapshot?.rescuedResidents?.map(resident => resident.id) || []
+        );
+        const residentStatuses = new Map(
+            snapshot?.residents?.map(resident => [resident.id, resident]) || []
+        );
+        const useCompactPatrol =
+            this.worldWidth < 900 ||
+            (this.worldWidth - garden.zone.x) < 1250;
+        const patrolRoutes = useCompactPatrol
+            ? [
+                [[-122, -205], [-105, -225], [-82, -201], [-104, -179]],
+                [[0, -238], [20, -222], [2, -200], [-18, -218]],
+                [[122, -205], [105, -225], [82, -201], [104, -179]],
+                [[-122, 105], [-102, 84], [-80, 108], [-105, 126]],
+                [[0, 148], [22, 128], [0, 108], [-20, 128]],
+                [[122, 105], [102, 84], [80, 108], [105, 126]]
+            ]
+            : [
+                [[190, -72], [330, -110], [410, -18], [270, 42]],
+                [[310, -245], [445, -300], [555, -210], [410, -155]],
+                [[520, -35], [690, -90], [790, 20], [630, 82]],
+                [[310, -430], [500, -490], [640, -410], [455, -350]],
+                [[680, -300], [850, -355], [980, -250], [825, -185]],
+                [[870, -520], [1030, -460], [1110, -330], [940, -375]]
+            ];
+
+        GUARDIAN_RESIDENT_DEFINITIONS.forEach((definition, index) => {
+            if (!rescuedIds.has(definition.id)) return;
+
+            const route = patrolRoutes[index].map(([x, y]) => ({
+                x: Math.max(64, Math.min(this.worldWidth - 64, garden.zone.x + x)),
+                y: Math.max(100, Math.min(this.worldHeight - 92, garden.zone.y + y))
+            }));
+            const start = route[0];
+            const status = residentStatuses.get(definition.id) || definition;
+            const container = this.scene.add.container(start.x, start.y)
+                .setDepth(start.y + 4);
+            const shadow = this.scene.add.ellipse(0, 23, 54, 14, 0x101616, 0.42);
+            let figure;
+            let figureScaleX = 1;
+            let figureScaleY = 1;
+            if (this.scene.textures.exists(definition.textureKey)) {
+                figure = this.scene.add.image(0, -4, definition.textureKey);
+                const sourceWidth = Math.max(1, figure.width);
+                const sourceHeight = Math.max(1, figure.height);
+                const residentScale = Math.min(
+                    66 / sourceWidth,
+                    72 / sourceHeight
+                );
+                figureScaleX = residentScale;
+                figureScaleY = residentScale;
+                figure.setScale(figureScaleX, figureScaleY);
+            } else {
+                figure = this.scene.add.graphics();
+                this.drawGuardianResidentFigure(figure, definition);
+            }
+            const name = this.scene.add.text(0, 43, definition.name.toUpperCase(), {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'bold',
+                stroke: '#081514',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+            const standingLabel = status.activeTeam
+                ? 'ALLY'
+                : status.synergyUnlocked
+                    ? 'TRUSTED'
+                    : status.taskStatus === 'completed'
+                        ? 'UNLOCKED'
+                        : status.taskStatus === 'active'
+                            ? `TASK ${status.taskProgress?.progress || 0}/${status.taskProgress?.target || 1}`
+                            : status.taskStatus === 'available'
+                                ? 'TASK'
+                                : '';
+            const routineStateLabel = status.routineStatus === 'recovering' &&
+                status.routineSupported
+                ? 'STABLE'
+                : status.routineReady
+                    ? 'CARE'
+                    : null;
+            const markerLabel = status.expeditionDebriefReady
+                ? 'DEBRIEF'
+                : status.taskStatus === 'ready'
+                    ? 'READY'
+                : [standingLabel, routineStateLabel]
+                    .filter(Boolean)
+                    .join(' · ');
+            const marker = this.scene.add.text(0, -61, markerLabel, {
+                fontSize: '9px',
+                fontFamily: 'Arial, sans-serif',
+                color: status.routineStatus === 'recovering'
+                    ? '#8FE3CF'
+                    : status.activeTeam || status.taskStatus === 'ready' || status.routineReady
+                    ? '#F2C14E'
+                    : '#D8FFF0',
+                fontStyle: 'bold',
+                backgroundColor: '#101616',
+                padding: { x: 5, y: 2 },
+                stroke: '#081514',
+                strokeThickness: 2
+            }).setOrigin(0.5).setVisible(Boolean(markerLabel));
+            const routineRing = this.scene.add.graphics();
+            routineRing.lineStyle(2, definition.accent, 0.85);
+            routineRing.strokeEllipse(0, 2, 68, 43);
+            routineRing.setVisible(false);
+            const routineLabel = this.scene.add.text(
+                0,
+                -79,
+                definition.routineCue,
+                {
+                    fontSize: '9px',
+                    fontFamily: 'Arial, sans-serif',
+                    color: '#F4F4F4',
+                    fontStyle: 'bold',
+                    backgroundColor: '#101616',
+                    padding: { x: 6, y: 3 },
+                    stroke: '#081514',
+                    strokeThickness: 2
+                }
+            ).setOrigin(0.5).setVisible(false);
+            const ambientLine = this.scene.add.text(0, -105, '', {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'italic',
+                align: 'center',
+                wordWrap: { width: 168 },
+                backgroundColor: '#101616',
+                padding: { x: 7, y: 4 },
+                stroke: '#081514',
+                strokeThickness: 2
+            }).setOrigin(0.5, 1).setVisible(false).setAlpha(0);
+            container.add([
+                shadow,
+                routineRing,
+                figure,
+                name,
+                marker,
+                routineLabel,
+                ambientLine
+            ]);
+
+            const zone = this.scene.add.zone(start.x, start.y, 92, 98);
+            this.scene.physics.add.existing(zone, true);
+            zone.guardianResidentId = definition.id;
+            const entry = {
+                id: definition.id,
+                definition,
+                status,
+                container,
+                zone,
+                route,
+                routeIndex: 0,
+                moveTween: null,
+                idleTween: null,
+                routineTween: null,
+                routineTimer: null,
+                ambientTween: null,
+                ambientTimer: null,
+                ambientLine,
+                routineCycle: 0,
+                careFeedbackShown: false
+            };
+            const syncZone = () => {
+                if (!container.active || !zone.active) return;
+                zone.setPosition(container.x, container.y);
+                zone.body?.updateFromGameObject?.();
+                container.setDepth(container.y + 4);
+            };
+            let walkNext;
+            const showAmbientLine = (line, { duration = 1500 } = {}) => {
+                if (!line) return;
+                entry.ambientTween?.stop?.();
+                entry.ambientTimer?.remove?.();
+                ambientLine
+                    .setText(`“${line}”`)
+                    .setY(-100)
+                    .setAlpha(0)
+                    .setVisible(true);
+                entry.ambientTween = this.scene.tweens.add({
+                    targets: ambientLine,
+                    alpha: 1,
+                    y: -105,
+                    duration: 260,
+                    ease: 'Sine.easeOut'
+                });
+                entry.ambientTimer = this.scene.time?.delayedCall?.(
+                    duration,
+                    () => {
+                        entry.ambientTimer = null;
+                        entry.ambientTween?.stop?.();
+                        ambientLine.setVisible(false).setAlpha(0);
+                    }
+                );
+            };
+            entry.showAmbientLine = showAmbientLine;
+            const beginRoutine = () => {
+                if (!container.active) return;
+                entry.routineCycle += 1;
+                marker.setVisible(false);
+                routineLabel.setVisible(true);
+                routineRing.setVisible(true).setAlpha(0.42).setScale(0.9);
+                if (
+                    status.routineStatus === 'recovering' &&
+                    !entry.careFeedbackShown
+                ) {
+                    entry.careFeedbackShown = true;
+                    showAmbientLine(definition.routineCare.worldFeedback);
+                } else {
+                    const ambientCadence = Math.max(
+                        2,
+                        Math.min(6, rescuedIds.size)
+                    );
+                    const ambientLines = definition.ambientLines || [];
+                    if (
+                        ambientLines.length > 0 &&
+                        (entry.routineCycle + index) % ambientCadence === 0
+                    ) {
+                        const lineIndex = (
+                            entry.routineCycle + index
+                        ) % ambientLines.length;
+                        showAmbientLine(ambientLines[lineIndex]);
+                    }
+                }
+                entry.routineTween?.stop?.();
+                entry.routineTween = this.scene.tweens.add({
+                    targets: routineRing,
+                    alpha: { from: 0.42, to: 1 },
+                    scaleX: { from: 0.9, to: 1.16 },
+                    scaleY: { from: 0.9, to: 1.16 },
+                    duration: 650 + (index * 55),
+                    yoyo: true,
+                    repeat: 1,
+                    ease: 'Sine.easeInOut'
+                });
+                entry.routineTimer = this.scene.time?.delayedCall?.(
+                    1700 + (index * 110),
+                    () => {
+                        if (!container.active) return;
+                        entry.routineTween?.stop?.();
+                        entry.ambientTween?.stop?.();
+                        entry.ambientTimer?.remove?.();
+                        entry.ambientTimer = null;
+                        ambientLine.setVisible(false).setAlpha(0);
+                        routineRing.setVisible(false);
+                        routineLabel.setVisible(false);
+                        marker.setVisible(Boolean(markerLabel));
+                        walkNext();
+                    }
+                );
+            };
+            walkNext = () => {
+                if (!container.active || !this.scene?.tweens) return;
+                entry.routeIndex = (entry.routeIndex + 1) % route.length;
+                const target = route[entry.routeIndex];
+                const facing = target.x >= container.x ? 1 : -1;
+                figure.setScale(figureScaleX * facing, figureScaleY);
+                entry.moveTween = this.scene.tweens.add({
+                    targets: container,
+                    x: target.x,
+                    y: target.y,
+                    duration: 4200 + (index * 260),
+                    ease: 'Sine.easeInOut',
+                    onUpdate: syncZone,
+                    onComplete: beginRoutine
+                });
+            };
+            entry.idleTween = this.scene.tweens.add({
+                targets: figure,
+                scaleY: {
+                    from: figureScaleY * 0.98,
+                    to: figureScaleY * 1.03
+                },
+                duration: 900 + (index * 110),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            entry.routineTimer = this.scene.time?.delayedCall?.(
+                900 + (index * 260),
+                walkNext
+            );
+            garden.guardianResidents.push(entry);
+        });
+        this.startGuardianResidentSocialMoments(garden);
+    }
+
+    refreshRescuedResidents(garden, snapshot = null) {
+        if (!garden?.zone) return;
+        garden.rescuedResidents?.forEach(resident => {
+            resident.moveTween?.stop?.();
+            resident.idleTween?.stop?.();
+            resident.container?.destroy?.(true);
+            resident.zone?.destroy?.();
+        });
+        garden.rescuedResidents = [];
+
+        const rescuedIds = new Set(
+            snapshot?.rescued?.map(resident => resident.id) || []
+        );
+        const compact = this.worldWidth < 900 ||
+            (this.worldWidth - garden.zone.x) < 1250;
+        const positions = compact
+            ? [[-148, -42], [-76, 185], [0, -142], [76, 185], [148, -42], [0, 225]]
+            : [[-210, 150], [-80, 250], [70, 180], [210, 260], [360, 170], [500, 250]];
+
+        RESCUED_RESIDENT_DEFINITIONS.forEach((definition, index) => {
+            if (!rescuedIds.has(definition.id)) return;
+            const [offsetX, offsetY] = positions[index];
+            const startX = Math.max(62, Math.min(
+                this.worldWidth - 62,
+                garden.zone.x + offsetX
+            ));
+            const startY = Math.max(92, Math.min(
+                this.worldHeight - 70,
+                garden.zone.y + offsetY
+            ));
+            const container = this.scene.add.container(startX, startY)
+                .setDepth(startY + 6);
+            const shadow = this.scene.add.ellipse(0, 20, 40, 11, 0x101616, 0.38);
+            const figure = this.scene.add.graphics();
+            figure.fillStyle(definition.color, 1);
+            figure.fillRoundedRect(-19, -24, 38, 48, 10);
+            figure.fillStyle(definition.accent, 0.75);
+            figure.fillCircle(0, 6, 11);
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-8, -8, 7);
+            figure.fillCircle(8, -8, 7);
+            figure.fillStyle(0x101616, 1);
+            figure.fillCircle(-7, -8, 3);
+            figure.fillCircle(9, -8, 3);
+            const name = this.scene.add.text(0, 35, definition.name.toUpperCase(), {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'bold',
+                stroke: '#081514',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+            const role = this.scene.add.text(0, 50, definition.role.toUpperCase(), {
+                fontSize: '8px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8FE3CF',
+                backgroundColor: '#101616',
+                padding: { x: 4, y: 2 }
+            }).setOrigin(0.5);
+            const marker = this.scene.add.text(0, -41, 'SUPPORT READY', {
+                fontSize: '8px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#061116',
+                backgroundColor: '#F2C14E',
+                fontStyle: 'bold',
+                padding: { x: 5, y: 2 }
+            }).setOrigin(0.5);
+            container.add([shadow, figure, name, role, marker]);
+
+            const zone = this.scene.add.zone(startX, startY, 82, 92);
+            this.scene.physics.add.existing(zone, true);
+            zone.rescuedResidentId = definition.id;
+            const entry = {
+                id: definition.id,
+                definition,
+                container,
+                zone,
+                moveTween: null,
+                idleTween: null
+            };
+            entry.idleTween = this.scene.tweens.add({
+                targets: figure,
+                y: { from: -2, to: 2 },
+                duration: 900 + index * 90,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            entry.moveTween = this.scene.tweens.add({
+                targets: container,
+                x: startX + (index % 2 === 0 ? 24 : -24),
+                duration: 3200 + index * 180,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut',
+                onUpdate: () => {
+                    if (!zone.active || !container.active) return;
+                    zone.setPosition(container.x, container.y);
+                    zone.body?.updateFromGameObject?.();
+                    container.setDepth(container.y + 6);
+                }
+            });
+            garden.rescuedResidents.push(entry);
+        });
+    }
+
+    clearGuardianResidentSocialMoment(garden) {
+        if (!garden) return;
+        garden.guardianSocialMomentTimer?.remove?.();
+        garden.guardianSocialMomentTimer = null;
+        garden.guardianSocialTween?.stop?.();
+        garden.guardianSocialTween = null;
+        garden.guardianSocialElements?.forEach(element => {
+            element?.destroy?.();
+        });
+        garden.guardianSocialElements = [];
+    }
+
+    startGuardianResidentSocialMoments(garden) {
+        if (!garden?.guardianResidents?.length || !this.scene?.time) return;
+        const residentsById = new Map(
+            garden.guardianResidents.map(resident => [resident.id, resident])
+        );
+        const exchanges = GUARDIAN_SOCIAL_EXCHANGES.filter(exchange => (
+            exchange.guardianIds.every(id => residentsById.has(id))
+        ));
+        if (exchanges.length === 0) return;
+        garden.guardianSocialCycle = 0;
+
+        const schedule = delay => {
+            garden.guardianSocialTimer?.remove?.();
+            garden.guardianSocialTimer = this.scene.time.delayedCall(
+                delay,
+                trigger
+            );
+        };
+        const trigger = () => {
+            garden.guardianSocialTimer = null;
+            if (!garden.zone?.active || !this.scene?.sys?.isActive?.()) {
+                return;
+            }
+            if (
+                this.scene.guardianExchangeOpen ||
+                this.scene.guardianCareActivityOpen ||
+                this.scene.storyModalElements?.length ||
+                this.scene.hamburgerMenu?.isOpen
+            ) {
+                schedule(4200);
+                return;
+            }
+            const player = this.scene.player;
+            const candidates = exchanges.map(exchange => {
+                const residents = exchange.guardianIds.map(
+                    id => residentsById.get(id)
+                );
+                if (residents.some(resident => !resident?.container?.active)) {
+                    return null;
+                }
+                const [left, right] = residents;
+                const midpoint = {
+                    x: (left.container.x + right.container.x) / 2,
+                    y: (left.container.y + right.container.y) / 2
+                };
+                const pairDistance = Phaser.Math.Distance.Between(
+                    left.container.x,
+                    left.container.y,
+                    right.container.x,
+                    right.container.y
+                );
+                const playerDistance = player
+                    ? Phaser.Math.Distance.Between(
+                        player.x,
+                        player.y,
+                        midpoint.x,
+                        midpoint.y
+                    )
+                    : 0;
+                return {
+                    exchange,
+                    residents,
+                    midpoint,
+                    pairDistance,
+                    playerDistance
+                };
+            }).filter(candidate => (
+                candidate &&
+                candidate.pairDistance <= 430 &&
+                candidate.playerDistance <= 470
+            )).sort((left, right) => (
+                left.playerDistance - right.playerDistance ||
+                left.exchange.id.localeCompare(right.exchange.id)
+            ));
+            if (candidates.length === 0) {
+                schedule(5200);
+                return;
+            }
+
+            const candidate = candidates[
+                garden.guardianSocialCycle % candidates.length
+            ];
+            const variantIndex = Math.floor(
+                garden.guardianSocialCycle / candidates.length
+            ) % candidate.exchange.variants.length;
+            const variant = candidate.exchange.variants[variantIndex];
+            garden.guardianSocialCycle += 1;
+            this.clearGuardianResidentSocialMoment(garden);
+            candidate.residents.forEach(resident => {
+                resident.showAmbientLine?.(
+                    variant[resident.id],
+                    { duration: 3200 }
+                );
+            });
+
+            const connection = this.scene.add.graphics()
+                .setDepth(candidate.midpoint.y + 1)
+                .setAlpha(0);
+            connection.lineStyle(2, 0x8FE3CF, 0.58);
+            connection.lineBetween(
+                candidate.residents[0].container.x,
+                candidate.residents[0].container.y - 22,
+                candidate.residents[1].container.x,
+                candidate.residents[1].container.y - 22
+            );
+            const cue = this.scene.add.text(
+                candidate.midpoint.x,
+                candidate.midpoint.y - 46,
+                `SANCTUARY EXCHANGE // ${candidate.exchange.cue}`,
+                {
+                    fontSize: '9px',
+                    fontFamily: 'Arial, sans-serif',
+                    color: '#8FE3CF',
+                    fontStyle: 'bold',
+                    backgroundColor: '#101616',
+                    padding: { x: 6, y: 3 },
+                    stroke: '#081514',
+                    strokeThickness: 2
+                }
+            ).setOrigin(0.5).setDepth(candidate.midpoint.y + 3)
+                .setAlpha(0);
+            garden.guardianSocialElements = [connection, cue];
+            garden.guardianSocialTween = this.scene.tweens.add({
+                targets: garden.guardianSocialElements,
+                alpha: 1,
+                duration: 260,
+                yoyo: true,
+                hold: 2500,
+                ease: 'Sine.easeInOut'
+            });
+            garden.guardianSocialMomentTimer = this.scene.time.delayedCall(
+                3200,
+                () => this.clearGuardianResidentSocialMoment(garden)
+            );
+            this.scene.game?.events?.emit?.('guardian-social-moment', {
+                exchangeId: candidate.exchange.id,
+                guardianIds: [...candidate.exchange.guardianIds]
+            });
+            schedule(23000);
+        };
+
+        schedule(4200);
+    }
+
+    drawGuardianResidentFigure(graphics, definition) {
+        const color = definition.color;
+        const accent = definition.accent;
+        graphics.lineStyle(3, accent, 0.95);
+        graphics.fillStyle(color, 1);
+
+        if (definition.kind === 'treant') {
+            graphics.fillRoundedRect(-15, -22, 30, 50, 8);
+            graphics.strokeRoundedRect(-15, -22, 30, 50, 8);
+            graphics.lineBetween(-9, -20, -25, -38);
+            graphics.lineBetween(9, -20, 25, -38);
+            graphics.fillStyle(accent, 1);
+            graphics.fillCircle(-25, -40, 9);
+            graphics.fillCircle(0, -46, 12);
+            graphics.fillCircle(25, -40, 9);
+        } else if (definition.kind === 'golem') {
+            const body = [
+                { x: -22, y: 20 },
+                { x: -19, y: -21 },
+                { x: 0, y: -42 },
+                { x: 20, y: -18 },
+                { x: 24, y: 21 }
+            ];
+            graphics.fillPoints(body, true);
+            graphics.strokePoints(body, true);
+            graphics.fillStyle(accent, 1);
+            graphics.fillTriangle(-9, -17, 0, -36, 9, -17);
+            graphics.fillCircle(-8, -7, 3);
+            graphics.fillCircle(8, -7, 3);
+        } else if (definition.kind === 'serpent') {
+            graphics.fillEllipse(0, 1, 62, 29);
+            graphics.strokeEllipse(0, 1, 62, 29);
+            graphics.fillCircle(22, -15, 18);
+            graphics.strokeCircle(22, -15, 18);
+            graphics.fillStyle(accent, 1);
+            graphics.fillCircle(27, -19, 3);
+            graphics.lineBetween(-29, 4, -42, -7);
+            graphics.lineBetween(-29, 4, -43, 14);
+        } else if (definition.kind === 'phoenix') {
+            graphics.fillCircle(0, -8, 17);
+            graphics.fillTriangle(-6, 4, -42, -24, -24, 16);
+            graphics.fillTriangle(6, 4, 42, -24, 24, 16);
+            graphics.strokeTriangle(-6, 4, -42, -24, -24, 16);
+            graphics.strokeTriangle(6, 4, 42, -24, 24, 16);
+            graphics.fillStyle(accent, 1);
+            graphics.fillTriangle(-11, 17, 0, 38, 11, 17);
+            graphics.fillCircle(5, -12, 3);
+        } else if (definition.kind === 'titan') {
+            graphics.fillRoundedRect(-24, -31, 48, 58, 8);
+            graphics.strokeRoundedRect(-24, -31, 48, 58, 8);
+            graphics.fillStyle(accent, 1);
+            graphics.fillTriangle(-14, -12, 0, -31, 14, -12);
+            graphics.lineBetween(-31, -15, -24, 11);
+            graphics.lineBetween(31, -15, 24, 11);
+        } else {
+            graphics.fillEllipse(0, -2, 42, 57);
+            graphics.strokeEllipse(0, -2, 42, 57);
+            graphics.fillStyle(accent, 1);
+            graphics.fillTriangle(-23, -25, 0, -50, 23, -25);
+            graphics.lineStyle(2, accent, 0.7);
+            graphics.strokeCircle(0, -7, 31);
+            graphics.fillCircle(-7, -10, 3);
+            graphics.fillCircle(7, -10, 3);
+        }
+    }
+
+    /**
+     * Mark the Living Commons decision in the world without adding another
+     * construction tier. The four pennants represent the mission colors and
+     * remain visible after the First Listening.
+     */
+    refreshFendCulture(garden, snapshot = null) {
+        if (!garden?.zone) return;
+
+        garden.culturePulseTween?.stop?.();
+        garden.culturePulseTween = null;
+        garden.cultureElements?.forEach(element => element?.destroy?.());
+        garden.cultureElements = [];
+        if (!snapshot?.complete || !snapshot.selectedPriority) return;
+
+        const centerX = garden.zone.x;
+        const centerY = garden.zone.y - 132;
+        const sigil = this.scene.add.graphics().setDepth(garden.zone.y + 4);
+        sigil.fillStyle(0x101616, 0.96);
+        sigil.fillCircle(centerX, centerY, 22);
+        sigil.lineStyle(2, 0xF4F4F4, 0.95);
+        sigil.strokeCircle(centerX, centerY, 22);
+        sigil.lineStyle(3, 0x3FAE62, 1);
+        sigil.lineBetween(centerX - 10, centerY + 7, centerX, centerY - 8);
+        sigil.lineBetween(centerX, centerY - 8, centerX + 10, centerY + 7);
+        sigil.fillStyle(0xD94B4B, 1);
+        sigil.fillCircle(centerX, centerY - 8, 4);
+
+        const pennantColors = [0xD94B4B, 0x101616, 0xF4F4F4, 0x3FAE62];
+        pennantColors.forEach((color, index) => {
+            const x = centerX - 31 + (index * 20);
+            sigil.fillStyle(color, 1);
+            sigil.fillTriangle(x, centerY + 30, x + 14, centerY + 30, x + 7, centerY + 41);
+        });
+
+        const label = this.scene.add.text(
+            centerX,
+            centerY + 53,
+            snapshot.selectedPriority.shortLabel,
+            {
+                fontSize: '9px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#D8FFF0',
+                fontStyle: 'bold',
+                backgroundColor: '#101616',
+                padding: { x: 5, y: 3 },
+                stroke: '#081514',
+                strokeThickness: 2
+            }
+        ).setOrigin(0.5).setDepth(garden.zone.y + 5);
+
+        garden.cultureElements = [sigil, label];
+        garden.culturePulseTween = this.scene.tweens.add({
+            targets: [sigil, label],
+            alpha: { from: 0.82, to: 1 },
+            duration: 1450,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    /**
+     * Render the three Quiet Current anchors as a physical consequence of the
+     * protected-return decision. Saved state carries only anchor IDs; world
+     * coordinates remain authored locally in this renderer.
+     */
+    refreshCurrentVeilMission(garden, snapshot = null) {
+        if (!garden?.zone) return;
+
+        garden.currentVeilAnchors?.forEach(anchor => {
+            anchor.pulseTween?.stop?.();
+            anchor.container?.destroy?.(true);
+            anchor.zone?.destroy?.();
+        });
+        garden.currentVeilAnchors = [];
+        garden.currentVeilNetwork?.destroy?.();
+        garden.currentVeilNetwork = null;
+
+        if (
+            !snapshot?.active &&
+            !snapshot?.verificationReady &&
+            !snapshot?.complete
+        ) {
+            return;
+        }
+
+        const network = this.scene.add.graphics()
+            .setDepth(garden.zone.y - 8);
+        network.lineStyle(
+            2,
+            snapshot.complete ? 0x71E6B1 : 0x8FE3CF,
+            snapshot.complete ? 0.58 : 0.3
+        );
+        const points = snapshot.anchors.map(anchor => ({
+            x: garden.zone.x + anchor.positionOffset.x,
+            y: garden.zone.y + anchor.positionOffset.y
+        }));
+        points.forEach((point, index) => {
+            const next = points[(index + 1) % points.length];
+            network.lineBetween(point.x, point.y, next.x, next.y);
+            network.lineBetween(
+                point.x,
+                point.y,
+                garden.zone.x,
+                garden.zone.y
+            );
+        });
+        garden.currentVeilNetwork = network;
+
+        snapshot.anchors.forEach(anchor => {
+            const x = garden.zone.x + anchor.positionOffset.x;
+            const y = garden.zone.y + anchor.positionOffset.y;
+            const stabilized = anchor.stabilized;
+            const container = this.scene.add.container(x, y)
+                .setDepth(y + 4);
+            const figure = this.scene.add.graphics();
+            figure.fillStyle(0x101616, 0.96);
+            figure.fillCircle(0, 0, 28);
+            figure.lineStyle(
+                3,
+                stabilized ? 0x71E6B1 : anchor.color,
+                1
+            );
+            figure.strokeCircle(0, 0, 28);
+            figure.lineStyle(2, anchor.accent, 0.95);
+            figure.strokeCircle(0, 0, 17);
+            figure.fillStyle(anchor.color, 1);
+            figure.fillCircle(0, 0, stabilized ? 8 : 6);
+            figure.lineStyle(3, 0xF4F4F4, 0.9);
+            figure.lineBetween(-9, 8, 0, -8);
+            figure.lineBetween(0, -8, 9, 8);
+
+            const status = this.scene.add.text(
+                0,
+                41,
+                stabilized ? 'STABILIZED' : anchor.label,
+                {
+                    fontSize: '9px',
+                    fontFamily: 'Arial, sans-serif',
+                    color: stabilized ? '#71E6B1' : '#F4F4F4',
+                    fontStyle: 'bold',
+                    backgroundColor: '#101616',
+                    padding: { x: 5, y: 3 },
+                    stroke: '#081514',
+                    strokeThickness: 2
+                }
+            ).setOrigin(0.5);
+            container.add([figure, status]);
+
+            const zone = this.scene.add.zone(x, y, 78, 78);
+            this.scene.physics.add.existing(zone, true);
+            zone.setDepth(y);
+            zone.currentVeilAnchorId = anchor.id;
+
+            const pulseTween = !stabilized && snapshot.active
+                ? this.scene.tweens.add({
+                    targets: container,
+                    scaleX: { from: 0.96, to: 1.08 },
+                    scaleY: { from: 0.96, to: 1.08 },
+                    alpha: { from: 0.78, to: 1 },
+                    duration: 1050 + (anchor.order * 120),
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                })
+                : null;
+
+            garden.currentVeilAnchors.push({
+                id: anchor.id,
+                definition: anchor,
+                stabilized,
+                container,
+                zone,
+                pulseTween
+            });
         });
     }
 
@@ -545,10 +2251,36 @@ class WorldBuilder {
             ease: 'Sine.easeInOut'
         });
 
-        // Create range boundary markers (decorative)
+        // Create a decorative perimeter with a clear, non-colliding entrance.
         const boundaryGraphics = this.scene.add.graphics();
         boundaryGraphics.lineStyle(2, 0xFF6B6B, 0.4);
-        boundaryGraphics.strokeRect(centerX - 140, centerY - 100, 280, 200);
+        const left = centerX - 140;
+        const right = centerX + 140;
+        const top = centerY - 100;
+        const bottom = centerY + 100;
+        const gateHalfWidth = 42;
+        boundaryGraphics.lineBetween(left, top, right, top);
+        boundaryGraphics.lineBetween(left, top, left, bottom);
+        boundaryGraphics.lineBetween(right, top, right, bottom);
+        boundaryGraphics.lineBetween(left, bottom, centerX - gateHalfWidth, bottom);
+        boundaryGraphics.lineBetween(centerX + gateHalfWidth, bottom, right, bottom);
+        boundaryGraphics.fillStyle(0x8FE3CF, 0.7);
+        boundaryGraphics.fillTriangle(
+            centerX - 22,
+            bottom + 18,
+            centerX - 10,
+            bottom + 18,
+            centerX - 16,
+            bottom + 5
+        );
+        boundaryGraphics.fillTriangle(
+            centerX + 10,
+            bottom + 18,
+            centerX + 22,
+            bottom + 18,
+            centerX + 16,
+            bottom + 5
+        );
         boundaryGraphics.setDepth(1);
 
         // Add "DANGER ZONE" corner markers
@@ -1008,8 +2740,9 @@ class WorldBuilder {
 
         if (validTreeVariants.length > 0 && treeCount > 0) {
             for (let i = 0; i < treeCount; i++) {
-                const x = Phaser.Math.Between(150, this.worldWidth - 150);
-                const y = Phaser.Math.Between(150, this.worldHeight - 150);
+                const position = this.findEnvironmentPosition(150, 72);
+                if (!position) continue;
+                const { x, y } = position;
                 const treeType = Phaser.Math.RND.pick(validTreeVariants);
                 const tree = trees.create(x, y, treeType);
                 tree.setScale(Phaser.Math.FloatBetween(1.0, 1.8));
@@ -1028,8 +2761,9 @@ class WorldBuilder {
             const textureName = `enhancedRock_${i}`;
             if (!this.scene.textures.exists(textureName)) continue;
             for (let j = 0; j < Math.ceil(rockCount / 3); j++) {
-                const x = Phaser.Math.Between(100, this.worldWidth - 100);
-                const y = Phaser.Math.Between(100, this.worldHeight - 100);
+                const position = this.findEnvironmentPosition(100, 58);
+                if (!position) continue;
+                const { x, y } = position;
                 const rock = rocks.create(x, y, textureName);
                 rock.setScale(Phaser.Math.FloatBetween(1.2, 2.0));
                 rock.body.setSize(25, 20);
@@ -1064,6 +2798,29 @@ class WorldBuilder {
         shop.body.setOffset(-60, -60);
 
         return { trees, rocks, flowers, shop };
+    }
+
+    isReservedSanctuaryPosition(x, y, padding = 60) {
+        if (this.currentBiome !== 'nebula') return false;
+
+        return Object.values(this.sanctuaryZones?.zones || {}).some(zone => {
+            const bounds = zone.bounds;
+            return x >= bounds.x - padding &&
+                x <= bounds.x + bounds.width + padding &&
+                y >= bounds.y - padding &&
+                y <= bounds.y + bounds.height + padding;
+        });
+    }
+
+    findEnvironmentPosition(margin, reservedPadding, maxAttempts = 40) {
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+            const x = Phaser.Math.Between(margin, this.worldWidth - margin);
+            const y = Phaser.Math.Between(margin, this.worldHeight - margin);
+            if (!this.isReservedSanctuaryPosition(x, y, reservedPadding)) {
+                return { x, y };
+            }
+        }
+        return null;
     }
 
     /**
@@ -1658,10 +3415,56 @@ class WorldBuilder {
     }
 
     destroy() {
+        this.villageHeart?.pulseTween?.stop?.();
+        this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
+        this.villageHeart?.buildingElements?.forEach(
+            element => element?.destroy?.(true)
+        );
+        this.villageHeart?.zone?.destroy?.();
+        this.villageHeart?.heart?.destroy?.();
+        this.villageHeart?.glow?.destroy?.();
+        this.villageHeart?.label?.destroy?.();
+        this.villageHeart?.statusLabel?.destroy?.();
+        this.villageHeart = null;
         this.signalGarden?.pulseTween?.stop();
+        this.signalGarden?.communityPulseTween?.stop();
+        this.signalGarden?.culturePulseTween?.stop();
+        this.signalGarden?.cultureElements?.forEach(
+            element => element?.destroy?.()
+        );
+        this.signalGarden?.residents?.forEach(resident => {
+            resident.pulseTween?.stop?.();
+            resident.container?.destroy?.(true);
+            resident.zone?.destroy?.();
+        });
+        this.signalGarden?.guardianSocialTimer?.remove?.();
+        this.clearGuardianResidentSocialMoment(this.signalGarden);
+        this.signalGarden?.guardianResidents?.forEach(resident => {
+            resident.moveTween?.stop?.();
+            resident.idleTween?.stop?.();
+                resident.routineTween?.stop?.();
+                resident.ambientTween?.stop?.();
+                resident.ambientTimer?.remove?.();
+                resident.routineTimer?.remove?.();
+            resident.container?.destroy?.(true);
+            resident.zone?.destroy?.();
+        });
+        this.signalGarden?.rescuedResidents?.forEach(resident => {
+            resident.moveTween?.stop?.();
+            resident.idleTween?.stop?.();
+            resident.container?.destroy?.(true);
+            resident.zone?.destroy?.();
+        });
+        this.signalGarden?.currentVeilAnchors?.forEach(anchor => {
+            anchor.pulseTween?.stop?.();
+            anchor.container?.destroy?.(true);
+            anchor.zone?.destroy?.();
+        });
+        this.signalGarden?.currentVeilNetwork?.destroy?.();
         this.signalGarden?.zone?.destroy();
         this.signalGarden?.bed?.destroy();
         this.signalGarden?.growth?.destroy();
+        this.signalGarden?.community?.destroy();
         this.signalGarden?.label?.destroy();
         this.signalGarden = null;
         this.backgroundImage?.destroy();

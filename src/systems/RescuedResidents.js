@@ -1,0 +1,265 @@
+export const RESCUED_RESIDENTS_SCHEMA_VERSION = 1;
+
+export const RESCUED_RESIDENT_DEFINITIONS = Object.freeze([
+    Object.freeze({
+        id: 'bloom',
+        levelId: 'mythicalForest',
+        name: 'Bloom',
+        role: 'Root Forager',
+        kind: 'bloom',
+        artwork: '/marketing/bloom%202.webp',
+        textureKey: 'rescued-resident-bloom-art',
+        color: 0xE7A3C7,
+        accent: 0x71E6B1,
+        releaseLine: 'The cage was blocking the root paths Bloom uses to carry food between shelters.',
+        sanctuaryLine: 'I found a clean root cache. I left enough behind for the next traveler.',
+        support: Object.freeze({ maxEnergyBonus: 1 }),
+        supportLabel: '+1 expedition energy from gathered root supplies'
+    }),
+    Object.freeze({
+        id: 'pebble',
+        levelId: 'crystalCaves',
+        name: 'Pebble',
+        role: 'Shard Finder',
+        kind: 'pebble',
+        artwork: '/marketing/pebble%202.webp',
+        textureKey: 'rescued-resident-pebble-art',
+        color: 0xB98A68,
+        accent: 0x63E5E8,
+        releaseLine: 'Pebble knows which loose crystals are safe to gather and which are still alive.',
+        sanctuaryLine: 'This shard was already loose. Taking it did not hurt the cave.',
+        support: Object.freeze({ victoryCoinBonus: 3 }),
+        supportLabel: '+3 salvage coins after each later expedition'
+    }),
+    Object.freeze({
+        id: 'zephyr',
+        levelId: 'cosmicReef',
+        name: 'Zephyr',
+        role: 'Current Courier',
+        kind: 'zephyr',
+        artwork: '/marketing/zephyr%202.webp',
+        textureKey: 'rescued-resident-zephyr-art',
+        color: 0xE98843,
+        accent: 0x49E6D3,
+        releaseLine: 'Zephyr carried warnings between reef settlements until the broken Current trapped them.',
+        sanctuaryLine: 'The quiet route is open. I can carry a warning there before the pressure changes.',
+        support: Object.freeze({ speedMultiplier: 1.04 }),
+        supportLabel: '+4% expedition movement through mapped passages'
+    }),
+    Object.freeze({
+        id: 'wisp',
+        levelId: 'voidPeaks',
+        name: 'Wisp',
+        role: 'Ridge Lookout',
+        kind: 'wisp',
+        artwork: '/marketing/wisp%202.webp',
+        textureKey: 'rescued-resident-wisp-art',
+        color: 0x8C77C8,
+        accent: 0xF2C14E,
+        releaseLine: 'Wisp was contained for warning travelers away from unstable ridge crossings.',
+        sanctuaryLine: 'I saw the ridge move before it broke. I will mark the next unsafe crossing.',
+        support: Object.freeze({ guardCharges: 1 }),
+        supportLabel: '+1 supply guard charge in later expeditions'
+    }),
+    Object.freeze({
+        id: 'luna',
+        levelId: 'auroraDepths',
+        name: 'Luna',
+        role: 'Aurora Surveyor',
+        kind: 'luna',
+        artwork: '/marketing/luna%202.webp',
+        textureKey: 'rescued-resident-luna-art',
+        color: 0x53A6D8,
+        accent: 0xF4D35E,
+        releaseLine: 'Luna can read warm sky lanes the extraction instruments register only as waste heat.',
+        sanctuaryLine: 'The reactor is stable. There is another signal beyond the mapped sky.',
+        support: Object.freeze({ jumpMultiplier: 1.04 }),
+        supportLabel: '+4% lift from mapped aurora currents'
+    }),
+    Object.freeze({
+        id: 'nova',
+        levelId: 'finalVoid',
+        name: 'Nova',
+        role: 'Signal Archivist',
+        kind: 'nova',
+        artwork: '/marketing/nova%202.webp',
+        textureKey: 'rescued-resident-nova-art',
+        color: 0x8FE3CF,
+        accent: 0xF2C14E,
+        releaseLine: 'Nova kept the names of lives the extraction record reduced to empty coordinates.',
+        sanctuaryLine: 'A place survives when its lives remain named. I have added yours beside ours.',
+        support: Object.freeze({}),
+        supportLabel: 'Preserves the living-world record for the campaign decision'
+    })
+]);
+
+const RESIDENT_BY_LEVEL = new Map(
+    RESCUED_RESIDENT_DEFINITIONS.map(resident => [resident.levelId, resident])
+);
+const RESIDENT_BY_ID = new Map(
+    RESCUED_RESIDENT_DEFINITIONS.map(resident => [resident.id, resident])
+);
+
+function normalizeTimestamp(value) {
+    return typeof value === 'string' && value.trim()
+        ? value.trim().slice(0, 40)
+        : null;
+}
+
+function getLegacyCompletedResidentIds(gameState) {
+    return RESCUED_RESIDENT_DEFINITIONS
+        .filter(resident => (
+            gameState?.get?.(`levels.${resident.levelId}.completed`) === true
+        ))
+        .map(resident => resident.id);
+}
+
+export function normalizeRescuedResidentState(value = {}, {
+    completedResidentIds = []
+} = {}) {
+    const rescuedIds = [...new Set(
+        [
+            ...(Array.isArray(value.rescuedIds) ? value.rescuedIds : []),
+            ...completedResidentIds
+        ]
+            .filter(id => RESIDENT_BY_ID.has(id))
+    )];
+    const interactions = {};
+    rescuedIds.forEach(id => {
+        interactions[id] = Math.max(0, Number(value.interactions?.[id]) || 0);
+    });
+    return {
+        schemaVersion: RESCUED_RESIDENTS_SCHEMA_VERSION,
+        rescuedIds,
+        interactions,
+        rescueHistory: (Array.isArray(value.rescueHistory)
+            ? value.rescueHistory
+            : [])
+            .filter(entry => RESIDENT_BY_ID.has(entry?.residentId))
+            .slice(-RESCUED_RESIDENT_DEFINITIONS.length)
+            .map(entry => ({
+                residentId: entry.residentId,
+                levelId: RESIDENT_BY_ID.get(entry.residentId).levelId,
+                rescuedAt: normalizeTimestamp(entry.rescuedAt)
+            })),
+        lastInteractionId: RESIDENT_BY_ID.has(value.lastInteractionId)
+            ? value.lastInteractionId
+            : null,
+        lastInteractionAt: normalizeTimestamp(value.lastInteractionAt)
+    };
+}
+
+export function getRescuedResidentSnapshot(gameState) {
+    const state = normalizeRescuedResidentState(
+        gameState?.get?.('world.rescuedResidents') || {},
+        { completedResidentIds: getLegacyCompletedResidentIds(gameState) }
+    );
+    const rescued = RESCUED_RESIDENT_DEFINITIONS
+        .filter(resident => state.rescuedIds.includes(resident.id))
+        .map(resident => ({
+            ...resident,
+            interactionCount: state.interactions[resident.id] || 0
+        }));
+    const support = rescued.reduce((total, resident) => ({
+        maxEnergyBonus:
+            total.maxEnergyBonus + (resident.support.maxEnergyBonus || 0),
+        maxHealthBonus:
+            total.maxHealthBonus + (resident.support.maxHealthBonus || 0),
+        guardCharges:
+            total.guardCharges + (resident.support.guardCharges || 0),
+        victoryCoinBonus:
+            total.victoryCoinBonus + (resident.support.victoryCoinBonus || 0),
+        speedMultiplier:
+            total.speedMultiplier * (resident.support.speedMultiplier || 1),
+        jumpMultiplier:
+            total.jumpMultiplier * (resident.support.jumpMultiplier || 1)
+    }), {
+        maxEnergyBonus: 0,
+        maxHealthBonus: 0,
+        guardCharges: 0,
+        victoryCoinBonus: 0,
+        speedMultiplier: 1,
+        jumpMultiplier: 1
+    });
+    return {
+        state,
+        residents: RESCUED_RESIDENT_DEFINITIONS.map(resident => ({
+            ...resident,
+            rescued: state.rescuedIds.includes(resident.id),
+            interactionCount: state.interactions[resident.id] || 0
+        })),
+        rescued,
+        rescuedCount: rescued.length,
+        totalResidents: RESCUED_RESIDENT_DEFINITIONS.length,
+        support
+    };
+}
+
+export function recordRescuedResident(gameState, levelId, {
+    save = true,
+    rescuedAt = new Date().toISOString()
+} = {}) {
+    const resident = RESIDENT_BY_LEVEL.get(levelId);
+    if (!gameState || !resident) return null;
+    const state = normalizeRescuedResidentState(
+        gameState.get?.('world.rescuedResidents') || {},
+        { completedResidentIds: getLegacyCompletedResidentIds(gameState) }
+    );
+    const changed = !state.rescuedIds.includes(resident.id);
+    if (changed) {
+        state.rescuedIds.push(resident.id);
+        state.interactions[resident.id] = 0;
+        state.rescueHistory.push({
+            residentId: resident.id,
+            levelId: resident.levelId,
+            rescuedAt
+        });
+        gameState.set('world.rescuedResidents', state);
+        if (save) gameState.save?.();
+    }
+    return {
+        changed,
+        resident,
+        snapshot: getRescuedResidentSnapshot(gameState)
+    };
+}
+
+export function interactWithRescuedResident(gameState, residentId, {
+    interactedAt = new Date().toISOString()
+} = {}) {
+    const resident = RESIDENT_BY_ID.get(residentId);
+    if (!gameState || !resident) return null;
+    const state = normalizeRescuedResidentState(
+        gameState.get?.('world.rescuedResidents') || {},
+        { completedResidentIds: getLegacyCompletedResidentIds(gameState) }
+    );
+    if (!state.rescuedIds.includes(residentId)) return null;
+    state.interactions[residentId] = (state.interactions[residentId] || 0) + 1;
+    state.lastInteractionId = residentId;
+    state.lastInteractionAt = interactedAt;
+    gameState.set('world.rescuedResidents', state);
+    gameState.save?.();
+    return {
+        resident,
+        line: resident.sanctuaryLine,
+        supportLabel: resident.supportLabel,
+        interactionCount: state.interactions[residentId],
+        snapshot: getRescuedResidentSnapshot(gameState)
+    };
+}
+
+export function getRescuedResidentByLevel(levelId) {
+    return RESIDENT_BY_LEVEL.get(levelId) || null;
+}
+
+if (typeof window !== 'undefined') {
+    window.RescuedResidents = {
+        RESCUED_RESIDENTS_SCHEMA_VERSION,
+        RESCUED_RESIDENT_DEFINITIONS,
+        normalizeRescuedResidentState,
+        getRescuedResidentSnapshot,
+        recordRescuedResident,
+        interactWithRescuedResident,
+        getRescuedResidentByLevel
+    };
+}

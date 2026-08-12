@@ -39,16 +39,44 @@ describe('Living Signal first-session contract', () => {
         expect(gameSceneSource).toContain('checkLivingSignalProximity(delta');
         expect(gameSceneSource).toContain('this.livingSignalDwellMs >= 800');
         expect(gameSceneSource).toContain('nearest.distance > 150');
-        expect(gameSceneSource).toContain('approach with your companion and stay close');
-        expect(gameSceneSource).toContain('LIVING SIGNAL // APPROACH');
+        expect(gameSceneSource).toContain('Not an Earth transmission');
+        expect(gameSceneSource).toContain(
+            'LIVING SIGNAL // LISTEN TOGETHER'
+        );
+        expect(gameSceneSource).toContain('LISTENING ${percent}% // HOLD STILL');
+        expect(gameSceneSource).toContain('this.livingSignalDwellMs / 800');
+        expect(gameSceneSource).toContain('listeningProgress?.arc?.(');
+        expect(projectBeacon.fieldMissions.find(
+            mission => mission.id === 'beacon_living_signals'
+        ).briefing).toContain('not messages from Earth');
         expect(gameSceneSource).not.toContain(
             "activeStoryQuest?.id !== 'beacon_living_signals'"
         );
         expect(gameSceneSource).toContain(
             "window.GameState.set('world.livingSignals', result.state)"
         );
+        expect(gameSceneSource).toContain('recordCurrentSignalObservation');
+        expect(gameSceneSource).toContain('window.GameState.save?.()');
         expect(gameSceneSource).toContain("this.recordBondActivity('signal')");
-        expect(gameSceneSource).toContain('showLivingSignalMoment(result)');
+        expect(gameSceneSource).toContain('this.showLivingSignalMoment({');
+        expect(gameSceneSource).toContain('CURRENT NETWORK // ${currentStatus}');
+        expect(gameSceneSource).toContain(
+            'NEXT // Follow the marked pulse. Listen ${result.progress}/${result.total}.'
+        );
+        expect(gameSceneSource).toContain(
+            'NEXT // Follow your companion toward the World Gate.'
+        );
+    });
+
+    test('leaves observed signals visibly alive and linked instead of consuming them', () => {
+        expect(gameSceneSource).toContain('setLivingSignalLinkedState(');
+        expect(gameSceneSource).toContain(
+            'CURRENT LINKED // ${progress}/${total}'
+        );
+        expect(gameSceneSource).toContain('signal.container?.addAt?.(linkVisual, 0)');
+        expect(gameSceneSource).toContain('signal.container?.setAlpha?.(0.96)');
+        expect(gameSceneSource).not.toContain("setText('SIGNAL HEARD')");
+        expect(gameSceneSource).not.toContain('signal.container?.setAlpha(0.58)');
     });
 
     test('targets only unobserved authored signals', () => {
@@ -62,8 +90,23 @@ describe('Living Signal first-session contract', () => {
         expect(gameSource).toContain(
             "const testLivingSignal = urlParams.get('testLivingSignal')"
         );
+        expect(gameSource).toContain("'testLivingSignalProgress'");
         expect(gameSource).toContain('livingSignalPreview: testLivingSignal');
+        expect(gameSource).toContain('livingSignalPreviewSize:');
+        expect(gameSceneSource).toContain(
+            "this.livingSignalPreviewSize === 'mobile'"
+        );
+        expect(gameSceneSource).toContain(
+            "this.livingSignalPreviewSize === 'mobile'\n            ? 390"
+        );
+        expect(gameSource).toContain('livingSignalProgressPreview: Number.isFinite(');
         expect(hatchingSource).toContain("previewParams.has('testLivingSignal')");
         expect(gameSceneSource).toContain('createLivingSignalPreview()');
+        expect(gameSceneSource).toContain(
+            'data?.livingSignalProgressPreview !== null'
+        );
+        expect(gameSceneSource).toContain(
+            'data?.livingSignalProgressPreview !== undefined'
+        );
     });
 });

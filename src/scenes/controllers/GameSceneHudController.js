@@ -1,4 +1,5 @@
 import EconomyHudManager from '../../systems/ui/EconomyHudManager.js';
+import { getMobileInteractionPromptLayout, getSafeAreaInsets } from '../../systems/MobileControlLayout.js';
 
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 
@@ -50,19 +51,7 @@ export default class GameSceneHudController {
         scene.statsText.setDepth(2000);
         scene.updateStatsDisplay();
 
-        scene.interactionText = scene.add.text(width / 2, height - 40, '', {
-            fontSize: '16px',
-            color: '#FFD700',
-            stroke: '#000000',
-            strokeThickness: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            align: 'center',
-            padding: { x: 10, y: 6 }
-        });
-        scene.interactionText.setOrigin(0.5);
-        scene.interactionText.setScrollFactor(0);
-        scene.interactionText.setDepth(3000);
-        scene.interactionText.setVisible(false);
+        this.createInteractionPrompt(width, height);
 
         if (!scene.economyHud) {
             scene.economyHud = new EconomyHudManager(scene, {
@@ -76,6 +65,67 @@ export default class GameSceneHudController {
         this.createCombatButton();
         this.createCosmicMiniMap();
         this.createGlowingStatBars();
+    }
+
+    createInteractionPrompt(width = this.scene.scale.width, height = this.scene.scale.height) {
+        const scene = this.scene;
+        if (scene.interactionTextResizeHandler) {
+            scene.scale.off?.('resize', scene.interactionTextResizeHandler);
+            scene.interactionTextResizeHandler = null;
+        }
+        scene.interactionText?.destroy?.();
+        scene.interactionText = scene.add.text(width / 2, height - 40, '', {
+            fontSize: '16px',
+            color: '#FFD700',
+            stroke: '#000000',
+            strokeThickness: 2,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            align: 'center',
+            padding: { x: 10, y: 6 }
+        });
+        scene.interactionText.setOrigin(0.5);
+        scene.interactionText.setScrollFactor(0);
+        scene.interactionText.setDepth(3000);
+        scene.interactionText.setVisible(false);
+        this.layoutInteractionText(width, height);
+
+        scene.interactionTextResizeHandler = gameSize => {
+            this.layoutInteractionText(
+                Number(gameSize?.width) || scene.scale.width,
+                Number(gameSize?.height) || scene.scale.height
+            );
+        };
+        scene.scale.on('resize', scene.interactionTextResizeHandler);
+    }
+
+    layoutInteractionText(width, height) {
+        const scene = this.scene;
+        if (!scene.interactionText?.active) return;
+
+        const isMobile = Boolean(
+            scene.mobileControls?.isMobile ||
+            window.responsiveManager?.isMobile ||
+            width < 768
+        );
+        if (!isMobile) {
+            scene.interactionText.setPosition(width / 2, height - 40);
+            scene.interactionText.setOrigin(0.5, 0.5);
+            scene.interactionText.setFontSize('16px');
+            scene.interactionText.setWordWrapWidth?.(Math.max(240, width - 32));
+            scene.interactionText.setDepth(3000);
+            return;
+        }
+
+        const layout = getMobileInteractionPromptLayout({
+            width,
+            height,
+            safeArea: getSafeAreaInsets()
+        });
+        scene.interactionText.setPosition(layout.x, layout.y);
+        scene.interactionText.setOrigin(0.5, layout.originY);
+        scene.interactionText.setFontSize(`${layout.fontSize}px`);
+        scene.interactionText.setWordWrapWidth?.(layout.maxWidth);
+        scene.interactionText.setDepth(10020);
     }
 
     createResetButton() {

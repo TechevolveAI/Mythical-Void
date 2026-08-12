@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-11",
+  "status": "consent_gated_public_shop_window_tag_ready_for_production_review",
+  "purpose": "Describe the small Google tag used on Mythical’s public shop window. The tag is not part of the game. It starts with analytics and advertising storage turned off, asks visitors before enabling analytics, sends only a simple public-page visit after an affirmative choice, turns advertising features off, and never receives a game save, creature name, account number, email, age, child detail, full query string, or user ID from Mythical. A visitor can say no. The tag is checked in the page source, the consent helper, the public privacy page, and both production hosting policies before release.",
+  "decisionRefs": ["D-003", "D-004", "D-015"],
+  "riskRefs": ["R-001", "R-005", "R-011"],
+  "workflowRefs": ["A-006", "A-018", "A-055", "A-058"],
+  "tag": {
+    "measurementId": "G-FTM4W73EQC",
+    "scriptUrl": "https://www.googletagmanager.com/gtag/js?id=G-FTM4W73EQC",
+    "scope": "public_shop_window_only",
+    "includedRoutes": ["/", "/privacy/", "/terms/"],
+    "excludedRoutes": ["/play/", "/game/", "?testBoss"],
+    "defaultAnalyticsStorage": "denied",
+    "defaultAdStorage": "denied",
+    "defaultAdUserData": "denied",
+    "defaultAdPersonalization": "denied",
+    "allowGoogleSignals": false,
+    "allowAdPersonalizationSignals": false,
+    "visitorChoiceRequired": true,
+    "pageViewBeforeChoice": false,
+    "pageLocationUsesCanonicalPathOnly": true
+  },
+  "authority": {
+    "productionDeploymentAuthorizedByKevin": true,
+    "liveMeasurementApproved": false,
+    "adPersonalizationAuthorized": false,
+    "gameMeasurementAuthorized": false,
+    "userProfilingAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "sourceChecks": [
+    { "id": "GA-001", "path": "index.html", "purpose": "tag id, consent default, and game exclusion" },
+    { "id": "GA-002", "path": "src/site/analytics-consent.js", "purpose": "visitor choice and no-message banner" },
+    { "id": "GA-003", "path": "src/site/storefront.js", "purpose": "public-page banner and privacy wording" },
+    { "id": "GA-004", "path": "src/site/storefront.css", "purpose": "readable choice banner" },
+    { "id": "GA-005", "path": "netlify.toml", "purpose": "production script and connection permissions" },
+    { "id": "GA-006", "path": "vercel.json", "purpose": "alternate production script and connection permissions" }
+  ],
+  "prohibitedData": ["user_id", "account_id", "email", "name", "age", "age_band", "birth_date", "child_data", "creature_id", "creature_name", "game_save", "story_choice", "full_url", "query_string", "raw_referrer", "ip_address", "advertising_id"],
+  "activationGates": [
+    { "id": "GA-G01", "name": "Tag id checked", "satisfied": false },
+    { "id": "GA-G02", "name": "Consent default checked", "satisfied": false },
+    { "id": "GA-G03", "name": "Visitor choice checked", "satisfied": false },
+    { "id": "GA-G04", "name": "Game exclusion checked", "satisfied": false },
+    { "id": "GA-G05", "name": "Advertising off checked", "satisfied": false },
+    { "id": "GA-G06", "name": "Canonical path checked", "satisfied": false },
+    { "id": "GA-G07", "name": "Privacy wording checked", "satisfied": false },
+    { "id": "GA-G08", "name": "Netlify policy checked", "satisfied": false },
+    { "id": "GA-G09", "name": "Vercel policy checked", "satisfied": false },
+    { "id": "GA-G10", "name": "No game source change checked", "satisfied": false },
+    { "id": "GA-G11", "name": "Production page check", "satisfied": false },
+    { "id": "GA-G12", "name": "Removal path checked", "satisfied": false }
+  ],
+  "tagImplementationReadyForReview": true,
+  "productionDeployed": false,
+  "externalActionAuthorized": false,
+  "nextDecision": "The tag is ready to publish with consent off by default. Before treating the numbers as trusted, Kevin should confirm the live domain, Google property, privacy wording, retention choice, access to the Google property, and the person who can remove the tag. The first production check should confirm that the shop window loads the tag, the game does not, no page view is sent before a visitor allows analytics, “No thanks” keeps it off, and “Allow analytics” sends only a public canonical page visit. Advertising features must remain off. If the property, privacy review, or live check is not ready, remove the tag from the release rather than treating a partial measurement result as company truth."
+}

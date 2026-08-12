@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "opportunities": [
+    {
+      "id": "OP-001",
+      "organization": "itch.io",
+      "type": "distribution",
+      "stage": "researched",
+      "source": "https://itch.io/docs/creators/html5",
+      "contact": null,
+      "outreachApproved": false,
+      "contactedAt": null,
+      "fit": {
+        "audience": "medium",
+        "product": "medium",
+        "trustSafety": "medium",
+        "learning": "high",
+        "economics": "low",
+        "controlRights": "medium",
+        "integration": "medium",
+        "reversibility": "high"
+      },
+      "rationale": "Useful low-coupling browser distribution and page experiment once a portable ZIP build exists.",
+      "blockers": ["Portable base paths", "Iframe/CSP/CORS test", "Platform moderation owner", "Account and terms approval"],
+      "nextAction": "Request a portal-build feasibility spike; do not create or publish a listing yet."
+    },
+    {
+      "id": "OP-002",
+      "organization": "CrazyGames",
+      "type": "distribution",
+      "stage": "researched",
+      "source": "https://docs.crazygames.com/requirements/intro/",
+      "contact": null,
+      "outreachApproved": false,
+      "contactedAt": null,
+      "fit": {
+        "audience": "medium",
+        "product": "medium",
+        "trustSafety": "low",
+        "learning": "high",
+        "economics": "medium",
+        "controlRights": "medium",
+        "integration": "low",
+        "reversibility": "medium"
+      },
+      "rationale": "Potentially meaningful browser reach and platform feedback, conditional on first-session fit and SDK/data/ad review.",
+      "blockers": ["Portal-ready build", "SDK/privacy review", "Advertising decision", "13+ audience fit", "Onboarding and mobile QA"],
+      "nextAction": "Complete owned-site evidence and technical/privacy readiness assessment before submission."
+    },
+    {
+      "id": "OP-003",
+      "organization": "Poki",
+      "type": "distribution",
+      "stage": "researched",
+      "source": "https://sdk.poki.com/new-requirements",
+      "contact": null,
+      "outreachApproved": false,
+      "contactedAt": null,
+      "fit": {
+        "audience": "high",
+        "product": "medium",
+        "trustSafety": "low",
+        "learning": "high",
+        "economics": "medium",
+        "controlRights": "medium",
+        "integration": "low",
+        "reversibility": "medium"
+      },
+      "rationale": "Large web-game distribution hypothesis with significant SDK, advertising, device, load, and policy dependencies.",
+      "blockers": ["Measure/optimize initial download", "16:9 cross-device QA", "SDK/privacy review", "Advertising decision", "Authentic static and animated thumbnails"],
+      "nextAction": "Defer submission; include requirements in the portal feasibility spike."
+    },
+    {
+      "id": "OP-004",
+      "organization": "Newgrounds",
+      "type": "distribution",
+      "stage": "researched",
+      "source": "https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies",
+      "contact": null,
+      "outreachApproved": false,
+      "contactedAt": null,
+      "fit": {
+        "audience": "medium",
+        "product": "medium",
+        "trustSafety": "medium",
+        "learning": "high",
+        "economics": "low",
+        "controlRights": "medium",
+        "integration": "medium",
+        "reversibility": "high"
+      },
+      "rationale": "Potential adult/general indie community feedback channel after packaging, ownership, and moderation readiness.",
+      "blockers": ["Portable iframe ZIP build", "Asset and music provenance", "Community moderation owner", "Account and terms approval"],
+      "nextAction": "Assess after itch.io packaging; keep identity/social APIs off."
+    }
+  ]
+}

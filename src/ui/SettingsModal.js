@@ -42,7 +42,8 @@ class SettingsModal {
         const feedbackSettings = feedback?.getSettings?.() || {
             hapticEnabled: true,
             hapticSupported: false,
-            screenShakeEnabled: true
+            screenShakeEnabled: true,
+            reducedMotionEnabled: false
         };
         const { width, height } = this.scene.cameras.main;
         const compact = width < 600;
@@ -147,8 +148,10 @@ class SettingsModal {
             y,
             contentWidth,
             'Screen shake',
-            feedbackSettings.screenShakeEnabled,
-            () => feedback?.toggleScreenShake?.()
+            feedbackSettings.screenShakeEnabled
+                && !feedbackSettings.reducedMotionEnabled,
+            () => feedback?.toggleScreenShake?.(),
+            { disabled: feedbackSettings.reducedMotionEnabled }
         );
         y += 58;
         this.createToggleRow(
@@ -159,6 +162,18 @@ class SettingsModal {
             feedbackSettings.hapticEnabled && feedbackSettings.hapticSupported,
             () => feedback?.toggleHaptic?.(),
             { disabled: !feedbackSettings.hapticSupported }
+        );
+
+        y += 72;
+        this.addSectionLabel(contentLeft, y, 'ACCESSIBILITY');
+        y += 31;
+        this.createToggleRow(
+            contentLeft,
+            y,
+            contentWidth,
+            'Reduced flashes and motion',
+            feedbackSettings.reducedMotionEnabled,
+            () => feedback?.toggleReducedMotion?.()
         );
 
         this.addText(contentLeft, panelY + panelHeight - 46,

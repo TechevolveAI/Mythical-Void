@@ -5,12 +5,16 @@
  */
 
 import Phaser from 'phaser';
+import { getCampaignJourneyStep } from '../systems/CampaignJourneyGuide.js';
+import { companionMediaService } from '../systems/CompanionMediaService.js';
 import {
     acknowledgeProjectBeaconDebrief,
     getNextProjectBeaconDebrief,
     getProjectBeaconDebrief,
     getProjectBeaconFirstExpeditionHandoff
 } from '../systems/ProjectBeaconStory.js';
+import { getExpeditionDiagnosticSnapshot } from '../systems/ExpeditionDiagnostics.js';
+import { getShipReconstructionSnapshot } from '../systems/ShipReconstruction.js';
 
 const PRE_FINAL_SHIP_PART_IDS = Object.freeze([
     'crystal_core',
@@ -36,6 +40,26 @@ const SHIP_PART_NAMES = Object.freeze({
     hull_plating: 'Hull Plating',
     aurora_reactor: 'Aurora Reactor',
     command_module: 'Command Module'
+});
+
+const GUARDIAN_NAME_BY_LEVEL = Object.freeze({
+    mythicalForest: 'Elder Treant',
+    crystalCaves: 'Crystal Guardian',
+    cosmicReef: "Nyx'voral",
+    auroraDepths: 'Aurora Phoenix',
+    voidPeaks: 'Cosmic Titan',
+    finalVoid: 'Void Empress'
+});
+
+const FINAL_VOID_GATE_DEFAULT = Object.freeze({
+    unlocked: false,
+    name: 'The Final Void',
+    biome: 'final_void',
+    visits: 0,
+    inDevelopment: false,
+    unlockCost: 0,
+    shipPart: 'Command Module',
+    requiresAllParts: true
 });
 
 const DEBRIEF_PREVIEW_CONTEXTS = Object.freeze({
@@ -129,6 +153,8 @@ export default class HubWorldScene extends Phaser.Scene {
         this._isShuttingDown = false;
         this.firstExpeditionElements = [];
         this.isFirstExpeditionInvitationOpen = false;
+        this.gateTransitionStarted = false;
+        this.gateTransitionFallback = null;
     }
 
     /**
@@ -151,7 +177,16 @@ export default class HubWorldScene extends Phaser.Scene {
         this.isProjectBeaconDebriefOpen = false;
         this.firstExpeditionElements = [];
         this.isFirstExpeditionInvitationOpen = false;
+        this.gateTransitionStarted = false;
+        if (this.gateTransitionFallback) {
+            clearTimeout(this.gateTransitionFallback);
+        }
+        this.gateTransitionFallback = null;
         this.progressionPreview = data.progressionPreview || null;
+        this.progressionPreviewSize = data.previewSize === 'mobile'
+            ? 'mobile'
+            : null;
+        this.shipReconstruction = null;
         console.log('[HubWorldScene] State reset in init()');
     }
 
@@ -166,9 +201,25 @@ export default class HubWorldScene extends Phaser.Scene {
             this.graphicsEngine = new window.GraphicsEngine(this);
         }
 
+        if (this.progressionPreviewSize === 'mobile') {
+            const viewportWidth = Math.min(390, this.scale.width);
+            const viewportHeight = Math.min(720, this.scale.height);
+            this.scale.resize(viewportWidth, viewportHeight);
+            this.cameras.main.setViewport(
+                0,
+                0,
+                viewportWidth,
+                viewportHeight
+            );
+        }
+
         // Calculate dimensions
         this.calculateDimensions();
         this.clearCompletedExpeditionCheckpoint();
+        this.shipReconstruction = getShipReconstructionSnapshot(
+            window.GameState
+        );
+        this.syncFinalVoidAccess();
 
         // Create visuals
         this.createBackground();
@@ -183,22 +234,34 @@ export default class HubWorldScene extends Phaser.Scene {
         this.setupInput();
 
         const shouldOfferFirstExpedition = this.shouldShowFirstExpeditionInvitation();
+        this.campaignJourneyStep = getCampaignJourneyStep(window.GameState);
         const firstExpeditionIndex = this.gates.findIndex(
             gate => gate.id === 'mythical_forest'
         );
         const routeMapIndex = this.gates.findIndex(
             gate => gate.id === 'stellar_reef'
         );
+        const diagnosticsIndex = this.gates.findIndex(
+            gate => gate.id === 'aurora_depths'
+        );
         const resumeGateIndex = this.gates.findIndex(
             gate => this.getExpeditionResumeForGate(gate.id)
+        );
+        const recommendedGateIndex = this.gates.findIndex(
+            gate => gate.id === this.campaignJourneyStep?.gateId
         );
         this.selectGate(
             this.progressionPreview === 'routeMap' && routeMapIndex >= 0
                 ? routeMapIndex
+                : this.progressionPreview === 'diagnostics' &&
+                    diagnosticsIndex >= 0
+                    ? diagnosticsIndex
                 : resumeGateIndex >= 0
                 ? resumeGateIndex
                 : shouldOfferFirstExpedition && firstExpeditionIndex >= 0
                 ? firstExpeditionIndex
+                : recommendedGateIndex >= 0
+                ? recommendedGateIndex
                 : 0
         );
 
@@ -213,21 +276,18 @@ export default class HubWorldScene extends Phaser.Scene {
             this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdown, this);
         }
 
-        // Check if ship completion cutscene should play
-        const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
+        // Reveal the final route only after five deliberate ship installations.
         const cutsceneShown = window.GameState?.get('hubWorld.shipCompletionCutsceneShown') || false;
-        const preFinalPartsCollected = countCollectedPreFinalParts(shipParts);
-        if (!this.progressionPreview && preFinalPartsCollected >= totalRequired) {
-            window.GameState?.set('hubWorld.shipParts.finalBossUnlocked', true);
-            if (cutsceneShown) {
-                window.GameState?.set('hubWorld.gates.final_void.unlocked', true);
-            }
-        }
         const shouldShowShipCutscene =
-            !this.progressionPreview &&
-            preFinalPartsCollected >= totalRequired &&
-            !cutsceneShown;
+            (
+                !this.progressionPreview ||
+                this.progressionPreview === 'finalApproach'
+            ) &&
+            this.isFinalVoidReady() &&
+            (
+                this.progressionPreview === 'finalApproach' ||
+                !cutsceneShown
+            );
         const hasPendingDebrief =
             !this.progressionPreview &&
             Boolean(this.getPendingProjectBeaconDebrief());
@@ -259,6 +319,32 @@ export default class HubWorldScene extends Phaser.Scene {
         }
 
         console.log('[HubWorldScene] Hub World ready');
+    }
+
+    isFinalVoidReady() {
+        return ['complete', 'finalApproach'].includes(
+            this.progressionPreview
+        ) || this.shipReconstruction?.finalVoidReady === true;
+    }
+
+    syncFinalVoidAccess() {
+        if (this.progressionPreview) return;
+        const ready = this.shipReconstruction?.finalVoidReady === true;
+        const revealSeen = window.GameState?.get(
+            'hubWorld.shipCompletionCutsceneShown'
+        ) === true;
+        const savedGate = window.GameState?.get(
+            'hubWorld.gates.final_void'
+        ) || {};
+        window.GameState?.set(
+            'hubWorld.shipParts.finalBossUnlocked',
+            ready
+        );
+        window.GameState?.set('hubWorld.gates.final_void', {
+            ...FINAL_VOID_GATE_DEFAULT,
+            ...savedGate,
+            unlocked: ready && revealSeen
+        });
     }
 
     shouldShowFirstExpeditionInvitation() {
@@ -299,6 +385,15 @@ export default class HubWorldScene extends Phaser.Scene {
         if (!handoff || !forestGate?.data?.unlocked) {
             return false;
         }
+        const companionName = String(
+            window.GameState?.get?.('creature.name') || 'Your companion'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
+
+        (window.CompanionMediaService || companionMediaService)
+            ?.prepareCinematic?.(this, {
+                momentId: 'first_forest_arrival',
+                stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby'
+            });
 
         this.isFirstExpeditionInvitationOpen = true;
         const { width, height, isMobile } = this.dims;
@@ -357,7 +452,7 @@ export default class HubWorldScene extends Phaser.Scene {
         const companion = this.add.text(
             centerX,
             panelY + panelHeight * (isMobile ? 0.61 : 0.59),
-            `COMPANION // ${handoff.companionMoment}`,
+            `COMPANION // ${companionName}: "${handoff.companionMoment}"`,
             {
                 fontSize: isMobile ? '11px' : '12px',
                 fontFamily: 'Arial, sans-serif',
@@ -501,6 +596,11 @@ export default class HubWorldScene extends Phaser.Scene {
         const textWidth = panelWidth - (isMobile ? 46 : 80);
         const levelName = LEVEL_NAMES[debrief.levelId] || 'Unknown Realm';
         const partName = SHIP_PART_NAMES[debrief.shipPartId] || 'Ship System';
+        const restoredGuardianName =
+            GUARDIAN_NAME_BY_LEVEL[debrief.levelId] || null;
+        const companionName = String(
+            window.GameState?.get?.('creature.name') || 'Your companion'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
 
         const overlay = this.add.graphics();
         overlay.fillStyle(0x02030A, 0.9);
@@ -543,10 +643,14 @@ export default class HubWorldScene extends Phaser.Scene {
         const routeContext = debrief.nextGate?.label
             ? `\nNEXT EXPEDITION: ${debrief.nextGate.label.toUpperCase()}`
             : '';
+        const guardianContext = restoredGuardianName
+            ? `\nSANCTUARY RETURN: ${restoredGuardianName.toUpperCase()}`
+            : '';
         const context = this.add.text(
             centerX,
             panelY + panelHeight * 0.3,
-            `${levelName.toUpperCase()} // ${partName.toUpperCase()} RECOVERED${routeContext}`,
+            `${levelName.toUpperCase()} // ${partName.toUpperCase()} RECOVERED` +
+                `${guardianContext}${routeContext}`,
             {
                 fontSize: isMobile ? '10px' : '12px',
                 color: '#7386A8',
@@ -575,9 +679,20 @@ export default class HubWorldScene extends Phaser.Scene {
             wordWrap: { width: textWidth }
         }).setOrigin(0.5).setDepth(502);
 
+        const companionLabel = this.add.text(
+            centerX,
+            panelY + panelHeight * 0.575,
+            `${companionName.toUpperCase()} // COMPANION RECORD`,
+            {
+                fontSize: isMobile ? '10px' : '11px',
+                color: '#8FE3CF',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setDepth(502);
+
         const companionMoment = this.add.text(
             centerX,
-            panelY + panelHeight * 0.625,
+            panelY + panelHeight * 0.65,
             debrief.companionMoment,
             {
                 fontSize: isMobile ? '13px' : '15px',
@@ -612,9 +727,13 @@ export default class HubWorldScene extends Phaser.Scene {
         const continueBtn = this.add.text(
             centerX,
             panelY + panelHeight * 0.925,
-            'CONTINUE',
+            debrief.shipPartId
+                ? `INSTALL ${partName.toUpperCase()}`
+                : debrief.nextGate?.label
+                    ? `TRACK ${debrief.nextGate.label.toUpperCase()}`
+                    : 'CONTINUE',
             {
-                fontSize: isMobile ? '15px' : '17px',
+                fontSize: isMobile ? '13px' : '16px',
                 color: '#071018',
                 backgroundColor: debrief.color,
                 fontStyle: 'bold',
@@ -631,6 +750,7 @@ export default class HubWorldScene extends Phaser.Scene {
             context,
             findingLabel,
             finding,
+            companionLabel,
             companionMoment,
             noteLabel,
             fieldNote,
@@ -659,12 +779,68 @@ export default class HubWorldScene extends Phaser.Scene {
                     if (!debrief.isPreview && getNextProjectBeaconDebrief(window.GameState)) {
                         this.showPendingProjectBeaconDebrief(onComplete);
                     } else {
+                        if (!debrief.isPreview && debrief.shipPartId) {
+                            this.scene.start('GameScene', {
+                                biome: 'nebula',
+                                shipReconstructionHandoff: true,
+                                shipReconstructionNextGateLabel:
+                                    debrief.nextGate?.label || null
+                            });
+                            return;
+                        }
+                        if (!debrief.isPreview) {
+                            this.focusProjectBeaconNextRoute(debrief);
+                        }
                         onComplete?.();
                     }
                 }
             });
         });
 
+        return true;
+    }
+
+    focusProjectBeaconNextRoute(debrief) {
+        const gateId = debrief?.nextGate?.id;
+        const gateIndex = this.gates.findIndex(gate => gate.id === gateId);
+        const gate = this.gates[gateIndex];
+        if (gateIndex < 0 || !gate?.data?.unlocked) {
+            return false;
+        }
+
+        this.selectGate(gateIndex);
+        const { width, height, isMobile } = this.dims;
+        const notice = this.add.text(
+            width / 2,
+            isMobile ? 74 : 42,
+            `NEW ROUTE OPEN // ${gate.data.name.toUpperCase()}`,
+            {
+                fontSize: isMobile ? '12px' : '15px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#071411',
+                backgroundColor: '#8FE3CF',
+                fontStyle: 'bold',
+                padding: { x: isMobile ? 12 : 18, y: 9 },
+                align: 'center'
+            }
+        ).setOrigin(0.5).setDepth(490).setAlpha(0);
+
+        this.tweens.add({
+            targets: notice,
+            alpha: 1,
+            y: notice.y + 8,
+            duration: 220,
+            ease: 'Cubic.easeOut'
+        });
+        this.time.delayedCall(2400, () => {
+            this.tweens.add({
+                targets: notice,
+                alpha: 0,
+                duration: 250,
+                onComplete: () => notice.destroy()
+            });
+        });
+        window.AudioManager?.playAchievement?.();
         return true;
     }
 
@@ -897,7 +1073,9 @@ export default class HubWorldScene extends Phaser.Scene {
 
         // Get gates from GameState
         const savedGates = window.GameState?.getAllGates() || {};
-        const allGates = this.progressionPreview === 'complete'
+        let allGates = ['complete', 'diagnostics'].includes(
+            this.progressionPreview
+        )
             ? Object.fromEntries(
                 Object.entries(savedGates).map(([gateId, gate]) => [
                     gateId,
@@ -918,17 +1096,22 @@ export default class HubWorldScene extends Phaser.Scene {
                     ])
                 )
             : savedGates;
+        if (this.isFinalVoidReady()) {
+            allGates = {
+                ...allGates,
+                final_void: {
+                    ...FINAL_VOID_GATE_DEFAULT,
+                    ...(allGates.final_void || {}),
+                    unlocked: this.progressionPreview
+                        ? true
+                        : allGates.final_void?.unlocked === true
+                }
+            };
+        }
         let gateIds = Object.keys(allGates);
 
-        // Check if Final Void should be visible (only when all pre-final ship parts are collected)
-        const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
-        const allPartsCollected =
-            this.progressionPreview === 'complete' ||
-            countCollectedPreFinalParts(shipParts) >= totalRequired;
-
-        // Filter out final_void if not all parts collected
-        if (!allPartsCollected) {
+        // Recovery alone is not repair. Five systems must be installed in order.
+        if (!this.isFinalVoidReady()) {
             gateIds = gateIds.filter(id => id !== 'final_void');
         }
 
@@ -1132,13 +1315,18 @@ export default class HubWorldScene extends Phaser.Scene {
     getGateGridLayout(gateCount) {
         const { width, centerY, isMobile } = this.dims;
         const gatesPerRow = isMobile
-            ? (gateCount >= 5 ? 3 : 2)
+            ? (gateCount >= 7 ? 4 : (gateCount >= 5 ? 3 : 2))
             : (gateCount >= 7 ? 4 : (gateCount >= 5 ? 3 : 2));
         const gateWidth = isMobile
-            ? Math.min(92, (width - 60) / gatesPerRow)
+            ? Math.min(
+                gatesPerRow === 4 ? 78 : 92,
+                (width - (gatesPerRow === 4 ? 42 : 60)) / gatesPerRow
+            )
             : (gatesPerRow === 4 ? 100 : 110);
         const gateHeight = isMobile ? 84 : 120;
-        const gapX = isMobile ? 14 : (gatesPerRow === 4 ? 24 : 32);
+        const gapX = isMobile
+            ? (gatesPerRow === 4 ? 8 : 14)
+            : (gatesPerRow === 4 ? 24 : 32);
         const gapY = isMobile ? 12 : 16;
 
         return {
@@ -1148,7 +1336,7 @@ export default class HubWorldScene extends Phaser.Scene {
             gapX,
             gapY,
             startY: centerY + (isMobile ? 115 : 150),
-            gateSize: isMobile ? 32 : 45
+            gateSize: isMobile ? (gatesPerRow === 4 ? 30 : 32) : 45
         };
     }
 
@@ -1401,6 +1589,51 @@ export default class HubWorldScene extends Phaser.Scene {
         };
     }
 
+    getGateDiagnostics(gateId) {
+        if (this.progressionPreview === 'diagnostics') {
+            return getExpeditionDiagnosticSnapshot(
+                null,
+                gateId,
+                {
+                    reconstructionSnapshot: {
+                        state: {
+                            completedStepIds: [
+                                'living_power_lattice',
+                                'propulsion_control',
+                                'sealed_return_vector',
+                                'resonance_hull',
+                                'uplink_hold'
+                            ]
+                        }
+                    },
+                    regionSnapshot: {
+                        projection: {
+                            nodeState: 'fading',
+                            label: 'FADING',
+                            vitality: 31
+                        },
+                        arrivalConsequence: {
+                            classification: 'mixed_trace',
+                            presentation: { label: 'MIXED CURRENT' }
+                        }
+                    },
+                    weather: {
+                        solarActivity: 'active',
+                        cosmicEnergy: 73,
+                        auroraActive: true
+                    }
+                }
+            );
+        }
+        return getExpeditionDiagnosticSnapshot(
+            window.GameState,
+            gateId,
+            {
+                weather: window.SpaceWeatherSystem?.getWeather?.() || null
+            }
+        );
+    }
+
     /**
      * Show detailed info panel for selected gate
      */
@@ -1413,6 +1646,7 @@ export default class HubWorldScene extends Phaser.Scene {
         const { width, height, isMobile } = this.dims;
         const gateDetails = this.getGateDetails();
         const details = gateDetails[gate.id] || {};
+        const diagnostics = this.getGateDiagnostics(gate.id);
 
         // Get level completion data
         const levelIdMap = {
@@ -1454,47 +1688,70 @@ export default class HubWorldScene extends Phaser.Scene {
         }).setDepth(101).setAlpha(0);
         this.detailsPanelElements.push(header);
 
-        // Difficulty
-        const difficulty = this.add.text(panelX + 15, panelY + 60, `Difficulty: ${details.difficulty || '?'}`, {
-            fontSize: isMobile ? '12px' : '14px',
-            color: '#FFFFFF'
+        const detailStatus = diagnostics.available
+            ? diagnostics.statusLabel.replace('WANDERER-77', 'W77')
+            : `Difficulty: ${details.difficulty || '?'}`;
+        const difficulty = this.add.text(panelX + 15, panelY + 60, detailStatus, {
+            fontSize: diagnostics.available
+                ? (isMobile ? '9px' : '10px')
+                : (isMobile ? '12px' : '14px'),
+            color: diagnostics.available ? '#AFC3CF' : '#FFFFFF',
+            fontStyle: diagnostics.available ? 'bold' : 'normal',
+            wordWrap: { width: panelWidth - 30 }
         }).setDepth(101).setAlpha(0);
         this.detailsPanelElements.push(difficulty);
 
-        // Boss info (only show if not main and not in development)
+        // Repaired ship systems replace generic metadata with a local field
+        // readout so selecting a gate becomes an informed expedition choice.
         if (gate.id !== 'main' && !gate.data.inDevelopment) {
-            const boss = this.add.text(panelX + 15, panelY + 82, `Boss: ${details.boss || 'Unknown'}`, {
-                fontSize: isMobile ? '12px' : '14px',
-                color: '#FF6B6B'
-            }).setDepth(101).setAlpha(0);
-            this.detailsPanelElements.push(boss);
-
-            // Reward
-            const reward = this.add.text(panelX + 15, panelY + 104, `Reward: ${gate.config.shipPart || '🎁'} ${details.reward || '???'}`, {
-                fontSize: isMobile ? '12px' : '14px',
-                color: '#00CED1'
-            }).setDepth(101).setAlpha(0);
-            this.detailsPanelElements.push(reward);
-
-            // Best time / visits (if visited)
-            if (resume) {
-                const stats = this.add.text(
-                    panelX + 15,
-                    panelY + 126,
-                    `Beacon: ${resume.label}  •  ${resume.current}/${resume.total}`,
-                    {
-                        fontSize: isMobile ? '10px' : '12px',
-                        color: '#8FE3CF'
-                    }
-                ).setDepth(101).setAlpha(0);
-                this.detailsPanelElements.push(stats);
-            } else if (levelData.visited || levelData.entered || levelData.completed) {
-                const bestTime = levelData.bestTime ? this.formatTime(levelData.bestTime) : 'N/A';
-                const stats = this.add.text(panelX + 15, panelY + 126, `Best Time: ${bestTime}  •  Visits: ${gate.data.visits || 0}`, {
-                    fontSize: isMobile ? '10px' : '12px',
-                    color: '#AAAAAA'
+            if (diagnostics.available) {
+                const colors = ['#F2C14E', '#71E6B1', '#8FE3CF'];
+                diagnostics.lines.forEach((line, index) => {
+                    const diagnosticLine = this.add.text(
+                        panelX + 15,
+                        panelY + 82 + (index * 22),
+                        line,
+                        {
+                            fontSize: isMobile ? '10px' : '11px',
+                            color: colors[index],
+                            fontStyle: 'bold',
+                            wordWrap: { width: panelWidth - 30 }
+                        }
+                    ).setDepth(101).setAlpha(0);
+                    this.detailsPanelElements.push(diagnosticLine);
+                });
+            } else {
+                const boss = this.add.text(panelX + 15, panelY + 82, `Boss: ${details.boss || 'Unknown'}`, {
+                    fontSize: isMobile ? '12px' : '14px',
+                    color: '#FF6B6B'
                 }).setDepth(101).setAlpha(0);
-                this.detailsPanelElements.push(stats);
+                this.detailsPanelElements.push(boss);
+
+                const reward = this.add.text(panelX + 15, panelY + 104, `Reward: ${gate.config.shipPart || '🎁'} ${details.reward || '???'}`, {
+                    fontSize: isMobile ? '12px' : '14px',
+                    color: '#00CED1'
+                }).setDepth(101).setAlpha(0);
+                this.detailsPanelElements.push(reward);
+
+                if (resume) {
+                    const stats = this.add.text(
+                        panelX + 15,
+                        panelY + 126,
+                        `Beacon: ${resume.label}  •  ${resume.current}/${resume.total}`,
+                        {
+                            fontSize: isMobile ? '10px' : '12px',
+                            color: '#8FE3CF'
+                        }
+                    ).setDepth(101).setAlpha(0);
+                    this.detailsPanelElements.push(stats);
+                } else if (levelData.visited || levelData.entered || levelData.completed) {
+                    const bestTime = levelData.bestTime ? this.formatTime(levelData.bestTime) : 'N/A';
+                    const stats = this.add.text(panelX + 15, panelY + 126, `Best Time: ${bestTime}  •  Visits: ${gate.data.visits || 0}`, {
+                        fontSize: isMobile ? '10px' : '12px',
+                        color: '#AAAAAA'
+                    }).setDepth(101).setAlpha(0);
+                    this.detailsPanelElements.push(stats);
+                }
             }
         } else if (gate.data.inDevelopment) {
             const devNote = this.add.text(panelX + 15, panelY + 82, '🚧 Coming in future update!', {
@@ -1647,18 +1904,30 @@ export default class HubWorldScene extends Phaser.Scene {
         const isInDevelopment = gate.data.inDevelopment === true;
         const hasRouteMap = this.hasRouteMap(gate.id);
         const resume = this.getExpeditionResumeForGate(gate.id);
+        const campaignAccess = window.GameState?.getCampaignGateAccess?.(gate.id);
+        const isEffectivelyUnlocked = campaignAccess
+            ? campaignAccess.unlocked
+            : gate.data.unlocked === true;
 
         // Update info text
         if (this.infoText) {
             let info = `${gate.config.icon} ${gate.data.name}`;
+            if (gate.id === this.campaignJourneyStep?.gateId) {
+                info += `\nNEXT // ${this.campaignJourneyStep.action}`;
+            }
             if (isInDevelopment) {
                 info += '\n🚧 In Development';
-            } else if (gate.data.unlocked && resume) {
+            } else if (isEffectivelyUnlocked && resume) {
                 info += `\nBeacon ${resume.current}/${resume.total} • ${resume.label}`;
-            } else if (gate.data.unlocked) {
+            } else if (isEffectivelyUnlocked) {
                 info += `\nOpen • ${gate.data.visits || 0} visits`;
+                if (hasRouteMap) {
+                    info += '\nSurvey support active';
+                }
+            } else if (hasRouteMap && campaignAccess?.nextRequiredRoute) {
+                info += `\nRoute discovered • Complete ${campaignAccess.nextRequiredRoute.label} first`;
             } else if (hasRouteMap) {
-                info += '\n🗺️ Route map ready • Free';
+                info += '\nRoute discovered • Ready to open';
             } else {
                 info += `\n🔒 Locked • ${gate.data.unlockCost} coins`;
             }
@@ -1675,7 +1944,7 @@ export default class HubWorldScene extends Phaser.Scene {
                 this.actionButton.fillRoundedRect(-70, -25, 140, 50, 10);
                 this.actionButton.lineStyle(3, 0xFF9800);
                 this.actionButton.strokeRoundedRect(-70, -25, 140, 50, 10);
-            } else if (gate.data.unlocked) {
+            } else if (isEffectivelyUnlocked) {
                 this.actionLabel.setText(resume ? 'RESUME' : 'ENTER');
                 this.actionButton.clear();
                 this.actionButton.fillStyle(0x00AA00, 1);
@@ -1683,7 +1952,13 @@ export default class HubWorldScene extends Phaser.Scene {
                 this.actionButton.lineStyle(3, 0x00FF00);
                 this.actionButton.strokeRoundedRect(-60, -25, 120, 50, 10);
             } else {
-                this.actionLabel.setText(hasRouteMap ? 'OPEN ROUTE' : 'UNLOCK');
+                this.actionLabel.setText(
+                    hasRouteMap && campaignAccess?.nextRequiredRoute
+                        ? 'ROUTE FOUND'
+                        : hasRouteMap
+                            ? 'OPEN ROUTE'
+                            : 'UNLOCK'
+                );
                 this.actionButton.clear();
                 this.actionButton.fillStyle(hasRouteMap ? 0x008F7A : 0xFFAA00, 1);
                 this.actionButton.fillRoundedRect(-60, -25, 120, 50, 10);
@@ -1704,7 +1979,9 @@ export default class HubWorldScene extends Phaser.Scene {
             return;
         }
 
-        if (gate.data.unlocked) {
+        if (window.GameState?.isGateUnlocked?.(gate.id) || (
+            !window.GameState?.isGateUnlocked && gate.data.unlocked
+        )) {
             this.enterGate(gate);
         } else {
             this.showUnlockConfirmation(gate);
@@ -1714,6 +1991,7 @@ export default class HubWorldScene extends Phaser.Scene {
     showUnlockConfirmation(gate) {
         const { width, height, isMobile } = this.dims;
         const hasRouteMap = this.hasRouteMap(gate.id);
+        const campaignAccess = window.GameState?.getCampaignGateAccess?.(gate.id);
 
         // Create overlay
         const overlay = this.add.graphics();
@@ -1738,7 +2016,7 @@ export default class HubWorldScene extends Phaser.Scene {
         const title = this.add.text(
             width / 2,
             modalY + 40,
-            `${hasRouteMap ? 'Open' : 'Unlock'} ${gate.data.name}?`,
+            `${hasRouteMap ? 'Route found' : 'Unlock'}: ${gate.data.name}`,
             {
             fontSize: isMobile ? '22px' : '28px',
             color: '#FFD700',
@@ -1749,10 +2027,18 @@ export default class HubWorldScene extends Phaser.Scene {
         // Cost info
         const currentCoins = window.GameState?.get('player.cosmicCoins') || 0;
         const canAfford = currentCoins >= gate.data.unlockCost;
-        const canUnlock = hasRouteMap || canAfford;
-        const unlockMessage = hasRouteMap
-            ? 'ROUTE MAP READY\nNo coins required'
-            : `Cost: ${gate.data.unlockCost} 🪙\nYou have: ${currentCoins} 🪙`;
+        const prerequisitesMet = campaignAccess?.prerequisitesMet !== false;
+        const shipRequirementsMet = campaignAccess?.shipRequirementsMet !== false;
+        const canUnlock = prerequisitesMet && shipRequirementsMet && (
+            hasRouteMap || canAfford
+        );
+        const unlockMessage = !prerequisitesMet
+            ? `ROUTE DISCOVERED\nComplete ${campaignAccess.nextRequiredRoute.label} first`
+            : !shipRequirementsMet
+                ? 'ROUTE DISCOVERED\nFinish rebuilding Wanderer-77 first'
+                : hasRouteMap
+                    ? 'ROUTE DISCOVERED\nReady to open at no extra cost'
+                    : `Cost: ${gate.data.unlockCost} 🪙\nYou have: ${currentCoins} 🪙`;
 
         const costText = this.add.text(width / 2, modalY + 100,
             unlockMessage, {
@@ -1936,13 +2222,27 @@ export default class HubWorldScene extends Phaser.Scene {
             return;
         }
 
+        const entryResult = this.progressionPreview
+            ? { success: true }
+            : window.GameState?.enterGate(gate.id);
+        if (entryResult && entryResult.success !== true) {
+            this.showUnlockConfirmation(gate);
+            return;
+        }
+
         this.isTransitioning = true;
+        this.gateTransitionStarted = false;
 
         console.log(`[HubWorldScene] Entering gate: ${gate.id}`);
         const resume = this.getExpeditionResumeForGate(gate.id);
 
-        // Update GameState
-        window.GameState?.enterGate(gate.id);
+        if (gate.id === 'mythical_forest') {
+            (window.CompanionMediaService || companionMediaService)
+                ?.prepareCinematic?.(this, {
+                    momentId: 'first_forest_arrival',
+                    stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby'
+                });
+        }
 
         // Show loading (will appear after transition)
         if (window.UXEnhancements) {
@@ -1957,6 +2257,28 @@ export default class HubWorldScene extends Phaser.Scene {
 
         // Cinematic transition
         this.playCinematicGateEntry(gate);
+
+        // A scene launch must not depend solely on a tween/timer callback. This
+        // independent watchdog handles backgrounded mobile tabs and interrupted FX.
+        this.gateTransitionFallback = setTimeout(() => {
+            this.beginGateSceneTransition(gate);
+        }, 1800);
+    }
+
+    beginGateSceneTransition(gate) {
+        if (this.gateTransitionStarted || this._isShuttingDown) return false;
+        this.gateTransitionStarted = true;
+        if (this.gateTransitionFallback) {
+            clearTimeout(this.gateTransitionFallback);
+            this.gateTransitionFallback = null;
+        }
+        Promise.resolve(this.transitionToGateScene(gate)).catch(error => {
+            console.error('[HubWorldScene] Gate transition failed:', error);
+            this.isTransitioning = false;
+            this.gateTransitionStarted = false;
+            this.showLevelLoadError(gate.data?.name || gate.id);
+        });
+        return true;
     }
 
     /**
@@ -1992,7 +2314,7 @@ export default class HubWorldScene extends Phaser.Scene {
         this.time.delayedCall(500, () => {
             this.createRadialWipe(gateX, gateY, gate.config.color, () => {
                 // 900ms: Scene transition
-                this.transitionToGateScene(gate);
+                this.beginGateSceneTransition(gate);
             });
         });
     }
@@ -2135,6 +2457,8 @@ export default class HubWorldScene extends Phaser.Scene {
                 }
                 // Show error to user
                 this.showLevelLoadError(gate.data?.name || sceneName);
+                this.isTransitioning = false;
+                this.gateTransitionStarted = false;
             }
             return;
         }
@@ -2243,12 +2567,13 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     /**
-     * Show ship completion cutscene when all 5 parts are collected
-     * Dramatic reveal with ship assembly animation and story text
+     * Reveal Final Void access after the five pre-final systems are installed.
+     * This is a route handoff, not permission to launch or transmit.
      */
     showShipCompletionCutscene() {
         const { width, height, isMobile } = this.dims;
-        console.log('[HubWorldScene] Starting ship completion cutscene');
+        if (!this.isFinalVoidReady()) return;
+        console.log('[HubWorldScene] Revealing Final Void access');
 
         // Play epic sound
         if (window.AudioManager) {
@@ -2269,32 +2594,33 @@ export default class HubWorldScene extends Phaser.Scene {
             ease: 'Power2'
         });
 
-        // Ship parts flying to center animation
+        // Installed systems converge on the held Command Module route.
         const partData = [
-            { icon: '🔮', name: 'Crystal Core', delay: 800, startX: -50, startY: height * 0.3 },
-            { icon: '⚙️', name: 'Dimensional Drive', delay: 1200, startX: width + 50, startY: height * 0.4 },
-            { icon: '🌿', name: 'Forest Core', delay: 1600, startX: -50, startY: height * 0.5 },
-            { icon: '🛡️', name: 'Hull Plating', delay: 2000, startX: width + 50, startY: height * 0.6 },
-            { icon: '✨', name: 'Aurora Reactor', delay: 2400, startX: width / 2, startY: -50 }
+            { icon: '🔮', name: 'Crystal Core', delay: 100, startX: -50, startY: height * 0.3 },
+            { icon: '⚙️', name: 'Dimensional Drive', delay: 200, startX: width + 50, startY: height * 0.4 },
+            { icon: '🌿', name: 'Forest Core', delay: 300, startX: -50, startY: height * 0.5 },
+            { icon: '🛡️', name: 'Hull Plating', delay: 400, startX: width + 50, startY: height * 0.6 },
+            { icon: '✨', name: 'Aurora Reactor', delay: 500, startX: width / 2, startY: -50 }
         ];
 
         const centerX = width / 2;
         const centerY = height / 2 - 50;
         const elements = [overlay];
+        const convergingIcons = [];
 
         partData.forEach(part => {
             this.time.delayedCall(part.delay, () => {
                 const partIcon = this.add.text(part.startX, part.startY, part.icon, {
                     fontSize: isMobile ? '36px' : '48px'
                 }).setOrigin(0.5).setDepth(401);
-                elements.push(partIcon);
+                convergingIcons.push(partIcon);
 
                 // Fly to center with trail effect
                 this.tweens.add({
                     targets: partIcon,
                     x: centerX + Phaser.Math.Between(-30, 30),
                     y: centerY + Phaser.Math.Between(-30, 30),
-                    duration: 600,
+                    duration: 300,
                     ease: 'Power2',
                     onComplete: () => {
                         // Flash when part arrives
@@ -2313,8 +2639,10 @@ export default class HubWorldScene extends Phaser.Scene {
             });
         });
 
-        // After all parts assembled, show assembled ship and story
-        this.time.delayedCall(3200, () => {
+        // Show the repaired system chain and its remaining boundary.
+        this.time.delayedCall(900, () => {
+            convergingIcons.forEach(icon => icon.destroy());
+
             // Flash effect
             const flash = this.add.graphics();
             flash.fillStyle(0xFFD700, 0.8);
@@ -2329,9 +2657,12 @@ export default class HubWorldScene extends Phaser.Scene {
                 ease: 'Power2'
             });
 
-            // Assembled ship icon
-            const shipIcon = this.add.text(centerX, centerY - 30, '🚀', {
-                fontSize: isMobile ? '72px' : '96px'
+            const shipIcon = this.add.text(centerX, centerY - 45, 'W-77', {
+                fontSize: isMobile ? '42px' : '56px',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                stroke: '#008A4A',
+                strokeThickness: 5
             }).setOrigin(0.5).setDepth(403);
             elements.push(shipIcon);
 
@@ -2346,9 +2677,9 @@ export default class HubWorldScene extends Phaser.Scene {
             });
 
             // Title
-            const title = this.add.text(centerX, centerY + 60, '✨ VOID VOYAGE READY! ✨', {
-                fontSize: isMobile ? '28px' : '36px',
-                color: '#FFD700',
+            const title = this.add.text(centerX, centerY + 35, 'FIVE SYSTEMS ONLINE', {
+                fontSize: isMobile ? '25px' : '34px',
+                color: '#6FFFA8',
                 fontStyle: 'bold',
                 stroke: '#000000',
                 strokeThickness: 4
@@ -2356,21 +2687,22 @@ export default class HubWorldScene extends Phaser.Scene {
             elements.push(title);
 
             // Story text
-            const story = this.add.text(centerX, centerY + 110,
-                'Five ship systems are online.\nOnly the Command Module remains...\n\nThe Void Empress guards\nthe last frontier.', {
+            const story = this.add.text(centerX, centerY + 82,
+                'The repair lattice is holding.\nThe Command Module remains in the Final Void.\n\nNO LAUNCH // NO TRANSMISSION\nFEND COORDINATES SEALED', {
                 fontSize: isMobile ? '16px' : '20px',
                 color: '#FFFFFF',
                 align: 'center',
-                lineSpacing: 6
-            }).setOrigin(0.5).setDepth(403);
+                lineSpacing: 7,
+                wordWrap: { width: Math.min(width - 48, 620) }
+            }).setOrigin(0.5, 0).setDepth(403);
             elements.push(story);
 
             // Continue button
-            this.time.delayedCall(2000, () => {
-                const continueBtn = this.add.text(centerX, height - (isMobile ? 100 : 120), '⚔️ Face the Void Empress ⚔️', {
+            this.time.delayedCall(450, () => {
+                const continueBtn = this.add.text(centerX, height - (isMobile ? 80 : 100), 'SHOW FINAL VOID ROUTE', {
                     fontSize: isMobile ? '18px' : '22px',
                     color: '#FFFFFF',
-                    backgroundColor: '#4B0082',
+                    backgroundColor: '#8B1616',
                     padding: { x: 25, y: 15 }
                 }).setOrigin(0.5).setDepth(403);
                 continueBtn.setInteractive({ useHandCursor: true });
@@ -2378,19 +2710,24 @@ export default class HubWorldScene extends Phaser.Scene {
 
                 // Button hover effects
                 continueBtn.on('pointerover', () => {
-                    continueBtn.setStyle({ backgroundColor: '#6A0DAD' });
+                    continueBtn.setStyle({ backgroundColor: '#B51E1E' });
                 });
                 continueBtn.on('pointerout', () => {
-                    continueBtn.setStyle({ backgroundColor: '#4B0082' });
+                    continueBtn.setStyle({ backgroundColor: '#8B1616' });
                 });
 
                 // Button click - close cutscene and refresh gates
                 continueBtn.on('pointerdown', () => {
-                    // Mark cutscene as shown
-                    window.GameState?.set('hubWorld.shipCompletionCutsceneShown', true);
-                    window.GameState?.set('hubWorld.shipParts.finalBossUnlocked', true);
-                    window.GameState?.set('hubWorld.gates.final_void.unlocked', true);
-                    window.GameState?.save();
+                    if (!this.progressionPreview) {
+                        this.shipReconstruction = getShipReconstructionSnapshot(
+                            window.GameState
+                        );
+                        if (!this.isFinalVoidReady()) return;
+                        window.GameState?.set('hubWorld.shipCompletionCutsceneShown', true);
+                        window.GameState?.set('hubWorld.shipParts.finalBossUnlocked', true);
+                        window.GameState?.set('hubWorld.gates.final_void.unlocked', true);
+                        window.GameState?.save();
+                    }
 
                     // Play sound
                     if (window.AudioManager) {
@@ -2409,6 +2746,12 @@ export default class HubWorldScene extends Phaser.Scene {
 
                             // Refresh gates to show Final Void
                             this.refreshGates();
+                            const finalGateIndex = this.gates.findIndex(
+                                gate => gate.id === 'final_void'
+                            );
+                            if (finalGateIndex >= 0) {
+                                this.selectGate(finalGateIndex);
+                            }
                         }
                     });
                 });
@@ -2426,22 +2769,23 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     /**
-     * Create Ship Assembly View - visual ship being built with collected parts
-     * Positioned above creature display showing ship hull outline with part positions
+     * Visualize systems that the player has deliberately installed.
      */
     createShipAssemblyView() {
         const { width, height, centerX, centerY, isMobile } = this.dims;
 
-        // Get ship parts status
-        const shipParts = window.GameState?.get('hubWorld.shipParts') || {
-            collected: [],
-            totalRequired: 5,
-            finalBossUnlocked: false
-        };
-        const collectedParts = shipParts.collected || [];
-        const totalRequired = shipParts.totalRequired || 5;
-        const preFinalCollectedCount = countCollectedPreFinalParts(collectedParts);
-        const allCollected = preFinalCollectedCount >= totalRequired;
+        const reconstruction = this.shipReconstruction ||
+            getShipReconstructionSnapshot(window.GameState);
+        const preFinalSteps = reconstruction.steps.slice(0, 5);
+        const finalApproachPreview = this.progressionPreview === 'finalApproach';
+        const installedPartIds = new Set(
+            preFinalSteps
+                .filter(step => finalApproachPreview || step.installed)
+                .map(step => step.partId)
+        );
+        const installedCount = installedPartIds.size;
+        const totalRequired = preFinalSteps.length;
+        const allInstalled = reconstruction.finalVoidReady;
 
         // For grid layout, position ship assembly above creature (in header area)
         // If mobile, skip the detailed ship view to save space - use header progress bar instead
@@ -2494,8 +2838,8 @@ export default class HubWorldScene extends Phaser.Scene {
 
         shipContainer.add(hull);
 
-        // Glow effect for completed ship
-        if (allCollected) {
+        // Glow effect for the installed pre-final system chain.
+        if (allInstalled) {
             const glow = this.add.graphics();
             glow.fillStyle(0xFFD700, 0.2);
             glow.fillCircle(0, 0, 60 * shipScale);
@@ -2514,23 +2858,22 @@ export default class HubWorldScene extends Phaser.Scene {
             });
         }
 
-        // Draw connection lines between collected parts
+        // Draw connection lines between installed systems.
         const connectionGraphics = this.add.graphics();
         connectionGraphics.lineStyle(2, 0xFFD700, 0.6);
         shipContainer.add(connectionGraphics);
 
-        // Track collected part positions for connection lines
-        const collectedPositions = [];
+        const installedPositions = [];
 
         // Create part slots
         Object.entries(partDefs).forEach(([partId, def]) => {
-            const isCollected = collectedParts.includes(partId);
+            const isInstalled = installedPartIds.has(partId);
             const slotSize = isMobile ? 18 : 24;
 
             // Part background circle
             const slotBg = this.add.graphics();
-            if (isCollected) {
-                // Collected: Gold glow with full opacity
+            if (isInstalled) {
+                // Installed: green-white signal with full opacity.
                 slotBg.fillStyle(0xFFD700, 0.3);
                 slotBg.fillCircle(def.x, def.y, slotSize + 5);
                 slotBg.fillStyle(0x1A0A2E, 1);
@@ -2538,7 +2881,7 @@ export default class HubWorldScene extends Phaser.Scene {
                 slotBg.lineStyle(2, 0xFFD700);
                 slotBg.strokeCircle(def.x, def.y, slotSize);
 
-                collectedPositions.push({ x: def.x, y: def.y });
+                installedPositions.push({ x: def.x, y: def.y });
             } else {
                 // Missing: Gray, low opacity
                 slotBg.fillStyle(0x333333, 0.5);
@@ -2553,13 +2896,12 @@ export default class HubWorldScene extends Phaser.Scene {
                 fontSize: isMobile ? '16px' : '22px'
             }).setOrigin(0.5);
 
-            if (!isCollected) {
+            if (!isInstalled) {
                 icon.setAlpha(0.3);
             }
             shipContainer.add(icon);
 
-            // Pulsing animation for collected parts
-            if (isCollected) {
+            if (isInstalled) {
                 this.tweens.add({
                     targets: [icon],
                     alpha: { from: 1, to: 0.6 },
@@ -2571,29 +2913,28 @@ export default class HubWorldScene extends Phaser.Scene {
             }
         });
 
-        // Draw connection lines between adjacent collected parts
-        if (collectedPositions.length >= 2) {
-            for (let i = 0; i < collectedPositions.length; i++) {
-                for (let j = i + 1; j < collectedPositions.length; j++) {
+        // Draw connection lines between installed systems.
+        if (installedPositions.length >= 2) {
+            for (let i = 0; i < installedPositions.length; i++) {
+                for (let j = i + 1; j < installedPositions.length; j++) {
                     connectionGraphics.beginPath();
-                    connectionGraphics.moveTo(collectedPositions[i].x, collectedPositions[i].y);
-                    connectionGraphics.lineTo(collectedPositions[j].x, collectedPositions[j].y);
+                    connectionGraphics.moveTo(installedPositions[i].x, installedPositions[i].y);
+                    connectionGraphics.lineTo(installedPositions[j].x, installedPositions[j].y);
                     connectionGraphics.strokePath();
                 }
             }
         }
 
         // Progress counter
-        const progressText = this.add.text(0, 55 * shipScale, `${preFinalCollectedCount}/${totalRequired} Parts`, {
+        const progressText = this.add.text(0, 55 * shipScale, `${installedCount}/${totalRequired} Systems`, {
             fontSize: isMobile ? '12px' : '14px',
-            color: allCollected ? '#FFD700' : '#AAAAAA',
+            color: allInstalled ? '#6FFFA8' : '#AAAAAA',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         shipContainer.add(progressText);
 
-        // "READY!" text when all parts collected
-        if (allCollected) {
-            const readyText = this.add.text(0, 75 * shipScale, '⚔️ READY! ⚔️', {
+        if (allInstalled) {
+            const readyText = this.add.text(0, 75 * shipScale, 'FINAL VOID ACCESS', {
                 fontSize: isMobile ? '14px' : '18px',
                 color: '#00FF00',
                 fontStyle: 'bold',
@@ -2886,20 +3227,19 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     /**
-     * Create ship parts progress display showing progress toward final boss
+     * Show installation progress toward Final Void access.
      */
     createShipPartsDisplay() {
         const { width, height, isMobile } = this.dims;
 
-        // Get ship parts status from GameState
-        const shipParts = window.GameState?.get('hubWorld.shipParts') || {
-            collected: [],
-            totalRequired: 5,
-            finalBossUnlocked: false
-        };
-
-        const collected = countCollectedPreFinalParts(shipParts.collected);
-        const total = shipParts.totalRequired || 5;
+        const reconstruction = this.shipReconstruction ||
+            getShipReconstructionSnapshot(window.GameState);
+        const preFinalSteps = reconstruction.steps.slice(0, 5);
+        const finalApproachPreview = this.progressionPreview === 'finalApproach';
+        const installed = finalApproachPreview
+            ? preFinalSteps.length
+            : preFinalSteps.filter(step => step.installed).length;
+        const total = preFinalSteps.length;
 
         // Position below title
         const displayY = isMobile ? 70 : 85;
@@ -2913,7 +3253,7 @@ export default class HubWorldScene extends Phaser.Scene {
         const shipPanel = this.add.graphics();
         shipPanel.fillStyle(0x1A0A2E, 0.85);
         shipPanel.fillRoundedRect(containerX, displayY, containerWidth, containerHeight, 10);
-        shipPanel.lineStyle(2, collected === total ? 0xFFD700 : 0x6B00B3);
+        shipPanel.lineStyle(2, installed === total ? 0x33D17A : 0x6B00B3);
         shipPanel.strokeRoundedRect(containerX, displayY, containerWidth, containerHeight, 10);
         shipPanel.setDepth(50);
 
@@ -2923,16 +3263,16 @@ export default class HubWorldScene extends Phaser.Scene {
         }).setOrigin(0, 0.5).setDepth(51);
 
         // Title text
-        const titleText = this.add.text(containerX + (isMobile ? 45 : 55), displayY + 12, 'SHIP PARTS', {
+        const titleText = this.add.text(containerX + (isMobile ? 45 : 55), displayY + 12, 'SHIP SYSTEMS', {
             fontSize: isMobile ? '10px' : '12px',
             color: '#AAAAAA',
             fontStyle: 'bold'
         }).setDepth(51);
 
         // Progress text
-        const progressColor = collected === total ? '#00FF00' : '#FFFFFF';
+        const progressColor = installed === total ? '#6FFFA8' : '#FFFFFF';
         const progressText = this.add.text(containerX + (isMobile ? 45 : 55), displayY + (isMobile ? 30 : 35),
-            `${collected}/${total} Collected`, {
+            `${installed}/${total} Installed`, {
             fontSize: isMobile ? '14px' : '18px',
             color: progressColor,
             fontStyle: 'bold'
@@ -2945,22 +3285,20 @@ export default class HubWorldScene extends Phaser.Scene {
 
         const startX = containerX + containerWidth - (isMobile ? 75 : 100);
         partIcons.forEach((icon, idx) => {
-            const isCollected = shipParts.collected?.includes(partIds[idx]);
+            const step = preFinalSteps.find(candidate => candidate.partId === partIds[idx]);
+            const isInstalled = finalApproachPreview || step?.installed === true;
+            const isRecovered = step?.recovered === true;
             const partX = startX + idx * (isMobile ? 14 : 18);
 
             const partIndicator = this.add.text(partX, displayY + containerHeight / 2, icon, {
                 fontSize: isMobile ? '12px' : '16px'
             }).setOrigin(0.5).setDepth(51);
 
-            // Gray out if not collected
-            if (!isCollected) {
-                partIndicator.setAlpha(0.3);
-            }
+            partIndicator.setAlpha(isInstalled ? 1 : isRecovered ? 0.55 : 0.2);
         });
 
-        // If all parts collected, show "FINAL BOSS READY!" with animation
-        if (collected === total) {
-            const readyText = this.add.text(width / 2, displayY + containerHeight + 15, '⚔️ FINAL BOSS UNLOCKED! ⚔️', {
+        if (installed === total) {
+            const readyText = this.add.text(width / 2, displayY + containerHeight + 15, 'FINAL VOID ACCESS READY', {
                 fontSize: isMobile ? '14px' : '18px',
                 color: '#FFD700',
                 fontStyle: 'bold',
@@ -3189,6 +3527,10 @@ export default class HubWorldScene extends Phaser.Scene {
         this._isShuttingDown = true;
 
         console.log('[HubWorldScene] Shutting down');
+        if (this.gateTransitionFallback) {
+            clearTimeout(this.gateTransitionFallback);
+            this.gateTransitionFallback = null;
+        }
         this.closeFirstExpeditionInvitation({ markSeen: false });
 
         // Remove keyboard listeners

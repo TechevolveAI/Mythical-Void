@@ -13,6 +13,8 @@
 import Phaser from 'phaser';
 import { devLog } from '../utils/devLogger.js';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
+import { buildCreaturePowerProfile } from '../systems/CreaturePowerProfile.js';
+import LivingFormHandoff from '../ui/LivingFormHandoff.js';
 
 export default class SoulRevealScene extends Phaser.Scene {
     constructor() {
@@ -25,8 +27,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.nameDomElement = null;
         this.portraitPromise = null;
         this.portraitError = null;
-        this.portraitDomElement = null;
-        this.portraitHandoffActive = false;
+        this.livingFormHandoff = null;
         this.previousDomContainerStyles = null;
     }
 
@@ -34,6 +35,9 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.isEggHatch = data?.isEggHatch || false;
         this.eggType = data?.eggType || null;
         this.portraitPreviewImage = data?.portraitPreviewImage || null;
+        this.portraitPreviewFailure = data?.portraitPreviewFailure || false;
+        this.portraitPreviewSpecies = data?.portraitPreviewSpecies || null;
+        this.portraitReferenceImage = null;
         devLog('[SoulRevealScene] Init with data:', data);
     }
 
@@ -52,7 +56,15 @@ export default class SoulRevealScene extends Phaser.Scene {
 
         // Get creature data
         this.loadCreatureData();
-        if (this.portraitPreviewImage) {
+        if (this.portraitPreviewFailure) {
+            this.portraitPromise = new Promise((resolve, reject) => {
+                this.time.delayedCall(
+                    1400,
+                    () => reject(new Error('Local portrait failure preview'))
+                );
+            });
+            this.portraitPromise.catch(() => {});
+        } else if (this.portraitPreviewImage) {
             this.portraitPromise = new Promise(resolve => {
                 this.time.delayedCall(1400, () => resolve({
                     identityKey: 'local-preview',
@@ -81,14 +93,19 @@ export default class SoulRevealScene extends Phaser.Scene {
     loadCreatureData() {
         const genetics = window.GameState?.get('creature.genetics');
         const genes = window.GameState?.get('creature.genes');
+        const dna = window.GameState?.get('creature.dna');
         const personality = window.GameState?.get('creature.personality');
 
         // Extract key data
         this.creatureData = {
             rarity: genetics?.rarity || genes?.rarity || 'common',
             personalityCore: personality?.core || genetics?.personality?.core || 'curious',
-            cosmicAffinity: genetics?.cosmicAffinity?.element || 'star',
-            powerLevel: genetics?.cosmicAffinity?.powerLevel || 0.5,
+            cosmicAffinity: genetics?.cosmicAffinity?.element
+                || genes?.cosmicAffinity?.element
+                || 'star',
+            powerLevel: genetics?.cosmicAffinity?.powerLevel
+                || genes?.cosmicAffinity?.powerLevel
+                || 0.5,
             textureName: window.GameState?.get('creature.textureName'),
             isShiny: genetics?.isShiny || false,
             shinyType: genetics?.shinyType || null,
@@ -98,11 +115,18 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.portraitCreatureData = {
             name: window.GameState?.get('creature.name') || 'Mythical Creature',
             stage: window.GameState?.get('creature.lifecycle.stage') || 'baby',
-            genes: genes || genetics
+            genes: genes || genetics || (
+                this.portraitPreviewSpecies
+                    ? { species: this.portraitPreviewSpecies }
+                    : null
+            ),
+            dna
         };
 
-        // Get innate ability from CreatureSkills with full details
-        this.innateAbility = this.getInnateAbility(this.creatureData.cosmicAffinity);
+        this.powerProfile = buildCreaturePowerProfile(window.GameState, {
+            context: 'fend'
+        });
+        this.innateAbility = this.powerProfile.affinityPower;
 
         // Generate unique soul phrase
         if (window.SoulPhraseGenerator) {
@@ -113,10 +137,10 @@ export default class SoulRevealScene extends Phaser.Scene {
             );
         } else {
             this.soulPhrase = {
-                phrase: 'A unique soul awakens to greet the cosmos',
-                nature: 'A unique soul',
-                action: 'awakens',
-                element: 'to greet the cosmos'
+                phrase: 'First contact confirms a life no mission file predicted',
+                nature: 'First contact',
+                action: 'confirms',
+                element: 'a life no mission file predicted'
             };
         }
 
@@ -195,67 +219,6 @@ export default class SoulRevealScene extends Phaser.Scene {
             }
         };
         return previews[personality] || previews.curious;
-    }
-
-    /**
-     * Get innate ability (Level 1 skill) for a cosmic affinity with full details
-     */
-    getInnateAbility(affinity) {
-        // Full ability definitions with concrete benefits
-        const abilities = {
-            star: {
-                name: 'Radiant Pulse',
-                description: 'Reveals hidden collectibles',
-                icon: '✨',
-                type: 'exploration',
-                color: 0xFFD700,
-                range: '300px radius',
-                displayRange: 'Medium range',
-                benefit: 'Find treasures others miss'
-            },
-            moon: {
-                name: 'Lunar Sight',
-                description: 'Senses rare items nearby',
-                icon: '🌙',
-                type: 'exploration',
-                color: 0xC0C0C0,
-                range: '400px radius',
-                displayRange: 'Long range',
-                benefit: 'Locate rare & legendary items'
-            },
-            nebula: {
-                name: 'Mist Veil',
-                description: 'Confuses nearby enemies',
-                icon: '🌫️',
-                type: 'defensive',
-                color: 0x9370DB,
-                range: '150px radius',
-                displayRange: 'Short range',
-                benefit: 'Escape dangerous situations'
-            },
-            crystal: {
-                name: 'Crystal Sense',
-                description: 'Detects crystals & gems',
-                icon: '💎',
-                type: 'exploration',
-                color: 0x00CED1,
-                range: '350px radius',
-                displayRange: 'Medium range',
-                benefit: 'Maximize crystal collection'
-            },
-            void: {
-                name: 'Void Sense',
-                description: 'Reveals secret paths',
-                icon: '🌑',
-                type: 'exploration',
-                color: 0x4B0082,
-                range: '500px radius',
-                displayRange: 'Long range',
-                benefit: 'Discover hidden areas'
-            }
-        };
-
-        return abilities[affinity] || abilities.star;
     }
 
     getRevealLayout(width = this.scale.width, height = this.scale.height) {
@@ -486,9 +449,13 @@ export default class SoulRevealScene extends Phaser.Scene {
             return;
         }
 
+        this.portraitReferenceImage =
+            window.LivingPortraitService?.captureReference?.(this.creature)
+            || null;
         const job = window.LivingPortraitService?.prewarm?.({
             creatureData: this.portraitCreatureData,
             sprite: this.creature,
+            referenceImage: this.portraitReferenceImage,
             style: 'cinematic',
             source: 'post_hatch'
         });
@@ -1286,18 +1253,12 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.nameDomElement = null;
         this.htmlInput = null;
 
-        if (this.portraitPromise) {
-            this.showLivingPortraitHandoff(finalName);
-            return;
-        }
-
-        this.transitionToGame();
+        this.showLivingPortraitHandoff(finalName);
     }
 
     transitionToGame() {
-        this.portraitHandoffActive = false;
-        this.portraitDomElement?.destroy?.();
-        this.portraitDomElement = null;
+        this.livingFormHandoff?.destroy?.();
+        this.livingFormHandoff = null;
         this.restoreDomContainerStyles();
         this.cameras.main.fadeOut(800, 0, 0, 0);
 
@@ -1307,184 +1268,37 @@ export default class SoulRevealScene extends Phaser.Scene {
     }
 
     showLivingPortraitHandoff(finalName) {
-        this.portraitHandoffActive = true;
         this.tweens.killAll();
         this.elements.forEach(element => element?.destroy?.());
         this.elements = [];
-
-        const { width, height } = this.scale;
-        const compact = height < 660;
-        const bg = this.add.graphics()
-            .fillStyle(0x070B16, 1)
-            .fillRect(0, 0, width, height)
-            .setDepth(1);
-        this.elements.push(bg);
-
-        const title = this.add.text(
-            width / 2,
-            compact ? 34 : 52,
-            'LIVING FORM // RESOLVING',
-            {
-                fontSize: compact ? '18px' : '22px',
-                fontFamily: 'Arial, sans-serif',
-                color: '#8FE3CF',
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5).setDepth(20);
-        this.elements.push(title);
-
-        const subtitle = this.add.text(
-            width / 2,
-            compact ? 67 : 90,
-            `The Beacon is translating ${finalName}'s pixel form into a living portrait.`,
-            {
-                fontSize: compact ? '12px' : '14px',
-                fontFamily: 'Arial, sans-serif',
-                color: '#DCE8ED',
-                align: 'center',
-                wordWrap: { width: width - 48 }
-            }
-        ).setOrigin(0.5, 0).setDepth(20);
-        this.elements.push(subtitle);
-
-        const textureName = this.creatureData.textureName;
-        if (textureName && this.textures.exists(textureName)) {
-            const pixelCreature = this.add.sprite(
-                width / 2,
-                height / 2 - (compact ? 20 : 35),
-                textureName
-            ).setDepth(15);
-            const maxSize = Math.min(width * 0.46, compact ? 180 : 230);
-            pixelCreature.setScale(
-                maxSize / Math.max(pixelCreature.width, pixelCreature.height)
-            );
-            this.elements.push(pixelCreature);
-            this.tweens.add({
-                targets: pixelCreature,
-                alpha: { from: 0.65, to: 1 },
-                scaleX: pixelCreature.scaleX * 1.03,
-                scaleY: pixelCreature.scaleY * 1.03,
-                duration: 1100,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
+        this.prepareDomContainerForHandoff();
+        this.livingFormHandoff?.destroy?.();
+        this.livingFormHandoff = new LivingFormHandoff(this);
+        const shown = this.livingFormHandoff.show({
+            name: finalName,
+            species: this.portraitCreatureData?.genes?.species,
+            stage: this.portraitCreatureData?.stage,
+            affinity: this.creatureData?.cosmicAffinity,
+            portraitPromise: this.portraitPromise,
+            referenceImage: this.portraitReferenceImage,
+            onContinue: () => this.transitionToGame()
+        });
+        if (!shown) {
+            this.livingFormHandoff = null;
+            this.transitionToGame();
         }
-
-        const status = this.add.text(
-            width / 2,
-            height - (compact ? 122 : 150),
-            'Identity locked from genetics, markings, affinity, and temperament.',
-            {
-                fontSize: compact ? '11px' : '13px',
-                fontFamily: 'Arial, sans-serif',
-                color: '#AAB6C4',
-                align: 'center',
-                wordWrap: { width: width - 42 }
-            }
-        ).setOrigin(0.5).setDepth(20);
-        this.elements.push(status);
-
-        const continueButton = this.add.text(
-            width / 2,
-            height - (compact ? 66 : 82),
-            'ENTER SANCTUARY',
-            {
-                fontSize: compact ? '15px' : '17px',
-                fontFamily: 'Arial, sans-serif',
-                color: '#071014',
-                backgroundColor: '#6FE7DD',
-                fontStyle: 'bold',
-                padding: { x: 28, y: 12 }
-            }
-        ).setOrigin(0.5).setDepth(30).setAlpha(0);
-        continueButton.setInteractive({ useHandCursor: true });
-        continueButton.on('pointerdown', () => this.transitionToGame());
-        this.elements.push(continueButton);
-        this.tweens.add({
-            targets: continueButton,
-            alpha: 1,
-            duration: 300,
-            delay: 800
-        });
-
-        this.time.delayedCall(6500, () => {
-            if (this.portraitHandoffActive && !this.portraitDomElement) {
-                status.setText(
-                    'The portrait is still forming. Continue now and it will be saved to the creature profile.'
-                );
-            }
-        });
-
-        this.portraitPromise
-            .then(record => {
-                if (!record?.imageUrl) {
-                    return;
-                }
-                if (!this.portraitHandoffActive) {
-                    window.GameState?.emit?.('notification', {
-                        type: 'portraitReady',
-                        message: `${finalName}'s living portrait is ready`
-                    });
-                    return;
-                }
-                this.revealLivingPortrait(record, finalName, status, title);
-            })
-            .catch(error => {
-                if (this.portraitHandoffActive) {
-                    status.setText(
-                        `Living portrait unavailable right now. ${error.message}`
-                    );
-                    status.setColor('#FFCC66');
-                }
-            });
     }
 
-    revealLivingPortrait(record, finalName, status, title) {
-        if (this.portraitDomElement || !record?.imageUrl) {
-            return;
+    prepareDomContainerForHandoff() {
+        if (!this.game?.domContainer) return;
+        if (!this.previousDomContainerStyles) {
+            this.previousDomContainerStyles = {
+                zIndex: this.game.domContainer.style.zIndex,
+                pointerEvents: this.game.domContainer.style.pointerEvents
+            };
         }
-
-        const { width, height } = this.scale;
-        const compact = height < 660;
-        const image = document.createElement('img');
-        image.alt = `AI-generated living portrait of ${finalName}`;
-        image.referrerPolicy = 'no-referrer';
-        image.decoding = 'async';
-        image.style.width = `${Math.min(width - 48, compact ? 250 : 320)}px`;
-        image.style.height = `${Math.min(height - 250, compact ? 250 : 360)}px`;
-        image.style.objectFit = 'contain';
-        image.style.border = '2px solid #6FE7DD';
-        image.style.borderRadius = '8px';
-        image.style.background = '#101820';
-        image.style.boxShadow = '0 10px 30px rgba(111, 231, 221, 0.24)';
-        image.style.visibility = 'hidden';
-
-        image.onload = () => {
-            if (!this.portraitHandoffActive || this.portraitDomElement) {
-                return;
-            }
-            image.style.visibility = 'visible';
-            this.portraitDomElement = this.add.dom(
-                width / 2,
-                height / 2 - (compact ? 18 : 28),
-                image
-            ).setDepth(25);
-            title.setText(`${finalName.toUpperCase()} // LIVING FORM`);
-            status.setText('AI-GENERATED INTERPRETATION // Saved to creature profile');
-            status.setColor('#8FE3CF');
-            window.AudioManager?.playLevelUp?.();
-        };
-        image.onerror = () => {
-            image.remove();
-            if (this.portraitHandoffActive) {
-                status.setText(
-                    'The living portrait could not be opened. Continue now; the Beacon will retry later.'
-                );
-                status.setColor('#FFCC66');
-            }
-        };
-        image.src = record.imageUrl;
+        this.game.domContainer.style.zIndex = '110';
+        this.game.domContainer.style.pointerEvents = 'auto';
     }
 
     restoreDomContainerStyles() {
@@ -1554,9 +1368,9 @@ export default class SoulRevealScene extends Phaser.Scene {
 
         this.nameDomElement?.destroy?.();
         this.nameDomElement = null;
-        this.portraitHandoffActive = false;
-        this.portraitDomElement?.destroy?.();
-        this.portraitDomElement = null;
+        this.livingFormHandoff?.destroy?.();
+        this.livingFormHandoff = null;
+        this.authoredPortraitPreload = null;
         this.htmlInput = null;
         this.restoreDomContainerStyles();
 

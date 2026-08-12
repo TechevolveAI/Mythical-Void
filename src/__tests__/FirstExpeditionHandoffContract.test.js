@@ -22,6 +22,9 @@ describe('first-expedition handoff contract', () => {
         expect(hubSource).toContain('showFirstExpeditionInvitation()');
         expect(hubSource).toContain('handoff.primaryAction');
         expect(hubSource).toContain('handoff.secondaryAction');
+        expect(hubSource).toContain(
+            '`COMPANION // ${companionName}: "${handoff.companionMoment}"`'
+        );
         expect(hubSource).toContain('this.enterGate(forestGate)');
     });
 
@@ -35,9 +38,9 @@ describe('first-expedition handoff contract', () => {
         expect(hubSource).toMatch(
             /primary\.on\('pointerdown'[\s\S]*progressionPreview === 'firstRoute'/
         );
-        expect(gameSource).toContain(
-            "['complete', 'firstRoute', 'routeMap', 'checkpoint'].includes(testHub)"
-        );
+        expect(gameSource).toContain("'firstRoute'");
+        expect(gameSource).toContain("'checkpoint'");
+        expect(gameSource).toContain("'diagnostics'");
     });
 
     test('keeps handoff copy in the Project Beacon story layer', () => {

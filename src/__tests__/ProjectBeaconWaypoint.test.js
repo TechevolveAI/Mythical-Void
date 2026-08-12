@@ -37,7 +37,7 @@ function loadGameScene(sceneWindow) {
     const filePath = path.join(__dirname, '../scenes/GameScene.js');
     const source = fs.readFileSync(filePath, 'utf8');
     const transformed = source
-        .replace(/^import .*$/gm, '')
+        .replace(/^import[\s\S]*?;\n/gm, '')
         .replace(/import\.meta\.env\.DEV/g, 'false')
         .replace(/export default GameScene;/, 'module.exports = GameScene;');
     class PhaserScene {
@@ -116,10 +116,12 @@ describe('Project Beacon waypoint', () => {
         const result = resolveProjectBeaconWaypointTarget(scene, {
             id: 'beacon_living_signals',
             type: 'story',
-            completed: false
+            completed: false,
+            progress: 1,
+            objective: { target: 3 }
         }, { x: 10, y: 10 });
 
-        expect(result.label).toBe('LIVING SIGNAL');
+        expect(result.label).toBe('LIVING SIGNAL 1/3');
         expect(result.target).toBe(nearest);
     });
 

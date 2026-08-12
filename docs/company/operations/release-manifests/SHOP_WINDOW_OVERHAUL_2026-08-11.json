@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "id": "RM-002",
+  "status": "proposed_unapproved",
+  "createdAt": "2026-08-11T21:23:00Z",
+  "purpose": "Package the redesigned Mythical Void public shop window, including the consent-gated Google tag, without bundling game code or changing what happens after Play Now.",
+  "baseCommit": "1d5c14736ded3480c36f92167353f23a78c4bbef",
+  "deploymentAuthorized": false,
+  "releaseReady": false,
+  "approver": "Kevin plus the named website release and rollback owner",
+  "approvalRefs": [
+    "D-015",
+    "GDH-001",
+    "GDH-003"
+  ],
+  "workingTreeObservation": {
+    "observedAt": "2026-08-11T21:23:00Z",
+    "dirty": true,
+    "collisionRisk": "critical",
+    "currentWholeTreeDeployPermitted": false
+  },
+  "files": [
+    {
+      "path": "index.html",
+      "sha256": "09366d3e86230ff5e73d52281dac57023f595d613165b53d9697dcdcfe4d49e5",
+      "isolatedResultSha256": "09366d3e86230ff5e73d52281dac57023f595d613165b53d9697dcdcfe4d49e5",
+      "scope": "full_file",
+      "trackedAtBase": true,
+      "isolationRequired": true,
+      "intendedChange": "Give the public website clear search, sharing, family, game, free-play, and consent choices."
+    },
+    {
+      "path": "src/site/storefront.js",
+      "sha256": "0abb4219a039a7eb02c65a6549a83418259ab40239766ab08bd5850f5b457895",
+      "isolatedResultSha256": "0abb4219a039a7eb02c65a6549a83418259ab40239766ab08bd5850f5b457895",
+      "scope": "full_file",
+      "trackedAtBase": true,
+      "isolationRequired": true,
+      "intendedChange": "Replace the public home page with the creature-led shop-window story while preserving every Play Now handoff and showing the analytics choice on public pages."
+    },
+    {
+      "path": "src/site/storefront.css",
+      "sha256": "6a8920b0b81b8de779f677f31213bc87e27d3760f896ca1b21abe6c8be95dbb8",
+      "isolatedResultSha256": "6a8920b0b81b8de779f677f31213bc87e27d3760f896ca1b21abe6c8be95dbb8",
+      "scope": "full_file",
+      "trackedAtBase": true,
+      "isolationRequired": true,
+      "intendedChange": "Provide the complete desktop, mobile, reduced-motion, higher-contrast, and analytics-choice visual treatment."
+    },
+    {
+      "path": "vercel.json",
+      "sha256": "21a8f263f93280eded5f0c498b330103d3a99f4765ffc0481a052f5075ca6687",
+      "isolatedResultSha256": "21a8f263f93280eded5f0c498b330103d3a99f4765ffc0481a052f5075ca6687",
+      "scope": "full_file",
+      "trackedAtBase": true,
+      "isolationRequired": true,
+      "intendedChange": "Keep game artwork, the sharing image, and consent-gated Google Analytics connections under the correct routes and policy."
+    },
+    {
+      "path": "netlify.toml",
+      "sha256": "880920e1c46c53648b0735a234894e421f503a52b924e31ea00dafa20e8f018f",
+      "isolatedResultSha256": "880920e1c46c53648b0735a234894e421f503a52b924e31ea00dafa20e8f018f",
+      "scope": "full_file",
+      "trackedAtBase": true,
+      "isolationRequired": true,
+      "intendedChange": "Allow the consent-gated Google tag and its connection endpoints on the production Netlify site."
+    },
+    {
+      "path": "public/robots.txt",
+      "sha256": "a7489edd3de9926d04417a8426ed80a99f46d51976a138f350818f57b54122e3",
+      "isolatedResultSha256": "a7489edd3de9926d04417a8426ed80a99f46d51976a138f350818f57b54122e3",
+      "scope": "full_file",
+      "trackedAtBase": false,
+      "isolationRequired": false,
+      "intendedChange": "Tell search engines that the public website may be visited and where its map is."
+    },
+    {
+      "path": "public/sitemap.xml",
+      "sha256": "2ebd458341de5ca581ca669e67faed3a669aee4be920b2651749ba3d0d223dd7",
+      "isolatedResultSha256": "2ebd458341de5ca581ca669e67faed3a669aee4be920b2651749ba3d0d223dd7",
+      "scope": "full_file",
+      "trackedAtBase": false,
+      "isolationRequired": false,
+      "intendedChange": "List the public home, privacy, and terms pages."
+    },
+    {
+      "path": "public/llms.txt",
+      "sha256": "cadc90427ba678bcd1058725dc12979ee98e3cb979965c0ecaabb27e9df0282c",
+      "isolatedResultSha256": "cadc90427ba678bcd1058725dc12979ee98e3cb979965c0ecaabb27e9df0282c",
+      "scope": "full_file",
+      "trackedAtBase": false,
+      "isolationRequired": false,
+      "intendedChange": "Give online answer tools a short, factual, plain-language description of Mythical Void."
+    },
+    {
+      "path": "public/og.png",
+      "sha256": "c8276d0bf1a1c6b7d6916871785849dc70f43ec702f610c83ed3a8c7faf7c10d",
+      "isolatedResultSha256": "c8276d0bf1a1c6b7d6916871785849dc70f43ec702f610c83ed3a8c7faf7c10d",
+      "scope": "full_file",
+      "trackedAtBase": false,
+      "isolationRequired": false,
+      "intendedChange": "Add the 1200 by 630 crash-site image used when the website is shared."
+    },
+    {
+      "path": "src/site/analytics-consent.js",
+      "sha256": "b90ab001fb3c8ad475a1f294ea54cf642d8e03e3383be0f404122562a1d37e34",
+      "isolatedResultSha256": "b90ab001fb3c8ad475a1f294ea54cf642d8e03e3383be0f404122562a1d37e34",
+      "scope": "full_file",
+      "trackedAtBase": false,
+      "isolationRequired": false,
+      "intendedChange": "Show a simple visitor choice and update the consent-gated Google tag without exposing message or game data."
+    }
+  ],
+  "artifact": {
+    "path": "docs/company/operations/release-manifests/artifacts/RM-002-shop-window.patch",
+    "sha256": "1b0b5b71329534b7dfc24cd1b7b36473981098be227b24038caafd0e8d6e1db0",
+    "status": "generated_unapproved",
+    "createdAt": "2026-08-11T21:23:00Z",
+    "baseApplicationVerified": true,
+    "baseApplicationVerifiedAt": "2026-08-11T21:23:00Z",
+    "appliedFileCount": 10,
+    "workspaceApplied": false,
+    "staged": false,
+    "committed": false,
+    "deployed": false,
+    "isolationAssertion": "Applying this artifact to the recorded base changes only the ten listed public-website paths. It does not change src/main.js, src/game.js, any game scene, game system, game test, server function, database file, dependency, or game artwork."
+  },
+  "ownershipBoundary": {
+    "publicWebsiteOwnedHere": true,
+    "playRoute": "/play/",
+    "playRouteChanged": false,
+    "gameCodeIncluded": false,
+    "gameArtworkChanged": false,
+    "source": "docs/company/WEBSITE_OWNERSHIP_BOUNDARY.md"
+  },
+  "explicitExclusions": [
+    "src/main.js and everything loaded after /play/ or /game/",
+    "All game scenes, systems, controls, saves, companions, battles, progress, tests, and game styles",
+    "All server functions, database files, dependencies, environment files, and credentials",
+    "All game artwork and audio; existing tracked artwork is referenced but not changed",
+    "All company operating documents and scripts from the production web bundle",
+    "All other current tracked, untracked, or deleted working-tree entries"
+  ],
+  "validationEvidence": [
+    {
+      "command": "npm run build",
+      "status": "passed_with_existing_warnings",
+      "observedAt": "2026-08-11T21:15:00Z",
+      "notes": "The website and game bundle built successfully; existing project warnings remain."
+    },
+    {
+      "command": "npm test -- --runTestsByPath src/__tests__/StorefrontIntegration.test.js src/__tests__/StorefrontStoryContract.test.js",
+      "status": "passed_12_of_12",
+      "observedAt": "2026-08-11T21:15:00Z",
+      "notes": "The shop-window handoff, story, safety, sharing, navigation, and hosting rules passed."
+    },
+    {
+      "command": "node scripts/company/validate-foundations.cjs",
+      "status": "passed",
+      "observedAt": "2026-08-11T21:15:00Z",
+      "notes": "Search files, public facts, family submission wording, and company links passed."
+    },
+    {
+      "command": "node scripts/company/test-audience-language-and-comprehension.cjs",
+      "status": "passed_35_of_35",
+      "observedAt": "2026-08-11T21:15:00Z",
+      "notes": "Plain-language checks passed while publication authority stayed off."
+    },
+    {
+      "command": "git apply --check --binary RM-002-shop-window.patch against baseCommit",
+      "status": "passed",
+      "observedAt": "2026-08-11T21:23:00Z",
+      "notes": "The isolated artifact applies to the recorded base and changes only the listed files."
+    },
+    {
+      "command": "node scripts/company/test-website-analytics-tag.cjs",
+      "status": "passed_25_of_25",
+      "observedAt": "2026-08-11T22:45:00Z",
+      "notes": "Consent, game exclusion, advertising-off settings, canonical path, and hosting-policy checks passed."
+    },
+    {
+      "command": "npm test -- --runTestsByPath src/__tests__/StorefrontIntegration.test.js src/__tests__/StorefrontStoryContract.test.js",
+      "status": "passed_12_of_12",
+      "observedAt": "2026-08-11T22:45:00Z",
+      "notes": "The shop-window handoff and public pages still passed after adding the consent choice."
+    }
+  ],
+  "postDeployChecks": [
+    "Confirm the deployed source and artifact match RM-002.",
+    "Verify the home page title, real crash-site hero, adventure path, real game scene chooser, story, guardian, parent, questions, and final Play Now section.",
+    "Verify every Play Now button opens /play/ and the game starts without a public-page loop.",
+    "Verify /privacy/ and /terms/ still open.",
+    "Verify /og.png returns the 1200 by 630 image and link previews use it.",
+    "Verify /robots.txt and /llms.txt return plain text rather than the home page.",
+    "Verify /sitemap.xml returns the three expected public page addresses.",
+    "Check the main navigation and real game scene chooser with a keyboard.",
+    "Check the home page on a phone-sized and desktop-sized screen.",
+    "On the public pages, verify the tag starts with consent denied, the game does not load it, No thanks keeps it off, and Allow analytics enables only the public canonical page visit.",
+    "Record the host deploy number, source revision, artifact digest, approver, time, and rollback target."
+  ],
+  "rollback": {
+    "owner": "Unassigned website release owner",
+    "lastKnownGoodDeployId": null,
+    "lastKnownGoodArtifactDigest": null,
+    "evidenceComplete": false,
+    "plan": "Before approval, identify the last known good live website. If preview or live checks fail, stop the release, restore that exact version, repeat the public-page and Play Now checks, and record what happened."
+  },
+  "releaseGates": [
+    "Kevin names the website release and rollback owner.",
+    "The last known good live deploy and rollback target are recorded.",
+    "An isolated preview built from RM-002 passes the listed checks.",
+    "The preview confirms that Play Now still opens the Game Development-owned experience.",
+    "The Google tag ID, consent choice, game exclusion, advertising-off settings, and hosting policy are checked.",
+    "Kevin approves the exact artifact and release window.",
+    "The post-release checker and rollback owner are available during the release."
+  ]
+}

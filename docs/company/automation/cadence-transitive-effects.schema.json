@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mythicalvoid.com/company/schemas/cadence-transitive-effects.schema.json",
+  "title": "Mythical cadence transitive effect map",
+  "type": "object",
+  "required": ["schemaVersion", "asOf", "status", "purpose", "decisionRefs", "riskRefs", "workflowRefs", "authority", "effectBoundaries", "sourceAssurance", "activationGates", "effectBoundaryCount", "coveredPacketCount", "publicNetworkPacketCount", "protectedInputBindingPacketCount", "configuredInputBindingPacketCount", "unknownTransitiveEffectCount", "satisfiedActivationGateCount", "effectMapReadyForReview", "runtimeTracingReady", "packetExecutionReady", "externalActionAuthorized", "nextDecision"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "asOf": { "type": "string", "format": "date" },
+    "status": { "const": "transitive_effect_map_ready_execution_gated" },
+    "purpose": { "type": "string", "minLength": 120 },
+    "decisionRefs": { "type": "array", "uniqueItems": true },
+    "riskRefs": { "type": "array", "uniqueItems": true },
+    "workflowRefs": { "type": "array", "uniqueItems": true },
+    "authority": { "type": "object", "additionalProperties": { "const": false } },
+    "effectBoundaries": { "type": "array", "minItems": 7, "maxItems": 7 },
+    "sourceAssurance": { "type": "object" },
+    "activationGates": { "type": "array", "minItems": 12, "maxItems": 12 },
+    "effectBoundaryCount": { "const": 7 },
+    "coveredPacketCount": { "const": 8 },
+    "publicNetworkPacketCount": { "const": 1 },
+    "protectedInputBindingPacketCount": { "const": 2 },
+    "configuredInputBindingPacketCount": { "const": 0 },
+    "unknownTransitiveEffectCount": { "const": 0 },
+    "satisfiedActivationGateCount": { "const": 0 },
+    "effectMapReadyForReview": { "const": true },
+    "runtimeTracingReady": { "const": false },
+    "packetExecutionReady": { "const": false },
+    "externalActionAuthorized": { "const": false },
+    "nextDecision": { "type": "string", "minLength": 160 }
+  },
+  "additionalProperties": false
+}

@@ -2,11 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-function loadLayout() {
+function loadControlMath() {
     const filePath = path.join(__dirname, '../systems/MobileControlLayout.js');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace(/export function /g, 'function ')
-        .concat('\nmodule.exports = { getMobileControlLayout };\n');
+        .concat('\nmodule.exports = { getMobileControlLayout, getMobileInteractionPromptLayout, getJoystickVector };\n');
     const sandbox = {
         module: { exports: {} },
         exports: {},
@@ -14,11 +14,15 @@ function loadLayout() {
         Number
     };
     vm.runInNewContext(source, sandbox, { filename: filePath });
-    return sandbox.module.exports.getMobileControlLayout;
+    return sandbox.module.exports;
 }
 
 describe('shared mobile control dock', () => {
-    const getMobileControlLayout = loadLayout();
+    const {
+        getMobileControlLayout,
+        getMobileInteractionPromptLayout,
+        getJoystickVector
+    } = loadControlMath();
     const viewports = [
         [320, 568],
         [375, 667],
@@ -43,6 +47,108 @@ describe('shared mobile control dock', () => {
         expect(layout.actions.bottomY + actionRadius)
             .toBeLessThanOrEqual(layout.dockBottom);
         expect(layout.joystick.zoneHeight).toBe(layout.dockHeight);
+        expect(layout.joystick.zoneWidth).toBeLessThan(
+            layout.actions.leftX - actionRadius
+        );
+    });
+
+    test.each(viewports)('keeps the interaction prompt above the dock at %ix%i', (
+        width,
+        height
+    ) => {
+        const safeArea = { top: 47, right: 0, bottom: 34, left: 0 };
+        const prompt = getMobileInteractionPromptLayout({
+            width,
+            height,
+            safeArea
+        });
+
+        expect(prompt.y).toBeLessThan(prompt.dockTop);
+        expect(prompt.maxWidth).toBeLessThanOrEqual(width);
+        expect(prompt.maxWidth).toBeGreaterThanOrEqual(180);
+        expect(prompt.originY).toBe(1);
+    });
+
+    test.each([
+        [844, 390],
+        [932, 430]
+    ])('keeps the landscape dock inside %ix%i', (width, height) => {
+        const safeArea = { top: 0, right: 44, bottom: 21, left: 44 };
+        const layout = getMobileControlLayout({ width, height, safeArea });
+
+        expect(layout.dockTop).toBeGreaterThan(0);
+        expect(layout.joystick.x - layout.joystick.radius)
+            .toBeGreaterThanOrEqual(safeArea.left);
+        expect(layout.actions.rightX + layout.primarySize / 2)
+            .toBeLessThanOrEqual(width - safeArea.right);
+        expect(layout.actions.bottomY + layout.primarySize / 2)
+            .toBeLessThanOrEqual(height - safeArea.bottom);
+
+        const prompt = getMobileInteractionPromptLayout({
+            width,
+            height,
+            safeArea
+        });
+        expect(prompt.y).toBeLessThan(prompt.dockTop);
+    });
+
+    test.each([
+        ['up', 0, -50, 0, -1],
+        ['down', 0, 50, 0, 1],
+        ['left', -50, 0, -1, 0],
+        ['right', 50, 0, 1, 0],
+        ['up-left', -50, -50, -1, -1],
+        ['up-right', 50, -50, 1, -1],
+        ['down-left', -50, 50, -1, 1],
+        ['down-right', 50, 50, 1, 1]
+    ])('maps %s touches to the correct movement signs', (
+        direction,
+        offsetX,
+        offsetY,
+        expectedX,
+        expectedY
+    ) => {
+        const vector = getJoystickVector({
+            pointerX: 100 + offsetX,
+            pointerY: 100 + offsetY,
+            centerX: 100,
+            centerY: 100,
+            maxDistance: 50,
+            deadZone: 0.15
+        });
+
+        expect(Math.sign(vector.x)).toBe(expectedX);
+        expect(Math.sign(vector.y)).toBe(expectedY);
+        expect(Math.hypot(vector.x, vector.y)).toBeCloseTo(1, 6);
+    });
+
+    test('a lower-pad touch immediately produces downward movement', () => {
+        const vector = getJoystickVector({
+            pointerX: 100,
+            pointerY: 125,
+            centerX: 100,
+            centerY: 100,
+            maxDistance: 50,
+            deadZone: 0.15
+        });
+
+        expect(vector.x).toBe(0);
+        expect(vector.y).toBeGreaterThan(0.4);
+        expect(vector.thumbY).toBe(125);
+    });
+
+    test('the center dead zone prevents accidental movement', () => {
+        const vector = getJoystickVector({
+            pointerX: 103,
+            pointerY: 104,
+            centerX: 100,
+            centerY: 100,
+            maxDistance: 50,
+            deadZone: 0.15
+        });
+
+        expect(vector.x).toBe(0);
+        expect(vector.y).toBe(0);
     });
 
     test('both gameplay modes consume the shared geometry', () => {
@@ -54,10 +160,49 @@ describe('shared mobile control dock', () => {
             path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
             'utf8'
         );
+        const responsiveSource = fs.readFileSync(
+            path.join(__dirname, '../systems/ResponsiveManager.js'),
+            'utf8'
+        );
 
         expect(mobileSource).toContain('getMobileControlLayout');
+        expect(mobileSource).toContain('getJoystickVector');
+        expect(mobileSource).toContain('setupCanvasJoystickInput');
+        expect(mobileSource).toContain('canvas.setPointerCapture?.(event.pointerId)');
+        expect(mobileSource).toContain("canvas.addEventListener('pointerdown'");
+        expect(mobileSource).toContain('const captureOptions = { capture: true, passive: false }');
+        expect(mobileSource).toContain('this.minimumFlickDuration = 140');
+        expect(mobileSource).toContain('this.lastJoystickMagnitude > 0.1');
+        expect(mobileSource).not.toContain("joystickZone.on('pointerdown'");
+        expect(mobileSource).not.toContain("joystickZone.on('drag'");
+        expect(mobileSource).toContain("addEventListener('touchend'");
+        expect(mobileSource).toContain("window.addEventListener('blur'");
+        expect(mobileSource).toContain("window.addEventListener('pagehide'");
+        expect(mobileSource).toContain("'visibilitychange'");
         expect(platformerSource).toContain('getMobileControlLayout');
+        expect(platformerSource).toContain('this.platformerPreviewSize');
+        expect(platformerSource).toContain("].includes('mobile')");
         expect(platformerSource).not.toContain('arc layout above large jump button');
+        expect(responsiveSource).not.toContain('setupTouchToMouse');
+        expect(responsiveSource).not.toContain("new MouseEvent('mousedown'");
+        expect(responsiveSource).not.toContain("new MouseEvent('mousemove'");
+        expect(responsiveSource).not.toContain("new MouseEvent('mouseup'");
+    });
+
+    test('the sanctuary camera reserves room above the mobile control dock', () => {
+        const gameSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/GameScene.js'),
+            'utf8'
+        );
+
+        expect(gameSource).toContain('applyMobileCameraBounds');
+        expect(gameSource).toContain('layout.dockHeight + playerClearance');
+        expect(gameSource).toContain('this.worldHeight + reservedWorldHeight');
+        expect(gameSource).toContain("this.scale.on('resize', this.mobileCameraResizeHandler)");
+        expect(gameSource).toContain("this.scale?.off?.('resize', this.mobileCameraResizeHandler)");
+        expect(gameSource).toContain(".replace(/^\\s*Press SPACE\\s*·\\s*/i, 'Tap ✋ · ')");
+        expect(gameSource).toContain('if (isProximityPrompt) return;');
+        expect(gameSource).toContain('createInteractionPromptPreview()');
     });
 
     test('story and tutorial modals suspend controls and own pointer routing', () => {
