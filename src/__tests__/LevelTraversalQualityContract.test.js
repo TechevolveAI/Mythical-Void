@@ -440,14 +440,15 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.clearGuardianGateState();');
     });
 
-    test('Aurora Depths offers safety for taking the Quiet Light route', () => {
+    test('Aurora Depths rewards the Quiet Light route at the guardian', () => {
         const source = read('levels/AuroraDepthsLevel.js');
 
         expect(source).toContain('const quietLightRoute = [');
-        expect(source).toContain('QUIET LIGHT / HIGH ROUTE');
         expect(source).toContain('SHADOW CURRENT / DIRECT ROUTE');
-        expect(source).toContain("'QUIET LIGHT // 15 SECOND SHELTER'");
-        expect(source).toContain('this.activateShield();');
+        expect(source).toContain("id: 'aurora_quiet_light'");
+        expect(source).toContain("rewardLabel: 'QUIET LIGHT WARD // 1 HIT'");
+        expect(source).toContain("this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1)");
+        expect(source).not.toContain('this.activateShield();');
     });
 
     test('Forest canopy traversal earns a persistent one-hit guard', () => {
@@ -474,8 +475,10 @@ describe('campaign traversal quality contracts', () => {
         const source = read('levels/FinalVoidLevel.js');
 
         expect(source).toContain('const trustBridgeRoute = [');
-        expect(source).toContain('TRUST BRIDGE / HIGH ROUTE');
         expect(source).toContain('VOID FRACTURE / DIRECT ROUTE');
+        expect(source).toContain("id: 'final_trust_bridge'");
+        expect(source).toContain("rewardLabel: 'BOND RESERVE // 1 RESCUE'");
+        expect(source).toContain('onComplete: () => this.activateBondReserve()');
         expect(source).toContain('incomingDamage = Math.max(0, this.health - 1);');
         expect(source).toContain('this.bondReserveEcho?.destroy?.();');
     });
@@ -652,6 +655,9 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain(
             "['mythicalForest', 'auroraDepths', 'finalVoid'].includes(route)"
         );
+        expect(smoke).toContain("auroraDepths: 'aurora_quiet_light'");
+        expect(smoke).toContain("finalVoid: 'final_trust_bridge'");
+        expect(smoke).toContain('bond reserve did not prevent a lethal hit');
     });
 
     test('runtime checkpoints retain the same authored identity persisted for reload recovery', () => {

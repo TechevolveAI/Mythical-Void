@@ -1206,14 +1206,18 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             mythicalForest: 'forest_canopy_run',
             crystalCaves: 'caves_secret_slide',
             reef: 'reef_star_trench',
-            voidPeaks: 'peaks_relic_ridge'
+            voidPeaks: 'peaks_relic_ridge',
+            auroraDepths: 'aurora_quiet_light',
+            finalVoid: 'final_trust_bridge'
         }[route];
         if (optionalRouteId) {
             const optionalRequired = {
                 mythicalForest: 2,
                 crystalCaves: 1,
                 reef: 2,
-                voidPeaks: 2
+                voidPeaks: 2,
+                auroraDepths: 1,
+                finalVoid: 1
             }[route];
             for (
                 let optionalIndex = 0;
@@ -1222,11 +1226,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             ) {
                 const stagedOptional = await evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                    const collectibles = ${JSON.stringify(route)} === 'mythicalForest'
-                        ? (scene?.starFragmentSprites || []).map(entry => entry?.pickupZone)
-                        : (${JSON.stringify(route)} === 'reef'
-                            ? scene?.starFragments || []
-                            : scene?.collectibles?.getChildren?.() || []);
+                    const collectibles = scene?.optionalRoutePickup?.active !== false &&
+                        scene?.optionalRoutePickup
+                        ? [scene.optionalRoutePickup]
+                        : (${JSON.stringify(route)} === 'mythicalForest'
+                            ? (scene?.starFragmentSprites || []).map(entry => entry?.pickupZone)
+                            : (${JSON.stringify(route)} === 'reef'
+                                ? scene?.starFragments || []
+                                : scene?.collectibles?.getChildren?.() || []));
                     const item = collectibles.filter(
                         entry => entry?.active !== false &&
                             entry?.optionalRouteId === ${JSON.stringify(optionalRouteId)}
@@ -1272,9 +1279,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                             ? scene?.getCrystalObjectiveText?.() || ''
                             : (${JSON.stringify(route)} === 'reef'
                                 ? scene?.getReefObjectiveText?.() || ''
-                                : scene?.getPeakObjectiveText?.() || '')),
+                                : (${JSON.stringify(route)} === 'voidPeaks'
+                                    ? scene?.getPeakObjectiveText?.() || ''
+                                    : (${JSON.stringify(route)} === 'auroraDepths'
+                                        ? scene?.getAuroraObjectiveText?.() || ''
+                                        : scene?.getFinalObjectiveText?.() || '')))),
                     freeSpecialAttackCharges: scene?.freeSpecialAttackCharges,
                     optionalRouteGuardCharges: scene?.optionalRouteGuardCharges,
+                    bondReserveReady: scene?.bondReserveReady === true,
                     duplicateAccepted: scene?.recordOptionalRouteProgress?.(
                         ${JSON.stringify(optionalRouteId)}
                     )
@@ -1284,11 +1296,15 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 mythicalForest: 'CANOPY GUARD // 1 HIT // EARNED',
                 crystalCaves: 'CRYSTAL WARD // 1 HIT // EARNED',
                 reef: 'FREE SUPER BLAST // EARNED',
-                voidPeaks: 'RIDGE GUARD // 1 HIT // EARNED'
+                voidPeaks: 'RIDGE GUARD // 1 HIT // EARNED',
+                auroraDepths: 'QUIET LIGHT WARD // 1 HIT // EARNED',
+                finalVoid: 'BOND RESERVE // 1 RESCUE // EARNED'
             }[route];
             const rewardGranted = route === 'reef'
                 ? optionalRouteCompletion.freeSpecialAttackCharges === 1
-                : optionalRouteCompletion.optionalRouteGuardCharges === 1;
+                : (route === 'finalVoid'
+                    ? optionalRouteCompletion.bondReserveReady === true
+                    : optionalRouteCompletion.optionalRouteGuardCharges === 1);
             if (
                 optionalRouteCompletion.progress !== optionalRequired ||
                 optionalRouteCompletion.required !== optionalRequired ||
@@ -1302,6 +1318,36 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     `${sceneName} optional route did not grant its promised reward: ` +
                     JSON.stringify(optionalRouteCompletion)
                 );
+            }
+            if (route === 'finalVoid') {
+                optionalRouteCompletion.rescueResult = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    scene.health = 1;
+                    scene.isInvincible = false;
+                    scene.hasShield = false;
+                    scene.powerupShieldHits = 0;
+                    scene.guardianGuardCharges = 0;
+                    scene.communityGuardCharges = 0;
+                    scene.auroraGuardCharges = 0;
+                    scene.handlePlayerDamage(2);
+                    return {
+                        health: scene.health,
+                        reserveReady: scene.bondReserveReady,
+                        reserveEchoActive: scene.bondReserveEcho?.active === true,
+                        playerDead: scene.isPlayerDead === true
+                    };
+                })()`);
+                if (
+                    optionalRouteCompletion.rescueResult.health !== 1 ||
+                    optionalRouteCompletion.rescueResult.reserveReady !== false ||
+                    optionalRouteCompletion.rescueResult.reserveEchoActive !== false ||
+                    optionalRouteCompletion.rescueResult.playerDead !== false
+                ) {
+                    throw new Error(
+                        `${sceneName} bond reserve did not prevent a lethal hit: ` +
+                        JSON.stringify(optionalRouteCompletion.rescueResult)
+                    );
+                }
             }
         }
     }

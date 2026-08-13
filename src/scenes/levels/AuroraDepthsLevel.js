@@ -96,6 +96,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
         this.quietLightClaimed = false;
+        this.optionalRoutePickup = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -150,6 +151,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
         this.quietLightClaimed = false;
+        this.optionalRoutePickup = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
@@ -542,13 +544,25 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             repeat: -1
         });
 
-        this.add.text(2700, groundY - 205, 'QUIET LIGHT / HIGH ROUTE', {
+        const quietLightMarker = this.add.text(2820, groundY - 235, '', {
             fontSize: '12px',
             color: '#A9F3E4',
             fontStyle: 'bold',
             stroke: '#061319',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center'
         }).setOrigin(0.5).setDepth(182);
+        this.registerOptionalRouteReward({
+            id: 'aurora_quiet_light',
+            title: 'QUIET LIGHT HIGH ROUTE',
+            required: 1,
+            rewardLabel: 'QUIET LIGHT WARD // 1 HIT',
+            marker: quietLightMarker,
+            returnLabel: 'DESCEND TO SKY PRISM →',
+            onComplete: () => {
+                this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1);
+            }
+        });
         this.add.text(3160, groundY - 82, 'SHADOW CURRENT / DIRECT ROUTE', {
             fontSize: '11px',
             color: '#C9A7E8',
@@ -568,6 +582,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.physics.add.existing(shelter);
         shelter.body.setAllowGravity(false);
         shelter.body.setCircle(24, -6, -6);
+        shelter.optionalRouteId = 'aurora_quiet_light';
+        this.optionalRoutePickup = shelter;
 
         const shelterLabel = this.add.text(
             shelter.x,
@@ -599,13 +615,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             const rewardY = shelter.y;
             shelter.destroy();
             shelterLabel.destroy();
-            this.activateShield();
-            this.showFloatingText(
-                'QUIET LIGHT // 15 SECOND SHELTER',
-                rewardX,
-                rewardY - 30,
-                '#F2C94C'
-            );
+            this.recordOptionalRouteProgress('aurora_quiet_light', {
+                x: rewardX,
+                y: rewardY
+            });
             window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
                 count: 22,
                 color: [0xF2C94C, 0x7FFFD4, 0xFFFFFF],
@@ -647,7 +660,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     getAuroraObjectiveText() {
-        const optional = `OPTIONAL // AURORA FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const routeReward = this.getOptionalRouteStatusText(
+            'aurora_quiet_light',
+            'OPTIONAL // QUIET LIGHT WARD'
+        );
+        const optional = `${routeReward}\nOPTIONAL // AURORA FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
 
         if (this.bossDefeated) {
             return `QUIET UPLINK READY\nEARTH CONTACT NOT TRANSMITTED\n${optional}`;

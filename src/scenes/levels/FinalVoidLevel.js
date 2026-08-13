@@ -114,6 +114,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.voidFractures = [];
         this.bondReserveReady = false;
         this.bondReserveEcho = null;
+        this.optionalRoutePickup = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -175,6 +176,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.voidFractures = [];
         this.bondReserveReady = false;
         this.bondReserveEcho = null;
+        this.optionalRoutePickup = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.highPowerRevealActive = false;
@@ -507,13 +509,23 @@ class FinalVoidLevel extends PlatformerLevelScene {
             repeat: -1
         });
 
-        this.add.text(1690, groundY - 372, 'TRUST BRIDGE / HIGH ROUTE', {
+        const trustBridgeMarker = this.add.text(1690, groundY - 372, '', {
             fontSize: '12px',
             color: '#F2C94C',
             fontStyle: 'bold',
             stroke: '#09020E',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center'
         }).setOrigin(0.5).setDepth(182);
+        this.registerOptionalRouteReward({
+            id: 'final_trust_bridge',
+            title: 'TRUST BRIDGE HIGH ROUTE',
+            required: 1,
+            rewardLabel: 'BOND RESERVE // 1 RESCUE',
+            marker: trustBridgeMarker,
+            returnLabel: 'DESCEND TO TRUST SIGNAL →',
+            onComplete: () => this.activateBondReserve()
+        });
         this.add.text(1845, groundY - 82, 'VOID FRACTURE / DIRECT ROUTE', {
             fontSize: '11px',
             color: '#D5A6F5',
@@ -533,6 +545,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.physics.add.existing(reserve);
         reserve.body.setAllowGravity(false);
         reserve.body.setCircle(24, -6, -6);
+        reserve.optionalRouteId = 'final_trust_bridge';
+        this.optionalRoutePickup = reserve;
 
         const reserveLabel = this.add.text(
             reserve.x,
@@ -559,34 +573,14 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.physics.add.overlap(this.player, reserve, () => {
             if (this.bondReserveReady || !reserve.active) return;
 
-            this.bondReserveReady = true;
             const rewardX = reserve.x;
             const rewardY = reserve.y;
             reserve.destroy();
             reserveLabel.destroy();
-
-            this.bondReserveEcho = this.add.circle(
-                this.player.x - 32,
-                this.player.y - 38,
-                8,
-                0xA9F3E4,
-                0.95
-            ).setStrokeStyle(2, 0xF2C94C, 0.9).setDepth(760);
-            this.tweens.add({
-                targets: this.bondReserveEcho,
-                scale: { from: 0.85, to: 1.25 },
-                alpha: { from: 0.65, to: 1 },
-                duration: 700,
-                yoyo: true,
-                repeat: -1
+            this.recordOptionalRouteProgress('final_trust_bridge', {
+                x: rewardX,
+                y: rewardY
             });
-
-            this.showFloatingText(
-                'BOND RESERVE // ONE AUTOMATIC RESCUE',
-                rewardX,
-                rewardY - 30,
-                '#A9F3E4'
-            );
             window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
                 count: 22,
                 color: [0xA9F3E4, 0xF2C94C, 0xFFFFFF],
@@ -596,6 +590,28 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 event: 'final_void_trust_bridge'
             });
         });
+    }
+
+    activateBondReserve() {
+        if (this.bondReserveReady) return false;
+
+        this.bondReserveReady = true;
+        this.bondReserveEcho = this.add.circle(
+            this.player.x - 32,
+            this.player.y - 38,
+            8,
+            0xA9F3E4,
+            0.95
+        ).setStrokeStyle(2, 0xF2C94C, 0.9).setDepth(760);
+        this.tweens.add({
+            targets: this.bondReserveEcho,
+            scale: { from: 0.85, to: 1.25 },
+            alpha: { from: 0.65, to: 1 },
+            duration: 700,
+            yoyo: true,
+            repeat: -1
+        });
+        return true;
     }
 
     createHUD() {
@@ -642,15 +658,19 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const networkState =
             `${restoredCount}/${totalRegions} ` +
             `${ecology?.networkStatusLabel || 'STRAINED'}`;
+        const routeReward = this.getOptionalRouteStatusText(
+            'final_trust_bridge'
+        );
+        const optional = routeReward ? `\n${routeReward}` : '';
 
         if (this.bossDefeated) {
-            return `COMMAND MODULE RECOVERED\nUPLINK HELD // NOTHING SENT\nCURRENT // ${networkState}`;
+            return `COMMAND MODULE RECOVERED\nUPLINK HELD // NOTHING SENT\nCURRENT // ${networkState}${optional}`;
         }
         if (this.bossFightActive) {
-            return `RESTORE THE VOID EMPRESS\nHOLD THE SHARED LINE TOGETHER\nCURRENT // ${networkState}`;
+            return `RESTORE THE VOID EMPRESS\nHOLD THE SHARED LINE TOGETHER\nCURRENT // ${networkState}${optional}`;
         }
         if (this.finalSignalReady) {
-            return `EMPRESS SEAL OPEN\nENTER REALITY'S EDGE TOGETHER →\nCURRENT // ${networkState}`;
+            return `EMPRESS SEAL OPEN\nENTER REALITY'S EDGE TOGETHER →\nCURRENT // ${networkState}${optional}`;
         }
 
         const nextSignal = [
@@ -663,7 +683,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const title = this.isCompactObjectiveHUD
             ? `BOND ${current}/3`
             : `BOND ${current}/3 // ${nextSignal}`;
-        return `${title}\n${compass || 'FOLLOW THE SHARED SIGNAL'}\nCURRENT // ${networkState}`;
+        return `${title}\n${compass || 'FOLLOW THE SHARED SIGNAL'}\nCURRENT // ${networkState}${optional}`;
     }
 
     showObjectiveToast() {
