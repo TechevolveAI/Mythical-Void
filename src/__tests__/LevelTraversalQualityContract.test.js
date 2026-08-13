@@ -1048,6 +1048,56 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('rejoinZone: {');
     });
 
+    test.each([
+        [
+            'levels/MythicalForestLevel.js',
+            "mainSupportIds: ['forest-bridge-4']",
+            "optionalSupportIds: ['forest-tree-4-branch-6']",
+            "rejoinSupportIds: ['forest-bridge-10']"
+        ],
+        [
+            'levels/CrystalCavesLevel.js',
+            "mainSupportIds: ['caves-lower-2']",
+            "optionalSupportIds: ['caves-spider-2']",
+            "rejoinSupportIds: ['caves-grove-step']"
+        ],
+        [
+            'levels/ReefLevel.js',
+            "mainSupportIds: ['reef-current-bridge']",
+            "optionalSupportIds: ['reef-trench-1']",
+            "rejoinSupportIds: ['reef-drive-step']"
+        ],
+        [
+            'levels/VoidPeaksLevel.js',
+            "'peak-main-handoff'",
+            "optionalSupportIds: ['peak-relic-ridge-1']",
+            "rejoinSupportIds: ['peak-summit-relay']"
+        ],
+        [
+            'levels/AuroraDepthsLevel.js',
+            "mainSupportIds: ['aurora-ground-3']",
+            "optionalSupportIds: ['aurora-quiet-step-1']",
+            "'aurora-sky-rejoin'"
+        ],
+        [
+            'levels/FinalVoidLevel.js',
+            "mainSupportIds: ['final-rift-step-1']",
+            "optionalSupportIds: ['final-trust-bridge-1']",
+            "rejoinSupportIds: ['final-rift-step-4']"
+        ]
+    ])('%s binds each route lane to authored supports', (
+        relativePath,
+        mainSupport,
+        optionalSupport,
+        rejoinSupport
+    ) => {
+        const source = read(relativePath);
+
+        expect(source).toContain(mainSupport);
+        expect(source).toContain(optionalSupport);
+        expect(source).toContain(rejoinSupport);
+    });
+
     test('the shared route-choice contract is lightweight and lifecycle-safe', () => {
         const source = read('PlatformerLevelScene.js');
 
@@ -1441,6 +1491,144 @@ describe('campaign traversal quality contracts', () => {
         expect(route.choice.optionalSupportIds).toEqual(['named-branch']);
     });
 
+    test('route topology audits every named main, optional, and rejoin landing', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'RouteSupportAuditTest' });
+        scene.optionalRouteRewards = new Map();
+        scene.platforms = {
+            getChildren: () => [
+                {
+                    traversalId: 'main-landing',
+                    x: 150,
+                    body: {
+                        enable: true,
+                        left: 100,
+                        right: 200,
+                        top: 350,
+                        bottom: 380
+                    }
+                },
+                {
+                    traversalId: 'optional-landing',
+                    x: 150,
+                    body: {
+                        enable: true,
+                        left: 100,
+                        right: 200,
+                        top: 150,
+                        bottom: 180
+                    }
+                },
+                {
+                    traversalId: 'rejoin-landing',
+                    x: 550,
+                    body: {
+                        enable: true,
+                        left: 500,
+                        right: 600,
+                        top: 250,
+                        bottom: 280
+                    }
+                }
+            ]
+        };
+        scene.registerOptionalRouteReward({
+            id: 'audited_branch',
+            title: 'AUDITED BRANCH',
+            rewardLabel: 'ONE GUARD',
+            choice: {
+                mainZone: { left: 100, right: 200, top: 300, bottom: 450 },
+                optionalZone: { left: 100, right: 200, top: 50, bottom: 200 },
+                rejoinZone: { left: 500, right: 600, top: 100, bottom: 400 },
+                mainSupportIds: ['main-landing'],
+                optionalSupportIds: ['optional-landing'],
+                rejoinSupportIds: ['rejoin-landing']
+            }
+        });
+
+        const audit = scene.auditOptionalRouteChoiceSupports();
+
+        expect(audit.passed).toBe(true);
+        expect(audit.auditedRouteCount).toBe(1);
+        expect(audit.routes[0].lanes.map(lane => lane.lane)).toEqual([
+            'main',
+            'optional',
+            'rejoin'
+        ]);
+        expect(audit.routes[0].lanes.every(lane => lane.passed)).toBe(true);
+    });
+
+    test('route topology rejects missing, disabled, and misplaced named landings', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'BrokenRouteSupportAuditTest' });
+        scene.optionalRouteRewards = new Map();
+        scene.platforms = {
+            getChildren: () => [
+                {
+                    traversalId: 'disabled-main',
+                    x: 150,
+                    body: {
+                        enable: false,
+                        left: 100,
+                        right: 200,
+                        top: 350,
+                        bottom: 380
+                    }
+                },
+                {
+                    traversalId: 'misplaced-optional',
+                    x: 450,
+                    body: {
+                        enable: true,
+                        left: 400,
+                        right: 500,
+                        top: 150,
+                        bottom: 180
+                    }
+                },
+                {
+                    traversalId: 'invalid-rejoin',
+                    x: 550,
+                    body: {
+                        enable: true,
+                        left: 500,
+                        right: 600,
+                        top: Number.NaN,
+                        bottom: 280
+                    }
+                }
+            ]
+        };
+        scene.registerOptionalRouteReward({
+            id: 'broken_branch',
+            title: 'BROKEN BRANCH',
+            rewardLabel: 'ONE GUARD',
+            choice: {
+                mainZone: { left: 100, right: 200, top: 300, bottom: 450 },
+                optionalZone: { left: 100, right: 200, top: 50, bottom: 200 },
+                rejoinZone: { left: 500, right: 600, top: 100, bottom: 400 },
+                mainSupportIds: ['disabled-main'],
+                optionalSupportIds: ['misplaced-optional'],
+                rejoinSupportIds: ['missing-rejoin', 'invalid-rejoin']
+            }
+        });
+
+        const audit = scene.auditOptionalRouteChoiceSupports();
+        const lanes = Object.fromEntries(
+            audit.routes[0].lanes.map(lane => [lane.lane, lane])
+        );
+
+        expect(audit.passed).toBe(false);
+        expect(lanes.main.missingSupportIds).toEqual(['disabled-main']);
+        expect(lanes.optional.outsideZoneSupportIds).toEqual([
+            'misplaced-optional'
+        ]);
+        expect(lanes.rejoin.missingSupportIds).toEqual(['missing-rejoin']);
+        expect(lanes.rejoin.invalidGeometrySupportIds).toEqual([
+            'invalid-rejoin'
+        ]);
+    });
+
     test('invalid route choice geometry degrades to the existing reward contract', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'InvalidRouteChoiceTest' });
@@ -1679,6 +1867,18 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('did not restore its optional reward');
         expect(smoke).toContain('respawned a consumed optional reward');
         expect(smoke).toContain('scene.auditTraversalTopology();');
+        expect(smoke).toContain('smokeDeclaredRouteChoiceSupports(');
+        expect(smoke).toContain('routeChoiceRuntime?.passed !== true');
+        expect(smoke).toContain('const checkpointBefore = scene.checkpointPosition');
+        expect(smoke).toContain(
+            'JSON.stringify(outOfOrderGuard.checkpointAfter) !=='
+        );
+        expect(smoke).toContain(
+            'JSON.stringify(airborneRejected.checkpointAfter) !=='
+        );
+        expect(smoke).toContain('choice.mainSupportIds[0]');
+        expect(smoke).toContain('choice.optionalSupportIds[0]');
+        expect(smoke).toContain('routeState.choice.rejoinSupportIds[0]');
         expect(smoke).toContain('Aurora direct route zone selection');
         expect(smoke).toContain('Aurora Quiet Light pickup collision');
         expect(smoke).toContain('Aurora charge returned after reload');

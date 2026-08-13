@@ -827,6 +827,10 @@ async function smokeCrystalCoreLift(session) {
         (scene.collectibles?.getChildren?.() || []).forEach(item => {
             if (item?.body) item.body.enable = false;
         });
+        // The live route intentionally starts the guardian when this landing
+        // overlaps the Core. Isolate the lift probe so later gate assertions
+        // can exercise the locked and ready states independently.
+        if (scene.crystalCore?.body) scene.crystalCore.body.enable = false;
         lift.activations = 0;
         lift.lastLiftAt = Number.NEGATIVE_INFINITY;
         scene.player.body.reset(lift.x, scene.levelHeight - 110);
@@ -860,27 +864,59 @@ async function smokeCrystalCoreLift(session) {
             })()`),
             { timeoutMs: 2500, message: 'Crystal Core lift launch' }
         );
-        const landed = await waitFor(
-            () => evaluate(session, `(() => {
+        let landed;
+        try {
+            landed = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+                    const support = scene.platforms.getChildren().find(
+                        item => item.traversalId === 'caves-core-refuge'
+                    );
+                    const body = scene.player?.body;
+                    if (!support?.body || !body) return null;
+                    const onSupport = body.right > support.body.left + 8 &&
+                        body.left < support.body.right - 8 &&
+                        Math.abs(body.bottom - support.body.top) <= 7 &&
+                        (body.blocked.down || scene.isGrounded);
+                    return onSupport ? {
+                        supportId: support.traversalId,
+                        playerX: Math.round(scene.player.x),
+                        playerBottom: Math.round(body.bottom),
+                        supportTop: Math.round(support.body.top)
+                    } : null;
+                })()`),
+                { timeoutMs: 6500, message: 'Crystal Core refuge landing' }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
                 const support = scene.platforms.getChildren().find(
                     item => item.traversalId === 'caves-core-refuge'
                 );
                 const body = scene.player?.body;
-                if (!support?.body || !body) return null;
-                const onSupport = body.right > support.body.left + 8 &&
-                    body.left < support.body.right - 8 &&
-                    Math.abs(body.bottom - support.body.top) <= 7 &&
-                    (body.blocked.down || scene.isGrounded);
-                return onSupport ? {
-                    supportId: support.traversalId,
-                    playerX: Math.round(scene.player.x),
-                    playerBottom: Math.round(body.bottom),
-                    supportTop: Math.round(support.body.top)
-                } : null;
-            })()`),
-            { timeoutMs: 3400, message: 'Crystal Core refuge landing' }
-        );
+                return {
+                    activations: scene.crystalCoreLift?.activations,
+                    player: body ? {
+                        x: Math.round(scene.player.x),
+                        y: Math.round(scene.player.y),
+                        left: Math.round(body.left),
+                        right: Math.round(body.right),
+                        bottom: Math.round(body.bottom),
+                        velocityX: Math.round(body.velocity.x),
+                        velocityY: Math.round(body.velocity.y),
+                        blockedDown: body.blocked.down,
+                        grounded: scene.isGrounded
+                    } : null,
+                    destination: support?.body ? {
+                        left: Math.round(support.body.left),
+                        right: Math.round(support.body.right),
+                        top: Math.round(support.body.top),
+                        enabled: support.body.enable
+                    } : null
+                };
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
         return { setup, launched, landed };
     } finally {
         await evaluate(session, `(() => {
@@ -891,6 +927,9 @@ async function smokeCrystalCoreLift(session) {
             (scene.collectibles?.getChildren?.() || []).forEach(item => {
                 if (item?.body && item.active !== false) item.body.enable = true;
             });
+            if (scene.crystalCore?.body && !scene.crystalCoreFound) {
+                scene.crystalCore.body.enable = true;
+            }
             scene.isInvincible = false;
             scene.player.body.reset(3480, scene.levelHeight - 110);
             scene.player.setVelocity(0, 0);
@@ -2415,6 +2454,11 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 challengeLabel: choice.challengeLabel,
                 mainMarker: choice.mainMarker?.text || '',
                 optionalMarker: routeState.marker?.text || '',
+                mainSupportIds: choice.mainSupportIds,
+                optionalSupportIds: choice.optionalSupportIds,
+                rejoinSupportIds: choice.rejoinSupportIds,
+                supportAudit: scene.auditOptionalRouteChoiceSupports?.()
+                    ?.routes?.find(route => route.id === routeState.id),
                 optionalCenter: {
                     x: (choice.optionalZone.left + choice.optionalZone.right) / 2,
                     y: (choice.optionalZone.top + choice.optionalZone.bottom) / 2
@@ -2430,7 +2474,11 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             !choicePresentation.mainMarker.includes(choicePresentation.mainTradeoff) ||
             !choicePresentation.optionalMarker.includes(choicePresentation.routeTitle) ||
             !choicePresentation.optionalMarker.includes(choicePresentation.challengeLabel) ||
-            !choicePresentation.optionalMarker.includes(choicePresentation.rewardLabel)
+            !choicePresentation.optionalMarker.includes(choicePresentation.rewardLabel) ||
+            choicePresentation.supportAudit?.passed !== true ||
+            choicePresentation.mainSupportIds?.length < 1 ||
+            choicePresentation.optionalSupportIds?.length < 1 ||
+            choicePresentation.rejoinSupportIds?.length < 1
         ) {
             throw new Error(
                 `${sceneName} route choice is not readable: ${JSON.stringify(choicePresentation)}`
@@ -2439,7 +2487,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
 
         let rejectedOptionalPickup = null;
         if (route === 'mythicalForest') {
-            rejectedOptionalPickup = await evaluate(session, `(() => {
+            const stagedMainRoute = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                 const routeState = scene?.optionalRouteRewards?.get?.(
                     ${JSON.stringify(optionalRouteId)}
@@ -2454,11 +2502,54 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     return null;
                 }
 
-                scene.player.setPosition(
-                    (choice.mainZone.left + choice.mainZone.right) / 2,
-                    (choice.mainZone.top + choice.mainZone.bottom) / 2
+                const mainSupport = scene.getTraversalSupport?.(
+                    choice.mainSupportIds[0]
                 );
-                scene.updateOptionalRouteChoices();
+                if (!mainSupport?.body || !scene.player?.body) return null;
+                scene.player.body.reset(
+                    mainSupport.x,
+                    mainSupport.body.top - scene.player.body.height - 18
+                );
+                scene.player.setVelocity?.(0, 0);
+                return {
+                    supportId: mainSupport.traversalId,
+                    selectedPath: choice.selectedPath
+                };
+            })()`);
+            if (!stagedMainRoute) {
+                throw new Error(`${sceneName} could not stage its main route support`);
+            }
+            const mainRouteSelection = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    const routeState = scene?.optionalRouteRewards?.get?.(
+                        ${JSON.stringify(optionalRouteId)}
+                    );
+                    const choice = routeState?.choice;
+                    if (choice?.selectedPath !== 'main') return null;
+                    return {
+                        selectedPath: choice.selectedPath,
+                        fragmentCount: scene.starFragmentsCollected,
+                        fragmentMask: scene.forestCollectedFragmentMask,
+                        progress: routeState.progress
+                    };
+                })()`),
+                { timeoutMs: 2500, message: `${sceneName} main route landing` }
+            );
+            rejectedOptionalPickup = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const routeState = scene?.optionalRouteRewards?.get?.(
+                    ${JSON.stringify(optionalRouteId)}
+                );
+                const choice = routeState?.choice;
+                const fragmentIndex = (scene?.starFragmentSprites || []).findIndex(
+                    entry => entry?.optionalRouteId === ${JSON.stringify(optionalRouteId)} &&
+                        entry?.pickupZone?.active !== false
+                );
+                const fragment = scene?.starFragmentSprites?.[fragmentIndex];
+                if (!scene?.player || !choice || !fragment?.sprite || !fragment?.pickupZone) {
+                    return null;
+                }
                 const before = {
                     selectedPath: choice.selectedPath,
                     fragmentCount: scene.starFragmentsCollected,
@@ -2531,28 +2622,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             if (${JSON.stringify(route)} === 'voidPeaks') scene.peakRouteChoice = '';
             if (${JSON.stringify(route)} === 'auroraDepths') scene.auroraRouteChoice = null;
             if (${JSON.stringify(route)} === 'finalVoid') scene.finalRouteChoice = '';
-            if ([
-                'auroraDepths',
-                'voidPeaks',
-                'finalVoid'
-            ].includes(${JSON.stringify(route)})) {
-                const supportId = ${JSON.stringify(route)} === 'auroraDepths'
-                    ? 'aurora-quiet-step-1'
-                    : (${JSON.stringify(route)} === 'voidPeaks'
-                        ? 'peak-relic-ridge-1'
-                        : 'final-trust-bridge-1');
-                const support = scene.getTraversalSupport?.(supportId);
-                if (!support?.body || !scene.player?.body) return false;
-                scene.player.body.reset(
-                    support.x,
-                    support.body.top - scene.player.body.height - 18
-                );
-            } else {
-                scene.player.setPosition(
-                    (zone.left + zone.right) / 2,
-                    (zone.top + zone.bottom) / 2
-                );
-            }
+            const support = scene.getTraversalSupport?.(
+                choice.optionalSupportIds[0]
+            );
+            if (!support?.body || !scene.player?.body) return false;
+            scene.player.body.reset(
+                support.x,
+                support.body.top - scene.player.body.height - 18
+            );
             scene.player.setVelocity?.(0, 0);
             return true;
         })()`);
@@ -2580,28 +2657,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
             const zone = routeState?.choice?.rejoinZone;
             if (!scene?.player || !zone) return false;
-            if ([
-                'auroraDepths',
-                'voidPeaks',
-                'finalVoid'
-            ].includes(${JSON.stringify(route)})) {
-                const supportId = ${JSON.stringify(route)} === 'auroraDepths'
-                    ? 'aurora-sky-prism'
-                    : (${JSON.stringify(route)} === 'voidPeaks'
-                        ? 'peak-summit-relay'
-                        : 'final-rift-step-4');
-                const support = scene.getTraversalSupport?.(supportId);
-                if (!support?.body || !scene.player?.body) return false;
-                scene.player.body.reset(
-                    support.x,
-                    support.body.top - scene.player.body.height - 18
-                );
-            } else {
-                scene.player.setPosition(
-                    (zone.left + zone.right) / 2,
-                    (zone.top + zone.bottom) / 2
-                );
-            }
+            const support = scene.getTraversalSupport?.(
+                routeState.choice.rejoinSupportIds[0]
+            );
+            if (!support?.body || !scene.player?.body) return false;
+            scene.player.body.reset(
+                support.x,
+                support.body.top - scene.player.body.height - 18
+            );
             scene.player.setVelocity?.(0, 0);
             return true;
         })()`);
@@ -2748,6 +2811,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 'activated';
             if (!scene?.player || !firstSignal || !lastSignal) return null;
             scene.isInvincible = true;
+            const checkpointBefore = scene.checkpointPosition
+                ? { ...scene.checkpointPosition }
+                : null;
             const support = scene.getTraversalSupport?.(
                 lastSignal.activationSupportIds?.[0]
             );
@@ -2767,7 +2833,10 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     ).length,
                     lastSignalComplete: lastSignal?.[activeProperty] === true,
                     nextSignalIndex: scene?.getNextOrderedRouteSignal?.()?.index ?? null,
-                    checkpointPresent: Boolean(scene?.checkpointPosition),
+                    checkpointBefore,
+                    checkpointAfter: scene.checkpointPosition
+                        ? { ...scene.checkpointPosition }
+                        : null,
                     firstSignalIndex: firstSignal.index,
                     hintShown: Number(scene?.routeHintUntil) > Number(scene?.time?.now),
                     playerBody: scene.player?.body ? {
@@ -2796,7 +2865,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             outOfOrderGuard?.activatedCount !== 0 ||
             outOfOrderGuard.lastSignalComplete !== false ||
             outOfOrderGuard.nextSignalIndex !== 0 ||
-            outOfOrderGuard.checkpointPresent !== false ||
+            JSON.stringify(outOfOrderGuard.checkpointAfter) !==
+                JSON.stringify(outOfOrderGuard.checkpointBefore) ||
             outOfOrderGuard.firstSignalIndex !== 0 ||
             outOfOrderGuard.hintShown !== true
         ) {
@@ -2822,6 +2892,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                             : scene?.beaconAnchors?.[0]));
                 if (!scene?.player?.body || !signal?.zone?.active) return null;
                 scene.routeHintUntil = 0;
+                const checkpointBefore = scene.checkpointPosition
+                    ? { ...scene.checkpointPosition }
+                    : null;
                 scene.player.body.reset(signal.x, signal.y - 35);
                 scene.player.setVelocity?.(0, -120);
                 return new Promise(resolve => {
@@ -2829,14 +2902,18 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                         completed: ${JSON.stringify(route)} === 'auroraDepths'
                             ? signal.aligned === true
                             : signal.activated === true,
-                        checkpointPresent: Boolean(scene.checkpointPosition),
+                        checkpointBefore,
+                        checkpointAfter: scene.checkpointPosition
+                            ? { ...scene.checkpointPosition }
+                            : null,
                         hintShown: Number(scene.routeHintUntil) > Number(scene.time.now)
                     }));
                 });
             })()`);
             if (
                 airborneRejected?.completed !== false ||
-                airborneRejected.checkpointPresent !== false ||
+                JSON.stringify(airborneRejected.checkpointAfter) !==
+                    JSON.stringify(airborneRejected.checkpointBefore) ||
                 airborneRejected.hintShown !== true
             ) {
                 throw new Error(
@@ -3172,13 +3249,19 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         } else if (route === 'crystalCaves') {
             const groveGate = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const tendedBefore = scene?.crystalWoundTended === true;
+                scene.crystalWoundTended = false;
                 scene?.refreshGuardianGateState?.(true);
                 const gate = scene?.guardianGateState;
-                return gate ? {
+                const result = gate ? {
                     status: gate.status,
                     ready: gate.ready,
-                    label: gate.label?.text || ''
+                    label: gate.label?.text || '',
+                    tendedBefore
                 } : null;
+                scene.crystalWoundTended = tendedBefore;
+                scene?.refreshGuardianGateState?.(true);
+                return result;
             })()`);
             if (
                 groveGate?.ready !== false ||
@@ -3191,7 +3274,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             }
             const crystalReadyGate = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                scene?.tendWoundedCrystalGrove?.();
+                if (!scene?.crystalWoundTended) {
+                    scene?.tendWoundedCrystalGrove?.();
+                }
                 scene?.refreshGuardianGateState?.(true);
                 const gate = scene?.guardianGateState;
                 return {
@@ -4029,6 +4114,11 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             return scene.auditTraversalTopology();
         })()`);
+        const routeChoiceRuntime = await smokeDeclaredRouteChoiceSupports(
+            session,
+            route,
+            sceneName
+        );
         const finalVoidFlowFailed = route === 'finalVoid' && (
             Number(audit?.flow?.requiredJumpCount) < 4 ||
             Number(audit?.flow?.backtrackDistance) !== 0 ||
@@ -4143,6 +4233,9 @@ async function smokeTraversalTopology(session, levels, exceptions) {
         );
         if (
             !audit?.passed ||
+            audit?.routeChoices?.passed !== true ||
+            Number(audit?.routeChoices?.auditedRouteCount) < 1 ||
+            routeChoiceRuntime?.passed !== true ||
             audit?.flow?.strandingSupportCount !== 0 ||
             finalVoidFlowFailed ||
             auroraFlowFailed ||
@@ -4172,13 +4265,14 @@ async function smokeTraversalTopology(session, levels, exceptions) {
                     forestFlowFailed,
                     cavesFlowFailed,
                     reefFlowFailed,
+                    routeChoiceRuntime,
                     exceptions,
                     supportGeometry
                 })}`
             );
         }
 
-        results[route] = audit;
+        results[route] = { ...audit, routeChoiceRuntime };
         process.stdout.write(
             `PASS ${sceneName}Topology ` +
             `${audit.reachableSupportCount}/${audit.supportCount} ` +
@@ -4187,6 +4281,140 @@ async function smokeTraversalTopology(session, levels, exceptions) {
     }
 
     return results;
+}
+
+async function smokeDeclaredRouteChoiceSupports(session, route, sceneName) {
+    const routeId = {
+        mythicalForest: 'forest_canopy_run',
+        crystalCaves: 'caves_secret_slide',
+        reef: 'reef_star_trench',
+        voidPeaks: 'peaks_relic_ridge',
+        auroraDepths: 'aurora_quiet_light',
+        finalVoid: 'final_trust_bridge'
+    }[route];
+    const routeProperty = {
+        mythicalForest: 'forestRouteChoice',
+        crystalCaves: 'crystalChamberRoute',
+        reef: 'reefRouteChoice',
+        voidPeaks: 'peakRouteChoice',
+        auroraDepths: 'auroraRouteChoice',
+        finalVoid: 'finalRouteChoice'
+    }[route];
+    if (!routeId || !routeProperty) return { passed: false, reason: 'mapping' };
+
+    const getLaneSupportIds = lane => {
+        const supportProperty = `${lane}SupportIds`;
+        return evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const choice = scene?.optionalRouteRewards?.get?.(
+                ${JSON.stringify(routeId)}
+            )?.choice;
+            return [...(choice?.[${JSON.stringify(supportProperty)}] || [])];
+        })()`);
+    };
+
+    const stageLane = async (lane, supportId) => {
+        return evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const routeState = scene?.optionalRouteRewards?.get?.(${JSON.stringify(routeId)});
+            const choice = routeState?.choice;
+            const support = scene?.getTraversalSupport?.(${JSON.stringify(supportId)});
+            if (!scene?.player?.body || !choice || !support?.body) return null;
+            scene.player.body.reset(
+                support.x,
+                support.body.top - scene.player.body.height - 18
+            );
+            scene.player.setVelocity?.(0, 0);
+            return {
+                lane: ${JSON.stringify(lane)},
+                supportId: support.traversalId
+            };
+        })()`);
+    };
+
+    const resetChoice = () => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        const choice = scene?.optionalRouteRewards?.get?.(${JSON.stringify(routeId)})?.choice;
+        if (!scene?.player || !choice) return false;
+        scene[${JSON.stringify(routeProperty)}] = ${route === 'auroraDepths' ? 'null' : "''"};
+        choice.selectedPath = null;
+        choice.mainEntered = false;
+        choice.optionalEntered = false;
+        choice.rejoined = false;
+        choice.sequence = null;
+        scene.routeChoiceSequence = 0;
+        scene.player.setPosition(120, 120);
+        scene.player.setVelocity?.(0, 0);
+        return true;
+    })()`);
+
+    const supportIds = {
+        main: await getLaneSupportIds('main'),
+        optional: await getLaneSupportIds('optional'),
+        rejoin: await getLaneSupportIds('rejoin')
+    };
+    if (Object.values(supportIds).some(ids => !ids?.length)) {
+        return { passed: false, reason: 'lane-support-ids', supportIds };
+    }
+
+    const waitForLane = lane => waitFor(
+        () => evaluate(session, `(() => {
+            const choice = window.mythicalGame.scene
+                .getScene(${JSON.stringify(sceneName)})
+                ?.optionalRouteRewards?.get?.(${JSON.stringify(routeId)})?.choice;
+            if (${JSON.stringify(lane)} === 'main') {
+                return choice?.selectedPath === 'main' && choice?.mainEntered
+                    ? { selectedPath: choice.selectedPath, mainEntered: true }
+                    : null;
+            }
+            if (${JSON.stringify(lane)} === 'optional') {
+                return choice?.selectedPath === 'optional' && choice?.optionalEntered
+                    ? { selectedPath: choice.selectedPath, optionalEntered: true }
+                    : null;
+            }
+            return choice?.selectedPath === 'optional' && choice?.rejoined
+                ? { selectedPath: choice.selectedPath, rejoined: true }
+                : null;
+        })()`),
+        { timeoutMs: 2500, message: `${sceneName} declared ${lane} support landing` }
+    );
+
+    const probeLane = async lane => {
+        const results = [];
+        for (const supportId of supportIds[lane]) {
+            const reset = await resetChoice();
+            if (!reset) return null;
+            if (lane === 'rejoin') {
+                const optionalStage = await stageLane(
+                    'optional',
+                    supportIds.optional[0]
+                );
+                if (!optionalStage) return null;
+                await waitForLane('optional');
+            }
+            const staged = await stageLane(lane, supportId);
+            if (!staged) return null;
+            const state = await waitForLane(lane);
+            results.push({ ...state, supportId: staged.supportId });
+        }
+        return results;
+    };
+
+    const main = await probeLane('main');
+    const optional = await probeLane('optional');
+    const rejoin = await probeLane('rejoin');
+
+    return {
+        passed: Boolean(
+            main?.length === supportIds.main.length &&
+            optional?.length === supportIds.optional.length &&
+            rejoin?.length === supportIds.rejoin.length
+        ),
+        main,
+        optional,
+        rejoin,
+        supportIds
+    };
 }
 
 async function startAuroraRouteJourney(session) {

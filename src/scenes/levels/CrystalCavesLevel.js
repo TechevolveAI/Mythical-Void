@@ -2702,14 +2702,17 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                     left: 1900, right: 2440,
                     top: this.levelHeight - 180, bottom: this.levelHeight
                 },
+                mainSupportIds: ['caves-lower-2'],
                 optionalZone: {
                     left: 1900, right: 2440,
                     top: this.levelHeight - 560, bottom: this.levelHeight - 190
                 },
+                optionalSupportIds: ['caves-spider-2'],
                 rejoinZone: {
                     left: 2480, right: 2740,
                     top: 0, bottom: this.levelHeight
-                }
+                },
+                rejoinSupportIds: ['caves-grove-step']
             },
             onMainSelected: () => this.selectCrystalChamberRoute('main'),
             onOptionalSelected: () => this.selectCrystalChamberRoute('optional'),

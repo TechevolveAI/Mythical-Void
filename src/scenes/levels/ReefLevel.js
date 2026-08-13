@@ -1426,14 +1426,17 @@ class ReefLevel extends PlatformerLevelScene {
                     left: 1450, right: 2450,
                     top: 480, bottom: 850
                 },
+                mainSupportIds: ['reef-current-bridge'],
                 optionalZone: {
                     left: 1450, right: 2450,
                     top: 850, bottom: this.levelHeight - 150
                 },
+                optionalSupportIds: ['reef-trench-1'],
                 rejoinZone: {
                     left: 2500, right: 3500,
                     top: 300, bottom: 900
-                }
+                },
+                rejoinSupportIds: ['reef-drive-step']
             },
             onMainSelected: () => this.selectReefRoute('main'),
             onOptionalSelected: () => this.selectReefRoute('optional'),
