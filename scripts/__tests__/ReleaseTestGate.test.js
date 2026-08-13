@@ -33,8 +33,17 @@ describe('release test gate', () => {
 
         expect(packageJson.scripts.test).toBe('jest --runInBand');
         expect(packageJson.scripts['test:unit']).toBe('jest --runInBand');
+        expect(packageJson.scripts['test:deploy']).toBe('jest --runInBand');
         expect(packageJson.scripts['test:manual']).toBe(
             'node ./scripts/serve-test-framework.js'
+        );
+    });
+
+    test('Netlify refuses to build a release that fails the deploy test gate', () => {
+        const netlifyConfig = read('netlify.toml');
+
+        expect(netlifyConfig).toContain(
+            'command = "npm run test:deploy && npm run build"'
         );
     });
 
