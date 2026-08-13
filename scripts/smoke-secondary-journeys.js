@@ -542,7 +542,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     isSwimmingUp: scene?.isSwimmingUp
                 };
             })()`);
-            const responded = ${JSON.stringify(route)} === 'reef'
+            const responded = route === 'reef'
                 ? response.velocityY < beforeJump.velocityY - 5 ||
                     response.playerY < beforeJump.playerY - 2
                 : response.velocityY < -20 ||
