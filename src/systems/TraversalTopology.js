@@ -465,6 +465,8 @@ function analyzeOrderedTargetFlow({
             ? shortestPath(adjacency, orderedFrontier, destinationIndices)
             : [];
         const jumpCount = Math.max(0, path.length - 1);
+        let targetBacktrackDistance = 0;
+        const backtrackTransitions = [];
         if (!target.optional) {
             const expectedDirection = target.x >= previousTargetX ? 1 : -1;
             for (let index = 1; index < path.length; index += 1) {
@@ -474,7 +476,14 @@ function analyzeOrderedTargetFlow({
                     (to.left + to.right) - (from.left + from.right)
                 ) / 2;
                 if (delta * expectedDirection < 0) {
-                    backtrackDistance += Math.abs(delta);
+                    const distance = Math.abs(delta);
+                    backtrackDistance += distance;
+                    targetBacktrackDistance += distance;
+                    backtrackTransitions.push({
+                        from: from.id,
+                        to: to.id,
+                        distance: Math.round(distance)
+                    });
                 }
             }
         }
@@ -496,6 +505,8 @@ function analyzeOrderedTargetFlow({
             reachable,
             supportIds: reachableSupports.slice(0, 5).map(support => support.id),
             jumpCount,
+            backtrackDistance: Math.round(targetBacktrackDistance),
+            backtrackTransitions,
             pathSupportIds: path.map(index => supports[index].id)
         };
     });
@@ -654,6 +665,7 @@ function analyzeTraversalTopology({
             requiredJumpCount: routeFlow.requiredJumpCount,
             maxSegmentJumps: routeFlow.maxSegmentJumps,
             backtrackDistance: routeFlow.backtrackDistance,
+            routeTargets: routeFlow.targetResults,
             strandingSupportIds,
             strandingSupportCount,
             comfortPassed: comfortFlow.passed,

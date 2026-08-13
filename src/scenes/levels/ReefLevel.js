@@ -123,6 +123,8 @@ class ReefLevel extends PlatformerLevelScene {
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
         this.abyssAscentCurrent = null;
+        this.driftAscentCurrent = null;
+        this.travelerAscentCurrent = null;
     }
 
     preload() {
@@ -189,6 +191,8 @@ class ReefLevel extends PlatformerLevelScene {
         this.clearLevelEntryKeyHandler();
         this.virtualJoystickY = 0;
         this.abyssAscentCurrent = null;
+        this.driftAscentCurrent = null;
+        this.travelerAscentCurrent = null;
 
         console.log('[ReefLevel] Cosmic Abyss state reset');
     }
@@ -795,8 +799,22 @@ class ReefLevel extends PlatformerLevelScene {
 
             // Mid section
             { id: 'reef-drift-rise', x: 1000, y: this.levelHeight - 600, width: 160, type: 'crystal' },
-            { id: 'reef-drift-relay', x: 1300, y: this.levelHeight - 400, width: 180, type: 'void' },
-            { id: 'reef-current-crown', x: 1600, y: this.levelHeight - 700, width: 220, type: 'crystal' },
+            {
+                id: 'reef-drift-relay',
+                x: 1300,
+                y: this.levelHeight - 400,
+                width: 180,
+                type: 'void',
+                traversalLinks: ['reef-current-crown']
+            },
+            {
+                id: 'reef-current-crown',
+                x: 1600,
+                y: this.levelHeight - 700,
+                width: 220,
+                type: 'crystal',
+                oneWay: true
+            },
             { id: 'reef-current-bridge', x: 1900, y: this.levelHeight - 500, width: 150, type: 'void' },
 
             // Optional Star Trench - a finite resource detour that rejoins via the ascent current
@@ -822,10 +840,24 @@ class ReefLevel extends PlatformerLevelScene {
                 oneWay: true
             },
             { id: 'reef-drive-relic', x: 2800, y: this.levelHeight - 900, width: 250, type: 'relic' }, // Ship part here
-            { id: 'reef-traveler-relay', x: 3100, y: this.levelHeight - 700, width: 160, type: 'crystal' },
+            {
+                id: 'reef-traveler-relay',
+                x: 3100,
+                y: this.levelHeight - 700,
+                width: 160,
+                type: 'crystal',
+                traversalLinks: ['reef-sky-rise']
+            },
 
             // Pre-boss
-            { id: 'reef-sky-rise', x: 3400, y: this.levelHeight - 1000, width: 220, type: 'crystal' },
+            {
+                id: 'reef-sky-rise',
+                x: 3400,
+                y: this.levelHeight - 1000,
+                width: 220,
+                type: 'crystal',
+                oneWay: true
+            },
             { id: 'reef-sky-step', x: 3800, y: this.levelHeight - 800, width: 200, type: 'void' },
             { id: 'reef-passage-rise', x: 4200, y: this.levelHeight - 600, width: 180, type: 'crystal' },
 
@@ -1053,6 +1085,8 @@ class ReefLevel extends PlatformerLevelScene {
         this.createOpeningSignalCurrent();
         this.createReefRouteChoice();
         this.createAbyssAscentCurrent();
+        this.createDriftAscentCurrent();
+        this.createTravelerAscentCurrent();
 
         // Boss trigger
         this.createBossTrigger();
@@ -1060,36 +1094,77 @@ class ReefLevel extends PlatformerLevelScene {
 
     createBeaconWaypoints() {
         const waypoints = [
-            { id: 'reef_waypoint_1', x: 1250, y: 700, label: 'DRIFT SIGNAL', respawnY: 690 },
-            { id: 'reef_waypoint_2', x: 3150, y: 420, label: 'TRAVELER RELAY', respawnY: 430 },
-            { id: 'reef_waypoint_3', x: 4750, y: 620, label: 'PASSAGE VECTOR', respawnY: 630 }
+            {
+                id: 'reef_waypoint_1',
+                label: 'DRIFT SIGNAL',
+                activationSupportIds: ['reef-drift-relay']
+            },
+            {
+                id: 'reef_waypoint_2',
+                label: 'TRAVELER RELAY',
+                activationSupportIds: ['reef-traveler-relay']
+            },
+            {
+                id: 'reef_waypoint_3',
+                label: 'PASSAGE VECTOR',
+                activationSupportIds: ['reef-passage-vector']
+            }
         ];
 
         waypoints.forEach((waypoint, index) => {
+            const supportId = waypoint.activationSupportIds[0];
+            const support = this.getTraversalSupport(supportId);
+            const supportCheckpoint = this.getTraversalSupportCheckpoint(
+                supportId,
+                support?.x
+            );
+            const waypointX = supportCheckpoint.x;
+            const supportY = support?.body?.top || this.levelHeight - 80;
+            const waypointY = supportY - 60;
             const visual = this.add.graphics();
             visual.setDepth(180);
-            this.drawBeaconWaypoint(visual, waypoint.x, waypoint.y, false);
+            this.drawBeaconWaypoint(
+                visual,
+                waypointX,
+                waypointY,
+                supportY,
+                false
+            );
 
-            const label = this.add.text(waypoint.x, waypoint.y - 72, `${index + 1} // ${waypoint.label}`, {
+            const label = this.add.text(
+                waypointX,
+                waypointY - 76,
+                `${index + 1} // ${waypoint.label}\nSWIM THROUGH`,
+                {
                 fontSize: '11px',
                 color: '#667F94',
                 fontStyle: 'bold',
                 stroke: '#05030C',
-                strokeThickness: 3
+                strokeThickness: 3,
+                align: 'center'
             }).setOrigin(0.5).setDepth(181);
 
             const zone = this.createObjectiveTriggerZone(
-                waypoint.x,
-                waypoint.y,
-                { width: 150, height: 190 }
+                waypointX,
+                waypointY,
+                { width: 150, height: 150 }
             );
 
             const anchor = {
                 ...waypoint,
+                x: waypointX,
+                y: waypointY,
+                supportY,
                 index,
                 visual,
                 label,
                 zone,
+                landingGuide: this.createTraversalLandingGuide(
+                    supportId,
+                    0x8FE3CF,
+                    { depth: 179 }
+                ),
+                respawnY: supportCheckpoint.y,
                 activated: false
             };
             this.physics.add.overlap(this.player, zone, () => {
@@ -1117,7 +1192,8 @@ class ReefLevel extends PlatformerLevelScene {
                 label: 'DIMENSIONAL DRIVE',
                 x: this.shipPart?.x || 2800,
                 y: this.shipPart?.y || this.levelHeight - 950,
-                body: this.shipPart?.body
+                body: this.shipPart?.body,
+                activationSupportIds: ['reef-drive-relic']
             };
         const guardian = {
                 id: 'reef_guardian_gate',
@@ -1130,7 +1206,7 @@ class ReefLevel extends PlatformerLevelScene {
             .sort((left, right) => Number(left.x) - Number(right.x));
     }
 
-    drawBeaconWaypoint(graphics, x, y, activated) {
+    drawBeaconWaypoint(graphics, x, y, supportY, activated) {
         graphics.clear();
         const color = activated ? 0x8FE3CF : 0x3D5266;
 
@@ -1145,6 +1221,16 @@ class ReefLevel extends PlatformerLevelScene {
         graphics.lineStyle(2, color, 0.8);
         graphics.lineBetween(x - 42, y, x - 27, y);
         graphics.lineBetween(x + 27, y, x + 42, y);
+        graphics.lineStyle(3, color, activated ? 0.72 : 0.42);
+        graphics.lineBetween(x, y + 38, x, supportY - 5);
+        graphics.fillTriangle(
+            x,
+            supportY - 3,
+            x - 8,
+            supportY - 17,
+            x + 8,
+            supportY - 17
+        );
     }
 
     activateBeaconWaypoint(anchor) {
@@ -1163,12 +1249,24 @@ class ReefLevel extends PlatformerLevelScene {
         anchor.zone?.destroy?.();
         anchor.zone = null;
         this.beaconAnchorsActivated++;
-        this.drawBeaconWaypoint(anchor.visual, anchor.x, anchor.y, true);
+        this.drawBeaconWaypoint(
+            anchor.visual,
+            anchor.x,
+            anchor.y,
+            anchor.supportY,
+            true
+        );
+        this.retireTraversalLandingGuide(anchor);
         this.refreshBeaconRouteReadability();
         if (anchor.index === 0) {
             this.retireOpeningSignalCurrent();
         }
-        this.setCheckpoint(anchor.x, anchor.respawnY, {
+        const supportCheckpoint = this.getTraversalSupportCheckpoint(
+            anchor.activationSupportIds[0],
+            anchor.x
+        );
+        anchor.respawnY = supportCheckpoint.y;
+        this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {
             persist: true,
             checkpointId: anchor.id,
             checkpointIndex: anchor.index
@@ -1229,6 +1327,9 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     createOpeningSignalCurrent() {
+        const firstWaypoint = this.beaconAnchors[0];
+        const destinationX = firstWaypoint?.x || 1250;
+        const destinationY = firstWaypoint?.y || 700;
         const visual = this.add.graphics().setDepth(114);
         visual.lineStyle(5, 0x8FE3CF, 0.58);
         visual.beginPath();
@@ -1236,7 +1337,7 @@ class ReefLevel extends PlatformerLevelScene {
         visual.lineTo(560, this.levelHeight - 390);
         visual.lineTo(830, this.levelHeight - 535);
         visual.lineTo(1080, this.levelHeight - 505);
-        visual.lineTo(1250, 700);
+        visual.lineTo(destinationX, destinationY);
         visual.strokePath();
 
         visual.fillStyle(0xF2C94C, 0.92);
@@ -1244,7 +1345,7 @@ class ReefLevel extends PlatformerLevelScene {
             [430, this.levelHeight - 338],
             [690, this.levelHeight - 465],
             [950, this.levelHeight - 520],
-            [1160, 698]
+            [destinationX - 90, destinationY]
         ].forEach(([x, y]) => {
             visual.fillTriangle(x + 12, y, x - 8, y - 8, x - 8, y + 8);
         });
@@ -1437,17 +1538,151 @@ class ReefLevel extends PlatformerLevelScene {
         });
     }
 
+    createDriftAscentCurrent() {
+        this.driftAscentCurrent = this.createForwardAscentCurrent({
+            id: 'reef-drift-ascent',
+            destinationId: 'reef-current-crown',
+            startX: 1440,
+            width: 340,
+            top: this.levelHeight - 830,
+            bottom: this.levelHeight - 360,
+            labelText: 'DRIFT CURRENT  ↗'
+        });
+    }
+
+    createTravelerAscentCurrent() {
+        this.travelerAscentCurrent = this.createForwardAscentCurrent({
+            id: 'reef-traveler-ascent',
+            destinationId: 'reef-sky-rise',
+            startX: 3240,
+            width: 340,
+            top: 70,
+            bottom: this.levelHeight - 650,
+            labelText: 'TRAVELER CURRENT  ↗'
+        });
+    }
+
+    createForwardAscentCurrent({
+        id,
+        destinationId,
+        startX,
+        width,
+        top,
+        bottom,
+        labelText
+    }) {
+        const currentHeight = bottom - top;
+        const zone = this.add.zone(
+            startX + width / 2,
+            top + currentHeight / 2,
+            width,
+            currentHeight
+        );
+        this.physics.add.existing(zone, true);
+
+        const visual = this.add.graphics().setDepth(115);
+        visual.fillStyle(0x8FE3CF, 0.08);
+        visual.fillRoundedRect(startX, top, width, currentHeight, 28);
+        visual.lineStyle(4, 0x8FE3CF, 0.56);
+        visual.beginPath();
+        visual.moveTo(startX + 35, bottom - 35);
+        visual.lineTo(startX + width - 70, top + 65);
+        visual.strokePath();
+        for (let offset = 0; offset < 4; offset += 1) {
+            const x = startX + 85 + offset * 62;
+            const y = bottom - 92 - offset * 78;
+            visual.fillStyle(0xF2C94C, 0.86);
+            visual.fillTriangle(x + 13, y - 13, x - 10, y - 7, x + 7, y + 10);
+        }
+
+        const label = this.add.text(
+            startX + width / 2,
+            bottom - 25,
+            labelText,
+            {
+                fontSize: '11px',
+                color: '#F2C94C',
+                fontStyle: 'bold',
+                stroke: '#05030C',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5).setDepth(183);
+        const pulseTween = this.tweens.add({
+            targets: [visual, label],
+            alpha: { from: 0.52, to: 0.94 },
+            duration: 850,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        const current = {
+            id,
+            destinationId,
+            zone,
+            visual,
+            label,
+            pulseTween,
+            x: startX,
+            top,
+            bottom,
+            width,
+            height: currentHeight,
+            activations: 0,
+            activeUntil: 0
+        };
+
+        this.physics.add.overlap(this.player, zone, () => {
+            if (!this.player?.body) return;
+            const destination = this.platforms?.getChildren?.().find(
+                platform => platform.traversalId === current.destinationId
+            );
+            if (!destination?.body) return;
+
+            const alignedWithDestination = (
+                this.player.body.right > destination.body.left + 8 &&
+                this.player.body.left < destination.body.right - 8
+            );
+            if (
+                alignedWithDestination &&
+                this.player.body.bottom <= destination.body.top + 12
+            ) {
+                return;
+            }
+
+            const now = Number(this.time?.now) || Date.now();
+            if (now >= current.activeUntil) {
+                current.activations += 1;
+                current.activeUntil = now + 300;
+            }
+            this.player.setVelocityX(Math.max(this.player.body.velocity.x, 105));
+            this.player.setVelocityY(Math.min(this.player.body.velocity.y, -195));
+        });
+        return current;
+    }
+
+    destroyReefCurrent(current) {
+        current?.pulseTween?.remove?.();
+        current?.zone?.destroy?.();
+        current?.visual?.destroy?.();
+        current?.label?.destroy?.();
+    }
+
     restoreExpeditionRouteState(resume) {
         const signalsRestored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.beaconAnchors,
             countProperty: 'beaconAnchorsActivated',
             readyProperty: 'reefRouteAligned',
-            drawSignal: anchor => this.drawBeaconWaypoint(
-                anchor.visual,
-                anchor.x,
-                anchor.y,
-                true
-            ),
+            drawSignal: anchor => {
+                this.drawBeaconWaypoint(
+                    anchor.visual,
+                    anchor.x,
+                    anchor.y,
+                    anchor.supportY,
+                    true
+                );
+                this.retireTraversalLandingGuide(anchor);
+            },
             onRestored: (_anchor, restoredCount) => {
                 if (restoredCount > 0) {
                     this.retireOpeningSignalCurrent();
@@ -3739,11 +3974,12 @@ class ReefLevel extends PlatformerLevelScene {
         this.openingSignalCurrent?.label?.destroy?.();
         this.openingSignalCurrent?.pulseTween?.remove?.();
         this.openingSignalCurrent = null;
-        this.abyssAscentCurrent?.pulseTween?.remove?.();
-        this.abyssAscentCurrent?.zone?.destroy?.();
-        this.abyssAscentCurrent?.visual?.destroy?.();
-        this.abyssAscentCurrent?.label?.destroy?.();
+        this.destroyReefCurrent(this.abyssAscentCurrent);
         this.abyssAscentCurrent = null;
+        this.destroyReefCurrent(this.driftAscentCurrent);
+        this.driftAscentCurrent = null;
+        this.destroyReefCurrent(this.travelerAscentCurrent);
+        this.travelerAscentCurrent = null;
 
         this.objectiveDisplay?.destroy?.();
         this.objectiveDisplay = null;

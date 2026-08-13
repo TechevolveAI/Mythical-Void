@@ -1389,9 +1389,19 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain('this.createOpeningSignalCurrent();');
         expect(source).toContain('DRIFT SIGNAL 01  →');
-        expect(source).toContain('visual.lineTo(1250, 700);');
+        expect(source).toContain('visual.lineTo(destinationX, destinationY);');
         expect(source).toContain('this.retireOpeningSignalCurrent();');
         expect(source).toContain("current.label?.setText?.('DRIFT SIGNAL LINKED')");
+    });
+
+    test('Stellar Reef binds every required waypoint to a distinct relay support', () => {
+        const source = read('levels/ReefLevel.js');
+
+        expect(source).toContain("activationSupportIds: ['reef-drift-relay']");
+        expect(source).toContain("activationSupportIds: ['reef-traveler-relay']");
+        expect(source).toContain("activationSupportIds: ['reef-passage-vector']");
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain('this.retireTraversalLandingGuide(anchor);');
     });
 
     test('release smoke completes every campaign route instead of checking only its opening', () => {
@@ -1405,7 +1415,18 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('smokeCrystalCoreLift(session)');
         expect(smoke).toContain('smokeReefAscentCurrent(session)');
         expect(smoke).toContain("'reef-drive-step'");
+        expect(smoke).toContain("reefDriveFlow?.pathSupportIds?.at?.(-1) !== 'reef-drive-relic'");
         expect(smoke).toContain("target.id === 'reef_star_trench'");
+        expect(smoke).toContain("target.id === 'reef_waypoint_1'");
+        expect(smoke).toContain("target.id === 'reef_waypoint_2'");
+        expect(smoke).toContain("target.id === 'reef_waypoint_3'");
+        expect(smoke).toContain("'reef-drift-relay'");
+        expect(smoke).toContain("'reef-traveler-relay'");
+        expect(smoke).toContain("'reef-passage-vector'");
+        expect(smoke).toContain('reefWaypointSupports');
+        expect(smoke).toContain('smokeReefForwardCurrents(session)');
+        expect(smoke).toContain('reefForwardCurrents');
+        expect(smoke).toContain('Number(audit?.flow?.backtrackDistance) !== 0');
         expect(smoke).toContain('reefFlowFailed');
         expect(smoke).toContain("target.id === 'crystal_core'");
         expect(smoke).toContain("'caves-core-refuge'");

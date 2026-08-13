@@ -314,6 +314,52 @@ describe('campaign traversal topology', () => {
         }));
     });
 
+    test('reports the exact support transition that causes route backtracking', () => {
+        const result = analyzeTraversalTopology({
+            movement,
+            spawn: { x: 80, y: 650 },
+            supports: [
+                support('start', 0, 260, 700),
+                {
+                    ...support('forward-target', 500, 760, 700),
+                    traversalLinks: ['back-step']
+                },
+                {
+                    ...support('back-step', 180, 420, 520),
+                    traversalLinks: ['finish']
+                },
+                support('finish', 1200, 1480, 360)
+            ],
+            targets: [
+                {
+                    id: 'first',
+                    x: 630,
+                    y: 620,
+                    activationSupportIds: ['forward-target']
+                },
+                {
+                    id: 'finish',
+                    x: 1340,
+                    y: 280,
+                    activationSupportIds: ['finish']
+                }
+            ]
+        });
+
+        expect(result.flow.backtrackDistance).toBeGreaterThan(0);
+        expect(result.flow.routeTargets.flatMap(
+            target => target.backtrackTransitions
+        )).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                from: 'forward-target',
+                to: 'back-step'
+            })
+        ]));
+        expect(result.flow.routeTargets.some(
+            target => target.backtrackDistance > 0
+        )).toBe(true);
+    });
+
     test('reports an isolated required objective even when most ground is usable', () => {
         const result = analyzeTraversalTopology({
             movement,
