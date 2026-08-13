@@ -668,6 +668,12 @@ describe('campaign traversal quality contracts', () => {
         const source = read('levels/AuroraDepthsLevel.js');
 
         expect(source).toContain('const quietLightRoute = [');
+        expect(source).toContain("'aurora-heart-launch'");
+        expect(source).toContain("'aurora-quiet-step-1'");
+        expect(source).toContain("'aurora-quiet-step-3'");
+        expect(source).toContain("{ id: 'aurora_prism_2', x: 2520, y: 580");
+        expect(source).toContain("id: 'aurora_quiet_light_shelter'");
+        expect(source).toContain('optional: true');
         expect(source).toContain("mainLabel: 'SHADOW CURRENT →'");
         expect(source).toContain(
             "mainTradeoff: 'DIRECT // NEXT PHOENIX HIT +2'"
@@ -1260,9 +1266,15 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("route === 'finalVoid'");
         expect(smoke).toContain('Number(audit?.flow?.requiredJumpCount) < 4');
         expect(smoke).toContain('audit?.flow?.comfortPassed !== true');
+        expect(smoke).toContain("route === 'auroraDepths'");
+        expect(smoke).toContain('optionalComfortPassed !== true');
+        expect(smoke).toContain('uncomfortableOptionalTargetIds');
         expect(smoke).toContain('smokeFinalVoidRiftCrossing(session)');
         expect(smoke).toContain("'final-rift-step-1'");
         expect(smoke).toContain("'final-rift-step-4'");
+        expect(smoke).toContain('smokeAuroraQuietLightClimb(session)');
+        expect(smoke).toContain("'aurora-heart-launch'");
+        expect(smoke).toContain("'aurora-quiet-step-3'");
 
         expect(smoke).toContain('for (let signalIndex = 1; signalIndex < 3; signalIndex += 1)');
         expect(smoke).toContain("mythicalForest: 'forestRouteAligned'");

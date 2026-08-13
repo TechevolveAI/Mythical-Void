@@ -228,6 +228,42 @@ describe('campaign traversal topology', () => {
         expect(result.targets[1].pathSupportIds[0]).toBe('start');
     });
 
+    test('audits an optional branch without making it part of required ordered flow', () => {
+        const result = analyzeTraversalTopology({
+            movement,
+            spawn: { x: 80, y: 650 },
+            supports: [
+                support('start', 0, 320, 700),
+                support('signal-floor', 390, 700, 700),
+                support('optional-high-route', 390, 700, 520),
+                support('finish', 820, 1180, 700)
+            ],
+            targets: [
+                { id: 'signal', x: 550, y: 610, width: 80, height: 190 },
+                {
+                    id: 'optional-reward',
+                    x: 550,
+                    y: 430,
+                    width: 100,
+                    height: 150,
+                    optional: true
+                },
+                { id: 'guardian', x: 1050, y: 610, width: 100, height: 190 }
+            ]
+        });
+
+        expect(result.passed).toBe(true);
+        expect(result.targets[1]).toEqual(expect.objectContaining({
+            optional: true,
+            reachable: true
+        }));
+        expect(result.targets[2].pathSupportIds).toEqual([
+            'signal-floor',
+            'finish'
+        ]);
+        expect(result.flow.requiredJumpCount).toBe(2);
+    });
+
     test('reports an isolated required objective even when most ground is usable', () => {
         const result = analyzeTraversalTopology({
             movement,
