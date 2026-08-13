@@ -725,6 +725,135 @@ async function smokeFinalVoidRiftCrossing(session) {
     return landings;
 }
 
+async function smokeAuroraQuietLightClimb(session) {
+    const supportIds = [
+        'aurora-quiet-step-1',
+        'aurora-quiet-step-2',
+        'aurora-quiet-step-3'
+    ];
+    const landings = [];
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        const launch = scene.platforms.getChildren().find(
+            item => item.traversalId === 'aurora-heart-launch'
+        );
+        if (!scene.player?.body || !launch?.body) return false;
+        scene.isInvincible = true;
+        scene.releaseAllPlatformerActionButtons?.();
+        scene.resetJoystick?.();
+        (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (enemy?.body) enemy.body.enable = false;
+        });
+        scene.player.body.reset(2600, launch.body.top - 80);
+        scene.player.setVelocity(0, 0);
+        return true;
+    })()`);
+
+    try {
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+                const launch = scene.platforms.getChildren().find(
+                    item => item.traversalId === 'aurora-heart-launch'
+                );
+                const body = scene.player?.body;
+                return Boolean(
+                    launch?.body && body &&
+                    Math.abs(body.bottom - launch.body.top) <= 7 &&
+                    (body.blocked.down || scene.isGrounded)
+                );
+            })()`),
+            { timeoutMs: 2500, message: 'Aurora Quiet Light launch ledge' }
+        );
+
+        for (const supportId of supportIds) {
+            await setKeyboardKey(session, 'keyDown', {
+                key: 'd', code: 'KeyD', keyCode: 68
+            });
+            await delay(90);
+            await setKeyboardKey(session, 'keyDown', {
+                key: ' ', code: 'Space', keyCode: 32
+            });
+            let launch;
+            try {
+                launch = await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+                        const velocityY = Number(scene.player?.body?.velocity?.y);
+                        return velocityY < -20 ? {
+                            playerX: Math.round(scene.player.x),
+                            playerY: Math.round(scene.player.y),
+                            velocityY: Math.round(velocityY)
+                        } : null;
+                    })()`),
+                    { timeoutMs: 800, message: `${supportId} jump launch` }
+                );
+            } finally {
+                await setKeyboardKey(session, 'keyUp', {
+                    key: ' ', code: 'Space', keyCode: 32
+                });
+            }
+            await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+                    const support = scene.platforms.getChildren().find(
+                        item => item.traversalId === ${JSON.stringify(supportId)}
+                    );
+                    return support?.body && scene.player?.body?.center?.x >=
+                        support.body.left + 28;
+                })()`),
+                { timeoutMs: 1900, message: `${supportId} approach` }
+            );
+            await setKeyboardKey(session, 'keyUp', {
+                key: 'd', code: 'KeyD', keyCode: 68
+            });
+            const landing = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+                    const support = scene.platforms.getChildren().find(
+                        item => item.traversalId === ${JSON.stringify(supportId)}
+                    );
+                    const body = scene.player?.body;
+                    if (!support?.body || !body) return null;
+                    const onSupport = body.right > support.body.left + 5 &&
+                        body.left < support.body.right - 5 &&
+                        Math.abs(body.bottom - support.body.top) <= 7 &&
+                        (body.blocked.down || scene.isGrounded);
+                    return onSupport ? {
+                        supportId: support.traversalId,
+                        playerX: Math.round(scene.player.x),
+                        playerBottom: Math.round(body.bottom),
+                        supportTop: Math.round(support.body.top)
+                    } : null;
+                })()`),
+                { timeoutMs: 2600, message: `${supportId} grounded landing` }
+            );
+            landings.push({ launch, landing });
+            await delay(90);
+        }
+    } finally {
+        await setKeyboardKey(session, 'keyUp', {
+            key: ' ', code: 'Space', keyCode: 32
+        });
+        await setKeyboardKey(session, 'keyUp', {
+            key: 'd', code: 'KeyD', keyCode: 68
+        });
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+            (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+                if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
+            });
+            scene.isInvincible = false;
+            scene.player.body.reset(1150, scene.levelHeight - 130);
+            scene.player.setVelocity(0, 0);
+            return true;
+        })()`);
+    }
+
+    return landings;
+}
+
 async function smokeLevel(session, route, sceneName, exceptions) {
     exceptions.length = 0;
     trace('navigate', { route, sceneName });
@@ -1662,6 +1791,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let optionalRouteCompletion = null;
     let guardianRecovery = null;
     let finalRiftCrossing = null;
+    let auroraQuietLightClimb = null;
     if ([
         'mythicalForest',
         'crystalCaves',
@@ -2374,6 +2504,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         if (route === 'finalVoid') {
             finalRiftCrossing = await smokeFinalVoidRiftCrossing(session);
         }
+        if (route === 'auroraDepths') {
+            auroraQuietLightClimb = await smokeAuroraQuietLightClimb(session);
+        }
 
         const guardianEntrySetup = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -2661,6 +2794,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         joystick: { movedRight, movedLeft, vertical: verticalJoystick },
         returnCurrents,
         finalRiftCrossing,
+        auroraQuietLightClimb,
         combatFeedback,
         liveStomp,
         routeChoice,
@@ -2702,10 +2836,16 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             Number(audit?.flow?.requiredJumpCount) < 4 ||
             audit?.flow?.comfortPassed !== true
         );
+        const auroraFlowFailed = route === 'auroraDepths' && (
+            Number(audit?.flow?.backtrackDistance) !== 0 ||
+            audit?.flow?.optionalComfortPassed !== true ||
+            (audit?.flow?.uncomfortableOptionalTargetIds || []).length > 0
+        );
         if (
             !audit?.passed ||
             audit?.flow?.strandingSupportCount !== 0 ||
             finalVoidFlowFailed ||
+            auroraFlowFailed ||
             exceptions.length
         ) {
             const supportGeometry = await evaluate(session, `(() => {
@@ -2723,6 +2863,7 @@ async function smokeTraversalTopology(session, levels, exceptions) {
                 `${sceneName} failed conservative topology audit: ${JSON.stringify({
                     audit,
                     finalVoidFlowFailed,
+                    auroraFlowFailed,
                     exceptions,
                     supportGeometry
                 })}`

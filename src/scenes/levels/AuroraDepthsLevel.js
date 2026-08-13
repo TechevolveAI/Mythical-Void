@@ -394,7 +394,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             [180, groundY - 150, 320], [620, groundY - 255, 240],
             [980, groundY - 165, 280], [1370, groundY - 310, 240],
             [1740, groundY - 205, 300], [2140, groundY - 350, 240],
-            [2520, groundY - 230, 280],
+            [2400, groundY - 140, 400, 'aurora-heart-launch'],
             [3420, groundY - 110, 240], [3700, groundY - 165, 260],
             [4140, groundY - 220, 300], [4550, groundY - 340, 240]
         ];
@@ -402,13 +402,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         // A short high route avoids the third shadow current and rejoins
         // before the Sky Prism. Every gap stays inside the normal jump arc.
         const quietLightRoute = [
-            [2780, groundY - 290, 210],
-            [3040, groundY - 380, 220],
-            [3310, groundY - 320, 210]
+            [2780, groundY - 280, 210, 'aurora-quiet-step-1'],
+            [3040, groundY - 380, 220, 'aurora-quiet-step-2'],
+            [3310, groundY - 320, 210, 'aurora-quiet-step-3']
         ];
 
-        [...ledges, ...quietLightRoute].forEach(([x, y, width]) => {
-            this.createPlatform(x, y, width, 28, 'one-way');
+        [...ledges, ...quietLightRoute].forEach(([x, y, width, id = null]) => {
+            const platform = this.createPlatform(x, y, width, 28, 'one-way');
+            if (id) platform.traversalId = id;
         });
 
         console.log(`[AuroraDepthsLevel] Created ${this.platforms.getLength()} platforms`);
@@ -544,15 +545,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         route.lineStyle(5, 0x7FFFD4, 0.58);
         route.beginPath();
-        route.moveTo(2730, groundY - 190);
-        route.lineTo(2885, groundY - 300);
+        route.moveTo(2640, groundY - 150);
+        route.lineTo(2885, groundY - 290);
         route.lineTo(3150, groundY - 390);
         route.lineTo(3415, groundY - 330);
         route.lineTo(3590, groundY - 175);
         route.strokePath();
 
         [2885, 3150, 3415].forEach((x, index) => {
-            const y = [groundY - 300, groundY - 390, groundY - 330][index];
+            const y = [groundY - 290, groundY - 390, groundY - 330][index];
             route.fillStyle(index === 2 ? 0xF2C94C : 0xA9F3E4, 0.95);
             route.fillCircle(x, y, index === 2 ? 7 : 5);
         });
@@ -1047,7 +1048,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     createSignalPrisms() {
         const prisms = [
             { id: 'aurora_prism_1', x: 1150, y: 610, label: 'LOWER PRISM' },
-            { id: 'aurora_prism_2', x: 2480, y: 490, label: 'HEART PRISM' },
+            { id: 'aurora_prism_2', x: 2520, y: 580, label: 'HEART PRISM' },
             { id: 'aurora_prism_3', x: 3680, y: 560, label: 'SKY PRISM' }
         ];
 
@@ -1202,6 +1203,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         const shelter = {
             id: 'aurora_quiet_light_shelter',
             label: 'QUIET LIGHT SHELTER',
+            optional: true,
             x: this.optionalRoutePickup?.x || 3415,
             y: this.optionalRoutePickup?.y || this.levelHeight - 415,
             body: this.optionalRoutePickup?.body

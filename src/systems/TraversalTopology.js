@@ -300,7 +300,8 @@ function normalizeTarget(target, index) {
         left: finite(body?.left, x - width / 2),
         right: finite(body?.right, x + width / 2),
         top: finite(body?.top, y - height / 2),
-        bottom: finite(body?.bottom, y + height / 2)
+        bottom: finite(body?.bottom, y + height / 2),
+        optional: target?.optional === true || target?.required === false
     };
 }
 
@@ -437,31 +438,34 @@ function analyzeOrderedTargetFlow({
             ? shortestPath(adjacency, orderedFrontier, destinationIndices)
             : [];
         const jumpCount = Math.max(0, path.length - 1);
-        const expectedDirection = target.x >= previousTargetX ? 1 : -1;
-        for (let index = 1; index < path.length; index += 1) {
-            const from = supports[path[index - 1]];
-            const to = supports[path[index]];
-            const delta = (
-                (to.left + to.right) - (from.left + from.right)
-            ) / 2;
-            if (delta * expectedDirection < 0) {
-                backtrackDistance += Math.abs(delta);
+        if (!target.optional) {
+            const expectedDirection = target.x >= previousTargetX ? 1 : -1;
+            for (let index = 1; index < path.length; index += 1) {
+                const from = supports[path[index - 1]];
+                const to = supports[path[index]];
+                const delta = (
+                    (to.left + to.right) - (from.left + from.right)
+                ) / 2;
+                if (delta * expectedDirection < 0) {
+                    backtrackDistance += Math.abs(delta);
+                }
             }
         }
 
-        if (reachable) {
+        if (reachable && !target.optional) {
             orderedFrontier = new Set(path.length ? [path.at(-1)] : []);
             requiredJumpCount += jumpCount;
             maxSegmentJumps = Math.max(maxSegmentJumps, jumpCount);
-        } else {
+        } else if (!reachable && !target.optional) {
             orderedRouteBroken = true;
             orderedFrontier = new Set();
         }
-        previousTargetX = target.x;
+        if (!target.optional) previousTargetX = target.x;
 
         return {
             id: target.id,
             label: target.label,
+            optional: target.optional,
             reachable,
             supportIds: reachableSupports.slice(0, 5).map(support => support.id),
             jumpCount,
@@ -474,7 +478,12 @@ function analyzeOrderedTargetFlow({
         requiredJumpCount,
         maxSegmentJumps,
         backtrackDistance: Math.round(backtrackDistance),
-        passed: targetResults.every(target => target.reachable)
+        passed: targetResults
+            .filter(target => !target.optional)
+            .every(target => target.reachable),
+        optionalPassed: targetResults
+            .filter(target => target.optional)
+            .every(target => target.reachable)
     };
 }
 
@@ -584,7 +593,10 @@ function analyzeTraversalTopology({
         playerHalfWidth
     });
     const uncomfortableTargetIds = comfortFlow.targetResults
-        .filter(target => !target.reachable)
+        .filter(target => !target.optional && !target.reachable)
+        .map(target => target.id);
+    const uncomfortableOptionalTargetIds = comfortFlow.targetResults
+        .filter(target => target.optional && !target.reachable)
         .map(target => target.id);
 
     return {
@@ -617,7 +629,9 @@ function analyzeTraversalTopology({
             strandingSupportIds,
             strandingSupportCount,
             comfortPassed: comfortFlow.passed,
-            uncomfortableTargetIds
+            uncomfortableTargetIds,
+            optionalComfortPassed: comfortFlow.optionalPassed,
+            uncomfortableOptionalTargetIds
         }
     };
 }
