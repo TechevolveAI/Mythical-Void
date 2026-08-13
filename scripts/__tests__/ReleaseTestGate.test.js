@@ -52,6 +52,8 @@ describe('release test gate', () => {
 
         expect(source).toContain("Emulation.setTouchEmulationEnabled");
         expect(source).toContain('holdTouchDrag');
+        expect(source).toContain('short jump tap response');
+        expect(source).toContain('await touch(session, jumpControl.x, jumpControl.y);');
         expect(source).toContain('did not move right from touch input');
         expect(source).toContain('did not move left from touch input');
         expect(source).toContain('retained right input after touch release');
