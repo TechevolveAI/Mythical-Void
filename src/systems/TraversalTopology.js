@@ -450,7 +450,7 @@ function analyzeOrderedTargetFlow({
         }
 
         if (reachable) {
-            orderedFrontier = destinationIndices;
+            orderedFrontier = new Set(path.length ? [path.at(-1)] : []);
             requiredJumpCount += jumpCount;
             maxSegmentJumps = Math.max(maxSegmentJumps, jumpCount);
         } else {

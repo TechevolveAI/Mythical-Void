@@ -207,6 +207,27 @@ describe('campaign traversal topology', () => {
         ]);
     });
 
+    test('continues ordered flow from the reached support instead of every nearby support', () => {
+        const result = analyzeTraversalTopology({
+            movement,
+            spawn: { x: 80, y: 650 },
+            supports: [
+                support('start', 0, 320, 700),
+                support('signal-floor', 390, 700, 700),
+                support('near-signal-shortcut', 760, 900, 570),
+                support('finish', 970, 1260, 700)
+            ],
+            targets: [
+                { id: 'signal', x: 560, y: 610, width: 260, height: 190 },
+                { id: 'guardian', x: 1120, y: 610, width: 140, height: 190 }
+            ]
+        });
+
+        expect(result.passed).toBe(true);
+        expect(result.targets[0].pathSupportIds).toEqual(['start']);
+        expect(result.targets[1].pathSupportIds[0]).toBe('start');
+    });
+
     test('reports an isolated required objective even when most ground is usable', () => {
         const result = analyzeTraversalTopology({
             movement,
