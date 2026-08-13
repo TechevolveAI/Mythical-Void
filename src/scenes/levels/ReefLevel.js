@@ -1075,6 +1075,9 @@ class ReefLevel extends PlatformerLevelScene {
         this.beaconAnchorsActivated++;
         this.drawBeaconWaypoint(anchor.visual, anchor.x, anchor.y, true);
         this.refreshBeaconRouteReadability();
+        if (anchor.index === 0) {
+            this.retireOpeningSignalCurrent();
+        }
         this.setCheckpoint(anchor.x, anchor.respawnY, {
             persist: true,
             checkpointId: anchor.id,
@@ -1169,7 +1172,7 @@ class ReefLevel extends PlatformerLevelScene {
             }
         ).setOrigin(0.5).setDepth(183);
 
-        this.tweens.add({
+        const pulseTween = this.tweens.add({
             targets: [visual, label],
             alpha: { from: 0.62, to: 1 },
             duration: 850,
@@ -1177,7 +1180,25 @@ class ReefLevel extends PlatformerLevelScene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
-        this.openingSignalCurrent = { visual, label };
+        this.openingSignalCurrent = { visual, label, pulseTween, retired: false };
+    }
+
+    retireOpeningSignalCurrent() {
+        const current = this.openingSignalCurrent;
+        if (!current?.visual?.active || current.retired) return false;
+
+        current.retired = true;
+        current.pulseTween?.remove?.();
+        current.pulseTween = null;
+        current.label?.setText?.('DRIFT SIGNAL LINKED');
+        current.label?.setColor?.('#8FE3CF');
+        this.tweens.add({
+            targets: [current.visual, current.label].filter(Boolean),
+            alpha: 0.14,
+            duration: 420,
+            ease: 'Power2'
+        });
+        return true;
     }
 
     createReefRouteChoice() {
@@ -1263,7 +1284,10 @@ class ReefLevel extends PlatformerLevelScene {
                 anchor.y,
                 true
             ),
-            onRestored: () => {
+            onRestored: (_anchor, restoredCount) => {
+                if (restoredCount > 0) {
+                    this.retireOpeningSignalCurrent();
+                }
                 this.refreshBeaconRouteReadability();
                 this.objectiveDisplay?.setText?.(this.getReefObjectiveText());
             }
@@ -3404,6 +3428,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.beaconAnchors = [];
         this.openingSignalCurrent?.visual?.destroy?.();
         this.openingSignalCurrent?.label?.destroy?.();
+        this.openingSignalCurrent?.pulseTween?.remove?.();
         this.openingSignalCurrent = null;
 
         this.objectiveDisplay?.destroy?.();

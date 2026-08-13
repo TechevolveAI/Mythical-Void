@@ -355,5 +355,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.createOpeningSignalCurrent();');
         expect(source).toContain('DRIFT SIGNAL 01  →');
         expect(source).toContain('visual.lineTo(1250, 700);');
+        expect(source).toContain('this.retireOpeningSignalCurrent();');
+        expect(source).toContain("current.label?.setText?.('DRIFT SIGNAL LINKED')");
     });
 });
