@@ -836,6 +836,166 @@ async function smokeReefAscentCurrent(session) {
     }
 }
 
+async function smokeReefForwardCurrent(session, {
+    currentProperty,
+    sourceId,
+    destinationId,
+    expectedId,
+    expectedLabel
+}) {
+    const setup = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('ReefLevel');
+        const current = scene?.[${JSON.stringify(currentProperty)}];
+        const source = scene?.platforms?.getChildren?.().find(
+            item => item.traversalId === ${JSON.stringify(sourceId)}
+        );
+        const destination = scene?.platforms?.getChildren?.().find(
+            item => item.traversalId === ${JSON.stringify(destinationId)}
+        );
+        if (
+            !scene?.player?.body ||
+            !current?.zone?.body ||
+            !source?.body ||
+            !destination?.body
+        ) {
+            return null;
+        }
+
+        scene.isInvincible = true;
+        scene.releaseAllPlatformerActionButtons?.();
+        scene.resetJoystick?.();
+        (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (enemy?.body) enemy.body.enable = false;
+        });
+        (scene.collectibles?.getChildren?.() || []).forEach(item => {
+            if (item?.body) item.body.enable = false;
+        });
+        current.activations = 0;
+        current.activeUntil = 0;
+        scene.player.body.reset(current.x + 55, current.bottom - 90);
+        scene.player.setVelocity(0, 0);
+        return {
+            id: current.id,
+            label: current.label?.text || '',
+            destinationId: current.destinationId,
+            sourceLinks: [...(source.traversalLinks || [])],
+            currentBounds: {
+                left: Math.round(current.zone.body.left),
+                right: Math.round(current.zone.body.right),
+                top: Math.round(current.zone.body.top),
+                bottom: Math.round(current.zone.body.bottom)
+            },
+            authoredBounds: {
+                left: current.x,
+                right: current.x + current.width,
+                top: current.top,
+                bottom: current.bottom
+            },
+            destinationTop: Math.round(destination.body.top)
+        };
+    })()`);
+    if (
+        setup?.id !== expectedId ||
+        setup.destinationId !== destinationId ||
+        !setup.sourceLinks.includes(destinationId) ||
+        !setup.label.includes(expectedLabel) ||
+        JSON.stringify(setup.currentBounds) !== JSON.stringify(setup.authoredBounds)
+    ) {
+        throw new Error(`Reef forward current was not mechanically visible: ${JSON.stringify(setup)}`);
+    }
+
+    try {
+        const carried = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                const current = scene?.[${JSON.stringify(currentProperty)}];
+                if (
+                    !current?.activations ||
+                    scene.player.body.velocity.y > -145 ||
+                    scene.player.body.velocity.x < 80
+                ) return null;
+                return {
+                    activations: current.activations,
+                    playerX: Math.round(scene.player.x),
+                    playerY: Math.round(scene.player.y),
+                    velocityX: Math.round(scene.player.body.velocity.x),
+                    velocityY: Math.round(scene.player.body.velocity.y)
+                };
+            })()`),
+            { timeoutMs: 2600, message: `${expectedLabel} carry` }
+        );
+        const landed = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                const support = scene.platforms.getChildren().find(
+                    item => item.traversalId === ${JSON.stringify(destinationId)}
+                );
+                const body = scene.player?.body;
+                if (!support?.body || !body) return null;
+                const onSupport = body.right > support.body.left + 8 &&
+                    body.left < support.body.right - 8 &&
+                    Math.abs(body.bottom - support.body.top) <= 7 &&
+                    (body.blocked.down || scene.isGrounded);
+                return onSupport ? {
+                    supportId: support.traversalId,
+                    playerX: Math.round(scene.player.x),
+                    playerBottom: Math.round(body.bottom),
+                    supportTop: Math.round(support.body.top),
+                    activations: scene[${JSON.stringify(currentProperty)}].activations
+                } : null;
+            })()`),
+            { timeoutMs: 6500, message: `${expectedLabel} landing` }
+        );
+        return { setup, carried, landed };
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('ReefLevel');
+            (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+                if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
+            });
+            (scene.collectibles?.getChildren?.() || []).forEach(item => {
+                if (item?.body && item.active !== false) item.body.enable = true;
+            });
+            scene.isInvincible = false;
+            scene.player.body.reset(3650, scene.levelHeight - 1030);
+            scene.player.setVelocity(0, 0);
+            return true;
+        })()`);
+    }
+}
+
+async function smokeReefForwardCurrents(session) {
+    const drift = await smokeReefForwardCurrent(session, {
+        currentProperty: 'driftAscentCurrent',
+        sourceId: 'reef-drift-relay',
+        destinationId: 'reef-current-crown',
+        expectedId: 'reef-drift-ascent',
+        expectedLabel: 'DRIFT CURRENT'
+    });
+    const traveler = await smokeReefForwardCurrent(session, {
+        currentProperty: 'travelerAscentCurrent',
+        sourceId: 'reef-traveler-relay',
+        destinationId: 'reef-sky-rise',
+        expectedId: 'reef-traveler-ascent',
+        expectedLabel: 'TRAVELER CURRENT'
+    });
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('ReefLevel');
+        const choice = scene?.optionalRouteRewards?.get?.('reef_star_trench')?.choice;
+        if (choice) {
+            scene.reefRouteChoice = null;
+            choice.selectedPath = null;
+            choice.mainEntered = false;
+            choice.optionalEntered = false;
+            choice.rejoined = false;
+            choice.sequence = null;
+            scene.routeChoiceSequence = 0;
+        }
+        return true;
+    })()`);
+    return { drift, traveler };
+}
+
 async function smokeFinalVoidRiftCrossing(session) {
     const supportIds = [
         'final-rift-step-1',
@@ -1784,6 +1944,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     const reefAscentCurrent = route === 'reef'
         ? await smokeReefAscentCurrent(session)
         : null;
+    const reefForwardCurrents = route === 'reef'
+        ? await smokeReefForwardCurrents(session)
+        : null;
 
     let verticalJoystick = null;
     if (route === 'reef') {
@@ -2286,6 +2449,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let peaksGroundedObjectives = null;
     let finalGroundedObjectives = null;
     let cavesGroundedObjectives = null;
+    const reefWaypointSupports = [];
     let forestForwardHandoffs = null;
     if ([
         'mythicalForest',
@@ -2412,6 +2576,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
 
         const staged = [
             'crystalCaves',
+            'reef',
             'auroraDepths',
             'voidPeaks',
             'finalVoid'
@@ -2438,6 +2603,15 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             throw new Error(
                 `${sceneName} could not stage its first route signal: ${JSON.stringify(staged)}`
             );
+        }
+        if (route === 'reef') {
+            reefWaypointSupports.push({
+                index: staged.firstSignalIndex,
+                supportId: staged.supportId,
+                checkpointX: staged.checkpointX,
+                checkpointY: staged.checkpointY,
+                supportTop: staged.supportTop
+            });
         }
 
         routeHandoff = await waitFor(
@@ -2483,6 +2657,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         for (let signalIndex = 1; signalIndex < 3; signalIndex += 1) {
             const stagedSignal = [
                 'crystalCaves',
+                'reef',
                 'auroraDepths',
                 'voidPeaks',
                 'finalVoid'
@@ -2505,6 +2680,15 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     `${sceneName} could not stage route signal ${signalIndex + 1}: ` +
                     JSON.stringify(stagedSignal)
                 );
+            }
+            if (route === 'reef') {
+                reefWaypointSupports.push({
+                    index: stagedSignal.index,
+                    supportId: stagedSignal.supportId,
+                    checkpointX: stagedSignal.checkpointX,
+                    checkpointY: stagedSignal.checkpointY,
+                    supportTop: stagedSignal.supportTop
+                });
             }
 
             await waitFor(
@@ -2594,6 +2778,26 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         ) {
             throw new Error(
                 `${sceneName} did not complete its ordered route: ${JSON.stringify(routeCompletion)}`
+            );
+        }
+        if (
+            route === 'reef' &&
+            (
+                reefWaypointSupports.length !== 3 ||
+                reefWaypointSupports[0]?.supportId !== 'reef-drift-relay' ||
+                reefWaypointSupports[1]?.supportId !== 'reef-traveler-relay' ||
+                reefWaypointSupports[2]?.supportId !== 'reef-passage-vector' ||
+                reefWaypointSupports.some(waypoint =>
+                    !Number.isFinite(waypoint.checkpointX) ||
+                    !Number.isFinite(waypoint.checkpointY) ||
+                    waypoint.checkpointY >= waypoint.supportTop ||
+                    waypoint.checkpointY < waypoint.supportTop - 100
+                )
+            )
+        ) {
+            throw new Error(
+                `${sceneName} did not bind its route to distinct Reef relays: ` +
+                JSON.stringify(reefWaypointSupports)
             );
         }
 
@@ -3445,6 +3649,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         joystick: { movedRight, movedLeft, vertical: verticalJoystick },
         returnCurrents,
         reefAscentCurrent,
+        reefForwardCurrents,
         finalRiftCrossing,
         auroraQuietLightClimb,
         forestForwardHandoffs,
@@ -3453,6 +3658,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         peaksGroundedObjectives,
         finalGroundedObjectives,
         cavesGroundedObjectives,
+        reefWaypointSupports,
         renderStability,
         combatFeedback,
         liveStomp,
@@ -3571,12 +3777,27 @@ async function smokeTraversalTopology(session, levels, exceptions) {
         const reefDriveFlow = audit?.flow?.targets?.find(
             target => target.id === 'dimensional_drive'
         );
+        const reefWaypointOneFlow = audit?.flow?.targets?.find(
+            target => target.id === 'reef_waypoint_1'
+        );
+        const reefWaypointTwoFlow = audit?.flow?.targets?.find(
+            target => target.id === 'reef_waypoint_2'
+        );
+        const reefWaypointThreeFlow = audit?.flow?.targets?.find(
+            target => target.id === 'reef_waypoint_3'
+        );
         const reefFlowFailed = route === 'reef' && (
             audit?.flow?.comfortPassed !== true ||
             audit?.flow?.optionalComfortPassed !== true ||
+            Number(audit?.flow?.backtrackDistance) !== 0 ||
+            reefWaypointOneFlow?.pathSupportIds?.at?.(-1) !== 'reef-drift-relay' ||
+            reefWaypointTwoFlow?.pathSupportIds?.at?.(-1) !== 'reef-traveler-relay' ||
+            Number(reefWaypointTwoFlow?.jumpCount) < 1 ||
+            reefWaypointThreeFlow?.pathSupportIds?.at?.(-1) !== 'reef-passage-vector' ||
             reefTrenchFlow?.reachable !== true ||
             reefTrenchFlow?.pathSupportIds?.at?.(-1) !== 'reef-trench-3' ||
-            reefDriveFlow?.reachable !== true
+            reefDriveFlow?.reachable !== true ||
+            reefDriveFlow?.pathSupportIds?.at?.(-1) !== 'reef-drive-relic'
         );
         if (
             !audit?.passed ||

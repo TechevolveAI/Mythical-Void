@@ -28,13 +28,30 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain("id: 'reef_waypoint_1'");
         expect(source).toContain("id: 'reef_waypoint_2'");
         expect(source).toContain("id: 'reef_waypoint_3'");
+        expect(source).toContain("activationSupportIds: ['reef-drift-relay']");
+        expect(source).toContain("activationSupportIds: ['reef-traveler-relay']");
+        expect(source).toContain("activationSupportIds: ['reef-passage-vector']");
+        expect(source).toContain("activationSupportIds: ['reef-drive-relic']");
         expect(source).toContain(
-            'this.createObjectiveTriggerZone(\n                waypoint.x,\n                waypoint.y,\n                { width: 150, height: 190 }'
+            'this.createObjectiveTriggerZone(\n                waypointX,\n                waypointY,\n                { width: 150, height: 150 }'
         );
-        expect(source).toContain(
-            'this.setCheckpoint(anchor.x, anchor.respawnY, {'
-        );
+        expect(source).toContain('SWIM THROUGH');
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain('this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {');
         expect(source).toContain('PROJECT BEACON WAYPOINT ${this.beaconAnchorsActivated}/3');
+        expect(source).toContain("traversalLinks: ['reef-current-crown']");
+        expect(source).toContain("traversalLinks: ['reef-sky-rise']");
+        expect(source).toMatch(/id: 'reef-current-crown'[\s\S]*?oneWay: true/);
+        expect(source).toMatch(/id: 'reef-sky-rise'[\s\S]*?oneWay: true/);
+        expect(source).toContain('this.createDriftAscentCurrent();');
+        expect(source).toContain('this.createTravelerAscentCurrent();');
+        expect(source).toContain("id: 'reef-drift-ascent'");
+        expect(source).toContain("id: 'reef-traveler-ascent'");
+        expect(source).toContain("destinationId: 'reef-current-crown'");
+        expect(source).toContain("destinationId: 'reef-sky-rise'");
+        expect(source).toContain('DRIFT CURRENT  ↗');
+        expect(source).toContain('TRAVELER CURRENT  ↗');
+        expect(source).toContain('createForwardAscentCurrent({');
     });
 
     test('turns waypoint synchronization into the companion-led route discovery', () => {
