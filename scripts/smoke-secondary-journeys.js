@@ -828,6 +828,83 @@ async function smokePurchasedEgg(session, exceptions) {
     return state;
 }
 
+async function smokeHomeStart(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'HatchingScene');
+
+    // Reproduce the state immediately before the first gameplay action without
+    // coupling this focused test to the independently covered age-gate flow.
+    await evaluate(session, `(() => {
+        localStorage.setItem('mythical_void_age_confirmed', 'true');
+        localStorage.setItem('mythical_void_age_group', 'age_18_plus');
+        localStorage.removeItem('mythical_creature_save');
+        location.reload();
+        return true;
+    })()`);
+    await waitFor(
+        () => evaluate(session, 'document.readyState === "complete"'),
+        { message: 'home screen reload' }
+    );
+    await waitForScene(session, 'HatchingScene');
+
+    const start = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
+            const button = scene?.startButton;
+            if (!button?.active || !button?.input?.enabled) return null;
+            const bounds = button.getBounds();
+            return {
+                x: Math.round(bounds.centerX),
+                y: Math.round(bounds.centerY),
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom,
+                alpha: button.alpha,
+                visible: button.visible,
+                canvasWidth: scene.scale.width,
+                canvasHeight: scene.scale.height
+            };
+        })()`),
+        { timeoutMs: 12000, message: 'visible Project Beacon Start control' }
+    );
+    if (
+        !start.visible ||
+        start.alpha < 0.8 ||
+        start.left < 0 ||
+        start.top < 0 ||
+        start.right > start.canvasWidth ||
+        start.bottom > start.canvasHeight
+    ) {
+        throw new Error(`Home Start control is outside the viewport: ${JSON.stringify(start)}`);
+    }
+
+    await touch(session, start.x, start.y);
+    const advanced = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
+            if (!window.mythicalGame?.scene?.isActive?.('HatchingScene')) return null;
+            if (window.GameState?.get?.('session.gameStarted') !== true) return null;
+            if (!scene?.egg?.active || scene?.startButton?.active) return null;
+            return {
+                gameStarted: true,
+                eggActive: true,
+                eggInteractive: Boolean(scene.egg.input?.enabled),
+                startActive: Boolean(scene.startButton?.active)
+            };
+        })()`),
+        { timeoutMs: 5000, message: 'Start touch to advance to the live egg' }
+    );
+    if (!advanced.eggInteractive) {
+        throw new Error(`Home Start reached a non-interactive egg: ${JSON.stringify(advanced)}`);
+    }
+    if (exceptions.length) {
+        throw new Error(`Home Start raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+    return { start, advanced };
+}
+
 async function smokeSanctuaryNavigation(session, exceptions) {
     exceptions.length = 0;
     await navigate(session, `${BASE_URL}/play/?reset=true`);
@@ -2216,7 +2293,10 @@ async function main() {
             ['finalVoid', 'FinalVoidLevel']
         ];
         const results = {};
-        if (SMOKE_MODE === 'interaction') {
+        if (SMOKE_MODE === 'home-entry') {
+            results.homeEntry = await smokeHomeStart(session, exceptions);
+            process.stdout.write('PASS HomeStartToEgg\n');
+        } else if (SMOKE_MODE === 'interaction') {
             const knownCases = ['all', 'egg', ...levels.map(([route]) => route)];
             if (!knownCases.includes(SMOKE_CASE)) {
                 throw new Error(
@@ -2283,7 +2363,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use interaction, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
+                'Use home-entry, interaction, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
             );
         }
         console.log(JSON.stringify({
