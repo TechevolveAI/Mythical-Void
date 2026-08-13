@@ -43,6 +43,28 @@ const playLink = (label, className = 'button button-primary') => `
     </a>
 `;
 
+const brandMark = () => `
+    <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <defs>
+            <linearGradient id="void-mark-sky" x1="8" y1="7" x2="56" y2="57" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#342177"/>
+                <stop offset="0.52" stop-color="#171049"/>
+                <stop offset="1" stop-color="#080719"/>
+            </linearGradient>
+            <linearGradient id="void-mark-ring" x1="14" y1="48" x2="52" y2="15" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#7CE8CF"/>
+                <stop offset="0.5" stop-color="#A778FF"/>
+                <stop offset="1" stop-color="#FFD66B"/>
+            </linearGradient>
+        </defs>
+        <rect x="2" y="2" width="60" height="60" rx="19" fill="url(#void-mark-sky)" stroke="#7CE8CF" stroke-opacity=".35"/>
+        <circle cx="32" cy="32" r="17" fill="#05040F" stroke="url(#void-mark-ring)" stroke-width="4"/>
+        <path d="M32 14c1.8 10.4 3.6 12.2 14 14-10.4 1.8-12.2 3.6-14 14-1.8-10.4-3.6-12.2-14-14 10.4-1.8 12.2-3.6 14-14Z" fill="#7CE8CF"/>
+        <circle cx="48" cy="16" r="3.5" fill="#FFD66B"/>
+        <path d="M13 45c8 5.5 16.5 6.9 25.5 4" fill="none" stroke="#A778FF" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+`;
+
 function renderLegalPage(type) {
     const isPrivacy = type === 'privacy';
     updatePageMetadata({
@@ -56,7 +78,7 @@ function renderLegalPage(type) {
     app.innerHTML = `
         <main class="legal-page">
             <a class="brand legal-brand" href="/" aria-label="Return to Mythical Void home">
-                <img src="/marketing/mythical-void-logo.webp" alt="">
+                ${brandMark()}
                 <span>MYTHICAL VOID</span>
             </a>
             <article>
@@ -104,7 +126,7 @@ function renderStorefront() {
         <header class="site-header" data-header>
             <div class="header-inner">
                 <a class="brand" href="#hero" aria-label="Mythical Void home">
-                    <img src="/marketing/mythical-void-logo.webp" alt="">
+                    ${brandMark()}
                     <span>MYTHICAL VOID</span>
                 </a>
                 <button class="menu-button" type="button" aria-label="Open menu" aria-expanded="false" data-menu-button>
@@ -124,36 +146,26 @@ function renderStorefront() {
 
         <main id="main-content">
             <section class="hero" id="hero">
-                <img class="hero-world" src="/game/project-beacon-crash-site.webp" alt="" fetchpriority="high">
-                <div class="hero-glow" aria-hidden="true"></div>
-                <div class="hero-orbit" aria-hidden="true"></div>
+                <img class="hero-world" src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Alien companions reimagined from the body shapes and mutations supported by the Mythical Void genetics engine" fetchpriority="high">
+                <div class="hero-veil" aria-hidden="true"></div>
                 <div class="hero-inner">
                     <div class="hero-copy-block">
-                        <p class="kicker"><span></span> A free creature adventure</p>
-                        <h1>Somewhere in the Void, <em>a friend is waiting.</em></h1>
-                        <p class="hero-copy">Hatch a creature unlike any other. Grow together. Save its world. Then make a choice that could change both your homes forever.</p>
+                        <p class="kicker"><span></span> A universe of companions</p>
+                        <h1>One universe. <em>No two companions alike.</em></h1>
+                        <p class="hero-copy">Every hatch mixes body, colour, personality, cosmic power and rare mutations. What arrives from the Void will be truly yours.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
-                            <a class="button button-quiet" href="#adventure">See the adventure</a>
+                            <a class="button button-quiet" href="#creatures">Meet the possibilities</a>
                         </div>
-                        <ul class="trust-list" aria-label="Quick game facts">
-                            <li>Plays in your browser</li>
-                            <li>No account needed</li>
-                            <li>Made for families</li>
+                        <ul class="hero-genetics" aria-label="How this scene was made">
+                            <li><strong>1,000</strong><span>real engine hatches explored</span></li>
+                            <li><strong>72</strong><span>varied profiles shaped this scene</span></li>
+                            <li><strong>1</strong><span>companion made for your story</span></li>
                         </ul>
                     </div>
-
-                    <div class="hero-creature" aria-label="The Wanderer-77 crash site from the game">
-                        <div class="signal-card">
-                            <span class="signal-label">PROJECT BEACON // CRASH SITE</span>
-                            <img src="/game/project-beacon-crash-site.webp" alt="The Wanderer-77 crash site in the game" fetchpriority="high">
-                            <div class="signal-footer">
-                                <strong>Wanderer-77 is down.</strong>
-                                <span>Recover the field kit. Find out what survived.</span>
-                            </div>
-                        </div>
-                        <span class="orbit-word orbit-word-one">CURIOUS</span>
-                        <span class="orbit-word orbit-word-two">BRAVE</span>
+                    <div class="hero-art-note">
+                        <span class="hero-art-note-star" aria-hidden="true">✦</span>
+                        <span><strong>From 72 engine-born profiles</strong>Real silhouettes and mutations, reimagined for the Void</span>
                     </div>
                 </div>
                 <a class="scroll-cue" href="#adventure"><span>Begin the story</span><b aria-hidden="true">↓</b></a>
@@ -373,7 +385,7 @@ function renderStorefront() {
             <div class="footer-inner">
                 <div class="footer-brand">
                     <a class="brand" href="#hero">
-                        <img src="/marketing/mythical-void-logo.webp" alt="">
+                        ${brandMark()}
                         <span>MYTHICAL VOID</span>
                     </a>
                     <p>Your creature. Your journey. Your choice.</p>
