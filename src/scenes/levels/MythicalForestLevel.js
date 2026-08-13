@@ -2887,14 +2887,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     left: 2760, right: 3400,
                     top: this.levelHeight - 590, bottom: this.levelHeight - 350
                 },
+                mainSupportIds: ['forest-bridge-4'],
                 optionalZone: {
                     left: 2740, right: 3700,
                     top: 180, bottom: this.levelHeight - 600
                 },
+                optionalSupportIds: ['forest-tree-4-branch-6'],
                 rejoinZone: {
                     left: 3780, right: 4350,
                     top: 500, bottom: this.levelHeight - 300
-                }
+                },
+                rejoinSupportIds: ['forest-bridge-10']
             },
             onMainSelected: () => this.selectForestRoute('main'),
             onOptionalSelected: () => this.selectForestRoute('optional'),

@@ -1292,10 +1292,94 @@ class PlatformerLevelScene extends Phaser.Scene {
                 Number(this.player?.body?.height) || 58
             )
         });
+        const routeChoices = this.auditOptionalRouteChoiceSupports();
 
         return {
             sceneName: this.scene?.key,
-            ...result
+            ...result,
+            passed: result.passed && routeChoices.passed,
+            reason: result.passed && !routeChoices.passed
+                ? 'route-choice-supports'
+                : result.reason,
+            routeChoices
+        };
+    }
+
+    auditOptionalRouteChoiceSupports() {
+        const routes = [...(this.optionalRouteRewards?.values?.() || [])]
+            .filter(route => route?.choice);
+        const lanes = [
+            ['main', 'mainZone', 'mainSupportIds'],
+            ['optional', 'optionalZone', 'optionalSupportIds'],
+            ['rejoin', 'rejoinZone', 'rejoinSupportIds']
+        ];
+        const routeResults = routes.map(route => {
+            const laneResults = lanes.map(([lane, zoneProperty, idsProperty]) => {
+                const zone = route.choice[zoneProperty];
+                const supportIds = route.choice[idsProperty] || [];
+                const zoneIsValid = Boolean(
+                    zone &&
+                    [zone.left, zone.right, zone.top, zone.bottom]
+                        .every(Number.isFinite)
+                );
+                const missingSupportIds = supportIds.filter(id => {
+                    const support = this.getTraversalSupport(id);
+                    return !support?.body ||
+                        support.active === false ||
+                        support.body.enable === false;
+                });
+                const invalidGeometrySupportIds = supportIds.filter(id => {
+                    const body = this.getTraversalSupport(id)?.body;
+                    return body && ![
+                        body.left,
+                        body.right,
+                        body.top,
+                        body.bottom
+                    ].every(value => Number.isFinite(Number(value)));
+                });
+                const outsideZoneSupportIds = supportIds.filter(id => {
+                    const support = this.getTraversalSupport(id);
+                    const body = support?.body;
+                    if (
+                        !zoneIsValid ||
+                        !body ||
+                        invalidGeometrySupportIds.includes(id)
+                    ) return false;
+                    const supportX = Number(support?.x);
+                    const centerX = Number.isFinite(supportX)
+                        ? supportX
+                        : (Number(body.left) + Number(body.right)) / 2;
+                    return (
+                        centerX < zone.left ||
+                        centerX > zone.right ||
+                        body.top < zone.top ||
+                        body.top > zone.bottom
+                    );
+                });
+                return {
+                    lane,
+                    supportIds,
+                    passed: zoneIsValid &&
+                        supportIds.length > 0 &&
+                        missingSupportIds.length === 0 &&
+                        invalidGeometrySupportIds.length === 0 &&
+                        outsideZoneSupportIds.length === 0,
+                    zoneIsValid,
+                    missingSupportIds,
+                    invalidGeometrySupportIds,
+                    outsideZoneSupportIds
+                };
+            });
+            return {
+                id: route.id,
+                passed: laneResults.every(lane => lane.passed),
+                lanes: laneResults
+            };
+        });
+        return {
+            passed: routeResults.every(route => route.passed),
+            auditedRouteCount: routeResults.length,
+            routes: routeResults
         };
     }
 
