@@ -3176,33 +3176,17 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             ease: 'Linear'
         });
 
-        // Add floating label above the Crystal Core
-        this.crystalCoreLabel = this.add.text(coreX, coreY - 70, '⬇ CRYSTAL CORE ENGINE ⬇', {
-            fontSize: '16px',
-            color: '#00FFFF',
-            fontStyle: 'bold',
-            stroke: '#1A0A2E',
-            strokeThickness: 3,
-            align: 'center'
-        }).setOrigin(0.5).setDepth(60);
-
-        // Label hint text
-        this.crystalCoreHint = this.add.text(coreX, coreY - 50, this.getCrystalCoreHintText(), {
-            fontSize: '12px',
-            color: '#E040FB',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5).setDepth(60);
-
-        // Pulsing animation for label
-        this.tweens.add({
-            targets: [this.crystalCoreLabel, this.crystalCoreHint],
-            alpha: { from: 0.6, to: 1 },
-            y: '-=5',
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+        this.createGuardianGateState({
+            x: coreX,
+            y: coreY,
+            title: 'CRYSTAL CORE',
+            getStatus: () => !this.caveRouteAligned
+                ? 'ALIGN 3 BEACON ANCHORS'
+                : 'TEND THE FRACTURED GROVE',
+            isReady: () => this.canActivateCrystalCore(),
+            color: 0xE040FB,
+            readyColor: 0x8FE3CF,
+            labelOffsetY: -128
         });
 
         // Beacon effect - vertical light beam
@@ -3232,10 +3216,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 }
 
                 this.crystalCoreFound = true;
-                // Hide labels when boss fight starts
-                this.crystalCoreLabel?.destroy();
-                this.crystalCoreHint?.destroy();
                 beacon?.destroy();
+                this.clearGuardianGateState();
                 this.startBossFight();
             }
         });
@@ -3252,7 +3234,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     refreshCrystalCoreHint() {
-        this.crystalCoreHint?.setText?.(this.getCrystalCoreHintText());
+        this.refreshGuardianGateState(true);
     }
 
     showCrystalCoreGateHint() {

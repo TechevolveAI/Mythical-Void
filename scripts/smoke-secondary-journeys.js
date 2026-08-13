@@ -465,6 +465,37 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             `${sceneName} has enemies without combat readability cues: ${JSON.stringify(state)}`
         );
     }
+    const guardianGate = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        const gate = scene?.guardianGateState;
+        if (!gate) return null;
+        return {
+            title: gate.title,
+            status: gate.status,
+            ready: gate.ready,
+            visible: gate.visual?.visible !== false && gate.label?.visible !== false,
+            label: gate.label?.text || ''
+        };
+    })()`);
+    const expectedGateTitle = {
+        mythicalForest: 'ELDER GROVE',
+        crystalCaves: 'CRYSTAL CORE',
+        reef: 'STELLAR PASSAGE',
+        voidPeaks: 'TITAN PASS',
+        auroraDepths: 'PHOENIX SHIELD',
+        finalVoid: 'EMPRESS SEAL'
+    }[route];
+    if (
+        guardianGate?.title !== expectedGateTitle ||
+        guardianGate.ready !== false ||
+        guardianGate.visible !== true ||
+        guardianGate.status === 'READY // ENTER' ||
+        !guardianGate.label.includes(expectedGateTitle)
+    ) {
+        throw new Error(
+            `${sceneName} has no readable locked guardian gate: ${JSON.stringify(guardianGate)}`
+        );
+    }
     if (['reef', 'voidPeaks', 'auroraDepths', 'finalVoid'].includes(route)) {
         const guidance = state.routeGuidance;
         if (
@@ -1039,6 +1070,72 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
         }
 
+        if (route === 'reef') {
+            const reefDriveGate = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                scene?.refreshGuardianGateState?.(true);
+                const gate = scene?.guardianGateState;
+                return gate ? {
+                    status: gate.status,
+                    ready: gate.ready,
+                    label: gate.label?.text || ''
+                } : null;
+            })()`);
+            if (
+                reefDriveGate?.ready !== false ||
+                reefDriveGate.status !== 'RECOVER DIMENSIONAL DRIVE'
+            ) {
+                throw new Error(
+                    `${sceneName} gate did not identify its remaining drive requirement: ` +
+                    JSON.stringify(reefDriveGate)
+                );
+            }
+            const reefReadyGate = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                if (!scene?.shipPart?.active) return null;
+                scene.collectShipPart(scene.shipPart);
+                scene.refreshGuardianGateState(true);
+                const gate = scene.guardianGateState;
+                return {
+                    status: gate?.status,
+                    ready: gate?.ready,
+                    label: gate?.label?.text || '',
+                    shipPartCollected: scene.shipPartCollected
+                };
+            })()`);
+            if (
+                reefReadyGate?.shipPartCollected !== true ||
+                reefReadyGate.ready !== true ||
+                reefReadyGate.status !== 'READY // ENTER' ||
+                !reefReadyGate.label.includes('READY // ENTER')
+            ) {
+                throw new Error(
+                    `${sceneName} guardian gate did not visibly unlock: ` +
+                    JSON.stringify(reefReadyGate)
+                );
+            }
+        } else {
+            const readyGate = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                scene?.refreshGuardianGateState?.(true);
+                const gate = scene?.guardianGateState;
+                return gate ? {
+                    status: gate.status,
+                    ready: gate.ready,
+                    label: gate.label?.text || ''
+                } : null;
+            })()`);
+            if (
+                readyGate?.ready !== true ||
+                readyGate.status !== 'READY // ENTER' ||
+                !readyGate.label.includes('READY // ENTER')
+            ) {
+                throw new Error(
+                    `${sceneName} guardian gate did not visibly unlock: ${JSON.stringify(readyGate)}`
+                );
+            }
+        }
+
         const optionalRouteId = {
             reef: 'reef_star_trench',
             voidPeaks: 'peaks_relic_ridge'
@@ -1128,6 +1225,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     }
     return {
         ...state,
+        guardianGate,
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
         joystick: { movedRight, movedLeft },
         combatFeedback,

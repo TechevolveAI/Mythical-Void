@@ -825,20 +825,15 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const gate = this.add.zone(x, y, 150, 190);
         this.physics.add.existing(gate, true);
 
-        const visual = this.add.graphics();
-        visual.fillStyle(0x4B0082, 0.45);
-        visual.fillCircle(x, y, 72);
-        visual.lineStyle(4, 0xFF4500, 0.95);
-        visual.strokeCircle(x, y, 72);
-        visual.setDepth(250);
-
-        const label = this.add.text(x, y - 105, 'TITAN PASS', {
-            fontSize: '15px',
-            color: '#FFD700',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5).setDepth(251);
+        this.createGuardianGateState({
+            x,
+            y,
+            title: 'TITAN PASS',
+            getStatus: () => 'RESTORE 3 WARNING RELAYS',
+            isReady: () => this.creatureNetworkReached,
+            color: 0xFF4500,
+            readyColor: 0x8FE3CF
+        });
 
         this.physics.add.overlap(this.player, gate, () => {
             if (!this.bossFightActive && !this.bossDefeated) {
@@ -855,9 +850,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                     }
                     return;
                 }
+                this.clearGuardianGateState();
                 this.startBossFight();
-                visual.destroy();
-                label.destroy();
                 gate.destroy();
             }
         });

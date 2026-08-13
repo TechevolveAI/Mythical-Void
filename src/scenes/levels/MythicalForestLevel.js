@@ -3183,6 +3183,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
         );
         this.physics.add.existing(triggerZone, true);
         this.bossTriggerZone = triggerZone;
+        this.createGuardianGateState({
+            x: 5350,
+            y: groundY - 72,
+            title: 'ELDER GROVE',
+            getStatus: () => 'ALIGN 3 BEACON ANCHORS',
+            isReady: () => this.forestRouteAligned,
+            color: 0x9370DB,
+            readyColor: 0x8FE3CF
+        });
 
         // Trigger boss fight when player enters
         if (this.player) {
@@ -3241,6 +3250,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossFightActive = true;
         this.bossTriggerZone?.destroy?.();
         this.bossTriggerZone = null;
+        this.clearGuardianGateState();
 
         // Dramatic pause
         this.physics.pause();

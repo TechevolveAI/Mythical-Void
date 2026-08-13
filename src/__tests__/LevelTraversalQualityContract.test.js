@@ -371,6 +371,73 @@ describe('campaign traversal quality contracts', () => {
         );
     });
 
+    test('guardian gates expose locked requirements and visibly become ready', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'GuardianGateTest' });
+        const visual = {
+            active: true,
+            clear: jest.fn(),
+            fillStyle: jest.fn(),
+            fillCircle: jest.fn(),
+            lineStyle: jest.fn(),
+            strokeCircle: jest.fn(),
+            destroy: jest.fn()
+        };
+        const label = {
+            active: true,
+            setText: jest.fn(),
+            setColor: jest.fn(),
+            destroy: jest.fn()
+        };
+        let ready = false;
+        scene.add = {
+            graphics: jest.fn(() => ({
+                ...visual,
+                setDepth: jest.fn(() => visual)
+            })),
+            text: jest.fn(() => ({
+                ...label,
+                setOrigin: jest.fn(() => ({
+                    ...label,
+                    setDepth: jest.fn(() => label)
+                }))
+            }))
+        };
+
+        scene.createGuardianGateState({
+            x: 500,
+            y: 600,
+            title: 'TEST GATE',
+            getStatus: () => 'RESTORE 3 SIGNALS',
+            isReady: () => ready
+        });
+        expect(scene.guardianGateState.status).toBe('RESTORE 3 SIGNALS');
+        expect(scene.guardianGateState.ready).toBe(false);
+
+        ready = true;
+        expect(scene.refreshGuardianGateState()).toBe(true);
+        expect(scene.guardianGateState.status).toBe('READY // ENTER');
+        expect(scene.guardianGateState.ready).toBe(true);
+
+        scene.clearGuardianGateState();
+        expect(scene.guardianGateState).toBeNull();
+    });
+
+    test.each([
+        ['levels/MythicalForestLevel.js', "title: 'ELDER GROVE'"],
+        ['levels/CrystalCavesLevel.js', "title: 'CRYSTAL CORE'"],
+        ['levels/ReefLevel.js', "title: 'STELLAR PASSAGE'"],
+        ['levels/VoidPeaksLevel.js', "title: 'TITAN PASS'"],
+        ['levels/AuroraDepthsLevel.js', "title: 'PHOENIX SHIELD'"],
+        ['levels/FinalVoidLevel.js', "title: 'EMPRESS SEAL'"]
+    ])('%s has a visible, stateful guardian entrance', (relativePath, title) => {
+        const source = read(relativePath);
+
+        expect(source).toContain('this.createGuardianGateState({');
+        expect(source).toContain(title);
+        expect(source).toContain('this.clearGuardianGateState();');
+    });
+
     test('Aurora Depths offers safety for taking the Quiet Light route', () => {
         const source = read('levels/AuroraDepthsLevel.js');
 

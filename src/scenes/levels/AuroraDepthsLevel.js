@@ -998,6 +998,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             this.levelHeight
         );
         this.physics.add.existing(triggerZone, true);
+        this.createGuardianGateState({
+            x: arenaX + 320,
+            y: groundY - 70,
+            title: 'PHOENIX SHIELD',
+            getStatus: () => 'ALIGN 3 AURORA PRISMS',
+            isReady: () => this.uplinkRiskUnderstood,
+            color: 0x00E676,
+            readyColor: 0xF2C94C
+        });
 
         if (this.player) {
             this.physics.add.overlap(this.player, triggerZone, () => {
@@ -1016,6 +1025,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                         return;
                     }
                     triggerZone.destroy();
+                    this.clearGuardianGateState();
                     this.startBossFight();
                 }
             });

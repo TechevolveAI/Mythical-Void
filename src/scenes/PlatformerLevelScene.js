@@ -294,6 +294,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.orderedRouteSignalIndex = 0;
         this.orderedRouteSignalOptions = null;
         this.optionalRouteRewards = new Map();
+        this.guardianGateState = null;
         this.guardianTeamSupport = {
             guardianId: null,
             guardianName: null,
@@ -645,6 +646,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.optionalRouteGuardLabel = 'ROUTE GUARD';
         this.levelCoinMultiplier = 1;
         this.optionalRouteRewards = new Map();
+        this.guardianGateState = null;
         window.EconomyManager?.clearLevelCoinMultiplier?.();
 
         // Reset flags
@@ -1244,6 +1246,79 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.physics.add.existing(zone, true);
         zone.isObjectiveTrigger = true;
         return zone;
+    }
+
+    createGuardianGateState({
+        x,
+        y,
+        title = 'GUARDIAN GATE',
+        getStatus = () => 'LOCKED',
+        isReady = () => false,
+        color = 0xF2C94C,
+        readyColor = 0x8FE3CF,
+        labelOffsetY = -108
+    } = {}) {
+        this.clearGuardianGateState();
+
+        const visual = this.add.graphics().setDepth(248);
+        const label = this.add.text(x, y + labelOffsetY, '', {
+            fontSize: '12px',
+            color: '#F2C94C',
+            fontStyle: 'bold',
+            stroke: '#05030C',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(249);
+        const state = {
+            x,
+            y,
+            title: String(title),
+            getStatus,
+            isReady,
+            color,
+            readyColor,
+            visual,
+            label,
+            ready: null,
+            status: null
+        };
+        this.guardianGateState = state;
+        this.refreshGuardianGateState(true);
+        return state;
+    }
+
+    refreshGuardianGateState(force = false) {
+        const state = this.guardianGateState;
+        if (!state?.visual?.active || !state?.label?.active) return false;
+
+        const ready = state.isReady?.() === true;
+        const status = String(
+            ready ? 'READY // ENTER' : (state.getStatus?.() || 'LOCKED')
+        );
+        if (!force && state.ready === ready && state.status === status) {
+            return false;
+        }
+
+        state.ready = ready;
+        state.status = status;
+        const color = ready ? state.readyColor : state.color;
+        state.visual.clear();
+        state.visual.fillStyle(color, ready ? 0.2 : 0.08);
+        state.visual.fillCircle(state.x, state.y, 58);
+        state.visual.lineStyle(4, color, ready ? 1 : 0.72);
+        state.visual.strokeCircle(state.x, state.y, 58);
+        state.visual.lineStyle(2, color, ready ? 0.86 : 0.44);
+        state.visual.strokeCircle(state.x, state.y, 42);
+        state.label.setText(`${state.title}\n${status}`);
+        state.label.setColor(ready ? '#8FE3CF' : '#F2C94C');
+        return true;
+    }
+
+    clearGuardianGateState() {
+        const state = this.guardianGateState;
+        state?.visual?.destroy?.();
+        state?.label?.destroy?.();
+        this.guardianGateState = null;
     }
 
     canActivateOrderedRouteSignal(signal, signals, activatedCount, {
@@ -3525,6 +3600,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         this.updateEnemyCombatReadability();
+        this.refreshGuardianGateState();
 
         // Update player facing direction
         this.updatePlayerFacing();
@@ -6683,6 +6759,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
         this.orderedRouteSignals = null;
         this.orderedRouteSignalOptions = null;
+        this.clearGuardianGateState();
 
         // Remove keyboard listeners
         if (this.input && this.input.keyboard) {

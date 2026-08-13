@@ -2075,6 +2075,17 @@ class ReefLevel extends PlatformerLevelScene {
         const triggerZone = this.add.zone(5200, this.levelHeight / 2, 100, this.levelHeight);
         this.physics.add.existing(triggerZone, true);
         this.bossTriggerZone = triggerZone;
+        this.createGuardianGateState({
+            x: 5200,
+            y: this.levelHeight - 470,
+            title: 'STELLAR PASSAGE',
+            getStatus: () => !this.reefRouteAligned
+                ? 'SYNCHRONIZE 3 WAYPOINTS'
+                : 'RECOVER DIMENSIONAL DRIVE',
+            isReady: () => this.reefRouteAligned && this.shipPartCollected,
+            color: 0x9B30FF,
+            readyColor: 0x8FE3CF
+        });
 
         this.physics.add.overlap(this.player, triggerZone, () => {
             if (!this.bossFightActive && !this.bossDefeated) {
@@ -2110,6 +2121,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossHealth = this.bossMaxHealth;
         this.bossTriggerZone?.destroy?.();
         this.bossTriggerZone = null;
+        this.clearGuardianGateState();
         this.physics.pause();
 
         console.log('[ReefLevel] BOSS FIGHT: Nyx\'voral the Void Serpent!');
@@ -3321,6 +3333,7 @@ class ReefLevel extends PlatformerLevelScene {
         }
         this.updateEnemies(time, delta);
         this.updateEnemyCombatReadability();
+        this.refreshGuardianGateState();
 
         if (this.bossFightActive) {
             this.updateBoss(time, delta);

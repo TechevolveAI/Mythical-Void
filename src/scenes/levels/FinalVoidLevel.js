@@ -988,13 +988,16 @@ class FinalVoidLevel extends PlatformerLevelScene {
         visual.lineBetween(gateX, gateY - 120, gateX, gateY + 120);
         visual.setDepth(890);
 
-        const label = this.add.text(gateX, gateY - 180, 'EMPRESS SEAL', {
-            fontSize: '13px',
-            color: '#DA70D6',
-            fontStyle: 'bold',
-            stroke: '#09020E',
-            strokeThickness: 4
-        }).setOrigin(0.5).setDepth(891);
+        this.createGuardianGateState({
+            x: gateX,
+            y: gateY,
+            title: 'EMPRESS SEAL',
+            getStatus: () => `BOND SIGNALS ${this.bondAnchorsActivated}/3`,
+            isReady: () => this.finalSignalReady,
+            color: 0xDA70D6,
+            readyColor: 0xA9F3E4,
+            labelOffsetY: -180
+        });
 
         const zone = this.add.zone(gateX, this.levelHeight / 2, 130, this.levelHeight);
         this.physics.add.existing(zone, true);
@@ -1016,12 +1019,12 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
             zone.destroy();
             visual.destroy();
-            label.destroy();
+            this.clearGuardianGateState();
             this.empressGate = null;
             this.startBossFight();
         });
 
-        this.empressGate = { visual, label, zone };
+        this.empressGate = { visual, zone };
     }
 
     update(time, delta) {
