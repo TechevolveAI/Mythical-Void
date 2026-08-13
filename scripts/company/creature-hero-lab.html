@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mythical Void Creature Hero Lab</title>
+    <style>
+        html, body { margin: 0; min-height: 100%; background: #050513; overflow: hidden; }
+        #hero-lab { width: 1920px; height: 1080px; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <main id="hero-lab" aria-label="Creature genetics hero reference"></main>
+    <script type="module">
+        import Phaser from 'phaser';
+
+        window.Phaser = Phaser;
+        await import('/src/systems/CreatureLifecycle.js');
+        await import('/src/systems/StageVisualResolver.js');
+        await import('/src/systems/GraphicsEngine.js');
+
+        const response = await fetch('/marketing/creature-hero-catalog.json');
+        const catalog = await response.json();
+
+        const toNumber = value => Number.parseInt(String(value).replace('#', ''), 16);
+        const toFeature = value => {
+            const [type, variant] = value.split(':');
+            return { type, variant, intensity: 0.75 };
+        };
+        const speciesLabels = {
+            stellarWyrm: 'STELLAR WYRM',
+            crystalDrake: 'CRYSTAL DRAKE',
+            nebulaSprite: 'NEBULA SPRITE',
+            voidStalker: 'VOID STALKER',
+            cosmicGuardian: 'COSMIC GUARDIAN',
+            auroraPhoenix: 'AURORA PHOENIX',
+            crystalElemental: 'CRYSTAL ELEMENTAL'
+        };
+
+        function genesFor(creature) {
+            return {
+                id: creature.geneticId,
+                species: creature.species,
+                rarity: creature.rarity,
+                traits: {
+                    bodyShape: { type: creature.geneBody, intensity: 0.6 },
+                    colorGenome: {
+                        primary: toNumber(creature.colors.body),
+                        head: toNumber(creature.colors.head),
+                        secondary: toNumber(creature.colors.wings),
+                        accent: toNumber(creature.colors.eyes),
+                        markings: toNumber(creature.colors.markings),
+                        feet: toNumber(creature.colors.feet),
+                        shimmerIntensity: creature.rarity === 'legendary' ? 1 : 0.55,
+                        isLegendaryPrestige: creature.rarity === 'legendary'
+                    },
+                    features: {
+                        eyes: { size: creature.eyeSize, color: toNumber(creature.colors.eyes), glow: 0.8 },
+                        wings: { type: creature.wings, span: 1.05, shimmer: 0.7 },
+                        markings: { pattern: creature.marking, distribution: 'balanced', intensity: 0.8 },
+                        specialFeatures: creature.specialFeatures.map(toFeature),
+                        wackyMutations: creature.mutations.map(toFeature)
+                    }
+                },
+                personality: { core: creature.personality, quirks: [] },
+                cosmicAffinity: {
+                    element: creature.affinity,
+                    powerLevel: 0.8,
+                    visualEffects: [],
+                    specialAbilities: []
+                },
+                isShiny: creature.shiny,
+                shinyType: creature.shinyType
+            };
+        }
+
+        function dnaFor(creature) {
+            return {
+                id: creature.catalogId,
+                bodyArchetype: creature.body,
+                headArchetype: creature.head,
+                hybridTag: creature.hybrid,
+                elementalAura: creature.aura,
+                temperament: creature.personality,
+                energyLevel: 'balanced',
+                curiosity: 'high',
+                attachmentStyle: 'balanced',
+                favouriteCareAction: 'play',
+                raritySignature: creature.rarity,
+                mutationPotential: creature.mutations.length ? 0.8 : 0.1
+            };
+        }
+
+        class HeroLabScene extends Phaser.Scene {
+            constructor() { super('HeroLab'); }
+
+            create() {
+                const width = 1920;
+                const height = 1080;
+                const background = this.add.graphics();
+                background.fillGradientStyle(0x09071b, 0x0b1830, 0x12071c, 0x061a24, 1);
+                background.fillRect(0, 0, width, height);
+
+                const haze = this.add.graphics();
+                for (let index = 0; index < 90; index += 1) {
+                    const x = (index * 197) % width;
+                    const y = (index * 113) % height;
+                    const radius = 1 + (index % 3);
+                    haze.fillStyle(index % 4 === 0 ? 0x74e7d2 : 0xf6d15f, 0.25 + (index % 5) * 0.08);
+                    haze.fillCircle(x, y, radius);
+                }
+
+                const engine = new window.GraphicsEngine(this);
+                const columns = 12;
+                const rows = 6;
+                const cellWidth = width / columns;
+                const cellHeight = height / rows;
+
+                catalog.creatures.slice(0, columns * rows).forEach((creature, index) => {
+                    const column = index % columns;
+                    const row = Math.floor(index / columns);
+                    const x = column * cellWidth + cellWidth / 2;
+                    const y = row * cellHeight + 70;
+                    const frame = this.add.graphics();
+                    const rarityColor = {
+                        common: 0x74e7d2,
+                        uncommon: 0xffb86b,
+                        rare: 0xff72b1,
+                        epic: 0xa77bff,
+                        legendary: 0xf6d15f
+                    }[creature.rarity];
+                    frame.fillStyle(0x0c0a20, 0.58);
+                    frame.fillRoundedRect(column * cellWidth + 8, row * cellHeight + 8, cellWidth - 16, cellHeight - 16, 20);
+                    frame.lineStyle(2, rarityColor, 0.32);
+                    frame.strokeRoundedRect(column * cellWidth + 8, row * cellHeight + 8, cellWidth - 16, cellHeight - 16, 20);
+
+                    const result = engine.createCreatureFromDNA(
+                        dnaFor(creature),
+                        0,
+                        'adult',
+                        genesFor(creature)
+                    );
+                    const sprite = this.add.image(x, y, result.textureName);
+                    const maxWidth = cellWidth * 0.72;
+                    const maxHeight = cellHeight * 0.56;
+                    sprite.setScale(Math.min(maxWidth / sprite.width, maxHeight / sprite.height));
+
+                    this.add.text(x, row * cellHeight + 132, speciesLabels[creature.species], {
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: '13px',
+                        fontStyle: 'bold',
+                        color: '#fffdf4',
+                        align: 'center'
+                    }).setOrigin(0.5);
+                    this.add.text(x, row * cellHeight + 153, `${creature.body} · ${creature.head} · ${creature.affinity}`, {
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: '11px',
+                        color: '#a9a6c2',
+                        align: 'center'
+                    }).setOrigin(0.5);
+                });
+
+                document.body.dataset.ready = 'true';
+                window.heroCatalog = catalog;
+            }
+        }
+
+        new Phaser.Game({
+            type: Phaser.CANVAS,
+            width: 1920,
+            height: 1080,
+            parent: 'hero-lab',
+            backgroundColor: '#050513',
+            scene: HeroLabScene,
+            render: { antialias: false, pixelArt: true, preserveDrawingBuffer: true },
+            banner: false
+        });
+    </script>
+</body>
+</html>

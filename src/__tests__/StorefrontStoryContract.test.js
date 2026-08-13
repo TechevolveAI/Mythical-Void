@@ -61,12 +61,16 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).not.toContain('this world is saved');
     });
 
-    test('keeps the hero immersive while revealing the next section', () => {
-        expect(styles).toMatch(
-            /\.hero\s*\{[\s\S]*?height:\s*min\(650px,\s*calc\(100svh - 144px\)\)/
+    test('turns real genetics runs into an immersive creature-universe hero', () => {
+        expect(storefront).toContain('1,000');
+        expect(storefront).toContain('72');
+        expect(storefront).toContain('real engine hatches explored');
+        expect(storefront).toContain('No two companions alike.');
+        expect(storefront).toContain(
+            '/marketing/mythical-void-creature-universe-hero-v2.webp'
         );
         expect(styles).toMatch(
-            /\.hero-creature\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?right:\s*0;[\s\S]*?object-fit:\s*cover;/
+            /\.hero\s*\{[\s\S]*?height:\s*min\(860px,\s*100svh\)/
         );
         expect(styles).not.toMatch(
             /\.hero\s*\{[^}]*grid-template-columns:/
@@ -75,7 +79,7 @@ describe('storefront Project Beacon story contract', () => {
 
     test('publishes absolute social media assets and route-aware canonical metadata', () => {
         expect(metadata).toContain(
-            'content="https://mythicalvoid.com/game/project-beacon-crash-site.webp"'
+            'content="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp"'
         );
         expect(metadata).toContain(
             '<link rel="canonical" href="https://mythicalvoid.com/">'

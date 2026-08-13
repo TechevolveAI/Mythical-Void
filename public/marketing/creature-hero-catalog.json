@@ -1,0 +1,2404 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "CreatureGenetics + CreatureDNA",
+  "deterministicSeed": "0x4D595448",
+  "totalHatches": 1000,
+  "selectedForHero": 72,
+  "selectionNote": "Curated for breadth across the real genetics system; not a probability sample.",
+  "coverage": {
+    "species": {
+      "crystalDrake": 13,
+      "stellarWyrm": 16,
+      "auroraPhoenix": 7,
+      "crystalElemental": 7,
+      "voidStalker": 9,
+      "nebulaSprite": 11,
+      "cosmicGuardian": 9
+    },
+    "rarity": {
+      "legendary": 16,
+      "rare": 15,
+      "uncommon": 14,
+      "epic": 15,
+      "common": 12
+    },
+    "geneBodies": {
+      "sturdy": 7,
+      "balanced": 12,
+      "avian": 7,
+      "quadruped": 6,
+      "serpentine": 6,
+      "blob": 5,
+      "cyclops": 4,
+      "reptilian": 6,
+      "slender": 7,
+      "insectoid": 7,
+      "fish": 5
+    },
+    "bodies": {
+      "biped": 16,
+      "blob": 20,
+      "winged": 8,
+      "serpentine": 13,
+      "quadruped": 15
+    },
+    "heads": {
+      "canine": 9,
+      "avian": 10,
+      "rodent": 7,
+      "feline": 12,
+      "simian": 6,
+      "insectoid": 5,
+      "aquatic": 9,
+      "cervine": 6,
+      "reptile": 8
+    },
+    "affinities": {
+      "crystal": 15,
+      "nebula": 19,
+      "star": 14,
+      "moon": 11,
+      "void": 13
+    },
+    "auras": {
+      "forest": 18,
+      "tidal": 16,
+      "cosmic": 14,
+      "ember": 10,
+      "storm": 8,
+      "shadow-soft": 6
+    },
+    "personalities": {
+      "gentle": 13,
+      "curious": 19,
+      "energetic": 12,
+      "wise": 18,
+      "playful": 10
+    },
+    "shiny": 25,
+    "mutated": 69
+  },
+  "creatures": [
+    {
+      "catalogId": "MV-0260",
+      "geneticId": "hero-0260",
+      "species": "crystalDrake",
+      "rarity": "legendary",
+      "geneBody": "sturdy",
+      "body": "biped",
+      "head": "canine",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "gentle",
+      "affinity": "crystal",
+      "wings": "crystal",
+      "eyeSize": "small",
+      "marking": "void_portals",
+      "mutations": [
+        "elemental_aura:wind",
+        "prismatic_sheen:oil_slick",
+        "feather_mane:flowing"
+      ],
+      "specialFeatures": [
+        "nebula_trail:dense",
+        "time_ripples:standard",
+        "dimensional_shadows:unique"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B76E79",
+        "head": "#C9A9A6",
+        "wings": "#E8B4B8",
+        "eyes": "#F48FB1",
+        "markings": "#FFE4E1",
+        "feet": "#8B6969"
+      }
+    },
+    {
+      "catalogId": "MV-0510",
+      "geneticId": "hero-0510",
+      "species": "stellarWyrm",
+      "rarity": "legendary",
+      "geneBody": "balanced",
+      "body": "blob",
+      "head": "avian",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "curious",
+      "affinity": "nebula",
+      "wings": "feathered",
+      "eyeSize": "large",
+      "marking": "time_spirals",
+      "mutations": [
+        "rock_texture:crystalline",
+        "circuit_veins:pulsing"
+      ],
+      "specialFeatures": [
+        "cosmic_resonance:enhanced",
+        "void_wings:translucent",
+        "reality_distortion:unique"
+      ],
+      "shiny": true,
+      "shinyType": "chromatic",
+      "colors": {
+        "body": "#1C1C1C",
+        "head": "#2F2F2F",
+        "wings": "#0028FF",
+        "eyes": "#64B5F6",
+        "markings": "#FFD700",
+        "feet": "#B8860B"
+      }
+    },
+    {
+      "catalogId": "MV-0140",
+      "geneticId": "hero-0140",
+      "species": "auroraPhoenix",
+      "rarity": "legendary",
+      "geneBody": "avian",
+      "body": "blob",
+      "head": "rodent",
+      "hybrid": "triple-hybrid",
+      "aura": "tidal",
+      "personality": "energetic",
+      "affinity": "star",
+      "wings": "flaming",
+      "eyeSize": "medium",
+      "marking": "reality_rifts",
+      "mutations": [
+        "surreal_appendages:flames",
+        "floating_parts:orbs"
+      ],
+      "specialFeatures": [
+        "stellar_core:expanding",
+        "star_dust_emanation:standard",
+        "constellation_markings:enhanced"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B76E79",
+        "head": "#C9A9A6",
+        "wings": "#E8B4B8",
+        "eyes": "#00ACC1",
+        "markings": "#FFE4E1",
+        "feet": "#8B6969"
+      }
+    },
+    {
+      "catalogId": "MV-0040",
+      "geneticId": "hero-0040",
+      "species": "crystalElemental",
+      "rarity": "legendary",
+      "geneBody": "quadruped",
+      "body": "winged",
+      "head": "feline",
+      "hybrid": "dual-hybrid",
+      "aura": "cosmic",
+      "personality": "wise",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "reality_rifts",
+      "mutations": [
+        "inanimate_markings:runes",
+        "plant_growth:vines",
+        "phantom_limbs:tail"
+      ],
+      "specialFeatures": [
+        "reality_distortion:unique",
+        "dimensional_shadows:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B9F2FF",
+        "head": "#AFEEEE",
+        "wings": "#E0FFFF",
+        "eyes": "#E040FB",
+        "markings": "#F0FFFF",
+        "feet": "#87CEEB"
+      }
+    },
+    {
+      "catalogId": "MV-0650",
+      "geneticId": "hero-0650",
+      "species": "voidStalker",
+      "rarity": "legendary",
+      "geneBody": "serpentine",
+      "body": "blob",
+      "head": "feline",
+      "hybrid": "single-species",
+      "aura": "cosmic",
+      "personality": "wise",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "medium",
+      "marking": "cosmic_fractals",
+      "mutations": [
+        "phantom_limbs:tail",
+        "nebula_trails:misty",
+        "prismatic_sheen:rainbow"
+      ],
+      "specialFeatures": [
+        "star_dust_emanation:standard",
+        "cosmic_resonance:enhanced",
+        "time_ripples:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#E5E4E2",
+        "head": "#D8D8D8",
+        "wings": "#C0C0C0",
+        "eyes": "#D500F9",
+        "markings": "#F5F5F5",
+        "feet": "#A8A8A8"
+      }
+    },
+    {
+      "catalogId": "MV-0343",
+      "geneticId": "hero-0343",
+      "species": "stellarWyrm",
+      "rarity": "rare",
+      "geneBody": "balanced",
+      "body": "biped",
+      "head": "feline",
+      "hybrid": "dual-hybrid",
+      "aura": "forest",
+      "personality": "curious",
+      "affinity": "nebula",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "none",
+      "mutations": [
+        "gem_body:diamond",
+        "cosmic_horns:spiral"
+      ],
+      "specialFeatures": [
+        "constellation_eyes:unique",
+        "crystal_growth:spiral_patterns"
+      ],
+      "shiny": true,
+      "shinyType": "inverted",
+      "colors": {
+        "body": "#1508AD",
+        "head": "#45F5D6",
+        "wings": "#C6C668",
+        "eyes": "#80CBC4",
+        "markings": "#8182DB",
+        "feet": "#51FE01"
+      }
+    },
+    {
+      "catalogId": "MV-0840",
+      "geneticId": "hero-0840",
+      "species": "voidStalker",
+      "rarity": "legendary",
+      "geneBody": "blob",
+      "body": "serpentine",
+      "head": "simian",
+      "hybrid": "single-species",
+      "aura": "ember",
+      "personality": "curious",
+      "affinity": "nebula",
+      "wings": "ethereal",
+      "eyeSize": "large",
+      "marking": "reality_rifts",
+      "mutations": [
+        "crystal_growths:embedded",
+        "mechanical_parts:pipes"
+      ],
+      "specialFeatures": [
+        "void_wings:rippling",
+        "reality_distortion:enhanced",
+        "stellar_core:bright"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B76E79",
+        "head": "#C9A9A6",
+        "wings": "#E8B4B8",
+        "eyes": "#D500F9",
+        "markings": "#FFE4E1",
+        "feet": "#8B6969"
+      }
+    },
+    {
+      "catalogId": "MV-0515",
+      "geneticId": "hero-0515",
+      "species": "nebulaSprite",
+      "rarity": "legendary",
+      "geneBody": "serpentine",
+      "body": "serpentine",
+      "head": "insectoid",
+      "hybrid": "dual-hybrid",
+      "aura": "forest",
+      "personality": "playful",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "medium",
+      "marking": "cosmic_fractals",
+      "mutations": [
+        "feather_mane:mohawk",
+        "circuit_veins:gold_glow"
+      ],
+      "specialFeatures": [
+        "constellation_markings:enhanced",
+        "aurora_aura:static",
+        "cosmic_resonance:enhanced"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#E5E4E2",
+        "head": "#D8D8D8",
+        "wings": "#C0C0C0",
+        "eyes": "#FFD54F",
+        "markings": "#F5F5F5",
+        "feet": "#A8A8A8"
+      }
+    },
+    {
+      "catalogId": "MV-0078",
+      "geneticId": "hero-0078",
+      "species": "cosmicGuardian",
+      "rarity": "rare",
+      "geneBody": "avian",
+      "body": "quadruped",
+      "head": "avian",
+      "hybrid": "dual-hybrid",
+      "aura": "ember",
+      "personality": "energetic",
+      "affinity": "star",
+      "wings": "armored",
+      "eyeSize": "small",
+      "marking": "complex_spots",
+      "mutations": [
+        "surreal_appendages:ribbons",
+        "crystal_growths:embedded"
+      ],
+      "specialFeatures": [
+        "bioluminescent_spots:breathing",
+        "crystal_growth:small_clusters"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#A66704",
+        "head": "#045397",
+        "wings": "#F48EC4",
+        "eyes": "#FFA000",
+        "markings": "#42A55F",
+        "feet": "#C79FF7"
+      }
+    },
+    {
+      "catalogId": "MV-0670",
+      "geneticId": "hero-0670",
+      "species": "stellarWyrm",
+      "rarity": "legendary",
+      "geneBody": "cyclops",
+      "body": "blob",
+      "head": "canine",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "curious",
+      "affinity": "star",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "stellar_mandala",
+      "mutations": [
+        "bioluminescence:veins",
+        "void_patches:medium"
+      ],
+      "specialFeatures": [
+        "constellation_markings:enhanced",
+        "time_ripples:enhanced",
+        "dimensional_shadows:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#1C1C1C",
+        "head": "#2F2F2F",
+        "wings": "#FFD700",
+        "eyes": "#FFD54F",
+        "markings": "#FFD700",
+        "feet": "#B8860B"
+      }
+    },
+    {
+      "catalogId": "MV-0863",
+      "geneticId": "hero-0863",
+      "species": "crystalDrake",
+      "rarity": "rare",
+      "geneBody": "reptilian",
+      "body": "winged",
+      "head": "rodent",
+      "hybrid": "dual-hybrid",
+      "aura": "storm",
+      "personality": "playful",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "constellation_dots",
+      "mutations": [
+        "rock_texture:smooth"
+      ],
+      "specialFeatures": [
+        "aurora_wing_tips:standard",
+        "prismatic_scales:standard"
+      ],
+      "shiny": true,
+      "shinyType": "chromatic",
+      "colors": {
+        "body": "#1E65C4",
+        "head": "#E2B8AD",
+        "wings": "#97D937",
+        "eyes": "#F48FB1",
+        "markings": "#5EEBC3",
+        "feet": "#F0884B"
+      }
+    },
+    {
+      "catalogId": "MV-0520",
+      "geneticId": "hero-0520",
+      "species": "nebulaSprite",
+      "rarity": "legendary",
+      "geneBody": "slender",
+      "body": "blob",
+      "head": "canine",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "curious",
+      "affinity": "nebula",
+      "wings": "ethereal",
+      "eyeSize": "small",
+      "marking": "cosmic_fractals",
+      "mutations": [
+        "plant_growth:flowers",
+        "scale_armor:metallic",
+        "gem_body:sapphire"
+      ],
+      "specialFeatures": [
+        "nebula_trail:dense",
+        "star_dust_emanation:unique"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B76E79",
+        "head": "#C9A9A6",
+        "wings": "#E8B4B8",
+        "eyes": "#FFD54F",
+        "markings": "#FFE4E1",
+        "feet": "#8B6969"
+      }
+    },
+    {
+      "catalogId": "MV-0695",
+      "geneticId": "hero-0695",
+      "species": "crystalDrake",
+      "rarity": "legendary",
+      "geneBody": "sturdy",
+      "body": "quadruped",
+      "head": "simian",
+      "hybrid": "single-species",
+      "aura": "storm",
+      "personality": "playful",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "small",
+      "marking": "void_portals",
+      "mutations": [
+        "extra_eyes:floating",
+        "elemental_aura:ice"
+      ],
+      "specialFeatures": [
+        "void_wings:shadow",
+        "stellar_core:expanding",
+        "star_dust_emanation:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#E5E4E2",
+        "head": "#D8D8D8",
+        "wings": "#C0C0C0",
+        "eyes": "#FFD54F",
+        "markings": "#F5F5F5",
+        "feet": "#A8A8A8"
+      }
+    },
+    {
+      "catalogId": "MV-0242",
+      "geneticId": "hero-0242",
+      "species": "stellarWyrm",
+      "rarity": "uncommon",
+      "geneBody": "balanced",
+      "body": "quadruped",
+      "head": "aquatic",
+      "hybrid": "dual-hybrid",
+      "aura": "forest",
+      "personality": "wise",
+      "affinity": "star",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "sparkles",
+      "mutations": [
+        "geometric_patterns:spirals"
+      ],
+      "specialFeatures": [
+        "color_shift_wings:standard"
+      ],
+      "shiny": true,
+      "shinyType": "golden",
+      "colors": {
+        "body": "#C67171",
+        "head": "#58D265",
+        "wings": "#6CB86A",
+        "eyes": "#64B5F6",
+        "markings": "#87D6C3",
+        "feet": "#DF5B64"
+      }
+    },
+    {
+      "catalogId": "MV-0838",
+      "geneticId": "hero-0838",
+      "species": "stellarWyrm",
+      "rarity": "rare",
+      "geneBody": "balanced",
+      "body": "winged",
+      "head": "insectoid",
+      "hybrid": "dual-hybrid",
+      "aura": "cosmic",
+      "personality": "wise",
+      "affinity": "star",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "aurora_stripes",
+      "mutations": [
+        "floating_parts:orbs",
+        "mechanical_parts:pistons"
+      ],
+      "specialFeatures": [
+        "aurora_wing_tips:unique",
+        "shimmer_wings:enhanced"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#045599",
+        "head": "#E9A6BE",
+        "wings": "#D306BE",
+        "eyes": "#FFD54F",
+        "markings": "#05FB80",
+        "feet": "#C415A4"
+      }
+    },
+    {
+      "catalogId": "MV-0535",
+      "geneticId": "hero-0535",
+      "species": "nebulaSprite",
+      "rarity": "legendary",
+      "geneBody": "reptilian",
+      "body": "biped",
+      "head": "cervine",
+      "hybrid": "single-species",
+      "aura": "storm",
+      "personality": "curious",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "small",
+      "marking": "reality_rifts",
+      "mutations": [
+        "prismatic_sheen:oil_slick",
+        "inanimate_markings:circuits"
+      ],
+      "specialFeatures": [
+        "dimensional_shadows:enhanced",
+        "stellar_core:rotating",
+        "time_ripples:unique"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B76E79",
+        "head": "#C9A9A6",
+        "wings": "#E8B4B8",
+        "eyes": "#FFD54F",
+        "markings": "#FFE4E1",
+        "feet": "#8B6969"
+      }
+    },
+    {
+      "catalogId": "MV-0975",
+      "geneticId": "hero-0975",
+      "species": "crystalDrake",
+      "rarity": "legendary",
+      "geneBody": "insectoid",
+      "body": "serpentine",
+      "head": "rodent",
+      "hybrid": "triple-hybrid",
+      "aura": "forest",
+      "personality": "gentle",
+      "affinity": "crystal",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "cosmic_fractals",
+      "mutations": [
+        "circuit_veins:blue_glow",
+        "rock_texture:volcanic"
+      ],
+      "specialFeatures": [
+        "aurora_aura:flowing",
+        "star_dust_emanation:unique",
+        "void_wings:shadow"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#1C1C1C",
+        "head": "#2F2F2F",
+        "wings": "#FFD700",
+        "eyes": "#FFD54F",
+        "markings": "#FFD700",
+        "feet": "#B8860B"
+      }
+    },
+    {
+      "catalogId": "MV-0018",
+      "geneticId": "hero-0018",
+      "species": "voidStalker",
+      "rarity": "rare",
+      "geneBody": "serpentine",
+      "body": "blob",
+      "head": "reptile",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "curious",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "small",
+      "marking": "crystal_facets",
+      "mutations": [
+        "cosmic_horns:star_tipped",
+        "plant_growth:leaves"
+      ],
+      "specialFeatures": [
+        "crystal_growth:small_clusters",
+        "prismatic_scales:unique"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#88DE7E",
+        "head": "#FA31CD",
+        "wings": "#30B142",
+        "eyes": "#AA00FF",
+        "markings": "#69DD7A",
+        "feet": "#3F8B1F"
+      }
+    },
+    {
+      "catalogId": "MV-0270",
+      "geneticId": "hero-0270",
+      "species": "cosmicGuardian",
+      "rarity": "legendary",
+      "geneBody": "quadruped",
+      "body": "biped",
+      "head": "insectoid",
+      "hybrid": "triple-hybrid",
+      "aura": "cosmic",
+      "personality": "wise",
+      "affinity": "crystal",
+      "wings": "armored",
+      "eyeSize": "medium",
+      "marking": "cosmic_fractals",
+      "mutations": [
+        "bioluminescence:stripes",
+        "floating_parts:rings"
+      ],
+      "specialFeatures": [
+        "time_ripples:unique",
+        "void_wings:portal-like",
+        "cosmic_resonance:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#FFD700",
+        "head": "#FFDF00",
+        "wings": "#FFC125",
+        "eyes": "#FFD54F",
+        "markings": "#FFFFE0",
+        "feet": "#DAA520"
+      }
+    },
+    {
+      "catalogId": "MV-0760",
+      "geneticId": "hero-0760",
+      "species": "stellarWyrm",
+      "rarity": "legendary",
+      "geneBody": "sturdy",
+      "body": "quadruped",
+      "head": "canine",
+      "hybrid": "glitchy",
+      "aura": "shadow-soft",
+      "personality": "gentle",
+      "affinity": "star",
+      "wings": "feathered",
+      "eyeSize": "small",
+      "marking": "time_spirals",
+      "mutations": [
+        "inanimate_markings:glyphs",
+        "void_patches:crackling"
+      ],
+      "specialFeatures": [
+        "aurora_aura:rippling",
+        "time_ripples:enhanced"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#E5E4E2",
+        "head": "#D8D8D8",
+        "wings": "#C0C0C0",
+        "eyes": "#64B5F6",
+        "markings": "#F5F5F5",
+        "feet": "#A8A8A8"
+      }
+    },
+    {
+      "catalogId": "MV-0580",
+      "geneticId": "hero-0580",
+      "species": "crystalDrake",
+      "rarity": "legendary",
+      "geneBody": "fish",
+      "body": "blob",
+      "head": "feline",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "wise",
+      "affinity": "crystal",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "reality_rifts",
+      "mutations": [
+        "elemental_aura:lightning",
+        "bioluminescence:stripes",
+        "phantom_limbs:arms"
+      ],
+      "specialFeatures": [
+        "dimensional_shadows:enhanced",
+        "stellar_core:expanding"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#FFD700",
+        "head": "#FFDF00",
+        "wings": "#FFC125",
+        "eyes": "#81C784",
+        "markings": "#FFFFE0",
+        "feet": "#DAA520"
+      }
+    },
+    {
+      "catalogId": "MV-0835",
+      "geneticId": "hero-0835",
+      "species": "crystalElemental",
+      "rarity": "legendary",
+      "geneBody": "blob",
+      "body": "quadruped",
+      "head": "insectoid",
+      "hybrid": "dual-hybrid",
+      "aura": "cosmic",
+      "personality": "curious",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "small",
+      "marking": "reality_rifts",
+      "mutations": [
+        "feather_mane:mohawk",
+        "geometric_patterns:triangles"
+      ],
+      "specialFeatures": [
+        "nebula_trail:colorful",
+        "dimensional_shadows:enhanced",
+        "cosmic_resonance:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#E5E4E2",
+        "head": "#D8D8D8",
+        "wings": "#C0C0C0",
+        "eyes": "#E040FB",
+        "markings": "#F5F5F5",
+        "feet": "#A8A8A8"
+      }
+    },
+    {
+      "catalogId": "MV-0448",
+      "geneticId": "hero-0448",
+      "species": "cosmicGuardian",
+      "rarity": "rare",
+      "geneBody": "insectoid",
+      "body": "serpentine",
+      "head": "avian",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "gentle",
+      "affinity": "star",
+      "wings": "armored",
+      "eyeSize": "medium",
+      "marking": "galaxy_swirls",
+      "mutations": [
+        "crystal_growths:clusters"
+      ],
+      "specialFeatures": [
+        "bioluminescent_spots:breathing",
+        "crystal_growth:small_clusters"
+      ],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "body": "#70FBF5",
+        "head": "#A8019A",
+        "wings": "#FD565C",
+        "eyes": "#FFB300",
+        "markings": "#EB9E91",
+        "feet": "#1A8789"
+      }
+    },
+    {
+      "catalogId": "MV-0899",
+      "geneticId": "hero-0899",
+      "species": "nebulaSprite",
+      "rarity": "epic",
+      "geneBody": "slender",
+      "body": "blob",
+      "head": "cervine",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "playful",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "medium",
+      "marking": "nebula_trail",
+      "mutations": [
+        "elemental_aura:ice",
+        "prismatic_sheen:oil_slick"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "body": "#E270B4",
+        "head": "#184B84",
+        "wings": "#AD2C22",
+        "eyes": "#64B5F6",
+        "markings": "#7252B8",
+        "feet": "#7BCE9B"
+      }
+    },
+    {
+      "catalogId": "MV-0743",
+      "geneticId": "hero-0743",
+      "species": "cosmicGuardian",
+      "rarity": "rare",
+      "geneBody": "insectoid",
+      "body": "serpentine",
+      "head": "aquatic",
+      "hybrid": "dual-hybrid",
+      "aura": "cosmic",
+      "personality": "wise",
+      "affinity": "crystal",
+      "wings": "armored",
+      "eyeSize": "medium",
+      "marking": "constellation_dots",
+      "mutations": [
+        "cosmic_horns:star_tipped"
+      ],
+      "specialFeatures": [
+        "constellation_eyes:enhanced",
+        "crystal_growth:geometric"
+      ],
+      "shiny": true,
+      "shinyType": "inverted",
+      "colors": {
+        "body": "#790E0A",
+        "head": "#9D1A97",
+        "wings": "#EE9E34",
+        "eyes": "#FFB300",
+        "markings": "#CF27F9",
+        "feet": "#8E3584"
+      }
+    },
+    {
+      "catalogId": "MV-0662",
+      "geneticId": "hero-0662",
+      "species": "auroraPhoenix",
+      "rarity": "uncommon",
+      "geneBody": "avian",
+      "body": "serpentine",
+      "head": "feline",
+      "hybrid": "dual-hybrid",
+      "aura": "cosmic",
+      "personality": "energetic",
+      "affinity": "nebula",
+      "wings": "flaming",
+      "eyeSize": "medium",
+      "marking": "stripes",
+      "mutations": [
+        "plant_growth:vines"
+      ],
+      "specialFeatures": [
+        "gentle_shimmer:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B0D710",
+        "head": "#139046",
+        "wings": "#96D115",
+        "eyes": "#0097A7",
+        "markings": "#ADA6EF",
+        "feet": "#0A9F9B"
+      }
+    },
+    {
+      "catalogId": "MV-0028",
+      "geneticId": "hero-0028",
+      "species": "stellarWyrm",
+      "rarity": "rare",
+      "geneBody": "balanced",
+      "body": "serpentine",
+      "head": "canine",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "curious",
+      "affinity": "nebula",
+      "wings": "feathered",
+      "eyeSize": "large",
+      "marking": "aurora_stripes",
+      "mutations": [
+        "floating_parts:crystals",
+        "scale_armor:metallic"
+      ],
+      "specialFeatures": [
+        "crystal_growth:small_clusters"
+      ],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "body": "#43A414",
+        "head": "#95FAC0",
+        "wings": "#B36726",
+        "eyes": "#80CBC4",
+        "markings": "#A2FA1A",
+        "feet": "#6A04E8"
+      }
+    },
+    {
+      "catalogId": "MV-0913",
+      "geneticId": "hero-0913",
+      "species": "stellarWyrm",
+      "rarity": "rare",
+      "geneBody": "balanced",
+      "body": "quadruped",
+      "head": "cervine",
+      "hybrid": "single-species",
+      "aura": "shadow-soft",
+      "personality": "curious",
+      "affinity": "star",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "complex_spots",
+      "mutations": [
+        "elemental_aura:wind",
+        "circuit_veins:pulsing"
+      ],
+      "specialFeatures": [
+        "prismatic_scales:enhanced",
+        "constellation_eyes:enhanced"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#FA5FB1",
+        "head": "#FE8D82",
+        "wings": "#EB98AB",
+        "eyes": "#80CBC4",
+        "markings": "#2B1194",
+        "feet": "#78F658"
+      }
+    },
+    {
+      "catalogId": "MV-0233",
+      "geneticId": "hero-0233",
+      "species": "nebulaSprite",
+      "rarity": "rare",
+      "geneBody": "fish",
+      "body": "serpentine",
+      "head": "avian",
+      "hybrid": "triple-hybrid",
+      "aura": "forest",
+      "personality": "energetic",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "small",
+      "marking": "complex_spots",
+      "mutations": [
+        "extra_eyes:back"
+      ],
+      "specialFeatures": [
+        "shimmer_wings:unique",
+        "aurora_wing_tips:unique"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B22BAD",
+        "head": "#D1B140",
+        "wings": "#4425FF",
+        "eyes": "#FFD54F",
+        "markings": "#54E2C6",
+        "feet": "#E179D8"
+      }
+    },
+    {
+      "catalogId": "MV-0289",
+      "geneticId": "hero-0289",
+      "species": "stellarWyrm",
+      "rarity": "epic",
+      "geneBody": "reptilian",
+      "body": "serpentine",
+      "head": "feline",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "wise",
+      "affinity": "nebula",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "twilight_rings",
+      "mutations": [
+        "surreal_appendages:tentacles",
+        "rock_texture:rough"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "inverted",
+      "colors": {
+        "body": "#90E229",
+        "head": "#89FA5A",
+        "wings": "#040573",
+        "eyes": "#FFD54F",
+        "markings": "#728122",
+        "feet": "#CE0D2F"
+      }
+    },
+    {
+      "catalogId": "MV-0382",
+      "geneticId": "hero-0382",
+      "species": "voidStalker",
+      "rarity": "uncommon",
+      "geneBody": "cyclops",
+      "body": "biped",
+      "head": "aquatic",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "wise",
+      "affinity": "nebula",
+      "wings": "ethereal",
+      "eyeSize": "small",
+      "marking": "spots",
+      "mutations": [
+        "prismatic_sheen:aurora"
+      ],
+      "specialFeatures": [
+        "soft_glow:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#231486",
+        "head": "#506D2D",
+        "wings": "#5AEA89",
+        "eyes": "#E040FB",
+        "markings": "#428225",
+        "feet": "#8B37ED"
+      }
+    },
+    {
+      "catalogId": "MV-0613",
+      "geneticId": "hero-0613",
+      "species": "crystalDrake",
+      "rarity": "rare",
+      "geneBody": "sturdy",
+      "body": "quadruped",
+      "head": "avian",
+      "hybrid": "dual-hybrid",
+      "aura": "tidal",
+      "personality": "wise",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "large",
+      "marking": "galaxy_swirls",
+      "mutations": [
+        "feather_mane:royal"
+      ],
+      "specialFeatures": [
+        "constellation_eyes:enhanced",
+        "prismatic_scales:enhanced"
+      ],
+      "shiny": true,
+      "shinyType": "inverted",
+      "colors": {
+        "body": "#487324",
+        "head": "#B5034A",
+        "wings": "#C6C66E",
+        "eyes": "#FFD54F",
+        "markings": "#CAB1DF",
+        "feet": "#D64CB1"
+      }
+    },
+    {
+      "catalogId": "MV-0168",
+      "geneticId": "hero-0168",
+      "species": "stellarWyrm",
+      "rarity": "rare",
+      "geneBody": "balanced",
+      "body": "blob",
+      "head": "rodent",
+      "hybrid": "single-species",
+      "aura": "ember",
+      "personality": "curious",
+      "affinity": "star",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "aurora_stripes",
+      "mutations": [
+        "phantom_limbs:tail"
+      ],
+      "specialFeatures": [
+        "prismatic_scales:enhanced",
+        "aurora_wing_tips:standard"
+      ],
+      "shiny": true,
+      "shinyType": "inverted",
+      "colors": {
+        "body": "#76E8DD",
+        "head": "#11139B",
+        "wings": "#1693AB",
+        "eyes": "#80CBC4",
+        "markings": "#83D1D1",
+        "feet": "#72AA16"
+      }
+    },
+    {
+      "catalogId": "MV-0923",
+      "geneticId": "hero-0923",
+      "species": "crystalElemental",
+      "rarity": "rare",
+      "geneBody": "insectoid",
+      "body": "quadruped",
+      "head": "feline",
+      "hybrid": "dual-hybrid",
+      "aura": "ember",
+      "personality": "wise",
+      "affinity": "crystal",
+      "wings": "crystal",
+      "eyeSize": "small",
+      "marking": "complex_spots",
+      "mutations": [
+        "feather_mane:spiked"
+      ],
+      "specialFeatures": [
+        "crystal_growth:spiral_patterns",
+        "constellation_eyes:unique"
+      ],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "body": "#EA31D5",
+        "head": "#95DE53",
+        "wings": "#793A89",
+        "eyes": "#CE93D8",
+        "markings": "#1B288F",
+        "feet": "#39B291"
+      }
+    },
+    {
+      "catalogId": "MV-0584",
+      "geneticId": "hero-0584",
+      "species": "auroraPhoenix",
+      "rarity": "epic",
+      "geneBody": "avian",
+      "body": "winged",
+      "head": "reptile",
+      "hybrid": "single-species",
+      "aura": "shadow-soft",
+      "personality": "curious",
+      "affinity": "star",
+      "wings": "flaming",
+      "eyeSize": "medium",
+      "marking": "stellar_mandala",
+      "mutations": [
+        "phantom_limbs:tail",
+        "scale_armor:dragon"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#353ADC",
+        "head": "#7B45E1",
+        "wings": "#5CAA03",
+        "eyes": "#00BCD4",
+        "markings": "#F6BB5D",
+        "feet": "#1BB239"
+      }
+    },
+    {
+      "catalogId": "MV-0738",
+      "geneticId": "hero-0738",
+      "species": "voidStalker",
+      "rarity": "rare",
+      "geneBody": "balanced",
+      "body": "blob",
+      "head": "feline",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "gentle",
+      "affinity": "nebula",
+      "wings": "ethereal",
+      "eyeSize": "large",
+      "marking": "aurora_stripes",
+      "mutations": [
+        "elemental_aura:fire"
+      ],
+      "specialFeatures": [
+        "aurora_wing_tips:standard",
+        "bioluminescent_spots:steady_glow"
+      ],
+      "shiny": true,
+      "shinyType": "chromatic",
+      "colors": {
+        "body": "#7C248E",
+        "head": "#3AB9B9",
+        "wings": "#3813D6",
+        "eyes": "#E040FB",
+        "markings": "#4D67C8",
+        "feet": "#99F7C5"
+      }
+    },
+    {
+      "catalogId": "MV-0172",
+      "geneticId": "hero-0172",
+      "species": "crystalDrake",
+      "rarity": "uncommon",
+      "geneBody": "reptilian",
+      "body": "biped",
+      "head": "feline",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "playful",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "swirls",
+      "mutations": [],
+      "specialFeatures": [
+        "twinkling_eyes:enhanced"
+      ],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "body": "#983417",
+        "head": "#3E1B92",
+        "wings": "#BF8055",
+        "eyes": "#81C784",
+        "markings": "#3704F6",
+        "feet": "#D45570"
+      }
+    },
+    {
+      "catalogId": "MV-0013",
+      "geneticId": "hero-0013",
+      "species": "cosmicGuardian",
+      "rarity": "rare",
+      "geneBody": "blob",
+      "body": "quadruped",
+      "head": "insectoid",
+      "hybrid": "dual-hybrid",
+      "aura": "ember",
+      "personality": "gentle",
+      "affinity": "star",
+      "wings": "armored",
+      "eyeSize": "medium",
+      "marking": "aurora_stripes",
+      "mutations": [
+        "gem_body:sapphire",
+        "surreal_appendages:shadows"
+      ],
+      "specialFeatures": [
+        "prismatic_scales:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#E53A74",
+        "head": "#A2C45D",
+        "wings": "#2EAEEB",
+        "eyes": "#FFD54F",
+        "markings": "#16A340",
+        "feet": "#6466C6"
+      }
+    },
+    {
+      "catalogId": "MV-0621",
+      "geneticId": "hero-0621",
+      "species": "cosmicGuardian",
+      "rarity": "common",
+      "geneBody": "quadruped",
+      "body": "blob",
+      "head": "reptile",
+      "hybrid": "dual-hybrid",
+      "aura": "cosmic",
+      "personality": "energetic",
+      "affinity": "crystal",
+      "wings": "armored",
+      "eyeSize": "small",
+      "marking": "spots",
+      "mutations": [
+        "bioluminescence:spots"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "golden",
+      "colors": {
+        "body": "#C1A916",
+        "head": "#9CF8BF",
+        "wings": "#6A625D",
+        "eyes": "#FFD54F",
+        "markings": "#E4AFBC",
+        "feet": "#E8DDA0"
+      }
+    },
+    {
+      "catalogId": "MV-0044",
+      "geneticId": "hero-0044",
+      "species": "nebulaSprite",
+      "rarity": "epic",
+      "geneBody": "slender",
+      "body": "quadruped",
+      "head": "feline",
+      "hybrid": "single-species",
+      "aura": "ember",
+      "personality": "energetic",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "medium",
+      "marking": "nebula_trail",
+      "mutations": [
+        "void_patches:small",
+        "mechanical_parts:pistons"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#F8A892",
+        "head": "#6178E0",
+        "wings": "#FC5362",
+        "eyes": "#F48FB1",
+        "markings": "#D80D5A",
+        "feet": "#89E447"
+      }
+    },
+    {
+      "catalogId": "MV-0624",
+      "geneticId": "hero-0624",
+      "species": "stellarWyrm",
+      "rarity": "epic",
+      "geneBody": "cyclops",
+      "body": "biped",
+      "head": "avian",
+      "hybrid": "single-species",
+      "aura": "cosmic",
+      "personality": "curious",
+      "affinity": "nebula",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "galaxy_swirls",
+      "mutations": [
+        "inanimate_markings:gears",
+        "nebula_trails:sparkling"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#F38EC6",
+        "head": "#762BB2",
+        "wings": "#F6388A",
+        "eyes": "#80CBC4",
+        "markings": "#0CC537",
+        "feet": "#3FE256"
+      }
+    },
+    {
+      "catalogId": "MV-0887",
+      "geneticId": "hero-0887",
+      "species": "auroraPhoenix",
+      "rarity": "uncommon",
+      "geneBody": "serpentine",
+      "body": "biped",
+      "head": "rodent",
+      "hybrid": "triple-hybrid",
+      "aura": "forest",
+      "personality": "curious",
+      "affinity": "nebula",
+      "wings": "flaming",
+      "eyeSize": "small",
+      "marking": "sparkles",
+      "mutations": [
+        "prismatic_sheen:rainbow"
+      ],
+      "specialFeatures": [
+        "color_shift_wings:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B11CC7",
+        "head": "#F3A12C",
+        "wings": "#3DD57A",
+        "eyes": "#0097A7",
+        "markings": "#818F38",
+        "feet": "#CAAFDF"
+      }
+    },
+    {
+      "catalogId": "MV-0474",
+      "geneticId": "hero-0474",
+      "species": "nebulaSprite",
+      "rarity": "epic",
+      "geneBody": "slender",
+      "body": "biped",
+      "head": "canine",
+      "hybrid": "triple-hybrid",
+      "aura": "storm",
+      "personality": "playful",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "large",
+      "marking": "twilight_rings",
+      "mutations": [
+        "gem_body:emerald",
+        "floating_parts:crystals"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#4C72C5",
+        "head": "#A840C9",
+        "wings": "#89E6B9",
+        "eyes": "#64B5F6",
+        "markings": "#AD2443",
+        "feet": "#148F9A"
+      }
+    },
+    {
+      "catalogId": "MV-0091",
+      "geneticId": "hero-0091",
+      "species": "cosmicGuardian",
+      "rarity": "common",
+      "geneBody": "fish",
+      "body": "quadruped",
+      "head": "simian",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "energetic",
+      "affinity": "crystal",
+      "wings": "armored",
+      "eyeSize": "small",
+      "marking": "spots",
+      "mutations": [
+        "feather_mane:spiked"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "chromatic",
+      "colors": {
+        "body": "#97FE83",
+        "head": "#48911C",
+        "wings": "#65BAE9",
+        "eyes": "#FFB300",
+        "markings": "#8236FE",
+        "feet": "#9BE9F6"
+      }
+    },
+    {
+      "catalogId": "MV-0872",
+      "geneticId": "hero-0872",
+      "species": "voidStalker",
+      "rarity": "uncommon",
+      "geneBody": "serpentine",
+      "body": "quadruped",
+      "head": "avian",
+      "hybrid": "single-species",
+      "aura": "cosmic",
+      "personality": "wise",
+      "affinity": "nebula",
+      "wings": "ethereal",
+      "eyeSize": "medium",
+      "marking": "crescents",
+      "mutations": [],
+      "specialFeatures": [
+        "soft_glow:enhanced"
+      ],
+      "shiny": true,
+      "shinyType": "chromatic",
+      "colors": {
+        "body": "#1A70BB",
+        "head": "#C775D2",
+        "wings": "#E41DA6",
+        "eyes": "#D500F9",
+        "markings": "#CB1732",
+        "feet": "#D59F3D"
+      }
+    },
+    {
+      "catalogId": "MV-0989",
+      "geneticId": "hero-0989",
+      "species": "auroraPhoenix",
+      "rarity": "epic",
+      "geneBody": "insectoid",
+      "body": "biped",
+      "head": "simian",
+      "hybrid": "dual-hybrid",
+      "aura": "forest",
+      "personality": "curious",
+      "affinity": "nebula",
+      "wings": "flaming",
+      "eyeSize": "medium",
+      "marking": "aurora_stripes",
+      "mutations": [
+        "geometric_patterns:triangles",
+        "circuit_veins:pulsing"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#B14EBF",
+        "head": "#246BF0",
+        "wings": "#D6A012",
+        "eyes": "#0097A7",
+        "markings": "#D5C475",
+        "feet": "#3CCA64"
+      }
+    },
+    {
+      "catalogId": "MV-0731",
+      "geneticId": "hero-0731",
+      "species": "nebulaSprite",
+      "rarity": "common",
+      "geneBody": "sturdy",
+      "body": "serpentine",
+      "head": "rodent",
+      "hybrid": "triple-hybrid",
+      "aura": "cosmic",
+      "personality": "playful",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "large",
+      "marking": "none",
+      "mutations": [
+        "crystal_growths:clusters"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "body": "#F995C5",
+        "head": "#0F9DB5",
+        "wings": "#9D36B7",
+        "eyes": "#F48FB1",
+        "markings": "#B89EEA",
+        "feet": "#758ADA"
+      }
+    },
+    {
+      "catalogId": "MV-0894",
+      "geneticId": "hero-0894",
+      "species": "nebulaSprite",
+      "rarity": "epic",
+      "geneBody": "fish",
+      "body": "winged",
+      "head": "reptile",
+      "hybrid": "single-species",
+      "aura": "cosmic",
+      "personality": "energetic",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "medium",
+      "marking": "stellar_mandala",
+      "mutations": [
+        "gem_body:ruby",
+        "void_patches:small"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#C28FEB",
+        "head": "#DB0688",
+        "wings": "#AA56CA",
+        "eyes": "#FFD54F",
+        "markings": "#662988",
+        "feet": "#2897CB"
+      }
+    },
+    {
+      "catalogId": "MV-0414",
+      "geneticId": "hero-0414",
+      "species": "crystalDrake",
+      "rarity": "epic",
+      "geneBody": "quadruped",
+      "body": "blob",
+      "head": "avian",
+      "hybrid": "glitchy",
+      "aura": "shadow-soft",
+      "personality": "wise",
+      "affinity": "crystal",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "nebula_trail",
+      "mutations": [
+        "phantom_limbs:wings"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "inverted",
+      "colors": {
+        "body": "#BD87DA",
+        "head": "#317D69",
+        "wings": "#273962",
+        "eyes": "#F48FB1",
+        "markings": "#0C81F3",
+        "feet": "#4DDC28"
+      }
+    },
+    {
+      "catalogId": "MV-0097",
+      "geneticId": "hero-0097",
+      "species": "stellarWyrm",
+      "rarity": "uncommon",
+      "geneBody": "avian",
+      "body": "serpentine",
+      "head": "reptile",
+      "hybrid": "single-species",
+      "aura": "shadow-soft",
+      "personality": "gentle",
+      "affinity": "nebula",
+      "wings": "feathered",
+      "eyeSize": "small",
+      "marking": "stripes",
+      "mutations": [
+        "scale_armor:metallic"
+      ],
+      "specialFeatures": [
+        "color_shift_wings:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#8DCDED",
+        "head": "#2CB140",
+        "wings": "#979539",
+        "eyes": "#80CBC4",
+        "markings": "#E3A8E3",
+        "feet": "#DC91D0"
+      }
+    },
+    {
+      "catalogId": "MV-0422",
+      "geneticId": "hero-0422",
+      "species": "voidStalker",
+      "rarity": "uncommon",
+      "geneBody": "slender",
+      "body": "quadruped",
+      "head": "canine",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "curious",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "medium",
+      "marking": "sparkles",
+      "mutations": [
+        "cosmic_horns:star_tipped"
+      ],
+      "specialFeatures": [
+        "twinkling_eyes:unique"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#EE92F6",
+        "head": "#EB9BFB",
+        "wings": "#16E0A4",
+        "eyes": "#AA00FF",
+        "markings": "#E58F7B",
+        "feet": "#DD7B0C"
+      }
+    },
+    {
+      "catalogId": "MV-0519",
+      "geneticId": "hero-0519",
+      "species": "crystalDrake",
+      "rarity": "epic",
+      "geneBody": "balanced",
+      "body": "quadruped",
+      "head": "aquatic",
+      "hybrid": "triple-hybrid",
+      "aura": "storm",
+      "personality": "gentle",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "large",
+      "marking": "stellar_mandala",
+      "mutations": [
+        "mechanical_parts:clockwork",
+        "phantom_limbs:tail"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#65A4F3",
+        "head": "#BD5E77",
+        "wings": "#D6F292",
+        "eyes": "#F48FB1",
+        "markings": "#1C3BA2",
+        "feet": "#829EF4"
+      }
+    },
+    {
+      "catalogId": "MV-0454",
+      "geneticId": "hero-0454",
+      "species": "crystalElemental",
+      "rarity": "epic",
+      "geneBody": "insectoid",
+      "body": "quadruped",
+      "head": "cervine",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "curious",
+      "affinity": "crystal",
+      "wings": "crystal",
+      "eyeSize": "large",
+      "marking": "twilight_rings",
+      "mutations": [
+        "inanimate_markings:circuits",
+        "prismatic_sheen:oil_slick"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#1FDD86",
+        "head": "#461A96",
+        "wings": "#FB8EA7",
+        "eyes": "#EA80FC",
+        "markings": "#AC52E4",
+        "feet": "#962D4F"
+      }
+    },
+    {
+      "catalogId": "MV-0859",
+      "geneticId": "hero-0859",
+      "species": "crystalDrake",
+      "rarity": "epic",
+      "geneBody": "quadruped",
+      "body": "winged",
+      "head": "feline",
+      "hybrid": "triple-hybrid",
+      "aura": "cosmic",
+      "personality": "playful",
+      "affinity": "crystal",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "crystal_facets",
+      "mutations": [
+        "surreal_appendages:flames"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "chromatic",
+      "colors": {
+        "body": "#C02882",
+        "head": "#6513D7",
+        "wings": "#460AB5",
+        "eyes": "#FFD54F",
+        "markings": "#9A3F96",
+        "feet": "#7ABA1B"
+      }
+    },
+    {
+      "catalogId": "MV-0124",
+      "geneticId": "hero-0124",
+      "species": "stellarWyrm",
+      "rarity": "epic",
+      "geneBody": "balanced",
+      "body": "biped",
+      "head": "rodent",
+      "hybrid": "triple-hybrid",
+      "aura": "tidal",
+      "personality": "gentle",
+      "affinity": "star",
+      "wings": "feathered",
+      "eyeSize": "large",
+      "marking": "nebula_trail",
+      "mutations": [
+        "nebula_trails:flowing"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "inverted",
+      "colors": {
+        "body": "#814ECD",
+        "head": "#DB42DC",
+        "wings": "#236B5F",
+        "eyes": "#64B5F6",
+        "markings": "#D72105",
+        "feet": "#38AB7E"
+      }
+    },
+    {
+      "catalogId": "MV-0276",
+      "geneticId": "hero-0276",
+      "species": "stellarWyrm",
+      "rarity": "common",
+      "geneBody": "balanced",
+      "body": "blob",
+      "head": "cervine",
+      "hybrid": "triple-hybrid",
+      "aura": "forest",
+      "personality": "gentle",
+      "affinity": "nebula",
+      "wings": "feathered",
+      "eyeSize": "small",
+      "marking": "none",
+      "mutations": [
+        "rock_texture:smooth"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "body": "#7008AA",
+        "head": "#BA587E",
+        "wings": "#180F97",
+        "eyes": "#80CBC4",
+        "markings": "#FA7A6E",
+        "feet": "#AFB50A"
+      }
+    },
+    {
+      "catalogId": "MV-0119",
+      "geneticId": "hero-0119",
+      "species": "nebulaSprite",
+      "rarity": "epic",
+      "geneBody": "slender",
+      "body": "serpentine",
+      "head": "aquatic",
+      "hybrid": "single-species",
+      "aura": "cosmic",
+      "personality": "energetic",
+      "affinity": "nebula",
+      "wings": "ethereal",
+      "eyeSize": "medium",
+      "marking": "twilight_rings",
+      "mutations": [
+        "void_patches:swirling",
+        "scale_armor:dragon"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#17E629",
+        "head": "#896439",
+        "wings": "#7EA8EE",
+        "eyes": "#FFD54F",
+        "markings": "#35F2B7",
+        "feet": "#513FC6"
+      }
+    },
+    {
+      "catalogId": "MV-0697",
+      "geneticId": "hero-0697",
+      "species": "voidStalker",
+      "rarity": "uncommon",
+      "geneBody": "insectoid",
+      "body": "blob",
+      "head": "avian",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "wise",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "medium",
+      "marking": "stripes",
+      "mutations": [
+        "gem_body:amethyst"
+      ],
+      "specialFeatures": [
+        "gentle_shimmer:standard"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#C255A9",
+        "head": "#D6CE93",
+        "wings": "#EE17B8",
+        "eyes": "#AA00FF",
+        "markings": "#8D84DC",
+        "feet": "#9CC9DE"
+      }
+    },
+    {
+      "catalogId": "MV-0364",
+      "geneticId": "hero-0364",
+      "species": "nebulaSprite",
+      "rarity": "epic",
+      "geneBody": "slender",
+      "body": "biped",
+      "head": "reptile",
+      "hybrid": "single-species",
+      "aura": "ember",
+      "personality": "curious",
+      "affinity": "void",
+      "wings": "ethereal",
+      "eyeSize": "large",
+      "marking": "galaxy_swirls",
+      "mutations": [
+        "cosmic_horns:star_tipped",
+        "crystal_growths:clusters"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#9EC84B",
+        "head": "#0F9669",
+        "wings": "#C88B6C",
+        "eyes": "#FFD54F",
+        "markings": "#F3377D",
+        "feet": "#36F6CA"
+      }
+    },
+    {
+      "catalogId": "MV-0492",
+      "geneticId": "hero-0492",
+      "species": "cosmicGuardian",
+      "rarity": "uncommon",
+      "geneBody": "reptilian",
+      "body": "biped",
+      "head": "simian",
+      "hybrid": "dual-hybrid",
+      "aura": "tidal",
+      "personality": "wise",
+      "affinity": "crystal",
+      "wings": "armored",
+      "eyeSize": "medium",
+      "marking": "stripes",
+      "mutations": [
+        "prismatic_sheen:rainbow"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "body": "#1DFC7A",
+        "head": "#5042A4",
+        "wings": "#7487FF",
+        "eyes": "#FFB300",
+        "markings": "#C6296A",
+        "feet": "#BFEC4A"
+      }
+    },
+    {
+      "catalogId": "MV-0612",
+      "geneticId": "hero-0612",
+      "species": "stellarWyrm",
+      "rarity": "uncommon",
+      "geneBody": "cyclops",
+      "body": "blob",
+      "head": "feline",
+      "hybrid": "dual-hybrid",
+      "aura": "ember",
+      "personality": "wise",
+      "affinity": "star",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "crescents",
+      "mutations": [],
+      "specialFeatures": [
+        "twinkling_eyes:standard"
+      ],
+      "shiny": true,
+      "shinyType": "inverted",
+      "colors": {
+        "body": "#759E19",
+        "head": "#3E39F0",
+        "wings": "#9EEE67",
+        "eyes": "#FFD54F",
+        "markings": "#1CD7CA",
+        "feet": "#B91C73"
+      }
+    },
+    {
+      "catalogId": "MV-0302",
+      "geneticId": "hero-0302",
+      "species": "crystalDrake",
+      "rarity": "uncommon",
+      "geneBody": "blob",
+      "body": "biped",
+      "head": "canine",
+      "hybrid": "single-species",
+      "aura": "storm",
+      "personality": "playful",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "sparkles",
+      "mutations": [
+        "phantom_limbs:tendrils"
+      ],
+      "specialFeatures": [
+        "soft_glow:unique"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#2756A9",
+        "head": "#52D656",
+        "wings": "#31BE5A",
+        "eyes": "#81C784",
+        "markings": "#37AE44",
+        "feet": "#BB41F0"
+      }
+    },
+    {
+      "catalogId": "MV-0587",
+      "geneticId": "hero-0587",
+      "species": "voidStalker",
+      "rarity": "uncommon",
+      "geneBody": "serpentine",
+      "body": "blob",
+      "head": "canine",
+      "hybrid": "triple-hybrid",
+      "aura": "tidal",
+      "personality": "gentle",
+      "affinity": "nebula",
+      "wings": "ethereal",
+      "eyeSize": "small",
+      "marking": "spots",
+      "mutations": [
+        "void_patches:crackling"
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "body": "#41519A",
+        "head": "#991D3F",
+        "wings": "#629D1E",
+        "eyes": "#D500F9",
+        "markings": "#1E89F3",
+        "feet": "#9B2401"
+      }
+    },
+    {
+      "catalogId": "MV-0611",
+      "geneticId": "hero-0611",
+      "species": "auroraPhoenix",
+      "rarity": "common",
+      "geneBody": "fish",
+      "body": "biped",
+      "head": "reptile",
+      "hybrid": "triple-hybrid",
+      "aura": "tidal",
+      "personality": "energetic",
+      "affinity": "star",
+      "wings": "flaming",
+      "eyeSize": "medium",
+      "marking": "simple_sparkles",
+      "mutations": [
+        "rock_texture:volcanic"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#663C9B",
+        "head": "#9A34F1",
+        "wings": "#D6531A",
+        "eyes": "#00BCD4",
+        "markings": "#EEAAEE",
+        "feet": "#08D180"
+      }
+    },
+    {
+      "catalogId": "MV-0827",
+      "geneticId": "hero-0827",
+      "species": "crystalDrake",
+      "rarity": "uncommon",
+      "geneBody": "sturdy",
+      "body": "blob",
+      "head": "reptile",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "playful",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "large",
+      "marking": "none",
+      "mutations": [
+        "crystal_growths:clusters"
+      ],
+      "specialFeatures": [
+        "soft_glow:enhanced"
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#341685",
+        "head": "#8EA6DA",
+        "wings": "#995019",
+        "eyes": "#81C784",
+        "markings": "#29AAF7",
+        "feet": "#85D562"
+      }
+    },
+    {
+      "catalogId": "MV-0376",
+      "geneticId": "hero-0376",
+      "species": "crystalElemental",
+      "rarity": "common",
+      "geneBody": "quadruped",
+      "body": "blob",
+      "head": "simian",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "wise",
+      "affinity": "crystal",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "simple_sparkles",
+      "mutations": [
+        "circuit_veins:blue_glow"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#EECEA1",
+        "head": "#A98A46",
+        "wings": "#C388D6",
+        "eyes": "#E040FB",
+        "markings": "#9CF9FA",
+        "feet": "#AFB301"
+      }
+    },
+    {
+      "catalogId": "MV-0161",
+      "geneticId": "hero-0161",
+      "species": "cosmicGuardian",
+      "rarity": "common",
+      "geneBody": "sturdy",
+      "body": "blob",
+      "head": "aquatic",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "energetic",
+      "affinity": "crystal",
+      "wings": "armored",
+      "eyeSize": "large",
+      "marking": "stripes",
+      "mutations": [
+        "geometric_patterns:spirals"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#7B980D",
+        "head": "#C65B52",
+        "wings": "#76B102",
+        "eyes": "#FFA000",
+        "markings": "#7FC332",
+        "feet": "#749217"
+      }
+    },
+    {
+      "catalogId": "MV-0706",
+      "geneticId": "hero-0706",
+      "species": "stellarWyrm",
+      "rarity": "common",
+      "geneBody": "balanced",
+      "body": "winged",
+      "head": "aquatic",
+      "hybrid": "dual-hybrid",
+      "aura": "shadow-soft",
+      "personality": "wise",
+      "affinity": "nebula",
+      "wings": "feathered",
+      "eyeSize": "medium",
+      "marking": "simple_sparkles",
+      "mutations": [
+        "mechanical_parts:clockwork"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#A70702",
+        "head": "#E9BB53",
+        "wings": "#B067EC",
+        "eyes": "#80CBC4",
+        "markings": "#2D3979",
+        "feet": "#09A835"
+      }
+    },
+    {
+      "catalogId": "MV-0361",
+      "geneticId": "hero-0361",
+      "species": "crystalElemental",
+      "rarity": "common",
+      "geneBody": "avian",
+      "body": "blob",
+      "head": "aquatic",
+      "hybrid": "dual-hybrid",
+      "aura": "ember",
+      "personality": "gentle",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "none",
+      "mutations": [
+        "floating_parts:rings"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#267CB7",
+        "head": "#0FDFA9",
+        "wings": "#72DE89",
+        "eyes": "#E040FB",
+        "markings": "#9F1E93",
+        "feet": "#7E6922"
+      }
+    },
+    {
+      "catalogId": "MV-0281",
+      "geneticId": "hero-0281",
+      "species": "auroraPhoenix",
+      "rarity": "common",
+      "geneBody": "avian",
+      "body": "biped",
+      "head": "avian",
+      "hybrid": "dual-hybrid",
+      "aura": "storm",
+      "personality": "energetic",
+      "affinity": "nebula",
+      "wings": "flaming",
+      "eyeSize": "medium",
+      "marking": "stripes",
+      "mutations": [
+        "inanimate_markings:gears"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#C20CE2",
+        "head": "#C36689",
+        "wings": "#E43E40",
+        "eyes": "#00BCD4",
+        "markings": "#A30387",
+        "feet": "#368AAD"
+      }
+    },
+    {
+      "catalogId": "MV-0351",
+      "geneticId": "hero-0351",
+      "species": "crystalElemental",
+      "rarity": "common",
+      "geneBody": "reptilian",
+      "body": "winged",
+      "head": "cervine",
+      "hybrid": "triple-hybrid",
+      "aura": "ember",
+      "personality": "curious",
+      "affinity": "crystal",
+      "wings": "crystal",
+      "eyeSize": "medium",
+      "marking": "spots",
+      "mutations": [
+        "phantom_limbs:tendrils"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#37D78C",
+        "head": "#458834",
+        "wings": "#A78BD9",
+        "eyes": "#EA80FC",
+        "markings": "#67E306",
+        "feet": "#47E79B"
+      }
+    },
+    {
+      "catalogId": "MV-0466",
+      "geneticId": "hero-0466",
+      "species": "crystalDrake",
+      "rarity": "common",
+      "geneBody": "blob",
+      "body": "serpentine",
+      "head": "aquatic",
+      "hybrid": "triple-hybrid",
+      "aura": "storm",
+      "personality": "gentle",
+      "affinity": "moon",
+      "wings": "crystal",
+      "eyeSize": "small",
+      "marking": "none",
+      "mutations": [
+        "cosmic_horns:spiral"
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "body": "#8F662E",
+        "head": "#BF9221",
+        "wings": "#FBDD8A",
+        "eyes": "#FFD54F",
+        "markings": "#A4A408",
+        "feet": "#F33737"
+      }
+    }
+  ]
+}
