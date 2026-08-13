@@ -3171,7 +3171,7 @@ class ReefLevel extends PlatformerLevelScene {
         if (this.bossFightActive && this.bossBody) {
             const distToBoss = Phaser.Math.Distance.Between(attackX, attackY, this.bossBody.x, this.bossBody.y);
             if (distToBoss < bossMeleeRange) {
-                this.damageBoss(currentLinkedDamage);
+                this.resolveBossHit(currentLinkedDamage, { source: 'katana_current' });
             }
         }
 
@@ -3188,11 +3188,11 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     damageBoss(amount) {
-        if (!this.bossFightActive || this.bossDefeated || !this.boss) return;
+        if (!this.bossFightActive || this.bossDefeated || !this.boss) return false;
 
         const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
         const finalAmount = amount + recoveryBonus;
-        this.bossHealth -= finalAmount;
+        this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.updateBossHealthBar();
         this.showFloatingText(
             recoveryBonus
@@ -3218,6 +3218,7 @@ class ReefLevel extends PlatformerLevelScene {
         if (this.bossHealth <= 0) {
             this.defeatBoss();
         }
+        return true;
     }
 
     defeatBoss() {

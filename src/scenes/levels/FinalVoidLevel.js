@@ -2235,21 +2235,21 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     damageBoss(amount = 1) {
-        if (!this.isBossCombatActive()) return;
+        if (!this.isBossCombatActive()) return false;
 
         const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
         const finalAmount = amount + recoveryBonus;
         this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.updateBossHealthBar();
 
-        if (recoveryBonus) {
-            this.showFloatingText(
-                `BEACON OPENING -${finalAmount}`,
-                this.boss.x,
-                this.boss.y - 130,
-                '#8FE3CF'
-            );
-        }
+        this.showFloatingText(
+            recoveryBonus
+                ? `BEACON OPENING -${finalAmount}`
+                : `VOID LINE -${finalAmount}`,
+            this.boss.x,
+            this.boss.y - 130,
+            recoveryBonus ? '#8FE3CF' : '#F1D9FF'
+        );
 
         this.boss.setTint(0xFFFFFF);
         this.time.delayedCall(100, () => {
@@ -2274,6 +2274,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         if (window.AudioManager) {
             window.AudioManager.playAttack();
         }
+        return true;
     }
 
     requestFinalBossPhase(phase, message, tint) {

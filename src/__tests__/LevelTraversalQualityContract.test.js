@@ -1257,6 +1257,13 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("enemy?.combatRole === 'armored'");
         expect(smoke).toContain('scene.player.setVelocity?.(0, 680)');
         expect(smoke).toContain('message: `${sceneName} live stomp collision`');
+        expect(smoke).toContain('scene.performSpecialAttack();');
+        expect(smoke).toContain(
+            'guardianBlast.healthAfter !== guardianBlast.healthBefore - 3'
+        );
+        expect(smoke).toContain(
+            '`${sceneName} Super Blast did not damage its guardian predictably: `'
+        );
         expect(smoke).toContain(
             'liveStomp.enemyHealthAfter !== liveStomp.enemyHealthBefore - 1'
         );

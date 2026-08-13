@@ -76,6 +76,47 @@ describe('playable level combat contracts', () => {
         expect(source).toContain('Math.max(6, Number(enemy.health) || 1)');
     });
 
+    test('all player attacks resolve guardian hits through one readable contract', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('resolveBossHit(amount, { source = \'attack\' } = {})');
+        expect(source).toContain("this.resolveBossHit(meleeDamage, { source: 'katana' })");
+        expect(source).toContain("this.resolveBossHit(rangedDamage, { source: 'ranged' })");
+        expect(source).toContain("this.resolveBossHit(3, { source: 'super_blast' })");
+        expect(source).toContain('const specialAttackRadius = 300;');
+        expect(source).toContain("'GUARDIAN HIT BLOCKED'");
+        expect(source).toContain("recordEvent?.('guardian_hit'");
+    });
+
+    test.each([
+        'MythicalForestLevel.js',
+        'CrystalCavesLevel.js',
+        'ReefLevel.js',
+        'VoidPeaksLevel.js',
+        'AuroraDepthsLevel.js',
+        'FinalVoidLevel.js'
+    ])('%s returns an explicit guardian hit result', (fileName) => {
+        const source = readLevel(fileName);
+        const start = source.indexOf('    damageBoss(');
+        const end = source.indexOf('\n    }', start);
+        const method = source.slice(start, end);
+
+        expect(method).toContain('return false;');
+        expect(method).toContain('return true;');
+    });
+
+    test('the final guardian confirms both ordinary and recovery-window damage', () => {
+        const source = readLevel('FinalVoidLevel.js');
+
+        expect(source).toContain('return false;');
+        expect(source).toContain('`VOID LINE -${finalAmount}`');
+        expect(source).toContain('`BEACON OPENING -${finalAmount}`');
+        expect(source).toContain('return true;');
+    });
+
     test('shared enemy combat communicates stomp, armor, immunity, and attack intent', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/PlatformerLevelScene.js'),

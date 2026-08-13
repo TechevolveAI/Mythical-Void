@@ -4566,11 +4566,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Handle boss taking damage - with exciting combat juice!
      */
     damageBoss(amount = 1) {
-        if (!this.boss || this.bossDefeated) return;
+        if (!this.boss || this.bossDefeated) return false;
 
         const recoveryBonus = this.boss.isRecovering ? 1 : 0;
         const finalAmount = amount + recoveryBonus;
-        this.bossHealth -= finalAmount;
+        this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.updateBossHealthBar();
 
         // COMBAT JUICE: Exciting boss hit feedback!
@@ -4616,6 +4616,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (window.AudioManager) {
             window.AudioManager.playAttack();
         }
+        return true;
     }
 
     requestForestBossPhase2() {

@@ -1122,6 +1122,10 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 choice.rejoined = false;
                 choice.sequence = null;
                 scene.routeChoiceSequence = 0;
+                // Leave both choice volumes before yielding to the next frame;
+                // otherwise the main volume immediately reselects itself.
+                scene.player.setPosition(2400, scene.levelHeight - 150);
+                scene.player.setVelocity?.(0, 0);
                 return { before, after };
             })()`);
             if (
@@ -2069,6 +2073,63 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             { timeoutMs: 8000, message: `${sceneName} guardian combat start` }
         );
 
+        const guardianBlast = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const target = scene?.getBossCombatTarget?.();
+            if (!scene?.player || !target || !scene?.bossFightActive) return null;
+
+            scene.bossRecoveryUntil = 0;
+            scene.titanRecoveryUntil = 0;
+            if (scene.boss) scene.boss.isRecovering = false;
+            scene.crystalEnergy = Math.max(3, Number(scene.crystalEnergy) || 0);
+            scene.freeSpecialAttackCharges = 0;
+            const energyBefore = scene.crystalEnergy;
+            const healthBefore = Number(scene.bossHealth);
+            const returnPosition = {
+                x: scene.checkpointPosition?.x ?? scene.player.x,
+                y: scene.checkpointPosition?.y ?? scene.player.y
+            };
+
+            scene.player.setPosition(target.x - 140, target.y);
+            scene.player.setVelocity?.(0, 0);
+            scene.player.facingRight = true;
+            scene.performSpecialAttack();
+
+            const result = {
+                healthBefore,
+                healthAfter: Number(scene.bossHealth),
+                energyBefore,
+                energyAfter: Number(scene.crystalEnergy),
+                targetDistance: Phaser.Math.Distance.Between(
+                    scene.player.x,
+                    scene.player.y,
+                    target.x,
+                    target.y
+                ),
+                bossFightActive: scene.bossFightActive === true,
+                bossDefeated: scene.bossDefeated === true
+            };
+            scene.player.setPosition(returnPosition.x, returnPosition.y);
+            scene.player.setVelocity?.(0, 0);
+            return result;
+        })()`);
+        if (
+            !guardianBlast ||
+            !Number.isFinite(guardianBlast.healthBefore) ||
+            !Number.isFinite(guardianBlast.healthAfter) ||
+            guardianBlast.healthAfter !== guardianBlast.healthBefore - 3 ||
+            guardianBlast.energyAfter !== guardianBlast.energyBefore - 3 ||
+            guardianBlast.targetDistance >= 300 ||
+            guardianBlast.bossFightActive !== true ||
+            guardianBlast.bossDefeated !== false
+        ) {
+            throw new Error(
+                `${sceneName} Super Blast did not damage its guardian predictably: ` +
+                JSON.stringify({ guardianCombatReady, guardianBlast })
+            );
+        }
+        await delay(650);
+
         await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             if (!scene?.player || !scene?.bossFightActive) return false;
@@ -2172,13 +2233,13 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             recovered.physicsPaused !== false ||
             recovered.encounterActive !== true ||
             recovered.bossFightActive !== true ||
-            recovered.bossHealth !== guardianCombatReady.bossHealth ||
+            recovered.bossHealth !== guardianBlast.healthAfter ||
             recovered.persistedId !== guardianEntrySetup.persistedId ||
             recovered.persistedIndex !== guardianEntrySetup.persistedIndex
         ) {
             throw new Error(
                 `${sceneName} guardian stance did not recover cleanly: ` +
-                JSON.stringify({ guardianCombatReady, recovered })
+                JSON.stringify({ guardianCombatReady, guardianBlast, recovered })
             );
         }
 
@@ -2211,6 +2272,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         }
         guardianRecovery = {
             entry: guardianEntry,
+            blast: guardianBlast,
             frozen: frozenState,
             recovered,
             settled: settledRecovery

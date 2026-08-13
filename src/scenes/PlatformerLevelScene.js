@@ -4558,6 +4558,39 @@ class PlatformerLevelScene extends Phaser.Scene {
         return this.boss?.active ? this.boss : null;
     }
 
+    resolveBossHit(amount, { source = 'attack' } = {}) {
+        const target = this.getBossCombatTarget();
+        if (!target || typeof this.damageBoss !== 'function') return false;
+
+        const healthBefore = Number(this.bossHealth);
+        const explicitResult = this.damageBoss(amount);
+        const healthAfter = Number(this.bossHealth);
+        const applied = explicitResult === true || this.bossDefeated === true || (
+            Number.isFinite(healthBefore) &&
+            Number.isFinite(healthAfter) &&
+            healthAfter < healthBefore
+        );
+
+        if (!applied) {
+            this.showFloatingText?.(
+                'GUARDIAN HIT BLOCKED',
+                target.x,
+                target.y - 70,
+                '#FF8A8A'
+            );
+            return false;
+        }
+
+        window.AchievementSystem?.recordEvent?.('guardian_hit', {
+            levelId: this.levelId || this.scene?.key || null,
+            source,
+            damage: Number.isFinite(healthBefore) && Number.isFinite(healthAfter)
+                ? Math.max(0, healthBefore - healthAfter)
+                : Math.max(0, Number(amount) || 0)
+        });
+        return true;
+    }
+
     /**
      * Perform basic melee attack - override in subclass for creature-specific attacks.
      * Checks both regular enemies and the active guardian target.
@@ -4646,9 +4679,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 bossTarget.x, bossTarget.y
             );
             if (dist < bossMeleeRange) {
-                // Call damageBoss if it exists (implemented in subclass)
-                if (typeof this.damageBoss === 'function') {
-                    this.damageBoss(meleeDamage);
+                if (this.resolveBossHit(meleeDamage, { source: 'katana' })) {
                     console.log(
                         `[PlatformerLevel] Boss hit by katana strike! (${meleeDamage} damage)`
                     );
@@ -4756,8 +4787,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const bossTarget = this.getBossCombatTarget();
         if (bossTarget) {
             this.physics.add.overlap(projectile, bossTarget, (proj) => {
-                if (typeof this.damageBoss === 'function') {
-                    this.damageBoss(rangedDamage);
+                if (this.resolveBossHit(rangedDamage, { source: 'ranged' })) {
                     console.log(
                         `[PlatformerLevel] Boss hit by ranged attack! (${rangedDamage} damage)`
                     );
@@ -4839,6 +4869,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.crystalEnergy -= 3;
         }
         this.updateEnergyDisplay();
+        const specialAttackRadius = 300;
 
         // Epic screen shake and haptic for special attack
         if (this.combatJuice) {
@@ -4859,8 +4890,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Expand blast
         this.tweens.add({
             targets: blast,
-            scaleX: 4,
-            scaleY: 4,
+            scaleX: specialAttackRadius / 50,
+            scaleY: specialAttackRadius / 50,
             alpha: 0,
             duration: 500,
             ease: 'Power2',
@@ -4876,13 +4907,26 @@ class PlatformerLevelScene extends Phaser.Scene {
                     this.player.x, this.player.y,
                     enemy.x, enemy.y
                 );
-                if (dist < 300) {
+                if (dist < specialAttackRadius) {
                     this.damageEnemy(
                         enemy,
                         Math.max(6, Number(enemy.health) || 1)
                     );
                 }
             });
+        }
+
+        const bossTarget = this.getBossCombatTarget();
+        if (bossTarget) {
+            const bossDistance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                bossTarget.x,
+                bossTarget.y
+            );
+            if (bossDistance < specialAttackRadius) {
+                this.resolveBossHit(3, { source: 'super_blast' });
+            }
         }
 
         // Epic sound

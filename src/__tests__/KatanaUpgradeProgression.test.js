@@ -137,7 +137,11 @@ describe('creature-tech katana combat progression', () => {
             y: 100
         };
         scene.damageEnemy = jest.fn();
-        scene.damageBoss = jest.fn();
+        scene.damageBoss = jest.fn(() => {
+            scene.bossHealth -= 3;
+            return true;
+        });
+        scene.bossHealth = 12;
         scene.add = {
             graphics: jest.fn(createGraphics)
         };
@@ -316,7 +320,12 @@ describe('creature-tech katana combat progression', () => {
             y: 100
         };
         scene.damageEnemy = jest.fn();
-        scene.damageBoss = jest.fn();
+        scene.damageBoss = jest.fn(() => {
+            scene.bossHealth -= 1;
+            return true;
+        });
+        scene.resolveBossHit = amount => scene.damageBoss(amount);
+        scene.bossHealth = 12;
         scene.add = {
             graphics: jest.fn(() => attackGraphics)
         };
@@ -384,7 +393,11 @@ describe('creature-tech katana combat progression', () => {
             add: jest.fn()
         };
         scene.createProjectileImpact = jest.fn();
-        scene.damageBoss = jest.fn();
+        scene.bossHealth = 12;
+        scene.damageBoss = jest.fn(() => {
+            scene.bossHealth -= 1;
+            return true;
+        });
 
         scene.performRangedAttack();
 
@@ -403,5 +416,67 @@ describe('creature-tech katana combat progression', () => {
 
         decorativeBoss.active = false;
         expect(scene.getBossCombatTarget()).toBeNull();
+    });
+
+    test('guardian hit resolution distinguishes applied and blocked attacks', () => {
+        const achievement = jest.fn();
+        const PlatformerLevelScene = loadPlatformerLevelScene({
+            AchievementSystem: { recordEvent: achievement }
+        });
+        const scene = new PlatformerLevelScene({ key: 'VoidPeaksLevel' });
+        scene.levelId = 'void_peaks';
+
+        scene.boss = { active: true, x: 500, y: 300 };
+        scene.bossHealth = 15;
+        scene.showFloatingText = jest.fn();
+        scene.damageBoss = jest.fn(() => {
+            scene.bossHealth -= 2;
+            return true;
+        });
+
+        expect(scene.resolveBossHit(2, { source: 'katana' })).toBe(true);
+        expect(achievement).toHaveBeenCalledWith('guardian_hit', {
+            levelId: 'void_peaks',
+            source: 'katana',
+            damage: 2
+        });
+
+        scene.damageBoss = jest.fn(() => false);
+        expect(scene.resolveBossHit(3, { source: 'super_blast' })).toBe(false);
+        expect(scene.showFloatingText).toHaveBeenCalledWith(
+            'GUARDIAN HIT BLOCKED',
+            500,
+            230,
+            '#FF8A8A'
+        );
+    });
+
+    test('Super Blast damages an active guardian inside its visible radius', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene({
+            AudioManager: { playLevelUp: jest.fn() },
+            AchievementSystem: { recordEvent: jest.fn() }
+        });
+        const scene = new PlatformerLevelScene({ key: 'FinalVoidLevel' });
+        const blast = createGraphics();
+
+        scene.player = { x: 100, y: 100 };
+        scene.boss = { active: true, x: 260, y: 100 };
+        scene.bossHealth = 20;
+        scene.crystalEnergy = 3;
+        scene.freeSpecialAttackCharges = 0;
+        scene.enemies = { getChildren: jest.fn(() => []) };
+        scene.damageBoss = jest.fn(() => {
+            scene.bossHealth -= 3;
+            return true;
+        });
+        scene.updateEnergyDisplay = jest.fn();
+        scene.add = { graphics: jest.fn(() => blast) };
+        scene.tweens = { add: jest.fn() };
+
+        scene.performSpecialAttack();
+
+        expect(scene.damageBoss).toHaveBeenCalledWith(3);
+        expect(scene.bossHealth).toBe(17);
+        expect(scene.crystalEnergy).toBe(0);
     });
 });
