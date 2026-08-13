@@ -428,6 +428,12 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 ?.filter(enemy => enemy?.active !== false).length || 0,
             combatCueCount: scene?.enemies?.getChildren?.()
                 ?.filter(enemy => enemy?.active !== false && enemy?.combatCue?.active).length || 0,
+            ambientRendering: scene?.forestAmbientLayers ? {
+                layerCount: scene.forestAmbientLayers.filter(
+                    layer => layer?.active !== false
+                ).length,
+                pointCount: Number(scene.forestAmbientPointCount) || 0
+            } : null,
             routeGuidance: (() => {
                 const nextSignal = scene?.getNextOrderedRouteSignal?.();
                 return {
@@ -453,6 +459,18 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     }
     if (!state.canvasWidth || !state.canvasHeight) {
         throw new Error(`${sceneName} rendered a blank-sized canvas`);
+    }
+    if (
+        route === 'mythicalForest' &&
+        (
+            state.displayCount > 560 ||
+            state.ambientRendering?.layerCount !== 9 ||
+            state.ambientRendering?.pointCount !== 194
+        )
+    ) {
+        throw new Error(
+            `${sceneName} exceeded its mobile ambient render budget: ${JSON.stringify(state)}`
+        );
     }
     if (
         [

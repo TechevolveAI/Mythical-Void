@@ -107,8 +107,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossAttackPreview = null;
 
         // Forest particles
-        this.forestParticles = [];
-        this.magicMotes = [];
+        this.forestAmbientLayers = [];
+        this.forestAmbientPointCount = 0;
 
         // Cosmic trees - the core of this level
         this.cosmicTrees = [];
@@ -213,8 +213,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             : null;
 
         // Reset particles
-        this.forestParticles = [];
-        this.magicMotes = [];
+        this.forestAmbientLayers = [];
+        this.forestAmbientPointCount = 0;
 
         // Reset cosmic trees and platforms
         this.cosmicTrees = [];
@@ -1247,33 +1247,36 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Create floating forest particles
      */
     createForestParticles() {
-        // Create floating motes of light
-        for (let i = 0; i < 30; i++) {
-            const mote = this.add.graphics();
-            const x = Math.random() * this.levelWidth;
-            const y = Math.random() * this.levelHeight * 0.8;
+        const colors = [0x90EE90, 0xFFD700, 0x9370DB, 0x00FF7F];
+        const pointsPerLayer = 10;
 
-            // Random green/gold/purple colors
-            const colors = [0x90EE90, 0xFFD700, 0x9370DB, 0x00FF7F];
-            const color = colors[Math.floor(Math.random() * colors.length)];
+        // Animate three point fields instead of thirty independent Graphics
+        // objects and tweens. The forest keeps the same light density while
+        // mobile render-list and animation bookkeeping remain bounded.
+        for (let layerIndex = 0; layerIndex < 3; layerIndex += 1) {
+            const layer = this.add.graphics().setDepth(48 + layerIndex);
+            for (let pointIndex = 0; pointIndex < pointsPerLayer; pointIndex += 1) {
+                const x = Math.random() * this.levelWidth;
+                const y = Math.random() * this.levelHeight * 0.8;
+                const color = colors[
+                    (layerIndex + pointIndex) % colors.length
+                ];
+                layer.fillStyle(color, 0.58);
+                layer.fillCircle(x, y, 2 + Math.random() * 3);
+                this.forestAmbientPointCount += 1;
+            }
 
-            mote.fillStyle(color, 0.6);
-            mote.fillCircle(0, 0, 2 + Math.random() * 3);
-            mote.setPosition(x, y);
-            mote.setDepth(50);
-
-            // Gentle floating animation
             this.tweens.add({
-                targets: mote,
-                y: y - 20 - Math.random() * 30,
-                alpha: { from: 0.6, to: 0.2 },
-                duration: 3000 + Math.random() * 2000,
+                targets: layer,
+                x: { from: -3 - layerIndex, to: 3 + layerIndex },
+                y: { from: 0, to: -18 - layerIndex * 7 },
+                alpha: { from: 0.42, to: 0.72 },
+                duration: 3200 + layerIndex * 700,
                 yoyo: true,
                 repeat: -1,
                 ease: 'Sine.easeInOut'
             });
-
-            this.magicMotes.push(mote);
+            this.forestAmbientLayers.push(layer);
         }
     }
 
@@ -1790,6 +1793,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Glowing energy veins
         const veinColors = [0x00FF7F, 0x9370DB, 0x00CED1, 0xFF69B4];
         const veinColor = veinColors[treeIndex % veinColors.length];
+        const foliageGlow = this.add.graphics().setDepth(35);
         trunk.lineStyle(3, veinColor, 0.8);
 
         // Main central vein
@@ -1864,8 +1868,26 @@ class MythicalForestLevel extends PlatformerLevelScene {
             });
 
             // Add floating bioluminescent orbs around branches (not leaves!)
-            this.createBioluminescentOrbs(endX, branchY, veinColor, 3 + Math.floor(Math.random() * 3));
+            this.createBioluminescentOrbs(
+                foliageGlow,
+                endX,
+                branchY,
+                veinColor,
+                3 + ((treeIndex * 7 + i * 5) % 3)
+            );
         }
+
+        this.tweens.add({
+            targets: foliageGlow,
+            x: { from: -2, to: 2 },
+            y: { from: 1, to: -5 },
+            alpha: { from: 0.58, to: 0.9 },
+            duration: 2200 + treeIndex * 260,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        this.forestAmbientLayers.push(foliageGlow);
 
         // Add special platform at tree top
         const topPlatform = this.add.zone(x, baseY - height + 20, 100, 20);
@@ -1910,33 +1932,21 @@ class MythicalForestLevel extends PlatformerLevelScene {
     /**
      * Create floating bioluminescent orbs (alien "foliage")
      */
-    createBioluminescentOrbs(x, y, color, count) {
+    createBioluminescentOrbs(layer, x, y, color, count) {
         for (let i = 0; i < count; i++) {
-            const orb = this.add.graphics();
             const orbX = x + (Math.random() - 0.5) * 60;
             const orbY = y + (Math.random() - 0.5) * 40 - 20;
             const orbSize = 4 + Math.random() * 4;
 
-            orb.fillStyle(color, 0.6);
-            orb.fillCircle(0, 0, orbSize);
-            orb.fillStyle(0xFFFFFF, 0.8);
-            orb.fillCircle(-orbSize/3, -orbSize/3, orbSize/3);
-            orb.setPosition(orbX, orbY);
-            orb.setDepth(35);
-
-            // Gentle floating animation
-            this.tweens.add({
-                targets: orb,
-                y: orbY - 10 - Math.random() * 10,
-                x: orbX + (Math.random() - 0.5) * 20,
-                alpha: { from: 0.6, to: 0.3 },
-                duration: 2000 + Math.random() * 1500,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-
-            this.magicMotes.push(orb);
+            layer.fillStyle(color, 0.6);
+            layer.fillCircle(orbX, orbY, orbSize);
+            layer.fillStyle(0xFFFFFF, 0.8);
+            layer.fillCircle(
+                orbX - orbSize / 3,
+                orbY - orbSize / 3,
+                orbSize / 3
+            );
+            this.forestAmbientPointCount += 1;
         }
     }
 
@@ -4993,10 +5003,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.cosmicTrees = [];
 
         // Clean up particles
-        this.magicMotes.forEach(mote => {
-            if (mote?.active) mote.destroy();
+        this.forestAmbientLayers.forEach(layer => {
+            this.tweens?.killTweensOf?.(layer);
+            if (layer?.active) layer.destroy();
         });
-        this.magicMotes = [];
+        this.forestAmbientLayers = [];
+        this.forestAmbientPointCount = 0;
 
         super.shutdown();
     }

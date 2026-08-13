@@ -43,6 +43,22 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
 }
 
 describe('first expedition rescue loop', () => {
+    test('batches Forest ambient lights into a bounded mobile render budget', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('this.forestAmbientLayers = [];');
+        expect(source).toContain('const pointsPerLayer = 10;');
+        expect(source).toContain('for (let layerIndex = 0; layerIndex < 3; layerIndex += 1)');
+        expect(source).toContain('const foliageGlow = this.add.graphics().setDepth(35);');
+        expect(source).toContain('3 + ((treeIndex * 7 + i * 5) % 3)');
+        expect(source).toContain('this.createBioluminescentOrbs(');
+        expect(source).toContain('this.tweens?.killTweensOf?.(layer);');
+        expect(source).not.toContain('this.magicMotes.push(');
+    });
+
     test('creates subclass level content exactly once per scene run', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({
