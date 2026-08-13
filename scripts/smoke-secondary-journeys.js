@@ -20,6 +20,8 @@ const SMOKE_TOUCH_PROBE = process.env.SMOKE_TOUCH_PROBE || '';
 const SMOKE_POINTER_PROBE = process.env.SMOKE_POINTER_PROBE || '';
 const SMOKE_TOUCH_PROTOCOL = process.env.SMOKE_TOUCH_PROTOCOL || 'dispatch';
 const SMOKE_SKIP_PREVIEW = process.env.SMOKE_SKIP_PREVIEW === '1';
+const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
+const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
 let activeTouchPoint = { x: 0, y: 0 };
 
 function trace(message, details = null) {
@@ -984,7 +986,34 @@ async function smokeHomeStart(session, exceptions) {
         throw new Error(`Home Start control is outside the viewport: ${JSON.stringify(start)}`);
     }
 
-    await touch(session, start.x, start.y);
+    let recovery = null;
+    if (SMOKE_CASE === 'wide-touch') {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
+            scene.startButton.setAlpha(0).disableInteractive();
+            scene.ensureHomeStartReady();
+            return true;
+        })()`);
+        recovery = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
+                const button = scene?.startButton;
+                if (!button?.active || !button.visible || button.alpha < 0.8 || !button.input?.enabled) {
+                    return null;
+                }
+                const bounds = button.getBounds();
+                return {
+                    x: Math.round(bounds.centerX),
+                    y: Math.round(bounds.centerY),
+                    alpha: button.alpha,
+                    inputEnabled: true
+                };
+            })()`),
+            { timeoutMs: 3000, message: 'invisible Start control recovery' }
+        );
+    }
+
+    await touch(session, recovery?.x || start.x, recovery?.y || start.y);
     const advanced = await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
@@ -1006,7 +1035,7 @@ async function smokeHomeStart(session, exceptions) {
     if (exceptions.length) {
         throw new Error(`Home Start raised browser exceptions: ${exceptions.join(' | ')}`);
     }
-    return { start, advanced };
+    return { start, recovery, advanced };
 }
 
 async function smokeSanctuaryNavigation(session, exceptions) {
@@ -2387,12 +2416,12 @@ async function main() {
             enabled: true
         });
         await session.call('Emulation.setDeviceMetricsOverride', {
-            width: 390,
-            height: 844,
+            width: SMOKE_VIEWPORT_WIDTH,
+            height: SMOKE_VIEWPORT_HEIGHT,
             deviceScaleFactor: 1,
             mobile: true,
-            screenWidth: 390,
-            screenHeight: 844
+            screenWidth: SMOKE_VIEWPORT_WIDTH,
+            screenHeight: SMOKE_VIEWPORT_HEIGHT
         });
         await session.call('Emulation.setTouchEmulationEnabled', {
             enabled: true,

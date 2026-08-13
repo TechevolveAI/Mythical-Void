@@ -109,6 +109,9 @@ describe('release test gate', () => {
         expect(navigationLifecycle).toBeGreaterThan(saveReloadJourney);
         expect(hubForestTransition).toBeGreaterThan(navigationLifecycle);
         expect(source).toContain('for (const smokeCase of interactionCases)');
+        expect(source).toContain('for (const viewport of homeEntryViewports)');
+        expect(source).toContain("smokeCase: 'wide-touch'");
+        expect(source).toContain('width: 860, height: 768');
         expect(source).toContain('SMOKE_CASE: smokeCase');
         expect(source).toContain('for (const guardianCase of guardianCases)');
         expect(source).toContain('SMOKE_CASE: guardianCase');
