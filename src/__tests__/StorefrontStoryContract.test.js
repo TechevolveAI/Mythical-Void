@@ -52,6 +52,16 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).not.toContain('Distinct realms to reclaim');
     });
 
+    test('uses story-led illustrations for the three-part adventure', () => {
+        expect(storefront).toContain('path-icon-recovery');
+        expect(storefront).toContain('path-icon-clearing');
+        expect(storefront).toContain('path-icon-choice');
+        expect(storefront).toContain('recovery-ship');
+        expect(storefront).toContain('clearing-companion');
+        expect(storefront).toContain('choice-beacon');
+        expect(storefront).not.toContain('aria-hidden="true">⌁</div>');
+    });
+
     test('keeps the final responsibility unresolved', () => {
         expect(storefront).toContain(
             'decide what Project Beacon should tell Earth'

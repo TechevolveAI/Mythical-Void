@@ -163,21 +163,35 @@ function renderStorefront() {
                     <div class="adventure-path">
                         <article class="path-card path-card-hatch">
                             <span class="path-number">01</span>
-                            <div class="path-icon" aria-hidden="true">✦</div>
+                            <div class="path-icon path-icon-recovery" aria-hidden="true">
+                                <span class="recovery-moon"></span>
+                                <span class="recovery-signal"></span>
+                                <span class="recovery-ship"><i></i></span>
+                            </div>
                             <h3>Recover what survived</h3>
                             <p>Wanderer-77 is down. Find the field kit, read the signal, and begin Project Beacon from the crash site.</p>
                         </article>
                         <div class="path-line" aria-hidden="true">···</div>
                         <article class="path-card path-card-explore">
                             <span class="path-number">02</span>
-                            <div class="path-icon" aria-hidden="true">⌁</div>
+                            <div class="path-icon path-icon-clearing" aria-hidden="true">
+                                <span class="clearing-void"></span>
+                                <span class="clearing-companion"><i></i></span>
+                                <span class="clearing-burst"></span>
+                            </div>
                             <h3>Clear the corruption</h3>
                             <p>Run, leap, fight beside your companion, and break the Void pressure holding each guardian.</p>
                         </article>
                         <div class="path-line" aria-hidden="true">···</div>
                         <article class="path-card path-card-choose">
                             <span class="path-number">03</span>
-                            <div class="path-icon" aria-hidden="true">◇</div>
+                            <div class="path-icon path-icon-choice" aria-hidden="true">
+                                <span class="choice-beacon"><i></i></span>
+                                <span class="choice-path choice-path-left"></span>
+                                <span class="choice-path choice-path-right"></span>
+                                <span class="choice-world choice-world-left"></span>
+                                <span class="choice-world choice-world-right"></span>
+                            </div>
                             <h3>Restore, then choose</h3>
                             <p>When a guardian is safe, its world changes. What you repair first helps decide what Project Beacon becomes.</p>
                         </article>
