@@ -496,7 +496,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             `${sceneName} has no readable locked guardian gate: ${JSON.stringify(guardianGate)}`
         );
     }
-    if (['reef', 'voidPeaks', 'auroraDepths', 'finalVoid'].includes(route)) {
+    if ([
+        'mythicalForest',
+        'crystalCaves',
+        'reef',
+        'voidPeaks',
+        'auroraDepths',
+        'finalVoid'
+    ].includes(route)) {
         const guidance = state.routeGuidance;
         if (
             !guidance?.supported ||
@@ -869,7 +876,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let routeCompletion = null;
     let outOfOrderGuard = null;
     let optionalRouteCompletion = null;
-    if (['reef', 'voidPeaks', 'auroraDepths', 'finalVoid'].includes(route)) {
+    if ([
+        'mythicalForest',
+        'crystalCaves',
+        'reef',
+        'voidPeaks',
+        'auroraDepths',
+        'finalVoid'
+    ].includes(route)) {
         outOfOrderGuard = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const signals = scene?.orderedRouteSignals || [];
@@ -1013,6 +1027,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         }
 
         const readyProperty = {
+            mythicalForest: 'forestRouteAligned',
+            crystalCaves: 'caveRouteAligned',
             reef: 'reefRouteAligned',
             voidPeaks: 'creatureNetworkReached',
             auroraDepths: 'uplinkRiskUnderstood',
@@ -1112,6 +1128,49 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 throw new Error(
                     `${sceneName} guardian gate did not visibly unlock: ` +
                     JSON.stringify(reefReadyGate)
+                );
+            }
+        } else if (route === 'crystalCaves') {
+            const groveGate = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                scene?.refreshGuardianGateState?.(true);
+                const gate = scene?.guardianGateState;
+                return gate ? {
+                    status: gate.status,
+                    ready: gate.ready,
+                    label: gate.label?.text || ''
+                } : null;
+            })()`);
+            if (
+                groveGate?.ready !== false ||
+                groveGate.status !== 'TEND THE FRACTURED GROVE'
+            ) {
+                throw new Error(
+                    `${sceneName} gate did not identify its remaining grove requirement: ` +
+                    JSON.stringify(groveGate)
+                );
+            }
+            const crystalReadyGate = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                scene?.tendWoundedCrystalGrove?.();
+                scene?.refreshGuardianGateState?.(true);
+                const gate = scene?.guardianGateState;
+                return {
+                    status: gate?.status,
+                    ready: gate?.ready,
+                    label: gate?.label?.text || '',
+                    crystalWoundTended: scene?.crystalWoundTended
+                };
+            })()`);
+            if (
+                crystalReadyGate?.crystalWoundTended !== true ||
+                crystalReadyGate.ready !== true ||
+                crystalReadyGate.status !== 'READY // ENTER' ||
+                !crystalReadyGate.label.includes('READY // ENTER')
+            ) {
+                throw new Error(
+                    `${sceneName} guardian gate did not visibly unlock after tending the grove: ` +
+                    JSON.stringify(crystalReadyGate)
                 );
             }
         } else {

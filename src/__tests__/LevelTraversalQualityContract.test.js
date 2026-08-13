@@ -236,6 +236,8 @@ describe('campaign traversal quality contracts', () => {
     });
 
     test.each([
+        'levels/MythicalForestLevel.js',
+        'levels/CrystalCavesLevel.js',
         'levels/ReefLevel.js',
         'levels/VoidPeaksLevel.js',
         'levels/AuroraDepthsLevel.js',
@@ -580,13 +582,15 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("current.label?.setText?.('DRIFT SIGNAL LINKED')");
     });
 
-    test('release smoke completes every later-level route instead of checking only its opening', () => {
+    test('release smoke completes every campaign route instead of checking only its opening', () => {
         const smoke = fs.readFileSync(
             path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
             'utf8'
         );
 
         expect(smoke).toContain('for (let signalIndex = 1; signalIndex < 3; signalIndex += 1)');
+        expect(smoke).toContain("mythicalForest: 'forestRouteAligned'");
+        expect(smoke).toContain("crystalCaves: 'caveRouteAligned'");
         expect(smoke).toContain("reef: 'reefRouteAligned'");
         expect(smoke).toContain("voidPeaks: 'creatureNetworkReached'");
         expect(smoke).toContain("auroraDepths: 'uplinkRiskUnderstood'");

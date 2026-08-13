@@ -61,14 +61,16 @@ describe('second expedition rescue loop', () => {
         );
     });
 
-    test('makes cave anchors unavoidable and aligns the full Beacon route', () => {
+    test('keeps cave anchors local, ordered, and aligned with the full Beacon route', () => {
         const source = readLevel();
         const checkpoints = source.match(
             /createBeaconCheckpoints\(\)\s*\{([\s\S]*?)\n    \}\n\n    drawCaveBeacon/
         )?.[1] || '';
 
-        expect(checkpoints).toContain('this.levelHeight / 2');
-        expect(checkpoints).toContain('this.levelHeight');
+        expect(checkpoints).toContain('this.createObjectiveTriggerZone(');
+        expect(checkpoints).toContain('{ width: 150, height: 280 }');
+        expect(checkpoints).toContain('this.refreshCaveRouteReadability();');
+        expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.caveRouteAligned = true');
         expect(source).toContain("event: 'crystal_route_aligned'");

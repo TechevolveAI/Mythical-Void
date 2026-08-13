@@ -72,10 +72,17 @@ describe('release test gate', () => {
         expect(source).toContain('retained left input after touch release');
     });
 
-    test('later campaign interaction smoke requires live route guidance', () => {
+    test('every campaign interaction smoke requires live route guidance', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
 
-        expect(source).toContain("['reef', 'voidPeaks', 'auroraDepths', 'finalVoid']");
+        [
+            'mythicalForest',
+            'crystalCaves',
+            'reef',
+            'voidPeaks',
+            'auroraDepths',
+            'finalVoid'
+        ].forEach(route => expect(source).toContain(`'${route}'`));
         expect(source).toContain("/^SIGNAL (RIGHT|LEFT|CLOSE)/");
         expect(source).toContain('nextSignalEmphasized');
         expect(source).toContain('has no readable opening route guidance');

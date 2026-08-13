@@ -1034,18 +1034,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 strokeThickness: 3
             }).setOrigin(0.5).setDepth(86);
 
-            // Full-height anchors cannot be skipped by taking an elevated cave path.
-            const zone = this.add.zone(
+            const zone = this.createObjectiveTriggerZone(
                 anchor.x,
-                this.levelHeight / 2,
-                110,
-                this.levelHeight
+                groundY - 64,
+                { width: 150, height: 280 }
             );
-            this.physics.add.existing(zone, true);
 
             const checkpoint = {
                 ...anchor,
                 index,
+                y: groundY - 64,
                 visual,
                 label,
                 zone,
@@ -1058,6 +1056,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             });
             this.beaconAnchors.push(checkpoint);
         });
+
+        this.refreshCaveRouteReadability();
     }
 
     drawCaveBeacon(graphics, x, groundY, activated) {
@@ -1086,12 +1086,21 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     activateCaveBeacon(checkpoint) {
         if (!checkpoint || checkpoint.activated) return;
 
+        if (!this.canActivateOrderedRouteSignal(
+            checkpoint,
+            this.beaconAnchors,
+            this.beaconAnchorsActivated,
+            { hintOffsetY: -92 }
+        )) {
+            return;
+        }
+
         checkpoint.activated = true;
         checkpoint.zone?.destroy?.();
         checkpoint.zone = null;
         this.beaconAnchorsActivated++;
         this.drawCaveBeacon(checkpoint.visual, checkpoint.x, this.levelHeight - 50, true);
-        checkpoint.label.setColor('#8FE3CF');
+        this.refreshCaveRouteReadability();
         this.setCheckpoint(checkpoint.x, checkpoint.respawnY, {
             persist: true,
             checkpointId: checkpoint.id,
@@ -1144,6 +1153,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         window.AudioManager?.playAchievement?.();
     }
 
+    refreshCaveRouteReadability() {
+        return this.refreshOrderedRouteSignals(
+            this.beaconAnchors,
+            this.beaconAnchorsActivated,
+            { futureColor: '#756D91' }
+        );
+    }
+
     restoreExpeditionRouteState(resume) {
         return this.restoreExpeditionRouteSignals(resume, {
             signals: this.beaconAnchors,
@@ -1156,6 +1173,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 true
             ),
             onRestored: () => {
+                this.refreshCaveRouteReadability();
                 this.refreshCrystalCoreHint();
                 this.objectiveDisplay?.setText?.(this.getCrystalObjectiveText());
             }
@@ -4656,7 +4674,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const pulse = this.crystalWoundTended
             ? 'FOLLOW THE STEADY PULSE →'
             : 'FOLLOW THE CAVE PULSE →';
-        return `ROUTE ${current}/3 // ${nextAnchor}\n${pulse}\n${optional}`;
+        const compass = typeof this.getOrderedRouteCompassText === 'function'
+            ? this.getOrderedRouteCompassText()
+            : '';
+        const title = this.isCompactObjectiveHUD
+            ? `ROUTE ${current}/3`
+            : `ROUTE ${current}/3 // ${nextAnchor}`;
+        return `${title}\n${compass || pulse}\n${optional}`;
     }
 
     /**

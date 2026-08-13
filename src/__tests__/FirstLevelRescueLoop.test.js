@@ -387,7 +387,7 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('PROJECT BEACON ANCHOR ${anchorNumber}/3');
     });
 
-    test('makes Beacon anchors unavoidable and gates the guardian on alignment', () => {
+    test('keeps Beacon anchors local and ordered while gating the guardian on alignment', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
             'utf8'
@@ -399,12 +399,15 @@ describe('first expedition rescue loop', () => {
             /createBossArena\(\)\s*\{([\s\S]*?)\n    \}\n\n    \/\*\*\n     \* Start the Elder/
         )?.[1] || '';
 
-        expect(checkpoints).toContain('this.levelHeight / 2');
-        expect(checkpoints).toContain('this.levelHeight');
+        expect(checkpoints).toContain('this.createObjectiveTriggerZone(');
+        expect(checkpoints).toContain('{ width: 150, height: 280 }');
+        expect(checkpoints).toContain('this.refreshForestRouteReadability();');
+        expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.forestRouteAligned = true');
         expect(bossArena).toContain('if (!this.forestRouteAligned)');
         expect(bossArena).toContain('Align the Beacon anchors.');
+        expect(bossArena).toContain('const guardianGateX = 5520;');
         expect(bossArena).toContain('this.levelHeight / 2');
         expect(bossArena).not.toContain('triggerZone.destroy()');
         expect(source).toContain('this.bossTriggerZone?.destroy?.()');

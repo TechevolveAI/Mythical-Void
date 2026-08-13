@@ -781,8 +781,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
             'GUARDIAN APPROACH'
         ][this.beaconAnchorsActivated] || 'GUARDIAN APPROACH';
         const current = Math.min(this.beaconAnchorsActivated + 1, 3);
+        const compass = typeof this.getOrderedRouteCompassText === 'function'
+            ? this.getOrderedRouteCompassText()
+            : '';
+        const title = this.isCompactObjectiveHUD
+            ? `ROUTE ${current}/3`
+            : `ROUTE ${current}/3 // ${nextAnchor}`;
 
-        return `ROUTE ${current}/3 // ${nextAnchor}\nFOLLOW THE CURRENT →\n${optional}`;
+        return `${title}\n${compass || 'FOLLOW THE CURRENT →'}\n${optional}`;
     }
 
     startFirstExpeditionDrill({ force = false } = {}) {
@@ -1307,19 +1313,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 strokeThickness: 3
             }).setOrigin(0.5).setDepth(86);
 
-            // The intended route crosses these points at several heights.
-            // Synchronize on horizontal passage so tree climbers cannot miss one.
-            const zone = this.add.zone(
+            const zone = this.createObjectiveTriggerZone(
                 anchor.x,
-                this.levelHeight / 2,
-                110,
-                this.levelHeight
+                groundY - 62,
+                { width: 150, height: 280 }
             );
-            this.physics.add.existing(zone, true);
 
             const checkpoint = {
                 ...anchor,
                 index,
+                y: groundY - 62,
                 visual,
                 label,
                 zone,
@@ -1332,6 +1335,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             });
             this.checkpointAnchors.push(checkpoint);
         });
+
+        this.refreshForestRouteReadability();
     }
 
     drawBeaconCheckpoint(graphics, x, groundY, activated) {
@@ -1359,6 +1364,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
     activateBeaconCheckpoint(checkpoint) {
         if (!checkpoint || checkpoint.activated) return;
 
+        if (!this.canActivateOrderedRouteSignal(
+            checkpoint,
+            this.checkpointAnchors,
+            this.beaconAnchorsActivated,
+            { hintOffsetY: -92 }
+        )) {
+            return;
+        }
+
         checkpoint.activated = true;
         checkpoint.zone?.destroy?.();
         checkpoint.zone = null;
@@ -1369,7 +1383,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.levelHeight - 100,
             true
         );
-        checkpoint.label.setColor('#8FE3CF');
+        this.refreshForestRouteReadability();
         this.setCheckpoint(checkpoint.x, checkpoint.respawnY, {
             persist: true,
             checkpointId: checkpoint.id,
@@ -1423,6 +1437,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
         window.AudioManager?.playAchievement?.();
     }
 
+    refreshForestRouteReadability() {
+        return this.refreshOrderedRouteSignals(
+            this.checkpointAnchors,
+            this.beaconAnchorsActivated,
+            { futureColor: '#7F9CA2' }
+        );
+    }
+
     restoreExpeditionRouteState(resume) {
         return this.restoreExpeditionRouteSignals(resume, {
             signals: this.checkpointAnchors,
@@ -1435,6 +1457,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 true
             ),
             onRestored: () => {
+                this.refreshForestRouteReadability();
                 this.objectiveDisplay?.setText?.(this.getForestObjectiveText());
             }
         });
@@ -3175,8 +3198,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Introduce the guardian in front of the player on the approach. The
         // previous trigger was to the right of the spawn and made mobile users
         // backtrack into an encounter they could not see.
+        const guardianGateX = 5520;
         const triggerZone = this.add.zone(
-            5350,
+            guardianGateX,
             this.levelHeight / 2,
             120,
             this.levelHeight
@@ -3184,7 +3208,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.physics.add.existing(triggerZone, true);
         this.bossTriggerZone = triggerZone;
         this.createGuardianGateState({
-            x: 5350,
+            x: guardianGateX,
             y: groundY - 72,
             title: 'ELDER GROVE',
             getStatus: () => 'ALIGN 3 BEACON ANCHORS',
