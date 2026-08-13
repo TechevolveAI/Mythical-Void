@@ -95,6 +95,18 @@ async function main() {
             failures.push(`home-entry: ${error.message}`);
         }
 
+        // Run the two-scene Village journey before the campaign WebGL stress
+        // cases. Each case owns a fresh browser, but macOS can briefly retain
+        // GPU-process resources after several sequential Chromium sessions.
+        console.log('\n[release-smoke] Shop Base Builder mobile UI suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'village-ui'
+            });
+        } catch (error) {
+            failures.push(`village-ui: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] Genuine interaction suite');
         const interactionCases = [
             'egg',
@@ -162,15 +174,6 @@ async function main() {
             failures.push(`hub-forest-transition: ${error.message}`);
         }
 
-        console.log('\n[release-smoke] Shop Base Builder mobile UI suite');
-        try {
-            await runNodeScript('scripts/smoke-secondary-journeys.js', {
-                SMOKE_MODE: 'village-ui'
-            });
-        } catch (error) {
-            failures.push(`village-ui: ${error.message}`);
-        }
-
         console.log('\n[release-smoke] Mythical Forest field brief suite');
         try {
             await runNodeScript('scripts/smoke-secondary-journeys.js', {
@@ -178,6 +181,15 @@ async function main() {
             });
         } catch (error) {
             failures.push(`forest-arrival: ${error.message}`);
+        }
+
+        console.log('\n[release-smoke] Guardian telegraph and recovery suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'guardian-pacing'
+            });
+        } catch (error) {
+            failures.push(`guardian-pacing: ${error.message}`);
         }
 
         if (failures.length) {

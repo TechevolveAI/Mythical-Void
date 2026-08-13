@@ -521,7 +521,7 @@ describe('first expedition rescue loop', () => {
             'VOID CORRUPTION // ${corruptionRemaining}/${this.bossMaxHealth}'
         );
         expect(source).toContain('VOID CORRUPTION // CLEARED');
-        expect(source).toContain('`CORRUPTION -${amount}`');
+        expect(source).toContain('`CORRUPTION -${finalAmount}`');
     });
 
     test('holds each guardian attack lock through its full hazard window', () => {
@@ -541,7 +541,9 @@ describe('first expedition rescue loop', () => {
             'FOREST_GUARDIAN_ATTACK_WINDOWS[attackType]'
         );
         expect(attackSource).toContain('this.boss.isAttacking = true');
-        expect(attackSource).toContain('this.time.delayedCall(attackWindow');
+        expect(attackSource).toContain(
+            'pacing.windup + attackWindow + pacing.recovery'
+        );
         expect(attackSource).toContain('this.boss.isAttacking = false');
     });
 

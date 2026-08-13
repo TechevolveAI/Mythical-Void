@@ -112,7 +112,7 @@ describe('second expedition rescue loop', () => {
             'UNSTABLE PULSE // ${unstablePulse}/${this.bossMaxHealth}'
         );
         expect(source).toContain('UNSTABLE PULSE // STABLE');
-        expect(source).toContain('`PULSE -${amount}`');
+        expect(source).toContain('`PULSE -${finalAmount}`');
         expect(source).toContain('GUARDIAN PULSE STABLE');
         expect(source).toContain('CRYSTAL GUARDIAN RESTORED');
         expect(source).toContain('Guardian Gifts: Crystal Core');
@@ -131,9 +131,11 @@ describe('second expedition rescue loop', () => {
             "charge: 'GUARDIAN CHARGE // GET BEHIND IT'"
         );
         expect(source).toContain('ground_slam: 1400');
-        expect(source).toContain('crystal_barrage: 2600');
+        expect(source).toContain('crystal_barrage: 2900');
         expect(source).toContain('charge: 1700');
-        expect(source).toContain('this.time.delayedCall(attackWindow');
+        expect(source).toContain(
+            'pacing.windup + attackWindow + pacing.recovery'
+        );
         expect(source).toContain('this.bossAttackUnlockTimer?.remove?.()');
     });
 

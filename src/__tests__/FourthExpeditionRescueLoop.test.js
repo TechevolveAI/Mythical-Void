@@ -62,14 +62,21 @@ describe('fourth expedition rescue loop', () => {
     test('turns the settlement network into advance warning gameplay', () => {
         const source = readLevel();
 
-        expect(source).toContain('this.broadcastTitanWarning(attack)');
+        expect(source).toContain(
+            'this.broadcastTitanWarning(attack, attackTarget)'
+        );
         expect(source).toContain('NETWORK WARNING // GROUND IMPACT - MOVE');
         expect(source).toContain('NETWORK WARNING // STAR RAIN - KEEP MOVING');
         expect(source).toContain('NETWORK WARNING // TITAN LUNGE - BREAK RANGE');
         expect(source).toContain('NETWORK WARNING // SINGULARITY - CLEAR THE FIELD');
-        expect(source).toContain('this.time.delayedCall(650');
-        expect(source).toContain('this.executeTitanAttack(attack)');
-        expect(source).toContain('WARNING LINE ONLINE // SETTLEMENTS ARE GUIDING YOU');
+        expect(source).toContain('const TITAN_ATTACK_WINDUP = 700;');
+        expect(source).toContain(
+            'this.time.delayedCall(TITAN_ATTACK_WINDUP'
+        );
+        expect(source).toContain(
+            'this.executeTitanAttack(attack, attackTarget)'
+        );
+        expect(source).toContain('RECOVERY WINDOW // PRESS THE ATTACK');
     });
 
     test('keeps Titan Pass closed until the warning network answers', () => {
@@ -154,7 +161,7 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('COSMIC TITAN // HOLDING THE LINE');
         expect(source).toContain('VOID PRESSURE // ${pressure}/${this.bossMaxHealth}');
         expect(source).toContain('VOID PRESSURE // CLEARED');
-        expect(source).toContain('`PRESSURE -${amount}`');
+        expect(source).toContain('`PRESSURE -${finalAmount}`');
         expect(source).toContain('this.boss.setTint(0x8FE3CF)');
     });
 

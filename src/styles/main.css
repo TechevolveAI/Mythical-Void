@@ -734,13 +734,13 @@ body.game-mode {
 }
 
 .village-command-close {
-  width: 40px;
-  min-width: 40px;
-  max-width: 40px;
-  height: 40px;
-  min-height: 40px;
-  max-height: 40px;
-  flex: 0 0 40px;
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  flex: 0 0 44px;
   align-self: center;
   box-sizing: border-box;
   margin: 0;
@@ -1866,13 +1866,13 @@ body.game-mode {
   }
 
   .village-command-close {
-    width: 36px;
-    min-width: 36px;
-    max-width: 36px;
-    height: 36px;
-    min-height: 36px;
-    max-height: 36px;
-    flex-basis: 36px;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    flex-basis: 44px;
     padding: 0;
   }
 

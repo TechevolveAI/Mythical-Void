@@ -29,4 +29,15 @@ describe('Sanctuary navigation lifecycle', () => {
         expect(profile).toContain("SceneTransitionHelper.stopScene(this, 'CreatureProfileScene')");
         expect(profile).toContain("SceneTransitionHelper.resumeScene(this, 'GameScene')");
     });
+
+    test('never runs movement during a player-body restart gap', () => {
+        const gameScene = read('scenes/GameScene.js');
+
+        expect(gameScene).toContain(
+            'this._isShuttingDown || !this.player?.active || !this.player.body?.enable'
+        );
+        expect(gameScene).toMatch(
+            /handleMovement\(\) \{[\s\S]*?!this\.player\?\.active[\s\S]*?!this\.player\.body\?\.enable[\s\S]*?return;/
+        );
+    });
 });

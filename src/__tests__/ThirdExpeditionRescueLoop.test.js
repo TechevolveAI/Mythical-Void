@@ -109,7 +109,7 @@ describe('third expedition rescue loop', () => {
             'BROKEN ROUTE // ${routeFracture}/${this.bossMaxHealth}'
         );
         expect(source).toContain('BROKEN ROUTE // RESTORED');
-        expect(source).toContain('`ROUTE FRACTURE -${amount}`');
+        expect(source).toContain('`ROUTE FRACTURE -${finalAmount}`');
     });
 
     test('names the counterplay and prevents overlap for every Reef hazard', () => {

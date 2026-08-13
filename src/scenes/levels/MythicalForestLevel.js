@@ -33,6 +33,13 @@ const FOREST_GUARDIAN_ATTACK_CUES = Object.freeze({
     nature_fury: 'FALLING LEAVES // KEEP MOVING'
 });
 
+const FOREST_GUARDIAN_ATTACK_PACING = Object.freeze({
+    root_slam: { windup: 650, recovery: 850, color: 0xFF8A4C },
+    vine_whip: { windup: 550, recovery: 800, color: 0xFFD166 },
+    spore_cloud: { windup: 700, recovery: 950, color: 0xD47CFF },
+    nature_fury: { windup: 1000, recovery: 1100, color: 0x90EE90 }
+});
+
 /**
  * MythicalForestLevel - Mystical Forest platformer level
  *
@@ -88,6 +95,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossInstructionText = null;
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer = null;
+        this.bossAttackWindupTimer = null;
+        this.bossRecoveryTimer = null;
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitioning = false;
+        this.bossPhasePending = false;
+        this.bossTelegraphs = new Set();
         this.bossAttackPreview = null;
 
         // Forest particles
@@ -178,6 +191,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossInstructionText = null;
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer = null;
+        this.bossAttackWindupTimer = null;
+        this.bossRecoveryTimer = null;
+        this.bossPhaseTransitionTimer = null;
+        this.bossPhaseTransitioning = false;
+        this.bossPhasePending = false;
+        this.bossTelegraphs = new Set();
         this.bossAttackPreview = [
             'root_slam',
             'vine_whip',
@@ -3851,38 +3870,159 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Execute a boss attack
      */
     executeBossAttack(attackType) {
-        if (!this.boss || this.boss.isAttacking) return;
+        if (!this.boss || this.boss.isAttacking || this.bossPhaseTransitioning) return;
 
+        const pacing = FOREST_GUARDIAN_ATTACK_PACING[attackType] ||
+            { windup: 600, recovery: 850, color: 0xFFD166 };
         this.boss.isAttacking = true;
+        this.boss.isRecovering = false;
+        this.boss.setVelocityX?.(0);
         const attackWindow = FOREST_GUARDIAN_ATTACK_WINDOWS[attackType] || 1800;
         this.showBossAttackInstruction(
             FOREST_GUARDIAN_ATTACK_CUES[attackType],
-            attackWindow
+            pacing.windup + attackWindow
+        );
+        this.createForestBossTelegraph(attackType, pacing);
+
+        this.bossAttackWindupTimer?.remove?.();
+        this.bossAttackWindupTimer = this.time.delayedCall(pacing.windup, () => {
+            this.bossAttackWindupTimer = null;
+            if (!this.boss?.active || this.bossDefeated || this.bossPhaseTransitioning) return;
+
+            switch (attackType) {
+                case 'root_slam':
+                    this.bossRootSlam();
+                    break;
+                case 'vine_whip':
+                    this.bossVineWhip();
+                    break;
+                case 'spore_cloud':
+                    this.bossSporeCloud();
+                    break;
+                case 'nature_fury':
+                    this.bossNatureFury();
+                    break;
+            }
+        });
+
+        this.bossRecoveryTimer?.remove?.();
+        this.bossRecoveryTimer = this.time.delayedCall(
+            pacing.windup + attackWindow,
+            () => {
+                this.bossRecoveryTimer = null;
+                if (this.boss?.active && !this.bossDefeated && !this.bossPhaseTransitioning) {
+                    this.showForestBossRecovery(pacing.recovery);
+                }
+            }
         );
 
-        switch (attackType) {
-            case 'root_slam':
-                this.bossRootSlam();
-                break;
-            case 'vine_whip':
-                this.bossVineWhip();
-                break;
-            case 'spore_cloud':
-                this.bossSporeCloud();
-                break;
-            case 'nature_fury':
-                this.bossNatureFury();
-                break;
+        // Keep the guardian locked through a guaranteed post-attack opening.
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = this.time.delayedCall(
+            pacing.windup + attackWindow + pacing.recovery,
+            () => {
+                if (this.boss && !this.bossPhaseTransitioning) {
+                    this.boss.isAttacking = false;
+                    this.boss.isRecovering = false;
+                }
+                this.bossAttackUnlockTimer = null;
+            }
+        );
+    }
+
+    createForestBossTelegraph(attackType, pacing) {
+        if (!this.boss || !this.player) return null;
+
+        const warning = this.add.graphics();
+        const color = pacing.color;
+        const groundY = this.levelHeight - 120;
+        const direction = this.boss.facingRight ? 1 : -1;
+        const camera = this.cameras.main;
+        const viewX = camera.worldView?.x ?? camera.scrollX ?? 0;
+
+        warning.fillStyle(color, 0.14);
+        warning.lineStyle(4, color, 0.95);
+        if (attackType === 'root_slam') {
+            warning.fillRect(this.boss.x - 220, groundY - 18, 440, 36);
+            warning.strokeRect(this.boss.x - 220, groundY - 18, 440, 36);
+        } else if (attackType === 'vine_whip') {
+            const laneX = direction > 0 ? this.boss.x + 45 : this.boss.x - 365;
+            warning.fillRect(laneX, this.boss.y - 24, 320, 48);
+            warning.strokeRect(laneX, this.boss.y - 24, 320, 48);
+        } else if (attackType === 'spore_cloud') {
+            warning.fillCircle(this.player.x, this.player.y, 72);
+            warning.strokeCircle(this.player.x, this.player.y, 72);
+        } else {
+            warning.fillRect(viewX + 12, 24, camera.width - 24, this.levelHeight - 145);
+            warning.strokeRect(viewX + 12, 24, camera.width - 24, this.levelHeight - 145);
         }
 
-        // Keep the guardian locked until every active hazard has resolved.
-        this.bossAttackUnlockTimer?.remove?.();
-        this.bossAttackUnlockTimer = this.time.delayedCall(attackWindow, () => {
-            if (this.boss) {
-                this.boss.isAttacking = false;
-            }
-            this.bossAttackUnlockTimer = null;
+        warning.setDepth(845).setAlpha(0.9);
+        this.bossTelegraphs.add(warning);
+        this.tweens.add({
+            targets: warning,
+            alpha: 0.28,
+            duration: Math.max(120, Math.floor(pacing.windup / 4)),
+            yoyo: true,
+            repeat: 2,
+            onComplete: () => this.destroyForestBossTelegraph(warning)
         });
+        return warning;
+    }
+
+    showForestBossRecovery(duration) {
+        if (!this.boss?.active) return;
+        if (this.bossPhasePending) {
+            this.bossPhasePending = false;
+            this.triggerPhase2();
+            return;
+        }
+
+        this.boss.isRecovering = true;
+        this.bossInstructionText
+            ?.setText('OPENING // STRIKE THE PURPLE CORRUPTION')
+            ?.setColor('#8FE3CF');
+        const opening = this.add.graphics();
+        opening.lineStyle(5, 0x8FE3CF, 0.9);
+        opening.strokeCircle(0, 0, 105);
+        opening.setPosition(this.boss.x, this.boss.y).setDepth(885);
+        this.bossTelegraphs.add(opening);
+        this.tweens.add({
+            targets: opening,
+            alpha: 0,
+            scaleX: 1.35,
+            scaleY: 1.35,
+            duration,
+            ease: 'Sine.easeOut',
+            onComplete: () => this.destroyForestBossTelegraph(opening)
+        });
+    }
+
+    destroyForestBossTelegraph(graphic) {
+        if (!graphic) return;
+        this.tweens.killTweensOf?.(graphic);
+        this.bossTelegraphs.delete(graphic);
+        graphic.destroy?.();
+    }
+
+    clearForestBossPacing({ includePhase = false } = {}) {
+        this.bossAttackWindupTimer?.remove?.();
+        this.bossAttackWindupTimer = null;
+        this.bossRecoveryTimer?.remove?.();
+        this.bossRecoveryTimer = null;
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        if (includePhase) {
+            this.bossPhaseTransitionTimer?.remove?.();
+            this.bossPhaseTransitionTimer = null;
+            this.bossPhaseTransitioning = false;
+            this.bossPhasePending = false;
+        }
+        this.bossTelegraphs.forEach(graphic => {
+            this.tweens.killTweensOf?.(graphic);
+            graphic.destroy?.();
+        });
+        this.bossTelegraphs.clear();
     }
 
     showBossAttackInstruction(cue, duration = 1800) {
@@ -3914,20 +4054,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
     /**
      * Root Slam attack - ground shockwave with attack telegraph!
      */
-    async bossRootSlam() {
+    bossRootSlam() {
         if (!this.boss) return;
-
-        // COMBAT JUICE: Attack telegraph before dangerous attack
-        if (this.combatJuice) {
-            await this.combatJuice.attackTelegraph(this.boss, 'slam', 600);
-        } else {
-            // Fallback telegraph
-            const telegraph = this.add.graphics();
-            telegraph.fillStyle(0xFF4500, 0.3);
-            telegraph.fillRect(this.boss.x - 150, this.levelHeight - 120, 300, 30);
-            telegraph.setDepth(100);
-            this.time.delayedCall(400, () => telegraph.destroy());
-        }
 
         // Screen shake on impact
         if (this.combatJuice) {
@@ -3962,15 +4090,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
     /**
      * Vine Whip attack - with charge telegraph!
      */
-    async bossVineWhip() {
+    bossVineWhip() {
         if (!this.boss || !this.player) return;
 
         const direction = this.boss.facingRight ? 1 : -1;
-
-        // COMBAT JUICE: Attack telegraph for charge attack
-        if (this.combatJuice) {
-            await this.combatJuice.attackTelegraph(this.boss, 'charge', 500);
-        }
 
         // Create vine projectile
         const vine = this.add.graphics();
@@ -4010,22 +4133,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
     /**
      * Spore Cloud attack - area denial with projectile telegraph!
      */
-    async bossSporeCloud() {
+    bossSporeCloud() {
         if (!this.boss || !this.player) return;
-
-        // COMBAT JUICE: Projectile telegraph
-        if (this.combatJuice) {
-            await this.combatJuice.attackTelegraph(this.boss, 'projectile', 400);
-        }
 
         // Target player position
         const targetX = this.player.x;
         const targetY = this.player.y;
-
-        // COMBAT JUICE: Spawn warning at target location
-        if (this.combatJuice) {
-            await this.combatJuice.spawnWarning(targetX, targetY, 600);
-        }
 
         // Create spore cloud
         const cloud = this.add.graphics();
@@ -4070,12 +4183,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
     /**
      * Nature Fury attack - Phase 2 ultimate with AoE telegraph!
      */
-    async bossNatureFury() {
+    bossNatureFury() {
         if (!this.boss) return;
 
-        // COMBAT JUICE: AoE attack telegraph - big warning!
+        // The lane warning is authored before this impact in executeBossAttack.
         if (this.combatJuice) {
-            await this.combatJuice.attackTelegraph(this.boss, 'aoe', 1000);
             this.combatJuice.screenShake(6, 300);
             this.combatJuice.hapticFeedback('critical');
         }
@@ -4103,7 +4215,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Rain of leaves/projectiles
         for (let i = 0; i < 10; i++) {
             this.time.delayedCall(i * 200, () => {
-                const leafX = Math.random() * width;
+                const viewX = this.cameras.main.worldView?.x ?? this.cameras.main.scrollX ?? 0;
+                const leafX = viewX + Math.random() * width;
 
                 const leaf = this.add.graphics();
                 leaf.fillStyle(Math.random() > 0.5 ? 0x228B22 : 0x8B008B, 1);
@@ -4158,16 +4271,20 @@ class MythicalForestLevel extends PlatformerLevelScene {
     damageBoss(amount = 1) {
         if (!this.boss || this.bossDefeated) return;
 
-        this.bossHealth -= amount;
+        const recoveryBonus = this.boss.isRecovering ? 1 : 0;
+        const finalAmount = amount + recoveryBonus;
+        this.bossHealth -= finalAmount;
         this.updateBossHealthBar();
 
         // COMBAT JUICE: Exciting boss hit feedback!
         if (this.combatJuice) {
             // Register hit for combo system
-            this.combatJuice.registerHit(amount);
+            this.combatJuice.registerHit(finalAmount);
 
             this.showFloatingText(
-                `CORRUPTION -${amount}`,
+                recoveryBonus
+                    ? `OPEN CORRUPTION -${finalAmount}`
+                    : `CORRUPTION -${finalAmount}`,
                 this.boss.x,
                 this.boss.y - 80,
                 '#D9B8FF'
@@ -4189,14 +4306,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
             });
         }
 
-        // Phase transition at 50% health
-        if (this.bossHealth <= this.bossMaxHealth * 0.5 && this.bossPhase === 1) {
-            this.triggerPhase2();
-        }
-
         // The final impact clears the guardian's corruption.
         if (this.bossHealth <= 0) {
             this.onBossDefeated();
+        } else if (
+            this.bossHealth <= this.bossMaxHealth * 0.5 &&
+            this.bossPhase === 1
+        ) {
+            this.requestForestBossPhase2();
         }
 
         if (window.AudioManager) {
@@ -4204,45 +4321,103 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
     }
 
+    requestForestBossPhase2() {
+        if (this.boss?.isAttacking && !this.boss?.isRecovering) {
+            this.bossPhasePending = true;
+            return;
+        }
+
+        this.triggerPhase2();
+    }
+
     /**
      * Trigger phase 2 - DRAMATIC phase transition with combat juice!
      */
     triggerPhase2() {
+        if (
+            !this.boss?.active ||
+            this.bossDefeated ||
+            this.bossPhase !== 1 ||
+            this.bossPhaseTransitioning
+        ) return;
+
+        this.bossPhasePending = false;
         this.bossPhase = 2;
-
-        // COMBAT JUICE: Dramatic phase transition!
-        if (this.combatJuice && this.boss) {
-            this.combatJuice.phaseTransition(this.boss, 2, '🌿 CORRUPTION SURGES! 🌿');
-        } else {
-            // Fallback: original transition
-            window.FeedbackManager?.cameraShake?.(this, 500, 0.02);
-            this.boss.setTint(0xFF6B6B);
-
-            const { width, height } = this.cameras.main;
-            const phaseText = this.add.text(width / 2, height / 2, '🌿 CORRUPTION SURGES! 🌿', {
-                fontSize: '28px',
-                color: '#FF4500',
-                fontStyle: 'bold',
-                stroke: '#000000',
-                strokeThickness: 3
-            }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
-
-            this.tweens.add({
-                targets: phaseText,
-                alpha: 0,
-                y: height / 2 - 50,
-                duration: 1500,
-                onComplete: () => phaseText.destroy()
-            });
-        }
-
-        // Speed up AI - boss gets angrier!
+        this.bossPhaseTransitioning = true;
+        this.clearForestBossPacing();
+        this.boss.isAttacking = true;
+        this.boss.isRecovering = false;
+        this.boss.setVelocity?.(0, 0);
         if (this.bossAITimer) {
-            this.bossAITimer.delay = 1500;
+            this.bossAITimer.paused = true;
         }
+
+        if (this.combatJuice) {
+            this.combatJuice.phaseTransition(this.boss, 2, '🌿 CORRUPTION SURGES! 🌿');
+        }
+        window.FeedbackManager?.cameraShake?.(this, 500, 0.02);
+        this.boss.setTint(0xFF6B6B);
+
+        const { width, height } = this.cameras.main;
+        const phaseRing = this.add.graphics();
+        phaseRing.lineStyle(7, 0xFF8A4C, 0.95);
+        phaseRing.strokeCircle(0, 0, 90);
+        phaseRing.setPosition(this.boss.x, this.boss.y).setDepth(890);
+        this.bossTelegraphs.add(phaseRing);
+        this.tweens.add({
+            targets: phaseRing,
+            alpha: 0,
+            scaleX: 2.2,
+            scaleY: 2.2,
+            duration: 1500,
+            ease: 'Sine.easeOut',
+            onComplete: () => this.destroyForestBossTelegraph(phaseRing)
+        });
+
+        const phaseText = this.add.text(width / 2, height / 2, 'CORRUPTION SURGES // WATCH THE NEW PATTERN', {
+            fontSize: width <= 480 ? '20px' : '28px',
+            color: '#FFB27A',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3,
+            align: 'center',
+            wordWrap: { width: width - 50 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
+
+        this.tweens.add({
+            targets: phaseText,
+            alpha: 0,
+            y: height / 2 - 50,
+            duration: 1500,
+            onComplete: () => phaseText.destroy()
+        });
+
+        // Phase two adds a new pattern without deleting the player's reading time.
+        if (this.bossAITimer) {
+            this.bossAITimer.delay = 1900;
+        }
+
+        this.bossPhaseTransitionTimer?.remove?.();
+        this.bossPhaseTransitionTimer = this.time.delayedCall(1650, () => {
+            this.bossPhaseTransitionTimer = null;
+            this.bossPhaseTransitioning = false;
+            if (!this.boss?.active || this.bossDefeated) return;
+
+            if (this.bossAITimer) {
+                this.bossAITimer.paused = false;
+            }
+            this.showForestBossRecovery(900);
+            this.bossAttackUnlockTimer = this.time.delayedCall(900, () => {
+                if (this.boss) {
+                    this.boss.isAttacking = false;
+                    this.boss.isRecovering = false;
+                }
+                this.bossAttackUnlockTimer = null;
+            });
+        });
 
         if (window.AudioManager) {
-            window.AudioManager.playError(); // Angry sound
+            window.AudioManager.playError();
         }
     }
 
@@ -4258,8 +4433,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (this.bossAITimer) {
             this.bossAITimer.remove();
         }
-        this.bossAttackUnlockTimer?.remove?.();
-        this.bossAttackUnlockTimer = null;
+        this.clearForestBossPacing({ includePhase: true });
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
         this.bossCorruptionText?.setText('VOID CORRUPTION // CLEARED');
@@ -4485,8 +4659,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (this.bossAITimer) {
             this.bossAITimer.remove();
         }
-        this.bossAttackUnlockTimer?.remove?.();
-        this.bossAttackUnlockTimer = null;
+        this.clearForestBossPacing({ includePhase: true });
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
 

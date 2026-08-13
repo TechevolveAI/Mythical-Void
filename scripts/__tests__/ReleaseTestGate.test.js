@@ -60,6 +60,7 @@ describe('release test gate', () => {
 
     test('release smoke runs interaction before the state contract', () => {
         const source = read('scripts/run-browser-smoke.js');
+        const villageUi = source.indexOf("SMOKE_MODE: 'village-ui'");
         const interaction = source.indexOf("SMOKE_MODE: 'interaction'");
         const stateContract = source.indexOf("SMOKE_MODE: 'state-contract'");
         const finalPriorityJourney = source.indexOf(
@@ -75,7 +76,8 @@ describe('release test gate', () => {
             "SMOKE_MODE: 'hub-forest-transition'"
         );
 
-        expect(interaction).toBeGreaterThan(-1);
+        expect(villageUi).toBeGreaterThan(-1);
+        expect(interaction).toBeGreaterThan(villageUi);
         expect(stateContract).toBeGreaterThan(interaction);
         expect(finalPriorityJourney).toBeGreaterThan(stateContract);
         expect(saveReloadJourney).toBeGreaterThan(finalPriorityJourney);
@@ -84,6 +86,7 @@ describe('release test gate', () => {
         expect(source).toContain('for (const smokeCase of interactionCases)');
         expect(source).toContain('SMOKE_CASE: smokeCase');
         expect(source).toContain('failures.push(`interaction:${smokeCase}:');
+        expect(source).toContain('failures.push(`village-ui:');
         expect(source).toContain('failures.push(`state-contract:');
         expect(source).toContain('failures.push(`final-priority-journey:');
         expect(source).toContain('failures.push(`save-reload-journey:');

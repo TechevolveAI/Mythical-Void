@@ -10,6 +10,9 @@ const TITAN_ATTACK_WINDOWS = Object.freeze({
     voidPunch: 1500,
     singularity: 1800
 });
+const TITAN_ATTACK_WINDUP = 700;
+const TITAN_RECOVERY_WINDOW = 650;
+const TITAN_PHASE_RECOVERY = 1300;
 
 /**
  * VoidPeaksLevel - mountain platformer level before the final void.
@@ -58,7 +61,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.cosmicEggAwarded = false;
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer = null;
+        this.titanPhaseRecoveryTimer = null;
         this.titanAttackLocked = false;
+        this.titanRecoveryUntil = 0;
+        this.bossEncounterEffects = new Set();
+        this.bossEncounterTimers = new Set();
         this.bossAttackPreview = null;
         this.bossPressureText = null;
         this.levelEntryDismissing = false;
@@ -87,7 +94,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.cosmicEggAwarded = false;
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer = null;
+        this.titanPhaseRecoveryTimer = null;
         this.titanAttackLocked = false;
+        this.titanRecoveryUntil = 0;
+        this.bossEncounterEffects = new Set();
+        this.bossEncounterTimers = new Set();
         this.bossAttackPreview = [
             'gravityCrush',
             'starRain',
@@ -1145,12 +1156,80 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }
     }
 
+    trackBossEffect(effect) {
+        if (effect) this.bossEncounterEffects.add(effect);
+        return effect;
+    }
+
+    releaseBossEffect(effect) {
+        if (!effect) return;
+        this.bossEncounterEffects.delete(effect);
+        effect.destroy?.();
+    }
+
+    scheduleBossTimer(delay, callback) {
+        let timer = null;
+        timer = this.time.delayedCall(delay, () => {
+            this.bossEncounterTimers.delete(timer);
+            callback();
+        });
+        this.bossEncounterTimers.add(timer);
+        return timer;
+    }
+
+    clearBossEncounterTimers() {
+        this.bossEncounterTimers.forEach(timer => timer?.remove?.(false));
+        this.bossEncounterTimers.clear();
+    }
+
+    clearBossEncounterEffects() {
+        this.bossEncounterEffects.forEach(effect => effect?.destroy?.());
+        this.bossEncounterEffects.clear();
+    }
+
+    createTitanAttackTelegraph(attack, target) {
+        if (!this.boss?.active || !this.player?.active) return null;
+
+        const telegraph = this.trackBossEffect(this.add.graphics());
+        const color = attack === 'singularity' ? 0xB66BFF : 0xFF9B45;
+        telegraph.lineStyle(5, color, 0.9);
+        telegraph.fillStyle(color, 0.16);
+        telegraph.setDepth(915);
+
+        if (attack === 'starRain') {
+            const warningY = Math.max(80, this.player.y - 260);
+            telegraph.fillRect(4100, warningY, 850, 45);
+            telegraph.strokeRect(4100, warningY, 850, 45);
+        } else if (attack === 'voidPunch') {
+            telegraph.lineBetween(this.boss.x, this.boss.y, target.x, target.y);
+            telegraph.strokeCircle(this.boss.x, this.boss.y, 72);
+        } else if (attack === 'singularity') {
+            const x = Phaser.Math.Clamp(target.x, 4120, 4920);
+            telegraph.fillCircle(x, this.levelHeight - 260, 82);
+            telegraph.strokeCircle(x, this.levelHeight - 260, 82);
+        } else {
+            telegraph.fillCircle(target.x, this.levelHeight - 82, 70);
+            telegraph.strokeCircle(target.x, this.levelHeight - 82, 70);
+        }
+
+        this.tweens.add({
+            targets: telegraph,
+            alpha: 0.3,
+            duration: 180,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        return telegraph;
+    }
+
     performTitanAttack(forcedAttack = null) {
         if (
             !this.boss?.active ||
             !this.player?.active ||
             this.bossDefeated ||
-            this.titanAttackLocked
+            this.titanAttackLocked ||
+            this.time.now < this.titanRecoveryUntil
         ) return;
 
         const attacks = ['gravityCrush', 'starRain'];
@@ -1159,20 +1238,23 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         const attack = forcedAttack || Phaser.Utils.Array.GetRandom(attacks);
         const attackWindow = TITAN_ATTACK_WINDOWS[attack] || 1800;
+        const attackTarget = { x: this.player.x, y: this.player.y };
         this.titanAttackLocked = true;
-        this.broadcastTitanWarning(attack);
+        this.broadcastTitanWarning(attack, attackTarget);
 
         this.titanAttackUnlockTimer?.remove?.();
         this.titanAttackUnlockTimer = this.time.delayedCall(
-            attackWindow,
+            TITAN_ATTACK_WINDUP + attackWindow + TITAN_RECOVERY_WINDOW,
             () => {
-                this.titanAttackLocked = false;
+                if (!this.titanPhaseRecoveryTimer && !this.bossDefeated) {
+                    this.titanAttackLocked = false;
+                }
                 this.titanAttackUnlockTimer = null;
             }
         );
     }
 
-    broadcastTitanWarning(attack) {
+    broadcastTitanWarning(attack, attackTarget) {
         const warnings = {
             gravityCrush: 'NETWORK WARNING // GROUND IMPACT - MOVE',
             starRain: 'NETWORK WARNING // STAR RAIN - KEEP MOVING',
@@ -1181,38 +1263,44 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         };
 
         this.bossSubtitle?.setText?.(warnings[attack] || 'NETWORK WARNING // PRESSURE SURGE');
+        const telegraph = this.createTitanAttackTelegraph(attack, attackTarget);
         this.titanWarningTimer?.remove?.();
-        this.titanWarningTimer = this.time.delayedCall(650, () => {
+        this.titanWarningTimer = this.time.delayedCall(TITAN_ATTACK_WINDUP, () => {
             this.titanWarningTimer = null;
-            if (!this.boss?.active || this.bossDefeated) return;
-            this.executeTitanAttack(attack);
-            this.time.delayedCall(1050, () => {
+            this.releaseBossEffect(telegraph);
+            if (!this.boss?.active || this.bossDefeated || this.titanPhaseRecoveryTimer) return;
+            this.executeTitanAttack(attack, attackTarget);
+            const recoveryDelay = TITAN_ATTACK_WINDOWS[attack] || 1800;
+            this.scheduleBossTimer(recoveryDelay, () => {
                 if (!this.bossDefeated) {
-                    this.bossSubtitle?.setText?.('WARNING LINE ONLINE // SETTLEMENTS ARE GUIDING YOU');
+                    this.titanRecoveryUntil = this.time.now + TITAN_RECOVERY_WINDOW;
+                    this.bossSubtitle?.setText?.('RECOVERY WINDOW // PRESS THE ATTACK');
                 }
             });
         });
     }
 
-    executeTitanAttack(attack) {
+    executeTitanAttack(attack, attackTarget) {
         if (attack === 'gravityCrush') {
-            this.gravityCrush();
+            this.gravityCrush(attackTarget);
         } else if (attack === 'starRain') {
             this.starRain();
         } else if (attack === 'voidPunch') {
-            this.voidPunch();
+            this.voidPunch(attackTarget);
         } else {
-            this.singularity();
+            this.singularity(attackTarget);
         }
     }
 
-    gravityCrush() {
-        const marker = this.add.circle(this.player.x, this.levelHeight - 82, 58, 0xFF4500, 0.28);
+    gravityCrush(attackTarget) {
+        const marker = this.trackBossEffect(
+            this.add.circle(attackTarget.x, this.levelHeight - 82, 58, 0xFF4500, 0.28)
+        );
         marker.setDepth(500);
 
-        this.time.delayedCall(650, () => {
+        this.scheduleBossTimer(650, () => {
             if (!marker.active || this.bossDefeated) {
-                marker.destroy();
+                this.releaseBossEffect(marker);
                 return;
             }
             const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, marker.x, marker.y);
@@ -1220,16 +1308,18 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 this.takeDamage(2);
             }
             window.FeedbackManager?.cameraShake?.(this, 180, 0.01);
-            marker.destroy();
+            this.releaseBossEffect(marker);
         });
     }
 
     starRain() {
         for (let i = 0; i < 7; i++) {
-            this.time.delayedCall(i * 120, () => {
+            this.scheduleBossTimer(i * 120, () => {
                 if (this.bossDefeated) return;
                 const x = Phaser.Math.Between(4100, 4950);
-                const bolt = this.add.star(x, 40, 5, 8, 18, 0xFF4500, 1);
+                const bolt = this.trackBossEffect(
+                    this.add.star(x, 40, 5, 8, 18, 0xFF4500, 1)
+                );
                 this.physics.add.existing(bolt);
                 bolt.body.setAllowGravity(false);
                 bolt.body.setVelocityY(360);
@@ -1239,19 +1329,21 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                     if (!this.bossDefeated) {
                         this.takeDamage(1);
                     }
-                    bolt.destroy();
+                    this.releaseBossEffect(bolt);
                 });
 
-                this.time.delayedCall(2600, () => bolt.active && bolt.destroy());
+                this.scheduleBossTimer(2600, () => {
+                    if (bolt.active) this.releaseBossEffect(bolt);
+                });
             });
         }
     }
 
-    voidPunch() {
-        const direction = this.player.x < this.boss.x ? -1 : 1;
+    voidPunch(attackTarget) {
+        const direction = attackTarget.x < this.boss.x ? -1 : 1;
         this.boss.setVelocityX(260 * direction);
 
-        this.time.delayedCall(450, () => {
+        this.scheduleBossTimer(450, () => {
             if (!this.boss?.active || this.bossDefeated) return;
             this.boss.setVelocityX(0);
             const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
@@ -1261,9 +1353,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
     }
 
-    singularity() {
-        const x = Phaser.Math.Clamp(this.player.x, 4120, 4920);
-        const field = this.add.circle(x, this.levelHeight - 260, 20, 0x9400D3, 0.55);
+    singularity(attackTarget) {
+        const x = Phaser.Math.Clamp(attackTarget.x, 4120, 4920);
+        const field = this.trackBossEffect(
+            this.add.circle(x, this.levelHeight - 260, 20, 0x9400D3, 0.55)
+        );
         field.setDepth(905);
 
         this.tweens.add({
@@ -1279,20 +1373,65 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                         this.takeDamage(3);
                     }
                 }
-                field.destroy();
+                this.releaseBossEffect(field);
             }
+        });
+    }
+
+    enterTitanPhase(nextPhase) {
+        this.bossPhase = nextPhase;
+        this.titanAttackLocked = true;
+        this.titanWarningTimer?.remove?.();
+        this.titanWarningTimer = null;
+        this.titanAttackUnlockTimer?.remove?.();
+        this.titanAttackUnlockTimer = null;
+        this.titanPhaseRecoveryTimer?.remove?.();
+        this.clearBossEncounterTimers();
+        this.clearBossEncounterEffects();
+        this.boss?.setVelocity?.(0, 0);
+
+        const phaseColor = nextPhase >= 4 ? 0xFF6B6B : 0xB66BFF;
+        const phaseRing = this.trackBossEffect(this.add.graphics());
+        phaseRing.lineStyle(7, phaseColor, 0.95);
+        phaseRing.strokeCircle(0, 0, 90);
+        phaseRing.setPosition(this.boss.x, this.boss.y).setDepth(914).setScale(0.35);
+        this.bossSubtitle?.setText?.(`PHASE ${nextPhase} // PRESSURE SHIFT - RECOVER`);
+        window.FeedbackManager?.cameraShake?.(this, 350, 0.018);
+        this.boss.setScale(
+            this.bossTargetScale * (1 + (this.bossPhase - 1) * 0.08)
+        );
+        this.tweens.add({
+            targets: phaseRing,
+            scaleX: 2.4,
+            scaleY: 2.4,
+            alpha: 0,
+            duration: TITAN_PHASE_RECOVERY,
+            ease: 'Sine.easeOut',
+            onComplete: () => this.releaseBossEffect(phaseRing)
+        });
+
+        this.titanPhaseRecoveryTimer = this.time.delayedCall(TITAN_PHASE_RECOVERY, () => {
+            this.titanPhaseRecoveryTimer = null;
+            if (!this.boss?.active || this.bossDefeated) return;
+            this.titanAttackLocked = false;
+            this.titanRecoveryUntil = this.time.now + TITAN_RECOVERY_WINDOW;
+            this.bossSubtitle?.setText?.('RECOVERY WINDOW // PRESS THE ATTACK');
         });
     }
 
     damageBoss(amount) {
         if (!this.boss?.active || this.bossDefeated) return;
 
-        this.bossHealth = Math.max(0, this.bossHealth - amount);
+        const recoveryBonus = this.time.now < this.titanRecoveryUntil ? 1 : 0;
+        const finalAmount = amount + recoveryBonus;
+        this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.boss.health = this.bossHealth;
         this.updateBossHealthBar();
 
         this.showFloatingText(
-            `PRESSURE -${amount}`,
+            recoveryBonus
+                ? `OPEN PRESSURE -${finalAmount}`
+                : `PRESSURE -${finalAmount}`,
             this.boss.x,
             this.boss.y - 115,
             '#8FE3CF'
@@ -1303,13 +1442,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         const healthRatio = this.bossHealth / this.bossMaxHealth;
         const nextPhase = healthRatio <= 0.15 ? 4 : healthRatio <= 0.4 ? 3 : healthRatio <= 0.7 ? 2 : 1;
-        if (nextPhase > this.bossPhase) {
-            this.bossPhase = nextPhase;
-            window.FeedbackManager?.cameraShake?.(this, 350, 0.018);
-            this.boss.setScale(
-                this.bossTargetScale *
-                (1 + (this.bossPhase - 1) * 0.08)
-            );
+        if (this.bossHealth > 0 && nextPhase > this.bossPhase) {
+            this.enterTitanPhase(nextPhase);
         }
 
         if (this.bossHealth <= 0) {
@@ -1328,7 +1462,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer?.remove?.();
         this.titanAttackUnlockTimer = null;
+        this.titanPhaseRecoveryTimer?.remove?.();
+        this.titanPhaseRecoveryTimer = null;
+        this.clearBossEncounterTimers();
+        this.clearBossEncounterEffects();
         this.titanAttackLocked = false;
+        this.titanRecoveryUntil = 0;
         this.bossPressureText?.setText('VOID PRESSURE // CLEARED');
 
         if (window.AchievementSystem?.recordEvent) {
@@ -1484,7 +1623,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer?.remove?.();
         this.titanAttackUnlockTimer = null;
+        this.titanPhaseRecoveryTimer?.remove?.();
+        this.titanPhaseRecoveryTimer = null;
+        this.clearBossEncounterTimers();
+        this.clearBossEncounterEffects();
         this.titanAttackLocked = false;
+        this.titanRecoveryUntil = 0;
         this.peakHazards = [];
         this.boss?.destroy?.();
         this.boss = null;

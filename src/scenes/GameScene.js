@@ -13568,7 +13568,7 @@ class GameScene extends Phaser.Scene {
 
     update(time, delta) {
         // Guard: Skip update if scene is shutting down or not ready
-        if (this._isShuttingDown || !this.player) {
+        if (this._isShuttingDown || !this.player?.active || !this.player.body?.enable) {
             return;
         }
 
@@ -14057,7 +14057,12 @@ class GameScene extends Phaser.Scene {
 
     handleMovement() {
         // Guard: Ensure player and cursors exist
-        if (!this.player || !this.cursors || !this.wasdKeys) {
+        if (
+            !this.player?.active ||
+            !this.player.body?.enable ||
+            !this.cursors ||
+            !this.wasdKeys
+        ) {
             return;
         }
 

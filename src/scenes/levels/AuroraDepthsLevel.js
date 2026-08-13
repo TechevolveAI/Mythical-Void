@@ -19,6 +19,9 @@ const PHOENIX_ATTACK_CUES = Object.freeze({
     rebirth_nova: 'REBIRTH RING // JUMP THROUGH THE WAVE',
     shadow_clones: 'ECHO DIVES // KEEP MOVING'
 });
+const PHOENIX_ATTACK_WINDUP = 700;
+const PHOENIX_RECOVERY_WINDOW = 650;
+const PHOENIX_PHASE_RECOVERY = 1300;
 
 /**
  * AuroraDepthsLevel - Aurora Depths platformer level
@@ -72,6 +75,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossExposureText = null;
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer = null;
+        this.bossPhaseRecoveryTimer = null;
+        this.bossRecoveryUntil = 0;
+        this.bossEncounterEffects = new Set();
+        this.bossEncounterTimers = new Set();
         this.bossAttackPreview = null;
         this.bossBarConfig = null;
         this.bossIndicator = null;
@@ -115,6 +122,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossExposureText = null;
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer = null;
+        this.bossPhaseRecoveryTimer = null;
+        this.bossRecoveryUntil = 0;
+        this.bossEncounterEffects = new Set();
+        this.bossEncounterTimers = new Set();
         this.bossAttackPreview = [
             'flame_dive',
             'shadow_feathers',
@@ -1376,6 +1387,106 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         }
     }
 
+    trackBossEffect(effect) {
+        if (effect) this.bossEncounterEffects.add(effect);
+        return effect;
+    }
+
+    releaseBossEffect(effect) {
+        if (!effect) return;
+        this.bossEncounterEffects.delete(effect);
+        effect.destroy?.();
+    }
+
+    scheduleBossTimer(delay, callback) {
+        let timer = null;
+        timer = this.time.delayedCall(delay, () => {
+            this.bossEncounterTimers.delete(timer);
+            callback();
+        });
+        this.bossEncounterTimers.add(timer);
+        return timer;
+    }
+
+    trackBossTimer(timer) {
+        if (timer) this.bossEncounterTimers.add(timer);
+        return timer;
+    }
+
+    clearBossEncounterTimers() {
+        this.bossEncounterTimers.forEach(timer => timer?.remove?.(false));
+        this.bossEncounterTimers.clear();
+    }
+
+    clearBossEncounterEffects() {
+        this.bossEncounterEffects.forEach(effect => effect?.destroy?.());
+        this.bossEncounterEffects.clear();
+    }
+
+    createPhoenixAttackTelegraph(attackType, attackTarget) {
+        if (!this.boss?.active || !this.player?.active) return null;
+
+        const telegraph = this.trackBossEffect(this.add.graphics());
+        const color = attackType === 'rebirth_nova' ? 0xFF6B45 : 0xFFD166;
+        telegraph.lineStyle(5, color, 0.92);
+        telegraph.fillStyle(color, 0.14);
+        telegraph.setDepth(875);
+
+        if (attackType === 'flame_dive') {
+            telegraph.lineBetween(this.boss.x, this.boss.y, attackTarget.x, attackTarget.y);
+            telegraph.strokeCircle(attackTarget.x, attackTarget.y, 42);
+        } else if (attackType === 'shadow_feathers') {
+            const baseAngle = Math.atan2(
+                attackTarget.y - this.boss.y,
+                attackTarget.x - this.boss.x
+            );
+            [-0.3, 0, 0.3].forEach(offset => {
+                telegraph.lineBetween(
+                    this.boss.x,
+                    this.boss.y,
+                    this.boss.x + Math.cos(baseAngle + offset) * 260,
+                    this.boss.y + Math.sin(baseAngle + offset) * 260
+                );
+            });
+        } else if (attackType === 'fire_trail') {
+            const direction = attackTarget.direction;
+            telegraph.fillRect(
+                direction > 0 ? this.boss.x : this.boss.x - 300,
+                this.levelHeight - 155,
+                300,
+                45
+            );
+        } else if (attackType === 'shadow_clones') {
+            telegraph.strokeCircle(this.boss.x - 105, this.boss.y, 52);
+            telegraph.strokeCircle(this.boss.x + 105, this.boss.y, 52);
+        } else {
+            telegraph.strokeCircle(this.boss.x, this.boss.y, 95);
+            telegraph.strokeCircle(this.boss.x, this.boss.y, 135);
+        }
+
+        this.tweens.add({
+            targets: telegraph,
+            alpha: 0.25,
+            duration: 180,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        return telegraph;
+    }
+
+    startBossHover() {
+        if (!this.boss?.active || this.bossDefeated) return;
+        this.tweens.add({
+            targets: this.boss,
+            y: this.boss.y - 30,
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
     startBossAI() {
         console.log('[AuroraDepthsLevel] Starting Shadow Phoenix AI');
 
@@ -1385,15 +1496,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             loop: true
         });
 
-        // Phoenix hovers up and down
-        this.tweens.add({
-            targets: this.boss,
-            y: this.boss.y - 30,
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        this.startBossHover();
     }
 
     bossAITick() {
@@ -1417,40 +1520,64 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     executeBossAttack(attackType) {
-        if (!this.boss?.active || this.boss.isAttacking || this.bossDefeated) return;
+        if (
+            !this.boss?.active ||
+            !this.player?.active ||
+            this.boss.isAttacking ||
+            this.bossDefeated ||
+            this.time.now < this.bossRecoveryUntil
+        ) return;
 
         this.boss.isAttacking = true;
         const attackWindow = PHOENIX_ATTACK_WINDOWS[attackType] || 1900;
+        const attackTarget = {
+            x: this.player.x,
+            y: this.player.y,
+            direction: this.boss.facingRight ? 1 : -1
+        };
+        this.tweens.killTweensOf(this.boss);
+        this.boss.setVelocity?.(0, 0);
         this.showBossAttackInstruction(
             PHOENIX_ATTACK_CUES[attackType],
-            attackWindow
+            PHOENIX_ATTACK_WINDUP + attackWindow + PHOENIX_RECOVERY_WINDOW
         );
+        const telegraph = this.createPhoenixAttackTelegraph(attackType, attackTarget);
 
-        switch (attackType) {
-            case 'flame_dive':
-                this.bossFlameDive();
-                break;
-            case 'shadow_feathers':
-                this.bossShadowFeathers();
-                break;
-            case 'fire_trail':
-                this.bossFireTrail();
-                break;
-            case 'rebirth_nova':
-                this.bossRebirthNova();
-                break;
-            case 'shadow_clones':
-                this.bossShadowClones();
-                break;
-        }
+        this.scheduleBossTimer(PHOENIX_ATTACK_WINDUP, () => {
+            this.releaseBossEffect(telegraph);
+            if (!this.boss?.active || this.bossDefeated || this.bossPhaseRecoveryTimer) return;
+            this.dispatchBossAttack(attackType, attackTarget);
+        });
+        this.scheduleBossTimer(PHOENIX_ATTACK_WINDUP + attackWindow, () => {
+            if (!this.boss?.active || this.bossDefeated) return;
+            this.bossRecoveryUntil = this.time.now + PHOENIX_RECOVERY_WINDOW;
+            this.bossSubtitle
+                ?.setText('RECOVERY WINDOW // BREAK VOID PRESSURE')
+                ?.setColor('#D8FFF6');
+        });
 
         this.bossAttackUnlockTimer?.remove?.();
-        this.bossAttackUnlockTimer = this.time.delayedCall(attackWindow, () => {
-            if (this.boss?.active && !this.bossDefeated) {
-                this.boss.isAttacking = false;
+        this.bossAttackUnlockTimer = this.time.delayedCall(
+            PHOENIX_ATTACK_WINDUP + attackWindow + PHOENIX_RECOVERY_WINDOW,
+            () => {
+                if (this.boss?.active && !this.bossDefeated) {
+                    this.boss.isAttacking = false;
+                    this.startBossHover();
+                }
+                this.bossAttackUnlockTimer = null;
             }
-            this.bossAttackUnlockTimer = null;
-        });
+        );
+    }
+
+    dispatchBossAttack(attackType, attackTarget) {
+        const attacks = {
+            flame_dive: () => this.bossFlameDive(attackTarget),
+            shadow_feathers: () => this.bossShadowFeathers(attackTarget),
+            fire_trail: () => this.bossFireTrail(attackTarget),
+            rebirth_nova: () => this.bossRebirthNova(),
+            shadow_clones: () => this.bossShadowClones()
+        };
+        attacks[attackType]?.();
     }
 
     showBossAttackInstruction(cue, duration = 1900) {
@@ -1471,69 +1598,56 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         if (this.bossAttackPreview) return;
 
         this.bossInstructionTimer = this.time.delayedCall(
-            Math.max(650, duration - 250),
+            Math.max(PHOENIX_ATTACK_WINDUP, duration - PHOENIX_RECOVERY_WINDOW),
             () => {
                 this.bossSubtitle
-                    ?.setText('BREAK VOID PRESSURE // KEEP THE UPLINK QUIET')
+                    ?.setText('RECOVERY WINDOW // BREAK VOID PRESSURE')
                     ?.setColor('#D8FFF6');
                 this.bossInstructionTimer = null;
             }
         );
     }
 
-    bossFlameDive() {
+    bossFlameDive(attackTarget) {
         if (!this.boss?.active || !this.player?.active || this.bossDefeated) return;
 
-        const targetX = this.player.x;
-        const targetY = this.player.y;
+        const targetX = attackTarget.x;
+        const targetY = attackTarget.y;
 
-        // Telegraph
-        const telegraph = this.add.graphics();
-        telegraph.lineStyle(3, 0xFF4500, 0.5);
-        telegraph.lineBetween(this.boss.x, this.boss.y, targetX, targetY);
-        telegraph.setDepth(100);
-
-        this.time.delayedCall(500, () => {
-            if (!telegraph.active || !this.boss?.active || this.bossDefeated) {
-                telegraph.destroy();
-                return;
-            }
-            telegraph.destroy();
-
-            this.tweens.add({
-                targets: this.boss,
-                x: targetX,
-                y: targetY,
-                duration: 300,
-                onComplete: () => {
-                    if (!this.boss?.active || this.bossDefeated) return;
-                    // Damage check
-                    if (this.player?.active && Math.abs(this.player.x - this.boss.x) < 50 && Math.abs(this.player.y - this.boss.y) < 50) {
-                        this.handlePlayerDamage(1);
-                    }
-
-                    // Return to hover position
-                    this.tweens.add({
-                        targets: this.boss,
-                        y: this.levelHeight - 250,
-                        duration: 500
-                    });
+        this.tweens.add({
+            targets: this.boss,
+            x: targetX,
+            y: targetY,
+            duration: 300,
+            onComplete: () => {
+                if (!this.boss?.active || this.bossDefeated) return;
+                if (this.player?.active && Math.abs(this.player.x - this.boss.x) < 50 && Math.abs(this.player.y - this.boss.y) < 50) {
+                    this.handlePlayerDamage(1);
                 }
-            });
+
+                this.tweens.add({
+                    targets: this.boss,
+                    y: this.levelHeight - 250,
+                    duration: 500
+                });
+            }
         });
     }
 
-    bossShadowFeathers() {
+    bossShadowFeathers(attackTarget) {
         if (!this.boss?.active || !this.player?.active || this.bossDefeated) return;
 
         const count = this.bossPhase >= 2 ? 7 : 5;
         const angleSpread = Math.PI * 0.6;
-        const baseAngle = Math.atan2(this.player.y - this.boss.y, this.player.x - this.boss.x);
+        const baseAngle = Math.atan2(
+            attackTarget.y - this.boss.y,
+            attackTarget.x - this.boss.x
+        );
 
         for (let i = 0; i < count; i++) {
             const angle = baseAngle - angleSpread / 2 + (angleSpread / (count - 1)) * i;
 
-            const feather = this.add.graphics();
+            const feather = this.trackBossEffect(this.add.graphics());
             feather.fillStyle(0x4B0082, 1);
             feather.fillTriangle(-5, 0, 5, 0, 0, 20);
             feather.setPosition(this.boss.x, this.boss.y);
@@ -1551,28 +1665,30 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 duration: 1000,
                 onUpdate: () => {
                     if (this.bossDefeated) {
-                        feather.destroy();
+                        this.releaseBossEffect(feather);
                         return;
                     }
                     if (this.player?.active && Math.abs(this.player.x - feather.x) < 20 && Math.abs(this.player.y - feather.y) < 20) {
                         this.handlePlayerDamage(1);
-                        feather.destroy();
+                        this.releaseBossEffect(feather);
                     }
                 },
-                onComplete: () => feather.active && feather.destroy()
+                onComplete: () => {
+                    if (feather.active) this.releaseBossEffect(feather);
+                }
             });
         }
     }
 
-    bossFireTrail() {
+    bossFireTrail(attackTarget) {
         if (!this.boss?.active || this.bossDefeated) return;
 
-        const direction = this.boss.facingRight ? 1 : -1;
+        const direction = attackTarget.direction;
 
         for (let i = 0; i < 5; i++) {
-            this.time.delayedCall(i * 150, () => {
+            this.scheduleBossTimer(i * 150, () => {
                 if (!this.boss?.active || this.bossDefeated) return;
-                const flame = this.add.graphics();
+                const flame = this.trackBossEffect(this.add.graphics());
                 flame.fillStyle(0xFF4500, 0.8);
                 flame.fillCircle(0, 0, 25);
                 flame.fillStyle(0xFFD700, 0.5);
@@ -1581,7 +1697,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 flame.setDepth(100);
 
                 // Damage zone
-                this.time.addEvent({
+                this.trackBossTimer(this.time.addEvent({
                     delay: 100,
                     repeat: 10,
                     callback: () => {
@@ -1590,14 +1706,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                             this.handlePlayerDamage(1);
                         }
                     }
-                });
+                }));
 
                 this.tweens.add({
                     targets: flame,
                     alpha: 0,
                     scale: 0.5,
                     duration: 1500,
-                    onComplete: () => flame.destroy()
+                    onComplete: () => this.releaseBossEffect(flame)
                 });
             });
         }
@@ -1609,33 +1725,33 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         window.FeedbackManager?.cameraFlash?.(this, 500, 255, 69, 0);
 
         const { width, height } = this.cameras.main;
-        const warning = this.add.text(width / 2, height / 3, 'REBIRTH RING // JUMP', {
+        const warning = this.trackBossEffect(this.add.text(width / 2, height / 3, 'REBIRTH RING // JUMP', {
             fontSize: '28px',
             color: '#FF4500',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000));
 
         this.tweens.add({
             targets: warning,
             alpha: 0,
             duration: 1500,
-            onComplete: () => warning.destroy()
+            onComplete: () => this.releaseBossEffect(warning)
         });
 
         // Expanding fire ring
-        const ring = this.add.graphics();
+        const ring = this.trackBossEffect(this.add.graphics());
         ring.setPosition(this.boss.x, this.boss.y);
         ring.setDepth(850);
 
         let radius = 0;
-        this.time.addEvent({
+        this.trackBossTimer(this.time.addEvent({
             delay: 30,
             repeat: 30,
             callback: () => {
                 if (!ring.active || this.bossDefeated || !this.boss?.active) {
-                    ring.destroy();
+                    this.releaseBossEffect(ring);
                     return;
                 }
                 radius += 15;
@@ -1651,8 +1767,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                     }
                 }
             },
-            onComplete: () => ring.active && ring.destroy()
-        });
+            onComplete: () => {
+                if (ring.active) this.releaseBossEffect(ring);
+            }
+        }));
     }
 
     bossShadowClones() {
@@ -1660,16 +1778,18 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         // Create 2 shadow clones
         for (let i = 0; i < 2; i++) {
-            const clone = this.add.sprite(this.boss.x + (i === 0 ? -100 : 100), this.boss.y, 'shadowPhoenix');
+            const clone = this.trackBossEffect(
+                this.add.sprite(this.boss.x + (i === 0 ? -100 : 100), this.boss.y, 'shadowPhoenix')
+            );
             clone.setAlpha(0.5);
             clone.setTint(0x4B0082);
             clone.setScale(this.bossTargetScale * 0.72);
             clone.setDepth(870);
 
             // Clones dive at player
-            this.time.delayedCall(500 + i * 300, () => {
+            this.scheduleBossTimer(500 + i * 300, () => {
                 if (this.bossDefeated || !clone.active) {
-                    clone.destroy();
+                    this.releaseBossEffect(clone);
                     return;
                 }
                 if (this.player?.active) {
@@ -1681,15 +1801,17 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                         onComplete: () => {
                             if (!clone.active) return;
                             if (this.bossDefeated) {
-                                clone.destroy();
+                                this.releaseBossEffect(clone);
                                 return;
                             }
                             if (this.player?.active && Math.abs(this.player.x - clone.x) < 40 && Math.abs(this.player.y - clone.y) < 40) {
                                 this.handlePlayerDamage(1);
                             }
-                            clone.destroy();
+                            this.releaseBossEffect(clone);
                         }
                     });
+                } else {
+                    this.releaseBossEffect(clone);
                 }
             });
         }
@@ -1707,11 +1829,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     damageBoss(amount = 1) {
         if (!this.boss?.active || this.bossDefeated) return;
 
-        this.bossHealth = Math.max(0, this.bossHealth - amount);
+        const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
+        const finalAmount = amount + recoveryBonus;
+        this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.updateBossHealthBar();
 
         this.showFloatingText(
-            `EXPOSURE -${amount}`,
+            recoveryBonus
+                ? `OPEN EXPOSURE -${finalAmount}`
+                : `EXPOSURE -${finalAmount}`,
             this.boss.x,
             this.boss.y - 100,
             '#A9F3E4'
@@ -1748,62 +1874,100 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         }
     }
 
-    triggerPhase2() {
-        this.bossPhase = 2;
-        window.FeedbackManager?.cameraShake?.(this, 500, 0.02);
-        this.boss.setTint(0x4169E1);
+    beginPhoenixPhase(nextPhase, {
+        message,
+        color,
+        aiDelay
+    }) {
+        this.bossPhase = nextPhase;
+        this.bossInstructionTimer?.remove?.();
+        this.bossInstructionTimer = null;
+        this.bossAttackUnlockTimer?.remove?.();
+        this.bossAttackUnlockTimer = null;
+        this.bossPhaseRecoveryTimer?.remove?.();
+        this.clearBossEncounterTimers();
+        this.clearBossEncounterEffects();
+
+        this.boss.isAttacking = true;
+        this.boss.setVelocity?.(0, 0);
+        this.tweens.killTweensOf(this.boss);
+        this.boss.setTint(color);
+        window.FeedbackManager?.cameraShake?.(
+            this,
+            500,
+            nextPhase >= 3 ? 0.03 : 0.02
+        );
 
         const { width, height } = this.cameras.main;
-        const phaseText = this.add.text(width / 2, height / 2, 'VOID PRESSURE SURGES', {
+        const phaseText = this.trackBossEffect(this.add.text(width / 2, height / 2, message, {
             fontSize: width <= 480 ? '21px' : '28px',
-            color: '#4169E1',
+            color: `#${color.toString(16).padStart(6, '0')}`,
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3,
             align: 'center',
             wordWrap: { width: width - 50 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000));
+
+        const phaseRing = this.trackBossEffect(this.add.graphics());
+        phaseRing.lineStyle(7, color, 0.95);
+        phaseRing.strokeCircle(0, 0, 85);
+        phaseRing.setPosition(this.boss.x, this.boss.y).setDepth(879).setScale(0.4);
+        this.bossSubtitle
+            ?.setText?.(`PHASE ${nextPhase} // PRESSURE SHIFT - RECOVER`)
+            ?.setColor?.('#FFD166');
 
         this.tweens.add({
             targets: phaseText,
             alpha: 0,
             y: height / 2 - 50,
-            duration: 1500,
-            onComplete: () => phaseText.destroy()
+            duration: PHOENIX_PHASE_RECOVERY,
+            onComplete: () => this.releaseBossEffect(phaseText)
+        });
+        this.tweens.add({
+            targets: phaseRing,
+            scaleX: 2.5,
+            scaleY: 2.5,
+            alpha: 0,
+            duration: PHOENIX_PHASE_RECOVERY,
+            ease: 'Sine.easeOut',
+            onComplete: () => this.releaseBossEffect(phaseRing)
         });
 
-        if (this.bossAITimer) {
-            this.bossAITimer.delay = 1800;
-        }
+        if (this.bossAITimer) this.bossAITimer.delay = aiDelay;
+        this.bossPhaseRecoveryTimer = this.time.delayedCall(PHOENIX_PHASE_RECOVERY, () => {
+            if (!this.boss?.active || this.bossDefeated) return;
+            this.boss.clearTint?.();
+            this.bossRecoveryUntil = this.time.now + PHOENIX_RECOVERY_WINDOW;
+            this.bossSubtitle
+                ?.setText?.('RECOVERY WINDOW // BREAK VOID PRESSURE')
+                ?.setColor?.('#D8FFF6');
+            this.bossPhaseRecoveryTimer = this.time.delayedCall(
+                PHOENIX_RECOVERY_WINDOW,
+                () => {
+                    this.bossPhaseRecoveryTimer = null;
+                    if (!this.boss?.active || this.bossDefeated) return;
+                    this.boss.isAttacking = false;
+                    this.startBossHover();
+                }
+            );
+        });
+    }
+
+    triggerPhase2() {
+        this.beginPhoenixPhase(2, {
+            message: 'VOID PRESSURE SURGES',
+            color: 0x6F8DFF,
+            aiDelay: 1800
+        });
     }
 
     triggerPhase3() {
-        this.bossPhase = 3;
-        window.FeedbackManager?.cameraShake?.(this, 500, 0.03);
-        this.boss.setTint(0x00BFFF);
-
-        const { width, height } = this.cameras.main;
-        const phaseText = this.add.text(width / 2, height / 2, 'THE AURORA BREAKS THROUGH', {
-            fontSize: width <= 480 ? '21px' : '28px',
-            color: '#7FFFD4',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3,
-            align: 'center',
-            wordWrap: { width: width - 50 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
-
-        this.tweens.add({
-            targets: phaseText,
-            alpha: 0,
-            y: height / 2 - 50,
-            duration: 1500,
-            onComplete: () => phaseText.destroy()
+        this.beginPhoenixPhase(3, {
+            message: 'THE AURORA BREAKS THROUGH',
+            color: 0x7FFFD4,
+            aiDelay: 1400
         });
-
-        if (this.bossAITimer) {
-            this.bossAITimer.delay = 1400;
-        }
     }
 
     onBossDefeated() {
@@ -1818,6 +1982,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer?.remove?.();
         this.bossAttackUnlockTimer = null;
+        this.bossPhaseRecoveryTimer?.remove?.();
+        this.bossPhaseRecoveryTimer = null;
+        this.bossRecoveryUntil = 0;
+        this.clearBossEncounterTimers();
+        this.clearBossEncounterEffects();
         this.bossExposureText?.setText('UPLINK EXPOSURE // CONTAINED');
 
         if (this.boss?.body) {
@@ -2052,6 +2221,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer?.remove?.();
         this.bossAttackUnlockTimer = null;
+        this.bossPhaseRecoveryTimer?.remove?.();
+        this.bossPhaseRecoveryTimer = null;
+        this.bossRecoveryUntil = 0;
+        this.clearBossEncounterTimers();
+        this.clearBossEncounterEffects();
 
         this.auroraLights.forEach(aurora => aurora.graphics.destroy());
         this.auroraLights = [];

@@ -243,6 +243,7 @@ export default class VillageCommandPanel {
         );
         headingGroup.append(headingCopy);
         const close = createElement('button', 'village-command-close', '\u00d7');
+        close.classList.add('compact-icon-button');
         close.type = 'button';
         close.title = 'Close Village Heart';
         close.setAttribute('aria-label', 'Close Village Heart');

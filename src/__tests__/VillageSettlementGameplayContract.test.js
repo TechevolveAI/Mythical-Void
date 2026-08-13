@@ -51,6 +51,7 @@ describe('Village settlement gameplay contract', () => {
 
         expect(source).toContain("role', 'dialog'");
         expect(source).toContain("aria-modal', 'true'");
+        expect(source).toContain("close.classList.add('compact-icon-button')");
         expect(source).toContain('this.physicsSuspended = Boolean(physicsWorld');
         expect(source).toContain('this.scene.physics.pause()');
         expect(source).toContain('this.scene.mobileControls?.suspend?.()');
@@ -64,11 +65,14 @@ describe('Village settlement gameplay contract', () => {
 
     test('the responsive layout moves to a single scroll surface on mobile', () => {
         const css = read('styles/main.css');
+        const theme = read('systems/UITheme.js');
 
         expect(css).toContain('@media (max-width: 680px)');
         expect(css).toContain('.village-command-body');
         expect(css).toContain('overflow-y: auto;');
         expect(css).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
+        expect(css).toMatch(/\.village-command-close\s*\{[^}]*min-width: 44px;/s);
+        expect(theme).toContain('button:not(.compact-icon-button)');
     });
 
     test('the command interface communicates the settlement through visual landmarks', () => {
