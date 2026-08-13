@@ -290,6 +290,9 @@ class PlatformerLevelScene extends Phaser.Scene {
             maxEnergyBonus: 0,
             guardCharges: 0
         };
+        this.orderedRouteSignals = null;
+        this.orderedRouteSignalIndex = 0;
+        this.orderedRouteSignalOptions = null;
         this.guardianTeamSupport = {
             guardianId: null,
             guardianName: null,
@@ -1276,8 +1279,64 @@ class PlatformerLevelScene extends Phaser.Scene {
             );
             signal?.label?.setAlpha?.(complete || next ? 1 : 0.48);
             signal?.visual?.setAlpha?.(complete || next ? 1 : 0.42);
+            if (signal?.guidanceTween && !next) {
+                signal.guidanceTween.remove?.();
+                signal.guidanceTween = null;
+            } else if (
+                next &&
+                !signal?.guidanceTween &&
+                signal?.visual?.active !== false &&
+                this.tweens?.add
+            ) {
+                signal.guidanceTween = this.tweens.add({
+                    targets: signal.visual,
+                    alpha: { from: 0.72, to: 1 },
+                    duration: 620,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+        });
+        this.setOrderedRouteGuidance(signals, activatedCount, {
+            activeProperty
         });
         return true;
+    }
+
+    setOrderedRouteGuidance(signals, activatedCount, options = {}) {
+        this.orderedRouteSignals = Array.isArray(signals) ? signals : null;
+        this.orderedRouteSignalIndex = Math.max(0, Number(activatedCount) || 0);
+        this.orderedRouteSignalOptions = options;
+        return Boolean(this.getNextOrderedRouteSignal());
+    }
+
+    getNextOrderedRouteSignal() {
+        const signals = this.orderedRouteSignals;
+        if (!Array.isArray(signals)) return null;
+
+        const activeProperty = this.orderedRouteSignalOptions?.activeProperty ||
+            'activated';
+        const indexed = signals[this.orderedRouteSignalIndex];
+        if (indexed && indexed?.[activeProperty] !== true) return indexed;
+        return signals.find(signal => signal?.[activeProperty] !== true) || null;
+    }
+
+    getOrderedRouteCompassText({ nearDistance = 180 } = {}) {
+        const signal = this.getNextOrderedRouteSignal();
+        if (!signal || !this.player) return '';
+
+        const dx = Number(signal.x) - Number(this.player.x);
+        const dy = Number(signal.y) - Number(this.player.y);
+        if (!Number.isFinite(dx) || !Number.isFinite(dy)) return '';
+
+        const range = Math.max(0, Math.round(Math.hypot(dx, dy) / 50) * 50);
+        if (range <= nearDistance) return `SIGNAL CLOSE // ${range}m`;
+
+        const directions = [];
+        if (Math.abs(dx) > 90) directions.push(dx > 0 ? 'RIGHT' : 'LEFT');
+        if (Math.abs(dy) > 90) directions.push(dy > 0 ? 'DOWN' : 'UP');
+        return `SIGNAL ${directions.join(' + ') || 'CLOSE'} // ${range}m`;
     }
 
     /**
@@ -6448,6 +6507,12 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.clearCurrentEcologyNode();
         this.clearAutonomousRescueMoment();
         this.clearMobileControlCoach();
+        this.orderedRouteSignals?.forEach(signal => {
+            signal?.guidanceTween?.remove?.();
+            if (signal) signal.guidanceTween = null;
+        });
+        this.orderedRouteSignals = null;
+        this.orderedRouteSignalOptions = null;
 
         // Remove keyboard listeners
         if (this.input && this.input.keyboard) {

@@ -246,6 +246,43 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('`NEXT → ${nextLabel}`');
     });
 
+    test('ordered route guidance reports useful direction and range', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'RouteCompassTest' });
+        scene.player = { x: 200, y: 900 };
+        const signals = [
+            { index: 0, x: 1250, y: 700, activated: false },
+            { index: 1, x: 3150, y: 420, activated: false }
+        ];
+
+        expect(scene.setOrderedRouteGuidance(signals, 0)).toBe(true);
+        expect(scene.getOrderedRouteCompassText()).toBe(
+            'SIGNAL RIGHT + UP // 1050m'
+        );
+
+        scene.player = { x: 1180, y: 700 };
+        expect(scene.getOrderedRouteCompassText()).toBe('SIGNAL CLOSE // 50m');
+    });
+
+    test('ordered route guidance supports level-specific completion properties', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'RoutePropertyTest' });
+        scene.player = { x: 1000, y: 500 };
+        const signals = [
+            { index: 0, x: 900, y: 500, aligned: true },
+            { index: 1, x: 1500, y: 300, aligned: false }
+        ];
+
+        scene.setOrderedRouteGuidance(signals, 1, {
+            activeProperty: 'aligned'
+        });
+
+        expect(scene.getNextOrderedRouteSignal()).toBe(signals[1]);
+        expect(scene.getOrderedRouteCompassText()).toBe(
+            'SIGNAL RIGHT + UP // 550m'
+        );
+    });
+
     test('platformer action pointers have a shared all-path release contract', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'ActionReleaseTest' });
@@ -309,5 +346,14 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.refreshOrderedRouteSignals(');
+        expect(source).toContain('this.getOrderedRouteCompassText()');
+    });
+
+    test('Stellar Reef visibly links its spawn to the first drift signal', () => {
+        const source = read('levels/ReefLevel.js');
+
+        expect(source).toContain('this.createOpeningSignalCurrent();');
+        expect(source).toContain('DRIFT SIGNAL 01  →');
+        expect(source).toContain('visual.lineTo(1250, 700);');
     });
 });

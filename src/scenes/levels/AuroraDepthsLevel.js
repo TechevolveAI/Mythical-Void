@@ -647,7 +647,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         ][this.prismsAligned] || 'SKY PRISM';
         const current = Math.min(this.prismsAligned + 1, 3);
         const exposure = Math.max(0, 100 - this.prismsAligned * 33);
-        return `QUIET ALIGNMENT ${current}/3 // ${nextPrism}\nEXPOSURE ${exposure}% // KEEP THE BEAM DOWN\n${optional}`;
+        const compass = this.getOrderedRouteCompassText();
+        const title = this.isCompactObjectiveHUD
+            ? `ALIGNMENT ${current}/3`
+            : `QUIET ALIGNMENT ${current}/3 // ${nextPrism}`;
+        return `${title}\n${compass || `EXPOSURE ${exposure}% // KEEP THE BEAM DOWN`}\n${optional}`;
     }
 
     showObjectiveToast() {

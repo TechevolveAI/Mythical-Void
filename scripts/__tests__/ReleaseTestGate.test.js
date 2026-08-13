@@ -72,6 +72,17 @@ describe('release test gate', () => {
         expect(source).toContain('retained left input after touch release');
     });
 
+    test('later campaign interaction smoke requires live route guidance', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("['reef', 'voidPeaks', 'auroraDepths', 'finalVoid']");
+        expect(source).toContain("/^SIGNAL (RIGHT|LEFT|CLOSE)/");
+        expect(source).toContain('nextSignalEmphasized');
+        expect(source).toContain('has no readable opening route guidance');
+        expect(source).toContain('route signal handoff');
+        expect(source).toContain('did not hand route guidance to signal 2');
+    });
+
     test('release smoke runs interaction before the state contract', () => {
         const source = read('scripts/run-browser-smoke.js');
         const villageUi = source.indexOf("SMOKE_MODE: 'village-ui'");
@@ -102,13 +113,29 @@ describe('release test gate', () => {
         expect(source).toContain("smokeCase: 'wide-touch'");
         expect(source).toContain('width: 860, height: 768');
         expect(source).toContain('SMOKE_CASE: smokeCase');
+        expect(source).toContain('for (const guardianCase of guardianCases)');
+        expect(source).toContain('SMOKE_CASE: guardianCase');
         expect(source).toContain('failures.push(`interaction:${smokeCase}:');
+        expect(source).toContain('failures.push(`guardian-pacing:${guardianCase}:');
         expect(source).toContain('failures.push(`village-ui:');
         expect(source).toContain('failures.push(`state-contract:');
         expect(source).toContain('failures.push(`final-priority-journey:');
         expect(source).toContain('failures.push(`save-reload-journey:');
         expect(source).toContain('failures.push(`navigation-lifecycle:');
         expect(source).toContain('failures.push(`hub-forest-transition:');
+        expect(source).toContain('exited before completion marker');
+        expect(source).toContain('stdout.includes(expectedMarker)');
+        expect(source).toContain('Release smoke does not own');
+        expect(source).toContain('[release-smoke-result] pass');
+    });
+
+    test('secondary journeys emit a success sentinel only after result output', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+        const result = source.lastIndexOf('success: true');
+        const marker = source.lastIndexOf('[smoke-result]');
+
+        expect(result).toBeGreaterThan(-1);
+        expect(marker).toBeGreaterThan(result);
     });
 
     test('keeps heavy WebGL scenes foregrounded during touch verification', () => {

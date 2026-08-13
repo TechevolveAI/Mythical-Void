@@ -428,6 +428,17 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 ?.filter(enemy => enemy?.active !== false).length || 0,
             combatCueCount: scene?.enemies?.getChildren?.()
                 ?.filter(enemy => enemy?.active !== false && enemy?.combatCue?.active).length || 0,
+            routeGuidance: (() => {
+                const nextSignal = scene?.getNextOrderedRouteSignal?.();
+                return {
+                    supported: Array.isArray(scene?.orderedRouteSignals),
+                    compass: scene?.getOrderedRouteCompassText?.() || '',
+                    nextSignalIndex: nextSignal?.index,
+                    nextSignalVisible: nextSignal?.visual?.visible !== false,
+                    nextSignalAlpha: nextSignal?.visual?.alpha,
+                    nextSignalEmphasized: Boolean(nextSignal?.guidanceTween)
+                };
+            })(),
             actualFps: window.mythicalGame?.loop?.actualFps || 0,
             canvasWidth: document.querySelector('canvas')?.width || 0,
             canvasHeight: document.querySelector('canvas')?.height || 0
@@ -453,6 +464,20 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         throw new Error(
             `${sceneName} has enemies without combat readability cues: ${JSON.stringify(state)}`
         );
+    }
+    if (['reef', 'voidPeaks', 'auroraDepths', 'finalVoid'].includes(route)) {
+        const guidance = state.routeGuidance;
+        if (
+            !guidance?.supported ||
+            !/^SIGNAL (RIGHT|LEFT|CLOSE)/.test(guidance.compass) ||
+            guidance.nextSignalIndex !== 0 ||
+            guidance.nextSignalVisible !== true ||
+            guidance.nextSignalEmphasized !== true
+        ) {
+            throw new Error(
+                `${sceneName} has no readable opening route guidance: ${JSON.stringify(guidance)}`
+            );
+        }
     }
     trace('live gameplay verified', state);
     if (SMOKE_TRACE) {
@@ -741,13 +766,72 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     if (Math.abs(leftReleased || 0) > 0.05) {
         throw new Error(`${sceneName} retained left input after touch release: ${leftReleased}`);
     }
+
+    let routeHandoff = null;
+    if (['reef', 'voidPeaks', 'auroraDepths', 'finalVoid'].includes(route)) {
+        const staged = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const firstSignal = scene?.getNextOrderedRouteSignal?.();
+            if (!scene?.player || !firstSignal) return null;
+            scene.isInvincible = true;
+            scene.player.setPosition(firstSignal.x, firstSignal.y);
+            scene.player.setVelocity?.(0, 0);
+            return {
+                firstSignalIndex: firstSignal.index,
+                x: firstSignal.x,
+                y: firstSignal.y
+            };
+        })()`);
+        if (staged?.firstSignalIndex !== 0) {
+            throw new Error(
+                `${sceneName} could not stage its first route signal: ${JSON.stringify(staged)}`
+            );
+        }
+
+        routeHandoff = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const signals = scene?.orderedRouteSignals || [];
+                const firstSignal = signals[0];
+                const nextSignal = scene?.getNextOrderedRouteSignal?.();
+                const activeProperty = scene?.orderedRouteSignalOptions?.activeProperty ||
+                    'activated';
+                if (
+                    firstSignal?.[activeProperty] !== true ||
+                    nextSignal?.index !== 1
+                ) return null;
+                return {
+                    firstSignalComplete: true,
+                    firstSignalEmphasized: Boolean(firstSignal?.guidanceTween),
+                    nextSignalIndex: nextSignal.index,
+                    nextSignalEmphasized: Boolean(nextSignal?.guidanceTween),
+                    compass: scene?.getOrderedRouteCompassText?.() || '',
+                    checkpointX: scene?.checkpointPosition?.x,
+                    checkpointY: scene?.checkpointPosition?.y
+                };
+            })()`),
+            { timeoutMs: 2500, message: `${sceneName} route signal handoff` }
+        );
+        if (
+            routeHandoff.firstSignalEmphasized ||
+            !routeHandoff.nextSignalEmphasized ||
+            !/^SIGNAL (RIGHT|LEFT|CLOSE)/.test(routeHandoff.compass) ||
+            !Number.isFinite(routeHandoff.checkpointX) ||
+            !Number.isFinite(routeHandoff.checkpointY)
+        ) {
+            throw new Error(
+                `${sceneName} did not hand route guidance to signal 2: ${JSON.stringify(routeHandoff)}`
+            );
+        }
+    }
     if (exceptions.length) {
         throw new Error(`${sceneName} raised browser exceptions: ${exceptions.join(' | ')}`);
     }
     return {
         ...state,
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
-        joystick: { movedRight, movedLeft }
+        joystick: { movedRight, movedLeft },
+        routeHandoff
     };
 }
 
@@ -2139,8 +2223,17 @@ const GUARDIAN_PACING_CASES = Object.freeze([
 
 async function smokeGuardianPacing(session, exceptions) {
     const results = {};
+    const knownCases = GUARDIAN_PACING_CASES.map(item => item.sceneName);
+    if (SMOKE_CASE !== 'all' && !knownCases.includes(SMOKE_CASE)) {
+        throw new Error(
+            `Unknown guardian SMOKE_CASE ${JSON.stringify(SMOKE_CASE)}. ` +
+            `Use one of: all, ${knownCases.join(', ')}.`
+        );
+    }
 
-    for (const guardianCase of GUARDIAN_PACING_CASES) {
+    for (const guardianCase of GUARDIAN_PACING_CASES.filter(
+        item => SMOKE_CASE === 'all' || item.sceneName === SMOKE_CASE
+    )) {
         exceptions.length = 0;
         const {
             sceneName,
@@ -2440,6 +2533,9 @@ async function main() {
             case: SMOKE_CASE,
             results
         }, null, 2));
+        process.stdout.write(
+            `[smoke-result] ${SMOKE_MODE}:${SMOKE_CASE}:pass\n`
+        );
     } finally {
         session?.close();
         chrome.kill('SIGKILL');

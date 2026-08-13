@@ -566,7 +566,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             'SUMMIT RELAY'
         ][this.beaconRelaysActivated] || 'SUMMIT RELAY';
         const current = Math.min(this.beaconRelaysActivated + 1, 3);
-        return `WARNING ${current}/3 // ${nextRelay}\nCLIMB TOWARD THE SIGNAL →\n${optional}`;
+        const compass = this.getOrderedRouteCompassText();
+        const title = this.isCompactObjectiveHUD
+            ? `WARNING ${current}/3`
+            : `WARNING ${current}/3 // ${nextRelay}`;
+        return `${title}\n${compass || 'CLIMB TOWARD THE SIGNAL'}\n${optional}`;
     }
 
     createSignalRelays() {

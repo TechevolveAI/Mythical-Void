@@ -33,6 +33,10 @@ async function waitForServer() {
 
 function runNodeScript(script, extraEnv = {}) {
     return new Promise((resolve, reject) => {
+        let stdout = '';
+        const expectedMarker = extraEnv.SMOKE_MODE
+            ? `[smoke-result] ${extraEnv.SMOKE_MODE}:${extraEnv.SMOKE_CASE || 'all'}:pass`
+            : null;
         const child = spawn(process.execPath, [path.join(projectRoot, script)], {
             cwd: projectRoot,
             env: {
@@ -40,12 +44,26 @@ function runNodeScript(script, extraEnv = {}) {
                 MYTHICAL_VOID_SMOKE_URL: baseUrl,
                 ...extraEnv
             },
-            stdio: 'inherit'
+            stdio: ['ignore', 'pipe', 'pipe']
+        });
+        child.stdout.on('data', chunk => {
+            const text = chunk.toString();
+            stdout += text;
+            process.stdout.write(text);
+        });
+        child.stderr.on('data', chunk => {
+            process.stderr.write(chunk);
         });
         child.once('error', reject);
         child.once('exit', (code, signal) => {
-            if (code === 0) {
+            if (code === 0 && (!expectedMarker || stdout.includes(expectedMarker))) {
                 resolve();
+                return;
+            }
+            if (code === 0 && expectedMarker) {
+                reject(new Error(
+                    `${script} exited before completion marker ${expectedMarker}`
+                ));
                 return;
             }
             reject(new Error(
@@ -83,6 +101,11 @@ async function main() {
         await waitForServer();
         if (viteExit) {
             throw new Error(`Vite exited before smoke execution: ${JSON.stringify(viteExit)}`);
+        }
+        if (vite.exitCode !== null || vite.signalCode !== null) {
+            throw new Error(
+                `Release smoke does not own ${baseUrl}; choose a free MYTHICAL_VOID_SMOKE_PORT`
+            );
         }
 
         const failures = [];
@@ -193,12 +216,24 @@ async function main() {
         }
 
         console.log('\n[release-smoke] Guardian telegraph and recovery suite');
-        try {
-            await runNodeScript('scripts/smoke-secondary-journeys.js', {
-                SMOKE_MODE: 'guardian-pacing'
-            });
-        } catch (error) {
-            failures.push(`guardian-pacing: ${error.message}`);
+        const guardianCases = [
+            'MythicalForestLevel',
+            'CrystalCavesLevel',
+            'ReefLevel',
+            'VoidPeaksLevel',
+            'AuroraDepthsLevel',
+            'FinalVoidLevel'
+        ];
+        for (const guardianCase of guardianCases) {
+            console.log(`[release-smoke] Guardian case: ${guardianCase}`);
+            try {
+                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                    SMOKE_MODE: 'guardian-pacing',
+                    SMOKE_CASE: guardianCase
+                });
+            } catch (error) {
+                failures.push(`guardian-pacing:${guardianCase}: ${error.message}`);
+            }
         }
 
         if (failures.length) {
@@ -207,6 +242,7 @@ async function main() {
                 failures.map(failure => `- ${failure}`).join('\n')
             );
         }
+        console.log('\n[release-smoke-result] pass');
     } finally {
         if (vite.exitCode === null && vite.signalCode === null) {
             vite.kill('SIGTERM');

@@ -640,7 +640,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
             'TRUST SIGNAL'
         ][this.bondAnchorsActivated] || 'TRUST SIGNAL';
         const current = Math.min(this.bondAnchorsActivated + 1, 3);
-        return `BOND ${current}/3 // ${nextSignal}\nFOLLOW THE SHARED SIGNAL →\nCURRENT // ${networkState}`;
+        const compass = this.getOrderedRouteCompassText();
+        const title = this.isCompactObjectiveHUD
+            ? `BOND ${current}/3`
+            : `BOND ${current}/3 // ${nextSignal}`;
+        return `${title}\n${compass || 'FOLLOW THE SHARED SIGNAL'}\nCURRENT // ${networkState}`;
     }
 
     showObjectiveToast() {
