@@ -42,6 +42,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
 
         this.starFragmentsCollected = 0;
+        this.peakCollectedFragmentMask = 0;
+        this.peakRouteChoice = '';
         this.totalStarFragments = 5;
         this.bossDefeated = false;
         this.bossFightActive = false;
@@ -78,6 +80,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         this.testMode = data?.testMode || false;
         this.starFragmentsCollected = 0;
+        this.peakCollectedFragmentMask = 0;
+        this.peakRouteChoice = '';
         this.bossDefeated = false;
         this.bossFightActive = false;
         this.boss = null;
@@ -773,8 +777,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                     top: 300, bottom: this.levelHeight
                 }
             },
+            onMainSelected: () => this.selectPeakRoute('main'),
+            onOptionalSelected: () => this.selectPeakRoute('optional'),
             onComplete: () => {
                 this.grantOptionalRouteGuard('RIDGE GUARD', 1);
+                this.refreshPersistedExpeditionRouteState();
             }
         });
 
@@ -788,7 +795,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     restoreExpeditionRouteState(resume) {
-        return this.restoreExpeditionRouteSignals(resume, {
+        const signalsRestored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.beaconRelays,
             countProperty: 'beaconRelaysActivated',
             readyProperty: 'creatureNetworkReached',
@@ -806,6 +813,139 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 this.objectiveDisplay?.setText?.(this.getPeakObjectiveText());
             }
         });
+        if (!signalsRestored) return false;
+
+        this.restorePeakRouteState(resume.routeState, {
+            rejoined: Number(resume.checkpointIndex) >= 2
+        });
+        this.objectiveDisplay?.setText?.(this.getPeakObjectiveText());
+        return true;
+    }
+
+    getExpeditionRouteState() {
+        const route = this.optionalRouteRewards?.get?.('peaks_relic_ridge');
+        return {
+            peakRouteChoice: this.peakRouteChoice || '',
+            peakFragmentMask: this.peakCollectedFragmentMask,
+            relicRidgeProgress: Number(route?.progress) || 0,
+            relicRidgeCompleted: route?.completed === true,
+            ridgeGuardCharges: this.peakRouteChoice === 'optional'
+                ? this.optionalRouteGuardCharges
+                : 0,
+            peakSignalEggAwarded: this.cosmicEggAwarded === true
+        };
+    }
+
+    selectPeakRoute(path, { restoring = false, rejoined = false } = {}) {
+        if (!['main', 'optional'].includes(path)) return false;
+        if (this.peakRouteChoice && this.peakRouteChoice !== path) return false;
+
+        this.peakRouteChoice = path;
+        const choice = this.optionalRouteRewards?.get?.('peaks_relic_ridge')?.choice;
+        if (choice) {
+            choice.selectedPath = path;
+            choice.mainEntered = path === 'main';
+            choice.optionalEntered = path === 'optional';
+            choice.rejoined = rejoined && path === 'optional';
+            choice.sequence ||= 1;
+        }
+        if (!restoring) this.refreshPersistedExpeditionRouteState();
+        return true;
+    }
+
+    restorePeakRouteState(routeState, { rejoined = false } = {}) {
+        if (!routeState || typeof routeState !== 'object') return false;
+
+        const path = routeState.peakRouteChoice;
+        if (['main', 'optional'].includes(path)) {
+            this.selectPeakRoute(path, { restoring: true, rejoined });
+        }
+
+        this.peakCollectedFragmentMask = Phaser.Math.Clamp(
+            Math.floor(Number(routeState.peakFragmentMask) || 0),
+            0,
+            (1 << this.totalStarFragments) - 1
+        );
+        this.starFragmentsCollected = this.countCollectedPeakFragments();
+        this.cosmicEggAwarded = routeState.peakSignalEggAwarded === true ||
+            this.hasPeakSignalEgg();
+        this.retireCollectedPeakFragments();
+
+        const route = this.optionalRouteRewards?.get?.('peaks_relic_ridge');
+        if (route && path === 'optional') {
+            route.progress = Phaser.Math.Clamp(
+                Number(routeState.relicRidgeProgress) || 0,
+                0,
+                route.required
+            );
+            route.completed = routeState.relicRidgeCompleted === true ||
+                route.progress >= route.required;
+            this.refreshOptionalRouteReward(route);
+            this.optionalRouteGuardLabel = 'RIDGE GUARD';
+            this.optionalRouteGuardCharges = Phaser.Math.Clamp(
+                Number(routeState.ridgeGuardCharges) || 0,
+                0,
+                1
+            );
+        }
+
+        if (
+            this.starFragmentsCollected >= this.totalStarFragments &&
+            !this.cosmicEggAwarded &&
+            this.awardPeakSignalEgg()
+        ) {
+            this.refreshPersistedExpeditionRouteState();
+        }
+        return true;
+    }
+
+    countCollectedPeakFragments() {
+        let count = 0;
+        for (let index = 0; index < this.totalStarFragments; index += 1) {
+            if ((this.peakCollectedFragmentMask & (1 << index)) !== 0) count++;
+        }
+        return count;
+    }
+
+    retireCollectedPeakFragments() {
+        const fragments = [...(this.collectibles?.getChildren?.() || [])];
+        fragments.forEach(item => {
+            if (
+                item?.fragmentIndex !== undefined &&
+                (this.peakCollectedFragmentMask & (1 << item.fragmentIndex)) !== 0
+            ) {
+                item.destroy?.();
+            }
+        });
+    }
+
+    hasPeakSignalEgg() {
+        return window.InventoryManager?.getAllItems?.().some(
+            item => item?.id === 'peak_signal_egg'
+        ) === true;
+    }
+
+    awardPeakSignalEgg() {
+        if (this.cosmicEggAwarded || this.hasPeakSignalEgg()) {
+            this.cosmicEggAwarded = true;
+            return true;
+        }
+        const awarded = window.InventoryManager?.addItem?.({
+            id: 'peak_signal_egg',
+            name: 'Signal Egg',
+            type: 'egg',
+            rarity: 'rare',
+            description: 'An egg warmed by the warning calls exchanged across the Void Peaks.',
+            icon: '🥚📡'
+        }) === true;
+        if (awarded) this.cosmicEggAwarded = true;
+        return awarded;
+    }
+
+    onOptionalRouteGuardConsumed() {
+        if (this.peakRouteChoice === 'optional') {
+            this.refreshPersistedExpeditionRouteState();
+        }
     }
 
     showDistantReplyNetwork(relay) {
@@ -964,13 +1104,26 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         if (item.fragmentIndex !== undefined) {
             const collectX = item.x;
             const collectY = item.y;
-            this.starFragmentsCollected += 1;
-            if (item.optionalRouteId) {
-                this.recordOptionalRouteProgress(item.optionalRouteId, {
+            const fragmentIndex = Math.max(0, Number(item.fragmentIndex) || 0);
+            const fragmentBit = 1 << fragmentIndex;
+            if ((this.peakCollectedFragmentMask & fragmentBit) !== 0) return;
+            if (
+                item.optionalRouteId &&
+                !this.recordOptionalRouteProgress(item.optionalRouteId, {
                     x: collectX,
                     y: collectY
-                });
+                })
+            ) {
+                return;
             }
+            this.peakCollectedFragmentMask |= fragmentBit;
+            this.starFragmentsCollected += 1;
+            const completedCollection =
+                this.starFragmentsCollected >= this.totalStarFragments;
+            const signalEggAwarded = completedCollection &&
+                !this.cosmicEggAwarded &&
+                this.awardPeakSignalEgg();
+            this.refreshPersistedExpeditionRouteState();
             window.FXLibrary?.stardustBurst?.(this, collectX, collectY, {
                 count: 18,
                 color: [0xFFD700, 0x8FE3CF, 0xFFFFFF],
@@ -985,11 +1138,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             window.AudioManager?.playCollect?.();
             item.destroy();
 
-            if (
-                this.starFragmentsCollected >= this.totalStarFragments &&
-                !this.cosmicEggAwarded
-            ) {
-                this.cosmicEggAwarded = true;
+            if (signalEggAwarded) {
                 this.time.delayedCall(450, () => {
                     this.showFloatingText(
                         'ALL SIGNAL FRAGMENTS - EGG AWAKENED',
@@ -997,14 +1146,6 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                         collectY - 75,
                         '#8FE3CF'
                     );
-                    window.InventoryManager?.addItem?.({
-                        id: 'peak_signal_egg',
-                        name: 'Signal Egg',
-                        type: 'egg',
-                        rarity: 'rare',
-                        description: 'An egg warmed by the warning calls exchanged across the Void Peaks.',
-                        icon: '🥚📡'
-                    });
                     window.AudioManager?.playAchievement?.();
                 });
             }

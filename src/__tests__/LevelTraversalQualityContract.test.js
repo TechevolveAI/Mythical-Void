@@ -466,6 +466,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('{ x: 620, width: 360 }');
         expect(source).toContain("[2730, 300, 'peaks_relic_ridge']");
         expect(source).toContain("[3000, 235, 'peaks_relic_ridge']");
+        expect(source).toContain("onOptionalSelected: () => this.selectPeakRoute('optional')");
+        expect(source).toContain('peakFragmentMask: this.peakCollectedFragmentMask');
+        expect(source).toContain('restorePeakRouteState(resume.routeState');
+        expect(source).toContain('this.retireCollectedPeakFragments();');
+        expect(source).toContain("const fragments = [...(this.collectibles?.getChildren?.() || [])]");
+        expect(source).toContain('onOptionalRouteGuardConsumed()');
     });
 
     test('optional route progress grants its reward exactly once and retires the marker', () => {
@@ -710,6 +716,11 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("id: 'final_trust_bridge'");
         expect(source).toContain("rewardLabel: 'BOND RESERVE // 1 RESCUE'");
         expect(source).toContain('onComplete: () => this.activateBondReserve()');
+        expect(source).toContain("onOptionalSelected: () => this.selectFinalRoute('optional')");
+        expect(source).toContain('trustBridgeCompleted: route?.completed === true');
+        expect(source).toContain('restoreFinalRouteState(resume.routeState');
+        expect(source).toContain('this.clearBondReservePickup();');
+        expect(source).toContain('this.refreshPersistedExpeditionRouteState();');
         expect(source).toContain('incomingDamage = Math.max(0, this.health - 1);');
         expect(source).toContain('this.bondReserveEcho?.destroy?.();');
     });
@@ -1250,7 +1261,9 @@ describe('campaign traversal quality contracts', () => {
         );
         expect(smoke).toContain("auroraDepths: 'aurora_quiet_light'");
         expect(smoke).toContain("finalVoid: 'final_trust_bridge'");
-        expect(smoke).toContain('bond reserve did not prevent a lethal hit');
+        expect(smoke).toContain('optional protection did not absorb one hit');
+        expect(smoke).toContain('did not restore its optional reward');
+        expect(smoke).toContain('respawned a consumed optional reward');
         expect(smoke).toContain('scene.auditTraversalTopology();');
         expect(smoke).toContain('Aurora direct route zone selection');
         expect(smoke).toContain('Aurora Quiet Light pickup collision');

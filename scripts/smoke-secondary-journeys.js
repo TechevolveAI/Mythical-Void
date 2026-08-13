@@ -1699,36 +1699,6 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     JSON.stringify(optionalRouteCompletion)
                 );
             }
-            if (route === 'finalVoid') {
-                optionalRouteCompletion.rescueResult = await evaluate(session, `(() => {
-                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                    scene.health = 1;
-                    scene.isInvincible = false;
-                    scene.hasShield = false;
-                    scene.powerupShieldHits = 0;
-                    scene.guardianGuardCharges = 0;
-                    scene.communityGuardCharges = 0;
-                    scene.auroraGuardCharges = 0;
-                    scene.handlePlayerDamage(2);
-                    return {
-                        health: scene.health,
-                        reserveReady: scene.bondReserveReady,
-                        reserveEchoActive: scene.bondReserveEcho?.active === true,
-                        playerDead: scene.isPlayerDead === true
-                    };
-                })()`);
-                if (
-                    optionalRouteCompletion.rescueResult.health !== 1 ||
-                    optionalRouteCompletion.rescueResult.reserveReady !== false ||
-                    optionalRouteCompletion.rescueResult.reserveEchoActive !== false ||
-                    optionalRouteCompletion.rescueResult.playerDead !== false
-                ) {
-                    throw new Error(
-                        `${sceneName} bond reserve did not prevent a lethal hit: ` +
-                        JSON.stringify(optionalRouteCompletion.rescueResult)
-                    );
-                }
-            }
             if (route === 'reef') {
                 optionalRouteCompletion.reloadState = await evaluate(session, `(async () => {
                     const game = window.mythicalGame;
@@ -1781,6 +1751,158 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     );
                 }
                 optionalRouteCompletion.reloadState = restoredReef;
+                await pressEnter(session);
+                await delay(300);
+            }
+            if (['voidPeaks', 'finalVoid'].includes(route)) {
+                await evaluate(session, `(async () => {
+                    const game = window.mythicalGame;
+                    game.scene.stop(${JSON.stringify(sceneName)});
+                    game.scene.start(${JSON.stringify(sceneName)}, {
+                        forceMobileControls: true,
+                        platformerPreviewSize: 'mobile'
+                    });
+                    return true;
+                })()`);
+                await waitForScene(session, sceneName);
+                const restoredReward = await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                        if (!scene?.checkpointResumeApplied) return null;
+                        const reward = scene.optionalRouteRewards?.get?.(
+                            ${JSON.stringify(optionalRouteId)}
+                        );
+                        const remainingPickups = ${JSON.stringify(route)} === 'voidPeaks'
+                            ? (scene.collectibles?.getChildren?.() || []).filter(
+                                item => item?.active !== false && item?.optionalRouteId
+                            ).length
+                            : (scene.optionalRoutePickup?.active !== false &&
+                                scene.optionalRoutePickup ? 1 : 0);
+                        return {
+                            checkpointId: scene.checkpointPosition?.id,
+                            checkpointIndex: scene.checkpointPosition?.index,
+                            selectedPath: reward?.choice?.selectedPath,
+                            progress: reward?.progress,
+                            completed: reward?.completed === true,
+                            guardCharges: scene.optionalRouteGuardCharges,
+                            bondReserveReady: scene.bondReserveReady === true,
+                            fragmentMask: scene.peakCollectedFragmentMask,
+                            fragmentCount: scene.starFragmentsCollected,
+                            remainingPickups
+                        };
+                    })()`),
+                    { timeoutMs: 3500, message: `${sceneName} optional reward reload` }
+                );
+                const restoredProtection = route === 'voidPeaks'
+                    ? restoredReward.guardCharges === 1
+                    : restoredReward.bondReserveReady === true;
+                if (
+                    restoredReward.checkpointId !== routeCompletion.checkpointId ||
+                    restoredReward.checkpointIndex !== routeCompletion.checkpointIndex ||
+                    restoredReward.selectedPath !== 'optional' ||
+                    restoredReward.progress !== optionalRequired ||
+                    restoredReward.completed !== true ||
+                    restoredReward.remainingPickups !== 0 ||
+                    !restoredProtection ||
+                    (route === 'voidPeaks' && restoredReward.fragmentMask !== 12) ||
+                    (route === 'voidPeaks' && restoredReward.fragmentCount !== 2)
+                ) {
+                    throw new Error(
+                        `${sceneName} did not restore its optional reward: ` +
+                        JSON.stringify(restoredReward)
+                    );
+                }
+                optionalRouteCompletion.reloadState = restoredReward;
+
+                const consumedReward = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    scene.isInvincible = false;
+                    scene.isPlayerDead = false;
+                    scene.hasShield = false;
+                    scene.powerupShieldHits = 0;
+                    scene.guardianGuardCharges = 0;
+                    scene.communityGuardCharges = 0;
+                    scene.auroraGuardCharges = 0;
+                    const healthBefore = ${JSON.stringify(route)} === 'finalVoid'
+                        ? 1
+                        : scene.health;
+                    scene.health = healthBefore;
+                    if (${JSON.stringify(route)} === 'finalVoid') {
+                        scene.handlePlayerDamage(2);
+                    } else {
+                        scene.takeDamage(1);
+                    }
+                    return {
+                        healthBefore,
+                        healthAfter: scene.health,
+                        guardCharges: scene.optionalRouteGuardCharges,
+                        bondReserveReady: scene.bondReserveReady === true,
+                        reserveEchoActive: scene.bondReserveEcho?.active === true,
+                        playerDead: scene.isPlayerDead === true
+                    };
+                })()`);
+                if (
+                    consumedReward.healthAfter !== consumedReward.healthBefore ||
+                    consumedReward.guardCharges !== 0 ||
+                    consumedReward.bondReserveReady !== false ||
+                    consumedReward.reserveEchoActive !== false ||
+                    consumedReward.playerDead !== false
+                ) {
+                    throw new Error(
+                        `${sceneName} optional protection did not absorb one hit: ` +
+                        JSON.stringify(consumedReward)
+                    );
+                }
+                optionalRouteCompletion.consumedState = consumedReward;
+
+                await evaluate(session, `(async () => {
+                    const game = window.mythicalGame;
+                    game.scene.stop(${JSON.stringify(sceneName)});
+                    game.scene.start(${JSON.stringify(sceneName)}, {
+                        forceMobileControls: true,
+                        platformerPreviewSize: 'mobile'
+                    });
+                    return true;
+                })()`);
+                await waitForScene(session, sceneName);
+                const restoredConsumed = await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                        if (!scene?.checkpointResumeApplied) return null;
+                        const reward = scene.optionalRouteRewards?.get?.(
+                            ${JSON.stringify(optionalRouteId)}
+                        );
+                        const remainingPickups = ${JSON.stringify(route)} === 'voidPeaks'
+                            ? (scene.collectibles?.getChildren?.() || []).filter(
+                                item => item?.active !== false && item?.optionalRouteId
+                            ).length
+                            : (scene.optionalRoutePickup?.active !== false &&
+                                scene.optionalRoutePickup ? 1 : 0);
+                        return {
+                            selectedPath: reward?.choice?.selectedPath,
+                            progress: reward?.progress,
+                            completed: reward?.completed === true,
+                            guardCharges: scene.optionalRouteGuardCharges,
+                            bondReserveReady: scene.bondReserveReady === true,
+                            remainingPickups
+                        };
+                    })()`),
+                    { timeoutMs: 3500, message: `${sceneName} consumed reward reload` }
+                );
+                if (
+                    restoredConsumed.selectedPath !== 'optional' ||
+                    restoredConsumed.progress !== optionalRequired ||
+                    restoredConsumed.completed !== true ||
+                    restoredConsumed.guardCharges !== 0 ||
+                    restoredConsumed.bondReserveReady !== false ||
+                    restoredConsumed.remainingPickups !== 0
+                ) {
+                    throw new Error(
+                        `${sceneName} respawned a consumed optional reward: ` +
+                        JSON.stringify(restoredConsumed)
+                    );
+                }
+                optionalRouteCompletion.consumedReloadState = restoredConsumed;
                 await pressEnter(session);
                 await delay(300);
             }
