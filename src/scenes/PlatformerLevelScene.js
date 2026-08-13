@@ -3126,17 +3126,43 @@ class PlatformerLevelScene extends Phaser.Scene {
             return 'ignored';
         }
 
-        const playerCenterY = Number(player.body.center?.y);
-        const playerBottom = Number(player.body.bottom);
-        const playerVelocityY = Number(player.body.velocity?.y) || 0;
-        const enemyCenterY = Number(enemy.body.center?.y);
-        const enemyTop = Number(enemy.body.top);
-        const enemyHeight = Number(enemy.body.height) || 1;
+        const playerBody = player.body;
+        const enemyBody = enemy.body;
+        const playerCenterY = Number(playerBody.center?.y);
+        const playerBottom = Number(playerBody.bottom);
+        const playerVelocityY = Number(playerBody.velocity?.y) || 0;
+        const enemyCenterY = Number(enemyBody.center?.y);
+        const enemyTop = Number(enemyBody.top);
+        const enemyHeight = Math.max(1, Number(enemyBody.height) || 1);
+        const playerHeight = Math.max(1, Number(playerBody.height) || 1);
+        const previousPlayerTop = Number(
+            playerBody.prev?.y ?? playerBody.prevFrame?.y
+        );
+        const previousEnemyTop = Number(
+            enemyBody.prev?.y ?? enemyBody.prevFrame?.y ?? enemyTop
+        );
+        const previousPlayerBottom = Number.isFinite(previousPlayerTop)
+            ? previousPlayerTop + playerHeight
+            : Number.NaN;
+        const contactTolerance = Math.max(8, Math.min(18, enemyHeight * 0.28));
+        const directTopContact = playerBody.touching?.down === true &&
+            enemyBody.touching?.up === true;
+        const crossedEnemyTop = Number.isFinite(previousPlayerBottom) &&
+            Number.isFinite(previousEnemyTop) &&
+            previousPlayerBottom <= previousEnemyTop + contactTolerance &&
+            playerBottom >= enemyTop - contactTolerance;
         const descending = playerVelocityY >= -35;
         const approachingFromAbove = playerCenterY < enemyCenterY;
-        const feetInsideStompBand = playerBottom <= enemyTop + enemyHeight * 0.62;
+        const feetInsideStompBand = playerBottom <= enemyTop + Math.max(
+            contactTolerance,
+            enemyHeight * 0.62
+        );
 
-        return descending && approachingFromAbove && feetInsideStompBand
+        return descending && (
+            directTopContact ||
+            crossedEnemyTop ||
+            (approachingFromAbove && feetInsideStompBand)
+        )
             ? 'stomp'
             : 'contact';
     }

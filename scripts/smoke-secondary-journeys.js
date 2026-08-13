@@ -850,6 +850,101 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         throw new Error(`${sceneName} retained left input after touch release: ${leftReleased}`);
     }
 
+    const liveStompSetup = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        const target = scene?.enemies?.getChildren?.().find(enemy => (
+            enemy?.active !== false &&
+            enemy?.body &&
+            enemy?.combatRole === 'armored' &&
+            enemy?.stompable !== false &&
+            enemy?.combatImmune !== true &&
+            Number(enemy?.health) >= 2
+        ));
+        if (!scene?.player?.body || !target) return null;
+
+        const targetY = Math.max(320, Math.min(scene.levelHeight - 260, 480));
+        const playerHeight = Math.max(1, Number(scene.player.body.height) || 55);
+        const targetHeight = Math.max(1, Number(target.body.height) || 50);
+        const playerY = targetY - (playerHeight + targetHeight) / 2 - 85;
+        const platformBodies = scene.platforms?.getChildren?.()
+            .map(platform => platform?.body)
+            .filter(Boolean) || [];
+        const candidates = [220, 520, 820, 1120, 1420, 1720]
+            .filter(x => x < scene.levelWidth - 160);
+        const targetX = candidates.find(x => !platformBodies.some(body => (
+            x >= Number(body.left) - 55 &&
+            x <= Number(body.right) + 55 &&
+            Number(body.top) >= playerY - 30 &&
+            Number(body.top) <= targetY + targetHeight
+        ))) || Math.max(160, Math.min(scene.levelWidth - 160, scene.player.x));
+
+        target.body.setAllowGravity?.(false);
+        target.setImmovable?.(true);
+        target.setVelocity?.(0, 0);
+        target.body.reset?.(targetX, targetY);
+        target.setPosition?.(targetX, targetY);
+        target.baseX = targetX;
+        target.baseY = targetY;
+        target.detectionRange = 0;
+        target.patrolMin = Number.NEGATIVE_INFINITY;
+        target.patrolMax = Number.POSITIVE_INFINITY;
+        target.patrolLeft = Number.NEGATIVE_INFINITY;
+        target.patrolRight = Number.POSITIVE_INFINITY;
+        target.stompContactLockedUntil = 0;
+        scene.updateEnemyGraphics?.(target);
+
+        const originalResolve = scene.resolveEnemyContact;
+        const state = {
+            enemyType: target.enemyType || target.combatRole,
+            enemyHealthBefore: Number(target.health),
+            playerHealthBefore: Number(scene.health),
+            contacts: []
+        };
+        scene.__smokeLiveStomp = { target, originalResolve, state };
+        scene.resolveEnemyContact = function (player, enemy, options) {
+            const result = originalResolve.call(this, player, enemy, options);
+            if (enemy === target) {
+                state.contacts.push(result);
+                state.enemyHealthAfter = Number(target.health);
+                state.enemyActiveAfter = target.active !== false;
+                state.playerHealthAfter = Number(scene.health);
+                state.playerVelocityAfter = Number(player?.body?.velocity?.y);
+            }
+            return result;
+        };
+
+        scene.isInvincible = false;
+        scene.player.body.reset?.(targetX, playerY);
+        scene.player.setPosition?.(targetX, playerY);
+        scene.player.setVelocity?.(0, 680);
+        return { targetX, targetY, playerY, enemyType: state.enemyType };
+    })()`);
+    if (!liveStompSetup) {
+        throw new Error(`${sceneName} has no live armored stomp encounter`);
+    }
+    const liveStomp = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const probe = scene?.__smokeLiveStomp;
+            if (!probe?.state?.contacts?.includes('stomp')) return null;
+            scene.resolveEnemyContact = probe.originalResolve;
+            const result = { ...probe.state };
+            scene.__smokeLiveStomp = null;
+            return result;
+        })()`),
+        { timeoutMs: 3500, message: `${sceneName} live stomp collision` }
+    );
+    if (
+        liveStomp.contacts.filter(contact => contact === 'stomp').length !== 1 ||
+        liveStomp.enemyHealthAfter !== liveStomp.enemyHealthBefore - 1 ||
+        liveStomp.playerHealthAfter !== liveStomp.playerHealthBefore ||
+        !(liveStomp.playerVelocityAfter < 0)
+    ) {
+        throw new Error(
+            `${sceneName} live stomp was not decisive: ${JSON.stringify(liveStomp)}`
+        );
+    }
+
     let combatFeedback = null;
     if (['mythicalForest', 'auroraDepths', 'finalVoid'].includes(route)) {
         combatFeedback = await evaluate(session, `(() => {
@@ -861,7 +956,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             const armoredTarget = enemies.find(enemy => (
                 enemy !== clearTarget &&
                 enemy?.combatRole === 'armored' &&
-                Number(enemy.health) >= 3
+                Number(enemy.health) >= 2
             ));
             if (!scene || !clearTarget || !armoredTarget) return null;
 
@@ -871,17 +966,20 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 messages.push({ text, color });
                 return originalFloatingText.call(this, text, x, y, color);
             };
-            const stomp = enemy => scene.resolveEnemyContact({
-                active: true,
-                x: enemy.x,
-                y: enemy.y - 50,
-                body: {
-                    center: { y: enemy.body.center.y - 50 },
-                    bottom: enemy.body.top + 2,
-                    velocity: { y: 90 }
-                },
-                setVelocityY: () => {}
-            }, enemy);
+            const stomp = enemy => {
+                enemy.stompContactLockedUntil = 0;
+                return scene.resolveEnemyContact({
+                    active: true,
+                    x: enemy.x,
+                    y: enemy.y - 50,
+                    body: {
+                        center: { y: enemy.body.center.y - 50 },
+                        bottom: enemy.body.top + 2,
+                        velocity: { y: 90 }
+                    },
+                    setVelocityY: () => {}
+                }, enemy);
+            };
             const clearBefore = clearTarget.health;
             const clearResult = stomp(clearTarget);
             const armoredBefore = armoredTarget.health;
@@ -908,7 +1006,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             combatFeedback.armoredAfter !== combatFeedback.armoredBefore - 1 ||
             !texts.includes('STOMP CLEAR') ||
             !texts.includes(
-                `STOMP · ${combatFeedback.armoredAfter} HITS LEFT`
+                `STOMP · ${combatFeedback.armoredAfter} HIT${
+                    combatFeedback.armoredAfter === 1 ? '' : 'S'
+                } LEFT`
             )
         ) {
             throw new Error(
@@ -1399,6 +1499,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
         joystick: { movedRight, movedLeft },
         combatFeedback,
+        liveStomp,
         outOfOrderGuard,
         routeHandoff,
         routeCompletion,

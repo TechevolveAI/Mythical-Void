@@ -113,6 +113,91 @@ describe('campaign traversal quality contracts', () => {
         }, enemy)).toBe('contact');
     });
 
+    test('a fast low-frame descent still resolves as a stomp after deep overlap', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'SweptStompTest' });
+        const enemy = {
+            active: true,
+            body: {
+                center: { y: 200 },
+                top: 175,
+                height: 50,
+                prev: { y: 175 }
+            }
+        };
+
+        expect(scene.classifyEnemyContact({
+            body: {
+                center: { y: 195 },
+                bottom: 225,
+                height: 60,
+                prev: { y: 95 },
+                velocity: { y: 760 }
+            }
+        }, enemy)).toBe('stomp');
+    });
+
+    test('collision normals preserve edge stomps but upward contact remains harmful', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'ContactNormalTest' });
+        const enemy = {
+            active: true,
+            body: {
+                center: { y: 200 },
+                top: 175,
+                height: 50,
+                touching: { up: true }
+            }
+        };
+
+        expect(scene.classifyEnemyContact({
+            body: {
+                center: { y: 190 },
+                bottom: 220,
+                height: 60,
+                velocity: { y: 120 },
+                touching: { down: true }
+            }
+        }, enemy)).toBe('stomp');
+
+        expect(scene.classifyEnemyContact({
+            body: {
+                center: { y: 150 },
+                bottom: 180,
+                height: 60,
+                prev: { y: 120 },
+                velocity: { y: -220 },
+                touching: { down: true }
+            }
+        }, enemy)).toBe('contact');
+    });
+
+    test('a side collision does not become a stomp because bodies overlap deeply', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'SideContactTest' });
+        const enemy = {
+            active: true,
+            body: {
+                center: { y: 200 },
+                top: 175,
+                height: 50,
+                prev: { y: 175 },
+                touching: { up: false }
+            }
+        };
+
+        expect(scene.classifyEnemyContact({
+            body: {
+                center: { y: 205 },
+                bottom: 235,
+                height: 60,
+                prev: { y: 175 },
+                velocity: { y: 15 },
+                touching: { down: false }
+            }
+        }, enemy)).toBe('contact');
+    });
+
     test('armored enemy stomps apply the authored damage once per contact', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'ArmoredStompTest' });
@@ -687,6 +772,18 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("'auroraDepths',\n            'finalVoid'");
         expect(smoke).toContain(
             "['mythicalForest', 'auroraDepths', 'finalVoid'].includes(route)"
+        );
+        expect(smoke).toContain("enemy?.combatRole === 'armored'");
+        expect(smoke).toContain('scene.player.setVelocity?.(0, 680)');
+        expect(smoke).toContain('message: `${sceneName} live stomp collision`');
+        expect(smoke).toContain(
+            'liveStomp.enemyHealthAfter !== liveStomp.enemyHealthBefore - 1'
+        );
+        expect(smoke).toContain(
+            'liveStomp.playerHealthAfter !== liveStomp.playerHealthBefore'
+        );
+        expect(smoke).toContain(
+            "combatFeedback.armoredAfter === 1 ? '' : 'S'"
         );
         expect(smoke).toContain("auroraDepths: 'aurora_quiet_light'");
         expect(smoke).toContain("finalVoid: 'final_trust_bridge'");
