@@ -554,26 +554,34 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     activatePeakReturnCurrent(current) {
         if (!current || !this.player?.body || this.isPlayerDead) return false;
 
+        const body = this.player.body;
+        const grounded = body.blocked.down || this.isGrounded;
+        const inLaunchBand = body.bottom >= current.bottom - 90;
         const now = Number(this.time?.now) || 0;
-        const enteredCurrent = now - current.lastLiftAt > 180;
-        if (enteredCurrent) {
-            current.activations += 1;
-            this.showFloatingText(
-                'RETURN CURRENT // WARNING LINE',
-                current.x,
-                this.player.y - 55,
-                '#8FE3CF'
-            );
-        }
+
+        if (!grounded || !inLaunchBand) return false;
+        if (now - current.lastLiftAt < 650) return false;
+
+        current.activations += 1;
         current.lastLiftAt = now;
+        this.showFloatingText(
+            'RETURN CURRENT // WARNING LINE',
+            current.x,
+            this.player.y - 55,
+            '#8FE3CF'
+        );
 
         const horizontalCorrection = Phaser.Math.Clamp(
             (current.x - this.player.x) * 2.4,
             -85,
             85
         );
+        const requiredRise = current.bottom - current.top + 80;
+        const launchVelocity = -Math.ceil(
+            Math.sqrt(2 * this.gravityY * requiredRise) + 40
+        );
         this.player.setVelocityX(horizontalCorrection);
-        this.player.setVelocityY(Math.min(this.player.body.velocity.y, -300));
+        this.player.setVelocityY(launchVelocity);
         return true;
     }
 
