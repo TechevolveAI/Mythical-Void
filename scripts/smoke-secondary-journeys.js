@@ -1073,6 +1073,76 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
         }
 
+        let rejectedOptionalPickup = null;
+        if (route === 'mythicalForest') {
+            rejectedOptionalPickup = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const routeState = scene?.optionalRouteRewards?.get?.(
+                    ${JSON.stringify(optionalRouteId)}
+                );
+                const choice = routeState?.choice;
+                const fragmentIndex = (scene?.starFragmentSprites || []).findIndex(
+                    entry => entry?.optionalRouteId === ${JSON.stringify(optionalRouteId)} &&
+                        entry?.pickupZone?.active !== false
+                );
+                const fragment = scene?.starFragmentSprites?.[fragmentIndex];
+                if (!scene?.player || !choice || !fragment?.sprite || !fragment?.pickupZone) {
+                    return null;
+                }
+
+                scene.player.setPosition(
+                    (choice.mainZone.left + choice.mainZone.right) / 2,
+                    (choice.mainZone.top + choice.mainZone.bottom) / 2
+                );
+                scene.updateOptionalRouteChoices();
+                const before = {
+                    selectedPath: choice.selectedPath,
+                    fragmentCount: scene.starFragmentsCollected,
+                    fragmentMask: scene.forestCollectedFragmentMask,
+                    progress: routeState.progress
+                };
+                scene.collectStarFragment(
+                    fragment.sprite,
+                    fragment.pickupZone,
+                    fragmentIndex
+                );
+                const after = {
+                    selectedPath: choice.selectedPath,
+                    fragmentCount: scene.starFragmentsCollected,
+                    fragmentMask: scene.forestCollectedFragmentMask,
+                    progress: routeState.progress,
+                    pickupActive: fragment.pickupZone?.active !== false,
+                    fragmentCollected: fragment.collected === true
+                };
+
+                scene.forestRouteChoice = '';
+                choice.selectedPath = null;
+                choice.mainEntered = false;
+                choice.optionalEntered = false;
+                choice.rejoined = false;
+                choice.sequence = null;
+                scene.routeChoiceSequence = 0;
+                return { before, after };
+            })()`);
+            if (
+                rejectedOptionalPickup?.before?.selectedPath !== 'main' ||
+                rejectedOptionalPickup.before.fragmentCount !== 0 ||
+                rejectedOptionalPickup.before.fragmentMask !== 0 ||
+                rejectedOptionalPickup.before.progress !== 0 ||
+                rejectedOptionalPickup.after.selectedPath !== 'main' ||
+                rejectedOptionalPickup.after.fragmentCount !== 0 ||
+                rejectedOptionalPickup.after.fragmentMask !== 0 ||
+                rejectedOptionalPickup.after.progress !== 0 ||
+                rejectedOptionalPickup.after.pickupActive !== true ||
+                rejectedOptionalPickup.after.fragmentCollected !== false
+            ) {
+                throw new Error(
+                    `${sceneName} mutated a Canopy pickup after the main route was chosen: ` +
+                    JSON.stringify(rejectedOptionalPickup)
+                );
+            }
+        }
+
         await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const routeState = scene?.optionalRouteRewards?.get?.(
@@ -1149,7 +1219,12 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 JSON.stringify({ optionalEntry, rejoin })
             );
         }
-        routeChoice = { presentation: choicePresentation, optionalEntry, rejoin };
+        routeChoice = {
+            presentation: choicePresentation,
+            rejectedOptionalPickup,
+            optionalEntry,
+            rejoin
+        };
     }
 
     let combatFeedback = null;
@@ -1754,7 +1829,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 await pressEnter(session);
                 await delay(300);
             }
-            if (['voidPeaks', 'finalVoid'].includes(route)) {
+            if (['mythicalForest', 'voidPeaks', 'finalVoid'].includes(route)) {
                 await evaluate(session, `(async () => {
                     const game = window.mythicalGame;
                     game.scene.stop(${JSON.stringify(sceneName)});
@@ -1772,12 +1847,18 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                         const reward = scene.optionalRouteRewards?.get?.(
                             ${JSON.stringify(optionalRouteId)}
                         );
-                        const remainingPickups = ${JSON.stringify(route)} === 'voidPeaks'
-                            ? (scene.collectibles?.getChildren?.() || []).filter(
-                                item => item?.active !== false && item?.optionalRouteId
-                            ).length
-                            : (scene.optionalRoutePickup?.active !== false &&
-                                scene.optionalRoutePickup ? 1 : 0);
+                        const remainingPickups = ${JSON.stringify(route)} === 'mythicalForest'
+                            ? (scene.starFragmentSprites || []).filter(entry => (
+                                entry?.pickupZone &&
+                                entry.pickupZone.active !== false &&
+                                entry.optionalRouteId
+                            )).length
+                            : (${JSON.stringify(route)} === 'voidPeaks'
+                                ? (scene.collectibles?.getChildren?.() || []).filter(
+                                    item => item?.active !== false && item?.optionalRouteId
+                                ).length
+                                : (scene.optionalRoutePickup?.active !== false &&
+                                    scene.optionalRoutePickup ? 1 : 0));
                         return {
                             checkpointId: scene.checkpointPosition?.id,
                             checkpointIndex: scene.checkpointPosition?.index,
@@ -1786,14 +1867,16 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                             completed: reward?.completed === true,
                             guardCharges: scene.optionalRouteGuardCharges,
                             bondReserveReady: scene.bondReserveReady === true,
-                            fragmentMask: scene.peakCollectedFragmentMask,
+                            fragmentMask: ${JSON.stringify(route)} === 'mythicalForest'
+                                ? scene.forestCollectedFragmentMask
+                                : scene.peakCollectedFragmentMask,
                             fragmentCount: scene.starFragmentsCollected,
                             remainingPickups
                         };
                     })()`),
                     { timeoutMs: 3500, message: `${sceneName} optional reward reload` }
                 );
-                const restoredProtection = route === 'voidPeaks'
+                const restoredProtection = route !== 'finalVoid'
                     ? restoredReward.guardCharges === 1
                     : restoredReward.bondReserveReady === true;
                 if (
@@ -1804,6 +1887,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     restoredReward.completed !== true ||
                     restoredReward.remainingPickups !== 0 ||
                     !restoredProtection ||
+                    (route === 'mythicalForest' && restoredReward.fragmentMask !== 24) ||
+                    (route === 'mythicalForest' && restoredReward.fragmentCount !== 2) ||
                     (route === 'voidPeaks' && restoredReward.fragmentMask !== 12) ||
                     (route === 'voidPeaks' && restoredReward.fragmentCount !== 2)
                 ) {
@@ -1872,12 +1957,18 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                         const reward = scene.optionalRouteRewards?.get?.(
                             ${JSON.stringify(optionalRouteId)}
                         );
-                        const remainingPickups = ${JSON.stringify(route)} === 'voidPeaks'
-                            ? (scene.collectibles?.getChildren?.() || []).filter(
-                                item => item?.active !== false && item?.optionalRouteId
-                            ).length
-                            : (scene.optionalRoutePickup?.active !== false &&
-                                scene.optionalRoutePickup ? 1 : 0);
+                        const remainingPickups = ${JSON.stringify(route)} === 'mythicalForest'
+                            ? (scene.starFragmentSprites || []).filter(entry => (
+                                entry?.pickupZone &&
+                                entry.pickupZone.active !== false &&
+                                entry.optionalRouteId
+                            )).length
+                            : (${JSON.stringify(route)} === 'voidPeaks'
+                                ? (scene.collectibles?.getChildren?.() || []).filter(
+                                    item => item?.active !== false && item?.optionalRouteId
+                                ).length
+                                : (scene.optionalRoutePickup?.active !== false &&
+                                    scene.optionalRoutePickup ? 1 : 0));
                         return {
                             selectedPath: reward?.choice?.selectedPath,
                             progress: reward?.progress,
@@ -2871,6 +2962,10 @@ async function smokeHubForestTransition(session, exceptions) {
         state.set('story.projectBeacon.firstExpeditionPromptSeen', true);
         state.set('story.projectBeacon.firstForestCinematicSeen', false);
         state.set('story.projectBeacon.firstForestCinematicVersion', 0);
+        state.set('story.projectBeacon.firstExpeditionDrill', {
+            completed: true,
+            completedAt: new Date().toISOString()
+        });
         state.save();
         game.scene.stop('HatchingScene');
         game.scene.start('GameScene', { biome: 'nebula', forceMobileControls: true });
@@ -2987,7 +3082,191 @@ async function smokeHubForestTransition(session, exceptions) {
             })}`
         );
     }
-    return { gateEntry, fieldBrief, gameplay };
+
+    const checkpointSetup = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        const checkpoint = scene?.checkpointAnchors?.[0];
+        const route = scene?.optionalRouteRewards?.get?.('forest_canopy_run');
+        if (!scene?.player || !checkpoint || !route) return null;
+
+        scene.activateBeaconCheckpoint(checkpoint);
+        scene.selectForestRoute('optional');
+        [3, 4].forEach(index => {
+            const fragment = scene.starFragmentSprites?.[index];
+            if (fragment?.sprite && fragment?.pickupZone) {
+                scene.collectStarFragment(
+                    fragment.sprite,
+                    fragment.pickupZone,
+                    index
+                );
+            }
+        });
+        const persisted = window.GameState.get(
+            'story.projectBeacon.expeditionCheckpoint'
+        );
+        return {
+            checkpointId: persisted?.checkpointId,
+            checkpointIndex: persisted?.checkpointIndex,
+            checkpointX: persisted?.x,
+            checkpointY: persisted?.y,
+            routeState: persisted?.routeState,
+            selectedPath: route.choice?.selectedPath,
+            progress: route.progress,
+            completed: route.completed === true,
+            guardCharges: scene.optionalRouteGuardCharges,
+            fragmentMask: scene.forestCollectedFragmentMask,
+            fragmentCount: scene.starFragmentsCollected
+        };
+    })()`);
+    if (
+        checkpointSetup?.checkpointId !== 'forest_anchor_1' ||
+        checkpointSetup.checkpointIndex !== 0 ||
+        checkpointSetup.checkpointX !== 1770 ||
+        checkpointSetup.checkpointY !== 1000 ||
+        checkpointSetup.selectedPath !== 'optional' ||
+        checkpointSetup.progress !== 2 ||
+        checkpointSetup.completed !== true ||
+        checkpointSetup.guardCharges !== 1 ||
+        checkpointSetup.fragmentMask !== 24 ||
+        checkpointSetup.fragmentCount !== 2 ||
+        checkpointSetup.routeState?.forestRouteChoice !== 'optional' ||
+        checkpointSetup.routeState?.canopyCompleted !== true ||
+        checkpointSetup.routeState?.canopyGuardCharges !== 1
+    ) {
+        throw new Error(
+            `Forest checkpoint did not capture Canopy state: ${JSON.stringify(checkpointSetup)}`
+        );
+    }
+
+    await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('MythicalForestLevel').returnToHub();
+        return true;
+    })()`);
+    await waitForScene(session, 'HubWorldScene', 15000);
+    const hubResume = await waitFor(
+        () => evaluate(session, `(() => {
+            const hub = window.mythicalGame.scene.getScene('HubWorldScene');
+            const selected = hub?.gates?.[hub?.selectedGateIndex];
+            const resume = hub?.getExpeditionResumeForGate?.('mythical_forest');
+            if (
+                selected?.id !== 'mythical_forest' ||
+                hub?.actionLabel?.text !== 'RESUME' ||
+                !resume
+            ) return null;
+            const bounds = hub.actionLabel.getBounds();
+            return {
+                selectedGateId: selected.id,
+                action: hub.actionLabel.text,
+                info: hub.infoText?.text || '',
+                resume,
+                actionX: Math.round(bounds.centerX),
+                actionY: Math.round(bounds.centerY)
+            };
+        })()`),
+        { timeoutMs: 5000, message: 'Hub Forest resume action' }
+    );
+    if (
+        hubResume.resume?.checkpointId !== 'forest_anchor_1' ||
+        hubResume.resume?.label !== 'Rootway' ||
+        hubResume.resume?.current !== 1 ||
+        hubResume.resume?.total !== 3 ||
+        !hubResume.info.includes('Beacon 1/3') ||
+        !hubResume.info.includes('Rootway')
+    ) {
+        throw new Error(
+            `Hub did not explain the resumable Forest checkpoint: ${JSON.stringify(hubResume)}`
+        );
+    }
+
+    await touch(session, hubResume.actionX, hubResume.actionY);
+    await waitForScene(session, 'MythicalForestLevel', 20000);
+    const resumedCheckpoint = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            if (!scene?.checkpointResumeApplied || !scene?.levelEntryElements?.length) {
+                return null;
+            }
+            const route = scene.optionalRouteRewards?.get?.('forest_canopy_run');
+            const remainingOptional = (scene.starFragmentSprites || []).filter(
+                entry => entry?.pickupZone &&
+                    entry.pickupZone.active !== false &&
+                    entry.optionalRouteId
+            ).length;
+            return {
+                checkpointId: scene.checkpointPosition?.id,
+                checkpointIndex: scene.checkpointPosition?.index,
+                checkpointX: scene.checkpointPosition?.x,
+                checkpointY: scene.checkpointPosition?.y,
+                playerX: scene.player?.x,
+                playerY: scene.player?.y,
+                selectedPath: route?.choice?.selectedPath,
+                progress: route?.progress,
+                completed: route?.completed === true,
+                guardCharges: scene.optionalRouteGuardCharges,
+                fragmentMask: scene.forestCollectedFragmentMask,
+                fragmentCount: scene.starFragmentsCollected,
+                remainingOptional,
+                firstArrivalVisible: scene.forestArrivalElements?.length > 0,
+                physicsPaused: scene.physics.world.isPaused
+            };
+        })()`),
+        { timeoutMs: 5000, message: 'Forest state restored from Hub' }
+    );
+    if (
+        resumedCheckpoint.checkpointId !== 'forest_anchor_1' ||
+        resumedCheckpoint.checkpointIndex !== 0 ||
+        resumedCheckpoint.checkpointX !== 1770 ||
+        resumedCheckpoint.checkpointY !== 1000 ||
+        resumedCheckpoint.playerX !== 1770 ||
+        resumedCheckpoint.playerY !== 1000 ||
+        resumedCheckpoint.selectedPath !== 'optional' ||
+        resumedCheckpoint.progress !== 2 ||
+        resumedCheckpoint.completed !== true ||
+        resumedCheckpoint.guardCharges !== 1 ||
+        resumedCheckpoint.fragmentMask !== 24 ||
+        resumedCheckpoint.fragmentCount !== 2 ||
+        resumedCheckpoint.remainingOptional !== 0 ||
+        resumedCheckpoint.firstArrivalVisible ||
+        !resumedCheckpoint.physicsPaused
+    ) {
+        throw new Error(
+            `Hub resume did not restore exact Forest state: ${JSON.stringify(resumedCheckpoint)}`
+        );
+    }
+
+    await pressEnter(session);
+    const resumedGameplay = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            if (
+                !scene?.player?.active ||
+                scene.physics.world.isPaused ||
+                scene.platformerControlsVisible !== true
+            ) return null;
+            return {
+                playerActive: true,
+                physicsPaused: false,
+                mobileControls: true,
+                checkpointResumeApplied: scene.checkpointResumeApplied === true
+            };
+        })()`),
+        { timeoutMs: 5000, message: 'Forest live play after Hub resume' }
+    );
+    if (exceptions.length) {
+        throw new Error(
+            `Hub Forest resume raised browser exceptions: ${exceptions.join(' | ')}`
+        );
+    }
+
+    return {
+        gateEntry,
+        fieldBrief,
+        gameplay,
+        checkpointSetup,
+        hubResume,
+        resumedCheckpoint,
+        resumedGameplay
+    };
 }
 
 // State-contract data is intentionally separate from the interaction checks below.

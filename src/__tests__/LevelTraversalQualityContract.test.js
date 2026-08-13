@@ -686,6 +686,18 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("optionalRouteId: 'forest_canopy_run'");
         expect(source).toContain("this.grantOptionalRouteGuard('CANOPY GUARD', 1)");
         expect(source).toContain("this.getOptionalRouteStatusText(");
+        expect(source).toContain("onMainSelected: () => this.selectForestRoute('main')");
+        expect(source).toContain("onOptionalSelected: () => this.selectForestRoute('optional')");
+        expect(source).toContain('forestFragmentMask: this.forestCollectedFragmentMask');
+        expect(source).toContain('canopyGuardCharges: this.forestRouteChoice === \'optional\'');
+        expect(source).toContain('restoreForestRouteState(resume.routeState');
+        expect(source).toContain('this.retireCollectedForestFragments();');
+        expect(source).toContain('this.refreshPersistedExpeditionRouteState();');
+        expect(source).toContain('onOptionalRouteGuardConsumed()');
+        expect(source).toContain('!this.recordOptionalRouteProgress(fragmentData.optionalRouteId');
+        expect(source.indexOf('!this.recordOptionalRouteProgress(fragmentData.optionalRouteId'))
+            .toBeLessThan(source.indexOf('this.forestCollectedFragmentMask |= fragmentBit'));
+        expect(source).toContain('forestFragmentBonusAwarded: this.forestFragmentBonusAwarded === true');
     });
 
     test('Crystal Spider Walk is a persistent, mutually exclusive chamber route', () => {
@@ -1255,7 +1267,9 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('`${sceneName} optional route rejoin`');
         expect(smoke).toContain("optionalEntry.selectedPath !== 'optional'");
         expect(smoke).toContain('choicePresentation.optionalMarker.includes');
-        expect(smoke).toContain('routeChoice = { presentation: choicePresentation');
+        expect(smoke).toContain('routeChoice = {');
+        expect(smoke).toContain('presentation: choicePresentation');
+        expect(smoke).toContain('rejectedOptionalPickup,');
         expect(smoke).toContain(
             "combatFeedback.armoredAfter === 1 ? '' : 'S'"
         );

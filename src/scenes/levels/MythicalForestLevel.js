@@ -75,6 +75,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Level-specific state
         this.starFragmentsCollected = 0;
         this.totalStarFragments = 5;
+        this.forestCollectedFragmentMask = 0;
+        this.forestRouteChoice = '';
+        this.forestFragmentBonusAwarded = false;
         this.bossDefeated = false;
         this.forestCoreFound = false;
         this.bossFightActive = false;
@@ -174,6 +177,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Reset level-specific state
         this.starFragmentsCollected = 0;
+        this.forestCollectedFragmentMask = 0;
+        this.forestRouteChoice = '';
+        this.forestFragmentBonusAwarded = false;
         this.bossDefeated = false;
         this.forestCoreFound = false;
         this.bossFightActive = false;
@@ -1472,7 +1478,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     restoreExpeditionRouteState(resume) {
-        return this.restoreExpeditionRouteSignals(resume, {
+        const signalsRestored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.checkpointAnchors,
             countProperty: 'beaconAnchorsActivated',
             readyProperty: 'forestRouteAligned',
@@ -1487,6 +1493,131 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 this.objectiveDisplay?.setText?.(this.getForestObjectiveText());
             }
         });
+        if (!signalsRestored) return false;
+
+        this.restoreForestRouteState(resume.routeState, {
+            rejoined: Number(resume.checkpointIndex) >= 2
+        });
+        this.objectiveDisplay?.setText?.(this.getForestObjectiveText());
+        return true;
+    }
+
+    getExpeditionRouteState() {
+        const route = this.optionalRouteRewards?.get?.('forest_canopy_run');
+        return {
+            forestRouteChoice: this.forestRouteChoice || '',
+            forestFragmentMask: this.forestCollectedFragmentMask,
+            canopyProgress: Number(route?.progress) || 0,
+            canopyCompleted: route?.completed === true,
+            canopyGuardCharges: this.forestRouteChoice === 'optional'
+                ? this.optionalRouteGuardCharges
+                : 0,
+            forestFragmentBonusAwarded: this.forestFragmentBonusAwarded === true
+        };
+    }
+
+    selectForestRoute(path, { restoring = false, rejoined = false } = {}) {
+        if (!['main', 'optional'].includes(path)) return false;
+        if (this.forestRouteChoice && this.forestRouteChoice !== path) return false;
+
+        this.forestRouteChoice = path;
+        const choice = this.optionalRouteRewards?.get?.('forest_canopy_run')?.choice;
+        if (choice) {
+            choice.selectedPath = path;
+            choice.mainEntered = path === 'main';
+            choice.optionalEntered = path === 'optional';
+            choice.rejoined = rejoined && path === 'optional';
+            choice.sequence ||= 1;
+        }
+        if (!restoring) this.refreshPersistedExpeditionRouteState();
+        return true;
+    }
+
+    restoreForestRouteState(routeState, { rejoined = false } = {}) {
+        if (!routeState || typeof routeState !== 'object') return false;
+
+        const path = routeState.forestRouteChoice;
+        if (['main', 'optional'].includes(path)) {
+            this.selectForestRoute(path, { restoring: true, rejoined });
+        }
+
+        this.forestCollectedFragmentMask = Phaser.Math.Clamp(
+            Math.floor(Number(routeState.forestFragmentMask) || 0),
+            0,
+            (1 << this.totalStarFragments) - 1
+        );
+        this.starFragmentsCollected = this.countCollectedForestFragments();
+        this.forestFragmentBonusAwarded =
+            routeState.forestFragmentBonusAwarded === true;
+        this.retireCollectedForestFragments();
+        this.hud?.updateStarFragments?.(
+            this.starFragmentsCollected,
+            this.totalStarFragments
+        );
+
+        const route = this.optionalRouteRewards?.get?.('forest_canopy_run');
+        if (route && path === 'optional') {
+            route.progress = Phaser.Math.Clamp(
+                Number(routeState.canopyProgress) || 0,
+                0,
+                route.required
+            );
+            route.completed = routeState.canopyCompleted === true ||
+                route.progress >= route.required;
+            this.refreshOptionalRouteReward(route);
+            this.optionalRouteGuardLabel = 'CANOPY GUARD';
+            this.optionalRouteGuardCharges = Phaser.Math.Clamp(
+                Number(routeState.canopyGuardCharges) || 0,
+                0,
+                1
+            );
+        }
+
+        if (
+            this.starFragmentsCollected >= this.totalStarFragments &&
+            !this.forestFragmentBonusAwarded &&
+            this.awardForestFragmentBonus()
+        ) {
+            this.refreshPersistedExpeditionRouteState();
+        }
+        return true;
+    }
+
+    countCollectedForestFragments() {
+        let count = 0;
+        for (let index = 0; index < this.totalStarFragments; index += 1) {
+            if ((this.forestCollectedFragmentMask & (1 << index)) !== 0) count++;
+        }
+        return count;
+    }
+
+    retireCollectedForestFragments() {
+        this.starFragmentSprites.forEach((fragment, index) => {
+            if ((this.forestCollectedFragmentMask & (1 << index)) === 0) return;
+            fragment.collected = true;
+            if (fragment.pickupZone?.body) fragment.pickupZone.body.enable = false;
+            fragment.pickupZone?.destroy?.();
+            fragment.pickupZone = null;
+            fragment.sprite?.destroy?.();
+            fragment.sprite = null;
+        });
+    }
+
+    awardForestFragmentBonus() {
+        if (this.forestFragmentBonusAwarded) return true;
+        const balance = window.EconomyManager?.addCoins?.(
+            200,
+            'forest_fragment_bonus'
+        );
+        if (!Number.isFinite(balance)) return false;
+        this.forestFragmentBonusAwarded = true;
+        return true;
+    }
+
+    onOptionalRouteGuardConsumed() {
+        if (this.forestRouteChoice === 'optional') {
+            this.refreshPersistedExpeditionRouteState();
+        }
     }
 
     /**
@@ -2684,7 +2815,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     top: 500, bottom: this.levelHeight - 300
                 }
             },
-            onComplete: () => this.grantOptionalRouteGuard('CANOPY GUARD', 1)
+            onMainSelected: () => this.selectForestRoute('main'),
+            onOptionalSelected: () => this.selectForestRoute('optional'),
+            onComplete: () => {
+                this.grantOptionalRouteGuard('CANOPY GUARD', 1);
+                this.refreshPersistedExpeditionRouteState();
+            }
         });
 
         // === STAR FRAGMENTS: 5 hidden at challenging locations ===
@@ -2889,14 +3025,25 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const fragmentData = this.starFragmentSprites[index];
         if (!fragmentData || fragmentData.collected) return;
 
-        fragmentData.collected = true;
-        this.starFragmentsCollected++;
-        if (fragmentData.optionalRouteId) {
-            this.recordOptionalRouteProgress(fragmentData.optionalRouteId, {
+        const fragmentBit = 1 << index;
+        if ((this.forestCollectedFragmentMask & fragmentBit) !== 0) return;
+        if (
+            fragmentData.optionalRouteId &&
+            !this.recordOptionalRouteProgress(fragmentData.optionalRouteId, {
                 x: sprite.x,
                 y: sprite.y
-            });
+            })
+        ) {
+            return;
         }
+
+        fragmentData.collected = true;
+        this.forestCollectedFragmentMask |= fragmentBit;
+        this.starFragmentsCollected = this.countCollectedForestFragments();
+        const completedCollection =
+            this.starFragmentsCollected >= this.totalStarFragments;
+        if (completedCollection) this.awardForestFragmentBonus();
+        this.refreshPersistedExpeditionRouteState();
 
         // IMMEDIATELY disable the pickup zone to prevent duplicate collection
         if (zone.body) {
@@ -2969,7 +3116,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         window.FeedbackManager?.cameraFlash?.(this, 200, 255, 215, 0);
 
         // Check if all collected
-        if (this.starFragmentsCollected >= this.totalStarFragments) {
+        if (completedCollection) {
             this.onAllStarFragmentsCollected();
         }
     }
@@ -3005,11 +3152,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 });
             }
         });
-
-        // Bonus coins
-        if (window.EconomyManager?.addCoins) {
-            window.EconomyManager.addCoins(200, 'forest_fragment_bonus');
-        }
 
         if (window.AudioManager) {
             window.AudioManager.playLevelUp();
