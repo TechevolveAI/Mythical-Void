@@ -490,10 +490,29 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     createLevelContent() {
         this.createShadowCurrents();
+        this.createAuroraSentinels();
         this.createAuroraFragments();
         this.createSignalPrisms();
         this.createQuietLightRoute();
         this.createBossArena();
+    }
+
+    createAuroraSentinels() {
+        const groundY = this.levelHeight - 110;
+        const encounters = [
+            { x: 1460, y: groundY, health: 1, patrolRange: 105, speed: 38 },
+            { x: 2810, y: groundY, health: 2, patrolRange: 120, speed: 42 },
+            { x: 3920, y: groundY, health: 3, patrolRange: 120, speed: 46 }
+        ];
+
+        this.createPatrolSentinels(encounters, {
+            enemyType: 'auroraSentinel',
+            texturePrefix: 'auroraSentinel',
+            bodyColor: 0x173D49,
+            accentColor: 0x7FFFD4,
+            eyeColor: 0xF2C94C,
+            instructionText: 'GOLD MARK // STOMP OR STRIKE'
+        });
     }
 
     createQuietLightRoute() {

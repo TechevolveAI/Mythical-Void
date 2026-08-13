@@ -480,6 +480,34 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.bondReserveEcho?.destroy?.();');
     });
 
+    test.each([
+        ['levels/AuroraDepthsLevel.js', 'createAuroraSentinels', 'auroraSentinel'],
+        ['levels/FinalVoidLevel.js', 'createVoidEchoSentinels', 'voidEchoSentinel']
+    ])('%s has authored combat between its route signals', (
+        relativePath,
+        factoryName,
+        enemyType
+    ) => {
+        const source = read(relativePath);
+
+        expect(source).toContain(`this.${factoryName}();`);
+        expect(source).toContain('const encounters = [');
+        expect(source).toContain(`enemyType: '${enemyType}'`);
+        expect(source).toContain('health: 1');
+        expect(source).toContain('health: 2');
+        expect(source).toContain('health: 3');
+        expect(source).toContain("instructionText: 'GOLD MARK // STOMP OR STRIKE'");
+    });
+
+    test('shared sentinels use the universal combat and patrol contracts', () => {
+        const source = read('PlatformerLevelScene.js');
+
+        expect(source).toContain('createPatrolSentinels(encounters, {');
+        expect(source).toContain('this.configureEnemyCombat(sentinel, {');
+        expect(source).toContain('updatePatrolEnemyMovement()');
+        expect(source).toContain('this.updatePatrolEnemyMovement();');
+    });
+
     test('the shared route contract identifies the next objective without blocking input', () => {
         const source = read('PlatformerLevelScene.js');
 
@@ -620,6 +648,10 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('accepted an out-of-order route signal');
         expect(smoke).toContain("'story.projectBeacon.expeditionCheckpoint'");
         expect(smoke).toContain('persistedCheckpoint?.sceneKey !== sceneName');
+        expect(smoke).toContain("'auroraDepths',\n            'finalVoid'");
+        expect(smoke).toContain(
+            "['mythicalForest', 'auroraDepths', 'finalVoid'].includes(route)"
+        );
     });
 
     test('runtime checkpoints retain the same authored identity persisted for reload recovery', () => {

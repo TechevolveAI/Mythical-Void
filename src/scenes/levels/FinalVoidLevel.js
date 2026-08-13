@@ -459,10 +459,29 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
     createLevelContent() {
         this.createVoidFractures();
+        this.createVoidEchoSentinels();
         this.createBondAnchors();
         this.createTrustBridgeRoute();
         this.createBossArena();
         this.createEmpressGate();
+    }
+
+    createVoidEchoSentinels() {
+        const groundY = this.levelHeight - 110;
+        const encounters = [
+            { x: 780, y: groundY, health: 1, patrolRange: 90, speed: 38 },
+            { x: 1640, y: groundY, health: 2, patrolRange: 105, speed: 42 },
+            { x: 2350, y: groundY, health: 3, patrolRange: 60, speed: 45 }
+        ];
+
+        this.createPatrolSentinels(encounters, {
+            enemyType: 'voidEchoSentinel',
+            texturePrefix: 'voidEchoSentinel',
+            bodyColor: 0x260B38,
+            accentColor: 0xDA70D6,
+            eyeColor: 0xA9F3E4,
+            instructionText: 'GOLD MARK // STOMP OR STRIKE'
+        });
     }
 
     createTrustBridgeRoute() {

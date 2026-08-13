@@ -3162,6 +3162,134 @@ class PlatformerLevelScene extends Phaser.Scene {
         return enemy;
     }
 
+    createPatrolSentinels(encounters, {
+        enemyType = 'signalSentinel',
+        texturePrefix = 'signalSentinel',
+        bodyColor = 0x274C5B,
+        accentColor = 0x8FE3CF,
+        eyeColor = 0xF2C94C,
+        instructionText = 'GOLD MARK // STOMP OR STRIKE'
+    } = {}) {
+        if (!Array.isArray(encounters) || encounters.length === 0) return [];
+
+        if (!this.enemies) {
+            this.enemies = this.physics.add.group();
+        }
+
+        const sentinels = encounters.map((encounter, index) => {
+            const textureKey = `${texturePrefix}_${index}`;
+            this.createPatrolSentinelTexture(textureKey, {
+                bodyColor,
+                accentColor,
+                eyeColor
+            });
+
+            const sentinel = this.enemies.create(
+                encounter.x,
+                encounter.y,
+                textureKey
+            );
+            const maxHealth = Math.max(1, Number(encounter.health) || 1);
+            const patrolRange = Math.max(60, Number(encounter.patrolRange) || 115);
+            const patrolSpeed = Math.max(25, Number(encounter.speed) || 42);
+
+            sentinel.setCollideWorldBounds(true);
+            sentinel.setBounce(0.05);
+            sentinel.setDepth(850);
+            sentinel.body.setSize(44, 52, true);
+            sentinel.enemyType = enemyType;
+            sentinel.health = maxHealth;
+            sentinel.maxHealth = maxHealth;
+            sentinel.patrolMin = encounter.x - patrolRange;
+            sentinel.patrolMax = encounter.x + patrolRange;
+            sentinel.patrolSpeed = patrolSpeed;
+            sentinel.setVelocityX(index % 2 === 0 ? patrolSpeed : -patrolSpeed);
+            sentinel.setFlipX(index % 2 !== 0);
+
+            this.configureEnemyCombat(sentinel, {
+                role: maxHealth >= 3 ? 'armored' : 'stompable',
+                maxHealth,
+                stompDamage: 1,
+                contactDamage: 1,
+                cueOffsetY: -58
+            });
+
+            return sentinel;
+        });
+
+        if (instructionText && sentinels[0]) {
+            const first = sentinels[0];
+            first.instructionLabel = this.add.text(
+                first.x,
+                first.y - 92,
+                instructionText,
+                {
+                    fontSize: '11px',
+                    color: '#F2C94C',
+                    fontStyle: 'bold',
+                    stroke: '#061319',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5).setDepth(852);
+        }
+
+        return sentinels;
+    }
+
+    createPatrolSentinelTexture(textureKey, {
+        bodyColor,
+        accentColor,
+        eyeColor
+    }) {
+        if (this.textures.exists(textureKey)) return;
+
+        const graphics = this.make.graphics({ add: false });
+        graphics.fillStyle(accentColor, 0.22);
+        graphics.fillCircle(32, 35, 30);
+        graphics.fillStyle(bodyColor, 1);
+        graphics.fillRoundedRect(12, 16, 40, 44, 10);
+        graphics.fillStyle(accentColor, 0.95);
+        graphics.fillTriangle(32, 1, 12, 24, 52, 24);
+        graphics.fillStyle(eyeColor, 1);
+        graphics.fillCircle(24, 36, 4);
+        graphics.fillCircle(40, 36, 4);
+        graphics.lineStyle(3, accentColor, 0.9);
+        graphics.strokeRoundedRect(12, 16, 40, 44, 10);
+        graphics.generateTexture(textureKey, 64, 70);
+        graphics.destroy();
+    }
+
+    updatePatrolEnemyMovement() {
+        if (!this.enemies?.getChildren) return false;
+
+        this.enemies.getChildren().forEach(enemy => {
+            if (
+                enemy?.active === false ||
+                !enemy?.body ||
+                !Number.isFinite(enemy.patrolMin) ||
+                !Number.isFinite(enemy.patrolMax)
+            ) {
+                return;
+            }
+
+            const patrolSpeed = Math.max(
+                25,
+                Number(enemy.patrolSpeed) || Math.abs(enemy.body.velocity.x) || 42
+            );
+            if (enemy.x <= enemy.patrolMin && enemy.body.velocity.x <= 0) {
+                enemy.setVelocityX(patrolSpeed);
+                enemy.setFlipX(false);
+            } else if (
+                enemy.x >= enemy.patrolMax &&
+                enemy.body.velocity.x >= 0
+            ) {
+                enemy.setVelocityX(-patrolSpeed);
+                enemy.setFlipX(true);
+            }
+        });
+        return true;
+    }
+
     createEnemyCombatCue(enemy) {
         enemy?.combatCue?.destroy?.();
         if (!enemy || !this.add?.graphics) return null;
@@ -3600,6 +3728,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         this.updateEnemyCombatReadability();
+        this.updatePatrolEnemyMovement();
         this.refreshGuardianGateState();
 
         // Update player facing direction
@@ -4434,6 +4563,8 @@ class PlatformerLevelScene extends Phaser.Scene {
             enemy.graphics.destroy?.();
             enemy.graphics = null;
         }
+        enemy.instructionLabel?.destroy?.();
+        enemy.instructionLabel = null;
         enemy.combatCue?.destroy?.();
         enemy.combatCue = null;
         enemy.destroy();

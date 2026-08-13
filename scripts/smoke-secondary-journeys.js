@@ -455,7 +455,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         throw new Error(`${sceneName} rendered a blank-sized canvas`);
     }
     if (
-        ['mythicalForest', 'crystalCaves', 'reef', 'voidPeaks'].includes(route) &&
+        [
+            'mythicalForest',
+            'crystalCaves',
+            'reef',
+            'voidPeaks',
+            'auroraDepths',
+            'finalVoid'
+        ].includes(route) &&
         (
             state.enemyCount < 1 ||
             state.combatCueCount !== state.enemyCount
@@ -806,7 +813,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     }
 
     let combatFeedback = null;
-    if (route === 'mythicalForest') {
+    if (['mythicalForest', 'auroraDepths', 'finalVoid'].includes(route)) {
         combatFeedback = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const enemies = scene?.enemies?.getChildren?.().filter(
