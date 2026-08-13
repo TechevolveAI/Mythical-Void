@@ -450,6 +450,26 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.activateShield();');
     });
 
+    test('Forest canopy traversal earns a persistent one-hit guard', () => {
+        const source = read('levels/MythicalForestLevel.js');
+
+        expect(source).toContain("id: 'forest_canopy_run'");
+        expect(source).toContain("rewardLabel: 'CANOPY GUARD // 1 HIT'");
+        expect(source).toContain("optionalRouteId: 'forest_canopy_run'");
+        expect(source).toContain("this.grantOptionalRouteGuard('CANOPY GUARD', 1)");
+        expect(source).toContain("this.getOptionalRouteStatusText(");
+    });
+
+    test('Crystal secret slide earns a persistent one-hit ward', () => {
+        const source = read('levels/CrystalCavesLevel.js');
+
+        expect(source).toContain("id: 'caves_secret_slide'");
+        expect(source).toContain("rewardLabel: 'CRYSTAL WARD // 1 HIT'");
+        expect(source).toContain("shield.optionalRouteId = 'caves_secret_slide'");
+        expect(source).toContain("this.grantOptionalRouteGuard('CRYSTAL WARD', 1)");
+        expect(source).not.toContain('this.activateShield();');
+    });
+
     test('Final Void rewards the Trust Bridge with one reliable rescue', () => {
         const source = read('levels/FinalVoidLevel.js');
 

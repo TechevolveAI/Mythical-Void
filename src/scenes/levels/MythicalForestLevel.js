@@ -761,7 +761,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     getForestObjectiveText() {
-        const optional = `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optionalFallback =
+            `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optional = typeof this.getOptionalRouteStatusText === 'function'
+            ? this.getOptionalRouteStatusText('forest_canopy_run', optionalFallback)
+            : optionalFallback;
 
         if (this.bossDefeated) {
             return `CURRENT RESTORED\nTHE GUARDIAN IS SAFE\n${optional}`;
@@ -2615,6 +2619,24 @@ class MythicalForestLevel extends PlatformerLevelScene {
     placeCollectibles() {
         console.log('[MythicalForestLevel] Placing collectibles...');
 
+        const canopyRouteMarker = this.add.text(2820, this.levelHeight - 510, '', {
+            fontSize: '11px',
+            color: '#F2C94C',
+            fontStyle: 'bold',
+            stroke: '#071017',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(182);
+        this.registerOptionalRouteReward({
+            id: 'forest_canopy_run',
+            title: 'CANOPY RUN',
+            required: 2,
+            rewardLabel: 'CANOPY GUARD // 1 HIT',
+            marker: canopyRouteMarker,
+            returnLabel: 'DESCEND TO GUARDIAN APPROACH →',
+            onComplete: () => this.grantOptionalRouteGuard('CANOPY GUARD', 1)
+        });
+
         // === STAR FRAGMENTS: 5 hidden at challenging locations ===
         const starFragmentLocations = [
             // Fragment 1: Top of Tree 1 (tutorial, easy to reach)
@@ -2624,13 +2646,28 @@ class MythicalForestLevel extends PlatformerLevelScene {
             // Fragment 3: On the vine bridge between Trees 2-3
             { x: 1650, y: this.levelHeight - 450 - 20, hint: 'Vine bridge' },
             // Fragment 4: Very top of Tree 4 (the tallest tree)
-            { x: 3200, y: this.levelHeight - 100 - 800 - 30, hint: 'Tree 4 peak' },
+            {
+                x: 3200,
+                y: this.levelHeight - 100 - 800 - 30,
+                hint: 'Tree 4 peak',
+                optionalRouteId: 'forest_canopy_run'
+            },
             // Fragment 5: Secret location on collapsing bridge (must be quick!)
-            { x: 3650, y: this.levelHeight - 600 - 30, hint: 'Collapsing bridge' }
+            {
+                x: 3650,
+                y: this.levelHeight - 600 - 30,
+                hint: 'Collapsing bridge',
+                optionalRouteId: 'forest_canopy_run'
+            }
         ];
 
         starFragmentLocations.forEach((location, index) => {
-            this.createStarFragment(location.x, location.y, index);
+            this.createStarFragment(
+                location.x,
+                location.y,
+                index,
+                location.optionalRouteId
+            );
         });
 
         // === COINS: Scattered throughout the level ===
@@ -2679,7 +2716,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     /**
      * Create a Star Fragment collectible
      */
-    createStarFragment(x, y, index) {
+    createStarFragment(x, y, index, optionalRouteId = null) {
         // Create texture if not exists
         const textureKey = 'starFragment';
         if (!this.textures.exists(textureKey)) {
@@ -2731,6 +2768,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Create sprite
         const sprite = this.add.sprite(x, y, textureKey);
         sprite.setDepth(140);
+        sprite.optionalRouteId = optionalRouteId;
 
         // Floating animation
         this.tweens.add({
@@ -2777,6 +2815,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Create pickup zone
         const pickupZone = this.add.zone(x, y, 40, 40);
         this.physics.add.existing(pickupZone, true);
+        pickupZone.optionalRouteId = optionalRouteId;
 
         if (this.player) {
             this.physics.add.overlap(this.player, pickupZone, () => {
@@ -2784,7 +2823,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
             });
         }
 
-        this.starFragmentSprites.push({ sprite, pickupZone, collected: false });
+        this.starFragmentSprites.push({
+            sprite,
+            pickupZone,
+            collected: false,
+            optionalRouteId
+        });
     }
 
     /**
@@ -2797,6 +2841,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         fragmentData.collected = true;
         this.starFragmentsCollected++;
+        if (fragmentData.optionalRouteId) {
+            this.recordOptionalRouteProgress(fragmentData.optionalRouteId, {
+                x: sprite.x,
+                y: sprite.y
+            });
+        }
 
         // IMMEDIATELY disable the pickup zone to prevent duplicate collection
         if (zone.body) {

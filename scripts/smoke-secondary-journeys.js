@@ -1196,16 +1196,30 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         }
 
         const optionalRouteId = {
+            mythicalForest: 'forest_canopy_run',
+            crystalCaves: 'caves_secret_slide',
             reef: 'reef_star_trench',
             voidPeaks: 'peaks_relic_ridge'
         }[route];
         if (optionalRouteId) {
-            for (let optionalIndex = 0; optionalIndex < 2; optionalIndex += 1) {
+            const optionalRequired = {
+                mythicalForest: 2,
+                crystalCaves: 1,
+                reef: 2,
+                voidPeaks: 2
+            }[route];
+            for (
+                let optionalIndex = 0;
+                optionalIndex < optionalRequired;
+                optionalIndex += 1
+            ) {
                 const stagedOptional = await evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                    const collectibles = ${JSON.stringify(route)} === 'reef'
-                        ? scene?.starFragments || []
-                        : scene?.collectibles?.getChildren?.() || [];
+                    const collectibles = ${JSON.stringify(route)} === 'mythicalForest'
+                        ? (scene?.starFragmentSprites || []).map(entry => entry?.pickupZone)
+                        : (${JSON.stringify(route)} === 'reef'
+                            ? scene?.starFragments || []
+                            : scene?.collectibles?.getChildren?.() || []);
                     const item = collectibles.filter(
                         entry => entry?.active !== false &&
                             entry?.optionalRouteId === ${JSON.stringify(optionalRouteId)}
@@ -1245,9 +1259,13 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     required: reward?.required,
                     completed: reward?.completed === true,
                     marker: reward?.marker?.text || '',
-                    objective: ${JSON.stringify(route)} === 'reef'
-                        ? scene?.getReefObjectiveText?.() || ''
-                        : scene?.getPeakObjectiveText?.() || '',
+                    objective: ${JSON.stringify(route)} === 'mythicalForest'
+                        ? scene?.getForestObjectiveText?.() || ''
+                        : (${JSON.stringify(route)} === 'crystalCaves'
+                            ? scene?.getCrystalObjectiveText?.() || ''
+                            : (${JSON.stringify(route)} === 'reef'
+                                ? scene?.getReefObjectiveText?.() || ''
+                                : scene?.getPeakObjectiveText?.() || '')),
                     freeSpecialAttackCharges: scene?.freeSpecialAttackCharges,
                     optionalRouteGuardCharges: scene?.optionalRouteGuardCharges,
                     duplicateAccepted: scene?.recordOptionalRouteProgress?.(
@@ -1255,20 +1273,21 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     )
                 };
             })()`);
+            const expectedRewardText = {
+                mythicalForest: 'CANOPY GUARD // 1 HIT // EARNED',
+                crystalCaves: 'CRYSTAL WARD // 1 HIT // EARNED',
+                reef: 'FREE SUPER BLAST // EARNED',
+                voidPeaks: 'RIDGE GUARD // 1 HIT // EARNED'
+            }[route];
             const rewardGranted = route === 'reef'
-                ? optionalRouteCompletion.freeSpecialAttackCharges === 1 &&
-                    optionalRouteCompletion.objective.includes(
-                        'FREE SUPER BLAST // EARNED'
-                    )
-                : optionalRouteCompletion.optionalRouteGuardCharges === 1 &&
-                    optionalRouteCompletion.objective.includes(
-                        'RIDGE GUARD // 1 HIT // EARNED'
-                    );
+                ? optionalRouteCompletion.freeSpecialAttackCharges === 1
+                : optionalRouteCompletion.optionalRouteGuardCharges === 1;
             if (
-                optionalRouteCompletion.progress !== 2 ||
-                optionalRouteCompletion.required !== 2 ||
+                optionalRouteCompletion.progress !== optionalRequired ||
+                optionalRouteCompletion.required !== optionalRequired ||
                 optionalRouteCompletion.completed !== true ||
                 !optionalRouteCompletion.marker.includes('COMPLETE') ||
+                !optionalRouteCompletion.objective.includes(expectedRewardText) ||
                 optionalRouteCompletion.duplicateAccepted !== false ||
                 !rewardGranted
             ) {

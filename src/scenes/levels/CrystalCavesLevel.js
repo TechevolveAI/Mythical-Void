@@ -44,7 +44,7 @@ const CRYSTAL_SPIDER_ATTACK_PACING = Object.freeze({
  * Features:
  * - Dynamic lighting: Player glow + crystal proximity activation
  * - Crystal Spider miniboss: Mid-level challenge with web/pounce attacks
- * - Secret slide: Hidden path to Crystal Shield power-up (15s invincibility)
+ * - Secret slide: Hidden path to a Crystal Ward that blocks one future hit
  * - Boss arena: Crystal Pillars (cover), Stalactites (hazard), Power Well (energy regen)
  *
  * Objectives:
@@ -2322,7 +2322,25 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.createStarFragment(pos.x, pos.y);
         });
 
-        // Crystal Shield power-up (at end of secret slide - updated position)
+        const secretSlideMarker = this.add.text(1750, this.levelHeight - 625, '', {
+            fontSize: '11px',
+            color: '#F2C94C',
+            fontStyle: 'bold',
+            stroke: '#080510',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(182);
+        this.registerOptionalRouteReward({
+            id: 'caves_secret_slide',
+            title: 'SECRET SLIDE',
+            required: 1,
+            rewardLabel: 'CRYSTAL WARD // 1 HIT',
+            marker: secretSlideMarker,
+            returnLabel: 'CLIMB BACK TO THE CAVE ROUTE →',
+            onComplete: () => this.grantOptionalRouteGuard('CRYSTAL WARD', 1)
+        });
+
+        // Crystal Ward power-up at the end of the secret slide.
         this.createCrystalShield(1550, this.levelHeight - 440);
 
         // Hint crystal near slide entrance (extra bright to draw attention)
@@ -2392,6 +2410,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const shield = this.collectibles.create(x, y, textureKey);
         shield.body.setAllowGravity(false);
         shield.collectibleType = 'crystalShield';
+        shield.optionalRouteId = 'caves_secret_slide';
 
         // Pulsing glow animation
         this.tweens.add({
@@ -2611,11 +2630,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             }
 
         } else if (item.collectibleType === 'crystalShield') {
-            // Crystal Shield power-up!
-            console.log('[CrystalCavesLevel] Crystal Shield collected!');
-
-            // Activate shield in player (method from PlatformerLevelScene)
-            this.activateShield();
+            console.log('[CrystalCavesLevel] Crystal Ward collected!');
+            this.recordOptionalRouteProgress(item.optionalRouteId, {
+                x: item.x,
+                y: item.y
+            });
 
             // Major celebration effect
             if (window.FXLibrary) {
@@ -4650,7 +4669,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     getCrystalObjectiveText() {
-        const optional = `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optionalFallback =
+            `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optional = typeof this.getOptionalRouteStatusText === 'function'
+            ? this.getOptionalRouteStatusText('caves_secret_slide', optionalFallback)
+            : optionalFallback;
 
         if (this.bossDefeated) {
             return `CURRENT STABILIZED\nTHE GUARDIAN IS SAFE\n${optional}`;
