@@ -566,6 +566,165 @@ async function smokeVoidPeaksReturnCurrents(session) {
     return results;
 }
 
+async function smokeFinalVoidRiftCrossing(session) {
+    const supportIds = [
+        'final-rift-step-1',
+        'final-rift-step-2',
+        'final-rift-step-3',
+        'final-rift-step-4'
+    ];
+    const landings = [];
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+        scene.isInvincible = true;
+        scene.releaseAllPlatformerActionButtons?.();
+        scene.resetJoystick?.();
+        (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (enemy?.body) enemy.body.enable = false;
+        });
+        scene.player.body.reset(1600, scene.levelHeight - 110);
+        scene.player.setVelocity(0, 0);
+        return true;
+    })()`);
+
+    try {
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+                return Boolean(scene.player?.body?.blocked?.down || scene.isGrounded);
+            })()`),
+            { timeoutMs: 2500, message: 'Final Void rift crossing start' }
+        );
+
+        for (const supportId of supportIds) {
+            const shouldJump = supportId !== 'final-rift-step-4';
+            await setKeyboardKey(session, 'keyDown', {
+                key: 'd', code: 'KeyD', keyCode: 68
+            });
+            let launch = null;
+            if (shouldJump) {
+                await delay(90);
+                await setKeyboardKey(session, 'keyDown', {
+                    key: ' ', code: 'Space', keyCode: 32
+                });
+                try {
+                    launch = await waitFor(
+                        () => evaluate(session, `(() => {
+                            const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+                            const velocityY = Number(scene.player?.body?.velocity?.y);
+                            return velocityY < -20 ? {
+                                playerX: Math.round(scene.player.x),
+                                playerY: Math.round(scene.player.y),
+                                velocityY: Math.round(velocityY)
+                            } : null;
+                        })()`),
+                        { timeoutMs: 800, message: `${supportId} jump launch` }
+                    );
+                } finally {
+                    await setKeyboardKey(session, 'keyUp', {
+                        key: ' ', code: 'Space', keyCode: 32
+                    });
+                }
+            }
+            await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+                    const support = scene.platforms.getChildren().find(
+                        item => item.traversalId === ${JSON.stringify(supportId)}
+                    );
+                    if (!support?.body || !scene.player?.body) return null;
+                    return scene.player.body.center.x >= support.body.left + 28
+                        ? {
+                            playerX: Math.round(scene.player.x),
+                            targetLeft: Math.round(support.body.left)
+                        }
+                        : null;
+                })()`),
+                { timeoutMs: 1900, message: `${supportId} approach` }
+            );
+            await setKeyboardKey(session, 'keyUp', {
+                key: 'd', code: 'KeyD', keyCode: 68
+            });
+            let landing;
+            try {
+                landing = await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+                        const support = scene.platforms.getChildren().find(
+                            item => item.traversalId === ${JSON.stringify(supportId)}
+                        );
+                        const body = scene.player?.body;
+                        if (!support?.body || !body) return null;
+                        const onSupport = body.right > support.body.left + 5 &&
+                            body.left < support.body.right - 5 &&
+                            Math.abs(body.bottom - support.body.top) <= 7 &&
+                            (body.blocked.down || scene.isGrounded);
+                        return onSupport ? {
+                            supportId: support.traversalId,
+                            playerX: Math.round(scene.player.x),
+                            playerBottom: Math.round(body.bottom),
+                            supportTop: Math.round(support.body.top)
+                        } : null;
+                    })()`),
+                    { timeoutMs: 2400, message: `${supportId} grounded landing` }
+                );
+            } catch (error) {
+                const diagnostics = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+                    const body = scene.player?.body;
+                    return {
+                        player: body ? {
+                            x: Math.round(scene.player.x),
+                            y: Math.round(scene.player.y),
+                            left: Math.round(body.left),
+                            right: Math.round(body.right),
+                            bottom: Math.round(body.bottom),
+                            velocityX: Math.round(body.velocity.x),
+                            velocityY: Math.round(body.velocity.y),
+                            blockedDown: body.blocked.down,
+                            grounded: scene.isGrounded
+                        } : null,
+                        supports: scene.platforms.getChildren()
+                            .filter(item => item?.body && body && (
+                                body.right > item.body.left - 60 &&
+                                body.left < item.body.right + 60
+                            ))
+                            .map(item => ({
+                                id: item.traversalId || null,
+                                left: Math.round(item.body.left),
+                                right: Math.round(item.body.right),
+                                top: Math.round(item.body.top)
+                            }))
+                    };
+                })()`);
+                throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+            }
+            landings.push({ launch, landing });
+            await delay(90);
+        }
+    } finally {
+        await setKeyboardKey(session, 'keyUp', {
+            key: ' ', code: 'Space', keyCode: 32
+        });
+        await setKeyboardKey(session, 'keyUp', {
+            key: 'd', code: 'KeyD', keyCode: 68
+        });
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+            (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+                if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
+            });
+            scene.isInvincible = false;
+            scene.player.body.reset(600, scene.levelHeight - 110);
+            scene.player.setVelocity(0, 0);
+            return true;
+        })()`);
+    }
+
+    return landings;
+}
+
 async function smokeLevel(session, route, sceneName, exceptions) {
     exceptions.length = 0;
     trace('navigate', { route, sceneName });
@@ -1502,6 +1661,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let outOfOrderGuard = null;
     let optionalRouteCompletion = null;
     let guardianRecovery = null;
+    let finalRiftCrossing = null;
     if ([
         'mythicalForest',
         'crystalCaves',
@@ -1891,14 +2051,28 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                         entry => entry?.active !== false &&
                             entry?.optionalRouteId === ${JSON.stringify(optionalRouteId)}
                     )[0];
-                    if (!scene?.player || !item) return null;
+                    if (!scene?.player || !item) {
+                        const reward = scene?.optionalRouteRewards?.get?.(
+                            ${JSON.stringify(optionalRouteId)}
+                        );
+                        return {
+                            missing: true,
+                            progress: reward?.progress,
+                            completed: reward?.completed,
+                            pickupExists: Boolean(scene?.optionalRoutePickup),
+                            pickupActive: scene?.optionalRoutePickup?.active,
+                            bondReserveReady: scene?.bondReserveReady,
+                            selectedPath: reward?.choice?.selectedPath
+                        };
+                    }
                     scene.player.setPosition(item.x, item.y);
                     scene.player.setVelocity?.(0, 0);
                     return { x: item.x, y: item.y };
                 })()`);
-                if (!stagedOptional) {
+                if (!stagedOptional || stagedOptional.missing) {
                     throw new Error(
-                        `${sceneName} could not stage optional reward ${optionalIndex + 1}`
+                        `${sceneName} could not stage optional reward ${optionalIndex + 1}: ` +
+                        JSON.stringify(stagedOptional)
                     );
                 }
                 await waitFor(
@@ -2197,6 +2371,10 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             }
         }
 
+        if (route === 'finalVoid') {
+            finalRiftCrossing = await smokeFinalVoidRiftCrossing(session);
+        }
+
         const guardianEntrySetup = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const gate = scene?.guardianGateState;
@@ -2482,6 +2660,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
         joystick: { movedRight, movedLeft, vertical: verticalJoystick },
         returnCurrents,
+        finalRiftCrossing,
         combatFeedback,
         liveStomp,
         routeChoice,
@@ -2519,9 +2698,14 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             return scene.auditTraversalTopology();
         })()`);
+        const finalVoidFlowFailed = route === 'finalVoid' && (
+            Number(audit?.flow?.requiredJumpCount) < 4 ||
+            audit?.flow?.comfortPassed !== true
+        );
         if (
             !audit?.passed ||
             audit?.flow?.strandingSupportCount !== 0 ||
+            finalVoidFlowFailed ||
             exceptions.length
         ) {
             const supportGeometry = await evaluate(session, `(() => {
@@ -2538,6 +2722,7 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             throw new Error(
                 `${sceneName} failed conservative topology audit: ${JSON.stringify({
                     audit,
+                    finalVoidFlowFailed,
                     exceptions,
                     supportGeometry
                 })}`

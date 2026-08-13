@@ -725,11 +725,20 @@ describe('campaign traversal quality contracts', () => {
     test('Final Void rewards the Trust Bridge with one reliable rescue', () => {
         const source = read('levels/FinalVoidLevel.js');
 
+        expect(source).toContain('const groundIslands = [');
+        expect(source).toContain('const mainRiftRoute = [');
         expect(source).toContain('const trustBridgeRoute = [');
-        expect(source).toContain("mainLabel: 'VOID FRACTURE →'");
-        expect(source).toContain("mainTradeoff: 'DIRECT // DAMAGE RIFTS'");
+        expect(source).toContain("'final-rift-step-1'");
+        expect(source).toContain("'final-rift-step-4'");
+        expect(source).toContain("mainLabel: 'LOW RIFT CROSSING →'");
+        expect(source).toContain("mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE'");
         expect(source).toContain(
-            "challengeLabel: 'HIGH JUMPS + BOND RESERVE'"
+            "challengeLabel: 'HIGH CLIMB // EARN 1 RESCUE'"
+        );
+        expect(source).toContain("{ x: 930, width: 120, label: 'JUMP THE RIFT →' }");
+        expect(source).toContain("{ x: 1720, width: 490, label: 'CHOOSE YOUR CROSSING' }");
+        expect(source).not.toContain(
+            "this.createPlatform(0, groundY, this.levelWidth, 80, 'solid');"
         );
         expect(source).toContain("id: 'final_trust_bridge'");
         expect(source).toContain("rewardLabel: 'BOND RESERVE // 1 RESCUE'");
@@ -782,9 +791,9 @@ describe('campaign traversal quality contracts', () => {
         [
             'levels/FinalVoidLevel.js',
             "id: 'final_trust_bridge'",
-            "mainLabel: 'VOID FRACTURE →'",
-            "mainTradeoff: 'DIRECT // DAMAGE RIFTS'",
-            "challengeLabel: 'HIGH JUMPS + BOND RESERVE'"
+            "mainLabel: 'LOW RIFT CROSSING →'",
+            "mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE'",
+            "challengeLabel: 'HIGH CLIMB // EARN 1 RESCUE'"
         ]
     ])('%s declares a readable two-path choice', (
         relativePath,
@@ -1248,6 +1257,12 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('smokeVoidPeaksReturnCurrents(session)');
         expect(smoke).toContain("id: 'peak-return-lower'");
         expect(smoke).toContain("id: 'peak-return-summit'");
+        expect(smoke).toContain("route === 'finalVoid'");
+        expect(smoke).toContain('Number(audit?.flow?.requiredJumpCount) < 4');
+        expect(smoke).toContain('audit?.flow?.comfortPassed !== true');
+        expect(smoke).toContain('smokeFinalVoidRiftCrossing(session)');
+        expect(smoke).toContain("'final-rift-step-1'");
+        expect(smoke).toContain("'final-rift-step-4'");
 
         expect(smoke).toContain('for (let signalIndex = 1; signalIndex < 3; signalIndex += 1)');
         expect(smoke).toContain("mythicalForest: 'forestRouteAligned'");

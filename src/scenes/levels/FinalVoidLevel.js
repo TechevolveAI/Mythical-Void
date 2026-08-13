@@ -441,27 +441,45 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.platforms = this.physics.add.staticGroup();
 
         const groundY = this.levelHeight - 50;
-        this.createPlatform(0, groundY, this.levelWidth, 80, 'solid');
+        const groundIslands = [
+            [0, 930, 'final-ground-arrival'],
+            [1050, 670, 'final-ground-return'],
+            [2210, 790, 'final-ground-empress']
+        ];
+        groundIslands.forEach(([x, width, id]) => {
+            const platform = this.createPlatform(x, groundY, width, 80, 'solid');
+            platform.traversalId = id;
+        });
 
         const ledges = [
             [240, groundY - 160, 300],
             [680, groundY - 285, 260],
             [1080, groundY - 190, 300],
-            [1510, groundY - 340, 270],
-            [1990, groundY - 100, 240],
-            [2240, groundY - 150, 220],
+            [1320, groundY - 250, 220],
             [2370, groundY - 320, 260]
         ];
 
-        // The Trust Bridge is a bounded high route over the second fracture.
-        // It rejoins at the third anchor and never replaces the forward spine.
+        // The low route requires readable, forgiving jumps over the fracture.
+        // The Trust Bridge remains the harder high route and earns a rescue.
+        const mainRiftRoute = [
+            [1650, groundY - 130, 130, 'final-rift-step-1'],
+            [1850, groundY - 240, 190, 'final-rift-step-2'],
+            [2070, groundY - 210, 150, 'final-rift-step-3'],
+            [2240, groundY - 150, 200, 'final-rift-step-4']
+        ];
         const trustBridgeRoute = [
-            [1790, groundY - 420, 220],
-            [2050, groundY - 330, 220]
+            [1790, groundY - 420, 220, 'final-trust-bridge-1'],
+            [2170, groundY - 450, 200, 'final-trust-bridge-2']
         ];
 
-        [...ledges, ...trustBridgeRoute].forEach(([x, y, width]) => {
-            this.createPlatform(x, y, width, 28, 'one-way');
+        [...ledges, ...mainRiftRoute, ...trustBridgeRoute].forEach(([
+            x,
+            y,
+            width,
+            id = null
+        ]) => {
+            const platform = this.createPlatform(x, y, width, 28, 'one-way');
+            if (id) platform.traversalId = id;
         });
 
         console.log(`[FinalVoidLevel] Created ${this.platforms.getLength()} platforms`);
@@ -502,12 +520,12 @@ class FinalVoidLevel extends PlatformerLevelScene {
         route.beginPath();
         route.moveTo(1660, groundY - 350);
         route.lineTo(1900, groundY - 430);
-        route.lineTo(2160, groundY - 340);
-        route.lineTo(2310, groundY - 220);
+        route.lineTo(2270, groundY - 460);
+        route.lineTo(2400, groundY - 220);
         route.strokePath();
         route.lineStyle(2, 0xA9F3E4, 0.72);
         route.strokeCircle(1900, groundY - 430, 17);
-        route.strokeCircle(2160, groundY - 340, 12);
+        route.strokeCircle(2270, groundY - 460, 12);
 
         this.tweens.add({
             targets: route,
@@ -535,23 +553,23 @@ class FinalVoidLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setDepth(182);
         this.registerOptionalRouteReward({
             id: 'final_trust_bridge',
-            title: 'TRUST BRIDGE HIGH ROUTE',
+            title: 'TRUST BRIDGE',
             required: 1,
             rewardLabel: 'BOND RESERVE // 1 RESCUE',
             marker: trustBridgeMarker,
             returnLabel: 'DESCEND TO TRUST SIGNAL →',
             choice: {
-                mainLabel: 'VOID FRACTURE →',
-                mainTradeoff: 'DIRECT // DAMAGE RIFTS',
-                challengeLabel: 'HIGH JUMPS + BOND RESERVE',
+                mainLabel: 'LOW RIFT CROSSING →',
+                mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE',
+                challengeLabel: 'HIGH CLIMB // EARN 1 RESCUE',
                 mainMarker: fractureRouteMarker,
                 mainZone: {
                     left: 1600, right: 2250,
-                    top: groundY - 220, bottom: this.levelHeight
+                    top: 400, bottom: this.levelHeight
                 },
                 optionalZone: {
-                    left: 1600, right: 2250,
-                    top: 180, bottom: groundY - 220
+                    left: 1600, right: 1820,
+                    top: 240, bottom: 360
                 },
                 rejoinZone: {
                     left: 2250, right: 2600,
@@ -757,11 +775,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
     createVoidFractures() {
         const fractures = [
-            { x: 930, width: 180 },
-            { x: 1780, width: 190 }
+            { x: 930, width: 120, label: 'JUMP THE RIFT →' },
+            { x: 1720, width: 490, label: 'CHOOSE YOUR CROSSING' }
         ];
 
-        fractures.forEach(({ x, width }) => {
+        fractures.forEach(({ x, width, label: labelText }) => {
             const y = this.levelHeight - 88;
             const zone = this.add.zone(x + width / 2, y, width, 76);
             this.physics.add.existing(zone, true);
@@ -774,6 +792,20 @@ class FinalVoidLevel extends PlatformerLevelScene {
             visual.lineBetween(x + width * 0.35, y + 12, x + width * 0.65, y - 14);
             visual.lineBetween(x + width * 0.65, y - 14, x + width - 10, y + 8);
             visual.setDepth(115);
+
+            const label = this.add.text(
+                x + width / 2,
+                y - 86,
+                labelText,
+                {
+                    fontSize: '11px',
+                    color: '#E6D6F0',
+                    fontStyle: 'bold',
+                    stroke: '#09020E',
+                    strokeThickness: 4,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(182);
 
             this.tweens.add({
                 targets: visual,
@@ -788,7 +820,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
                     this.takeDamage(1);
                 }
             });
-            this.voidFractures.push({ zone, visual });
+            this.voidFractures.push({ zone, visual, label });
         });
     }
 
@@ -796,7 +828,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const anchors = [
             { id: 'final_bond_1', x: 600, y: 600, label: 'LIVING SYSTEMS' },
             { id: 'final_bond_2', x: 1420, y: 470, label: 'RETURN ROUTE' },
-            { id: 'final_bond_3', x: 2200, y: 560, label: 'TRUST SIGNAL' }
+            { id: 'final_bond_3', x: 2350, y: 560, label: 'TRUST SIGNAL' }
         ];
 
         anchors.forEach((anchor, index) => {
@@ -3062,6 +3094,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.voidFractures.forEach(fracture => {
             fracture.zone?.destroy?.();
             fracture.visual?.destroy?.();
+            fracture.label?.destroy?.();
         });
         this.voidFractures = [];
 
