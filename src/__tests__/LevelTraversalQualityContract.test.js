@@ -510,9 +510,29 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('if (!grounded || !inLaunchBand) return false;');
         expect(source).toContain('if (now - current.lastLiftAt < 650) return false;');
         expect(source).toContain('calculateBallisticLaunchVelocity({');
-        expect(source).toContain('rise: current.bottom - current.top + 80');
-        expect(source).toContain('this.player.setVelocityY(launchVelocity)');
+        expect(source).toContain('rise: current.bottom - current.top - 20');
+        expect(source).toContain('this.player.setVelocityY(Math.max(launchVelocity, -470))');
+        expect(source).toContain('this.activePeakReturnCurrent = {');
+        expect(source).toContain('updatePeakReturnCurrentGuidance()');
+        expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(active.destinationId)');
+        expect(source).toContain('this.player.setVelocityX(correction)');
+        expect(source).toContain("phase: 'lift'");
+        expect(source).toContain("active.phase = 'settle'");
+        expect(source).toContain('if (this.isPlayerDead || this.isRespawning)');
         expect(source).toContain('platform.traversalId = id;');
+        expect(source).toContain("arrivalGround.traversalId = 'peak-ground-arrival'");
+        expect(source).toContain("lowerRelayGround.traversalId = 'peak-ground-lower-relay'");
+        expect(source).toContain("titanGround.traversalId = 'peak-ground-titan-pass'");
+        expect(source).toContain("'peak-lower-relay-overlook'");
+        expect(source).toContain("'peak-summit-relay'");
+        expect(source).toContain("'peak-relic-ridge-1'");
+        expect(source).toContain("'peak-relic-ridge-4'");
+        expect(source).toContain("gate.traversalId = 'peak-titan-gate'");
+        expect(source).toContain("mainSupportIds: [");
+        expect(source).toContain("optionalSupportIds: ['peak-relic-ridge-1']");
+        expect(source).toContain("rejoinSupportIds: ['peak-summit-relay']");
+        expect(source).toContain("this.createTraversalLandingGuide(\n                    relay.activationSupportIds[0]");
+        expect(source).toContain("checkpoint: this.getTraversalSupportCheckpoint(");
     });
 
     test('optional route progress grants its reward exactly once and retires the marker', () => {
@@ -1364,6 +1384,12 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("target.id === 'crystal_core'");
         expect(smoke).toContain("'caves-core-refuge'");
         expect(smoke).toContain('cavesFlowFailed');
+        expect(smoke).toContain('peaksFlowFailed');
+        expect(smoke).toContain("target.id === 'peaks_relay_1'");
+        expect(smoke).toContain("'peak-lower-relay-overlook'");
+        expect(smoke).toContain("'peak-warning-lower'");
+        expect(smoke).toContain("'peak-summit-relay'");
+        expect(smoke).toContain("'peak-titan-gate'");
         expect(smoke).toContain("id: 'peak-return-lower'");
         expect(smoke).toContain("id: 'peak-return-summit'");
         expect(smoke).toContain('current.lastLiftAt = Number.NEGATIVE_INFINITY;');
