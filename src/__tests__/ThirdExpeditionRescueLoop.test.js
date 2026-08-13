@@ -59,6 +59,42 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain('reefAmplified: true');
     });
 
+    test('makes the Star Trench return current visible, narrow, and mechanically honest', () => {
+        const source = readLevel();
+
+        expect(source).toContain("const id = 'reef-star-trench-return';");
+        expect(source).toContain('const startX = 2460;');
+        expect(source).toContain('const width = 260;');
+        expect(source).toContain('const top = 540;');
+        expect(source).toContain('visual.fillRoundedRect(startX, top, width, currentHeight, 28);');
+        expect(source).toContain("'STAR TRENCH RETURN ↑'");
+        expect(source).toContain("destinationId: 'reef-drive-step'");
+        expect(source).toContain('this.abyssAscentCurrent = current;');
+        expect(source).toContain(
+            'this.player.body.top < destination.body.top'
+        );
+        expect(source).not.toContain('const width = 1000;');
+        expect(source).not.toContain(
+            'visual.fillRect(startX, this.levelHeight - 210, width, 210);'
+        );
+    });
+
+    test('gives every Reef support a stable identity and a one-way current landing', () => {
+        const source = readLevel();
+
+        expect(source).toContain("id: 'reef-opening-1'");
+        expect(source).toContain("id: 'reef-trench-3'");
+        expect(source).toContain("traversalLinks: ['reef-drive-step']");
+        expect(source).toContain("id: 'reef-drive-step'");
+        expect(source).toContain('oneWay: true');
+        expect(source).toContain("id: 'reef-guardian-arena'");
+        expect(source).toContain("activationSupportIds: ['reef-trench-3']");
+        expect(source).toContain('body.traversalId = id;');
+        expect(source).toContain('body.traversalLinks = [...traversalLinks];');
+        expect(source).toContain("body.platformType = oneWay ? 'one-way' : 'solid';");
+        expect(source).toContain('body.body.checkCollision.down = false;');
+    });
+
     test('requires both the aligned route and the actual Drive pickup before the boss', () => {
         const source = readLevel();
         const trigger = source.match(

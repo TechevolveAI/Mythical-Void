@@ -467,10 +467,14 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain("title: 'STAR TRENCH'");
         expect(source).toContain("rewardLabel: 'FREE SUPER BLAST'");
-        expect(source).toContain("returnLabel: 'ASCENT CURRENT ↑ // SIGNAL ROUTE →'");
+        expect(source).toContain("returnLabel: 'STAR TRENCH RETURN ↑ // SIGNAL ROUTE →'");
         expect(source).toContain('this.freeSpecialAttackCharges += 1;');
         expect(source).toContain('createAbyssAscentCurrent()');
         expect(source).toContain('this.player.setVelocityY(Math.min(this.player.body.velocity.y, -185))');
+        expect(source).toContain("id: 'reef_star_trench'");
+        expect(source).toContain('optional: true');
+        expect(source).toContain("activationSupportIds: ['reef-trench-3']");
+        expect(source).toContain("destinationId: 'reef-drive-step'");
         expect(source).toContain(
             "{ x: 1750, y: this.levelHeight - 225, optionalRouteId: 'reef_star_trench' }"
         );
@@ -1293,6 +1297,10 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('audit?.flow?.strandingSupportCount !== 0');
         expect(smoke).toContain('smokeVoidPeaksReturnCurrents(session)');
         expect(smoke).toContain('smokeCrystalCoreLift(session)');
+        expect(smoke).toContain('smokeReefAscentCurrent(session)');
+        expect(smoke).toContain("'reef-drive-step'");
+        expect(smoke).toContain("target.id === 'reef_star_trench'");
+        expect(smoke).toContain('reefFlowFailed');
         expect(smoke).toContain("target.id === 'crystal_core'");
         expect(smoke).toContain("'caves-core-refuge'");
         expect(smoke).toContain('cavesFlowFailed');
