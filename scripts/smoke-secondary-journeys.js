@@ -2450,6 +2450,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let finalGroundedObjectives = null;
     let cavesGroundedObjectives = null;
     const reefWaypointSupports = [];
+    const forestAnchorSupports = [];
     let forestForwardHandoffs = null;
     if ([
         'mythicalForest',
@@ -2575,6 +2576,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         }
 
         const staged = [
+            'mythicalForest',
             'crystalCaves',
             'reef',
             'auroraDepths',
@@ -2606,6 +2608,15 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         }
         if (route === 'reef') {
             reefWaypointSupports.push({
+                index: staged.firstSignalIndex,
+                supportId: staged.supportId,
+                checkpointX: staged.checkpointX,
+                checkpointY: staged.checkpointY,
+                supportTop: staged.supportTop
+            });
+        }
+        if (route === 'mythicalForest') {
+            forestAnchorSupports.push({
                 index: staged.firstSignalIndex,
                 supportId: staged.supportId,
                 checkpointX: staged.checkpointX,
@@ -2656,6 +2667,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
 
         for (let signalIndex = 1; signalIndex < 3; signalIndex += 1) {
             const stagedSignal = [
+                'mythicalForest',
                 'crystalCaves',
                 'reef',
                 'auroraDepths',
@@ -2683,6 +2695,15 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             }
             if (route === 'reef') {
                 reefWaypointSupports.push({
+                    index: stagedSignal.index,
+                    supportId: stagedSignal.supportId,
+                    checkpointX: stagedSignal.checkpointX,
+                    checkpointY: stagedSignal.checkpointY,
+                    supportTop: stagedSignal.supportTop
+                });
+            }
+            if (route === 'mythicalForest') {
+                forestAnchorSupports.push({
                     index: stagedSignal.index,
                     supportId: stagedSignal.supportId,
                     checkpointX: stagedSignal.checkpointX,
@@ -2798,6 +2819,26 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             throw new Error(
                 `${sceneName} did not bind its route to distinct Reef relays: ` +
                 JSON.stringify(reefWaypointSupports)
+            );
+        }
+        if (
+            route === 'mythicalForest' &&
+            (
+                forestAnchorSupports.length !== 3 ||
+                forestAnchorSupports[0]?.supportId !== 'forest-ground-3' ||
+                forestAnchorSupports[1]?.supportId !== 'forest-ground-5' ||
+                forestAnchorSupports[2]?.supportId !== 'forest-ground-6' ||
+                forestAnchorSupports.some(anchor =>
+                    !Number.isFinite(anchor.checkpointX) ||
+                    !Number.isFinite(anchor.checkpointY) ||
+                    anchor.checkpointY >= anchor.supportTop ||
+                    anchor.checkpointY < anchor.supportTop - 100
+                )
+            )
+        ) {
+            throw new Error(
+                `${sceneName} did not bind its route to Forest ground supports: ` +
+                JSON.stringify(forestAnchorSupports)
             );
         }
 
@@ -3659,6 +3700,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         finalGroundedObjectives,
         cavesGroundedObjectives,
         reefWaypointSupports,
+        forestAnchorSupports,
         renderStability,
         combatFeedback,
         liveStomp,
@@ -3751,7 +3793,17 @@ async function smokeTraversalTopology(session, levels, exceptions) {
         );
         const forestFlowFailed = route === 'mythicalForest' && (
             audit?.flow?.comfortPassed !== true ||
-            (audit?.flow?.uncomfortableTargetIds || []).length > 0
+            (audit?.flow?.uncomfortableTargetIds || []).length > 0 ||
+            Number(audit?.flow?.backtrackDistance) !== 0 ||
+            audit?.flow?.routeTargets?.find(
+                target => target.id === 'forest_anchor_1'
+            )?.pathSupportIds?.at?.(-1) !== 'forest-ground-3' ||
+            audit?.flow?.routeTargets?.find(
+                target => target.id === 'forest_anchor_2'
+            )?.pathSupportIds?.at?.(-1) !== 'forest-ground-5' ||
+            audit?.flow?.routeTargets?.find(
+                target => target.id === 'forest_anchor_3'
+            )?.pathSupportIds?.at?.(-1) !== 'forest-ground-6'
         );
         const crystalCoreFlow = audit?.flow?.targets?.find(
             target => target.id === 'crystal_core'
@@ -3875,13 +3927,15 @@ async function stagePlatformBoundRouteSignal(session, {
 }) {
     const staged = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-        const signal = ${JSON.stringify(route)} === 'auroraDepths'
-            ? scene?.signalPrisms?.[${index}]
-            : (${JSON.stringify(route)} === 'voidPeaks'
+        const signal = ${JSON.stringify(route)} === 'mythicalForest'
+            ? scene?.checkpointAnchors?.[${index}]
+            : (${JSON.stringify(route)} === 'auroraDepths'
+                ? scene?.signalPrisms?.[${index}]
+                : (${JSON.stringify(route)} === 'voidPeaks'
                 ? scene?.beaconRelays?.[${index}]
                 : (${JSON.stringify(route)} === 'finalVoid'
                     ? scene?.bondAnchors?.[${index}]
-                    : scene?.beaconAnchors?.[${index}]));
+                    : scene?.beaconAnchors?.[${index}])));
         const support = scene?.getTraversalSupport?.(
             signal?.activationSupportIds?.[0]
         );
@@ -3906,13 +3960,15 @@ async function stagePlatformBoundRouteSignal(session, {
     return waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-            const signal = ${JSON.stringify(route)} === 'auroraDepths'
-                ? scene?.signalPrisms?.[${index}]
-                : (${JSON.stringify(route)} === 'voidPeaks'
+            const signal = ${JSON.stringify(route)} === 'mythicalForest'
+                ? scene?.checkpointAnchors?.[${index}]
+                : (${JSON.stringify(route)} === 'auroraDepths'
+                    ? scene?.signalPrisms?.[${index}]
+                    : (${JSON.stringify(route)} === 'voidPeaks'
                     ? scene?.beaconRelays?.[${index}]
                     : (${JSON.stringify(route)} === 'finalVoid'
                         ? scene?.bondAnchors?.[${index}]
-                        : scene?.beaconAnchors?.[${index}]));
+                        : scene?.beaconAnchors?.[${index}])));
             const support = scene?.getTraversalSupport?.(
                 signal?.activationSupportIds?.[0]
             );

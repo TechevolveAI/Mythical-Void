@@ -1331,17 +1331,40 @@ class MythicalForestLevel extends PlatformerLevelScene {
     createBeaconCheckpoints() {
         const groundY = this.levelHeight - 100;
         const anchors = [
-            { id: 'forest_anchor_1', x: 1770, label: 'ROOTWAY' },
-            { id: 'forest_anchor_2', x: 3570, label: 'CROWN PATH' },
-            { id: 'forest_anchor_3', x: 5300, label: 'GUARDIAN APPROACH' }
+            {
+                id: 'forest_anchor_1',
+                x: 1770,
+                label: 'ROOTWAY',
+                activationSupportIds: ['forest-ground-3']
+            },
+            {
+                id: 'forest_anchor_2',
+                x: 3570,
+                label: 'CROWN PATH',
+                activationSupportIds: ['forest-ground-5']
+            },
+            {
+                id: 'forest_anchor_3',
+                x: 5300,
+                label: 'GUARDIAN APPROACH',
+                activationSupportIds: ['forest-ground-6']
+            }
         ];
 
         anchors.forEach((anchor, index) => {
+            const supportId = anchor.activationSupportIds[0];
+            const support = this.getTraversalSupport(supportId);
+            const supportCheckpoint = this.getTraversalSupportCheckpoint(
+                supportId,
+                anchor.x
+            );
+            const anchorX = supportCheckpoint.x;
+            const supportY = support?.body?.top || groundY;
             const visual = this.add.graphics();
             visual.setDepth(85);
-            this.drawBeaconCheckpoint(visual, anchor.x, groundY, false);
+            this.drawBeaconCheckpoint(visual, anchorX, supportY, false);
 
-            const label = this.add.text(anchor.x, groundY - 118, anchor.label, {
+            const label = this.add.text(anchorX, supportY - 118, anchor.label, {
                 fontSize: '11px',
                 color: '#7F9CA2',
                 fontStyle: 'bold',
@@ -1350,20 +1373,27 @@ class MythicalForestLevel extends PlatformerLevelScene {
             }).setOrigin(0.5).setDepth(86);
 
             const zone = this.createObjectiveTriggerZone(
-                anchor.x,
-                groundY - 62,
+                anchorX,
+                supportY - 62,
                 { width: 150, height: 280 }
             );
 
             const checkpoint = {
                 ...anchor,
+                x: anchorX,
                 index,
-                y: groundY - 62,
+                y: supportY - 62,
+                supportY,
                 visual,
                 label,
                 zone,
+                landingGuide: this.createTraversalLandingGuide(
+                    supportId,
+                    0x8FE3CF,
+                    { depth: 84 }
+                ),
                 activated: false,
-                respawnY: this.levelHeight - 200
+                respawnY: supportCheckpoint.y
             };
 
             this.physics.add.overlap(this.player, zone, () => {
@@ -1429,11 +1459,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.drawBeaconCheckpoint(
             checkpoint.visual,
             checkpoint.x,
-            this.levelHeight - 100,
+            checkpoint.supportY,
             true
         );
+        this.retireTraversalLandingGuide(checkpoint);
         this.refreshForestRouteReadability();
-        this.setCheckpoint(checkpoint.x, checkpoint.respawnY, {
+        const supportCheckpoint = this.getTraversalSupportCheckpoint(
+            checkpoint.activationSupportIds[0],
+            checkpoint.x
+        );
+        checkpoint.respawnY = supportCheckpoint.y;
+        this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {
             persist: true,
             checkpointId: checkpoint.id,
             checkpointIndex: checkpoint.index
@@ -1499,12 +1535,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
             signals: this.checkpointAnchors,
             countProperty: 'beaconAnchorsActivated',
             readyProperty: 'forestRouteAligned',
-            drawSignal: checkpoint => this.drawBeaconCheckpoint(
-                checkpoint.visual,
-                checkpoint.x,
-                this.levelHeight - 100,
-                true
-            ),
+            drawSignal: checkpoint => {
+                this.drawBeaconCheckpoint(
+                    checkpoint.visual,
+                    checkpoint.x,
+                    checkpoint.supportY,
+                    true
+                );
+                this.retireTraversalLandingGuide(checkpoint);
+            },
             onRestored: () => {
                 this.refreshForestRouteReadability();
                 this.objectiveDisplay?.setText?.(this.getForestObjectiveText());

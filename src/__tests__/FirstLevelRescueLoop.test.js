@@ -396,8 +396,17 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain("id: 'forest_anchor_1'");
         expect(source).toContain("id: 'forest_anchor_2'");
         expect(source).toContain("id: 'forest_anchor_3'");
+        expect(source).toContain('x: 1770');
+        expect(source).toContain('x: 3570');
+        expect(source).toContain('x: 5300');
+        expect(source).toContain("activationSupportIds: ['forest-ground-3']");
+        expect(source).toContain("activationSupportIds: ['forest-ground-5']");
+        expect(source).toContain("activationSupportIds: ['forest-ground-6']");
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain('this.createTraversalLandingGuide(');
+        expect(source).toContain('this.retireTraversalLandingGuide(checkpoint);');
         expect(source).toContain(
-            'this.setCheckpoint(checkpoint.x, checkpoint.respawnY, {'
+            'this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {'
         );
         expect(source).toContain('checkpointId: checkpoint.id');
         expect(source).toContain('PROJECT BEACON ANCHOR ${anchorNumber}/3');
