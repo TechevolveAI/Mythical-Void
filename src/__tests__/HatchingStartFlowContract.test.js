@@ -47,6 +47,7 @@ describe('Hatching home start flow', () => {
         expect(smoke).toContain('SMOKE_VIEWPORT_HEIGHT');
         expect(smoke).toContain("SMOKE_CASE === 'wide-touch'");
         expect(smoke).toContain('continuous Start control recovery');
+        expect(smoke).toContain('initial Start recovery window to close');
         expect(smoke).toContain('.setPosition(-500, -500)');
         expect(source).toContain('this.nextHomeStartHealthCheck = time + 500;');
         expect(releaseSmoke).toContain("smokeCase: 'phone'");

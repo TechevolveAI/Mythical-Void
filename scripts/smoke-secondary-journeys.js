@@ -1775,6 +1775,18 @@ async function smokeHomeStart(session, exceptions) {
 
     let recovery = null;
     if (SMOKE_CASE === 'wide-touch') {
+        // The original home screen only ran one recovery check at 900 ms. Wait
+        // for that Phaser timer itself to finish, then prove the ongoing health
+        // check can repair a later failure like the production incident.
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const timer = window.mythicalGame?.scene
+                    ?.getScene('HatchingScene')?.homeStartRecoveryTimer;
+                return Boolean(timer?.hasDispatched || timer?.getProgress?.() >= 1);
+            })()`),
+            { timeoutMs: 5000, message: 'initial Start recovery window to close' }
+        );
+        await delay(300);
         await evaluate(session, `(() => {
             const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
             scene.startButton
