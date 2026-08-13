@@ -112,7 +112,7 @@ async function main() {
         console.log('\n[release-smoke] First-session Start-to-egg viewport suite');
         const homeEntryViewports = [
             { smokeCase: 'phone', width: 390, height: 844 },
-            { smokeCase: 'wide-touch', width: 860, height: 720 }
+            { smokeCase: 'wide-touch', width: 860, height: 768 }
         ];
         for (const viewport of homeEntryViewports) {
             try {

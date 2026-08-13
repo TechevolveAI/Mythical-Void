@@ -1966,6 +1966,9 @@ async function smokeHomeStart(session, exceptions) {
             const button = scene?.startButton;
             if (!button?.active || !button?.input?.enabled) return null;
             const bounds = button.getBounds();
+            const nativeButton = document.querySelector('[data-mythical-home-start="true"]');
+            const nativeBounds = nativeButton?.getBoundingClientRect();
+            const nativeStyle = nativeButton ? getComputedStyle(nativeButton) : null;
             return {
                 x: Math.round(bounds.centerX),
                 y: Math.round(bounds.centerY),
@@ -1976,7 +1979,16 @@ async function smokeHomeStart(session, exceptions) {
                 alpha: button.alpha,
                 visible: button.visible,
                 canvasWidth: scene.scale.width,
-                canvasHeight: scene.scale.height
+                canvasHeight: scene.scale.height,
+                native: nativeBounds ? {
+                    left: nativeBounds.left,
+                    right: nativeBounds.right,
+                    top: nativeBounds.top,
+                    bottom: nativeBounds.bottom,
+                    visible: nativeStyle?.display !== 'none' &&
+                        nativeStyle?.visibility !== 'hidden' &&
+                        Number(nativeStyle?.opacity || 1) > 0
+                } : null
             };
         })()`),
         { timeoutMs: 12000, message: 'visible Project Beacon Start control' }
@@ -1991,23 +2003,23 @@ async function smokeHomeStart(session, exceptions) {
     ) {
         throw new Error(`Home Start control is outside the viewport: ${JSON.stringify(start)}`);
     }
+    if (
+        !start.native?.visible ||
+        start.native.left < 0 ||
+        start.native.top < 0 ||
+        start.native.right > start.canvasWidth ||
+        start.native.bottom > start.canvasHeight
+    ) {
+        throw new Error(`Native Home Start fallback is unavailable: ${JSON.stringify(start)}`);
+    }
 
     let recovery = null;
     if (SMOKE_CASE === 'wide-touch') {
-        // The original home screen only ran one recovery check at 900 ms. Wait
-        // for that Phaser timer itself to finish, then prove the ongoing health
-        // check can repair a later failure like the production incident.
-        await waitFor(
-            () => evaluate(session, `(() => {
-                const timer = window.mythicalGame?.scene
-                    ?.getScene('HatchingScene')?.homeStartRecoveryTimer;
-                return Boolean(timer?.hasDispatched || timer?.getProgress?.() >= 1);
-            })()`),
-            { timeoutMs: 5000, message: 'initial Start recovery window to close' }
-        );
-        await delay(300);
+        // Disable the Phaser control and prove the independent native action
+        // still gets the player to the live egg.
         await evaluate(session, `(() => {
             const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
+            scene.nextHomeStartHealthCheck = Number.POSITIVE_INFINITY;
             scene.startButton
                 .setPosition(-500, -500)
                 .setAlpha(0)
@@ -2016,20 +2028,23 @@ async function smokeHomeStart(session, exceptions) {
         })()`);
         recovery = await waitFor(
             () => evaluate(session, `(() => {
-                const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
-                const button = scene?.startButton;
-                if (!button?.active || !button.visible || button.alpha < 0.8 || !button.input?.enabled) {
-                    return null;
-                }
-                const bounds = button.getBounds();
-                return {
-                    x: Math.round(bounds.centerX),
-                    y: Math.round(bounds.centerY),
-                    alpha: button.alpha,
-                    inputEnabled: true
-                };
-            })()`),
-            { timeoutMs: 3000, message: 'continuous Start control recovery' }
+            const button = document.querySelector('[data-mythical-home-start="true"]');
+            const bounds = button?.getBoundingClientRect();
+            const style = button ? getComputedStyle(button) : null;
+            if (
+                !button ||
+                !bounds ||
+                style?.display === 'none' ||
+                style?.visibility === 'hidden' ||
+                Number(style?.opacity || 1) <= 0
+            ) return null;
+            return {
+                x: Math.round(bounds.left + (bounds.width / 2)),
+                y: Math.round(bounds.top + (bounds.height / 2)),
+                visible: true
+            };
+        })()`),
+            { timeoutMs: 3000, message: 'native Start fallback after canvas failure' }
         );
     }
 

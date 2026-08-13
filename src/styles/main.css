@@ -74,6 +74,47 @@ body.game-mode {
   touch-action: none;
 }
 
+/* Native first-session action: the route into the game must not depend on a
+   WebGL draw or Phaser receiving both halves of a mobile pointer gesture. */
+.home-start-fallback {
+  position: fixed;
+  z-index: 2147480000;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  width: min(85vw, 340px);
+  min-height: max(58px, 8dvh);
+  max-height: 95px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 18px;
+  color: #ffffff;
+  background: linear-gradient(180deg, #ff8a3d 0%, #d94e25 100%);
+  border: 3px solid #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 0 0 7px rgba(255, 107, 53, 0.24), 0 8px 24px rgba(0, 0, 0, 0.45);
+  font: 900 clamp(18px, 2.8vw, 28px)/1.05 'Poppins', 'Inter', system-ui, sans-serif;
+  letter-spacing: 0;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-start-fallback span {
+  font-size: 1.25em;
+}
+
+.home-start-fallback:active {
+  transform: translate(-50%, -50%) scale(0.96);
+}
+
+.home-start-fallback:focus-visible {
+  outline: 3px solid #8fe3cf;
+  outline-offset: 4px;
+}
+
 /* Utility classes */
 .glass-panel {
   background-color: rgba(255, 255, 255, 0.1);

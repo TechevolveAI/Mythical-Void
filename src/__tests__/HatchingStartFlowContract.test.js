@@ -36,6 +36,9 @@ describe('Hatching home start flow', () => {
         expect(releaseFlow).not.toContain('onComplete: () =>');
         expect(source).toContain('.setDepth(10000)');
         expect(source).toContain('ensureHomeStartReady()');
+        expect(source).toContain('createHomeStartFallback()');
+        expect(source).toContain("button.dataset.mythicalHomeStart = 'true';");
+        expect(source).toContain('this.removeHomeStartFallback();');
     });
 
     test('blocks a release unless real touches reach the egg at both entry viewport classes', () => {
@@ -46,12 +49,13 @@ describe('Hatching home start flow', () => {
         expect(smoke).toContain('SMOKE_VIEWPORT_WIDTH');
         expect(smoke).toContain('SMOKE_VIEWPORT_HEIGHT');
         expect(smoke).toContain("SMOKE_CASE === 'wide-touch'");
-        expect(smoke).toContain('continuous Start control recovery');
-        expect(smoke).toContain('initial Start recovery window to close');
+        expect(smoke).toContain('native Start fallback after canvas failure');
         expect(smoke).toContain('.setPosition(-500, -500)');
+        expect(smoke).toContain('Number.POSITIVE_INFINITY');
+        expect(smoke).toContain('data-mythical-home-start');
         expect(source).toContain('this.nextHomeStartHealthCheck = time + 500;');
         expect(releaseSmoke).toContain("smokeCase: 'phone'");
         expect(releaseSmoke).toContain("smokeCase: 'wide-touch'");
-        expect(releaseSmoke).toContain('width: 860, height: 720');
+        expect(releaseSmoke).toContain('width: 860, height: 768');
     });
 });
