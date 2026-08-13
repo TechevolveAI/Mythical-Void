@@ -1679,6 +1679,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         const optionalZone = normalizeZone(choice.optionalZone);
         const rejoinZone = normalizeZone(choice.rejoinZone);
         if (!mainZone || !optionalZone || !rejoinZone) return null;
+        const normalizeSupportIds = ids => Array.isArray(ids)
+            ? [...new Set(ids.filter(id => typeof id === 'string' && id))]
+            : [];
 
         return {
             mainLabel: String(choice.mainLabel || 'MAIN ROUTE'),
@@ -1688,6 +1691,9 @@ class PlatformerLevelScene extends Phaser.Scene {
             mainZone,
             optionalZone,
             rejoinZone,
+            mainSupportIds: normalizeSupportIds(choice.mainSupportIds),
+            optionalSupportIds: normalizeSupportIds(choice.optionalSupportIds),
+            rejoinSupportIds: normalizeSupportIds(choice.rejoinSupportIds),
             selectedPath: null,
             mainEntered: false,
             optionalEntered: false,
@@ -1708,6 +1714,38 @@ class PlatformerLevelScene extends Phaser.Scene {
             y >= zone.top &&
             y <= zone.bottom
         );
+    }
+
+    getTraversalSupport(id) {
+        return this.platforms?.getChildren?.().find(
+            platform => platform?.traversalId === id
+        ) || null;
+    }
+
+    isPlayerGroundedOnTraversalSupport(ids) {
+        const allowedIds = Array.isArray(ids) ? ids : [ids];
+        if (allowedIds.length === 0) return true;
+
+        const body = this.player?.body;
+        if (!body || body.velocity?.y < -1) return false;
+        if (!(body.blocked?.down || body.touching?.down || this.isGrounded)) {
+            return false;
+        }
+
+        return allowedIds.some(id => {
+            const support = this.getTraversalSupport(id);
+            return Boolean(
+                support?.body &&
+                body.right > support.body.left + 5 &&
+                body.left < support.body.right - 5 &&
+                Math.abs(body.bottom - support.body.top) <= 9
+            );
+        });
+    }
+
+    isPlayerCommittedToRouteChoice(zone, supportIds = []) {
+        return this.isPlayerInsideRouteChoiceZone(zone) &&
+            this.isPlayerGroundedOnTraversalSupport(supportIds);
     }
 
     recordRouteChoiceEntry(route, path) {
@@ -1751,15 +1789,24 @@ class PlatformerLevelScene extends Phaser.Scene {
             const choice = route?.choice;
             if (!choice || choice.rejoined) return;
 
-            if (this.isPlayerInsideRouteChoiceZone(choice.optionalZone)) {
+            if (this.isPlayerCommittedToRouteChoice(
+                choice.optionalZone,
+                choice.optionalSupportIds
+            )) {
                 changed = this.recordRouteChoiceEntry(route, 'optional') || changed;
-            } else if (this.isPlayerInsideRouteChoiceZone(choice.mainZone)) {
+            } else if (this.isPlayerCommittedToRouteChoice(
+                choice.mainZone,
+                choice.mainSupportIds
+            )) {
                 changed = this.recordRouteChoiceEntry(route, 'main') || changed;
             }
 
             if (
                 choice.optionalEntered &&
-                this.isPlayerInsideRouteChoiceZone(choice.rejoinZone)
+                this.isPlayerCommittedToRouteChoice(
+                    choice.rejoinZone,
+                    choice.rejoinSupportIds
+                )
             ) {
                 choice.rejoined = true;
                 this.showFloatingText?.(
@@ -1822,7 +1869,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (!route || route.completed) return false;
 
         const choice = route.choice;
-        if (choice && !choice.selectedPath && this.isPlayerInsideRouteChoiceZone(choice.optionalZone)) {
+        if (
+            choice &&
+            !choice.selectedPath &&
+            this.isPlayerCommittedToRouteChoice(
+                choice.optionalZone,
+                choice.optionalSupportIds
+            )
+        ) {
             this.recordRouteChoiceEntry(route, 'optional');
         }
         if (choice && choice.selectedPath !== 'optional') {

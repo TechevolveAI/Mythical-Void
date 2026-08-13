@@ -2059,10 +2059,19 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
             const zone = routeState?.choice?.optionalZone;
             if (!scene?.player || !zone) return false;
-            scene.player.setPosition(
-                (zone.left + zone.right) / 2,
-                (zone.top + zone.bottom) / 2
-            );
+            if (${JSON.stringify(route)} === 'auroraDepths') {
+                const support = scene.getTraversalSupport?.('aurora-quiet-step-1');
+                if (!support?.body || !scene.player?.body) return false;
+                scene.player.body.reset(
+                    support.x,
+                    support.body.top - scene.player.body.height - 18
+                );
+            } else {
+                scene.player.setPosition(
+                    (zone.left + zone.right) / 2,
+                    (zone.top + zone.bottom) / 2
+                );
+            }
             scene.player.setVelocity?.(0, 0);
             return true;
         })()`);
@@ -2090,10 +2099,19 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
             const zone = routeState?.choice?.rejoinZone;
             if (!scene?.player || !zone) return false;
-            scene.player.setPosition(
-                (zone.left + zone.right) / 2,
-                (zone.top + zone.bottom) / 2
-            );
+            if (${JSON.stringify(route)} === 'auroraDepths') {
+                const support = scene.getTraversalSupport?.('aurora-sky-prism');
+                if (!support?.body || !scene.player?.body) return false;
+                scene.player.body.reset(
+                    support.x,
+                    support.body.top - scene.player.body.height - 18
+                );
+            } else {
+                scene.player.setPosition(
+                    (zone.left + zone.right) / 2,
+                    (zone.top + zone.bottom) / 2
+                );
+            }
             scene.player.setVelocity?.(0, 0);
             return true;
         })()`);
@@ -2216,6 +2234,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let crystalCoreLift = null;
     let finalRiftCrossing = null;
     let auroraQuietLightClimb = null;
+    let auroraGroundedObjectives = null;
     let forestForwardHandoffs = null;
     if ([
         'mythicalForest',
@@ -2262,19 +2281,49 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
         }
 
-        const staged = await evaluate(session, `(() => {
-            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-            const firstSignal = scene?.getNextOrderedRouteSignal?.();
-            if (!scene?.player || !firstSignal) return null;
-            scene.isInvincible = true;
-            scene.player.setPosition(firstSignal.x, firstSignal.y);
-            scene.player.setVelocity?.(0, 0);
-            return {
-                firstSignalIndex: firstSignal.index,
-                x: firstSignal.x,
-                y: firstSignal.y
-            };
-        })()`);
+        if (route === 'auroraDepths') {
+            const airborneRejected = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+                const prism = scene?.signalPrisms?.[0];
+                if (!scene?.player?.body || !prism?.zone?.active) return null;
+                scene.routeHintUntil = 0;
+                scene.player.body.reset(prism.x, prism.y - 35);
+                scene.player.setVelocity?.(0, -120);
+                return new Promise(resolve => {
+                    scene.time.delayedCall(180, () => resolve({
+                        aligned: prism.aligned === true,
+                        checkpointPresent: Boolean(scene.checkpointPosition),
+                        hintShown: Number(scene.routeHintUntil) > Number(scene.time.now)
+                    }));
+                });
+            })()`);
+            if (
+                airborneRejected?.aligned !== false ||
+                airborneRejected.checkpointPresent !== false ||
+                airborneRejected.hintShown !== true
+            ) {
+                throw new Error(
+                    `Aurora accepted an airborne prism overlap: ${JSON.stringify(airborneRejected)}`
+                );
+            }
+            auroraGroundedObjectives = { airborneRejected };
+        }
+
+        const staged = route === 'auroraDepths'
+            ? await stageAuroraPrism(session, 0)
+            : await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const firstSignal = scene?.getNextOrderedRouteSignal?.();
+                if (!scene?.player || !firstSignal) return null;
+                scene.isInvincible = true;
+                scene.player.setPosition(firstSignal.x, firstSignal.y);
+                scene.player.setVelocity?.(0, 0);
+                return {
+                    firstSignalIndex: firstSignal.index,
+                    x: firstSignal.x,
+                    y: firstSignal.y
+                };
+            })()`);
         if (staged?.firstSignalIndex !== 0) {
             throw new Error(
                 `${sceneName} could not stage its first route signal: ${JSON.stringify(staged)}`
@@ -2322,14 +2371,16 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         }
 
         for (let signalIndex = 1; signalIndex < 3; signalIndex += 1) {
-            const stagedSignal = await evaluate(session, `(() => {
-                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                const signal = scene?.getNextOrderedRouteSignal?.();
-                if (!scene?.player || signal?.index !== ${signalIndex}) return null;
-                scene.player.setPosition(signal.x, signal.y);
-                scene.player.setVelocity?.(0, 0);
-                return { index: signal.index, x: signal.x, y: signal.y };
-            })()`);
+            const stagedSignal = route === 'auroraDepths'
+                ? await stageAuroraPrism(session, signalIndex)
+                : await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    const signal = scene?.getNextOrderedRouteSignal?.();
+                    if (!scene?.player || signal?.index !== ${signalIndex}) return null;
+                    scene.player.setPosition(signal.x, signal.y);
+                    scene.player.setVelocity?.(0, 0);
+                    return { index: signal.index, x: signal.x, y: signal.y };
+                })()`);
             if (stagedSignal?.index !== signalIndex) {
                 throw new Error(
                     `${sceneName} could not stage route signal ${signalIndex + 1}: ` +
@@ -2624,7 +2675,20 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                             selectedPath: reward?.choice?.selectedPath
                         };
                     }
-                    scene.player.setPosition(item.x, item.y);
+                    if (${JSON.stringify(route)} === 'auroraDepths') {
+                        const support = scene.getTraversalSupport?.(
+                            'aurora-quiet-step-3'
+                        );
+                        if (!support?.body || !scene.player?.body) {
+                            return { missing: true, supportMissing: true };
+                        }
+                        scene.player.body.reset(
+                            item.x,
+                            support.body.top - scene.player.body.height - 18
+                        );
+                    } else {
+                        scene.player.setPosition(item.x, item.y);
+                    }
                     scene.player.setVelocity?.(0, 0);
                     return { x: item.x, y: item.y };
                 })()`);
@@ -2947,11 +3011,24 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             const persisted = window.GameState?.get?.(
                 'story.projectBeacon.expeditionCheckpoint'
             );
-            scene.player.setPosition(gate.x, gate.y);
-            scene.player.setVelocity?.(0, 0);
+            if (${JSON.stringify(route)} === 'auroraDepths') {
+                const support = scene.getTraversalSupport?.('aurora-phoenix-gate');
+                if (!support?.body || !scene.player?.body) return null;
+                scene.player.body.reset(
+                    gate.x,
+                    support.body.top - scene.player.body.height - 18
+                );
+                scene.player.setVelocity?.(0, 0);
+            } else {
+                scene.player.setPosition(gate.x, gate.y);
+                scene.player.setVelocity?.(0, 0);
+            }
             return {
                 persistedId: persisted?.checkpointId || null,
-                persistedIndex: persisted?.checkpointIndex ?? null
+                persistedIndex: persisted?.checkpointIndex ?? null,
+                stagedSupportId: ${JSON.stringify(route)} === 'auroraDepths'
+                    ? 'aurora-phoenix-gate'
+                    : null
             };
         })()`);
         if (!guardianEntrySetup) {
@@ -3230,6 +3307,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         auroraQuietLightClimb,
         forestForwardHandoffs,
         crystalCoreLift,
+        auroraGroundedObjectives,
         renderStability,
         combatFeedback,
         liveStomp,
@@ -3273,9 +3351,23 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             audit?.flow?.comfortPassed !== true
         );
         const auroraFlowFailed = route === 'auroraDepths' && (
+            Number(audit?.flow?.requiredJumpCount) < 7 ||
             Number(audit?.flow?.backtrackDistance) !== 0 ||
+            audit?.flow?.comfortPassed !== true ||
             audit?.flow?.optionalComfortPassed !== true ||
-            (audit?.flow?.uncomfortableOptionalTargetIds || []).length > 0
+            (audit?.flow?.uncomfortableOptionalTargetIds || []).length > 0 ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'aurora_prism_1'
+            )?.pathSupportIds?.at?.(-1) !== 'aurora-lower-prism' ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'aurora_prism_2'
+            )?.pathSupportIds?.at?.(-1) !== 'aurora-heart-launch' ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'aurora_prism_3'
+            )?.pathSupportIds?.at?.(-1) !== 'aurora-sky-prism' ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'aurora_reactor_gate'
+            )?.pathSupportIds?.at?.(-1) !== 'aurora-phoenix-gate'
         );
         const forestFlowFailed = route === 'mythicalForest' && (
             audit?.flow?.comfortPassed !== true ||
@@ -3374,20 +3466,52 @@ async function stageAuroraPrism(session, index) {
     const staged = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
         const prism = scene?.signalPrisms?.[${index}];
-        if (!scene?.player || !prism?.zone?.active) return null;
-        scene.player.setPosition(prism.x, prism.y - 35);
+        const support = scene?.getTraversalSupport?.(
+            prism?.activationSupportIds?.[0]
+        );
+        if (!scene?.player?.body || !prism?.zone?.active || !support?.body) {
+            return null;
+        }
+        scene.player.body.reset(
+            prism.x,
+            support.body.top - scene.player.body.height - 18
+        );
         scene.player.setVelocity?.(0, 0);
-        return { id: prism.id, index: prism.index };
+        return {
+            id: prism.id,
+            index: prism.index,
+            supportId: support.traversalId,
+            supportTop: support.body.top
+        };
     })()`);
     if (!staged) throw new Error(`Aurora prism ${index + 1} could not be staged`);
     return waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
             const prism = scene?.signalPrisms?.[${index}];
-            return prism?.aligned === true &&
-                scene?.checkpointPosition?.index === ${index};
+            const support = scene?.getTraversalSupport?.(
+                prism?.activationSupportIds?.[0]
+            );
+            const body = scene?.player?.body;
+            const checkpoint = scene?.checkpointPosition;
+            const groundedCheckpoint = prism?.aligned === true &&
+                checkpoint?.index === ${index} &&
+                support?.body && body &&
+                checkpoint.x >= support.body.left &&
+                checkpoint.x <= support.body.right &&
+                checkpoint.y < support.body.top &&
+                checkpoint.y >= support.body.top - 100;
+            return groundedCheckpoint ? {
+                id: prism.id,
+                index: prism.index,
+                firstSignalIndex: prism.index,
+                supportId: support.traversalId,
+                checkpointX: checkpoint.x,
+                checkpointY: checkpoint.y,
+                supportTop: support.body.top
+            } : null;
         })()`),
-        { timeoutMs: 2500, message: `Aurora prism ${index + 1} collision` }
+        { timeoutMs: 2500, message: `Aurora prism ${index + 1} grounded landing` }
     );
 }
 
@@ -3420,9 +3544,11 @@ async function smokeAuroraRouteJourney(session, exceptions) {
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
         const choice = scene.optionalRouteRewards.get('aurora_quiet_light').choice;
-        scene.player.setPosition(
-            (choice.mainZone.left + choice.mainZone.right) / 2,
-            (choice.mainZone.top + choice.mainZone.bottom) / 2
+        const support = scene.getTraversalSupport?.('aurora-ground-3');
+        if (!scene.player?.body || !support?.body || !choice) return false;
+        scene.player.body.reset(
+            Math.max(support.body.left + 40, choice.mainZone.left + 40),
+            support.body.top - scene.player.body.height - 18
         );
         scene.player.setVelocity?.(0, 0);
         return true;
@@ -3547,10 +3673,11 @@ async function smokeAuroraRouteJourney(session, exceptions) {
     await stageAuroraPrism(session, 1);
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
-        const choice = scene.optionalRouteRewards.get('aurora_quiet_light').choice;
-        scene.player.setPosition(
-            (choice.optionalZone.left + choice.optionalZone.right) / 2,
-            (choice.optionalZone.top + choice.optionalZone.bottom) / 2
+        const support = scene.getTraversalSupport?.('aurora-quiet-step-1');
+        if (!scene.player?.body || !support?.body) return false;
+        scene.player.body.reset(
+            support.x,
+            support.body.top - scene.player.body.height - 18
         );
         scene.player.setVelocity?.(0, 0);
         return true;
@@ -3565,7 +3692,12 @@ async function smokeAuroraRouteJourney(session, exceptions) {
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
         const pickup = scene.optionalRoutePickup;
-        scene.player.setPosition(pickup.x, pickup.y);
+        const support = scene.getTraversalSupport?.('aurora-quiet-step-3');
+        if (!scene.player?.body || !pickup?.active || !support?.body) return false;
+        scene.player.body.reset(
+            pickup.x,
+            support.body.top - scene.player.body.height - 18
+        );
         scene.player.setVelocity?.(0, 0);
         return true;
     })()`);

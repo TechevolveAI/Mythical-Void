@@ -35,6 +35,12 @@ describe('fifth expedition rescue loop', () => {
 
         expect(source).toContain('const ledges = [');
         expect(source).toContain("this.createPlatform(x, y, width, 28, 'one-way')");
+        expect(source).toContain("[0, 810, 'aurora-ground-1']");
+        expect(source).toContain("[3410, 1590, 'aurora-ground-4']");
+        expect(source).toContain("'aurora-lower-prism'");
+        expect(source).toContain("'aurora-heart-launch'");
+        expect(source).toContain("'aurora-sky-prism'");
+        expect(source).toContain("'aurora-phoenix-gate'");
         expect(source).toContain('this.createShadowCurrents()');
         expect(source).toContain('{ x: 810, width: 150 }');
         expect(source).toContain('{ x: 2020, width: 170 }');
@@ -51,9 +57,15 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain(
             'this.createObjectiveTriggerZone(\n                prism.x,\n                prism.y - 35,\n                { width: 160, height: 210 }'
         );
-        expect(source).toContain(
-            'this.setCheckpoint(prism.x, this.levelHeight - 130, {'
-        );
+        expect(source).toContain('activationSupportIds: [\'aurora-lower-prism\']');
+        expect(source).toContain('activationSupportIds: [\'aurora-heart-launch\']');
+        expect(source).toContain('activationSupportIds: [\'aurora-sky-prism\']');
+        expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain("mainSupportIds: ['aurora-ground-3']");
+        expect(source).toContain("optionalSupportIds: ['aurora-quiet-step-1']");
+        expect(source).toContain('rejoinSupportIds: [');
+        expect(source).toContain('LAND ON THE LIT PLATFORM');
         expect(source).toContain('const companionName = this.getCompanionName()');
         expect(source).toContain('Project Beacon can reach Earth from here.');
         expect(source).toContain('If Earth hears this, anyone can. Help me turn it down.');
