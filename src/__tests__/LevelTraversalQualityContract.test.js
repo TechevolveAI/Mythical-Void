@@ -235,6 +235,39 @@ describe('campaign traversal quality contracts', () => {
         expect(source).not.toContain('const fallThreshold = this.levelHeight + 200');
     });
 
+    test('runtime platform traversal identifies reachable and disconnected targets', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({
+            key: 'TraversalGraphTest',
+            movement: {
+                gravityY: 500,
+                playerSpeed: 200,
+                jumpVelocity: -450
+            }
+        });
+        scene.levelHeight = 800;
+        scene.player = { x: 100, body: { bottom: 750 } };
+        scene.platforms = {
+            getChildren: () => [
+                { body: { left: 0, right: 400, top: 750, bottom: 830 } },
+                { body: { left: 520, right: 700, top: 620, bottom: 648 } },
+                { body: { left: 1200, right: 1400, top: 400, bottom: 428 } }
+            ]
+        };
+
+        const audit = scene.getPlatformTraversalAudit({
+            targets: [
+                { id: 'reachable_signal', x: 600, y: 620 },
+                { id: 'disconnected_gate', x: 1300, y: 400 }
+            ]
+        });
+
+        expect(audit.platformCount).toBe(3);
+        expect(audit.reachablePlatformCount).toBe(2);
+        expect(audit.targets[0].reachable).toBe(true);
+        expect(audit.unreachableTargets).toEqual(['disconnected_gate']);
+    });
+
     test.each([
         'levels/MythicalForestLevel.js',
         'levels/CrystalCavesLevel.js',

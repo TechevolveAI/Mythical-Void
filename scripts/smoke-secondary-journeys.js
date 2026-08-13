@@ -524,6 +524,44 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
         }
     }
+    const traversalAudit = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        const signals = scene?.orderedRouteSignals || [];
+        const optionalCandidates = [
+            ...(scene?.starFragmentSprites || []).map(entry => entry?.pickupZone),
+            ...(scene?.starFragments || []),
+            ...(scene?.collectibles?.getChildren?.() || []),
+            scene?.optionalRoutePickup
+        ].filter(item => item?.active !== false && item?.optionalRouteId);
+        const targets = signals.map(signal => ({
+            id: \`signal_\${Number(signal?.index) + 1}\`,
+            x: signal?.x,
+            y: signal?.y
+        }));
+        optionalCandidates.forEach((item, index) => targets.push({
+            id: \`optional_reward_\${index + 1}\`,
+            x: item.x,
+            y: item.y
+        }));
+        if (scene?.guardianGateState) {
+            targets.push({
+                id: 'guardian_entrance',
+                x: scene.guardianGateState.x,
+                y: scene.guardianGateState.y
+            });
+        }
+        return scene?.getPlatformTraversalAudit?.({ targets }) || null;
+    })()`);
+    if (
+        !traversalAudit ||
+        traversalAudit.platformCount < 1 ||
+        traversalAudit.startPlatformIndex === null ||
+        traversalAudit.unreachableTargets?.length
+    ) {
+        throw new Error(
+            `${sceneName} has unreachable campaign targets: ${JSON.stringify(traversalAudit)}`
+        );
+    }
     trace('live gameplay verified', state);
     if (SMOKE_TRACE) {
         const heartbeatBefore = await evaluate(session, `(() => {
@@ -1357,6 +1395,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     return {
         ...state,
         guardianGate,
+        traversalAudit,
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
         joystick: { movedRight, movedLeft },
         combatFeedback,

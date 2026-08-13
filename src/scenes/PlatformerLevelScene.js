@@ -1248,6 +1248,94 @@ class PlatformerLevelScene extends Phaser.Scene {
         return zone;
     }
 
+    getPlatformTraversalAudit({ targets = [] } = {}) {
+        const nodes = (this.platforms?.getChildren?.() || [])
+            .filter(platform => platform?.active !== false && platform?.body)
+            .map((platform, index) => ({
+                index,
+                left: Number(platform.body.left),
+                right: Number(platform.body.right),
+                top: Number(platform.body.top),
+                bottom: Number(platform.body.bottom)
+            }))
+            .filter(node => [node.left, node.right, node.top, node.bottom]
+                .every(Number.isFinite));
+        const horizontalGap = (from, to) => {
+            if (to.left > from.right) return to.left - from.right;
+            if (from.left > to.right) return from.left - to.right;
+            return 0;
+        };
+        const distanceToSpan = (x, node) => {
+            if (x < node.left) return node.left - x;
+            if (x > node.right) return x - node.right;
+            return 0;
+        };
+        const nearestNode = point => nodes.reduce((best, node) => {
+            const score = distanceToSpan(point.x, node) * 3 +
+                Math.abs(node.top - point.y);
+            return !best || score < best.score ? { node, score } : best;
+        }, null)?.node || null;
+
+        const gravity = Math.max(1, Number(this.gravityY) || 500);
+        const jumpSpeed = Math.abs(Number(this.jumpVelocity) || 420);
+        const runSpeed = Math.max(1, Number(this.playerSpeed) || 180);
+        const maximumRise = (jumpSpeed * jumpSpeed) / (2 * gravity);
+        const canTraverse = (from, to) => {
+            if (from.index === to.index) return true;
+            const verticalDisplacement = to.top - from.top;
+            if (verticalDisplacement < -maximumRise * 0.92) return false;
+
+            const discriminant = jumpSpeed * jumpSpeed +
+                2 * gravity * verticalDisplacement;
+            if (discriminant < 0) return false;
+
+            const flightTime = (
+                jumpSpeed + Math.sqrt(discriminant)
+            ) / gravity;
+            const reachableRun = runSpeed * flightTime * 0.82 + 24;
+            return horizontalGap(from, to) <= reachableRun;
+        };
+        const spawnPoint = {
+            x: Number(this.player?.x) || 200,
+            y: Number(this.player?.body?.bottom) || this.levelHeight - 50
+        };
+        const startNode = nearestNode(spawnPoint);
+        const reachable = new Set(startNode ? [startNode.index] : []);
+        const queue = startNode ? [startNode] : [];
+        while (queue.length) {
+            const from = queue.shift();
+            nodes.forEach(to => {
+                if (reachable.has(to.index) || !canTraverse(from, to)) return;
+                reachable.add(to.index);
+                queue.push(to);
+            });
+        }
+
+        const targetResults = targets.map((target, index) => {
+            const point = {
+                id: String(target?.id || `target_${index}`),
+                x: Number(target?.x),
+                y: Number(target?.y)
+            };
+            const support = nearestNode(point);
+            return {
+                ...point,
+                supportIndex: support?.index ?? null,
+                reachable: support ? reachable.has(support.index) : false
+            };
+        });
+        return {
+            platformCount: nodes.length,
+            reachablePlatformCount: reachable.size,
+            startPlatformIndex: startNode?.index ?? null,
+            maximumRise: Math.round(maximumRise),
+            targets: targetResults,
+            unreachableTargets: targetResults
+                .filter(target => !target.reachable)
+                .map(target => target.id)
+        };
+    }
+
     createGuardianGateState({
         x,
         y,
