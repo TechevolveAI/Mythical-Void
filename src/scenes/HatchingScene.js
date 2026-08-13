@@ -4671,7 +4671,10 @@ class HatchingScene extends Phaser.Scene {
 
         // Delayed restart to ensure save completes
         this.time.delayedCall(100, () => {
-            if (!this.scene?.sys?.isActive()) {
+            // `this.scene` is Phaser's ScenePlugin; lifecycle state belongs to
+            // the Scene Systems object. Checking `this.scene.sys` always fails
+            // and previously left the home screen with its CTA faded out.
+            if (!this.sys?.isActive()) {
                 this.startFlowQueued = false;
                 this.isStartingGame = false;
                 return;

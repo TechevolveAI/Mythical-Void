@@ -85,6 +85,16 @@ async function main() {
             throw new Error(`Vite exited before smoke execution: ${JSON.stringify(viteExit)}`);
         }
 
+        const failures = [];
+        console.log('\n[release-smoke] First-session Start-to-egg suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'home-entry'
+            });
+        } catch (error) {
+            failures.push(`home-entry: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] Genuine interaction suite');
         const interactionCases = [
             'egg',
@@ -95,7 +105,6 @@ async function main() {
             'auroraDepths',
             'finalVoid'
         ];
-        const failures = [];
         for (const smokeCase of interactionCases) {
             console.log(`[release-smoke] Interaction case: ${smokeCase}`);
             try {
