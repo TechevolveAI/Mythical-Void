@@ -115,12 +115,17 @@ describe('playable level combat contracts', () => {
 
     test('Reef warns before lunges and makes phased immunity physical', () => {
         const source = readLevel('ReefLevel.js');
+        const platformerSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
+            'utf8'
+        );
 
         expect(source.match(/this\.telegraphEnemyAttack\(/g)).toHaveLength(2);
         expect(source).toContain('drifter.combatImmune = drifter.isPhased;');
         expect(source).toContain(
             'drifter.body.checkCollision.none = drifter.isPhased;'
         );
-        expect(source).toContain('this.updateEnemyCombatReadability();');
+        expect(source).toContain('super.update(time, delta);');
+        expect(platformerSource).toContain('this.updateEnemyCombatReadability();');
     });
 });

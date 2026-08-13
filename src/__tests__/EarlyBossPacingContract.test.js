@@ -151,6 +151,23 @@ describe('early guardian and miniboss pacing contracts', () => {
         expect(crystalSource.match(/this\.clearCrystalBossPacing\(\{ includePhase: true \}\);/g))
             .toHaveLength(2);
         expect(crystalSource.match(/this\.clearSpiderBossPacing\(\);/g))
-            .toHaveLength(2);
+            .toHaveLength(3);
+    });
+
+    test('Crystal Spider rewards cannot overwrite a later guardian checkpoint', () => {
+        const defeatStart = crystalSource.indexOf('    onSpiderDefeated() {');
+        const defeatEnd = crystalSource.indexOf(
+            '\n    /**\n     * Create a Shadow Bat enemy',
+            defeatStart
+        );
+        const defeatSource = crystalSource.slice(defeatStart, defeatEnd);
+        const rewardDelay = defeatSource.indexOf('this.time.delayedCall(500');
+        const checkpoint = defeatSource.indexOf('this.setCheckpoint(spider.x, spider.y);');
+
+        expect(checkpoint).toBeGreaterThan(-1);
+        expect(checkpoint).toBeLessThan(rewardDelay);
+        expect(defeatSource.slice(rewardDelay)).not.toContain(
+            'this.setCheckpoint(spider.x, spider.y);'
+        );
     });
 });

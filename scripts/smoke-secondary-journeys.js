@@ -850,6 +850,87 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         throw new Error(`${sceneName} retained left input after touch release: ${leftReleased}`);
     }
 
+    let verticalJoystick = null;
+    if (route === 'reef') {
+        const verticalStart = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            scene.player.setVelocity?.(0, 0);
+            return { y: scene.player.y };
+        })()`);
+        await holdTouchDrag(
+            session,
+            { x: joystick.centerX, y: joystick.centerY },
+            { x: joystick.centerX, y: joystick.centerY - dragDistance },
+            500
+        );
+        const movedUp = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            return {
+                playerY: scene?.player?.y,
+                velocityY: scene?.player?.body?.velocity?.y,
+                inputY: scene?.virtualJoystickY,
+                isSwimmingUp: scene?.isSwimmingUp === true
+            };
+        })()`);
+        await releaseTouch(session);
+        await delay(120);
+        const upReleased = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            return scene?.virtualJoystickY;
+        })()`);
+        if (
+            !(movedUp.inputY < -0.2) ||
+            !(movedUp.velocityY < -20 || movedUp.playerY < verticalStart.y - 2) ||
+            Math.abs(upReleased || 0) > 0.05
+        ) {
+            throw new Error(`${sceneName} did not swim upward from joystick input: ${JSON.stringify({
+                verticalStart,
+                movedUp,
+                upReleased
+            })}`);
+        }
+
+        const downStart = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            scene.player.setVelocity?.(0, 0);
+            return { y: scene.player.y };
+        })()`);
+        await holdTouchDrag(
+            session,
+            { x: joystick.centerX, y: joystick.centerY },
+            { x: joystick.centerX, y: joystick.centerY + dragDistance },
+            500
+        );
+        const movedDown = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            return {
+                playerY: scene?.player?.y,
+                velocityY: scene?.player?.body?.velocity?.y,
+                inputY: scene?.virtualJoystickY,
+                isDucking: scene?.isDucking === true
+            };
+        })()`);
+        await releaseTouch(session);
+        await delay(120);
+        const downReleased = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            return scene?.virtualJoystickY;
+        })()`);
+        if (
+            !(movedDown.inputY > 0.2) ||
+            !(movedDown.velocityY > 20 || movedDown.playerY > downStart.y + 2) ||
+            movedDown.isDucking ||
+            Math.abs(downReleased || 0) > 0.05
+        ) {
+            throw new Error(`${sceneName} did not dive from joystick input: ${JSON.stringify({
+                downStart,
+                movedDown,
+                downReleased
+            })}`);
+        }
+        verticalJoystick = { movedUp, movedDown };
+    }
+
     const liveStompSetup = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
         const target = scene?.enemies?.getChildren?.().find(enemy => (
@@ -1476,6 +1557,48 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 auroraDepths: 1,
                 finalVoid: 1
             }[route];
+            if (route === 'crystalCaves') {
+                const wardGate = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    const item = scene?.collectibles?.getChildren?.().find(
+                        entry => entry?.active !== false &&
+                            entry?.optionalRouteId === ${JSON.stringify(optionalRouteId)}
+                    );
+                    if (!scene?.player || !item) return null;
+                    scene.player.setPosition(item.x, item.y);
+                    scene.player.setVelocity?.(0, 0);
+                    scene.collectItem(scene.player, item);
+                    const reward = scene.optionalRouteRewards?.get?.(
+                        ${JSON.stringify(optionalRouteId)}
+                    );
+                    return {
+                        blocked: item.active !== false,
+                        progress: reward?.progress,
+                        spiderCalmed: scene.crystalSpiderCalmed === true
+                    };
+                })()`);
+                if (
+                    wardGate?.blocked !== true ||
+                    wardGate.progress !== 0 ||
+                    wardGate.spiderCalmed !== false
+                ) {
+                    throw new Error(
+                        `${sceneName} ward was not gated by the Spider: ` +
+                        JSON.stringify(wardGate)
+                    );
+                }
+                const spiderCalmed = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    const spider = scene?.crystalSpider;
+                    if (!spider?.active) return false;
+                    spider.health = 1;
+                    scene.damageSpider(1);
+                    return scene.crystalSpiderCalmed === true;
+                })()`);
+                if (!spiderCalmed) {
+                    throw new Error(`${sceneName} could not calm the Crystal Spider`);
+                }
+            }
             for (
                 let optionalIndex = 0;
                 optionalIndex < optionalRequired;
@@ -1605,6 +1728,61 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                         JSON.stringify(optionalRouteCompletion.rescueResult)
                     );
                 }
+            }
+            if (route === 'reef') {
+                optionalRouteCompletion.reloadState = await evaluate(session, `(async () => {
+                    const game = window.mythicalGame;
+                    game.scene.stop(${JSON.stringify(sceneName)});
+                    game.scene.start(${JSON.stringify(sceneName)}, {
+                        forceMobileControls: true,
+                        platformerPreviewSize: 'mobile'
+                    });
+                    return true;
+                })()`);
+                await waitForScene(session, sceneName);
+                const restoredReef = await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                        if (!scene?.checkpointResumeApplied) return null;
+                        const route = scene.optionalRouteRewards?.get?.('reef_star_trench');
+                        const remainingOptional = (scene.starFragments || []).filter(
+                            fragment => fragment?.active !== false && fragment?.optionalRouteId
+                        ).length;
+                        return {
+                            checkpointId: scene.checkpointPosition?.id,
+                            checkpointIndex: scene.checkpointPosition?.index,
+                            playerX: scene.player?.x,
+                            playerY: scene.player?.y,
+                            shipPartCollected: scene.shipPartCollected === true,
+                            shipPartActive: scene.shipPart?.active === true,
+                            reefRouteChoice: scene.reefRouteChoice,
+                            routeProgress: route?.progress,
+                            routeCompleted: route?.completed === true,
+                            freeSpecialAttackCharges: scene.freeSpecialAttackCharges,
+                            remainingOptional
+                        };
+                    })()`),
+                    { timeoutMs: 3500, message: `${sceneName} checkpoint reload state` }
+                );
+                if (
+                    restoredReef.checkpointId !== routeCompletion.checkpointId ||
+                    restoredReef.checkpointIndex !== routeCompletion.checkpointIndex ||
+                    restoredReef.shipPartCollected !== true ||
+                    restoredReef.shipPartActive ||
+                    restoredReef.reefRouteChoice !== 'optional' ||
+                    restoredReef.routeProgress !== optionalRequired ||
+                    restoredReef.routeCompleted !== true ||
+                    restoredReef.freeSpecialAttackCharges !== 1 ||
+                    restoredReef.remainingOptional !== 0
+                ) {
+                    throw new Error(
+                        `${sceneName} did not restore its collected route state: ` +
+                        JSON.stringify(restoredReef)
+                    );
+                }
+                optionalRouteCompletion.reloadState = restoredReef;
+                await pressEnter(session);
+                await delay(300);
             }
         }
 
@@ -1833,7 +2011,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         guardianGate,
         traversalAudit,
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
-        joystick: { movedRight, movedLeft },
+        joystick: { movedRight, movedLeft, vertical: verticalJoystick },
         combatFeedback,
         liveStomp,
         routeChoice,

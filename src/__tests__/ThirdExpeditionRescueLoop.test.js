@@ -170,7 +170,8 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain('isShortLandscape ? 76 : 72');
         expect(source).toContain('ROUTE ${current}/3 // ${nextWaypoint}');
         expect(source).toContain('PASSAGE GUARDIAN AHEAD');
-        expect(source).toContain('DIMENSIONAL DRIVE MISSING');
+        expect(source).toContain('RECOVER THE DIMENSIONAL DRIVE');
+        expect(source).toContain('getDriveCompassText()');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
@@ -182,9 +183,28 @@ describe('third expedition rescue loop', () => {
             /update\(time, delta\)\s*\{([\s\S]*?)\n    \}\n\n    \/\*\*\n     \* Create swim indicator/
         )?.[1] || '';
 
-        expect(update).toContain('this.astronautFollower?.update(delta)');
-        expect(update).toContain('this.updateCameraLead()');
-        expect(update).toContain('this.updateShield(delta)');
+        expect(update).toContain('super.update(time, delta)');
+        const platformerSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
+            'utf8'
+        );
+        expect(platformerSource).toContain('this.astronautFollower?.update(delta)');
+        expect(platformerSource).toContain('this.updateCameraLead()');
+        expect(platformerSource).toContain('this.updateShield(delta)');
+    });
+
+    test('persists route, Drive, fragment, and free-blast state at Reef checkpoints', () => {
+        const source = readLevel();
+
+        expect(source).toContain('getExpeditionRouteState()');
+        expect(source).toContain('reefRouteChoice: this.reefRouteChoice');
+        expect(source).toContain('shipPartCollected: this.shipPartCollected === true');
+        expect(source).toContain('reefFragmentMask: this.reefCollectedFragmentMask');
+        expect(source).toContain('starTrenchProgress: Number(route?.progress)');
+        expect(source).toContain('restoreReefRouteState(resume.routeState');
+        expect(source).toContain('this.clearShipPartPickup();');
+        expect(source).toContain('this.retireCollectedReefFragments();');
+        expect(source).toContain('onFreeSpecialAttackConsumed()');
     });
 
     test('makes the Reef entry keyboard accessible and single-fire', () => {

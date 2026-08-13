@@ -121,6 +121,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.caveRouteAligned = false;
         this.crystalWoundTended = false;
         this.woundedCrystalGrove = null;
+        this.crystalChamberRoute = null;
+        this.crystalSpiderCalmed = false;
+        this.crystalWardPickup = null;
+        this.wardGateHintUntil = 0;
         this.coreGateHintUntil = 0;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -187,6 +191,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.caveRouteAligned = false;
         this.crystalWoundTended = false;
         this.woundedCrystalGrove = null;
+        this.crystalChamberRoute = null;
+        this.crystalSpiderCalmed = false;
+        this.crystalWardPickup = null;
+        this.wardGateHintUntil = 0;
         this.coreGateHintUntil = 0;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
@@ -447,12 +455,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     createPlatforms() {
         this.platforms = this.physics.add.staticGroup();
 
-        // ===== SIMPLIFIED GROUND - ONLY 2 GAPS with clear bridge routes =====
-        // Gap 1: At x=1400-1600 (200px) - Optional challenge with bridge above
-        // Gap 2: At x=3200-3400 (200px) - Before boss with bridge
+        // ===== GROUND ROUTE =====
+        // The Crystal Chamber is an authored fork, not a corridor hidden above
+        // an uninterrupted floor. Both branches rejoin before Anchor 2.
 
         this.createPlatform(0, this.levelHeight - 50, 1400, 80, 'solid');      // Start to first gap (continuous)
-        this.createPlatform(1600, this.levelHeight - 50, 1600, 80, 'solid');   // After gap 1 to gap 2
+        this.createPlatform(1600, this.levelHeight - 50, 180, 80, 'solid');    // Chamber decision ledge
+        this.createPlatform(2500, this.levelHeight - 50, 700, 80, 'solid');    // Shared rejoin to gap 2
         this.createPlatform(3400, this.levelHeight - 50, 1600, 80, 'solid');   // Boss arena (continuous)
 
         // ===== SECTION 1: Tutorial Zone (0-800px) =====
@@ -474,28 +483,24 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Wide, obvious bridge platform over the gap
         this.createPlatform(1350, this.levelHeight - 130, 300, 25, 'solid');  // Main bridge (overlaps gap)
 
-        // ===== SECTION 3: Crystal Chamber (1600-2400px) =====
-        // Interesting vertical platforming - all optional, ground is continuous
-        this.createPlatform(1700, this.levelHeight - 170, 180, 25, 'solid');  // Entry step
-        this.createPlatform(1950, this.levelHeight - 280, 200, 25, 'solid');  // Mid level
-        this.createPlatform(2150, this.levelHeight - 380, 180, 25, 'solid');  // Upper level
-        this.createPlatform(2350, this.levelHeight - 280, 180, 25, 'solid');  // Descent path
+        // ===== SECTION 3: CRYSTAL CHAMBER FORK (1600-2500px) =====
+        // Lower Passage: short, readable jumps with an armored crawler.
+        this.createPlatform(1770, this.levelHeight - 110, 240, 25, 'one-way');
+        this.createPlatform(2040, this.levelHeight - 90, 240, 25, 'one-way');
+        this.createPlatform(2310, this.levelHeight - 120, 220, 25, 'one-way');
 
-        // Crystal Spider miniboss area (elevated)
-        this.createPlatform(2100, this.levelHeight - 520, 250, 30, 'solid');  // Spider arena
+        // Spider Walk: a deliberate climb to the miniboss and Crystal Ward.
+        this.createPlatform(1690, this.levelHeight - 200, 190, 25, 'one-way');
+        this.createPlatform(1870, this.levelHeight - 310, 190, 25, 'one-way');
+        this.createPlatform(2040, this.levelHeight - 420, 260, 30, 'one-way');
 
-        // ===== SECRET SLIDE (accessible from Crystal Chamber) =====
-        // Hidden slide entrance from upper platforming
+        // The ward waits beyond the Spider, then the crystal slide returns the
+        // player to the same forward route as the Lower Passage.
         this.slidePlatforms = [];
-        this.createPlatform(1800, this.levelHeight - 520, 100, 20, 'one-way');  // Secret entrance
-
-        // Crystal Slide segments
-        this.createSlidePlatform(1750, this.levelHeight - 560, 120, 15, -0.4);
-        this.createSlidePlatform(1670, this.levelHeight - 500, 100, 15, -0.35);
-        this.createSlidePlatform(1600, this.levelHeight - 450, 100, 15, -0.3);
-
-        // Secret alcove with Crystal Shield
-        this.createPlatform(1500, this.levelHeight - 400, 180, 25, 'solid');  // Shield landing
+        this.createPlatform(2240, this.levelHeight - 380, 150, 20, 'one-way');
+        this.createSlidePlatform(2320, this.levelHeight - 330, 120, 15, 0.35);
+        this.createSlidePlatform(2415, this.levelHeight - 245, 115, 15, 0.32);
+        this.createSlidePlatform(2490, this.levelHeight - 160, 110, 15, 0.28);
 
         // ===== SECTION 4: Approach to Boss (2400-3200px) =====
         // Build tension - platforms lead naturally to arena
@@ -1181,7 +1186,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     restoreExpeditionRouteState(resume) {
-        return this.restoreExpeditionRouteSignals(resume, {
+        const signalsRestored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.beaconAnchors,
             countProperty: 'beaconAnchorsActivated',
             readyProperty: 'caveRouteAligned',
@@ -1197,6 +1202,101 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 this.objectiveDisplay?.setText?.(this.getCrystalObjectiveText());
             }
         });
+        if (!signalsRestored) return false;
+
+        this.restoreCrystalChamberRoute(resume.routeState, {
+            rejoined: Number(resume.checkpointIndex) >= 1
+        });
+        if (resume.routeState?.crystalWoundTended === true) {
+            this.restoreTendedCrystalGrove();
+        }
+        return true;
+    }
+
+    getExpeditionRouteState() {
+        const route = this.optionalRouteRewards?.get?.('caves_secret_slide');
+        return {
+            crystalChamberRoute: this.crystalChamberRoute || '',
+            crystalSpiderCalmed: this.crystalSpiderCalmed === true,
+            crystalWardClaimed: route?.completed === true,
+            crystalWardGuardCharges: this.crystalChamberRoute === 'optional'
+                ? this.optionalRouteGuardCharges
+                : 0,
+            crystalWoundTended: this.crystalWoundTended === true
+        };
+    }
+
+    selectCrystalChamberRoute(path, { restoring = false, rejoined = false } = {}) {
+        if (!['main', 'optional'].includes(path)) return false;
+        if (this.crystalChamberRoute && this.crystalChamberRoute !== path) {
+            return false;
+        }
+
+        this.crystalChamberRoute = path;
+        const route = this.optionalRouteRewards?.get?.('caves_secret_slide');
+        const choice = route?.choice;
+        if (choice) {
+            choice.selectedPath = path;
+            choice.mainEntered = path === 'main';
+            choice.optionalEntered = path === 'optional';
+            choice.rejoined = rejoined && path === 'optional';
+            choice.sequence ||= 1;
+        }
+
+        if (path === 'main') {
+            this.clearCrystalWardPickup();
+        }
+        if (!restoring) {
+            this.refreshPersistedExpeditionRouteState();
+        }
+        return true;
+    }
+
+    restoreCrystalChamberRoute(routeState, { rejoined = false } = {}) {
+        const path = routeState?.crystalChamberRoute;
+        if (!['main', 'optional'].includes(path)) return false;
+
+        this.selectCrystalChamberRoute(path, { restoring: true, rejoined });
+        if (routeState?.crystalSpiderCalmed === true) {
+            this.crystalSpiderCalmed = true;
+            this.retireCrystalSpiderFromResume();
+        }
+
+        if (path === 'optional' && routeState?.crystalWardClaimed === true) {
+            const route = this.optionalRouteRewards?.get?.('caves_secret_slide');
+            if (route) {
+                route.progress = route.required;
+                route.completed = true;
+                this.refreshOptionalRouteReward(route);
+            }
+            this.optionalRouteGuardLabel = 'CRYSTAL WARD';
+            this.optionalRouteGuardCharges = Phaser.Math.Clamp(
+                Number(routeState?.crystalWardGuardCharges) || 0,
+                0,
+                1
+            );
+            this.clearCrystalWardPickup();
+        }
+        return true;
+    }
+
+    restoreTendedCrystalGrove() {
+        const grove = this.woundedCrystalGrove;
+        if (!grove) return false;
+
+        this.crystalWoundTended = true;
+        grove.zone?.destroy?.();
+        grove.zone = null;
+        this.drawWoundedCrystalGrove(grove.visual, grove.x, grove.groundY, true);
+        grove.label?.setText?.('LIVING PULSE RESTORED')?.setColor?.('#8FE3CF');
+        this.refreshCrystalCoreHint();
+        return true;
+    }
+
+    onOptionalRouteGuardConsumed() {
+        if (this.crystalChamberRoute === 'optional') {
+            this.refreshPersistedExpeditionRouteState();
+        }
     }
 
     createWoundedCrystalGrove() {
@@ -1324,6 +1424,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             outcome: 'fractured_current_stabilized',
             save: false
         });
+        this.refreshPersistedExpeditionRouteState();
 
         window.AchievementSystem?.recordEvent?.('story_interaction', {
             event: 'crystal_grove_tended'
@@ -1339,7 +1440,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.enemies = this.physics.add.group();
 
         // PURPOSEFUL ENEMY PLACEMENT - Each enemy has a clear role
-        // Total: 2 bats + 2 crawlers + 1 miniboss = 5 enemies (reduced from 11)
+        // Total: 2 bats + 3 crawlers + 1 miniboss = 6 purposeful encounters.
 
         // Shadow Bats - Guard optional exploration paths
         this.createShadowBat(1100, this.levelHeight - 380);   // Guards upper exploration area
@@ -1350,7 +1451,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.createCaveCrawler(3800, this.levelHeight - 100);  // Boss arena - adds arena tension
 
         // Crystal Spider Miniboss - Guards Crystal Chamber
-        this.createCrystalSpider(2100, this.levelHeight - 560); // On the elevated spider arena platform
+        this.createCaveCrawler(2150, this.levelHeight - 130);   // Lower Passage tradeoff
+
+        this.createCrystalSpider(2160, this.levelHeight - 470); // Spider Walk miniboss
 
         console.log(`[CrystalCavesLevel] Created ${this.enemies.getLength()} enemies (including Crystal Spider miniboss)`);
     }
@@ -2047,6 +2150,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         const spider = this.crystalSpider;
         spider.defeated = true;
+        this.crystalSpiderCalmed = true;
+        this.refreshPersistedExpeditionRouteState();
         spider.onCombatDamage = null;
         spider.combatCue?.destroy?.();
         spider.combatCue = null;
@@ -2113,6 +2218,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Restoration effects
         this.showFloatingText('CRYSTAL SPIDER CALMED', spider.x, spider.y - 60, '#8FE3CF');
 
+        // Claim the chamber checkpoint now. Delaying this with the reward FX
+        // allowed its callback to overwrite a newer guardian checkpoint.
+        this.setCheckpoint(spider.x, spider.y);
+
         if (window.AudioManager) {
             window.AudioManager.playLevelUp();
         }
@@ -2129,8 +2238,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             window.GameState?.set('player.cosmicCoins', currentCoins + 50);
             this.showFloatingText('+50 Coins', this.player.x, this.player.y - 80, '#FFD700');
 
-            // Set checkpoint
-            this.setCheckpoint(spider.x, spider.y);
         });
     }
 
@@ -2341,7 +2448,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.createStarFragment(pos.x, pos.y);
         });
 
-        const chamberRouteMarker = this.add.text(1900, this.levelHeight - 250, '', {
+        const chamberRouteMarker = this.add.text(1880, this.levelHeight - 95, '', {
             fontSize: '11px',
             color: '#8FE3CF',
             fontStyle: 'bold',
@@ -2349,7 +2456,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             strokeThickness: 4,
             align: 'center'
         }).setOrigin(0.5).setDepth(182);
-        const secretSlideMarker = this.add.text(1750, this.levelHeight - 625, '', {
+        const secretSlideMarker = this.add.text(1810, this.levelHeight - 365, '', {
             fontSize: '11px',
             color: '#F2C94C',
             fontStyle: 'bold',
@@ -2359,37 +2466,45 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setDepth(182);
         this.registerOptionalRouteReward({
             id: 'caves_secret_slide',
-            title: 'SECRET SLIDE',
+            title: 'SPIDER WALK',
             required: 1,
             rewardLabel: 'CRYSTAL WARD // 1 HIT',
             marker: secretSlideMarker,
-            returnLabel: 'CLIMB BACK TO THE CAVE ROUTE →',
+            returnLabel: 'SLIDE BACK TO THE CAVE ROUTE →',
             choice: {
-                mainLabel: 'CRYSTAL CHAMBER →',
-                mainTradeoff: 'FORWARD // SPIDER TERRITORY',
-                challengeLabel: 'REVERSE SLIDE + SECRET ALCOVE',
+                mainLabel: 'LOWER PASSAGE →',
+                mainTradeoff: 'SHORT // ARMORED CRAWLER',
+                challengeLabel: 'SPIDER + CRYSTAL SLIDE',
                 mainMarker: chamberRouteMarker,
                 mainZone: {
-                    left: 1880, right: 2440,
-                    top: this.levelHeight - 430, bottom: this.levelHeight - 70
+                    left: 1900, right: 2440,
+                    top: this.levelHeight - 180, bottom: this.levelHeight
                 },
                 optionalZone: {
-                    left: 1430, right: 1880,
-                    top: this.levelHeight - 650, bottom: this.levelHeight - 330
+                    left: 1900, right: 2440,
+                    top: this.levelHeight - 560, bottom: this.levelHeight - 190
                 },
                 rejoinZone: {
-                    left: 2420, right: 2780,
-                    top: this.levelHeight - 330, bottom: this.levelHeight - 60
+                    left: 2480, right: 2740,
+                    top: 0, bottom: this.levelHeight
                 }
             },
-            onComplete: () => this.grantOptionalRouteGuard('CRYSTAL WARD', 1)
+            onMainSelected: () => this.selectCrystalChamberRoute('main'),
+            onOptionalSelected: () => this.selectCrystalChamberRoute('optional'),
+            onComplete: () => {
+                this.grantOptionalRouteGuard('CRYSTAL WARD', 1);
+                this.refreshPersistedExpeditionRouteState();
+            }
         });
 
-        // Crystal Ward power-up at the end of the secret slide.
-        this.createCrystalShield(1550, this.levelHeight - 440);
+        // Crystal Ward power-up beyond the Spider, before the return slide.
+        this.crystalWardPickup = this.createCrystalShield(
+            2280,
+            this.levelHeight - 430
+        );
 
-        // Hint crystal near slide entrance (extra bright to draw attention)
-        this.createHintCrystal(1750, this.levelHeight - 560);
+        // Hint crystal at the upper branch entrance.
+        this.createHintCrystal(1810, this.levelHeight - 340);
 
         // Set up collectible overlaps
         this.physics.add.overlap(this.player, this.collectibles, this.collectItem, null, this);
@@ -2480,6 +2595,32 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         });
 
         return shield;
+    }
+
+    clearCrystalWardPickup() {
+        const pickup = this.crystalWardPickup;
+        if (!pickup) return false;
+        this.tweens?.killTweensOf?.(pickup);
+        pickup.destroy?.();
+        this.crystalWardPickup = null;
+        return true;
+    }
+
+    retireCrystalSpiderFromResume() {
+        this.spiderAITimer?.remove?.();
+        this.spiderAITimer = null;
+        this.spiderAttackTimer?.remove?.();
+        this.spiderAttackTimer = null;
+        this.spiderWebSprayTimer?.remove?.();
+        this.spiderWebSprayTimer = null;
+        this.clearSpiderBossPacing();
+        this.crystalSpider?.destroy?.();
+        this.crystalSpider = null;
+        this.spiderUI?.destroy?.();
+        this.spiderUI = null;
+        this.spiderHealthBar = null;
+        this.spiderHealthBarBg = null;
+        this.spiderNameText = null;
     }
 
     /**
@@ -2675,11 +2816,25 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             }
 
         } else if (item.collectibleType === 'crystalShield') {
+            if (!this.crystalSpiderCalmed) {
+                if (this.time.now >= this.wardGateHintUntil) {
+                    this.wardGateHintUntil = this.time.now + 1500;
+                    this.showFloatingText(
+                        'CALM THE CRYSTAL SPIDER FIRST',
+                        item.x,
+                        item.y - 55,
+                        '#F2C94C'
+                    );
+                }
+                return;
+            }
             console.log('[CrystalCavesLevel] Crystal Ward collected!');
-            this.recordOptionalRouteProgress(item.optionalRouteId, {
+            const claimed = this.recordOptionalRouteProgress(item.optionalRouteId, {
                 x: item.x,
                 y: item.y
             });
+            if (!claimed) return;
+            this.crystalWardPickup = null;
 
             // Major celebration effect
             if (window.FXLibrary) {
@@ -4725,9 +4880,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     getCrystalObjectiveText() {
         const optionalFallback =
             `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
-        const optional = typeof this.getOptionalRouteStatusText === 'function'
-            ? this.getOptionalRouteStatusText('caves_secret_slide', optionalFallback)
-            : optionalFallback;
+        const optional = this.getCrystalChamberStatusText(optionalFallback);
 
         if (this.bossDefeated) {
             return `CURRENT STABILIZED\nTHE GUARDIAN IS SAFE\n${optional}`;
@@ -4758,6 +4911,22 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             ? `ROUTE ${current}/3`
             : `ROUTE ${current}/3 // ${nextAnchor}`;
         return `${title}\n${compass || pulse}\n${optional}`;
+    }
+
+    getCrystalChamberStatusText(fallback) {
+        const route = this.optionalRouteRewards?.get?.('caves_secret_slide');
+        const path = route?.choice?.selectedPath;
+        if (route?.completed) return `${route.rewardLabel} // EARNED`;
+        if (path === 'optional') {
+            return this.crystalSpiderCalmed
+                ? 'SPIDER WALK // CLAIM THE WARD'
+                : 'SPIDER WALK // CALM THE SPIDER';
+        }
+        if (path === 'main') return 'LOWER PASSAGE // REJOIN AHEAD';
+        if (this.beaconAnchorsActivated === 1) {
+            return 'CHAMBER FORK // CHOOSE A ROUTE';
+        }
+        return fallback;
     }
 
     /**
