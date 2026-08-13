@@ -1075,11 +1075,20 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 return;
             }
 
+            const guardianEntered = this.beginGuardianEncounter({
+                id: 'void_empress',
+                title: 'VOID EMPRESS',
+                checkpoint: {
+                    x: gateX - 220,
+                    y: this.levelHeight - 170
+                },
+                start: () => this.startBossFight()
+            });
+            if (!guardianEntered) return;
+
             zone.destroy();
             visual.destroy();
-            this.clearGuardianGateState();
             this.empressGate = null;
-            this.startBossFight();
         });
 
         this.empressGate = { visual, zone };

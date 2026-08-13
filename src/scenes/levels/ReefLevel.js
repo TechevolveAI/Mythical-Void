@@ -2126,7 +2126,19 @@ class ReefLevel extends PlatformerLevelScene {
                     }
                     return;
                 }
-                this.startBossFight();
+                const guardianEntered = this.beginGuardianEncounter({
+                    id: 'nyxvoral',
+                    title: "NYX'VORAL",
+                    checkpoint: {
+                        x: 5420,
+                        y: this.levelHeight - 360
+                    },
+                    start: () => this.startBossFight()
+                });
+                if (!guardianEntered) return;
+
+                this.bossTriggerZone?.destroy?.();
+                this.bossTriggerZone = null;
             }
         });
     }
@@ -2137,9 +2149,6 @@ class ReefLevel extends PlatformerLevelScene {
     startBossFight() {
         this.bossFightActive = true;
         this.bossHealth = this.bossMaxHealth;
-        this.bossTriggerZone?.destroy?.();
-        this.bossTriggerZone = null;
-        this.clearGuardianGateState();
         this.physics.pause();
 
         console.log('[ReefLevel] BOSS FIGHT: Nyx\'voral the Void Serpent!');

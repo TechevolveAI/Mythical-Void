@@ -1079,9 +1079,16 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                         }
                         return;
                     }
-                    triggerZone.destroy();
-                    this.clearGuardianGateState();
-                    this.startBossFight();
+                    const guardianEntered = this.beginGuardianEncounter({
+                        id: 'shadow_phoenix',
+                        title: 'AURORA PHOENIX',
+                        checkpoint: {
+                            x: 4070,
+                            y: this.levelHeight - 170
+                        },
+                        start: () => this.startBossFight()
+                    });
+                    if (guardianEntered) triggerZone.destroy();
                 }
             });
         }

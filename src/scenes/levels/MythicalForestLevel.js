@@ -3311,7 +3311,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
                         }
                         return;
                     }
-                    this.startBossFight();
+                    const guardianEntered = this.beginGuardianEncounter({
+                        id: 'elder_treant',
+                        title: 'ELDER TREANT',
+                        checkpoint: {
+                            x: 5380,
+                            y: this.levelHeight - 170
+                        },
+                        start: () => this.startBossFight()
+                    });
+                    if (!guardianEntered) return;
+
+                    this.bossTriggerZone?.destroy?.();
+                    this.bossTriggerZone = null;
                 }
             });
         }
@@ -3348,9 +3360,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
     startBossFight() {
         console.log('[MythicalForestLevel] Starting Elder Treant boss fight!');
         this.bossFightActive = true;
-        this.bossTriggerZone?.destroy?.();
-        this.bossTriggerZone = null;
-        this.clearGuardianGateState();
 
         // Dramatic pause
         this.physics.pause();

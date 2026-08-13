@@ -555,7 +555,7 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain('this.createGuardianGateState({');
         expect(source).toContain(title);
-        expect(source).toContain('this.clearGuardianGateState();');
+        expect(source).toContain('this.beginGuardianEncounter({');
     });
 
     test('Aurora Depths rewards the Quiet Light route at the guardian', () => {
@@ -682,6 +682,158 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("recordEvent?.('route_choice_entered'");
         expect(source).toContain("recordEvent?.('route_choice_rejoined'");
         expect(source).not.toContain('physics.add.overlap(this.player, choice');
+    });
+
+    test('guardian entry is one atomic encounter with a transient safe stance', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({
+            key: 'GuardianEntryTest',
+            levelWidth: 1800,
+            levelHeight: 800
+        });
+        const started = jest.fn(() => {
+            scene.bossFightActive = true;
+        });
+        scene.time = { now: 1234 };
+        scene.player = {
+            setVelocity: jest.fn()
+        };
+        scene.setCheckpoint = jest.fn((x, y) => {
+            scene.checkpointPosition = { x, y };
+        });
+        scene.resetJoystick = jest.fn();
+        scene.clearVirtualJumpInput = jest.fn();
+        scene.clearGuardianGateState = jest.fn();
+
+        expect(scene.beginGuardianEncounter({
+            id: 'test_guardian',
+            title: 'TEST GUARDIAN',
+            checkpoint: { x: 1200, y: 620 },
+            start: started
+        })).toBe(true);
+        expect(scene.guardianEncounter).toMatchObject({
+            id: 'test_guardian',
+            title: 'TEST GUARDIAN',
+            checkpoint: { x: 1200, y: 620 },
+            active: true,
+            startedAt: 1234
+        });
+        expect(scene.setCheckpoint).toHaveBeenCalledWith(1200, 620);
+        expect(scene.player.setVelocity).toHaveBeenCalledWith(0, 0);
+        expect(scene.clearGuardianGateState).toHaveBeenCalledTimes(1);
+        expect(started).toHaveBeenCalledTimes(1);
+        expect(started.mock.invocationCallOrder[0]).toBeLessThan(
+            scene.clearGuardianGateState.mock.invocationCallOrder[0]
+        );
+
+        expect(scene.beginGuardianEncounter({
+            id: 'duplicate',
+            checkpoint: { x: 1000, y: 620 },
+            start: started
+        })).toBe(false);
+        expect(started).toHaveBeenCalledTimes(1);
+    });
+
+    test('guardian entry rejects invalid recovery positions before consuming a gate', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({
+            key: 'GuardianEntryValidationTest',
+            levelWidth: 1800,
+            levelHeight: 800
+        });
+        const started = jest.fn();
+
+        expect(scene.beginGuardianEncounter({
+            id: 'test_guardian',
+            checkpoint: { x: 1900, y: 620 },
+            start: started
+        })).toBe(false);
+        expect(scene.guardianEncounter).toBeNull();
+        expect(started).not.toHaveBeenCalled();
+    });
+
+    test('guardian entry keeps the gate and prior checkpoint when startup fails', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({
+            key: 'GuardianEntryRollbackTest',
+            levelWidth: 1800,
+            levelHeight: 800
+        });
+        scene.time = { now: 1234 };
+        scene.player = { setVelocity: jest.fn() };
+        scene.checkpointPosition = {
+            x: 700,
+            y: 620,
+            id: 'route_signal_2',
+            index: 1
+        };
+        scene.setCheckpoint = jest.fn((x, y) => {
+            scene.checkpointPosition = { x, y };
+        });
+        scene.clearGuardianGateState = jest.fn();
+
+        expect(() => scene.beginGuardianEncounter({
+            id: 'test_guardian',
+            checkpoint: { x: 1200, y: 620 },
+            start: () => {
+                scene.bossFightActive = true;
+                throw new Error('guardian startup failed');
+            }
+        })).toThrow('guardian startup failed');
+        expect(scene.guardianEncounter).toBeNull();
+        expect(scene.bossFightActive).toBe(false);
+        expect(scene.checkpointPosition).toEqual({
+            x: 700,
+            y: 620,
+            id: 'route_signal_2',
+            index: 1
+        });
+        expect(scene.clearGuardianGateState).not.toHaveBeenCalled();
+    });
+
+    test('guardian entry rejects a callback that never activates combat', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({
+            key: 'GuardianEntryNoopTest',
+            levelWidth: 1800,
+            levelHeight: 800
+        });
+        scene.time = { now: 1234 };
+        scene.player = { setVelocity: jest.fn() };
+        scene.checkpointPosition = { x: 700, y: 620 };
+        scene.setCheckpoint = jest.fn((x, y) => {
+            scene.checkpointPosition = { x, y };
+        });
+        scene.clearGuardianGateState = jest.fn();
+
+        expect(scene.beginGuardianEncounter({
+            id: 'test_guardian',
+            checkpoint: { x: 1200, y: 620 },
+            start: jest.fn()
+        })).toBe(false);
+        expect(scene.guardianEncounter).toBeNull();
+        expect(scene.checkpointPosition).toEqual({ x: 700, y: 620 });
+        expect(scene.clearGuardianGateState).not.toHaveBeenCalled();
+    });
+
+    test.each([
+        ['levels/MythicalForestLevel.js', "id: 'elder_treant'"],
+        ['levels/CrystalCavesLevel.js', "id: 'crystal_golem'"],
+        ['levels/ReefLevel.js', "id: 'nyxvoral'"],
+        ['levels/VoidPeaksLevel.js', "id: 'cosmic_titan'"],
+        ['levels/AuroraDepthsLevel.js', "id: 'shadow_phoenix'"],
+        ['levels/FinalVoidLevel.js', "id: 'void_empress'"]
+    ])('%s enters its guardian through the shared recovery contract', (
+        relativePath,
+        guardianId
+    ) => {
+        const source = read(relativePath);
+
+        expect(source).toContain('this.beginGuardianEncounter({');
+        expect(source).toContain(guardianId);
+        expect(source).toContain('checkpoint: {');
+        expect(source).toContain('start: () => this.startBossFight()');
+        expect(source).toContain('const guardianEntered = this.beginGuardianEncounter({');
     });
 
     test('Reef runs shared route-choice updates from its swimming loop', () => {

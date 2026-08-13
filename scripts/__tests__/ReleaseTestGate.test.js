@@ -99,6 +99,21 @@ describe('release test gate', () => {
         expect(source).toContain('persistedCheckpoint?.id !== routeCompletion.checkpointId');
     });
 
+    test('every campaign interaction smoke proves atomic guardian recovery', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain('guardian entry handoff');
+        expect(source).toContain('guardian handoff was not atomic');
+        expect(source).toContain('duplicateAccepted !== false');
+        expect(source).toContain('RETURN TO GUARDIAN STANCE');
+        expect(source).toContain('guardian recovery did not freeze safely');
+        expect(source).toContain('timerFired !== false');
+        expect(source).toContain('guardian stance did not recover cleanly');
+        expect(source).toContain('guardian stance was not stable after recovery');
+        expect(source).toContain('settledRecovery.playerDead !== false');
+        expect(source).toContain('recovered.persistedId !== guardianEntrySetup.persistedId');
+    });
+
     test('release smoke runs interaction before the state contract', () => {
         const source = read('scripts/run-browser-smoke.js');
         const villageUi = source.indexOf("SMOKE_MODE: 'village-ui'");

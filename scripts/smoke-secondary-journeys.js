@@ -1147,6 +1147,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let routeCompletion = null;
     let outOfOrderGuard = null;
     let optionalRouteCompletion = null;
+    let guardianRecovery = null;
     if ([
         'mythicalForest',
         'crystalCaves',
@@ -1606,6 +1607,223 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 }
             }
         }
+
+        const guardianEntrySetup = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const gate = scene?.guardianGateState;
+            if (!scene?.player || !gate?.ready) return null;
+            const persisted = window.GameState?.get?.(
+                'story.projectBeacon.expeditionCheckpoint'
+            );
+            scene.player.setPosition(gate.x, gate.y);
+            scene.player.setVelocity?.(0, 0);
+            return {
+                persistedId: persisted?.checkpointId || null,
+                persistedIndex: persisted?.checkpointIndex ?? null
+            };
+        })()`);
+        if (!guardianEntrySetup) {
+            throw new Error(`${sceneName} could not enter its ready guardian gate`);
+        }
+
+        const guardianEntry = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const encounter = scene?.guardianEncounter;
+                if (!scene?.bossFightActive || !encounter?.active) return null;
+                const persisted = window.GameState?.get?.(
+                    'story.projectBeacon.expeditionCheckpoint'
+                );
+                return {
+                    guardianId: encounter.id,
+                    checkpointX: scene.checkpointPosition?.x,
+                    checkpointY: scene.checkpointPosition?.y,
+                    gateCleared: scene.guardianGateState == null,
+                    duplicateAccepted: scene.beginGuardianEncounter?.({
+                        id: 'duplicate_guardian',
+                        checkpoint: { x: 100, y: 100 },
+                        start: () => {}
+                    }),
+                    persistedId: persisted?.checkpointId || null,
+                    persistedIndex: persisted?.checkpointIndex ?? null
+                };
+            })()`),
+            { timeoutMs: 3000, message: `${sceneName} guardian entry handoff` }
+        );
+        if (
+            !guardianEntry.guardianId ||
+            !Number.isFinite(guardianEntry.checkpointX) ||
+            !Number.isFinite(guardianEntry.checkpointY) ||
+            guardianEntry.gateCleared !== true ||
+            guardianEntry.duplicateAccepted !== false ||
+            guardianEntry.persistedId !== guardianEntrySetup.persistedId ||
+            guardianEntry.persistedIndex !== guardianEntrySetup.persistedIndex
+        ) {
+            throw new Error(
+                `${sceneName} guardian handoff was not atomic: ` +
+                JSON.stringify({ guardianEntrySetup, guardianEntry })
+            );
+        }
+
+        const guardianCombatReady = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                if (
+                    !scene?.bossFightActive ||
+                    scene?.physics?.world?.isPaused ||
+                    !(scene?.boss?.active || scene?.bossBody?.active)
+                ) return null;
+                return { bossHealth: Number(scene.bossHealth) };
+            })()`),
+            { timeoutMs: 8000, message: `${sceneName} guardian combat start` }
+        );
+
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            if (!scene?.player || !scene?.bossFightActive) return false;
+            scene.__guardianRecoveryProbe = { value: 0 };
+            scene.__guardianRecoveryTween = scene.tweens.add({
+                targets: scene.__guardianRecoveryProbe,
+                value: 100,
+                duration: 1200
+            });
+            return true;
+        })()`);
+        await delay(180);
+
+        const deathState = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            if (!scene?.bossFightActive || !scene?.guardianEncounter?.active) return null;
+            scene.__guardianRecoveryTimerFired = false;
+            scene.__guardianRecoveryTimer = scene.time.delayedCall(120, () => {
+                scene.__guardianRecoveryTimerFired = true;
+            });
+            scene.onPlayerDeath();
+            return {
+                sceneTime: scene.time.now,
+                probeValue: scene.__guardianRecoveryProbe?.value,
+                bossHealth: Number(scene.bossHealth),
+                timePaused: scene.time.paused === true,
+                physicsPaused: scene.physics.world.isPaused === true,
+                recoveryCopy: (scene.deathScreenElements || [])
+                    .map(element => element?.text || '')
+                    .filter(Boolean)
+            };
+        })()`);
+        if (!deathState) {
+            throw new Error(`${sceneName} could not stage guardian recovery`);
+        }
+        await delay(350);
+        const frozenState = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            return {
+                sceneTime: scene?.time?.now,
+                probeValue: scene?.__guardianRecoveryProbe?.value,
+                bossHealth: Number(scene?.bossHealth),
+                timePaused: scene?.time?.paused === true,
+                physicsPaused: scene?.physics?.world?.isPaused === true,
+                timerFired: scene?.__guardianRecoveryTimerFired === true,
+                playerDead: scene?.isPlayerDead === true
+            };
+        })()`);
+        if (
+            deathState.timePaused !== true ||
+            deathState.physicsPaused !== true ||
+            !deathState.recoveryCopy.includes('RETURN TO GUARDIAN STANCE') ||
+            frozenState.timePaused !== true ||
+            frozenState.physicsPaused !== true ||
+            frozenState.timerFired !== false ||
+            frozenState.playerDead !== true ||
+            Math.abs(frozenState.probeValue - deathState.probeValue) > 0.01 ||
+            frozenState.bossHealth !== deathState.bossHealth
+        ) {
+            throw new Error(
+                `${sceneName} guardian recovery did not freeze safely: ` +
+                JSON.stringify({ deathState, frozenState })
+            );
+        }
+
+        const recovered = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            scene?.retryFromCheckpoint?.();
+            const persisted = window.GameState?.get?.(
+                'story.projectBeacon.expeditionCheckpoint'
+            );
+            scene?.__guardianRecoveryTimer?.remove?.();
+            scene?.__guardianRecoveryTween?.remove?.();
+            delete scene.__guardianRecoveryTimer;
+            delete scene.__guardianRecoveryTimerFired;
+            delete scene.__guardianRecoveryTween;
+            delete scene.__guardianRecoveryProbe;
+            return {
+                playerX: scene?.player?.x,
+                playerY: scene?.player?.y,
+                checkpointX: scene?.checkpointPosition?.x,
+                checkpointY: scene?.checkpointPosition?.y,
+                health: scene?.health,
+                maxHealth: scene?.maxHealth,
+                playerDead: scene?.isPlayerDead === true,
+                timePaused: scene?.time?.paused === true,
+                physicsPaused: scene?.physics?.world?.isPaused === true,
+                encounterActive: scene?.guardianEncounter?.active === true,
+                bossFightActive: scene?.bossFightActive === true,
+                bossHealth: Number(scene?.bossHealth),
+                persistedId: persisted?.checkpointId || null,
+                persistedIndex: persisted?.checkpointIndex ?? null
+            };
+        })()`);
+        if (
+            recovered.playerX !== recovered.checkpointX ||
+            recovered.playerY !== recovered.checkpointY ||
+            recovered.health !== recovered.maxHealth ||
+            recovered.playerDead !== false ||
+            recovered.timePaused !== false ||
+            recovered.physicsPaused !== false ||
+            recovered.encounterActive !== true ||
+            recovered.bossFightActive !== true ||
+            recovered.bossHealth !== guardianCombatReady.bossHealth ||
+            recovered.persistedId !== guardianEntrySetup.persistedId ||
+            recovered.persistedIndex !== guardianEntrySetup.persistedIndex
+        ) {
+            throw new Error(
+                `${sceneName} guardian stance did not recover cleanly: ` +
+                JSON.stringify({ guardianCombatReady, recovered })
+            );
+        }
+
+        await delay(450);
+        const settledRecovery = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            return {
+                playerX: scene?.player?.x,
+                playerY: scene?.player?.y,
+                checkpointX: scene?.checkpointPosition?.x,
+                checkpointY: scene?.checkpointPosition?.y,
+                playerDead: scene?.isPlayerDead === true,
+                respawning: scene?.isRespawning === true,
+                physicsPaused: scene?.physics?.world?.isPaused === true,
+                timePaused: scene?.time?.paused === true
+            };
+        })()`);
+        if (
+            Math.abs(settledRecovery.playerX - settledRecovery.checkpointX) > 80 ||
+            Math.abs(settledRecovery.playerY - settledRecovery.checkpointY) > 120 ||
+            settledRecovery.playerDead !== false ||
+            settledRecovery.respawning !== false ||
+            settledRecovery.physicsPaused !== false ||
+            settledRecovery.timePaused !== false
+        ) {
+            throw new Error(
+                `${sceneName} guardian stance was not stable after recovery: ` +
+                JSON.stringify(settledRecovery)
+            );
+        }
+        guardianRecovery = {
+            entry: guardianEntry,
+            frozen: frozenState,
+            recovered,
+            settled: settledRecovery
+        };
     }
     if (exceptions.length) {
         throw new Error(`${sceneName} raised browser exceptions: ${exceptions.join(' | ')}`);
@@ -1622,7 +1840,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         outOfOrderGuard,
         routeHandoff,
         routeCompletion,
-        optionalRouteCompletion
+        optionalRouteCompletion,
+        guardianRecovery
     };
 }
 

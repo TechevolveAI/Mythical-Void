@@ -46,4 +46,32 @@ describe('Platformer failure and mobile input recovery', () => {
         );
         expect(source).toContain(') && !isRising;');
     });
+
+    test('freezes guardian hazards behind recovery and resumes the scene clock', () => {
+        expect(source).toContain('if (this.time) this.time.paused = true;');
+        expect(source).toContain('this.time.paused = false;');
+        expect(source).toContain('this.tweens?.pauseAll?.();');
+        expect(source).toContain('this.tweens?.resumeAll?.();');
+        expect(source).toContain('this.resumeFailureRecoveryClock();');
+        expect(source).toContain("'RETURN TO GUARDIAN STANCE'");
+        expect(source).toContain('this.guardianEncounter?.active');
+        expect(source).toContain('this.showDeathScreen();');
+        expect(source).not.toContain('targets: this.player,\n            alpha: 0');
+    });
+
+    test('resumes the recovery clock before leaving for either hub', () => {
+        const returnToHub = source.slice(
+            source.indexOf('    returnToHub() {'),
+            source.indexOf('    returnToSanctuary() {')
+        );
+        const returnToSanctuary = source.slice(
+            source.indexOf('    returnToSanctuary() {'),
+            source.indexOf('    shutdown() {')
+        );
+
+        expect(returnToHub).toContain('this.resumeFailureRecoveryClock();');
+        expect(returnToHub).toContain("this.scene.start('HubWorldScene');");
+        expect(returnToSanctuary).toContain('this.resumeFailureRecoveryClock();');
+        expect(returnToSanctuary).toContain("this.scene.start('GameScene'");
+    });
 });

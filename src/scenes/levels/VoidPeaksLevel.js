@@ -868,9 +868,16 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                     }
                     return;
                 }
-                this.clearGuardianGateState();
-                this.startBossFight();
-                gate.destroy();
+                const guardianEntered = this.beginGuardianEncounter({
+                    id: 'cosmic_titan',
+                    title: 'COSMIC TITAN',
+                    checkpoint: {
+                        x: 4180,
+                        y: this.levelHeight - 295
+                    },
+                    start: () => this.startBossFight()
+                });
+                if (guardianEntered) gate.destroy();
             }
         });
     }

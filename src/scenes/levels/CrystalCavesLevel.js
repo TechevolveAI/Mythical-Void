@@ -3278,10 +3278,19 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                     return;
                 }
 
+                const guardianEntered = this.beginGuardianEncounter({
+                    id: 'crystal_golem',
+                    title: 'CRYSTAL GOLEM',
+                    checkpoint: {
+                        x: 5050,
+                        y: this.levelHeight - 130
+                    },
+                    start: () => this.startBossFight()
+                });
+                if (!guardianEntered) return;
+
                 this.crystalCoreFound = true;
                 beacon?.destroy();
-                this.clearGuardianGateState();
-                this.startBossFight();
             }
         });
     }

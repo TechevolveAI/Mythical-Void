@@ -296,6 +296,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.optionalRouteRewards = new Map();
         this.routeChoiceSequence = 0;
         this.guardianGateState = null;
+        this.guardianEncounter = null;
         this.guardianTeamSupport = {
             guardianId: null,
             guardianName: null,
@@ -649,6 +650,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.optionalRouteRewards = new Map();
         this.routeChoiceSequence = 0;
         this.guardianGateState = null;
+        this.guardianEncounter = null;
         window.EconomyManager?.clearLevelCoinMultiplier?.();
 
         // Reset flags
@@ -1409,6 +1411,75 @@ class PlatformerLevelScene extends Phaser.Scene {
         state?.visual?.destroy?.();
         state?.label?.destroy?.();
         this.guardianGateState = null;
+    }
+
+    beginGuardianEncounter({
+        id,
+        title = 'GUARDIAN',
+        checkpoint,
+        start
+    } = {}) {
+        if (
+            this.guardianEncounter?.active ||
+            this.bossFightActive ||
+            this.bossDefeated ||
+            typeof id !== 'string' ||
+            !id.trim() ||
+            typeof start !== 'function'
+        ) {
+            return false;
+        }
+
+        const checkpointX = Number(checkpoint?.x);
+        const checkpointY = Number(checkpoint?.y);
+        if (
+            !Number.isFinite(checkpointX) ||
+            !Number.isFinite(checkpointY) ||
+            checkpointX < 0 ||
+            checkpointX > this.levelWidth ||
+            checkpointY < 0 ||
+            checkpointY > this.levelHeight
+        ) {
+            return false;
+        }
+
+        const previousCheckpoint = this.checkpointPosition
+            ? { ...this.checkpointPosition }
+            : null;
+        this.guardianEncounter = {
+            id: id.trim(),
+            title: String(title || 'GUARDIAN'),
+            checkpoint: { x: checkpointX, y: checkpointY },
+            active: true,
+            startedAt: Number(this.time?.now) || 0
+        };
+        this.setCheckpoint(checkpointX, checkpointY);
+        this.resetJoystick?.();
+        this.clearVirtualJumpInput?.();
+        this.player?.setVelocity?.(0, 0);
+
+        try {
+            start();
+        } catch (error) {
+            this.bossFightActive = false;
+            this.checkpointPosition = previousCheckpoint;
+            this.guardianEncounter = null;
+            throw error;
+        }
+
+        if (!this.bossFightActive) {
+            this.bossFightActive = false;
+            this.checkpointPosition = previousCheckpoint;
+            this.guardianEncounter = null;
+            return false;
+        }
+
+        this.clearGuardianGateState();
+        window.AchievementSystem?.recordEvent?.('guardian_encounter_started', {
+            levelId: this.levelId || this.scene?.key || null,
+            guardianId: this.guardianEncounter.id
+        });
+        return true;
     }
 
     canActivateOrderedRouteSignal(signal, signals, activatedCount, {
@@ -5711,6 +5782,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         console.log('[PlatformerLevel] Player died');
         this.hidePlatformerMobileControls();
         this.physics.pause();
+        this.pauseFailureRecoveryClock();
 
         // Record failure for contextual thoughts
         if (window.ThoughtBubbleSystem) {
@@ -5720,17 +5792,21 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Disable input
         this.input.keyboard.enabled = false;
 
-        // Death animation
-        this.tweens.add({
-            targets: this.player,
-            alpha: 0,
-            scaleX: 0.5,
-            scaleY: 0.5,
-            duration: 1000,
-            onComplete: () => {
-                this.showDeathScreen();
-            }
-        });
+        // Keep recovery deterministic: no guardian timers or hazards advance
+        // behind the panel, and the panel does not depend on a paused tween.
+        this.player.setAlpha?.(0);
+        this.player.setScale?.(0.5);
+        this.showDeathScreen();
+    }
+
+    pauseFailureRecoveryClock() {
+        if (this.time) this.time.paused = true;
+        this.tweens?.pauseAll?.();
+    }
+
+    resumeFailureRecoveryClock() {
+        if (this.time) this.time.paused = false;
+        this.tweens?.resumeAll?.();
     }
 
     /**
@@ -5749,8 +5825,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         const centerX = width / 2;
         const companionName = window.GameState?.get('creature.name') || 'Your companion';
         const hasCheckpoint = Boolean(this.checkpointPosition);
+        const guardianRecovery = Boolean(this.guardianEncounter?.active);
         const recoveryCopy = hasCheckpoint
-            ? `${companionName} stayed beside the beacon.\nTake a breath. The expedition can continue.`
+            ? guardianRecovery
+                ? `${companionName} held the guardian line.\nReturn to your stance. The rescue can continue.`
+                : `${companionName} stayed beside the beacon.\nTake a breath. The expedition can continue.`
             : `${companionName} is waiting at the trailhead.\nNothing important was lost. Begin again together.`;
 
         // Store death screen elements for cleanup
@@ -5823,7 +5902,9 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Retry button
         const retryLabel = hasCheckpoint
-            ? 'CONTINUE FROM BEACON'
+            ? guardianRecovery
+                ? 'RETURN TO GUARDIAN STANCE'
+                : 'CONTINUE FROM BEACON'
             : 'RESTART EXPEDITION';
         const retryBtn = this.add.text(centerX, y(300), retryLabel, {
             fontSize: font(18, 15),
@@ -5905,6 +5986,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.clearPersistedExpeditionCheckpoint();
 
         this.clearDeathScreen();
+        this.resumeFailureRecoveryClock();
         this.physics.resume();
 
         // Small delay to ensure cleanup completes before restart
@@ -5942,6 +6024,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.showPlatformerMobileControls();
         this.updateHealthDisplay();
         this.updateEnergyDisplay();
+        this.resumeFailureRecoveryClock();
         this.physics.resume();
         this.startInvincibilityFlash();
         this.showFloatingText(
@@ -7078,6 +7161,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this._returningToHub) return;
         this._returningToHub = true;
 
+        this.resumeFailureRecoveryClock();
+
         if (this.levelCompletionKeyHandler) {
             window.removeEventListener('keydown', this.levelCompletionKeyHandler);
             this.levelCompletionKeyHandler = null;
@@ -7094,6 +7179,8 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Return to sanctuary (main hub)
      */
     returnToSanctuary() {
+        this.resumeFailureRecoveryClock();
+
         // Reset physics for sanctuary (top-down)
         this.physics.world.gravity.y = 0;
 
@@ -7106,6 +7193,10 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     shutdown() {
         console.log('[PlatformerLevel] Shutting down - cleaning up resources');
+
+        // Scenes can be left from the death panel. Never retain a paused Clock
+        // or TweenManager when Phaser later starts this scene again.
+        this.resumeFailureRecoveryClock();
 
         this.cleanupPlatformerInputHandlers();
         this.levelInitializationErrorElements?.forEach(element => element?.destroy?.());
@@ -7135,6 +7226,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.orderedRouteSignalOptions = null;
         this.optionalRouteRewards?.clear?.();
         this.routeChoiceSequence = 0;
+        this.guardianEncounter = null;
         this.clearGuardianGateState();
 
         // Remove keyboard listeners

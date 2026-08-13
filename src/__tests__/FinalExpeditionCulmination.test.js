@@ -19,7 +19,7 @@ describe('Final Void expedition culmination', () => {
         expect(finalVoidSource).toContain('this.bondAnchorsActivated === 3');
         expect(finalVoidSource).toContain('this.finalSignalReady = true');
         expect(finalVoidSource).toMatch(
-            /createEmpressGate\(\)[\s\S]*if \(!this\.finalSignalReady\)[\s\S]*BOND SIGNALS REQUIRED[\s\S]*this\.startBossFight\(\);/
+            /createEmpressGate\(\)[\s\S]*if \(!this\.finalSignalReady\)[\s\S]*BOND SIGNALS REQUIRED[\s\S]*this\.beginGuardianEncounter\(\{[\s\S]*id: 'void_empress'[\s\S]*start: \(\) => this\.startBossFight\(\)/
         );
     });
 
