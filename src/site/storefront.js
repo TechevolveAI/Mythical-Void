@@ -44,25 +44,7 @@ const playLink = (label, className = 'button button-primary') => `
 `;
 
 const brandMark = () => `
-    <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <defs>
-            <linearGradient id="void-mark-sky" x1="8" y1="7" x2="56" y2="57" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#342177"/>
-                <stop offset="0.52" stop-color="#171049"/>
-                <stop offset="1" stop-color="#080719"/>
-            </linearGradient>
-            <linearGradient id="void-mark-ring" x1="14" y1="48" x2="52" y2="15" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#7CE8CF"/>
-                <stop offset="0.5" stop-color="#A778FF"/>
-                <stop offset="1" stop-color="#FFD66B"/>
-            </linearGradient>
-        </defs>
-        <rect x="2" y="2" width="60" height="60" rx="19" fill="url(#void-mark-sky)" stroke="#7CE8CF" stroke-opacity=".35"/>
-        <circle cx="32" cy="32" r="17" fill="#05040F" stroke="url(#void-mark-ring)" stroke-width="4"/>
-        <path d="M32 14c1.8 10.4 3.6 12.2 14 14-10.4 1.8-12.2 3.6-14 14-1.8-10.4-3.6-12.2-14-14 10.4-1.8 12.2-3.6 14-14Z" fill="#7CE8CF"/>
-        <circle cx="48" cy="16" r="3.5" fill="#FFD66B"/>
-        <path d="M13 45c8 5.5 16.5 6.9 25.5 4" fill="none" stroke="#A778FF" stroke-width="2.5" stroke-linecap="round"/>
-    </svg>
+    <img class="brand-mark" src="/marketing/mythical-void-emblem-v3.png" alt="" width="38" height="58">
 `;
 
 function renderLegalPage(type) {
