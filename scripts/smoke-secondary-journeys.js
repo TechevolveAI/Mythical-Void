@@ -1640,6 +1640,7 @@ async function smokeSaveReloadJourney(session, exceptions) {
 }
 
 async function smokeVillageUi(session, exceptions) {
+    exceptions.length = 0;
     // Exercise the player-facing route first. Construction is intentionally
     // housed in the Shop Build tab; the Sanctuary landmark is only a shortcut.
     await navigate(session, `${BASE_URL}/play/?reset=true`);
@@ -1670,9 +1671,31 @@ async function smokeVillageUi(session, exceptions) {
     })()`);
     if (!publicEntry) throw new Error('Base Builder production entry could not seed a companion');
     // GameScene generates creature animation frames and builds the Sanctuary
-    // before it becomes active. A cold mobile CI run can legitimately take
-    // longer after the six campaign WebGL sessions that precede this case.
-    await waitForScene(session, 'GameScene', 45000);
+    // before it becomes active. Preserve enough Phaser state to distinguish a
+    // slow boot from a lifecycle exception if this release gate ever regresses.
+    try {
+        await waitForScene(session, 'GameScene', 45000);
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const game = window.mythicalGame;
+            const manager = game?.scene;
+            const scene = manager?.getScene?.('GameScene');
+            return {
+                readyState: document.readyState,
+                gamePresent: Boolean(game),
+                activeScenes: manager?.getScenes?.(true)?.map(item => item.scene?.key) || [],
+                gameSceneStatus: scene?.sys?.settings?.status ?? null,
+                gameSceneActive: Boolean(manager?.isActive?.('GameScene')),
+                playerPresent: Boolean(scene?.player),
+                playerActive: Boolean(scene?.player?.active),
+                playerBodyEnabled: Boolean(scene?.player?.body?.enable),
+                exceptions: ${JSON.stringify(exceptions)}
+            };
+        })()`);
+        throw new Error(
+            `${error.message}; GameScene diagnostics: ${JSON.stringify(diagnostics)}`
+        );
+    }
     const shopResult = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.openShop();
