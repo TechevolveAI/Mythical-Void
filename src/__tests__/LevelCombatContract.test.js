@@ -124,14 +124,25 @@ describe('playable level combat contracts', () => {
         );
 
         expect(source).toContain('configureEnemyCombat(enemy, {');
-        expect(source).toContain("enemy.combatRole === 'armored'");
-        expect(source).toContain('enemy.stompable === false');
+        expect(source).toContain('getEnemyStompProfile(enemy');
+        expect(source).toContain('stompProfile.totalStomps >= 1');
+        expect(source).toContain('instructionText = null');
+        expect(source).toContain('enemy?.stompable !== false');
         expect(source).toContain('if (enemy.combatImmune)');
         expect(source).toContain('telegraphEnemyAttack(enemy, {');
         expect(source).toContain('enemy.combatCue?.destroy?.();');
+        expect(source).toContain('enemy.instructionLabel?.destroy?.();');
         expect(source).toContain("text: 'STOMP CLEAR'");
         expect(source).toContain("text: 'STOMP BLOCKED'");
         expect(source).toContain('HIT${hitsRemaining === 1 ? \'\' : \'S\'} LEFT');
+    });
+
+    test('the first Forest enemy teaches the shared combat marker in plain language', () => {
+        const source = readLevel('MythicalForestLevel.js');
+
+        expect(source).toContain('if (index === 0) {');
+        expect(source).toContain("'GOLD = JUMP ON TOP\\nPIPS = JUMPS LEFT'");
+        expect(source).toContain('sprite.instructionLabelFollowEnemy = true;');
     });
 
     test('Crystal Spider returns damage status to shared stomp feedback', () => {

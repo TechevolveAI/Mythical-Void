@@ -3677,21 +3677,16 @@ class PlatformerLevelScene extends Phaser.Scene {
         const contactType = this.classifyEnemyContact(player, enemy);
         if (contactType === 'stomp' && enemy.stompable !== false) {
             enemy.stompContactLockedUntil = now + 220;
-            const defaultDamage = enemy.isMiniboss
-                ? 1
-                : Math.max(1, Number(enemy.health) || 1);
-            const stompDamage = Number.isFinite(options.stompDamage)
-                ? options.stompDamage
-                : Number.isFinite(enemy.stompDamage)
-                    ? enemy.stompDamage
-                    : defaultDamage;
+            const stompProfile = this.getEnemyStompProfile(enemy, options);
+            const stompDamage = stompProfile.damagePerStomp;
 
             const damageResult = typeof options.onStomp === 'function'
                 ? options.onStomp(enemy, stompDamage)
                 : this.damageEnemy(enemy, stompDamage);
             player.setVelocityY(this.jumpVelocity * 0.62);
             const feedback = this.getEnemyStompFeedback(enemy, {
-                damageApplied: damageResult !== false
+                damageApplied: damageResult !== false,
+                stompDamage
             });
             this.showFloatingText?.(
                 feedback.text,
@@ -3718,7 +3713,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         return 'contact';
     }
 
-    getEnemyStompFeedback(enemy, { damageApplied = true } = {}) {
+    getEnemyStompFeedback(enemy, {
+        damageApplied = true,
+        stompDamage
+    } = {}) {
         if (!damageApplied) {
             return { text: 'STOMP BLOCKED', color: '#FF6B6B' };
         }
@@ -3730,10 +3728,37 @@ class PlatformerLevelScene extends Phaser.Scene {
             return { text: 'STOMP CLEAR', color: '#8FE3CF' };
         }
 
-        const hitsRemaining = Math.max(1, Math.ceil(Number(enemy?.health) || 1));
+        const hitsRemaining = Math.max(
+            1,
+            this.getEnemyStompProfile(enemy, { stompDamage }).stompsRemaining
+        );
         return {
             text: `STOMP · ${hitsRemaining} HIT${hitsRemaining === 1 ? '' : 'S'} LEFT`,
             color: '#F2C94C'
+        };
+    }
+
+    getEnemyStompProfile(enemy, { stompDamage } = {}) {
+        const health = Math.max(0, Number(enemy?.health) || 0);
+        const maxHealth = Math.max(1, Number(enemy?.maxHealth) || health || 1);
+        const fallbackDamage = enemy?.isMiniboss ? 1 : maxHealth;
+        const authoredDamage = Number.isFinite(stompDamage)
+            ? stompDamage
+            : Number.isFinite(enemy?.stompDamage)
+                ? enemy.stompDamage
+                : fallbackDamage;
+        const damagePerStomp = Math.max(0, authoredDamage);
+        const stompable = enemy?.stompable !== false && damagePerStomp > 0;
+        const stompsFor = value => stompable
+            ? Math.max(0, Math.ceil(value / damagePerStomp))
+            : null;
+
+        return {
+            stompable,
+            damagePerStomp,
+            stompsRemaining: stompsFor(health),
+            totalStomps: stompsFor(maxHealth),
+            blocked: Boolean(enemy?.combatImmune)
         };
     }
 
@@ -3761,7 +3786,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         enemy.stompable = stompable;
         enemy.stompDamage = Number.isFinite(stompDamage)
             ? Math.max(0, stompDamage)
-            : undefined;
+            : enemy.isMiniboss
+                ? 1
+                : enemy.maxHealth;
         enemy.damage = Math.max(1, Number(contactDamage) || 1);
         enemy.combatCueRange = Math.max(180, Number(cueRange) || 320);
         enemy.combatCueOffsetY = Number(cueOffsetY) || -52;
@@ -3779,7 +3806,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         bodyColor = 0x274C5B,
         accentColor = 0x8FE3CF,
         eyeColor = 0xF2C94C,
-        instructionText = 'GOLD MARK // STOMP OR STRIKE'
+        instructionText = null
     } = {}) {
         if (!Array.isArray(encounters) || encounters.length === 0) return [];
 
@@ -3918,11 +3945,12 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (!cue?.active) return false;
 
         cue.clear();
-        const health = Math.max(0, Number(enemy.health) || 0);
-        const maxHealth = Math.max(1, Number(enemy.maxHealth) || health || 1);
-        const armored = enemy.combatRole === 'armored' || maxHealth >= 3;
+        const stompProfile = this.getEnemyStompProfile(enemy);
+        enemy.combatCueTotalStomps = stompProfile.totalStomps;
+        enemy.combatCueStompsRemaining = stompProfile.stompsRemaining;
+        enemy.combatCueBlocked = stompProfile.blocked;
 
-        if (enemy.combatImmune) {
+        if (stompProfile.blocked) {
             cue.lineStyle(3, 0x8FE3CF, 0.95);
             cue.strokeCircle(0, 0, 11);
             cue.lineBetween(-8, 8, 8, -8);
@@ -3931,7 +3959,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         cue.setAlpha(1);
-        if (enemy.stompable === false) {
+        if (!stompProfile.stompable) {
             cue.lineStyle(3, 0xFF6B6B, 0.95);
             cue.strokeCircle(0, 1, 10);
             cue.lineBetween(-7, -6, 7, 8);
@@ -3943,9 +3971,9 @@ class PlatformerLevelScene extends Phaser.Scene {
             cue.lineBetween(0, 5, 9, -4);
         }
 
-        if (armored) {
-            const segments = Math.min(4, maxHealth);
-            const litSegments = Math.ceil((health / maxHealth) * segments);
+        if (stompProfile.totalStomps >= 1) {
+            const segments = stompProfile.totalStomps;
+            const litSegments = stompProfile.stompsRemaining;
             const startX = -(segments * 7 - 2) / 2;
             for (let index = 0; index < segments; index++) {
                 cue.fillStyle(
@@ -3976,6 +4004,11 @@ class PlatformerLevelScene extends Phaser.Scene {
                     enemy.x,
                     enemy.y + enemy.combatCueOffsetY
                 );
+            }
+            if (enemy.instructionLabelFollowEnemy && enemy.instructionLabel?.active) {
+                enemy.instructionLabel
+                    .setPosition(enemy.x, enemy.y - 78)
+                    .setVisible(visible);
             }
         });
         return true;
@@ -5185,6 +5218,8 @@ class PlatformerLevelScene extends Phaser.Scene {
             return false;
         }
         if (typeof enemy.onCombatDefeat === 'function') {
+            enemy.instructionLabel?.destroy?.();
+            enemy.instructionLabel = null;
             enemy.combatCue?.destroy?.();
             enemy.combatCue = null;
             enemy.onCombatDefeat();

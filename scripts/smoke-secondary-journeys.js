@@ -2334,6 +2334,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         const state = {
             enemyType: target.enemyType || target.combatRole,
             enemyHealthBefore: Number(target.health),
+            cueTotalBefore: target.combatCueTotalStomps,
+            cueRemainingBefore: target.combatCueStompsRemaining,
             playerHealthBefore: Number(scene.health),
             contacts: []
         };
@@ -2344,6 +2346,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 state.contacts.push(result);
                 state.enemyHealthAfter = Number(target.health);
                 state.enemyActiveAfter = target.active !== false;
+                state.cueTotalAfter = target.combatCueTotalStomps;
+                state.cueRemainingAfter = target.combatCueStompsRemaining;
                 state.playerHealthAfter = Number(scene.health);
                 state.playerVelocityAfter = Number(player?.body?.velocity?.y);
             }
@@ -2374,6 +2378,10 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     if (
         liveStomp.contacts.filter(contact => contact === 'stomp').length !== 1 ||
         liveStomp.enemyHealthAfter !== liveStomp.enemyHealthBefore - 1 ||
+        liveStomp.cueTotalBefore !== liveStomp.enemyHealthBefore ||
+        liveStomp.cueRemainingBefore !== liveStomp.enemyHealthBefore ||
+        liveStomp.cueTotalAfter !== liveStomp.cueTotalBefore ||
+        liveStomp.cueRemainingAfter !== liveStomp.cueRemainingBefore - 1 ||
         liveStomp.playerHealthAfter !== liveStomp.playerHealthBefore ||
         !(liveStomp.playerVelocityAfter < 0)
     ) {
