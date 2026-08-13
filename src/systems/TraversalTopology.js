@@ -28,6 +28,9 @@ function normalizeSupport(support, index) {
     }
 
     const type = support?.platformType || 'solid';
+    const traversalLinks = Array.isArray(support?.traversalLinks)
+        ? support.traversalLinks.filter(link => typeof link === 'string' && link)
+        : [];
     return {
         id: support?.traversalId || support?.name || `support-${index}`,
         index,
@@ -43,7 +46,8 @@ function normalizeSupport(support, index) {
             support?.traversalObstacle === true,
         traversalCeiling: support?.traversalCeiling === true,
         traversalOneWay: type === 'one-way' ||
-            support?.traversalOneWay === true
+            support?.traversalOneWay === true,
+        traversalLinks
     };
 }
 
@@ -325,6 +329,155 @@ function supportCanReachTarget(support, target, envelope, {
         targetRise <= envelope.maxRise;
 }
 
+function buildTraversalAdjacency(supports, envelope, {
+    playerHalfWidth,
+    playerHeight
+}) {
+    const adjacency = supports.map(() => []);
+    supports.forEach((from, fromIndex) => {
+        supports.forEach((to, toIndex) => {
+            if (canTraverseSupport(from, to, envelope, {
+                obstacles: supports,
+                playerHalfWidth,
+                playerHeight
+            })) {
+                adjacency[fromIndex].push(toIndex);
+            }
+        });
+    });
+    const supportIndexById = new Map(
+        supports.map((support, index) => [support.id, index])
+    );
+    supports.forEach((support, fromIndex) => {
+        support.traversalLinks.forEach(targetId => {
+            const targetIndex = supportIndexById.get(targetId);
+            if (
+                targetIndex != null &&
+                targetIndex !== fromIndex &&
+                !adjacency[fromIndex].includes(targetIndex)
+            ) {
+                adjacency[fromIndex].push(targetIndex);
+            }
+        });
+    });
+    return adjacency;
+}
+
+function reachableFrom(adjacency, frontier) {
+    const reachable = new Set(frontier);
+    const queue = [...frontier];
+    while (queue.length) {
+        const supportIndex = queue.shift();
+        adjacency[supportIndex].forEach(nextIndex => {
+            if (reachable.has(nextIndex)) return;
+            reachable.add(nextIndex);
+            queue.push(nextIndex);
+        });
+    }
+    return reachable;
+}
+
+function shortestPath(adjacency, frontier, destinations) {
+    const queue = [...frontier];
+    const previous = new Map(queue.map(index => [index, null]));
+    let destination = queue.find(index => destinations.has(index));
+
+    while (destination == null && queue.length) {
+        const current = queue.shift();
+        for (const next of adjacency[current]) {
+            if (previous.has(next)) continue;
+            previous.set(next, current);
+            if (destinations.has(next)) {
+                destination = next;
+                break;
+            }
+            queue.push(next);
+        }
+    }
+    if (destination == null) return [];
+
+    const path = [];
+    for (let current = destination; current != null; current = previous.get(current)) {
+        path.unshift(current);
+    }
+    return path;
+}
+
+function analyzeOrderedTargetFlow({
+    supports,
+    targets,
+    adjacency,
+    envelope,
+    spawnSupportIndex,
+    spawnX,
+    playerHeight,
+    playerHalfWidth
+}) {
+    let orderedFrontier = new Set([spawnSupportIndex]);
+    let orderedRouteBroken = false;
+    let previousTargetX = finite(spawnX);
+    let requiredJumpCount = 0;
+    let maxSegmentJumps = 0;
+    let backtrackDistance = 0;
+
+    const targetResults = targets.map(target => {
+        const orderedReachable = reachableFrom(adjacency, orderedFrontier);
+        const reachableSupports = supports.filter(support => (
+            orderedReachable.has(support.index) &&
+            supportCanReachTarget(support, target, envelope, {
+                playerHeight,
+                playerHalfWidth
+            })
+        ));
+        const reachable = !orderedRouteBroken && reachableSupports.length > 0;
+        const destinationIndices = new Set(
+            reachableSupports.map(support => support.index)
+        );
+        const path = reachable
+            ? shortestPath(adjacency, orderedFrontier, destinationIndices)
+            : [];
+        const jumpCount = Math.max(0, path.length - 1);
+        const expectedDirection = target.x >= previousTargetX ? 1 : -1;
+        for (let index = 1; index < path.length; index += 1) {
+            const from = supports[path[index - 1]];
+            const to = supports[path[index]];
+            const delta = (
+                (to.left + to.right) - (from.left + from.right)
+            ) / 2;
+            if (delta * expectedDirection < 0) {
+                backtrackDistance += Math.abs(delta);
+            }
+        }
+
+        if (reachable) {
+            orderedFrontier = destinationIndices;
+            requiredJumpCount += jumpCount;
+            maxSegmentJumps = Math.max(maxSegmentJumps, jumpCount);
+        } else {
+            orderedRouteBroken = true;
+            orderedFrontier = new Set();
+        }
+        previousTargetX = target.x;
+
+        return {
+            id: target.id,
+            label: target.label,
+            reachable,
+            supportIds: reachableSupports.slice(0, 5).map(support => support.id),
+            jumpCount,
+            pathSupportIds: path.map(index => supports[index].id)
+        };
+    });
+
+    return {
+        targetResults,
+        requiredJumpCount,
+        maxSegmentJumps,
+        backtrackDistance: Math.round(backtrackDistance),
+        passed: targetResults.every(target => target.reachable)
+    };
+}
+
 /**
  * Audits authored static support geometry against the level movement profile.
  * Safety margins ensure a frame-perfect maximum jump is reported as unsafe.
@@ -363,73 +516,87 @@ function analyzeTraversalTopology({
         };
     }
 
-    const adjacency = supports.map(() => []);
-    supports.forEach((from, fromIndex) => {
-        supports.forEach((to, toIndex) => {
-            if (canTraverseSupport(from, to, envelope, {
-                obstacles: supports,
-                playerHalfWidth,
-                playerHeight
-            })) {
-                adjacency[fromIndex].push(toIndex);
-            }
-        });
+    const adjacency = buildTraversalAdjacency(supports, envelope, {
+        playerHalfWidth,
+        playerHeight
     });
-
-    const reachableFrom = frontier => {
-        const reachable = new Set(frontier);
-        const queue = [...frontier];
-        while (queue.length) {
-            const supportIndex = queue.shift();
-            adjacency[supportIndex].forEach(nextIndex => {
-                if (reachable.has(nextIndex)) return;
-                reachable.add(nextIndex);
-                queue.push(nextIndex);
-            });
-        }
-        return reachable;
-    };
-
-    const allReachable = reachableFrom([spawnSupport.index]);
-    let orderedFrontier = new Set([spawnSupport.index]);
-    let orderedRouteBroken = false;
-    const targetResults = targets.map(target => {
-        const orderedReachable = reachableFrom(orderedFrontier);
-        const reachableSupports = supports.filter(support => (
-            orderedReachable.has(support.index) &&
-            supportCanReachTarget(support, target, envelope, {
-                playerHeight,
-                playerHalfWidth
-            })
-        ));
-        const reachable = !orderedRouteBroken && reachableSupports.length > 0;
-        if (reachable) {
-            orderedFrontier = new Set(
-                reachableSupports.map(support => support.index)
-            );
-        } else {
-            orderedRouteBroken = true;
-            orderedFrontier = new Set();
-        }
-        return {
-            id: target.id,
-            label: target.label,
-            reachable,
-            supportIds: reachableSupports.slice(0, 5).map(support => support.id)
-        };
+    const allReachable = reachableFrom(adjacency, [spawnSupport.index]);
+    const routeFlow = analyzeOrderedTargetFlow({
+        supports,
+        targets,
+        adjacency,
+        envelope,
+        spawnSupportIndex: spawnSupport.index,
+        spawnX: spawn?.x,
+        playerHeight,
+        playerHalfWidth
     });
+    const targetResults = routeFlow.targetResults;
     const unreachableTargets = targetResults
         .filter(target => !target.reachable)
         .map(target => target.id);
     const coverage = supports.length ? allReachable.size / supports.length : 0;
 
+    const finalTarget = targets.at(-1);
+    const finalSupportIndices = new Set(
+        finalTarget
+            ? supports.filter(support => supportCanReachTarget(
+                support,
+                finalTarget,
+                envelope,
+                { playerHeight, playerHalfWidth }
+            )).map(support => support.index)
+            : []
+    );
+    const reverseAdjacency = supports.map(() => []);
+    adjacency.forEach((nextIndices, fromIndex) => {
+        nextIndices.forEach(toIndex => reverseAdjacency[toIndex].push(fromIndex));
+    });
+    const canReachFinal = reachableFrom(reverseAdjacency, finalSupportIndices);
+    const strandingSupportIds = finalTarget
+        ? supports.filter(support => (
+            allReachable.has(support.index) &&
+            !canReachFinal.has(support.index)
+        )).map(support => support.id)
+        : [];
+    const strandingSupportCount = strandingSupportIds.length;
+
+    const comfortEnvelope = calculateJumpEnvelope({
+        ...(movement || {}),
+        jumpVelocity: finite(movement?.jumpVelocity, -420) * 0.9,
+        playerSpeed: finite(movement?.playerSpeed, 180) * 0.9,
+        horizontalEfficiency: 0.76,
+        verticalSafety: 0.9,
+        edgeForgiveness: 20
+    });
+    const comfortAdjacency = buildTraversalAdjacency(supports, comfortEnvelope, {
+        playerHalfWidth,
+        playerHeight
+    });
+    const comfortFlow = analyzeOrderedTargetFlow({
+        supports,
+        targets,
+        adjacency: comfortAdjacency,
+        envelope: comfortEnvelope,
+        spawnSupportIndex: spawnSupport.index,
+        spawnX: spawn?.x,
+        playerHeight,
+        playerHalfWidth
+    });
+    const uncomfortableTargetIds = comfortFlow.targetResults
+        .filter(target => !target.reachable)
+        .map(target => target.id);
+
     return {
         passed: unreachableTargets.length === 0 &&
-            coverage >= MIN_SUPPORT_COVERAGE,
+            coverage >= MIN_SUPPORT_COVERAGE &&
+            strandingSupportCount === 0,
         reason: unreachableTargets.length
             ? 'unreachable-targets'
             : coverage < MIN_SUPPORT_COVERAGE
                 ? 'isolated-supports'
+                : strandingSupportCount
+                    ? 'stranded-supports'
                 : 'connected',
         envelope,
         spawnSupportId: spawnSupport.id,
@@ -442,7 +609,16 @@ function analyzeTraversalTopology({
             .filter(support => !allReachable.has(support.index))
             .map(support => support.id),
         unreachableTargets,
-        targets: targetResults
+        targets: targetResults,
+        flow: {
+            requiredJumpCount: routeFlow.requiredJumpCount,
+            maxSegmentJumps: routeFlow.maxSegmentJumps,
+            backtrackDistance: routeFlow.backtrackDistance,
+            strandingSupportIds,
+            strandingSupportCount,
+            comfortPassed: comfortFlow.passed,
+            uncomfortableTargetIds
+        }
     };
 }
 

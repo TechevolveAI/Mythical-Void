@@ -472,6 +472,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.retireCollectedPeakFragments();');
         expect(source).toContain("const fragments = [...(this.collectibles?.getChildren?.() || [])]");
         expect(source).toContain('onOptionalRouteGuardConsumed()');
+        expect(source).toContain('createPeakReturnCurrents()');
+        expect(source).toContain("'RETURN CURRENT\\nTO WARNING LINE ↑'");
+        expect(source).toContain("lowerRecoveryIsland.traversalLinks = ['peak-warning-lower']");
+        expect(source).toContain("summitRecoveryIsland.traversalLinks = ['peak-warning-summit']");
+        expect(source).toContain('this.player.setVelocityY(Math.min(this.player.body.velocity.y, -300))');
+        expect(source).toContain('platform.traversalId = id;');
     });
 
     test('optional route progress grants its reward exactly once and retires the marker', () => {
@@ -1237,6 +1243,11 @@ describe('campaign traversal quality contracts', () => {
             path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
             'utf8'
         );
+
+        expect(smoke).toContain('audit?.flow?.strandingSupportCount !== 0');
+        expect(smoke).toContain('smokeVoidPeaksReturnCurrents(session)');
+        expect(smoke).toContain("id: 'peak-return-lower'");
+        expect(smoke).toContain("id: 'peak-return-summit'");
 
         expect(smoke).toContain('for (let signalIndex = 1; signalIndex < 3; signalIndex += 1)');
         expect(smoke).toContain("mythicalForest: 'forestRouteAligned'");

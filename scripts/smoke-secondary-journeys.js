@@ -394,6 +394,178 @@ async function pressEnter(session) {
     });
 }
 
+async function setKeyboardKey(session, type, {
+    key,
+    code,
+    keyCode
+}) {
+    await session.call('Input.dispatchKeyEvent', {
+        type,
+        key,
+        code,
+        windowsVirtualKeyCode: keyCode,
+        nativeVirtualKeyCode: keyCode
+    });
+}
+
+async function smokeVoidPeaksReturnCurrents(session) {
+    const routes = [
+        {
+            id: 'peak-return-lower',
+            start: { x: 2200, y: 740 },
+            destinationId: 'peak-warning-lower'
+        },
+        {
+            id: 'peak-return-summit',
+            start: { x: 3120, y: 740 },
+            destinationId: 'peak-warning-summit'
+        }
+    ];
+    const results = [];
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+        (scene.collectibles?.getChildren?.() || []).forEach(item => {
+            if (item?.body) item.body.enable = false;
+        });
+        return true;
+    })()`);
+
+    try {
+        for (const route of routes) {
+            await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                scene.isInvincible = true;
+                scene.releaseAllPlatformerActionButtons?.();
+                scene.resetJoystick?.();
+                scene.player.body.reset(${route.start.x}, ${route.start.y});
+                scene.player.setVelocity(0, 0);
+                return true;
+            })()`),
+            await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                    return Boolean(scene.player?.body?.blocked?.down || scene.isGrounded);
+                })()`),
+                { timeoutMs: 2500, message: `${route.id} recovery start` }
+            );
+
+            await setKeyboardKey(session, 'keyDown', {
+                key: 'd',
+                code: 'KeyD',
+                keyCode: 68
+            });
+            let activated;
+            try {
+                activated = await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                        const current = scene.peakReturnCurrents.find(
+                            item => item.id === ${JSON.stringify(route.id)}
+                        );
+                        if (!current?.activations || scene.player.body.velocity.y > -20) return null;
+                        return {
+                            activations: current.activations,
+                            playerX: Math.round(scene.player.x),
+                            playerY: Math.round(scene.player.y),
+                            velocityY: Math.round(scene.player.body.velocity.y)
+                        };
+                    })()`),
+                    { timeoutMs: 2200, message: `${route.id} activation` }
+                );
+            } catch (error) {
+                const diagnostics = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                    const current = scene.peakReturnCurrents.find(
+                        item => item.id === ${JSON.stringify(route.id)}
+                    );
+                    return {
+                        playerX: Math.round(scene.player.x),
+                        playerY: Math.round(scene.player.y),
+                        velocityX: Math.round(scene.player.body.velocity.x),
+                        velocityY: Math.round(scene.player.body.velocity.y),
+                        current: current ? {
+                            x: current.x,
+                            top: current.top,
+                            bottom: current.bottom,
+                            width: current.width,
+                            activations: current.activations
+                        } : null
+                    };
+                })()`);
+                throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+            }
+            await setKeyboardKey(session, 'keyUp', {
+                key: 'd',
+                code: 'KeyD',
+                keyCode: 68
+            });
+            const landed = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                    const support = scene.platforms.getChildren().find(
+                        item => item.traversalId === ${JSON.stringify(route.destinationId)}
+                    );
+                    const body = scene.player?.body;
+                    if (!support?.body || !body) return null;
+                    const onSupport = body.right > support.body.left + 8 &&
+                        body.left < support.body.right - 8 &&
+                        Math.abs(body.bottom - support.body.top) <= 7 &&
+                        (body.blocked.down || scene.isGrounded);
+                    return onSupport ? {
+                        supportId: support.traversalId,
+                        playerX: Math.round(scene.player.x),
+                        playerBottom: Math.round(body.bottom),
+                        supportTop: Math.round(support.body.top)
+                    } : null;
+                })()`),
+                { timeoutMs: 3200, message: `${route.id} warning-line landing` }
+            );
+            results.push({ id: route.id, activated, landed });
+        }
+    } finally {
+        try {
+            await setKeyboardKey(session, 'keyUp', {
+                key: 'd',
+                code: 'KeyD',
+                keyCode: 68
+            });
+        } finally {
+            await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                (scene.collectibles?.getChildren?.() || []).forEach(item => {
+                    if (item?.body && item.active !== false) item.body.enable = true;
+                });
+                scene.isInvincible = false;
+                scene.releaseAllPlatformerActionButtons?.();
+                scene.resetJoystick?.();
+                return true;
+            })()`);
+        }
+    }
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+        scene.isInvincible = false;
+        const route = scene.optionalRouteRewards?.get?.('peaks_relic_ridge');
+        const choice = route?.choice;
+        scene.peakRouteChoice = '';
+        if (choice) {
+            choice.selectedPath = null;
+            choice.mainEntered = false;
+            choice.optionalEntered = false;
+            choice.rejoined = false;
+            choice.sequence = null;
+        }
+        scene.routeChoiceSequence = 0;
+        scene.player.body.reset(2200, scene.levelHeight - 110);
+        scene.player.setVelocity(0, 0);
+        return true;
+    })()`);
+    await delay(250);
+    return results;
+}
+
 async function smokeLevel(session, route, sceneName, exceptions) {
     exceptions.length = 0;
     trace('navigate', { route, sceneName });
@@ -867,6 +1039,10 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     if (Math.abs(leftReleased || 0) > 0.05) {
         throw new Error(`${sceneName} retained left input after touch release: ${leftReleased}`);
     }
+
+    const returnCurrents = route === 'voidPeaks'
+        ? await smokeVoidPeaksReturnCurrents(session)
+        : null;
 
     let verticalJoystick = null;
     if (route === 'reef') {
@@ -2305,6 +2481,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         traversalAudit,
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
         joystick: { movedRight, movedLeft, vertical: verticalJoystick },
+        returnCurrents,
         combatFeedback,
         liveStomp,
         routeChoice,
@@ -2342,7 +2519,11 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             return scene.auditTraversalTopology();
         })()`);
-        if (!audit?.passed || exceptions.length) {
+        if (
+            !audit?.passed ||
+            audit?.flow?.strandingSupportCount !== 0 ||
+            exceptions.length
+        ) {
             const supportGeometry = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                 return (scene.platforms?.getChildren?.() || []).map((support, index) => ({
@@ -2366,7 +2547,8 @@ async function smokeTraversalTopology(session, levels, exceptions) {
         results[route] = audit;
         process.stdout.write(
             `PASS ${sceneName}Topology ` +
-            `${audit.reachableSupportCount}/${audit.supportCount}\n`
+            `${audit.reachableSupportCount}/${audit.supportCount} ` +
+            `deadEnds=${audit.flow?.strandingSupportCount || 0}\n`
         );
     }
 
