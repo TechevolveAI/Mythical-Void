@@ -1,7 +1,3 @@
-jest.mock('@google/genai', () => ({
-    GoogleGenAI: jest.fn()
-}));
-
 const CreaturePortraitSpec = require('../systems/CreaturePortraitSpec.js');
 const portraitFunction = require('../../netlify/lib/generate-ai-art-core.cjs');
 
@@ -452,12 +448,16 @@ describe('living portrait Netlify function', () => {
 
     test('fails over from invalid Replicate auth to the managed image gateway', async () => {
         const adminClient = createAdminClient();
-        const providerFetch = jest.fn().mockResolvedValue({
-            ok: false,
-            status: 401,
-            json: async () => ({ error: 'invalid token' })
-        });
-        const generateContent = jest.fn().mockResolvedValue({
+        const providerFetch = jest.fn()
+            .mockResolvedValueOnce({
+                ok: false,
+                status: 401,
+                json: async () => ({ error: 'invalid token' })
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({
                     candidates: [{
                         content: {
                             parts: [{
@@ -468,12 +468,10 @@ describe('living portrait Netlify function', () => {
                             }]
                         }
                     }]
-        });
+                })
+            });
         portraitFunction._internal.setRuntime({
             createClient: () => adminClient,
-            createGeminiClient: () => ({
-                models: { generateContent }
-            }),
             fetch: providerFetch,
             now: () => 1786032300000
         });
@@ -492,29 +490,37 @@ describe('living portrait Netlify function', () => {
         expect(payload).toEqual(expect.objectContaining({
             success: true,
             status: 'succeeded',
-            provider: 'Netlify AI Gateway',
+            provider: 'Google Gemini API',
             model: 'gemini-3.1-flash-image',
             storage: 'supabase-private'
         }));
-        expect(providerFetch).toHaveBeenCalledTimes(1);
+        expect(providerFetch).toHaveBeenCalledTimes(2);
 
-        expect(generateContent).toHaveBeenCalledTimes(1);
-        const gatewayRequest = generateContent.mock.calls[0][0];
-        expect(gatewayRequest.model).toBe('gemini-3.1-flash-image');
-        expect(gatewayRequest.contents[0].text).toContain(
+        const [gatewayUrl, gatewayOptions] = providerFetch.mock.calls[1];
+        const gatewayRequest = JSON.parse(gatewayOptions.body);
+        expect(gatewayUrl).toBe(
+            'https://generativelanguage.googleapis.com/v1/models/' +
+            'gemini-3.1-flash-image:generateContent'
+        );
+        expect(gatewayOptions.headers['x-goog-api-key']).toBe(
+            'managed-gateway-test-key'
+        );
+        expect(gatewayRequest.contents[0].parts[0].text).toContain(
             'IMAGE 1 IS THE AUTHORITATIVE IDENTITY REFERENCE'
         );
-        expect(gatewayRequest.contents[1]).toEqual({
-            inlineData: {
-                mimeType: 'image/png',
+        expect(gatewayRequest.contents[0].parts[1]).toEqual({
+            inline_data: {
+                mime_type: 'image/png',
                 data: 'iVBORw0KGgo='
             }
         });
-        expect(gatewayRequest.config).toEqual({
+        expect(gatewayRequest.generationConfig).toEqual({
             responseModalities: ['IMAGE'],
-            imageConfig: {
-                aspectRatio: '1:1',
-                imageSize: '1K'
+            responseFormat: {
+                image: {
+                    aspectRatio: '1:1',
+                    imageSize: '1K'
+                }
             }
         });
         expect(adminClient.storage.from).toHaveBeenCalledWith(
@@ -525,24 +531,24 @@ describe('living portrait Netlify function', () => {
     test('uses the managed image gateway first in production-default mode', async () => {
         delete process.env.PORTRAIT_IMAGE_PROVIDER;
         const adminClient = createAdminClient();
-        const providerFetch = jest.fn();
-        const generateContent = jest.fn().mockResolvedValue({
-            candidates: [{
-                content: {
-                    parts: [{
-                        inlineData: {
-                            mimeType: 'image/png',
-                            data: 'iVBORw0KGgo='
-                        }
-                    }]
-                }
-            }]
+        const providerFetch = jest.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                candidates: [{
+                    content: {
+                        parts: [{
+                            inlineData: {
+                                mimeType: 'image/png',
+                                data: 'iVBORw0KGgo='
+                            }
+                        }]
+                    }
+                }]
+            })
         });
         portraitFunction._internal.setRuntime({
             createClient: () => adminClient,
-            createGeminiClient: () => ({
-                models: { generateContent }
-            }),
             fetch: providerFetch
         });
 
@@ -556,11 +562,10 @@ describe('living portrait Netlify function', () => {
         }));
 
         expect(response.statusCode).toBe(200);
-        expect(generateContent).toHaveBeenCalledTimes(1);
-        expect(providerFetch).not.toHaveBeenCalled();
+        expect(providerFetch).toHaveBeenCalledTimes(1);
         expect(JSON.parse(response.body)).toEqual(expect.objectContaining({
             status: 'succeeded',
-            provider: 'Netlify AI Gateway',
+            provider: 'Google Gemini API',
             model: 'gemini-3.1-flash-image'
         }));
     });
