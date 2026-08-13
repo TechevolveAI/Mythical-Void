@@ -11023,7 +11023,7 @@ class GameScene extends Phaser.Scene {
             window.GameState
         );
         const protocol = getProtectedReturnSnapshot(window.GameState);
-        if (!snapshot.available) return;
+        if (!snapshot.available && !reconstruction.available) return;
 
         this.shipEvidenceBoardModal = new ShipEvidenceBoardModal(this, {
             snapshotProvider: () => (
@@ -11059,20 +11059,16 @@ class GameScene extends Phaser.Scene {
                 });
                 if (result.snapshot.complete) {
                     window.AudioManager?.playAchievement?.();
-                    if (
-                        this.continueFinaleAfterRepair ||
-                        (
-                            this.shipReconstructionHandoff &&
-                            this.shipReconstructionNextGateLabel ===
-                                'The Final Void'
-                        )
-                    ) {
-                        this.time.delayedCall(700, () => {
-                            this.shipEvidenceBoardModal?.hide?.();
-                        });
-                    }
                 } else {
                     window.AudioManager?.playButtonClick?.();
+                }
+                if (
+                    this.continueFinaleAfterRepair ||
+                    this.shipReconstructionHandoff
+                ) {
+                    this.time.delayedCall(900, () => {
+                        this.shipEvidenceBoardModal?.hide?.();
+                    });
                 }
                 return result;
             },
@@ -11194,7 +11190,7 @@ class GameScene extends Phaser.Scene {
                         : '';
                     this.shipReconstructionHandoff = false;
                     if (
-                        currentReconstruction.complete &&
+                        currentReconstruction.finalVoidReady &&
                         this.shipReconstructionNextGateLabel === 'The Final Void'
                     ) {
                         this.showInteractionHint(
@@ -11212,6 +11208,11 @@ class GameScene extends Phaser.Scene {
                             ? `INSTALL ${currentReconstruction.readyStep.partName.toUpperCase()} BEFORE THE NEXT EXPEDITION`
                             : `WANDERER-77 SYSTEM ONLINE${nextRoute}`
                     );
+                    this.time.delayedCall(420, () => {
+                        if (!this._isShuttingDown) {
+                            this.scene.start('HubWorldScene');
+                        }
+                    });
                     return;
                 }
                 this.showInteractionHint(

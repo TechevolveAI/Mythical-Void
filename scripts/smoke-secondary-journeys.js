@@ -370,6 +370,13 @@ async function waitForScene(session, sceneName, timeoutMs = 15000) {
 }
 
 async function tap(session, x, y) {
+    await session.call('Page.bringToFront');
+    await session.call('Input.dispatchMouseEvent', {
+        type: 'mouseMoved',
+        x,
+        y,
+        button: 'none'
+    });
     await session.call('Input.dispatchMouseEvent', {
         type: 'mousePressed',
         x,
@@ -377,6 +384,7 @@ async function tap(session, x, y) {
         button: 'left',
         clickCount: 1
     });
+    await delay(80);
     await session.call('Input.dispatchMouseEvent', {
         type: 'mouseReleased',
         x,
@@ -387,10 +395,21 @@ async function tap(session, x, y) {
 }
 
 async function touch(session, x, y) {
+    await session.call('Page.bringToFront');
+    const identifier = nextTouchIdentifier;
+    nextTouchIdentifier += 1;
     await session.call('Input.dispatchTouchEvent', {
         type: 'touchStart',
-        touchPoints: [{ x, y, radiusX: 2, radiusY: 2, force: 1 }]
+        touchPoints: [{
+            x,
+            y,
+            radiusX: 2,
+            radiusY: 2,
+            force: 1,
+            id: identifier
+        }]
     });
+    await delay(80);
     await session.call('Input.dispatchTouchEvent', {
         type: 'touchEnd',
         touchPoints: []
@@ -421,6 +440,133 @@ async function touchSceneText(session, text, {
             };
         })()`),
         { timeoutMs: 12000, message }
+    );
+    await touch(session, point.x, point.y);
+    return point;
+}
+
+async function touchInteractiveSceneText(session, text, {
+    match = 'exact',
+    message = text,
+    timeoutMs = 12000,
+    input = 'touch'
+} = {}) {
+    const point = await waitFor(
+        () => evaluate(session, `(() => {
+            const scenes = window.mythicalGame?.scene?.getScenes(true) || [];
+            const matches = scenes.flatMap(scene => (
+                scene?.children?.list || []
+            )).filter(item => {
+                if (
+                    typeof item?.text !== 'string' ||
+                    item.visible === false ||
+                    item.alpha <= 0
+                ) return false;
+                const textMatches = ${JSON.stringify(match)} === 'startsWith'
+                    ? item.text.startsWith(${JSON.stringify(text)})
+                    : item.text === ${JSON.stringify(text)};
+                if (!textMatches || !item.getBounds) return false;
+                if (item.input?.enabled === true) return true;
+                const bounds = item.getBounds();
+                const modal = item.scene?.shipEvidenceBoardModal;
+                if (
+                    modal?.isVisible === true &&
+                    modal.pointerRegions?.some(region => (
+                        bounds.centerX >= region.left &&
+                        bounds.centerX <= region.right &&
+                        bounds.centerY >= region.top &&
+                        bounds.centerY <= region.bottom
+                    ))
+                ) return true;
+                return (item.scene?.input?._list || []).some(candidate => {
+                    if (
+                        candidate === item ||
+                        candidate?.input?.enabled !== true ||
+                        candidate?.visible === false ||
+                        !candidate?.getBounds
+                    ) return false;
+                    const candidateBounds = candidate.getBounds();
+                    return candidateBounds.contains(
+                        bounds.centerX,
+                        bounds.centerY
+                    );
+                });
+            }).sort((left, right) => (right.depth || 0) - (left.depth || 0));
+            const target = matches[0];
+            if (!target?.getBounds) return null;
+            const bounds = target.getBounds();
+            const width = target.scene?.scale?.width ||
+                document.querySelector('canvas')?.clientWidth || 0;
+            const height = target.scene?.scale?.height ||
+                document.querySelector('canvas')?.clientHeight || 0;
+            if (
+                bounds.left < 0 ||
+                bounds.top < 0 ||
+                bounds.right > width ||
+                bounds.bottom > height
+            ) return null;
+            return {
+                x: Math.round(bounds.centerX),
+                y: Math.round(bounds.centerY),
+                text: target.text,
+                depth: target.depth,
+                bounds: {
+                    left: Math.round(bounds.left),
+                    right: Math.round(bounds.right),
+                    top: Math.round(bounds.top),
+                    bottom: Math.round(bounds.bottom)
+                },
+                viewport: { width, height }
+            };
+        })()`),
+        { timeoutMs, message }
+    );
+    if (input === 'mouse') {
+        await tap(session, point.x, point.y);
+    } else {
+        await touch(session, point.x, point.y);
+    }
+    return point;
+}
+
+async function touchDomButton(session, selector, {
+    message = selector,
+    timeoutMs = 12000
+} = {}) {
+    const point = await waitFor(
+        () => evaluate(session, `(() => {
+            const button = document.querySelector(${JSON.stringify(selector)});
+            const bounds = button?.getBoundingClientRect?.();
+            const style = button ? getComputedStyle(button) : null;
+            if (
+                !button ||
+                !bounds ||
+                button.disabled ||
+                style?.display === 'none' ||
+                style?.visibility === 'hidden' ||
+                Number(style?.opacity || 1) <= 0 ||
+                bounds.left < 0 ||
+                bounds.top < 0 ||
+                bounds.right > window.innerWidth ||
+                bounds.bottom > window.innerHeight
+            ) return null;
+            return {
+                x: Math.round(bounds.left + bounds.width / 2),
+                y: Math.round(bounds.top + bounds.height / 2),
+                text: button.textContent?.trim() || '',
+                bounds: {
+                    left: Math.round(bounds.left),
+                    right: Math.round(bounds.right),
+                    top: Math.round(bounds.top),
+                    bottom: Math.round(bounds.bottom)
+                },
+                viewport: {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                }
+            };
+        })()`),
+        { timeoutMs, message }
     );
     await touch(session, point.x, point.y);
     return point;
@@ -1683,11 +1829,14 @@ async function smokeForestForwardHandoffs(session) {
     return landings;
 }
 
-async function smokeLevel(session, route, sceneName, exceptions) {
+async function smokeLevel(session, route, sceneName, exceptions, {
+    beforeStart = null
+} = {}) {
     exceptions.length = 0;
     trace('navigate', { route, sceneName });
     await navigate(session, `${BASE_URL}/play/?reset=true`);
     await waitForScene(session, 'HatchingScene');
+    await beforeStart?.();
     trace('startCampaignScene', { sceneName });
     await startCampaignScene(session, { route, sceneName });
     await delay(400);
@@ -5559,6 +5708,561 @@ async function startCampaignScene(session, step) {
     await delay(500);
 }
 
+async function prepareGuardianHandoffState(session, step) {
+    const stepIndex = CAMPAIGN_STATE_STEPS.findIndex(
+        candidate => candidate.route === step.route
+    );
+    if (stepIndex < 0) {
+        throw new Error(`Unknown guardian handoff step ${step.route}`);
+    }
+
+    return evaluate(session, `(() => {
+        const state = window.GameState;
+        const campaign = ${JSON.stringify(CAMPAIGN_STATE_STEPS)};
+        const currentIndex = ${stepIndex};
+        const priorSteps = campaign.slice(0, currentIndex);
+        const priorParts = priorSteps.map(candidate => candidate.partId);
+        const completedStepIds = priorSteps.map(
+            candidate => candidate.reconstructionStepId
+        );
+        const installedAt = new Date().toISOString();
+        const currentFieldKit = state.get('story.projectBeacon.fieldKit') || {};
+        const currentKatana = currentFieldKit.katana || {};
+        const priorUpgrades = priorSteps
+            .filter(candidate => candidate.katanaUpgradeId)
+            .map(candidate => ({
+                id: candidate.katanaUpgradeId,
+                name: candidate.katanaUpgradeId === 'crystal_edge'
+                    ? 'Resonant Edge'
+                    : 'Aurora Guard',
+                sourceLevelId: candidate.levelId,
+                installedAt
+            }));
+
+        state.set('creature.id', 'guardian_handoff_nova');
+        state.set('creature.name', 'Nova');
+        state.set('creature.hatched', true);
+        state.set('creature.named', true);
+        state.set('story.projectBeacon.fieldKit', {
+            ...currentFieldKit,
+            recovered: true,
+            recoveredAt: installedAt,
+            katana: {
+                ...currentKatana,
+                id: currentKatana.id || 'earth_field_katana',
+                name: currentKatana.name || 'Earth-forged Field Katana',
+                material: currentKatana.material || 'Titanium-ceramic laminate',
+                upgradeSlots: 2,
+                configuration: priorUpgrades.length
+                    ? 'creature_tech_adapted'
+                    : 'earth_forged',
+                installedUpgrades: priorUpgrades
+            }
+        });
+        state.set('hubWorld.shipParts.collected', priorParts);
+        state.set('story.projectBeacon.shipReconstruction', {
+            schemaVersion: 1,
+            completedStepIds,
+            firstInstalledAt: completedStepIds.length ? installedAt : null,
+            completedAt: null,
+            history: completedStepIds.map((stepId, index) => ({
+                operationId: 'guardian_handoff_prior_' + (index + 1),
+                type: 'ship_system_installed',
+                stepId,
+                partId: priorParts[index],
+                occurredAt: installedAt
+            }))
+        });
+        campaign.forEach(candidate => {
+            state.set(
+                'levels.' + candidate.levelId + '.completed',
+                priorSteps.some(prior => prior.levelId === candidate.levelId)
+            );
+        });
+        state.set('story.projectBeacon.pendingDebriefs', []);
+        state.set('story.projectBeacon.firstForestCinematicVersion', 2);
+        state.set('story.projectBeacon.firstExpeditionDrill', {
+            completed: true,
+            completedAt: installedAt
+        });
+        state.set(
+            'story.projectBeacon.debriefsSeen',
+            priorSteps.slice(0, 5).map(
+                (_candidate, index) => 'beacon_debrief_' + (index + 1)
+            )
+        );
+        state.set('story.projectBeacon.expeditionCheckpoint', null);
+        state.set('hubWorld.shipCompletionCutsceneShown', currentIndex >= 5);
+        state.set('stats.levelsCompleted', priorSteps.length);
+        state.set('world.rescuedResidents', {});
+        state.set('world.guardianResidents', {});
+        state.save();
+
+        return {
+            priorParts,
+            completedStepIds,
+            priorDebriefs: priorSteps.slice(0, 5).length,
+            currentLevelPreviouslyComplete:
+                state.get(
+                    'levels.' + campaign[currentIndex].levelId + '.completed'
+                ) === true
+        };
+    })()`);
+}
+
+async function startGuardianHandoffEncounter(session, step) {
+    await startCampaignScene(session, step);
+
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+            if (
+                !scene?._levelContentCreated ||
+                !scene?.player?.active ||
+                scene?.time?.paused ||
+                scene?.physics?.world?.isPaused
+            ) return null;
+            return true;
+        })()`),
+        { timeoutMs: 12000, message: `${step.sceneName} focused level clock` }
+    );
+
+    const guardianEntry = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+        if (!scene?.player || typeof scene?.startBossFight !== 'function') {
+            return null;
+        }
+
+        const route = ${JSON.stringify(step.route)};
+        const encounter = {
+            mythicalForest: {
+                id: 'elder_treant',
+                title: 'ELDER TREANT',
+                checkpoint: { x: 5380, y: scene.levelHeight - 170 }
+            },
+            crystalCaves: {
+                id: 'crystal_golem',
+                title: 'CRYSTAL GOLEM',
+                checkpoint: { x: 5050, y: scene.levelHeight - 130 }
+            },
+            reef: {
+                id: 'nyxvoral',
+                title: "NYX'VORAL",
+                checkpoint: { x: 5420, y: scene.levelHeight - 360 }
+            },
+            voidPeaks: {
+                id: 'cosmic_titan',
+                title: 'COSMIC TITAN',
+                checkpoint: scene.getTraversalSupportCheckpoint?.(
+                    'peak-titan-gate',
+                    4680
+                )
+            },
+            auroraDepths: {
+                id: 'shadow_phoenix',
+                title: 'AURORA PHOENIX',
+                checkpoint: scene.getTraversalSupportCheckpoint?.(
+                    'aurora-phoenix-gate',
+                    4550
+                )
+            },
+            finalVoid: {
+                id: 'void_empress',
+                title: 'VOID EMPRESS',
+                checkpoint: scene.getTraversalSupportCheckpoint?.(
+                    'final-empress-gate',
+                    5610
+                )
+            }
+        }[route];
+        if (!encounter?.checkpoint) return null;
+
+        const accepted = scene.beginGuardianEncounter({
+            ...encounter,
+            start: () => {
+                scene.bossFightActive = true;
+                const spawn = {
+                    mythicalForest: 'spawnElderTreant',
+                    crystalCaves: 'spawnCrystalGolem',
+                    reef: 'spawnNyxvoral',
+                    voidPeaks: 'spawnCosmicTitan',
+                    auroraDepths: 'spawnShadowPhoenix',
+                    finalVoid: 'spawnVoidEmpress'
+                }[route];
+                scene[spawn]();
+                scene.physics.resume();
+            }
+        });
+        return {
+            accepted,
+            guardianId: scene.guardianEncounter?.id || null,
+            checkpointX: scene.checkpointPosition?.x,
+            checkpointY: scene.checkpointPosition?.y,
+            gateCleared: scene.guardianGateState == null,
+            duplicateAccepted: scene.beginGuardianEncounter({
+                id: 'duplicate_guardian',
+                checkpoint: { x: 100, y: 100 },
+                start: () => {}
+            })
+        };
+    })()`);
+    if (
+        guardianEntry?.accepted !== true ||
+        !guardianEntry.guardianId ||
+        !Number.isFinite(guardianEntry.checkpointX) ||
+        !Number.isFinite(guardianEntry.checkpointY) ||
+        guardianEntry.gateCleared !== true ||
+        guardianEntry.duplicateAccepted !== false
+    ) {
+        throw new Error(
+            `${step.sceneName} rejected focused guardian entry: ` +
+            JSON.stringify(guardianEntry)
+        );
+    }
+
+    await delay(500);
+    const combatReady = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+            const target = scene?.getBossCombatTarget?.();
+            return {
+                guardianId: scene.guardianEncounter?.id || null,
+                bossHealth: Number(scene.bossHealth),
+                targetActive: target?.active === true,
+                bossActive: scene?.boss?.active === true,
+                bossBodyActive: scene?.bossBody?.active === true,
+                bossFightActive: scene?.bossFightActive === true,
+                bossDefeated: scene?.bossDefeated === true,
+                physicsPaused: scene?.physics?.world?.isPaused === true,
+                sceneTimePaused: scene?.time?.paused === true,
+                sceneTime: Number(scene?.time?.now),
+                levelStarted: scene?.levelStarted === true,
+                levelEntryDismissing: scene?.levelEntryDismissing === true
+            };
+        })()`);
+    if (
+        combatReady?.bossFightActive !== true ||
+        combatReady.physicsPaused !== false ||
+        combatReady.targetActive !== true
+    ) {
+        throw new Error(
+            `${step.sceneName} focused guardian did not become targetable: ` +
+            JSON.stringify({ guardianEntry, combatReady })
+        );
+    }
+
+    return { guardianEntry, combatReady };
+}
+
+async function smokeGuardianHandoff(session, step, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    const prepared = await prepareGuardianHandoffState(session, step);
+    const interaction = await startGuardianHandoffEncounter(session, step);
+    const finalHit = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+        const target = scene?.getBossCombatTarget?.();
+        if (!scene?.player || !target || !scene?.bossFightActive) return null;
+        scene.bossRecoveryUntil = 0;
+        scene.titanRecoveryUntil = 0;
+        if (scene.boss) scene.boss.isRecovering = false;
+        scene.crystalEnergy = Math.max(3, Number(scene.crystalEnergy) || 0);
+        scene.freeSpecialAttackCharges = 0;
+        scene.bossHealth = 3;
+        if (scene.boss) scene.boss.health = 3;
+        scene.player.setPosition(target.x - 140, target.y);
+        scene.player.setVelocity?.(0, 0);
+        scene.player.facingRight = true;
+        const coinsBefore = Number(window.GameState.get('player.cosmicCoins')) || 0;
+        const completedBefore = Number(window.GameState.get('stats.levelsCompleted')) || 0;
+        scene.performSpecialAttack();
+        return {
+            coinsBefore,
+            completedBefore,
+            bossHealth: Number(scene.bossHealth),
+            bossDefeated: scene.bossDefeated === true,
+            bossFightActive: scene.bossFightActive === true
+        };
+    })()`);
+    if (
+        !finalHit ||
+        finalHit.bossHealth !== 0 ||
+        finalHit.bossDefeated !== true ||
+        finalHit.bossFightActive !== false
+    ) {
+        throw new Error(
+            `${step.sceneName} real final Super Blast did not restore its guardian: ` +
+            JSON.stringify(finalHit)
+        );
+    }
+
+    const completion = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+            const result = scene?.levelCompletionResult;
+            if (!result || !scene?.levelCompletionActive) return null;
+            const state = window.GameState;
+            return {
+                levelId: result.levelId,
+                partId: result.shipPartId,
+                firstCompletion: result.firstCompletion,
+                partAwarded: result.shipPartAwarded,
+                katanaAwarded: result.katanaUpgradeAwarded,
+                residentId: result.rescuedResident?.id || null,
+                guardianId: result.guardianResident?.id || null,
+                pendingDebriefs: state.get('story.projectBeacon.pendingDebriefs') || [],
+                completedCount: Number(state.get('stats.levelsCompleted')) || 0,
+                coins: Number(state.get('player.cosmicCoins')) || 0,
+                checkpoint: state.get('story.projectBeacon.expeditionCheckpoint') || null,
+                physicsPaused: scene.physics?.world?.isPaused === true,
+                controlsHidden: scene.platformerControlsVisible === false
+            };
+        })()`),
+        { timeoutMs: 20000, message: `${step.sceneName} completion record` }
+    );
+    if (
+        completion.levelId !== step.levelId ||
+        completion.partId !== step.partId ||
+        completion.firstCompletion !== true ||
+        completion.partAwarded !== true ||
+        !completion.residentId ||
+        !completion.guardianId ||
+        completion.pendingDebriefs.length !== (step.route === 'finalVoid' ? 0 : 1) ||
+        completion.completedCount !== finalHit.completedBefore + 1 ||
+        completion.coins <= finalHit.coinsBefore ||
+        completion.checkpoint !== null ||
+        completion.physicsPaused !== true ||
+        completion.controlsHidden !== true
+    ) {
+        throw new Error(
+            `${step.sceneName} did not record one complete guardian outcome: ` +
+            JSON.stringify({ prepared, finalHit, completion })
+        );
+    }
+
+    const residentCta = await touchInteractiveSceneText(
+        session,
+        'RETURN WITH ',
+        {
+            match: 'startsWith',
+            timeoutMs: 8000,
+            message: `${step.sceneName} rescued resident continuation`
+        }
+    );
+
+    const duplicate = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+        const before = {
+            coins: Number(window.GameState.get('player.cosmicCoins')) || 0,
+            completed: Number(window.GameState.get('stats.levelsCompleted')) || 0,
+            parts: [...(window.GameState.get('hubWorld.shipParts.collected') || [])]
+        };
+        const result = scene.completeLevelProgression({
+            achievementLevelId: ${JSON.stringify(step.levelId)},
+            shipPartId: ${JSON.stringify(step.partId)},
+            katanaUpgradeId: ${JSON.stringify(step.katanaUpgradeId || null)},
+            speedrunThreshold: ${step.speedrunThreshold}
+        });
+        return {
+            sameResult: result === scene.levelCompletionResult,
+            before,
+            after: {
+                coins: Number(window.GameState.get('player.cosmicCoins')) || 0,
+                completed: Number(window.GameState.get('stats.levelsCompleted')) || 0,
+                parts: [...(window.GameState.get('hubWorld.shipParts.collected') || [])]
+            }
+        };
+    })()`);
+    if (
+        duplicate.sameResult !== true ||
+        JSON.stringify(duplicate.before) !== JSON.stringify(duplicate.after)
+    ) {
+        throw new Error(
+            `${step.sceneName} duplicated guardian rewards: ${JSON.stringify(duplicate)}`
+        );
+    }
+
+    let katanaCta = null;
+    if (step.katanaUpgradeId) {
+        katanaCta = await touchDomButton(
+            session,
+            '.katana-artifact-continue',
+            {
+                timeoutMs: 16000,
+                message: `${step.sceneName} visible katana continuation`
+            }
+        );
+    }
+
+    const returnLabel = {
+        mythicalForest: '[ RETURN TO HUB ]',
+        crystalCaves: '[ RETURN TO HUB ]',
+        reef: '[ RETURN TO HUB ]',
+        voidPeaks: '[ RETURN TO HUB ]',
+        auroraDepths: '[ INSTALL AURORA REACTOR ]',
+        finalVoid: '[ INSTALL AT WANDERER-77 ]'
+    }[step.route];
+    const returnCta = await touchInteractiveSceneText(
+        session,
+        returnLabel,
+        {
+            timeoutMs: 20000,
+            message: `${step.sceneName} visible completion action`
+        }
+    );
+
+    if (step.route === 'finalVoid') {
+        await waitForScene(session, 'GameScene', 12000);
+    } else {
+        await waitForScene(session, 'HubWorldScene', 12000);
+        const debriefCta = await touchInteractiveSceneText(
+            session,
+            `INSTALL ${step.route === 'mythicalForest'
+                ? 'FOREST CORE'
+                : step.route === 'crystalCaves'
+                    ? 'CRYSTAL CORE'
+                    : step.route === 'reef'
+                        ? 'DIMENSIONAL DRIVE'
+                        : step.route === 'voidPeaks'
+                            ? 'HULL PLATING'
+                            : 'AURORA REACTOR'}`,
+            {
+                timeoutMs: 12000,
+                message: `${step.sceneName} debrief installation action`
+            }
+        );
+        await waitForScene(session, 'GameScene', 12000);
+        step.__debriefCta = debriefCta;
+    }
+
+    const installLabel = `INSTALL ${step.route === 'mythicalForest'
+        ? 'FOREST CORE'
+        : step.route === 'crystalCaves'
+            ? 'CRYSTAL CORE ENGINE'
+            : step.route === 'reef'
+                ? 'DIMENSIONAL DRIVE'
+                : step.route === 'voidPeaks'
+                    ? 'RESONANCE HULL PLATING'
+                    : step.route === 'auroraDepths'
+                        ? 'AURORA REACTOR'
+                        : 'COMMAND MODULE'}`;
+    let installationCta;
+    try {
+        installationCta = await touchInteractiveSceneText(
+            session,
+            installLabel,
+            {
+                timeoutMs: 12000,
+                message: `${step.sceneName} Wanderer-77 installation action`
+            }
+        );
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const activeScenes = window.mythicalGame?.scene?.getScenes(true) || [];
+            const gameScene = window.mythicalGame?.scene?.getScene('GameScene');
+            const reconstruction = window.ShipReconstruction
+                ?.getShipReconstructionSnapshot?.(window.GameState);
+            return {
+                activeScenes: activeScenes.map(scene => scene.scene?.key),
+                gameSceneActive: gameScene?.sys?.isActive?.() === true,
+                shuttingDown: gameScene?._isShuttingDown === true,
+                handoff: gameScene?.shipReconstructionHandoff === true,
+                evidenceVisible:
+                    gameScene?.shipEvidenceBoardModal?.isVisible === true,
+                reconstruction: reconstruction ? {
+                    available: reconstruction.available,
+                    ready: reconstruction.ready,
+                    readyStep: reconstruction.readyStep?.id || null,
+                    completedCount: reconstruction.completedCount
+                } : null,
+                visibleText: (gameScene?.children?.list || [])
+                    .filter(item => typeof item?.text === 'string' && item.visible !== false)
+                    .map(item => item.text)
+                    .filter(text => /INSTALL|RECOVER|WANDERER|ARCHIVE/.test(text))
+                    .slice(0, 20),
+                exceptions: ${JSON.stringify(exceptions)}
+            };
+        })()`);
+        throw new Error(
+            `${error.message}: ${JSON.stringify(diagnostics)}`
+        );
+    }
+    const installed = await waitFor(
+        () => evaluate(session, `(() => {
+            const snapshot = window.ShipReconstruction
+                ?.getShipReconstructionSnapshot?.(window.GameState);
+            if (!snapshot?.state?.completedStepIds?.includes(
+                ${JSON.stringify(step.reconstructionStepId)}
+            )) return null;
+            return {
+                completedCount: snapshot.completedCount,
+                complete: snapshot.complete,
+                installed: true
+            };
+        })()`),
+        { timeoutMs: 5000, message: `${step.sceneName} system installation` }
+    );
+
+    let destination = null;
+    if (step.route === 'finalVoid') {
+        await waitForScene(session, 'VictoryScene', 8000);
+        destination = {
+            scene: 'VictoryScene'
+        };
+    } else {
+        await waitForScene(session, 'HubWorldScene', 8000);
+        destination = {
+            scene: 'HubWorldScene',
+            debriefCta: step.__debriefCta
+        };
+    }
+
+    if (exceptions.length) {
+        throw new Error(
+            `${step.sceneName} guardian handoff raised browser exceptions: ` +
+            exceptions.join(' | ')
+        );
+    }
+    return {
+        prepared,
+        interaction: {
+            guardianEntry: interaction.guardianEntry,
+            combatReady: interaction.combatReady
+        },
+        finalHit,
+        completion,
+        duplicate,
+        residentCta,
+        katanaCta,
+        returnCta,
+        installationCta,
+        installed,
+        destination
+    };
+}
+
+async function smokeGuardianHandoffs(session, exceptions) {
+    const knownRoutes = ['all', ...CAMPAIGN_STATE_STEPS.map(step => step.route)];
+    if (!knownRoutes.includes(SMOKE_CASE)) {
+        throw new Error(
+            `Unknown guardian-handoff SMOKE_CASE ${JSON.stringify(SMOKE_CASE)}. ` +
+            `Use one of: ${knownRoutes.join(', ')}.`
+        );
+    }
+    const results = {};
+    for (const step of CAMPAIGN_STATE_STEPS.filter(
+        candidate => SMOKE_CASE === 'all' || candidate.route === SMOKE_CASE
+    )) {
+        results[step.route] = await smokeGuardianHandoff(
+            session,
+            { ...step },
+            exceptions
+        );
+        process.stdout.write(`PASS ${step.sceneName}GuardianHandoff\n`);
+    }
+    return results;
+}
+
 async function smokeCampaignStateContract(session, exceptions) {
     exceptions.length = 0;
     await navigate(session, `${BASE_URL}/play/?reset=true`);
@@ -6662,6 +7366,11 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS AuroraRouteJourney\n');
+        } else if (SMOKE_MODE === 'guardian-handoff') {
+            results.guardianHandoffs = await smokeGuardianHandoffs(
+                session,
+                exceptions
+            );
         } else if (SMOKE_MODE === 'state-contract') {
             results.campaignStateContract = await smokeCampaignStateContract(
                 session,
@@ -6706,7 +7415,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, interaction, traversal-topology, aurora-route-journey, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
+                'Use home-entry, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
             );
         }
         console.log(JSON.stringify({

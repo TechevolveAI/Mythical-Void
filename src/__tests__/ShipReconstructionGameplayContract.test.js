@@ -40,9 +40,37 @@ describe('Wanderer-77 reconstruction gameplay contract', () => {
             'WANDERER-77 // RECOVERED SYSTEM READY TO INSTALL'
         );
         expect(scene).toContain(
+            'if (!snapshot.available && !reconstruction.available) return;'
+        );
+        expect(modal).toContain(
+            '!snapshot?.available &&\n            !reconstruction?.available'
+        );
+        expect(modal).toContain(
+            'snapshot?.available ? snapshot.sections : []'
+        );
+        expect(modal).toContain("overlay.on('pointerdown', pointer => {");
+        expect(modal).toContain('this.activatePointerRegion(pointer)');
+        expect(modal).toContain('registerPointerRegion({');
+        expect(modal).toContain('activatePointerRegion(pointer)');
+        expect(modal).not.toContain("close.on('pointerdown', () => this.hide())");
+        expect(modal).not.toContain("zone.on('pointerup'");
+        expect(modal).toContain(
+            'const archiveComplete = snapshot?.complete === true;'
+        );
+        expect(modal).toContain('priority: 30');
+        expect(modal).toContain('priority: 50');
+        expect(modal).toContain('(buttonWidth - labelText.width) / 2');
+        expect(modal).toContain('(buttonHeight - labelText.height) / 2');
+        expect(scene).toContain(
             'INSTALL ${currentReconstruction.readyStep.partName.toUpperCase()} BEFORE THE NEXT EXPEDITION'
         );
         expect(scene).toContain('WANDERER-77 SYSTEM ONLINE${nextRoute}');
+        expect(scene).toMatch(
+            /if \(this\.shipReconstructionHandoff\)[\s\S]*currentReconstruction\.finalVoidReady[\s\S]*this\.scene\.start\('HubWorldScene'\)/
+        );
+        expect(scene).toMatch(
+            /this\.continueFinaleAfterRepair \|\|[\s\S]*this\.shipReconstructionHandoff[\s\S]*shipEvidenceBoardModal\?\.hide/
+        );
     });
 
     test('keeps repair, departure, transmission, and consent separate', () => {
