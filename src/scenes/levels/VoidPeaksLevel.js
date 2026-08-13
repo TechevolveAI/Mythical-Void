@@ -1,4 +1,5 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
+import { calculateBallisticLaunchVelocity } from '../../systems/TraversalTopology.js';
 
 const COSMIC_TITAN_TEXTURE = 'cosmicTitan';
 const COSMIC_TITAN_ASSET = '/game/guardians/cosmic-titan.webp';
@@ -576,10 +577,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             -85,
             85
         );
-        const requiredRise = current.bottom - current.top + 80;
-        const launchVelocity = -Math.ceil(
-            Math.sqrt(2 * this.gravityY * requiredRise) + 40
-        );
+        const launchVelocity = calculateBallisticLaunchVelocity({
+            gravityY: this.gravityY,
+            rise: current.bottom - current.top + 80
+        });
         this.player.setVelocityX(horizontalCorrection);
         this.player.setVelocityY(launchVelocity);
         return true;
