@@ -60,6 +60,7 @@ class ReefLevel extends PlatformerLevelScene {
         // TUNED: More responsive swimming with noticeable gravity
         this.swimDrag = 0.90;          // Faster velocity decay when not actively swimming
         this.swimAcceleration = 0.20;  // How quickly swim velocity builds
+        this.usesVerticalJoystick = true;
 
         // Swimming physics - player should noticeably sink when not swimming
         this.sinkSpeed = 60;           // Faster sink rate
@@ -69,6 +70,8 @@ class ReefLevel extends PlatformerLevelScene {
         this.starFragmentsCollected = 0;
         this.totalStarFragments = 5;
         this.shipPartCollected = false;
+        this.reefRouteChoice = null;
+        this.reefCollectedFragmentMask = 0;
         this.bossDefeated = false;
         this.bossFightActive = false;
 
@@ -133,6 +136,8 @@ class ReefLevel extends PlatformerLevelScene {
         // Reset level state
         this.starFragmentsCollected = 0;
         this.shipPartCollected = false;
+        this.reefRouteChoice = null;
+        this.reefCollectedFragmentMask = 0;
         this.bossDefeated = false;
         this.bossFightActive = false;
         this.cosmicEggAwarded = false;
@@ -181,6 +186,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.routeHintUntil = 0;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
+        this.virtualJoystickY = 0;
 
         console.log('[ReefLevel] Cosmic Abyss state reset');
     }
@@ -374,8 +380,8 @@ class ReefLevel extends PlatformerLevelScene {
         const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
         const controlsHint = this.add.text(width / 2, y(420),
             isMobile
-                ? '📱 HOLD the JUMP button to swim upward!\nRelease to sink. Tap joystick to move.'
-                : '🎮 HOLD ↑/W/SPACE to swim up • Release to sink', {
+                ? 'STEER IN ANY DIRECTION\nJUMP also swims upward'
+                : 'ARROWS / WASD TO SWIM // SPACE ASCENDS', {
             fontSize: isMobile ? font(13, 12) : font(11, 10),
             color: '#9370DB',
             align: 'center',
@@ -952,8 +958,8 @@ class ReefLevel extends PlatformerLevelScene {
         if (this.reefRouteAligned && this.shipPartCollected) {
             return `PASSAGE GUARDIAN AHEAD\nENTER THE OPEN CURRENT →\n${optional}`;
         }
-        if (this.reefRouteAligned) {
-            return `DIMENSIONAL DRIVE MISSING\nTURN BACK TO THE CYAN SIGNAL ←\n${optional}`;
+        if (this.beaconAnchorsActivated >= 1 && !this.shipPartCollected) {
+            return `RECOVER THE DIMENSIONAL DRIVE\n${this.getDriveCompassText()}\n${optional}`;
         }
 
         const nextWaypoint = [
@@ -970,6 +976,20 @@ class ReefLevel extends PlatformerLevelScene {
             ? `ROUTE ${current}/3`
             : `ROUTE ${current}/3 // ${nextWaypoint}`;
         return `${title}\n${compass || drive}\n${optional}`;
+    }
+
+    getDriveCompassText() {
+        if (!this.player) return 'FOLLOW THE CYAN DRIVE SIGNAL';
+        const driveX = Number(this.shipPart?.x) || 2800;
+        const driveY = Number(this.shipPart?.y) || this.levelHeight - 950;
+        const dx = driveX - Number(this.player.x);
+        const dy = driveY - Number(this.player.y);
+        const distance = Math.max(0, Math.round(Math.hypot(dx, dy) / 50) * 50);
+        if (distance <= 180) return `DRIVE SIGNAL CLOSE // ${distance}m`;
+        const directions = [];
+        if (Math.abs(dx) > 90) directions.push(dx > 0 ? 'RIGHT' : 'LEFT');
+        if (Math.abs(dy) > 90) directions.push(dy > 0 ? 'DOWN' : 'UP');
+        return `DRIVE ${directions.join(' + ') || 'CLOSE'} // ${distance}m`;
     }
 
     /**
@@ -1266,8 +1286,11 @@ class ReefLevel extends PlatformerLevelScene {
                     top: 300, bottom: 900
                 }
             },
+            onMainSelected: () => this.selectReefRoute('main'),
+            onOptionalSelected: () => this.selectReefRoute('optional'),
             onComplete: () => {
                 this.freeSpecialAttackCharges += 1;
+                this.refreshPersistedExpeditionRouteState();
             }
         });
 
@@ -1327,7 +1350,7 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     restoreExpeditionRouteState(resume) {
-        return this.restoreExpeditionRouteSignals(resume, {
+        const signalsRestored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.beaconAnchors,
             countProperty: 'beaconAnchorsActivated',
             readyProperty: 'reefRouteAligned',
@@ -1345,6 +1368,84 @@ class ReefLevel extends PlatformerLevelScene {
                 this.objectiveDisplay?.setText?.(this.getReefObjectiveText());
             }
         });
+        if (!signalsRestored) return false;
+        this.restoreReefRouteState(resume.routeState, {
+            rejoined: Number(resume.checkpointIndex) >= 1
+        });
+        this.objectiveDisplay?.setText?.(this.getReefObjectiveText());
+        return true;
+    }
+
+    getExpeditionRouteState() {
+        const route = this.optionalRouteRewards?.get?.('reef_star_trench');
+        return {
+            reefRouteChoice: this.reefRouteChoice || '',
+            shipPartCollected: this.shipPartCollected === true,
+            reefFragmentMask: this.reefCollectedFragmentMask,
+            starTrenchProgress: Number(route?.progress) || 0,
+            starTrenchCompleted: route?.completed === true,
+            freeSpecialAttackCharges: this.freeSpecialAttackCharges
+        };
+    }
+
+    selectReefRoute(path, { restoring = false, rejoined = false } = {}) {
+        if (!['main', 'optional'].includes(path)) return false;
+        if (this.reefRouteChoice && this.reefRouteChoice !== path) return false;
+
+        this.reefRouteChoice = path;
+        const choice = this.optionalRouteRewards?.get?.('reef_star_trench')?.choice;
+        if (choice) {
+            choice.selectedPath = path;
+            choice.mainEntered = path === 'main';
+            choice.optionalEntered = path === 'optional';
+            choice.rejoined = rejoined && path === 'optional';
+            choice.sequence ||= 1;
+        }
+        if (!restoring) this.refreshPersistedExpeditionRouteState();
+        return true;
+    }
+
+    restoreReefRouteState(routeState, { rejoined = false } = {}) {
+        if (!routeState || typeof routeState !== 'object') return false;
+
+        const path = routeState.reefRouteChoice;
+        if (['main', 'optional'].includes(path)) {
+            this.selectReefRoute(path, { restoring: true, rejoined });
+        }
+
+        this.reefCollectedFragmentMask = Math.max(
+            0,
+            Math.floor(Number(routeState.reefFragmentMask) || 0)
+        );
+        this.retireCollectedReefFragments();
+
+        if (routeState.shipPartCollected === true) {
+            this.shipPartCollected = true;
+            this.dimensionalDriveFound = true;
+            this.clearShipPartPickup();
+        }
+
+        const route = this.optionalRouteRewards?.get?.('reef_star_trench');
+        if (route && path === 'optional') {
+            route.progress = Phaser.Math.Clamp(
+                Number(routeState.starTrenchProgress) || 0,
+                0,
+                route.required
+            );
+            route.completed = routeState.starTrenchCompleted === true ||
+                route.progress >= route.required;
+            this.refreshOptionalRouteReward(route);
+            this.freeSpecialAttackCharges = Phaser.Math.Clamp(
+                Number(routeState.freeSpecialAttackCharges) || 0,
+                0,
+                10
+            );
+        }
+        return true;
+    }
+
+    onFreeSpecialAttackConsumed() {
+        this.refreshPersistedExpeditionRouteState();
     }
 
     /**
@@ -1919,6 +2020,8 @@ class ReefLevel extends PlatformerLevelScene {
         if (!fragment.active) return;
 
         fragment.active = false;
+        const fragmentIndex = Math.max(0, Number(fragment.fragmentIndex) || 0);
+        this.reefCollectedFragmentMask |= (1 << fragmentIndex);
         this.starFragmentsCollected++;
 
         if (window.FXLibrary) {
@@ -1942,6 +2045,7 @@ class ReefLevel extends PlatformerLevelScene {
                 y: collectY
             });
         }
+        this.refreshPersistedExpeditionRouteState();
 
         fragment.graphics?.destroy();
         fragment.destroy();
@@ -1973,6 +2077,19 @@ class ReefLevel extends PlatformerLevelScene {
                 }
             });
         }
+    }
+
+    retireCollectedReefFragments() {
+        let restoredCount = 0;
+        this.starFragments.forEach(fragment => {
+            const index = Math.max(0, Number(fragment?.fragmentIndex) || 0);
+            if ((this.reefCollectedFragmentMask & (1 << index)) === 0) return;
+            restoredCount++;
+            fragment.graphics?.destroy?.();
+            fragment.destroy?.();
+        });
+        this.starFragmentsCollected = restoredCount;
+        return restoredCount;
     }
 
     /**
@@ -2056,6 +2173,18 @@ class ReefLevel extends PlatformerLevelScene {
         this.shipPart = body;
     }
 
+    clearShipPartPickup() {
+        const part = this.shipPart;
+        if (!part) return false;
+        this.tweens?.killTweensOf?.(part.graphics);
+        this.tweens?.killTweensOf?.(part.label);
+        part.graphics?.destroy?.();
+        part.label?.destroy?.();
+        part.destroy?.();
+        this.shipPart = null;
+        return true;
+    }
+
     collectShipPart(part) {
         if (!part.active || this.shipPartCollected) return;
 
@@ -2080,6 +2209,7 @@ class ReefLevel extends PlatformerLevelScene {
         part.graphics?.destroy();
         part.label?.destroy();
         part.destroy();
+        this.shipPart = null;
 
         // Show big message
         this.showFloatingText(
@@ -2092,6 +2222,7 @@ class ReefLevel extends PlatformerLevelScene {
         // Note: Ship part is officially awarded via InventoryManager in showVictoryScreen()
         // This pickup just marks it visually
         this.dimensionalDriveFound = true;
+        this.refreshPersistedExpeditionRouteState();
 
         this.time.delayedCall(700, () => {
             this.showFloatingText(
@@ -3295,17 +3426,26 @@ class ReefLevel extends PlatformerLevelScene {
         }
     }
 
+    handleDuck() {
+        // Down is deliberate descent in the Reef, never a platformer crouch.
+        this.isDucking = false;
+    }
+
     handleJump() {
         const swimPressed = this.jumpKey.isDown ||
                            this.cursors.up.isDown ||
                            this.wasdKeys.W.isDown ||
+                           this.virtualJoystickY < -0.2 ||
                            this.virtualJumpPressed ||
                            this.virtualJumpQueued;
         const queuedSwim = this.virtualJumpQueued;
 
         if (swimPressed) {
             this.isSwimmingUp = true;
-            const target = this.jumpVelocity;
+            const joystickStrength = this.virtualJoystickY < -0.2
+                ? Math.min(1, Math.abs(this.virtualJoystickY) * 1.4)
+                : 1;
+            const target = this.jumpVelocity * joystickStrength;
             // Use swimAcceleration for more responsive feel
             const accel = this.swimAcceleration || 0.20;
             const newVel = this.player.body.velocity.y + (target - this.player.body.velocity.y) * accel;
@@ -3332,9 +3472,16 @@ class ReefLevel extends PlatformerLevelScene {
         }
 
         // Sink faster when pressing down
-        const sinkPressed = this.cursors.down.isDown || this.wasdKeys.S.isDown;
+        const sinkPressed = this.cursors.down.isDown ||
+            this.wasdKeys.S.isDown ||
+            this.virtualJoystickY > 0.2;
         if (sinkPressed) {
-            const newVel = this.player.body.velocity.y + (this.maxSinkSpeed - this.player.body.velocity.y) * 0.15;
+            const joystickStrength = this.virtualJoystickY > 0.2
+                ? Math.min(1, this.virtualJoystickY * 1.4)
+                : 1;
+            const target = this.maxSinkSpeed * joystickStrength;
+            const newVel = this.player.body.velocity.y +
+                (target - this.player.body.velocity.y) * 0.2;
             this.player.setVelocityY(newVel);
         }
     }
@@ -3366,21 +3513,10 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     update(time, delta) {
-        if (!this.player || this.levelCompletionActive) return;
+        super.update(time, delta);
+        if (!this.player || this.isPlayerDead || this.levelCompletionActive) return;
 
-        this.isGrounded = false;
-        this.handleMovement();
-        this.handleJump();
-        this.updatePlayerFacing();
-        this.astronautFollower?.update(delta);
-        this.updateCameraLead();
-        if (this.hasShield) {
-            this.updateShield(delta);
-        }
         this.updateEnemies(time, delta);
-        this.updateEnemyCombatReadability();
-        this.updateOptionalRouteChoices();
-        this.refreshGuardianGateState();
 
         if (this.bossFightActive) {
             this.updateBoss(time, delta);
@@ -3416,7 +3552,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.swimIndicatorBg.setAlpha(0);
 
         // Text
-        this.swimIndicatorText = this.add.text(width / 2, indicatorY, '🌊 SWIMMING', {
+        this.swimIndicatorText = this.add.text(width / 2, indicatorY, 'CURRENT ASCENT', {
             fontSize: '14px',
             color: '#00FFFF',
             fontStyle: 'bold'

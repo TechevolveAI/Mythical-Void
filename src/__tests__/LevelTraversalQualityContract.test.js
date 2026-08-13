@@ -88,6 +88,47 @@ describe('campaign traversal quality contracts', () => {
         expect(scene.coyoteTime).toBe(150);
     });
 
+    test('vertical joystick input is exposed only for two-axis levels', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const createThumb = () => ({
+            clear: jest.fn(),
+            fillStyle: jest.fn(),
+            fillCircle: jest.fn(),
+            lineStyle: jest.fn(),
+            strokeCircle: jest.fn(),
+            fillTriangle: jest.fn()
+        });
+        const scene = new PlatformerLevelScene({ key: 'TwoAxisInputTest' });
+        scene.joystickCenterX = 100;
+        scene.joystickCenterY = 100;
+        scene.joystickMaxDistance = 100;
+        scene.joystickThumbRadius = 20;
+        scene.joystickThumb = createThumb();
+
+        scene.updateJoystick({ x: 100, y: 0 });
+        expect(scene.virtualJoystickY).toBe(0);
+
+        scene.usesVerticalJoystick = true;
+        scene.updateJoystick({ x: 100, y: 0 });
+        expect(scene.virtualJoystickX).toBeCloseTo(0, 5);
+        expect(scene.virtualJoystickY).toBe(-1);
+    });
+
+    test('Cosmic Reef keeps shared recovery while adding deliberate mobile descent', () => {
+        const source = read('levels/ReefLevel.js');
+        const updateBody = source.match(
+            /update\(time, delta\)\s*\{([\s\S]*?)\n    \}\n\n    \/\*\*/
+        )?.[1] || '';
+
+        expect(source).toContain('this.usesVerticalJoystick = true;');
+        expect(source).toContain('this.virtualJoystickY < -0.2');
+        expect(source).toContain('this.virtualJoystickY > 0.2');
+        expect(source).toContain('Down is deliberate descent in the Reef');
+        expect(updateBody).toContain('super.update(time, delta);');
+        expect(updateBody).not.toContain('this.handleMovement();');
+        expect(updateBody).not.toContain('this.handleJump();');
+    });
+
     test('stomps and side contact are classified consistently', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'CombatContactTest' });
@@ -471,6 +512,59 @@ describe('campaign traversal quality contracts', () => {
         expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
+    test('route rewards cannot be collected from the unchosen branch', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'RouteRewardGateTest' });
+        scene.showFloatingText = jest.fn();
+        scene.optionalRouteRewards = new Map();
+        scene.player = { x: 150, y: 360 };
+        const onComplete = jest.fn();
+
+        const route = scene.registerOptionalRouteReward({
+            id: 'gated_route',
+            title: 'HIGH BRANCH',
+            rewardLabel: 'ONE GUARD',
+            choice: {
+                mainLabel: 'LOW ROUTE',
+                mainTradeoff: 'DIRECT',
+                challengeLabel: 'HIGH ROUTE',
+                mainZone: { left: 100, right: 200, top: 300, bottom: 450 },
+                optionalZone: { left: 100, right: 200, top: 50, bottom: 200 },
+                rejoinZone: { left: 500, right: 600, top: 100, bottom: 400 }
+            },
+            onComplete
+        });
+
+        expect(scene.updateOptionalRouteChoices()).toBe(true);
+        expect(route.choice.selectedPath).toBe('main');
+        expect(scene.recordOptionalRouteProgress('gated_route')).toBe(false);
+        expect(route.progress).toBe(0);
+        expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    test('touching a reward inside its optional zone records the branch first', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'RouteRewardEntryTest' });
+        scene.showFloatingText = jest.fn();
+        scene.optionalRouteRewards = new Map();
+        scene.player = { x: 150, y: 100 };
+
+        const route = scene.registerOptionalRouteReward({
+            id: 'pickup_route',
+            title: 'HIGH BRANCH',
+            rewardLabel: 'ONE GUARD',
+            choice: {
+                mainZone: { left: 100, right: 200, top: 300, bottom: 450 },
+                optionalZone: { left: 100, right: 200, top: 50, bottom: 200 },
+                rejoinZone: { left: 500, right: 600, top: 100, bottom: 400 }
+            }
+        });
+
+        expect(scene.recordOptionalRouteProgress('pickup_route')).toBe(true);
+        expect(route.choice.selectedPath).toBe('optional');
+        expect(route.completed).toBe(true);
+    });
+
     test('an optional route guard absorbs one non-pit hit', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'OptionalGuardTest' });
@@ -588,12 +682,18 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("this.getOptionalRouteStatusText(");
     });
 
-    test('Crystal secret slide earns a persistent one-hit ward', () => {
+    test('Crystal Spider Walk is a persistent, mutually exclusive chamber route', () => {
         const source = read('levels/CrystalCavesLevel.js');
 
         expect(source).toContain("id: 'caves_secret_slide'");
+        expect(source).toContain("title: 'SPIDER WALK'");
         expect(source).toContain("rewardLabel: 'CRYSTAL WARD // 1 HIT'");
         expect(source).toContain("shield.optionalRouteId = 'caves_secret_slide'");
+        expect(source).toContain("onMainSelected: () => this.selectCrystalChamberRoute('main')");
+        expect(source).toContain("onOptionalSelected: () => this.selectCrystalChamberRoute('optional')");
+        expect(source).toContain("'CALM THE CRYSTAL SPIDER FIRST'");
+        expect(source).toContain('restoreCrystalChamberRoute(resume.routeState');
+        expect(source).toContain('crystalWardGuardCharges');
         expect(source).toContain("this.grantOptionalRouteGuard('CRYSTAL WARD', 1)");
         expect(source).not.toContain('this.activateShield();');
     });
@@ -625,9 +725,9 @@ describe('campaign traversal quality contracts', () => {
         [
             'levels/CrystalCavesLevel.js',
             "id: 'caves_secret_slide'",
-            "mainLabel: 'CRYSTAL CHAMBER →'",
-            "mainTradeoff: 'FORWARD // SPIDER TERRITORY'",
-            "challengeLabel: 'REVERSE SLIDE + SECRET ALCOVE'"
+            "mainLabel: 'LOWER PASSAGE →'",
+            "mainTradeoff: 'SHORT // ARMORED CRAWLER'",
+            "challengeLabel: 'SPIDER + CRYSTAL SLIDE'"
         ],
         [
             'levels/ReefLevel.js',
@@ -843,13 +943,13 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('const guardianEntered = this.beginGuardianEncounter({');
     });
 
-    test('Reef runs shared route-choice updates from its swimming loop', () => {
-        const source = read('levels/ReefLevel.js');
+    test('Reef inherits shared safety and route updates from the platformer loop', () => {
+        const reefSource = read('levels/ReefLevel.js');
+        const platformerSource = read('PlatformerLevelScene.js');
 
-        expect(source).toContain('this.updateOptionalRouteChoices();');
-        expect(source.indexOf('this.updateOptionalRouteChoices();')).toBeGreaterThan(
-            source.indexOf('update(time, delta)')
-        );
+        expect(reefSource).toContain('super.update(time, delta);');
+        expect(platformerSource).toContain('this.checkFallOutOfBounds();');
+        expect(platformerSource).toContain('this.updateOptionalRouteChoices();');
     });
 
     test.each([

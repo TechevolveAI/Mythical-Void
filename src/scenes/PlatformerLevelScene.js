@@ -370,6 +370,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.mobileControls = null;
         this.isMobile = false;
         this.virtualJoystickX = 0;  // -1 to 1 from virtual joystick
+        this.virtualJoystickY = 0;  // Used by levels with two-axis locomotion
+        this.usesVerticalJoystick = false;
         this.virtualJumpPressed = false;
         this.virtualJumpQueued = false;
         this.mobileControlElements = []; // Track all mobile UI elements for cleanup
@@ -671,6 +673,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Reset mobile control state
         this.virtualJoystickX = 0;
+        this.virtualJoystickY = 0;
         this.virtualJumpPressed = false;
         this.virtualJumpQueued = false;
         this.actionButtonPointers.clear();
@@ -1818,6 +1821,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         const route = this.optionalRouteRewards.get(id);
         if (!route || route.completed) return false;
 
+        const choice = route.choice;
+        if (choice && !choice.selectedPath && this.isPlayerInsideRouteChoiceZone(choice.optionalZone)) {
+            this.recordRouteChoiceEntry(route, 'optional');
+        }
+        if (choice && choice.selectedPath !== 'optional') {
+            return false;
+        }
+
         route.progress = Math.min(route.required, route.progress + 1);
         route.completed = route.progress >= route.required;
         this.refreshOptionalRouteReward(route);
@@ -2481,7 +2492,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         joystickBase.fillCircle(joystickX, joystickY, joystickBaseRadius);
         joystickBase.lineStyle(2, 0xFFFFFF, 0.4);
         joystickBase.strokeCircle(joystickX, joystickY, joystickBaseRadius);
-        // Add directional indicators (left/right arrows)
+        // Add directional indicators. Swimming levels opt into the vertical pair.
         joystickBase.fillStyle(0xFFFFFF, 0.3);
         joystickBase.fillTriangle(
             joystickX - joystickBaseRadius + 10, joystickY,
@@ -2493,6 +2504,18 @@ class PlatformerLevelScene extends Phaser.Scene {
             joystickX + joystickBaseRadius - 22, joystickY - 8,
             joystickX + joystickBaseRadius - 22, joystickY + 8
         );
+        if (this.usesVerticalJoystick) {
+            joystickBase.fillTriangle(
+                joystickX, joystickY - joystickBaseRadius + 10,
+                joystickX - 8, joystickY - joystickBaseRadius + 22,
+                joystickX + 8, joystickY - joystickBaseRadius + 22
+            );
+            joystickBase.fillTriangle(
+                joystickX, joystickY + joystickBaseRadius - 10,
+                joystickX - 8, joystickY + joystickBaseRadius - 22,
+                joystickX + 8, joystickY + joystickBaseRadius - 22
+            );
+        }
         this.mobileControlElements.push(joystickBase);
 
         // Joystick thumb - more visible for feedback
@@ -2568,6 +2591,18 @@ class PlatformerLevelScene extends Phaser.Scene {
                     touchX + joystickBaseRadius - 26, touchY - 10,
                     touchX + joystickBaseRadius - 26, touchY + 10
                 );
+                if (this.usesVerticalJoystick) {
+                    this.joystickBase.fillTriangle(
+                        touchX, touchY - joystickBaseRadius + 12,
+                        touchX - 10, touchY - joystickBaseRadius + 26,
+                        touchX + 10, touchY - joystickBaseRadius + 26
+                    );
+                    this.joystickBase.fillTriangle(
+                        touchX, touchY + joystickBaseRadius - 12,
+                        touchX - 10, touchY + joystickBaseRadius - 26,
+                        touchX + 10, touchY + joystickBaseRadius - 26
+                    );
+                }
             }
         });
 
@@ -3202,7 +3237,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     /**
      * Update joystick thumb position and calculate input
-     * IMPROVED: Larger dead zone, horizontal lock for platformers, better visual feedback
+     * Larger dead zone, horizontal lock by default, and optional two-axis input.
      */
     updateJoystick(pointer) {
         const offsetX = pointer.x - this.joystickCenterX;
@@ -3213,7 +3248,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         // HORIZONTAL LOCK: For platformers, strongly favor horizontal movement
         // If moving mostly horizontal (within 35 degrees of horizontal), snap to pure horizontal
         const angleDeg = Math.abs(angle * 180 / Math.PI);
-        const isNearHorizontal = angleDeg < 35 || angleDeg > 145;
+        const isNearHorizontal = !this.usesVerticalJoystick &&
+            (angleDeg < 35 || angleDeg > 145);
         if (isNearHorizontal && distance > this.joystickMaxDistance * 0.2) {
             // Snap to pure horizontal (left or right)
             angle = offsetX >= 0 ? 0 : Math.PI;
@@ -3235,15 +3271,24 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.joystickThumb.lineStyle(3, isMoving ? 0xFFFFFF : 0x00CED1, 1);
         this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
 
-        // Add direction arrow when moving
+        // Add a dominant-axis arrow when moving.
         if (isMoving) {
-            const arrowDir = offsetX >= 0 ? 1 : -1;
             this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-            this.joystickThumb.fillTriangle(
-                thumbX + arrowDir * 8, thumbY,
-                thumbX - arrowDir * 4, thumbY - 6,
-                thumbX - arrowDir * 4, thumbY + 6
-            );
+            if (this.usesVerticalJoystick && Math.abs(offsetY) > Math.abs(offsetX)) {
+                const arrowDir = offsetY >= 0 ? 1 : -1;
+                this.joystickThumb.fillTriangle(
+                    thumbX, thumbY + arrowDir * 8,
+                    thumbX - 6, thumbY - arrowDir * 4,
+                    thumbX + 6, thumbY - arrowDir * 4
+                );
+            } else {
+                const arrowDir = offsetX >= 0 ? 1 : -1;
+                this.joystickThumb.fillTriangle(
+                    thumbX + arrowDir * 8, thumbY,
+                    thumbX - arrowDir * 4, thumbY - 6,
+                    thumbX - arrowDir * 4, thumbY + 6
+                );
+            }
         }
 
         // Calculate normalized X input (-1 to 1) with LARGER dead zone (25%)
@@ -3259,8 +3304,12 @@ class PlatformerLevelScene extends Phaser.Scene {
             } else {
                 this.virtualJoystickX = Math.cos(angle) * magnitude;
             }
+            this.virtualJoystickY = this.usesVerticalJoystick
+                ? Math.sin(angle) * magnitude
+                : 0;
         } else {
             this.virtualJoystickX = 0;
+            this.virtualJoystickY = 0;
         }
     }
 
@@ -3271,6 +3320,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.joystickActive = false;
         this.joystickPointerId = null;
         this.virtualJoystickX = 0;
+        this.virtualJoystickY = 0;
 
         // Reset joystick to original position (floating joystick returns home)
         if (this.originalJoystickX && this.originalJoystickY) {
@@ -3296,6 +3346,24 @@ class PlatformerLevelScene extends Phaser.Scene {
                     this.joystickCenterX + this.joystickBaseRadius - 26, this.joystickCenterY - 10,
                     this.joystickCenterX + this.joystickBaseRadius - 26, this.joystickCenterY + 10
                 );
+                if (this.usesVerticalJoystick) {
+                    this.joystickBase.fillTriangle(
+                        this.joystickCenterX,
+                        this.joystickCenterY - this.joystickBaseRadius + 12,
+                        this.joystickCenterX - 10,
+                        this.joystickCenterY - this.joystickBaseRadius + 26,
+                        this.joystickCenterX + 10,
+                        this.joystickCenterY - this.joystickBaseRadius + 26
+                    );
+                    this.joystickBase.fillTriangle(
+                        this.joystickCenterX,
+                        this.joystickCenterY + this.joystickBaseRadius - 12,
+                        this.joystickCenterX - 10,
+                        this.joystickCenterY + this.joystickBaseRadius - 26,
+                        this.joystickCenterX + 10,
+                        this.joystickCenterY + this.joystickBaseRadius - 26
+                    );
+                }
             }
         }
 
@@ -4760,6 +4828,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (useFreeCharge) {
             this.freeSpecialAttackCharges -= 1;
+            this.onFreeSpecialAttackConsumed?.();
             this.showFloatingText(
                 'FREE SUPER BLAST',
                 this.player.x,
@@ -5202,6 +5271,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.wasdKeys?.W?.isDown ||
             this.wasdKeys?.S?.isDown ||
             Math.abs(this.virtualJoystickX || 0) > 0.2 ||
+            Math.abs(this.virtualJoystickY || 0) > 0.2 ||
             this.virtualJumpPressed ||
             this.virtualJumpQueued;
         const stable =
@@ -5634,6 +5704,8 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     onOptionalRouteGuardConsumed() {}
+
+    onFreeSpecialAttackConsumed() {}
 
     restoreExpeditionRouteSignals(resume, {
         signals,
@@ -7367,6 +7439,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.releaseAllPlatformerActionButtons();
         this.joystickActive = false;
         this.virtualJoystickX = 0;
+        this.virtualJoystickY = 0;
         this.clearVirtualJumpInput();
         this.joystickThumb = null;
         this.mobileControlTargets = {};
@@ -7473,6 +7546,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.levelCompletionActive = true;
         this.virtualJoystickX = 0;
+        this.virtualJoystickY = 0;
         this.clearVirtualJumpInput();
         this.jumpBufferPressed = false;
         this.player?.setVelocity?.(0, 0);
