@@ -807,7 +807,10 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     nextSignalEmphasized: Boolean(nextSignal?.guidanceTween),
                     compass: scene?.getOrderedRouteCompassText?.() || '',
                     checkpointX: scene?.checkpointPosition?.x,
-                    checkpointY: scene?.checkpointPosition?.y
+                    checkpointY: scene?.checkpointPosition?.y,
+                    openingCurrentRetired: ${JSON.stringify(route)} === 'reef'
+                        ? Boolean(scene?.openingSignalCurrent?.retired)
+                        : null
                 };
             })()`),
             { timeoutMs: 2500, message: `${sceneName} route signal handoff` }
@@ -817,7 +820,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             !routeHandoff.nextSignalEmphasized ||
             !/^SIGNAL (RIGHT|LEFT|CLOSE)/.test(routeHandoff.compass) ||
             !Number.isFinite(routeHandoff.checkpointX) ||
-            !Number.isFinite(routeHandoff.checkpointY)
+            !Number.isFinite(routeHandoff.checkpointY) ||
+            (route === 'reef' && routeHandoff.openingCurrentRetired !== true)
         ) {
             throw new Error(
                 `${sceneName} did not hand route guidance to signal 2: ${JSON.stringify(routeHandoff)}`
