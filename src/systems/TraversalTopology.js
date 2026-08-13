@@ -305,6 +305,9 @@ function normalizeTarget(target, index) {
     const y = finite(target?.y, finite(target?.zone?.y));
     const width = Math.max(80, finite(body?.width, finite(target?.width, 160)));
     const height = Math.max(100, finite(body?.height, finite(target?.height, 210)));
+    const activationSupportIds = Array.isArray(target?.activationSupportIds)
+        ? target.activationSupportIds.filter(id => typeof id === 'string' && id)
+        : [];
 
     return {
         id: target?.id || `target-${index}`,
@@ -318,7 +321,8 @@ function normalizeTarget(target, index) {
         right: finite(body?.right, x + width / 2),
         top: finite(body?.top, y - height / 2),
         bottom: finite(body?.bottom, y + height / 2),
-        optional: target?.optional === true || target?.required === false
+        optional: target?.optional === true || target?.required === false,
+        activationSupportIds
     };
 }
 
@@ -326,6 +330,12 @@ function supportCanReachTarget(support, target, envelope, {
     playerHeight,
     playerHalfWidth
 }) {
+    if (
+        target.activationSupportIds.length > 0 &&
+        !target.activationSupportIds.includes(support.id)
+    ) {
+        return false;
+    }
     const targetHorizontal = {
         left: target.left - playerHalfWidth,
         right: target.right + playerHalfWidth

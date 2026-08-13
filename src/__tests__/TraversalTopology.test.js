@@ -127,6 +127,38 @@ describe('campaign traversal topology', () => {
         })).toBe(true);
     });
 
+    test('can require an objective to be activated from an authored support', () => {
+        const supports = [
+            support('start', 0, 220, 700),
+            support('main-nearby', 280, 500, 700),
+            {
+                ...support('optional-exit', 540, 760, 700),
+                traversalLinks: ['finish']
+            },
+            support('finish', 820, 1040, 700)
+        ];
+        const result = analyzeTraversalTopology({
+            supports,
+            spawn: { x: 100, y: 650 },
+            movement,
+            targets: [{
+                id: 'optional-objective',
+                x: 480,
+                y: 650,
+                optional: true,
+                activationSupportIds: ['optional-exit']
+            }, {
+                id: 'finish-objective',
+                x: 930,
+                y: 650
+            }]
+        });
+
+        expect(result.targets[0].reachable).toBe(true);
+        expect(result.targets[0].pathSupportIds.at(-1)).toBe('optional-exit');
+        expect(result.flow.strandingSupportCount).toBe(0);
+    });
+
     test('uses authored acceleration and available run-up in horizontal reach', () => {
         const responsive = calculateJumpEnvelope({
             ...movement,

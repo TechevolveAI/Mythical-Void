@@ -663,6 +663,149 @@ async function smokeCrystalCoreLift(session) {
     }
 }
 
+async function smokeReefAscentCurrent(session) {
+    const setup = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('ReefLevel');
+        const current = scene?.abyssAscentCurrent;
+        const destination = scene?.platforms?.getChildren?.().find(
+            item => item.traversalId === 'reef-drive-step'
+        );
+        if (!scene?.player?.body || !current?.zone?.body || !destination?.body) {
+            return null;
+        }
+
+        scene.isInvincible = true;
+        scene.releaseAllPlatformerActionButtons?.();
+        scene.resetJoystick?.();
+        (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (enemy?.body) enemy.body.enable = false;
+        });
+        (scene.collectibles?.getChildren?.() || []).forEach(item => {
+            if (item?.body) item.body.enable = false;
+        });
+        current.activations = 0;
+        current.activeUntil = 0;
+        scene.player.body.reset(
+            current.x + current.width / 2,
+            current.bottom - 115
+        );
+        scene.player.setVelocity(0, 0);
+        return {
+            id: current.id,
+            label: current.label?.text || '',
+            destinationId: current.destinationId,
+            currentBounds: {
+                left: Math.round(current.zone.body.left),
+                right: Math.round(current.zone.body.right),
+                top: Math.round(current.zone.body.top),
+                bottom: Math.round(current.zone.body.bottom)
+            },
+            authoredBounds: {
+                left: current.x,
+                right: current.x + current.width,
+                top: current.top,
+                bottom: current.bottom
+            },
+            destinationTop: Math.round(destination.body.top),
+            oneWay: destination.platformType === 'one-way'
+        };
+    })()`);
+    if (
+        setup?.id !== 'reef-star-trench-return' ||
+        setup.destinationId !== 'reef-drive-step' ||
+        setup.oneWay !== true ||
+        !setup.label.includes('STAR TRENCH RETURN') ||
+        JSON.stringify(setup.currentBounds) !== JSON.stringify(setup.authoredBounds)
+    ) {
+        throw new Error(`Reef return current was not mechanically visible: ${JSON.stringify(setup)}`);
+    }
+
+    try {
+        const lifted = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                const current = scene?.abyssAscentCurrent;
+                if (!current?.activations || scene.player.body.velocity.y > -130) return null;
+                return {
+                    activations: current.activations,
+                    playerX: Math.round(scene.player.x),
+                    playerY: Math.round(scene.player.y),
+                    velocityY: Math.round(scene.player.body.velocity.y)
+                };
+            })()`),
+            { timeoutMs: 2600, message: 'Reef Star Trench current lift' }
+        );
+        const landed = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                const support = scene.platforms.getChildren().find(
+                    item => item.traversalId === 'reef-drive-step'
+                );
+                const body = scene.player?.body;
+                if (!support?.body || !body) return null;
+                const onSupport = body.right > support.body.left + 8 &&
+                    body.left < support.body.right - 8 &&
+                    Math.abs(body.bottom - support.body.top) <= 7 &&
+                    (body.blocked.down || scene.isGrounded);
+                return onSupport ? {
+                    supportId: support.traversalId,
+                    playerX: Math.round(scene.player.x),
+                    playerBottom: Math.round(body.bottom),
+                    supportTop: Math.round(support.body.top),
+                    activations: scene.abyssAscentCurrent.activations
+                } : null;
+            })()`),
+            { timeoutMs: 7000, message: 'Reef current landing' }
+        );
+        await delay(650);
+        const settled = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('ReefLevel');
+            const support = scene.platforms.getChildren().find(
+                item => item.traversalId === 'reef-drive-step'
+            );
+            const body = scene.player.body;
+            return {
+                playerLeft: Math.round(body.left),
+                playerRight: Math.round(body.right),
+                playerTop: Math.round(body.top),
+                playerBottom: Math.round(body.bottom),
+                supportLeft: Math.round(support.body.left),
+                supportRight: Math.round(support.body.right),
+                supportTop: Math.round(support.body.top),
+                supportBottom: Math.round(support.body.bottom),
+                velocityY: Math.round(body.velocity.y),
+                activations: scene.abyssAscentCurrent.activations
+            };
+        })()`);
+        if (
+            settled.playerRight <= settled.supportLeft + 8 ||
+            settled.playerLeft >= settled.supportRight - 8 ||
+            settled.playerTop >= settled.supportTop ||
+            settled.playerBottom < settled.supportTop - 36 ||
+            settled.playerBottom > settled.supportBottom + 4 ||
+            settled.velocityY < -35 ||
+            settled.activations !== landed.activations
+        ) {
+            throw new Error(`Reef current destabilized its landing: ${JSON.stringify(settled)}`);
+        }
+        return { setup, lifted, landed, settled };
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('ReefLevel');
+            (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+                if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
+            });
+            (scene.collectibles?.getChildren?.() || []).forEach(item => {
+                if (item?.body && item.active !== false) item.body.enable = true;
+            });
+            scene.isInvincible = false;
+            scene.player.body.reset(2300, 340);
+            scene.player.setVelocity(0, 0);
+            return true;
+        })()`);
+    }
+}
+
 async function smokeFinalVoidRiftCrossing(session) {
     const supportIds = [
         'final-rift-step-1',
@@ -1607,6 +1750,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
 
     const returnCurrents = route === 'voidPeaks'
         ? await smokeVoidPeaksReturnCurrents(session)
+        : null;
+    const reefAscentCurrent = route === 'reef'
+        ? await smokeReefAscentCurrent(session)
         : null;
 
     let verticalJoystick = null;
@@ -3079,6 +3225,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
         joystick: { movedRight, movedLeft, vertical: verticalJoystick },
         returnCurrents,
+        reefAscentCurrent,
         finalRiftCrossing,
         auroraQuietLightClimb,
         forestForwardHandoffs,
@@ -3143,6 +3290,19 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             crystalCoreFlow?.pathSupportIds?.at?.(-2) !== 'caves-guardian-approach' ||
             crystalCoreFlow?.pathSupportIds?.at?.(-1) !== 'caves-core-refuge'
         );
+        const reefTrenchFlow = audit?.flow?.targets?.find(
+            target => target.id === 'reef_star_trench'
+        );
+        const reefDriveFlow = audit?.flow?.targets?.find(
+            target => target.id === 'dimensional_drive'
+        );
+        const reefFlowFailed = route === 'reef' && (
+            audit?.flow?.comfortPassed !== true ||
+            audit?.flow?.optionalComfortPassed !== true ||
+            reefTrenchFlow?.reachable !== true ||
+            reefTrenchFlow?.pathSupportIds?.at?.(-1) !== 'reef-trench-3' ||
+            reefDriveFlow?.reachable !== true
+        );
         if (
             !audit?.passed ||
             audit?.flow?.strandingSupportCount !== 0 ||
@@ -3150,6 +3310,7 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             auroraFlowFailed ||
             forestFlowFailed ||
             cavesFlowFailed ||
+            reefFlowFailed ||
             exceptions.length
         ) {
             const supportGeometry = await evaluate(session, `(() => {
@@ -3170,6 +3331,7 @@ async function smokeTraversalTopology(session, levels, exceptions) {
                     auroraFlowFailed,
                     forestFlowFailed,
                     cavesFlowFailed,
+                    reefFlowFailed,
                     exceptions,
                     supportGeometry
                 })}`
