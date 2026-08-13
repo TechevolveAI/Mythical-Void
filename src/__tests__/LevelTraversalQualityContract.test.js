@@ -137,15 +137,94 @@ describe('campaign traversal quality contracts', () => {
         };
         scene.time = { now: 1000 };
         scene.jumpVelocity = -460;
-        scene.damageEnemy = jest.fn();
+        scene.damageEnemy = jest.fn(target => {
+            target.health -= 1;
+            return true;
+        });
         scene.showFloatingText = jest.fn();
 
         expect(scene.resolveEnemyContact(player, enemy)).toBe('stomp');
         expect(scene.damageEnemy).toHaveBeenCalledWith(enemy, 1);
         expect(player.setVelocityY).toHaveBeenCalledWith(-285.2);
+        expect(scene.showFloatingText).toHaveBeenCalledWith(
+            'STOMP · 2 HITS LEFT',
+            100,
+            164,
+            '#F2C94C'
+        );
 
         expect(scene.resolveEnemyContact(player, enemy)).toBe('ignored');
         expect(scene.damageEnemy).toHaveBeenCalledTimes(1);
+    });
+
+    test('a decisive stomp reports that the enemy was cleared', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'ClearStompTest' });
+        const player = {
+            active: true,
+            body: {
+                center: { y: 150 },
+                bottom: 180,
+                velocity: { y: 80 }
+            },
+            setVelocityY: jest.fn()
+        };
+        const enemy = {
+            active: true,
+            x: 100,
+            y: 200,
+            health: 1,
+            body: { center: { y: 200 }, top: 175, height: 50 }
+        };
+        scene.time = { now: 1000 };
+        scene.jumpVelocity = -460;
+        scene.damageEnemy = jest.fn(target => {
+            target.health = 0;
+            target.active = false;
+            return true;
+        });
+        scene.showFloatingText = jest.fn();
+
+        expect(scene.resolveEnemyContact(player, enemy)).toBe('stomp');
+        expect(scene.showFloatingText).toHaveBeenCalledWith(
+            'STOMP CLEAR',
+            100,
+            164,
+            '#8FE3CF'
+        );
+    });
+
+    test('an immune stomp reports that no damage landed', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'BlockedStompTest' });
+        const player = {
+            active: true,
+            body: {
+                center: { y: 150 },
+                bottom: 180,
+                velocity: { y: 80 }
+            },
+            setVelocityY: jest.fn()
+        };
+        const enemy = {
+            active: true,
+            x: 100,
+            y: 200,
+            health: 1,
+            body: { center: { y: 200 }, top: 175, height: 50 }
+        };
+        scene.time = { now: 1000 };
+        scene.jumpVelocity = -460;
+        scene.damageEnemy = jest.fn(() => false);
+        scene.showFloatingText = jest.fn();
+
+        expect(scene.resolveEnemyContact(player, enemy)).toBe('stomp');
+        expect(scene.showFloatingText).toHaveBeenCalledWith(
+            'STOMP BLOCKED',
+            100,
+            164,
+            '#FF6B6B'
+        );
     });
 
     test('the physics world includes fall space before pit recovery', () => {

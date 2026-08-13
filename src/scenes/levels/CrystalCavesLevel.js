@@ -1950,7 +1950,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         return this.resolveEnemyContact(player, spider, {
             stompDamage: 1,
             contactDamage: 1,
-            onStomp: () => this.damageSpider(1)
+            onStomp: () => this.damageSpider(1) !== false
         });
     }
 
@@ -1958,7 +1958,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Damage the Crystal Spider
      */
     damageSpider(amount) {
-        if (!this.crystalSpider || !this.crystalSpider.active || this.crystalSpider.defeated) return;
+        if (!this.crystalSpider || !this.crystalSpider.active || this.crystalSpider.defeated) {
+            return false;
+        }
 
         const recoveryBonus = this.crystalSpider.isRecovering ? 1 : 0;
         const finalAmount = amount + recoveryBonus;
@@ -1997,6 +1999,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.crystalSpider.health <= 0) {
             this.onSpiderDefeated();
         }
+        return true;
     }
 
     /**

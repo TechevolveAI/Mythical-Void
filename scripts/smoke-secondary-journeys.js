@@ -767,6 +767,73 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         throw new Error(`${sceneName} retained left input after touch release: ${leftReleased}`);
     }
 
+    let combatFeedback = null;
+    if (route === 'mythicalForest') {
+        combatFeedback = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const enemies = scene?.enemies?.getChildren?.().filter(
+                enemy => enemy?.active !== false
+            ) || [];
+            const clearTarget = enemies.find(enemy => Number(enemy.health) === 1);
+            const armoredTarget = enemies.find(enemy => (
+                enemy !== clearTarget &&
+                enemy?.combatRole === 'armored' &&
+                Number(enemy.health) >= 3
+            ));
+            if (!scene || !clearTarget || !armoredTarget) return null;
+
+            const messages = [];
+            const originalFloatingText = scene.showFloatingText;
+            scene.showFloatingText = function (text, x, y, color) {
+                messages.push({ text, color });
+                return originalFloatingText.call(this, text, x, y, color);
+            };
+            const stomp = enemy => scene.resolveEnemyContact({
+                active: true,
+                x: enemy.x,
+                y: enemy.y - 50,
+                body: {
+                    center: { y: enemy.body.center.y - 50 },
+                    bottom: enemy.body.top + 2,
+                    velocity: { y: 90 }
+                },
+                setVelocityY: () => {}
+            }, enemy);
+            const clearBefore = clearTarget.health;
+            const clearResult = stomp(clearTarget);
+            const armoredBefore = armoredTarget.health;
+            const armoredResult = stomp(armoredTarget);
+            const armoredAfter = armoredTarget.health;
+            scene.showFloatingText = originalFloatingText;
+
+            return {
+                clearBefore,
+                clearResult,
+                clearActive: clearTarget.active !== false,
+                armoredBefore,
+                armoredAfter,
+                armoredResult,
+                messages
+            };
+        })()`);
+        const texts = combatFeedback?.messages?.map(message => message.text) || [];
+        if (
+            combatFeedback?.clearBefore !== 1 ||
+            combatFeedback.clearResult !== 'stomp' ||
+            combatFeedback.clearActive !== false ||
+            combatFeedback.armoredResult !== 'stomp' ||
+            combatFeedback.armoredAfter !== combatFeedback.armoredBefore - 1 ||
+            !texts.includes('STOMP CLEAR') ||
+            !texts.includes(
+                `STOMP · ${combatFeedback.armoredAfter} HITS LEFT`
+            )
+        ) {
+            throw new Error(
+                `${sceneName} did not explain stomp outcomes: ${JSON.stringify(combatFeedback)}`
+            );
+        }
+    }
+
     let routeHandoff = null;
     let routeCompletion = null;
     let outOfOrderGuard = null;
@@ -1063,6 +1130,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         ...state,
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
         joystick: { movedRight, movedLeft },
+        combatFeedback,
         outOfOrderGuard,
         routeHandoff,
         routeCompletion,

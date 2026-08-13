@@ -3000,13 +3000,19 @@ class PlatformerLevelScene extends Phaser.Scene {
                     ? enemy.stompDamage
                     : defaultDamage;
 
-            if (typeof options.onStomp === 'function') {
-                options.onStomp(enemy, stompDamage);
-            } else {
-                this.damageEnemy(enemy, stompDamage);
-            }
+            const damageResult = typeof options.onStomp === 'function'
+                ? options.onStomp(enemy, stompDamage)
+                : this.damageEnemy(enemy, stompDamage);
             player.setVelocityY(this.jumpVelocity * 0.62);
-            this.showFloatingText?.('STOMP', enemy.x, enemy.y - 36, '#F2C94C');
+            const feedback = this.getEnemyStompFeedback(enemy, {
+                damageApplied: damageResult !== false
+            });
+            this.showFloatingText?.(
+                feedback.text,
+                enemy.x,
+                enemy.y - 36,
+                feedback.color
+            );
             window.AudioManager?.playEnemyHit?.();
             return 'stomp';
         }
@@ -3024,6 +3030,25 @@ class PlatformerLevelScene extends Phaser.Scene {
             player.setVelocity(horizontalDirection * horizontalForce, verticalForce);
         }
         return 'contact';
+    }
+
+    getEnemyStompFeedback(enemy, { damageApplied = true } = {}) {
+        if (!damageApplied) {
+            return { text: 'STOMP BLOCKED', color: '#FF6B6B' };
+        }
+
+        const defeated = enemy?.active === false ||
+            enemy?.defeated === true ||
+            Number(enemy?.health) <= 0;
+        if (defeated) {
+            return { text: 'STOMP CLEAR', color: '#8FE3CF' };
+        }
+
+        const hitsRemaining = Math.max(1, Math.ceil(Number(enemy?.health) || 1));
+        return {
+            text: `STOMP · ${hitsRemaining} HIT${hitsRemaining === 1 ? '' : 'S'} LEFT`,
+            color: '#F2C94C'
+        };
     }
 
     configureEnemyCombat(enemy, {

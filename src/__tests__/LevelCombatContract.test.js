@@ -88,6 +88,17 @@ describe('playable level combat contracts', () => {
         expect(source).toContain('if (enemy.combatImmune)');
         expect(source).toContain('telegraphEnemyAttack(enemy, {');
         expect(source).toContain('enemy.combatCue?.destroy?.();');
+        expect(source).toContain("text: 'STOMP CLEAR'");
+        expect(source).toContain("text: 'STOMP BLOCKED'");
+        expect(source).toContain('HIT${hitsRemaining === 1 ? \'\' : \'S\'} LEFT');
+    });
+
+    test('Crystal Spider returns damage status to shared stomp feedback', () => {
+        const source = readLevel('CrystalCavesLevel.js');
+
+        expect(source).toContain('onStomp: () => this.damageSpider(1) !== false');
+        expect(source).toContain('return false;');
+        expect(source).toContain('return true;');
     });
 
     test.each([
