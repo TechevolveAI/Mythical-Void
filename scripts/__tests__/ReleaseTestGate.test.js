@@ -81,6 +81,15 @@ describe('release test gate', () => {
         expect(source).toContain('has no readable opening route guidance');
         expect(source).toContain('route signal handoff');
         expect(source).toContain('did not hand route guidance to signal 2');
+        expect(source).toContain('route signal ${signalIndex + 1} completion');
+        expect(source).toContain('did not complete its ordered route');
+        expect(source).toContain('routeCompletion.completedCount !== 3');
+        expect(source).toContain('routeCompletion.routeReady !== true');
+        expect(source).toContain('routeCompletion.remainingZones !== 0');
+        expect(source).toContain('routeCompletion.checkpointIndex !== 2');
+        expect(source).toContain('accepted an out-of-order route signal');
+        expect(source).toContain('outOfOrderGuard?.activatedCount !== 0');
+        expect(source).toContain('persistedCheckpoint?.id !== routeCompletion.checkpointId');
     });
 
     test('release smoke runs interaction before the state contract', () => {

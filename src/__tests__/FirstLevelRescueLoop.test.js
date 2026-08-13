@@ -225,7 +225,12 @@ describe('first expedition rescue loop', () => {
             expect.objectContaining({ checkpointId: 'forest_anchor_1' })
         );
         expect(resumedScene.player.setPosition).toHaveBeenCalledWith(1770, 1000);
-        expect(resumedScene.checkpointPosition).toEqual({ x: 1770, y: 1000 });
+        expect(resumedScene.checkpointPosition).toEqual({
+            x: 1770,
+            y: 1000,
+            id: 'forest_anchor_1',
+            index: 0
+        });
         expect(resumedScene.checkpointResumeApplied).toBe(true);
     });
 

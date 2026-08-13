@@ -4679,7 +4679,17 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Set an explicit checkpoint (for mid-level checkpoints)
      */
     setCheckpoint(x, y, options = {}) {
-        this.checkpointPosition = { x, y };
+        const checkpointIndex = Number(options.checkpointIndex);
+        this.checkpointPosition = {
+            x,
+            y,
+            ...(typeof options.checkpointId === 'string'
+                ? { id: options.checkpointId }
+                : {}),
+            ...(Number.isInteger(checkpointIndex) && checkpointIndex >= 0
+                ? { index: checkpointIndex }
+                : {})
+        };
         console.log(`[PlatformerLevel] Checkpoint set at (${x}, ${y})`);
 
         if (options.persist === true) {
@@ -4794,7 +4804,12 @@ class PlatformerLevelScene extends Phaser.Scene {
             return false;
         }
 
-        this.checkpointPosition = { x, y };
+        this.checkpointPosition = {
+            x,
+            y,
+            id: resume.checkpointId,
+            index: Number(resume.checkpointIndex)
+        };
         this.player.setPosition(x, y);
         this.player.setVelocity?.(0, 0);
         this.checkpointResumeApplied = true;

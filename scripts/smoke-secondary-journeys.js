@@ -768,7 +768,46 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     }
 
     let routeHandoff = null;
+    let routeCompletion = null;
+    let outOfOrderGuard = null;
     if (['reef', 'voidPeaks', 'auroraDepths', 'finalVoid'].includes(route)) {
+        outOfOrderGuard = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const signals = scene?.orderedRouteSignals || [];
+            const firstSignal = signals[0];
+            const lastSignal = signals[signals.length - 1];
+            const activeProperty = scene?.orderedRouteSignalOptions?.activeProperty ||
+                'activated';
+            if (!scene?.player || !firstSignal || !lastSignal) return null;
+            scene.isInvincible = true;
+            scene.player.setPosition(lastSignal.x, lastSignal.y);
+            scene.player.setVelocity?.(0, 0);
+            return new Promise(resolve => {
+                scene.time.delayedCall(220, () => resolve({
+                    activatedCount: signals.filter(
+                        signal => signal?.[activeProperty] === true
+                    ).length,
+                    lastSignalComplete: lastSignal?.[activeProperty] === true,
+                    nextSignalIndex: scene?.getNextOrderedRouteSignal?.()?.index ?? null,
+                    checkpointPresent: Boolean(scene?.checkpointPosition),
+                    firstSignalIndex: firstSignal.index,
+                    hintShown: Number(scene?.routeHintUntil) > Number(scene?.time?.now)
+                }));
+            });
+        })()`);
+        if (
+            outOfOrderGuard?.activatedCount !== 0 ||
+            outOfOrderGuard.lastSignalComplete !== false ||
+            outOfOrderGuard.nextSignalIndex !== 0 ||
+            outOfOrderGuard.checkpointPresent !== false ||
+            outOfOrderGuard.firstSignalIndex !== 0 ||
+            outOfOrderGuard.hintShown !== true
+        ) {
+            throw new Error(
+                `${sceneName} accepted an out-of-order route signal: ${JSON.stringify(outOfOrderGuard)}`
+            );
+        }
+
         const staged = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const firstSignal = scene?.getNextOrderedRouteSignal?.();
@@ -827,6 +866,110 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 `${sceneName} did not hand route guidance to signal 2: ${JSON.stringify(routeHandoff)}`
             );
         }
+
+        for (let signalIndex = 1; signalIndex < 3; signalIndex += 1) {
+            const stagedSignal = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const signal = scene?.getNextOrderedRouteSignal?.();
+                if (!scene?.player || signal?.index !== ${signalIndex}) return null;
+                scene.player.setPosition(signal.x, signal.y);
+                scene.player.setVelocity?.(0, 0);
+                return { index: signal.index, x: signal.x, y: signal.y };
+            })()`);
+            if (stagedSignal?.index !== signalIndex) {
+                throw new Error(
+                    `${sceneName} could not stage route signal ${signalIndex + 1}: ` +
+                    JSON.stringify(stagedSignal)
+                );
+            }
+
+            await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    const signals = scene?.orderedRouteSignals || [];
+                    const activeProperty = scene?.orderedRouteSignalOptions?.activeProperty ||
+                        'activated';
+                    const signal = signals[${signalIndex}];
+                    const nextSignal = scene?.getNextOrderedRouteSignal?.();
+                    const expectedNextIndex = ${signalIndex} < signals.length - 1
+                        ? ${signalIndex} + 1
+                        : null;
+                    if (signal?.[activeProperty] !== true) return null;
+                    if ((nextSignal?.index ?? null) !== expectedNextIndex) return null;
+                    return {
+                        completedIndex: signal.index,
+                        completedSignalEmphasized: Boolean(signal.guidanceTween),
+                        nextSignalIndex: nextSignal?.index ?? null,
+                        nextSignalEmphasized: Boolean(nextSignal?.guidanceTween),
+                        checkpointIndex: scene?.checkpointPosition?.index,
+                        checkpointX: scene?.checkpointPosition?.x,
+                        checkpointY: scene?.checkpointPosition?.y
+                    };
+                })()`),
+                {
+                    timeoutMs: 2500,
+                    message: `${sceneName} route signal ${signalIndex + 1} completion`
+                }
+            );
+        }
+
+        const readyProperty = {
+            reef: 'reefRouteAligned',
+            voidPeaks: 'creatureNetworkReached',
+            auroraDepths: 'uplinkRiskUnderstood',
+            finalVoid: 'finalSignalReady'
+        }[route];
+        routeCompletion = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const signals = scene?.orderedRouteSignals || [];
+            const activeProperty = scene?.orderedRouteSignalOptions?.activeProperty ||
+                'activated';
+            const persistedCheckpoint = window.GameState?.get?.(
+                'story.projectBeacon.expeditionCheckpoint'
+            );
+            return {
+                completedCount: signals.filter(signal => signal?.[activeProperty] === true).length,
+                totalSignals: signals.length,
+                routeReady: scene?.[${JSON.stringify(readyProperty)}] === true,
+                nextSignalIndex: scene?.getNextOrderedRouteSignal?.()?.index ?? null,
+                compass: scene?.getOrderedRouteCompassText?.() || '',
+                emphasizedSignals: signals.filter(signal => Boolean(signal?.guidanceTween)).length,
+                remainingZones: signals.filter(signal => Boolean(signal?.zone?.active)).length,
+                checkpointId: scene?.checkpointPosition?.id,
+                checkpointIndex: scene?.checkpointPosition?.index,
+                checkpointX: scene?.checkpointPosition?.x,
+                checkpointY: scene?.checkpointPosition?.y,
+                persistedCheckpoint: persistedCheckpoint ? {
+                    sceneKey: persistedCheckpoint.sceneKey,
+                    id: persistedCheckpoint.checkpointId,
+                    index: persistedCheckpoint.checkpointIndex,
+                    x: persistedCheckpoint.x,
+                    y: persistedCheckpoint.y
+                } : null
+            };
+        })()`);
+        if (
+            routeCompletion.completedCount !== 3 ||
+            routeCompletion.totalSignals !== 3 ||
+            routeCompletion.routeReady !== true ||
+            routeCompletion.nextSignalIndex !== null ||
+            routeCompletion.compass !== '' ||
+            routeCompletion.emphasizedSignals !== 0 ||
+            routeCompletion.remainingZones !== 0 ||
+            routeCompletion.checkpointIndex !== 2 ||
+            !routeCompletion.checkpointId ||
+            !Number.isFinite(routeCompletion.checkpointX) ||
+            !Number.isFinite(routeCompletion.checkpointY) ||
+            routeCompletion.persistedCheckpoint?.sceneKey !== sceneName ||
+            routeCompletion.persistedCheckpoint?.id !== routeCompletion.checkpointId ||
+            routeCompletion.persistedCheckpoint?.index !== routeCompletion.checkpointIndex ||
+            routeCompletion.persistedCheckpoint?.x !== routeCompletion.checkpointX ||
+            routeCompletion.persistedCheckpoint?.y !== routeCompletion.checkpointY
+        ) {
+            throw new Error(
+                `${sceneName} did not complete its ordered route: ${JSON.stringify(routeCompletion)}`
+            );
+        }
     }
     if (exceptions.length) {
         throw new Error(`${sceneName} raised browser exceptions: ${exceptions.join(' | ')}`);
@@ -835,7 +978,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         ...state,
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
         joystick: { movedRight, movedLeft },
-        routeHandoff
+        outOfOrderGuard,
+        routeHandoff,
+        routeCompletion
     };
 }
 

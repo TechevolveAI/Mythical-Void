@@ -358,4 +358,31 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.retireOpeningSignalCurrent();');
         expect(source).toContain("current.label?.setText?.('DRIFT SIGNAL LINKED')");
     });
+
+    test('release smoke completes every later-level route instead of checking only its opening', () => {
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+
+        expect(smoke).toContain('for (let signalIndex = 1; signalIndex < 3; signalIndex += 1)');
+        expect(smoke).toContain("reef: 'reefRouteAligned'");
+        expect(smoke).toContain("voidPeaks: 'creatureNetworkReached'");
+        expect(smoke).toContain("auroraDepths: 'uplinkRiskUnderstood'");
+        expect(smoke).toContain("finalVoid: 'finalSignalReady'");
+        expect(smoke).toContain('remainingZones: signals.filter');
+        expect(smoke).toContain('emphasizedSignals: signals.filter');
+        expect(smoke).toContain('accepted an out-of-order route signal');
+        expect(smoke).toContain("'story.projectBeacon.expeditionCheckpoint'");
+        expect(smoke).toContain('persistedCheckpoint?.sceneKey !== sceneName');
+    });
+
+    test('runtime checkpoints retain the same authored identity persisted for reload recovery', () => {
+        const source = read('PlatformerLevelScene.js');
+
+        expect(source).toContain("? { id: options.checkpointId }");
+        expect(source).toContain("? { index: checkpointIndex }");
+        expect(source).toContain('id: resume.checkpointId');
+        expect(source).toContain('index: Number(resume.checkpointIndex)');
+    });
 });
