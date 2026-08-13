@@ -114,7 +114,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.voidFractures = [];
         this.bondReserveReady = false;
         this.bondReserveEcho = null;
+        this.finalRouteChoice = '';
         this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickupOverlap = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -176,7 +180,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.voidFractures = [];
         this.bondReserveReady = false;
         this.bondReserveEcho = null;
+        this.finalRouteChoice = '';
         this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickupOverlap = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.highPowerRevealActive = false;
@@ -550,6 +558,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
                     top: 250, bottom: this.levelHeight
                 }
             },
+            onMainSelected: () => this.selectFinalRoute('main'),
+            onOptionalSelected: () => this.selectFinalRoute('optional'),
             onComplete: () => this.activateBondReserve()
         });
 
@@ -579,8 +589,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 strokeThickness: 4
             }
         ).setOrigin(0.5).setDepth(721);
+        this.optionalRoutePickupLabel = reserveLabel;
 
-        this.tweens.add({
+        this.optionalRoutePickupTween = this.tweens.add({
             targets: [reserve, reserveLabel],
             y: '-=10',
             duration: 850,
@@ -589,17 +600,17 @@ class FinalVoidLevel extends PlatformerLevelScene {
             ease: 'Sine.easeInOut'
         });
 
-        this.physics.add.overlap(this.player, reserve, () => {
+        this.optionalRoutePickupOverlap = this.physics.add.overlap(this.player, reserve, () => {
             if (this.bondReserveReady || !reserve.active) return;
 
             const rewardX = reserve.x;
             const rewardY = reserve.y;
-            reserve.destroy();
-            reserveLabel.destroy();
-            this.recordOptionalRouteProgress('final_trust_bridge', {
+            const claimed = this.recordOptionalRouteProgress('final_trust_bridge', {
                 x: rewardX,
                 y: rewardY
             });
+            if (!claimed) return;
+            this.clearBondReservePickup();
             window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
                 count: 22,
                 color: [0xA9F3E4, 0xF2C94C, 0xFFFFFF],
@@ -611,7 +622,18 @@ class FinalVoidLevel extends PlatformerLevelScene {
         });
     }
 
-    activateBondReserve() {
+    clearBondReservePickup() {
+        this.optionalRoutePickupOverlap?.destroy?.();
+        this.optionalRoutePickupOverlap = null;
+        this.optionalRoutePickupTween?.remove?.();
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickup?.destroy?.();
+        this.optionalRoutePickupLabel?.destroy?.();
+        this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+    }
+
+    activateBondReserve({ restoring = false } = {}) {
         if (this.bondReserveReady) return false;
 
         this.bondReserveReady = true;
@@ -630,6 +652,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             yoyo: true,
             repeat: -1
         });
+        if (!restoring) this.refreshPersistedExpeditionRouteState();
         return true;
     }
 
@@ -932,7 +955,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     restoreExpeditionRouteState(resume) {
-        return this.restoreExpeditionRouteSignals(resume, {
+        const signalsRestored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.bondAnchors,
             countProperty: 'bondAnchorsActivated',
             readyProperty: 'finalSignalReady',
@@ -948,6 +971,67 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 this.objectiveDisplay?.setText?.(this.getFinalObjectiveText());
             }
         });
+        if (!signalsRestored) return false;
+
+        this.restoreFinalRouteState(resume.routeState, {
+            rejoined: Number(resume.checkpointIndex) >= 2
+        });
+        this.objectiveDisplay?.setText?.(this.getFinalObjectiveText());
+        return true;
+    }
+
+    getExpeditionRouteState() {
+        const route = this.optionalRouteRewards?.get?.('final_trust_bridge');
+        return {
+            finalRouteChoice: this.finalRouteChoice || '',
+            trustBridgeProgress: Number(route?.progress) || 0,
+            trustBridgeCompleted: route?.completed === true,
+            bondReserveReady: this.bondReserveReady === true
+        };
+    }
+
+    selectFinalRoute(path, { restoring = false, rejoined = false } = {}) {
+        if (!['main', 'optional'].includes(path)) return false;
+        if (this.finalRouteChoice && this.finalRouteChoice !== path) return false;
+
+        this.finalRouteChoice = path;
+        const choice = this.optionalRouteRewards?.get?.('final_trust_bridge')?.choice;
+        if (choice) {
+            choice.selectedPath = path;
+            choice.mainEntered = path === 'main';
+            choice.optionalEntered = path === 'optional';
+            choice.rejoined = rejoined && path === 'optional';
+            choice.sequence ||= 1;
+        }
+        if (path === 'main') this.clearBondReservePickup();
+        if (!restoring) this.refreshPersistedExpeditionRouteState();
+        return true;
+    }
+
+    restoreFinalRouteState(routeState, { rejoined = false } = {}) {
+        if (!routeState || typeof routeState !== 'object') return false;
+
+        const path = routeState.finalRouteChoice;
+        if (['main', 'optional'].includes(path)) {
+            this.selectFinalRoute(path, { restoring: true, rejoined });
+        }
+
+        const route = this.optionalRouteRewards?.get?.('final_trust_bridge');
+        if (route && path === 'optional') {
+            route.progress = Phaser.Math.Clamp(
+                Number(routeState.trustBridgeProgress) || 0,
+                0,
+                route.required
+            );
+            route.completed = routeState.trustBridgeCompleted === true ||
+                route.progress >= route.required;
+            this.refreshOptionalRouteReward(route);
+            if (route.completed) this.clearBondReservePickup();
+            if (route.completed && routeState.bondReserveReady === true) {
+                this.activateBondReserve({ restoring: true });
+            }
+        }
+        return true;
     }
 
     createVoidBackground() {
@@ -2123,6 +2207,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.bondReserveReady = false;
             this.bondReserveEcho?.destroy?.();
             this.bondReserveEcho = null;
+            this.refreshPersistedExpeditionRouteState();
             // Reduce the pending hit through the shared damage pipeline so one
             // heart remains without temporarily inflating maximum health.
             incomingDamage = Math.max(0, this.health - 1);
@@ -2992,6 +3077,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossIndicator = null;
         this.objectiveDisplay?.destroy?.();
         this.objectiveDisplay = null;
+        this.clearBondReservePickup();
         this.bondReserveEcho?.destroy?.();
         this.bondReserveEcho = null;
         this.bondReserveReady = false;

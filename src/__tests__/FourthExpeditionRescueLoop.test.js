@@ -97,6 +97,10 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain("name: 'Signal Egg'");
         expect(source).toContain('ALL SIGNAL FRAGMENTS - EGG AWAKENED');
         expect(source).toContain('this.cosmicEggAwarded = true');
+        expect(source).toContain('peakSignalEggAwarded: this.cosmicEggAwarded === true');
+        expect(source).toContain('this.hasPeakSignalEgg()');
+        expect(source).toContain('this.awardPeakSignalEgg()');
+        expect(source).toContain('window.InventoryManager?.addItem?.({');
     });
 
     test('protects the player during the intro and after restoration begins', () => {
