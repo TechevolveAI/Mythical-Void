@@ -418,6 +418,29 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("const spawnX = this.testMode ? width / 2 + 200 : 5900;");
     });
 
+    test('Forest names and closes both route-critical bridge handoffs', () => {
+        const source = read('levels/MythicalForestLevel.js');
+
+        expect(source).toContain("id: 'forest-tree-3-handoff'");
+        expect(source).toContain('x1: 2100');
+        expect(source).toContain("id: 'forest-guardian-handoff'");
+        expect(source).toContain('x2: 5200');
+        expect(source).toContain(
+            'branchPlatform.traversalId = `forest-tree-${treeIndex + 1}-branch-${i + 1}`;'
+        );
+    });
+
+    test('Forest batches static scenery and enemy trails for mobile rendering', () => {
+        const source = read('levels/MythicalForestLevel.js');
+
+        expect(source).toContain('this.forestTreeStructureLayer = this.add.graphics()');
+        expect(source).toContain('this.forestBridgeLayer = this.add.graphics()');
+        expect(source).toContain('startForestEnemyTrailRenderer()');
+        expect(source).toContain('sprite.forestTrail = sprite.forestTrail.slice(-3);');
+        expect(source).not.toContain('const branch = this.add.graphics();');
+        expect(source).not.toContain('const shadow = this.add.graphics();');
+    });
+
     test('Crystal Caves stages the objective and guardian in forward order', () => {
         const source = read('levels/CrystalCavesLevel.js');
 
@@ -476,7 +499,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("'RETURN CURRENT\\nTO WARNING LINE ↑'");
         expect(source).toContain("lowerRecoveryIsland.traversalLinks = ['peak-warning-lower']");
         expect(source).toContain("summitRecoveryIsland.traversalLinks = ['peak-warning-summit']");
-        expect(source).toContain('this.player.setVelocityY(Math.min(this.player.body.velocity.y, -300))');
+        expect(source).toContain('const inLaunchBand = body.bottom >= current.bottom - 90;');
+        expect(source).toContain('if (!grounded || !inLaunchBand) return false;');
+        expect(source).toContain('if (now - current.lastLiftAt < 650) return false;');
+        expect(source).toContain('const requiredRise = current.bottom - current.top + 80;');
+        expect(source).toContain('Math.sqrt(2 * this.gravityY * requiredRise) + 40');
+        expect(source).toContain('this.player.setVelocityY(launchVelocity)');
         expect(source).toContain('platform.traversalId = id;');
     });
 
@@ -1263,18 +1291,24 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('smokeVoidPeaksReturnCurrents(session)');
         expect(smoke).toContain("id: 'peak-return-lower'");
         expect(smoke).toContain("id: 'peak-return-summit'");
+        expect(smoke).toContain('current.lastLiftAt = Number.NEGATIVE_INFINITY;');
         expect(smoke).toContain("route === 'finalVoid'");
         expect(smoke).toContain('Number(audit?.flow?.requiredJumpCount) < 4');
         expect(smoke).toContain('audit?.flow?.comfortPassed !== true');
         expect(smoke).toContain("route === 'auroraDepths'");
         expect(smoke).toContain('optionalComfortPassed !== true');
         expect(smoke).toContain('uncomfortableOptionalTargetIds');
+        expect(smoke).toContain("route === 'mythicalForest'");
+        expect(smoke).toContain('forestFlowFailed');
         expect(smoke).toContain('smokeFinalVoidRiftCrossing(session)');
         expect(smoke).toContain("'final-rift-step-1'");
         expect(smoke).toContain("'final-rift-step-4'");
         expect(smoke).toContain('smokeAuroraQuietLightClimb(session)');
         expect(smoke).toContain("'aurora-heart-launch'");
         expect(smoke).toContain("'aurora-quiet-step-3'");
+        expect(smoke).toContain('smokeForestForwardHandoffs(session)');
+        expect(smoke).toContain("'forest-tree-3-handoff'");
+        expect(smoke).toContain("'forest-guardian-handoff'");
 
         expect(smoke).toContain('for (let signalIndex = 1; signalIndex < 3; signalIndex += 1)');
         expect(smoke).toContain("mythicalForest: 'forestRouteAligned'");
@@ -1295,7 +1329,8 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("enemy?.combatRole === 'armored'");
         expect(smoke).toContain('scene.player.setVelocity?.(0, 680)');
         expect(smoke).toContain('message: `${sceneName} live stomp collision`');
-        expect(smoke).toContain('state.displayCount > 560');
+        expect(smoke).toContain('state.displayCount > 475');
+        expect(smoke).toContain('renderStability.endCount > renderStability.startCount + 8');
         expect(smoke).toContain('state.ambientRendering?.layerCount !== 9');
         expect(smoke).toContain('state.ambientRendering?.pointCount !== 194');
         expect(smoke).toContain('scene.performSpecialAttack();');

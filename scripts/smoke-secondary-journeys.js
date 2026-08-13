@@ -438,6 +438,13 @@ async function smokeVoidPeaksReturnCurrents(session) {
                 scene.isInvincible = true;
                 scene.releaseAllPlatformerActionButtons?.();
                 scene.resetJoystick?.();
+                const current = scene.peakReturnCurrents.find(
+                    item => item.id === ${JSON.stringify(route.id)}
+                );
+                if (current) {
+                    current.activations = 0;
+                    current.lastLiftAt = Number.NEGATIVE_INFINITY;
+                }
                 scene.player.body.reset(${route.start.x}, ${route.start.y});
                 scene.player.setVelocity(0, 0);
                 return true;
@@ -463,7 +470,7 @@ async function smokeVoidPeaksReturnCurrents(session) {
                         const current = scene.peakReturnCurrents.find(
                             item => item.id === ${JSON.stringify(route.id)}
                         );
-                        if (!current?.activations || scene.player.body.velocity.y > -20) return null;
+                        if (!current?.activations) return null;
                         return {
                             activations: current.activations,
                             playerX: Math.round(scene.player.x),
@@ -854,6 +861,160 @@ async function smokeAuroraQuietLightClimb(session) {
     return landings;
 }
 
+async function smokeForestForwardHandoffs(session) {
+    const transitions = [
+        {
+            id: 'tree-3-to-crown-bridge',
+            startId: 'forest-tree-3-branch-4',
+            targetId: 'forest-tree-3-handoff',
+            jump: true
+        },
+        {
+            id: 'final-bridge-to-guardian-ground',
+            startId: 'forest-guardian-handoff',
+            targetId: 'forest-ground-6',
+            jump: false
+        }
+    ];
+    const landings = [];
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        scene.isInvincible = true;
+        scene.releaseAllPlatformerActionButtons?.();
+        scene.resetJoystick?.();
+        (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (enemy?.body) enemy.body.enable = false;
+        });
+        return true;
+    })()`);
+
+    try {
+        for (const transition of transitions) {
+            const staged = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                const start = scene.platforms.getChildren().find(
+                    item => item.traversalId === ${JSON.stringify(transition.startId)}
+                );
+                if (!start?.body || !scene.player?.body) return null;
+                const inset = ${transition.jump ? 52 : 100};
+                scene.player.body.reset(start.body.right - inset, start.body.top - 80);
+                scene.player.setVelocity(0, 0);
+                return {
+                    startId: start.traversalId,
+                    startRight: Math.round(start.body.right),
+                    startTop: Math.round(start.body.top)
+                };
+            })()`);
+            if (!staged) {
+                throw new Error(`Forest handoff support missing: ${transition.startId}`);
+            }
+
+            await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                    const start = scene.platforms.getChildren().find(
+                        item => item.traversalId === ${JSON.stringify(transition.startId)}
+                    );
+                    const body = scene.player?.body;
+                    return Boolean(
+                        start?.body && body &&
+                        Math.abs(body.bottom - start.body.top) <= 7 &&
+                        (body.blocked.down || scene.isGrounded)
+                    );
+                })()`),
+                { timeoutMs: 2500, message: `${transition.id} start` }
+            );
+
+            await setKeyboardKey(session, 'keyDown', {
+                key: 'd', code: 'KeyD', keyCode: 68
+            });
+            let launch = null;
+            if (transition.jump) {
+                await delay(90);
+                await setKeyboardKey(session, 'keyDown', {
+                    key: ' ', code: 'Space', keyCode: 32
+                });
+                try {
+                    launch = await waitFor(
+                        () => evaluate(session, `(() => {
+                            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                            const velocityY = Number(scene.player?.body?.velocity?.y);
+                            return velocityY < -20 ? {
+                                playerX: Math.round(scene.player.x),
+                                velocityY: Math.round(velocityY)
+                            } : null;
+                        })()`),
+                        { timeoutMs: 800, message: `${transition.id} launch` }
+                    );
+                } finally {
+                    await setKeyboardKey(session, 'keyUp', {
+                        key: ' ', code: 'Space', keyCode: 32
+                    });
+                }
+            }
+
+            await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                    const target = scene.platforms.getChildren().find(
+                        item => item.traversalId === ${JSON.stringify(transition.targetId)}
+                    );
+                    return target?.body && scene.player?.body?.center?.x >=
+                        target.body.left + 28;
+                })()`),
+                { timeoutMs: 2400, message: `${transition.id} approach` }
+            );
+            await setKeyboardKey(session, 'keyUp', {
+                key: 'd', code: 'KeyD', keyCode: 68
+            });
+
+            const landing = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                    const target = scene.platforms.getChildren().find(
+                        item => item.traversalId === ${JSON.stringify(transition.targetId)}
+                    );
+                    const body = scene.player?.body;
+                    if (!target?.body || !body) return null;
+                    const onTarget = body.right > target.body.left + 5 &&
+                        body.left < target.body.right - 5 &&
+                        Math.abs(body.bottom - target.body.top) <= 7 &&
+                        (body.blocked.down || scene.isGrounded);
+                    return onTarget ? {
+                        transitionId: ${JSON.stringify(transition.id)},
+                        targetId: target.traversalId,
+                        playerX: Math.round(scene.player.x),
+                        playerBottom: Math.round(body.bottom),
+                        targetTop: Math.round(target.body.top)
+                    } : null;
+                })()`),
+                { timeoutMs: 3000, message: `${transition.id} grounded landing` }
+            );
+            landings.push({ staged, launch, landing });
+        }
+    } finally {
+        await setKeyboardKey(session, 'keyUp', {
+            key: ' ', code: 'Space', keyCode: 32
+        });
+        await setKeyboardKey(session, 'keyUp', {
+            key: 'd', code: 'KeyD', keyCode: 68
+        });
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+                if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
+            });
+            scene.isInvincible = false;
+            scene.player.body.reset(300, scene.levelHeight - 130);
+            scene.player.setVelocity(0, 0);
+            return true;
+        })()`);
+    }
+
+    return landings;
+}
+
 async function smokeLevel(session, route, sceneName, exceptions) {
     exceptions.length = 0;
     trace('navigate', { route, sceneName });
@@ -923,7 +1084,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     if (
         route === 'mythicalForest' &&
         (
-            state.displayCount > 560 ||
+            state.displayCount > 475 ||
             state.ambientRendering?.layerCount !== 9 ||
             state.ambientRendering?.pointCount !== 194
         )
@@ -931,6 +1092,32 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         throw new Error(
             `${sceneName} exceeded its mobile ambient render budget: ${JSON.stringify(state)}`
         );
+    }
+    let renderStability = null;
+    if (route === 'mythicalForest') {
+        renderStability = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const startCount = scene.children?.list?.length || 0;
+            return new Promise(resolve => {
+                setTimeout(() => resolve({
+                    startCount,
+                    endCount: scene.children?.list?.length || 0,
+                    trailLayerCount: scene.children?.list?.filter(
+                        item => item === scene.forestEnemyTrailLayer
+                    ).length || 0
+                }), 700);
+            });
+        })()`);
+        if (
+            renderStability.endCount > renderStability.startCount + 8 ||
+            renderStability.endCount > 475 ||
+            renderStability.trailLayerCount !== 1
+        ) {
+            throw new Error(
+                `${sceneName} leaked render objects while idle: ` +
+                JSON.stringify(renderStability)
+            );
+        }
     }
     if (
         [
@@ -1792,6 +1979,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let guardianRecovery = null;
     let finalRiftCrossing = null;
     let auroraQuietLightClimb = null;
+    let forestForwardHandoffs = null;
     if ([
         'mythicalForest',
         'crystalCaves',
@@ -2507,6 +2695,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         if (route === 'auroraDepths') {
             auroraQuietLightClimb = await smokeAuroraQuietLightClimb(session);
         }
+        if (route === 'mythicalForest') {
+            forestForwardHandoffs = await smokeForestForwardHandoffs(session);
+        }
 
         const guardianEntrySetup = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -2795,6 +2986,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         returnCurrents,
         finalRiftCrossing,
         auroraQuietLightClimb,
+        forestForwardHandoffs,
+        renderStability,
         combatFeedback,
         liveStomp,
         routeChoice,
@@ -2841,11 +3034,16 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             audit?.flow?.optionalComfortPassed !== true ||
             (audit?.flow?.uncomfortableOptionalTargetIds || []).length > 0
         );
+        const forestFlowFailed = route === 'mythicalForest' && (
+            audit?.flow?.comfortPassed !== true ||
+            (audit?.flow?.uncomfortableTargetIds || []).length > 0
+        );
         if (
             !audit?.passed ||
             audit?.flow?.strandingSupportCount !== 0 ||
             finalVoidFlowFailed ||
             auroraFlowFailed ||
+            forestFlowFailed ||
             exceptions.length
         ) {
             const supportGeometry = await evaluate(session, `(() => {
@@ -2864,6 +3062,7 @@ async function smokeTraversalTopology(session, levels, exceptions) {
                     audit,
                     finalVoidFlowFailed,
                     auroraFlowFailed,
+                    forestFlowFailed,
                     exceptions,
                     supportGeometry
                 })}`

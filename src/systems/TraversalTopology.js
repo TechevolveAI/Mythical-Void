@@ -598,6 +598,7 @@ function analyzeTraversalTopology({
     const uncomfortableOptionalTargetIds = comfortFlow.targetResults
         .filter(target => target.optional && !target.reachable)
         .map(target => target.id);
+    const comfortTargets = comfortFlow.targetResults;
 
     return {
         passed: unreachableTargets.length === 0 &&
@@ -631,7 +632,8 @@ function analyzeTraversalTopology({
             comfortPassed: comfortFlow.passed,
             uncomfortableTargetIds,
             optionalComfortPassed: comfortFlow.optionalPassed,
-            uncomfortableOptionalTargetIds
+            uncomfortableOptionalTargetIds,
+            targets: comfortTargets
         }
     };
 }

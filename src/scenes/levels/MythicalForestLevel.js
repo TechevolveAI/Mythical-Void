@@ -109,6 +109,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Forest particles
         this.forestAmbientLayers = [];
         this.forestAmbientPointCount = 0;
+        this.forestGroundLayer = null;
+        this.forestVoidLayer = null;
+        this.forestVoidMoteLayer = null;
+        this.forestTreeStructureLayer = null;
+        this.forestBridgeLayer = null;
+        this.forestEnemyTrailLayer = null;
+        this.forestEnemyTrailTimer = null;
 
         // Cosmic trees - the core of this level
         this.cosmicTrees = [];
@@ -215,6 +222,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Reset particles
         this.forestAmbientLayers = [];
         this.forestAmbientPointCount = 0;
+        this.forestGroundLayer = null;
+        this.forestVoidLayer = null;
+        this.forestVoidMoteLayer = null;
+        this.forestTreeStructureLayer = null;
+        this.forestBridgeLayer = null;
+        this.forestEnemyTrailLayer = null;
+        this.forestEnemyTrailTimer = null;
 
         // Reset cosmic trees and platforms
         this.cosmicTrees = [];
@@ -1629,6 +1643,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     createGroundPlatforms() {
         const groundY = this.levelHeight - 100;
+        const groundLayer = this.add.graphics().setDepth(10);
+        this.forestGroundLayer = groundLayer;
 
         // Ground sections with MAJOR gaps - impossible to jump across
         // Each gap is 400-600px - players MUST climb trees to cross
@@ -1646,27 +1662,28 @@ class MythicalForestLevel extends PlatformerLevelScene {
             { x: 5200, width: 2800 }    // Boss arena (extended for longer level)
         ];
 
-        groundSections.forEach(section => {
-            // Visual ground
-            const ground = this.add.graphics();
-            ground.setDepth(10);
-
+        groundSections.forEach((section, index) => {
             // Dark cosmic soil
-            ground.fillStyle(0x1A251A, 1);
-            ground.fillRect(section.x, groundY, section.width, 100);
+            groundLayer.fillStyle(0x1A251A, 1);
+            groundLayer.fillRect(section.x, groundY, section.width, 100);
 
             // Bioluminescent grass/roots
-            ground.fillStyle(0x00FF7F, 0.3);
+            groundLayer.fillStyle(0x00FF7F, 0.3);
             for (let x = section.x; x < section.x + section.width; x += 15) {
                 const grassHeight = 8 + Math.random() * 12;
-                ground.fillRect(x, groundY - grassHeight, 2, grassHeight);
+                groundLayer.fillRect(x, groundY - grassHeight, 2, grassHeight);
             }
 
             // Glowing root veins
-            ground.lineStyle(2, 0x9370DB, 0.4);
+            groundLayer.lineStyle(2, 0x9370DB, 0.4);
             for (let i = 0; i < 3; i++) {
                 const rootX = section.x + Math.random() * section.width;
-                ground.lineBetween(rootX, groundY, rootX + (Math.random() - 0.5) * 50, groundY + 50);
+                groundLayer.lineBetween(
+                    rootX,
+                    groundY,
+                    rootX + (Math.random() - 0.5) * 50,
+                    groundY + 50
+                );
             }
 
             // Physics platform
@@ -1677,6 +1694,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 20
             );
             this.physics.add.existing(platformZone, true);
+            platformZone.traversalId = `forest-ground-${index + 1}`;
             this.platforms.add(platformZone);
         });
 
@@ -1698,37 +1716,32 @@ class MythicalForestLevel extends PlatformerLevelScene {
             { x: 3800, width: 1400 }   // Tree 5 gap - 1400px (final approach to boss)
         ];
 
-        voidPits.forEach(pit => {
-            // Ominous glow from below
-            const warning = this.add.graphics();
-            warning.setDepth(5);
-            warning.fillStyle(0x4B0082, 0.3);
-            warning.fillRect(pit.x, this.levelHeight - 100, pit.width, 100);
+        const warningLayer = this.add.graphics().setDepth(5);
+        const moteLayer = this.add.graphics().setDepth(6);
+        this.forestVoidLayer = warningLayer;
+        this.forestVoidMoteLayer = moteLayer;
 
-            // Animated warning particles
-            this.time.addEvent({
-                delay: 500 + Math.random() * 500,
-                callback: () => {
-                    if (!this.scene.isActive()) return;
-                    const particle = this.add.graphics();
-                    particle.fillStyle(0x9370DB, 0.6);
-                    particle.fillCircle(0, 0, 3);
-                    particle.setPosition(
-                        pit.x + Math.random() * pit.width,
-                        this.levelHeight - 20
-                    );
-                    particle.setDepth(6);
-
-                    this.tweens.add({
-                        targets: particle,
-                        y: this.levelHeight - 100,
-                        alpha: 0,
-                        duration: 1000,
-                        onComplete: () => particle.destroy()
-                    });
-                },
-                loop: true
-            });
+        voidPits.forEach((pit, pitIndex) => {
+            warningLayer.fillStyle(0x4B0082, 0.3);
+            warningLayer.fillRect(pit.x, this.levelHeight - 100, pit.width, 100);
+            for (let moteIndex = 0; moteIndex < 5; moteIndex += 1) {
+                const ratio = (moteIndex + 1) / 6;
+                moteLayer.fillStyle(0x9370DB, 0.3 + pitIndex * 0.04);
+                moteLayer.fillCircle(
+                    pit.x + pit.width * ratio,
+                    this.levelHeight - 20 - (moteIndex % 3) * 26,
+                    2 + (moteIndex % 2)
+                );
+            }
+        });
+        this.tweens.add({
+            targets: moteLayer,
+            y: { from: 8, to: -16 },
+            alpha: { from: 0.35, to: 0.75 },
+            duration: 1800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
         });
     }
 
@@ -1738,6 +1751,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * CRITICAL: Trees are positioned to span the void gaps - ONLY way to cross!
      */
     createCosmicTrees() {
+        this.forestTreeStructureLayer = this.add.graphics().setDepth(25);
         const treeConfigs = [
             // Tree 1: Tutorial tree - spans gap at x:400-900 - MUST climb to cross
             { x: 300, baseY: this.levelHeight - 100, height: 500, branches: 5, difficulty: 'easy' },
@@ -1769,51 +1783,50 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const { x, baseY, height, branches, difficulty } = config;
 
         // === TRUNK: Crystalline spire with glowing veins ===
-        const trunk = this.add.graphics();
-        trunk.setDepth(20);
+        const structure = this.forestTreeStructureLayer;
 
         // Main trunk shape (angular, crystalline)
         const trunkWidth = 60 + treeIndex * 5;
-        trunk.fillStyle(0x1A1A3E, 1); // Dark purple-blue
+        structure.fillStyle(0x1A1A3E, 1); // Dark purple-blue
 
         // Draw angular trunk (not round like earth trees)
-        trunk.beginPath();
-        trunk.moveTo(x - trunkWidth/2, baseY);
-        trunk.lineTo(x - trunkWidth/3, baseY - height * 0.3);
-        trunk.lineTo(x - trunkWidth/4, baseY - height * 0.6);
-        trunk.lineTo(x - trunkWidth/6, baseY - height * 0.85);
-        trunk.lineTo(x, baseY - height);
-        trunk.lineTo(x + trunkWidth/6, baseY - height * 0.85);
-        trunk.lineTo(x + trunkWidth/4, baseY - height * 0.6);
-        trunk.lineTo(x + trunkWidth/3, baseY - height * 0.3);
-        trunk.lineTo(x + trunkWidth/2, baseY);
-        trunk.closePath();
-        trunk.fillPath();
+        structure.beginPath();
+        structure.moveTo(x - trunkWidth/2, baseY);
+        structure.lineTo(x - trunkWidth/3, baseY - height * 0.3);
+        structure.lineTo(x - trunkWidth/4, baseY - height * 0.6);
+        structure.lineTo(x - trunkWidth/6, baseY - height * 0.85);
+        structure.lineTo(x, baseY - height);
+        structure.lineTo(x + trunkWidth/6, baseY - height * 0.85);
+        structure.lineTo(x + trunkWidth/4, baseY - height * 0.6);
+        structure.lineTo(x + trunkWidth/3, baseY - height * 0.3);
+        structure.lineTo(x + trunkWidth/2, baseY);
+        structure.closePath();
+        structure.fillPath();
 
         // Glowing energy veins
         const veinColors = [0x00FF7F, 0x9370DB, 0x00CED1, 0xFF69B4];
         const veinColor = veinColors[treeIndex % veinColors.length];
         const foliageGlow = this.add.graphics().setDepth(35);
-        trunk.lineStyle(3, veinColor, 0.8);
+        structure.lineStyle(3, veinColor, 0.8);
 
         // Main central vein
-        trunk.beginPath();
-        trunk.moveTo(x, baseY);
+        structure.beginPath();
+        structure.moveTo(x, baseY);
         for (let y = baseY; y > baseY - height; y -= 30) {
             const wobble = Math.sin((baseY - y) * 0.02) * 5;
-            trunk.lineTo(x + wobble, y);
+            structure.lineTo(x + wobble, y);
         }
-        trunk.stroke();
+        structure.stroke();
 
         // Side veins
-        trunk.lineStyle(2, veinColor, 0.5);
+        structure.lineStyle(2, veinColor, 0.5);
         for (let i = 0; i < 4; i++) {
             const veinY = baseY - height * (0.2 + i * 0.2);
             const direction = i % 2 === 0 ? -1 : 1;
-            trunk.beginPath();
-            trunk.moveTo(x, veinY);
-            trunk.lineTo(x + direction * (trunkWidth/2 + 20), veinY - 30);
-            trunk.stroke();
+            structure.beginPath();
+            structure.moveTo(x, veinY);
+            structure.lineTo(x + direction * (trunkWidth/2 + 20), veinY - 30);
+            structure.stroke();
         }
 
         // === BRANCHES: Semi-transparent crystalline platforms ===
@@ -1826,31 +1839,27 @@ class MythicalForestLevel extends PlatformerLevelScene {
             // particles can vary; a jump target cannot.
             const branchLength = 96 + ((treeIndex * 29 + i * 17) % 36);
 
-            // Visual branch
-            const branch = this.add.graphics();
-            branch.setDepth(25);
-
             // Crystal branch (angular, geometric)
-            branch.fillStyle(0x2A2A5E, 0.9);
-            branch.lineStyle(2, veinColor, 0.6);
+            structure.fillStyle(0x2A2A5E, 0.9);
+            structure.lineStyle(2, veinColor, 0.6);
 
             const branchX = x + direction * (trunkWidth/4);
             const endX = branchX + direction * branchLength;
 
             // Draw angular branch
-            branch.beginPath();
-            branch.moveTo(branchX, branchY - 8);
-            branch.lineTo(endX, branchY - 12);
-            branch.lineTo(endX + direction * 10, branchY);
-            branch.lineTo(endX, branchY + 12);
-            branch.lineTo(branchX, branchY + 8);
-            branch.closePath();
-            branch.fillPath();
-            branch.strokePath();
+            structure.beginPath();
+            structure.moveTo(branchX, branchY - 8);
+            structure.lineTo(endX, branchY - 12);
+            structure.lineTo(endX + direction * 10, branchY);
+            structure.lineTo(endX, branchY + 12);
+            structure.lineTo(branchX, branchY + 8);
+            structure.closePath();
+            structure.fillPath();
+            structure.strokePath();
 
             // Glowing tip
-            branch.fillStyle(veinColor, 0.6);
-            branch.fillCircle(endX + direction * 5, branchY, 8);
+            structure.fillStyle(veinColor, 0.6);
+            structure.fillCircle(endX + direction * 5, branchY, 8);
 
             // Physics platform for the branch
             const platformWidth = branchLength + 20;
@@ -1859,6 +1868,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             const branchPlatform = this.add.zone(platformX, branchY + 10, platformWidth, 20);
             this.physics.add.existing(branchPlatform, true);
             this.configureForestClimbSupport(branchPlatform);
+            branchPlatform.traversalId = `forest-tree-${treeIndex + 1}-branch-${i + 1}`;
             this.platforms.add(branchPlatform);
             this.branchPlatforms.push({
                 zone: branchPlatform,
@@ -1893,39 +1903,28 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const topPlatform = this.add.zone(x, baseY - height + 20, 100, 20);
         this.physics.add.existing(topPlatform, true);
         this.configureForestClimbSupport(topPlatform);
+        topPlatform.traversalId = `forest-tree-${treeIndex + 1}-crown`;
         this.platforms.add(topPlatform);
 
         // Visual crown at top (crystal formation, not leaves)
-        const crown = this.add.graphics();
-        crown.setDepth(30);
-        crown.fillStyle(veinColor, 0.4);
+        structure.fillStyle(veinColor, 0.4);
 
         // Crystal crown spikes
         for (let i = 0; i < 5; i++) {
             const angle = (i / 5) * Math.PI - Math.PI/2;
             const spikeX = x + Math.cos(angle) * 30;
             const spikeY = baseY - height - 20 + Math.sin(angle) * 20;
-            crown.fillTriangle(
+            structure.fillTriangle(
                 x, baseY - height,
                 spikeX - 8, spikeY,
                 spikeX + 8, spikeY - 15
             );
         }
 
-        // Pulsing glow effect on crown
-        this.tweens.add({
-            targets: crown,
-            alpha: { from: 0.4, to: 0.8 },
-            duration: 1500 + treeIndex * 200,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
         // Store tree reference
         this.cosmicTrees.push({
             x, baseY, height, branches, difficulty, treeIndex,
-            trunk, crown, veinColor
+            veinColor
         });
     }
 
@@ -2018,8 +2017,35 @@ class MythicalForestLevel extends PlatformerLevelScene {
         wispPositions.forEach((pos, index) => {
             this.createForestWisp(pos.x, pos.y, index);
         });
+        this.startForestEnemyTrailRenderer();
 
         console.log(`[MythicalForestLevel] Created ${this.voidSprites.length} Void Sprites, ${this.branchCrawlers.length} Branch Crawlers, ${this.sporeDrifters.length} Spore Drifters, ${this.forestWisps.length} Forest Wisps`);
+    }
+
+    startForestEnemyTrailRenderer() {
+        this.forestEnemyTrailTimer?.remove?.();
+        this.forestEnemyTrailLayer?.destroy?.();
+        const layer = this.add.graphics().setDepth(99);
+        this.forestEnemyTrailLayer = layer;
+
+        this.forestEnemyTrailTimer = this.time.addEvent({
+            delay: 100,
+            callback: () => {
+                if (!this.scene.isActive()) return;
+                layer.clear();
+                this.voidSprites.forEach(sprite => {
+                    if (!sprite?.active) return;
+                    sprite.forestTrail ||= [];
+                    sprite.forestTrail.push({ x: sprite.x, y: sprite.y + 10 });
+                    sprite.forestTrail = sprite.forestTrail.slice(-3);
+                    sprite.forestTrail.forEach((point, index) => {
+                        layer.fillStyle(0x4B0082, 0.1 + index * 0.08);
+                        layer.fillCircle(point.x, point.y, 7 + index * 1.5);
+                    });
+                });
+            },
+            loop: true
+        });
     }
 
     /**
@@ -2093,26 +2119,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 this.handleEnemyCollision(sprite);
             });
         }
-
-        // Shadow trail effect
-        this.time.addEvent({
-            delay: 100,
-            callback: () => {
-                if (!sprite.active || !this.scene.isActive()) return;
-                const shadow = this.add.graphics();
-                shadow.fillStyle(0x4B0082, 0.3);
-                shadow.fillCircle(0, 0, 10);
-                shadow.setPosition(sprite.x, sprite.y + 10);
-                shadow.setDepth(99);
-                this.tweens.add({
-                    targets: shadow,
-                    alpha: 0,
-                    duration: 500,
-                    onComplete: () => shadow.destroy()
-                });
-            },
-            loop: true
-        });
 
         // AI behavior
         this.time.addEvent({
@@ -3244,13 +3250,20 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Create bridges/platforms connecting trees
      */
     createTreeBridges() {
+        this.forestBridgeLayer = this.add.graphics().setDepth(15);
         const bridges = [
             // From Tree 1 to Tree 2
             { x1: 450, x2: 1050, y: this.levelHeight - 350, type: 'static' },
             // From Tree 2 to Tree 3
             { x1: 1400, x2: 1900, y: this.levelHeight - 450, type: 'vine' },
             // From Tree 3 to Tree 4
-            { x1: 2320, x2: 3000, y: this.levelHeight - 500, type: 'static' },
+            {
+                x1: 2100,
+                x2: 3000,
+                y: this.levelHeight - 500,
+                type: 'static',
+                id: 'forest-tree-3-handoff'
+            },
             // Readable stepped spine between the two tall-tree routes.
             { x1: 3000, x2: 3260, y: this.levelHeight - 525, type: 'static' },
             { x1: 3260, x2: 3500, y: this.levelHeight - 565, type: 'static' },
@@ -3265,7 +3278,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
             { x1: 3800, x2: 4050, y: this.levelHeight - 565, type: 'static' },
             { x1: 4050, x2: 4300, y: this.levelHeight - 525, type: 'static' },
             // From Tree 5 to Tree 6
-            { x1: 4300, x2: 4900, y: this.levelHeight - 500, type: 'static' }
+            {
+                x1: 4300,
+                x2: 5200,
+                y: this.levelHeight - 500,
+                type: 'static',
+                id: 'forest-guardian-handoff'
+            }
         ];
 
         bridges.forEach((bridge, index) => {
@@ -3277,12 +3296,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Create a single bridge between trees
      */
     createBridge(config, index) {
-        const { x1, x2, y, type } = config;
+        const { x1, x2, y, type, id = null } = config;
         const width = x2 - x1;
 
-        // Visual bridge
-        const bridgeGraphics = this.add.graphics();
-        bridgeGraphics.setDepth(15);
+        const bridgeGraphics = this.forestBridgeLayer;
 
         if (type === 'static') {
             // Solid crystal bridge
@@ -3295,6 +3312,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             const bridgeZone = this.add.zone(x1 + width/2, y + 7, width, 15);
             this.physics.add.existing(bridgeZone, true);
             this.configureForestClimbSupport(bridgeZone);
+            bridgeZone.traversalId = id || `forest-bridge-${index + 1}`;
             this.platforms.add(bridgeZone);
 
         } else if (type === 'vine') {
@@ -3325,6 +3343,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 const stepZone = this.add.zone(stepX, stepY, 30, 20);
                 this.physics.add.existing(stepZone, true);
                 this.configureForestClimbSupport(stepZone);
+                stepZone.traversalId = `forest-vine-${index + 1}-step-${i + 1}`;
                 this.platforms.add(stepZone);
             }
 
@@ -3348,6 +3367,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 const sectionZone = this.add.zone(sectionX + sectionWidth/2, y + 7, sectionWidth - 5, 15);
                 this.physics.add.existing(sectionZone, true);
                 sectionZone.platformType = 'collapsing';
+                sectionZone.traversalId =
+                    `forest-collapse-${index + 1}-section-${i + 1}`;
                 sectionZone.traversalOneWay = true;
                 sectionZone.traversalTransient = true;
                 sectionZone.body.checkCollision.down = false;
@@ -5009,6 +5030,20 @@ class MythicalForestLevel extends PlatformerLevelScene {
         });
         this.forestAmbientLayers = [];
         this.forestAmbientPointCount = 0;
+        this.forestEnemyTrailTimer?.remove?.();
+        this.forestEnemyTrailTimer = null;
+        [
+            'forestGroundLayer',
+            'forestVoidLayer',
+            'forestVoidMoteLayer',
+            'forestTreeStructureLayer',
+            'forestBridgeLayer',
+            'forestEnemyTrailLayer'
+        ].forEach(property => {
+            this.tweens?.killTweensOf?.(this[property]);
+            this[property]?.destroy?.();
+            this[property] = null;
+        });
 
         super.shutdown();
     }

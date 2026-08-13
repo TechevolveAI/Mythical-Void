@@ -262,6 +262,11 @@ describe('campaign traversal topology', () => {
             'finish'
         ]);
         expect(result.flow.requiredJumpCount).toBe(2);
+        expect(result.flow.targets[1]).toEqual(expect.objectContaining({
+            id: 'optional-reward',
+            optional: true,
+            reachable: false
+        }));
     });
 
     test('reports an isolated required objective even when most ground is usable', () => {
