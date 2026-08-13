@@ -452,11 +452,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
         });
 
         const ledges = [
-            [240, groundY - 160, 300],
-            [680, groundY - 285, 260],
-            [1080, groundY - 190, 300],
-            [1320, groundY - 250, 220],
-            [2370, groundY - 320, 260]
+            [315, groundY - 140, 300, 'final-opening-step'],
+            [680, groundY - 285, 260, 'final-opening-rise'],
+            [1080, groundY - 190, 300, 'final-return-approach'],
+            [1320, groundY - 250, 220, 'final-return-route'],
+            [2370, groundY - 285, 260, 'final-empress-gate']
         ];
 
         // The low route requires readable, forgiving jumps over the fracture.
@@ -568,13 +568,16 @@ class FinalVoidLevel extends PlatformerLevelScene {
                     top: 400, bottom: this.levelHeight
                 },
                 optionalZone: {
-                    left: 1600, right: 1820,
-                    top: 240, bottom: 360
+                    left: 1780, right: 2020,
+                    top: 250, bottom: 380
                 },
                 rejoinZone: {
-                    left: 2250, right: 2600,
-                    top: 250, bottom: this.levelHeight
-                }
+                    left: 2240, right: 2440,
+                    top: 520, bottom: 680
+                },
+                mainSupportIds: ['final-rift-step-1'],
+                optionalSupportIds: ['final-trust-bridge-1'],
+                rejoinSupportIds: ['final-rift-step-4']
             },
             onMainSelected: () => this.selectFinalRoute('main'),
             onOptionalSelected: () => this.selectFinalRoute('optional'),
@@ -582,8 +585,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         });
 
         const reserve = this.add.circle(
-            1900,
-            groundY - 465,
+            1960,
+            groundY - 440,
             18,
             0xA9F3E4,
             0.95
@@ -620,6 +623,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         this.optionalRoutePickupOverlap = this.physics.add.overlap(this.player, reserve, () => {
             if (this.bondReserveReady || !reserve.active) return;
+            if (!this.isPlayerGroundedOnTraversalSupport('final-trust-bridge-1')) {
+                return;
+            }
 
             const rewardX = reserve.x;
             const rewardY = reserve.y;
@@ -826,9 +832,27 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
     createBondAnchors() {
         const anchors = [
-            { id: 'final_bond_1', x: 600, y: 600, label: 'LIVING SYSTEMS' },
-            { id: 'final_bond_2', x: 1420, y: 470, label: 'RETURN ROUTE' },
-            { id: 'final_bond_3', x: 2350, y: 560, label: 'TRUST SIGNAL' }
+            {
+                id: 'final_bond_1',
+                x: 465,
+                y: 610,
+                label: 'LIVING SYSTEMS',
+                activationSupportIds: ['final-opening-step']
+            },
+            {
+                id: 'final_bond_2',
+                x: 1420,
+                y: 500,
+                label: 'RETURN ROUTE',
+                activationSupportIds: ['final-return-route']
+            },
+            {
+                id: 'final_bond_3',
+                x: 2350,
+                y: 600,
+                label: 'TRUST SIGNAL',
+                activationSupportIds: ['final-rift-step-4']
+            }
         ];
 
         anchors.forEach((anchor, index) => {
@@ -836,12 +860,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawBondAnchor(visual, anchor.x, anchor.y, false);
 
-            const label = this.add.text(anchor.x, anchor.y - 98, `${index + 1} // ${anchor.label}`, {
+            const label = this.add.text(anchor.x, anchor.y - 98, `${index + 1} // ${anchor.label}\nLAND + LINK`, {
                 fontSize: '11px',
                 color: '#8F789D',
                 fontStyle: 'bold',
                 stroke: '#09020E',
-                strokeThickness: 3
+                strokeThickness: 3,
+                align: 'center'
             }).setOrigin(0.5).setDepth(181);
 
             const zone = this.createObjectiveTriggerZone(
@@ -856,9 +881,28 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 visual,
                 label,
                 zone,
+                landingGuide: this.createTraversalLandingGuide(
+                    anchor.activationSupportIds[0],
+                    0xA9F3E4
+                ),
                 activated: false
             };
             this.physics.add.overlap(this.player, zone, () => {
+                if (!this.isPlayerGroundedOnTraversalSupport(
+                    bondAnchor.activationSupportIds
+                )) {
+                    const now = this.time.now;
+                    if (now >= this.routeHintUntil) {
+                        this.showFloatingText(
+                            `LAND ON THE LIT PLATFORM // ${bondAnchor.label}`,
+                            bondAnchor.x,
+                            bondAnchor.y - 130,
+                            '#F2C94C'
+                        );
+                        this.routeHintUntil = now + 1400;
+                    }
+                    return;
+                }
                 this.activateBondAnchor(bondAnchor);
             });
             this.bondAnchors.push(bondAnchor);
@@ -873,6 +917,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             {
                 id: 'empress_seal',
                 label: 'EMPRESS SEAL',
+                activationSupportIds: ['final-empress-gate'],
                 x: this.empressGate?.zone?.x || this.levelWidth - 500,
                 y: this.empressGate?.zone?.y || this.levelHeight / 2,
                 zone: this.empressGate?.zone
@@ -921,8 +966,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
         anchor.zone = null;
         this.bondAnchorsActivated++;
         this.drawBondAnchor(anchor.visual, anchor.x, anchor.y, true);
+        this.retireTraversalLandingGuide(anchor);
         this.refreshBondRouteReadability();
-        this.setCheckpoint(anchor.x, this.levelHeight - 130, {
+        const checkpoint = this.getTraversalSupportCheckpoint(
+            anchor.activationSupportIds[0],
+            anchor.x
+        );
+        this.setCheckpoint(checkpoint.x, checkpoint.y, {
             persist: true,
             checkpointId: anchor.id,
             checkpointIndex: anchor.index
@@ -992,12 +1042,15 @@ class FinalVoidLevel extends PlatformerLevelScene {
             countProperty: 'bondAnchorsActivated',
             readyProperty: 'finalSignalReady',
             labelColor: '#F2C94C',
-            drawSignal: anchor => this.drawBondAnchor(
-                anchor.visual,
-                anchor.x,
-                anchor.y,
-                true
-            ),
+            drawSignal: anchor => {
+                this.drawBondAnchor(
+                    anchor.visual,
+                    anchor.x,
+                    anchor.y,
+                    true
+                );
+                this.retireTraversalLandingGuide(anchor);
+            },
             onRestored: () => {
                 this.refreshBondRouteReadability();
                 this.objectiveDisplay?.setText?.(this.getFinalObjectiveText());
@@ -1188,6 +1241,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         const zone = this.add.zone(gateX, this.levelHeight / 2, 130, this.levelHeight);
         this.physics.add.existing(zone, true);
+        const landingGuide = this.createTraversalLandingGuide(
+            'final-empress-gate',
+            0xDA70D6,
+            { depth: 889 }
+        );
         this.physics.add.overlap(this.player, zone, () => {
             if (this.bossFightActive || this.bossDefeated) return;
 
@@ -1204,23 +1262,45 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 return;
             }
 
+            if (!this.isPlayerGroundedOnTraversalSupport('final-empress-gate')) {
+                if (this.time.now >= this.bossGateHintUntil) {
+                    this.bossGateHintUntil = this.time.now + 1400;
+                    this.showFloatingText(
+                        'LAND ON THE EMPRESS SEAL PLATFORM',
+                        gateX - 90,
+                        gateY - 205,
+                        '#F2C94C'
+                    );
+                }
+                return;
+            }
+
+            const checkpoint = this.getTraversalSupportCheckpoint(
+                'final-empress-gate',
+                gateX - 90
+            );
+
             const guardianEntered = this.beginGuardianEncounter({
                 id: 'void_empress',
                 title: 'VOID EMPRESS',
-                checkpoint: {
-                    x: gateX - 220,
-                    y: this.levelHeight - 170
-                },
+                checkpoint,
                 start: () => this.startBossFight()
             });
             if (!guardianEntered) return;
 
             zone.destroy();
             visual.destroy();
+            landingGuide?.tween?.remove?.();
+            landingGuide?.visual?.setAlpha?.(0.18);
             this.empressGate = null;
         });
 
-        this.empressGate = { visual, zone };
+        this.empressGate = {
+            visual,
+            zone,
+            landingGuide,
+            activationSupportIds: ['final-empress-gate']
+        };
     }
 
     update(time, delta) {

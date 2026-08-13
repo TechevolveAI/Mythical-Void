@@ -2091,11 +2091,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             if (!scene?.player || !zone) return false;
             if ([
                 'auroraDepths',
-                'voidPeaks'
+                'voidPeaks',
+                'finalVoid'
             ].includes(${JSON.stringify(route)})) {
                 const supportId = ${JSON.stringify(route)} === 'auroraDepths'
                     ? 'aurora-quiet-step-1'
-                    : 'peak-relic-ridge-1';
+                    : (${JSON.stringify(route)} === 'voidPeaks'
+                        ? 'peak-relic-ridge-1'
+                        : 'final-trust-bridge-1');
                 const support = scene.getTraversalSupport?.(supportId);
                 if (!support?.body || !scene.player?.body) return false;
                 scene.player.body.reset(
@@ -2137,11 +2140,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             if (!scene?.player || !zone) return false;
             if ([
                 'auroraDepths',
-                'voidPeaks'
+                'voidPeaks',
+                'finalVoid'
             ].includes(${JSON.stringify(route)})) {
                 const supportId = ${JSON.stringify(route)} === 'auroraDepths'
                     ? 'aurora-sky-prism'
-                    : 'peak-summit-relay';
+                    : (${JSON.stringify(route)} === 'voidPeaks'
+                        ? 'peak-summit-relay'
+                        : 'final-rift-step-4');
                 const support = scene.getTraversalSupport?.(supportId);
                 if (!support?.body || !scene.player?.body) return false;
                 scene.player.body.reset(
@@ -2278,6 +2284,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let auroraQuietLightClimb = null;
     let auroraGroundedObjectives = null;
     let peaksGroundedObjectives = null;
+    let finalGroundedObjectives = null;
     let forestForwardHandoffs = null;
     if ([
         'mythicalForest',
@@ -2296,7 +2303,17 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 'activated';
             if (!scene?.player || !firstSignal || !lastSignal) return null;
             scene.isInvincible = true;
-            scene.player.setPosition(lastSignal.x, lastSignal.y);
+            const support = scene.getTraversalSupport?.(
+                lastSignal.activationSupportIds?.[0]
+            );
+            if (support?.body && scene.player?.body) {
+                scene.player.body.reset(
+                    lastSignal.x,
+                    support.body.top - scene.player.body.height - 18
+                );
+            } else {
+                scene.player.setPosition(lastSignal.x, lastSignal.y);
+            }
             scene.player.setVelocity?.(0, 0);
             return new Promise(resolve => {
                 scene.time.delayedCall(220, () => resolve({
@@ -2324,12 +2341,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
         }
 
-        if (route === 'auroraDepths' || route === 'voidPeaks') {
+        if (['auroraDepths', 'voidPeaks', 'finalVoid'].includes(route)) {
             const airborneRejected = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                 const signal = ${JSON.stringify(route)} === 'auroraDepths'
                     ? scene?.signalPrisms?.[0]
-                    : scene?.beaconRelays?.[0];
+                    : (${JSON.stringify(route)} === 'voidPeaks'
+                        ? scene?.beaconRelays?.[0]
+                        : scene?.bondAnchors?.[0]);
                 if (!scene?.player?.body || !signal?.zone?.active) return null;
                 scene.routeHintUntil = 0;
                 scene.player.body.reset(signal.x, signal.y - 35);
@@ -2355,12 +2374,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             }
             if (route === 'auroraDepths') {
                 auroraGroundedObjectives = { airborneRejected };
-            } else {
+            } else if (route === 'voidPeaks') {
                 peaksGroundedObjectives = { airborneRejected };
+            } else {
+                finalGroundedObjectives = { airborneRejected };
             }
         }
 
-        const staged = ['auroraDepths', 'voidPeaks'].includes(route)
+        const staged = ['auroraDepths', 'voidPeaks', 'finalVoid'].includes(route)
             ? await stagePlatformBoundRouteSignal(session, {
                 sceneName,
                 route,
@@ -2426,7 +2447,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         }
 
         for (let signalIndex = 1; signalIndex < 3; signalIndex += 1) {
-            const stagedSignal = ['auroraDepths', 'voidPeaks'].includes(route)
+            const stagedSignal = ['auroraDepths', 'voidPeaks', 'finalVoid'].includes(route)
                 ? await stagePlatformBoundRouteSignal(session, {
                     sceneName,
                     route,
@@ -2736,13 +2757,16 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     }
                     if ([
                         'auroraDepths',
-                        'voidPeaks'
+                        'voidPeaks',
+                        'finalVoid'
                     ].includes(${JSON.stringify(route)})) {
                         const supportId = ${JSON.stringify(route)} === 'auroraDepths'
                             ? 'aurora-quiet-step-3'
-                            : (Number(item.fragmentIndex) === 2
-                                ? 'peak-relic-ridge-1'
-                                : 'peak-relic-ridge-2');
+                            : (${JSON.stringify(route)} === 'voidPeaks'
+                                ? (Number(item.fragmentIndex) === 2
+                                    ? 'peak-relic-ridge-1'
+                                    : 'peak-relic-ridge-2')
+                                : 'final-trust-bridge-1');
                         const support = scene.getTraversalSupport?.(supportId);
                         if (!support?.body || !scene.player?.body) {
                             return { missing: true, supportMissing: true };
@@ -3079,11 +3103,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
             if ([
                 'auroraDepths',
-                'voidPeaks'
+                'voidPeaks',
+                'finalVoid'
             ].includes(${JSON.stringify(route)})) {
                 const supportId = ${JSON.stringify(route)} === 'auroraDepths'
                     ? 'aurora-phoenix-gate'
-                    : 'peak-titan-gate';
+                    : (${JSON.stringify(route)} === 'voidPeaks'
+                        ? 'peak-titan-gate'
+                        : 'final-empress-gate');
                 const support = scene.getTraversalSupport?.(supportId);
                 if (!support?.body || !scene.player?.body) return null;
                 scene.player.body.reset(
@@ -3102,7 +3129,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     ? 'aurora-phoenix-gate'
                     : (${JSON.stringify(route)} === 'voidPeaks'
                         ? 'peak-titan-gate'
-                        : null)
+                        : (${JSON.stringify(route)} === 'finalVoid'
+                            ? 'final-empress-gate'
+                            : null))
             };
         })()`);
         if (!guardianEntrySetup) {
@@ -3383,6 +3412,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         crystalCoreLift,
         auroraGroundedObjectives,
         peaksGroundedObjectives,
+        finalGroundedObjectives,
         renderStability,
         combatFeedback,
         liveStomp,
@@ -3423,7 +3453,20 @@ async function smokeTraversalTopology(session, levels, exceptions) {
         })()`);
         const finalVoidFlowFailed = route === 'finalVoid' && (
             Number(audit?.flow?.requiredJumpCount) < 4 ||
-            audit?.flow?.comfortPassed !== true
+            Number(audit?.flow?.backtrackDistance) !== 0 ||
+            audit?.flow?.comfortPassed !== true ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'final_bond_1'
+            )?.pathSupportIds?.at?.(-1) !== 'final-opening-step' ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'final_bond_2'
+            )?.pathSupportIds?.at?.(-1) !== 'final-return-route' ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'final_bond_3'
+            )?.pathSupportIds?.at?.(-1) !== 'final-rift-step-4' ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'empress_seal'
+            )?.pathSupportIds?.at?.(-1) !== 'final-empress-gate'
         );
         const auroraFlowFailed = route === 'auroraDepths' && (
             Number(audit?.flow?.requiredJumpCount) < 7 ||
@@ -3564,7 +3607,9 @@ async function stagePlatformBoundRouteSignal(session, {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
         const signal = ${JSON.stringify(route)} === 'auroraDepths'
             ? scene?.signalPrisms?.[${index}]
-            : scene?.beaconRelays?.[${index}];
+            : (${JSON.stringify(route)} === 'voidPeaks'
+                ? scene?.beaconRelays?.[${index}]
+                : scene?.bondAnchors?.[${index}]);
         const support = scene?.getTraversalSupport?.(
             signal?.activationSupportIds?.[0]
         );
@@ -3591,7 +3636,9 @@ async function stagePlatformBoundRouteSignal(session, {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const signal = ${JSON.stringify(route)} === 'auroraDepths'
                 ? scene?.signalPrisms?.[${index}]
-                : scene?.beaconRelays?.[${index}];
+                : (${JSON.stringify(route)} === 'voidPeaks'
+                    ? scene?.beaconRelays?.[${index}]
+                    : scene?.bondAnchors?.[${index}]);
             const support = scene?.getTraversalSupport?.(
                 signal?.activationSupportIds?.[0]
             );
