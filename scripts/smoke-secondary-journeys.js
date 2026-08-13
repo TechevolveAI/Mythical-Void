@@ -527,22 +527,36 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             velocityY: scene?.player?.body?.velocity?.y
         };
     })()`);
-    await holdTouchDrag(session, jumpControl, jumpControl, 250);
-    const jumped = await evaluate(session, `(() => {
-        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-        return {
-            playerY: scene?.player?.y,
-            velocityY: scene?.player?.body?.velocity?.y,
-            virtualJumpPressed: scene?.virtualJumpPressed,
-            isSwimmingUp: scene?.isSwimmingUp
-        };
-    })()`);
-    await releaseTouch(session);
+    // A genuine tap can begin and end between two low-FPS Phaser updates.
+    // The game must preserve that edge until gameplay consumes it.
+    await touch(session, jumpControl.x, jumpControl.y);
+    const jumped = await waitFor(
+        async () => {
+            const response = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                return {
+                    playerY: scene?.player?.y,
+                    velocityY: scene?.player?.body?.velocity?.y,
+                    virtualJumpPressed: scene?.virtualJumpPressed,
+                    virtualJumpQueued: scene?.virtualJumpQueued,
+                    isSwimmingUp: scene?.isSwimmingUp
+                };
+            })()`);
+            const responded = route === 'reef'
+                ? response.velocityY < beforeJump.velocityY - 5 ||
+                    response.playerY < beforeJump.playerY - 2
+                : response.velocityY < -20 ||
+                    response.playerY < beforeJump.playerY - 2;
+            return responded ? response : null;
+        },
+        { timeoutMs: 1500, message: `${sceneName} short jump tap response` }
+    );
     await delay(120);
     const jumpReleased = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
         return {
             virtualJumpPressed: scene?.virtualJumpPressed,
+            virtualJumpQueued: scene?.virtualJumpQueued,
             isSwimmingUp: scene?.isSwimmingUp,
             jumpKeyDown: scene?.jumpKey?.isDown,
             cursorUpDown: scene?.cursors?.up?.isDown,
@@ -552,10 +566,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         };
     })()`);
     const jumpResponded = route === 'reef'
-        ? jumped.isSwimmingUp === true && (
-            jumped.velocityY < beforeJump.velocityY - 5 ||
+        ? jumped.velocityY < beforeJump.velocityY - 5 ||
             jumped.playerY < beforeJump.playerY - 2
-        )
         : jumped.velocityY < -20 || jumped.playerY < beforeJump.playerY - 2;
     if (!jumpResponded) {
         throw new Error(`${sceneName} did not respond to jump touch: ${JSON.stringify({
@@ -564,7 +576,11 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             control: jumpControl
         })}`);
     }
-    if (jumpReleased.virtualJumpPressed || jumpReleased.isSwimmingUp) {
+    if (
+        jumpReleased.virtualJumpPressed ||
+        jumpReleased.virtualJumpQueued ||
+        jumpReleased.isSwimmingUp
+    ) {
         throw new Error(`${sceneName} retained jump input after touch release: ${JSON.stringify(jumpReleased)}`);
     }
 

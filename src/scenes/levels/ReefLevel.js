@@ -3143,7 +3143,9 @@ class ReefLevel extends PlatformerLevelScene {
         const swimPressed = this.jumpKey.isDown ||
                            this.cursors.up.isDown ||
                            this.wasdKeys.W.isDown ||
-                           this.virtualJumpPressed;
+                           this.virtualJumpPressed ||
+                           this.virtualJumpQueued;
+        const queuedSwim = this.virtualJumpQueued;
 
         if (swimPressed) {
             this.isSwimmingUp = true;
@@ -3167,6 +3169,10 @@ class ReefLevel extends PlatformerLevelScene {
             this.isSwimmingUp = false;
             // Apply drag but let gravity do more work (don't reduce Y velocity as much)
             this.player.setVelocityY(this.player.body.velocity.y * this.swimDrag);
+        }
+
+        if (queuedSwim) {
+            this.virtualJumpQueued = false;
         }
 
         // Sink faster when pressing down

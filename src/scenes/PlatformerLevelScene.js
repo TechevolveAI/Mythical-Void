@@ -361,6 +361,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isMobile = false;
         this.virtualJoystickX = 0;  // -1 to 1 from virtual joystick
         this.virtualJumpPressed = false;
+        this.virtualJumpQueued = false;
         this.mobileControlElements = []; // Track all mobile UI elements for cleanup
         this.mobileControlTargets = {};
         this.mobileControlCoach = null;
@@ -655,6 +656,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Reset mobile control state
         this.virtualJoystickX = 0;
         this.virtualJumpPressed = false;
+        this.virtualJumpQueued = false;
         this.actionButtonPointers.clear();
         this.actionButtonReleases.clear();
         this.recoveryInputLockedUntil = 0;
@@ -2022,7 +2024,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 this.releasePlatformerActionButton(touch.identifier);
             });
             if (event.touches.length === 0) {
-                this.releaseAllPlatformerActionButtons();
+                this.releaseAllPlatformerActionButtons({ preserveQueuedJump: true });
             }
             // Only reset if there are no remaining touches OR if the joystick pointer specifically ended
             if (this.joystickActive && event.touches.length === 0) {
@@ -2108,7 +2110,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 y: jumpY,
                 size: jumpButtonSize,
                 color: 0x27AE60, // Green - jump (free)
-                action: () => { this.virtualJumpPressed = true; },
+                action: () => this.queueVirtualJumpInput(),
                 onRelease: () => this.releaseVirtualJumpInput(),
                 energyCost: 0,
                 opacity: controlOpacity,
@@ -2419,8 +2421,20 @@ class PlatformerLevelScene extends Phaser.Scene {
         return { id, x, y, radius, bg, icon, arrowGraphics, zone };
     }
 
+    queueVirtualJumpInput() {
+        this.virtualJumpPressed = true;
+        // Preserve a short tap until gameplay consumes one input edge. On a
+        // cold mobile frame, pointerdown and pointerup can occur between updates.
+        this.virtualJumpQueued = true;
+    }
+
     releaseVirtualJumpInput() {
         this.virtualJumpPressed = false;
+    }
+
+    clearVirtualJumpInput() {
+        this.virtualJumpPressed = false;
+        this.virtualJumpQueued = false;
     }
 
     releasePlatformerActionButton(pointerId) {
@@ -2434,12 +2448,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         return true;
     }
 
-    releaseAllPlatformerActionButtons() {
+    releaseAllPlatformerActionButtons({ preserveQueuedJump = false } = {}) {
         Array.from(this.actionButtonReleases.keys()).forEach(pointerId => {
             this.releasePlatformerActionButton(pointerId);
         });
         this.actionButtonPointers.clear();
         this.releaseVirtualJumpInput();
+        if (!preserveQueuedJump) {
+            this.virtualJumpQueued = false;
+        }
         return true;
     }
 
@@ -3295,7 +3312,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const recoveryInputLocked = time < this.recoveryInputLockedUntil;
         if (recoveryInputLocked) {
             this.player.setVelocityX(0);
-            this.virtualJumpPressed = false;
+            this.clearVirtualJumpInput();
         } else {
             // Handle ducking (must check before movement)
             this.handleDuck();
@@ -3626,7 +3643,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         const jumpPressed = this.jumpKey.isDown ||
                            this.cursors.up.isDown ||
                            this.wasdKeys.W.isDown ||
-                           this.virtualJumpPressed;  // Mobile virtual jump button
+                           this.virtualJumpPressed ||
+                           this.virtualJumpQueued;  // Mobile tap edge survives a low-FPS frame
+        const queuedJump = this.virtualJumpQueued;
 
         // Calculate if within coyote time (recently was grounded)
         const timeSinceGrounded = time - this.lastGroundedTime;
@@ -3637,10 +3656,15 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (jumpPressed && canJumpNow) {
             this.executeJump();
-        } else if (jumpPressed && !this.isGrounded) {
-            // Player pressed jump while in air - buffer it for landing
+        } else if (jumpPressed && !canJumpNow) {
+            // Player pressed jump just before landing or during the short jump
+            // cooldown. Buffer it instead of dropping a valid input edge.
             this.jumpBufferPressed = true;
             this.jumpBufferTimestamp = time;
+        }
+
+        if (queuedJump) {
+            this.virtualJumpQueued = false;
         }
 
         // Clear jump buffer if grounded and no jump pressed
@@ -3662,7 +3686,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isGrounded = false;
 
         // Reset virtual jump to prevent continuous jumping
-        this.virtualJumpPressed = false;
+        this.clearVirtualJumpInput();
 
         // Clear jump buffer since we just jumped
         this.jumpBufferPressed = false;
@@ -4392,7 +4416,8 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.wasdKeys?.W?.isDown ||
             this.wasdKeys?.S?.isDown ||
             Math.abs(this.virtualJoystickX || 0) > 0.2 ||
-            this.virtualJumpPressed;
+            this.virtualJumpPressed ||
+            this.virtualJumpQueued;
         const stable =
             this.isGrounded &&
             !directionalInput &&
@@ -6452,7 +6477,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.releaseAllPlatformerActionButtons();
         this.joystickActive = false;
         this.virtualJoystickX = 0;
-        this.virtualJumpPressed = false;
+        this.clearVirtualJumpInput();
         this.joystickThumb = null;
         this.mobileControlTargets = {};
 
@@ -6558,7 +6583,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.levelCompletionActive = true;
         this.virtualJoystickX = 0;
-        this.virtualJumpPressed = false;
+        this.clearVirtualJumpInput();
         this.jumpBufferPressed = false;
         this.player?.setVelocity?.(0, 0);
         this.hidePlatformerMobileControls?.();

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const rootDir = path.resolve(__dirname, '../..');
 
@@ -16,6 +17,17 @@ function findNumberedDuplicates(directory) {
 }
 
 describe('release test gate', () => {
+    test.each([
+        'scripts/run-browser-smoke.js',
+        'scripts/smoke-secondary-journeys.js'
+    ])('%s parses before browser execution', relativePath => {
+        expect(() => execFileSync(
+            process.execPath,
+            ['--check', path.join(rootDir, relativePath)],
+            { stdio: 'pipe' }
+        )).not.toThrow();
+    });
+
     test('npm test is finite and the manual framework has an explicit command', () => {
         const packageJson = JSON.parse(read('package.json'));
 
@@ -52,6 +64,8 @@ describe('release test gate', () => {
 
         expect(source).toContain("Emulation.setTouchEmulationEnabled");
         expect(source).toContain('holdTouchDrag');
+        expect(source).toContain('short jump tap response');
+        expect(source).toContain('await touch(session, jumpControl.x, jumpControl.y);');
         expect(source).toContain('did not move right from touch input');
         expect(source).toContain('did not move left from touch input');
         expect(source).toContain('retained right input after touch release');

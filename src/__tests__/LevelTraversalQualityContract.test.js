@@ -204,6 +204,8 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.player.setVelocityY(Math.min(this.player.body.velocity.y, -185))');
         expect(source).toContain('{ x: 1750, y: this.levelHeight - 225 }');
         expect(source).toContain('{ x: 2250, y: this.levelHeight - 220 }');
+        expect(source).toContain('this.virtualJumpQueued;');
+        expect(source).toContain('this.virtualJumpQueued = false;');
     });
 
     test('Void Peaks separates recovery islands and rewards Relic Ridge', () => {
@@ -261,6 +263,40 @@ describe('campaign traversal quality contracts', () => {
         scene.virtualJumpPressed = true;
         scene.releaseAllPlatformerActionButtons();
         expect(scene.virtualJumpPressed).toBe(false);
+    });
+
+    test('a short mobile jump tap survives pointer release until one gameplay frame', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'JumpTapBufferTest' });
+        scene.jumpKey = { isDown: false };
+        scene.cursors = { up: { isDown: false } };
+        scene.wasdKeys = { W: { isDown: false } };
+        scene.isGrounded = true;
+        scene.canJump = true;
+        scene.lastGroundedTime = 900;
+        scene.executeJump = jest.fn(() => scene.clearVirtualJumpInput());
+
+        scene.queueVirtualJumpInput();
+        scene.releaseVirtualJumpInput();
+
+        expect(scene.virtualJumpPressed).toBe(false);
+        expect(scene.virtualJumpQueued).toBe(true);
+
+        scene.handleJump(1000);
+
+        expect(scene.executeJump).toHaveBeenCalledTimes(1);
+        expect(scene.virtualJumpQueued).toBe(false);
+    });
+
+    test('cancellation clears any queued mobile jump edge', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'JumpTapCancelTest' });
+
+        scene.queueVirtualJumpInput();
+        scene.releaseAllPlatformerActionButtons();
+
+        expect(scene.virtualJumpPressed).toBe(false);
+        expect(scene.virtualJumpQueued).toBe(false);
     });
 
     test.each([
