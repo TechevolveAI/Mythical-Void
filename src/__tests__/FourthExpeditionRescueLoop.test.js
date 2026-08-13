@@ -37,13 +37,16 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain(
             'this.createObjectiveTriggerZone(\n                relay.x,\n                relay.y - 35,\n                { width: 150, height: 190 }'
         );
-        expect(source).toContain(
-            'this.setCheckpoint(relay.x, relay.respawnY, {'
-        );
+        expect(source).toContain("activationSupportIds: ['peak-lower-relay-overlook']");
+        expect(source).toContain("activationSupportIds: ['peak-warning-lower']");
+        expect(source).toContain("activationSupportIds: ['peak-summit-relay']");
+        expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain('LAND + TRANSMIT');
+        expect(source).toContain('LAND ON THE LIT PLATFORM');
         expect(source).toContain('PROJECT BEACON RELAY ${this.beaconRelaysActivated}/3');
-        expect(source).toContain(
-            "{ id: 'peaks_relay_3', x: 3680, y: 600, label: 'SUMMIT RELAY', respawnY: 480 }"
-        );
+        expect(source).toContain("activationSupportIds: ['peak-titan-gate']");
+        expect(source).toContain("this.isPlayerGroundedOnTraversalSupport('peak-titan-gate')");
     });
 
     test('turns the third relay into the distant creature-network reveal', () => {

@@ -106,7 +106,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.currentChargeDamage = 2;
         this.currentChargeAura = null;
         this.currentChargeAuraTween = null;
-        this.traversalLandingGuides = [];
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -171,7 +170,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.currentChargeDamage = 2;
         this.currentChargeAura = null;
         this.currentChargeAuraTween = null;
-        this.traversalLandingGuides = [];
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
@@ -435,50 +433,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         });
 
         console.log(`[AuroraDepthsLevel] Created ${this.platforms.getLength()} platforms`);
-    }
-
-    getTraversalSupportCheckpoint(id, fallbackX) {
-        const support = this.getTraversalSupport(id);
-        return {
-            x: Phaser.Math.Clamp(
-                Number(fallbackX) || support?.x || 120,
-                (support?.body?.left || 40) + 30,
-                (support?.body?.right || this.levelWidth - 40) - 30
-            ),
-            y: (support?.body?.top || this.levelHeight - 50) - 76
-        };
-    }
-
-    createTraversalLandingGuide(id, color = 0x7FFFD4) {
-        const support = this.getTraversalSupport(id);
-        if (!support?.body) return null;
-
-        const visual = this.add.graphics().setDepth(179);
-        const left = support.body.left + 14;
-        const right = support.body.right - 14;
-        const top = support.body.top - 5;
-        visual.lineStyle(4, color, 0.95);
-        visual.lineBetween(left, top, right, top);
-        visual.fillStyle(color, 0.92);
-        visual.fillTriangle(
-            support.x - 8,
-            top - 13,
-            support.x + 8,
-            top - 13,
-            support.x,
-            top - 2
-        );
-        const tween = this.tweens.add({
-            targets: visual,
-            alpha: { from: 0.55, to: 1 },
-            duration: 720,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-        const guide = { id, visual, tween };
-        this.traversalLandingGuides.push(guide);
-        return guide;
     }
 
     createAuroraBackground() {
@@ -1235,11 +1189,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             );
             graphics.strokeCircle(x, y - 50, 38);
         }
-    }
-
-    retireTraversalLandingGuide(prism) {
-        prism?.landingGuide?.tween?.remove?.();
-        prism?.landingGuide?.visual?.setAlpha?.(0.18);
     }
 
     alignSignalPrism(prism) {
@@ -2680,11 +2629,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             current.visual?.destroy?.();
         });
         this.shadowCurrents = [];
-        this.traversalLandingGuides.forEach(guide => {
-            guide.tween?.remove?.();
-            guide.visual?.destroy?.();
-        });
-        this.traversalLandingGuides = [];
         this.clearQuietLightPickup();
         this.clearCurrentChargeAura();
         // Phaser owns this physics group and destroys it during Scene shutdown.

@@ -507,27 +507,57 @@ async function smokeVoidPeaksReturnCurrents(session) {
                 code: 'KeyD',
                 keyCode: 68
             });
-            const landed = await waitFor(
-                () => evaluate(session, `(() => {
+            let landed;
+            try {
+                landed = await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                        const support = scene.platforms.getChildren().find(
+                            item => item.traversalId === ${JSON.stringify(route.destinationId)}
+                        );
+                        const body = scene.player?.body;
+                        if (!support?.body || !body) return null;
+                        const onSupport = body.right > support.body.left + 8 &&
+                            body.left < support.body.right - 8 &&
+                            Math.abs(body.bottom - support.body.top) <= 7 &&
+                            (body.blocked.down || scene.isGrounded);
+                        return onSupport ? {
+                            supportId: support.traversalId,
+                            playerX: Math.round(scene.player.x),
+                            playerBottom: Math.round(body.bottom),
+                            supportTop: Math.round(support.body.top)
+                        } : null;
+                    })()`),
+                    { timeoutMs: 3200, message: `${route.id} warning-line landing` }
+                );
+            } catch (error) {
+                const diagnostics = await evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
                     const support = scene.platforms.getChildren().find(
                         item => item.traversalId === ${JSON.stringify(route.destinationId)}
                     );
                     const body = scene.player?.body;
-                    if (!support?.body || !body) return null;
-                    const onSupport = body.right > support.body.left + 8 &&
-                        body.left < support.body.right - 8 &&
-                        Math.abs(body.bottom - support.body.top) <= 7 &&
-                        (body.blocked.down || scene.isGrounded);
-                    return onSupport ? {
-                        supportId: support.traversalId,
-                        playerX: Math.round(scene.player.x),
-                        playerBottom: Math.round(body.bottom),
-                        supportTop: Math.round(support.body.top)
-                    } : null;
-                })()`),
-                { timeoutMs: 3200, message: `${route.id} warning-line landing` }
-            );
+                    return {
+                        player: body ? {
+                            x: Math.round(scene.player.x),
+                            y: Math.round(scene.player.y),
+                            bottom: Math.round(body.bottom),
+                            velocityX: Math.round(body.velocity.x),
+                            velocityY: Math.round(body.velocity.y),
+                            blockedDown: body.blocked.down,
+                            grounded: scene.isGrounded
+                        } : null,
+                        support: support?.body ? {
+                            id: support.traversalId,
+                            left: support.body.left,
+                            right: support.body.right,
+                            top: support.body.top
+                        } : null,
+                        guidance: scene.activePeakReturnCurrent
+                    };
+                })()`);
+                throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+            }
             results.push({ id: route.id, activated, landed });
         }
     } finally {
@@ -2059,8 +2089,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
             const zone = routeState?.choice?.optionalZone;
             if (!scene?.player || !zone) return false;
-            if (${JSON.stringify(route)} === 'auroraDepths') {
-                const support = scene.getTraversalSupport?.('aurora-quiet-step-1');
+            if ([
+                'auroraDepths',
+                'voidPeaks'
+            ].includes(${JSON.stringify(route)})) {
+                const supportId = ${JSON.stringify(route)} === 'auroraDepths'
+                    ? 'aurora-quiet-step-1'
+                    : 'peak-relic-ridge-1';
+                const support = scene.getTraversalSupport?.(supportId);
                 if (!support?.body || !scene.player?.body) return false;
                 scene.player.body.reset(
                     support.x,
@@ -2099,8 +2135,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
             const zone = routeState?.choice?.rejoinZone;
             if (!scene?.player || !zone) return false;
-            if (${JSON.stringify(route)} === 'auroraDepths') {
-                const support = scene.getTraversalSupport?.('aurora-sky-prism');
+            if ([
+                'auroraDepths',
+                'voidPeaks'
+            ].includes(${JSON.stringify(route)})) {
+                const supportId = ${JSON.stringify(route)} === 'auroraDepths'
+                    ? 'aurora-sky-prism'
+                    : 'peak-summit-relay';
+                const support = scene.getTraversalSupport?.(supportId);
                 if (!support?.body || !scene.player?.body) return false;
                 scene.player.body.reset(
                     support.x,
@@ -2235,6 +2277,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let finalRiftCrossing = null;
     let auroraQuietLightClimb = null;
     let auroraGroundedObjectives = null;
+    let peaksGroundedObjectives = null;
     let forestForwardHandoffs = null;
     if ([
         'mythicalForest',
@@ -2281,36 +2324,48 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
         }
 
-        if (route === 'auroraDepths') {
+        if (route === 'auroraDepths' || route === 'voidPeaks') {
             const airborneRejected = await evaluate(session, `(() => {
-                const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
-                const prism = scene?.signalPrisms?.[0];
-                if (!scene?.player?.body || !prism?.zone?.active) return null;
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const signal = ${JSON.stringify(route)} === 'auroraDepths'
+                    ? scene?.signalPrisms?.[0]
+                    : scene?.beaconRelays?.[0];
+                if (!scene?.player?.body || !signal?.zone?.active) return null;
                 scene.routeHintUntil = 0;
-                scene.player.body.reset(prism.x, prism.y - 35);
+                scene.player.body.reset(signal.x, signal.y - 35);
                 scene.player.setVelocity?.(0, -120);
                 return new Promise(resolve => {
                     scene.time.delayedCall(180, () => resolve({
-                        aligned: prism.aligned === true,
+                        completed: ${JSON.stringify(route)} === 'auroraDepths'
+                            ? signal.aligned === true
+                            : signal.activated === true,
                         checkpointPresent: Boolean(scene.checkpointPosition),
                         hintShown: Number(scene.routeHintUntil) > Number(scene.time.now)
                     }));
                 });
             })()`);
             if (
-                airborneRejected?.aligned !== false ||
+                airborneRejected?.completed !== false ||
                 airborneRejected.checkpointPresent !== false ||
                 airborneRejected.hintShown !== true
             ) {
                 throw new Error(
-                    `Aurora accepted an airborne prism overlap: ${JSON.stringify(airborneRejected)}`
+                    `${sceneName} accepted an airborne signal overlap: ${JSON.stringify(airborneRejected)}`
                 );
             }
-            auroraGroundedObjectives = { airborneRejected };
+            if (route === 'auroraDepths') {
+                auroraGroundedObjectives = { airborneRejected };
+            } else {
+                peaksGroundedObjectives = { airborneRejected };
+            }
         }
 
-        const staged = route === 'auroraDepths'
-            ? await stageAuroraPrism(session, 0)
+        const staged = ['auroraDepths', 'voidPeaks'].includes(route)
+            ? await stagePlatformBoundRouteSignal(session, {
+                sceneName,
+                route,
+                index: 0
+            })
             : await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                 const firstSignal = scene?.getNextOrderedRouteSignal?.();
@@ -2371,8 +2426,12 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         }
 
         for (let signalIndex = 1; signalIndex < 3; signalIndex += 1) {
-            const stagedSignal = route === 'auroraDepths'
-                ? await stageAuroraPrism(session, signalIndex)
+            const stagedSignal = ['auroraDepths', 'voidPeaks'].includes(route)
+                ? await stagePlatformBoundRouteSignal(session, {
+                    sceneName,
+                    route,
+                    index: signalIndex
+                })
                 : await evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                     const signal = scene?.getNextOrderedRouteSignal?.();
@@ -2675,10 +2734,16 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                             selectedPath: reward?.choice?.selectedPath
                         };
                     }
-                    if (${JSON.stringify(route)} === 'auroraDepths') {
-                        const support = scene.getTraversalSupport?.(
-                            'aurora-quiet-step-3'
-                        );
+                    if ([
+                        'auroraDepths',
+                        'voidPeaks'
+                    ].includes(${JSON.stringify(route)})) {
+                        const supportId = ${JSON.stringify(route)} === 'auroraDepths'
+                            ? 'aurora-quiet-step-3'
+                            : (Number(item.fragmentIndex) === 2
+                                ? 'peak-relic-ridge-1'
+                                : 'peak-relic-ridge-2');
+                        const support = scene.getTraversalSupport?.(supportId);
                         if (!support?.body || !scene.player?.body) {
                             return { missing: true, supportMissing: true };
                         }
@@ -2884,8 +2949,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                     !restoredProtection ||
                     (route === 'mythicalForest' && restoredReward.fragmentMask !== 24) ||
                     (route === 'mythicalForest' && restoredReward.fragmentCount !== 2) ||
-                    (route === 'voidPeaks' && restoredReward.fragmentMask !== 12) ||
-                    (route === 'voidPeaks' && restoredReward.fragmentCount !== 2)
+                    (route === 'voidPeaks' &&
+                        (restoredReward.fragmentMask & 12) !== 12) ||
+                    (route === 'voidPeaks' && restoredReward.fragmentCount < 2)
                 ) {
                     throw new Error(
                         `${sceneName} did not restore its optional reward: ` +
@@ -3011,8 +3077,14 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             const persisted = window.GameState?.get?.(
                 'story.projectBeacon.expeditionCheckpoint'
             );
-            if (${JSON.stringify(route)} === 'auroraDepths') {
-                const support = scene.getTraversalSupport?.('aurora-phoenix-gate');
+            if ([
+                'auroraDepths',
+                'voidPeaks'
+            ].includes(${JSON.stringify(route)})) {
+                const supportId = ${JSON.stringify(route)} === 'auroraDepths'
+                    ? 'aurora-phoenix-gate'
+                    : 'peak-titan-gate';
+                const support = scene.getTraversalSupport?.(supportId);
                 if (!support?.body || !scene.player?.body) return null;
                 scene.player.body.reset(
                     gate.x,
@@ -3028,7 +3100,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 persistedIndex: persisted?.checkpointIndex ?? null,
                 stagedSupportId: ${JSON.stringify(route)} === 'auroraDepths'
                     ? 'aurora-phoenix-gate'
-                    : null
+                    : (${JSON.stringify(route)} === 'voidPeaks'
+                        ? 'peak-titan-gate'
+                        : null)
             };
         })()`);
         if (!guardianEntrySetup) {
@@ -3308,6 +3382,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         forestForwardHandoffs,
         crystalCoreLift,
         auroraGroundedObjectives,
+        peaksGroundedObjectives,
         renderStability,
         combatFeedback,
         liveStomp,
@@ -3369,6 +3444,22 @@ async function smokeTraversalTopology(session, levels, exceptions) {
                 target => target.id === 'aurora_reactor_gate'
             )?.pathSupportIds?.at?.(-1) !== 'aurora-phoenix-gate'
         );
+        const peaksFlowFailed = route === 'voidPeaks' && (
+            audit?.flow?.comfortPassed !== true ||
+            Number(audit?.flow?.backtrackDistance) !== 0 ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'peaks_relay_1'
+            )?.pathSupportIds?.at?.(-1) !== 'peak-lower-relay-overlook' ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'peaks_relay_2'
+            )?.pathSupportIds?.at?.(-1) !== 'peak-warning-lower' ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'peaks_relay_3'
+            )?.pathSupportIds?.at?.(-1) !== 'peak-summit-relay' ||
+            audit?.flow?.targets?.find(
+                target => target.id === 'titan_pass'
+            )?.pathSupportIds?.at?.(-1) !== 'peak-titan-gate'
+        );
         const forestFlowFailed = route === 'mythicalForest' && (
             audit?.flow?.comfortPassed !== true ||
             (audit?.flow?.uncomfortableTargetIds || []).length > 0
@@ -3400,6 +3491,7 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             audit?.flow?.strandingSupportCount !== 0 ||
             finalVoidFlowFailed ||
             auroraFlowFailed ||
+            peaksFlowFailed ||
             forestFlowFailed ||
             cavesFlowFailed ||
             reefFlowFailed ||
@@ -3421,6 +3513,7 @@ async function smokeTraversalTopology(session, levels, exceptions) {
                     audit,
                     finalVoidFlowFailed,
                     auroraFlowFailed,
+                    peaksFlowFailed,
                     forestFlowFailed,
                     cavesFlowFailed,
                     reefFlowFailed,
@@ -3462,39 +3555,52 @@ async function startAuroraRouteJourney(session) {
     );
 }
 
-async function stageAuroraPrism(session, index) {
+async function stagePlatformBoundRouteSignal(session, {
+    sceneName,
+    route,
+    index
+}) {
     const staged = await evaluate(session, `(() => {
-        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
-        const prism = scene?.signalPrisms?.[${index}];
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        const signal = ${JSON.stringify(route)} === 'auroraDepths'
+            ? scene?.signalPrisms?.[${index}]
+            : scene?.beaconRelays?.[${index}];
         const support = scene?.getTraversalSupport?.(
-            prism?.activationSupportIds?.[0]
+            signal?.activationSupportIds?.[0]
         );
-        if (!scene?.player?.body || !prism?.zone?.active || !support?.body) {
+        if (!scene?.player?.body || !signal?.zone?.active || !support?.body) {
             return null;
         }
         scene.player.body.reset(
-            prism.x,
+            signal.x,
             support.body.top - scene.player.body.height - 18
         );
         scene.player.setVelocity?.(0, 0);
         return {
-            id: prism.id,
-            index: prism.index,
+            id: signal.id,
+            index: signal.index,
             supportId: support.traversalId,
             supportTop: support.body.top
         };
     })()`);
-    if (!staged) throw new Error(`Aurora prism ${index + 1} could not be staged`);
+    if (!staged) {
+        throw new Error(`${sceneName} signal ${index + 1} could not be staged`);
+    }
     return waitFor(
         () => evaluate(session, `(() => {
-            const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
-            const prism = scene?.signalPrisms?.[${index}];
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const signal = ${JSON.stringify(route)} === 'auroraDepths'
+                ? scene?.signalPrisms?.[${index}]
+                : scene?.beaconRelays?.[${index}];
             const support = scene?.getTraversalSupport?.(
-                prism?.activationSupportIds?.[0]
+                signal?.activationSupportIds?.[0]
             );
             const body = scene?.player?.body;
             const checkpoint = scene?.checkpointPosition;
-            const groundedCheckpoint = prism?.aligned === true &&
+            const complete = ${JSON.stringify(route)} === 'auroraDepths'
+                ? signal?.aligned === true
+                : signal?.activated === true;
+            const groundedCheckpoint = complete &&
                 checkpoint?.index === ${index} &&
                 support?.body && body &&
                 checkpoint.x >= support.body.left &&
@@ -3502,17 +3608,28 @@ async function stageAuroraPrism(session, index) {
                 checkpoint.y < support.body.top &&
                 checkpoint.y >= support.body.top - 100;
             return groundedCheckpoint ? {
-                id: prism.id,
-                index: prism.index,
-                firstSignalIndex: prism.index,
+                id: signal.id,
+                index: signal.index,
+                firstSignalIndex: signal.index,
                 supportId: support.traversalId,
                 checkpointX: checkpoint.x,
                 checkpointY: checkpoint.y,
                 supportTop: support.body.top
             } : null;
         })()`),
-        { timeoutMs: 2500, message: `Aurora prism ${index + 1} grounded landing` }
+        {
+            timeoutMs: 2500,
+            message: `${sceneName} signal ${index + 1} grounded landing`
+        }
     );
+}
+
+async function stageAuroraPrism(session, index) {
+    return stagePlatformBoundRouteSignal(session, {
+        sceneName: 'AuroraDepthsLevel',
+        route: 'auroraDepths',
+        index
+    });
 }
 
 async function restartAuroraFromCheckpoint(session) {

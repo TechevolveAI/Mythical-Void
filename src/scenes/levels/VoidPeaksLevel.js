@@ -56,6 +56,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossAttackTimer = null;
         this.peakHazards = [];
         this.peakReturnCurrents = [];
+        this.activePeakReturnCurrent = null;
         this.beaconRelays = [];
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
@@ -93,6 +94,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossAttackTimer = null;
         this.peakHazards = [];
         this.peakReturnCurrents = [];
+        this.activePeakReturnCurrent = null;
         this.beaconRelays = [];
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
@@ -344,24 +346,31 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         const groundY = this.levelHeight - 50;
         // Floor islands are recovery spaces. Wide geyser breaks keep them from becoming a bypass.
-        this.createPlatform(0, groundY, 620, 80, 'solid');
-        this.createPlatform(980, groundY, 520, 80, 'solid');
+        const arrivalGround = this.createPlatform(0, groundY, 620, 80, 'solid');
+        arrivalGround.traversalId = 'peak-ground-arrival';
+        const lowerRelayGround = this.createPlatform(980, groundY, 520, 80, 'solid');
+        lowerRelayGround.traversalId = 'peak-ground-lower-relay';
         const lowerRecoveryIsland = this.createPlatform(1880, groundY, 540, 80, 'solid');
         lowerRecoveryIsland.traversalId = 'peak-floor-lower';
         lowerRecoveryIsland.traversalLinks = ['peak-warning-lower'];
         const summitRecoveryIsland = this.createPlatform(2920, groundY, 460, 80, 'solid');
         summitRecoveryIsland.traversalId = 'peak-floor-summit';
         summitRecoveryIsland.traversalLinks = ['peak-warning-summit'];
-        this.createPlatform(3900, groundY, 1300, 80, 'solid');
+        const titanGround = this.createPlatform(3900, groundY, 1300, 80, 'solid');
+        titanGround.traversalId = 'peak-ground-titan-pass';
 
         const ledges = [
-            [520, groundY - 145, 210], [820, groundY - 245, 180], [1180, groundY - 180, 260],
-            [1560, groundY - 310, 220], [1980, groundY - 235, 230],
+            [520, groundY - 145, 210, 'solid', 'peak-opening-step'],
+            [820, groundY - 245, 180, 'solid', 'peak-opening-rise'],
+            [1180, groundY - 150, 260, 'solid', 'peak-lower-relay-overlook'],
+            [1560, groundY - 290, 220, 'solid', 'peak-lower-ascent'],
+            [1980, groundY - 235, 230, 'solid', 'peak-ridge-approach'],
             [2280, groundY - 365, 320, 'one-way', 'peak-warning-lower'],
-            [2780, groundY - 265, 210],
+            [2780, groundY - 265, 210, 'solid', 'peak-main-handoff'],
             [3180, groundY - 400, 240, 'one-way', 'peak-warning-summit'],
-            [3580, groundY - 270, 220],
-            [4020, groundY - 210, 260], [4420, groundY - 320, 240]
+            [3580, groundY - 270, 220, 'solid', 'peak-summit-relay'],
+            [4020, groundY - 210, 260, 'solid', 'peak-titan-approach'],
+            [4420, groundY - 320, 240, 'solid', 'peak-titan-overlook']
         ];
 
         ledges.forEach(([x, y, width, type = 'solid', id = null]) => {
@@ -371,13 +380,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         // Optional Relic Ridge: a higher, safer line with two Star Fragments.
         const relicRidge = [
-            [2640, 345, 180],
-            [2910, 280, 190],
-            [3190, 250, 200],
-            [3440, 350, 180]
+            [2640, 345, 180, 'peak-relic-ridge-1'],
+            [2910, 280, 190, 'peak-relic-ridge-2'],
+            [3190, 250, 200, 'peak-relic-ridge-3'],
+            [3440, 350, 180, 'peak-relic-ridge-4']
         ];
-        relicRidge.forEach(([x, y, width]) => {
-            this.createPlatform(x, y, width, 28, 'one-way');
+        relicRidge.forEach(([x, y, width, id]) => {
+            const platform = this.createPlatform(x, y, width, 28, 'one-way');
+            platform.traversalId = id;
         });
 
         this.createBossArena();
@@ -579,10 +589,64 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         );
         const launchVelocity = calculateBallisticLaunchVelocity({
             gravityY: this.gravityY,
-            rise: current.bottom - current.top + 80
+            rise: current.bottom - current.top - 20,
+            minimumSpeed: 330
         });
         this.player.setVelocityX(horizontalCorrection);
-        this.player.setVelocityY(launchVelocity);
+        this.player.setVelocityY(Math.max(launchVelocity, -470));
+        this.activePeakReturnCurrent = {
+            id: current.id,
+            destinationId: current.destinationId,
+            phase: 'lift',
+            expiresAt: now + 3600
+        };
+        return true;
+    }
+
+    updatePeakReturnCurrentGuidance() {
+        const active = this.activePeakReturnCurrent;
+        const body = this.player?.body;
+        if (!active || !body) return false;
+        if (this.isPlayerDead || this.isRespawning) {
+            this.activePeakReturnCurrent = null;
+            return false;
+        }
+
+        if (this.isPlayerGroundedOnTraversalSupport(active.destinationId)) {
+            this.activePeakReturnCurrent = null;
+            return true;
+        }
+
+        const now = Number(this.time?.now) || 0;
+        const destination = this.getTraversalSupport(active.destinationId);
+        if (!destination?.body || now >= active.expiresAt) {
+            this.activePeakReturnCurrent = null;
+            return false;
+        }
+
+        const targetX = Phaser.Math.Clamp(
+            destination.x,
+            destination.body.left + 42,
+            destination.body.right - 42
+        );
+        const correction = Phaser.Math.Clamp(
+            (targetX - this.player.x) * 1.35,
+            -150,
+            150
+        );
+        if (Math.abs(targetX - this.player.x) > 8) {
+            this.player.setVelocityX(correction);
+        }
+        if (active.phase === 'lift') {
+            if (body.bottom > destination.body.top - 70) {
+                this.player.setVelocityY(Math.min(body.velocity.y, -330));
+            } else {
+                active.phase = 'settle';
+                this.player.setVelocityY(Math.max(body.velocity.y, 35));
+            }
+        } else if (body.velocity.y < 25) {
+            this.player.setVelocityY(25);
+        }
         return true;
     }
 
@@ -727,11 +791,27 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     createSignalRelays() {
         const relays = [
-            { id: 'peaks_relay_1', x: 1180, y: 680, label: 'LOWER RELAY', respawnY: 700 },
-            { id: 'peaks_relay_2', x: 2380, y: 520, label: 'RIDGE RELAY', respawnY: 700 },
-            // The summit relay sits above a ground gap. Respawn above its ledge,
-            // not beneath it, so a fall cannot become a checkpoint death loop.
-            { id: 'peaks_relay_3', x: 3680, y: 600, label: 'SUMMIT RELAY', respawnY: 480 }
+            {
+                id: 'peaks_relay_1',
+                x: 1280,
+                y: 605,
+                label: 'LOWER RELAY',
+                activationSupportIds: ['peak-lower-relay-overlook']
+            },
+            {
+                id: 'peaks_relay_2',
+                x: 2380,
+                y: 390,
+                label: 'RIDGE RELAY',
+                activationSupportIds: ['peak-warning-lower']
+            },
+            {
+                id: 'peaks_relay_3',
+                x: 3680,
+                y: 485,
+                label: 'SUMMIT RELAY',
+                activationSupportIds: ['peak-summit-relay']
+            }
         ];
 
         relays.forEach((relay, index) => {
@@ -739,12 +819,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawSignalRelay(visual, relay.x, relay.y, false);
 
-            const label = this.add.text(relay.x, relay.y - 94, `${index + 1} // ${relay.label}`, {
+            const label = this.add.text(relay.x, relay.y - 94, `${index + 1} // ${relay.label}\nLAND + TRANSMIT`, {
                 fontSize: '11px',
                 color: '#7E718A',
                 fontStyle: 'bold',
                 stroke: '#09030E',
-                strokeThickness: 3
+                strokeThickness: 3,
+                align: 'center'
             }).setOrigin(0.5).setDepth(181);
 
             const zone = this.createObjectiveTriggerZone(
@@ -759,9 +840,28 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 visual,
                 label,
                 zone,
+                landingGuide: this.createTraversalLandingGuide(
+                    relay.activationSupportIds[0],
+                    0xFF8A4C
+                ),
                 activated: false
             };
             this.physics.add.overlap(this.player, zone, () => {
+                if (!this.isPlayerGroundedOnTraversalSupport(
+                    beacon.activationSupportIds
+                )) {
+                    const now = this.time.now;
+                    if (now >= this.routeHintUntil) {
+                        this.showFloatingText(
+                            `LAND ON THE LIT PLATFORM // ${beacon.label}`,
+                            beacon.x,
+                            beacon.y - 125,
+                            '#F2C94C'
+                        );
+                        this.routeHintUntil = now + 1400;
+                    }
+                    return;
+                }
                 this.activateSignalRelay(beacon);
             });
             this.beaconRelays.push(beacon);
@@ -776,6 +876,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             {
                 id: 'titan_pass',
                 label: 'TITAN PASS',
+                activationSupportIds: ['peak-titan-gate'],
                 x: this.titanGate?.x || 4680,
                 y: this.titanGate?.y || this.levelHeight - 158,
                 zone: this.titanGate
@@ -824,8 +925,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         relay.zone = null;
         this.beaconRelaysActivated++;
         this.drawSignalRelay(relay.visual, relay.x, relay.y, true);
+        this.retireTraversalLandingGuide(relay);
         this.refreshSignalRouteReadability();
-        this.setCheckpoint(relay.x, relay.respawnY, {
+        const checkpoint = this.getTraversalSupportCheckpoint(
+            relay.activationSupportIds[0],
+            relay.x
+        );
+        this.setCheckpoint(checkpoint.x, checkpoint.y, {
             persist: true,
             checkpointId: relay.id,
             checkpointIndex: relay.index
@@ -909,14 +1015,20 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                     left: 2440, right: 3420,
                     top: 470, bottom: this.levelHeight
                 },
+                mainSupportIds: [
+                    'peak-main-handoff',
+                    'peak-floor-summit'
+                ],
                 optionalZone: {
                     left: 2520, right: 3500,
                     top: 150, bottom: 470
                 },
+                optionalSupportIds: ['peak-relic-ridge-1'],
                 rejoinZone: {
                     left: 3500, right: 4100,
                     top: 300, bottom: this.levelHeight
-                }
+                },
+                rejoinSupportIds: ['peak-summit-relay']
             },
             onMainSelected: () => this.selectPeakRoute('main'),
             onOptionalSelected: () => this.selectPeakRoute('optional'),
@@ -940,12 +1052,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             signals: this.beaconRelays,
             countProperty: 'beaconRelaysActivated',
             readyProperty: 'creatureNetworkReached',
-            drawSignal: relay => this.drawSignalRelay(
-                relay.visual,
-                relay.x,
-                relay.y,
-                true
-            ),
+            drawSignal: relay => {
+                this.drawSignalRelay(relay.visual, relay.x, relay.y, true);
+                this.retireTraversalLandingGuide(relay);
+            },
             onRestored: (relay, restoredCount) => {
                 this.refreshSignalRouteReadability();
                 if (restoredCount === this.beaconRelays.length) {
@@ -1149,9 +1259,26 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             color: 0xFF4500,
             readyColor: 0x8FE3CF
         });
+        const titanLandingGuide = this.createTraversalLandingGuide(
+            'peak-titan-gate',
+            0xF2C94C
+        );
 
         this.physics.add.overlap(this.player, gate, () => {
             if (!this.bossFightActive && !this.bossDefeated) {
+                if (!this.isPlayerGroundedOnTraversalSupport('peak-titan-gate')) {
+                    const now = this.time.now;
+                    if (now >= this.bossGateHintUntil) {
+                        this.showFloatingText(
+                            'LAND AT TITAN PASS',
+                            this.player.x,
+                            this.player.y - 70,
+                            '#F2C94C'
+                        );
+                        this.bossGateHintUntil = now + 1400;
+                    }
+                    return;
+                }
                 if (!this.creatureNetworkReached) {
                     const now = this.time.now;
                     if (now >= this.bossGateHintUntil) {
@@ -1168,13 +1295,15 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 const guardianEntered = this.beginGuardianEncounter({
                     id: 'cosmic_titan',
                     title: 'COSMIC TITAN',
-                    checkpoint: {
-                        x: 4180,
-                        y: this.levelHeight - 295
-                    },
+                    checkpoint: this.getTraversalSupportCheckpoint(
+                        'peak-titan-gate',
+                        4680
+                    ),
                     start: () => this.startBossFight()
                 });
                 if (guardianEntered) {
+                    titanLandingGuide?.tween?.remove?.();
+                    titanLandingGuide?.visual?.setAlpha?.(0.18);
                     gate.destroy();
                     this.titanGate = null;
                 }
@@ -1183,9 +1312,30 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createBossArena() {
-        this.createPlatform(4050, this.levelHeight - 225, 900, 35, 'solid');
-        this.createPlatform(4300, this.levelHeight - 350, 190, 28, 'solid');
-        this.createPlatform(4700, this.levelHeight - 350, 190, 28, 'solid');
+        const gate = this.createPlatform(
+            4230,
+            this.levelHeight - 225,
+            900,
+            35,
+            'solid'
+        );
+        gate.traversalId = 'peak-titan-gate';
+        const left = this.createPlatform(
+            4300,
+            this.levelHeight - 350,
+            190,
+            28,
+            'solid'
+        );
+        left.traversalId = 'peak-titan-left';
+        const right = this.createPlatform(
+            4700,
+            this.levelHeight - 350,
+            190,
+            28,
+            'solid'
+        );
+        right.traversalId = 'peak-titan-right';
     }
 
     showObjectiveToast() {
@@ -1217,6 +1367,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     update(time, delta) {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
+
+        this.updatePeakReturnCurrentGuidance();
 
         if (this.enemies) {
             this.enemies.getChildren().forEach(enemy => {
@@ -1980,6 +2132,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.titanRecoveryUntil = 0;
         this.peakHazards = [];
         this.peakReturnCurrents = [];
+        this.activePeakReturnCurrent = null;
         this.boss?.destroy?.();
         this.boss = null;
         this.bossHealthBar?.destroy?.();

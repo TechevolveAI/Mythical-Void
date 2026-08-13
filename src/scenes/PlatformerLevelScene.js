@@ -422,6 +422,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.centeringStancePreviewSize = null;
         this.lastCombatActionAt = Number.NEGATIVE_INFINITY;
         this.recoveryInputLockedUntil = 0;
+        this.traversalLandingGuides = [];
     }
 
     init(data) {
@@ -679,6 +680,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.actionButtonPointers.clear();
         this.actionButtonReleases.clear();
         this.recoveryInputLockedUntil = 0;
+        this.traversalLandingGuides = [];
 
         // Reset pause menu state
         this.pauseMenuActive = false;
@@ -1720,6 +1722,65 @@ class PlatformerLevelScene extends Phaser.Scene {
         return this.platforms?.getChildren?.().find(
             platform => platform?.traversalId === id
         ) || null;
+    }
+
+    getTraversalSupportCheckpoint(id, fallbackX, {
+        playerClearance = 76
+    } = {}) {
+        const support = this.getTraversalSupport(id);
+        return {
+            x: Phaser.Math.Clamp(
+                Number(fallbackX) || support?.x || 120,
+                (support?.body?.left || 40) + 30,
+                (support?.body?.right || this.levelWidth - 40) - 30
+            ),
+            y: (support?.body?.top || this.levelHeight - 50) - playerClearance
+        };
+    }
+
+    createTraversalLandingGuide(id, color = 0x7FFFD4, { depth = 179 } = {}) {
+        const support = this.getTraversalSupport(id);
+        if (!support?.body) return null;
+
+        const visual = this.add.graphics().setDepth(depth);
+        const left = support.body.left + 14;
+        const right = support.body.right - 14;
+        const top = support.body.top - 5;
+        visual.lineStyle(4, color, 0.95);
+        visual.lineBetween(left, top, right, top);
+        visual.fillStyle(color, 0.92);
+        visual.fillTriangle(
+            support.x - 8,
+            top - 13,
+            support.x + 8,
+            top - 13,
+            support.x,
+            top - 2
+        );
+        const tween = this.tweens.add({
+            targets: visual,
+            alpha: { from: 0.55, to: 1 },
+            duration: 720,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        const guide = { id, visual, tween };
+        this.traversalLandingGuides.push(guide);
+        return guide;
+    }
+
+    retireTraversalLandingGuide(target) {
+        target?.landingGuide?.tween?.remove?.();
+        target?.landingGuide?.visual?.setAlpha?.(0.18);
+    }
+
+    clearTraversalLandingGuides() {
+        this.traversalLandingGuides?.forEach(guide => {
+            guide.tween?.remove?.();
+            guide.visual?.destroy?.();
+        });
+        this.traversalLandingGuides = [];
     }
 
     isPlayerGroundedOnTraversalSupport(ids) {
@@ -7504,6 +7565,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
         this.orderedRouteSignals = null;
         this.orderedRouteSignalOptions = null;
+        this.clearTraversalLandingGuides();
         this.optionalRouteRewards?.clear?.();
         this.routeChoiceSequence = 0;
         this.guardianEncounter = null;
