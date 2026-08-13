@@ -296,16 +296,34 @@ function renderStorefront() {
             </section>
 
             <section class="studio-section" id="studio">
-                <div class="section-inner studio-layout">
-                    <div>
-                        <p class="kicker">THE MYTHICAL STUDIO</p>
-                        <h2>Small team. Big worlds. Careful AI.</h2>
+                <div class="section-inner">
+                    <div class="studio-heading">
+                        <p class="kicker">OUR BEGINNING</p>
+                        <h2>A dad. His nine-year-old son.<br><em>One enormous idea.</em></h2>
+                        <p class="studio-intro">Mythical Void began at home as a father-and-son project—Kevin and his nine-year-old son exploring what generative AI tools and a lot of imagination could make possible.</p>
                     </div>
-                    <div class="studio-copy">
-                        <p>Mythical is an independent studio in Ireland building games where animation, story, systems, and intelligent companions belong in the same world.</p>
-                        <p>We use AI as a creative tool for new kinds of companion moments—not as a shortcut around people, safety, or good writing. The player stays in control, and the important choices stay understandable.</p>
-                        <div class="studio-principles" aria-label="Mythical studio principles">
-                            <span>Human-led stories</span><span>AI with boundaries</span><span>Made for curious minds</span>
+                    <div class="studio-story-grid">
+                        <div class="studio-origin-card" aria-label="How two imaginations became Mythical Void">
+                            <div class="origin-stars" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                            <div class="origin-thought origin-thought-dad"><span>A father's curiosity</span></div>
+                            <div class="origin-thought origin-thought-son"><span>A nine-year-old's imagination</span></div>
+                            <div class="origin-thread origin-thread-left" aria-hidden="true"></div>
+                            <div class="origin-thread origin-thread-right" aria-hidden="true"></div>
+                            <div class="origin-spark">
+                                <img src="/marketing/mythical-void-emblem-v3.png" alt="" width="56" height="92">
+                                <span>MYTHICAL VOID</span>
+                            </div>
+                            <blockquote>“What if we could build the game we imagined together?”</blockquote>
+                        </div>
+                        <div class="studio-copy">
+                            <p class="studio-lead">The ideas did not begin with a business plan. They began with conversations: strange creatures, impossible worlds, living companions and the kind of choices a child would genuinely care about.</p>
+                            <p>Generative AI helped turn those shared ideas into pictures, movement, characters and playable moments. Imagination still leads. AI is one of the tools that helps us explore further and build faster.</p>
+                            <p>That experiment is growing into an independent Irish game studio—still guided by the same promise: make something wondrous for curious young minds, keep people in charge, and build safety into the world from the beginning.</p>
+                            <div class="studio-principles" aria-label="What guides the Mythical studio">
+                                <span><b>01</b> Imagination leads</span>
+                                <span><b>02</b> AI helps us explore</span>
+                                <span><b>03</b> Children deserve care</span>
+                            </div>
                         </div>
                     </div>
                 </div>
