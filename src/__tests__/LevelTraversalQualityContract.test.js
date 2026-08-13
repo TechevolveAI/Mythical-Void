@@ -810,6 +810,15 @@ describe('campaign traversal quality contracts', () => {
             "this.createPlatform(0, groundY, this.levelWidth, 80, 'solid');"
         );
         expect(source).toContain("id: 'final_trust_bridge'");
+        expect(source).toContain("mainSupportIds: ['final-rift-step-1']");
+        expect(source).toContain("optionalSupportIds: ['final-trust-bridge-1']");
+        expect(source).toContain("rejoinSupportIds: ['final-rift-step-4']");
+        expect(source).toContain("activationSupportIds: ['final-opening-step']");
+        expect(source).toContain("activationSupportIds: ['final-return-route']");
+        expect(source).toContain("activationSupportIds: ['final-rift-step-4']");
+        expect(source).toContain("activationSupportIds: ['final-empress-gate']");
+        expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
         expect(source).toContain("rewardLabel: 'BOND RESERVE // 1 RESCUE'");
         expect(source).toContain('onComplete: () => this.activateBondReserve()');
         expect(source).toContain("onOptionalSelected: () => this.selectFinalRoute('optional')");
@@ -1047,7 +1056,11 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain(guardianId);
         expect(
             source.includes('checkpoint: {') ||
-            source.includes('checkpoint: this.getTraversalSupportCheckpoint(')
+            source.includes('checkpoint: this.getTraversalSupportCheckpoint(') ||
+            (
+                source.includes('const checkpoint = this.getTraversalSupportCheckpoint(') &&
+                source.includes('checkpoint,\n                start: () => this.startBossFight()')
+            )
         ).toBe(true);
         expect(source).toContain('start: () => this.startBossFight()');
         expect(source).toContain('const guardianEntered = this.beginGuardianEncounter({');
@@ -1395,6 +1408,13 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('current.lastLiftAt = Number.NEGATIVE_INFINITY;');
         expect(smoke).toContain("route === 'finalVoid'");
         expect(smoke).toContain('Number(audit?.flow?.requiredJumpCount) < 4');
+        expect(smoke).toContain("target.id === 'final_bond_1'");
+        expect(smoke).toContain("target.id === 'final_bond_2'");
+        expect(smoke).toContain("target.id === 'final_bond_3'");
+        expect(smoke).toContain("target.id === 'empress_seal'");
+        expect(smoke).toContain("'final-opening-step'");
+        expect(smoke).toContain("'final-return-route'");
+        expect(smoke).toContain("'final-empress-gate'");
         expect(smoke).toContain('audit?.flow?.comfortPassed !== true');
         expect(smoke).toContain("route === 'auroraDepths'");
         expect(smoke).toContain('optionalComfortPassed !== true');
