@@ -706,7 +706,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("'aurora-heart-launch'");
         expect(source).toContain("'aurora-quiet-step-1'");
         expect(source).toContain("'aurora-quiet-step-3'");
-        expect(source).toContain("{ id: 'aurora_prism_2', x: 2520, y: 580");
+        expect(source).toContain("id: 'aurora_prism_2'");
+        expect(source).toContain("activationSupportIds: ['aurora-heart-launch']");
+        expect(source).toContain("activationSupportIds: ['aurora-quiet-step-3']");
+        expect(source).toContain("activationSupportIds: ['aurora-phoenix-gate']");
+        expect(source).toContain("recoveryGround.forEach(([x, width, id]) => {");
+        expect(source).not.toContain('recoveryFloor.traversalId');
         expect(source).toContain("id: 'aurora_quiet_light_shelter'");
         expect(source).toContain('optional: true');
         expect(source).toContain("mainLabel: 'SHADOW CURRENT →'");
@@ -720,6 +725,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("rewardLabel: 'QUIET LIGHT WARD // 1 HIT'");
         expect(source).toContain("this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1)");
         expect(source).toContain("this.selectAuroraRoute('shadow_current')");
+        expect(source).toContain('LAND + ALIGN');
+        expect(source).toContain("this.createTraversalLandingGuide('aurora-phoenix-gate'");
+        expect(source).toContain("this.isPlayerGroundedOnTraversalSupport(\n                    'aurora-quiet-step-3'");
         expect(source).toContain('const routeBonus = this.consumeCurrentCharge();');
         expect(source).toContain('this.currentChargeAuraTween?.remove?.();');
         expect(source).not.toContain('this.activateShield();');
@@ -1017,7 +1025,10 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain('this.beginGuardianEncounter({');
         expect(source).toContain(guardianId);
-        expect(source).toContain('checkpoint: {');
+        expect(
+            source.includes('checkpoint: {') ||
+            source.includes('checkpoint: this.getTraversalSupportCheckpoint(')
+        ).toBe(true);
         expect(source).toContain('start: () => this.startBossFight()');
         expect(source).toContain('const guardianEntered = this.beginGuardianEncounter({');
     });
@@ -1191,6 +1202,55 @@ describe('campaign traversal quality contracts', () => {
         scene.player = { x: 550, y: 250 };
         expect(scene.updateOptionalRouteChoices()).toBe(false);
         expect(route.choice.rejoined).toBe(false);
+    });
+
+    test('shared route choices can require a grounded named support', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'SupportRouteChoiceTest' });
+        scene.showFloatingText = jest.fn();
+        scene.optionalRouteRewards = new Map();
+        scene.isGrounded = true;
+        scene.player = {
+            x: 150,
+            y: 100,
+            body: {
+                left: 135,
+                right: 165,
+                bottom: 120,
+                velocity: { y: 0 },
+                blocked: { down: true },
+                touching: { down: false }
+            }
+        };
+        scene.platforms = {
+            getChildren: () => [{
+                traversalId: 'named-branch',
+                body: { left: 100, right: 200, top: 120 }
+            }]
+        };
+
+        const route = scene.registerOptionalRouteReward({
+            id: 'support_branch',
+            title: 'NAMED BRANCH',
+            rewardLabel: 'ONE GUARD',
+            choice: {
+                mainZone: { left: 100, right: 200, top: 300, bottom: 450 },
+                optionalZone: { left: 100, right: 200, top: 50, bottom: 200 },
+                optionalSupportIds: ['named-branch'],
+                rejoinZone: { left: 500, right: 600, top: 100, bottom: 400 }
+            }
+        });
+
+        scene.player.body.velocity.y = -80;
+        expect(scene.updateOptionalRouteChoices()).toBe(false);
+        expect(scene.recordOptionalRouteProgress('support_branch')).toBe(false);
+        expect(route.progress).toBe(0);
+        expect(route.choice.selectedPath).toBeNull();
+
+        scene.player.body.velocity.y = 0;
+        expect(scene.updateOptionalRouteChoices()).toBe(true);
+        expect(route.choice.selectedPath).toBe('optional');
+        expect(route.choice.optionalSupportIds).toEqual(['named-branch']);
     });
 
     test('invalid route choice geometry degrades to the existing reward contract', () => {
