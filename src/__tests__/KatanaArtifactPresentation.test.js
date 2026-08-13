@@ -100,4 +100,14 @@ describe('katana artifact presentation', () => {
             'onClose: () => this.showLevelComplete()'
         );
     });
+
+    test('uses a one-shot pointer-native continuation on mobile', () => {
+        expect(artifactSource).toContain(
+            "button.addEventListener('pointerup', this.closeHandler)"
+        );
+        expect(artifactSource).toContain('if (!this.domElement) return;');
+        expect(artifactSource).toContain(
+            "this.continueButton.removeEventListener('pointerup', this.closeHandler)"
+        );
+    });
 });

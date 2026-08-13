@@ -29,6 +29,7 @@ export default class ShipEvidenceBoardModal {
         this.handoffSnapshotProvider = handoffSnapshotProvider;
         this.onClose = onClose;
         this.elements = [];
+        this.pointerRegions = [];
         this.isVisible = false;
         this.activeSectionId = null;
         this.physicsWasPaused = false;
@@ -42,7 +43,12 @@ export default class ShipEvidenceBoardModal {
             this.reconstructionSnapshotProvider?.();
         const protocol = this.protocolSnapshotProvider?.();
         const handoff = this.handoffSnapshotProvider?.();
-        if (!snapshot?.available) return false;
+        if (
+            !snapshot?.available &&
+            !reconstruction?.available &&
+            !protocol?.available &&
+            !handoff?.available
+        ) return false;
         if (!this.isVisible) {
             this.physicsWasPaused = Boolean(
                 this.scene.physics?.world?.isPaused
@@ -53,7 +59,10 @@ export default class ShipEvidenceBoardModal {
         }
         this.isVisible = true;
         this.activeSectionId = (
-            snapshot.sections.some(section => section.id === sectionId) ||
+            (
+                snapshot?.available &&
+                snapshot.sections.some(section => section.id === sectionId)
+            ) ||
             (
                 sectionId === 'reconstruction' &&
                 reconstruction?.available
@@ -62,9 +71,9 @@ export default class ShipEvidenceBoardModal {
             (sectionId === 'handoff' && handoff?.available)
         )
             ? sectionId
-            : reconstruction?.ready
+            : reconstruction?.available
                 ? 'reconstruction'
-                : snapshot.nextSection?.id ||
+                : (snapshot?.available ? snapshot.nextSection?.id : null) ||
                 (protocol?.available ? 'protocol' : 'systems');
         this.render();
         return true;
@@ -78,7 +87,12 @@ export default class ShipEvidenceBoardModal {
             this.reconstructionSnapshotProvider?.();
         const protocol = this.protocolSnapshotProvider?.();
         const handoff = this.handoffSnapshotProvider?.();
-        if (!snapshot?.available) return;
+        if (
+            !snapshot?.available &&
+            !reconstruction?.available &&
+            !protocol?.available &&
+            !handoff?.available
+        ) return;
         const reconstructionActive =
             this.activeSectionId === 'reconstruction' &&
             reconstruction?.available;
@@ -88,9 +102,11 @@ export default class ShipEvidenceBoardModal {
         const handoffActive =
             this.activeSectionId === 'handoff' &&
             handoff?.available;
-        const archiveSection = snapshot.sections.find(
+        const archiveAvailable = snapshot?.available === true;
+        const archiveComplete = snapshot?.complete === true;
+        const archiveSection = snapshot?.available && snapshot.sections.find(
             entry => entry.id === this.activeSectionId
-        ) || snapshot.nextSection || snapshot.sections[0];
+        ) || snapshot?.nextSection || snapshot?.sections?.[0];
         const section = reconstructionActive
             ? {
                 id: 'reconstruction',
@@ -133,7 +149,12 @@ export default class ShipEvidenceBoardModal {
                             )
                 }))
             }
-            : archiveSection;
+            : archiveSection || {
+                id: 'systems',
+                title: 'SHIP ARCHIVE LOCKED',
+                summary: 'Review the mission log before opening the evidence archive.',
+                rows: []
+            };
         this.activeSectionId = section.id;
 
         const camera = this.scene.cameras?.main;
@@ -166,6 +187,9 @@ export default class ShipEvidenceBoardModal {
         overlay.lineStyle(2, 0xDCE8ED, 0.55);
         overlay.lineBetween(0, top, width, top);
         overlay.lineBetween(0, top + bandHeight, width, top + bandHeight);
+        overlay.on('pointerdown', pointer => {
+            this.activatePointerRegion(pointer);
+        });
         this.elements.push(overlay);
 
         const livery = this.scene.add.graphics()
@@ -184,7 +208,7 @@ export default class ShipEvidenceBoardModal {
             top + bandHeight / 2,
             width,
             bandHeight
-        ).setScrollFactor(0).setDepth(depth + 1).setInteractive();
+        ).setScrollFactor(0).setDepth(depth + 1);
         this.elements.push(shield);
 
         const addText = (x, y, value, style = {}) => {
@@ -287,7 +311,7 @@ export default class ShipEvidenceBoardModal {
                 : protocolActive
                 ? `SAFEGUARDS ${protocol.completedCount}/${protocol.totalSteps}  //  ` +
                     'REPORT HELD  //  NO TRANSMISSION'
-                : `ARCHIVE ${snapshot.reviewedCount}/${snapshot.totalSections}  //  ` +
+                : `ARCHIVE ${snapshot?.reviewedCount || 0}/${snapshot?.totalSections || 0}  //  ` +
                     'COORDINATES SEALED  //  TRAVEL UNDECIDED',
             {
                 fontSize: compact ? '9px' : '11px',
@@ -297,7 +321,7 @@ export default class ShipEvidenceBoardModal {
             }
         );
 
-        const nextSection = snapshot.nextSection;
+        const nextSection = snapshot?.nextSection || null;
         const canRecord = !reconstructionActive &&
             !protocolActive &&
             !section.reviewed &&
@@ -317,7 +341,7 @@ export default class ShipEvidenceBoardModal {
             ? berthCanService
                 ? 'SERVICE COMPANION AT POWERED BERTH'
             : reconstruction.complete
-                ? snapshot.complete
+                ? archiveComplete
                     ? 'CLOSE RECONSTRUCTION RECORD'
                     : 'OPEN SHIP ARCHIVE'
                 : reconstructionCanApply
@@ -333,7 +357,7 @@ export default class ShipEvidenceBoardModal {
                 : protocolCanApply
                     ? `APPLY ${protocol.nextStep.label}`
                     : 'REQUIREMENT PENDING'
-            : snapshot.complete && protocol?.available
+            : archiveComplete && protocol?.available
                 ? 'OPEN RETURN PROTOCOL'
                 : canRecord
                     ? `RECORD ${section.label} REVIEW`
@@ -359,10 +383,11 @@ export default class ShipEvidenceBoardModal {
                 } else if (
                     reconstructionActive &&
                     reconstruction.complete &&
-                    !snapshot.complete
+                    archiveAvailable &&
+                    !archiveComplete
                 ) {
                     this.activeSectionId =
-                        snapshot.nextSection?.id || 'systems';
+                        nextSection?.id || 'systems';
                     this.render();
                 } else if (
                     reconstructionActive &&
@@ -389,7 +414,7 @@ export default class ShipEvidenceBoardModal {
                     );
                 } else if (
                     !protocolActive &&
-                    snapshot.complete &&
+                    archiveComplete &&
                     protocol?.available
                 ) {
                     this.activeSectionId = 'protocol';
@@ -407,17 +432,18 @@ export default class ShipEvidenceBoardModal {
         const close = addText(width - 22, top + 21, 'X', {
             fontSize: '16px',
             color: '#AFC3CF',
-            fontStyle: 'bold'
-        }).setOrigin(0.5, 0);
-        const closeZone = this.scene.add.zone(
-            width - 22,
-            top + 28,
-            44,
-            44
-        ).setScrollFactor(0).setDepth(depth + 6)
-            .setInteractive({ useHandCursor: true });
-        closeZone.on('pointerup', () => this.hide());
-        this.elements.push(closeZone);
+            fontStyle: 'bold',
+            padding: { x: 14, y: 10 }
+        }).setOrigin(0.5, 0)
+            .setDepth(depth + 6);
+        this.registerPointerRegion({
+            left: width - 44,
+            top,
+            width: 44,
+            height: 52,
+            priority: 50,
+            onPress: () => this.hide()
+        });
 
         this.escapeHandler = () => this.hide();
         this.scene.input.keyboard?.once(
@@ -445,7 +471,7 @@ export default class ShipEvidenceBoardModal {
                     reviewed: reconstruction.complete
                 }]
                 : []),
-            ...snapshot.sections,
+            ...(snapshot?.available ? snapshot.sections : []),
             ...(protocol?.available
                 ? [{
                     id: 'protocol',
@@ -490,18 +516,18 @@ export default class ShipEvidenceBoardModal {
                     fontStyle: 'bold'
                 }
             ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 4);
-            const zone = this.scene.add.zone(
-                x + tabWidth / 2,
-                top + 80,
-                tabWidth,
-                44
-            ).setScrollFactor(0).setDepth(depth + 5)
-                .setInteractive({ useHandCursor: true });
-            zone.on('pointerup', () => {
-                this.activeSectionId = section.id;
-                this.render();
+            this.registerPointerRegion({
+                left: x,
+                top: top + 58,
+                width: tabWidth,
+                height: 46,
+                priority: 20,
+                onPress: () => {
+                    this.activeSectionId = section.id;
+                    this.render();
+                }
             });
-            this.elements.push(tab, label, zone);
+            this.elements.push(tab, label);
         });
     }
 
@@ -626,20 +652,76 @@ export default class ShipEvidenceBoardModal {
                 color: enabled ? '#FFFFFF' : '#8F9B9F',
                 fontStyle: 'bold'
             }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 4);
-        const zone = this.scene.add.zone(
-            width / 2,
-            y + buttonHeight / 2,
-            buttonWidth,
-            buttonHeight
-        ).setScrollFactor(0).setDepth(depth + 5)
-            .setInteractive({ useHandCursor: true });
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 5);
+        const horizontalPadding = Math.max(
+            12,
+            (buttonWidth - labelText.width) / 2
+        );
+        const verticalPadding = Math.max(
+            8,
+            (buttonHeight - labelText.height) / 2
+        );
+        labelText.setPadding({
+            left: horizontalPadding,
+            right: horizontalPadding,
+            top: verticalPadding,
+            bottom: verticalPadding
+        });
         if (enabled) {
-            zone.on('pointerover', () => button.setAlpha(0.82));
-            zone.on('pointerout', () => button.setAlpha(1));
-            zone.on('pointerup', onPress);
+            this.registerPointerRegion({
+                left,
+                top: y,
+                width: buttonWidth,
+                height: buttonHeight,
+                priority: 30,
+                onPress
+            });
         }
-        this.elements.push(button, labelText, zone);
+        this.elements.push(button, labelText);
+    }
+
+    registerPointerRegion({
+        left,
+        top,
+        width,
+        height,
+        priority = 0,
+        onPress
+    }) {
+        if (
+            ![left, top, width, height].every(Number.isFinite) ||
+            width <= 0 ||
+            height <= 0 ||
+            typeof onPress !== 'function'
+        ) return false;
+        this.pointerRegions.push({
+            left,
+            right: left + width,
+            top,
+            bottom: top + height,
+            priority,
+            onPress
+        });
+        this.pointerRegions.sort(
+            (leftRegion, rightRegion) =>
+                rightRegion.priority - leftRegion.priority
+        );
+        return true;
+    }
+
+    activatePointerRegion(pointer) {
+        const x = Number(pointer?.x);
+        const y = Number(pointer?.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+        const region = this.pointerRegions.find(candidate => (
+            x >= candidate.left &&
+            x <= candidate.right &&
+            y >= candidate.top &&
+            y <= candidate.bottom
+        ));
+        if (!region) return false;
+        region.onPress();
+        return true;
     }
 
     clearElements() {
@@ -655,6 +737,7 @@ export default class ShipEvidenceBoardModal {
             element?.destroy?.();
         });
         this.elements = [];
+        this.pointerRegions = [];
     }
 
     hide() {

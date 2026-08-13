@@ -114,6 +114,23 @@ describe('release test gate', () => {
         expect(source).toContain('recovered.persistedId !== guardianEntrySetup.persistedId');
     });
 
+    test('release smoke proves every guardian reaches its real player handoff', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+        const release = read('scripts/run-browser-smoke.js');
+
+        expect(source).toContain("SMOKE_MODE === 'guardian-handoff'");
+        expect(source).toContain('real final Super Blast did not restore its guardian');
+        expect(source).toContain('rescued resident continuation');
+        expect(source).toContain("'.katana-artifact-continue'");
+        expect(source).toContain('visible completion action');
+        expect(source).toContain('debrief installation action');
+        expect(source).toContain('Wanderer-77 installation action');
+        expect(source).toContain("await waitForScene(session, 'VictoryScene'");
+        expect(release).toContain('for (const smokeCase of guardianHandoffCases)');
+        expect(release).toContain("SMOKE_MODE: 'guardian-handoff'");
+        expect(release).toContain('failures.push(`guardian-handoff:${smokeCase}:');
+    });
+
     test('release smoke runs interaction before the state contract', () => {
         const source = read('scripts/run-browser-smoke.js');
         const villageUi = source.indexOf("SMOKE_MODE: 'village-ui'");

@@ -188,6 +188,27 @@ async function main() {
             failures.push(`state-contract: ${error.message}`);
         }
 
+        console.log('\n[release-smoke] Guardian defeat, debrief, and installation suite');
+        const guardianHandoffCases = [
+            'mythicalForest',
+            'crystalCaves',
+            'reef',
+            'voidPeaks',
+            'auroraDepths',
+            'finalVoid'
+        ];
+        for (const smokeCase of guardianHandoffCases) {
+            console.log(`[release-smoke] Guardian handoff case: ${smokeCase}`);
+            try {
+                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                    SMOKE_MODE: 'guardian-handoff',
+                    SMOKE_CASE: smokeCase
+                });
+            } catch (error) {
+                failures.push(`guardian-handoff:${smokeCase}: ${error.message}`);
+            }
+        }
+
         console.log('\n[release-smoke] Final priority mobile journey suite');
         try {
             await runNodeScript('scripts/smoke-secondary-journeys.js', {
