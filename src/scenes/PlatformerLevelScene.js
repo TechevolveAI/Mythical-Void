@@ -296,6 +296,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.orderedRouteSignalOptions = null;
         this.optionalRouteRewards = new Map();
         this.routeChoiceSequence = 0;
+        this.routeHintUntil = 0;
         this.guardianGateState = null;
         this.guardianEncounter = null;
         this.guardianTeamSupport = {
@@ -653,6 +654,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.levelCoinMultiplier = 1;
         this.optionalRouteRewards = new Map();
         this.routeChoiceSequence = 0;
+        this.routeHintUntil = 0;
         this.guardianGateState = null;
         this.guardianEncounter = null;
         window.EconomyManager?.clearLevelCoinMultiplier?.();

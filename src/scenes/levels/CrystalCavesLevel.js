@@ -1172,44 +1172,100 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     createBeaconCheckpoints() {
-        const groundY = this.levelHeight - 50;
         const anchors = [
-            { id: 'caves_anchor_1', x: 1220, label: 'ECHO PASS' },
-            { id: 'caves_anchor_2', x: 2520, label: 'LIVING CHAMBER' },
-            { id: 'caves_anchor_3', x: 3480, label: 'GUARDIAN THRESHOLD' }
+            {
+                id: 'caves_anchor_1',
+                x: 1250,
+                label: 'ECHO PASS',
+                activationSupportIds: ['caves-echo-upper']
+            },
+            {
+                id: 'caves_anchor_2',
+                x: 2570,
+                label: 'LIVING CHAMBER',
+                activationSupportIds: ['caves-grove-step']
+            },
+            {
+                id: 'caves_anchor_3',
+                x: 3550,
+                label: 'GUARDIAN THRESHOLD',
+                activationSupportIds: ['caves-guardian-left']
+            }
         ];
 
         anchors.forEach((anchor, index) => {
+            const supportId = anchor.activationSupportIds[0];
+            const support = this.getTraversalSupport(supportId);
+            const supportCheckpoint = this.getTraversalSupportCheckpoint(
+                supportId,
+                anchor.x
+            );
+            const objectiveX = supportCheckpoint.x;
+            const supportY = support?.body?.top || this.levelHeight - 50;
             const visual = this.add.graphics();
             visual.setDepth(85);
-            this.drawCaveBeacon(visual, anchor.x, groundY, false);
+            this.drawCaveBeacon(visual, objectiveX, supportY, false);
 
-            const label = this.add.text(anchor.x, groundY - 120, anchor.label, {
+            const label = this.add.text(objectiveX, supportY - 112, `${anchor.label}\nLAND + LINK`, {
                 fontSize: '11px',
                 color: '#756D91',
                 fontStyle: 'bold',
                 stroke: '#080510',
-                strokeThickness: 3
+                strokeThickness: 3,
+                align: 'center'
             }).setOrigin(0.5).setDepth(86);
 
             const zone = this.createObjectiveTriggerZone(
-                anchor.x,
-                groundY - 64,
-                { width: 150, height: 280 }
+                objectiveX,
+                supportY - 35,
+                { width: 150, height: 190 }
             );
 
             const checkpoint = {
                 ...anchor,
+                x: objectiveX,
+                y: supportY,
                 index,
-                y: groundY - 64,
+                objectiveLabel: anchor.label,
                 visual,
                 label,
                 zone,
+                landingGuide: this.createTraversalLandingGuide(
+                    supportId,
+                    0x00FFFF,
+                    { depth: 84 }
+                ),
                 activated: false,
-                respawnY: this.levelHeight - 150
+                respawnY: supportCheckpoint.y
             };
 
             this.physics.add.overlap(this.player, zone, () => {
+                if (!this.canActivateOrderedRouteSignal(
+                    checkpoint,
+                    this.beaconAnchors,
+                    this.beaconAnchorsActivated,
+                    {
+                        fallbackLabel: 'FOLLOW THE BEACON ANCHORS',
+                        hintOffsetY: -125
+                    }
+                )) {
+                    return;
+                }
+                if (!this.isPlayerGroundedOnTraversalSupport(
+                    checkpoint.activationSupportIds
+                )) {
+                    const now = this.time.now;
+                    if (now >= this.routeHintUntil) {
+                        this.showFloatingText(
+                            `LAND ON THE LIT PLATFORM // ${checkpoint.objectiveLabel}`,
+                            checkpoint.x,
+                            checkpoint.y - 125,
+                            '#F2C94C'
+                        );
+                        this.routeHintUntil = now + 1400;
+                    }
+                    return;
+                }
                 this.activateCaveBeacon(checkpoint);
             });
             this.beaconAnchors.push(checkpoint);
@@ -1237,26 +1293,26 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             .sort((left, right) => Number(left.x) - Number(right.x));
     }
 
-    drawCaveBeacon(graphics, x, groundY, activated) {
+    drawCaveBeacon(graphics, x, supportY, activated) {
         graphics.clear();
         const color = activated ? 0x8FE3CF : 0x4A4268;
 
         graphics.fillStyle(color, activated ? 0.26 : 0.1);
-        graphics.fillCircle(x, groundY - 64, 36);
+        graphics.fillCircle(x, supportY - 64, 36);
         graphics.lineStyle(3, color, activated ? 1 : 0.7);
-        graphics.strokeCircle(x, groundY - 64, 24);
+        graphics.strokeCircle(x, supportY - 64, 24);
         graphics.lineStyle(2, color, 0.9);
-        graphics.lineBetween(x, groundY - 40, x, groundY - 6);
-        graphics.lineBetween(x, groundY - 25, x - 13, groundY - 6);
-        graphics.lineBetween(x, groundY - 25, x + 13, groundY - 6);
+        graphics.lineBetween(x, supportY - 40, x, supportY - 6);
+        graphics.lineBetween(x, supportY - 25, x - 13, supportY - 6);
+        graphics.lineBetween(x, supportY - 25, x + 13, supportY - 6);
         graphics.fillStyle(activated ? 0xF2C94C : color, 0.95);
         graphics.fillTriangle(
             x,
-            groundY - 88,
+            supportY - 88,
             x - 9,
-            groundY - 68,
+            supportY - 68,
             x + 9,
-            groundY - 68
+            supportY - 68
         );
     }
 
@@ -1276,9 +1332,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         checkpoint.zone?.destroy?.();
         checkpoint.zone = null;
         this.beaconAnchorsActivated++;
-        this.drawCaveBeacon(checkpoint.visual, checkpoint.x, this.levelHeight - 50, true);
+        this.drawCaveBeacon(checkpoint.visual, checkpoint.x, checkpoint.y, true);
+        this.retireTraversalLandingGuide(checkpoint);
         this.refreshCaveRouteReadability();
-        this.setCheckpoint(checkpoint.x, checkpoint.respawnY, {
+        const supportCheckpoint = this.getTraversalSupportCheckpoint(
+            checkpoint.activationSupportIds[0],
+            checkpoint.x
+        );
+        checkpoint.respawnY = supportCheckpoint.y;
+        this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {
             persist: true,
             checkpointId: checkpoint.id,
             checkpointIndex: checkpoint.index
@@ -1346,12 +1408,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             signals: this.beaconAnchors,
             countProperty: 'beaconAnchorsActivated',
             readyProperty: 'caveRouteAligned',
-            drawSignal: checkpoint => this.drawCaveBeacon(
-                checkpoint.visual,
-                checkpoint.x,
-                this.levelHeight - 50,
-                true
-            ),
+            drawSignal: checkpoint => {
+                this.drawCaveBeacon(
+                    checkpoint.visual,
+                    checkpoint.x,
+                    checkpoint.y,
+                    true
+                );
+                this.retireTraversalLandingGuide(checkpoint);
+            },
             onRestored: () => {
                 this.refreshCaveRouteReadability();
                 this.refreshCrystalCoreLift();
