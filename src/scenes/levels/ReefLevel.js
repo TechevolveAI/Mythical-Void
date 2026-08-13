@@ -962,7 +962,11 @@ class ReefLevel extends PlatformerLevelScene {
         const drive = this.shipPartCollected
             ? 'DIMENSIONAL DRIVE // SECURED'
             : 'HOLD JUMP TO SWIM UP';
-        return `ROUTE ${current}/3 // ${nextWaypoint}\n${drive}\n${optional}`;
+        const compass = this.getOrderedRouteCompassText();
+        const title = this.isCompactObjectiveHUD
+            ? `ROUTE ${current}/3`
+            : `ROUTE ${current}/3 // ${nextWaypoint}`;
+        return `${title}\n${compass || drive}\n${optional}`;
     }
 
     /**
@@ -985,6 +989,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Recovery points also carry the companion-led route discovery.
         this.createBeaconWaypoints();
+        this.createOpeningSignalCurrent();
         this.createReefRouteChoice();
         this.createAbyssAscentCurrent();
 
@@ -1128,6 +1133,51 @@ class ReefLevel extends PlatformerLevelScene {
                 futureColor: '#667F94'
             }
         );
+    }
+
+    createOpeningSignalCurrent() {
+        const visual = this.add.graphics().setDepth(114);
+        visual.lineStyle(5, 0x8FE3CF, 0.58);
+        visual.beginPath();
+        visual.moveTo(300, this.levelHeight - 285);
+        visual.lineTo(560, this.levelHeight - 390);
+        visual.lineTo(830, this.levelHeight - 535);
+        visual.lineTo(1080, this.levelHeight - 505);
+        visual.lineTo(1250, 700);
+        visual.strokePath();
+
+        visual.fillStyle(0xF2C94C, 0.92);
+        [
+            [430, this.levelHeight - 338],
+            [690, this.levelHeight - 465],
+            [950, this.levelHeight - 520],
+            [1160, 698]
+        ].forEach(([x, y]) => {
+            visual.fillTriangle(x + 12, y, x - 8, y - 8, x - 8, y + 8);
+        });
+
+        const label = this.add.text(
+            520,
+            this.levelHeight - 430,
+            'DRIFT SIGNAL 01  →',
+            {
+                fontSize: '12px',
+                color: '#F2C94C',
+                fontStyle: 'bold',
+                stroke: '#05030C',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5).setDepth(183);
+
+        this.tweens.add({
+            targets: [visual, label],
+            alpha: { from: 0.62, to: 1 },
+            duration: 850,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        this.openingSignalCurrent = { visual, label };
     }
 
     createReefRouteChoice() {
@@ -3352,6 +3402,9 @@ class ReefLevel extends PlatformerLevelScene {
             anchor.zone?.destroy?.();
         });
         this.beaconAnchors = [];
+        this.openingSignalCurrent?.visual?.destroy?.();
+        this.openingSignalCurrent?.label?.destroy?.();
+        this.openingSignalCurrent = null;
 
         this.objectiveDisplay?.destroy?.();
         this.objectiveDisplay = null;
