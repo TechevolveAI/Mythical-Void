@@ -716,7 +716,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createPeakRouteChoiceMarkers() {
-        const spine = this.add.text(2530, 615, 'WARNING LINE →', {
+        const spine = this.add.text(2530, 615, '', {
             fontSize: '12px',
             color: '#8FE3CF',
             fontStyle: 'bold',
@@ -740,6 +740,24 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             rewardLabel: 'RIDGE GUARD // 1 HIT',
             marker: relicRoute,
             returnLabel: 'WARNING LINE →',
+            choice: {
+                mainLabel: 'WARNING LINE →',
+                mainTradeoff: 'LOWER // VOID GEYSERS',
+                challengeLabel: 'HIGH CLIMB + 2 RELICS',
+                mainMarker: spine,
+                mainZone: {
+                    left: 2440, right: 3420,
+                    top: 470, bottom: this.levelHeight
+                },
+                optionalZone: {
+                    left: 2520, right: 3500,
+                    top: 150, bottom: 470
+                },
+                rejoinZone: {
+                    left: 3500, right: 4100,
+                    top: 300, bottom: this.levelHeight
+                }
+            },
             onComplete: () => {
                 this.grantOptionalRouteGuard('RIDGE GUARD', 1);
             }

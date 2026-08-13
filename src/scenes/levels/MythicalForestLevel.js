@@ -2619,7 +2619,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
     placeCollectibles() {
         console.log('[MythicalForestLevel] Placing collectibles...');
 
-        const canopyRouteMarker = this.add.text(2820, this.levelHeight - 510, '', {
+        const canopyMainMarker = this.add.text(2860, this.levelHeight - 390, '', {
+            fontSize: '11px',
+            color: '#8FE3CF',
+            fontStyle: 'bold',
+            stroke: '#071017',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(182);
+        const canopyRouteMarker = this.add.text(2820, this.levelHeight - 610, '', {
             fontSize: '11px',
             color: '#F2C94C',
             fontStyle: 'bold',
@@ -2634,6 +2642,24 @@ class MythicalForestLevel extends PlatformerLevelScene {
             rewardLabel: 'CANOPY GUARD // 1 HIT',
             marker: canopyRouteMarker,
             returnLabel: 'DESCEND TO GUARDIAN APPROACH →',
+            choice: {
+                mainLabel: 'MID-BRANCH CROSSING →',
+                mainTradeoff: 'STEADY // CRAWLER PATROLS',
+                challengeLabel: 'HIGH CLIMB + 2 FRAGMENTS',
+                mainMarker: canopyMainMarker,
+                mainZone: {
+                    left: 2760, right: 3400,
+                    top: this.levelHeight - 590, bottom: this.levelHeight - 350
+                },
+                optionalZone: {
+                    left: 2740, right: 3700,
+                    top: 180, bottom: this.levelHeight - 600
+                },
+                rejoinZone: {
+                    left: 3780, right: 4350,
+                    top: 500, bottom: this.levelHeight - 300
+                }
+            },
             onComplete: () => this.grantOptionalRouteGuard('CANOPY GUARD', 1)
         });
 

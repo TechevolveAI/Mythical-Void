@@ -294,6 +294,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.orderedRouteSignalIndex = 0;
         this.orderedRouteSignalOptions = null;
         this.optionalRouteRewards = new Map();
+        this.routeChoiceSequence = 0;
         this.guardianGateState = null;
         this.guardianTeamSupport = {
             guardianId: null,
@@ -646,6 +647,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.optionalRouteGuardLabel = 'ROUTE GUARD';
         this.levelCoinMultiplier = 1;
         this.optionalRouteRewards = new Map();
+        this.routeChoiceSequence = 0;
         this.guardianGateState = null;
         window.EconomyManager?.clearLevelCoinMultiplier?.();
 
@@ -1515,6 +1517,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         rewardLabel,
         marker = null,
         returnLabel = 'RETURN TO MAIN ROUTE',
+        choice = null,
         onComplete = null
     } = {}) {
         if (typeof id !== 'string' || !id.trim()) return null;
@@ -1526,6 +1529,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             rewardLabel: String(rewardLabel || 'ROUTE REWARD'),
             returnLabel: String(returnLabel || 'RETURN TO MAIN ROUTE'),
             marker,
+            choice: this.normalizeOptionalRouteChoice(choice),
             onComplete: typeof onComplete === 'function' ? onComplete : null,
             progress: 0,
             completed: false
@@ -1535,11 +1539,132 @@ class PlatformerLevelScene extends Phaser.Scene {
         return state;
     }
 
+    normalizeOptionalRouteChoice(choice) {
+        if (!choice || typeof choice !== 'object') return null;
+
+        const normalizeZone = zone => {
+            if (!zone || typeof zone !== 'object') return null;
+            const left = Number(zone.left);
+            const right = Number(zone.right);
+            const top = Number(zone.top);
+            const bottom = Number(zone.bottom);
+            if (![left, right, top, bottom].every(Number.isFinite)) return null;
+            return {
+                left: Math.min(left, right),
+                right: Math.max(left, right),
+                top: Math.min(top, bottom),
+                bottom: Math.max(top, bottom)
+            };
+        };
+        const mainZone = normalizeZone(choice.mainZone);
+        const optionalZone = normalizeZone(choice.optionalZone);
+        const rejoinZone = normalizeZone(choice.rejoinZone);
+        if (!mainZone || !optionalZone || !rejoinZone) return null;
+
+        return {
+            mainLabel: String(choice.mainLabel || 'MAIN ROUTE'),
+            mainTradeoff: String(choice.mainTradeoff || 'DIRECT PATH'),
+            challengeLabel: String(choice.challengeLabel || 'OPTIONAL CHALLENGE'),
+            mainMarker: choice.mainMarker || null,
+            mainZone,
+            optionalZone,
+            rejoinZone,
+            selectedPath: null,
+            mainEntered: false,
+            optionalEntered: false,
+            rejoined: false,
+            sequence: null
+        };
+    }
+
+    isPlayerInsideRouteChoiceZone(zone) {
+        const x = Number(this.player?.x);
+        const y = Number(this.player?.y);
+        return Boolean(
+            zone &&
+            Number.isFinite(x) &&
+            Number.isFinite(y) &&
+            x >= zone.left &&
+            x <= zone.right &&
+            y >= zone.top &&
+            y <= zone.bottom
+        );
+    }
+
+    recordRouteChoiceEntry(route, path) {
+        const choice = route?.choice;
+        if (!choice || !['main', 'optional'].includes(path)) return false;
+        if (choice.selectedPath && choice.selectedPath !== path) return false;
+
+        const enteredProperty = path === 'optional' ? 'optionalEntered' : 'mainEntered';
+        if (choice[enteredProperty]) return false;
+        choice[enteredProperty] = true;
+        choice.selectedPath ||= path;
+        choice.sequence ||= ++this.routeChoiceSequence;
+
+        const label = path === 'optional'
+            ? `${route.title} // ${choice.challengeLabel}`
+            : `${choice.mainLabel} // ${choice.mainTradeoff}`;
+        this.showFloatingText?.(
+            label,
+            Number(this.player?.x) || 0,
+            (Number(this.player?.y) || 0) - 70,
+            path === 'optional' ? '#F2C94C' : '#8FE3CF'
+        );
+        window.AchievementSystem?.recordEvent?.('route_choice_entered', {
+            levelId: this.levelId || this.scene?.key || null,
+            routeId: route.id,
+            path
+        });
+        return true;
+    }
+
+    updateOptionalRouteChoices() {
+        if (!this.player || !this.optionalRouteRewards?.size) return false;
+
+        let changed = false;
+        this.optionalRouteRewards.forEach(route => {
+            const choice = route?.choice;
+            if (!choice || choice.rejoined) return;
+
+            if (this.isPlayerInsideRouteChoiceZone(choice.optionalZone)) {
+                changed = this.recordRouteChoiceEntry(route, 'optional') || changed;
+            } else if (this.isPlayerInsideRouteChoiceZone(choice.mainZone)) {
+                changed = this.recordRouteChoiceEntry(route, 'main') || changed;
+            }
+
+            if (
+                choice.optionalEntered &&
+                this.isPlayerInsideRouteChoiceZone(choice.rejoinZone)
+            ) {
+                choice.rejoined = true;
+                this.showFloatingText?.(
+                    `BACK ON ROUTE // ${route.returnLabel}`,
+                    Number(this.player?.x) || 0,
+                    (Number(this.player?.y) || 0) - 70,
+                    '#8FE3CF'
+                );
+                window.AchievementSystem?.recordEvent?.('route_choice_rejoined', {
+                    levelId: this.levelId || this.scene?.key || null,
+                    routeId: route.id,
+                    selectedPath: choice.selectedPath
+                });
+                changed = true;
+            }
+        });
+        return changed;
+    }
+
     refreshOptionalRouteReward(routeOrId) {
         const route = typeof routeOrId === 'string'
             ? this.optionalRouteRewards.get(routeOrId)
             : routeOrId;
         if (!route) return false;
+
+        const choice = route.choice;
+        choice?.mainMarker?.setText?.(
+            `${choice.mainLabel}\n${choice.mainTradeoff}`
+        );
 
         if (route.completed) {
             route.marker?.setText?.(
@@ -1552,8 +1677,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         route.marker?.setText?.(
-            `${route.title} // ${route.progress}/${route.required}\n` +
-            `REWARD: ${route.rewardLabel}`
+            choice
+                ? `${route.title} // OPTIONAL\n${choice.challengeLabel}\n` +
+                    `EARNS: ${route.rewardLabel}`
+                : `${route.title} // ${route.progress}/${route.required}\n` +
+                    `REWARD: ${route.rewardLabel}`
         );
         return true;
     }
@@ -3843,6 +3971,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.updateEnemyCombatReadability();
         this.updatePatrolEnemyMovement();
+        this.updateOptionalRouteChoices();
         this.refreshGuardianGateState();
 
         // Update player facing direction
@@ -7004,6 +7133,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
         this.orderedRouteSignals = null;
         this.orderedRouteSignalOptions = null;
+        this.optionalRouteRewards?.clear?.();
+        this.routeChoiceSequence = 0;
         this.clearGuardianGateState();
 
         // Remove keyboard listeners

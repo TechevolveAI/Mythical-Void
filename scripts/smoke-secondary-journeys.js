@@ -945,6 +945,132 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         );
     }
 
+    const optionalRouteId = {
+        mythicalForest: 'forest_canopy_run',
+        crystalCaves: 'caves_secret_slide',
+        reef: 'reef_star_trench',
+        voidPeaks: 'peaks_relic_ridge',
+        auroraDepths: 'aurora_quiet_light',
+        finalVoid: 'final_trust_bridge'
+    }[route];
+    let routeChoice = null;
+    if (optionalRouteId) {
+        const choicePresentation = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const routeState = scene?.optionalRouteRewards?.get?.(
+                ${JSON.stringify(optionalRouteId)}
+            );
+            const choice = routeState?.choice;
+            if (!scene?.player || !routeState || !choice) return null;
+            return {
+                routeTitle: routeState.title,
+                rewardLabel: routeState.rewardLabel,
+                mainLabel: choice.mainLabel,
+                mainTradeoff: choice.mainTradeoff,
+                challengeLabel: choice.challengeLabel,
+                mainMarker: choice.mainMarker?.text || '',
+                optionalMarker: routeState.marker?.text || '',
+                optionalCenter: {
+                    x: (choice.optionalZone.left + choice.optionalZone.right) / 2,
+                    y: (choice.optionalZone.top + choice.optionalZone.bottom) / 2
+                },
+                rejoinCenter: {
+                    x: (choice.rejoinZone.left + choice.rejoinZone.right) / 2,
+                    y: (choice.rejoinZone.top + choice.rejoinZone.bottom) / 2
+                }
+            };
+        })()`);
+        if (
+            !choicePresentation?.mainMarker.includes(choicePresentation.mainLabel) ||
+            !choicePresentation.mainMarker.includes(choicePresentation.mainTradeoff) ||
+            !choicePresentation.optionalMarker.includes(choicePresentation.routeTitle) ||
+            !choicePresentation.optionalMarker.includes(choicePresentation.challengeLabel) ||
+            !choicePresentation.optionalMarker.includes(choicePresentation.rewardLabel)
+        ) {
+            throw new Error(
+                `${sceneName} route choice is not readable: ${JSON.stringify(choicePresentation)}`
+            );
+        }
+
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const routeState = scene?.optionalRouteRewards?.get?.(
+                ${JSON.stringify(optionalRouteId)}
+            );
+            const zone = routeState?.choice?.optionalZone;
+            if (!scene?.player || !zone) return false;
+            scene.player.setPosition(
+                (zone.left + zone.right) / 2,
+                (zone.top + zone.bottom) / 2
+            );
+            scene.player.setVelocity?.(0, 0);
+            return true;
+        })()`);
+        const optionalEntry = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const choice = scene?.optionalRouteRewards?.get?.(
+                    ${JSON.stringify(optionalRouteId)}
+                )?.choice;
+                if (!choice?.optionalEntered) return null;
+                return {
+                    selectedPath: choice.selectedPath,
+                    optionalEntered: choice.optionalEntered,
+                    mainEntered: choice.mainEntered,
+                    sequence: choice.sequence
+                };
+            })()`),
+            { timeoutMs: 2500, message: `${sceneName} optional route entry` }
+        );
+
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const routeState = scene?.optionalRouteRewards?.get?.(
+                ${JSON.stringify(optionalRouteId)}
+            );
+            const zone = routeState?.choice?.rejoinZone;
+            if (!scene?.player || !zone) return false;
+            scene.player.setPosition(
+                (zone.left + zone.right) / 2,
+                (zone.top + zone.bottom) / 2
+            );
+            scene.player.setVelocity?.(0, 0);
+            return true;
+        })()`);
+        const rejoin = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const choice = scene?.optionalRouteRewards?.get?.(
+                    ${JSON.stringify(optionalRouteId)}
+                )?.choice;
+                if (!choice?.rejoined) return null;
+                return {
+                    selectedPath: choice.selectedPath,
+                    optionalEntered: choice.optionalEntered,
+                    rejoined: choice.rejoined,
+                    sequence: choice.sequence
+                };
+            })()`),
+            { timeoutMs: 2500, message: `${sceneName} optional route rejoin` }
+        );
+        if (
+            optionalEntry.selectedPath !== 'optional' ||
+            optionalEntry.optionalEntered !== true ||
+            optionalEntry.mainEntered !== false ||
+            optionalEntry.sequence !== 1 ||
+            rejoin.selectedPath !== 'optional' ||
+            rejoin.optionalEntered !== true ||
+            rejoin.rejoined !== true ||
+            rejoin.sequence !== 1
+        ) {
+            throw new Error(
+                `${sceneName} route choice state was ambiguous: ` +
+                JSON.stringify({ optionalEntry, rejoin })
+            );
+        }
+        routeChoice = { presentation: choicePresentation, optionalEntry, rejoin };
+    }
+
     let combatFeedback = null;
     if (['mythicalForest', 'auroraDepths', 'finalVoid'].includes(route)) {
         combatFeedback = await evaluate(session, `(() => {
@@ -1340,14 +1466,6 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             }
         }
 
-        const optionalRouteId = {
-            mythicalForest: 'forest_canopy_run',
-            crystalCaves: 'caves_secret_slide',
-            reef: 'reef_star_trench',
-            voidPeaks: 'peaks_relic_ridge',
-            auroraDepths: 'aurora_quiet_light',
-            finalVoid: 'final_trust_bridge'
-        }[route];
         if (optionalRouteId) {
             const optionalRequired = {
                 mythicalForest: 2,
@@ -1500,6 +1618,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         joystick: { movedRight, movedLeft },
         combatFeedback,
         liveStomp,
+        routeChoice,
         outOfOrderGuard,
         routeHandoff,
         routeCompletion,

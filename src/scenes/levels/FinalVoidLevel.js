@@ -509,6 +509,14 @@ class FinalVoidLevel extends PlatformerLevelScene {
             repeat: -1
         });
 
+        const fractureRouteMarker = this.add.text(1690, groundY - 82, '', {
+            fontSize: '11px',
+            color: '#D5A6F5',
+            fontStyle: 'bold',
+            stroke: '#09020E',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(182);
         const trustBridgeMarker = this.add.text(1690, groundY - 372, '', {
             fontSize: '12px',
             color: '#F2C94C',
@@ -524,15 +532,26 @@ class FinalVoidLevel extends PlatformerLevelScene {
             rewardLabel: 'BOND RESERVE // 1 RESCUE',
             marker: trustBridgeMarker,
             returnLabel: 'DESCEND TO TRUST SIGNAL →',
+            choice: {
+                mainLabel: 'VOID FRACTURE →',
+                mainTradeoff: 'DIRECT // DAMAGE RIFTS',
+                challengeLabel: 'HIGH JUMPS + BOND RESERVE',
+                mainMarker: fractureRouteMarker,
+                mainZone: {
+                    left: 1600, right: 2250,
+                    top: groundY - 220, bottom: this.levelHeight
+                },
+                optionalZone: {
+                    left: 1600, right: 2250,
+                    top: 180, bottom: groundY - 220
+                },
+                rejoinZone: {
+                    left: 2250, right: 2600,
+                    top: 250, bottom: this.levelHeight
+                }
+            },
             onComplete: () => this.activateBondReserve()
         });
-        this.add.text(1845, groundY - 82, 'VOID FRACTURE / DIRECT ROUTE', {
-            fontSize: '11px',
-            color: '#D5A6F5',
-            fontStyle: 'bold',
-            stroke: '#09020E',
-            strokeThickness: 4
-        }).setOrigin(0.5).setDepth(182);
 
         const reserve = this.add.circle(
             1900,

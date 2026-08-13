@@ -544,6 +544,14 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             repeat: -1
         });
 
+        const directRouteMarker = this.add.text(2820, groundY - 82, '', {
+            fontSize: '11px',
+            color: '#C9A7E8',
+            fontStyle: 'bold',
+            stroke: '#061319',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(182);
         const quietLightMarker = this.add.text(2820, groundY - 235, '', {
             fontSize: '12px',
             color: '#A9F3E4',
@@ -559,17 +567,28 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             rewardLabel: 'QUIET LIGHT WARD // 1 HIT',
             marker: quietLightMarker,
             returnLabel: 'DESCEND TO SKY PRISM →',
+            choice: {
+                mainLabel: 'SHADOW CURRENT →',
+                mainTradeoff: 'DIRECT // DAMAGE ZONE',
+                challengeLabel: 'HIGH JUMPS + CURRENT SHELTER',
+                mainMarker: directRouteMarker,
+                mainZone: {
+                    left: 2700, right: 3500,
+                    top: groundY - 180, bottom: this.levelHeight
+                },
+                optionalZone: {
+                    left: 2700, right: 3500,
+                    top: 200, bottom: groundY - 180
+                },
+                rejoinZone: {
+                    left: 3500, right: 3900,
+                    top: 300, bottom: this.levelHeight
+                }
+            },
             onComplete: () => {
                 this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1);
             }
         });
-        this.add.text(3160, groundY - 82, 'SHADOW CURRENT / DIRECT ROUTE', {
-            fontSize: '11px',
-            color: '#C9A7E8',
-            fontStyle: 'bold',
-            stroke: '#061319',
-            strokeThickness: 4
-        }).setOrigin(0.5).setDepth(182);
 
         const shelter = this.add.circle(
             3415,

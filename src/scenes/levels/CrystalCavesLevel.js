@@ -2322,6 +2322,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.createStarFragment(pos.x, pos.y);
         });
 
+        const chamberRouteMarker = this.add.text(1900, this.levelHeight - 250, '', {
+            fontSize: '11px',
+            color: '#8FE3CF',
+            fontStyle: 'bold',
+            stroke: '#080510',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setDepth(182);
         const secretSlideMarker = this.add.text(1750, this.levelHeight - 625, '', {
             fontSize: '11px',
             color: '#F2C94C',
@@ -2337,6 +2345,24 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             rewardLabel: 'CRYSTAL WARD // 1 HIT',
             marker: secretSlideMarker,
             returnLabel: 'CLIMB BACK TO THE CAVE ROUTE →',
+            choice: {
+                mainLabel: 'CRYSTAL CHAMBER →',
+                mainTradeoff: 'FORWARD // SPIDER TERRITORY',
+                challengeLabel: 'REVERSE SLIDE + SECRET ALCOVE',
+                mainMarker: chamberRouteMarker,
+                mainZone: {
+                    left: 1880, right: 2440,
+                    top: this.levelHeight - 430, bottom: this.levelHeight - 70
+                },
+                optionalZone: {
+                    left: 1430, right: 1880,
+                    top: this.levelHeight - 650, bottom: this.levelHeight - 330
+                },
+                rejoinZone: {
+                    left: 2420, right: 2780,
+                    top: this.levelHeight - 330, bottom: this.levelHeight - 60
+                }
+            },
             onComplete: () => this.grantOptionalRouteGuard('CRYSTAL WARD', 1)
         });
 

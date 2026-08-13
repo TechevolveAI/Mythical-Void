@@ -562,7 +562,11 @@ describe('campaign traversal quality contracts', () => {
         const source = read('levels/AuroraDepthsLevel.js');
 
         expect(source).toContain('const quietLightRoute = [');
-        expect(source).toContain('SHADOW CURRENT / DIRECT ROUTE');
+        expect(source).toContain("mainLabel: 'SHADOW CURRENT →'");
+        expect(source).toContain("mainTradeoff: 'DIRECT // DAMAGE ZONE'");
+        expect(source).toContain(
+            "challengeLabel: 'HIGH JUMPS + CURRENT SHELTER'"
+        );
         expect(source).toContain("id: 'aurora_quiet_light'");
         expect(source).toContain("rewardLabel: 'QUIET LIGHT WARD // 1 HIT'");
         expect(source).toContain("this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1)");
@@ -593,12 +597,100 @@ describe('campaign traversal quality contracts', () => {
         const source = read('levels/FinalVoidLevel.js');
 
         expect(source).toContain('const trustBridgeRoute = [');
-        expect(source).toContain('VOID FRACTURE / DIRECT ROUTE');
+        expect(source).toContain("mainLabel: 'VOID FRACTURE →'");
+        expect(source).toContain("mainTradeoff: 'DIRECT // DAMAGE RIFTS'");
+        expect(source).toContain(
+            "challengeLabel: 'HIGH JUMPS + BOND RESERVE'"
+        );
         expect(source).toContain("id: 'final_trust_bridge'");
         expect(source).toContain("rewardLabel: 'BOND RESERVE // 1 RESCUE'");
         expect(source).toContain('onComplete: () => this.activateBondReserve()');
         expect(source).toContain('incomingDamage = Math.max(0, this.health - 1);');
         expect(source).toContain('this.bondReserveEcho?.destroy?.();');
+    });
+
+    test.each([
+        [
+            'levels/MythicalForestLevel.js',
+            "id: 'forest_canopy_run'",
+            "mainLabel: 'MID-BRANCH CROSSING →'",
+            "mainTradeoff: 'STEADY // CRAWLER PATROLS'",
+            "challengeLabel: 'HIGH CLIMB + 2 FRAGMENTS'"
+        ],
+        [
+            'levels/CrystalCavesLevel.js',
+            "id: 'caves_secret_slide'",
+            "mainLabel: 'CRYSTAL CHAMBER →'",
+            "mainTradeoff: 'FORWARD // SPIDER TERRITORY'",
+            "challengeLabel: 'REVERSE SLIDE + SECRET ALCOVE'"
+        ],
+        [
+            'levels/ReefLevel.js',
+            "id: 'reef_star_trench'",
+            "mainLabel: 'SIGNAL CURRENT →'",
+            "mainTradeoff: 'FAST // ENEMY PATROLS'",
+            "challengeLabel: 'DEEP WATER + 2 RELICS'"
+        ],
+        [
+            'levels/VoidPeaksLevel.js',
+            "id: 'peaks_relic_ridge'",
+            "mainLabel: 'WARNING LINE →'",
+            "mainTradeoff: 'LOWER // VOID GEYSERS'",
+            "challengeLabel: 'HIGH CLIMB + 2 RELICS'"
+        ],
+        [
+            'levels/AuroraDepthsLevel.js',
+            "id: 'aurora_quiet_light'",
+            "mainLabel: 'SHADOW CURRENT →'",
+            "mainTradeoff: 'DIRECT // DAMAGE ZONE'",
+            "challengeLabel: 'HIGH JUMPS + CURRENT SHELTER'"
+        ],
+        [
+            'levels/FinalVoidLevel.js',
+            "id: 'final_trust_bridge'",
+            "mainLabel: 'VOID FRACTURE →'",
+            "mainTradeoff: 'DIRECT // DAMAGE RIFTS'",
+            "challengeLabel: 'HIGH JUMPS + BOND RESERVE'"
+        ]
+    ])('%s declares a readable two-path choice', (
+        relativePath,
+        id,
+        mainLabel,
+        mainTradeoff,
+        challengeLabel
+    ) => {
+        const source = read(relativePath);
+
+        expect(source).toContain(id);
+        expect(source).toContain('choice: {');
+        expect(source).toContain(mainLabel);
+        expect(source).toContain(mainTradeoff);
+        expect(source).toContain(challengeLabel);
+        expect(source).toContain('mainMarker:');
+        expect(source).toContain('mainZone: {');
+        expect(source).toContain('optionalZone: {');
+        expect(source).toContain('rejoinZone: {');
+    });
+
+    test('the shared route-choice contract is lightweight and lifecycle-safe', () => {
+        const source = read('PlatformerLevelScene.js');
+
+        expect(source).toContain('normalizeOptionalRouteChoice(choice)');
+        expect(source).toContain('updateOptionalRouteChoices()');
+        expect(source).toContain('this.updateOptionalRouteChoices();');
+        expect(source).toContain('this.optionalRouteRewards?.clear?.();');
+        expect(source).toContain("recordEvent?.('route_choice_entered'");
+        expect(source).toContain("recordEvent?.('route_choice_rejoined'");
+        expect(source).not.toContain('physics.add.overlap(this.player, choice');
+    });
+
+    test('Reef runs shared route-choice updates from its swimming loop', () => {
+        const source = read('levels/ReefLevel.js');
+
+        expect(source).toContain('this.updateOptionalRouteChoices();');
+        expect(source.indexOf('this.updateOptionalRouteChoices();')).toBeGreaterThan(
+            source.indexOf('update(time, delta)')
+        );
     });
 
     test.each([
@@ -673,6 +765,113 @@ describe('campaign traversal quality contracts', () => {
         expect(scene.getOrderedRouteCompassText()).toBe(
             'SIGNAL RIGHT + UP // 550m'
         );
+    });
+
+    test('shared route choices announce an optional branch and its rejoin once', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'RouteChoiceTest' });
+        scene.showFloatingText = jest.fn();
+        scene.optionalRouteRewards = new Map();
+        scene.routeChoiceSequence = 0;
+        scene.player = { x: 150, y: 100 };
+
+        const route = scene.registerOptionalRouteReward({
+            id: 'test_branch',
+            title: 'HIGH BRANCH',
+            rewardLabel: 'ONE GUARD',
+            returnLabel: 'SIGNAL ROUTE →',
+            choice: {
+                mainLabel: 'LOW ROUTE',
+                mainTradeoff: 'FASTER // ENEMIES',
+                challengeLabel: 'MORE JUMPS // SAFER',
+                mainZone: { left: 100, right: 200, top: 300, bottom: 450 },
+                optionalZone: { left: 100, right: 200, top: 50, bottom: 200 },
+                rejoinZone: { left: 500, right: 600, top: 100, bottom: 400 }
+            }
+        });
+
+        expect(scene.updateOptionalRouteChoices()).toBe(true);
+        expect(route.choice.selectedPath).toBe('optional');
+        expect(route.choice.optionalEntered).toBe(true);
+        expect(route.choice.sequence).toBe(1);
+        expect(scene.showFloatingText).toHaveBeenCalledWith(
+            'HIGH BRANCH // MORE JUMPS // SAFER',
+            150,
+            30,
+            '#F2C94C'
+        );
+
+        expect(scene.updateOptionalRouteChoices()).toBe(false);
+        scene.player = { x: 150, y: 360 };
+        expect(scene.updateOptionalRouteChoices()).toBe(false);
+        expect(route.choice.mainEntered).toBe(false);
+
+        scene.player = { x: 550, y: 250 };
+        expect(scene.updateOptionalRouteChoices()).toBe(true);
+        expect(route.choice.rejoined).toBe(true);
+        expect(scene.showFloatingText).toHaveBeenLastCalledWith(
+            'BACK ON ROUTE // SIGNAL ROUTE →',
+            550,
+            180,
+            '#8FE3CF'
+        );
+        expect(scene.updateOptionalRouteChoices()).toBe(false);
+    });
+
+    test('shared route choices distinguish the direct path without a rejoin message', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'MainRouteChoiceTest' });
+        scene.showFloatingText = jest.fn();
+        scene.optionalRouteRewards = new Map();
+        scene.player = { x: 160, y: 360 };
+
+        const route = scene.registerOptionalRouteReward({
+            id: 'test_main',
+            title: 'HIGH BRANCH',
+            rewardLabel: 'ONE GUARD',
+            choice: {
+                mainLabel: 'LOW ROUTE',
+                mainTradeoff: 'FASTER // ENEMIES',
+                challengeLabel: 'MORE JUMPS // SAFER',
+                mainZone: { left: 100, right: 200, top: 300, bottom: 450 },
+                optionalZone: { left: 100, right: 200, top: 50, bottom: 200 },
+                rejoinZone: { left: 500, right: 600, top: 100, bottom: 400 }
+            }
+        });
+
+        expect(scene.updateOptionalRouteChoices()).toBe(true);
+        expect(route.choice.selectedPath).toBe('main');
+        expect(route.choice.mainEntered).toBe(true);
+        expect(route.choice.optionalEntered).toBe(false);
+        expect(scene.showFloatingText).toHaveBeenCalledWith(
+            'LOW ROUTE // FASTER // ENEMIES',
+            160,
+            290,
+            '#8FE3CF'
+        );
+
+        scene.player = { x: 550, y: 250 };
+        expect(scene.updateOptionalRouteChoices()).toBe(false);
+        expect(route.choice.rejoined).toBe(false);
+    });
+
+    test('invalid route choice geometry degrades to the existing reward contract', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'InvalidRouteChoiceTest' });
+        scene.optionalRouteRewards = new Map();
+
+        const route = scene.registerOptionalRouteReward({
+            id: 'invalid_branch',
+            title: 'BROKEN BRANCH',
+            rewardLabel: 'ONE GUARD',
+            choice: {
+                mainZone: { left: 0, right: 100, top: 0 },
+                optionalZone: { left: 0, right: 100, top: 0, bottom: 100 },
+                rejoinZone: { left: 200, right: 300, top: 0, bottom: 100 }
+            }
+        });
+
+        expect(route.choice).toBeNull();
     });
 
     test('platformer action pointers have a shared all-path release contract', () => {
@@ -782,6 +981,11 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain(
             'liveStomp.playerHealthAfter !== liveStomp.playerHealthBefore'
         );
+        expect(smoke).toContain('`${sceneName} optional route entry`');
+        expect(smoke).toContain('`${sceneName} optional route rejoin`');
+        expect(smoke).toContain("optionalEntry.selectedPath !== 'optional'");
+        expect(smoke).toContain('choicePresentation.optionalMarker.includes');
+        expect(smoke).toContain('routeChoice = { presentation: choicePresentation');
         expect(smoke).toContain(
             "combatFeedback.armoredAfter === 1 ? '' : 'S'"
         );

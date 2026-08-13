@@ -1205,7 +1205,7 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     createReefRouteChoice() {
-        const mainRoute = this.add.text(1540, 735, 'SIGNAL CURRENT →', {
+        const mainRoute = this.add.text(1540, 735, '', {
             fontSize: '12px',
             color: '#8FE3CF',
             fontStyle: 'bold',
@@ -1229,6 +1229,24 @@ class ReefLevel extends PlatformerLevelScene {
             rewardLabel: 'FREE SUPER BLAST',
             marker: optionalRoute,
             returnLabel: 'ASCENT CURRENT ↑ // SIGNAL ROUTE →',
+            choice: {
+                mainLabel: 'SIGNAL CURRENT →',
+                mainTradeoff: 'FAST // ENEMY PATROLS',
+                challengeLabel: 'DEEP WATER + 2 RELICS',
+                mainMarker: mainRoute,
+                mainZone: {
+                    left: 1450, right: 2450,
+                    top: 480, bottom: 850
+                },
+                optionalZone: {
+                    left: 1450, right: 2450,
+                    top: 850, bottom: this.levelHeight - 150
+                },
+                rejoinZone: {
+                    left: 2500, right: 3500,
+                    top: 300, bottom: 900
+                }
+            },
             onComplete: () => {
                 this.freeSpecialAttackCharges += 1;
             }
@@ -3333,6 +3351,7 @@ class ReefLevel extends PlatformerLevelScene {
         }
         this.updateEnemies(time, delta);
         this.updateEnemyCombatReadability();
+        this.updateOptionalRouteChoices();
         this.refreshGuardianGateState();
 
         if (this.bossFightActive) {
