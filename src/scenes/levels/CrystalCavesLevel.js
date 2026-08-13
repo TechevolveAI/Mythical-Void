@@ -3,6 +3,7 @@ import {
     buildCreaturePowerProfile,
     recordCreaturePowerEvent
 } from '../../systems/CreaturePowerProfile.js';
+import { calculateBallisticLaunchVelocity } from '../../systems/TraversalTopology.js';
 
 const CRYSTAL_GUARDIAN_TEXTURE = 'crystalGuardianArtwork';
 const CRYSTAL_GUARDIAN_ASSET = '/game/guardians/crystal-guardian.webp';
@@ -124,6 +125,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.crystalChamberRoute = null;
         this.crystalSpiderCalmed = false;
         this.crystalWardPickup = null;
+        this.crystalCoreLift = null;
         this.wardGateHintUntil = 0;
         this.coreGateHintUntil = 0;
         this.levelEntryDismissing = false;
@@ -194,6 +196,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.crystalChamberRoute = null;
         this.crystalSpiderCalmed = false;
         this.crystalWardPickup = null;
+        this.crystalCoreLift = null;
         this.wardGateHintUntil = 0;
         this.coreGateHintUntil = 0;
         this.levelEntryDismissing = false;
@@ -452,6 +455,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * - Visual flow showing the intended route
      * - Generous platforms near hazards
      */
+    createCavePlatform(id, x, y, width, height, type = 'solid', {
+        traversalLinks = []
+    } = {}) {
+        const platform = this.createPlatform(x, y, width, height, type);
+        platform.traversalId = id;
+        platform.traversalLinks = [...traversalLinks];
+        return platform;
+    }
+
     createPlatforms() {
         this.platforms = this.physics.add.staticGroup();
 
@@ -459,74 +471,82 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // The Crystal Chamber is an authored fork, not a corridor hidden above
         // an uninterrupted floor. Both branches rejoin before Anchor 2.
 
-        this.createPlatform(0, this.levelHeight - 50, 1400, 80, 'solid');      // Start to first gap (continuous)
-        this.createPlatform(1600, this.levelHeight - 50, 180, 80, 'solid');    // Chamber decision ledge
-        this.createPlatform(2500, this.levelHeight - 50, 700, 80, 'solid');    // Shared rejoin to gap 2
-        this.createPlatform(3400, this.levelHeight - 50, 1600, 80, 'solid');   // Boss arena (continuous)
+        this.createCavePlatform('caves-ground-entry', 0, this.levelHeight - 50, 1400, 80);
+        this.createCavePlatform('caves-chamber-decision', 1600, this.levelHeight - 50, 180, 80);
+        this.createCavePlatform('caves-grove-rejoin', 2500, this.levelHeight - 50, 700, 80);
+        this.createCavePlatform(
+            'caves-guardian-approach',
+            3400,
+            this.levelHeight - 50,
+            1600,
+            80,
+            'solid',
+            { traversalLinks: ['caves-core-refuge'] }
+        );
 
         // ===== SECTION 1: Tutorial Zone (0-800px) =====
         // Simple introductory platforms - no danger, learn jumping
-        this.createPlatform(200, this.levelHeight - 150, 220, 25, 'solid');   // First platform
-        this.createPlatform(500, this.levelHeight - 150, 200, 25, 'solid');   // Same height (easy hop)
-        this.createPlatform(780, this.levelHeight - 220, 180, 25, 'solid');   // Slight elevation
+        this.createCavePlatform('caves-tutorial-1', 200, this.levelHeight - 150, 220, 25);
+        this.createCavePlatform('caves-tutorial-2', 500, this.levelHeight - 150, 200, 25);
+        this.createCavePlatform('caves-tutorial-rise', 780, this.levelHeight - 220, 180, 25);
 
         // ===== SECTION 2: Exploration Zone (800-1400px) =====
         // Optional vertical exploration before first gap
-        this.createPlatform(950, this.levelHeight - 150, 180, 25, 'solid');   // Ground level step
-        this.createPlatform(1150, this.levelHeight - 220, 200, 25, 'solid');  // Medium height
+        this.createCavePlatform('caves-echo-step', 950, this.levelHeight - 150, 180, 25);
+        this.createCavePlatform('caves-echo-upper', 1150, this.levelHeight - 220, 200, 25);
 
         // Upper path for collectibles (optional)
-        this.createPlatform(1000, this.levelHeight - 350, 150, 20, 'one-way'); // Upper exploration
-        this.createPlatform(1200, this.levelHeight - 420, 140, 20, 'one-way'); // Secret area access
+        this.createCavePlatform('caves-echo-relic-1', 1000, this.levelHeight - 350, 150, 20, 'one-way');
+        this.createCavePlatform('caves-echo-relic-2', 1200, this.levelHeight - 420, 140, 20, 'one-way');
 
         // ===== GAP 1 BRIDGE (x=1400-1600) - Easy to cross =====
         // Wide, obvious bridge platform over the gap
-        this.createPlatform(1350, this.levelHeight - 130, 300, 25, 'solid');  // Main bridge (overlaps gap)
+        this.createCavePlatform('caves-chamber-bridge', 1350, this.levelHeight - 130, 300, 25);
 
         // ===== SECTION 3: CRYSTAL CHAMBER FORK (1600-2500px) =====
         // Lower Passage: short, readable jumps with an armored crawler.
-        this.createPlatform(1770, this.levelHeight - 110, 240, 25, 'one-way');
-        this.createPlatform(2040, this.levelHeight - 90, 240, 25, 'one-way');
-        this.createPlatform(2310, this.levelHeight - 120, 220, 25, 'one-way');
+        this.createCavePlatform('caves-lower-1', 1770, this.levelHeight - 110, 240, 25, 'one-way');
+        this.createCavePlatform('caves-lower-2', 2040, this.levelHeight - 90, 240, 25, 'one-way');
+        this.createCavePlatform('caves-lower-3', 2310, this.levelHeight - 120, 220, 25, 'one-way');
 
         // Spider Walk: a deliberate climb to the miniboss and Crystal Ward.
-        this.createPlatform(1690, this.levelHeight - 200, 190, 25, 'one-way');
-        this.createPlatform(1870, this.levelHeight - 310, 190, 25, 'one-way');
-        this.createPlatform(2040, this.levelHeight - 420, 260, 30, 'one-way');
+        this.createCavePlatform('caves-spider-1', 1690, this.levelHeight - 200, 190, 25, 'one-way');
+        this.createCavePlatform('caves-spider-2', 1870, this.levelHeight - 310, 190, 25, 'one-way');
+        this.createCavePlatform('caves-spider-arena', 2040, this.levelHeight - 420, 260, 30, 'one-way');
 
         // The ward waits beyond the Spider, then the crystal slide returns the
         // player to the same forward route as the Lower Passage.
         this.slidePlatforms = [];
-        this.createPlatform(2240, this.levelHeight - 380, 150, 20, 'one-way');
-        this.createSlidePlatform(2320, this.levelHeight - 330, 120, 15, 0.35);
-        this.createSlidePlatform(2415, this.levelHeight - 245, 115, 15, 0.32);
-        this.createSlidePlatform(2490, this.levelHeight - 160, 110, 15, 0.28);
+        this.createCavePlatform('caves-spider-ward', 2240, this.levelHeight - 380, 150, 20, 'one-way');
+        this.createSlidePlatform('caves-slide-1', 2320, this.levelHeight - 330, 120, 15, 0.35);
+        this.createSlidePlatform('caves-slide-2', 2415, this.levelHeight - 245, 115, 15, 0.32);
+        this.createSlidePlatform('caves-slide-3', 2490, this.levelHeight - 160, 110, 15, 0.28);
 
         // ===== SECTION 4: Approach to Boss (2400-3200px) =====
         // Build tension - platforms lead naturally to arena
-        this.createPlatform(2550, this.levelHeight - 170, 200, 25, 'solid');  // Low step
-        this.createPlatform(2800, this.levelHeight - 250, 200, 25, 'solid');  // Rising
-        this.createPlatform(3050, this.levelHeight - 180, 200, 25, 'solid');  // Descending
+        this.createCavePlatform('caves-grove-step', 2550, this.levelHeight - 170, 200, 25);
+        this.createCavePlatform('caves-grove-rise', 2800, this.levelHeight - 250, 200, 25);
+        this.createCavePlatform('caves-grove-descent', 3050, this.levelHeight - 180, 200, 25);
 
         // Star Fragment platform (optional side path)
-        this.createPlatform(2900, this.levelHeight - 400, 150, 25, 'solid');  // Relic alcove
+        this.createCavePlatform('caves-grove-relic', 2900, this.levelHeight - 400, 150, 25);
 
         // ===== GAP 2 BRIDGE (x=3200-3400) =====
         // Final bridge before boss arena
-        this.createPlatform(3150, this.levelHeight - 130, 300, 25, 'solid');  // Main bridge
+        this.createCavePlatform('caves-guardian-bridge', 3150, this.levelHeight - 130, 300, 25);
 
         // ===== SECTION 5: Boss Arena (3400-5000px) =====
         // Open arena with tactical platforms
-        this.createPlatform(3600, this.levelHeight - 180, 220, 25, 'solid');  // Left platform
-        this.createPlatform(3900, this.levelHeight - 300, 250, 25, 'solid');  // Center platform
-        this.createPlatform(4200, this.levelHeight - 180, 220, 25, 'solid');  // Right platform
-        this.createPlatform(4050, this.levelHeight - 450, 200, 20, 'one-way'); // High refuge
+        this.createCavePlatform('caves-guardian-left', 3600, this.levelHeight - 180, 220, 25);
+        this.createCavePlatform('caves-guardian-center', 3900, this.levelHeight - 300, 250, 25);
+        this.createCavePlatform('caves-guardian-right', 4200, this.levelHeight - 180, 220, 25);
+        this.createCavePlatform('caves-guardian-refuge', 4050, this.levelHeight - 450, 200, 20, 'one-way');
 
         // Path to Crystal Core Engine (boss reward)
-        this.createPlatform(4450, this.levelHeight - 280, 180, 25, 'solid');  // Step 1
-        this.createPlatform(4600, this.levelHeight - 380, 180, 25, 'solid');  // Step 2
-        this.createPlatform(4700, this.levelHeight - 480, 200, 30, 'solid');  // Final platform
-        this.createPlatform(5000, this.levelHeight - 50, 600, 80, 'solid');   // Forward guardian arena
+        this.createCavePlatform('caves-core-step-low', 4450, this.levelHeight - 280, 180, 25, 'one-way');
+        this.createCavePlatform('caves-core-step-mid', 4600, this.levelHeight - 380, 180, 25, 'one-way');
+        this.createCavePlatform('caves-core-refuge', 4700, this.levelHeight - 480, 240, 30, 'one-way');
+        this.createCavePlatform('caves-guardian-arena', 5000, this.levelHeight - 50, 600, 80);
 
         // Boss arena interactive elements
         this.createBossArenaElements();
@@ -538,7 +558,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Create an angled slide platform
      * Players slide down these with reduced friction
      */
-    createSlidePlatform(x, y, width, height, angle) {
+    createSlidePlatform(id, x, y, width, height, angle) {
         // Generate slide texture
         const textureKey = `slideplatform_${width}_${height}_${Math.abs(angle * 100).toFixed(0)}`;
 
@@ -571,6 +591,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         platform.setDepth(y);
         platform.setRotation(angle);
         platform.platformType = 'slide';
+        platform.traversalId = id;
+        platform.traversalLinks = [];
         platform.slideAngle = angle;
         platform.slideDirection = angle < 0 ? -1 : 1; // -1 = slide left, 1 = slide right
 
@@ -1013,9 +1035,140 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Make recovery and the wounded-world story beat part of play.
         this.createBeaconCheckpoints();
         this.createWoundedCrystalGrove();
+        this.createCrystalCoreLift();
 
         // Create the Crystal Core Engine goal (ship part)
         this.createCrystalCoreEngine();
+    }
+
+    createCrystalCoreLift() {
+        const x = 4820;
+        const bottom = this.levelHeight - 50;
+        const destination = this.platforms?.getChildren?.().find(
+            platform => platform.traversalId === 'caves-core-refuge'
+        );
+        const top = destination?.body?.top || this.levelHeight - 480;
+        const visual = this.add.graphics().setDepth(44);
+        const label = this.add.text(x, bottom - 168, '', {
+            fontSize: '11px',
+            color: '#756D91',
+            fontStyle: 'bold',
+            align: 'center',
+            stroke: '#080510',
+            strokeThickness: 4,
+            lineSpacing: 3
+        }).setOrigin(0.5).setDepth(87);
+        const zone = this.createObjectiveTriggerZone(
+            x,
+            bottom - 62,
+            { width: 136, height: 150 }
+        );
+
+        this.crystalCoreLift = {
+            id: 'caves-core-lift',
+            destinationId: 'caves-core-refuge',
+            x,
+            top,
+            bottom,
+            width: 136,
+            visual,
+            label,
+            zone,
+            activations: 0,
+            lastLiftAt: Number.NEGATIVE_INFINITY,
+            hintUntil: 0
+        };
+        this.physics.add.overlap(this.player, zone, () => {
+            this.activateCrystalCoreLift();
+        });
+        this.refreshCrystalCoreLift();
+
+        this.tweens.add({
+            targets: visual,
+            alpha: { from: 0.68, to: 1 },
+            duration: 720,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    refreshCrystalCoreLift() {
+        const lift = this.crystalCoreLift;
+        if (!lift?.visual?.active) return false;
+
+        const active = this.caveRouteAligned === true;
+        const color = active ? 0x8FE3CF : 0x4A4268;
+        lift.visual.clear();
+        lift.visual.fillStyle(color, active ? 0.12 : 0.05);
+        lift.visual.fillRect(
+            lift.x - lift.width / 2,
+            lift.top,
+            lift.width,
+            lift.bottom - lift.top
+        );
+        lift.visual.lineStyle(active ? 3 : 2, color, active ? 0.86 : 0.46);
+        lift.visual.lineBetween(lift.x - 34, lift.bottom, lift.x - 34, lift.top);
+        lift.visual.lineBetween(lift.x + 34, lift.bottom, lift.x + 34, lift.top);
+        lift.visual.fillStyle(active ? 0xF2C94C : color, active ? 0.92 : 0.55);
+        for (let y = lift.bottom - 34; y > lift.top + 30; y -= 76) {
+            lift.visual.fillTriangle(
+                lift.x,
+                y - 16,
+                lift.x - 13,
+                y + 7,
+                lift.x + 13,
+                y + 7
+            );
+        }
+        lift.label
+            ?.setText?.(active
+                ? 'CRYSTAL LIFT\nCORE ASCENT ↑'
+                : 'CRYSTAL LIFT\nALIGN 3 ANCHORS')
+            ?.setColor?.(active ? '#8FE3CF' : '#756D91');
+        return active;
+    }
+
+    activateCrystalCoreLift() {
+        const lift = this.crystalCoreLift;
+        const body = this.player?.body;
+        if (!lift || !body) return false;
+
+        const now = this.time.now;
+        if (!this.caveRouteAligned) {
+            if (now >= lift.hintUntil && (body.blocked.down || this.isGrounded)) {
+                this.showFloatingText(
+                    'The lift needs all three Beacon anchors.',
+                    lift.x,
+                    lift.bottom - 138,
+                    '#F2C94C'
+                );
+                lift.hintUntil = now + 1800;
+            }
+            return false;
+        }
+
+        const grounded = body.blocked.down || body.touching.down || this.isGrounded;
+        const inLaunchBand = body.bottom >= lift.bottom - 90;
+        if (!grounded || !inLaunchBand || now - lift.lastLiftAt < 650) {
+            return false;
+        }
+
+        lift.lastLiftAt = now;
+        lift.activations += 1;
+        const horizontalCorrection = Phaser.Math.Clamp(
+            (lift.x - this.player.x) * 2.4,
+            -85,
+            85
+        );
+        const launchVelocity = calculateBallisticLaunchVelocity({
+            gravityY: this.gravityY,
+            rise: lift.bottom - lift.top + 80
+        });
+        this.player.setVelocityX(horizontalCorrection);
+        this.player.setVelocityY(launchVelocity);
+        window.AudioManager?.playAchievement?.();
+        return true;
     }
 
     createBeaconCheckpoints() {
@@ -1160,6 +1313,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             });
         } else if (this.beaconAnchorsActivated === this.beaconAnchors.length) {
             this.caveRouteAligned = true;
+            this.refreshCrystalCoreLift();
             this.refreshCrystalCoreHint();
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
@@ -1178,11 +1332,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     refreshCaveRouteReadability() {
-        return this.refreshOrderedRouteSignals(
+        const nextSignal = this.refreshOrderedRouteSignals(
             this.beaconAnchors,
             this.beaconAnchorsActivated,
             { futureColor: '#756D91' }
         );
+        this.refreshCrystalCoreLift();
+        return nextSignal;
     }
 
     restoreExpeditionRouteState(resume) {
@@ -1198,6 +1354,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             ),
             onRestored: () => {
                 this.refreshCaveRouteReadability();
+                this.refreshCrystalCoreLift();
                 this.refreshCrystalCoreHint();
                 this.objectiveDisplay?.setText?.(this.getCrystalObjectiveText());
             }
@@ -4890,7 +5047,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             return `STABILIZE THE GUARDIAN\nSTRIKE THE UNSTABLE PULSE\n${optional}`;
         }
         if (this.canActivateCrystalCore()) {
-            return `CRYSTAL CORE AHEAD\nTOUCH THE CORE TO ANSWER\n${optional}`;
+            return `CRYSTAL CORE AHEAD\nUSE THE CRYSTAL LIFT ↑\n${optional}`;
         }
         if (!this.crystalWoundTended && this.beaconAnchorsActivated >= 2) {
             return `FRACTURED GROVE AHEAD\nREACH IT TOGETHER →\n${optional}`;
@@ -5053,6 +5210,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.woundedCrystalGrove.label?.destroy?.();
             this.woundedCrystalGrove.zone?.destroy?.();
             this.woundedCrystalGrove = null;
+        }
+        if (this.crystalCoreLift) {
+            this.tweens?.killTweensOf?.(this.crystalCoreLift.visual);
+            this.crystalCoreLift.visual?.destroy?.();
+            this.crystalCoreLift.label?.destroy?.();
+            this.crystalCoreLift.zone?.destroy?.();
+            this.crystalCoreLift = null;
         }
 
         // Clean up boss arena elements

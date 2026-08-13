@@ -19,6 +19,10 @@ function loadLevelClass() {
             'const buildCreaturePowerProfile = () => ({ affinityPower: { id: "radiant_pulse", name: "Radiant Pulse" }, color: 0xFFD54F });\n' +
             'const recordCreaturePowerEvent = () => ({ changed: true });'
         )
+        .replace(
+            "import { calculateBallisticLaunchVelocity } from '../../systems/TraversalTopology.js';",
+            'const calculateBallisticLaunchVelocity = () => -748;'
+        )
         .replace('export default CrystalCavesLevel;', 'module.exports = CrystalCavesLevel;');
     const sandbox = {
         module: { exports: {} },
@@ -74,6 +78,20 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.caveRouteAligned = true');
         expect(source).toContain("event: 'crystal_route_aligned'");
+    });
+
+    test('powers a named Crystal Lift after route alignment while retaining recovery steps', () => {
+        const source = readLevel();
+
+        expect(source).toContain("id: 'caves-core-lift'");
+        expect(source).toContain("destinationId: 'caves-core-refuge'");
+        expect(source).toContain("'CRYSTAL LIFT\\nCORE ASCENT ↑'");
+        expect(source).toContain("'CRYSTAL LIFT\\nALIGN 3 ANCHORS'");
+        expect(source).toContain('calculateBallisticLaunchVelocity({');
+        expect(source).toContain('this.player.setVelocityY(launchVelocity)');
+        expect(source).toContain("'caves-core-step-low'");
+        expect(source).toContain("'caves-core-step-mid'");
+        expect(source).toContain("{ traversalLinks: ['caves-core-refuge'] }");
     });
 
     test('makes the wounded-grove companion moment unavoidable across traversal paths', () => {
@@ -220,7 +238,7 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain('FOLLOW THE CAVE PULSE →');
         expect(source).toContain('FRACTURED GROVE AHEAD');
         expect(source).toContain('REACH IT TOGETHER →');
-        expect(source).toContain('TOUCH THE CORE TO ANSWER');
+        expect(source).toContain('USE THE CRYSTAL LIFT ↑');
         expect(source).toContain('STRIKE THE UNSTABLE PULSE');
         expect(source).toContain('OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}');
         expect(source).toContain(

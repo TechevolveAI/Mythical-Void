@@ -573,6 +573,96 @@ async function smokeVoidPeaksReturnCurrents(session) {
     return results;
 }
 
+async function smokeCrystalCoreLift(session) {
+    const setup = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+        const lift = scene?.crystalCoreLift;
+        const destination = scene?.platforms?.getChildren?.().find(
+            item => item.traversalId === 'caves-core-refuge'
+        );
+        if (!scene?.player?.body || !lift || !destination?.body) return null;
+
+        scene.isInvincible = true;
+        scene.releaseAllPlatformerActionButtons?.();
+        scene.resetJoystick?.();
+        (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (enemy?.body) enemy.body.enable = false;
+        });
+        (scene.collectibles?.getChildren?.() || []).forEach(item => {
+            if (item?.body) item.body.enable = false;
+        });
+        lift.activations = 0;
+        lift.lastLiftAt = Number.NEGATIVE_INFINITY;
+        scene.player.body.reset(lift.x, scene.levelHeight - 110);
+        scene.player.setVelocity(0, 0);
+        return {
+            liftLabel: lift.label?.text || '',
+            destinationId: lift.destinationId,
+            startX: Math.round(scene.player.x),
+            destinationTop: Math.round(destination.body.top)
+        };
+    })()`);
+    if (
+        setup?.destinationId !== 'caves-core-refuge' ||
+        !setup.liftLabel.includes('CORE ASCENT')
+    ) {
+        throw new Error(`Crystal Core lift was not visibly ready: ${JSON.stringify(setup)}`);
+    }
+
+    try {
+        const launched = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+                const lift = scene?.crystalCoreLift;
+                if (!lift?.activations) return null;
+                return {
+                    activations: lift.activations,
+                    playerX: Math.round(scene.player.x),
+                    playerY: Math.round(scene.player.y),
+                    velocityY: Math.round(scene.player.body.velocity.y)
+                };
+            })()`),
+            { timeoutMs: 2500, message: 'Crystal Core lift launch' }
+        );
+        const landed = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+                const support = scene.platforms.getChildren().find(
+                    item => item.traversalId === 'caves-core-refuge'
+                );
+                const body = scene.player?.body;
+                if (!support?.body || !body) return null;
+                const onSupport = body.right > support.body.left + 8 &&
+                    body.left < support.body.right - 8 &&
+                    Math.abs(body.bottom - support.body.top) <= 7 &&
+                    (body.blocked.down || scene.isGrounded);
+                return onSupport ? {
+                    supportId: support.traversalId,
+                    playerX: Math.round(scene.player.x),
+                    playerBottom: Math.round(body.bottom),
+                    supportTop: Math.round(support.body.top)
+                } : null;
+            })()`),
+            { timeoutMs: 3400, message: 'Crystal Core refuge landing' }
+        );
+        return { setup, launched, landed };
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+            (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+                if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
+            });
+            (scene.collectibles?.getChildren?.() || []).forEach(item => {
+                if (item?.body && item.active !== false) item.body.enable = true;
+            });
+            scene.isInvincible = false;
+            scene.player.body.reset(3480, scene.levelHeight - 110);
+            scene.player.setVelocity(0, 0);
+            return true;
+        })()`);
+    }
+}
+
 async function smokeFinalVoidRiftCrossing(session) {
     const supportIds = [
         'final-rift-step-1',
@@ -1977,6 +2067,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let outOfOrderGuard = null;
     let optionalRouteCompletion = null;
     let guardianRecovery = null;
+    let crystalCoreLift = null;
     let finalRiftCrossing = null;
     let auroraQuietLightClimb = null;
     let forestForwardHandoffs = null;
@@ -2188,6 +2279,10 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             throw new Error(
                 `${sceneName} did not complete its ordered route: ${JSON.stringify(routeCompletion)}`
             );
+        }
+
+        if (route === 'crystalCaves') {
+            crystalCoreLift = await smokeCrystalCoreLift(session);
         }
 
         if (route === 'reef') {
@@ -2987,6 +3082,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         finalRiftCrossing,
         auroraQuietLightClimb,
         forestForwardHandoffs,
+        crystalCoreLift,
         renderStability,
         combatFeedback,
         liveStomp,
@@ -3038,12 +3134,22 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             audit?.flow?.comfortPassed !== true ||
             (audit?.flow?.uncomfortableTargetIds || []).length > 0
         );
+        const crystalCoreFlow = audit?.flow?.targets?.find(
+            target => target.id === 'crystal_core'
+        );
+        const cavesFlowFailed = route === 'crystalCaves' && (
+            audit?.flow?.comfortPassed !== true ||
+            Number(crystalCoreFlow?.jumpCount) > 3 ||
+            crystalCoreFlow?.pathSupportIds?.at?.(-2) !== 'caves-guardian-approach' ||
+            crystalCoreFlow?.pathSupportIds?.at?.(-1) !== 'caves-core-refuge'
+        );
         if (
             !audit?.passed ||
             audit?.flow?.strandingSupportCount !== 0 ||
             finalVoidFlowFailed ||
             auroraFlowFailed ||
             forestFlowFailed ||
+            cavesFlowFailed ||
             exceptions.length
         ) {
             const supportGeometry = await evaluate(session, `(() => {
@@ -3063,6 +3169,7 @@ async function smokeTraversalTopology(session, levels, exceptions) {
                     finalVoidFlowFailed,
                     auroraFlowFailed,
                     forestFlowFailed,
+                    cavesFlowFailed,
                     exceptions,
                     supportGeometry
                 })}`

@@ -7,7 +7,7 @@ function loadTraversalTopology() {
     const source = fs.readFileSync(filePath, 'utf8')
         .replace(
             /export \{[\s\S]*?\};/,
-            'module.exports = { analyzeTraversalTopology, calculateJumpEnvelope, canTraverseSupport };'
+            'module.exports = { analyzeTraversalTopology, calculateBallisticLaunchVelocity, calculateJumpEnvelope, canTraverseSupport };'
         );
     const sandbox = {
         module: { exports: {} },
@@ -45,6 +45,7 @@ function support(id, left, right, top, { enabled = true } = {}) {
 describe('campaign traversal topology', () => {
     const {
         analyzeTraversalTopology,
+        calculateBallisticLaunchVelocity,
         calculateJumpEnvelope,
         canTraverseSupport
     } = loadTraversalTopology();
@@ -60,6 +61,18 @@ describe('campaign traversal topology', () => {
         expect(envelope.maxRise).toBeGreaterThan(190);
         expect(envelope.maxRise).toBeLessThan(195);
         expect(envelope.horizontalEfficiency).toBeLessThan(1);
+    });
+
+    test('derives reusable lift velocity from authored gravity and rise', () => {
+        expect(calculateBallisticLaunchVelocity({
+            gravityY: 500,
+            rise: 500
+        })).toBe(-748);
+        expect(calculateBallisticLaunchVelocity({
+            gravityY: -500,
+            rise: -10,
+            minimumSpeed: 320
+        })).toBe(-320);
     });
 
     test('accepts readable forward steps and rejects impossible rises', () => {

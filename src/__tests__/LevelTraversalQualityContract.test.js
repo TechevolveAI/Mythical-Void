@@ -449,6 +449,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.createCrystalPowerWell(5150');
         expect(source).toContain('this.createCrystalPillar(5325');
         expect(source).toContain('this.createStalactite(5375');
+        expect(source).toContain("platform.traversalId = id;");
+        expect(source).toContain("id: 'caves-core-lift'");
+        expect(source).toContain("destinationId: 'caves-core-refuge'");
     });
 
     test('Stellar Reef spawns above its opening floating platform', () => {
@@ -502,8 +505,8 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('const inLaunchBand = body.bottom >= current.bottom - 90;');
         expect(source).toContain('if (!grounded || !inLaunchBand) return false;');
         expect(source).toContain('if (now - current.lastLiftAt < 650) return false;');
-        expect(source).toContain('const requiredRise = current.bottom - current.top + 80;');
-        expect(source).toContain('Math.sqrt(2 * this.gravityY * requiredRise) + 40');
+        expect(source).toContain('calculateBallisticLaunchVelocity({');
+        expect(source).toContain('rise: current.bottom - current.top + 80');
         expect(source).toContain('this.player.setVelocityY(launchVelocity)');
         expect(source).toContain('platform.traversalId = id;');
     });
@@ -1289,6 +1292,10 @@ describe('campaign traversal quality contracts', () => {
 
         expect(smoke).toContain('audit?.flow?.strandingSupportCount !== 0');
         expect(smoke).toContain('smokeVoidPeaksReturnCurrents(session)');
+        expect(smoke).toContain('smokeCrystalCoreLift(session)');
+        expect(smoke).toContain("target.id === 'crystal_core'");
+        expect(smoke).toContain("'caves-core-refuge'");
+        expect(smoke).toContain('cavesFlowFailed');
         expect(smoke).toContain("id: 'peak-return-lower'");
         expect(smoke).toContain("id: 'peak-return-summit'");
         expect(smoke).toContain('current.lastLiftAt = Number.NEGATIVE_INFINITY;');

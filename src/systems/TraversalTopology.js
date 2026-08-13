@@ -84,6 +84,23 @@ function calculateJumpEnvelope({
     };
 }
 
+function calculateBallisticLaunchVelocity({
+    gravityY,
+    rise,
+    safetyVelocity = 40,
+    minimumSpeed = 300
+} = {}) {
+    const gravity = Math.max(1, Math.abs(finite(gravityY, 500)));
+    const requiredRise = Math.max(0, finite(rise));
+    const safety = Math.max(0, finite(safetyVelocity, 40));
+    const minimum = Math.max(1, Math.abs(finite(minimumSpeed, 300)));
+    const launchSpeed = Math.max(
+        minimum,
+        Math.sqrt(2 * gravity * requiredRise) + safety
+    );
+    return -Math.ceil(launchSpeed);
+}
+
 function calculateHorizontalReach(from, envelope, flightTime, playerHalfWidth) {
     const frameTime = 1 / 60;
     const runway = Math.max(
@@ -640,6 +657,7 @@ function analyzeTraversalTopology({
 
 export {
     analyzeTraversalTopology,
+    calculateBallisticLaunchVelocity,
     calculateJumpEnvelope,
     canTraverseSupport
 };
