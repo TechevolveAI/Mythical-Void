@@ -938,7 +938,10 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     getReefObjectiveText() {
-        const optional = `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optional = this.getOptionalRouteStatusText(
+            'reef_star_trench',
+            `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
+        );
 
         if (this.bossDefeated) {
             return `STELLAR PASSAGE RESTORED\nTHE GUARDIAN IS SAFE\n${optional}`;
@@ -1210,13 +1213,26 @@ class ReefLevel extends PlatformerLevelScene {
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(182);
 
-        const optionalRoute = this.add.text(1580, 930, 'STAR TRENCH ↓ // 2 FRAGMENTS', {
-            fontSize: '12px',
+        const optionalRoute = this.add.text(1580, 930, '', {
+            fontSize: '11px',
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#05030C',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center'
         }).setOrigin(0.5).setDepth(182);
+
+        this.registerOptionalRouteReward({
+            id: 'reef_star_trench',
+            title: 'STAR TRENCH',
+            required: 2,
+            rewardLabel: 'FREE SUPER BLAST',
+            marker: optionalRoute,
+            returnLabel: 'ASCENT CURRENT ↑ // SIGNAL ROUTE →',
+            onComplete: () => {
+                this.freeSpecialAttackCharges += 1;
+            }
+        });
 
         this.tweens.add({
             targets: [mainRoute, optionalRoute],
@@ -1801,13 +1817,14 @@ class ReefLevel extends PlatformerLevelScene {
         const positions = [
             { x: 500, y: this.levelHeight - 450 },
             { x: 1300, y: this.levelHeight - 750 },
-            { x: 1750, y: this.levelHeight - 225 },
-            { x: 2250, y: this.levelHeight - 220 },
+            { x: 1750, y: this.levelHeight - 225, optionalRouteId: 'reef_star_trench' },
+            { x: 2250, y: this.levelHeight - 220, optionalRouteId: 'reef_star_trench' },
             { x: 4100, y: this.levelHeight - 750 },
         ];
 
         positions.forEach((pos, index) => {
             const fragment = this.createStarFragment(pos.x, pos.y, index);
+            fragment.optionalRouteId = pos.optionalRouteId || null;
             this.starFragments.push(fragment);
         });
     }
@@ -1881,6 +1898,13 @@ class ReefLevel extends PlatformerLevelScene {
 
         const collectX = fragment.x;
         const collectY = fragment.y;
+
+        if (fragment.optionalRouteId) {
+            this.recordOptionalRouteProgress(fragment.optionalRouteId, {
+                x: collectX,
+                y: collectY
+            });
+        }
 
         fragment.graphics?.destroy();
         fragment.destroy();

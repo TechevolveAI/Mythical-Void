@@ -199,11 +199,18 @@ describe('campaign traversal quality contracts', () => {
     test('Stellar Reef offers a finite resource detour that rejoins the route', () => {
         const source = read('levels/ReefLevel.js');
 
-        expect(source).toContain('STAR TRENCH ↓ // 2 FRAGMENTS');
+        expect(source).toContain("title: 'STAR TRENCH'");
+        expect(source).toContain("rewardLabel: 'FREE SUPER BLAST'");
+        expect(source).toContain("returnLabel: 'ASCENT CURRENT ↑ // SIGNAL ROUTE →'");
+        expect(source).toContain('this.freeSpecialAttackCharges += 1;');
         expect(source).toContain('createAbyssAscentCurrent()');
         expect(source).toContain('this.player.setVelocityY(Math.min(this.player.body.velocity.y, -185))');
-        expect(source).toContain('{ x: 1750, y: this.levelHeight - 225 }');
-        expect(source).toContain('{ x: 2250, y: this.levelHeight - 220 }');
+        expect(source).toContain(
+            "{ x: 1750, y: this.levelHeight - 225, optionalRouteId: 'reef_star_trench' }"
+        );
+        expect(source).toContain(
+            "{ x: 2250, y: this.levelHeight - 220, optionalRouteId: 'reef_star_trench' }"
+        );
         expect(source).toContain('this.virtualJumpQueued;');
         expect(source).toContain('this.virtualJumpQueued = false;');
     });
@@ -212,9 +219,77 @@ describe('campaign traversal quality contracts', () => {
         const source = read('levels/VoidPeaksLevel.js');
 
         expect(source).toContain('const relicRidge = [');
-        expect(source).toContain('RELIC RIDGE ↑ // 2 FRAGMENTS');
+        expect(source).toContain("title: 'RELIC RIDGE'");
+        expect(source).toContain("rewardLabel: 'RIDGE GUARD // 1 HIT'");
+        expect(source).toContain("returnLabel: 'WARNING LINE →'");
+        expect(source).toContain("this.grantOptionalRouteGuard('RIDGE GUARD', 1);");
         expect(source).toContain('{ x: 620, width: 360 }');
-        expect(source).toContain('[2730, 300], [3000, 235]');
+        expect(source).toContain("[2730, 300, 'peaks_relic_ridge']");
+        expect(source).toContain("[3000, 235, 'peaks_relic_ridge']");
+    });
+
+    test('optional route progress grants its reward exactly once and retires the marker', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'OptionalRouteTest' });
+        const marker = {
+            setText: jest.fn(),
+            setColor: jest.fn(),
+            setAlpha: jest.fn()
+        };
+        const onComplete = jest.fn();
+        scene.showFloatingText = jest.fn();
+        scene.player = { x: 100, y: 200 };
+
+        scene.registerOptionalRouteReward({
+            id: 'test_route',
+            title: 'TEST ROUTE',
+            required: 2,
+            rewardLabel: 'TEST GUARD',
+            marker,
+            returnLabel: 'RETURN RIGHT',
+            onComplete
+        });
+
+        expect(marker.setText).toHaveBeenLastCalledWith(
+            'TEST ROUTE // 0/2\nREWARD: TEST GUARD'
+        );
+        expect(scene.recordOptionalRouteProgress('test_route')).toBe(true);
+        expect(onComplete).not.toHaveBeenCalled();
+        expect(scene.getOptionalRouteStatusText('test_route')).toBe(
+            'TEST ROUTE // 1/2'
+        );
+
+        expect(scene.recordOptionalRouteProgress('test_route')).toBe(true);
+        expect(onComplete).toHaveBeenCalledTimes(1);
+        expect(marker.setText).toHaveBeenLastCalledWith(
+            'TEST ROUTE COMPLETE\nTEST GUARD EARNED\nRETURN RIGHT'
+        );
+        expect(scene.getOptionalRouteStatusText('test_route')).toBe(
+            'TEST GUARD // EARNED'
+        );
+
+        expect(scene.recordOptionalRouteProgress('test_route')).toBe(false);
+        expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    test('an optional route guard absorbs one non-pit hit', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'OptionalGuardTest' });
+        scene.player = { x: 100, y: 200 };
+        scene.health = 4;
+        scene.showFloatingText = jest.fn();
+
+        expect(scene.grantOptionalRouteGuard('RIDGE GUARD', 1)).toBe(1);
+        scene.takeDamage(1);
+
+        expect(scene.health).toBe(4);
+        expect(scene.optionalRouteGuardCharges).toBe(0);
+        expect(scene.showFloatingText).toHaveBeenCalledWith(
+            'RIDGE GUARD · 0 LEFT',
+            100,
+            140,
+            '#F2C94C'
+        );
     });
 
     test('Aurora Depths offers safety for taking the Quiet Light route', () => {

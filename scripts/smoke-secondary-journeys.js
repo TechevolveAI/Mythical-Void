@@ -770,6 +770,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     let routeHandoff = null;
     let routeCompletion = null;
     let outOfOrderGuard = null;
+    let optionalRouteCompletion = null;
     if (['reef', 'voidPeaks', 'auroraDepths', 'finalVoid'].includes(route)) {
         outOfOrderGuard = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -970,6 +971,90 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 `${sceneName} did not complete its ordered route: ${JSON.stringify(routeCompletion)}`
             );
         }
+
+        const optionalRouteId = {
+            reef: 'reef_star_trench',
+            voidPeaks: 'peaks_relic_ridge'
+        }[route];
+        if (optionalRouteId) {
+            for (let optionalIndex = 0; optionalIndex < 2; optionalIndex += 1) {
+                const stagedOptional = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    const collectibles = ${JSON.stringify(route)} === 'reef'
+                        ? scene?.starFragments || []
+                        : scene?.collectibles?.getChildren?.() || [];
+                    const item = collectibles.filter(
+                        entry => entry?.active !== false &&
+                            entry?.optionalRouteId === ${JSON.stringify(optionalRouteId)}
+                    )[0];
+                    if (!scene?.player || !item) return null;
+                    scene.player.setPosition(item.x, item.y);
+                    scene.player.setVelocity?.(0, 0);
+                    return { x: item.x, y: item.y };
+                })()`);
+                if (!stagedOptional) {
+                    throw new Error(
+                        `${sceneName} could not stage optional reward ${optionalIndex + 1}`
+                    );
+                }
+                await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                        const reward = scene?.optionalRouteRewards?.get?.(
+                            ${JSON.stringify(optionalRouteId)}
+                        );
+                        return reward?.progress >= ${optionalIndex + 1};
+                    })()`),
+                    {
+                        timeoutMs: 2500,
+                        message: `${sceneName} optional reward ${optionalIndex + 1}`
+                    }
+                );
+            }
+
+            optionalRouteCompletion = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const reward = scene?.optionalRouteRewards?.get?.(
+                    ${JSON.stringify(optionalRouteId)}
+                );
+                return {
+                    progress: reward?.progress,
+                    required: reward?.required,
+                    completed: reward?.completed === true,
+                    marker: reward?.marker?.text || '',
+                    objective: ${JSON.stringify(route)} === 'reef'
+                        ? scene?.getReefObjectiveText?.() || ''
+                        : scene?.getPeakObjectiveText?.() || '',
+                    freeSpecialAttackCharges: scene?.freeSpecialAttackCharges,
+                    optionalRouteGuardCharges: scene?.optionalRouteGuardCharges,
+                    duplicateAccepted: scene?.recordOptionalRouteProgress?.(
+                        ${JSON.stringify(optionalRouteId)}
+                    )
+                };
+            })()`);
+            const rewardGranted = route === 'reef'
+                ? optionalRouteCompletion.freeSpecialAttackCharges === 1 &&
+                    optionalRouteCompletion.objective.includes(
+                        'FREE SUPER BLAST // EARNED'
+                    )
+                : optionalRouteCompletion.optionalRouteGuardCharges === 1 &&
+                    optionalRouteCompletion.objective.includes(
+                        'RIDGE GUARD // 1 HIT // EARNED'
+                    );
+            if (
+                optionalRouteCompletion.progress !== 2 ||
+                optionalRouteCompletion.required !== 2 ||
+                optionalRouteCompletion.completed !== true ||
+                !optionalRouteCompletion.marker.includes('COMPLETE') ||
+                optionalRouteCompletion.duplicateAccepted !== false ||
+                !rewardGranted
+            ) {
+                throw new Error(
+                    `${sceneName} optional route did not grant its promised reward: ` +
+                    JSON.stringify(optionalRouteCompletion)
+                );
+            }
+        }
     }
     if (exceptions.length) {
         throw new Error(`${sceneName} raised browser exceptions: ${exceptions.join(' | ')}`);
@@ -980,7 +1065,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         joystick: { movedRight, movedLeft },
         outOfOrderGuard,
         routeHandoff,
-        routeCompletion
+        routeCompletion,
+        optionalRouteCompletion
     };
 }
 

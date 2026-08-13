@@ -293,6 +293,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.orderedRouteSignals = null;
         this.orderedRouteSignalIndex = 0;
         this.orderedRouteSignalOptions = null;
+        this.optionalRouteRewards = new Map();
         this.guardianTeamSupport = {
             guardianId: null,
             guardianName: null,
@@ -320,6 +321,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.nextRangedDamageMultiplier = 1;
         this.powerupShieldHits = 0;
         this.freeSpecialAttackCharges = 0;
+        this.optionalRouteGuardCharges = 0;
+        this.optionalRouteGuardLabel = 'ROUTE GUARD';
         this.levelCoinMultiplier = 1;
 
         // Checkpoint system
@@ -638,7 +641,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.nextRangedDamageMultiplier = 1;
         this.powerupShieldHits = this.guardianTeamSupport.shieldHits;
         this.freeSpecialAttackCharges = 0;
+        this.optionalRouteGuardCharges = 0;
+        this.optionalRouteGuardLabel = 'ROUTE GUARD';
         this.levelCoinMultiplier = 1;
+        this.optionalRouteRewards = new Map();
         window.EconomyManager?.clearLevelCoinMultiplier?.();
 
         // Reset flags
@@ -1337,6 +1343,113 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (Math.abs(dx) > 90) directions.push(dx > 0 ? 'RIGHT' : 'LEFT');
         if (Math.abs(dy) > 90) directions.push(dy > 0 ? 'DOWN' : 'UP');
         return `SIGNAL ${directions.join(' + ') || 'CLOSE'} // ${range}m`;
+    }
+
+    registerOptionalRouteReward({
+        id,
+        title,
+        required = 1,
+        rewardLabel,
+        marker = null,
+        returnLabel = 'RETURN TO MAIN ROUTE',
+        onComplete = null
+    } = {}) {
+        if (typeof id !== 'string' || !id.trim()) return null;
+
+        const state = {
+            id,
+            title: String(title || 'OPTIONAL ROUTE'),
+            required: Math.max(1, Math.floor(Number(required) || 1)),
+            rewardLabel: String(rewardLabel || 'ROUTE REWARD'),
+            returnLabel: String(returnLabel || 'RETURN TO MAIN ROUTE'),
+            marker,
+            onComplete: typeof onComplete === 'function' ? onComplete : null,
+            progress: 0,
+            completed: false
+        };
+        this.optionalRouteRewards.set(id, state);
+        this.refreshOptionalRouteReward(state);
+        return state;
+    }
+
+    refreshOptionalRouteReward(routeOrId) {
+        const route = typeof routeOrId === 'string'
+            ? this.optionalRouteRewards.get(routeOrId)
+            : routeOrId;
+        if (!route) return false;
+
+        if (route.completed) {
+            route.marker?.setText?.(
+                `${route.title} COMPLETE\n${route.rewardLabel} EARNED\n` +
+                route.returnLabel
+            );
+            route.marker?.setColor?.('#8FE3CF');
+            route.marker?.setAlpha?.(1);
+            return true;
+        }
+
+        route.marker?.setText?.(
+            `${route.title} // ${route.progress}/${route.required}\n` +
+            `REWARD: ${route.rewardLabel}`
+        );
+        return true;
+    }
+
+    getOptionalRouteStatusText(id, fallback = '') {
+        const route = this.optionalRouteRewards.get(id);
+        if (!route || route.progress <= 0) return fallback;
+        if (route.completed) return `${route.rewardLabel} // EARNED`;
+        return `${route.title} // ${route.progress}/${route.required}`;
+    }
+
+    recordOptionalRouteProgress(id, { x, y } = {}) {
+        const route = this.optionalRouteRewards.get(id);
+        if (!route || route.completed) return false;
+
+        route.progress = Math.min(route.required, route.progress + 1);
+        route.completed = route.progress >= route.required;
+        this.refreshOptionalRouteReward(route);
+
+        const feedbackX = Number.isFinite(Number(x))
+            ? Number(x)
+            : Number(this.player?.x) || 0;
+        const feedbackY = Number.isFinite(Number(y))
+            ? Number(y)
+            : Number(this.player?.y) || 0;
+        if (!route.completed) {
+            this.showFloatingText?.(
+                `${route.title} ${route.progress}/${route.required}`,
+                feedbackX,
+                feedbackY - 65,
+                '#F2C94C'
+            );
+            return true;
+        }
+
+        route.onComplete?.(route);
+        this.refreshOptionalRouteReward(route);
+        this.showFloatingText?.(
+            `${route.rewardLabel} READY`,
+            feedbackX,
+            feedbackY - 75,
+            '#8FE3CF'
+        );
+        window.AudioManager?.playAchievement?.();
+        window.AchievementSystem?.recordEvent?.('optional_route_completed', {
+            levelId: this.levelId || this.scene?.key || null,
+            routeId: route.id,
+            reward: route.rewardLabel
+        });
+        return true;
+    }
+
+    grantOptionalRouteGuard(label = 'ROUTE GUARD', charges = 1) {
+        this.optionalRouteGuardLabel = String(label || 'ROUTE GUARD');
+        this.optionalRouteGuardCharges += Math.max(
+            1,
+            Math.floor(Number(charges) || 1)
+        );
+        return this.optionalRouteGuardCharges;
     }
 
     /**
@@ -4251,6 +4364,23 @@ class PlatformerLevelScene extends Phaser.Scene {
                     duration: 400
                 });
             }
+            return;
+        }
+
+        if (this.optionalRouteGuardCharges > 0 && !bypassInvincibility) {
+            this.optionalRouteGuardCharges -= 1;
+            this.showFloatingText?.(
+                `${this.optionalRouteGuardLabel} · ${this.optionalRouteGuardCharges} LEFT`,
+                this.player.x,
+                this.player.y - 60,
+                '#F2C94C'
+            );
+            window.FXLibrary?.stardustBurst?.(this, this.player.x, this.player.y, {
+                count: 12,
+                color: [0xF2C94C, 0x8FE3CF, 0xFFFFFF],
+                duration: 550
+            });
+            window.AudioManager?.playAchievement?.();
             return;
         }
 

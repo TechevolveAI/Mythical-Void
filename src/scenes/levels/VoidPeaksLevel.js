@@ -494,17 +494,19 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     createStarFragments() {
         const positions = [
             [610, this.levelHeight - 240], [1680, this.levelHeight - 395],
-            [2730, 300], [3000, 235],
+            [2730, 300, 'peaks_relic_ridge'],
+            [3000, 235, 'peaks_relic_ridge'],
             [3660, this.levelHeight - 355]
         ];
 
-        positions.forEach(([x, y], index) => {
+        positions.forEach(([x, y, optionalRouteId], index) => {
             const fragment = this.add.star(x, y, 5, 7, 18, 0xFFD700, 1);
             fragment.setDepth(700);
             this.physics.add.existing(fragment);
             fragment.body.setAllowGravity(false);
             fragment.body.setSize(32, 32);
             fragment.fragmentIndex = index;
+            fragment.optionalRouteId = optionalRouteId || null;
             this.collectibles.add(fragment);
 
             this.tweens.add({
@@ -548,7 +550,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     getPeakObjectiveText() {
-        const optional = `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const optional = this.getOptionalRouteStatusText(
+            'peaks_relic_ridge',
+            `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
+        );
 
         if (this.bossDefeated) {
             return `WARNING NETWORK RESTORED\nTHE TITAN IS SAFE\n${optional}`;
@@ -719,13 +724,26 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(182);
 
-        const relicRoute = this.add.text(2670, 250, 'RELIC RIDGE ↑ // 2 FRAGMENTS', {
-            fontSize: '12px',
+        const relicRoute = this.add.text(2670, 250, '', {
+            fontSize: '11px',
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#09030E',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center'
         }).setOrigin(0.5).setDepth(182);
+
+        this.registerOptionalRouteReward({
+            id: 'peaks_relic_ridge',
+            title: 'RELIC RIDGE',
+            required: 2,
+            rewardLabel: 'RIDGE GUARD // 1 HIT',
+            marker: relicRoute,
+            returnLabel: 'WARNING LINE →',
+            onComplete: () => {
+                this.grantOptionalRouteGuard('RIDGE GUARD', 1);
+            }
+        });
 
         this.tweens.add({
             targets: [spine, relicRoute],
@@ -909,6 +927,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             const collectX = item.x;
             const collectY = item.y;
             this.starFragmentsCollected += 1;
+            if (item.optionalRouteId) {
+                this.recordOptionalRouteProgress(item.optionalRouteId, {
+                    x: collectX,
+                    y: collectY
+                });
+            }
             window.FXLibrary?.stardustBurst?.(this, collectX, collectY, {
                 count: 18,
                 color: [0xFFD700, 0x8FE3CF, 0xFFFFFF],
