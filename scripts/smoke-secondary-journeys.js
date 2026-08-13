@@ -23,6 +23,8 @@ const SMOKE_SKIP_PREVIEW = process.env.SMOKE_SKIP_PREVIEW === '1';
 const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
 const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
 let activeTouchPoint = { x: 0, y: 0 };
+let activeTouchIdentifier = null;
+let nextTouchIdentifier = 1;
 
 function trace(message, details = null) {
     if (!SMOKE_TRACE) return;
@@ -134,12 +136,111 @@ async function evaluate(session, expression) {
     return result.result?.value;
 }
 
-async function dispatchDomTouch(session, type, x, y) {
+async function sampleFramePacing(session, sceneName, {
+    warmupMs = 1200,
+    sampleMs = 1800
+} = {}) {
+    await delay(warmupMs);
+    return evaluate(session, `(() => new Promise(resolve => {
+        const scene = window.mythicalGame?.scene?.getScene?.(
+            ${JSON.stringify(sceneName)}
+        );
+        const intervals = [];
+        const startedAt = performance.now();
+        let previousAt = null;
+
+        const percentile = (sorted, ratio) => {
+            if (!sorted.length) return 0;
+            const index = Math.min(
+                sorted.length - 1,
+                Math.max(0, Math.ceil(sorted.length * ratio) - 1)
+            );
+            return sorted[index];
+        };
+        const finish = () => {
+            const sorted = [...intervals].sort((a, b) => a - b);
+            const totalMs = intervals.reduce((sum, value) => sum + value, 0);
+            const longFrames = intervals.filter(value => value > 33.4).length;
+            const tweenTargets = (scene?.tweens?.getTweens?.() || [])
+                .flatMap(tween => tween?.targets || []);
+            const tweenTargetCounts = tweenTargets.reduce((counts, target) => {
+                const key = target?.texture?.key ||
+                    target?.type ||
+                    target?.constructor?.name ||
+                    'unknown';
+                counts[key] = (counts[key] || 0) + 1;
+                return counts;
+            }, {});
+            const graphicsTweenDepths = tweenTargets
+                .filter(target => target?.type === 'Graphics')
+                .reduce((counts, target) => {
+                    const key = 'depth:' + (Number(target?.depth) || 0) + ':' +
+                        (target?.visible === false ? 'hidden' : 'visible');
+                    counts[key] = (counts[key] || 0) + 1;
+                    return counts;
+                }, {});
+            resolve({
+                sceneActive: Boolean(scene?.scene?.isActive?.()),
+                warmupMs: ${warmupMs},
+                sampleMs: Math.round(performance.now() - startedAt),
+                frameCount: intervals.length,
+                averageFps: totalMs > 0
+                    ? Number((intervals.length * 1000 / totalMs).toFixed(2))
+                    : 0,
+                medianFrameMs: Number(percentile(sorted, 0.5).toFixed(2)),
+                p95FrameMs: Number(percentile(sorted, 0.95).toFixed(2)),
+                p99FrameMs: Number(percentile(sorted, 0.99).toFixed(2)),
+                longFrameCount: longFrames,
+                longFrameRatio: intervals.length
+                    ? Number((longFrames / intervals.length).toFixed(3))
+                    : 1,
+                phaserActualFps: Number(
+                    (window.mythicalGame?.loop?.actualFps || 0).toFixed(2)
+                ),
+                displayCount: scene?.children?.list?.length || 0,
+                activeTweenCount: scene?.tweens?.getTweens?.().length || 0,
+                tweenTargetCounts,
+                graphicsTweenDepths,
+                timerCount: scene?.time?.getAllEvents?.().length || 0,
+                renderer: window.mythicalGame?.renderer?.type,
+                postPipelineCount:
+                    scene?.cameras?.main?.postPipelines?.length || 0,
+                performanceTier: window.ParallaxBiome?.performanceTier || null,
+                parallaxLayers: window.ParallaxBiome?.layers?.reduce?.(
+                    (counts, layer) => {
+                        const key = layer?.type || 'unknown';
+                        counts[key] = (counts[key] || 0) + 1;
+                        return counts;
+                    },
+                    {}
+                ) || {},
+                particleProcessors: Object.entries(
+                    window.ParallaxBiome?.particleEmitters || {}
+                ).reduce((counts, [key, emitter]) => {
+                    if (emitter && emitter.active !== false) counts.push(key);
+                    return counts;
+                }, [])
+            });
+        };
+        const capture = now => {
+            if (previousAt !== null) intervals.push(now - previousAt);
+            previousAt = now;
+            if (now - startedAt >= ${sampleMs}) {
+                finish();
+                return;
+            }
+            requestAnimationFrame(capture);
+        };
+        requestAnimationFrame(capture);
+    }))()`);
+}
+
+async function dispatchDomTouch(session, type, x, y, identifier = 23) {
     return evaluate(session, `(() => {
         const canvas = window.mythicalGame?.canvas || document.querySelector('canvas');
         if (!canvas) throw new Error('Game canvas unavailable for touch event');
         const point = new Touch({
-            identifier: 23,
+            identifier: ${identifier},
             target: canvas,
             clientX: ${Math.round(x)},
             clientY: ${Math.round(y)},
@@ -162,6 +263,88 @@ async function dispatchDomTouch(session, type, x, y) {
         });
         return canvas.dispatchEvent(event);
     })()`);
+}
+
+async function smokeForestBatchedCoinPickup(session) {
+    const staged = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        const pickup = scene.coinSprites?.find(
+            item => item?.batched && !item.collected && item.x > 4000
+        );
+        const zone = pickup?.pickupZone;
+        if (!pickup || !zone?.body || !scene.player?.body) return null;
+
+        scene.isInvincible = true;
+        (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (enemy?.body) enemy.body.enable = false;
+        });
+        const balanceBefore = window.EconomyManager?.getBalance?.() || 0;
+        const activeBefore = scene.coinSprites.filter(
+            item => item?.batched && !item.collected
+        ).length;
+        scene.player.body.reset(zone.x, zone.y);
+        scene.player.setVelocity(0, 0);
+        return {
+            x: pickup.x,
+            y: pickup.y,
+            type: pickup.type,
+            expectedAward: pickup.type === 'bonus' ? 15 : 10,
+            balanceBefore,
+            activeBefore
+        };
+    })()`);
+    if (!staged) {
+        throw new Error('Forest batched coin pickup could not be staged');
+    }
+
+    try {
+        const collected = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                const pickup = scene.coinSprites?.find(
+                    item => item?.batched && item.x === ${staged.x} && item.y === ${staged.y}
+                );
+                if (!pickup?.collected) return null;
+                return {
+                    collected: true,
+                    pickupZoneActive: pickup.pickupZone?.active === true,
+                    balanceAfter: window.EconomyManager?.getBalance?.() || 0,
+                    activeAfter: scene.coinSprites.filter(
+                        item => item?.batched && !item.collected
+                    ).length,
+                    layerCount: scene.children?.list?.filter(
+                        item => item === scene.forestCoinLayer
+                    ).length || 0
+                };
+            })()`),
+            { timeoutMs: 1800, message: 'Forest grouped coin overlap' }
+        );
+        if (
+            collected.pickupZoneActive ||
+            collected.balanceAfter - staged.balanceBefore !== staged.expectedAward ||
+            collected.activeAfter !== staged.activeBefore - 1 ||
+            collected.layerCount !== 1
+        ) {
+            throw new Error(
+                `Forest grouped coin did not resolve exactly once: ${JSON.stringify({
+                    staged,
+                    collected
+                })}`
+            );
+        }
+        return { staged, collected };
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+                if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
+            });
+            scene.isInvincible = false;
+            scene.player?.body?.reset?.(300, scene.levelHeight - 130);
+            scene.player?.setVelocity?.(0, 0);
+            return true;
+        })()`);
+    }
 }
 
 async function navigate(session, url) {
@@ -244,16 +427,23 @@ async function touchSceneText(session, text, {
 }
 
 async function holdTouchDrag(session, start, end, holdMs = 450) {
+    activeTouchIdentifier = nextTouchIdentifier;
+    nextTouchIdentifier += 1;
     const touchPoint = (x, y) => ({
         x,
         y,
         radiusX: 4,
         radiusY: 4,
         force: 1,
-        id: 1
+        id: activeTouchIdentifier
     });
 
-    trace('touchStart', { start, end, protocol: SMOKE_TOUCH_PROTOCOL });
+    trace('touchStart', {
+        start,
+        end,
+        identifier: activeTouchIdentifier,
+        protocol: SMOKE_TOUCH_PROTOCOL
+    });
     activeTouchPoint = { x: Math.round(start.x), y: Math.round(start.y) };
     if (SMOKE_TOUCH_PROTOCOL === 'mouse') {
         await session.call('Input.dispatchMouseEvent', {
@@ -264,7 +454,13 @@ async function holdTouchDrag(session, start, end, holdMs = 450) {
             clickCount: 1
         });
     } else if (SMOKE_TOUCH_PROTOCOL === 'dom-touch') {
-        await dispatchDomTouch(session, 'touchstart', start.x, start.y);
+        await dispatchDomTouch(
+            session,
+            'touchstart',
+            start.x,
+            start.y,
+            activeTouchIdentifier
+        );
     } else if (SMOKE_TOUCH_PROTOCOL === 'mouse-touch') {
         await session.call('Emulation.setEmitTouchEventsForMouse', {
             enabled: true,
@@ -307,7 +503,13 @@ async function holdTouchDrag(session, start, end, holdMs = 450) {
                 button: 'left'
             });
         } else if (SMOKE_TOUCH_PROTOCOL === 'dom-touch') {
-            await dispatchDomTouch(session, 'touchmove', x, y);
+            await dispatchDomTouch(
+                session,
+                'touchmove',
+                x,
+                y,
+                activeTouchIdentifier
+            );
         } else if (SMOKE_TOUCH_PROTOCOL === 'mouse-touch') {
             await session.call('Input.dispatchMouseEvent', {
                 type: 'mouseMoved',
@@ -334,6 +536,7 @@ async function holdTouchDrag(session, start, end, holdMs = 450) {
 }
 
 async function releaseTouch(session) {
+    const releasedTouchIdentifier = activeTouchIdentifier;
     if (SMOKE_TOUCH_PROTOCOL === 'mouse') {
         await session.call('Input.dispatchMouseEvent', {
             type: 'mouseReleased',
@@ -347,7 +550,8 @@ async function releaseTouch(session) {
             session,
             'touchend',
             activeTouchPoint.x,
-            activeTouchPoint.y
+            activeTouchPoint.y,
+            releasedTouchIdentifier
         );
     } else if (SMOKE_TOUCH_PROTOCOL === 'mouse-touch') {
         await session.call('Input.dispatchMouseEvent', {
@@ -375,6 +579,8 @@ async function releaseTouch(session) {
             touchPoints: []
         });
     }
+    trace('touchEnd', { identifier: releasedTouchIdentifier });
+    activeTouchIdentifier = null;
 }
 
 async function pressEnter(session) {
@@ -1478,6 +1684,19 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 ).length,
                 pointCount: Number(scene.forestAmbientPointCount) || 0
             } : null,
+            coinRendering: scene?.coinSprites ? {
+                batchedCount: scene.coinSprites.filter(
+                    coin => coin?.batched && !coin.collected
+                ).length,
+                legacyVisualCount: scene.coinSprites.filter(
+                    coin => coin?.coin?.active
+                ).length,
+                layerCount: scene.children?.list?.filter(
+                    item => item === scene.forestCoinLayer
+                ).length || 0,
+                pickupCount: scene.forestCoinPickupGroup?.getChildren?.()
+                    ?.filter(zone => zone?.active !== false).length || 0
+            } : null,
             routeGuidance: (() => {
                 const nextSignal = scene?.getNextOrderedRouteSignal?.();
                 return {
@@ -1507,9 +1726,13 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     if (
         route === 'mythicalForest' &&
         (
-            state.displayCount > 475 ||
+            state.displayCount > 360 ||
             state.ambientRendering?.layerCount !== 9 ||
-            state.ambientRendering?.pointCount !== 194
+            state.ambientRendering?.pointCount !== 194 ||
+            state.coinRendering?.batchedCount < 40 ||
+            state.coinRendering?.legacyVisualCount !== 0 ||
+            state.coinRendering?.layerCount !== 1 ||
+            state.coinRendering?.pickupCount !== state.coinRendering?.batchedCount
         )
     ) {
         throw new Error(
@@ -1517,7 +1740,26 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         );
     }
     let renderStability = null;
+    let framePacing = null;
     if (route === 'mythicalForest') {
+        framePacing = await sampleFramePacing(session, sceneName);
+        if (!framePacing?.sceneActive || framePacing.frameCount < 12) {
+            throw new Error(
+                `${sceneName} did not produce a sustained frame sample: ` +
+                JSON.stringify(framePacing)
+            );
+        }
+        if (
+            framePacing.displayCount > 360 ||
+            framePacing.activeTweenCount > 110 ||
+            framePacing.postPipelineCount !== 0 ||
+            framePacing.performanceTier !== 'mobile'
+        ) {
+            throw new Error(
+                `${sceneName} exceeded its sustained mobile render budget: ` +
+                JSON.stringify(framePacing)
+            );
+        }
         renderStability = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
             const startCount = scene.children?.list?.length || 0;
@@ -1533,7 +1775,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         })()`);
         if (
             renderStability.endCount > renderStability.startCount + 8 ||
-            renderStability.endCount > 475 ||
+            renderStability.endCount > 360 ||
             renderStability.trailLayerCount !== 1
         ) {
             throw new Error(
@@ -1542,6 +1784,9 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
         }
     }
+    const forestCoinPickup = route === 'mythicalForest'
+        ? await smokeForestBatchedCoinPickup(session)
+        : null;
     if (
         [
             'mythicalForest',
@@ -1720,9 +1965,26 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     }
     const beforeJump = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        const body = scene?.player?.body;
+        const support = (scene?.platforms?.getChildren?.() || []).find(platform =>
+            platform?.body &&
+            body?.center?.x >= platform.body.left &&
+            body?.center?.x <= platform.body.right &&
+            Math.abs(body.bottom - platform.body.top) <= 10
+        );
+        const supportMargin = Math.min(100, Math.max(30, (support?.body?.width || 0) / 4));
+        const steeringX = support?.body
+            ? Math.max(
+                support.body.left + supportMargin,
+                Math.min(support.x, support.body.right - supportMargin)
+            )
+            : scene?.player?.x;
         return {
+            playerX: scene?.player?.x,
             playerY: scene?.player?.y,
-            velocityY: scene?.player?.body?.velocity?.y
+            velocityY: scene?.player?.body?.velocity?.y,
+            steeringX,
+            supportId: support?.traversalId || null
         };
     })()`);
     // A genuine tap can begin and end between two low-FPS Phaser updates.
@@ -1782,6 +2044,30 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         throw new Error(`${sceneName} retained jump input after touch release: ${JSON.stringify(jumpReleased)}`);
     }
 
+    // Steering is a separate contract from jump recovery. Restore the exact
+    // supported pre-jump position so a low-frame-rate run cannot fall below
+    // the level and reset the joystick midway through the opposite direction.
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        scene.releaseAllPlatformerActionButtons?.();
+        scene.resetJoystick?.();
+        scene.player.body.reset(${beforeJump.steeringX}, ${beforeJump.playerY});
+        scene.player.setVelocity?.(0, 0);
+        return true;
+    })()`);
+    if (route !== 'reef') {
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                return Boolean(scene?.isGrounded || scene?.player?.body?.blocked?.down);
+            })()`),
+            { timeoutMs: 2500, message: `${sceneName} grounded before steering` }
+        );
+    } else {
+        await delay(150);
+    }
+    joystick.playerX = beforeJump.steeringX;
+
     const dragDistance = Math.max(28, Math.min(joystick.maxDistance, 48));
     trace('right drag ready', { joystick, dragDistance });
     if (SMOKE_TRACE) {
@@ -1816,33 +2102,6 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             };
         })()`);
         trace('touch listeners', touchListeners);
-        await evaluate(session, `(() => {
-            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-            if (!scene || scene.__smokeMovementWrapped) return false;
-            const original = scene.handleMovement;
-            scene.__smokeMovementWrapped = true;
-            scene.__smokeMovementTrace = { calls: 0, inputCalls: 0, lastBefore: null, lastAfter: null };
-            scene.handleMovement = function (...args) {
-                const traceState = this.__smokeMovementTrace;
-                traceState.calls += 1;
-                traceState.lastBefore = {
-                    inputX: this.virtualJoystickX,
-                    velocityX: this.player?.body?.velocity?.x,
-                    playerX: this.player?.x,
-                    playerSpeed: this.playerSpeed,
-                    acceleration: this.playerAcceleration
-                };
-                if (Math.abs(this.virtualJoystickX || 0) > 0.2) traceState.inputCalls += 1;
-                const result = original.apply(this, args);
-                traceState.lastAfter = {
-                    inputX: this.virtualJoystickX,
-                    velocityX: this.player?.body?.velocity?.x,
-                    playerX: this.player?.x
-                };
-                return result;
-            };
-            return true;
-        })()`);
     }
     if (SMOKE_TOUCH_PROBE === 'outside') {
         trace('outside touch probe');
@@ -1887,7 +2146,6 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             isDucking: scene?.isDucking,
             isPlayerDead: scene?.isPlayerDead,
             levelCompletionActive: scene?.levelCompletionActive
-            ,movementTrace: scene?.__smokeMovementTrace
         };
     })()`);
     await releaseTouch(session);
@@ -2252,6 +2510,19 @@ async function smokeLevel(session, route, sceneName, exceptions) {
             );
             const zone = routeState?.choice?.optionalZone;
             if (!scene?.player || !zone) return false;
+            const choice = routeState.choice;
+            choice.selectedPath = null;
+            choice.mainEntered = false;
+            choice.optionalEntered = false;
+            choice.rejoined = false;
+            choice.sequence = null;
+            scene.routeChoiceSequence = 0;
+            if (${JSON.stringify(route)} === 'mythicalForest') scene.forestRouteChoice = '';
+            if (${JSON.stringify(route)} === 'crystalCaves') scene.crystalChamberRoute = null;
+            if (${JSON.stringify(route)} === 'reef') scene.reefRouteChoice = null;
+            if (${JSON.stringify(route)} === 'voidPeaks') scene.peakRouteChoice = '';
+            if (${JSON.stringify(route)} === 'auroraDepths') scene.auroraRouteChoice = null;
+            if (${JSON.stringify(route)} === 'finalVoid') scene.finalRouteChoice = '';
             if ([
                 'auroraDepths',
                 'voidPeaks',
@@ -3011,6 +3282,15 @@ async function smokeLevel(session, route, sceneName, exceptions) {
                 optionalIndex < optionalRequired;
                 optionalIndex += 1
             ) {
+                const existingProgress = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    return scene?.optionalRouteRewards?.get?.(
+                        ${JSON.stringify(optionalRouteId)}
+                    )?.progress || 0;
+                })()`);
+                if (existingProgress >= optionalIndex + 1) {
+                    continue;
+                }
                 const stagedOptional = await evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                     const collectibles = scene?.optionalRoutePickup?.active !== false &&
@@ -3701,6 +3981,8 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         cavesGroundedObjectives,
         reefWaypointSupports,
         forestAnchorSupports,
+        framePacing,
+        forestCoinPickup,
         renderStability,
         combatFeedback,
         liveStomp,
