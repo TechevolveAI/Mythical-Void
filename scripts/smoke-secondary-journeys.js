@@ -551,7 +551,6 @@ async function smokeLevel(session, route, sceneName, exceptions) {
         },
         { timeoutMs: 1500, message: `${sceneName} short jump tap response` }
     );
-    await releaseTouch(session);
     await delay(120);
     const jumpReleased = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
