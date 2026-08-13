@@ -2118,7 +2118,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     damageBoss(amount = 1) {
-        if (!this.boss?.active || this.bossDefeated) return;
+        if (!this.boss?.active || this.bossDefeated) return false;
 
         const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
         const routeBonus = this.consumeCurrentCharge();
@@ -2166,6 +2166,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         if (window.AudioManager) {
             window.AudioManager.playAttack();
         }
+        return true;
     }
 
     beginPhoenixPhase(nextPhase, {

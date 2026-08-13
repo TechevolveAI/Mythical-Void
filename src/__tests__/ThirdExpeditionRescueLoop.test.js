@@ -53,7 +53,9 @@ describe('third expedition rescue loop', () => {
 
         expect(source).toContain('CURRENT LINK ACTIVE // KATANA STRIKES AMPLIFIED');
         expect(source).toContain('const currentLinkedDamage = meleeDamage + 1');
-        expect(source).toContain('this.damageBoss(currentLinkedDamage)');
+        expect(source).toContain(
+            "this.resolveBossHit(currentLinkedDamage, { source: 'katana_current' })"
+        );
         expect(source).toContain('reefAmplified: true');
     });
 

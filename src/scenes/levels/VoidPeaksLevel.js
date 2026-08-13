@@ -1627,7 +1627,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     damageBoss(amount) {
-        if (!this.boss?.active || this.bossDefeated) return;
+        if (!this.boss?.active || this.bossDefeated) return false;
 
         const recoveryBonus = this.time.now < this.titanRecoveryUntil ? 1 : 0;
         const finalAmount = amount + recoveryBonus;
@@ -1656,6 +1656,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         if (this.bossHealth <= 0) {
             this.defeatBoss();
         }
+        return true;
     }
 
     defeatBoss() {

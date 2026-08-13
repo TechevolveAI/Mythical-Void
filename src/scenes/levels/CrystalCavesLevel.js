@@ -986,7 +986,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.boss && this.boss.active) {
             const bossDist = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, impactX, impactY);
             if (bossDist < 60) {
-                this.damageBoss(1);
+                this.resolveBossHit(1, { source: 'stalactite' });
                 console.log('[CrystalCavesLevel] Boss hit by stalactite!');
             }
         }
@@ -4450,7 +4450,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     onBossCollision(player, boss) {
         // Check if jumping on boss head
         if (player.body.velocity.y > 0 && player.y < boss.y - 30) {
-            this.damageBoss(1);
+            this.resolveBossHit(1, { source: 'stomp' });
             player.setVelocityY(this.jumpVelocity * 0.7);
         } else {
             // Player takes damage
@@ -4462,11 +4462,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Damage the boss
      */
     damageBoss(amount) {
-        if (!this.boss || !this.boss.active) return;
+        if (!this.boss?.active || this.bossDefeated) return false;
 
         const recoveryBonus = this.boss.isRecovering ? 1 : 0;
         const finalAmount = amount + recoveryBonus;
-        this.bossHealth -= finalAmount;
+        this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.updateBossHealthBar();
         this.showFloatingText(
             recoveryBonus
@@ -4515,6 +4515,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         ) {
             this.requestCrystalBossPhase2();
         }
+        return true;
     }
 
     /**
