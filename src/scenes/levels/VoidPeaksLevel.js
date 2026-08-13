@@ -54,6 +54,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossPhase = 1;
         this.bossAttackTimer = null;
         this.peakHazards = [];
+        this.peakReturnCurrents = [];
         this.beaconRelays = [];
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
@@ -90,6 +91,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossPhase = 1;
         this.bossAttackTimer = null;
         this.peakHazards = [];
+        this.peakReturnCurrents = [];
         this.beaconRelays = [];
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
@@ -343,19 +345,27 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         // Floor islands are recovery spaces. Wide geyser breaks keep them from becoming a bypass.
         this.createPlatform(0, groundY, 620, 80, 'solid');
         this.createPlatform(980, groundY, 520, 80, 'solid');
-        this.createPlatform(1880, groundY, 540, 80, 'solid');
-        this.createPlatform(2920, groundY, 460, 80, 'solid');
+        const lowerRecoveryIsland = this.createPlatform(1880, groundY, 540, 80, 'solid');
+        lowerRecoveryIsland.traversalId = 'peak-floor-lower';
+        lowerRecoveryIsland.traversalLinks = ['peak-warning-lower'];
+        const summitRecoveryIsland = this.createPlatform(2920, groundY, 460, 80, 'solid');
+        summitRecoveryIsland.traversalId = 'peak-floor-summit';
+        summitRecoveryIsland.traversalLinks = ['peak-warning-summit'];
         this.createPlatform(3900, groundY, 1300, 80, 'solid');
 
         const ledges = [
             [520, groundY - 145, 210], [820, groundY - 245, 180], [1180, groundY - 180, 260],
-            [1560, groundY - 310, 220], [1980, groundY - 235, 230], [2380, groundY - 365, 220],
-            [2780, groundY - 265, 210], [3180, groundY - 400, 240], [3580, groundY - 270, 220],
+            [1560, groundY - 310, 220], [1980, groundY - 235, 230],
+            [2280, groundY - 365, 320, 'one-way', 'peak-warning-lower'],
+            [2780, groundY - 265, 210],
+            [3180, groundY - 400, 240, 'one-way', 'peak-warning-summit'],
+            [3580, groundY - 270, 220],
             [4020, groundY - 210, 260], [4420, groundY - 320, 240]
         ];
 
-        ledges.forEach(([x, y, width]) => {
-            this.createPlatform(x, y, width, 28, 'solid');
+        ledges.forEach(([x, y, width, type = 'solid', id = null]) => {
+            const platform = this.createPlatform(x, y, width, 28, type);
+            if (id) platform.traversalId = id;
         });
 
         // Optional Relic Ridge: a higher, safer line with two Star Fragments.
@@ -378,6 +388,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.collectibles = this.physics.add.group();
 
         this.createVoidGeysers();
+        this.createPeakReturnCurrents();
         this.createPeakEnemies();
         this.createStarFragments();
         this.createSignalRelays();
@@ -443,6 +454,127 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 }
             });
         });
+    }
+
+    createPeakReturnCurrents() {
+        const currents = [
+            {
+                id: 'peak-return-lower',
+                x: 2350,
+                top: 460,
+                bottom: this.levelHeight - 48,
+                width: 120,
+                destinationId: 'peak-warning-lower'
+            },
+            {
+                id: 'peak-return-summit',
+                x: 3260,
+                top: 425,
+                bottom: this.levelHeight - 48,
+                width: 150,
+                destinationId: 'peak-warning-summit'
+            }
+        ];
+
+        currents.forEach(definition => {
+            const height = definition.bottom - definition.top;
+            const zone = this.add.zone(
+                definition.x,
+                definition.top + height / 2,
+                definition.width,
+                height
+            );
+            this.physics.add.existing(zone, true);
+
+            const visual = this.add.graphics();
+            visual.fillStyle(0x8FE3CF, 0.12);
+            visual.fillRoundedRect(
+                definition.x - definition.width / 2,
+                definition.top,
+                definition.width,
+                height,
+                14
+            );
+            visual.lineStyle(2, 0x8FE3CF, 0.72);
+            visual.lineBetween(
+                definition.x,
+                definition.bottom - 18,
+                definition.x,
+                definition.top + 24
+            );
+            for (let y = definition.bottom - 55; y > definition.top + 35; y -= 58) {
+                visual.strokeTriangle(
+                    definition.x - 14,
+                    y + 10,
+                    definition.x,
+                    y - 8,
+                    definition.x + 14,
+                    y + 10
+                );
+            }
+            visual.setDepth(130);
+
+            const label = this.add.text(
+                definition.x,
+                definition.bottom - 68,
+                'RETURN CURRENT\nTO WARNING LINE ↑',
+                {
+                    fontSize: '11px',
+                    color: '#8FE3CF',
+                    fontStyle: 'bold',
+                    stroke: '#09030E',
+                    strokeThickness: 4,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(185);
+
+            const current = {
+                ...definition,
+                zone,
+                visual,
+                label,
+                activations: 0,
+                lastLiftAt: Number.NEGATIVE_INFINITY
+            };
+            this.physics.add.overlap(this.player, zone, () => {
+                this.activatePeakReturnCurrent(current);
+            });
+            this.tweens.add({
+                targets: visual,
+                alpha: { from: 0.55, to: 1 },
+                duration: 720,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            this.peakReturnCurrents.push(current);
+        });
+    }
+
+    activatePeakReturnCurrent(current) {
+        if (!current || !this.player?.body || this.isPlayerDead) return false;
+
+        const now = Number(this.time?.now) || 0;
+        const enteredCurrent = now - current.lastLiftAt > 180;
+        if (enteredCurrent) {
+            current.activations += 1;
+            this.showFloatingText(
+                'RETURN CURRENT // WARNING LINE',
+                current.x,
+                this.player.y - 55,
+                '#8FE3CF'
+            );
+        }
+        current.lastLiftAt = now;
+
+        const horizontalCorrection = Phaser.Math.Clamp(
+            (current.x - this.player.x) * 2.4,
+            -85,
+            85
+        );
+        this.player.setVelocityX(horizontalCorrection);
+        this.player.setVelocityY(Math.min(this.player.body.velocity.y, -300));
+        return true;
     }
 
     createPeakEnemies() {
@@ -1838,6 +1970,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.titanAttackLocked = false;
         this.titanRecoveryUntil = 0;
         this.peakHazards = [];
+        this.peakReturnCurrents = [];
         this.boss?.destroy?.();
         this.boss = null;
         this.bossHealthBar?.destroy?.();

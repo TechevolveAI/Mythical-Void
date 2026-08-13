@@ -157,6 +157,54 @@ describe('campaign traversal topology', () => {
         expect(result.coverage).toBe(1);
         expect(result.unreachableTargets).toEqual([]);
         expect(result.targets[0].label).toBe('FIRST SIGNAL');
+        expect(result.flow.strandingSupportCount).toBe(0);
+    });
+
+    test('rejects a reachable platform that cannot recover to the final objective', () => {
+        const result = analyzeTraversalTopology({
+            movement,
+            spawn: { x: 80, y: 650 },
+            supports: [
+                support('start', 0, 320, 700),
+                support('finish', 390, 760, 700),
+                support('deep-side-route', 800, 1040, 1000)
+            ],
+            targets: [
+                { id: 'guardian-gate', x: 620, y: 610, width: 140, height: 190 }
+            ]
+        });
+
+        expect(result.unreachableTargets).toEqual([]);
+        expect(result.flow.strandingSupportIds).toEqual(['deep-side-route']);
+        expect(result.flow.strandingSupportCount).toBe(1);
+        expect(result.passed).toBe(false);
+        expect(result.reason).toBe('stranded-supports');
+    });
+
+    test('models an authored recovery mechanic as a named traversal link', () => {
+        const recoveryFloor = support('recovery-floor', 0, 340, 900);
+        recoveryFloor.traversalLinks = ['warning-line'];
+        const result = analyzeTraversalTopology({
+            movement,
+            spawn: { x: 80, y: 850 },
+            supports: [
+                recoveryFloor,
+                support('warning-line', 0, 340, 500),
+                support('guardian-floor', 410, 820, 700)
+            ],
+            targets: [
+                { id: 'guardian-gate', x: 680, y: 610, width: 140, height: 190 }
+            ]
+        });
+
+        expect(result.passed).toBe(true);
+        expect(result.unreachableTargets).toEqual([]);
+        expect(result.flow.strandingSupportCount).toBe(0);
+        expect(result.targets[0].pathSupportIds).toEqual([
+            'recovery-floor',
+            'warning-line',
+            'guardian-floor'
+        ]);
     });
 
     test('reports an isolated required objective even when most ground is usable', () => {
