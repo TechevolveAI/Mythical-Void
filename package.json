@@ -17,6 +17,8 @@
     "smoke:companion-video": "node scripts/smoke-companion-video-production.js",
     "generate:cinematic": "node scripts/generate-cinematic-assets.mjs",
     "smoke:interaction": "SMOKE_MODE=interaction node scripts/smoke-secondary-journeys.js",
+    "smoke:topology": "SMOKE_MODE=traversal-topology node scripts/smoke-secondary-journeys.js",
+    "smoke:aurora-route": "SMOKE_MODE=aurora-route-journey node scripts/smoke-secondary-journeys.js",
     "smoke:state-contract": "SMOKE_MODE=state-contract node scripts/smoke-secondary-journeys.js",
     "smoke:village-ui": "SMOKE_MODE=village-ui node scripts/smoke-secondary-journeys.js",
     "smoke:journeys": "npm run smoke:interaction",

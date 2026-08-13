@@ -1845,6 +1845,373 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     };
 }
 
+async function smokeTraversalTopology(session, levels, exceptions) {
+    const results = {};
+
+    for (const [route, sceneName] of levels.filter(
+        ([candidate]) => SMOKE_CASE === 'all' || SMOKE_CASE === candidate
+    )) {
+        exceptions.length = 0;
+        await navigate(session, `${BASE_URL}/play/?reset=true`);
+        await waitForScene(session, 'HatchingScene');
+        await startCampaignScene(session, { route, sceneName });
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                return Boolean(
+                    scene?.player?.active &&
+                    scene?._levelContentCreated &&
+                    scene?.platforms?.getChildren?.().length
+                );
+            })()`),
+            { timeoutMs: 15000, message: `${sceneName} traversal geometry` }
+        );
+
+        const audit = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            return scene.auditTraversalTopology();
+        })()`);
+        if (!audit?.passed || exceptions.length) {
+            const supportGeometry = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                return (scene.platforms?.getChildren?.() || []).map((support, index) => ({
+                    id: support.traversalId || ('support-' + index),
+                    type: support.platformType || 'solid',
+                    left: Math.round(support.body?.left || 0),
+                    right: Math.round(support.body?.right || 0),
+                    top: Math.round(support.body?.top || 0),
+                    bottom: Math.round(support.body?.bottom || 0)
+                }));
+            })()`);
+            throw new Error(
+                `${sceneName} failed conservative topology audit: ${JSON.stringify({
+                    audit,
+                    exceptions,
+                    supportGeometry
+                })}`
+            );
+        }
+
+        results[route] = audit;
+        process.stdout.write(
+            `PASS ${sceneName}Topology ` +
+            `${audit.reachableSupportCount}/${audit.supportCount}\n`
+        );
+    }
+
+    return results;
+}
+
+async function startAuroraRouteJourney(session) {
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    await startCampaignScene(session, {
+        route: 'auroraDepths',
+        sceneName: 'AuroraDepthsLevel'
+    });
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+            return Boolean(
+                scene?.player?.active &&
+                scene?._levelContentCreated &&
+                scene?.signalPrisms?.length === 3 &&
+                scene?.optionalRouteRewards?.get?.('aurora_quiet_light')
+            );
+        })()`),
+        { timeoutMs: 15000, message: 'Aurora route journey gameplay' }
+    );
+}
+
+async function stageAuroraPrism(session, index) {
+    const staged = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        const prism = scene?.signalPrisms?.[${index}];
+        if (!scene?.player || !prism?.zone?.active) return null;
+        scene.player.setPosition(prism.x, prism.y - 35);
+        scene.player.setVelocity?.(0, 0);
+        return { id: prism.id, index: prism.index };
+    })()`);
+    if (!staged) throw new Error(`Aurora prism ${index + 1} could not be staged`);
+    return waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+            const prism = scene?.signalPrisms?.[${index}];
+            return prism?.aligned === true &&
+                scene?.checkpointPosition?.index === ${index};
+        })()`),
+        { timeoutMs: 2500, message: `Aurora prism ${index + 1} collision` }
+    );
+}
+
+async function restartAuroraFromCheckpoint(session) {
+    await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        game.scene.stop('AuroraDepthsLevel');
+        game.scene.start('AuroraDepthsLevel', {
+            forceMobileControls: true,
+            platformerPreviewSize: 'mobile'
+        });
+        return true;
+    })()`);
+    await waitForScene(session, 'AuroraDepthsLevel');
+    return waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+            return scene?.checkpointResumeApplied === true;
+        })()`),
+        { timeoutMs: 15000, message: 'Aurora checkpoint restart' }
+    );
+}
+
+async function smokeAuroraRouteJourney(session, exceptions) {
+    exceptions.length = 0;
+    await startAuroraRouteJourney(session);
+    await stageAuroraPrism(session, 0);
+    await stageAuroraPrism(session, 1);
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        const choice = scene.optionalRouteRewards.get('aurora_quiet_light').choice;
+        scene.player.setPosition(
+            (choice.mainZone.left + choice.mainZone.right) / 2,
+            (choice.mainZone.top + choice.mainZone.bottom) / 2
+        );
+        scene.player.setVelocity?.(0, 0);
+        return true;
+    })()`);
+    const directChoice = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+            const route = scene?.optionalRouteRewards?.get?.('aurora_quiet_light');
+            const checkpoint = window.GameState.get(
+                'story.projectBeacon.expeditionCheckpoint'
+            );
+            if (route?.choice?.selectedPath !== 'main') return null;
+            return {
+                selectedPath: route.choice.selectedPath,
+                choice: scene.auroraRouteChoice,
+                charge: scene.currentChargeReady,
+                auraActive: Boolean(scene.currentChargeAura?.active),
+                shelterActive: Boolean(scene.optionalRoutePickup?.active),
+                checkpoint
+            };
+        })()`),
+        { timeoutMs: 2500, message: 'Aurora direct route zone selection' }
+    );
+    if (
+        directChoice.choice !== 'shadow_current' ||
+        directChoice.charge !== true ||
+        directChoice.auraActive !== true ||
+        directChoice.shelterActive !== false ||
+        directChoice.checkpoint?.routeState?.auroraRouteChoice !== 'shadow_current' ||
+        directChoice.checkpoint?.routeState?.currentChargeReady !== true
+    ) {
+        throw new Error(`Aurora direct route was not persisted: ${JSON.stringify(directChoice)}`);
+    }
+
+    await restartAuroraFromCheckpoint(session);
+    const directRestore = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        scene.bossDefeated = false;
+        scene.bossFightActive = true;
+        scene.boss = {
+            active: true,
+            x: scene.player.x + 60,
+            y: scene.player.y,
+            setTint: () => {},
+            clearTint: () => {}
+        };
+        scene.bossHealth = 12;
+        scene.bossMaxHealth = 12;
+        scene.bossRecoveryUntil = 0;
+        scene.updateBossHealthBar = () => {};
+        const auraActiveBefore = Boolean(scene.currentChargeAura?.active);
+        scene.damageBoss(1);
+        const first = {
+            health: scene.bossHealth,
+            charge: scene.currentChargeReady,
+            checkpointCharge: window.GameState.get(
+                'story.projectBeacon.expeditionCheckpoint'
+            )?.routeState?.currentChargeReady
+        };
+        scene.damageBoss(1);
+        return {
+            choice: scene.auroraRouteChoice,
+            auraActiveBefore,
+            auraAfter: Boolean(scene.currentChargeAura?.active),
+            tweenAfter: Boolean(scene.currentChargeAuraTween),
+            first,
+            secondHealth: scene.bossHealth
+        };
+    })()`);
+    if (
+        directRestore.choice !== 'shadow_current' ||
+        directRestore.auraActiveBefore !== true ||
+        directRestore.auraAfter !== false ||
+        directRestore.tweenAfter !== false ||
+        directRestore.first.health !== 9 ||
+        directRestore.first.charge !== false ||
+        directRestore.first.checkpointCharge !== false ||
+        directRestore.secondHealth !== 8
+    ) {
+        throw new Error(`Aurora Current Charge did not consume once: ${JSON.stringify(directRestore)}`);
+    }
+
+    await restartAuroraFromCheckpoint(session);
+    const directSpentReload = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        return {
+            choice: scene.auroraRouteChoice,
+            charge: scene.currentChargeReady,
+            aura: Boolean(scene.currentChargeAura?.active)
+        };
+    })()`);
+    if (
+        directSpentReload.choice !== 'shadow_current' ||
+        directSpentReload.charge ||
+        directSpentReload.aura
+    ) {
+        throw new Error(`Aurora charge returned after reload: ${JSON.stringify(directSpentReload)}`);
+    }
+
+    await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        window.GameState.set('story.projectBeacon.expeditionCheckpoint', null);
+        game.scene.stop('AuroraDepthsLevel');
+        game.scene.start('AuroraDepthsLevel', {
+            entryPreview: true,
+            forceMobileControls: true,
+            platformerPreviewSize: 'mobile'
+        });
+        return true;
+    })()`);
+    await waitForScene(session, 'AuroraDepthsLevel');
+    await delay(500);
+    await tap(session, 195, 140);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+            return scene?._levelContentCreated === true;
+        })()`),
+        { timeoutMs: 8000, message: 'Aurora quiet route restart' }
+    );
+    await stageAuroraPrism(session, 0);
+    await stageAuroraPrism(session, 1);
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        const choice = scene.optionalRouteRewards.get('aurora_quiet_light').choice;
+        scene.player.setPosition(
+            (choice.optionalZone.left + choice.optionalZone.right) / 2,
+            (choice.optionalZone.top + choice.optionalZone.bottom) / 2
+        );
+        scene.player.setVelocity?.(0, 0);
+        return true;
+    })()`);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+            return scene?.auroraRouteChoice === 'quiet_light';
+        })()`),
+        { timeoutMs: 2500, message: 'Aurora quiet route zone selection' }
+    );
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        const pickup = scene.optionalRoutePickup;
+        scene.player.setPosition(pickup.x, pickup.y);
+        scene.player.setVelocity?.(0, 0);
+        return true;
+    })()`);
+    const quietChoice = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+            const route = scene?.optionalRouteRewards?.get?.('aurora_quiet_light');
+            const checkpoint = window.GameState.get(
+                'story.projectBeacon.expeditionCheckpoint'
+            );
+            if (!route?.completed) return null;
+            return {
+                choice: scene.auroraRouteChoice,
+                selectedPath: route.choice.selectedPath,
+                guardCharges: scene.optionalRouteGuardCharges,
+                charge: scene.currentChargeReady,
+                checkpoint
+            };
+        })()`),
+        { timeoutMs: 2500, message: 'Aurora Quiet Light pickup collision' }
+    );
+    if (
+        quietChoice.choice !== 'quiet_light' ||
+        quietChoice.selectedPath !== 'optional' ||
+        quietChoice.guardCharges !== 1 ||
+        quietChoice.charge ||
+        quietChoice.checkpoint?.routeState?.quietLightGuardCharges !== 1 ||
+        quietChoice.checkpoint?.routeState?.quietLightRewardClaimed !== true
+    ) {
+        throw new Error(`Aurora Quiet Light was not persisted: ${JSON.stringify(quietChoice)}`);
+    }
+
+    await restartAuroraFromCheckpoint(session);
+    const quietRestore = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        const healthBefore = scene.health;
+        scene.isInvincible = false;
+        scene.takeDamage(1);
+        return {
+            choice: scene.auroraRouteChoice,
+            rewardComplete: scene.optionalRouteRewards.get('aurora_quiet_light').completed,
+            pickupActive: Boolean(scene.optionalRoutePickup?.active),
+            healthBefore,
+            healthAfter: scene.health,
+            guardCharges: scene.optionalRouteGuardCharges,
+            persistedCharges: window.GameState.get(
+                'story.projectBeacon.expeditionCheckpoint'
+            )?.routeState?.quietLightGuardCharges
+        };
+    })()`);
+    if (
+        quietRestore.choice !== 'quiet_light' ||
+        quietRestore.rewardComplete !== true ||
+        quietRestore.pickupActive ||
+        quietRestore.healthAfter !== quietRestore.healthBefore ||
+        quietRestore.guardCharges !== 0 ||
+        quietRestore.persistedCharges !== 0
+    ) {
+        throw new Error(`Aurora Quiet Light did not restore once: ${JSON.stringify(quietRestore)}`);
+    }
+
+    await restartAuroraFromCheckpoint(session);
+    const quietSpentReload = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        return {
+            choice: scene.auroraRouteChoice,
+            rewardComplete: scene.optionalRouteRewards.get('aurora_quiet_light').completed,
+            guardCharges: scene.optionalRouteGuardCharges,
+            pickupActive: Boolean(scene.optionalRoutePickup?.active)
+        };
+    })()`);
+    if (
+        quietSpentReload.choice !== 'quiet_light' ||
+        !quietSpentReload.rewardComplete ||
+        quietSpentReload.guardCharges !== 0 ||
+        quietSpentReload.pickupActive
+    ) {
+        throw new Error(`Aurora Quiet Light returned after reload: ${JSON.stringify(quietSpentReload)}`);
+    }
+    if (exceptions.length) {
+        throw new Error(`Aurora route journey raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+
+    return {
+        directChoice,
+        directRestore,
+        directSpentReload,
+        quietChoice,
+        quietRestore,
+        quietSpentReload
+    };
+}
+
 async function smokePurchasedEgg(session, exceptions) {
     exceptions.length = 0;
     process.stdout.write('EGG boot\n');
@@ -3504,6 +3871,18 @@ async function main() {
                 );
                 process.stdout.write(`PASS ${sceneName}\n`);
             }
+        } else if (SMOKE_MODE === 'traversal-topology') {
+            results.traversalTopology = await smokeTraversalTopology(
+                session,
+                levels,
+                exceptions
+            );
+        } else if (SMOKE_MODE === 'aurora-route-journey') {
+            results.auroraRouteJourney = await smokeAuroraRouteJourney(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS AuroraRouteJourney\n');
         } else if (SMOKE_MODE === 'state-contract') {
             results.campaignStateContract = await smokeCampaignStateContract(
                 session,
@@ -3548,7 +3927,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, interaction, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
+                'Use home-entry, interaction, traversal-topology, aurora-route-journey, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
             );
         }
         console.log(JSON.stringify({

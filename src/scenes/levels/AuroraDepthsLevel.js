@@ -92,11 +92,20 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.uplinkRiskUnderstood = false;
         this.routeHintUntil = 0;
         this.reactorGateHintUntil = 0;
+        this.reactorTriggerZone = null;
         this.auroraFragments = null;
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
         this.quietLightClaimed = false;
         this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickupOverlap = null;
+        this.auroraRouteChoice = null;
+        this.currentChargeReady = false;
+        this.currentChargeDamage = 2;
+        this.currentChargeAura = null;
+        this.currentChargeAuraTween = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -147,11 +156,20 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.uplinkRiskUnderstood = false;
         this.routeHintUntil = 0;
         this.reactorGateHintUntil = 0;
+        this.reactorTriggerZone = null;
         this.auroraFragments = null;
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
         this.quietLightClaimed = false;
         this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickupOverlap = null;
+        this.auroraRouteChoice = null;
+        this.currentChargeReady = false;
+        this.currentChargeDamage = 2;
+        this.currentChargeAura = null;
+        this.currentChargeAuraTween = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
@@ -487,6 +505,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 !(this.isCompactObjectiveHUD && this.bossFightActive)
             );
         }
+        if (this.currentChargeAura?.active && this.player?.active) {
+            this.currentChargeAura.setPosition(this.player.x, this.player.y);
+        }
         this.updateBossIndicator();
     }
 
@@ -569,7 +590,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             returnLabel: 'DESCEND TO SKY PRISM →',
             choice: {
                 mainLabel: 'SHADOW CURRENT →',
-                mainTradeoff: 'DIRECT // DAMAGE ZONE',
+                mainTradeoff: 'DIRECT // NEXT PHOENIX HIT +2',
                 challengeLabel: 'HIGH JUMPS + CURRENT SHELTER',
                 mainMarker: directRouteMarker,
                 mainZone: {
@@ -585,8 +606,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                     top: 300, bottom: this.levelHeight
                 }
             },
+            onMainSelected: () => {
+                this.selectAuroraRoute('shadow_current');
+            },
+            onOptionalSelected: () => {
+                this.selectAuroraRoute('quiet_light');
+            },
             onComplete: () => {
                 this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1);
+                this.refreshPersistedExpeditionRouteState();
             }
         });
 
@@ -616,8 +644,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 strokeThickness: 4
             }
         ).setOrigin(0.5).setDepth(721);
+        this.optionalRoutePickupLabel = shelterLabel;
 
-        this.tweens.add({
+        this.optionalRoutePickupTween = this.tweens.add({
             targets: [shelter, shelterLabel],
             y: '-=10',
             duration: 900,
@@ -626,27 +655,181 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             ease: 'Sine.easeInOut'
         });
 
-        this.physics.add.overlap(this.player, shelter, () => {
-            if (this.quietLightClaimed || !shelter.active) return;
+        this.optionalRoutePickupOverlap = this.physics.add.overlap(
+            this.player,
+            shelter,
+            () => {
+                if (
+                    this.quietLightClaimed ||
+                    this.auroraRouteChoice === 'shadow_current' ||
+                    !shelter.active
+                ) return;
 
-            this.quietLightClaimed = true;
-            const rewardX = shelter.x;
-            const rewardY = shelter.y;
-            shelter.destroy();
-            shelterLabel.destroy();
-            this.recordOptionalRouteProgress('aurora_quiet_light', {
-                x: rewardX,
-                y: rewardY
+                this.quietLightClaimed = true;
+                this.selectAuroraRoute('quiet_light');
+                const rewardX = shelter.x;
+                const rewardY = shelter.y;
+                this.clearQuietLightPickup();
+                this.recordOptionalRouteProgress('aurora_quiet_light', {
+                    x: rewardX,
+                    y: rewardY
+                });
+                window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
+                    count: 22,
+                    color: [0xF2C94C, 0x7FFFD4, 0xFFFFFF],
+                    duration: 1000
+                });
+                window.AchievementSystem?.recordEvent?.('story_interaction', {
+                    event: 'aurora_quiet_light_route'
+                });
+            }
+        );
+    }
+
+    clearQuietLightPickup() {
+        this.optionalRoutePickupOverlap?.destroy?.();
+        this.optionalRoutePickupOverlap = null;
+        this.optionalRoutePickupTween?.remove?.();
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickup?.destroy?.();
+        this.optionalRoutePickupLabel?.destroy?.();
+        this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+    }
+
+    selectAuroraRoute(choice) {
+        if (!['quiet_light', 'shadow_current'].includes(choice)) return false;
+        if (this.auroraRouteChoice) return this.auroraRouteChoice === choice;
+
+        this.auroraRouteChoice = choice;
+        if (choice === 'shadow_current') {
+            this.currentChargeReady = true;
+            this.createCurrentChargeAura();
+            this.clearQuietLightPickup();
+            this.showFloatingText(
+                'CURRENT CHARGE // NEXT PHOENIX HIT +2',
+                this.player.x,
+                this.player.y - 68,
+                '#D7A8FF'
+            );
+            window.FXLibrary?.stardustBurst?.(this, this.player.x, this.player.y, {
+                count: 20,
+                color: [0xC9A7E8, 0x7FFFD4, 0xFFFFFF],
+                duration: 850
             });
-            window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
-                count: 22,
-                color: [0xF2C94C, 0x7FFFD4, 0xFFFFFF],
-                duration: 1000
-            });
-            window.AchievementSystem?.recordEvent?.('story_interaction', {
-                event: 'aurora_quiet_light_route'
-            });
+        }
+        this.refreshPersistedExpeditionRouteState();
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: choice === 'quiet_light'
+                ? 'aurora_quiet_light_route_selected'
+                : 'aurora_shadow_current_route'
         });
+        return true;
+    }
+
+    clearCurrentChargeAura() {
+        this.currentChargeAuraTween?.remove?.();
+        this.currentChargeAuraTween = null;
+        this.currentChargeAura?.destroy?.();
+        this.currentChargeAura = null;
+    }
+
+    createCurrentChargeAura() {
+        this.clearCurrentChargeAura();
+        if (!this.player?.active) return null;
+
+        const aura = this.add.graphics()
+            .setPosition(this.player.x, this.player.y)
+            .setDepth(755);
+        aura.lineStyle(4, 0xC9A7E8, 0.92);
+        aura.strokeCircle(0, 0, 34);
+        aura.lineStyle(2, 0x7FFFD4, 0.8);
+        aura.strokeCircle(0, 0, 43);
+        aura.lineBetween(-30, 18, -43, 28);
+        aura.lineBetween(30, -18, 43, -28);
+        this.currentChargeAuraTween = this.tweens.add({
+            targets: aura,
+            scale: { from: 0.88, to: 1.12 },
+            alpha: { from: 0.55, to: 1 },
+            duration: 620,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        this.currentChargeAura = aura;
+        return aura;
+    }
+
+    consumeCurrentCharge() {
+        if (!this.currentChargeReady) return 0;
+
+        this.currentChargeReady = false;
+        this.clearCurrentChargeAura();
+        this.refreshPersistedExpeditionRouteState();
+        window.FXLibrary?.stardustBurst?.(this, this.boss.x, this.boss.y, {
+            count: 26,
+            color: [0xC9A7E8, 0x7FFFD4, 0xFFFFFF],
+            duration: 900
+        });
+        return this.currentChargeDamage;
+    }
+
+    getExpeditionRouteState() {
+        if (!this.auroraRouteChoice) return null;
+        const quietRoute = this.optionalRouteRewards?.get?.(
+            'aurora_quiet_light'
+        );
+        return {
+            auroraRouteChoice: this.auroraRouteChoice,
+            currentChargeReady: this.currentChargeReady === true,
+            quietLightRewardClaimed: quietRoute?.completed === true,
+            quietLightGuardCharges: this.auroraRouteChoice === 'quiet_light'
+                ? this.optionalRouteGuardCharges
+                : 0
+        };
+    }
+
+    onOptionalRouteGuardConsumed() {
+        if (this.auroraRouteChoice === 'quiet_light') {
+            this.refreshPersistedExpeditionRouteState();
+        }
+    }
+
+    restoreAuroraRouteChoice(routeState) {
+        const choice = routeState?.auroraRouteChoice;
+        if (!['quiet_light', 'shadow_current'].includes(choice)) return false;
+
+        this.auroraRouteChoice = choice;
+        const route = this.optionalRouteRewards?.get?.('aurora_quiet_light');
+        const routeChoice = route?.choice;
+        if (routeChoice) {
+            routeChoice.selectedPath = choice === 'quiet_light'
+                ? 'optional'
+                : 'main';
+            routeChoice.optionalEntered = choice === 'quiet_light';
+            routeChoice.mainEntered = choice === 'shadow_current';
+            routeChoice.sequence = 1;
+        }
+
+        if (choice === 'shadow_current') {
+            this.currentChargeReady = routeState?.currentChargeReady === true;
+            this.clearQuietLightPickup();
+            if (this.currentChargeReady) this.createCurrentChargeAura();
+        } else if (routeState?.quietLightRewardClaimed === true) {
+            this.quietLightClaimed = true;
+            this.optionalRouteGuardCharges = Phaser.Math.Clamp(
+                Number(routeState?.quietLightGuardCharges) || 0,
+                0,
+                1
+            );
+            if (route) {
+                route.progress = route.required;
+                route.completed = true;
+                this.refreshOptionalRouteReward(route);
+            }
+            this.clearQuietLightPickup();
+        }
+        return true;
     }
 
     createHUD() {
@@ -683,7 +866,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             'aurora_quiet_light',
             'OPTIONAL // QUIET LIGHT WARD'
         );
-        const optional = `${routeReward}\nOPTIONAL // AURORA FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const routeStatus = this.auroraRouteChoice === 'shadow_current'
+            ? (this.currentChargeReady
+                ? 'DIRECT ROUTE // CURRENT CHARGE +2'
+                : 'DIRECT ROUTE // CHARGE RELEASED')
+            : routeReward;
+        const optional = `${routeStatus}\nOPTIONAL // AURORA FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
 
         if (this.bossDefeated) {
             return `QUIET UPLINK READY\nEARTH CONTACT NOT TRANSMITTED\n${optional}`;
@@ -1010,8 +1198,29 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         );
     }
 
+    getTraversalAuditTargets() {
+        const shelter = {
+            id: 'aurora_quiet_light_shelter',
+            label: 'QUIET LIGHT SHELTER',
+            x: this.optionalRoutePickup?.x || 3415,
+            y: this.optionalRoutePickup?.y || this.levelHeight - 415,
+            body: this.optionalRoutePickup?.body
+        };
+        return [
+            ...this.signalPrisms,
+            shelter,
+            {
+                id: 'aurora_reactor_gate',
+                label: 'PHOENIX REACTOR',
+                x: this.reactorTriggerZone?.x || 4320,
+                y: this.reactorTriggerZone?.y || this.levelHeight / 2,
+                zone: this.reactorTriggerZone
+            }
+        ].sort((left, right) => Number(left.x) - Number(right.x));
+    }
+
     restoreExpeditionRouteState(resume) {
-        return this.restoreExpeditionRouteSignals(resume, {
+        const restored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.signalPrisms,
             activeProperty: 'aligned',
             countProperty: 'prismsAligned',
@@ -1024,10 +1233,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 true
             ),
             onRestored: () => {
+                this.restoreAuroraRouteChoice(resume?.routeState);
                 this.refreshPrismRouteReadability();
                 this.objectiveDisplay?.setText?.(this.getAuroraObjectiveText());
             }
         });
+        return restored;
     }
 
     createBossArena() {
@@ -1053,6 +1264,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             this.levelHeight
         );
         this.physics.add.existing(triggerZone, true);
+        this.reactorTriggerZone = triggerZone;
         this.createGuardianGateState({
             x: arenaX + 320,
             y: groundY - 70,
@@ -1088,7 +1300,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                         },
                         start: () => this.startBossFight()
                     });
-                    if (guardianEntered) triggerZone.destroy();
+                    if (guardianEntered) {
+                        triggerZone.destroy();
+                        this.reactorTriggerZone = null;
+                    }
                 }
             });
         }
@@ -1906,14 +2121,17 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         if (!this.boss?.active || this.bossDefeated) return;
 
         const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
-        const finalAmount = amount + recoveryBonus;
+        const routeBonus = this.consumeCurrentCharge();
+        const finalAmount = amount + recoveryBonus + routeBonus;
         this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.updateBossHealthBar();
 
         this.showFloatingText(
-            recoveryBonus
-                ? `OPEN EXPOSURE -${finalAmount}`
-                : `EXPOSURE -${finalAmount}`,
+            routeBonus
+                ? `CURRENT RELEASE -${finalAmount}`
+                : recoveryBonus
+                    ? `OPEN EXPOSURE -${finalAmount}`
+                    : `EXPOSURE -${finalAmount}`,
             this.boss.x,
             this.boss.y - 100,
             '#A9F3E4'
@@ -2316,6 +2534,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             current.visual?.destroy?.();
         });
         this.shadowCurrents = [];
+        this.clearQuietLightPickup();
+        this.clearCurrentChargeAura();
         // Phaser owns this physics group and destroys it during Scene shutdown.
         // Clearing it here can run after the physics world has already disposed
         // the group's body set when campaign scenes are stopped in quick succession.

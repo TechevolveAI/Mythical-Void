@@ -1043,6 +1043,25 @@ class ReefLevel extends PlatformerLevelScene {
         this.refreshBeaconRouteReadability();
     }
 
+    getTraversalAuditTargets() {
+        const drive = {
+                id: 'dimensional_drive',
+                label: 'DIMENSIONAL DRIVE',
+                x: this.shipPart?.x || 2800,
+                y: this.shipPart?.y || this.levelHeight - 950,
+                body: this.shipPart?.body
+            };
+        const guardian = {
+                id: 'reef_guardian_gate',
+                label: 'PASSAGE GUARDIAN',
+                x: this.bossTriggerZone?.x || 5200,
+                y: this.bossTriggerZone?.y || this.levelHeight / 2,
+                zone: this.bossTriggerZone
+            };
+        return [...this.beaconAnchors, drive, guardian]
+            .sort((left, right) => Number(left.x) - Number(right.x));
+    }
+
     drawBeaconWaypoint(graphics, x, y, activated) {
         graphics.clear();
         const color = activated ? 0x8FE3CF : 0x3D5266;

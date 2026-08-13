@@ -812,6 +812,19 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.refreshBondRouteReadability();
     }
 
+    getTraversalAuditTargets() {
+        return [
+            ...this.bondAnchors,
+            {
+                id: 'empress_seal',
+                label: 'EMPRESS SEAL',
+                x: this.empressGate?.zone?.x || this.levelWidth - 500,
+                y: this.empressGate?.zone?.y || this.levelHeight / 2,
+                zone: this.empressGate?.zone
+            }
+        ];
+    }
+
     drawBondAnchor(graphics, x, y, activated) {
         graphics.clear();
         const color = activated ? 0xF2C94C : 0x4F315E;

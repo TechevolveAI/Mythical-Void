@@ -563,13 +563,18 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain('const quietLightRoute = [');
         expect(source).toContain("mainLabel: 'SHADOW CURRENT →'");
-        expect(source).toContain("mainTradeoff: 'DIRECT // DAMAGE ZONE'");
+        expect(source).toContain(
+            "mainTradeoff: 'DIRECT // NEXT PHOENIX HIT +2'"
+        );
         expect(source).toContain(
             "challengeLabel: 'HIGH JUMPS + CURRENT SHELTER'"
         );
         expect(source).toContain("id: 'aurora_quiet_light'");
         expect(source).toContain("rewardLabel: 'QUIET LIGHT WARD // 1 HIT'");
         expect(source).toContain("this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1)");
+        expect(source).toContain("this.selectAuroraRoute('shadow_current')");
+        expect(source).toContain('const routeBonus = this.consumeCurrentCharge();');
+        expect(source).toContain('this.currentChargeAuraTween?.remove?.();');
         expect(source).not.toContain('this.activateShield();');
     });
 
@@ -642,7 +647,7 @@ describe('campaign traversal quality contracts', () => {
             'levels/AuroraDepthsLevel.js',
             "id: 'aurora_quiet_light'",
             "mainLabel: 'SHADOW CURRENT →'",
-            "mainTradeoff: 'DIRECT // DAMAGE ZONE'",
+            "mainTradeoff: 'DIRECT // NEXT PHOENIX HIT +2'",
             "challengeLabel: 'HIGH JUMPS + CURRENT SHELTER'"
         ],
         [
@@ -678,6 +683,8 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('normalizeOptionalRouteChoice(choice)');
         expect(source).toContain('updateOptionalRouteChoices()');
         expect(source).toContain('this.updateOptionalRouteChoices();');
+        expect(source).toContain('route.onMainSelected?.(route);');
+        expect(source).toContain('route.onOptionalSelected?.(route);');
         expect(source).toContain('this.optionalRouteRewards?.clear?.();');
         expect(source).toContain("recordEvent?.('route_choice_entered'");
         expect(source).toContain("recordEvent?.('route_choice_rejoined'");
@@ -1144,6 +1151,11 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("auroraDepths: 'aurora_quiet_light'");
         expect(smoke).toContain("finalVoid: 'final_trust_bridge'");
         expect(smoke).toContain('bond reserve did not prevent a lethal hit');
+        expect(smoke).toContain('scene.auditTraversalTopology();');
+        expect(smoke).toContain('Aurora direct route zone selection');
+        expect(smoke).toContain('Aurora Quiet Light pickup collision');
+        expect(smoke).toContain('Aurora charge returned after reload');
+        expect(smoke).toContain('Aurora Quiet Light returned after reload');
     });
 
     test('runtime checkpoints retain the same authored identity persisted for reload recovery', () => {
@@ -1153,5 +1165,20 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("? { index: checkpointIndex }");
         expect(source).toContain('id: resume.checkpointId');
         expect(source).toContain('index: Number(resume.checkpointIndex)');
+        expect(source).toContain('sanitizeExpeditionRouteState(routeState)');
+        expect(source).toContain('checkpoint.routeState = sanitizedRouteState;');
+        expect(source).toContain('refreshPersistedExpeditionRouteState()');
+    });
+
+    test('release gate checks static topology and Aurora route recovery', () => {
+        const releaseSmoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/run-browser-smoke.js'),
+            'utf8'
+        );
+
+        expect(releaseSmoke).toContain("SMOKE_MODE: 'traversal-topology'");
+        expect(releaseSmoke).toContain("SMOKE_MODE: 'aurora-route-journey'");
+        expect(releaseSmoke).toContain('traversal-topology: ${error.message}');
+        expect(releaseSmoke).toContain('aurora-route-journey: ${error.message}');
     });
 });

@@ -161,6 +161,24 @@ async function main() {
             }
         }
 
+        console.log('\n[release-smoke] Conservative campaign topology suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'traversal-topology'
+            });
+        } catch (error) {
+            failures.push(`traversal-topology: ${error.message}`);
+        }
+
+        console.log('\n[release-smoke] Aurora route collision and recovery suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'aurora-route-journey'
+            });
+        } catch (error) {
+            failures.push(`aurora-route-journey: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] Fast campaign state-contract suite');
         try {
             await runNodeScript('scripts/smoke-secondary-journeys.js', {

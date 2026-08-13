@@ -7,6 +7,7 @@ import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import '../systems/ProjectBeaconFieldKit.js';
 import { getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
 import bossConfigs from '../config/bosses.json';
+import { analyzeTraversalTopology } from '../systems/TraversalTopology.js';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
 import { getCurrentRegionActionPresentation, recordCurrentRegionRestoration } from '../systems/CurrentEcology.js';
 import { getCurrentAtmosphereProjection } from '../systems/CurrentAtmosphere.js';
@@ -1252,6 +1253,42 @@ class PlatformerLevelScene extends Phaser.Scene {
         return zone;
     }
 
+    getTraversalAuditTargets() {
+        return [];
+    }
+
+    auditTraversalTopology() {
+        const supports = this.platforms?.getChildren?.() || [];
+        const targets = this.getTraversalAuditTargets();
+        const result = analyzeTraversalTopology({
+            supports,
+            targets,
+            spawn: {
+                x: this.player?.x,
+                y: this.player?.y
+            },
+            movement: {
+                gravityY: this.gravityY,
+                jumpVelocity: this.jumpVelocity,
+                playerSpeed: this.playerSpeed,
+                playerAcceleration: this.playerAcceleration
+            },
+            playerHalfWidth: Math.max(
+                14,
+                Number(this.player?.body?.width) / 2 || 18
+            ),
+            playerHeight: Math.max(
+                48,
+                Number(this.player?.body?.height) || 58
+            )
+        });
+
+        return {
+            sceneName: this.scene?.key,
+            ...result
+        };
+    }
+
     getPlatformTraversalAudit({ targets = [] } = {}) {
         const nodes = (this.platforms?.getChildren?.() || [])
             .filter(platform => platform?.active !== false && platform?.body)
@@ -1589,6 +1626,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         marker = null,
         returnLabel = 'RETURN TO MAIN ROUTE',
         choice = null,
+        onMainSelected = null,
+        onOptionalSelected = null,
         onComplete = null
     } = {}) {
         if (typeof id !== 'string' || !id.trim()) return null;
@@ -1601,6 +1640,12 @@ class PlatformerLevelScene extends Phaser.Scene {
             returnLabel: String(returnLabel || 'RETURN TO MAIN ROUTE'),
             marker,
             choice: this.normalizeOptionalRouteChoice(choice),
+            onMainSelected: typeof onMainSelected === 'function'
+                ? onMainSelected
+                : null,
+            onOptionalSelected: typeof onOptionalSelected === 'function'
+                ? onOptionalSelected
+                : null,
             onComplete: typeof onComplete === 'function' ? onComplete : null,
             progress: 0,
             completed: false
@@ -1672,6 +1717,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         choice[enteredProperty] = true;
         choice.selectedPath ||= path;
         choice.sequence ||= ++this.routeChoiceSequence;
+        if (path === 'optional') {
+            route.onOptionalSelected?.(route);
+        } else {
+            route.onMainSelected?.(route);
+        }
 
         const label = path === 'optional'
             ? `${route.title} // ${choice.challengeLabel}`
@@ -4915,6 +4965,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (this.optionalRouteGuardCharges > 0 && !bypassInvincibility) {
             this.optionalRouteGuardCharges -= 1;
+            this.onOptionalRouteGuardConsumed?.();
             this.showFloatingText?.(
                 `${this.optionalRouteGuardLabel} · ${this.optionalRouteGuardCharges} LEFT`,
                 this.player.x,
@@ -5372,6 +5423,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.persistExpeditionCheckpoint({
                 checkpointId: options.checkpointId,
                 checkpointIndex: options.checkpointIndex,
+                routeState: options.routeState,
                 x,
                 y
             });
@@ -5390,6 +5442,7 @@ class PlatformerLevelScene extends Phaser.Scene {
     persistExpeditionCheckpoint({
         checkpointId,
         checkpointIndex,
+        routeState,
         x,
         y
     } = {}) {
@@ -5417,7 +5470,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             return false;
         }
 
-        gameState.set(EXPEDITION_CHECKPOINT_PATH, {
+        const checkpoint = {
             version: EXPEDITION_CHECKPOINT_VERSION,
             sceneKey,
             levelId: this.levelId,
@@ -5426,7 +5479,14 @@ class PlatformerLevelScene extends Phaser.Scene {
             x: normalizedX,
             y: normalizedY,
             savedAt: Date.now()
-        });
+        };
+        const sanitizedRouteState = this.sanitizeExpeditionRouteState(
+            routeState ?? this.getExpeditionRouteState()
+        );
+        if (sanitizedRouteState) {
+            checkpoint.routeState = sanitizedRouteState;
+        }
+        gameState.set(EXPEDITION_CHECKPOINT_PATH, checkpoint);
         gameState.save?.();
         return true;
     }
@@ -5524,6 +5584,56 @@ class PlatformerLevelScene extends Phaser.Scene {
     restoreExpeditionRouteState() {
         return false;
     }
+
+    getExpeditionRouteState() {
+        return null;
+    }
+
+    sanitizeExpeditionRouteState(routeState) {
+        if (
+            !routeState ||
+            typeof routeState !== 'object' ||
+            Array.isArray(routeState)
+        ) {
+            return null;
+        }
+
+        const entries = Object.entries(routeState).slice(0, 8);
+        const sanitized = {};
+        entries.forEach(([key, value]) => {
+            if (!/^[a-zA-Z][a-zA-Z0-9_]{0,39}$/.test(key)) return;
+            if (typeof value === 'boolean') {
+                sanitized[key] = value;
+            } else if (typeof value === 'number' && Number.isFinite(value)) {
+                sanitized[key] = Phaser.Math.Clamp(value, -1000, 1000);
+            } else if (typeof value === 'string' && value.length <= 60) {
+                sanitized[key] = value;
+            }
+        });
+        return Object.keys(sanitized).length ? sanitized : null;
+    }
+
+    refreshPersistedExpeditionRouteState() {
+        const checkpoint = window.GameState?.get?.(
+            EXPEDITION_CHECKPOINT_PATH
+        );
+        if (
+            checkpoint?.sceneKey !== this.scene?.key ||
+            checkpoint?.levelId !== this.levelId
+        ) {
+            return false;
+        }
+
+        return this.persistExpeditionCheckpoint({
+            checkpointId: checkpoint.checkpointId,
+            checkpointIndex: checkpoint.checkpointIndex,
+            routeState: this.getExpeditionRouteState(),
+            x: checkpoint.x,
+            y: checkpoint.y
+        });
+    }
+
+    onOptionalRouteGuardConsumed() {}
 
     restoreExpeditionRouteSignals(resume, {
         signals,

@@ -56,6 +56,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
         this.replySignals = [];
+        this.titanGate = null;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
         this.cosmicEggAwarded = false;
@@ -89,6 +90,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
         this.replySignals = [];
+        this.titanGate = null;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
         this.cosmicEggAwarded = false;
@@ -623,6 +625,19 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.refreshSignalRouteReadability();
     }
 
+    getTraversalAuditTargets() {
+        return [
+            ...this.beaconRelays,
+            {
+                id: 'titan_pass',
+                label: 'TITAN PASS',
+                x: this.titanGate?.x || 4680,
+                y: this.titanGate?.y || this.levelHeight - 158,
+                zone: this.titanGate
+            }
+        ];
+    }
+
     drawSignalRelay(graphics, x, y, activated) {
         graphics.clear();
         const color = activated ? 0x8FE3CF : 0x54395F;
@@ -842,6 +857,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const y = this.levelHeight - 158;
         const gate = this.add.zone(x, y, 150, 190);
         this.physics.add.existing(gate, true);
+        this.titanGate = gate;
 
         this.createGuardianGateState({
             x,
@@ -877,7 +893,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                     },
                     start: () => this.startBossFight()
                 });
-                if (guardianEntered) gate.destroy();
+                if (guardianEntered) {
+                    gate.destroy();
+                    this.titanGate = null;
+                }
             }
         });
     }

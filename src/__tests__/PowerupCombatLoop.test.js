@@ -116,6 +116,10 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             'const bossConfigs = {};'
         )
         .replace(
+            "import { analyzeTraversalTopology } from '../systems/TraversalTopology.js';",
+            'const analyzeTraversalTopology = () => null;'
+        )
+        .replace(
             "import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';",
             'const KatanaArtifactModal = class {};\n' +
             'const prefetchKatanaArtifactArtwork = () => {};'

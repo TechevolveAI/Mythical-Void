@@ -1060,6 +1060,25 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.refreshCaveRouteReadability();
     }
 
+    getTraversalAuditTargets() {
+        const grove = {
+                id: 'crystal_grove',
+                label: 'FRACTURED GROVE',
+                x: this.woundedCrystalGrove?.x || 2730,
+                y: this.woundedCrystalGrove?.zone?.y || this.levelHeight / 2,
+                zone: this.woundedCrystalGrove?.zone
+            };
+        const core = {
+                id: 'crystal_core',
+                label: 'CRYSTAL CORE ENGINE',
+                x: this.crystalCore?.x || 4850,
+                y: this.crystalCore?.y || this.levelHeight - 530,
+                body: this.crystalCore?.body
+            };
+        return [...this.beaconAnchors, grove, core]
+            .sort((left, right) => Number(left.x) - Number(right.x));
+    }
+
     drawCaveBeacon(graphics, x, groundY, activated) {
         graphics.clear();
         const color = activated ? 0x8FE3CF : 0x4A4268;

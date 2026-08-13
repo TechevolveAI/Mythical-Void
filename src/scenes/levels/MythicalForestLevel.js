@@ -730,6 +730,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.platforms = this.physics.add.staticGroup();
     }
 
+    configureForestClimbSupport(platform) {
+        if (!platform?.body) return platform;
+        platform.platformType = 'one-way';
+        platform.body.checkCollision.down = false;
+        platform.body.checkCollision.left = false;
+        platform.body.checkCollision.right = false;
+        return platform;
+    }
+
     createHUD() {
         super.createHUD();
 
@@ -1343,6 +1352,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.refreshForestRouteReadability();
     }
 
+    getTraversalAuditTargets() {
+        return [
+            ...this.checkpointAnchors,
+            {
+                id: 'forest_guardian_gate',
+                label: 'GUARDIAN APPROACH',
+                x: this.bossTriggerZone?.x || 5350,
+                y: this.bossTriggerZone?.y || this.levelHeight / 2,
+                zone: this.bossTriggerZone
+            }
+        ];
+    }
+
     drawBeaconCheckpoint(graphics, x, groundY, activated) {
         graphics.clear();
         const color = activated ? 0x8FE3CF : 0x35565D;
@@ -1701,6 +1723,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
             const branchPlatform = this.add.zone(platformX, branchY + 10, platformWidth, 20);
             this.physics.add.existing(branchPlatform, true);
+            this.configureForestClimbSupport(branchPlatform);
             this.platforms.add(branchPlatform);
             this.branchPlatforms.push({
                 zone: branchPlatform,
@@ -1716,6 +1739,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Add special platform at tree top
         const topPlatform = this.add.zone(x, baseY - height + 20, 100, 20);
         this.physics.add.existing(topPlatform, true);
+        this.configureForestClimbSupport(topPlatform);
         this.platforms.add(topPlatform);
 
         // Visual crown at top (crystal formation, not leaves)
@@ -3074,14 +3098,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
             // From Tree 2 to Tree 3
             { x1: 1400, x2: 1900, y: this.levelHeight - 450, type: 'vine' },
             // From Tree 3 to Tree 4
-            { x1: 2400, x2: 3000, y: this.levelHeight - 500, type: 'static' },
+            { x1: 2320, x2: 3000, y: this.levelHeight - 500, type: 'static' },
             // Readable stepped spine between the two tall-tree routes.
             { x1: 3000, x2: 3260, y: this.levelHeight - 525, type: 'static' },
             { x1: 3260, x2: 3500, y: this.levelHeight - 565, type: 'static' },
             // From Tree 4 to Tree 5
             { x1: 3500, x2: 3800, y: this.levelHeight - 600, type: 'collapsing' },
-            // Recovery spine after the collapsing challenge. Players who read
-            // the warning still have a clear forward route to Tree 5.
+            // A permanent lower recovery route keeps the expedition viable
+            // after the faster upper bridge collapses.
+            { x1: 3460, x2: 3640, y: this.levelHeight - 470, type: 'static' },
+            { x1: 3640, x2: 3830, y: this.levelHeight - 430, type: 'static' },
+            { x1: 3830, x2: 4010, y: this.levelHeight - 485, type: 'static' },
+            // Rejoin the forward spine toward Tree 5.
             { x1: 3800, x2: 4050, y: this.levelHeight - 565, type: 'static' },
             { x1: 4050, x2: 4300, y: this.levelHeight - 525, type: 'static' },
             // From Tree 5 to Tree 6
@@ -3114,6 +3142,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             // Physics
             const bridgeZone = this.add.zone(x1 + width/2, y + 7, width, 15);
             this.physics.add.existing(bridgeZone, true);
+            this.configureForestClimbSupport(bridgeZone);
             this.platforms.add(bridgeZone);
 
         } else if (type === 'vine') {
@@ -3143,6 +3172,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 // Physics for each step
                 const stepZone = this.add.zone(stepX, stepY, 30, 20);
                 this.physics.add.existing(stepZone, true);
+                this.configureForestClimbSupport(stepZone);
                 this.platforms.add(stepZone);
             }
 
@@ -3165,6 +3195,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 // Physics zone
                 const sectionZone = this.add.zone(sectionX + sectionWidth/2, y + 7, sectionWidth - 5, 15);
                 this.physics.add.existing(sectionZone, true);
+                sectionZone.platformType = 'collapsing';
+                sectionZone.traversalOneWay = true;
+                sectionZone.traversalTransient = true;
+                sectionZone.body.checkCollision.down = false;
+                sectionZone.body.checkCollision.left = false;
+                sectionZone.body.checkCollision.right = false;
                 this.platforms.add(sectionZone);
 
                 // Store for collapse mechanic
