@@ -1557,8 +1557,10 @@ async function smokeHomeStart(session, exceptions) {
     if (SMOKE_CASE === 'wide-touch') {
         await evaluate(session, `(() => {
             const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
-            scene.startButton.setAlpha(0).disableInteractive();
-            scene.ensureHomeStartReady();
+            scene.startButton
+                .setPosition(-500, -500)
+                .setAlpha(0)
+                .disableInteractive();
             return true;
         })()`);
         recovery = await waitFor(
@@ -1576,7 +1578,7 @@ async function smokeHomeStart(session, exceptions) {
                     inputEnabled: true
                 };
             })()`),
-            { timeoutMs: 3000, message: 'invisible Start control recovery' }
+            { timeoutMs: 3000, message: 'continuous Start control recovery' }
         );
     }
 

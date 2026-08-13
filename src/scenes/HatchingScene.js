@@ -85,6 +85,7 @@ class HatchingScene extends Phaser.Scene {
         this.startFlowQueued = false;
         this.homeContentReady = false;
         this.homeStartRecoveryTimer = null;
+        this.nextHomeStartHealthCheck = 0;
         this.portraitPromise = null;
         this.portraitError = null;
 
@@ -315,6 +316,8 @@ class HatchingScene extends Phaser.Scene {
 
         const button = this.startButton;
         const bounds = button?.getBounds?.();
+        const expectedX = this.scale.width / 2;
+        const expectedY = this.scale.height * 0.5;
         const ready = Boolean(
             button?.active &&
             button.visible &&
@@ -324,7 +327,9 @@ class HatchingScene extends Phaser.Scene {
             bounds.left >= 0 &&
             bounds.top >= 0 &&
             bounds.right <= this.scale.width &&
-            bounds.bottom <= this.scale.height
+            bounds.bottom <= this.scale.height &&
+            Math.abs(button.x - expectedX) <= 2 &&
+            Math.abs(button.y - expectedY) <= 2
         );
         if (ready) return;
 
@@ -336,7 +341,7 @@ class HatchingScene extends Phaser.Scene {
             const buttonWidth = Math.min(this.scale.width * 0.85, 340);
             const buttonHeight = Math.min(this.scale.height * 0.08, 95);
             button
-                .setPosition(this.scale.width / 2, this.scale.height * 0.5)
+                .setPosition(expectedX, expectedY)
                 .setVisible(true)
                 .setAlpha(1)
                 .setScale(1)
@@ -3232,7 +3237,16 @@ class HatchingScene extends Phaser.Scene {
         console.log('✅ HatchingScene cleanup complete');
     }
 
-    update() {
+    update(time) {
+        if (
+            this.homeContentReady &&
+            time >= this.nextHomeStartHealthCheck &&
+            !getGameState().get('session.gameStarted')
+        ) {
+            this.nextHomeStartHealthCheck = time + 500;
+            this.ensureHomeStartReady();
+        }
+
         // Check for space key to start cinematic hatch or transition
         if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
             if (this.egg && !this.isHatching && !this.creatureAppeared) {
