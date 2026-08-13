@@ -114,6 +114,25 @@ describe('campaign traversal quality contracts', () => {
         expect(scene.virtualJoystickY).toBe(-1);
     });
 
+    test('mobile joystick retains a native drag fallback with symmetric cleanup', () => {
+        const source = read('PlatformerLevelScene.js');
+
+        expect(source).toContain('this.platformerTouchStartHandler = (event) => {');
+        expect(source).toContain('this.platformerTouchMoveHandler = (event) => {');
+        expect(source).toContain('this.joystickTouchIdentifier =');
+        expect(source).toContain('nativeTouchIdentifier !== null');
+        expect(source).toContain("candidate.identifier === this.joystickTouchIdentifier");
+        expect(source).toContain("touch.identifier === this.joystickTouchIdentifier");
+        expect(source).toContain("addEventListener('touchstart', this.platformerTouchStartHandler");
+        expect(source).toContain("removeEventListener('touchstart', this.platformerTouchStartHandler, true)");
+        expect(source).toContain("addEventListener('touchmove', this.platformerTouchMoveHandler");
+        expect(source).toContain("removeEventListener('touchmove', this.platformerTouchMoveHandler, true)");
+        expect(source).toContain("addEventListener('touchcancel', this.platformerTouchEndHandler");
+        expect(source).toContain("removeEventListener('touchcancel', this.platformerTouchEndHandler)");
+        expect(source).toContain('(touch.clientX - bounds.left) *');
+        expect(source).toContain('(touch.clientY - bounds.top) *');
+    });
+
     test('Cosmic Reef keeps shared recovery while adding deliberate mobile descent', () => {
         const source = read('levels/ReefLevel.js');
         const updateBody = source.match(
@@ -440,8 +459,26 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.forestBridgeLayer = this.add.graphics()');
         expect(source).toContain('startForestEnemyTrailRenderer()');
         expect(source).toContain('sprite.forestTrail = sprite.forestTrail.slice(-3);');
+        expect(source).toContain('ensureForestCoinLayer()');
+        expect(source).toContain('this.forestCoinPickupGroup = this.physics.add.staticGroup();');
+        expect(source).toContain('this.collectForestCoin(zone?.forestCoinPickup)');
+        expect(source).toContain('redrawForestCoinLayer()');
         expect(source).not.toContain('const branch = this.add.graphics();');
         expect(source).not.toContain('const shadow = this.add.graphics();');
+    });
+
+    test('shared biome rendering batches ambient fields and uses a phone tier', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../systems/ParallaxBiome.js'),
+            'utf8'
+        );
+
+        expect(source).toContain("this.performanceTier = scene?.detectMobile?.() ? 'mobile' : 'desktop';");
+        expect(source).toContain("this.performanceTier === 'mobile'");
+        expect(source).toContain("type: 'starField'");
+        expect(source).toContain("type: 'floraField'");
+        expect(source).toContain("Mobile tier skips post shader");
+        expect(source).toContain('this.scene?.tweens?.killTweensOf?.(layer.object);');
     });
 
     test('Crystal Caves stages the objective and guardian in forward order', () => {
@@ -1498,10 +1535,19 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("enemy?.combatRole === 'armored'");
         expect(smoke).toContain('scene.player.setVelocity?.(0, 680)');
         expect(smoke).toContain('message: `${sceneName} live stomp collision`');
-        expect(smoke).toContain('state.displayCount > 475');
+        expect(smoke).toContain('state.displayCount > 360');
+        expect(smoke).toContain('framePacing.activeTweenCount > 110');
+        expect(smoke).toContain('framePacing.postPipelineCount !== 0');
+        expect(smoke).toContain("framePacing.performanceTier !== 'mobile'");
         expect(smoke).toContain('renderStability.endCount > renderStability.startCount + 8');
         expect(smoke).toContain('state.ambientRendering?.layerCount !== 9');
         expect(smoke).toContain('state.ambientRendering?.pointCount !== 194');
+        expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');
+        expect(smoke).toContain('state.coinRendering?.legacyVisualCount !== 0');
+        expect(smoke).toContain('Forest grouped coin did not resolve exactly once');
+        expect(smoke).toContain('activeTouchIdentifier = nextTouchIdentifier;');
+        expect(smoke).toContain('nextTouchIdentifier += 1;');
+        expect(smoke).toContain('id: activeTouchIdentifier');
         expect(smoke).toContain('scene.performSpecialAttack();');
         expect(smoke).toContain(
             'guardianBlast.healthAfter !== guardianBlast.healthBefore - 3'

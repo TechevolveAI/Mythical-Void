@@ -116,6 +116,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestBridgeLayer = null;
         this.forestEnemyTrailLayer = null;
         this.forestEnemyTrailTimer = null;
+        this.forestCoinLayer = null;
+        this.forestCoinLayerTween = null;
+        this.forestCoinPickupGroup = null;
+        this.forestCoinPickupOverlap = null;
 
         // Cosmic trees - the core of this level
         this.cosmicTrees = [];
@@ -229,6 +233,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestBridgeLayer = null;
         this.forestEnemyTrailLayer = null;
         this.forestEnemyTrailTimer = null;
+        this.forestCoinLayer = null;
+        this.forestCoinLayerTween = null;
+        this.forestCoinPickupGroup = null;
+        this.forestCoinPickupOverlap = null;
 
         // Reset cosmic trees and platforms
         this.cosmicTrees = [];
@@ -3217,72 +3225,87 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Create a coin collectible
      */
     createCoin(x, y, type = 'ground') {
-        const coin = this.add.graphics();
-        coin.fillStyle(0xFFD700, 1);
-        coin.fillCircle(0, 0, 8);
-        coin.fillStyle(0xFFA500, 1);
-        coin.fillCircle(-2, -2, 3);
-        coin.setPosition(x, y);
-        coin.setDepth(125);
-
-        // Gentle bob animation
-        this.tweens.add({
-            targets: coin,
-            y: y - 5,
-            duration: 800 + Math.random() * 400,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // Create pickup zone
+        this.ensureForestCoinLayer();
+        const pickup = {
+            x,
+            y,
+            type,
+            collected: false,
+            batched: true,
+            pickupZone: null
+        };
         const pickupZone = this.add.zone(x, y, 25, 25);
-        this.physics.add.existing(pickupZone, true);
+        pickupZone.forestCoinPickup = pickup;
+        this.forestCoinPickupGroup.add(pickupZone);
+        pickupZone.refreshBody?.();
+        pickup.pickupZone = pickupZone;
+        this.coinSprites.push(pickup);
+        this.redrawForestCoinLayer();
+    }
 
-        if (this.player) {
-            this.physics.add.overlap(this.player, pickupZone, () => {
-                if (!coin.active) return;
-
-                const coinValue = type === 'bonus' ? 15 : 10;
-                if (window.EconomyManager?.addCoins) {
-                    window.EconomyManager.addCoins(coinValue, `forest_${type}_coin`);
-                }
-
-                // Collection animation
-                this.tweens.add({
-                    targets: coin,
-                    y: coin.y - 30,
-                    scaleX: 0,
-                    scaleY: 0,
-                    alpha: 0,
-                    duration: 200,
-                    onComplete: () => coin.destroy()
-                });
-
-                pickupZone.destroy();
-
-                if (window.AudioManager) {
-                    window.AudioManager.playCoinCollect();
-                }
-
-                // Small floating text
-                const coinText = this.add.text(x, y - 15, `+${coinValue}`, {
-                    fontSize: '14px',
-                    color: '#FFD700',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5).setDepth(200);
-
-                this.tweens.add({
-                    targets: coinText,
-                    y: y - 45,
-                    alpha: 0,
-                    duration: 600,
-                    onComplete: () => coinText.destroy()
-                });
+    ensureForestCoinLayer() {
+        if (!this.forestCoinLayer?.active) {
+            this.forestCoinLayer = this.add.graphics().setDepth(125);
+            this.forestCoinLayerTween = this.tweens.add({
+                targets: this.forestCoinLayer,
+                y: { from: 0, to: -5 },
+                duration: 960,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
             });
         }
+        if (!this.forestCoinPickupGroup) {
+            this.forestCoinPickupGroup = this.physics.add.staticGroup();
+            this.forestCoinPickupOverlap = this.physics.add.overlap(
+                this.player,
+                this.forestCoinPickupGroup,
+                (_player, zone) => this.collectForestCoin(zone?.forestCoinPickup)
+            );
+        }
+    }
 
-        this.coinSprites.push({ coin, pickupZone, type });
+    redrawForestCoinLayer() {
+        const layer = this.forestCoinLayer;
+        if (!layer?.active) return false;
+        layer.clear();
+        this.coinSprites.forEach(pickup => {
+            if (!pickup?.batched || pickup.collected) return;
+            layer.fillStyle(0xFFD700, 1);
+            layer.fillCircle(pickup.x, pickup.y, 8);
+            layer.fillStyle(0xFFA500, 1);
+            layer.fillCircle(pickup.x - 2, pickup.y - 2, 3);
+        });
+        return true;
+    }
+
+    collectForestCoin(pickup) {
+        if (!pickup?.batched || pickup.collected) return false;
+        pickup.collected = true;
+        pickup.pickupZone?.destroy?.();
+        pickup.pickupZone = null;
+        this.redrawForestCoinLayer();
+
+        const coinValue = pickup.type === 'bonus' ? 15 : 10;
+        window.EconomyManager?.addCoins?.(
+            coinValue,
+            `forest_${pickup.type}_coin`
+        );
+        window.AudioManager?.playCoinCollect?.();
+
+        const coinText = this.add.text(pickup.x, pickup.y - 15, `+${coinValue}`, {
+            fontSize: '14px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(200);
+        this.tweens.add({
+            targets: coinText,
+            y: pickup.y - 45,
+            alpha: 0,
+            duration: 600,
+            onComplete: () => coinText.destroy()
+        });
+        return true;
     }
 
     /**
@@ -5056,6 +5079,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
             if (c.pickupZone?.active) c.pickupZone.destroy();
         });
         this.coinSprites = [];
+        this.forestCoinPickupOverlap?.destroy?.();
+        this.forestCoinPickupOverlap = null;
+        this.forestCoinPickupGroup = null;
+        this.forestCoinLayerTween?.remove?.();
+        this.forestCoinLayerTween = null;
+        this.forestCoinLayer?.destroy?.();
+        this.forestCoinLayer = null;
 
         // Clean up platforms
         this.branchPlatforms = [];

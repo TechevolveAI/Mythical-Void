@@ -383,6 +383,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.actionButtonReleases = new Map();
         this.platformerJoystickMoveHandler = null;
         this.platformerJoystickUpHandler = null;
+        this.platformerTouchStartHandler = null;
+        this.platformerTouchMoveHandler = null;
         this.platformerTouchEndHandler = null;
         this.platformerPointerCancelHandler = null;
         this.platformerInputAbortHandler = null;
@@ -677,6 +679,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Reset mobile control state
         this.virtualJoystickX = 0;
         this.virtualJoystickY = 0;
+        this.joystickTouchIdentifier = null;
         this.virtualJumpPressed = false;
         this.virtualJumpQueued = false;
         this.actionButtonPointers.clear();
@@ -2678,6 +2681,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         joystickZone.on('pointerdown', (pointer) => {
             this.joystickActive = true;
             this.joystickPointerId = pointer.id;
+            const nativeTouchIdentifier =
+                pointer.event?.changedTouches?.[0]?.identifier ?? null;
+            if (nativeTouchIdentifier !== null) {
+                this.joystickTouchIdentifier = nativeTouchIdentifier;
+            }
 
             // FLOATING JOYSTICK: Move joystick to where finger touches (within bounds)
             const touchX = Math.max(marginLeft + joystickBaseRadius, Math.min(pointer.x, joystickZoneWidth - joystickBaseRadius));
@@ -2754,17 +2762,59 @@ class PlatformerLevelScene extends Phaser.Scene {
         };
         this.input.on('pointerup', this.platformerJoystickUpHandler);
 
+        const mapNativeTouch = touch => {
+            const bounds = this.game.canvas.getBoundingClientRect();
+            return {
+                x: (touch.clientX - bounds.left) *
+                    (this.scale.width / Math.max(1, bounds.width)),
+                y: (touch.clientY - bounds.top) *
+                    (this.scale.height / Math.max(1, bounds.height))
+            };
+        };
+        this.platformerTouchStartHandler = (event) => {
+            if (this.joystickActive) return;
+            const touch = Array.from(event.changedTouches || [])
+                .map(candidate => ({
+                    candidate,
+                    point: mapNativeTouch(candidate)
+                }))
+                .find(({ point }) =>
+                    point.x >= 0 &&
+                    point.x <= joystickZoneWidth &&
+                    Math.abs(point.y - joystickY) <= joystickZoneHeight / 2
+                );
+            if (!touch) return;
+            this.joystickActive = true;
+            this.joystickTouchIdentifier = touch.candidate.identifier;
+            this.updateJoystick(touch.point);
+        };
+
+        // Native touch fallback keeps steering responsive when a mobile browser
+        // stops forwarding an owned drag to Phaser after the finger crosses a
+        // display-list boundary. Phaser remains the primary input path.
+        this.platformerTouchMoveHandler = (event) => {
+            if (!this.joystickActive) return;
+            const touch = Array.from(event.touches || []).find(
+                candidate => candidate.identifier === this.joystickTouchIdentifier
+            );
+            if (!touch) return;
+            this.updateJoystick(mapNativeTouch(touch));
+        };
+
         // Native touch end handler for reliability - only reset if no active touches remain on joystick
         this.platformerTouchEndHandler = (event) => {
-            Array.from(event.changedTouches || []).forEach(touch => {
+            const changedTouches = Array.from(event.changedTouches || []);
+            changedTouches.forEach(touch => {
                 this.releasePlatformerActionButton(touch.identifier);
             });
             if (event.touches.length === 0) {
                 this.releaseAllPlatformerActionButtons({ preserveQueuedJump: true });
             }
             // Only reset if there are no remaining touches OR if the joystick pointer specifically ended
-            if (this.joystickActive && event.touches.length === 0) {
-                // All touches ended - reset joystick
+            const joystickEnded = changedTouches.some(
+                touch => touch.identifier === this.joystickTouchIdentifier
+            );
+            if (this.joystickActive && (event.touches.length === 0 || joystickEnded)) {
                 this.resetJoystick();
             }
         };
@@ -2782,7 +2832,10 @@ class PlatformerLevelScene extends Phaser.Scene {
                 this.resetJoystick();
             }
         };
+        this.game.canvas.addEventListener('touchstart', this.platformerTouchStartHandler, { passive: true, capture: true });
+        this.game.canvas.addEventListener('touchmove', this.platformerTouchMoveHandler, { passive: true, capture: true });
         this.game.canvas.addEventListener('touchend', this.platformerTouchEndHandler, { passive: true });
+        this.game.canvas.addEventListener('touchcancel', this.platformerTouchEndHandler, { passive: true });
         this.game.canvas.addEventListener('pointercancel', this.platformerPointerCancelHandler, { passive: true });
         window.addEventListener('blur', this.platformerInputAbortHandler);
         window.addEventListener('pagehide', this.platformerInputAbortHandler);
@@ -3436,6 +3489,7 @@ class PlatformerLevelScene extends Phaser.Scene {
     resetJoystick() {
         this.joystickActive = false;
         this.joystickPointerId = null;
+        this.joystickTouchIdentifier = null;
         this.virtualJoystickX = 0;
         this.virtualJoystickY = 0;
 
@@ -3502,8 +3556,15 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.input.off('pointerup', this.platformerJoystickUpHandler);
         }
         const canvas = this.game?.canvas;
+        if (this.platformerTouchStartHandler && canvas) {
+            canvas.removeEventListener('touchstart', this.platformerTouchStartHandler, true);
+        }
+        if (this.platformerTouchMoveHandler && canvas) {
+            canvas.removeEventListener('touchmove', this.platformerTouchMoveHandler, true);
+        }
         if (this.platformerTouchEndHandler && canvas) {
             canvas.removeEventListener('touchend', this.platformerTouchEndHandler);
+            canvas.removeEventListener('touchcancel', this.platformerTouchEndHandler);
         }
         if (this.platformerPointerCancelHandler && canvas) {
             canvas.removeEventListener('pointercancel', this.platformerPointerCancelHandler);
@@ -3517,6 +3578,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
         this.platformerJoystickMoveHandler = null;
         this.platformerJoystickUpHandler = null;
+        this.platformerTouchStartHandler = null;
+        this.platformerTouchMoveHandler = null;
         this.platformerTouchEndHandler = null;
         this.platformerPointerCancelHandler = null;
         this.platformerInputAbortHandler = null;
