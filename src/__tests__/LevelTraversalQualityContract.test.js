@@ -302,6 +302,108 @@ describe('campaign traversal quality contracts', () => {
         expect(scene.damageEnemy).toHaveBeenCalledTimes(1);
     });
 
+    test('enemy stomp profiles match authored damage instead of raw health', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'StompProfileTest' });
+
+        expect(scene.getEnemyStompProfile({
+            health: 2,
+            maxHealth: 2
+        })).toEqual({
+            stompable: true,
+            damagePerStomp: 2,
+            stompsRemaining: 1,
+            totalStomps: 1,
+            blocked: false
+        });
+        expect(scene.getEnemyStompProfile({
+            health: 1,
+            maxHealth: 2
+        })).toEqual({
+            stompable: true,
+            damagePerStomp: 2,
+            stompsRemaining: 1,
+            totalStomps: 1,
+            blocked: false
+        });
+        expect(scene.getEnemyStompProfile({
+            health: 4,
+            maxHealth: 5,
+            stompDamage: 1
+        })).toEqual({
+            stompable: true,
+            damagePerStomp: 1,
+            stompsRemaining: 4,
+            totalStomps: 5,
+            blocked: false
+        });
+        expect(scene.getEnemyStompProfile({
+            health: 3,
+            maxHealth: 5,
+            stompDamage: 2
+        })).toEqual({
+            stompable: true,
+            damagePerStomp: 2,
+            stompsRemaining: 2,
+            totalStomps: 3,
+            blocked: false
+        });
+        expect(scene.getEnemyStompProfile({
+            health: 3,
+            maxHealth: 3,
+            stompable: false
+        })).toEqual({
+            stompable: false,
+            damagePerStomp: 3,
+            stompsRemaining: null,
+            totalStomps: null,
+            blocked: false
+        });
+    });
+
+    test('combat pips advertise and decrement the top hits still required', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'CombatPipTest' });
+        const cue = {
+            active: true,
+            clear: jest.fn(),
+            lineStyle: jest.fn(),
+            lineBetween: jest.fn(),
+            setAlpha: jest.fn(),
+            fillStyle: jest.fn(),
+            fillRect: jest.fn()
+        };
+        const enemy = {
+            health: 5,
+            maxHealth: 5,
+            stompDamage: 1,
+            stompable: true,
+            combatCue: cue
+        };
+
+        scene.drawEnemyCombatCue(enemy);
+        expect(cue.fillRect).toHaveBeenCalledTimes(5);
+
+        cue.fillRect.mockClear();
+        cue.fillStyle.mockClear();
+        enemy.health = 4;
+        scene.drawEnemyCombatCue(enemy);
+        expect(cue.fillRect).toHaveBeenCalledTimes(5);
+        expect(cue.fillStyle.mock.calls.filter(([, alpha]) => alpha === 0.95)).toHaveLength(4);
+        expect(scene.getEnemyStompFeedback(enemy)).toEqual({
+            text: 'STOMP · 4 HITS LEFT',
+            color: '#F2C94C'
+        });
+
+        cue.fillRect.mockClear();
+        cue.fillStyle.mockClear();
+        enemy.health = 2;
+        enemy.maxHealth = 2;
+        enemy.stompDamage = 2;
+        scene.drawEnemyCombatCue(enemy);
+        expect(cue.fillRect).toHaveBeenCalledTimes(1);
+    });
+
     test('a decisive stomp reports that the enemy was cleared', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'ClearStompTest' });
@@ -1144,7 +1246,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('health: 1');
         expect(source).toContain('health: 2');
         expect(source).toContain('health: 3');
-        expect(source).toContain("instructionText: 'GOLD MARK // STOMP OR STRIKE'");
+        expect(source).toContain('instructionText: null');
     });
 
     test('shared sentinels use the universal combat and patrol contracts', () => {

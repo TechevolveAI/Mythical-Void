@@ -555,7 +555,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             bodyColor: 0x173D49,
             accentColor: 0x7FFFD4,
             eyeColor: 0xF2C94C,
-            instructionText: 'GOLD MARK // STOMP OR STRIKE'
+            instructionText: null
         });
     }
 

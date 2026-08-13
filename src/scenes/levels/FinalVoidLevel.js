@@ -508,7 +508,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             bodyColor: 0x260B38,
             accentColor: 0xDA70D6,
             eyeColor: 0xA9F3E4,
-            instructionText: 'GOLD MARK // STOMP OR STRIKE'
+            instructionText: null
         });
     }
 

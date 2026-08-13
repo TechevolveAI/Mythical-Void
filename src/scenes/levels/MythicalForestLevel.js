@@ -2154,6 +2154,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
             cueOffsetY: -40,
             onDefeat: enemy => this.killEnemy(enemy)
         });
+        if (index === 0) {
+            sprite.instructionLabel = this.add.text(
+                sprite.x,
+                sprite.y - 78,
+                'GOLD = JUMP ON TOP\nPIPS = JUMPS LEFT',
+                {
+                    fontSize: '11px',
+                    color: '#F2C94C',
+                    fontStyle: 'bold',
+                    align: 'center',
+                    stroke: '#061319',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5).setDepth(852);
+            sprite.instructionLabelFollowEnemy = true;
+        }
 
         // Add to platforms collider
         if (this.platforms) {
@@ -2722,6 +2738,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         enemy.combatCue?.destroy?.();
         enemy.combatCue = null;
+        enemy.instructionLabel?.destroy?.();
+        enemy.instructionLabel = null;
 
         // Death particles
         const deathFX = this.add.graphics();
