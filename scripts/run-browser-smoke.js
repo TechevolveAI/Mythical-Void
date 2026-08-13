@@ -86,13 +86,22 @@ async function main() {
         }
 
         const failures = [];
-        console.log('\n[release-smoke] First-session Start-to-egg suite');
-        try {
-            await runNodeScript('scripts/smoke-secondary-journeys.js', {
-                SMOKE_MODE: 'home-entry'
-            });
-        } catch (error) {
-            failures.push(`home-entry: ${error.message}`);
+        console.log('\n[release-smoke] First-session Start-to-egg viewport suite');
+        const homeEntryViewports = [
+            { smokeCase: 'phone', width: 390, height: 844 },
+            { smokeCase: 'wide-touch', width: 860, height: 768 }
+        ];
+        for (const viewport of homeEntryViewports) {
+            try {
+                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                    SMOKE_MODE: 'home-entry',
+                    SMOKE_CASE: viewport.smokeCase,
+                    SMOKE_VIEWPORT_WIDTH: String(viewport.width),
+                    SMOKE_VIEWPORT_HEIGHT: String(viewport.height)
+                });
+            } catch (error) {
+                failures.push(`home-entry:${viewport.smokeCase}: ${error.message}`);
+            }
         }
 
         // Run the two-scene Village journey before the campaign WebGL stress

@@ -83,6 +83,8 @@ class HatchingScene extends Phaser.Scene {
         this.themeMusicLoadRequested = false;
         this.startButtonPressed = false;
         this.startFlowQueued = false;
+        this.homeContentReady = false;
+        this.homeStartRecoveryTimer = null;
         this.portraitPromise = null;
         this.portraitError = null;
 
@@ -275,6 +277,12 @@ class HatchingScene extends Phaser.Scene {
      * Show home screen content after age gate check
      */
     showHomeContent() {
+        // The age-gate completion callback must never create overlapping home
+        // controls. Duplicate interactive containers make touch targeting
+        // unpredictable and can leave only the faded copy visible.
+        if (this.homeContentReady) return;
+        this.homeContentReady = true;
+
         // Main title with glow effect
         this.createEnhancedTitle();
 
@@ -292,6 +300,51 @@ class HatchingScene extends Phaser.Scene {
 
         // Render first, then fetch the long soundtrack without blocking input.
         this.loadThemeMusicInBackground();
+
+        // Recover from a partially initialized or externally interrupted home
+        // render while the player is still waiting to begin.
+        this.homeStartRecoveryTimer = this.time.delayedCall(900, () => {
+            this.ensureHomeStartReady();
+        });
+    }
+
+    ensureHomeStartReady() {
+        if (!this.sys?.isActive() || getGameState().get('session.gameStarted')) {
+            return;
+        }
+
+        const button = this.startButton;
+        const bounds = button?.getBounds?.();
+        const ready = Boolean(
+            button?.active &&
+            button.visible &&
+            button.alpha >= 0.8 &&
+            button.input?.enabled &&
+            bounds &&
+            bounds.left >= 0 &&
+            bounds.top >= 0 &&
+            bounds.right <= this.scale.width &&
+            bounds.bottom <= this.scale.height
+        );
+        if (ready) return;
+
+        this.startButtonPressed = false;
+        this.startButtonPressedAt = null;
+        this.startFlowQueued = false;
+        this.isStartingGame = false;
+        if (button?.active) {
+            const buttonWidth = Math.min(this.scale.width * 0.85, 340);
+            const buttonHeight = Math.min(this.scale.height * 0.08, 95);
+            button
+                .setPosition(this.scale.width / 2, this.scale.height * 0.5)
+                .setVisible(true)
+                .setAlpha(1)
+                .setScale(1)
+                .setDepth(10000);
+            MobileHelpers.setTouchHitArea(button, buttonWidth, buttonHeight, 30);
+            return;
+        }
+        this.createEnhancedStartButton();
     }
 
     loadThemeMusicInBackground() {
@@ -4013,7 +4066,9 @@ class HatchingScene extends Phaser.Scene {
         const buttonHeight = Math.min(height * 0.08, 95);  // 8% of screen height, max 95px
 
         // Create container for the button
-        const buttonContainer = this.add.container(buttonX, buttonY);
+        const buttonContainer = this.add.container(buttonX, buttonY)
+            .setScrollFactor(0)
+            .setDepth(10000);
 
         // LAYERED GLOW SYSTEM - Creates magnetic visual pull
         const outerGlow = this.add.graphics();
@@ -4299,42 +4354,10 @@ class HatchingScene extends Phaser.Scene {
 
         this.animateStartRelease(buttonContainer);
 
-        // Success burst
-        for (let i = 0; i < 16; i += 1) {
-            const angle = (i / 16) * Math.PI * 2;
-            const distance = 90;
-            const particle = this.add.circle(buttonX, buttonY, 5, 0xFFD700, 1);
-            this.tweens.add({
-                targets: particle,
-                x: buttonX + Math.cos(angle) * distance,
-                y: buttonY + Math.sin(angle) * distance,
-                alpha: 0,
-                scale: 0,
-                duration: 650,
-                ease: 'Power2.easeOut',
-                onComplete: () => particle.destroy()
-            });
-        }
-
-        // Fade and transition - CRITICAL FIX: Use handleStartGame() for proper state management
-        this.tweens.add({
-            targets: buttonContainer,
-            alpha: 0,
-            scaleX: 1.25,
-            scaleY: 1.25,
-            duration: 350,
-            delay: 150,
-            ease: 'Back.easeIn',
-            onComplete: () => {
-                // Hide loading indicator before scene transition
-                if (window.UXEnhancements) {
-                    window.UXEnhancements.hideLoading();
-                }
-                this.startFlowQueued = false;
-                // Use the proper state management flow
-                this.handleStartGame();
-            }
-        });
+        // Persist and advance from the release gesture itself. The old flow
+        // waited for an animation callback, so an interrupted tween could fade
+        // the only Start control without ever reaching the egg.
+        this.handleStartGame();
     }
 
     /**
@@ -4669,30 +4692,27 @@ class HatchingScene extends Phaser.Scene {
         console.log('  gameStarted:', GameState.get('session.gameStarted'));
         console.log('  creatureHatched:', GameState.get('creature.hatched'));
 
-        // Delayed restart to ensure save completes
-        this.time.delayedCall(100, () => {
-            // `this.scene` is Phaser's ScenePlugin; lifecycle state belongs to
-            // the Scene Systems object. Checking `this.scene.sys` always fails
-            // and previously left the home screen with its CTA faded out.
-            if (!this.sys?.isActive()) {
-                this.startFlowQueued = false;
-                this.isStartingGame = false;
-                return;
-            }
-
+        // GameState.save() is synchronous. Restart immediately so no timer or
+        // visual tween can strand the player on a home screen without a CTA.
+        if (window.UXEnhancements) {
+            window.UXEnhancements.hideLoading();
+        }
+        try {
+            this.scene.restart();
+        } catch (error) {
+            console.error('[HatchingScene] Restart failed, attempting direct start', error);
+            this.startFlowQueued = false;
+            this.isStartingGame = false;
             try {
-                this.scene.restart();
-            } catch (error) {
-                console.error('[HatchingScene] Restart failed, attempting direct start', error);
-                this.startFlowQueued = false;
-                this.isStartingGame = false;
-                try {
-                    this.scene.start('HatchingScene');
-                } catch (startError) {
-                    console.error('[HatchingScene] Scene start fallback failed', startError);
+                this.scene.start('HatchingScene');
+            } catch (startError) {
+                console.error('[HatchingScene] Scene start fallback failed', startError);
+                if (window.UXEnhancements) {
+                    window.UXEnhancements.hideLoading();
                 }
+                this.ensureHomeStartReady();
             }
-        });
+        }
     }
 }
 
