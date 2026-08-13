@@ -472,7 +472,7 @@ class UITheme {
             }
             
             /* Kid Mode enhancements */
-            body.kid-mode.space-mythic button,
+            body.kid-mode.space-mythic button:not(.compact-icon-button),
             body.kid-mode.space-mythic .interactive {
                 min-width: 64px;
                 min-height: 64px;
