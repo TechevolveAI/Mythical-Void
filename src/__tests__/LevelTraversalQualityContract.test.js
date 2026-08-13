@@ -428,6 +428,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain(
             'branchPlatform.traversalId = `forest-tree-${treeIndex + 1}-branch-${i + 1}`;'
         );
+        expect(source).toContain("activationSupportIds: ['forest-ground-3']");
+        expect(source).toContain("activationSupportIds: ['forest-ground-5']");
+        expect(source).toContain("activationSupportIds: ['forest-ground-6']");
     });
 
     test('Forest batches static scenery and enemy trails for mobile rendering', () => {
@@ -1469,6 +1472,11 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("'aurora-quiet-step-3'");
         expect(smoke).toContain('smokeForestForwardHandoffs(session)');
         expect(smoke).toContain("'forest-tree-3-handoff'");
+        expect(smoke).toContain('forestAnchorSupports');
+        expect(smoke).toContain("scene?.checkpointAnchors?.[${index}]");
+        expect(smoke).toContain("target.id === 'forest_anchor_1'");
+        expect(smoke).toContain("target.id === 'forest_anchor_2'");
+        expect(smoke).toContain("target.id === 'forest_anchor_3'");
         expect(smoke).toContain("'forest-guardian-handoff'");
 
         expect(smoke).toContain('for (let signalIndex = 1; signalIndex < 3; signalIndex += 1)');

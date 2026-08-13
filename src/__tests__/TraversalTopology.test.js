@@ -360,6 +360,65 @@ describe('campaign traversal topology', () => {
         )).toBe(true);
     });
 
+    test('measures the next segment from the reached objective coordinate', () => {
+        const result = analyzeTraversalTopology({
+            movement,
+            spawn: { x: 80, y: 650 },
+            supports: [
+                support('start', 0, 260, 700),
+                support('wide-anchor', 500, 900, 700),
+                support('forward-step', 760, 1020, 520),
+                support('finish', 1080, 1360, 520)
+            ],
+            targets: [
+                {
+                    id: 'first',
+                    x: 760,
+                    y: 620,
+                    activationSupportIds: ['wide-anchor']
+                },
+                {
+                    id: 'finish',
+                    x: 1220,
+                    y: 440,
+                    activationSupportIds: ['finish']
+                }
+            ]
+        });
+
+        expect(result.flow.backtrackDistance).toBe(0);
+        expect(result.flow.routeTargets[1].backtrackTransitions).toEqual([]);
+    });
+
+    test('ignores sub-pixel support-center noise in route direction', () => {
+        const result = analyzeTraversalTopology({
+            movement,
+            spawn: { x: 80, y: 650 },
+            supports: [
+                support('start', 0, 260, 700),
+                support('anchor', 500, 800, 700),
+                support('near-aligned-step', 649, 849, 520),
+                support('finish', 900, 1180, 520)
+            ],
+            targets: [
+                {
+                    id: 'first',
+                    x: 750,
+                    y: 620,
+                    activationSupportIds: ['anchor']
+                },
+                {
+                    id: 'finish',
+                    x: 1040,
+                    y: 440,
+                    activationSupportIds: ['finish']
+                }
+            ]
+        });
+
+        expect(result.flow.backtrackDistance).toBe(0);
+    });
+
     test('reports an isolated required objective even when most ground is usable', () => {
         const result = analyzeTraversalTopology({
             movement,

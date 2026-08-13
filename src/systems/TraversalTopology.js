@@ -444,6 +444,7 @@ function analyzeOrderedTargetFlow({
     let orderedFrontier = new Set([spawnSupportIndex]);
     let orderedRouteBroken = false;
     let previousTargetX = finite(spawnX);
+    let frontierX = previousTargetX;
     let requiredJumpCount = 0;
     let maxSegmentJumps = 0;
     let backtrackDistance = 0;
@@ -472,10 +473,12 @@ function analyzeOrderedTargetFlow({
             for (let index = 1; index < path.length; index += 1) {
                 const from = supports[path[index - 1]];
                 const to = supports[path[index]];
-                const delta = (
-                    (to.left + to.right) - (from.left + from.right)
-                ) / 2;
-                if (delta * expectedDirection < 0) {
+                const fromX = index === 1
+                    ? frontierX
+                    : (from.left + from.right) / 2;
+                const toX = (to.left + to.right) / 2;
+                const delta = toX - fromX;
+                if (delta * expectedDirection < -2) {
                     const distance = Math.abs(delta);
                     backtrackDistance += distance;
                     targetBacktrackDistance += distance;
@@ -490,6 +493,7 @@ function analyzeOrderedTargetFlow({
 
         if (reachable && !target.optional) {
             orderedFrontier = new Set(path.length ? [path.at(-1)] : []);
+            frontierX = target.x;
             requiredJumpCount += jumpCount;
             maxSegmentJumps = Math.max(maxSegmentJumps, jumpCount);
         } else if (!reachable && !target.optional) {
