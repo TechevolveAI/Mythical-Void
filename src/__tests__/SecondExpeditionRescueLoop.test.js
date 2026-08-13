@@ -60,9 +60,11 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain("id: 'caves_anchor_2'");
         expect(source).toContain("id: 'caves_anchor_3'");
         expect(source).toContain('PROJECT BEACON ANCHOR ${anchorNumber}/3');
-        expect(source).toContain(
-            'this.setCheckpoint(checkpoint.x, checkpoint.respawnY, {'
-        );
+        expect(source).toContain("activationSupportIds: ['caves-echo-upper']");
+        expect(source).toContain("activationSupportIds: ['caves-grove-step']");
+        expect(source).toContain("activationSupportIds: ['caves-guardian-left']");
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain('this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {');
     });
 
     test('keeps cave anchors local, ordered, and aligned with the full Beacon route', () => {
@@ -72,7 +74,12 @@ describe('second expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(checkpoints).toContain('this.createObjectiveTriggerZone(');
-        expect(checkpoints).toContain('{ width: 150, height: 280 }');
+        expect(checkpoints).toContain('{ width: 150, height: 190 }');
+        expect(checkpoints).toContain('this.canActivateOrderedRouteSignal(');
+        expect(checkpoints).toContain('this.isPlayerGroundedOnTraversalSupport(');
+        expect(checkpoints.indexOf('this.canActivateOrderedRouteSignal(')).toBeLessThan(
+            checkpoints.indexOf('this.isPlayerGroundedOnTraversalSupport(')
+        );
         expect(checkpoints).toContain('this.refreshCaveRouteReadability();');
         expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.beaconAnchorsActivated++');

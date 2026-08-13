@@ -452,6 +452,19 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("platform.traversalId = id;");
         expect(source).toContain("id: 'caves-core-lift'");
         expect(source).toContain("destinationId: 'caves-core-refuge'");
+        expect(source).toContain("activationSupportIds: ['caves-echo-upper']");
+        expect(source).toContain("activationSupportIds: ['caves-grove-step']");
+        expect(source).toContain("activationSupportIds: ['caves-guardian-left']");
+        expect(source).toContain("fallbackLabel: 'FOLLOW THE BEACON ANCHORS'");
+        expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+    });
+
+    test('shared route guidance resets before the first invalid contact', () => {
+        const source = read('PlatformerLevelScene.js');
+
+        expect(source.match(/this\.routeHintUntil = 0;/g)?.length).toBeGreaterThanOrEqual(2);
+        expect(source).toContain('now >= (Number(this.routeHintUntil) || 0)');
     });
 
     test('Stellar Reef spawns above its opening floating platform', () => {
@@ -1397,6 +1410,12 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("target.id === 'crystal_core'");
         expect(smoke).toContain("'caves-core-refuge'");
         expect(smoke).toContain('cavesFlowFailed');
+        expect(smoke).toContain("target.id === 'caves_anchor_1'");
+        expect(smoke).toContain("target.id === 'caves_anchor_2'");
+        expect(smoke).toContain("target.id === 'caves_anchor_3'");
+        expect(smoke).toContain("'caves-echo-upper'");
+        expect(smoke).toContain("'caves-grove-step'");
+        expect(smoke).toContain("'caves-guardian-left'");
         expect(smoke).toContain('peaksFlowFailed');
         expect(smoke).toContain("target.id === 'peaks_relay_1'");
         expect(smoke).toContain("'peak-lower-relay-overlook'");
