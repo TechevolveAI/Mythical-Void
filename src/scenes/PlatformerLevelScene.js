@@ -112,8 +112,9 @@ const CURRENT_NODE_LEVEL_CONFIG = Object.freeze({
         label: 'AURORA CURRENT'
     }),
     final_void_1: Object.freeze({
-        x: 420,
-        groundOffset: 130,
+        x: 1230,
+        groundOffset: 190,
+        supportId: 'final-return-approach',
         label: 'CURRENT HEART'
     })
 });
@@ -1877,7 +1878,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         };
     }
 
-    createTraversalLandingGuide(id, color = 0x7FFFD4, { depth = 179 } = {}) {
+    createTraversalLandingGuide(id, color = 0x7FFFD4, {
+        depth = 179,
+        animate = true
+    } = {}) {
         const support = this.getTraversalSupport(id);
         if (!support?.body) return null;
 
@@ -1896,14 +1900,16 @@ class PlatformerLevelScene extends Phaser.Scene {
             support.x,
             top - 2
         );
-        const tween = this.tweens.add({
-            targets: visual,
-            alpha: { from: 0.55, to: 1 },
-            duration: 720,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        const tween = animate
+            ? this.tweens.add({
+                targets: visual,
+                alpha: { from: 0.55, to: 1 },
+                duration: 720,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            })
+            : null;
         const guide = { id, visual, tween };
         this.traversalLandingGuides.push(guide);
         return guide;
