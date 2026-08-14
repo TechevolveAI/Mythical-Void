@@ -27,7 +27,9 @@ const expectedFiles = [
     'village-base-builder.png',
     'village-first-construction.png',
     'nasa-apollo11-real-space-discovery.png',
-    'creature-cosmic-egg-reveal.png'
+    'creature-cosmic-egg-reveal.png',
+    'guardian-void-empress-corrupted.png',
+    'guardian-void-empress-restored.png'
 ];
 
 const groupFiles = {
@@ -35,6 +37,7 @@ const groupFiles = {
     realms: expectedFiles.slice(3, 9),
     village: expectedFiles.slice(9, 11),
     nasa: expectedFiles.slice(11, 12),
+    restoration: expectedFiles.slice(13, 15),
     all: expectedFiles
 };
 
@@ -180,7 +183,7 @@ async function main() {
         throw new Error('Production build is missing. Run npm run build before capturing gameplay.');
     }
     fs.mkdirSync(captureDir, { recursive: true });
-    if (!['all', 'opening', 'realms', 'village', 'nasa'].includes(captureGroup)) {
+    if (!['all', 'opening', 'realms', 'village', 'nasa', 'restoration'].includes(captureGroup)) {
         throw new Error(`Unknown MYTHICAL_CAPTURE_GROUP: ${captureGroup}`);
     }
 
@@ -235,6 +238,14 @@ async function main() {
                 width: 390,
                 height: 844,
                 extraEnv: { SMOKE_SKIP_PREVIEW: '1' }
+            });
+        }
+        if (['all', 'restoration'].includes(captureGroup)) {
+            runSmoke({
+                mode: 'restoration-proof',
+                smokeCase: 'finalVoid',
+                width: 390,
+                height: 844
             });
         }
         const manifest = writeManifest();

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-14T17:30:48.131Z",
-  "sourceCommit": "bbba24a24191ee3343fdd19d255edb372e52d973",
+  "asOf": "2026-08-14T17:59:14.131Z",
+  "sourceCommit": "dbd66c1059ff365840a4abc78e4198a9de39063b",
   "sourceBranch": "codex/living-creature-portraits",
   "sourceRoute": "/play/",
   "captureMethod": "Automated first-party browser journeys using a clean invented QA state.",
@@ -9,7 +9,8 @@
   "captureSourceCommits": [
     "bbba24a24191ee3343fdd19d255edb372e52d973",
     "cf0f9c2409b5915a0177f65b287f539932352021",
-    "24ea30df367a20df762b237a4989604b35734435"
+    "24ea30df367a20df762b237a4989604b35734435",
+    "dbd66c1059ff365840a4abc78e4198a9de39063b"
   ],
   "rights": "First-party Mythical Void game capture. Any embedded public NASA material retains the exact source and credit recorded on its capture.",
   "privacy": "No player name, child identity, account, message, notification or personal save data is used.",
@@ -189,6 +190,32 @@
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
       "sourceCommit": "bbba24a24191ee3343fdd19d255edb372e52d973",
+      "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
+    },
+    {
+      "id": "GP-014",
+      "filename": "guardian-void-empress-corrupted.png",
+      "publicPath": "/press/gameplay/guardian-void-empress-corrupted.png",
+      "sha256": "a0869e85794a798af4219962f766780cd3e3bd698c219008e76074cc18f7012e",
+      "bytes": 175492,
+      "width": 390,
+      "height": 844,
+      "classification": "authentic_running_build_screenshot",
+      "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "dbd66c1059ff365840a4abc78e4198a9de39063b",
+      "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
+    },
+    {
+      "id": "GP-015",
+      "filename": "guardian-void-empress-restored.png",
+      "publicPath": "/press/gameplay/guardian-void-empress-restored.png",
+      "sha256": "7ee6b1c401b8a75e82c6d1d18cf5f13405c4ed04072c264ec8e49ed29ab22c45",
+      "bytes": 145291,
+      "width": 390,
+      "height": 844,
+      "classification": "authentic_running_build_screenshot",
+      "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "dbd66c1059ff365840a4abc78e4198a9de39063b",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     }
   ]

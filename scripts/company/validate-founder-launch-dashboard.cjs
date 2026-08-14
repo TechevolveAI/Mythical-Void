@@ -16,9 +16,10 @@ const paths = {
     calendar: process.argv[9] ? path.resolve(process.argv[9]) : defaultPaths.calendar,
     discovery: process.argv[10] ? path.resolve(process.argv[10]) : defaultPaths.discovery,
     hatchReview: process.argv[11] ? path.resolve(process.argv[11]) : defaultPaths.hatchReview,
-    dashboard: process.argv[12] ? path.resolve(process.argv[12]) : dashboardDefault
+    restorationReview: process.argv[12] ? path.resolve(process.argv[12]) : defaultPaths.restorationReview,
+    dashboard: process.argv[13] ? path.resolve(process.argv[13]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -76,6 +77,10 @@ requireValue(!routeMap.has('/story/'), 'The prepared story page must not be desc
 requireValue(values.hatchReview.captureId === 'GP-013', 'Founder view must use the reviewed authentic hatch reveal.');
 requireValue(values.hatchReview.reviewState === 'authentic_internal_proof_rejected_for_public_promotion' && values.hatchReview.publicUseApproved === false, 'The weak hatch reveal must remain withheld from public promotion.');
 requireValue(values.hatchReview.qualityIssues?.length === 4, 'The founder view must retain all four hatch-reveal quality issues.');
+
+requireValue(values.restorationReview.captureIds?.join(',') === 'GP-014,GP-015', 'Founder view must use both reviewed restoration frames.');
+requireValue(values.restorationReview.reviewState === 'authentic_supporting_proof_not_approved_as_lead_world_change' && values.restorationReview.publicUseApproved === false, 'The restoration pair must remain withheld as lead world-change proof.');
+requireValue(values.restorationReview.qualityIssues?.length === 4, 'The founder view must retain all four restoration quality issues.');
 
 const engagementTrack = values.launch.tracks?.find(track => track.id === 'LT-007');
 requireValue(engagementTrack?.status === 'blocked' && /safeguarding/i.test((engagementTrack.blockers || []).join(' ')), 'Public engagement must remain blocked until safeguarding and response ownership exist.');

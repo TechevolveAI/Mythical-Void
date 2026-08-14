@@ -25,6 +25,7 @@ const pressFactSheet = fs.readFileSync(
 const pressAssets = require('../../public/press/mythical-void-press-assets.json');
 const gameplayManifest = require('../../public/press/gameplay/manifest.json');
 const hatchRevealReview = require('../../docs/company/content/HATCH_REVEAL_PROOF_REVIEW.json');
+const restorationReview = require('../../docs/company/content/RESTORATION_PROOF_REVIEW.json');
 const gameplayVideoManifest = require('../../public/press/gameplay-video/manifest.json');
 const launchTrailerManifest = require('../../public/press/trailer/manifest.json');
 const trailerPage = fs.readFileSync(
@@ -219,7 +220,7 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.assets[0].kind).toBe(
             'edited_first_party_launch_trailer_with_authentic_gameplay'
         );
-        expect(gameplayManifest.captures).toHaveLength(13);
+        expect(gameplayManifest.captures).toHaveLength(15);
         expect(gameplayManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
         expect(gameplayManifest.captureSourcePolicy).toContain(
             'Each capture has its own sourceCommit'
@@ -239,6 +240,13 @@ describe('storefront Project Beacon story contract', () => {
         expect(hatchRevealReview.publicUseApproved).toBe(false);
         expect(hatchRevealReview.reviewState).toBe(
             'authentic_internal_proof_rejected_for_public_promotion'
+        );
+        expect(gameplayManifest.captures.filter(capture => (
+            ['GP-014', 'GP-015'].includes(capture.id)
+        ))).toHaveLength(2);
+        expect(restorationReview.publicUseApproved).toBe(false);
+        expect(restorationReview.reviewState).toBe(
+            'authentic_supporting_proof_not_approved_as_lead_world_change'
         );
         expect(pressAssets.restrictions).toContain(
             'Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.'

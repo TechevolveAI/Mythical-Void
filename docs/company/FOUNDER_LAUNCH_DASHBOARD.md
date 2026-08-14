@@ -22,6 +22,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Safer measurement:** the current Google tag is live, while the tighter 10-route, 5-action consent upgrade is prepared on this feature branch. Its numbers are not trusted for company decisions yet.
 - **Social launch:** 6 YouTube upload items and 5 LinkedIn posts are prepared, alongside a four-week plan containing 7 outward releases and one internal review.
 - **Honest game proof:** the real hatch reached a visible creature and Confirm contact, but the captured frame was rejected for public promotion after 4 visible quality problems were recorded for Game Development.
+- **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after 4 quality limits were recorded.
 - **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 
@@ -36,7 +37,8 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 ## Work the studio can continue without Kevin
 
 - Improve and recapture the real creature reveal, then complete the hatch-to-first-response proof without pretending the current frame is launch quality.
-- Capture a realm before and after restoration and a spoiler-safe Project Beacon choice.
+- Strengthen and recapture the stable realm aftermath so the difference is visible without relying on the words, then complete the continuous restoration proof.
+- Capture a spoiler-safe Project Beacon choice.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
 - Check every claim against the game and label generated artwork separately from gameplay.

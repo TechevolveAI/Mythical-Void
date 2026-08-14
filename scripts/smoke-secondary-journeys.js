@@ -2606,6 +2606,174 @@ async function smokeGuardianPacing(session, exceptions) {
     return results;
 }
 
+async function smokeRestorationProof(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(async () => {
+        const game = window.mythicalGame;
+        game.scene.getScenes(true).forEach(active => {
+            game.scene.stop(active.scene.key);
+        });
+        await window.SceneLoader.loadScene(game, 'FinalVoidLevel');
+        game.scene.start('FinalVoidLevel', {
+            testMode: true,
+            forceMobileControls: true,
+            platformerPreviewSize: 'mobile',
+            bossAttackPreview: 'void_tendrils'
+        });
+        return true;
+    })()`);
+    await waitForScene(session, 'FinalVoidLevel');
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+        scene.isInvincible = true;
+        scene.player?.setVelocity?.(0, 0);
+        scene.player?.body?.setAllowGravity?.(false);
+        return Boolean(scene.player?.active);
+    })()`);
+
+    let corrupted;
+    try {
+        corrupted = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+                if (
+                    !scene?.bossFightActive ||
+                    !scene?.boss?.active
+                ) return null;
+                scene.physics?.pause?.();
+                scene.tweens?.killTweensOf?.(scene.boss);
+                if (scene.bossAITimer) {
+                    scene.bossAITimer.remove?.();
+                    scene.bossAITimer = null;
+                }
+                scene.boss.setVelocity?.(0, 0);
+                scene.boss.setAlpha?.(1);
+                scene.boss.setScale?.(scene.bossTargetScale || 1);
+                scene.boss.y = scene.levelHeight - 280;
+                scene.boss.isAttacking = false;
+                scene.bossHealth = scene.bossMaxHealth;
+                scene.updateBossHealthBar?.();
+                return {
+                    bossActive: true,
+                    bossDefeated: scene.bossDefeated,
+                    bossHealth: scene.bossHealth,
+                    bossMaxHealth: scene.bossMaxHealth,
+                    resultPreview: scene.resultPreview,
+                    healthBarVisible: Boolean(scene.bossUI?.active)
+                };
+            })()`),
+            { timeoutMs: 18000, message: 'Corrupted Void Empress proof state' }
+        );
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+            return {
+                activeScenes: window.mythicalGame.scene.getScenes(true).map(item => item.scene.key),
+                levelStarted: scene?.levelStarted,
+                bossFightActive: scene?.bossFightActive,
+                bossDefeated: scene?.bossDefeated,
+                bossExists: Boolean(scene?.boss),
+                bossActive: Boolean(scene?.boss?.active),
+                bossAlpha: scene?.boss?.alpha,
+                bossHealth: scene?.bossHealth,
+                bossMaxHealth: scene?.bossMaxHealth,
+                playerActive: Boolean(scene?.player?.active),
+                testMode: scene?.testMode,
+                resultPreview: scene?.resultPreview
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+    }
+    if (
+        corrupted.bossDefeated ||
+        corrupted.bossHealth !== corrupted.bossMaxHealth
+    ) {
+        throw new Error(`Corrupted guardian proof was not stable: ${JSON.stringify(corrupted)}`);
+    }
+    await captureGameplayStill(session, 'guardian-void-empress-corrupted.png');
+
+    const restorationStarted = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+        scene.resultPreview = true;
+        scene.bossHealth = 1;
+        scene.updateBossHealthBar?.();
+        scene.damageBoss(1);
+        return {
+            resultPreview: scene.resultPreview,
+            bossDefeated: scene.bossDefeated,
+            bossHealth: scene.bossHealth
+        };
+    })()`);
+    if (
+        restorationStarted.resultPreview !== true ||
+        restorationStarted.bossDefeated !== true ||
+        restorationStarted.bossHealth !== 0
+    ) {
+        throw new Error(`Guardian restoration did not start: ${JSON.stringify(restorationStarted)}`);
+    }
+
+    const releaseButton = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+            const button = scene?.residentReleaseElements?.find(item => (
+                item?.type === 'Text' &&
+                /^RETURN WITH /.test(item?.text || '') &&
+                item?.active &&
+                item?.input?.enabled
+            ));
+            if (!scene?.residentReleaseOpen || !button) return null;
+            const bounds = button.getBounds();
+            return {
+                x: Math.round(bounds.centerX),
+                y: Math.round(bounds.centerY),
+                label: button.text
+            };
+        })()`),
+        { timeoutMs: 12000, message: 'Restored resident return action' }
+    );
+    await touch(session, releaseButton.x, releaseButton.y);
+
+    const restored = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
+            const restoredTitle = scene?.children?.list?.find(item => (
+                item?.type === 'Text' &&
+                item?.text === 'VOID EMPRESS RESTORED' &&
+                item?.active &&
+                item?.alpha >= 0.95
+            ));
+            if (
+                !restoredTitle ||
+                scene?.boss?.active ||
+                scene?.residentReleaseOpen
+            ) return null;
+            return {
+                restoredTitleVisible: true,
+                bossDefeated: scene.bossDefeated,
+                bossRemoved: !scene.boss,
+                resultPreview: scene.resultPreview,
+                guardianId: scene.levelCompletionResult?.guardianResident?.id,
+                guardianName: scene.levelCompletionResult?.guardianResident?.name
+            };
+        })()`),
+        { timeoutMs: 12000, message: 'Restored Void Empress result proof state' }
+    );
+    if (
+        restored.resultPreview !== true ||
+        !restored.bossDefeated ||
+        restored.guardianId !== 'void_empress'
+    ) {
+        throw new Error(`Restored guardian proof was incomplete: ${JSON.stringify(restored)}`);
+    }
+    await captureGameplayStill(session, 'guardian-void-empress-restored.png');
+    if (exceptions.length) {
+        throw new Error(`Restoration proof raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+    return { corrupted, restorationStarted, releaseButton, restored };
+}
+
 async function main() {
     if (!fs.existsSync(CHROME_PATH)) {
         throw new Error(`Chrome was not found at ${CHROME_PATH}`);
@@ -2760,10 +2928,16 @@ async function main() {
                 session,
                 exceptions
             );
+        } else if (SMOKE_MODE === 'restoration-proof') {
+            results.restorationProof = await smokeRestorationProof(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS RestorationProof\n');
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, nasa-content, interaction, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
+                'Use home-entry, nasa-content, interaction, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, guardian-pacing, or restoration-proof.'
             );
         }
         console.log(JSON.stringify({

@@ -61,6 +61,12 @@ The camera now proves that the running build can move from a purchased cosmic eg
 
 The current review is recorded in `docs/company/content/HATCH_REVEAL_PROOF_REVIEW.json`. GP-013 is authentic internal evidence, but it is withheld from public promotion because the creature is too small, text collides, an egg instruction remains after the egg disappears, and the lower interface has no clear reading order. Game Development should improve the reveal composition and then the company camera should capture and review it again.
 
+## The restoration pair is supporting proof
+
+GP-014 and GP-015 show the real Void Empress before the final restoration point and the real restored-result state afterward. The phone-sized comparison is stored with the other running-build captures and reviewed in `docs/company/content/RESTORATION_PROOF_REVIEW.json`.
+
+The pair supports only a narrow claim: Mythical Void treats the final guardian outcome as restoration. It does not show the full player battle, and the realm behind the result does not yet change enough to lead a promise that players visibly bring worlds back to life. Keep it internal until a stable healed guardian or realm aftermath is strong enough to understand without the words.
+
 ## Build the launch trailer
 
 The first 64-second launch trailer is now reproducible from the proof assets:

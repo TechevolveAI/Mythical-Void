@@ -14,6 +14,8 @@
     "validate:story-page": "node scripts/company/validate-story-discovery-page.cjs",
     "validate:hatch-reveal-proof": "node scripts/company/validate-hatch-reveal-proof.cjs",
     "test:hatch-reveal-proof": "node scripts/company/test-hatch-reveal-proof.cjs",
+    "validate:restoration-proof": "node scripts/company/validate-restoration-proof.cjs",
+    "test:restoration-proof": "node scripts/company/test-restoration-proof.cjs",
     "package:itch": "npm run build:portable && node scripts/company/validate-portable-browser-build.cjs && node scripts/package-itch-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",

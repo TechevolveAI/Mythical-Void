@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "RESTORATION-REVIEW-001",
+  "asOf": "2026-08-14",
+  "captureIds": [
+    "GP-014",
+    "GP-015"
+  ],
+  "capturePaths": [
+    "public/press/gameplay/guardian-void-empress-corrupted.png",
+    "public/press/gameplay/guardian-void-empress-restored.png"
+  ],
+  "sourceCommit": "dbd66c1059ff365840a4abc78e4198a9de39063b",
+  "reviewState": "authentic_supporting_proof_not_approved_as_lead_world_change",
+  "publicUseApproved": false,
+  "whatTheRunningBuildProves": [
+    "The real final guardian encounter presents the Void Empress under corruption pressure.",
+    "The game routes the final point of damage through its real guardian restoration code.",
+    "The resulting running-build screen says Void Empress restored rather than defeated or destroyed.",
+    "The non-mutating result preview identifies the restored guardian as the Void Empress.",
+    "Both frames use a company-controlled invented state with no player or child identity."
+  ],
+  "captureBoundary": "This is a staged two-frame QA comparison, not a continuous player journey. The camera safely freezes the full-health guardian, then stages the final point and uses the real damage, restoration, resident-return and result-screen code. It does not show the earlier combat or claim that a player performed the missing action between the two frames.",
+  "qualityIssues": [
+    {
+      "id": "RQ-001",
+      "severity": "high",
+      "observation": "The background realm looks almost the same before and after restoration.",
+      "impact": "The pair proves a result label but does not visually prove that the player brought a living world back to health.",
+      "handoff": "Add a clearly visible post-restoration ecology, light, colour or Current change that remains after the guardian sequence."
+    },
+    {
+      "id": "RQ-002",
+      "severity": "high",
+      "observation": "The restored guardian disappears instead of remaining visible in a healed or allied form.",
+      "impact": "The emotional difference between destroying an enemy and restoring a wounded being is carried mostly by text.",
+      "handoff": "Show the Void Empress visibly stabilised, changed or choosing to withdraw before the result screen."
+    },
+    {
+      "id": "RQ-003",
+      "severity": "medium",
+      "observation": "The two stills skip the player action between full corruption and the final restoration point.",
+      "impact": "The pair cannot prove the combat journey, player skill or a continuous cause-and-effect sequence.",
+      "handoff": "Create a continuous capture from a readable late-combat opening through restoration and its stable aftermath."
+    },
+    {
+      "id": "RQ-004",
+      "severity": "medium",
+      "observation": "The restored frame is mostly a text result over the same dark playfield.",
+      "impact": "It is truthful supporting evidence but too visually quiet to lead a social post, trailer beat or homepage promise about changing worlds.",
+      "handoff": "Give the stable aftermath one strong visual reward that reads without explanatory copy."
+    }
+  ],
+  "allowedClaims": [
+    "Mythical Void calls the final guardian outcome restoration.",
+    "The fight is against the corruption around the Void Empress.",
+    "The real game contains a Void Empress restored result state."
+  ],
+  "claimsNotAllowed": [
+    "The pair shows a complete player battle.",
+    "The pair proves that the realm visibly changes after restoration.",
+    "The restored guardian visibly becomes an ally in these frames.",
+    "Every guardian and realm has the same restoration presentation.",
+    "The two frames are a continuous recording."
+  ],
+  "gameDevelopmentHandoff": {
+    "priority": "high_before_leading_marketing_with_world_restoration",
+    "requestedOutcome": "Make restoration visibly different from removal by showing a stable healed guardian or realm change that a child can understand without reading a result label.",
+    "acceptanceChecks": [
+      "The before and after frames are visibly different even with all words hidden.",
+      "The restored guardian or its positive effect remains visible long enough to understand.",
+      "The realm has a stable post-restoration visual state.",
+      "A continuous late-combat-to-aftermath capture can be completed without debug overlays or personal data.",
+      "A fresh phone capture passes independent visual review before public promotion."
+    ]
+  },
+  "nextCompanyAction": "Keep GP-014 and GP-015 as internal supporting evidence. Do not use the pair as the lead proof that players visibly restore worlds. Recapture after the stable guardian or realm aftermath is strengthened."
+}
