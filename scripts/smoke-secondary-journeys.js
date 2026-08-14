@@ -2174,6 +2174,23 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         );
     }
     if (
+        route === 'reef' &&
+        (
+            state.encounterRhythm?.count !== 8 ||
+            state.encounterRhythm.clearCount < 4 ||
+            state.encounterRhythm.armoredCount < 2 ||
+            state.encounterRhythm.mainCount < 1 ||
+            state.encounterRhythm.optionalCount < 1 ||
+            state.encounterRhythm.unsupported.length > 0
+        )
+    ) {
+        throw new Error(
+            `${sceneName} has no deliberate encounter rhythm: ${JSON.stringify(
+                state.encounterRhythm
+            )}`
+        );
+    }
+    if (
         route === 'auroraDepths' &&
         (
             state.encounterRhythm?.count < 8 ||
@@ -4433,6 +4450,42 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             forestForwardHandoffs = await smokeForestForwardHandoffs(session);
         }
 
+        try {
+            await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    scene?.refreshGuardianGateState?.(true);
+                    return scene?.guardianGateState?.ready === true;
+                })()`),
+                { timeoutMs: 3500, message: `${sceneName} ready guardian gate` }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                return {
+                    gate: scene?.guardianGateState ? {
+                        ready: scene.guardianGateState.ready,
+                        status: scene.guardianGateState.status
+                    } : null,
+                    routeAligned: scene?.reefRouteAligned ??
+                        scene?.forestRouteAligned ??
+                        scene?.caveRouteAligned ??
+                        scene?.peakRouteAligned ??
+                        scene?.auroraRouteAligned ??
+                        scene?.finalRouteAligned ?? null,
+                    signalCount: scene?.orderedRouteSignals?.filter(
+                        signal => signal?.completed
+                    ).length,
+                    shipPartCollected: scene?.shipPartCollected,
+                    bossFightActive: scene?.bossFightActive,
+                    playerDead: scene?.isPlayerDead,
+                    persistedRouteState: window.GameState?.get?.(
+                        'story.projectBeacon.expeditionCheckpoint.routeState'
+                    ) || null
+                };
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
         const guardianEntrySetup = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const gate = scene?.guardianGateState;

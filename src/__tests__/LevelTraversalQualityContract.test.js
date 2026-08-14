@@ -136,6 +136,41 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.queueVirtualJumpInput();');
     });
 
+    test('ground contact cannot trigger anti-stuck movement while a real wedge still recovers', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'AntiStuckTest' });
+        const setPosition = jest.fn();
+        const setVelocity = jest.fn();
+        scene.player = {
+            x: 320,
+            y: 1091,
+            body: {
+                velocity: { x: 0, y: 0 },
+                blocked: { down: true, left: false, right: false },
+                embedded: true
+            },
+            setPosition,
+            setVelocity
+        };
+        scene.time = { delayedCall: jest.fn() };
+
+        for (let frame = 0; frame < 60; frame += 1) {
+            scene.checkAndFixStuckPlayer();
+        }
+
+        expect(setPosition).not.toHaveBeenCalled();
+        expect(scene.stuckFrameCount).toBe(0);
+
+        scene.player.body.blocked.left = true;
+        for (let frame = 0; frame < 31; frame += 1) {
+            scene.checkAndFixStuckPlayer();
+        }
+
+        expect(setPosition).toHaveBeenCalledTimes(1);
+        expect(setPosition).toHaveBeenCalledWith(370, 991);
+        expect(setVelocity).toHaveBeenCalledWith(100, -100);
+    });
+
     test('Cosmic Reef keeps shared recovery while adding deliberate mobile descent', () => {
         const source = read('levels/ReefLevel.js');
         const updateBody = source.match(
@@ -684,6 +719,30 @@ describe('campaign traversal quality contracts', () => {
         );
         expect(source).toContain('this.virtualJumpQueued;');
         expect(source).toContain('this.virtualJumpQueued = false;');
+    });
+
+    test('Stellar Reef uses eight support-authored combat beats', () => {
+        const source = read('levels/ReefLevel.js');
+
+        expect(source).toContain('const REEF_ENCOUNTER_PLAN = Object.freeze([');
+        [
+            'opening-phase-lesson',
+            'drift-relay-clear',
+            'main-current-charge',
+            'star-trench-wraith',
+            'drive-approach-phase',
+            'traveler-relay-charge',
+            'passage-bridge-clear',
+            'guardian-current-wraith'
+        ].forEach(beat => expect(source).toContain(`beat: '${beat}'`));
+        expect(source).toContain('this.createReefEncounterRhythm();');
+        expect(source).toContain('resolveReefEncounterPlacement(encounter)');
+        expect(source).toContain('enemy.encounterSupportId = encounter.supportId;');
+        expect(source).toContain('enemy.encounterAirborne = true;');
+        expect(source).not.toContain('this.spawnVoidSpores();');
+        expect(source).not.toContain('this.spawnPlasmaDarts();');
+        expect(source).not.toContain('this.spawnPhaseDrifters();');
+        expect(source).not.toContain('this.spawnLureWraiths();');
     });
 
     test('Void Peaks separates recovery islands and rewards Relic Ridge', () => {
