@@ -5,6 +5,7 @@
   "playUrl": "https://mythicalvoid.com/play/",
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
+  "launchTrailerProofManifest": "https://mythicalvoid.com/press/trailer/manifest.json",
   "educatorResources": [
     {
       "name": "Mythical Void STEM Creature Lab",
@@ -16,6 +17,14 @@
     }
   ],
   "assets": [
+    {
+      "name": "Mythical Void — Play Free launch trailer",
+      "url": "https://mythicalvoid.com/press/trailer/mythical-void-play-free-launch-trailer.mp4",
+      "posterUrl": "https://mythicalvoid.com/press/trailer/mythical-void-play-free-launch-trailer-poster.jpg",
+      "captionsUrl": "https://mythicalvoid.com/press/trailer/mythical-void-play-free-launch-trailer.vtt",
+      "kind": "edited_first_party_launch_trailer_with_authentic_gameplay",
+      "description": "A 64-second launch trailer made from authentic game footage, verified running-build screenshots, title cards and the first-party Mythical Void theme. No generated gameplay footage."
+    },
     {
       "name": "Mythical Forest authentic gameplay video",
       "url": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",

@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-14T16:24:44.391Z",
+  "sourceCommit": "fad4991f4f31fe28e89129e0f1a23e0087b2407c",
+  "sourceBranch": "codex/living-creature-portraits",
+  "approvalState": "internal_review_ready_waiting_for_kevin",
+  "purpose": "A truthful 60-to-90-second launch trailer for the press room, YouTube and creator outreach.",
+  "audience": "Families, teenagers, adult players, educators, creators and games press.",
+  "presentationBoundary": "Moving gameplay is taken only from the authentic running-build recording. Other game views are clearly framed as authentic gameplay captures. No generated marketing illustration is presented as gameplay.",
+  "privacy": "Uses only company-controlled QA captures. No child identity, player name, account, message, notification or personal save data appears.",
+  "nasaBoundary": "The NASA learning moment is credited in the source capture and the trailer states that NASA does not endorse Mythical Void.",
+  "audioRights": "Uses the first-party Mythical Void theme music already shipped with the game. No third-party stock music was added.",
+  "asset": {
+    "id": "TR-001",
+    "filename": "mythical-void-play-free-launch-trailer.mp4",
+    "publicPath": "/press/trailer/mythical-void-play-free-launch-trailer.mp4",
+    "posterFilename": "mythical-void-play-free-launch-trailer-poster.jpg",
+    "posterPublicPath": "/press/trailer/mythical-void-play-free-launch-trailer-poster.jpg",
+    "captionsFilename": "mythical-void-play-free-launch-trailer.vtt",
+    "captionsPublicPath": "/press/trailer/mythical-void-play-free-launch-trailer.vtt",
+    "classification": "edited_first_party_launch_trailer_with_authentic_gameplay",
+    "disclosure": "Includes authentic gameplay footage and authentic running-build screenshots. Edited with title cards and the first-party game theme; no generated gameplay footage.",
+    "sha256": "4ebd662b05c7a079d6450c43efb5caa3b85e6d60fefc8db6b82b4f9d467cafd8",
+    "posterSha256": "7829811866d5f327f6ac988f5715833b7c3943e9ecb38555d02296db389f0ebd",
+    "captionsSha256": "956a2358c39415760b0d3e0c58f78e14a052aa4a6fa37258f08cd1073810e975",
+    "width": 1920,
+    "height": 1080,
+    "frameRate": "30/1",
+    "durationSeconds": 64,
+    "bytes": 7338455,
+    "audio": {
+      "codec": "aac",
+      "channels": 2,
+      "sampleRate": 44100
+    }
+  },
+  "editStructure": [
+    {
+      "id": "01-title",
+      "durationSeconds": 5,
+      "movingGameplay": false
+    },
+    {
+      "id": "02-signal",
+      "durationSeconds": 5,
+      "movingGameplay": false
+    },
+    {
+      "id": "03-contact",
+      "durationSeconds": 5,
+      "movingGameplay": false
+    },
+    {
+      "id": "04-gameplay-base",
+      "durationSeconds": 10,
+      "movingGameplay": true
+    },
+    {
+      "id": "05-hatch",
+      "durationSeconds": 5,
+      "movingGameplay": false
+    },
+    {
+      "id": "06-worlds-a",
+      "durationSeconds": 6,
+      "movingGameplay": false
+    },
+    {
+      "id": "07-worlds-b",
+      "durationSeconds": 6,
+      "movingGameplay": false
+    },
+    {
+      "id": "08-village",
+      "durationSeconds": 5,
+      "movingGameplay": false
+    },
+    {
+      "id": "09-nasa",
+      "durationSeconds": 5,
+      "movingGameplay": false
+    },
+    {
+      "id": "10-origin",
+      "durationSeconds": 5,
+      "movingGameplay": false
+    },
+    {
+      "id": "11-cta",
+      "durationSeconds": 7,
+      "movingGameplay": false
+    }
+  ],
+  "sources": [
+    {
+      "path": "public/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+      "sha256": "fcf49889000345f36736e6ac5ea009a0f44ff30d2866bf0c40f592e28b62d9b0"
+    },
+    {
+      "path": "public/audio/theme-music.mp3",
+      "sha256": "b1cf76caf88e3fe9b9a20408214c37c4c5ed06cb137cd7cdc4299aed151bbe26"
+    },
+    {
+      "path": "public/marketing/mythical-void-emblem-v3.png",
+      "sha256": "727245608b576923688b91fe200a88444eb68d1eb089ce63f70b418306c41cb8"
+    },
+    {
+      "path": "public/press/gameplay/project-beacon-start.png",
+      "sha256": "787641e1a94398db39b37a50064e6e0c7c616f5e03e8613984932f859fd46391"
+    },
+    {
+      "path": "public/press/gameplay/project-beacon-live-egg.png",
+      "sha256": "f6478b6b72b39a643063a32cd3cf36caa8712b99f56d0036f45ea2eb49bff759"
+    },
+    {
+      "path": "public/press/gameplay/creature-cosmic-egg-hatch.png",
+      "sha256": "a483e87cdfe9b0d6cbd39bdb719424ceedcbfb3664db5668ed82d0765042a120"
+    },
+    {
+      "path": "public/press/gameplay/realm-mythicalforest.png",
+      "sha256": "56adb5bce12533051099da96e037e0f3f9d5afed792b8e28ed903618ea35eb7c"
+    },
+    {
+      "path": "public/press/gameplay/realm-crystalcaves.png",
+      "sha256": "6190a7dcdbd2c1e64f8dfba376f8e2e17f95b9820a6d9709e7bfff60de37acf0"
+    },
+    {
+      "path": "public/press/gameplay/realm-reef.png",
+      "sha256": "610d890bae135065dcc03263050565e7d84356fbeebe1b62b67181d312760f03"
+    },
+    {
+      "path": "public/press/gameplay/realm-voidpeaks.png",
+      "sha256": "ccc016d8bb3488e2c6a38450cf5b95ca24abdb96ce5b51a7572d8e73fabf4220"
+    },
+    {
+      "path": "public/press/gameplay/realm-auroradepths.png",
+      "sha256": "8ba830e90150709ff1479958db99e7fb0b2e6005b43945bd35710b3cf6493fba"
+    },
+    {
+      "path": "public/press/gameplay/realm-finalvoid.png",
+      "sha256": "3e662f5d43004fa0c9b38fe1e64e1567fff9d3afe480b574c183153c5b8e2fa9"
+    },
+    {
+      "path": "public/press/gameplay/village-first-construction.png",
+      "sha256": "09de706822644ab21aa535804b4eddeb2739fba25d627b8a73ef609253b462e6"
+    },
+    {
+      "path": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
+      "sha256": "1f841ccf802fa335868a6d326f56f1175186ef5de6affc390e93cd408c6b1957"
+    }
+  ],
+  "requiredHumanReview": [
+    "Watch the beginning, middle and end with sound.",
+    "Confirm the pace and family-facing language.",
+    "Confirm every gameplay statement still matches the live game.",
+    "Choose the YouTube audience setting at upload.",
+    "Approve the finished title, description, thumbnail and film together before publication."
+  ]
+}

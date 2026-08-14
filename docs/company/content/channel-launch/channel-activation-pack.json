@@ -73,8 +73,11 @@
           "format": "60 to 90 second trailer",
           "purpose": "Show that the game is real and playable now.",
           "assetRule": "Authentic build-linked gameplay only; generated title art may appear if clearly labelled.",
+          "asset": "public/press/trailer/mythical-void-play-free-launch-trailer.mp4",
+          "poster": "public/press/trailer/mythical-void-play-free-launch-trailer-poster.jpg",
+          "captions": "public/press/trailer/mythical-void-play-free-launch-trailer.vtt",
           "description": "A universe of creatures is waiting. Hatch a strange creature, explore six living realms and decide what Project Beacon becomes. Play free with no download or account needed: https://mythicalvoid.com/\n\nAny generated title artwork is a marketing illustration, not gameplay.",
-          "proofState": "blocked_until_authentic_gameplay_capture",
+          "proofState": "finished_trailer_waiting_for_kevin_and_channel",
           "audienceDecision": "required_at_upload"
         },
         {

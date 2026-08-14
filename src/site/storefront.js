@@ -125,8 +125,17 @@ function renderPressPage() {
                 <div class="section-inner">
                     <div class="press-section-heading press-heading-split">
                         <div><p class="kicker">CAPTURED FROM THE GAME</p><h2>This is what players really see.</h2></div>
-                        <p>Every frame below was captured automatically from a tested Mythical Void build using an invented game state. No mock gameplay, private save or player identity is involved.</p>
+                        <p>The gameplay and game views below come from tested Mythical Void builds using invented game states. Title cards are clearly separate. No mock gameplay, private save or player identity is involved.</p>
                     </div>
+                    <figure class="press-gameplay-card press-trailer-card">
+                        <div class="press-trailer-shell">
+                            <video controls playsinline preload="metadata" poster="/press/trailer/mythical-void-play-free-launch-trailer-poster.jpg" aria-label="Mythical Void launch trailer with real gameplay, verified game screenshots and on-screen text">
+                                <source src="/press/trailer/mythical-void-play-free-launch-trailer.mp4" type="video/mp4">
+                                <track kind="captions" src="/press/trailer/mythical-void-play-free-launch-trailer.vtt" srclang="en" label="English">
+                            </video>
+                        </div>
+                        <figcaption><span>OFFICIAL 64-SECOND LAUNCH TRAILER</span><strong>From a father-and-son question to a playable universe</strong><p>Real game movement and verified running-build screenshots, edited with title cards and the game’s own theme. No generated gameplay footage.</p><a href="/press/trailer/mythical-void-play-free-launch-trailer.mp4" download>Download launch trailer ↓</a><a href="/press/trailer/mythical-void-play-free-launch-trailer.vtt" download>Download captions ↓</a></figcaption>
+                    </figure>
                     <div class="press-proof-feature-grid">
                         <figure class="press-gameplay-card press-video-card">
                             <div class="press-video-shell">
@@ -159,7 +168,7 @@ function renderPressPage() {
                             <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
                         </figure>
                     </div>
-                    <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View video build record →</a></p>
+                    <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View raw video build record →</a><a href="/press/trailer/manifest.json">View trailer edit record →</a></p>
                 </div>
             </section>
 

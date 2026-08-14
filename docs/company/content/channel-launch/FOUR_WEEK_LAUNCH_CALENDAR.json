@@ -86,11 +86,15 @@
           "id": "CAL-004",
           "day": "Thursday",
           "channel": "YouTube",
-          "contentRef": "YT-006",
-          "title": "10 seconds in the Mythical Forest",
-          "asset": "public/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
-          "assetClass": "authentic_running_build_gameplay_video",
-          "disclosure": "Recorded directly from the real Mythical Void browser game; not generated footage.",
+          "contentRef": "YT-001",
+          "title": "Mythical Void — Play Free in Your Browser",
+          "asset": "public/press/trailer/mythical-void-play-free-launch-trailer.mp4",
+          "additionalAssets": [
+            "public/press/trailer/mythical-void-play-free-launch-trailer-poster.jpg",
+            "public/press/trailer/mythical-void-play-free-launch-trailer.vtt"
+          ],
+          "assetClass": "edited_first_party_launch_trailer_with_authentic_gameplay",
+          "disclosure": "Includes authentic gameplay footage and verified running-build screenshots, edited with title cards and the first-party game theme. No generated gameplay footage.",
           "state": "waiting_for_channel_and_kevin_approval"
         }
       ]

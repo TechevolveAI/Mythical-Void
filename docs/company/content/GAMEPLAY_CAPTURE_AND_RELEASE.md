@@ -53,4 +53,17 @@ The recording contains no voice, player name, account, message or personal save.
 5. If the relevant game area changes, run the camera again rather than reusing an old image.
 6. For video, inspect the beginning, middle and end rather than approving it from the poster image alone.
 
-This system prepares verified proof assets, not a finished trailer. Longer videos still need a human edit, a checked soundtrack and a final audience decision before upload.
+The capture system prepares verified proof assets. A trailer still needs a deliberate edit, a checked soundtrack and a final audience decision before upload; the first such edit is now reproducible below.
+
+## Build the launch trailer
+
+The first 64-second launch trailer is now reproducible from the proof assets:
+
+```bash
+npm run build:launch-trailer
+npm run validate:launch-trailer
+```
+
+It uses the genuine moving gameplay clip, verified running-build screenshots, clear title cards and the first-party game theme. Its captions, poster and detailed edit record are written to `public/press/trailer/`.
+
+This does not authorize publication. Kevin still reviews the complete film with sound, the final title, description, thumbnail and audience setting together before upload.

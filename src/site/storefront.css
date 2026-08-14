@@ -2018,6 +2018,31 @@ footer {
     grid-template-rows: minmax(0, 1fr) auto;
 }
 
+.press-trailer-card {
+    margin-bottom: 1.15rem;
+}
+
+.press-trailer-shell {
+    padding: 1rem;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(126, 87, 224, .18), transparent 48%),
+        #070614;
+}
+
+.press-trailer-shell video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 1px solid rgba(143, 227, 207, .3);
+    border-radius: 1rem;
+    background: #05040e;
+    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .42);
+}
+
+.press-trailer-card figcaption a + a {
+    margin-left: 1rem;
+}
+
 .press-video-shell {
     display: grid;
     min-height: 610px;
@@ -2296,6 +2321,8 @@ footer {
     .press-nasa-card > img { height: 570px; }
     .press-nasa-card figcaption a { display: block; }
     .press-nasa-card figcaption a + a { margin: .65rem 0 0; }
+    .press-trailer-card figcaption a { display: block; }
+    .press-trailer-card figcaption a + a { margin: .65rem 0 0; }
     .press-origin-mark { min-height: 330px; }
 }
 
