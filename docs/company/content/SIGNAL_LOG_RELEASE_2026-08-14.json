@@ -31,6 +31,21 @@
     ],
     "rule": "A public note must describe a verified live change and link to the thing that changed. Drafts and future promises stay out."
   },
+  "draftAutomation": {
+    "state": "merged_to_main_internal_review_only",
+    "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/86",
+    "productionCommit": "bddd9b29d40c1b7f8798575219b0eacc6574a004",
+    "generatedPack": "docs/company/content/generated/signal-log-release-pack.json",
+    "sourceEntryCount": 2,
+    "reviewDraftCount": 6,
+    "draftTypesPerEntry": [
+      "professional network post",
+      "video community text post",
+      "recipient-free press or creator source note"
+    ],
+    "safeguardFailureCasesPassed": 11,
+    "externalActionPerformed": false
+  },
   "boundaries": {
     "commentsEnabled": false,
     "contactCollectionEnabled": false,
