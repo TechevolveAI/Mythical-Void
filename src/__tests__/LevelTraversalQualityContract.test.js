@@ -1056,6 +1056,41 @@ describe('campaign traversal quality contracts', () => {
         expect(source).not.toContain('targets: ember,');
     });
 
+    test('Aurora Depths streams patrols and keeps mobile route cues static', () => {
+        const source = read('levels/AuroraDepthsLevel.js');
+        const platformerSource = read('PlatformerLevelScene.js');
+        const smoke = read('../../scripts/smoke-secondary-journeys.js');
+
+        expect(platformerSource).toContain('getRuntimePatrolEnemies()');
+        expect(platformerSource).toContain('const enemies = this.getRuntimePatrolEnemies();');
+        expect(source).toContain('startAuroraEnemyScheduler()');
+        expect(source).toContain('updateAuroraEnemyActivation(force = false)');
+        expect(source).toContain('setAuroraEnemyRenderAttached(enemy, attached)');
+        expect(source).toContain('getRuntimePatrolEnemies()');
+        expect(source).toContain('this.auroraProximityEnemies');
+        expect(source).toContain('this.isMobile ? 80 : 40');
+        expect(source).toContain('shouldAnimateAuroraDecorations()');
+        expect(source).toMatch(
+            /createQuietLightRoute\(\)[\s\S]*if \(this\.shouldAnimateAuroraDecorations\(\)\) \{[\s\S]*targets: route,/
+        );
+        expect(source).toMatch(
+            /createAuroraFragments\(\)[\s\S]*if \(this\.shouldAnimateAuroraDecorations\(\)\) \{[\s\S]*targets: fragmentTargets,/
+        );
+        expect(source).toContain('{ animate: this.shouldAnimateAuroraDecorations() }');
+        expect(smoke).toContain('state.auroraEnemyRuntime?.scheduledEnemyCount !== 8');
+        expect(smoke).toContain('state.auroraEnemyRuntime?.proximityActiveCount > 3');
+        expect(smoke).toContain('state.auroraEnemyRuntime?.runtimePatrolCount !==');
+        expect(smoke).toContain('guardianEntry.auroraEnemyAISchedulerActive !== false');
+        expect(smoke).toContain('framePacing.auroraRuntime?.patrolUpdatesDuringSample > 28');
+        expect(smoke).toContain('smokeAuroraEnemyActivationWindow(session)');
+        expect(smoke).toContain('Aurora enemy activation did not wake before contact');
+        expect(smoke).toContain('Aurora enemy activation did not suspend after departure');
+        expect(smoke).toContain("'depth:105:visible'");
+        expect(smoke).toContain("'depth:179:visible'");
+        expect(smoke).toContain('displayCount: 160');
+        expect(smoke).toContain('activeTweenCount: 15');
+    });
+
     test('shared route guidance resets before the first invalid contact', () => {
         const source = read('PlatformerLevelScene.js');
 
@@ -1464,7 +1499,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1)");
         expect(source).toContain("this.selectAuroraRoute('shadow_current')");
         expect(source).toContain('LAND + ALIGN');
-        expect(source).toContain("this.createTraversalLandingGuide('aurora-phoenix-gate'");
+        expect(source).toContain('this.phoenixLandingGuide = this.createTraversalLandingGuide(');
         expect(source).toContain("this.isPlayerGroundedOnTraversalSupport(\n                    'aurora-quiet-step-3'");
         expect(source).toContain('const routeBonus = this.consumeCurrentCharge();');
         expect(source).toContain('this.currentChargeAuraTween?.remove?.();');
@@ -2029,6 +2064,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("role: airborne ? 'flyer'");
         expect(source).toContain('updatePatrolEnemyMovement()');
         expect(source).toContain('this.updatePatrolEnemyMovement();');
+        expect(source).toContain('getRuntimePatrolEnemies()');
     });
 
     test('the shared route contract identifies the next objective without blocking input', () => {
@@ -2759,10 +2795,11 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('framePacing.peaksRuntime?.emberRedrawsDuringSample > 4');
         expect(smoke).toContain('framePacing.peaksRuntime?.patrolUpdatesDuringSample > 28');
         expect(smoke).toContain('did not keep Peaks runtime work bounded');
-        expect(smoke).toContain('activeTweenCount: 22');
+        expect(smoke).toContain('activeTweenCount: 15');
         expect(smoke).toContain('state.auroraAmbientRendering?.shadowCurrentLabelCount !== 3');
         expect(smoke).toContain('state.auroraAmbientRendering?.shadowPulseTweenCount !== 1');
-        expect(smoke).toContain('state.auroraAmbientRendering?.fragmentPulseTweenCount !== 1');
+        expect(smoke).toContain('state.auroraAmbientRendering?.fragmentPulseTweenCount !== 0');
+        expect(smoke).toContain('state.auroraAmbientRendering?.landingGuideTweenCount !== 0');
         expect(smoke).toContain('did not keep Aurora hazards readable and batched');
         expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');
         expect(smoke).toContain('state.coinRendering?.legacyVisualCount !== 0');
