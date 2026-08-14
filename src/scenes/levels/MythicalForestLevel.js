@@ -2081,6 +2081,28 @@ class MythicalForestLevel extends PlatformerLevelScene {
         console.log(`[MythicalForestLevel] Created ${this.voidSprites.length} Void Sprites, ${this.branchCrawlers.length} Branch Crawlers, ${this.sporeDrifters.length} Spore Drifters, ${this.forestWisps.length} Forest Wisps`);
     }
 
+    retireForestPatrolsForElder() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        patrols.forEach(enemy => {
+            this.tweens?.killTweensOf?.(enemy);
+            enemy?.combatCue?.destroy?.();
+            enemy?.instructionLabel?.destroy?.();
+            enemy?.graphics?.destroy?.();
+            enemy?.destroy?.();
+        });
+
+        this.forestEnemyOverlap?.destroy?.();
+        this.forestEnemyOverlap = null;
+        this.forestEnemyTrailTimer?.remove?.();
+        this.forestEnemyTrailTimer = null;
+        this.forestEnemyTrailLayer?.clear?.();
+        this.voidSprites = [];
+        this.branchCrawlers = [];
+        this.sporeDrifters = [];
+        this.forestWisps = [];
+        return patrols.length;
+    }
+
     startForestEnemyTrailRenderer() {
         this.forestEnemyTrailTimer?.remove?.();
         this.forestEnemyTrailLayer?.destroy?.();
@@ -3633,6 +3655,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     startBossFight() {
         console.log('[MythicalForestLevel] Starting Elder Treant boss fight!');
         this.bossFightActive = true;
+        this.retireForestPatrolsForElder();
 
         // Dramatic pause
         this.physics.pause();

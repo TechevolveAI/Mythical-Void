@@ -370,6 +370,12 @@ async function smokeForestBatchedCoinPickup(session) {
 }
 
 async function navigate(session, url) {
+    // A document navigation ends every browser touch stream. Reusing the
+    // previous document's synthetic identifier can make Chromium discard the
+    // first tap on the next page even though touchEnd was dispatched.
+    activeTouchIdentifier = null;
+    activeTouchPoint = { x: 0, y: 0 };
+    nextTouchIdentifier = 1;
     await session.call('Page.navigate', { url });
     await waitFor(
         () => evaluate(session, 'document.readyState === "complete"'),
@@ -2407,6 +2413,28 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             probe.sampleCount += 1;
         };
         scene.events.on('update', scene.__smokeJumpProbeHandler);
+        scene.__smokeNativeJumpTouches = [];
+        scene.__smokeNativeJumpTouchHandler = event => {
+            const rect = scene.game.canvas.getBoundingClientRect();
+            scene.__smokeNativeJumpTouches.push({
+                changed: Array.from(event.changedTouches || []).map(touch => ({
+                    id: touch.identifier,
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                })),
+                canvas: {
+                    left: rect.left,
+                    top: rect.top,
+                    width: rect.width,
+                    height: rect.height
+                }
+            });
+        };
+        scene.game.canvas.addEventListener(
+            'touchstart',
+            scene.__smokeNativeJumpTouchHandler,
+            { capture: true }
+        );
         return true;
     })()`);
     if (!jumpProbeStarted) {
@@ -2417,8 +2445,17 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         if (scene?.__smokeJumpProbeHandler) {
             scene.events?.off?.('update', scene.__smokeJumpProbeHandler);
         }
+        if (scene?.__smokeNativeJumpTouchHandler) {
+            scene.game?.canvas?.removeEventListener(
+                'touchstart',
+                scene.__smokeNativeJumpTouchHandler,
+                true
+            );
+        }
         delete scene?.__smokeJumpProbeHandler;
         delete scene?.__smokeJumpProbe;
+        delete scene?.__smokeNativeJumpTouchHandler;
+        delete scene?.__smokeNativeJumpTouches;
         return true;
     })()`);
     // A genuine tap can begin and end between two low-FPS Phaser updates.
@@ -2484,9 +2521,24 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 virtualJumpQueued: scene?.virtualJumpQueued,
                 jumpBufferPressed: scene?.jumpBufferPressed,
                 jumpBufferTimestamp: scene?.jumpBufferTimestamp,
+                lastVirtualJumpResolution: scene?.lastVirtualJumpResolution || null,
                 actionPointerCount: scene?.actionButtonPointers?.size,
                 actionReleaseCount: scene?.actionButtonReleases?.size,
                 jumpProbe: scene?.__smokeJumpProbe || null,
+                nativeJumpTouches: scene?.__smokeNativeJumpTouches || [],
+                scale: {
+                    width: scene?.scale?.width,
+                    height: scene?.scale?.height,
+                    displayScaleX: scene?.scale?.displayScale?.x,
+                    displayScaleY: scene?.scale?.displayScale?.y
+                },
+                viewport: {
+                    innerWidth: window.innerWidth,
+                    innerHeight: window.innerHeight,
+                    visualWidth: window.visualViewport?.width,
+                    visualHeight: window.visualViewport?.height,
+                    visualScale: window.visualViewport?.scale
+                },
                 jumpTarget: target ? {
                     x: target.x,
                     y: target.y,
@@ -2958,7 +3010,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 if (!mainSupport?.body || !scene.player?.body) return null;
                 scene.player.body.reset(
                     mainSupport.x,
-                    mainSupport.body.top - scene.player.body.height - 18
+                    mainSupport.body.top - scene.player.body.height - 4
                 );
                 scene.player.setVelocity?.(0, 0);
                 return {
@@ -3078,7 +3130,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             if (!support?.body || !scene.player?.body) return false;
             scene.player.body.reset(
                 support.x,
-                support.body.top - scene.player.body.height - 18
+                support.body.top - scene.player.body.height - 4
             );
             scene.player.setVelocity?.(0, 0);
             return true;
@@ -3170,7 +3222,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             if (!support?.body || !scene.player?.body) return false;
             scene.player.body.reset(
                 support.x,
-                support.body.top - scene.player.body.height - 18
+                support.body.top - scene.player.body.height - 4
             );
             scene.player.setVelocity?.(0, 0);
             return true;
@@ -4460,13 +4512,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             !Number.isFinite(guardianEntry.checkpointY) ||
             guardianEntry.gateCleared !== true ||
             guardianEntry.duplicateAccepted !== false ||
-            (
-                ['auroraDepths', 'finalVoid'].includes(route) &&
-                (
-                    guardianEntry.remainingPatrols !== 0 ||
-                    guardianEntry.remainingCombatCues !== 0
-                )
-            ) ||
+            guardianEntry.remainingPatrols !== 0 ||
+            guardianEntry.remainingCombatCues !== 0 ||
             guardianEntry.persistedId !== guardianEntrySetup.persistedId ||
             guardianEntry.persistedIndex !== guardianEntrySetup.persistedIndex
         ) {

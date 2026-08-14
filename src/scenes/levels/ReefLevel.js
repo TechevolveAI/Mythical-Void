@@ -1094,6 +1094,22 @@ class ReefLevel extends PlatformerLevelScene {
         this.createBossTrigger();
     }
 
+    retireReefPatrolsForNyxvoral() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        patrols.forEach(enemy => {
+            this.tweens?.killTweensOf?.(enemy);
+            enemy?.combatCue?.destroy?.();
+            enemy?.instructionLabel?.destroy?.();
+            enemy?.graphics?.destroy?.();
+            enemy?.destroy?.();
+        });
+        this.voidSpores = [];
+        this.plasmaDarts = [];
+        this.phaseDrifters = [];
+        this.lureWraiths = [];
+        return patrols.length;
+    }
+
     createBeaconWaypoints() {
         const waypoints = [
             {
@@ -2669,6 +2685,7 @@ class ReefLevel extends PlatformerLevelScene {
     startBossFight() {
         this.bossFightActive = true;
         this.bossHealth = this.bossMaxHealth;
+        this.retireReefPatrolsForNyxvoral();
         this.physics.pause();
 
         console.log('[ReefLevel] BOSS FIGHT: Nyx\'voral the Void Serpent!');

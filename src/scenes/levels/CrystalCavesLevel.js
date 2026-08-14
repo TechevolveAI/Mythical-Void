@@ -1780,6 +1780,20 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         return this.caveEncounterRhythm;
     }
 
+    retireCavePatrolsForGolem() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        patrols.forEach(enemy => {
+            this.tweens?.killTweensOf?.(enemy);
+            enemy?.combatCue?.destroy?.();
+            enemy?.instructionLabel?.destroy?.();
+            enemy?.graphics?.destroy?.();
+            enemy?.destroy?.();
+        });
+        this.retireCrystalSpiderFromResume();
+        this.caveEncounterRhythm = [];
+        return patrols.length;
+    }
+
     resolveCaveEncounterPlacement(encounter) {
         const support = this.getTraversalSupport(encounter.supportId);
         if (!support?.body) {
@@ -3872,6 +3886,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     startBossFight() {
         console.log('[CrystalCavesLevel] Starting Crystal Golem boss fight!');
         this.bossFightActive = true;
+        this.retireCavePatrolsForGolem();
 
         // Dramatic pause
         this.physics.pause();
