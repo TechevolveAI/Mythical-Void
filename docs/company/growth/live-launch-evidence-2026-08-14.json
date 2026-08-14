@@ -1,16 +1,17 @@
 {
   "schemaVersion": 1,
   "id": "LIVE-LAUNCH-EVIDENCE-2026-08-14",
-  "checkedAt": "2026-08-14T21:42:31Z",
+  "checkedAt": "2026-08-14T22:00:47Z",
   "checkedBy": "Codex read-only production verification after Netlify publish",
   "productionBranch": "origin/main",
-  "productionCommit": "dd198bf92c26046c68dbbbd6fe4237cdd2a4bf3f",
+  "productionCommit": "26a82c382825984cd529668615d0c4c9f69bb9e7",
   "canonicalUrl": "https://mythicalvoid.com/",
   "result": "owned_discovery_live_game_entry_working",
   "socialPreviewMetadata": {
     "manifestUrl": "https://mythicalvoid.com/press/mythical-void-social-previews.json",
     "routeSpecificPageCount": 7,
     "storyUsesProjectBeaconWideArtwork": true,
+    "nasaPageUsesSpaceDiscoveryWideArtwork": true,
     "imageDimensionsAndAltTextChecked": true,
     "knownPressRoomStaticPreviewLimitationRecorded": true,
     "trackingParametersPermitted": false,
@@ -44,7 +45,8 @@
       "heading": "A fantasy game can open a door to real science.",
       "resolvedUrl": "https://mythicalvoid.com/nasa-space-science/",
       "notFoundShown": false,
-      "verified": true
+      "verified": true,
+      "socialPreviewUsesSpaceDiscoveryWideArtwork": true
     },
     {
       "route": "/parents/",
@@ -69,7 +71,7 @@
       "resolvedUrl": "https://mythicalvoid.com/press/",
       "notFoundShown": false,
       "verified": true,
-      "socialAssetCount": 2,
+      "socialAssetCount": 4,
       "socialArtworkLinked": true
     },
     {
@@ -90,7 +92,7 @@
       "resolvedUrl": "https://mythicalvoid.com/updates/",
       "notFoundShown": false,
       "verified": true,
-      "liveEntryCount": 5,
+      "liveEntryCount": 6,
       "homepageLinked": true,
       "sitemapListed": true,
       "commentsEnabled": false,
@@ -127,10 +129,10 @@
     "This check proves that the named public pages loaded at the checked time; it does not prove search indexing, traffic, player satisfaction or uptime outside the check.",
     "One game canvas after five seconds proves that the game entry started; it does not prove every scene, device or complete playthrough.",
     "The story check proves its page, six real-game realm images, play link and sitemap entry were reachable; the unapproved trailer remains unlinked.",
-    "The Signal Log check proves its page, five named release notes, homepage link and sitemap entry were reachable; it does not prove that anyone read or acted on them.",
+    "The Signal Log check proves its page, six named release notes, homepage link and sitemap entry were reachable; it does not prove that anyone read or acted on them.",
     "The social-preview check proves that seven static pages carried their recorded images, sizes and accessible image text; it does not prove how any third-party social platform cached, cropped or displayed them.",
     "The homepage check proves that two user-controlled share actions and the clean mythicalvoid.com destination were in the live storefront bundle; it does not prove that anyone shared the game or that a recipient opened it.",
-    "The press-room check proves that two Project Beacon social images were linked and served as PNG files; it does not prove that either was posted to an official social account or seen by an audience.",
+    "The press-room check proves that two Project Beacon and two NASA/STEM social images were linked and served as PNG files; it does not prove that any image was posted to an official social account or seen by an audience.",
     "Prepared distribution and outreach work remains internal and unsubmitted."
   ]
 }

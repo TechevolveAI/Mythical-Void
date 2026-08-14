@@ -5,9 +5,15 @@
   "publicUrl": "https://mythicalvoid.com/updates/",
   "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/85",
   "productionCommit": "b319c1f9bbec7becbbfdd25256bf503477f2a18b",
-  "verifiedAt": "2026-08-14T21:42:31Z",
+  "verifiedAt": "2026-08-14T22:00:47Z",
   "purpose": "Give players, families, creators and search engines one plain-language source for meaningful Mythical Void releases, with a working destination for every note.",
   "liveEntries": [
+    {
+      "id": "SIGNAL-006",
+      "title": "A real-space sharing kit is ready",
+      "destination": "https://mythicalvoid.com/press/#nasa-stem-social-assets",
+      "destinationStatusObserved": 200
+    },
     {
       "id": "SIGNAL-005",
       "title": "Shared links now carry the right picture",
@@ -54,8 +60,8 @@
     "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/86",
     "productionCommit": "bddd9b29d40c1b7f8798575219b0eacc6574a004",
     "generatedPack": "docs/company/content/generated/signal-log-release-pack.json",
-    "sourceEntryCount": 5,
-    "reviewDraftCount": 15,
+    "sourceEntryCount": 6,
+    "reviewDraftCount": 18,
     "draftTypesPerEntry": [
       "professional network post",
       "video community text post",
@@ -132,6 +138,42 @@
     "knownPressRoomStaticPreviewLimitationRecorded": true,
     "trackingParametersPermitted": false,
     "autonomousSocialPostingAuthorized": false,
+    "externalActionPerformed": false
+  },
+  "nasaStemSocialRelease": {
+    "state": "published_as_owned_press_assets_waiting_for_channel_and_kevin_approval",
+    "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/90",
+    "productionCommit": "26a82c382825984cd529668615d0c4c9f69bb9e7",
+    "pressRoomUrl": "https://mythicalvoid.com/press/#nasa-stem-social-assets",
+    "educationalUrl": "https://mythicalvoid.com/nasa-space-science/",
+    "nasaSourceUrl": "https://apod.nasa.gov/apod/ap240720.html",
+    "assets": [
+      {
+        "format": "wide",
+        "publicUrl": "https://mythicalvoid.com/press/social/nasa-stem-discovery-wide.png",
+        "dimensions": "1200x630",
+        "sha256": "0b6769cdb8a5b996bb0976b32545de8c0733fed5b9c6a4de60403097379295de",
+        "productionStatusObserved": 200,
+        "productionContentTypeObserved": "image/png",
+        "productionBytesObserved": 534766
+      },
+      {
+        "format": "square",
+        "publicUrl": "https://mythicalvoid.com/press/social/nasa-stem-discovery-square.png",
+        "dimensions": "1200x1200",
+        "sha256": "b1639fa2bb15ea42c1f808ba98b74d1afdb82eb9c409fb9e6dc6f11037b8ff7a",
+        "productionStatusObserved": 200,
+        "productionContentTypeObserved": "image/png",
+        "productionBytesObserved": 829207
+      }
+    ],
+    "sourceBoundDrafts": 2,
+    "safeguardFailureCasesPassed": 16,
+    "nasaNonEndorsementRequired": true,
+    "scienceAndFictionSeparated": true,
+    "adultFacingAudienceOnly": true,
+    "autonomousSocialPostingAuthorized": false,
+    "kevinApprovalRequiredBeforePosting": true,
     "externalActionPerformed": false
   },
   "boundaries": {

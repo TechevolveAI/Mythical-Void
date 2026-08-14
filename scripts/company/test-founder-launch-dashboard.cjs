@@ -178,10 +178,14 @@ try {
     hiddenPreviewLimitation.socialPreviewRelease.knownPressRoomStaticPreviewLimitationRecorded = false;
     if (run('hidden-preview-limitation', { signalLog: hiddenPreviewLimitation }).status === 0) throw new Error('A hidden press-room social-preview limitation was accepted.');
 
+    const autoPostedNasaStemRelease = structuredClone(sources.signalLog);
+    autoPostedNasaStemRelease.nasaStemSocialRelease.autonomousSocialPostingAuthorized = true;
+    if (run('auto-posted-nasa-stem-release', { signalLog: autoPostedNasaStemRelease }).status === 0) throw new Error('Autonomous posting of the NASA/STEM social release was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 26 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 27 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

@@ -96,6 +96,7 @@ function buildDashboard({ evidence, outreach, activation, itch, launch, trailer,
 - The homepage now offers ${signalLog.homepageSharingRelease.shareActionCount} user-controlled ways to share the clean game link, including one beside Play on the first screen. The control does not collect a recipient or add tracking code.
 - ${signalLog.socialPreviewRelease.routeSpecificPageCount} important public pages now carry checked, route-specific social preview images and accessible image text. The Project Beacon story uses its purpose-built wide artwork.
 - The first Project Beacon social release is live in the press room with ${signalLog.firstSocialRelease.assets.length} finished, downloadable images. Posting still waits for an official channel and Kevin's approval.
+- The NASA/STEM sharing release is live with ${signalLog.nasaStemSocialRelease.assets.length} downloadable images built around a real Apollo 11 game screen. The NASA source, non-endorsement and science-versus-fiction boundary are explicit; posting still waits for an official channel and Kevin's approval.
 - The game created its playable canvas during that check.
 - Real gameplay screenshots and a short real gameplay video are available for truthful promotion.${verifiedChannelLine}
 
