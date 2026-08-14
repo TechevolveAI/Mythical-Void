@@ -558,9 +558,17 @@ describe('campaign traversal quality contracts', () => {
         const source = read('levels/MythicalForestLevel.js');
 
         expect(source).toContain('this.forestTreeStructureLayer = this.add.graphics()');
+        expect(source).toContain('this.forestFoliageLayer = this.add.graphics()');
+        expect(source).toContain('targets: this.forestFoliageLayer');
         expect(source).toContain('this.forestBridgeLayer = this.add.graphics()');
         expect(source).toContain('startForestEnemyTrailRenderer()');
+        expect(source).toContain('delay: this.isMobile ? 180 : 100');
+        expect(source).toContain('sprite.x < view.left - 120');
         expect(source).toContain('sprite.forestTrail = sprite.forestTrail.slice(-3);');
+        expect(source).toContain('this.forestEnemyOverlap = this.physics.add.overlap(');
+        expect(source).toContain('(_player, enemy) => this.handleEnemyCollision(enemy)');
+        expect(source).not.toContain('this.physics.add.overlap(this.player, sprite');
+        expect(source).toContain('if (!this.isMobile) {');
         expect(source).toContain('ensureForestCoinLayer()');
         expect(source).toContain('this.forestCoinPickupGroup = this.physics.add.staticGroup();');
         expect(source).toContain('this.collectForestCoin(zone?.forestCoinPickup)');
@@ -577,6 +585,10 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain("this.performanceTier = scene?.detectMobile?.() ? 'mobile' : 'desktop';");
         expect(source).toContain("this.performanceTier === 'mobile'");
+        expect(source).toContain("const wispCount = this.performanceTier === 'mobile' ? 3 : 5;");
+        expect(source).toContain("const maxStarFields = this.performanceTier === 'mobile' ? 2 : 4;");
+        expect(source).toContain("? Math.min(2, layer.count)");
+        expect(source).toContain("const maxFloraFields = this.performanceTier === 'mobile' ? 1 : 3;");
         expect(source).toContain("type: 'starField'");
         expect(source).toContain("type: 'floraField'");
         expect(source).toContain("Mobile tier skips post shader");
@@ -1986,12 +1998,20 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("enemy?.combatRole === 'armored'");
         expect(smoke).toContain('scene.player.setVelocity?.(0, 680)');
         expect(smoke).toContain('message: `${sceneName} live stomp collision`');
-        expect(smoke).toContain('state.displayCount > 360');
-        expect(smoke).toContain('framePacing.activeTweenCount > 110');
+        expect(smoke).toContain('state.displayCount > 345');
+        expect(smoke).toContain('framePacing.activeTweenCount > 75');
         expect(smoke).toContain('framePacing.postPipelineCount !== 0');
         expect(smoke).toContain("framePacing.performanceTier !== 'mobile'");
+        expect(smoke).toContain('!framePacing.forestEnemyOverlapActive');
+        expect(smoke).toContain('framePacing.parallaxLayers?.nebula !== 3');
+        expect(smoke).toContain('framePacing.parallaxLayers?.starField !== 2');
+        expect(smoke).toContain('framePacing.parallaxLayers?.rock !== 2');
+        expect(smoke).toContain('framePacing.parallaxLayers?.floraField !== 1');
+        expect(smoke).toContain(
+            'Number(stagedOptional.progress) >= optionalIndex + 1'
+        );
         expect(smoke).toContain('renderStability.endCount > renderStability.startCount + 8');
-        expect(smoke).toContain('state.ambientRendering?.layerCount !== 9');
+        expect(smoke).toContain('state.ambientRendering?.layerCount !== 4');
         expect(smoke).toContain('state.ambientRendering?.pointCount !== 194');
         expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');
         expect(smoke).toContain('state.coinRendering?.legacyVisualCount !== 0');

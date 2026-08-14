@@ -221,6 +221,9 @@ async function sampleFramePacing(session, sceneName, {
                 tweenTargetCounts,
                 graphicsTweenDepths,
                 timerCount: scene?.time?.getAllEvents?.().length || 0,
+                forestEnemyOverlapActive:
+                    scene?.forestEnemyOverlap?.active !== false &&
+                    Boolean(scene?.forestEnemyOverlap),
                 renderer: window.mythicalGame?.renderer?.type,
                 postPipelineCount:
                     scene?.cameras?.main?.postPipelines?.length || 0,
@@ -2046,8 +2049,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     if (
         route === 'mythicalForest' &&
         (
-            state.displayCount > 360 ||
-            state.ambientRendering?.layerCount !== 9 ||
+            state.displayCount > 345 ||
+            state.ambientRendering?.layerCount !== 4 ||
             state.ambientRendering?.pointCount !== 194 ||
             state.coinRendering?.batchedCount < 40 ||
             state.coinRendering?.legacyVisualCount !== 0 ||
@@ -2070,10 +2073,15 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             );
         }
         if (
-            framePacing.displayCount > 360 ||
-            framePacing.activeTweenCount > 110 ||
+            framePacing.displayCount > 345 ||
+            framePacing.activeTweenCount > 75 ||
             framePacing.postPipelineCount !== 0 ||
-            framePacing.performanceTier !== 'mobile'
+            framePacing.performanceTier !== 'mobile' ||
+            !framePacing.forestEnemyOverlapActive ||
+            framePacing.parallaxLayers?.nebula !== 3 ||
+            framePacing.parallaxLayers?.starField !== 2 ||
+            framePacing.parallaxLayers?.rock !== 2 ||
+            framePacing.parallaxLayers?.floraField !== 1
         ) {
             throw new Error(
                 `${sceneName} exceeded its sustained mobile render budget: ` +
@@ -2095,7 +2103,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         })()`);
         if (
             renderStability.endCount > renderStability.startCount + 8 ||
-            renderStability.endCount > 360 ||
+            renderStability.endCount > 345 ||
             renderStability.trailLayerCount !== 1
         ) {
             throw new Error(
@@ -4008,6 +4016,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     scene.player.setVelocity?.(0, 0);
                     return { x: item.x, y: item.y };
                 })()`);
+                if (
+                    stagedOptional?.missing &&
+                    Number(stagedOptional.progress) >= optionalIndex + 1
+                ) {
+                    continue;
+                }
                 if (!stagedOptional || stagedOptional.missing) {
                     throw new Error(
                         `${sceneName} could not stage optional reward ${optionalIndex + 1}: ` +
