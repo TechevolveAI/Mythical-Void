@@ -239,6 +239,10 @@ let parallaxBiome = null;
 let creatureGenetics = null;
 
 async function initializeCloudSaves() {
+    if (import.meta.env.VITE_DISTRIBUTION_BUILD === 'true') {
+        console.info('[CloudSave] Disabled in the portable distribution build.');
+        return null;
+    }
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
         || 'https://mkcmdbzcihjgidjuypqe.supabase.co';
     const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY

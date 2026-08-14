@@ -27,6 +27,8 @@
     <!-- Google tag: public shop window only; analytics stays off until a visitor allows it. -->
     <script>
     (function () {
+        var isDistributionBuild = false;
+        if (isDistributionBuild) return;
         var path = window.location.pathname.replace(/\/+$/, '') || '/';
         var params = new URLSearchParams(window.location.search);
         var isGameRoute = path === '/play' || path === '/game' || params.has('testBoss');

@@ -16,7 +16,7 @@ Kevin's part is a Google sign-in and ownership check. After that, submit `https:
 
 The generated game is inside itch.io's published size and file-count ceilings. The current website build is not yet a valid portable release: its asset links begin at the website root, some optional services call Mythical Void's Netlify functions, and the production site deliberately blocks other sites from placing it in a frame.
 
-The right solution is a separate portable build, not weakening the production site's protection. That build should use relative paths, keep `index.html` at the ZIP root, and switch hosted extras to safe unavailable states. The core game, local save and essential controls need to work without the Mythical Void website around them.
+The right solution is a separate portable build, not weakening the production site's protection. That build now exists as the repeatable `npm run build:portable` command. It uses relative paths, keeps `index.html` at the release root, and switches hosted extras to safe unavailable states. A local browser test from a nested platform-style path created the game canvas with no load error or console error. Fresh-save, return-visit, control, audio and fullscreen testing still remain before submission.
 
 The draft listing is in `itch-launch-pack-2026-08-14.json`. It uses actual gameplay captures and avoids promises the game cannot prove.
 

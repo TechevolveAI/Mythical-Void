@@ -20,6 +20,7 @@ secrets/
 
 # Build outputs
 dist/
+dist-platform/
 build/
 .next/
 *.tgz

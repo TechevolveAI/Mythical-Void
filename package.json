@@ -7,6 +7,7 @@
     "dev": "vite",
     "start": "vite",
     "build": "vite build && node scripts/inject-build-timestamp.js",
+    "build:portable": "VITE_DISTRIBUTION_BUILD=true VITE_ENABLE_API_FEATURES=false VITE_ENABLE_AI_PORTRAITS=false VITE_ENABLE_AI_VIDEOS=false vite build --outDir dist-platform && node scripts/finalize-portable-build.cjs && node scripts/inject-build-timestamp.js dist-platform",
     "preview": "vite preview",
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand",

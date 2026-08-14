@@ -2,6 +2,20 @@
   "schemaVersion": 1,
   "asOf": "2026-08-14",
   "state": "internal_draft_not_submitted",
+  "portableBuild": {
+    "command": "npm run build:portable",
+    "output": "dist-platform",
+    "status": "built_and_nested_path_launch_tested_locally",
+    "observedTotalMiB": 47.37,
+    "observedFileCount": 102,
+    "browserLaunch": {
+      "gameCanvasCreated": true,
+      "loadErrorShown": false,
+      "consoleErrors": 0,
+      "testedBelowNestedPath": true
+    },
+    "publicationAuthorized": false
+  },
   "authority": {
     "accountCreationAuthorized": false,
     "publicationAuthorized": false,
@@ -57,9 +71,9 @@
     "The game is still being improved; an adult feedback route is available on the official website."
   ],
   "releaseChecklist": [
-    {"item": "Create a separate portable build profile", "state": "not_started"},
-    {"item": "Use relative asset paths and confirm index.html is at the ZIP root", "state": "not_started"},
-    {"item": "Disable or safely replace Netlify-only features in the portable build", "state": "not_started"},
+    {"item": "Create a separate portable build profile", "state": "completed"},
+    {"item": "Use relative asset paths and confirm index.html is at the release root", "state": "completed"},
+    {"item": "Disable or safely replace Netlify-only features in the portable build", "state": "completed"},
     {"item": "Test a fresh save, return visit, controls, audio and fullscreen inside an iframe", "state": "not_started"},
     {"item": "Test keyboard and supported touch layouts", "state": "not_started"},
     {"item": "Create and review a 630x500 cover", "state": "not_started"},

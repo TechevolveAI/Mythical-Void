@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 
+const isDistributionBuild = process.env.VITE_DISTRIBUTION_BUILD === 'true';
+
 /**
  * Mythical Void - Vite Build Configuration
  *
@@ -20,6 +22,22 @@ import { defineConfig } from 'vite';
  */
 
 export default defineConfig({
+  // External browser-game platforms mount uploads below their own path.
+  // The owned website keeps root-relative URLs; the separate distribution
+  // artifact uses paths relative to its own index.html.
+  base: isDistributionBuild ? './' : '/',
+  plugins: [
+    {
+      name: 'mythical-distribution-html-guard',
+      transformIndexHtml(html) {
+        if (!isDistributionBuild) return html;
+        return html.replace(
+          'var isDistributionBuild = false;',
+          'var isDistributionBuild = true;'
+        );
+      }
+    }
+  ],
   server: {
     port: 8080,
     open: true

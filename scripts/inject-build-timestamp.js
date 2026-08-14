@@ -8,7 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DIST_DIR = path.join(__dirname, '..', 'dist');
+const requestedDirectory = process.argv[2] || 'dist';
+const DIST_DIR = path.resolve(__dirname, '..', requestedDirectory);
 const SW_PATH = path.join(DIST_DIR, 'sw.js');
 
 // Generate timestamp
