@@ -51,6 +51,17 @@
   status = 200
 
 [[redirects]]
+  # Keep the dedicated story page ahead of the SPA fallback.
+  from = "/story"
+  to = "/story/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/story/"
+  to = "/story/index.html"
+  status = 200
+
+[[redirects]]
   # Fallback to index.html for client-side routing
   from = "/*"
   to = "/index.html"

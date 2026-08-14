@@ -67,6 +67,7 @@ function renderPressPage() {
                 </a>
                 <div class="press-header-actions">
                     <a href="/">Main website</a>
+                    <a href="/story/">The story</a>
                     ${playLink('Play now', 'button button-small')}
                 </div>
             </div>
@@ -325,7 +326,7 @@ function renderStorefront() {
                     <a href="#how-it-works">How it works</a>
                     <a href="#studio">The studio</a>
                     <a href="#creatures">Creatures</a>
-                    <a href="#story">The story</a>
+                    <a href="/story/">The story</a>
                     <a href="#parents">For grown-ups</a>
                     ${playLink('Play now', 'button button-small')}
                 </nav>
@@ -463,7 +464,7 @@ function renderStorefront() {
                     <p>You are the astronaut-pilot of The Wanderer-77, launched from a desperate Earth to find life, recover samples, and send home a reason for hope. Then your ship crashes in the Void.</p>
                     <p>A creature hatches in the wreckage. It is intelligent, vulnerable, and the first alien life to trust a human.</p>
                     <p>As you restore its world, your old mission starts to feel very different. In the end, you decide what Project Beacon should tell Earth—and decide what home means.</p>
-                    <a class="text-link" href="#worlds">See what stands in your way <span aria-hidden="true">→</span></a>
+                        <a class="text-link" href="/story/">Follow the full Project Beacon story <span aria-hidden="true">→</span></a>
                 </div>
             </section>
 

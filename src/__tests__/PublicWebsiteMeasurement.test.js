@@ -122,6 +122,23 @@ describe('public website action measurement', () => {
         expect(events[0][2].page_group).toBe('studio');
     });
 
+    test('recognises the story page without collecting the story being read', () => {
+        runDiscoveryMeasurement('/story/', 'granted');
+        const play = document.createElement('a');
+        play.setAttribute('href', '/play/');
+        document.body.appendChild(play);
+
+        click(play);
+
+        const events = measuredEvents();
+        expect(events).toHaveLength(1);
+        expect(events[0][1]).toBe('public_play_selected');
+        expect(events[0][2]).toEqual({
+            page_group: 'story',
+            transport_type: 'beacon'
+        });
+    });
+
     test('begins measuring only after the visitor actively allows it', () => {
         runDiscoveryMeasurement('/nasa-space-science/', null);
         const play = document.createElement('a');

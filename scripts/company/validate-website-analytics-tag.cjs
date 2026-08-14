@@ -69,7 +69,7 @@ for (const id of contract.decisionRefs || []) if (!decisionIds.has(id)) failures
 
 const tag = contract.tag || {};
 const includedRoutes = [
-    '/', '/press/', '/trailer/', '/privacy/', '/terms/', '/parents/', '/creature-genetics/',
+    '/', '/press/', '/trailer/', '/story/', '/privacy/', '/terms/', '/parents/', '/creature-genetics/',
     '/nasa-space-science/', '/studio/'
 ];
 if (tag.measurementId !== 'G-FTM4W73EQC') failures.push('measurementId is invalid');
@@ -99,7 +99,7 @@ const allowedEvents = [
     'public_stem_resource_selected',
     'public_press_asset_selected'
 ];
-const allowedPageGroups = ['home', 'press', 'trailer', 'privacy', 'terms', 'parents', 'creature_genetics', 'nasa_stem', 'studio', 'other'];
+const allowedPageGroups = ['home', 'press', 'trailer', 'story', 'privacy', 'terms', 'parents', 'creature_genetics', 'nasa_stem', 'studio', 'other'];
 if (actions.enabled !== true || actions.consentRequired !== true) failures.push('public actions must be enabled only with consent');
 exactSet(actions.eventNames, allowedEvents, 'public action events', failures);
 if (actions.allowedProperty !== 'page_group') failures.push('page_group must be the only public action property');

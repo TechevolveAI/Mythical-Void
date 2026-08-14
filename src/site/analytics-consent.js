@@ -15,7 +15,8 @@ const PAGE_GROUPS = new Map([
     ['/parents', 'parents'],
     ['/creature-genetics', 'creature_genetics'],
     ['/nasa-space-science', 'nasa_stem'],
-    ['/studio', 'studio']
+    ['/studio', 'studio'],
+    ['/story', 'story']
 ]);
 
 function readConsent() {

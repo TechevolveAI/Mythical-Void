@@ -11,6 +11,7 @@
     "build:launch-trailer": "node scripts/company/build-authentic-launch-trailer.cjs",
     "validate:launch-trailer": "node scripts/company/validate-authentic-launch-trailer.cjs",
     "validate:trailer-page": "node scripts/company/validate-trailer-watch-page.cjs",
+    "validate:story-page": "node scripts/company/validate-story-discovery-page.cjs",
     "package:itch": "npm run build:portable && node scripts/company/validate-portable-browser-build.cjs && node scripts/package-itch-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",

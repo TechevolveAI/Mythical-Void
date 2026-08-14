@@ -120,7 +120,7 @@
       "audience": "Narrative, action-adventure, restoration, and science-fiction game audiences",
       "queryExamples": ["story driven creature adventure game", "choice driven sci fi browser game", "restore a living world game"],
       "targetPath": "/story/",
-      "targetState": "proposed_not_created",
+      "targetState": "created_on_feature_branch_pending_release",
       "pagePurpose": "Explain the restoration journey and Project Beacon tension through authentic, spoiler-aware gameplay evidence.",
       "claimIds": ["CL-004", "CL-008"],
       "proofIds": ["PF-004", "PF-005"],
@@ -128,7 +128,7 @@
       "editorialRefs": ["CQ-002", "CQ-006"],
       "dependencyRefs": ["A-003", "A-013", "D-002", "GDH-004"],
       "rankingPosition": null,
-      "contentReady": false,
+      "contentReady": true,
       "publicationReady": false,
       "searchSubmissionReady": false,
       "externalActionAllowed": false

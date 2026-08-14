@@ -30,6 +30,10 @@ const trailerPage = fs.readFileSync(
     path.join(__dirname, '../../public/trailer/index.html'),
     'utf8'
 );
+const storyPage = fs.readFileSync(
+    path.join(__dirname, '../../public/story/index.html'),
+    'utf8'
+);
 
 describe('storefront Project Beacon story contract', () => {
     test('matches the implemented 2026 astronaut opening', () => {
@@ -85,6 +89,19 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('decide what home means');
         expect(storefront).not.toContain('Earth is saved');
         expect(storefront).not.toContain('this world is saved');
+        expect(storyPage).toContain('What will you tell Earth?');
+        expect(storyPage).toContain('The exact ending remains yours to reach.');
+    });
+
+    test('publishes a truthful, gameplay-led Project Beacon story page', () => {
+        expect(storyPage).toContain('Earth sent you looking for hope.');
+        expect(storyPage).toContain('The fight is against the corruption.');
+        expect(storyPage).toContain('6 realms');
+        expect(storyPage).toContain('5 systems');
+        expect(storyPage).toContain('Captured from the real browser game');
+        expect(storyPage).toContain('/press/gameplay/manifest.json');
+        expect(storyPage).not.toMatch(/\bcompanions?\b/i);
+        expect(sitemap).toContain('<loc>https://mythicalvoid.com/story/</loc>');
     });
 
     test('tells the true father-and-son origin of the studio', () => {

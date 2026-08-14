@@ -50,6 +50,13 @@
       "intent": "Understand the father-and-son origin and how a small human-led studio uses generative AI tools",
       "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005"],
       "proof": ["public/press/gameplay/realm-mythicalforest.png", "public/press/gameplay-video/manifest.json"]
+    },
+    {
+      "route": "/story/",
+      "audience": "Players, families, narrative-game fans, creators and press",
+      "intent": "Understand the implemented Project Beacon opening, six-realm restoration journey and final responsibility without revealing the ending",
+      "claimIds": ["CL-004", "CL-008"],
+      "proof": ["src/config/project-beacon.json", "public/press/gameplay/manifest.json"]
     }
   ],
   "releaseChecks": [

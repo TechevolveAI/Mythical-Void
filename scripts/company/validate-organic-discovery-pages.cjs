@@ -24,6 +24,11 @@ const pages = [
         route: '/studio/',
         file: 'public/studio/index.html',
         required: ['nine-year-old son', 'father and son', 'people remain responsible', '/press/']
+    },
+    {
+        route: '/story/',
+        file: 'public/story/index.html',
+        required: ['Earth sent you looking for hope.', 'The fight is against the corruption.', '6 realms', '5 systems', '/press/gameplay/manifest.json']
     }
 ];
 
@@ -118,8 +123,9 @@ const analytics = contentFor('public/discovery.js');
 for (const required of [
     "analytics_storage: 'denied'",
     "ad_storage: 'denied'",
-    'send_page_view: false',
+    'send_page_view: true',
     'allow_ad_personalization_signals: false',
+    "page_referrer: ''",
     'public_play_selected',
     'public_share_selected',
     "readChoice() !== 'granted'",
