@@ -640,8 +640,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             returnLabel: 'DESCEND TO SKY PRISM →',
             choice: {
                 mainLabel: 'SHADOW CURRENT →',
-                mainTradeoff: 'SHORTER // PHOENIX HITS HARDER + GUARDS',
-                challengeLabel: 'HIGH JUMPS // SHELTER + FEWER GUARDS',
+                mainTradeoff: 'SHORTER // 2 GUARDS // YOUR NEXT HIT +2',
+                challengeLabel: 'HIGH JUMPS // 1-HIT WARD // FEWER GUARDS',
                 mainMarker: directRouteMarker,
                 mainZone: {
                     left: 2700, right: 3500,
@@ -766,7 +766,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             this.createCurrentChargeAura();
             this.clearQuietLightPickup();
             this.showFloatingText(
-                'CURRENT CHARGE // NEXT PHOENIX HIT +2',
+                'CURRENT CHARGE // YOUR NEXT HIT +2 DAMAGE',
                 this.player.x,
                 this.player.y - 68,
                 '#D7A8FF'
@@ -909,8 +909,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         );
         const routeStatus = this.auroraRouteChoice === 'shadow_current'
             ? (this.currentChargeReady
-                ? 'DIRECT ROUTE // CURRENT CHARGE +2'
-                : 'DIRECT ROUTE // CHARGE RELEASED')
+                ? 'DIRECT ROUTE // YOUR NEXT HIT +2 DAMAGE'
+                : 'DIRECT ROUTE // DAMAGE BONUS USED')
             : routeReward;
         const optional = `${routeStatus}\nOPTIONAL // AURORA FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
 

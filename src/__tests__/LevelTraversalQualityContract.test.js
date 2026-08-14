@@ -1349,10 +1349,10 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('optional: true');
         expect(source).toContain("mainLabel: 'SHADOW CURRENT →'");
         expect(source).toContain(
-            "mainTradeoff: 'SHORTER // PHOENIX HITS HARDER + GUARDS'"
+            "mainTradeoff: 'SHORTER // 2 GUARDS // YOUR NEXT HIT +2'"
         );
         expect(source).toContain(
-            "challengeLabel: 'HIGH JUMPS // SHELTER + FEWER GUARDS'"
+            "challengeLabel: 'HIGH JUMPS // 1-HIT WARD // FEWER GUARDS'"
         );
         expect(source).toContain("id: 'aurora_quiet_light'");
         expect(source).toContain("rewardLabel: 'QUIET LIGHT WARD // 1 HIT'");
@@ -1363,7 +1363,20 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("this.isPlayerGroundedOnTraversalSupport(\n                    'aurora-quiet-step-3'");
         expect(source).toContain('const routeBonus = this.consumeCurrentCharge();');
         expect(source).toContain('this.currentChargeAuraTween?.remove?.();');
+        expect(source).toContain(
+            "'CURRENT CHARGE // YOUR NEXT HIT +2 DAMAGE'"
+        );
+        expect(source).toContain(
+            "'DIRECT ROUTE // YOUR NEXT HIT +2 DAMAGE'"
+        );
+        expect(source).not.toContain('PHOENIX HITS HARDER');
+        expect(source).not.toContain('NEXT PHOENIX HIT +2');
         expect(source).not.toContain('this.activateShield();');
+        const smoke = read('../../scripts/smoke-secondary-journeys.js');
+        expect(smoke).toContain(
+            "scene.selectAuroraRoute('shadow_current')"
+        );
+        expect(smoke).toContain('route impact contradicted its promise');
     });
 
     test('Forest canopy traversal earns a persistent one-hit guard', () => {
@@ -1512,8 +1525,8 @@ describe('campaign traversal quality contracts', () => {
             'levels/AuroraDepthsLevel.js',
             "id: 'aurora_quiet_light'",
             "mainLabel: 'SHADOW CURRENT →'",
-            "mainTradeoff: 'SHORTER // PHOENIX HITS HARDER + GUARDS'",
-            "challengeLabel: 'HIGH JUMPS // SHELTER + FEWER GUARDS'"
+            "mainTradeoff: 'SHORTER // 2 GUARDS // YOUR NEXT HIT +2'",
+            "challengeLabel: 'HIGH JUMPS // 1-HIT WARD // FEWER GUARDS'"
         ],
         [
             'levels/FinalVoidLevel.js',
