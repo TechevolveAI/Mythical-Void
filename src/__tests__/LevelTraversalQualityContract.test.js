@@ -1490,6 +1490,27 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.refreshPersistedExpeditionRouteState();');
         expect(source).toContain('incomingDamage = Math.max(0, this.health - 1);');
         expect(source).toContain('this.bondReserveEcho?.destroy?.();');
+        expect(source).toContain('shouldAnimateFinalRouteDecorations()');
+        expect(source).toContain('{ animate: animateRouteDecorations }');
+
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        expect(smoke).toContain(
+            "mainRouteEffect.finalRouteChoice !== 'main'"
+        );
+        expect(smoke).toContain(
+            'low crossing failed to lock out its optional rescue'
+        );
+        expect(smoke).toContain(
+            'Trust Bridge must be proven from an independent clean scene'
+        );
+        expect(smoke).toContain(
+            'kept offscreen route decorations animating on mobile'
+        );
+        expect(smoke).toContain("'depth:115:visible'");
+        expect(smoke).toContain("'depth:179:visible'");
     });
 
     test.each([
@@ -2382,6 +2403,21 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("supportId !== 'reef-opening-3'");
         expect(smoke).toContain('spawnDistance < 450');
         expect(smoke).toContain('departureCueX > 360');
+    });
+
+    test('Final Void keeps the optional Current Heart beyond its first bond signal', () => {
+        const shared = read('PlatformerLevelScene.js');
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+
+        expect(shared).toContain("supportId: 'final-return-approach'");
+        expect(shared).toContain('x: 1230');
+        expect(smoke).toContain('spawnDistance < 850');
+        expect(smoke).toContain(
+            'placed the Current Heart inside its opening viewport'
+        );
     });
 
     test('Stellar Reef binds every required waypoint to a distinct relay support', () => {

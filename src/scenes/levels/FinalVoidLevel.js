@@ -650,13 +650,15 @@ class FinalVoidLevel extends PlatformerLevelScene {
         route.strokeCircle(1900, groundY - 430, 17);
         route.strokeCircle(2270, groundY - 460, 12);
 
-        this.tweens.add({
-            targets: route,
-            alpha: { from: 0.5, to: 1 },
-            duration: 950,
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.shouldAnimateFinalRouteDecorations()) {
+            this.tweens.add({
+                targets: route,
+                alpha: { from: 0.5, to: 1 },
+                duration: 950,
+                yoyo: true,
+                repeat: -1
+            });
+        }
 
         const fractureRouteMarker = this.add.text(1690, groundY - 82, '', {
             fontSize: '11px',
@@ -883,6 +885,15 @@ class FinalVoidLevel extends PlatformerLevelScene {
         });
     }
 
+    shouldAnimateFinalRouteDecorations() {
+        const { width, height } = this.cameras.main;
+        return !(
+            this.isMobile ||
+            width <= 480 ||
+            height < 620
+        );
+    }
+
     createVoidFractures() {
         const fractures = [
             { x: 930, width: 120, label: 'JUMP THE RIFT →' },
@@ -917,13 +928,15 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 }
             ).setOrigin(0.5).setDepth(182);
 
-            this.tweens.add({
-                targets: visual,
-                alpha: { from: 0.5, to: 1 },
-                duration: 850,
-                yoyo: true,
-                repeat: -1
-            });
+            if (this.shouldAnimateFinalRouteDecorations()) {
+                this.tweens.add({
+                    targets: visual,
+                    alpha: { from: 0.5, to: 1 },
+                    duration: 850,
+                    yoyo: true,
+                    repeat: -1
+                });
+            }
 
             this.physics.add.overlap(this.player, zone, () => {
                 if (!this.isInvincible && !this.bossDefeated) {
@@ -935,6 +948,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     createBondAnchors() {
+        const animateRouteDecorations =
+            this.shouldAnimateFinalRouteDecorations();
         const anchors = [
             {
                 id: 'final_bond_1',
@@ -987,7 +1002,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 zone,
                 landingGuide: this.createTraversalLandingGuide(
                     anchor.activationSupportIds[0],
-                    0xA9F3E4
+                    0xA9F3E4,
+                    { animate: animateRouteDecorations }
                 ),
                 activated: false
             };

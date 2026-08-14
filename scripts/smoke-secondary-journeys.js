@@ -2557,6 +2557,27 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             `${sceneName} did not keep Peaks ambience batched: ${JSON.stringify(state)}`
         );
     }
+    if (
+        route === 'finalVoid' &&
+        (
+            state.currentEcologyPlacement?.supportId !==
+                'final-return-approach' ||
+            state.currentEcologyPlacement?.x <
+                state.currentEcologyPlacement?.supportLeft ||
+            state.currentEcologyPlacement?.x >
+                state.currentEcologyPlacement?.supportRight ||
+            Math.abs(
+                state.currentEcologyPlacement?.y -
+                state.currentEcologyPlacement?.supportTop
+            ) > 8 ||
+            state.currentEcologyPlacement?.spawnDistance < 850
+        )
+    ) {
+        throw new Error(
+            `${sceneName} placed the Current Heart inside its opening viewport: ` +
+            JSON.stringify(state.currentEcologyPlacement)
+        );
+    }
     const renderBudget = CAMPAIGN_MOBILE_RENDER_BUDGETS[route];
     if (!renderBudget) {
         throw new Error(`${sceneName} has no authored mobile render budget`);
@@ -2653,6 +2674,20 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 JSON.stringify(renderStability)
             );
         }
+    }
+    if (
+        route === 'finalVoid' &&
+        (state.canvasWidth <= 480 || state.canvasHeight < 620) &&
+        [
+            'depth:106:visible',
+            'depth:115:visible',
+            'depth:179:visible'
+        ].some(depth => framePacing.graphicsTweenDepths?.[depth])
+    ) {
+        throw new Error(
+            `${sceneName} kept offscreen route decorations animating on mobile: ` +
+            JSON.stringify(framePacing.graphicsTweenDepths)
+        );
     }
     const forestEnemyScheduler = route === 'mythicalForest'
         ? await smokeForestSharedEnemyScheduler(session)
@@ -3585,6 +3620,78 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     JSON.stringify({ choicePresentation, mainRouteEffect })
                 );
             }
+            await startCampaignScene(session, { route, sceneName });
+            await delay(400);
+        }
+        if (route === 'finalVoid') {
+            const mainRouteStaged = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(
+                    'FinalVoidLevel'
+                );
+                const routeState = scene?.optionalRouteRewards?.get?.(
+                    'final_trust_bridge'
+                );
+                const support = scene?.getTraversalSupport?.(
+                    routeState?.choice?.mainSupportIds?.[0]
+                );
+                if (!scene?.player?.body || !routeState?.choice || !support?.body) {
+                    return null;
+                }
+                scene.player.body.reset(
+                    support.x,
+                    support.body.top - scene.player.body.height - 4
+                );
+                scene.player.setVelocity?.(0, 0);
+                return { supportId: support.traversalId };
+            })()`);
+            if (!mainRouteStaged) {
+                throw new Error(`${sceneName} could not stage its low crossing`);
+            }
+            mainRouteEffect = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(
+                        'FinalVoidLevel'
+                    );
+                    const routeState = scene?.optionalRouteRewards?.get?.(
+                        'final_trust_bridge'
+                    );
+                    if (routeState?.choice?.selectedPath !== 'main') return null;
+                    const optionalAccepted = scene.recordOptionalRouteProgress(
+                        'final_trust_bridge',
+                        { x: scene.player.x, y: scene.player.y }
+                    );
+                    return {
+                        selectedPath: routeState.choice.selectedPath,
+                        finalRouteChoice: scene.finalRouteChoice,
+                        optionalAccepted,
+                        progress: routeState.progress,
+                        completed: routeState.completed,
+                        bondReserveReady: scene.bondReserveReady === true,
+                        pickupActive: scene.optionalRoutePickup?.active === true
+                    };
+                })()`),
+                { timeoutMs: 2500, message: `${sceneName} low crossing selection` }
+            );
+            if (
+                mainRouteEffect.selectedPath !== 'main' ||
+                mainRouteEffect.finalRouteChoice !== 'main' ||
+                mainRouteEffect.optionalAccepted !== false ||
+                mainRouteEffect.progress !== 0 ||
+                mainRouteEffect.completed !== false ||
+                mainRouteEffect.bondReserveReady !== false ||
+                mainRouteEffect.pickupActive !== false ||
+                !choicePresentation.mainTradeoff.includes(
+                    'RIFT DAMAGE + 2 GUARDS'
+                ) ||
+                !choicePresentation.challengeLabel.includes('EARN RESCUE')
+            ) {
+                throw new Error(
+                    `${sceneName} low crossing failed to lock out its optional rescue: ` +
+                    JSON.stringify({ choicePresentation, mainRouteEffect })
+                );
+            }
+            // Trust Bridge must be proven from an independent clean scene;
+            // selecting the low crossing intentionally locks out its reward.
             await startCampaignScene(session, { route, sceneName });
             await delay(400);
         }
