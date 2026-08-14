@@ -329,6 +329,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.optionalRouteGuardCharges = 0;
         this.optionalRouteGuardLabel = 'ROUTE GUARD';
         this.levelCoinMultiplier = 1;
+        this.lastRouteEnemyRetirement = null;
+        this.enemyRuntimeDisposalTotals = { timerCount: 0, artifactCount: 0 };
 
         // Checkpoint system
         this.lastSafePosition = null; // Last ground position for respawn
@@ -661,6 +663,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.routeHintUntil = 0;
         this.guardianGateState = null;
         this.guardianEncounter = null;
+        this.lastRouteEnemyRetirement = null;
+        this.enemyRuntimeDisposalTotals = { timerCount: 0, artifactCount: 0 };
         window.EconomyManager?.clearLevelCoinMultiplier?.();
 
         // Reset flags
@@ -3933,6 +3937,73 @@ class PlatformerLevelScene extends Phaser.Scene {
         return enemy;
     }
 
+    trackEnemyTimer(enemy, timer) {
+        if (!enemy || !timer) return timer;
+        enemy.runtimeTimers ||= new Set();
+        enemy.runtimeTimers.add(timer);
+        return timer;
+    }
+
+    trackEnemyArtifact(enemy, artifact) {
+        if (!enemy || !artifact) return artifact;
+        enemy.runtimeArtifacts ||= new Set();
+        enemy.runtimeArtifacts.add(artifact);
+        return artifact;
+    }
+
+    disposeEnemyRuntime(enemy) {
+        if (!enemy) return { timerCount: 0, artifactCount: 0 };
+
+        const timers = [...(enemy.runtimeTimers || [])];
+        timers.forEach(timer => timer?.remove?.(false));
+        enemy.runtimeTimers?.clear?.();
+
+        const artifacts = [...(enemy.runtimeArtifacts || [])];
+        artifacts.forEach(artifact => {
+            this.tweens?.killTweensOf?.(artifact);
+            artifact?.destroy?.();
+        });
+        enemy.runtimeArtifacts?.clear?.();
+        this.tweens?.killTweensOf?.(enemy);
+
+        this.enemyRuntimeDisposalTotals ||= {
+            timerCount: 0,
+            artifactCount: 0
+        };
+        this.enemyRuntimeDisposalTotals.timerCount += timers.length;
+        this.enemyRuntimeDisposalTotals.artifactCount += artifacts.length;
+
+        return {
+            timerCount: timers.length,
+            artifactCount: artifacts.length
+        };
+    }
+
+    retireRouteEnemies(enemies = this.enemies?.getChildren?.() || []) {
+        const patrols = [...new Set(enemies.filter(Boolean))];
+        const retirement = {
+            enemyCount: patrols.length,
+            timerCount: 0,
+            artifactCount: 0
+        };
+
+        patrols.forEach(enemy => {
+            const runtime = this.disposeEnemyRuntime(enemy);
+            retirement.timerCount += runtime.timerCount;
+            retirement.artifactCount += runtime.artifactCount;
+            enemy?.combatCue?.destroy?.();
+            enemy?.instructionLabel?.destroy?.();
+            if (enemy?.graphics && enemy.graphics !== enemy) {
+                enemy.graphics.destroy?.();
+                enemy.graphics = null;
+            }
+            enemy?.destroy?.();
+        });
+
+        this.lastRouteEnemyRetirement = retirement;
+        return retirement;
+    }
+
     createPatrolSentinels(encounters, {
         enemyType = 'signalSentinel',
         texturePrefix = 'signalSentinel',
@@ -5399,6 +5470,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (!enemy?.active) {
             return false;
         }
+        this.disposeEnemyRuntime(enemy);
         if (typeof enemy.onCombatDefeat === 'function') {
             enemy.instructionLabel?.destroy?.();
             enemy.instructionLabel = null;

@@ -171,6 +171,72 @@ describe('campaign traversal quality contracts', () => {
         expect(setVelocity).toHaveBeenCalledWith(100, -100);
     });
 
+    test('route enemy retirement disposes owned timers and attack artifacts atomically', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'EnemyRuntimeTest' });
+        const timerA = { remove: jest.fn() };
+        const timerB = { remove: jest.fn() };
+        const artifact = { destroy: jest.fn() };
+        const cue = { destroy: jest.fn() };
+        const label = { destroy: jest.fn() };
+        const graphics = { destroy: jest.fn() };
+        const enemy = {
+            active: true,
+            combatCue: cue,
+            instructionLabel: label,
+            graphics,
+            destroy: jest.fn()
+        };
+        scene.tweens = { killTweensOf: jest.fn() };
+
+        scene.trackEnemyTimer(enemy, timerA);
+        scene.trackEnemyTimer(enemy, timerB);
+        scene.trackEnemyArtifact(enemy, artifact);
+        const retirement = scene.retireRouteEnemies([enemy]);
+
+        expect(retirement).toEqual({
+            enemyCount: 1,
+            timerCount: 2,
+            artifactCount: 1
+        });
+        expect(timerA.remove).toHaveBeenCalledWith(false);
+        expect(timerB.remove).toHaveBeenCalledWith(false);
+        expect(artifact.destroy).toHaveBeenCalledTimes(1);
+        expect(scene.tweens.killTweensOf).toHaveBeenCalledWith(artifact);
+        expect(scene.tweens.killTweensOf).toHaveBeenCalledWith(enemy);
+        expect(cue.destroy).toHaveBeenCalledTimes(1);
+        expect(label.destroy).toHaveBeenCalledTimes(1);
+        expect(graphics.destroy).toHaveBeenCalledTimes(1);
+        expect(enemy.destroy).toHaveBeenCalledTimes(1);
+        expect(scene.enemyRuntimeDisposalTotals).toEqual({
+            timerCount: 2,
+            artifactCount: 1
+        });
+    });
+
+    test('all guardian handoffs share route-enemy cleanup and bespoke AI owns its timers', () => {
+        [
+            'levels/MythicalForestLevel.js',
+            'levels/CrystalCavesLevel.js',
+            'levels/ReefLevel.js',
+            'levels/VoidPeaksLevel.js',
+            'levels/AuroraDepthsLevel.js',
+            'levels/FinalVoidLevel.js'
+        ].forEach(relativePath => {
+            expect(read(relativePath)).toContain(
+                'this.retireRouteEnemies(patrols)'
+            );
+        });
+
+        const forest = read('levels/MythicalForestLevel.js');
+        const caves = read('levels/CrystalCavesLevel.js');
+        expect((forest.match(/this\.trackEnemyTimer\(/g) || []).length)
+            .toBeGreaterThanOrEqual(6);
+        expect((caves.match(/this\.trackEnemyTimer\(/g) || []).length)
+            .toBeGreaterThanOrEqual(5);
+        expect(forest).toContain('this.trackEnemyArtifact(sprite, projectile);');
+    });
+
     test('Cosmic Reef keeps shared recovery while adding deliberate mobile descent', () => {
         const source = read('levels/ReefLevel.js');
         const updateBody = source.match(
@@ -772,7 +838,7 @@ describe('campaign traversal quality contracts', () => {
             "role: encounter.health >= 3 ? 'armored' : 'stompable'"
         );
         expect(source).toContain('retirePeakPatrolsForTitan()');
-        expect(source).toContain('enemy?.combatCue?.destroy?.();');
+        expect(source).toContain('this.retireRouteEnemies(patrols);');
         expect(source).toContain('this.retirePeakPatrolsForTitan();');
         expect(source).toContain("mainLabel: 'LOW WARNING LINE →'");
         expect(source).toContain(
@@ -1019,7 +1085,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('enemy.encounterLane = encounter.lane;');
         expect(source).toContain('enemy.encounterSupportId = encounter.supportId;');
         expect(source).toContain('retireAuroraPatrolsForPhoenix()');
-        expect(source).toContain('enemy?.combatCue?.destroy?.();');
+        expect(source).toContain('this.retireRouteEnemies(patrols);');
         expect(source).toContain('this.retireAuroraPatrolsForPhoenix();');
         expect(source).toContain('const quietLightRoute = [');
         expect(source).toContain("'aurora-heart-launch'");
@@ -1488,12 +1554,15 @@ describe('campaign traversal quality contracts', () => {
         methodCall
     ) => {
         const source = read(relativePath);
+        const platformerSource = read('PlatformerLevelScene.js');
 
         expect(source).toContain(methodDeclaration);
         expect(source).toContain(methodCall);
-        expect(source).toContain('enemy?.combatCue?.destroy?.();');
-        expect(source).toContain('enemy?.instructionLabel?.destroy?.();');
-        expect(source).toContain('enemy?.destroy?.();');
+        expect(source).toContain('this.retireRouteEnemies(patrols);');
+        expect(platformerSource).toContain('this.disposeEnemyRuntime(enemy);');
+        expect(platformerSource).toContain('enemy?.combatCue?.destroy?.();');
+        expect(platformerSource).toContain('enemy?.instructionLabel?.destroy?.();');
+        expect(platformerSource).toContain('enemy?.destroy?.();');
     });
 
     test('Reef inherits shared safety and route updates from the platformer loop', () => {
