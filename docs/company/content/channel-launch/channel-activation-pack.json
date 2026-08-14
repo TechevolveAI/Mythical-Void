@@ -161,9 +161,9 @@
           "sequence": 2,
           "theme": "Playable now",
           "copy": "Mythical Void is now playable in a browser.\n\nHatch a strange creature. Explore six living realms. Restore guardians affected by the Void. Decide what Project Beacon becomes.\n\nThere is no download or account needed to start: https://mythicalvoid.com/",
-          "asset": "authentic_gameplay_capture_required",
-          "disclosure": "Use a real game capture from a recorded build.",
-          "approvalState": "blocked_until_gameplay_proof"
+          "asset": "public/press/gameplay/project-beacon-start.png",
+          "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup.",
+          "approvalState": "awaiting_kevin_and_page"
         },
         {
           "id": "LI-003",

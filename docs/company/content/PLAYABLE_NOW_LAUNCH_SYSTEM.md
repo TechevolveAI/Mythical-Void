@@ -23,6 +23,8 @@ This is not child-targeted behavioural advertising. Posts should be understandab
 
 ## The first four weeks
 
+The exact ready-to-run sequence, approved assets and approval gates now live in [`channel-launch/FOUR_WEEK_LAUNCH_CALENDAR.json`](channel-launch/FOUR_WEEK_LAUNCH_CALENDAR.json). Week 1 starts only after Kevin records an official channel link, so preparation can continue without pretending an account exists.
+
 ### Week 1 — it is playable
 
 - Publish the short launch announcement.
@@ -75,6 +77,7 @@ Validate the pack with:
 
 ```bash
 node scripts/company/validate-playable-now-launch.cjs
+node scripts/company/validate-four-week-launch-calendar.cjs
 ```
 
 ## Weekly operating rhythm

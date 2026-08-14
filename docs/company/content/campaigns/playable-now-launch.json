@@ -90,9 +90,9 @@
       "recommendedChannel": "Owned website or verified adult-facing channel",
       "copy": "Want to see what the child in your life is exploring?\n\nMythical Void is free to play in a browser. No download, account or payment details are needed to start. The adventure combines exploration, problem-solving, creature care and restoration-focused fantasy battles.\n\nRead the family notes and play: https://mythicalvoid.com/",
       "claimIds": ["CL-001", "CL-002", "CL-007"],
-      "asset": null,
-      "assetType": "website_card_or_gameplay_capture",
-      "disclosure": "Do not describe this as a formal age rating or universal safety guarantee.",
+      "asset": "public/press/gameplay/village-first-construction.png",
+      "assetType": "authentic_running_build_screenshot",
+      "disclosure": "Captured from the real Mythical Void browser game. Do not describe the game as having a formal age rating or universal safety guarantee.",
       "approvalState": "awaiting_kevin_and_channel"
     },
     {

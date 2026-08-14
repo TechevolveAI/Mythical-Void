@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 1,
+  "id": "CAL-PLAYABLE-NOW-001",
+  "asOf": "2026-08-14",
+  "name": "Mythical Void — first four weeks after channel activation",
+  "startRule": "Week 1 begins on the first Monday after Kevin records an official channel link.",
+  "state": "prepared_waiting_for_official_channels",
+  "canonicalUrl": "https://mythicalvoid.com/",
+  "pressUrl": "https://mythicalvoid.com/press/",
+  "primaryOutcome": "Help the right people discover the game and choose to play it.",
+  "authority": {
+    "accountCreationAuthorized": false,
+    "publishingAuthorized": false,
+    "replyingAuthorized": false,
+    "directMessagingAuthorized": false,
+    "paidPromotionAuthorized": false
+  },
+  "automationBoundary": {
+    "may": [
+      "prepare a full post preview",
+      "check copy against approved claims",
+      "attach an approved asset and disclosure",
+      "record results after Kevin supplies them",
+      "recommend the next post"
+    ],
+    "mustNot": [
+      "create an external account",
+      "publish without Kevin approving the finished post and asset together",
+      "reply or send a private message",
+      "contact a child",
+      "spend money"
+    ]
+  },
+  "weeks": [
+    {
+      "week": 1,
+      "theme": "The game exists and it is playable",
+      "releases": [
+        {
+          "id": "CAL-001",
+          "day": "Tuesday",
+          "channel": "LinkedIn",
+          "contentRef": "LI-001",
+          "title": "How a father-and-son question became a game",
+          "asset": "public/marketing/mythical-void-emblem-v3.png",
+          "assetClass": "generated_brand_art",
+          "disclosure": "Brand artwork created with generative AI and refined for Mythical Void.",
+          "state": "waiting_for_channel_and_kevin_approval"
+        },
+        {
+          "id": "CAL-002",
+          "day": "Thursday",
+          "channel": "LinkedIn",
+          "contentRef": "LI-002",
+          "title": "Mythical Void is playable now",
+          "asset": "public/press/gameplay/project-beacon-start.png",
+          "assetClass": "authentic_running_build_screenshot",
+          "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup.",
+          "state": "waiting_for_channel_and_kevin_approval"
+        }
+      ]
+    },
+    {
+      "week": 2,
+      "theme": "Show what players really see",
+      "releases": [
+        {
+          "id": "CAL-003",
+          "day": "Tuesday",
+          "channel": "LinkedIn",
+          "contentRef": "PN-003",
+          "title": "Six strange realms to explore",
+          "asset": "public/press/gameplay/realm-mythicalforest.png",
+          "additionalAssets": [
+            "public/press/gameplay/realm-crystalcaves.png",
+            "public/press/gameplay/realm-reef.png",
+            "public/press/gameplay/realm-voidpeaks.png",
+            "public/press/gameplay/realm-auroradepths.png",
+            "public/press/gameplay/realm-finalvoid.png"
+          ],
+          "assetClass": "authentic_running_build_screenshot",
+          "disclosure": "Captured from the real Mythical Void browser game; not generated gameplay.",
+          "state": "waiting_for_channel_and_kevin_approval"
+        },
+        {
+          "id": "CAL-004",
+          "day": "Thursday",
+          "channel": "YouTube",
+          "contentRef": "YT-002",
+          "title": "From crash site to first creature",
+          "asset": null,
+          "assetClass": "authentic_gameplay_video_required",
+          "disclosure": "Use only a recording of the real running game.",
+          "state": "blocked_until_video_and_channel_exist"
+        }
+      ]
+    },
+    {
+      "week": 3,
+      "theme": "Explain what makes Mythical Void different",
+      "releases": [
+        {
+          "id": "CAL-005",
+          "day": "Tuesday",
+          "channel": "LinkedIn",
+          "contentRef": "LI-003",
+          "title": "An AI-first studio with people responsible",
+          "asset": "public/press/gameplay/village-first-construction.png",
+          "assetClass": "authentic_running_build_screenshot",
+          "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup.",
+          "state": "waiting_for_channel_and_kevin_approval"
+        },
+        {
+          "id": "CAL-006",
+          "day": "Thursday",
+          "channel": "LinkedIn",
+          "contentRef": "LI-004",
+          "title": "Why real NASA data belongs in a fantasy game",
+          "asset": null,
+          "assetClass": "named_nasa_product_capture_required",
+          "disclosure": "The finished post must show the real feature and credit the NASA source used.",
+          "state": "blocked_until_nasa_product_capture"
+        }
+      ]
+    },
+    {
+      "week": 4,
+      "theme": "Invite useful attention and learn",
+      "releases": [
+        {
+          "id": "CAL-007",
+          "day": "Tuesday",
+          "channel": "LinkedIn",
+          "contentRef": "LI-005",
+          "title": "The Mythical Void press room is open",
+          "asset": "public/press/gameplay/creature-cosmic-egg-hatch.png",
+          "assetClass": "authentic_running_build_screenshot",
+          "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup.",
+          "state": "waiting_for_channel_and_kevin_approval"
+        },
+        {
+          "id": "CAL-008",
+          "day": "Friday",
+          "channel": "Internal review",
+          "contentRef": null,
+          "title": "Decide what earned real play",
+          "asset": null,
+          "assetClass": "none",
+          "disclosure": null,
+          "state": "ready_for_internal_review",
+          "reviewQuestions": [
+            "Which post led to people choosing Play now?",
+            "Which questions showed genuine interest or confusion?",
+            "Did comments create work the studio could not safely cover?",
+            "What true story should the next four weeks focus on?"
+          ]
+        }
+      ]
+    }
+  ],
+  "approvalGate": {
+    "requiredBeforeEveryExternalRelease": [
+      "official channel link is recorded",
+      "Kevin approves the finished copy and asset together",
+      "all claims match the current game",
+      "generated artwork is labelled and never presented as gameplay",
+      "an adult is available to check comments at the stated time"
+    ],
+    "onFailure": "Keep the item in draft and move to the next safe preparation task."
+  },
+  "scorecard": [
+    "website visits from the post",
+    "Play now selections",
+    "useful adult or guardian feedback",
+    "relevant creator, press, educator or partner replies",
+    "moderation or safeguarding concerns"
+  ]
+}
