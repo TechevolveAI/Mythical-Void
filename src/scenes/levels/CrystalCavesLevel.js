@@ -197,6 +197,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.playerGlowRadius = 150;
         this.backgroundCrystals = []; // Track crystals for proximity activation
         this.crystalProximityDistance = 200;
+        this.caveCoinPickups = [];
+        this.caveCoinLayer = null;
+        this.caveCoinLayerTween = null;
+        this.caveCrystalField = [];
+        this.caveCrystalFieldLayer = null;
 
         // Project Beacon expedition state
         this.beaconAnchors = [];
@@ -271,6 +276,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Reset lighting
         this.playerGlow = null;
         this.backgroundCrystals = [];
+        this.caveCoinPickups = [];
+        this.caveCoinLayer = null;
+        this.caveCoinLayerTween = null;
+        this.caveCrystalField = [];
+        this.caveCrystalFieldLayer = null;
         this.beaconAnchors = [];
         this.beaconAnchorsActivated = 0;
         this.caveRouteAligned = false;
@@ -2813,6 +2823,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         coinPositions.forEach(pos => {
             this.createCoin(pos.x, pos.y);
         });
+        this.redrawCaveCoinLayer();
 
         // Star Fragments (5 total) - Reward exploration
         const relicPositions = [
@@ -2891,7 +2902,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Set up collectible overlaps
         this.physics.add.overlap(this.player, this.collectibles, this.collectItem, null, this);
 
-        console.log(`[CrystalCavesLevel] Created ${this.collectibles.getLength()} collectibles (including Crystal Shield)`);
+        console.log(
+            `[CrystalCavesLevel] Created ${this.collectibles.getLength()} physics collectibles ` +
+            `and ${this.caveCoinPickups.length} batched coins`
+        );
     }
 
     /**
@@ -3061,39 +3075,85 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Create a cosmic coin
      */
     createCoin(x, y) {
-        // Use existing cosmic coin texture if available
-        let textureKey = 'cosmicCoin';
-        if (!this.textures.exists(textureKey)) {
-            if (this.graphicsEngine) {
-                this.graphicsEngine.createCosmicCoin();
-            } else {
-                // Fallback simple coin
-                const graphics = this.make.graphics({ add: false });
-                graphics.fillStyle(0xFFD700, 1);
-                graphics.fillCircle(12, 12, 10);
-                graphics.fillStyle(0xFFA500, 1);
-                graphics.fillCircle(12, 12, 6);
-                graphics.generateTexture(textureKey, 24, 24);
-                graphics.destroy();
-            }
-        }
+        this.ensureCaveCoinLayer();
+        const pickup = {
+            x,
+            y,
+            value: 10,
+            collected: false,
+            batched: true
+        };
+        this.caveCoinPickups.push(pickup);
+        return pickup;
+    }
 
-        const coin = this.collectibles.create(x, y, textureKey);
-        coin.body.setAllowGravity(false);
-        coin.collectibleType = 'coin';
-        coin.value = 10;
+    ensureCaveCoinLayer() {
+        if (this.caveCoinLayer?.active) return this.caveCoinLayer;
 
-        // Floating animation
-        this.tweens.add({
-            targets: coin,
-            y: y - 10,
+        this.caveCoinLayer = this.add.graphics().setDepth(125);
+        this.caveCoinLayerTween = this.tweens.add({
+            targets: this.caveCoinLayer,
+            y: { from: 0, to: -6 },
             duration: 1000,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+        return this.caveCoinLayer;
+    }
 
-        return coin;
+    redrawCaveCoinLayer() {
+        const layer = this.caveCoinLayer;
+        if (!layer?.active) return false;
+
+        layer.clear();
+        this.caveCoinPickups.forEach(pickup => {
+            if (!pickup || pickup.collected) return;
+            layer.fillStyle(0x5A2A00, 0.5);
+            layer.fillCircle(pickup.x, pickup.y, 13);
+            layer.fillStyle(0xFFD700, 1);
+            layer.fillCircle(pickup.x, pickup.y, 10);
+            layer.fillStyle(0xFFA500, 1);
+            layer.fillCircle(pickup.x, pickup.y, 6);
+            layer.fillStyle(0xFFF4B0, 0.9);
+            layer.fillCircle(pickup.x - 3, pickup.y - 3, 2);
+        });
+        return true;
+    }
+
+    updateCaveCoinPickups() {
+        const body = this.player?.body;
+        if (!body) return 0;
+
+        const pickupPadding = 16;
+        let collectedCount = 0;
+        this.caveCoinPickups.forEach(pickup => {
+            if (!pickup || pickup.collected) return;
+            const overlapsPlayer =
+                pickup.x >= body.left - pickupPadding &&
+                pickup.x <= body.right + pickupPadding &&
+                pickup.y >= body.top - pickupPadding &&
+                pickup.y <= body.bottom + pickupPadding;
+            if (!overlapsPlayer) return;
+            if (this.collectCaveCoin(pickup, { redraw: false })) {
+                collectedCount += 1;
+            }
+        });
+
+        if (collectedCount > 0) this.redrawCaveCoinLayer();
+        return collectedCount;
+    }
+
+    collectCaveCoin(pickup, { redraw = true } = {}) {
+        if (!pickup || pickup.collected) return false;
+        pickup.collected = true;
+        if (redraw) this.redrawCaveCoinLayer();
+
+        const currentCoins = window.GameState?.get('player.cosmicCoins') || 0;
+        window.GameState?.set('player.cosmicCoins', currentCoins + pickup.value);
+        this.showFloatingText(`+${pickup.value}`, pickup.x, pickup.y, '#FFD700');
+        window.AudioManager?.playCoinCollect?.();
+        return true;
     }
 
     /**
@@ -3291,8 +3351,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         crystalPositions.forEach(pos => {
             this.createBackgroundCrystal(pos.x, pos.y, pos.size);
         });
+        this.redrawCaveCrystalField();
 
-        console.log('[CrystalCavesLevel] Dynamic lighting initialized with', this.backgroundCrystals.length, 'crystals');
+        console.log(
+            '[CrystalCavesLevel] Dynamic lighting initialized with',
+            this.caveCrystalField.length,
+            'batched crystals'
+        );
     }
 
     /**
@@ -3590,37 +3655,73 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Create a glowing background crystal with proximity lighting
      */
     createBackgroundCrystal(x, y, size) {
-        const crystal = this.add.graphics();
         const color = Phaser.Math.RND.pick([0x7B68EE, 0x00FFFF, 0xE040FB]);
+        if (!this.caveCrystalFieldLayer?.active) {
+            this.caveCrystalFieldLayer = this.add.graphics().setDepth(-10);
+        }
+        const crystal = {
+            crystalColor: color,
+            crystalSize: size,
+            crystalX: x,
+            crystalY: y,
+            baseAlpha: 0.3,
+            activeAlpha: 0.9,
+            currentAlpha: 0.3,
+            lastDrawnAlpha: 0.3,
+            active: true,
+            batched: true
+        };
+        this.caveCrystalField.push(crystal);
+        return crystal;
+    }
 
-        // Store crystal info for proximity updates
-        crystal.crystalColor = color;
-        crystal.crystalSize = size;
-        crystal.crystalX = x;
-        crystal.crystalY = y;
-        crystal.baseAlpha = 0.3; // Dimmer when far from player
-        crystal.activeAlpha = 0.9; // Brighter when player is near
-        crystal.currentAlpha = 0.3;
+    redrawCaveCrystalField() {
+        const layer = this.caveCrystalFieldLayer;
+        if (!layer?.active) return false;
 
-        // Initial draw (dim)
-        this.drawCrystal(crystal, color, size, crystal.baseAlpha);
-
-        crystal.setPosition(x, y);
-        crystal.setDepth(-10);  // Behind platforms
-
-        // Subtle pulse animation
-        this.tweens.add({
-            targets: crystal,
-            scaleX: { from: 0.95, to: 1.05 },
-            scaleY: { from: 0.95, to: 1.05 },
-            duration: Phaser.Math.Between(2000, 3500),
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+        layer.clear();
+        this.caveCrystalField.forEach(crystal => {
+            if (!crystal?.active) return;
+            this.drawCrystalAt(
+                layer,
+                crystal.crystalX,
+                crystal.crystalY,
+                crystal.crystalColor,
+                crystal.crystalSize,
+                crystal.currentAlpha
+            );
+            crystal.lastDrawnAlpha = crystal.currentAlpha;
         });
+        return true;
+    }
 
-        // Store for proximity updates
-        this.backgroundCrystals.push(crystal);
+    drawCrystalAt(graphics, x, y, color, size, intensity) {
+        graphics.fillStyle(color, 0.15 * intensity);
+        graphics.fillCircle(x, y, size * 1.8);
+        graphics.fillStyle(color, 0.3 * intensity);
+        graphics.fillCircle(x, y, size * 1.2);
+        graphics.fillStyle(color, 0.5 * intensity);
+        graphics.fillCircle(x, y, size);
+        graphics.fillStyle(color, 0.3 + (0.6 * intensity));
+        graphics.fillTriangle(
+            x - size / 3,
+            y + size / 2,
+            x + size / 3,
+            y + size / 2,
+            x,
+            y - size / 2
+        );
+        if (intensity > 0.6) {
+            graphics.fillStyle(0xFFFFFF, 0.3 * intensity);
+            graphics.fillTriangle(
+                x - size / 6,
+                y + size / 4,
+                x + size / 6,
+                y + size / 4,
+                x,
+                y - size / 4
+            );
+        }
     }
 
     /**
@@ -3686,11 +3787,41 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             crystal.currentAlpha += (targetAlpha - crystal.currentAlpha) * 0.1;
 
             // Only redraw if alpha changed significantly
-            if (Math.abs(crystal.currentAlpha - crystal.lastDrawnAlpha) > 0.02) {
-                this.drawCrystal(crystal, crystal.crystalColor, crystal.crystalSize, crystal.currentAlpha);
+            if (
+                !Number.isFinite(crystal.lastDrawnAlpha) ||
+                Math.abs(crystal.currentAlpha - crystal.lastDrawnAlpha) > 0.02
+            ) {
+                if (Number.isFinite(crystal.crystalSize)) {
+                    this.drawCrystal(
+                        crystal,
+                        crystal.crystalColor,
+                        crystal.crystalSize,
+                        crystal.currentAlpha
+                    );
+                } else {
+                    crystal.setAlpha?.(crystal.currentAlpha);
+                }
                 crystal.lastDrawnAlpha = crystal.currentAlpha;
             }
         });
+
+        let fieldChanged = false;
+        this.caveCrystalField.forEach(crystal => {
+            const dist = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                crystal.crystalX,
+                crystal.crystalY
+            );
+            const proximity = Math.max(0, 1 - (dist / this.crystalProximityDistance));
+            const targetAlpha = crystal.baseAlpha +
+                (crystal.activeAlpha - crystal.baseAlpha) * proximity;
+            crystal.currentAlpha += (targetAlpha - crystal.currentAlpha) * 0.1;
+            if (Math.abs(crystal.currentAlpha - crystal.lastDrawnAlpha) > 0.02) {
+                fieldChanged = true;
+            }
+        });
+        if (fieldChanged) this.redrawCaveCrystalField();
     }
 
     /**
@@ -5318,6 +5449,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
+        this.updateCaveCoinPickups();
+
         // Update objective display
         if (this.objectiveDisplay) {
             this.objectiveDisplay.setText(this.getCrystalObjectiveText());
@@ -5396,6 +5529,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.playerGlow.destroy();
             this.playerGlow = null;
         }
+        this.caveCoinLayerTween?.remove?.();
+        this.caveCoinLayerTween = null;
+        this.caveCoinLayer?.destroy?.();
+        this.caveCoinLayer = null;
+        this.caveCoinPickups = [];
+        this.caveCrystalFieldLayer?.destroy?.();
+        this.caveCrystalFieldLayer = null;
+        this.caveCrystalField = [];
         this.backgroundCrystals = [];
 
         // Clean up Crystal Spider miniboss

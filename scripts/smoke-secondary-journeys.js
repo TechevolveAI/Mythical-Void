@@ -29,13 +29,13 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
         performanceTier: 'mobile'
     }),
     crystalCaves: Object.freeze({
-        displayCount: 250,
-        activeTweenCount: 75,
+        displayCount: 225,
+        activeTweenCount: 60,
         performanceTier: 'mobile'
     }),
     reef: Object.freeze({
-        displayCount: 250,
-        activeTweenCount: 80,
+        displayCount: 205,
+        activeTweenCount: 45,
         performanceTier: 'custom'
     }),
     voidPeaks: Object.freeze({
@@ -414,6 +414,88 @@ async function smokeForestBatchedCoinPickup(session) {
             });
             scene.isInvincible = false;
             scene.player?.body?.reset?.(300, scene.levelHeight - 130);
+            scene.player?.setVelocity?.(0, 0);
+            return true;
+        })()`);
+    }
+}
+
+async function smokeCaveBatchedCoinPickup(session) {
+    const staged = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+        const pickup = scene.caveCoinPickups?.find(
+            item => item?.batched && !item.collected && item.x >= 4000
+        );
+        if (!pickup || !scene.player?.body) return null;
+
+        scene.isInvincible = true;
+        (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (enemy?.body) enemy.body.enable = false;
+        });
+        const balanceBefore = Number(
+            window.GameState?.get?.('player.cosmicCoins')
+        ) || 0;
+        const activeBefore = scene.caveCoinPickups.filter(
+            item => item?.batched && !item.collected
+        ).length;
+        scene.player.body.reset(pickup.x, pickup.y);
+        scene.player.setVelocity(0, 0);
+        return {
+            x: pickup.x,
+            y: pickup.y,
+            expectedAward: pickup.value,
+            balanceBefore,
+            activeBefore
+        };
+    })()`);
+    if (!staged) {
+        throw new Error('Crystal Caves batched coin pickup could not be staged');
+    }
+
+    try {
+        const collected = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+                const pickup = scene.caveCoinPickups?.find(
+                    item => item?.batched && item.x === ${staged.x} && item.y === ${staged.y}
+                );
+                if (!pickup?.collected) return null;
+                return {
+                    collected: true,
+                    balanceAfter: Number(
+                        window.GameState?.get?.('player.cosmicCoins')
+                    ) || 0,
+                    activeAfter: scene.caveCoinPickups.filter(
+                        item => item?.batched && !item.collected
+                    ).length,
+                    layerCount: scene.children?.list?.filter(
+                        item => item === scene.caveCoinLayer
+                    ).length || 0
+                };
+            })()`),
+            { timeoutMs: 1800, message: 'Crystal Caves batched coin overlap' }
+        );
+        if (
+            collected.balanceAfter - staged.balanceBefore !== staged.expectedAward ||
+            collected.activeAfter !== staged.activeBefore - 1 ||
+            collected.layerCount !== 1
+        ) {
+            throw new Error(
+                `Crystal Caves batched coin did not resolve exactly once: ${JSON.stringify({
+                    staged,
+                    collected
+                })}`
+            );
+        }
+        return { staged, collected };
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('CrystalCavesLevel');
+            (scene.enemies?.getChildren?.() || []).forEach(enemy => {
+                if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
+            });
+            scene.isInvincible = false;
+            scene.player?.body?.reset?.(200, scene.levelHeight - 130);
             scene.player?.setVelocity?.(0, 0);
             return true;
         })()`);
@@ -2090,6 +2172,40 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     coin => coin?.pickupZone?.body
                 ).length
             } : null,
+            caveCoinRendering: Array.isArray(scene?.caveCoinPickups) ? {
+                batchedCount: scene.caveCoinPickups.filter(
+                    coin => coin?.batched && !coin.collected
+                ).length,
+                layerCount: scene.children?.list?.filter(
+                    item => item === scene.caveCoinLayer
+                ).length || 0,
+                physicsCoinCount: scene.collectibles?.getChildren?.().filter(
+                    item => item?.collectibleType === 'coin' && item?.body
+                ).length || 0
+            } : null,
+            caveCrystalRendering: Array.isArray(scene?.caveCrystalField) ? {
+                batchedCount: scene.caveCrystalField.filter(
+                    crystal => crystal?.batched && crystal.active !== false
+                ).length,
+                layerCount: scene.children?.list?.filter(
+                    item => item === scene.caveCrystalFieldLayer
+                ).length || 0
+            } : null,
+            reefAmbientRendering: Array.isArray(scene?.cosmicDustParticles) ? {
+                nebulaLayerCount: scene.nebulaParticles?.filter(
+                    layer => layer?.active !== false
+                ).length || 0,
+                riftLayerCount: scene.voidRifts?.filter(
+                    layer => layer?.active !== false
+                ).length || 0,
+                dustLayerCount: scene.children?.list?.filter(
+                    item => item === scene.cosmicDustLayer
+                ).length || 0,
+                dustParticleCount: scene.cosmicDustParticles.length,
+                entryLayerCount: scene.children?.list?.filter(
+                    item => item === scene.entryCosmicParticleLayer
+                ).length || 0
+            } : null,
             routeGuidance: (() => {
                 const nextSignal = scene?.getNextOrderedRouteSignal?.();
                 return {
@@ -2131,6 +2247,34 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     ) {
         throw new Error(
             `${sceneName} exceeded its mobile ambient render budget: ${JSON.stringify(state)}`
+        );
+    }
+    if (
+        route === 'crystalCaves' &&
+        (
+            state.caveCoinRendering?.batchedCount !== 11 ||
+            state.caveCoinRendering?.layerCount !== 1 ||
+            state.caveCoinRendering?.physicsCoinCount !== 0 ||
+            state.caveCrystalRendering?.batchedCount !== 11 ||
+            state.caveCrystalRendering?.layerCount !== 1
+        )
+    ) {
+        throw new Error(
+            `${sceneName} did not keep cave ambience batched: ${JSON.stringify(state)}`
+        );
+    }
+    if (
+        route === 'reef' &&
+        (
+            state.reefAmbientRendering?.nebulaLayerCount !== 2 ||
+            state.reefAmbientRendering?.riftLayerCount !== 1 ||
+            state.reefAmbientRendering?.dustLayerCount !== 1 ||
+            state.reefAmbientRendering?.dustParticleCount > 12 ||
+            state.reefAmbientRendering?.entryLayerCount > 1
+        )
+    ) {
+        throw new Error(
+            `${sceneName} did not keep Reef ambience bounded: ${JSON.stringify(state)}`
         );
     }
     let renderStability = null;
@@ -2206,6 +2350,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     }
     const forestCoinPickup = route === 'mythicalForest'
         ? await smokeForestBatchedCoinPickup(session)
+        : null;
+    const caveCoinPickup = route === 'crystalCaves'
+        ? await smokeCaveBatchedCoinPickup(session)
         : null;
     if (
         [
@@ -4929,6 +5076,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         forestAnchorSupports,
         framePacing,
         forestCoinPickup,
+        caveCoinPickup,
         renderStability,
         combatFeedback,
         liveStomp,
