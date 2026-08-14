@@ -99,6 +99,17 @@ function gitValue(args) {
 }
 
 function writeManifest() {
+    const manifestPath = path.join(captureDir, 'manifest.json');
+    let previousManifest = null;
+    if (fs.existsSync(manifestPath)) {
+        try {
+            previousManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        } catch (error) {
+            throw new Error(`Existing gameplay manifest is invalid: ${error.message}`);
+        }
+    }
+    const currentSourceCommit = gitValue(['rev-parse', 'HEAD']);
+    const capturedNow = new Set(groupFiles[captureGroup]);
     for (const filename of groupFiles[captureGroup]) {
         if (!fs.existsSync(path.join(captureDir, filename))) {
             throw new Error(`Required ${captureGroup} capture is missing: ${filename}`);
@@ -122,6 +133,11 @@ function writeManifest() {
             ...dimensions,
             classification: 'authentic_running_build_screenshot',
             fixture: 'company_controlled_qa_state_no_personal_data',
+            sourceCommit: capturedNow.has(filename)
+                ? currentSourceCommit
+                : previousManifest?.captures?.find(item => item.filename === filename)?.sourceCommit ||
+                    previousManifest?.sourceCommit ||
+                    null,
             disclosure: 'Captured from the real Mythical Void browser game; not a generated mockup.'
         };
         if (filename === 'nasa-apollo11-real-space-discovery.png') {
@@ -138,10 +154,12 @@ function writeManifest() {
     const manifest = {
         schemaVersion: 1,
         asOf: new Date().toISOString(),
-        sourceCommit: gitValue(['rev-parse', 'HEAD']),
+        sourceCommit: currentSourceCommit,
         sourceBranch: gitValue(['branch', '--show-current']),
         sourceRoute: '/play/',
         captureMethod: 'Automated first-party browser journeys using a clean invented QA state.',
+        captureSourcePolicy: 'The top-level sourceCommit records the build that last updated this manifest. Each capture has its own sourceCommit, which remains unchanged during partial recaptures.',
+        captureSourceCommits: [...new Set(captures.map(capture => capture.sourceCommit).filter(Boolean))],
         rights: 'First-party Mythical Void game capture. Any embedded public NASA material retains the exact source and credit recorded on its capture.',
         privacy: 'No player name, child identity, account, message, notification or personal save data is used.',
         presentationBoundary: 'These are authentic screenshots of a running build. Some in-game art may have its own disclosed production provenance; none of these images is a generated gameplay mockup.',
@@ -149,7 +167,7 @@ function writeManifest() {
         captures
     };
     fs.writeFileSync(
-        path.join(captureDir, 'manifest.json'),
+        manifestPath,
         `${JSON.stringify(manifest, null, 2)}\n`
     );
     return manifest;

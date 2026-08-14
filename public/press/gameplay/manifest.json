@@ -1,10 +1,15 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-14T13:45:25.291Z",
-  "sourceCommit": "357cfe2d77a7506fa6f92055a59087d1c07d12db",
+  "asOf": "2026-08-14T13:54:27.586Z",
+  "sourceCommit": "24ea30df367a20df762b237a4989604b35734435",
   "sourceBranch": "codex/living-creature-portraits",
   "sourceRoute": "/play/",
   "captureMethod": "Automated first-party browser journeys using a clean invented QA state.",
+  "captureSourcePolicy": "The top-level sourceCommit records the build that last updated this manifest. Each capture has its own sourceCommit, which remains unchanged during partial recaptures.",
+  "captureSourceCommits": [
+    "cf0f9c2409b5915a0177f65b287f539932352021",
+    "24ea30df367a20df762b237a4989604b35734435"
+  ],
   "rights": "First-party Mythical Void game capture. Any embedded public NASA material retains the exact source and credit recorded on its capture.",
   "privacy": "No player name, child identity, account, message, notification or personal save data is used.",
   "presentationBoundary": "These are authentic screenshots of a running build. Some in-game art may have its own disclosed production provenance; none of these images is a generated gameplay mockup.",
@@ -20,6 +25,7 @@
       "height": 810,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -32,6 +38,7 @@
       "height": 810,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -44,6 +51,7 @@
       "height": 810,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -56,6 +64,7 @@
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -68,6 +77,7 @@
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -80,6 +90,7 @@
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -92,6 +103,7 @@
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -104,6 +116,7 @@
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -116,6 +129,7 @@
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -128,6 +142,7 @@
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -140,18 +155,20 @@
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
       "id": "GP-012",
       "filename": "nasa-apollo11-real-space-discovery.png",
       "publicPath": "/press/gameplay/nasa-apollo11-real-space-discovery.png",
-      "sha256": "e2e3dcfe5fdda2c72965b157c0f542ca5573132e97aea2d8aa4de307a9cd6f2b",
-      "bytes": 154960,
+      "sha256": "1f841ccf802fa335868a6d326f56f1175186ef5de6affc390e93cd408c6b1957",
+      "bytes": 154923,
       "width": 390,
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "24ea30df367a20df762b237a4989604b35734435",
       "disclosure": "Captured from the real Mythical Void browser game. The in-game panel contains a credited NASA Apollo 11 image and clearly separates real space material from the creature’s imagined reaction.",
       "embeddedSource": {
         "name": "NASA Astronomy Picture of the Day — Apollo 11 Landing Panorama",

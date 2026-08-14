@@ -184,6 +184,12 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.assets[0].kind).toBe('authentic_running_build_gameplay_video');
         expect(gameplayManifest.captures).toHaveLength(12);
         expect(gameplayManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
+        expect(gameplayManifest.captureSourcePolicy).toContain(
+            'Each capture has its own sourceCommit'
+        );
+        gameplayManifest.captures.forEach(capture => {
+            expect(capture.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
+        });
         expect(gameplayManifest.approvalState).toBe(
             'internal_review_required_before_public_promotion'
         );
