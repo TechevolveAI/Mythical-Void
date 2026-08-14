@@ -78,6 +78,26 @@
       "generatedMediaProvenance": "Not applicable unless edited with generated elements",
       "alt": "Required after capture",
       "expiryTrigger": "Relevant story, dialogue, or UI changes"
+    },
+    {
+      "id": "PF-006",
+      "title": "Mythical Void technology source map",
+      "asset": "docs/company/content/technology-proof-map.json",
+      "kind": "code_source_map",
+      "status": "source_bound",
+      "capturedFromBuild": null,
+      "shows": "Repository sources for plain-language descriptions of creature genetics, the Phaser browser world, bounded AI media and optional NASA public data.",
+      "doesNotProve": [
+        "provider policy readiness",
+        "production availability of every optional service",
+        "external endorsement",
+        "unlimited generation or global creature uniqueness"
+      ],
+      "claims": ["CL-005"],
+      "rights": "First-party source map referencing the Mythical Void repository",
+      "generatedMediaProvenance": "Not a media asset",
+      "alt": "Not applicable; internal text evidence map",
+      "expiryTrigger": "Relevant source, provider, safety boundary or public wording changes"
     }
   ]
 }

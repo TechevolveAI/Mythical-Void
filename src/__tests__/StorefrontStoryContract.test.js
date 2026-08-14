@@ -131,4 +131,12 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).not.toContain('mailto:hello@mythicalvoid.com');
         expect(storefront).not.toContain('mailto:parents@mythicalvoid.com');
     });
+
+    test('offers a privacy-safe player-led sharing path', () => {
+        expect(storefront).toContain('data-share-game');
+        expect(storefront).toContain('navigator.share');
+        expect(storefront).toContain('navigator.clipboard.writeText');
+        expect(storefront).toContain('https://mythicalvoid.com/');
+        expect(storefront).not.toContain('utm_');
+    });
 });

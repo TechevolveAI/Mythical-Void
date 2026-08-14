@@ -19,7 +19,7 @@
     },
     {
       "id": "TECH-003",
-      "claim": "Optional age-gated services can create AI-generated companion portraits and cinematic moments.",
+      "claim": "Optional age-gated services can create AI-generated creature portraits and cinematic moments.",
       "sources": ["src/systems/LivingPortraitService.js", "src/systems/CompanionMediaService.js", "netlify/functions/generate-companion-video.mjs"],
       "publicStatus": "approved_with_experimental_and_age_gated_language",
       "limits": "Do not claim unrestricted generation, child profiling, or that generated media replaces authored story content."
