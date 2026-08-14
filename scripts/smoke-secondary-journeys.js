@@ -34,8 +34,8 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
         performanceTier: 'mobile'
     }),
     reef: Object.freeze({
-        displayCount: 205,
-        activeTweenCount: 24,
+        displayCount: 150,
+        activeTweenCount: 16,
         performanceTier: 'custom'
     }),
     voidPeaks: Object.freeze({
@@ -876,6 +876,60 @@ async function smokeCaveBatchedCoinPickup(session) {
             return true;
         })()`);
     }
+}
+
+async function smokeReefTrailBudget(session) {
+    const result = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('ReefLevel');
+        if (!scene?.player?.active) return null;
+
+        const displayBefore = scene.children?.list?.length || 0;
+        const tweensBefore = scene.tweens?.getTweens?.().length || 0;
+        let acceptedCount = 0;
+        for (let index = 0; index < 30; index += 1) {
+            scene.reefTrailNextAt = 0;
+            if (scene.createPlayerCosmicTrail()) acceptedCount += 1;
+        }
+        scene.updatePlayerCosmicTrail(16);
+        const peak = {
+            acceptedCount,
+            particleCount: scene.reefTrailParticles?.length || 0,
+            layerCount: scene.children?.list?.filter(
+                item => item === scene.reefTrailLayer
+            ).length || 0,
+            displayDelta: (scene.children?.list?.length || 0) - displayBefore,
+            tweenDelta: (scene.tweens?.getTweens?.().length || 0) - tweensBefore,
+            trailTweenCount: (scene.tweens?.getTweens?.() || []).filter(
+                tween => (tween?.targets || []).includes(scene.reefTrailLayer)
+            ).length
+        };
+        for (let index = 0; index < 24; index += 1) {
+            scene.updatePlayerCosmicTrail(50);
+        }
+        return {
+            peak,
+            settledParticleCount: scene.reefTrailParticles?.length || 0,
+            settledLayerCount: scene.children?.list?.filter(
+                item => item === scene.reefTrailLayer
+            ).length || 0
+        };
+    })()`);
+    if (!result) throw new Error('Reef trail budget could not be staged');
+    if (
+        result.peak.acceptedCount !== 8 ||
+        result.peak.particleCount !== 8 ||
+        result.peak.layerCount !== 1 ||
+        result.peak.displayDelta !== 1 ||
+        result.peak.tweenDelta !== 0 ||
+        result.peak.trailTweenCount !== 0 ||
+        result.settledParticleCount !== 0 ||
+        result.settledLayerCount !== 1
+    ) {
+        throw new Error(
+            `Reef swimming trail exceeded its bounded layer budget: ${JSON.stringify(result)}`
+        );
+    }
+    return result;
 }
 
 async function navigate(session, url) {
@@ -2726,6 +2780,51 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     target => target?.enemyType === 'shadowBat'
                 )).length
             } : null,
+            reefEnemyRuntime: scene?.scene?.key === 'ReefLevel' ? (() => {
+                const enemies = scene?.enemies?.getChildren?.() || [];
+                const physicsOnlyBodies = [
+                    ...(scene?.platforms?.getChildren?.() || []),
+                    ...enemies,
+                    ...(scene?.starFragments || []),
+                    scene?.shipPart
+                ].filter(body => body?.reefPhysicsOnly);
+                return {
+                    scheduledEnemyCount: enemies.filter(
+                        enemy => typeof enemy?.reefProximityActive === 'boolean'
+                    ).length,
+                    aiSchedulerActive: Boolean(scene.reefEnemyAISchedulerActive),
+                    proximityActiveCount: enemies.filter(
+                        enemy => enemy?.reefProximityActive === true
+                    ).length,
+                    sleepingEnemyCount: enemies.filter(
+                        enemy => enemy?.reefProximityActive === false
+                    ).length,
+                    enabledBodyCount: enemies.filter(
+                        enemy => enemy?.body?.enable === true
+                    ).length,
+                    renderAttachedGraphicsCount: enemies.filter(
+                        enemy => enemy?.graphics?.displayList === scene.children
+                    ).length,
+                    renderAttachedCueCount: enemies.filter(
+                        enemy => enemy?.combatCue?.displayList === scene.children
+                    ).length,
+                    sleepingDetachedCount: enemies.filter(enemy => (
+                        enemy?.reefProximityActive === false &&
+                        enemy?.graphics?.displayList !== scene.children &&
+                        enemy?.combatCue?.displayList !== scene.children
+                    )).length,
+                    activationBounds: scene.reefEnemyActivationBounds ? {
+                        horizontalMargin:
+                            scene.reefEnemyActivationBounds.horizontalMargin,
+                        verticalMargin:
+                            scene.reefEnemyActivationBounds.verticalMargin
+                    } : null,
+                    physicsOnlyBodyCount: physicsOnlyBodies.length,
+                    physicsOnlyDisplayCount: physicsOnlyBodies.filter(
+                        body => body?.displayList === scene.children
+                    ).length
+                };
+            })() : null,
             forestDecorationRendering:
                 scene?.scene?.key === 'MythicalForestLevel' ? (() => {
                     const tweens = scene?.tweens?.getTweens?.() || [];
@@ -3043,6 +3142,24 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.reefAmbientRendering?.dustParticleCount > 6 ||
             state.reefAmbientRendering?.entryLayerCount > 1 ||
             state.reefAmbientRendering?.decorativeTweenCount !== 0 ||
+            state.reefEnemyRuntime?.scheduledEnemyCount !== 8 ||
+            state.reefEnemyRuntime?.aiSchedulerActive !== true ||
+            state.reefEnemyRuntime?.proximityActiveCount > 2 ||
+            state.reefEnemyRuntime?.sleepingEnemyCount < 6 ||
+            state.reefEnemyRuntime?.proximityActiveCount +
+                state.reefEnemyRuntime?.sleepingEnemyCount !== 8 ||
+            state.reefEnemyRuntime?.enabledBodyCount !==
+                state.reefEnemyRuntime?.proximityActiveCount ||
+            state.reefEnemyRuntime?.renderAttachedGraphicsCount !==
+                state.reefEnemyRuntime?.proximityActiveCount ||
+            state.reefEnemyRuntime?.renderAttachedCueCount !==
+                state.reefEnemyRuntime?.proximityActiveCount ||
+            state.reefEnemyRuntime?.sleepingDetachedCount !==
+                state.reefEnemyRuntime?.sleepingEnemyCount ||
+            state.reefEnemyRuntime?.activationBounds?.horizontalMargin !== 520 ||
+            state.reefEnemyRuntime?.activationBounds?.verticalMargin !== 320 ||
+            state.reefEnemyRuntime?.physicsOnlyBodyCount !== 34 ||
+            state.reefEnemyRuntime?.physicsOnlyDisplayCount !== 0 ||
             state.currentEcologyPlacement?.supportId !== 'reef-opening-3' ||
             state.currentEcologyPlacement?.x <
                 state.currentEcologyPlacement?.supportLeft ||
@@ -3299,6 +3416,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         : null;
     const caveCoinPickup = route === 'crystalCaves'
         ? await smokeCaveBatchedCoinPickup(session)
+        : null;
+    const reefTrailBudget = route === 'reef'
+        ? await smokeReefTrailBudget(session)
         : null;
     if (
         [
@@ -6474,6 +6594,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         forestEnemyScheduler,
         forestCoinPickup,
         caveCoinPickup,
+        reefTrailBudget,
         renderStability,
         combatFeedback,
         liveStomp,

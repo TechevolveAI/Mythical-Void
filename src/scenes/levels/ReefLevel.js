@@ -189,6 +189,11 @@ class ReefLevel extends PlatformerLevelScene {
         this.phaseDrifters = [];   // Replaces jellyfish - ethereal phase beings
         this.lureWraiths = [];     // Replaces anglerfish - void predators
         this.reefEncounterRhythm = [];
+        this.reefProximityEnemies = [];
+        this.reefEnemyAISchedulerActive = false;
+        this.reefEnemyActivationBounds = null;
+        this.reefEnemyActivationNextAt = 0;
+        this.reefEnemyAINextAt = 0;
 
         // Collectibles
         this.starFragments = [];
@@ -204,6 +209,9 @@ class ReefLevel extends PlatformerLevelScene {
         this.cosmicDustLayer = null;
         this.cosmicDustTimer = null;
         this.cosmicDustParticles = [];
+        this.reefTrailLayer = null;
+        this.reefTrailParticles = [];
+        this.reefTrailNextAt = 0;
 
         // Project Beacon expedition state
         this.beaconAnchors = [];
@@ -277,6 +285,11 @@ class ReefLevel extends PlatformerLevelScene {
         this.phaseDrifters = [];
         this.lureWraiths = [];
         this.reefEncounterRhythm = [];
+        this.reefProximityEnemies = [];
+        this.reefEnemyAISchedulerActive = false;
+        this.reefEnemyActivationBounds = null;
+        this.reefEnemyActivationNextAt = 0;
+        this.reefEnemyAINextAt = 0;
         this.nebulaParticles = [];
         this.voidRifts = [];
         this.starfieldLayer = null;
@@ -285,6 +298,9 @@ class ReefLevel extends PlatformerLevelScene {
         this.cosmicDustLayer = null;
         this.cosmicDustTimer = null;
         this.cosmicDustParticles = [];
+        this.reefTrailLayer = null;
+        this.reefTrailParticles = [];
+        this.reefTrailNextAt = 0;
 
         // Reset collectibles
         this.starFragments = [];
@@ -632,6 +648,16 @@ class ReefLevel extends PlatformerLevelScene {
         const width = Number(this.cameras?.main?.width) || 0;
         const height = Number(this.cameras?.main?.height) || 0;
         return !(this.isMobile || width <= 480 || height < 620);
+    }
+
+    detachReefPhysicsBody(body) {
+        if (!body) return null;
+        body.setVisible?.(false);
+        body.reefPhysicsOnly = true;
+        if (body.displayList === this.children) {
+            this.children.remove(body);
+        }
+        return body;
     }
 
     /**
@@ -1154,7 +1180,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Physics body
         const body = this.platforms.create(x + width / 2, y + height / 2, null);
-        body.setVisible(false);
+        this.detachReefPhysicsBody(body);
         body.body.setSize(width, height);
         body.body.setOffset(-width / 2, -height / 2);
         body.traversalId = id;
@@ -1266,6 +1292,9 @@ class ReefLevel extends PlatformerLevelScene {
 
     retireReefPatrolsForNyxvoral() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
+        this.reefEnemyAISchedulerActive = false;
+        this.reefProximityEnemies = [];
+        this.reefEnemyActivationBounds = null;
         const retirement = this.retireRouteEnemies(patrols);
         this.voidSpores = [];
         this.plasmaDarts = [];
@@ -1273,6 +1302,158 @@ class ReefLevel extends PlatformerLevelScene {
         this.lureWraiths = [];
         this.reefEncounterRhythm = [];
         return retirement.enemyCount;
+    }
+
+    registerReefEnemyAI(enemy) {
+        if (!enemy) return null;
+        enemy.reefProximityActive = null;
+        return enemy;
+    }
+
+    startReefEnemyAIScheduler() {
+        this.reefEnemyAISchedulerActive = true;
+        this.reefEnemyActivationNextAt = 0;
+        this.reefEnemyAINextAt = 0;
+        this.updateReefEnemyActivation(true);
+    }
+
+    getReefEnemyActivationBounds() {
+        const view = this.cameras?.main?.worldView;
+        const playerX = Number(this.player?.x) || 0;
+        const playerY = Number(this.player?.y) || 0;
+        const width = Math.max(
+            320,
+            Number(view?.width) || Number(this.cameras?.main?.width) || 390
+        );
+        const height = Math.max(
+            320,
+            Number(view?.height) || Number(this.cameras?.main?.height) || 720
+        );
+        const horizontalMargin = this.isMobile ? 520 : 800;
+        const verticalMargin = this.isMobile ? 320 : 460;
+        const viewLeft = Number(view?.left) || 0;
+        const viewRight = Number(view?.right) || width;
+        const viewTop = Number(view?.top) || 0;
+        const viewBottom = Number(view?.bottom) || height;
+        return {
+            left: Math.min(viewLeft, playerX - width / 2) - horizontalMargin,
+            right: Math.max(viewRight, playerX + width / 2) + horizontalMargin,
+            top: Math.min(viewTop, playerY - height / 2) - verticalMargin,
+            bottom: Math.max(viewBottom, playerY + height / 2) + verticalMargin,
+            horizontalMargin,
+            verticalMargin
+        };
+    }
+
+    setReefEnemyRenderAttached(enemy, attached) {
+        const displayList = this.children;
+        if (!enemy || !displayList) return 0;
+
+        const targets = [
+            enemy.graphics,
+            enemy.combatCue,
+            enemy.instructionLabel
+        ].filter(target => Boolean(target) && target.active !== false);
+        let changedCount = 0;
+        targets.forEach(target => {
+            const isAttached = target.displayList === displayList;
+            if (attached && !isAttached) {
+                displayList.add(target);
+                changedCount += 1;
+            } else if (!attached && isAttached) {
+                displayList.remove(target);
+                changedCount += 1;
+            }
+        });
+        return changedCount;
+    }
+
+    setReefEnemyProximityActive(enemy, enabled) {
+        if (!enemy?.active || !enemy.body) return false;
+        const nextState = enabled === true;
+        if (enemy.reefProximityActive === nextState) return nextState;
+
+        enemy.reefProximityActive = nextState;
+        if (nextState) {
+            this.setReefEnemyRenderAttached(enemy, true);
+            enemy.body.enable = true;
+            enemy.body.updateFromGameObject?.();
+            enemy.graphics?.setVisible?.(true);
+        } else {
+            enemy.setVelocity?.(0, 0);
+            enemy.body.enable = false;
+            enemy.graphics?.setVisible?.(false);
+            enemy.combatCue?.setVisible?.(false);
+            enemy.instructionLabel?.setVisible?.(false);
+            this.setReefEnemyRenderAttached(enemy, false);
+        }
+        return nextState;
+    }
+
+    updateReefEnemyActivation(force = false) {
+        if (!this.reefEnemyAISchedulerActive || !this.scene.isActive()) return 0;
+        const now = Number(this.time?.now) || 0;
+        if (!force && now < this.reefEnemyActivationNextAt) {
+            return this.reefProximityEnemies.length;
+        }
+        this.reefEnemyActivationNextAt = now + (this.isMobile ? 120 : 80);
+
+        const bounds = this.getReefEnemyActivationBounds();
+        const nearby = [];
+        (this.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (!enemy?.active || !enemy.body) return;
+            const inWindow =
+                enemy.x >= bounds.left &&
+                enemy.x <= bounds.right &&
+                enemy.y >= bounds.top &&
+                enemy.y <= bounds.bottom;
+            const attackActive = Boolean(
+                enemy.isCharging ||
+                enemy.isTelegraphing ||
+                enemy.isLunging
+            );
+            const shouldStayActive = inWindow || attackActive;
+            this.setReefEnemyProximityActive(enemy, shouldStayActive);
+            if (shouldStayActive) nearby.push(enemy);
+        });
+        this.reefProximityEnemies = nearby;
+        this.reefEnemyActivationBounds = bounds;
+        return nearby.length;
+    }
+
+    updateReefEnemyAI(time) {
+        if (!this.reefEnemyAISchedulerActive || !this.scene.isActive()) return 0;
+        const now = Number(time) || Number(this.time?.now) || 0;
+        if (now < this.reefEnemyAINextAt) return 0;
+        this.reefEnemyAINextAt = now + (this.isMobile ? 50 : 34);
+
+        let updatedCount = 0;
+        (this.reefProximityEnemies || []).forEach(enemy => {
+            if (!enemy?.active || enemy.reefProximityActive === false) return;
+            switch (enemy.enemyType) {
+                case 'voidSpore': {
+                    const wobble = Math.sin(now / 800 + enemy.phase) * 25;
+                    enemy.x = enemy.baseX + wobble;
+                    enemy.y = enemy.baseY +
+                        Math.sin(now / 600 + enemy.phase) * 15;
+                    this.updateEnemyGraphics(enemy);
+                    break;
+                }
+                case 'plasmaDart':
+                    this.updatePlasmaDartAI(enemy, now);
+                    break;
+                case 'phaseDrifter':
+                    this.updatePhaseDrifterAI(enemy, now);
+                    break;
+                case 'lureWraith':
+                    this.updateLureWraithAI(enemy, now);
+                    break;
+                default:
+                    return;
+            }
+            updatedCount += 1;
+        });
+        return updatedCount;
     }
 
     createBeaconWaypoints() {
@@ -1345,7 +1526,10 @@ class ReefLevel extends PlatformerLevelScene {
                 landingGuide: this.createTraversalLandingGuide(
                     supportId,
                     0x8FE3CF,
-                    { depth: 179 }
+                    {
+                        depth: 179,
+                        animate: this.shouldAnimateReefDecorations()
+                    }
                 ),
                 respawnY: supportCheckpoint.y,
                 activated: false
@@ -2084,8 +2268,11 @@ class ReefLevel extends PlatformerLevelScene {
             enemy.encounterAirborne = true;
             collections[encounter.kind].push(enemy);
             this.enemies.add(enemy);
+            this.registerReefEnemyAI(enemy);
             return enemy;
         });
+
+        this.startReefEnemyAIScheduler();
 
         return this.reefEncounterRhythm;
     }
@@ -2150,7 +2337,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Physics body
         const body = this.physics.add.sprite(x, y, null);
-        body.setVisible(false);
+        this.detachReefPhysicsBody(body);
         body.body.setSize(size * 2, size * 2);
         body.body.setAllowGravity(false);
 
@@ -2203,7 +2390,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Physics body
         const body = this.physics.add.sprite(x, y, null);
-        body.setVisible(false);
+        this.detachReefPhysicsBody(body);
         body.body.setSize(length + 20, height);
         body.body.setAllowGravity(false);
 
@@ -2271,7 +2458,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Physics body
         const body = this.physics.add.sprite(x, y, null);
-        body.setVisible(false);
+        this.detachReefPhysicsBody(body);
         body.body.setSize(60, 120);
         body.body.setAllowGravity(false);
 
@@ -2356,7 +2543,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Physics body
         const body = this.physics.add.sprite(x, y, null);
-        body.setVisible(false);
+        this.detachReefPhysicsBody(body);
         body.body.setSize(size * 2 + 30, size * 2);
         body.body.setAllowGravity(false);
 
@@ -2382,35 +2569,8 @@ class ReefLevel extends PlatformerLevelScene {
     /**
      * Update enemies
      */
-    updateEnemies(time, delta) {
-        // Void Spores - crystalline pulsing
-        this.voidSpores.forEach(spore => {
-            if (!spore.active) return;
-
-            const wobble = Math.sin(time / 800 + spore.phase) * 25;
-            spore.x = spore.baseX + wobble;
-            spore.y = spore.baseY + Math.sin(time / 600 + spore.phase) * 15;
-
-            this.updateEnemyGraphics(spore);
-        });
-
-        // Plasma Darts - patrol and charge
-        this.plasmaDarts.forEach(dart => {
-            if (!dart.active) return;
-            this.updatePlasmaDartAI(dart, time);
-        });
-
-        // Phase Drifters - drift and phase
-        this.phaseDrifters.forEach(drifter => {
-            if (!drifter.active) return;
-            this.updatePhaseDrifterAI(drifter, time);
-        });
-
-        // Lure Wraiths - lurk and lunge
-        this.lureWraiths.forEach(wraith => {
-            if (!wraith.active) return;
-            this.updateLureWraithAI(wraith, time);
-        });
+    updateEnemies(time) {
+        return this.updateReefEnemyAI(time);
     }
 
     updateEnemyGraphics(enemy) {
@@ -2589,7 +2749,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Physics
         const body = this.physics.add.sprite(x, y, null);
-        body.setVisible(false);
+        this.detachReefPhysicsBody(body);
         body.body.setSize(40, 40);
         body.body.setAllowGravity(false);
         body.graphics = fragment;
@@ -2738,7 +2898,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Physics
         const body = this.physics.add.sprite(x, y, null);
-        body.setVisible(false);
+        this.detachReefPhysicsBody(body);
         body.body.setSize(60, 60);
         body.body.setAllowGravity(false);
         body.graphics = shipPart;
@@ -3026,7 +3186,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.boss.setDepth(300);
 
         this.bossBody = this.physics.add.sprite(bossX, bossY, null);
-        this.bossBody.setVisible(false);
+        this.detachReefPhysicsBody(this.bossBody);
         this.bossBody.body.setSize(280, 100);
         this.bossBody.body.setAllowGravity(false);
 
@@ -3741,7 +3901,7 @@ class ReefLevel extends PlatformerLevelScene {
         minion.fillCircle(x, y, 5);
 
         const body = this.physics.add.sprite(x, y, null);
-        body.setVisible(false);
+        this.detachReefPhysicsBody(body);
         body.body.setSize(40, 40);
         body.body.setAllowGravity(false);
         body.graphics = minion;
@@ -4210,24 +4370,48 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     createPlayerCosmicTrail() {
-        const trail = this.add.graphics();
-        trail.setDepth(150);
+        if (!this.player?.active) return false;
+        const now = Number(this.time?.now) || 0;
+        if (now < this.reefTrailNextAt) return false;
+        this.reefTrailNextAt = now + (this.isMobile ? 90 : 55);
 
-        const x = this.player.x + (Math.random() - 0.5) * 25;
-        const y = this.player.y + 15;
+        const particleLimit = this.isMobile ? 8 : 14;
+        if (this.reefTrailParticles.length >= particleLimit) return false;
+        if (!this.reefTrailLayer?.active) {
+            this.reefTrailLayer = this.add.graphics().setDepth(150);
+        }
         const colors = [0xE066FF, 0x00FFFF, 0x9B30FF];
-        const color = Phaser.Utils.Array.GetRandom(colors);
-
-        trail.fillStyle(color, 0.6);
-        trail.fillCircle(x, y, 3 + Math.random() * 3);
-
-        this.tweens.add({
-            targets: trail,
-            y: y + 80,
-            alpha: 0,
-            duration: 1200,
-            onComplete: () => trail.destroy()
+        this.reefTrailParticles.push({
+            x: this.player.x + (Math.random() - 0.5) * 25,
+            y: this.player.y + 15,
+            velocityY: 58 + Math.random() * 24,
+            size: 3 + Math.random() * 3,
+            color: Phaser.Utils.Array.GetRandom(colors),
+            age: 0,
+            duration: 720 + Math.random() * 260
         });
+        return true;
+    }
+
+    updatePlayerCosmicTrail(delta) {
+        const layer = this.reefTrailLayer;
+        if (!layer?.active) return 0;
+
+        const elapsed = Math.min(50, Math.max(0, Number(delta) || 0));
+        const seconds = elapsed / 1000;
+        this.reefTrailParticles = this.reefTrailParticles.filter(particle => {
+            particle.age += elapsed;
+            particle.y += particle.velocityY * seconds;
+            return particle.age < particle.duration;
+        });
+
+        layer.clear();
+        this.reefTrailParticles.forEach(particle => {
+            const alpha = 0.6 * (1 - (particle.age / particle.duration));
+            layer.fillStyle(particle.color, alpha);
+            layer.fillCircle(particle.x, particle.y, particle.size);
+        });
+        return this.reefTrailParticles.length;
     }
 
     update(time, delta) {
@@ -4236,8 +4420,10 @@ class ReefLevel extends PlatformerLevelScene {
 
         this.updateReefAscentCurrentGuidance();
         this.updateCosmicDust(delta);
+        this.updatePlayerCosmicTrail(delta);
 
-        this.updateEnemies(time, delta);
+        this.updateReefEnemyActivation();
+        this.updateEnemies(time);
 
         if (this.bossFightActive) {
             this.updateBoss(time, delta);
@@ -4411,6 +4597,12 @@ class ReefLevel extends PlatformerLevelScene {
         this.cosmicDustLayer?.destroy?.();
         this.cosmicDustLayer = null;
         this.cosmicDustParticles = [];
+        this.reefTrailLayer?.destroy?.();
+        this.reefTrailLayer = null;
+        this.reefTrailParticles = [];
+        this.reefEnemyAISchedulerActive = false;
+        this.reefProximityEnemies = [];
+        this.reefEnemyActivationBounds = null;
 
         super.shutdown();
     }

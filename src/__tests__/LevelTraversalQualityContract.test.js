@@ -997,6 +997,7 @@ describe('campaign traversal quality contracts', () => {
 
     test('Stellar Reef batches ambient fields and bounds reusable cosmic dust', () => {
         const source = read('levels/ReefLevel.js');
+        const smokeSource = read('../../scripts/smoke-secondary-journeys.js');
 
         expect(source).toContain('for (let layerIndex = 0; layerIndex < 2; layerIndex += 1)');
         expect(source).toContain('this.voidRifts.push(riftLayer);');
@@ -1004,8 +1005,25 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('shouldAnimateReefDecorations()');
         expect(source).toContain('updateCosmicDust(delta)');
         expect(source).toContain('targets: [...allElements, entryParticles].filter(Boolean)');
+        expect(source).toContain('detachReefPhysicsBody(body)');
+        expect(source).toContain('this.children.remove(body);');
+        expect(source).toContain('startReefEnemyAIScheduler()');
+        expect(source).toContain('updateReefEnemyActivation(force = false)');
+        expect(source).toContain('updateReefEnemyAI(time)');
+        expect(source).toContain('setReefEnemyRenderAttached(enemy, attached)');
+        expect(source).toContain('this.reefTrailParticles.length >= particleLimit');
+        expect(source).toContain('updatePlayerCosmicTrail(delta)');
+        expect(source).not.toContain('targets: trail');
         expect(source).not.toContain('this.nebulaParticles.push(wisp);');
         expect(source).not.toContain('this.voidRifts.push(rift);');
+        expect(smokeSource).toContain('state.reefEnemyRuntime?.scheduledEnemyCount !== 8');
+        expect(smokeSource).toContain('state.reefEnemyRuntime?.physicsOnlyBodyCount !== 34');
+        expect(smokeSource).toContain('state.reefEnemyRuntime?.physicsOnlyDisplayCount !== 0');
+        expect(smokeSource).toContain('async function smokeReefTrailBudget(session)');
+        expect(smokeSource).toContain('result.peak.particleCount !== 8');
+        expect(smokeSource).toContain('result.peak.tweenDelta !== 0');
+        expect(smokeSource).toContain('displayCount: 150');
+        expect(smokeSource).toContain('activeTweenCount: 16');
     });
 
     test('Void Peaks batches stars and bounds ember redraws by viewport movement', () => {
