@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-14",
+  "state": "internal_draft_not_submitted",
+  "authority": {
+    "accountCreationAuthorized": false,
+    "publicationAuthorized": false,
+    "paymentsEnabled": false,
+    "donationsEnabled": false
+  },
+  "listing": {
+    "title": "Mythical Void",
+    "shortDescription": "Hatch a creature shaped by procedural genetics, explore six living realms and begin Project Beacon in a free browser adventure.",
+    "classification": "game",
+    "kindOfProject": "HTML5 browser game",
+    "releaseState": "in development",
+    "pricingRecommendation": "No payments for the first public test; review donations only after the game page and feedback route are proven.",
+    "suggestedGenres": ["Adventure", "Platformer"],
+    "suggestedTags": ["Aliens", "Creature Collector", "Exploration", "Family Friendly", "Phaser", "Procedural Generation", "Sci-fi", "Singleplayer", "Space"],
+    "controls": [
+      "Keyboard and mouse are supported.",
+      "Follow the on-screen prompts for movement, jumping and interaction.",
+      "Touch controls are available on supported mobile devices."
+    ],
+    "longDescriptionParagraphs": [
+      "Wanderer-77 has fallen in a strange dimension. Recover what survived, hatch a creature and begin Project Beacon.",
+      "Procedural genetics shape your creature's appearance, affinity, personality and potential. Explore and restore six living realms through movement, discovery, family-friendly fantasy battles and choices that shape the journey.",
+      "Mythical Void began as a father-and-son project in Ireland: a dad and his nine-year-old son asking what imagination and generative AI tools could make possible. People remain responsible for the story, safety and final creative decisions.",
+      "Selected public NASA space material can appear in optional discovery moments. Mythical Void is an independent fictional game and is not endorsed by NASA."
+    ]
+  },
+  "media": {
+    "coverRequirement": {
+      "recommendedPixels": "630x500",
+      "status": "needs_platform_cover_derived_from_real_gameplay_or_clearly_labelled_key_art"
+    },
+    "screenshots": [
+      "public/press/gameplay/project-beacon-start.png",
+      "public/press/gameplay/creature-cosmic-egg-hatch.png",
+      "public/press/gameplay/realm-mythicalforest.png",
+      "public/press/gameplay/village-base-builder.png",
+      "public/press/gameplay/nasa-apollo11-real-space-discovery.png"
+    ],
+    "gameplayVideo": "public/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+    "assetRules": [
+      "Use real gameplay captures for screenshots.",
+      "Label generated key art as artwork and do not present it as a gameplay screenshot.",
+      "Do not use an unsupported global uniqueness claim.",
+      "Do not imply NASA endorsement."
+    ]
+  },
+  "playerNotes": [
+    "Play free in your browser.",
+    "No download or account is required to start.",
+    "Progress is stored locally by default.",
+    "The current adventure uses family-friendly fantasy combat without gore.",
+    "The game is still being improved; an adult feedback route is available on the official website."
+  ],
+  "releaseChecklist": [
+    {"item": "Create a separate portable build profile", "state": "not_started"},
+    {"item": "Use relative asset paths and confirm index.html is at the ZIP root", "state": "not_started"},
+    {"item": "Disable or safely replace Netlify-only features in the portable build", "state": "not_started"},
+    {"item": "Test a fresh save, return visit, controls, audio and fullscreen inside an iframe", "state": "not_started"},
+    {"item": "Test keyboard and supported touch layouts", "state": "not_started"},
+    {"item": "Create and review a 630x500 cover", "state": "not_started"},
+    {"item": "Review every screenshot and word against the current deployed build", "state": "not_started"},
+    {"item": "Review itch.io's current rules and terms", "state": "not_started"},
+    {"item": "Kevin approves account creation and the final public listing", "state": "blocked_on_kevin"}
+  ]
+}

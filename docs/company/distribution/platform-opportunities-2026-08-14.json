@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-14",
+  "purpose": "Choose credible ways for new players to find and play Mythical Void without inventing reach, weakening safety, or publishing through an account Kevin has not approved.",
+  "authority": {
+    "researchAuthorized": true,
+    "ownedWebsiteChangesAuthorized": true,
+    "externalAccountCreationAuthorized": false,
+    "externalSubmissionAuthorized": false,
+    "spendAuthorized": false,
+    "contractAcceptanceAuthorized": false
+  },
+  "ranking": [
+    {
+      "rank": 1,
+      "id": "owned-search",
+      "name": "Google Search Console and the owned website",
+      "decision": "activate_when_kevin_can_sign_in",
+      "whyNow": "The useful discovery pages and sitemap are already live, so this is the lowest-risk way to learn whether Google can find them.",
+      "playerFit": "high",
+      "control": "high",
+      "effort": "low",
+      "cost": "no platform fee identified",
+      "nextAction": "Kevin verifies mythicalvoid.com in Search Console; then submit https://mythicalvoid.com/sitemap.xml and inspect the four discovery pages.",
+      "gates": [
+        "Kevin must sign in to the relevant Google account",
+        "Do not claim indexing, rank or search traffic until Search Console provides evidence"
+      ],
+      "sources": [
+        "https://support.google.com/webmasters/answer/9008080",
+        "https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap"
+      ]
+    },
+    {
+      "rank": 2,
+      "id": "itch",
+      "name": "itch.io",
+      "decision": "prepare_first_external_game_page",
+      "whyNow": "It supports browser games, the present build fits its published size and file-count ceilings, and it gives us a game page suited to screenshots, a trailer and honest development context.",
+      "playerFit": "high",
+      "control": "medium_high",
+      "effort": "medium",
+      "cost": "free account; optional payments or donations require a separate decision",
+      "nextAction": "Create a portable itch build, test it in the itch frame, then let Kevin review the prepared listing before account creation or publication.",
+      "gates": [
+        "Replace root-absolute build paths with portable relative paths",
+        "Keep hosted AI media and other Netlify-only services out of the portable release or provide a safe fallback",
+        "Test saves, controls, audio, fullscreen and mobile behavior inside the platform frame",
+        "Kevin must approve account creation and the final public page"
+      ],
+      "sources": [
+        "https://itch.io/docs/creators/html5",
+        "https://itch.io/docs/creators/getting-started",
+        "https://itch.io/docs/creators/quality-guidelines"
+      ]
+    },
+    {
+      "rank": 3,
+      "id": "imirt",
+      "name": "Imirt",
+      "decision": "recommended_irish_industry_membership",
+      "whyNow": "It is an Irish game-maker network with a company directory, events and visibility opportunities. That is a better near-term credibility route than pretending the studio already has a large social audience.",
+      "playerFit": "indirect",
+      "control": "medium",
+      "effort": "low",
+      "cost": "EUR 100 per year for the published 1-3 FTE corporate tier as observed on 2026-08-14",
+      "nextAction": "Kevin decides whether the membership is worth EUR 100, then supplies the legal company details needed for a truthful application.",
+      "gates": [
+        "Kevin approves spend",
+        "Kevin confirms the correct legal company name and team size",
+        "Recheck the current membership page immediately before payment"
+      ],
+      "sources": [
+        "https://www.imirt.ie/",
+        "https://www.imirt.ie/join"
+      ]
+    },
+    {
+      "rank": 4,
+      "id": "crazygames",
+      "name": "CrazyGames",
+      "decision": "later_curated_test",
+      "whyNow": "Phaser is supported and the overall build is below the published total ceiling, but the initial download, platform integration and audience fit all need deliberate work.",
+      "playerFit": "uncertain",
+      "control": "medium_low",
+      "effort": "medium_high",
+      "cost": "no submission fee identified; commercial and SDK terms require fresh review",
+      "nextAction": "Only prepare a submission after a portable build exists, initial download is measured, the release is assessed against PEGI 12, and the positioning is confirmed as a general-audience adventure rather than child-targeted content.",
+      "gates": [
+        "Their published audience is 13+ and games must meet PEGI 12 requirements",
+        "Their FAQ says content targeted for kids may be rejected, which creates a real positioning risk",
+        "Initial download must be measured rather than inferred from total build size",
+        "Three cover formats and preview videos are required",
+        "Kevin approves submission and any platform agreement"
+      ],
+      "sources": [
+        "https://docs.crazygames.com/",
+        "https://docs.crazygames.com/requirements/gameplay/",
+        "https://docs.crazygames.com/requirements/technical/",
+        "https://docs.crazygames.com/requirements/game-covers/",
+        "https://docs.crazygames.com/faq/"
+      ]
+    },
+    {
+      "rank": 5,
+      "id": "poki",
+      "name": "Poki",
+      "decision": "longer_term_optimization_target",
+      "whyNow": "It is a meaningful browser-game destination and supports Phaser, but Mythical Void is currently far above its recommended total download size.",
+      "playerFit": "potentially_high",
+      "control": "low",
+      "effort": "high",
+      "cost": "commercial terms require fresh review before any submission",
+      "nextAction": "Reconsider only after a dedicated lightweight web edition or major asset-streaming pass brings the build close to the published guidance.",
+      "gates": [
+        "Published guidance recommends no more than 5 MB initial download and 8 MB total",
+        "Current generated build is roughly 50 MB total",
+        "Kevin approves submission and any partner agreement"
+      ],
+      "sources": [
+        "https://developers.poki.com/",
+        "https://developers.poki.com/guide/web-game-engines"
+      ]
+    }
+  ],
+  "truthBoundaries": [
+    "A platform listing is not proof of traffic, players or commercial success.",
+    "No reach, ranking, conversion or revenue forecast is approved.",
+    "Do not describe Mythical Void as officially connected to NASA.",
+    "Do not promise that every creature is globally unique.",
+    "Do not use a child account to create, submit or manage a platform listing.",
+    "Recheck platform rules, prices and contracts immediately before an external action."
+  ]
+}
