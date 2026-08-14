@@ -19,6 +19,10 @@ function loadLevelClass() {
             'const buildCreaturePowerProfile = () => ({ affinityPower: { id: "radiant_pulse", name: "Radiant Pulse" }, color: 0xFFD54F });\n' +
             'const recordCreaturePowerEvent = () => ({ changed: true });'
         )
+        .replace(
+            "import { calculateBallisticLaunchVelocity } from '../../systems/TraversalTopology.js';",
+            'const calculateBallisticLaunchVelocity = () => -748;'
+        )
         .replace('export default CrystalCavesLevel;', 'module.exports = CrystalCavesLevel;');
     const sandbox = {
         module: { exports: {} },
@@ -56,9 +60,11 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain("id: 'caves_anchor_2'");
         expect(source).toContain("id: 'caves_anchor_3'");
         expect(source).toContain('PROJECT BEACON ANCHOR ${anchorNumber}/3');
-        expect(source).toContain(
-            'this.setCheckpoint(checkpoint.x, checkpoint.respawnY, {'
-        );
+        expect(source).toContain("activationSupportIds: ['caves-echo-upper']");
+        expect(source).toContain("activationSupportIds: ['caves-grove-step']");
+        expect(source).toContain("activationSupportIds: ['caves-guardian-left']");
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain('this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {');
     });
 
     test('keeps cave anchors local, ordered, and aligned with the full Beacon route', () => {
@@ -68,12 +74,31 @@ describe('second expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(checkpoints).toContain('this.createObjectiveTriggerZone(');
-        expect(checkpoints).toContain('{ width: 150, height: 280 }');
+        expect(checkpoints).toContain('{ width: 150, height: 190 }');
+        expect(checkpoints).toContain('this.canActivateOrderedRouteSignal(');
+        expect(checkpoints).toContain('this.isPlayerGroundedOnTraversalSupport(');
+        expect(checkpoints.indexOf('this.canActivateOrderedRouteSignal(')).toBeLessThan(
+            checkpoints.indexOf('this.isPlayerGroundedOnTraversalSupport(')
+        );
         expect(checkpoints).toContain('this.refreshCaveRouteReadability();');
         expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.caveRouteAligned = true');
         expect(source).toContain("event: 'crystal_route_aligned'");
+    });
+
+    test('powers a named Crystal Lift after route alignment while retaining recovery steps', () => {
+        const source = readLevel();
+
+        expect(source).toContain("id: 'caves-core-lift'");
+        expect(source).toContain("destinationId: 'caves-core-refuge'");
+        expect(source).toContain("'CRYSTAL LIFT\\nCORE ASCENT ↑'");
+        expect(source).toContain("'CRYSTAL LIFT\\nALIGN 3 ANCHORS'");
+        expect(source).toContain('calculateBallisticLaunchVelocity({');
+        expect(source).toContain('this.player.setVelocityY(launchVelocity)');
+        expect(source).toContain("'caves-core-step-low'");
+        expect(source).toContain("'caves-core-step-mid'");
+        expect(source).toContain("{ traversalLinks: ['caves-core-refuge'] }");
     });
 
     test('makes the wounded-grove companion moment unavoidable across traversal paths', () => {
@@ -214,18 +239,72 @@ describe('second expedition rescue loop', () => {
         const source = readLevel();
 
         expect(source).toContain('const barY = isMobileLayout ? 118 : 55');
-        expect(source).toContain('this.isMobile || width <= 480 || height < 620');
-        expect(source).toContain('isShortLandscape ? 76 : 72');
-        expect(source).toContain(': 28;');
+        expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('FOLLOW THE CAVE PULSE →');
         expect(source).toContain('FRACTURED GROVE AHEAD');
         expect(source).toContain('REACH IT TOGETHER →');
-        expect(source).toContain('TOUCH THE CORE TO ANSWER');
+        expect(source).toContain('USE THE CRYSTAL LIFT ↑');
         expect(source).toContain('STRIKE THE UNSTABLE PULSE');
         expect(source).toContain('OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
+    });
+
+    test('gives the armored lower passage a persisted Crystal Focus shot', () => {
+        const CrystalCavesLevel = loadLevelClass();
+        const scene = new CrystalCavesLevel();
+        const choice = {};
+        scene.optionalRouteRewards = new Map([
+            ['caves_secret_slide', {
+                completed: false,
+                choice
+            }]
+        ]);
+        scene.nextRangedDamageMultiplier = 1;
+        scene.clearCrystalWardPickup = jest.fn();
+        scene.refreshPersistedExpeditionRouteState = jest.fn();
+
+        expect(scene.selectCrystalChamberRoute('main')).toBe(true);
+        expect(scene.crystalChamberRoute).toBe('main');
+        expect(scene.crystalFocusReady).toBe(true);
+        expect(scene.nextRangedDamageMultiplier).toBe(2);
+        expect(scene.getCrystalChamberStatusText('fallback')).toContain(
+            'CRYSTAL FOCUS x2 READY'
+        );
+        expect(scene.getExpeditionRouteState().crystalFocusReady).toBe(true);
+        expect(scene.selectCrystalChamberRoute('optional')).toBe(false);
+
+        scene.onNextRangedDamageConsumed(2);
+        expect(scene.crystalFocusReady).toBe(false);
+        expect(scene.getCrystalChamberStatusText('fallback')).toContain(
+            'CRYSTAL FOCUS SPENT'
+        );
+        expect(scene.getExpeditionRouteState().crystalFocusReady).toBe(false);
+    });
+
+    test('restores Crystal Focus and keeps compact route decoration static', () => {
+        const CrystalCavesLevel = loadLevelClass();
+        const scene = new CrystalCavesLevel();
+        scene.optionalRouteRewards = new Map([
+            ['caves_secret_slide', { completed: false, choice: {} }]
+        ]);
+        scene.nextRangedDamageMultiplier = 1;
+        scene.clearCrystalWardPickup = jest.fn();
+
+        expect(scene.restoreCrystalChamberRoute({
+            crystalChamberRoute: 'main',
+            crystalFocusReady: true
+        })).toBe(true);
+        expect(scene.crystalFocusReady).toBe(true);
+        expect(scene.nextRangedDamageMultiplier).toBe(2);
+
+        scene.isMobile = true;
+        scene.cameras = { main: { width: 390, height: 844 } };
+        expect(scene.shouldAnimateCrystalRouteDecorations()).toBe(false);
+        scene.isMobile = false;
+        scene.cameras.main = { width: 1280, height: 720 };
+        expect(scene.shouldAnimateCrystalRouteDecorations()).toBe(true);
     });
 
     test('changes the live objective from route-finding to companion rescue and guardian contact', () => {

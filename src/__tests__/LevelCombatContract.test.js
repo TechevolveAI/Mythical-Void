@@ -76,6 +76,47 @@ describe('playable level combat contracts', () => {
         expect(source).toContain('Math.max(6, Number(enemy.health) || 1)');
     });
 
+    test('all player attacks resolve guardian hits through one readable contract', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('resolveBossHit(amount, { source = \'attack\' } = {})');
+        expect(source).toContain("this.resolveBossHit(meleeDamage, { source: 'katana' })");
+        expect(source).toContain("this.resolveBossHit(rangedDamage, { source: 'ranged' })");
+        expect(source).toContain("this.resolveBossHit(3, { source: 'super_blast' })");
+        expect(source).toContain('const specialAttackRadius = 300;');
+        expect(source).toContain("'GUARDIAN HIT BLOCKED'");
+        expect(source).toContain("recordEvent?.('guardian_hit'");
+    });
+
+    test.each([
+        'MythicalForestLevel.js',
+        'CrystalCavesLevel.js',
+        'ReefLevel.js',
+        'VoidPeaksLevel.js',
+        'AuroraDepthsLevel.js',
+        'FinalVoidLevel.js'
+    ])('%s returns an explicit guardian hit result', (fileName) => {
+        const source = readLevel(fileName);
+        const start = source.indexOf('    damageBoss(');
+        const end = source.indexOf('\n    }', start);
+        const method = source.slice(start, end);
+
+        expect(method).toContain('return false;');
+        expect(method).toContain('return true;');
+    });
+
+    test('the final guardian confirms both ordinary and recovery-window damage', () => {
+        const source = readLevel('FinalVoidLevel.js');
+
+        expect(source).toContain('return false;');
+        expect(source).toContain('`VOID LINE -${finalAmount}`');
+        expect(source).toContain('`BEACON OPENING -${finalAmount}`');
+        expect(source).toContain('return true;');
+    });
+
     test('shared enemy combat communicates stomp, armor, immunity, and attack intent', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
@@ -83,14 +124,25 @@ describe('playable level combat contracts', () => {
         );
 
         expect(source).toContain('configureEnemyCombat(enemy, {');
-        expect(source).toContain("enemy.combatRole === 'armored'");
-        expect(source).toContain('enemy.stompable === false');
+        expect(source).toContain('getEnemyStompProfile(enemy');
+        expect(source).toContain('stompProfile.totalStomps >= 1');
+        expect(source).toContain('instructionText = null');
+        expect(source).toContain('enemy?.stompable !== false');
         expect(source).toContain('if (enemy.combatImmune)');
         expect(source).toContain('telegraphEnemyAttack(enemy, {');
         expect(source).toContain('enemy.combatCue?.destroy?.();');
+        expect(source).toContain('enemy.instructionLabel?.destroy?.();');
         expect(source).toContain("text: 'STOMP CLEAR'");
         expect(source).toContain("text: 'STOMP BLOCKED'");
         expect(source).toContain('HIT${hitsRemaining === 1 ? \'\' : \'S\'} LEFT');
+    });
+
+    test('the first Forest enemy teaches the shared combat marker in plain language', () => {
+        const source = readLevel('MythicalForestLevel.js');
+
+        expect(source).toContain('if (index === 0) {');
+        expect(source).toContain("'GOLD = JUMP ON TOP\\nPIPS = JUMPS LEFT'");
+        expect(source).toContain('sprite.instructionLabelFollowEnemy = true;');
     });
 
     test('Crystal Spider returns damage status to shared stomp feedback', () => {
@@ -105,7 +157,10 @@ describe('playable level combat contracts', () => {
         ['MythicalForestLevel.js', "role: 'armored'"],
         ['CrystalCavesLevel.js', "role: 'armored'"],
         ['ReefLevel.js', "role: 'charger'"],
-        ['VoidPeaksLevel.js', "role: 'armored'"]
+        [
+            'VoidPeaksLevel.js',
+            "role: encounter.health >= 3 ? 'armored' : 'stompable'"
+        ]
     ])('%s configures readable enemy combat roles', (fileName, roleContract) => {
         const source = readLevel(fileName);
 
@@ -115,12 +170,17 @@ describe('playable level combat contracts', () => {
 
     test('Reef warns before lunges and makes phased immunity physical', () => {
         const source = readLevel('ReefLevel.js');
+        const platformerSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
+            'utf8'
+        );
 
         expect(source.match(/this\.telegraphEnemyAttack\(/g)).toHaveLength(2);
         expect(source).toContain('drifter.combatImmune = drifter.isPhased;');
         expect(source).toContain(
             'drifter.body.checkCollision.none = drifter.isPhased;'
         );
-        expect(source).toContain('this.updateEnemyCombatReadability();');
+        expect(source).toContain('super.update(time, delta);');
+        expect(platformerSource).toContain('this.updateEnemyCombatReadability();');
     });
 });

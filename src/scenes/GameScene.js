@@ -4615,11 +4615,12 @@ class GameScene extends Phaser.Scene {
         if (this.villageHeartLandmark && villageSnapshot.unlock.unlocked) {
             destinations.push({
                 name: villageNeedsGuidance ? 'Village Heart: New' : 'Village Heart',
-                icon: 'V',
+                icon: '+',
                 x: this.villageHeartLandmark.zone.x,
                 y: this.villageHeartLandmark.zone.y,
                 color: 0x71E6B1,
-                description: 'Plan the shared settlement'
+                description: 'Plan the shared settlement',
+                showMarker: false
             });
         }
 
@@ -4639,7 +4640,9 @@ class GameScene extends Phaser.Scene {
         // Create glowing path trails and floating markers for each destination
         destinations.forEach((dest, index) => {
             this.createGlowingPath(centerX, centerY, dest.x, dest.y, dest.color);
-            this.createFloatingMarker(dest);
+            if (dest.showMarker !== false) {
+                this.createFloatingMarker(dest);
+            }
         });
 
         console.log(`[GameScene] Navigation paths created for ${destinations.length} destinations`);
@@ -7901,14 +7904,17 @@ class GameScene extends Phaser.Scene {
         if (needsGuidance) {
             markVillageGuidanceSeen(window.GameState);
         }
+        const openAction = this.mobileControls
+            ? 'Tap a build site or use BUILD · Open Village Builder'
+            : 'Press SPACE or click a build site · Open Village Builder';
         this.showInteractionHint(
             snapshot.unlock.unlocked
                 ? needsGuidance
-                    ? 'Village Heart awakened · Press SPACE to place your first structure'
-                    : 'Press SPACE · Open Village Heart'
+                    ? `Village Heart awakened · ${openAction}`
+                    : openAction
                 : `Village Heart offline · ${snapshot.unlock.reason}`
         );
-        this.mobileControls?.updateInteractIcon('V');
+        this.mobileControls?.updateInteractIcon('🏗');
     }
 
     getVillageRenderSignature(snapshot) {
@@ -11023,7 +11029,7 @@ class GameScene extends Phaser.Scene {
             window.GameState
         );
         const protocol = getProtectedReturnSnapshot(window.GameState);
-        if (!snapshot.available) return;
+        if (!snapshot.available && !reconstruction.available) return;
 
         this.shipEvidenceBoardModal = new ShipEvidenceBoardModal(this, {
             snapshotProvider: () => (
@@ -11059,20 +11065,16 @@ class GameScene extends Phaser.Scene {
                 });
                 if (result.snapshot.complete) {
                     window.AudioManager?.playAchievement?.();
-                    if (
-                        this.continueFinaleAfterRepair ||
-                        (
-                            this.shipReconstructionHandoff &&
-                            this.shipReconstructionNextGateLabel ===
-                                'The Final Void'
-                        )
-                    ) {
-                        this.time.delayedCall(700, () => {
-                            this.shipEvidenceBoardModal?.hide?.();
-                        });
-                    }
                 } else {
                     window.AudioManager?.playButtonClick?.();
+                }
+                if (
+                    this.continueFinaleAfterRepair ||
+                    this.shipReconstructionHandoff
+                ) {
+                    this.time.delayedCall(900, () => {
+                        this.shipEvidenceBoardModal?.hide?.();
+                    });
                 }
                 return result;
             },
@@ -11194,7 +11196,7 @@ class GameScene extends Phaser.Scene {
                         : '';
                     this.shipReconstructionHandoff = false;
                     if (
-                        currentReconstruction.complete &&
+                        currentReconstruction.finalVoidReady &&
                         this.shipReconstructionNextGateLabel === 'The Final Void'
                     ) {
                         this.showInteractionHint(
@@ -11212,6 +11214,11 @@ class GameScene extends Phaser.Scene {
                             ? `INSTALL ${currentReconstruction.readyStep.partName.toUpperCase()} BEFORE THE NEXT EXPEDITION`
                             : `WANDERER-77 SYSTEM ONLINE${nextRoute}`
                     );
+                    this.time.delayedCall(420, () => {
+                        if (!this._isShuttingDown) {
+                            this.scene.start('HubWorldScene');
+                        }
+                    });
                     return;
                 }
                 this.showInteractionHint(

@@ -156,6 +156,7 @@ class ParallaxBiomeManager {
         // Shader pipeline
         this.nebulaShader = null;
         this.shaderEnabled = false;
+        this.performanceTier = 'desktop';
 
         // Transition state
         this.isTransitioning = false;
@@ -173,6 +174,8 @@ class ParallaxBiomeManager {
     initialize(scene, biomeConfigOrId = null) {
         this.scene = scene;
         this.layers = [];
+        this.shaderEnabled = false;
+        this.performanceTier = scene?.detectMobile?.() ? 'mobile' : 'desktop';
 
         // Handle biome ID string or config object
         if (typeof biomeConfigOrId === 'string') {
@@ -284,6 +287,13 @@ class ParallaxBiomeManager {
     initializeShader() {
         // Guard: Skip if scene not available yet
         if (!this.scene || !this.scene.renderer) {
+            return;
+        }
+
+        // The layered renderer already carries each biome's visual identity.
+        // Avoid an extra full-screen fractal-noise pass on phone GPUs.
+        if (this.performanceTier === 'mobile') {
+            console.log('biome:info [ParallaxBiome] Mobile tier skips post shader');
             return;
         }
 
@@ -515,6 +525,11 @@ class ParallaxBiomeManager {
         console.log(`biome:info [ParallaxBiome] Biome '${this.config.name}' created with ${this.layers.length} layers + particle systems`);
     }
 
+    shouldAnimateAmbientFields() {
+        return this.performanceTier !== 'mobile' &&
+            this.config?.performance?.enableAnimations !== false;
+    }
+
     /**
      * Layer 1: Create nebula background with animated gradient
      */
@@ -531,18 +546,26 @@ class ParallaxBiomeManager {
         );
         nebulaBg.fillRect(0, 0, width * 2, height);
 
-        // Add nebula wisps with enhanced animation
-        for (let i = 0; i < 5; i++) {
+        // Phones keep the same full-screen coverage with fewer independently
+        // animated fields. This preserves the nebula instead of disabling it.
+        const wispCount = this.performanceTier === 'mobile' ? 3 : 5;
+        for (let i = 0; i < wispCount; i++) {
             const wisp = this.scene.add.graphics();
             wisp.fillStyle(this.config.palette.nebula, 0.15 + i * 0.03);
 
-            const centerX = width * (0.1 + i * 0.2);
+            const centerX = this.performanceTier === 'mobile'
+                ? width * ((i + 1) / (wispCount + 1))
+                : width * (0.1 + i * 0.2);
             const centerY = height * (0.2 + (i % 3) * 0.25);
             const size = 150 + i * 40;
 
             wisp.fillEllipse(centerX, centerY, size, size * 0.6);
 
-            if (layer.animate) {
+            if (this.performanceTier === 'mobile') {
+                wisp.setAlpha(0.18);
+            }
+
+            if (layer.animate && this.shouldAnimateAmbientFields()) {
                 this.scene.tweens.add({
                     targets: wisp,
                     x: wisp.x + 30,
@@ -587,8 +610,8 @@ class ParallaxBiomeManager {
             alpha: { start: 0.3, end: 1, ease: 'Sine.easeInOut' },
             tint: starColors,
             lifespan: { min: 3000, max: 6000 },
-            frequency: 100,
-            quantity: 2,
+            frequency: this.performanceTier === 'mobile' ? 240 : 100,
+            quantity: this.performanceTier === 'mobile' ? 1 : 2,
             blendMode: 'ADD',
             emitting: true
         });
@@ -599,37 +622,52 @@ class ParallaxBiomeManager {
         this.particleEmitters.stars = starEmitter;
         this.layers.push({ type: 'starEmitter', object: starEmitter, config: layer });
 
-        // Also create static stars for instant density
-        for (let i = 0; i < layer.count / 2; i++) {
-            const star = this.scene.add.graphics();
-            const color = Phaser.Math.RND.pick(starColors);
-            star.fillStyle(color, 0.9);
+        // Keep instant density, but animate a handful of fields rather than an
+        // individual display object and tween for every point. On phones this
+        // removes dozens of per-frame transform updates from every biome.
+        const starCount = Math.max(12, Math.round(layer.count / 2));
+        const maxStarFields = this.performanceTier === 'mobile' ? 2 : 4;
+        const fieldCount = Math.min(
+            maxStarFields,
+            Math.max(2, Math.ceil(starCount / 18))
+        );
+        const fields = Array.from({ length: fieldCount }, (_, fieldIndex) => {
+            const field = this.scene.add.graphics();
+            field.setScrollFactor(layer.parallax);
+            field.setDepth(-45 + fieldIndex);
+            if (this.performanceTier === 'mobile') {
+                field.setAlpha(0.74 + fieldIndex * 0.06);
+            }
+            this.layers.push({ type: 'starField', object: field, config: layer });
+            return field;
+        });
 
-            const size = Phaser.Math.FloatBetween(0.5, 2.0);
-            star.fillCircle(0, 0, size);
-
-            star.setPosition(
+        for (let index = 0; index < starCount; index++) {
+            const field = fields[index % fieldCount];
+            field.fillStyle(Phaser.Math.RND.pick(starColors), 0.9);
+            field.fillCircle(
                 Phaser.Math.Between(0, width * 1.5),
-                Phaser.Math.Between(0, height * 0.7)
+                Phaser.Math.Between(0, height * 0.7),
+                Phaser.Math.FloatBetween(0.5, 2.0)
             );
+        }
 
-            // Twinkling animation
-            if (this.config.effects.enableTwinkling) {
+        if (
+            this.config.effects.enableTwinkling &&
+            this.shouldAnimateAmbientFields()
+        ) {
+            fields.forEach((field, fieldIndex) => {
                 this.scene.tweens.add({
-                    targets: star,
-                    alpha: { from: 0.3, to: 1.0 },
-                    scale: { from: 0.8, to: 1.3 },
-                    duration: Phaser.Math.Between(1500, 4000),
+                    targets: field,
+                    alpha: { from: 0.46 + fieldIndex * 0.08, to: 1.0 },
+                    x: { from: -2 - fieldIndex, to: 2 + fieldIndex },
+                    y: { from: 0, to: -3 - fieldIndex },
+                    duration: 1800 + fieldIndex * 520,
                     ease: 'Sine.easeInOut',
                     yoyo: true,
-                    repeat: -1,
-                    delay: i * 100
+                    repeat: -1
                 });
-            }
-
-            star.setScrollFactor(layer.parallax);
-            star.setDepth(-45);
-            this.layers.push({ type: 'star', object: star, config: layer });
+            });
         }
     }
 
@@ -662,49 +700,77 @@ class ParallaxBiomeManager {
     createFloatingRocks() {
         const { width, height } = this.scene.cameras.main;
         const layer = this.config.layers.floatingRocks;
+        const batchRockFields = this.performanceTier === 'mobile';
+        const fieldCount = batchRockFields
+            ? Math.min(2, layer.count)
+            : layer.count;
+        const fields = Array.from({ length: fieldCount }, (_, fieldIndex) => {
+            const field = this.scene.add.graphics();
+            field.setScrollFactor(layer.parallax);
+            field.setAlpha(layer.alpha);
+            field.setDepth(-30 + fieldIndex);
+            this.layers.push({ type: 'rock', object: field, config: layer });
+            return field;
+        });
 
         for (let i = 0; i < layer.count; i++) {
-            const rock = this.scene.add.graphics();
+            const rock = fields[i % fieldCount];
             rock.fillStyle(this.config.palette.floatingRocks, 0.6);
 
             const baseSize = 40 + i * 15;
-            rock.fillEllipse(0, 0, baseSize, baseSize * 0.7);
-            rock.fillEllipse(baseSize * 0.3, -baseSize * 0.2, baseSize * 0.6, baseSize * 0.4);
+            const rockX = batchRockFields
+                ? Phaser.Math.Between(100, width + 200)
+                : 0;
+            const rockY = batchRockFields
+                ? Phaser.Math.Between(height * 0.2, height * 0.8)
+                : 0;
+            rock.fillEllipse(rockX, rockY, baseSize, baseSize * 0.7);
+            rock.fillEllipse(
+                rockX + baseSize * 0.3,
+                rockY - baseSize * 0.2,
+                baseSize * 0.6,
+                baseSize * 0.4
+            );
 
             // Add crystal accents on some rocks
             if (i % 2 === 0) {
                 rock.fillStyle(this.config.palette.accent, 0.4);
                 rock.fillTriangle(
-                    -baseSize * 0.2, -baseSize * 0.3,
-                    baseSize * 0.1, -baseSize * 0.3,
-                    -baseSize * 0.05, -baseSize * 0.6
+                    rockX - baseSize * 0.2, rockY - baseSize * 0.3,
+                    rockX + baseSize * 0.1, rockY - baseSize * 0.3,
+                    rockX - baseSize * 0.05, rockY - baseSize * 0.6
                 );
             }
+            if (!batchRockFields) {
+                rock.setPosition(
+                    Phaser.Math.Between(100, width + 200),
+                    Phaser.Math.Between(height * 0.2, height * 0.8)
+                );
+            }
+        }
 
-            rock.setPosition(
-                Phaser.Math.Between(100, width + 200),
-                Phaser.Math.Between(height * 0.2, height * 0.8)
-            );
-
-            if (layer.animate && this.config.effects.enableGentleFloat) {
+        fields.forEach((field, fieldIndex) => {
+            if (
+                layer.animate &&
+                this.config.effects.enableGentleFloat &&
+                this.shouldAnimateAmbientFields()
+            ) {
                 this.scene.tweens.add({
-                    targets: rock,
-                    y: rock.y + Phaser.Math.Between(-20, 20),
-                    x: rock.x + Phaser.Math.Between(-15, 15),
-                    rotation: Phaser.Math.FloatBetween(-0.1, 0.1),
+                    targets: field,
+                    y: field.y + Phaser.Math.Between(-12, 12),
+                    x: field.x + Phaser.Math.Between(-10, 10),
+                    rotation: Phaser.Math.FloatBetween(
+                        batchRockFields ? -0.015 : -0.1,
+                        batchRockFields ? 0.015 : 0.1
+                    ),
                     duration: Phaser.Math.Between(5000, 9000),
                     ease: 'Sine.easeInOut',
                     yoyo: true,
                     repeat: -1,
-                    delay: i * 600
+                    delay: fieldIndex * 600
                 });
             }
-
-            rock.setScrollFactor(layer.parallax);
-            rock.setAlpha(layer.alpha);
-            rock.setDepth(-30 + i);
-            this.layers.push({ type: 'rock', object: rock, config: layer });
-        }
+        });
     }
 
     /**
@@ -869,59 +935,65 @@ class ParallaxBiomeManager {
     createCrystalFlora() {
         const { width, height } = this.scene.cameras.main;
         const layer = this.config.layers.crystalFlora;
+        const maxFloraFields = this.performanceTier === 'mobile' ? 1 : 3;
+        const fieldCount = Math.min(
+            maxFloraFields,
+            Math.max(1, Math.ceil(layer.count / 5))
+        );
+        const fields = Array.from({ length: fieldCount }, (_, fieldIndex) => {
+            const field = this.scene.add.graphics();
+            field.setScrollFactor(layer.parallax);
+            field.setDepth(-10 + fieldIndex);
+            field.setAlpha(layer.alpha);
+            this.layers.push({ type: 'floraField', object: field, config: layer });
+            return field;
+        });
 
         for (let i = 0; i < layer.count; i++) {
-            const flora = this.scene.add.graphics();
-
+            const flora = fields[i % fieldCount];
             const baseHeight = 30 + Phaser.Math.Between(10, 50);
             const baseWidth = 8 + Phaser.Math.Between(2, 12);
+            const x = Phaser.Math.Between(50, width + 100);
+            const y = height - Phaser.Math.Between(10, 80);
 
             // Stem with gradient effect
             flora.fillStyle(this.config.palette.crystalFlora, 0.7);
-            flora.fillRect(-baseWidth/2, 0, baseWidth, baseHeight);
+            flora.fillRect(x - baseWidth / 2, y, baseWidth, baseHeight);
 
             // Crystal formations with glow
             flora.fillStyle(this.config.palette.biolume, 0.9);
-            flora.fillTriangle(-baseWidth, -5, baseWidth, -5, 0, -baseHeight * 0.4);
+            flora.fillTriangle(
+                x - baseWidth,
+                y - 5,
+                x + baseWidth,
+                y - 5,
+                x,
+                y - baseHeight * 0.4
+            );
 
             // Add glow halo
             flora.fillStyle(this.config.palette.biolume, 0.2);
-            flora.fillCircle(0, -baseHeight * 0.2, baseWidth * 2);
+            flora.fillCircle(x, y - baseHeight * 0.2, baseWidth * 2);
+        }
 
-            flora.setPosition(
-                Phaser.Math.Between(50, width + 100),
-                height - Phaser.Math.Between(10, 80)
-            );
-
-            // Sway animation
-            if (layer.animate) {
+        if (
+            (layer.animate || this.config.effects.enableBioluminescence) &&
+            this.shouldAnimateAmbientFields()
+        ) {
+            fields.forEach((field, fieldIndex) => {
                 this.scene.tweens.add({
-                    targets: flora,
-                    rotation: Phaser.Math.FloatBetween(-0.08, 0.08),
-                    duration: Phaser.Math.Between(2500, 4500),
+                    targets: field,
+                    x: { from: -2 - fieldIndex, to: 2 + fieldIndex },
+                    y: { from: 1, to: -4 - fieldIndex },
+                    alpha: this.config.effects.enableBioluminescence
+                        ? { from: 0.58, to: 1.0 }
+                        : layer.alpha,
+                    duration: 2100 + fieldIndex * 540,
                     ease: 'Sine.easeInOut',
                     yoyo: true,
-                    repeat: -1,
-                    delay: i * 300
+                    repeat: -1
                 });
-            }
-
-            // Bioluminescent pulse
-            if (this.config.effects.enableBioluminescence) {
-                this.scene.tweens.add({
-                    targets: flora,
-                    alpha: { from: 0.5, to: 1.0 },
-                    duration: Phaser.Math.Between(1500, 3000),
-                    ease: 'Sine.easeInOut',
-                    yoyo: true,
-                    repeat: -1,
-                    delay: i * 500
-                });
-            }
-
-            flora.setScrollFactor(layer.parallax);
-            flora.setDepth(-10 + i);
-            this.layers.push({ type: 'flora', object: flora, config: layer });
+            });
         }
     }
 
@@ -943,8 +1015,8 @@ class ParallaxBiomeManager {
             alpha: { start: 0.6, end: 0.1 },
             tint: dustColors,
             lifespan: { min: 4000, max: 8000 },
-            frequency: 50,
-            quantity: 3,
+            frequency: this.performanceTier === 'mobile' ? 220 : 50,
+            quantity: this.performanceTier === 'mobile' ? 1 : 3,
             blendMode: 'ADD',
             emitting: true
         });
@@ -1303,6 +1375,7 @@ class ParallaxBiomeManager {
 
         // Destroy layers
         this.layers.forEach(layer => {
+            this.scene?.tweens?.killTweensOf?.(layer.object);
             if (layer.object && layer.object.destroy) {
                 layer.object.destroy();
             }
@@ -1322,6 +1395,7 @@ class ParallaxBiomeManager {
 
         this.layers = [];
         this.isActive = false;
+        this.shaderEnabled = false;
         console.log('biome:info [ParallaxBiome] Biome layers and emitters cleaned up');
     }
 

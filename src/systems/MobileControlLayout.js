@@ -153,3 +153,134 @@ export function getMobileInteractionPromptLayout({
         dockTop: controls.dockTop
     };
 }
+
+/**
+ * Keep campaign objectives out of the status cluster on narrow phones while
+ * preserving the familiar top-right position on landscape and desktop.
+ */
+export function getCampaignObjectiveLayout({
+    width,
+    height,
+    safeArea = { top: 0, right: 0, bottom: 0, left: 0 }
+}) {
+    const portraitPhone = width <= 480 && height >= width;
+    const shortLandscape = width > height && height < 620;
+    const compact = portraitPhone || shortLandscape || height < 620;
+    const inset = width < 380 ? 10 : 12;
+
+    if (portraitPhone) {
+        const contentLeft = safeArea.left + inset;
+        const contentRight = width - safeArea.right - inset;
+        return {
+            compact,
+            mode: 'portrait',
+            x: (contentLeft + contentRight) / 2,
+            y: Math.max(82, safeArea.top + 76),
+            originX: 0.5,
+            originY: 0,
+            align: 'center',
+            maxWidth: Math.max(200, contentRight - contentLeft - 20),
+            fontSize: width < 380 ? 11 : 12
+        };
+    }
+
+    const right = safeArea.right + (compact ? 12 : 20);
+    return {
+        compact,
+        mode: shortLandscape ? 'landscape' : 'desktop',
+        x: width - right,
+        y: shortLandscape ? Math.max(12, safeArea.top + 8) : 20,
+        originX: 1,
+        originY: 0,
+        align: 'left',
+        maxWidth: shortLandscape
+            ? clamp(Math.round(width * 0.38), 220, 320)
+            : clamp(Math.round(width * 0.3), 300, 350),
+        fontSize: compact ? 12 : 15
+    };
+}
+
+/**
+ * Position measured campaign-entry blocks without assuming wrapped text has a
+ * fixed height. Preferred whitespace contracts before content can collide.
+ */
+export function getCampaignEntryStackLayout({
+    top,
+    bottom,
+    itemHeights = [],
+    gaps = 8,
+    topPadding = 18,
+    bottomPadding = 18,
+    minGap = 4
+}) {
+    const safeTop = Number.isFinite(Number(top)) ? Number(top) : 0;
+    const safeBottom = Number.isFinite(Number(bottom))
+        ? Math.max(safeTop, Number(bottom))
+        : safeTop;
+    const availableHeight = safeBottom - safeTop;
+    const safeTopPadding = clamp(Number(topPadding) || 0, 0, availableHeight);
+    const safeBottomPadding = clamp(
+        Number(bottomPadding) || 0,
+        0,
+        Math.max(0, availableHeight - safeTopPadding)
+    );
+    const innerTop = safeTop + safeTopPadding;
+    const innerHeight = Math.max(
+        0,
+        availableHeight - safeTopPadding - safeBottomPadding
+    );
+    const heights = itemHeights.map((height) => (
+        Number.isFinite(Number(height)) ? Math.max(0, Number(height)) : 0
+    ));
+    const gapCount = Math.max(0, heights.length - 1);
+    const gapValueAt = (index) => (
+        Array.isArray(gaps) ? gaps[index] : gaps
+    );
+    const preferredGaps = Array.from({ length: gapCount }, (_, index) => {
+        const value = Number(gapValueAt(index));
+        return Number.isFinite(value) ? Math.max(0, value) : 8;
+    });
+    const minimumGap = Number.isFinite(Number(minGap))
+        ? Math.max(0, Number(minGap))
+        : 0;
+    const minimumGaps = preferredGaps.map((gap) => Math.min(gap, minimumGap));
+    const itemHeight = heights.reduce((total, height) => total + height, 0);
+    const preferredGapHeight = preferredGaps.reduce((total, gap) => total + gap, 0);
+    const minimumGapHeight = minimumGaps.reduce((total, gap) => total + gap, 0);
+    const gapBudget = Math.max(0, innerHeight - itemHeight);
+
+    let resolvedGaps = preferredGaps;
+    if (minimumGapHeight > gapBudget && minimumGapHeight > 0) {
+        const scale = gapBudget / minimumGapHeight;
+        resolvedGaps = minimumGaps.map((gap) => gap * scale);
+    } else if (preferredGapHeight > gapBudget && preferredGapHeight > minimumGapHeight) {
+        const interpolation = clamp(
+            (gapBudget - minimumGapHeight) / (preferredGapHeight - minimumGapHeight),
+            0,
+            1
+        );
+        resolvedGaps = preferredGaps.map((gap, index) => (
+            minimumGaps[index] + (gap - minimumGaps[index]) * interpolation
+        ));
+    }
+
+    const resolvedGapHeight = resolvedGaps.reduce((total, gap) => total + gap, 0);
+    const usedHeight = itemHeight + resolvedGapHeight;
+    const leadingSpace = Math.max(0, (innerHeight - usedHeight) / 2);
+    const positions = [];
+    let cursor = innerTop + leadingSpace;
+
+    heights.forEach((height, index) => {
+        positions.push(cursor);
+        cursor += height + (resolvedGaps[index] || 0);
+    });
+
+    return {
+        positions,
+        gaps: resolvedGaps,
+        usedHeight,
+        innerTop,
+        innerBottom: innerTop + innerHeight,
+        overflow: Math.max(0, usedHeight - innerHeight)
+    };
+}

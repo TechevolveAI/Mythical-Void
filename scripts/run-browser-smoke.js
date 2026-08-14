@@ -150,7 +150,8 @@ async function main() {
             'reef',
             'voidPeaks',
             'auroraDepths',
-            'finalVoid'
+            'finalVoid',
+            'finalVoidWithCreature'
         ];
         for (const smokeCase of interactionCases) {
             console.log(`[release-smoke] Interaction case: ${smokeCase}`);
@@ -164,6 +165,24 @@ async function main() {
             }
         }
 
+        console.log('\n[release-smoke] Conservative campaign topology suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'traversal-topology'
+            });
+        } catch (error) {
+            failures.push(`traversal-topology: ${error.message}`);
+        }
+
+        console.log('\n[release-smoke] Aurora route collision and recovery suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'aurora-route-journey'
+            });
+        } catch (error) {
+            failures.push(`aurora-route-journey: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] Fast campaign state-contract suite');
         try {
             await runNodeScript('scripts/smoke-secondary-journeys.js', {
@@ -171,6 +190,27 @@ async function main() {
             });
         } catch (error) {
             failures.push(`state-contract: ${error.message}`);
+        }
+
+        console.log('\n[release-smoke] Guardian defeat, debrief, and installation suite');
+        const guardianHandoffCases = [
+            'mythicalForest',
+            'crystalCaves',
+            'reef',
+            'voidPeaks',
+            'auroraDepths',
+            'finalVoid'
+        ];
+        for (const smokeCase of guardianHandoffCases) {
+            console.log(`[release-smoke] Guardian handoff case: ${smokeCase}`);
+            try {
+                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                    SMOKE_MODE: 'guardian-handoff',
+                    SMOKE_CASE: smokeCase
+                });
+            } catch (error) {
+                failures.push(`guardian-handoff:${smokeCase}: ${error.message}`);
+            }
         }
 
         console.log('\n[release-smoke] Final priority mobile journey suite');

@@ -112,7 +112,9 @@ export default class LivingFormHandoff {
         this.mediaFallback = createElement(
             'div',
             'living-form-media-fallback',
-            'PIXEL IDENTITY PRESERVED'
+            portraitPromise
+                ? 'LIVING FORM DEVELOPING'
+                : 'LIVING FORM OFFLINE'
         );
         media.append(this.mediaFallback);
 
@@ -234,14 +236,9 @@ export default class LivingFormHandoff {
             typeof referenceImage === 'string'
             && /^data:image\/png;base64,/.test(referenceImage)
         ) ? referenceImage : null;
-        if (this.pixelReferenceImage) {
-            this.setArtwork(this.pixelReferenceImage, {
-                source: 'pixel_reference',
-                alt: `Exact pixel identity of ${safeName}`
-            });
-        } else if (!portraitPromise) {
+        if (!portraitPromise) {
             this.status.textContent =
-                'No personal data was sent. Pixel identity remains the canonical record.';
+                'No personal data was sent. The living portrait can be retried from the Companion Archive.';
         }
 
         if (portraitPromise) {
@@ -273,14 +270,14 @@ export default class LivingFormHandoff {
                     if (!this.isVisible) return;
                     const serviceMessage =
                         window.LivingPortraitService?.describeError?.(error) ||
-                        'Living portrait unavailable. The pixel identity remains secured.';
+                        'Living portrait unavailable. A retry has been scheduled.';
                     this.status.textContent = `${serviceMessage} ` +
                         'Enter the Sanctuary whenever you are ready.';
                     this.status.classList.add('is-fallback');
                     this.sourceLabel.textContent =
                         error?.code === 'new_identity_quota'
-                            ? 'PIXEL IDENTITY SECURED // PORTRAIT RETRY SCHEDULED'
-                            : 'PIXEL IDENTITY REFERENCE // PORTRAIT UNAVAILABLE';
+                            ? 'LIVING PORTRAIT // RETRY SCHEDULED'
+                            : 'LIVING PORTRAIT // RETRY AVAILABLE';
                     this.root?.classList.add('has-portrait-failure');
                 });
         }
@@ -313,16 +310,13 @@ export default class LivingFormHandoff {
         if (!this.image || typeof imageUrl !== 'string') return;
         const token = ++this.renderToken;
         const isGenerated = source === 'protected_living_portrait';
-        const isPixelReference = source === 'pixel_reference';
         this.image.classList.remove(
             'is-ready',
             'is-generated-portrait',
             'is-pixel-reference'
         );
-        this.image.classList.add(
-            isGenerated ? 'is-generated-portrait' : 'is-pixel-reference'
-        );
-        this.root?.classList.toggle('shows-pixel-reference', isPixelReference);
+        this.image.classList.add('is-generated-portrait');
+        this.root?.classList.remove('shows-pixel-reference');
         this.image.onload = () => {
             if (!this.isVisible || token !== this.renderToken) return;
             this.image.alt = alt;
@@ -352,30 +346,16 @@ export default class LivingFormHandoff {
                     'Exact interpretation secured to this companion record. Temporary image links are not saved.';
                 this.status.classList.remove('is-fallback');
                 window.AudioManager?.playLevelUp?.();
-            } else if (source === 'pixel_reference') {
-                this.sourceLabel.textContent =
-                    'EXACT PIXEL IDENTITY // LIVING PORTRAIT FORMING';
             }
         };
         this.image.onerror = () => {
             if (!this.isVisible || token !== this.renderToken) return;
-            if (isGenerated && this.pixelReferenceImage) {
-                this.setArtwork(this.pixelReferenceImage, {
-                    source: 'pixel_reference',
-                    alt: 'Exact pixel identity of this companion'
-                });
-                this.status.textContent =
-                    'The protected portrait can retry from the companion archive. Pixel identity remains secured.';
-                this.status.classList.add('is-fallback');
-                this.sourceLabel.textContent =
-                    'PIXEL IDENTITY REFERENCE // PORTRAIT UNAVAILABLE';
-                this.root?.classList.add('has-portrait-failure');
-                return;
-            }
             this.mediaFallback?.classList.remove('is-hidden');
             this.status.textContent =
-                'Visual study offline. Pixel identity remains secured.';
+                'Visual study offline. The living portrait can retry from the Companion Archive.';
             this.status.classList.add('is-fallback');
+            this.sourceLabel.textContent = 'LIVING PORTRAIT RETRY AVAILABLE';
+            this.root?.classList.add('has-portrait-failure');
         };
         this.image.src = imageUrl;
     }

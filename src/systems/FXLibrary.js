@@ -402,6 +402,9 @@ class FXLibrary {
         if (!effect) return false;
 
         if (effect.particles) {
+            effect.particles.forEach(particle => {
+                effect.scene?.tweens?.killTweensOf?.(particle);
+            });
             effect.particles.forEach(particle => this.destroyParticle(particle));
         }
         if (effect.strips) {
@@ -491,8 +494,22 @@ class FXLibrary {
 
         const effectId = `dust_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const particles = [];
+        const compactViewport = Boolean(
+            scene?.isMobile ||
+            (Number(scene?.cameras?.main?.width) || 0) <= 480 ||
+            (Number(scene?.cameras?.main?.height) || 0) < 620
+        );
+        const requestedCount = Math.max(
+            0,
+            Math.floor(Number(opts.count) || 0)
+        );
+        const particleCount = Math.min(
+            requestedCount,
+            compactViewport ? 3 : 20
+        );
+        let remainingParticles = particleCount;
 
-        for (let i = 0; i < opts.count; i++) {
+        for (let i = 0; i < particleCount; i++) {
             // Spread from -80 to 80 degrees (upward arc centered at -90)
             const baseAngle = -90; // Straight up
             const spreadHalf = opts.spread / 2;
@@ -506,36 +523,43 @@ class FXLibrary {
                 scale: opts.scale,
                 alpha: opts.alpha
             });
+            particle.fxRole = 'landingDust';
 
             particles.push(particle);
 
-            // Animate opacity and scale
+            const velocityX = Math.cos(Phaser.Math.DegToRad(angle)) * speed;
+            const velocityY = Math.sin(Phaser.Math.DegToRad(angle)) * speed;
+            const durationSeconds = opts.duration / 1000;
+
+            // A single tween owns movement, fade, scale, and destruction. Two
+            // tweens racing on a destroyed Graphics target leave orphan work.
             scene.tweens.add({
                 targets: particle,
                 scale: opts.scale.end,
                 alpha: opts.alpha.end,
+                x: particle.x + velocityX * durationSeconds,
+                y: particle.y + velocityY * durationSeconds +
+                    opts.gravity.y * durationSeconds * 0.5,
                 duration: opts.duration,
                 ease: 'Quad.easeOut',
                 onComplete: () => {
                     this.destroyParticle(particle);
+                    remainingParticles -= 1;
+                    if (remainingParticles <= 0) {
+                        this.activeEffects.delete(effectId);
+                    }
                 }
-            });
-
-            // Physics movement with gravity
-            const velocityX = Math.cos(Phaser.Math.DegToRad(angle)) * speed;
-            const velocityY = Math.sin(Phaser.Math.DegToRad(angle)) * speed;
-
-            scene.tweens.add({
-                targets: particle,
-                x: particle.x + velocityX * (opts.duration / 1000),
-                y: particle.y + velocityY * (opts.duration / 1000) + opts.gravity.y * (opts.duration / 1000) * 0.5,
-                duration: opts.duration,
-                ease: 'Quad.easeOut'
             });
         }
 
-        this.activeEffects.set(effectId, { particles, startTime: Date.now() });
-        this.logEffect('landing_dust', { x, y, count: opts.count });
+        if (particleCount > 0) {
+            this.activeEffects.set(effectId, {
+                particles,
+                scene,
+                startTime: Date.now()
+            });
+        }
+        this.logEffect('landing_dust', { x, y, count: particleCount });
 
         return effectId;
     }
@@ -544,16 +568,21 @@ class FXLibrary {
      * Create individual dust particle (small cloud puff)
      */
     createDustParticle(scene, x, y, options) {
-        const particle = scene.add.graphics();
-        particle.setPosition(x, y);
+        const textureKey = 'fx_landing_dust_particle';
+        if (!scene.textures.exists(textureKey)) {
+            const texture = scene.make.graphics({ add: false });
+            texture.fillStyle(0xFFFFFF, 1);
+            texture.fillCircle(8, 8, 4);
+            texture.fillCircle(10, 7, 3);
+            texture.fillCircle(6, 7, 3);
+            texture.generateTexture(textureKey, 16, 16);
+            texture.destroy();
+        }
+
+        const particle = scene.add.image(x, y, textureKey);
+        particle.setTint(options.color);
         particle.setScale(options.scale.start);
         particle.setAlpha(options.alpha.start);
-
-        // Create small cloud/puff shape
-        particle.fillStyle(options.color, 1.0);
-        particle.fillCircle(0, 0, 4);
-        particle.fillCircle(2, -1, 3);
-        particle.fillCircle(-2, -1, 3);
 
         return particle;
     }

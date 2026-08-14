@@ -37,13 +37,16 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain(
             'this.createObjectiveTriggerZone(\n                relay.x,\n                relay.y - 35,\n                { width: 150, height: 190 }'
         );
-        expect(source).toContain(
-            'this.setCheckpoint(relay.x, relay.respawnY, {'
-        );
+        expect(source).toContain("activationSupportIds: ['peak-lower-relay-overlook']");
+        expect(source).toContain("activationSupportIds: ['peak-warning-lower']");
+        expect(source).toContain("activationSupportIds: ['peak-summit-relay']");
+        expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain('LAND + TRANSMIT');
+        expect(source).toContain('LAND ON THE LIT PLATFORM');
         expect(source).toContain('PROJECT BEACON RELAY ${this.beaconRelaysActivated}/3');
-        expect(source).toContain(
-            "{ id: 'peaks_relay_3', x: 3680, y: 600, label: 'SUMMIT RELAY', respawnY: 480 }"
-        );
+        expect(source).toContain("activationSupportIds: ['peak-titan-gate']");
+        expect(source).toContain("this.isPlayerGroundedOnTraversalSupport('peak-titan-gate')");
     });
 
     test('turns the third relay into the distant creature-network reveal', () => {
@@ -97,6 +100,41 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain("name: 'Signal Egg'");
         expect(source).toContain('ALL SIGNAL FRAGMENTS - EGG AWAKENED');
         expect(source).toContain('this.cosmicEggAwarded = true');
+        expect(source).toContain('peakSignalEggAwarded: this.cosmicEggAwarded === true');
+        expect(source).toContain('this.hasPeakSignalEgg()');
+        expect(source).toContain('this.awardPeakSignalEgg()');
+        expect(source).toContain('window.InventoryManager?.addItem?.({');
+    });
+
+    test('makes both Peaks routes consequential and persists their combat rewards', () => {
+        const source = readLevel();
+
+        expect(source).toContain(
+            "mainTradeoff: 'SHORT + RISKY\\nEARNS: TITAN SURGE // 1 FREE BLAST'"
+        );
+        expect(source).toContain(
+            "challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS'"
+        );
+        expect(source).toContain('titanSurgeCharges: this.peakRouteChoice');
+        expect(source).toContain('this.freeSpecialAttackCharges += 1');
+        expect(source).toContain('this.retireUnavailablePeakRouteFragments()');
+        expect(source).toContain('TITAN SURGE // 1 FREE BLAST READY');
+        expect(source).toContain('TITAN SURGE // FREE BLAST SPENT');
+        expect(source).toContain('onFreeSpecialAttackConsumed()');
+        expect(source).toContain('this.refreshPersistedExpeditionRouteState()');
+    });
+
+    test('keeps whole-route decoration static on compact mobile screens', () => {
+        const source = readLevel();
+
+        expect(source).toContain('shouldAnimatePeakRouteDecorations()');
+        expect(source).toContain(
+            'return !(this.isMobile || width <= 480 || height < 620)'
+        );
+        expect(source).toContain('{ animate: animateRouteDecorations }');
+        expect(source).toContain(
+            '{ animate: this.shouldAnimatePeakRouteDecorations() }'
+        );
     });
 
     test('protects the player during the intro and after restoration begins', () => {
@@ -135,8 +173,11 @@ describe('fourth expedition rescue loop', () => {
             'const isMobileLayout = this.isMobile || width <= 480 || height < 620'
         );
         expect(source).toContain('const barY = isMobileLayout ? 118 : 60');
-        expect(source).toContain('isMobileLayout ? 165 : 90');
-        expect(source).toContain('isShortLandscape ? 76 : 72');
+        expect(source).toContain('const toastY = isMobileLayout');
+        expect(source).toContain('height < 620 ? Math.min(142, height * 0.38)');
+        expect(source).toContain('Math.min(225, height * 0.28)');
+        expect(source).toContain('y: toastY - 20');
+        expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('WARNING ${current}/3 // ${nextRelay}');
         expect(source).toContain('TITAN PASS OPEN');
         expect(source).toContain(

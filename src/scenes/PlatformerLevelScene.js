@@ -5,8 +5,9 @@ import {
 } from '../systems/ProjectBeaconStory.js';
 import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import '../systems/ProjectBeaconFieldKit.js';
-import { getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
+import { getCampaignEntryStackLayout, getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
 import bossConfigs from '../config/bosses.json';
+import { analyzeTraversalTopology } from '../systems/TraversalTopology.js';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
 import { getCurrentRegionActionPresentation, recordCurrentRegionRestoration } from '../systems/CurrentEcology.js';
 import { getCurrentAtmosphereProjection } from '../systems/CurrentAtmosphere.js';
@@ -90,18 +91,21 @@ const CURRENT_NODE_LEVEL_CONFIG = Object.freeze({
         label: 'ROOT CURRENT'
     }),
     crystal_caves_1: Object.freeze({
-        x: 760,
+        x: 1500,
         groundOffset: 125,
+        supportId: 'caves-chamber-bridge',
         label: 'CRYSTAL CURRENT'
     }),
     reef_1: Object.freeze({
-        x: 260,
-        groundOffset: 145,
+        x: 850,
+        groundOffset: 445,
+        supportId: 'reef-opening-3',
         label: 'REEF CURRENT'
     }),
     void_peaks_1: Object.freeze({
-        x: 520,
-        groundOffset: 130,
+        x: 2095,
+        groundOffset: 235,
+        supportId: 'peak-ridge-approach',
         label: 'RIDGE CURRENT'
     }),
     aurora_depths_1: Object.freeze({
@@ -110,8 +114,9 @@ const CURRENT_NODE_LEVEL_CONFIG = Object.freeze({
         label: 'AURORA CURRENT'
     }),
     final_void_1: Object.freeze({
-        x: 420,
-        groundOffset: 130,
+        x: 1230,
+        groundOffset: 190,
+        supportId: 'final-return-approach',
         label: 'CURRENT HEART'
     })
 });
@@ -295,6 +300,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.orderedRouteSignalOptions = null;
         this.optionalRouteRewards = new Map();
         this.routeChoiceSequence = 0;
+        this.routeHintUntil = 0;
         this.guardianGateState = null;
         this.guardianEncounter = null;
         this.guardianTeamSupport = {
@@ -327,6 +333,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.optionalRouteGuardCharges = 0;
         this.optionalRouteGuardLabel = 'ROUTE GUARD';
         this.levelCoinMultiplier = 1;
+        this.lastRouteEnemyRetirement = null;
+        this.enemyRuntimeDisposalTotals = { timerCount: 0, artifactCount: 0 };
 
         // Checkpoint system
         this.lastSafePosition = null; // Last ground position for respawn
@@ -338,8 +346,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.jumpBufferTime = this.movementProfile.jumpBufferTime;
         this.jumpBufferPressed = false; // Whether jump was pressed recently (for buffering)
         this.jumpBufferTimestamp = 0; // When jump buffer was activated
+        this.jumpBufferFramesRemaining = 0; // Low-FPS grace measured in actual gameplay updates
         this.wasGrounded = false; // Track previous grounded state for landing detection
         this.lastLandingY = 0; // Track Y position to calculate fall distance for dust
+        this.stuckFrameCount = 0;
 
         // Crystal Shield power-up
         this.hasShield = false; // Whether player has active shield
@@ -369,6 +379,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.mobileControls = null;
         this.isMobile = false;
         this.virtualJoystickX = 0;  // -1 to 1 from virtual joystick
+        this.virtualJoystickY = 0;  // Used by levels with two-axis locomotion
+        this.usesVerticalJoystick = false;
         this.virtualJumpPressed = false;
         this.virtualJumpQueued = false;
         this.mobileControlElements = []; // Track all mobile UI elements for cleanup
@@ -379,6 +391,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.actionButtonReleases = new Map();
         this.platformerJoystickMoveHandler = null;
         this.platformerJoystickUpHandler = null;
+        this.platformerTouchStartHandler = null;
+        this.platformerTouchMoveHandler = null;
         this.platformerTouchEndHandler = null;
         this.platformerPointerCancelHandler = null;
         this.platformerInputAbortHandler = null;
@@ -399,6 +413,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.residentReleaseElements = [];
         this.residentReleaseOpen = false;
         this.residentReleaseTableau = null;
+        this.pendingResidentReleaseContinuation = null;
         this._returningToHub = false;
         this.currentEcologyNode = null;
         this.currentAtmosphere = null;
@@ -419,6 +434,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.centeringStancePreviewSize = null;
         this.lastCombatActionAt = Number.NEGATIVE_INFINITY;
         this.recoveryInputLockedUntil = 0;
+        this.traversalLandingGuides = [];
     }
 
     init(data) {
@@ -540,6 +556,45 @@ class PlatformerLevelScene extends Phaser.Scene {
         };
     }
 
+    layoutCampaignEntryContent(layout, entries, {
+        gaps = 8,
+        topPadding = 18,
+        bottomPadding = 18,
+        minGap = 4
+    } = {}) {
+        if (!layout?.isCompact) return null;
+
+        const elements = entries.filter((element) => element && element.active !== false);
+        const itemHeights = elements.map((element) => {
+            const boundsHeight = element.getBounds?.()?.height;
+            const measuredHeight = Number(boundsHeight || element.displayHeight || element.height);
+            return Number.isFinite(measuredHeight) ? Math.max(0, measuredHeight) : 0;
+        });
+        const stack = getCampaignEntryStackLayout({
+            top: layout.panelY,
+            bottom: layout.panelY + layout.panelHeight,
+            itemHeights,
+            gaps,
+            topPadding,
+            bottomPadding,
+            minGap
+        });
+
+        elements.forEach((element, index) => {
+            const originY = Number.isFinite(Number(element.originY))
+                ? Number(element.originY)
+                : 0;
+            element.setY(stack.positions[index] + itemHeights[index] * originY);
+        });
+
+        if (stack.overflow > 0.5) {
+            console.warn(
+                `[PlatformerLevel] Campaign entry content exceeds its panel by ${stack.overflow.toFixed(1)}px`
+            );
+        }
+        return stack;
+    }
+
     /**
      * Reset all game state - called on init() for restart support
      */
@@ -649,8 +704,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.levelCoinMultiplier = 1;
         this.optionalRouteRewards = new Map();
         this.routeChoiceSequence = 0;
+        this.routeHintUntil = 0;
         this.guardianGateState = null;
         this.guardianEncounter = null;
+        this.lastRouteEnemyRetirement = null;
+        this.enemyRuntimeDisposalTotals = { timerCount: 0, artifactCount: 0 };
         window.EconomyManager?.clearLevelCoinMultiplier?.();
 
         // Reset flags
@@ -662,6 +720,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isInvincible = false;
         this.isRespawning = false;
         this.invincibilityTween = null;
+        this.stuckFrameCount = 0;
 
         // Reset checkpoint data
         this.lastSafePosition = null;
@@ -670,11 +729,14 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Reset mobile control state
         this.virtualJoystickX = 0;
+        this.virtualJoystickY = 0;
+        this.joystickTouchIdentifier = null;
         this.virtualJumpPressed = false;
         this.virtualJumpQueued = false;
         this.actionButtonPointers.clear();
         this.actionButtonReleases.clear();
         this.recoveryInputLockedUntil = 0;
+        this.traversalLandingGuides = [];
 
         // Reset pause menu state
         this.pauseMenuActive = false;
@@ -709,6 +771,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.residentReleaseOpen = false;
         this.residentReleaseTableau?.destroy?.();
         this.residentReleaseTableau = null;
+        this.pendingResidentReleaseContinuation = null;
         this.residentReleaseElements?.forEach(element => element?.destroy?.());
         this.residentReleaseElements = [];
         this._returningToHub = false;
@@ -735,6 +798,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.lastGroundedTime = 0;
         this.jumpBufferPressed = false;
         this.jumpBufferTimestamp = 0;
+        this.jumpBufferFramesRemaining = 0;
         this.wasGrounded = false;
         this.lastLandingY = 0;
 
@@ -1252,6 +1316,126 @@ class PlatformerLevelScene extends Phaser.Scene {
         return zone;
     }
 
+    getTraversalAuditTargets() {
+        return [];
+    }
+
+    auditTraversalTopology() {
+        const supports = this.platforms?.getChildren?.() || [];
+        const targets = this.getTraversalAuditTargets();
+        const result = analyzeTraversalTopology({
+            supports,
+            targets,
+            spawn: {
+                x: this.player?.x,
+                y: this.player?.y
+            },
+            movement: {
+                gravityY: this.gravityY,
+                jumpVelocity: this.jumpVelocity,
+                playerSpeed: this.playerSpeed,
+                playerAcceleration: this.playerAcceleration
+            },
+            playerHalfWidth: Math.max(
+                14,
+                Number(this.player?.body?.width) / 2 || 18
+            ),
+            playerHeight: Math.max(
+                48,
+                Number(this.player?.body?.height) || 58
+            )
+        });
+        const routeChoices = this.auditOptionalRouteChoiceSupports();
+
+        return {
+            sceneName: this.scene?.key,
+            ...result,
+            passed: result.passed && routeChoices.passed,
+            reason: result.passed && !routeChoices.passed
+                ? 'route-choice-supports'
+                : result.reason,
+            routeChoices
+        };
+    }
+
+    auditOptionalRouteChoiceSupports() {
+        const routes = [...(this.optionalRouteRewards?.values?.() || [])]
+            .filter(route => route?.choice);
+        const lanes = [
+            ['main', 'mainZone', 'mainSupportIds'],
+            ['optional', 'optionalZone', 'optionalSupportIds'],
+            ['rejoin', 'rejoinZone', 'rejoinSupportIds']
+        ];
+        const routeResults = routes.map(route => {
+            const laneResults = lanes.map(([lane, zoneProperty, idsProperty]) => {
+                const zone = route.choice[zoneProperty];
+                const supportIds = route.choice[idsProperty] || [];
+                const zoneIsValid = Boolean(
+                    zone &&
+                    [zone.left, zone.right, zone.top, zone.bottom]
+                        .every(Number.isFinite)
+                );
+                const missingSupportIds = supportIds.filter(id => {
+                    const support = this.getTraversalSupport(id);
+                    return !support?.body ||
+                        support.active === false ||
+                        support.body.enable === false;
+                });
+                const invalidGeometrySupportIds = supportIds.filter(id => {
+                    const body = this.getTraversalSupport(id)?.body;
+                    return body && ![
+                        body.left,
+                        body.right,
+                        body.top,
+                        body.bottom
+                    ].every(value => Number.isFinite(Number(value)));
+                });
+                const outsideZoneSupportIds = supportIds.filter(id => {
+                    const support = this.getTraversalSupport(id);
+                    const body = support?.body;
+                    if (
+                        !zoneIsValid ||
+                        !body ||
+                        invalidGeometrySupportIds.includes(id)
+                    ) return false;
+                    const supportX = Number(support?.x);
+                    const centerX = Number.isFinite(supportX)
+                        ? supportX
+                        : (Number(body.left) + Number(body.right)) / 2;
+                    return (
+                        centerX < zone.left ||
+                        centerX > zone.right ||
+                        body.top < zone.top ||
+                        body.top > zone.bottom
+                    );
+                });
+                return {
+                    lane,
+                    supportIds,
+                    passed: zoneIsValid &&
+                        supportIds.length > 0 &&
+                        missingSupportIds.length === 0 &&
+                        invalidGeometrySupportIds.length === 0 &&
+                        outsideZoneSupportIds.length === 0,
+                    zoneIsValid,
+                    missingSupportIds,
+                    invalidGeometrySupportIds,
+                    outsideZoneSupportIds
+                };
+            });
+            return {
+                id: route.id,
+                passed: laneResults.every(lane => lane.passed),
+                lanes: laneResults
+            };
+        });
+        return {
+            passed: routeResults.every(route => route.passed),
+            auditedRouteCount: routeResults.length,
+            routes: routeResults
+        };
+    }
+
     getPlatformTraversalAudit({ targets = [] } = {}) {
         const nodes = (this.platforms?.getChildren?.() || [])
             .filter(platform => platform?.active !== false && platform?.body)
@@ -1589,6 +1773,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         marker = null,
         returnLabel = 'RETURN TO MAIN ROUTE',
         choice = null,
+        onMainSelected = null,
+        onOptionalSelected = null,
         onComplete = null
     } = {}) {
         if (typeof id !== 'string' || !id.trim()) return null;
@@ -1601,6 +1787,12 @@ class PlatformerLevelScene extends Phaser.Scene {
             returnLabel: String(returnLabel || 'RETURN TO MAIN ROUTE'),
             marker,
             choice: this.normalizeOptionalRouteChoice(choice),
+            onMainSelected: typeof onMainSelected === 'function'
+                ? onMainSelected
+                : null,
+            onOptionalSelected: typeof onOptionalSelected === 'function'
+                ? onOptionalSelected
+                : null,
             onComplete: typeof onComplete === 'function' ? onComplete : null,
             progress: 0,
             completed: false
@@ -1631,6 +1823,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         const optionalZone = normalizeZone(choice.optionalZone);
         const rejoinZone = normalizeZone(choice.rejoinZone);
         if (!mainZone || !optionalZone || !rejoinZone) return null;
+        const normalizeSupportIds = ids => Array.isArray(ids)
+            ? [...new Set(ids.filter(id => typeof id === 'string' && id))]
+            : [];
 
         return {
             mainLabel: String(choice.mainLabel || 'MAIN ROUTE'),
@@ -1640,6 +1835,9 @@ class PlatformerLevelScene extends Phaser.Scene {
             mainZone,
             optionalZone,
             rejoinZone,
+            mainSupportIds: normalizeSupportIds(choice.mainSupportIds),
+            optionalSupportIds: normalizeSupportIds(choice.optionalSupportIds),
+            rejoinSupportIds: normalizeSupportIds(choice.rejoinSupportIds),
             selectedPath: null,
             mainEntered: false,
             optionalEntered: false,
@@ -1662,6 +1860,126 @@ class PlatformerLevelScene extends Phaser.Scene {
         );
     }
 
+    getTraversalSupport(id) {
+        return this.platforms?.getChildren?.().find(
+            platform => platform?.traversalId === id
+        ) || null;
+    }
+
+    getTraversalSupportCheckpoint(id, fallbackX, {
+        playerClearance = 76
+    } = {}) {
+        const support = this.getTraversalSupport(id);
+        return {
+            x: Phaser.Math.Clamp(
+                Number(fallbackX) || support?.x || 120,
+                (support?.body?.left || 40) + 30,
+                (support?.body?.right || this.levelWidth - 40) - 30
+            ),
+            y: (support?.body?.top || this.levelHeight - 50) - playerClearance
+        };
+    }
+
+    createTraversalLandingGuide(id, color = 0x7FFFD4, {
+        depth = 179,
+        animate = true
+    } = {}) {
+        const support = this.getTraversalSupport(id);
+        if (!support?.body) return null;
+
+        const visual = this.add.graphics().setDepth(depth);
+        const left = support.body.left + 14;
+        const right = support.body.right - 14;
+        const top = support.body.top - 5;
+        visual.lineStyle(4, color, 0.95);
+        visual.lineBetween(left, top, right, top);
+        visual.fillStyle(color, 0.92);
+        visual.fillTriangle(
+            support.x - 8,
+            top - 13,
+            support.x + 8,
+            top - 13,
+            support.x,
+            top - 2
+        );
+        const tween = animate
+            ? this.tweens.add({
+                targets: visual,
+                alpha: { from: 0.55, to: 1 },
+                duration: 720,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            })
+            : null;
+        const guide = { id, visual, tween };
+        this.traversalLandingGuides.push(guide);
+        return guide;
+    }
+
+    retireTraversalLandingGuide(target) {
+        target?.landingGuide?.tween?.remove?.();
+        target?.landingGuide?.visual?.setAlpha?.(0.18);
+    }
+
+    clearTraversalLandingGuides() {
+        this.traversalLandingGuides?.forEach(guide => {
+            guide.tween?.remove?.();
+            guide.visual?.destroy?.();
+        });
+        this.traversalLandingGuides = [];
+    }
+
+    isPlayerGroundedOnTraversalSupport(ids) {
+        const allowedIds = Array.isArray(ids) ? ids : [ids];
+        if (allowedIds.length === 0) return true;
+
+        const body = this.player?.body;
+        if (!body || body.velocity?.y < -1) return false;
+        if (!(body.blocked?.down || body.touching?.down || this.isGrounded)) {
+            return false;
+        }
+
+        return allowedIds.some(id => {
+            const support = this.getTraversalSupport(id);
+            return Boolean(
+                support?.body &&
+                body.right > support.body.left + 5 &&
+                body.left < support.body.right - 5 &&
+                Math.abs(body.bottom - support.body.top) <= 9
+            );
+        });
+    }
+
+    isPlayerSettledOnTraversalSupport(ids, {
+        horizontalInset = 8,
+        surfaceTolerance = 7
+    } = {}) {
+        const allowedIds = Array.isArray(ids) ? ids : [ids];
+        if (allowedIds.length === 0) return true;
+
+        const body = this.player?.body;
+        if (!body || body.velocity?.y < -1) return false;
+        if (!(body.blocked?.down || body.touching?.down || this.isGrounded)) {
+            return false;
+        }
+
+        return allowedIds.some(id => {
+            const support = this.getTraversalSupport(id);
+            return Boolean(
+                support?.body &&
+                body.right > support.body.left + horizontalInset &&
+                body.left < support.body.right - horizontalInset &&
+                Math.abs(body.bottom - support.body.top) <= surfaceTolerance
+            );
+        });
+    }
+
+    isPlayerCommittedToRouteChoice(zone, supportIds = []) {
+        return this.isPlayerInsideRouteChoiceZone(zone) &&
+            this.isPlayerGroundedOnTraversalSupport(supportIds);
+    }
+
     recordRouteChoiceEntry(route, path) {
         const choice = route?.choice;
         if (!choice || !['main', 'optional'].includes(path)) return false;
@@ -1672,6 +1990,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         choice[enteredProperty] = true;
         choice.selectedPath ||= path;
         choice.sequence ||= ++this.routeChoiceSequence;
+        if (path === 'optional') {
+            route.onOptionalSelected?.(route);
+        } else {
+            route.onMainSelected?.(route);
+        }
 
         const label = path === 'optional'
             ? `${route.title} // ${choice.challengeLabel}`
@@ -1698,15 +2021,24 @@ class PlatformerLevelScene extends Phaser.Scene {
             const choice = route?.choice;
             if (!choice || choice.rejoined) return;
 
-            if (this.isPlayerInsideRouteChoiceZone(choice.optionalZone)) {
+            if (this.isPlayerCommittedToRouteChoice(
+                choice.optionalZone,
+                choice.optionalSupportIds
+            )) {
                 changed = this.recordRouteChoiceEntry(route, 'optional') || changed;
-            } else if (this.isPlayerInsideRouteChoiceZone(choice.mainZone)) {
+            } else if (this.isPlayerCommittedToRouteChoice(
+                choice.mainZone,
+                choice.mainSupportIds
+            )) {
                 changed = this.recordRouteChoiceEntry(route, 'main') || changed;
             }
 
             if (
                 choice.optionalEntered &&
-                this.isPlayerInsideRouteChoiceZone(choice.rejoinZone)
+                this.isPlayerCommittedToRouteChoice(
+                    choice.rejoinZone,
+                    choice.rejoinSupportIds
+                )
             ) {
                 choice.rejoined = true;
                 this.showFloatingText?.(
@@ -1767,6 +2099,21 @@ class PlatformerLevelScene extends Phaser.Scene {
     recordOptionalRouteProgress(id, { x, y } = {}) {
         const route = this.optionalRouteRewards.get(id);
         if (!route || route.completed) return false;
+
+        const choice = route.choice;
+        if (
+            choice &&
+            !choice.selectedPath &&
+            this.isPlayerCommittedToRouteChoice(
+                choice.optionalZone,
+                choice.optionalSupportIds
+            )
+        ) {
+            this.recordRouteChoiceEntry(route, 'optional');
+        }
+        if (choice && choice.selectedPath !== 'optional') {
+            return false;
+        }
 
         route.progress = Math.min(route.required, route.progress + 1);
         route.completed = route.progress >= route.required;
@@ -1837,8 +2184,27 @@ class PlatformerLevelScene extends Phaser.Scene {
         graphics.fillRoundedRect(0, 0, width, height, cornerRadius);
 
         // Top highlight (lighter edge)
-        graphics.fillStyle(colors.highlight, 0.4);
+        graphics.fillStyle(colors.highlight, 0.58);
         graphics.fillRoundedRect(2, 2, width - 4, height / 3, cornerRadius - 2);
+
+        // A bright, stable rim makes landing surfaces readable against the
+        // dark campaign biomes without adding display objects or animation.
+        graphics.lineStyle(2, colors.edge || colors.crystal, 0.92);
+        graphics.strokeRoundedRect(
+            1,
+            1,
+            Math.max(1, width - 2),
+            Math.max(1, height - 2),
+            Math.max(1, cornerRadius - 1)
+        );
+        graphics.fillStyle(colors.edge || colors.crystal, 0.82);
+        graphics.fillRoundedRect(
+            4,
+            1,
+            Math.max(1, width - 8),
+            Math.min(3, Math.max(1, height / 5)),
+            1
+        );
 
         // Bottom shadow (darker edge)
         graphics.fillStyle(colors.shadow, 0.5);
@@ -1895,32 +2261,44 @@ class PlatformerLevelScene extends Phaser.Scene {
     getPlatformColors() {
         const palettes = {
             crystal_caves: {
-                base: 0x1A1025,
-                highlight: 0x2D1B3D,
-                shadow: 0x0D0818,
-                texture: 0x3D2B5D,
-                crystal: 0x7B68EE
+                base: 0x2D2050,
+                highlight: 0x8E7CFF,
+                shadow: 0x130B25,
+                texture: 0x5F45A0,
+                crystal: 0x7B68EE,
+                edge: 0x53D8FF
             },
             stellar_reef: {
-                base: 0x1A237E,
-                highlight: 0x283593,
-                shadow: 0x0D1642,
-                texture: 0x3949AB,
-                crystal: 0x00BCD4
+                base: 0x1C3D8F,
+                highlight: 0x5A75FF,
+                shadow: 0x071B44,
+                texture: 0x00A4C7,
+                crystal: 0x00BCD4,
+                edge: 0x6FE7FF
             },
             void_peaks: {
-                base: 0x1A1A2E,
-                highlight: 0x2F2F4F,
-                shadow: 0x0D0D0D,
-                texture: 0x483D8B,
-                crystal: 0xFF4500
+                base: 0x292947,
+                highlight: 0x6666A1,
+                shadow: 0x0A0A13,
+                texture: 0x845ED4,
+                crystal: 0xFF4500,
+                edge: 0xFF704D
             },
             aurora_depths: {
-                base: 0x0A192F,
-                highlight: 0x1B4332,
-                shadow: 0x051210,
-                texture: 0x2D6A4F,
-                crystal: 0x00FF7F
+                base: 0x123D35,
+                highlight: 0x39A06C,
+                shadow: 0x071913,
+                texture: 0x2D8A68,
+                crystal: 0x00FF7F,
+                edge: 0x69F5B4
+            },
+            final_void: {
+                base: 0x281640,
+                highlight: 0x7546A8,
+                shadow: 0x0E0718,
+                texture: 0x5C2A84,
+                crystal: 0xD68BFF,
+                edge: 0xF0A6FF
             }
         };
 
@@ -2319,9 +2697,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             Phaser.Input.Keyboard.KeyCodes.E
         );
         this.currentEcologyInteractKey.on('down', () => {
-            if (this.currentEcologyPlayerNearby) {
-                this.showCurrentEcologyModal();
-            }
+            this.requestCurrentEcologyInteraction();
         });
 
         // ESC to pause/return
@@ -2331,6 +2707,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Set up mobile controls for touch devices
         this.setupPlatformerMobileControls();
+        this.scale?.on?.('resize', this.handlePlatformerMobileResize, this);
     }
 
     /**
@@ -2431,7 +2808,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         joystickBase.fillCircle(joystickX, joystickY, joystickBaseRadius);
         joystickBase.lineStyle(2, 0xFFFFFF, 0.4);
         joystickBase.strokeCircle(joystickX, joystickY, joystickBaseRadius);
-        // Add directional indicators (left/right arrows)
+        // Add directional indicators. Swimming levels opt into the vertical pair.
         joystickBase.fillStyle(0xFFFFFF, 0.3);
         joystickBase.fillTriangle(
             joystickX - joystickBaseRadius + 10, joystickY,
@@ -2443,6 +2820,18 @@ class PlatformerLevelScene extends Phaser.Scene {
             joystickX + joystickBaseRadius - 22, joystickY - 8,
             joystickX + joystickBaseRadius - 22, joystickY + 8
         );
+        if (this.usesVerticalJoystick) {
+            joystickBase.fillTriangle(
+                joystickX, joystickY - joystickBaseRadius + 10,
+                joystickX - 8, joystickY - joystickBaseRadius + 22,
+                joystickX + 8, joystickY - joystickBaseRadius + 22
+            );
+            joystickBase.fillTriangle(
+                joystickX, joystickY + joystickBaseRadius - 10,
+                joystickX - 8, joystickY + joystickBaseRadius - 22,
+                joystickX + 8, joystickY + joystickBaseRadius - 22
+            );
+        }
         this.mobileControlElements.push(joystickBase);
 
         // Joystick thumb - more visible for feedback
@@ -2488,6 +2877,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         joystickZone.on('pointerdown', (pointer) => {
             this.joystickActive = true;
             this.joystickPointerId = pointer.id;
+            const nativeTouchIdentifier =
+                pointer.event?.changedTouches?.[0]?.identifier ?? null;
+            if (nativeTouchIdentifier !== null) {
+                this.joystickTouchIdentifier = nativeTouchIdentifier;
+            }
 
             // FLOATING JOYSTICK: Move joystick to where finger touches (within bounds)
             const touchX = Math.max(marginLeft + joystickBaseRadius, Math.min(pointer.x, joystickZoneWidth - joystickBaseRadius));
@@ -2518,6 +2912,18 @@ class PlatformerLevelScene extends Phaser.Scene {
                     touchX + joystickBaseRadius - 26, touchY - 10,
                     touchX + joystickBaseRadius - 26, touchY + 10
                 );
+                if (this.usesVerticalJoystick) {
+                    this.joystickBase.fillTriangle(
+                        touchX, touchY - joystickBaseRadius + 12,
+                        touchX - 10, touchY - joystickBaseRadius + 26,
+                        touchX + 10, touchY - joystickBaseRadius + 26
+                    );
+                    this.joystickBase.fillTriangle(
+                        touchX, touchY + joystickBaseRadius - 12,
+                        touchX - 10, touchY + joystickBaseRadius - 26,
+                        touchX + 10, touchY + joystickBaseRadius - 26
+                    );
+                }
             }
         });
 
@@ -2552,17 +2958,78 @@ class PlatformerLevelScene extends Phaser.Scene {
         };
         this.input.on('pointerup', this.platformerJoystickUpHandler);
 
+        const mapNativeTouch = touch => {
+            const bounds = this.game.canvas.getBoundingClientRect();
+            return {
+                x: (touch.clientX - bounds.left) *
+                    (this.scale.width / Math.max(1, bounds.width)),
+                y: (touch.clientY - bounds.top) *
+                    (this.scale.height / Math.max(1, bounds.height))
+            };
+        };
+        this.platformerTouchStartHandler = (event) => {
+            const touches = Array.from(event.changedTouches || []).map(candidate => ({
+                candidate,
+                point: mapNativeTouch(candidate)
+            }));
+            const jumpTarget = this.mobileControlTargets?.jump;
+            const jumpRadius = Number(jumpTarget?.radius) + 10;
+            const jumpTouch = this.platformerControlsVisible &&
+                jumpTarget?.zone?.input?.enabled !== false &&
+                Number.isFinite(jumpRadius) &&
+                touches.find(({ point }) =>
+                    Phaser.Math.Distance.Between(
+                        point.x,
+                        point.y,
+                        jumpTarget.x,
+                        jumpTarget.y
+                    ) <= jumpRadius
+                );
+            if (jumpTouch) {
+                // Phaser can occasionally miss pointerdown after a cold mobile
+                // frame. Queueing twice is harmless when its handler also runs.
+                this.queueVirtualJumpInput();
+            }
+
+            if (this.joystickActive) return;
+            const touch = touches
+                .find(({ point }) =>
+                    point.x >= 0 &&
+                    point.x <= joystickZoneWidth &&
+                    Math.abs(point.y - joystickY) <= joystickZoneHeight / 2
+                );
+            if (!touch) return;
+            this.joystickActive = true;
+            this.joystickTouchIdentifier = touch.candidate.identifier;
+            this.updateJoystick(touch.point);
+        };
+
+        // Native touch fallback keeps steering responsive when a mobile browser
+        // stops forwarding an owned drag to Phaser after the finger crosses a
+        // display-list boundary. Phaser remains the primary input path.
+        this.platformerTouchMoveHandler = (event) => {
+            if (!this.joystickActive) return;
+            const touch = Array.from(event.touches || []).find(
+                candidate => candidate.identifier === this.joystickTouchIdentifier
+            );
+            if (!touch) return;
+            this.updateJoystick(mapNativeTouch(touch));
+        };
+
         // Native touch end handler for reliability - only reset if no active touches remain on joystick
         this.platformerTouchEndHandler = (event) => {
-            Array.from(event.changedTouches || []).forEach(touch => {
+            const changedTouches = Array.from(event.changedTouches || []);
+            changedTouches.forEach(touch => {
                 this.releasePlatformerActionButton(touch.identifier);
             });
             if (event.touches.length === 0) {
                 this.releaseAllPlatformerActionButtons({ preserveQueuedJump: true });
             }
             // Only reset if there are no remaining touches OR if the joystick pointer specifically ended
-            if (this.joystickActive && event.touches.length === 0) {
-                // All touches ended - reset joystick
+            const joystickEnded = changedTouches.some(
+                touch => touch.identifier === this.joystickTouchIdentifier
+            );
+            if (this.joystickActive && (event.touches.length === 0 || joystickEnded)) {
                 this.resetJoystick();
             }
         };
@@ -2580,7 +3047,10 @@ class PlatformerLevelScene extends Phaser.Scene {
                 this.resetJoystick();
             }
         };
+        this.game.canvas.addEventListener('touchstart', this.platformerTouchStartHandler, { passive: true, capture: true });
+        this.game.canvas.addEventListener('touchmove', this.platformerTouchMoveHandler, { passive: true, capture: true });
         this.game.canvas.addEventListener('touchend', this.platformerTouchEndHandler, { passive: true });
+        this.game.canvas.addEventListener('touchcancel', this.platformerTouchEndHandler, { passive: true });
         this.game.canvas.addEventListener('pointercancel', this.platformerPointerCancelHandler, { passive: true });
         window.addEventListener('blur', this.platformerInputAbortHandler);
         window.addEventListener('pagehide', this.platformerInputAbortHandler);
@@ -2677,6 +3147,56 @@ class PlatformerLevelScene extends Phaser.Scene {
         // CRITICAL: Hide controls initially - they'll be shown when intro screen is dismissed
         // This prevents controls from being visible during level entry screens
         this.hidePlatformerMobileControls();
+    }
+
+    handlePlatformerMobileResize(gameSize = this.scale?.gameSize) {
+        if (!this.isMobile && !this.detectMobile()) return;
+
+        const controlsWereVisible = this.platformerControlsVisible === true;
+        this.destroyPlatformerMobileControls();
+        this.setupPlatformerMobileControls();
+
+        const width = gameSize?.width || this.scale?.width || 800;
+        const height = gameSize?.height || this.scale?.height || 600;
+        const safeArea = this.getSafeAreaInsets();
+        const layout = getMobileControlLayout({ width, height, safeArea });
+        this.mobileControlZoneHeight = layout.dockHeight + safeArea.bottom;
+        this.cameraBaseOffsetY = -height * 0.12;
+        this.cameraLeadAmount = width * 0.15;
+        this.cameras?.main?.setDeadzone?.(width * 0.1, height * 0.35);
+        this.cameras?.main?.setFollowOffset?.(
+            this.currentCameraLeadX || 0,
+            this.cameraBaseOffsetY
+        );
+
+        if (controlsWereVisible) {
+            this.showPlatformerMobileControls();
+        }
+    }
+
+    destroyPlatformerMobileControls() {
+        this.releaseAllPlatformerActionButtons();
+        this.cleanupPlatformerInputHandlers();
+        this.clearMobileControlCoach();
+        this.mobileControlElements?.forEach(element => {
+            try {
+                element?.removeAllListeners?.();
+                element?.destroy?.();
+            } catch (error) {
+                console.warn('[PlatformerLevel] Mobile control cleanup skipped:', error);
+            }
+        });
+        this.mobileControlElements = [];
+        this.mobileControlTargets = {};
+        this.platformerControlsVisible = false;
+        this.joystickActive = false;
+        this.joystickPointerId = null;
+        this.joystickTouchIdentifier = null;
+        this.virtualJoystickX = 0;
+        this.virtualJoystickY = 0;
+        this.clearVirtualJumpInput();
+        this.joystickBase = null;
+        this.joystickThumb = null;
     }
 
     /**
@@ -2990,6 +3510,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.releaseVirtualJumpInput();
         if (!preserveQueuedJump) {
             this.virtualJumpQueued = false;
+            this.jumpBufferPressed = false;
+            this.jumpBufferFramesRemaining = 0;
         }
         return true;
     }
@@ -3152,7 +3674,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     /**
      * Update joystick thumb position and calculate input
-     * IMPROVED: Larger dead zone, horizontal lock for platformers, better visual feedback
+     * Larger dead zone, horizontal lock by default, and optional two-axis input.
      */
     updateJoystick(pointer) {
         const offsetX = pointer.x - this.joystickCenterX;
@@ -3163,7 +3685,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         // HORIZONTAL LOCK: For platformers, strongly favor horizontal movement
         // If moving mostly horizontal (within 35 degrees of horizontal), snap to pure horizontal
         const angleDeg = Math.abs(angle * 180 / Math.PI);
-        const isNearHorizontal = angleDeg < 35 || angleDeg > 145;
+        const isNearHorizontal = !this.usesVerticalJoystick &&
+            (angleDeg < 35 || angleDeg > 145);
         if (isNearHorizontal && distance > this.joystickMaxDistance * 0.2) {
             // Snap to pure horizontal (left or right)
             angle = offsetX >= 0 ? 0 : Math.PI;
@@ -3185,15 +3708,24 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.joystickThumb.lineStyle(3, isMoving ? 0xFFFFFF : 0x00CED1, 1);
         this.joystickThumb.strokeCircle(thumbX, thumbY, this.joystickThumbRadius);
 
-        // Add direction arrow when moving
+        // Add a dominant-axis arrow when moving.
         if (isMoving) {
-            const arrowDir = offsetX >= 0 ? 1 : -1;
             this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-            this.joystickThumb.fillTriangle(
-                thumbX + arrowDir * 8, thumbY,
-                thumbX - arrowDir * 4, thumbY - 6,
-                thumbX - arrowDir * 4, thumbY + 6
-            );
+            if (this.usesVerticalJoystick && Math.abs(offsetY) > Math.abs(offsetX)) {
+                const arrowDir = offsetY >= 0 ? 1 : -1;
+                this.joystickThumb.fillTriangle(
+                    thumbX, thumbY + arrowDir * 8,
+                    thumbX - 6, thumbY - arrowDir * 4,
+                    thumbX + 6, thumbY - arrowDir * 4
+                );
+            } else {
+                const arrowDir = offsetX >= 0 ? 1 : -1;
+                this.joystickThumb.fillTriangle(
+                    thumbX + arrowDir * 8, thumbY,
+                    thumbX - arrowDir * 4, thumbY - 6,
+                    thumbX - arrowDir * 4, thumbY + 6
+                );
+            }
         }
 
         // Calculate normalized X input (-1 to 1) with LARGER dead zone (25%)
@@ -3209,8 +3741,12 @@ class PlatformerLevelScene extends Phaser.Scene {
             } else {
                 this.virtualJoystickX = Math.cos(angle) * magnitude;
             }
+            this.virtualJoystickY = this.usesVerticalJoystick
+                ? Math.sin(angle) * magnitude
+                : 0;
         } else {
             this.virtualJoystickX = 0;
+            this.virtualJoystickY = 0;
         }
     }
 
@@ -3220,7 +3756,9 @@ class PlatformerLevelScene extends Phaser.Scene {
     resetJoystick() {
         this.joystickActive = false;
         this.joystickPointerId = null;
+        this.joystickTouchIdentifier = null;
         this.virtualJoystickX = 0;
+        this.virtualJoystickY = 0;
 
         // Reset joystick to original position (floating joystick returns home)
         if (this.originalJoystickX && this.originalJoystickY) {
@@ -3246,6 +3784,24 @@ class PlatformerLevelScene extends Phaser.Scene {
                     this.joystickCenterX + this.joystickBaseRadius - 26, this.joystickCenterY - 10,
                     this.joystickCenterX + this.joystickBaseRadius - 26, this.joystickCenterY + 10
                 );
+                if (this.usesVerticalJoystick) {
+                    this.joystickBase.fillTriangle(
+                        this.joystickCenterX,
+                        this.joystickCenterY - this.joystickBaseRadius + 12,
+                        this.joystickCenterX - 10,
+                        this.joystickCenterY - this.joystickBaseRadius + 26,
+                        this.joystickCenterX + 10,
+                        this.joystickCenterY - this.joystickBaseRadius + 26
+                    );
+                    this.joystickBase.fillTriangle(
+                        this.joystickCenterX,
+                        this.joystickCenterY + this.joystickBaseRadius - 12,
+                        this.joystickCenterX - 10,
+                        this.joystickCenterY + this.joystickBaseRadius - 26,
+                        this.joystickCenterX + 10,
+                        this.joystickCenterY + this.joystickBaseRadius - 26
+                    );
+                }
             }
         }
 
@@ -3267,8 +3823,15 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.input.off('pointerup', this.platformerJoystickUpHandler);
         }
         const canvas = this.game?.canvas;
+        if (this.platformerTouchStartHandler && canvas) {
+            canvas.removeEventListener('touchstart', this.platformerTouchStartHandler, true);
+        }
+        if (this.platformerTouchMoveHandler && canvas) {
+            canvas.removeEventListener('touchmove', this.platformerTouchMoveHandler, true);
+        }
         if (this.platformerTouchEndHandler && canvas) {
             canvas.removeEventListener('touchend', this.platformerTouchEndHandler);
+            canvas.removeEventListener('touchcancel', this.platformerTouchEndHandler);
         }
         if (this.platformerPointerCancelHandler && canvas) {
             canvas.removeEventListener('pointercancel', this.platformerPointerCancelHandler);
@@ -3282,6 +3845,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
         this.platformerJoystickMoveHandler = null;
         this.platformerJoystickUpHandler = null;
+        this.platformerTouchStartHandler = null;
+        this.platformerTouchMoveHandler = null;
         this.platformerTouchEndHandler = null;
         this.platformerPointerCancelHandler = null;
         this.platformerInputAbortHandler = null;
@@ -3379,21 +3944,16 @@ class PlatformerLevelScene extends Phaser.Scene {
         const contactType = this.classifyEnemyContact(player, enemy);
         if (contactType === 'stomp' && enemy.stompable !== false) {
             enemy.stompContactLockedUntil = now + 220;
-            const defaultDamage = enemy.isMiniboss
-                ? 1
-                : Math.max(1, Number(enemy.health) || 1);
-            const stompDamage = Number.isFinite(options.stompDamage)
-                ? options.stompDamage
-                : Number.isFinite(enemy.stompDamage)
-                    ? enemy.stompDamage
-                    : defaultDamage;
+            const stompProfile = this.getEnemyStompProfile(enemy, options);
+            const stompDamage = stompProfile.damagePerStomp;
 
             const damageResult = typeof options.onStomp === 'function'
                 ? options.onStomp(enemy, stompDamage)
                 : this.damageEnemy(enemy, stompDamage);
             player.setVelocityY(this.jumpVelocity * 0.62);
             const feedback = this.getEnemyStompFeedback(enemy, {
-                damageApplied: damageResult !== false
+                damageApplied: damageResult !== false,
+                stompDamage
             });
             this.showFloatingText?.(
                 feedback.text,
@@ -3420,7 +3980,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         return 'contact';
     }
 
-    getEnemyStompFeedback(enemy, { damageApplied = true } = {}) {
+    getEnemyStompFeedback(enemy, {
+        damageApplied = true,
+        stompDamage
+    } = {}) {
         if (!damageApplied) {
             return { text: 'STOMP BLOCKED', color: '#FF6B6B' };
         }
@@ -3432,10 +3995,37 @@ class PlatformerLevelScene extends Phaser.Scene {
             return { text: 'STOMP CLEAR', color: '#8FE3CF' };
         }
 
-        const hitsRemaining = Math.max(1, Math.ceil(Number(enemy?.health) || 1));
+        const hitsRemaining = Math.max(
+            1,
+            this.getEnemyStompProfile(enemy, { stompDamage }).stompsRemaining
+        );
         return {
             text: `STOMP · ${hitsRemaining} HIT${hitsRemaining === 1 ? '' : 'S'} LEFT`,
             color: '#F2C94C'
+        };
+    }
+
+    getEnemyStompProfile(enemy, { stompDamage } = {}) {
+        const health = Math.max(0, Number(enemy?.health) || 0);
+        const maxHealth = Math.max(1, Number(enemy?.maxHealth) || health || 1);
+        const fallbackDamage = enemy?.isMiniboss ? 1 : maxHealth;
+        const authoredDamage = Number.isFinite(stompDamage)
+            ? stompDamage
+            : Number.isFinite(enemy?.stompDamage)
+                ? enemy.stompDamage
+                : fallbackDamage;
+        const damagePerStomp = Math.max(0, authoredDamage);
+        const stompable = enemy?.stompable !== false && damagePerStomp > 0;
+        const stompsFor = value => stompable
+            ? Math.max(0, Math.ceil(value / damagePerStomp))
+            : null;
+
+        return {
+            stompable,
+            damagePerStomp,
+            stompsRemaining: stompsFor(health),
+            totalStomps: stompsFor(maxHealth),
+            blocked: Boolean(enemy?.combatImmune)
         };
     }
 
@@ -3463,7 +4053,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         enemy.stompable = stompable;
         enemy.stompDamage = Number.isFinite(stompDamage)
             ? Math.max(0, stompDamage)
-            : undefined;
+            : enemy.isMiniboss
+                ? 1
+                : enemy.maxHealth;
         enemy.damage = Math.max(1, Number(contactDamage) || 1);
         enemy.combatCueRange = Math.max(180, Number(cueRange) || 320);
         enemy.combatCueOffsetY = Number(cueOffsetY) || -52;
@@ -3475,13 +4067,80 @@ class PlatformerLevelScene extends Phaser.Scene {
         return enemy;
     }
 
+    trackEnemyTimer(enemy, timer) {
+        if (!enemy || !timer) return timer;
+        enemy.runtimeTimers ||= new Set();
+        enemy.runtimeTimers.add(timer);
+        return timer;
+    }
+
+    trackEnemyArtifact(enemy, artifact) {
+        if (!enemy || !artifact) return artifact;
+        enemy.runtimeArtifacts ||= new Set();
+        enemy.runtimeArtifacts.add(artifact);
+        return artifact;
+    }
+
+    disposeEnemyRuntime(enemy) {
+        if (!enemy) return { timerCount: 0, artifactCount: 0 };
+
+        const timers = [...(enemy.runtimeTimers || [])];
+        timers.forEach(timer => timer?.remove?.(false));
+        enemy.runtimeTimers?.clear?.();
+
+        const artifacts = [...(enemy.runtimeArtifacts || [])];
+        artifacts.forEach(artifact => {
+            this.tweens?.killTweensOf?.(artifact);
+            artifact?.destroy?.();
+        });
+        enemy.runtimeArtifacts?.clear?.();
+        this.tweens?.killTweensOf?.(enemy);
+
+        this.enemyRuntimeDisposalTotals ||= {
+            timerCount: 0,
+            artifactCount: 0
+        };
+        this.enemyRuntimeDisposalTotals.timerCount += timers.length;
+        this.enemyRuntimeDisposalTotals.artifactCount += artifacts.length;
+
+        return {
+            timerCount: timers.length,
+            artifactCount: artifacts.length
+        };
+    }
+
+    retireRouteEnemies(enemies = this.enemies?.getChildren?.() || []) {
+        const patrols = [...new Set(enemies.filter(Boolean))];
+        const retirement = {
+            enemyCount: patrols.length,
+            timerCount: 0,
+            artifactCount: 0
+        };
+
+        patrols.forEach(enemy => {
+            const runtime = this.disposeEnemyRuntime(enemy);
+            retirement.timerCount += runtime.timerCount;
+            retirement.artifactCount += runtime.artifactCount;
+            enemy?.combatCue?.destroy?.();
+            enemy?.instructionLabel?.destroy?.();
+            if (enemy?.graphics && enemy.graphics !== enemy) {
+                enemy.graphics.destroy?.();
+                enemy.graphics = null;
+            }
+            enemy?.destroy?.();
+        });
+
+        this.lastRouteEnemyRetirement = retirement;
+        return retirement;
+    }
+
     createPatrolSentinels(encounters, {
         enemyType = 'signalSentinel',
         texturePrefix = 'signalSentinel',
         bodyColor = 0x274C5B,
         accentColor = 0x8FE3CF,
         eyeColor = 0xF2C94C,
-        instructionText = 'GOLD MARK // STOMP OR STRIKE'
+        instructionText = null
     } = {}) {
         if (!Array.isArray(encounters) || encounters.length === 0) return [];
 
@@ -3505,11 +4164,17 @@ class PlatformerLevelScene extends Phaser.Scene {
             const maxHealth = Math.max(1, Number(encounter.health) || 1);
             const patrolRange = Math.max(60, Number(encounter.patrolRange) || 115);
             const patrolSpeed = Math.max(25, Number(encounter.speed) || 42);
+            const airborne = encounter.airborne === true;
 
             sentinel.setCollideWorldBounds(true);
             sentinel.setBounce(0.05);
             sentinel.setDepth(850);
             sentinel.body.setSize(44, 52, true);
+            if (airborne) {
+                sentinel.body.setAllowGravity(false);
+                sentinel.setBounce(0);
+                sentinel.encounterAirborne = true;
+            }
             sentinel.enemyType = enemyType;
             sentinel.health = maxHealth;
             sentinel.maxHealth = maxHealth;
@@ -3520,7 +4185,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             sentinel.setFlipX(index % 2 !== 0);
 
             this.configureEnemyCombat(sentinel, {
-                role: maxHealth >= 3 ? 'armored' : 'stompable',
+                role: airborne ? 'flyer' : maxHealth >= 3 ? 'armored' : 'stompable',
                 maxHealth,
                 stompDamage: 1,
                 contactDamage: 1,
@@ -3572,10 +4237,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         graphics.destroy();
     }
 
-    updatePatrolEnemyMovement() {
-        if (!this.enemies?.getChildren) return false;
+    getRuntimePatrolEnemies() {
+        return this.enemies?.getChildren?.() || [];
+    }
 
-        this.enemies.getChildren().forEach(enemy => {
+    updatePatrolEnemyMovement() {
+        const enemies = this.getRuntimePatrolEnemies();
+        if (!enemies.length) return false;
+
+        enemies.forEach(enemy => {
             if (
                 enemy?.active === false ||
                 !enemy?.body ||
@@ -3620,11 +4290,12 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (!cue?.active) return false;
 
         cue.clear();
-        const health = Math.max(0, Number(enemy.health) || 0);
-        const maxHealth = Math.max(1, Number(enemy.maxHealth) || health || 1);
-        const armored = enemy.combatRole === 'armored' || maxHealth >= 3;
+        const stompProfile = this.getEnemyStompProfile(enemy);
+        enemy.combatCueTotalStomps = stompProfile.totalStomps;
+        enemy.combatCueStompsRemaining = stompProfile.stompsRemaining;
+        enemy.combatCueBlocked = stompProfile.blocked;
 
-        if (enemy.combatImmune) {
+        if (stompProfile.blocked) {
             cue.lineStyle(3, 0x8FE3CF, 0.95);
             cue.strokeCircle(0, 0, 11);
             cue.lineBetween(-8, 8, 8, -8);
@@ -3633,7 +4304,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         cue.setAlpha(1);
-        if (enemy.stompable === false) {
+        if (!stompProfile.stompable) {
             cue.lineStyle(3, 0xFF6B6B, 0.95);
             cue.strokeCircle(0, 1, 10);
             cue.lineBetween(-7, -6, 7, 8);
@@ -3645,9 +4316,9 @@ class PlatformerLevelScene extends Phaser.Scene {
             cue.lineBetween(0, 5, 9, -4);
         }
 
-        if (armored) {
-            const segments = Math.min(4, maxHealth);
-            const litSegments = Math.ceil((health / maxHealth) * segments);
+        if (stompProfile.totalStomps >= 1) {
+            const segments = stompProfile.totalStomps;
+            const litSegments = stompProfile.stompsRemaining;
             const startX = -(segments * 7 - 2) / 2;
             for (let index = 0; index < segments; index++) {
                 cue.fillStyle(
@@ -3661,9 +4332,11 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     updateEnemyCombatReadability() {
-        if (!this.player?.active || !this.enemies?.getChildren) return false;
+        if (!this.player?.active) return false;
+        const enemies = this.getRuntimePatrolEnemies();
+        if (!enemies.length) return false;
 
-        this.enemies.getChildren().forEach(enemy => {
+        enemies.forEach(enemy => {
             const cue = enemy?.combatCue;
             if (!cue?.active) return;
             const visible = enemy.active !== false && Phaser.Math.Distance.Between(
@@ -3678,6 +4351,11 @@ class PlatformerLevelScene extends Phaser.Scene {
                     enemy.x,
                     enemy.y + enemy.combatCueOffsetY
                 );
+            }
+            if (enemy.instructionLabelFollowEnemy && enemy.instructionLabel?.active) {
+                enemy.instructionLabel
+                    .setPosition(enemy.x, enemy.y - 78)
+                    .setVisible(visible);
             }
         });
         return true;
@@ -3762,17 +4440,111 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.updateHealthDisplay();
 
         // Crystal energy display
-        this.energyDisplay = this.add.container(hudX, hudY + 38);
+        this.energyDisplay = this.add.container(
+            mobileLayout ? hudX + (mobileLayout.compact ? 82 : 92) : hudX,
+            mobileLayout ? hudY : hudY + 38
+        );
         this.energyDisplay.setScrollFactor(0);
         this.energyDisplay.setDepth(1000);
         this.updateEnergyDisplay();
 
-        this.katanaUpgradeDisplay = this.add.container(hudX, hudY + 76);
+        this.katanaUpgradeDisplay = this.add.container(
+            hudX,
+            mobileLayout ? hudY + 36 : hudY + 76
+        );
         this.katanaUpgradeDisplay.setScrollFactor(0);
         this.katanaUpgradeDisplay.setDepth(1000);
         this.layoutKatanaUpgradeDisplay();
         this.scale?.on?.('resize', this.layoutKatanaUpgradeDisplay, this);
         this.updateKatanaUpgradeDisplay();
+    }
+
+    createCampaignObjectiveDisplay(textProvider, {
+        color = '#F4F8FF',
+        backgroundColor = 'rgba(8, 13, 22, 0.92)'
+    } = {}) {
+        this.campaignObjectiveTextProvider = textProvider;
+        const { width, height } = this.cameras.main;
+        const layout = getCampaignObjectiveLayout({
+            width,
+            height,
+            safeArea: this.getSafeAreaInsets()
+        });
+        this.isCompactObjectiveHUD = layout.compact;
+        const text = typeof textProvider === 'function'
+            ? textProvider()
+            : String(textProvider || '');
+
+        this.objectiveDisplay = this.add.text(layout.x, layout.y, text, {
+            fontSize: `${layout.fontSize}px`,
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color,
+            backgroundColor,
+            padding: { x: 10, y: 7 },
+            lineSpacing: 2,
+            align: layout.align,
+            wordWrap: { width: layout.maxWidth }
+        }).setOrigin(layout.originX, layout.originY)
+            .setScrollFactor(0)
+            .setDepth(1000);
+        this.campaignObjectiveTextureRevision = 1;
+
+        this.scale?.on?.('resize', this.layoutCampaignObjectiveDisplay, this);
+        return this.objectiveDisplay;
+    }
+
+    syncCampaignObjectiveDisplay({ visible = true, force = false } = {}) {
+        const display = this.objectiveDisplay;
+        if (!display?.active) return false;
+
+        const providedText = typeof this.campaignObjectiveTextProvider === 'function'
+            ? this.campaignObjectiveTextProvider()
+            : this.campaignObjectiveTextProvider;
+        const nextText = String(providedText || '');
+        const nextVisible = visible !== false;
+        let changed = false;
+
+        // Phaser rerasterizes Text whenever setText runs. Campaign objectives are
+        // state-driven, so avoid rebuilding the same canvas texture every frame.
+        if (force || display.text !== nextText) {
+            display.setText(nextText);
+            this.campaignObjectiveTextureRevision =
+                (Number(this.campaignObjectiveTextureRevision) || 0) + 1;
+            changed = true;
+        }
+        if (force || display.visible !== nextVisible) {
+            display.setVisible(nextVisible);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    layoutCampaignObjectiveDisplay(gameSize = this.scale?.gameSize) {
+        if (!this.objectiveDisplay?.active) return;
+
+        const width = gameSize?.width || this.cameras?.main?.width || 800;
+        const height = gameSize?.height || this.cameras?.main?.height || 600;
+        const layout = getCampaignObjectiveLayout({
+            width,
+            height,
+            safeArea: this.getSafeAreaInsets()
+        });
+        this.isCompactObjectiveHUD = layout.compact;
+        this.objectiveDisplay
+            .setPosition(layout.x, layout.y)
+            .setOrigin(layout.originX, layout.originY)
+            .setAlign(layout.align)
+            .setFontSize(`${layout.fontSize}px`)
+            .setWordWrapWidth(layout.maxWidth);
+
+        if (typeof this.campaignObjectiveTextProvider === 'function') {
+            this.syncCampaignObjectiveDisplay({
+                visible: this.objectiveDisplay.visible,
+                force: true
+            });
+        }
     }
 
     layoutKatanaUpgradeDisplay(gameSize = this.scale?.gameSize) {
@@ -3789,7 +4561,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             });
             this.katanaUpgradeDisplay.setPosition(
                 layout.menu.x + 42,
-                Math.max(88, layout.safeArea.top + 84)
+                Math.max(48, layout.safeArea.top + 44)
             );
             return;
         }
@@ -3804,6 +4576,36 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.katanaUpgradeDisplay.removeAll(true);
         const upgrades = this.katanaCombatProfile?.upgradeIds || [];
         let row = 0;
+
+        if (this.detectMobile()) {
+            const statuses = [];
+            if (this.katanaEquipped) statuses.push('KATANA');
+            if (upgrades.includes('crystal_edge')) statuses.push('EDGE +1');
+            if (upgrades.includes('aurora_guard')) {
+                statuses.push(`GUARD ${this.auroraGuardCharges}`);
+            }
+            if (this.communityGuardCharges > 0 || this.fendCommunitySupport?.guardCharges > 0) {
+                statuses.push(`RELAY ${this.communityGuardCharges}`);
+            }
+            if (this.guardianTeamSupport?.guardianId) statuses.push('ALLY');
+            if (statuses.length === 0) return;
+
+            const blade = this.add.graphics();
+            blade.lineStyle(3, 0xDCE8ED, 1);
+            blade.lineBetween(2, 15, 18, 2);
+            blade.lineStyle(2, 0xF2C14E, 1);
+            blade.lineBetween(1, 10, 9, 18);
+            const label = this.add.text(26, 2, statuses.join(' // '), {
+                fontSize: '10px',
+                color: '#DCE8ED',
+                fontStyle: 'bold',
+                wordWrap: {
+                    width: Math.max(150, (this.scale?.width || 320) - this.katanaUpgradeDisplay.x - 12)
+                }
+            });
+            this.katanaUpgradeDisplay.add([blade, label]);
+            return;
+        }
 
         if (this.katanaEquipped && upgrades.length === 0) {
             const blade = this.add.graphics();
@@ -3921,6 +4723,21 @@ class PlatformerLevelScene extends Phaser.Scene {
     updateHealthDisplay() {
         this.healthDisplay.removeAll(true);
 
+        if (this.detectMobile()) {
+            const heart = this.add.graphics();
+            heart.fillStyle(this.health > 0 ? 0xFF6B6B : 0x3D2B5D, 1);
+            heart.fillCircle(6, 6, 6);
+            heart.fillCircle(14, 6, 6);
+            heart.fillTriangle(0, 8, 20, 8, 10, 20);
+            const count = this.add.text(26, 2, `${this.health}/${this.maxHealth}`, {
+                fontSize: '12px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            });
+            this.healthDisplay.add([heart, count]);
+            return;
+        }
+
         for (let i = 0; i < this.maxHealth; i++) {
             const heart = this.add.graphics();
             const filled = i < this.health;
@@ -3941,6 +4758,21 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     updateEnergyDisplay() {
         this.energyDisplay.removeAll(true);
+
+        if (this.detectMobile()) {
+            const crystal = this.add.graphics();
+            const filled = this.crystalEnergy > 0;
+            crystal.fillStyle(filled ? 0x7B68EE : 0x3D2B5D, filled ? 1 : 0.5);
+            crystal.fillTriangle(9, 0, 0, 11, 9, 22);
+            crystal.fillTriangle(9, 0, 18, 11, 9, 22);
+            const count = this.add.text(24, 2, `${this.crystalEnergy}/${this.maxCrystalEnergy}`, {
+                fontSize: '12px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            });
+            this.energyDisplay.add([crystal, count]);
+            return;
+        }
 
         for (let i = 0; i < this.maxCrystalEnergy; i++) {
             const crystal = this.add.graphics();
@@ -4078,7 +4910,13 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.lastLandingY = this.player.y;
 
         // Check for jump buffer - if player pressed jump while in air near landing
-        if (this.jumpBufferPressed && (time - this.jumpBufferTimestamp) < this.jumpBufferTime) {
+        if (
+            this.jumpBufferPressed &&
+            (
+                (time - this.jumpBufferTimestamp) < this.jumpBufferTime ||
+                this.jumpBufferFramesRemaining > 0
+            )
+        ) {
             // Execute buffered jump immediately
             this.time.delayedCall(20, () => {
                 if (this.isGrounded && this.canJump && !this.isDucking) {
@@ -4362,6 +5200,11 @@ class PlatformerLevelScene extends Phaser.Scene {
                            this.virtualJumpPressed ||
                            this.virtualJumpQueued;  // Mobile tap edge survives a low-FPS frame
         const queuedJump = this.virtualJumpQueued;
+        const bufferedJumpActive = this.jumpBufferPressed &&
+            (
+                (time - this.jumpBufferTimestamp) < this.jumpBufferTime ||
+                this.jumpBufferFramesRemaining > 0
+            );
 
         // Calculate if within coyote time (recently was grounded)
         const timeSinceGrounded = time - this.lastGroundedTime;
@@ -4370,22 +5213,53 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Determine if we can jump (grounded OR within coyote time)
         const canJumpNow = (this.isGrounded || canCoyoteJump) && this.canJump;
 
-        if (jumpPressed && canJumpNow) {
+        if (queuedJump) {
+            this.lastVirtualJumpResolution = {
+                time,
+                isGrounded: this.isGrounded,
+                blockedDown: this.player?.body?.blocked?.down === true,
+                touchingDown: this.player?.body?.touching?.down === true,
+                canJump: this.canJump,
+                canCoyoteJump,
+                canJumpNow,
+                velocityY: this.player?.body?.velocity?.y
+            };
+        }
+
+        if ((jumpPressed || bufferedJumpActive) && canJumpNow) {
             this.executeJump();
+            if (queuedJump && this.lastVirtualJumpResolution) {
+                this.lastVirtualJumpResolution.executed = true;
+            }
         } else if (jumpPressed && !canJumpNow) {
             // Player pressed jump just before landing or during the short jump
             // cooldown. Buffer it instead of dropping a valid input edge.
             this.jumpBufferPressed = true;
             this.jumpBufferTimestamp = time;
+            // Eight updates is roughly 133ms at 60 FPS, while still covering
+            // a brief platform seam settle on a 15 FPS mobile frame budget.
+            this.jumpBufferFramesRemaining = 8;
+            if (queuedJump && this.lastVirtualJumpResolution) {
+                this.lastVirtualJumpResolution.buffered = true;
+            }
         }
 
         if (queuedJump) {
             this.virtualJumpQueued = false;
         }
 
-        // Clear jump buffer if grounded and no jump pressed
-        if (this.isGrounded && !jumpPressed) {
-            this.jumpBufferPressed = false;
+        // At low frame rates, 150ms can elapse between updates. Retain the tap
+        // for enough real simulation frames to survive a platform seam settle.
+        if (this.jumpBufferPressed && !jumpPressed) {
+            if (this.jumpBufferFramesRemaining > 0) {
+                this.jumpBufferFramesRemaining -= 1;
+            }
+            if (
+                (time - this.jumpBufferTimestamp) >= this.jumpBufferTime &&
+                this.jumpBufferFramesRemaining <= 0
+            ) {
+                this.jumpBufferPressed = false;
+            }
         }
     }
 
@@ -4406,6 +5280,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Clear jump buffer since we just jumped
         this.jumpBufferPressed = false;
+        this.jumpBufferFramesRemaining = 0;
 
         // Play jump sound
         if (window.AudioManager) {
@@ -4438,6 +5313,39 @@ class PlatformerLevelScene extends Phaser.Scene {
             return this.bossBody;
         }
         return this.boss?.active ? this.boss : null;
+    }
+
+    resolveBossHit(amount, { source = 'attack' } = {}) {
+        const target = this.getBossCombatTarget();
+        if (!target || typeof this.damageBoss !== 'function') return false;
+
+        const healthBefore = Number(this.bossHealth);
+        const explicitResult = this.damageBoss(amount);
+        const healthAfter = Number(this.bossHealth);
+        const applied = explicitResult === true || this.bossDefeated === true || (
+            Number.isFinite(healthBefore) &&
+            Number.isFinite(healthAfter) &&
+            healthAfter < healthBefore
+        );
+
+        if (!applied) {
+            this.showFloatingText?.(
+                'GUARDIAN HIT BLOCKED',
+                target.x,
+                target.y - 70,
+                '#FF8A8A'
+            );
+            return false;
+        }
+
+        window.AchievementSystem?.recordEvent?.('guardian_hit', {
+            levelId: this.levelId || this.scene?.key || null,
+            source,
+            damage: Number.isFinite(healthBefore) && Number.isFinite(healthAfter)
+                ? Math.max(0, healthBefore - healthAfter)
+                : Math.max(0, Number(amount) || 0)
+        });
+        return true;
     }
 
     /**
@@ -4528,9 +5436,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 bossTarget.x, bossTarget.y
             );
             if (dist < bossMeleeRange) {
-                // Call damageBoss if it exists (implemented in subclass)
-                if (typeof this.damageBoss === 'function') {
-                    this.damageBoss(meleeDamage);
+                if (this.resolveBossHit(meleeDamage, { source: 'katana' })) {
                     console.log(
                         `[PlatformerLevel] Boss hit by katana strike! (${meleeDamage} damage)`
                     );
@@ -4572,6 +5478,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         );
         this.nextRangedDamageMultiplier = 1;
         if (rangedDamage > 1) {
+            this.onNextRangedDamageConsumed?.(rangedDamage);
             this.showFloatingText(
                 `POWER SHOT x${rangedDamage}`,
                 this.player.x,
@@ -4638,8 +5545,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const bossTarget = this.getBossCombatTarget();
         if (bossTarget) {
             this.physics.add.overlap(projectile, bossTarget, (proj) => {
-                if (typeof this.damageBoss === 'function') {
-                    this.damageBoss(rangedDamage);
+                if (this.resolveBossHit(rangedDamage, { source: 'ranged' })) {
                     console.log(
                         `[PlatformerLevel] Boss hit by ranged attack! (${rangedDamage} damage)`
                     );
@@ -4710,6 +5616,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (useFreeCharge) {
             this.freeSpecialAttackCharges -= 1;
+            this.onFreeSpecialAttackConsumed?.();
             this.showFloatingText(
                 'FREE SUPER BLAST',
                 this.player.x,
@@ -4720,6 +5627,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.crystalEnergy -= 3;
         }
         this.updateEnergyDisplay();
+        const specialAttackRadius = 300;
 
         // Epic screen shake and haptic for special attack
         if (this.combatJuice) {
@@ -4740,8 +5648,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Expand blast
         this.tweens.add({
             targets: blast,
-            scaleX: 4,
-            scaleY: 4,
+            scaleX: specialAttackRadius / 50,
+            scaleY: specialAttackRadius / 50,
             alpha: 0,
             duration: 500,
             ease: 'Power2',
@@ -4757,13 +5665,26 @@ class PlatformerLevelScene extends Phaser.Scene {
                     this.player.x, this.player.y,
                     enemy.x, enemy.y
                 );
-                if (dist < 300) {
+                if (dist < specialAttackRadius) {
                     this.damageEnemy(
                         enemy,
                         Math.max(6, Number(enemy.health) || 1)
                     );
                 }
             });
+        }
+
+        const bossTarget = this.getBossCombatTarget();
+        if (bossTarget) {
+            const bossDistance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                bossTarget.x,
+                bossTarget.y
+            );
+            if (bossDistance < specialAttackRadius) {
+                this.resolveBossHit(3, { source: 'super_blast' });
+            }
         }
 
         // Epic sound
@@ -4841,7 +5762,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (!enemy?.active) {
             return false;
         }
+        this.disposeEnemyRuntime(enemy);
         if (typeof enemy.onCombatDefeat === 'function') {
+            enemy.instructionLabel?.destroy?.();
+            enemy.instructionLabel = null;
             enemy.combatCue?.destroy?.();
             enemy.combatCue = null;
             enemy.onCombatDefeat();
@@ -4915,6 +5839,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         if (this.optionalRouteGuardCharges > 0 && !bypassInvincibility) {
             this.optionalRouteGuardCharges -= 1;
+            this.onOptionalRouteGuardConsumed?.();
             this.showFloatingText?.(
                 `${this.optionalRouteGuardLabel} · ${this.optionalRouteGuardCharges} LEFT`,
                 this.player.x,
@@ -5151,6 +6076,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.wasdKeys?.W?.isDown ||
             this.wasdKeys?.S?.isDown ||
             Math.abs(this.virtualJoystickX || 0) > 0.2 ||
+            Math.abs(this.virtualJoystickY || 0) > 0.2 ||
             this.virtualJumpPressed ||
             this.virtualJumpQueued;
         const stable =
@@ -5283,21 +6209,17 @@ class PlatformerLevelScene extends Phaser.Scene {
         // 1. Very low velocity (can't move)
         // 2. Blocked on multiple sides (embedded)
         // 3. Not recently spawning/respawning
-        const isStuck = (
+        const isPersistentWedgeCandidate = (
             Math.abs(body.velocity.x) < 5 &&
             Math.abs(body.velocity.y) < 5 &&
+            body.embedded === true &&
             body.blocked.down &&
             (body.blocked.left || body.blocked.right) &&
             !this.isRespawning &&
             !this.isPlayerDead
         );
 
-        // Track stuck frames
-        if (!this.stuckFrameCount) {
-            this.stuckFrameCount = 0;
-        }
-
-        if (isStuck) {
+        if (isPersistentWedgeCandidate) {
             this.stuckFrameCount++;
 
             // If stuck for more than 30 frames (~0.5 seconds), rescue the player
@@ -5328,14 +6250,6 @@ class PlatformerLevelScene extends Phaser.Scene {
         } else {
             // Reset counter when not stuck
             this.stuckFrameCount = 0;
-        }
-
-        // Also check for embedded in ground (body overlapping with tiles significantly)
-        // If player's feet are below the ground level they're standing on
-        if (body.blocked.down && body.embedded) {
-            console.warn('[PlatformerLevel] Player embedded detected - pushing up');
-            this.player.setPosition(this.player.x, this.player.y - 20);
-            this.player.setVelocityY(-50);
         }
     }
 
@@ -5372,6 +6286,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.persistExpeditionCheckpoint({
                 checkpointId: options.checkpointId,
                 checkpointIndex: options.checkpointIndex,
+                routeState: options.routeState,
                 x,
                 y
             });
@@ -5390,6 +6305,7 @@ class PlatformerLevelScene extends Phaser.Scene {
     persistExpeditionCheckpoint({
         checkpointId,
         checkpointIndex,
+        routeState,
         x,
         y
     } = {}) {
@@ -5417,7 +6333,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             return false;
         }
 
-        gameState.set(EXPEDITION_CHECKPOINT_PATH, {
+        const checkpoint = {
             version: EXPEDITION_CHECKPOINT_VERSION,
             sceneKey,
             levelId: this.levelId,
@@ -5426,7 +6342,14 @@ class PlatformerLevelScene extends Phaser.Scene {
             x: normalizedX,
             y: normalizedY,
             savedAt: Date.now()
-        });
+        };
+        const sanitizedRouteState = this.sanitizeExpeditionRouteState(
+            routeState ?? this.getExpeditionRouteState()
+        );
+        if (sanitizedRouteState) {
+            checkpoint.routeState = sanitizedRouteState;
+        }
+        gameState.set(EXPEDITION_CHECKPOINT_PATH, checkpoint);
         gameState.save?.();
         return true;
     }
@@ -5524,6 +6447,58 @@ class PlatformerLevelScene extends Phaser.Scene {
     restoreExpeditionRouteState() {
         return false;
     }
+
+    getExpeditionRouteState() {
+        return null;
+    }
+
+    sanitizeExpeditionRouteState(routeState) {
+        if (
+            !routeState ||
+            typeof routeState !== 'object' ||
+            Array.isArray(routeState)
+        ) {
+            return null;
+        }
+
+        const entries = Object.entries(routeState).slice(0, 8);
+        const sanitized = {};
+        entries.forEach(([key, value]) => {
+            if (!/^[a-zA-Z][a-zA-Z0-9_]{0,39}$/.test(key)) return;
+            if (typeof value === 'boolean') {
+                sanitized[key] = value;
+            } else if (typeof value === 'number' && Number.isFinite(value)) {
+                sanitized[key] = Phaser.Math.Clamp(value, -1000, 1000);
+            } else if (typeof value === 'string' && value.length <= 60) {
+                sanitized[key] = value;
+            }
+        });
+        return Object.keys(sanitized).length ? sanitized : null;
+    }
+
+    refreshPersistedExpeditionRouteState() {
+        const checkpoint = window.GameState?.get?.(
+            EXPEDITION_CHECKPOINT_PATH
+        );
+        if (
+            checkpoint?.sceneKey !== this.scene?.key ||
+            checkpoint?.levelId !== this.levelId
+        ) {
+            return false;
+        }
+
+        return this.persistExpeditionCheckpoint({
+            checkpointId: checkpoint.checkpointId,
+            checkpointIndex: checkpoint.checkpointIndex,
+            routeState: this.getExpeditionRouteState(),
+            x: checkpoint.x,
+            y: checkpoint.y
+        });
+    }
+
+    onOptionalRouteGuardConsumed() {}
+
+    onFreeSpecialAttackConsumed() {}
 
     restoreExpeditionRouteSignals(resume, {
         signals,
@@ -6379,7 +7354,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 node.y
             );
             this.currentEcologyPlayerNearby = true;
-            node.prompt?.setVisible?.(true);
+            this.setCurrentEcologyInteractionAvailable(true);
             this.cameras.main.centerOn(node.x, node.y);
         }
         this.physics?.resume?.();
@@ -6407,8 +7382,22 @@ class PlatformerLevelScene extends Phaser.Scene {
         const snapshot = ecology.getCurrentRegionSnapshot(window.GameState, this.levelId);
         if (!snapshot) return null;
 
-        const x = config.x;
-        const y = this.levelHeight - config.groundOffset;
+        const support = config.supportId
+            ? this.getTraversalSupport?.(config.supportId)
+            : null;
+        const supportCheckpoint = support?.body
+            ? this.getTraversalSupportCheckpoint?.(
+                config.supportId,
+                support.x
+            )
+            : null;
+        const supportTop = Number(support?.body?.top);
+        const x = Number.isFinite(Number(supportCheckpoint?.x))
+            ? Number(supportCheckpoint.x)
+            : config.x;
+        const y = Number.isFinite(supportTop)
+            ? supportTop + 5
+            : this.levelHeight - config.groundOffset;
         const compactNodeLayout =
             this.isMobile || this.cameras.main.height < 620;
         const fieldWash = this.add.rectangle(
@@ -6462,21 +7451,31 @@ class PlatformerLevelScene extends Phaser.Scene {
         const prompt = this.add.text(
             x,
             y - (compactNodeLayout ? 115 : 110),
-            'TAP / E  READ CURRENT',
+            this.isMobile
+                ? 'TAP TO SCAN LIVING CURRENT'
+                : '[E] SCAN LIVING CURRENT',
             {
-            fontSize: '12px',
+            fontSize: compactNodeLayout ? '11px' : '12px',
             color: '#FFFFFF',
             backgroundColor: 'rgba(5, 8, 16, 0.92)',
             padding: { x: 9, y: 6 }
             }
-        ).setOrigin(0.5).setDepth(846).setVisible(false);
-        const zone = this.add.zone(x, y, 120, 150)
+        )
+            .setOrigin(0.5)
+            .setDepth(846)
+            .setVisible(false)
+            .setInteractive({ useHandCursor: true });
+        // One generous target covers both the visible prompt and the node.
+        // Its lower edge remains above the mobile control dock.
+        const zone = this.add.zone(x, y - 30, 240, 240)
             .setInteractive({ useHandCursor: true })
             .setDepth(847);
-        zone.on('pointerdown', () => this.showCurrentEcologyModal());
+        prompt.on('pointerdown', () => this.requestCurrentEcologyInteraction());
+        zone.on('pointerdown', () => this.requestCurrentEcologyInteraction());
 
         this.currentEcologyNode = {
             config,
+            supportId: config.supportId || null,
             x,
             y,
             snapshot,
@@ -6500,8 +7499,31 @@ class PlatformerLevelScene extends Phaser.Scene {
                 zone
             ]
         };
+        this.setCurrentEcologyInteractionAvailable(false);
         this.drawCurrentEcologyProjection(snapshot.projection);
         return this.currentEcologyNode;
+    }
+
+    requestCurrentEcologyInteraction() {
+        if (!this.currentEcologyPlayerNearby) return false;
+        this.showCurrentEcologyModal();
+        return true;
+    }
+
+    setCurrentEcologyInteractionAvailable(available) {
+        const node = this.currentEcologyNode;
+        if (!node) return false;
+
+        const enabled = Boolean(
+            available && this.currentEcologyModalElements.length === 0
+        );
+        node.prompt?.setVisible?.(enabled);
+        [node.prompt, node.zone].forEach(target => {
+            if (target?.input) {
+                target.input.enabled = enabled;
+            }
+        });
+        return enabled;
     }
 
     drawCurrentEcologyProjection(projection) {
@@ -6780,7 +7802,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const nearby = distance <= 165;
         if (nearby !== this.currentEcologyPlayerNearby) {
             this.currentEcologyPlayerNearby = nearby;
-            node.prompt.setVisible(nearby);
+            this.setCurrentEcologyInteractionAvailable(nearby);
         }
     }
 
@@ -6873,6 +7895,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.currentEcologyWasPaused = Boolean(this.physics?.world?.isPaused);
         this.physics?.pause?.();
         this.hidePlatformerMobileControls?.();
+        this.setCurrentEcologyInteractionAvailable(false);
 
         const overlay = this.add.rectangle(0, 0, width, height, 0x050811, 0.88)
             .setOrigin(0)
@@ -7129,6 +8152,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.currentEcologyModalElements = [];
         this.currentEcologyModalActionButtons = new Map();
         this.currentEcologyModalView = null;
+        this.setCurrentEcologyInteractionAvailable(
+            this.currentEcologyPlayerNearby
+        );
         if (
             resume &&
             !this.currentEcologyWasPaused &&
@@ -7203,6 +8229,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.levelInitializationErrorElements = [];
 
         this.scale?.off?.('resize', this.layoutKatanaUpgradeDisplay, this);
+        this.scale?.off?.('resize', this.layoutCampaignObjectiveDisplay, this);
+        this.scale?.off?.('resize', this.handlePlatformerMobileResize, this);
+        this.campaignObjectiveTextProvider = null;
         window.EconomyManager?.clearLevelCoinMultiplier?.();
         this.katanaArtifactModal?.destroy?.();
         this.katanaArtifactModal = null;
@@ -7212,6 +8241,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.residentReleaseOpen = false;
         this.residentReleaseTableau?.destroy?.();
         this.residentReleaseTableau = null;
+        this.pendingResidentReleaseContinuation = null;
         this.residentReleaseElements?.forEach(element => element?.destroy?.());
         this.residentReleaseElements = [];
         this.clearCurrentEcologyModal({ resume: false });
@@ -7224,6 +8254,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
         this.orderedRouteSignals = null;
         this.orderedRouteSignalOptions = null;
+        this.clearTraversalLandingGuides();
         this.optionalRouteRewards?.clear?.();
         this.routeChoiceSequence = 0;
         this.guardianEncounter = null;
@@ -7240,26 +8271,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         }
 
-        // Clean up mobile controls
-        if (this.mobileControlElements && this.mobileControlElements.length > 0) {
-            this.mobileControlElements.forEach(element => {
-                try {
-                    element?.removeAllListeners?.();
-                    element?.destroy?.();
-                } catch (e) {
-                    // Element may already be destroyed
-                }
-            });
-        this.mobileControlElements = [];
-        }
-
-        // Reset mobile control state
-        this.releaseAllPlatformerActionButtons();
-        this.joystickActive = false;
-        this.virtualJoystickX = 0;
-        this.clearVirtualJumpInput();
-        this.joystickThumb = null;
-        this.mobileControlTargets = {};
+        this.destroyPlatformerMobileControls();
 
         // Clean up pause menu
         if (this.pauseEscHandler) {
@@ -7363,8 +8375,10 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.levelCompletionActive = true;
         this.virtualJoystickX = 0;
+        this.virtualJoystickY = 0;
         this.clearVirtualJumpInput();
         this.jumpBufferPressed = false;
+        this.jumpBufferFramesRemaining = 0;
         this.player?.setVelocity?.(0, 0);
         this.hidePlatformerMobileControls?.();
         this.physics?.pause?.();
@@ -7393,6 +8407,13 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (!this.levelCompletionResult?.katanaUpgradeAwarded) {
             onClose?.();
             return false;
+        }
+
+        if (this.residentReleaseOpen) {
+            this.pendingResidentReleaseContinuation = () => {
+                this.showKatanaUpgradeReveal({ onClose });
+            };
+            return true;
         }
 
         const fieldKit = window.GameState?.get?.(
@@ -7612,11 +8633,19 @@ class PlatformerLevelScene extends Phaser.Scene {
         const close = () => {
             if (!this.residentReleaseOpen) return;
             this.residentReleaseOpen = false;
+            const continuation = this.pendingResidentReleaseContinuation;
+            this.pendingResidentReleaseContinuation = null;
             this.residentReleaseTableau?.destroy?.();
             this.residentReleaseTableau = null;
             elements.forEach(element => element?.destroy?.());
             this.residentReleaseElements = [];
             window.AudioManager?.playButtonClick?.();
+            if (continuation) {
+                this.time.delayedCall(100, () => {
+                    if (this.sys?.isActive?.() === false) return;
+                    continuation();
+                });
+            }
         };
         button.on('pointerup', close);
         this.time.delayedCall(700, () => {

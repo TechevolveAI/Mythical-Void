@@ -19,15 +19,11 @@ const gameSource = fs.readFileSync(
 );
 
 describe('living form milestone handoff', () => {
-    test('shows the exact pixel identity before any protected result', () => {
-        expect(handoffSource.indexOf(
+    test('keeps the pixel identity private while the living portrait develops', () => {
+        expect(handoffSource).not.toContain(
             'this.setArtwork(this.pixelReferenceImage'
-        )).toBeLessThan(handoffSource.indexOf(
-            'Promise.resolve(portraitPromise)'
-        ));
-        expect(handoffSource).toContain(
-            "source: 'pixel_reference'"
         );
+        expect(handoffSource).toContain('LIVING FORM DEVELOPING');
         expect(handoffSource).toContain(
             "source: 'protected_living_portrait'"
         );
@@ -50,7 +46,7 @@ describe('living form milestone handoff', () => {
             'this.portraitPromise.catch(() => {});'
         );
         expect(handoffSource).toContain(
-            'The protected portrait can retry from the companion archive.'
+            'The living portrait can be retried from the Companion Archive.'
         );
         expect(handoffSource).toContain(
             'window.LivingPortraitService?.describeError?.(error)'
@@ -100,8 +96,6 @@ describe('living form milestone handoff', () => {
         expect(handoffSource).toContain(
             'The pixel form remains the companion you play beside.'
         );
-        expect(handoffSource).toContain(
-            'PIXEL IDENTITY REFERENCE // PORTRAIT UNAVAILABLE'
-        );
+        expect(handoffSource).toContain('LIVING PORTRAIT RETRY AVAILABLE');
     });
 });

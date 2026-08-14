@@ -90,6 +90,7 @@ export default class KatanaArtifactModal {
         this.domElement = null;
         this.root = null;
         this.closeHandler = null;
+        this.continueButton = null;
         this.keyboardHandler = null;
         this.physicsWasPaused = false;
         this.restoreMobileControls = false;
@@ -218,11 +219,15 @@ export default class KatanaArtifactModal {
         root.append(shell);
 
         this.root = root;
-        this.closeHandler = () => {
+        this.closeHandler = event => {
+            event?.preventDefault?.();
+            if (!this.domElement) return;
             this.destroy();
             onClose?.();
         };
         button.addEventListener('click', this.closeHandler);
+        button.addEventListener('pointerup', this.closeHandler);
+        this.continueButton = button;
         root.addEventListener('click', event => event.stopPropagation());
 
         this.keyboardHandler = event => {
@@ -254,6 +259,11 @@ export default class KatanaArtifactModal {
     }
 
     destroy() {
+        if (this.continueButton && this.closeHandler) {
+            this.continueButton.removeEventListener('click', this.closeHandler);
+            this.continueButton.removeEventListener('pointerup', this.closeHandler);
+        }
+        this.continueButton = null;
         if (this.keyboardHandler) {
             window.removeEventListener('keydown', this.keyboardHandler);
             this.keyboardHandler = null;

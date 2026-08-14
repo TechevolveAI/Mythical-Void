@@ -107,13 +107,19 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
         )
         .replace("import '../systems/ProjectBeaconFieldKit.js';", '')
         .replace(
-            "import { getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';",
+            "import { getCampaignEntryStackLayout, getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';",
+            'const getCampaignEntryStackLayout = () => ({ positions: [], overflow: 0 });\n' +
+            'const getCampaignObjectiveLayout = () => ({});\n' +
             'const getMobileControlLayout = () => ({});\n' +
             'const getSafeAreaInsets = () => ({ top: 0, right: 0, bottom: 0, left: 0 });'
         )
         .replace(
             "import bossConfigs from '../config/bosses.json';",
             'const bossConfigs = {};'
+        )
+        .replace(
+            "import { analyzeTraversalTopology } from '../systems/TraversalTopology.js';",
+            'const analyzeTraversalTopology = () => null;'
         )
         .replace(
             "import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';",

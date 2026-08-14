@@ -28,13 +28,30 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain("id: 'reef_waypoint_1'");
         expect(source).toContain("id: 'reef_waypoint_2'");
         expect(source).toContain("id: 'reef_waypoint_3'");
+        expect(source).toContain("activationSupportIds: ['reef-drift-relay']");
+        expect(source).toContain("activationSupportIds: ['reef-traveler-relay']");
+        expect(source).toContain("activationSupportIds: ['reef-passage-vector']");
+        expect(source).toContain("activationSupportIds: ['reef-drive-relic']");
         expect(source).toContain(
-            'this.createObjectiveTriggerZone(\n                waypoint.x,\n                waypoint.y,\n                { width: 150, height: 190 }'
+            'this.createObjectiveTriggerZone(\n                waypointX,\n                waypointY,\n                { width: 150, height: 150 }'
         );
-        expect(source).toContain(
-            'this.setCheckpoint(anchor.x, anchor.respawnY, {'
-        );
+        expect(source).toContain('SWIM THROUGH');
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain('this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {');
         expect(source).toContain('PROJECT BEACON WAYPOINT ${this.beaconAnchorsActivated}/3');
+        expect(source).toContain("traversalLinks: ['reef-current-crown']");
+        expect(source).toContain("traversalLinks: ['reef-sky-rise']");
+        expect(source).toMatch(/id: 'reef-current-crown'[\s\S]*?oneWay: true/);
+        expect(source).toMatch(/id: 'reef-sky-rise'[\s\S]*?oneWay: true/);
+        expect(source).toContain('this.createDriftAscentCurrent();');
+        expect(source).toContain('this.createTravelerAscentCurrent();');
+        expect(source).toContain("id: 'reef-drift-ascent'");
+        expect(source).toContain("id: 'reef-traveler-ascent'");
+        expect(source).toContain("destinationId: 'reef-current-crown'");
+        expect(source).toContain("destinationId: 'reef-sky-rise'");
+        expect(source).toContain('DRIFT CURRENT  ↗');
+        expect(source).toContain('TRAVELER CURRENT  ↗');
+        expect(source).toContain('createForwardAscentCurrent({');
     });
 
     test('turns waypoint synchronization into the companion-led route discovery', () => {
@@ -53,8 +70,65 @@ describe('third expedition rescue loop', () => {
 
         expect(source).toContain('CURRENT LINK ACTIVE // KATANA STRIKES AMPLIFIED');
         expect(source).toContain('const currentLinkedDamage = meleeDamage + 1');
-        expect(source).toContain('this.damageBoss(currentLinkedDamage)');
+        expect(source).toContain('const getStrikeDamage = () => currentLinkedDamage');
+        expect(source).toContain(
+            "{ source: 'katana_current' }"
+        );
         expect(source).toContain('reefAmplified: true');
+    });
+
+    test('makes the direct Signal Current earn a saved one-hit katana reward', () => {
+        const source = readLevel();
+
+        expect(source).toContain(
+            "mainTradeoff: 'FAST + PATROLS\\nEARNS: NEXT KATANA HIT +2'"
+        );
+        expect(source).toContain(
+            "challengeLabel: 'DEEP WATER + 2 RELICS'"
+        );
+        expect(source).toContain('this.reefCurrentEdgeReady = true');
+        expect(source).toContain('reefCurrentEdgeReady: this.reefRouteChoice');
+        expect(source).toContain('routeState.reefCurrentEdgeReady !== false');
+        expect(source).toContain('consumeReefCurrentEdge()');
+        expect(source).toContain('NEXT KATANA HIT +2 READY');
+        expect(source).toContain('CURRENT EDGE SPENT');
+    });
+
+    test('makes the Star Trench return current visible, narrow, and mechanically honest', () => {
+        const source = readLevel();
+
+        expect(source).toContain("const id = 'reef-star-trench-return';");
+        expect(source).toContain('const startX = 2460;');
+        expect(source).toContain('const width = 260;');
+        expect(source).toContain('const top = 540;');
+        expect(source).toContain('visual.fillRoundedRect(startX, top, width, currentHeight, 28);');
+        expect(source).toContain("'STAR TRENCH RETURN ↑'");
+        expect(source).toContain("destinationId: 'reef-drive-step'");
+        expect(source).toContain('this.abyssAscentCurrent = current;');
+        expect(source).toContain("this.activateReefAscentCurrent(current, 'vertical')");
+        expect(source).toContain('if (body.bottom < current.bottom - 180) return false;');
+        expect(source).toContain('if (!current || !body || this.activeReefAscentCurrent) return false;');
+        expect(source).toContain('this.isPlayerSettledOnTraversalSupport(active.destinationId)');
+        expect(source).not.toContain('const width = 1000;');
+        expect(source).not.toContain(
+            'visual.fillRect(startX, this.levelHeight - 210, width, 210);'
+        );
+    });
+
+    test('gives every Reef support a stable identity and a one-way current landing', () => {
+        const source = readLevel();
+
+        expect(source).toContain("id: 'reef-opening-1'");
+        expect(source).toContain("id: 'reef-trench-3'");
+        expect(source).toContain("traversalLinks: ['reef-drive-step']");
+        expect(source).toContain("id: 'reef-drive-step'");
+        expect(source).toContain('oneWay: true');
+        expect(source).toContain("id: 'reef-guardian-arena'");
+        expect(source).toContain("activationSupportIds: ['reef-trench-3']");
+        expect(source).toContain('body.traversalId = id;');
+        expect(source).toContain('body.traversalLinks = [...traversalLinks];');
+        expect(source).toContain("body.platformType = oneWay ? 'one-way' : 'solid';");
+        expect(source).toContain('body.body.checkCollision.down = false;');
     });
 
     test('requires both the aligned route and the actual Drive pickup before the boss', () => {
@@ -167,10 +241,11 @@ describe('third expedition rescue loop', () => {
 
         expect(source).toContain('const y = isMobileLayout ? 118 : 55');
         expect(source).toContain('this.isMobile || width <= 480 || height < 620');
-        expect(source).toContain('isShortLandscape ? 76 : 72');
+        expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('ROUTE ${current}/3 // ${nextWaypoint}');
         expect(source).toContain('PASSAGE GUARDIAN AHEAD');
-        expect(source).toContain('DIMENSIONAL DRIVE MISSING');
+        expect(source).toContain('RECOVER THE DIMENSIONAL DRIVE');
+        expect(source).toContain('getDriveCompassText()');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
@@ -182,9 +257,42 @@ describe('third expedition rescue loop', () => {
             /update\(time, delta\)\s*\{([\s\S]*?)\n    \}\n\n    \/\*\*\n     \* Create swim indicator/
         )?.[1] || '';
 
-        expect(update).toContain('this.astronautFollower?.update(delta)');
-        expect(update).toContain('this.updateCameraLead()');
-        expect(update).toContain('this.updateShield(delta)');
+        expect(update).toContain('super.update(time, delta)');
+        const platformerSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
+            'utf8'
+        );
+        expect(platformerSource).toContain('this.astronautFollower?.update(delta)');
+        expect(platformerSource).toContain('this.updateCameraLead()');
+        expect(platformerSource).toContain('this.updateShield(delta)');
+    });
+
+    test('persists route, Drive, fragment, and free-blast state at Reef checkpoints', () => {
+        const source = readLevel();
+
+        expect(source).toContain('getExpeditionRouteState()');
+        expect(source).toContain('reefRouteChoice: this.reefRouteChoice');
+        expect(source).toContain('shipPartCollected: this.shipPartCollected === true');
+        expect(source).toContain('reefFragmentMask: this.reefCollectedFragmentMask');
+        expect(source).toContain('starTrenchProgress: Number(route?.progress)');
+        expect(source).toContain('reefCurrentEdgeReady: this.reefRouteChoice');
+        expect(source).toContain('restoreReefRouteState(resume.routeState');
+        expect(source).toContain('this.clearShipPartPickup();');
+        expect(source).toContain('this.retireCollectedReefFragments();');
+        expect(source).toContain('onFreeSpecialAttackConsumed()');
+    });
+
+    test('keeps compact Reef guidance vivid without offscreen decorative tweens', () => {
+        const source = readLevel();
+
+        expect(source).toContain('shouldAnimateReefDecorations()');
+        expect(source).toContain(
+            'return !(this.isMobile || width <= 480 || height < 620);'
+        );
+        expect(source).toContain(
+            'const particleLimit = this.shouldAnimateReefDecorations() ? 12 : 6;'
+        );
+        expect(source).toContain('this.shouldAnimateReefDecorations()\n            ? this.tweens.add({');
     });
 
     test('makes the Reef entry keyboard accessible and single-fire', () => {
@@ -201,6 +309,10 @@ describe('third expedition rescue loop', () => {
         expect(source).toMatch(
             /shutdown\(\)[\s\S]*this\.clearLevelEntryKeyHandler\(\)/
         );
+        expect(entry).toContain('const leftDecoration = this.addCosmicDecoration(');
+        expect(entry).toContain('const rightDecoration = this.addCosmicDecoration(');
+        expect(entry).toContain('leftDecoration,\n            rightDecoration,');
+        expect(source).toMatch(/addCosmicDecoration\(x, y\)[\s\S]*return orb;/);
     });
 
     test('keeps harmless crystal facets inside safe platform silhouettes', () => {

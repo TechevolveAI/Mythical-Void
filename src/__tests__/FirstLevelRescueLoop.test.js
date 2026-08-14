@@ -43,6 +43,26 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
 }
 
 describe('first expedition rescue loop', () => {
+    test('uses the shared Forest biome with one bounded authored foliage layer', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('this.forestAmbientLayers = [];');
+        expect(source).toContain("biomeId: 'mythical_forest'");
+        expect(source).not.toContain('createForestBackground()');
+        expect(source).not.toContain('createMysticalMist()');
+        expect(source).not.toContain('createForestParticles()');
+        expect(source).toContain('this.forestFoliageLayer = this.add.graphics().setDepth(35);');
+        expect(source).toContain('const foliageGlow = this.forestFoliageLayer;');
+        expect(source).toContain('targets: this.forestFoliageLayer');
+        expect(source).toContain('3 + ((treeIndex * 7 + i * 5) % 3)');
+        expect(source).toContain('this.createBioluminescentOrbs(');
+        expect(source).toContain('this.tweens?.killTweensOf?.(layer);');
+        expect(source).not.toContain('this.magicMotes.push(');
+    });
+
     test('creates subclass level content exactly once per scene run', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({
@@ -380,8 +400,17 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain("id: 'forest_anchor_1'");
         expect(source).toContain("id: 'forest_anchor_2'");
         expect(source).toContain("id: 'forest_anchor_3'");
+        expect(source).toContain('x: 1770');
+        expect(source).toContain('x: 3570');
+        expect(source).toContain('x: 5300');
+        expect(source).toContain("activationSupportIds: ['forest-ground-3']");
+        expect(source).toContain("activationSupportIds: ['forest-ground-5']");
+        expect(source).toContain("activationSupportIds: ['forest-ground-6']");
+        expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).toContain('this.createTraversalLandingGuide(');
+        expect(source).toContain('this.retireTraversalLandingGuide(checkpoint);');
         expect(source).toContain(
-            'this.setCheckpoint(checkpoint.x, checkpoint.respawnY, {'
+            'this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {'
         );
         expect(source).toContain('checkpointId: checkpoint.id');
         expect(source).toContain('PROJECT BEACON ANCHOR ${anchorNumber}/3');
@@ -421,10 +450,7 @@ describe('first expedition rescue loop', () => {
 
         expect(source).toContain('getForestObjectiveText()');
         expect(source).toContain(
-            'this.isMobile || width <= 480 || height < 620'
-        );
-        expect(source).toContain(
-            'isShortLandscape ? 76 : 72'
+            'this.createCampaignObjectiveDisplay('
         );
         expect(source).toContain('FOLLOW THE CURRENT →');
         expect(source).toContain('ROUTE ${current}/3 // ${nextAnchor}');
@@ -668,6 +694,7 @@ describe('first expedition rescue loop', () => {
         expect(gameSource).toContain("urlParams.get('testAttack')");
         expect(gameSource).toContain('platformerPreviewSize:');
         expect(gameSource).toContain("urlParams.get('previewSize') === 'mobile'");
+        expect(gameSource).toContain("crystal: 'CrystalCavesLevel'");
         expect(hatchingSource).toMatch(
             /if \(\s*isLocalPreview &&\s*\([\s\S]*previewParams\.has\('testBoss'\)/
         );

@@ -28,6 +28,15 @@ describe('release test gate', () => {
         )).not.toThrow();
     });
 
+    test('browser smoke only awaits expressions that deliberately return promises', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("expression.includes('new Promise')");
+        expect(source).toContain("expression.includes('(async () =>')");
+        expect(source).toContain('awaitPromise: awaitsBrowserPromise');
+        expect(source).not.toContain('awaitPromise: true');
+    });
+
     test('npm test is finite and the manual framework has an explicit command', () => {
         const packageJson = JSON.parse(read('package.json'));
 
@@ -121,6 +130,23 @@ describe('release test gate', () => {
         expect(source).toContain('guardian stance was not stable after recovery');
         expect(source).toContain('settledRecovery.playerDead !== false');
         expect(source).toContain('recovered.persistedId !== guardianEntrySetup.persistedId');
+    });
+
+    test('release smoke proves every guardian reaches its real player handoff', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+        const release = read('scripts/run-browser-smoke.js');
+
+        expect(source).toContain("SMOKE_MODE === 'guardian-handoff'");
+        expect(source).toContain('real final Super Blast did not restore its guardian');
+        expect(source).toContain('rescued resident continuation');
+        expect(source).toContain("'.katana-artifact-continue'");
+        expect(source).toContain('visible completion action');
+        expect(source).toContain('debrief installation action');
+        expect(source).toContain('Wanderer-77 installation action');
+        expect(source).toContain("await waitForScene(session, 'VictoryScene'");
+        expect(release).toContain('for (const smokeCase of guardianHandoffCases)');
+        expect(release).toContain("SMOKE_MODE: 'guardian-handoff'");
+        expect(release).toContain('failures.push(`guardian-handoff:${smokeCase}:');
     });
 
     test('release smoke runs interaction before the state contract', () => {

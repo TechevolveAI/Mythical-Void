@@ -13,6 +13,10 @@ describe('living portrait modern Netlify runtime', () => {
         expect(adapterSource).toContain("import { createClient } from '@supabase/supabase-js'");
         expect(adapterSource).toContain("import WebSocket from 'ws'");
         expect(adapterSource).toContain('transport: WebSocket');
+        expect(adapterSource).toContain('new GoogleGenAI({})');
+        expect(adapterSource).not.toContain(
+            'apiKey: process.env.GEMINI_API_KEY'
+        );
         expect(adapterSource).toContain('export default async function generateAIArt(request)');
         expect(adapterSource).toContain('new Response(');
         expect(adapterSource).not.toContain('exports.handler');

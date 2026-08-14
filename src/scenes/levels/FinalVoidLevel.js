@@ -43,6 +43,83 @@ const FINAL_BOSS_ATTACK_PACING = Object.freeze({
     }
 });
 
+const FINAL_ENCOUNTER_PLAN = Object.freeze([
+    Object.freeze({
+        beat: 'opening-echo-clear',
+        supportId: 'final-opening-rise',
+        lane: 'shared',
+        health: 1,
+        patrolRange: 70,
+        speed: 40
+    }),
+    Object.freeze({
+        beat: 'return-approach-armor',
+        supportId: 'final-return-approach',
+        lane: 'shared',
+        health: 3,
+        patrolRange: 80,
+        speed: 44
+    }),
+    Object.freeze({
+        beat: 'return-route-armor',
+        supportId: 'final-return-route',
+        lane: 'shared',
+        airborne: true,
+        altitude: 115,
+        health: 3,
+        patrolRange: 70,
+        speed: 46
+    }),
+    Object.freeze({
+        beat: 'low-rift-clear',
+        supportId: 'final-rift-step-2',
+        lane: 'main',
+        health: 1,
+        patrolRange: 60,
+        speed: 42
+    }),
+    Object.freeze({
+        beat: 'low-rift-armor',
+        supportId: 'final-rift-step-3',
+        lane: 'main',
+        airborne: true,
+        altitude: 100,
+        health: 3,
+        patrolRange: 50,
+        speed: 50
+    }),
+    Object.freeze({
+        beat: 'trust-bridge-guard',
+        supportId: 'final-trust-bridge-2',
+        lane: 'optional',
+        airborne: true,
+        altitude: 95,
+        health: 1,
+        patrolRange: 70,
+        speed: 48
+    }),
+    Object.freeze({
+        beat: 'trust-signal-pressure',
+        supportId: 'final-rift-step-4',
+        lane: 'shared',
+        airborne: true,
+        altitude: 105,
+        health: 2,
+        patrolRange: 70,
+        speed: 50
+    }),
+    Object.freeze({
+        beat: 'empress-seal-armor',
+        supportId: 'final-empress-gate',
+        lane: 'shared',
+        airborne: true,
+        altitude: 125,
+        health: 4,
+        patrolRange: 90,
+        speed: 52
+    })
+]);
+
 /**
  * FinalVoidLevel - The ultimate boss encounter
  *
@@ -102,8 +179,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.pendingBossPhase = null;
 
         // Void effects
-        this.voidParticles = [];
         this.realityDistortion = 0;
+        this.realityDistortionTimer = null;
         this.bondAnchors = [];
         this.bondAnchorsActivated = 0;
         this.finalSignalReady = false;
@@ -112,9 +189,14 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossGateHintUntil = 0;
         this.empressGate = null;
         this.voidFractures = [];
+        this.finalEncounterRhythm = [];
         this.bondReserveReady = false;
         this.bondReserveEcho = null;
+        this.finalRouteChoice = '';
         this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickupOverlap = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -164,8 +246,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossPhaseTransitionActive = false;
         this.pendingBossPhase = null;
 
-        this.voidParticles = [];
         this.realityDistortion = 0;
+        this.realityDistortionTimer = null;
         this.bondAnchors = [];
         this.bondAnchorsActivated = 0;
         this.finalSignalReady = false;
@@ -174,9 +256,14 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossGateHintUntil = 0;
         this.empressGate = null;
         this.voidFractures = [];
+        this.finalEncounterRhythm = [];
         this.bondReserveReady = false;
         this.bondReserveEcho = null;
+        this.finalRouteChoice = '';
         this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickupOverlap = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.highPowerRevealActive = false;
@@ -218,7 +305,6 @@ class FinalVoidLevel extends PlatformerLevelScene {
     startTestMode() {
         console.log('[FinalVoidLevel] TEST MODE - Spawning final boss');
         this.levelStarted = true;
-        this.createVoidBackground();
         this.bondAnchorsActivated = 3;
         this.finalSignalReady = true;
 
@@ -228,6 +314,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 this.levelHeight - 200
             );
         }
+
+        this.showPlatformerMobileControls();
 
         this.time.delayedCall(500, () => this.startBossFight());
 
@@ -366,6 +454,12 @@ class FinalVoidLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
         entryElements.push(enterBtn);
 
+        this.layoutCampaignEntryContent(
+            layout,
+            [title, subtitle, mission, objective, checklist, enterBtn],
+            { gaps: [8, 10, 10, 10, 14] }
+        );
+
         enterBtn.on('pointerover', () => enterBtn.setColor('#FF00FF'));
         enterBtn.on('pointerout', () => enterBtn.setColor('#9400D3'));
 
@@ -424,7 +518,6 @@ class FinalVoidLevel extends PlatformerLevelScene {
     startLevel() {
         console.log('[FinalVoidLevel] Starting final level');
         this.levelStarted = true;
-        this.createVoidBackground();
         this.createLevelSpecificContentOnce();
         this.showObjectiveToast();
     }
@@ -433,27 +526,46 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.platforms = this.physics.add.staticGroup();
 
         const groundY = this.levelHeight - 50;
-        this.createPlatform(0, groundY, this.levelWidth, 80, 'solid');
+        const groundIslands = [
+            [0, 930, 'final-ground-arrival'],
+            [1050, 670, 'final-ground-return'],
+            [2210, 790, 'final-ground-empress']
+        ];
+        groundIslands.forEach(([x, width, id]) => {
+            const platform = this.createPlatform(x, groundY, width, 80, 'solid');
+            platform.traversalId = id;
+        });
 
         const ledges = [
-            [240, groundY - 160, 300],
-            [680, groundY - 285, 260],
-            [1080, groundY - 190, 300],
-            [1510, groundY - 340, 270],
-            [1990, groundY - 100, 240],
-            [2240, groundY - 150, 220],
-            [2370, groundY - 320, 260]
+            [315, groundY - 140, 300, 'final-opening-step'],
+            [680, groundY - 285, 260, 'final-opening-rise'],
+            [1080, groundY - 190, 300, 'final-return-approach'],
+            [1320, groundY - 250, 220, 'final-return-route'],
+            [2370, groundY - 285, 260, 'final-empress-gate']
         ];
 
-        // The Trust Bridge is a bounded high route over the second fracture.
-        // It rejoins at the third anchor and never replaces the forward spine.
+        // The low route requires readable, forgiving jumps over the fracture.
+        // The Trust Bridge remains the harder high route and earns a rescue.
+        const mainRiftRoute = [
+            [1650, groundY - 130, 130, 'final-rift-step-1'],
+            [1850, groundY - 240, 190, 'final-rift-step-2'],
+            [2070, groundY - 210, 150, 'final-rift-step-3'],
+            // Preserve the 2440 endpoint while overlapping the downhill handoff.
+            [2180, groundY - 150, 260, 'final-rift-step-4']
+        ];
         const trustBridgeRoute = [
-            [1790, groundY - 420, 220],
-            [2050, groundY - 330, 220]
+            [1790, groundY - 420, 220, 'final-trust-bridge-1'],
+            [2170, groundY - 450, 200, 'final-trust-bridge-2']
         ];
 
-        [...ledges, ...trustBridgeRoute].forEach(([x, y, width]) => {
-            this.createPlatform(x, y, width, 28, 'one-way');
+        [...ledges, ...mainRiftRoute, ...trustBridgeRoute].forEach(([
+            x,
+            y,
+            width,
+            id = null
+        ]) => {
+            const platform = this.createPlatform(x, y, width, 28, 'one-way');
+            if (id) platform.traversalId = id;
         });
 
         console.log(`[FinalVoidLevel] Created ${this.platforms.getLength()} platforms`);
@@ -469,21 +581,61 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     createVoidEchoSentinels() {
-        const groundY = this.levelHeight - 110;
-        const encounters = [
-            { x: 780, y: groundY, health: 1, patrolRange: 90, speed: 38 },
-            { x: 1640, y: groundY, health: 2, patrolRange: 105, speed: 42 },
-            { x: 2350, y: groundY, health: 3, patrolRange: 60, speed: 45 }
-        ];
+        const encounters = FINAL_ENCOUNTER_PLAN.map(encounter => {
+            const support = this.getTraversalSupport(encounter.supportId);
+            if (!support?.body) {
+                throw new Error(
+                    `[FinalVoidLevel] Missing encounter support ${encounter.supportId}`
+                );
+            }
 
-        this.createPatrolSentinels(encounters, {
+            const bodyInset = encounter.airborne ? 20 : 28;
+            const centerX = (support.body.left + support.body.right) / 2;
+            const x = Phaser.Math.Clamp(
+                centerX + (Number(encounter.offsetX) || 0),
+                support.body.left + bodyInset,
+                support.body.right - bodyInset
+            );
+            const availablePatrol = Math.max(0, Math.min(
+                x - support.body.left - bodyInset,
+                support.body.right - bodyInset - x
+            ));
+            return {
+                ...encounter,
+                x,
+                y: support.body.top - (
+                    encounter.airborne
+                        ? Number(encounter.altitude) || 100
+                        : 28
+                ),
+                patrolRange: Math.min(encounter.patrolRange, availablePatrol)
+            };
+        });
+
+        const sentinels = this.createPatrolSentinels(encounters, {
             enemyType: 'voidEchoSentinel',
             texturePrefix: 'voidEchoSentinel',
             bodyColor: 0x260B38,
             accentColor: 0xDA70D6,
             eyeColor: 0xA9F3E4,
-            instructionText: 'GOLD MARK // STOMP OR STRIKE'
+            instructionText: null
         });
+
+        this.finalEncounterRhythm = sentinels.map((enemy, index) => {
+            const encounter = encounters[index];
+            enemy.encounterBeat = encounter.beat;
+            enemy.encounterLane = encounter.lane;
+            enemy.encounterSupportId = encounter.supportId;
+            return enemy;
+        });
+        return this.finalEncounterRhythm;
+    }
+
+    retireFinalPatrolsForEmpress() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        const retirement = this.retireRouteEnemies(patrols);
+        this.finalEncounterRhythm = [];
+        return retirement.enemyCount;
     }
 
     createTrustBridgeRoute() {
@@ -494,20 +646,22 @@ class FinalVoidLevel extends PlatformerLevelScene {
         route.beginPath();
         route.moveTo(1660, groundY - 350);
         route.lineTo(1900, groundY - 430);
-        route.lineTo(2160, groundY - 340);
-        route.lineTo(2310, groundY - 220);
+        route.lineTo(2270, groundY - 460);
+        route.lineTo(2400, groundY - 220);
         route.strokePath();
         route.lineStyle(2, 0xA9F3E4, 0.72);
         route.strokeCircle(1900, groundY - 430, 17);
-        route.strokeCircle(2160, groundY - 340, 12);
+        route.strokeCircle(2270, groundY - 460, 12);
 
-        this.tweens.add({
-            targets: route,
-            alpha: { from: 0.5, to: 1 },
-            duration: 950,
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.shouldAnimateFinalRouteDecorations()) {
+            this.tweens.add({
+                targets: route,
+                alpha: { from: 0.5, to: 1 },
+                duration: 950,
+                yoyo: true,
+                repeat: -1
+            });
+        }
 
         const fractureRouteMarker = this.add.text(1690, groundY - 82, '', {
             fontSize: '11px',
@@ -527,35 +681,40 @@ class FinalVoidLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setDepth(182);
         this.registerOptionalRouteReward({
             id: 'final_trust_bridge',
-            title: 'TRUST BRIDGE HIGH ROUTE',
+            title: 'TRUST BRIDGE',
             required: 1,
             rewardLabel: 'BOND RESERVE // 1 RESCUE',
             marker: trustBridgeMarker,
             returnLabel: 'DESCEND TO TRUST SIGNAL →',
             choice: {
-                mainLabel: 'VOID FRACTURE →',
-                mainTradeoff: 'DIRECT // DAMAGE RIFTS',
-                challengeLabel: 'HIGH JUMPS + BOND RESERVE',
+                mainLabel: 'LOW RIFT CROSSING →',
+                mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE + 2 GUARDS',
+                challengeLabel: 'HIGH CLIMB + 1 GUARD // EARN RESCUE',
                 mainMarker: fractureRouteMarker,
                 mainZone: {
                     left: 1600, right: 2250,
-                    top: groundY - 220, bottom: this.levelHeight
+                    top: 400, bottom: this.levelHeight
                 },
                 optionalZone: {
-                    left: 1600, right: 2250,
-                    top: 180, bottom: groundY - 220
+                    left: 1780, right: 2020,
+                    top: 250, bottom: 380
                 },
                 rejoinZone: {
-                    left: 2250, right: 2600,
-                    top: 250, bottom: this.levelHeight
-                }
+                    left: 2240, right: 2440,
+                    top: 520, bottom: 680
+                },
+                mainSupportIds: ['final-rift-step-1'],
+                optionalSupportIds: ['final-trust-bridge-1'],
+                rejoinSupportIds: ['final-rift-step-4']
             },
+            onMainSelected: () => this.selectFinalRoute('main'),
+            onOptionalSelected: () => this.selectFinalRoute('optional'),
             onComplete: () => this.activateBondReserve()
         });
 
         const reserve = this.add.circle(
-            1900,
-            groundY - 465,
+            1960,
+            groundY - 440,
             18,
             0xA9F3E4,
             0.95
@@ -579,8 +738,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 strokeThickness: 4
             }
         ).setOrigin(0.5).setDepth(721);
+        this.optionalRoutePickupLabel = reserveLabel;
 
-        this.tweens.add({
+        this.optionalRoutePickupTween = this.tweens.add({
             targets: [reserve, reserveLabel],
             y: '-=10',
             duration: 850,
@@ -589,17 +749,20 @@ class FinalVoidLevel extends PlatformerLevelScene {
             ease: 'Sine.easeInOut'
         });
 
-        this.physics.add.overlap(this.player, reserve, () => {
+        this.optionalRoutePickupOverlap = this.physics.add.overlap(this.player, reserve, () => {
             if (this.bondReserveReady || !reserve.active) return;
+            if (!this.isPlayerGroundedOnTraversalSupport('final-trust-bridge-1')) {
+                return;
+            }
 
             const rewardX = reserve.x;
             const rewardY = reserve.y;
-            reserve.destroy();
-            reserveLabel.destroy();
-            this.recordOptionalRouteProgress('final_trust_bridge', {
+            const claimed = this.recordOptionalRouteProgress('final_trust_bridge', {
                 x: rewardX,
                 y: rewardY
             });
+            if (!claimed) return;
+            this.clearBondReservePickup();
             window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
                 count: 22,
                 color: [0xA9F3E4, 0xF2C94C, 0xFFFFFF],
@@ -611,7 +774,18 @@ class FinalVoidLevel extends PlatformerLevelScene {
         });
     }
 
-    activateBondReserve() {
+    clearBondReservePickup() {
+        this.optionalRoutePickupOverlap?.destroy?.();
+        this.optionalRoutePickupOverlap = null;
+        this.optionalRoutePickupTween?.remove?.();
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickup?.destroy?.();
+        this.optionalRoutePickupLabel?.destroy?.();
+        this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+    }
+
+    activateBondReserve({ restoring = false } = {}) {
         if (this.bondReserveReady) return false;
 
         this.bondReserveReady = true;
@@ -630,37 +804,19 @@ class FinalVoidLevel extends PlatformerLevelScene {
             yoyo: true,
             repeat: -1
         });
+        if (!restoring) this.refreshPersistedExpeditionRouteState();
         return true;
     }
 
     createHUD() {
         super.createHUD();
-
-        // Keep the final objective above gameplay and clear of mobile controls.
-        const { width, height } = this.cameras.main;
-        const isShortLandscape = width > height && height < 620;
-        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
-        this.objectiveDisplay = this.add.text(
-            width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
-            this.getFinalObjectiveText(),
+        this.createCampaignObjectiveDisplay(
+            () => this.getFinalObjectiveText(),
             {
-                fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
                 color: '#F8EDFF',
-                backgroundColor: 'rgba(10, 4, 20, 0.92)',
-                padding: { x: 10, y: 7 },
-                lineSpacing: 2,
-                align: 'left',
-                wordWrap: {
-                    width: this.isCompactObjectiveHUD ? 215 : 350
-                }
+                backgroundColor: 'rgba(10, 4, 20, 0.92)'
             }
-        ).setOrigin(1, 0)
-            .setScrollFactor(0)
-            .setDepth(1000)
-            .setVisible(false);
+        ).setVisible(false);
     }
 
     getFinalObjectiveText() {
@@ -732,13 +888,22 @@ class FinalVoidLevel extends PlatformerLevelScene {
         });
     }
 
+    shouldAnimateFinalRouteDecorations() {
+        const { width, height } = this.cameras.main;
+        return !(
+            this.isMobile ||
+            width <= 480 ||
+            height < 620
+        );
+    }
+
     createVoidFractures() {
         const fractures = [
-            { x: 930, width: 180 },
-            { x: 1780, width: 190 }
+            { x: 930, width: 120, label: 'JUMP THE RIFT →' },
+            { x: 1720, width: 490, label: 'CHOOSE YOUR CROSSING' }
         ];
 
-        fractures.forEach(({ x, width }) => {
+        fractures.forEach(({ x, width, label: labelText }) => {
             const y = this.levelHeight - 88;
             const zone = this.add.zone(x + width / 2, y, width, 76);
             this.physics.add.existing(zone, true);
@@ -752,28 +917,64 @@ class FinalVoidLevel extends PlatformerLevelScene {
             visual.lineBetween(x + width * 0.65, y - 14, x + width - 10, y + 8);
             visual.setDepth(115);
 
-            this.tweens.add({
-                targets: visual,
-                alpha: { from: 0.5, to: 1 },
-                duration: 850,
-                yoyo: true,
-                repeat: -1
-            });
+            const label = this.add.text(
+                x + width / 2,
+                y - 86,
+                labelText,
+                {
+                    fontSize: '11px',
+                    color: '#E6D6F0',
+                    fontStyle: 'bold',
+                    stroke: '#09020E',
+                    strokeThickness: 4,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(182);
+
+            if (this.shouldAnimateFinalRouteDecorations()) {
+                this.tweens.add({
+                    targets: visual,
+                    alpha: { from: 0.5, to: 1 },
+                    duration: 850,
+                    yoyo: true,
+                    repeat: -1
+                });
+            }
 
             this.physics.add.overlap(this.player, zone, () => {
                 if (!this.isInvincible && !this.bossDefeated) {
                     this.takeDamage(1);
                 }
             });
-            this.voidFractures.push({ zone, visual });
+            this.voidFractures.push({ zone, visual, label });
         });
     }
 
     createBondAnchors() {
+        const animateRouteDecorations =
+            this.shouldAnimateFinalRouteDecorations();
         const anchors = [
-            { id: 'final_bond_1', x: 600, y: 600, label: 'LIVING SYSTEMS' },
-            { id: 'final_bond_2', x: 1420, y: 470, label: 'RETURN ROUTE' },
-            { id: 'final_bond_3', x: 2200, y: 560, label: 'TRUST SIGNAL' }
+            {
+                id: 'final_bond_1',
+                x: 465,
+                y: 610,
+                label: 'LIVING SYSTEMS',
+                activationSupportIds: ['final-opening-step']
+            },
+            {
+                id: 'final_bond_2',
+                x: 1420,
+                y: 500,
+                label: 'RETURN ROUTE',
+                activationSupportIds: ['final-return-route']
+            },
+            {
+                id: 'final_bond_3',
+                x: 2350,
+                y: 600,
+                label: 'TRUST SIGNAL',
+                activationSupportIds: ['final-rift-step-4']
+            }
         ];
 
         anchors.forEach((anchor, index) => {
@@ -781,12 +982,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawBondAnchor(visual, anchor.x, anchor.y, false);
 
-            const label = this.add.text(anchor.x, anchor.y - 98, `${index + 1} // ${anchor.label}`, {
+            const label = this.add.text(anchor.x, anchor.y - 98, `${index + 1} // ${anchor.label}\nLAND + LINK`, {
                 fontSize: '11px',
                 color: '#8F789D',
                 fontStyle: 'bold',
                 stroke: '#09020E',
-                strokeThickness: 3
+                strokeThickness: 3,
+                align: 'center'
             }).setOrigin(0.5).setDepth(181);
 
             const zone = this.createObjectiveTriggerZone(
@@ -801,15 +1003,49 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 visual,
                 label,
                 zone,
+                landingGuide: this.createTraversalLandingGuide(
+                    anchor.activationSupportIds[0],
+                    0xA9F3E4,
+                    { animate: animateRouteDecorations }
+                ),
                 activated: false
             };
             this.physics.add.overlap(this.player, zone, () => {
+                if (!this.isPlayerGroundedOnTraversalSupport(
+                    bondAnchor.activationSupportIds
+                )) {
+                    const now = this.time.now;
+                    if (now >= this.routeHintUntil) {
+                        this.showFloatingText(
+                            `LAND ON THE LIT PLATFORM // ${bondAnchor.label}`,
+                            bondAnchor.x,
+                            bondAnchor.y - 130,
+                            '#F2C94C'
+                        );
+                        this.routeHintUntil = now + 1400;
+                    }
+                    return;
+                }
                 this.activateBondAnchor(bondAnchor);
             });
             this.bondAnchors.push(bondAnchor);
         });
 
         this.refreshBondRouteReadability();
+    }
+
+    getTraversalAuditTargets() {
+        return [
+            ...this.bondAnchors,
+            {
+                id: 'empress_seal',
+                label: 'EMPRESS SEAL',
+                activationSupportIds: ['final-empress-gate'],
+                x: this.empressGate?.zone?.x || this.levelWidth - 500,
+                y: this.empressGate?.zone?.y || this.levelHeight / 2,
+                zone: this.empressGate?.zone
+            }
+        ];
     }
 
     drawBondAnchor(graphics, x, y, activated) {
@@ -853,8 +1089,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
         anchor.zone = null;
         this.bondAnchorsActivated++;
         this.drawBondAnchor(anchor.visual, anchor.x, anchor.y, true);
+        this.retireTraversalLandingGuide(anchor);
         this.refreshBondRouteReadability();
-        this.setCheckpoint(anchor.x, this.levelHeight - 130, {
+        const checkpoint = this.getTraversalSupportCheckpoint(
+            anchor.activationSupportIds[0],
+            anchor.x
+        );
+        this.setCheckpoint(checkpoint.x, checkpoint.y, {
             persist: true,
             checkpointId: anchor.id,
             checkpointIndex: anchor.index
@@ -919,83 +1160,86 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     restoreExpeditionRouteState(resume) {
-        return this.restoreExpeditionRouteSignals(resume, {
+        const signalsRestored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.bondAnchors,
             countProperty: 'bondAnchorsActivated',
             readyProperty: 'finalSignalReady',
             labelColor: '#F2C94C',
-            drawSignal: anchor => this.drawBondAnchor(
-                anchor.visual,
-                anchor.x,
-                anchor.y,
-                true
-            ),
+            drawSignal: anchor => {
+                this.drawBondAnchor(
+                    anchor.visual,
+                    anchor.x,
+                    anchor.y,
+                    true
+                );
+                this.retireTraversalLandingGuide(anchor);
+            },
             onRestored: () => {
                 this.refreshBondRouteReadability();
-                this.objectiveDisplay?.setText?.(this.getFinalObjectiveText());
+                this.syncCampaignObjectiveDisplay();
             }
         });
-    }
+        if (!signalsRestored) return false;
 
-    createVoidBackground() {
-        const { width, height } = this.cameras.main;
-
-        const bg = this.add.graphics();
-        bg.setScrollFactor(0);
-        bg.setDepth(-100);
-
-        // Deep void gradient - almost black with hints of purple
-        for (let y = 0; y < height; y++) {
-            const ratio = y / height;
-            const r = Math.floor(5 + ratio * 15);
-            const g = Math.floor(0 + ratio * 5);
-            const b = Math.floor(15 + ratio * 30);
-            bg.fillStyle(Phaser.Display.Color.GetColor(r, g, b), 1);
-            bg.fillRect(0, y, width, 1);
-        }
-
-        // Void particles
-        this.createVoidParticles();
-
-        // Reality distortion effect
-        this.time.addEvent({
-            delay: 100,
-            callback: () => this.updateRealityDistortion(),
-            loop: true
+        this.restoreFinalRouteState(resume.routeState, {
+            rejoined: Number(resume.checkpointIndex) >= 2
         });
+        this.syncCampaignObjectiveDisplay();
+        return true;
     }
 
-    createVoidParticles() {
-        const { width, height } = this.cameras.main;
+    getExpeditionRouteState() {
+        const route = this.optionalRouteRewards?.get?.('final_trust_bridge');
+        return {
+            finalRouteChoice: this.finalRouteChoice || '',
+            trustBridgeProgress: Number(route?.progress) || 0,
+            trustBridgeCompleted: route?.completed === true,
+            bondReserveReady: this.bondReserveReady === true
+        };
+    }
 
-        for (let i = 0; i < 40; i++) {
-            const particle = this.add.graphics();
-            const x = Math.random() * width;
-            const y = Math.random() * height;
+    selectFinalRoute(path, { restoring = false, rejoined = false } = {}) {
+        if (!['main', 'optional'].includes(path)) return false;
+        if (this.finalRouteChoice && this.finalRouteChoice !== path) return false;
 
-            const colors = [0x4B0082, 0x8B008B, 0x9400D3, 0xFF00FF];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-
-            particle.fillStyle(color, 0.5);
-            particle.fillCircle(0, 0, 2 + Math.random() * 4);
-            particle.setPosition(x, y);
-            particle.setDepth(-50);
-            particle.setScrollFactor(0.3);
-
-            // Drift animation
-            this.tweens.add({
-                targets: particle,
-                x: x + (Math.random() - 0.5) * 200,
-                y: y + (Math.random() - 0.5) * 200,
-                alpha: { from: 0.5, to: 0.1 },
-                duration: 5000 + Math.random() * 3000,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-
-            this.voidParticles.push(particle);
+        this.finalRouteChoice = path;
+        const choice = this.optionalRouteRewards?.get?.('final_trust_bridge')?.choice;
+        if (choice) {
+            choice.selectedPath = path;
+            choice.mainEntered = path === 'main';
+            choice.optionalEntered = path === 'optional';
+            choice.rejoined = rejoined && path === 'optional';
+            choice.sequence ||= 1;
         }
+        if (path === 'main') this.clearBondReservePickup();
+        if (!restoring) this.refreshPersistedExpeditionRouteState();
+        return true;
+    }
+
+    restoreFinalRouteState(routeState, { rejoined = false } = {}) {
+        if (!routeState || typeof routeState !== 'object') return false;
+
+        const path = routeState.finalRouteChoice;
+        if (['main', 'optional'].includes(path)) {
+            this.selectFinalRoute(path, { restoring: true, rejoined });
+        }
+
+        const route = this.optionalRouteRewards?.get?.('final_trust_bridge');
+        if (route && path === 'optional') {
+            route.progress = Phaser.Math.Clamp(
+                Number(routeState.trustBridgeProgress) || 0,
+                0,
+                route.required
+            );
+            route.completed = routeState.trustBridgeCompleted === true ||
+                route.progress >= route.required;
+            this.refreshOptionalRouteReward(route);
+            if (route.completed) this.clearBondReservePickup();
+            if (route.completed && routeState.bondReserveReady === true) {
+                this.activateBondReserve({ restoring: true });
+            }
+        }
+        return true;
     }
 
     updateRealityDistortion() {
@@ -1059,6 +1303,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         const zone = this.add.zone(gateX, this.levelHeight / 2, 130, this.levelHeight);
         this.physics.add.existing(zone, true);
+        const landingGuide = this.createTraversalLandingGuide(
+            'final-empress-gate',
+            0xDA70D6,
+            { depth: 889 }
+        );
         this.physics.add.overlap(this.player, zone, () => {
             if (this.bossFightActive || this.bossDefeated) return;
 
@@ -1075,23 +1324,45 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 return;
             }
 
+            if (!this.isPlayerGroundedOnTraversalSupport('final-empress-gate')) {
+                if (this.time.now >= this.bossGateHintUntil) {
+                    this.bossGateHintUntil = this.time.now + 1400;
+                    this.showFloatingText(
+                        'LAND ON THE EMPRESS SEAL PLATFORM',
+                        gateX - 90,
+                        gateY - 205,
+                        '#F2C94C'
+                    );
+                }
+                return;
+            }
+
+            const checkpoint = this.getTraversalSupportCheckpoint(
+                'final-empress-gate',
+                gateX - 90
+            );
+
             const guardianEntered = this.beginGuardianEncounter({
                 id: 'void_empress',
                 title: 'VOID EMPRESS',
-                checkpoint: {
-                    x: gateX - 220,
-                    y: this.levelHeight - 170
-                },
+                checkpoint,
                 start: () => this.startBossFight()
             });
             if (!guardianEntered) return;
 
             zone.destroy();
             visual.destroy();
+            landingGuide?.tween?.remove?.();
+            landingGuide?.visual?.setAlpha?.(0.18);
             this.empressGate = null;
         });
 
-        this.empressGate = { visual, zone };
+        this.empressGate = {
+            visual,
+            zone,
+            landingGuide,
+            activationSupportIds: ['final-empress-gate']
+        };
     }
 
     update(time, delta) {
@@ -1102,13 +1373,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
-        if (this.objectiveDisplay?.active) {
-            this.objectiveDisplay.setText(this.getFinalObjectiveText());
-            this.objectiveDisplay.setVisible(
+        this.syncCampaignObjectiveDisplay({
+            visible:
                 this.levelStarted &&
                 !(this.isCompactObjectiveHUD && this.bossFightActive)
-            );
-        }
+        });
 
         this.updateBossIndicator();
 
@@ -1130,6 +1399,13 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         console.log('[FinalVoidLevel] Starting Void Empress boss fight!');
         this.bossFightActive = true;
+        this.retireFinalPatrolsForEmpress();
+        this.realityDistortionTimer?.remove?.();
+        this.realityDistortionTimer = this.time.addEvent({
+            delay: 100,
+            callback: () => this.updateRealityDistortion(),
+            loop: true
+        });
 
         this.physics.pause();
 
@@ -2110,6 +2386,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.bondReserveReady = false;
             this.bondReserveEcho?.destroy?.();
             this.bondReserveEcho = null;
+            this.refreshPersistedExpeditionRouteState();
             // Reduce the pending hit through the shared damage pipeline so one
             // heart remains without temporarily inflating maximum health.
             incomingDamage = Math.max(0, this.health - 1);
@@ -2137,21 +2414,21 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     damageBoss(amount = 1) {
-        if (!this.isBossCombatActive()) return;
+        if (!this.isBossCombatActive()) return false;
 
         const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
         const finalAmount = amount + recoveryBonus;
         this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.updateBossHealthBar();
 
-        if (recoveryBonus) {
-            this.showFloatingText(
-                `BEACON OPENING -${finalAmount}`,
-                this.boss.x,
-                this.boss.y - 130,
-                '#8FE3CF'
-            );
-        }
+        this.showFloatingText(
+            recoveryBonus
+                ? `BEACON OPENING -${finalAmount}`
+                : `VOID LINE -${finalAmount}`,
+            this.boss.x,
+            this.boss.y - 130,
+            recoveryBonus ? '#8FE3CF' : '#F1D9FF'
+        );
 
         this.boss.setTint(0xFFFFFF);
         this.time.delayedCall(100, () => {
@@ -2176,6 +2453,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         if (window.AudioManager) {
             window.AudioManager.playAttack();
         }
+        return true;
     }
 
     requestFinalBossPhase(phase, message, tint) {
@@ -2578,6 +2856,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         console.log('[FinalVoidLevel] Void Empress restored.');
         this.bossDefeated = true;
         this.bossFightActive = false;
+        this.realityDistortionTimer?.remove?.();
+        this.realityDistortionTimer = null;
         this.clearFinalBossPacingTimers();
 
         if (this.bossAITimer) {
@@ -2919,6 +3199,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.clearCompanionHighPowerMoment();
         this.clearFinalBossPacingTimers();
         this.bossFightActive = false;
+        this.realityDistortionTimer?.remove?.();
+        this.realityDistortionTimer = null;
         // SceneManager may have disposed the camera transform before a rapid
         // campaign stop reaches this cleanup hook. The next init establishes
         // the correct camera position, so shutdown must not mutate it.
@@ -2950,9 +3232,6 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.empressOrbs = [];
         }
 
-        this.voidParticles.forEach(p => p.destroy());
-        this.voidParticles = [];
-
         this.bondAnchors.forEach(anchor => {
             anchor.zone?.destroy?.();
             anchor.visual?.destroy?.();
@@ -2963,6 +3242,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.voidFractures.forEach(fracture => {
             fracture.zone?.destroy?.();
             fracture.visual?.destroy?.();
+            fracture.label?.destroy?.();
         });
         this.voidFractures = [];
 
@@ -2979,6 +3259,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossIndicator = null;
         this.objectiveDisplay?.destroy?.();
         this.objectiveDisplay = null;
+        this.clearBondReservePickup();
         this.bondReserveEcho?.destroy?.();
         this.bondReserveEcho = null;
         this.bondReserveReady = false;

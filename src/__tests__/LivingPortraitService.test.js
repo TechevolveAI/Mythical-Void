@@ -740,7 +740,10 @@ describe('background living portrait generation', () => {
             'if (this.portraitPromise) {\n            this.showLivingPortraitHandoff'
         );
         expect(soulSource).toContain('this.portraitReferenceImage');
-        expect(handoffSource).toContain('EXACT PIXEL IDENTITY');
+        expect(handoffSource).toContain('LIVING FORM DEVELOPING');
+        expect(handoffSource).not.toContain(
+            'this.setArtwork(this.pixelReferenceImage'
+        );
         expect(handoffSource).not.toContain('/marketing/');
         expect(handoffSource).toContain('PROTECTED LIVING PORTRAIT');
         expect(handoffSource).toContain('No personal data was sent');

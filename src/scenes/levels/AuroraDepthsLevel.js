@@ -23,6 +23,77 @@ const PHOENIX_ATTACK_WINDUP = 700;
 const PHOENIX_RECOVERY_WINDOW = 650;
 const PHOENIX_PHASE_RECOVERY = 1300;
 
+const AURORA_ENCOUNTER_PLAN = Object.freeze([
+    Object.freeze({
+        beat: 'opening-clear',
+        supportId: 'aurora-opening-step',
+        lane: 'shared',
+        health: 1,
+        patrolRange: 90,
+        speed: 38
+    }),
+    Object.freeze({
+        beat: 'lower-relay-pressure',
+        supportId: 'aurora-lower-relay',
+        lane: 'shared',
+        health: 2,
+        patrolRange: 70,
+        speed: 40
+    }),
+    Object.freeze({
+        beat: 'heart-rise-armor',
+        supportId: 'aurora-heart-rise',
+        lane: 'shared',
+        health: 3,
+        patrolRange: 70,
+        speed: 42
+    }),
+    Object.freeze({
+        beat: 'shadow-current-entry',
+        supportId: 'aurora-ground-3',
+        lane: 'main',
+        offsetX: 220,
+        health: 3,
+        patrolRange: 70,
+        speed: 44
+    }),
+    Object.freeze({
+        beat: 'shadow-current-exit',
+        supportId: 'aurora-ground-3',
+        lane: 'main',
+        offsetX: 420,
+        health: 2,
+        patrolRange: 60,
+        speed: 45
+    }),
+    Object.freeze({
+        beat: 'sky-prism-pressure',
+        supportId: 'aurora-ground-4',
+        lane: 'shared',
+        offsetX: -300,
+        health: 2,
+        patrolRange: 90,
+        speed: 45
+    }),
+    Object.freeze({
+        beat: 'phoenix-gate-armor',
+        supportId: 'aurora-ground-4',
+        lane: 'shared',
+        offsetX: 100,
+        health: 3,
+        patrolRange: 95,
+        speed: 46
+    }),
+    Object.freeze({
+        beat: 'phoenix-overlook-armor',
+        supportId: 'aurora-phoenix-overlook',
+        lane: 'shared',
+        health: 4,
+        patrolRange: 70,
+        speed: 47
+    })
+]);
+
 /**
  * AuroraDepthsLevel - Aurora Depths platformer level
  *
@@ -85,18 +156,36 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossTargetScale = 1;
 
         // Aurora effects
-        this.auroraLights = [];
-        this.colorShiftTime = 0;
         this.signalPrisms = [];
         this.prismsAligned = 0;
         this.uplinkRiskUnderstood = false;
         this.routeHintUntil = 0;
         this.reactorGateHintUntil = 0;
+        this.reactorTriggerZone = null;
         this.auroraFragments = null;
+        this.auroraFragmentTween = null;
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
+        this.shadowCurrentPulseTween = null;
         this.quietLightClaimed = false;
         this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickupOverlap = null;
+        this.auroraRouteChoice = null;
+        this.currentChargeReady = false;
+        this.currentChargeDamage = 2;
+        this.currentChargeAura = null;
+        this.currentChargeAuraTween = null;
+        this.auroraEncounterRhythm = [];
+        this.auroraProximityEnemies = [];
+        this.auroraEnemyAISchedulerActive = false;
+        this.auroraEnemyActivationBounds = null;
+        this.auroraEnemyActivationNextAt = 0;
+        this.auroraEnemyPatrolNextAt = 0;
+        this.auroraEnemyPatrolUpdateCount = 0;
+        this.quietLightRouteVisual = null;
+        this.phoenixLandingGuide = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -140,18 +229,36 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossIndicator = null;
         this.bossTargetScale = 1;
 
-        this.auroraLights = [];
-        this.colorShiftTime = 0;
         this.signalPrisms = [];
         this.prismsAligned = 0;
         this.uplinkRiskUnderstood = false;
         this.routeHintUntil = 0;
         this.reactorGateHintUntil = 0;
+        this.reactorTriggerZone = null;
         this.auroraFragments = null;
+        this.auroraFragmentTween = null;
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
+        this.shadowCurrentPulseTween = null;
         this.quietLightClaimed = false;
         this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickupOverlap = null;
+        this.auroraRouteChoice = null;
+        this.currentChargeReady = false;
+        this.currentChargeDamage = 2;
+        this.currentChargeAura = null;
+        this.currentChargeAuraTween = null;
+        this.auroraEncounterRhythm = [];
+        this.auroraProximityEnemies = [];
+        this.auroraEnemyAISchedulerActive = false;
+        this.auroraEnemyActivationBounds = null;
+        this.auroraEnemyActivationNextAt = 0;
+        this.auroraEnemyPatrolNextAt = 0;
+        this.auroraEnemyPatrolUpdateCount = 0;
+        this.quietLightRouteVisual = null;
+        this.phoenixLandingGuide = null;
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
@@ -185,7 +292,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     startTestMode() {
         console.log('[AuroraDepthsLevel] TEST MODE - Starting Phoenix restoration');
-        this.createAuroraBackground();
         this.prismsAligned = 3;
         this.uplinkRiskUnderstood = true;
 
@@ -304,6 +410,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
         entryElements.push(enterBtn);
 
+        this.layoutCampaignEntryContent(
+            layout,
+            [title, subtitle, mission, mainObj, obj1, enterBtn],
+            { gaps: [8, 10, 10, 10, 14] }
+        );
+
         enterBtn.on('pointerover', () => enterBtn.setColor('#7FFFD4'));
         enterBtn.on('pointerout', () => enterBtn.setColor('#00E676'));
 
@@ -361,7 +473,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     startLevel() {
         console.log('[AuroraDepthsLevel] Starting level');
-        this.createAuroraBackground();
         this.createLevelSpecificContentOnce();
         this.showObjectiveToast();
     }
@@ -370,107 +481,51 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.platforms = this.physics.add.staticGroup();
 
         const groundY = this.levelHeight - 50;
-        this.createPlatform(0, groundY, this.levelWidth, 80, 'solid');
+        const recoveryGround = [
+            [0, 810, 'aurora-ground-1'],
+            [960, 1060, 'aurora-ground-2'],
+            [2190, 1040, 'aurora-ground-3'],
+            [3410, 1590, 'aurora-ground-4']
+        ];
+        recoveryGround.forEach(([x, width, id]) => {
+            const platform = this.createPlatform(
+                x,
+                groundY,
+                width,
+                80,
+                'solid'
+            );
+            platform.traversalId = id;
+        });
 
         const ledges = [
-            [180, groundY - 150, 320], [620, groundY - 255, 240],
-            [980, groundY - 165, 280], [1370, groundY - 310, 240],
-            [1740, groundY - 205, 300], [2140, groundY - 350, 240],
-            [2520, groundY - 230, 280],
-            [3420, groundY - 110, 240], [3700, groundY - 165, 260],
-            [4140, groundY - 220, 300], [4550, groundY - 340, 240]
+            [180, groundY - 140, 320, 'aurora-opening-step'],
+            [620, groundY - 250, 240, 'aurora-opening-rise'],
+            [980, groundY - 165, 280, 'aurora-lower-prism'],
+            [1370, groundY - 285, 240, 'aurora-lower-relay'],
+            [1740, groundY - 200, 300, 'aurora-heart-approach'],
+            [2140, groundY - 320, 240, 'aurora-heart-rise'],
+            [2530, groundY - 140, 360, 'aurora-heart-launch'],
+            [3420, groundY - 110, 240, 'aurora-sky-rejoin'],
+            [3700, groundY - 165, 260, 'aurora-sky-prism'],
+            [4140, groundY - 220, 300, 'aurora-phoenix-gate'],
+            [4550, groundY - 340, 240, 'aurora-phoenix-overlook']
         ];
 
         // A short high route avoids the third shadow current and rejoins
         // before the Sky Prism. Every gap stays inside the normal jump arc.
         const quietLightRoute = [
-            [2780, groundY - 290, 210],
-            [3040, groundY - 380, 220],
-            [3310, groundY - 320, 210]
+            [2780, groundY - 270, 210, 'aurora-quiet-step-1'],
+            [3040, groundY - 380, 220, 'aurora-quiet-step-2'],
+            [3310, groundY - 320, 210, 'aurora-quiet-step-3']
         ];
 
-        [...ledges, ...quietLightRoute].forEach(([x, y, width]) => {
-            this.createPlatform(x, y, width, 28, 'one-way');
+        [...ledges, ...quietLightRoute].forEach(([x, y, width, id = null]) => {
+            const platform = this.createPlatform(x, y, width, 28, 'one-way');
+            if (id) platform.traversalId = id;
         });
 
         console.log(`[AuroraDepthsLevel] Created ${this.platforms.getLength()} platforms`);
-    }
-
-    createAuroraBackground() {
-        const { width, height } = this.cameras.main;
-
-        const bg = this.add.graphics();
-        bg.setScrollFactor(0);
-        bg.setDepth(-100);
-
-        // Deep blue to teal gradient
-        for (let y = 0; y < height; y++) {
-            const ratio = y / height;
-            const r = Math.floor(10 + ratio * 20);
-            const g = Math.floor(30 + ratio * 60);
-            const b = Math.floor(50 + ratio * 40);
-            bg.fillStyle(Phaser.Display.Color.GetColor(r, g, b), 1);
-            bg.fillRect(0, y, width, 1);
-        }
-
-        // Aurora lights
-        this.createAuroraLights();
-    }
-
-    createAuroraLights() {
-        const { width, height } = this.cameras.main;
-
-        for (let i = 0; i < 5; i++) {
-            const aurora = this.add.graphics();
-            aurora.setScrollFactor(0.2 + i * 0.1);
-            aurora.setDepth(-50 + i);
-            aurora.setAlpha(0.3);
-
-            const auroraData = {
-                graphics: aurora,
-                x: Math.random() * width,
-                baseY: height * 0.3 + Math.random() * height * 0.2,
-                width: 200 + Math.random() * 300,
-                colorIndex: i
-            };
-
-            this.auroraLights.push(auroraData);
-        }
-
-        // Animate aurora
-        this.time.addEvent({
-            delay: 50,
-            callback: () => this.updateAuroraLights(),
-            loop: true
-        });
-    }
-
-    updateAuroraLights() {
-        this.colorShiftTime += 0.02;
-
-        const colors = [0x00E676, 0x7FFFD4, 0x00FA9A, 0xFFD700, 0x00CED1];
-
-        this.auroraLights.forEach((aurora, i) => {
-            aurora.graphics.clear();
-
-            const colorIndex = Math.floor((this.colorShiftTime + i) % colors.length);
-            const color = colors[colorIndex];
-
-            aurora.graphics.fillStyle(color, 0.2 + Math.sin(this.colorShiftTime + i) * 0.1);
-
-            // Wavy aurora shape
-            aurora.graphics.beginPath();
-            aurora.graphics.moveTo(aurora.x, aurora.baseY + 100);
-
-            for (let x = 0; x < aurora.width; x += 20) {
-                const waveY = aurora.baseY + Math.sin((x + this.colorShiftTime * 50) * 0.02) * 30;
-                aurora.graphics.lineTo(aurora.x + x, waveY);
-            }
-
-            aurora.graphics.lineTo(aurora.x + aurora.width, aurora.baseY + 100);
-            aurora.graphics.closePath();
-            aurora.graphics.fillPath();
-        });
     }
 
     update(time, delta) {
@@ -478,14 +533,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             this.bossBody.setPosition(this.boss.x, this.boss.y + 35);
         }
 
+        this.updateAuroraEnemyActivation();
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
-        if (this.objectiveDisplay) {
-            this.objectiveDisplay.setText(this.getAuroraObjectiveText());
-            this.objectiveDisplay.setVisible(
-                !(this.isCompactObjectiveHUD && this.bossFightActive)
-            );
+        this.syncCampaignObjectiveDisplay({
+            visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
+        });
+        if (this.currentChargeAura?.active && this.player?.active) {
+            this.currentChargeAura.setPosition(this.player.x, this.player.y);
         }
         this.updateBossIndicator();
     }
@@ -500,49 +556,224 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     createAuroraSentinels() {
-        const groundY = this.levelHeight - 110;
-        const encounters = [
-            { x: 1460, y: groundY, health: 1, patrolRange: 105, speed: 38 },
-            { x: 2810, y: groundY, health: 2, patrolRange: 120, speed: 42 },
-            { x: 3920, y: groundY, health: 3, patrolRange: 120, speed: 46 }
-        ];
+        const encounters = AURORA_ENCOUNTER_PLAN.map(encounter => {
+            const support = this.getTraversalSupport(encounter.supportId);
+            if (!support?.body) {
+                throw new Error(
+                    `[AuroraDepthsLevel] Missing encounter support ${encounter.supportId}`
+                );
+            }
 
-        this.createPatrolSentinels(encounters, {
+            const bodyInset = 28;
+            const centerX = (support.body.left + support.body.right) / 2;
+            const x = Phaser.Math.Clamp(
+                centerX + (Number(encounter.offsetX) || 0),
+                support.body.left + bodyInset,
+                support.body.right - bodyInset
+            );
+            const availablePatrol = Math.max(0, Math.min(
+                x - support.body.left - bodyInset,
+                support.body.right - bodyInset - x
+            ));
+            return {
+                ...encounter,
+                x,
+                y: support.body.top - 28,
+                patrolRange: Math.min(encounter.patrolRange, availablePatrol)
+            };
+        });
+
+        const sentinels = this.createPatrolSentinels(encounters, {
             enemyType: 'auroraSentinel',
             texturePrefix: 'auroraSentinel',
             bodyColor: 0x173D49,
             accentColor: 0x7FFFD4,
             eyeColor: 0xF2C94C,
-            instructionText: 'GOLD MARK // STOMP OR STRIKE'
+            instructionText: null
         });
+
+        this.auroraEncounterRhythm = sentinels.map((enemy, index) => {
+            const encounter = encounters[index];
+            enemy.encounterBeat = encounter.beat;
+            enemy.encounterLane = encounter.lane;
+            enemy.encounterSupportId = encounter.supportId;
+            enemy.auroraProximityActive = null;
+            return enemy;
+        });
+        this.startAuroraEnemyScheduler();
+        return this.auroraEncounterRhythm;
+    }
+
+    retireAuroraPatrolsForPhoenix() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        this.auroraEnemyAISchedulerActive = false;
+        this.auroraProximityEnemies = [];
+        this.auroraEnemyActivationBounds = null;
+        const retirement = this.retireRouteEnemies(patrols);
+        this.auroraEncounterRhythm = [];
+        return retirement.enemyCount;
+    }
+
+    shouldAnimateAuroraDecorations() {
+        const width = Number(this.cameras?.main?.width) || 0;
+        const height = Number(this.cameras?.main?.height) || 0;
+        return !(this.isMobile || width <= 480 || height < 620);
+    }
+
+    startAuroraEnemyScheduler() {
+        this.auroraEnemyAISchedulerActive = true;
+        this.auroraEnemyActivationNextAt = 0;
+        this.auroraEnemyPatrolNextAt = 0;
+        this.auroraEnemyPatrolUpdateCount = 0;
+        this.updateAuroraEnemyActivation(true);
+    }
+
+    getAuroraEnemyActivationBounds() {
+        const view = this.cameras?.main?.worldView;
+        const playerX = Number(this.player?.x) || 0;
+        const playerY = Number(this.player?.y) || 0;
+        const width = Math.max(
+            320,
+            Number(view?.width) || Number(this.cameras?.main?.width) || 390
+        );
+        const height = Math.max(
+            320,
+            Number(view?.height) || Number(this.cameras?.main?.height) || 720
+        );
+        const horizontalMargin = this.isMobile ? 520 : 800;
+        const verticalMargin = this.isMobile ? 280 : 420;
+        const viewLeft = Number(view?.left) || 0;
+        const viewRight = Number(view?.right) || width;
+        const viewTop = Number(view?.top) || 0;
+        const viewBottom = Number(view?.bottom) || height;
+        return {
+            left: Math.min(viewLeft, playerX - width / 2) - horizontalMargin,
+            right: Math.max(viewRight, playerX + width / 2) + horizontalMargin,
+            top: Math.min(viewTop, playerY - height / 2) - verticalMargin,
+            bottom: Math.max(viewBottom, playerY + height / 2) + verticalMargin,
+            horizontalMargin,
+            verticalMargin
+        };
+    }
+
+    setAuroraEnemyRenderAttached(enemy, attached) {
+        if (!enemy || !this.children) return 0;
+        const targets = [
+            enemy,
+            enemy.combatCue,
+            enemy.instructionLabel
+        ].filter(target => Boolean(target) && target.active !== false);
+        let changedCount = 0;
+        targets.forEach(target => {
+            const isAttached = target.displayList === this.children;
+            if (attached && !isAttached) {
+                this.children.add(target);
+                changedCount += 1;
+            } else if (!attached && isAttached) {
+                this.children.remove(target);
+                changedCount += 1;
+            }
+        });
+        return changedCount;
+    }
+
+    setAuroraEnemyProximityActive(enemy, enabled) {
+        if (!enemy?.active || !enemy.body) return false;
+        const nextState = enabled === true;
+        if (enemy.auroraProximityActive === nextState) return nextState;
+
+        enemy.auroraProximityActive = nextState;
+        if (nextState) {
+            this.setAuroraEnemyRenderAttached(enemy, true);
+            enemy.setVisible(true);
+            enemy.body.enable = true;
+            enemy.body.updateFromGameObject?.();
+            const patrolSpeed = Math.max(25, Number(enemy.patrolSpeed) || 42);
+            enemy.setVelocityX(enemy.flipX ? -patrolSpeed : patrolSpeed);
+        } else {
+            enemy.setVelocity?.(0, 0);
+            enemy.body.updateFromGameObject?.();
+            enemy.body.enable = false;
+            enemy.setVisible(false);
+            enemy.combatCue?.setVisible?.(false);
+            enemy.instructionLabel?.setVisible?.(false);
+            this.setAuroraEnemyRenderAttached(enemy, false);
+        }
+        return nextState;
+    }
+
+    updateAuroraEnemyActivation(force = false) {
+        if (!this.auroraEnemyAISchedulerActive || !this.scene.isActive()) return 0;
+        const now = Number(this.time?.now) || 0;
+        if (!force && now < this.auroraEnemyActivationNextAt) {
+            return this.auroraProximityEnemies.length;
+        }
+        this.auroraEnemyActivationNextAt = now + (this.isMobile ? 120 : 80);
+
+        const bounds = this.getAuroraEnemyActivationBounds();
+        const nearby = [];
+        (this.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (!enemy?.active || !enemy.body) return;
+            const shouldWake =
+                enemy.x >= bounds.left &&
+                enemy.x <= bounds.right &&
+                enemy.y >= bounds.top &&
+                enemy.y <= bounds.bottom;
+            this.setAuroraEnemyProximityActive(enemy, shouldWake);
+            if (shouldWake) nearby.push(enemy);
+        });
+        this.auroraProximityEnemies = nearby;
+        this.auroraEnemyActivationBounds = bounds;
+        return nearby.length;
+    }
+
+    getRuntimePatrolEnemies() {
+        if (!this.auroraEnemyAISchedulerActive) {
+            return super.getRuntimePatrolEnemies();
+        }
+        return this.auroraProximityEnemies;
+    }
+
+    updatePatrolEnemyMovement() {
+        if (!this.auroraEnemyAISchedulerActive) {
+            return super.updatePatrolEnemyMovement();
+        }
+        const now = Number(this.time?.now) || 0;
+        if (now < this.auroraEnemyPatrolNextAt) return true;
+        this.auroraEnemyPatrolNextAt = now + (this.isMobile ? 80 : 40);
+        this.auroraEnemyPatrolUpdateCount += 1;
+        return super.updatePatrolEnemyMovement();
     }
 
     createQuietLightRoute() {
         const groundY = this.levelHeight - 50;
         const route = this.add.graphics().setDepth(105);
+        this.quietLightRouteVisual = route;
 
         route.lineStyle(5, 0x7FFFD4, 0.58);
         route.beginPath();
-        route.moveTo(2730, groundY - 190);
-        route.lineTo(2885, groundY - 300);
+        route.moveTo(2640, groundY - 150);
+        route.lineTo(2885, groundY - 290);
         route.lineTo(3150, groundY - 390);
         route.lineTo(3415, groundY - 330);
         route.lineTo(3590, groundY - 175);
         route.strokePath();
 
         [2885, 3150, 3415].forEach((x, index) => {
-            const y = [groundY - 300, groundY - 390, groundY - 330][index];
+            const y = [groundY - 290, groundY - 390, groundY - 330][index];
             route.fillStyle(index === 2 ? 0xF2C94C : 0xA9F3E4, 0.95);
             route.fillCircle(x, y, index === 2 ? 7 : 5);
         });
 
-        this.tweens.add({
-            targets: route,
-            alpha: { from: 0.55, to: 1 },
-            duration: 1100,
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.shouldAnimateAuroraDecorations()) {
+            this.tweens.add({
+                targets: route,
+                alpha: { from: 0.55, to: 1 },
+                duration: 1100,
+                yoyo: true,
+                repeat: -1
+            });
+        }
 
         const directRouteMarker = this.add.text(2820, groundY - 82, '', {
             fontSize: '11px',
@@ -569,30 +800,43 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             returnLabel: 'DESCEND TO SKY PRISM →',
             choice: {
                 mainLabel: 'SHADOW CURRENT →',
-                mainTradeoff: 'DIRECT // DAMAGE ZONE',
-                challengeLabel: 'HIGH JUMPS + CURRENT SHELTER',
+                mainTradeoff: 'SHORTER // 2 GUARDS // YOUR NEXT HIT +2',
+                challengeLabel: 'HIGH JUMPS // 1-HIT WARD // FEWER GUARDS',
                 mainMarker: directRouteMarker,
                 mainZone: {
                     left: 2700, right: 3500,
                     top: groundY - 180, bottom: this.levelHeight
                 },
+                mainSupportIds: ['aurora-ground-3'],
                 optionalZone: {
                     left: 2700, right: 3500,
                     top: 200, bottom: groundY - 180
                 },
+                optionalSupportIds: ['aurora-quiet-step-1'],
                 rejoinZone: {
                     left: 3500, right: 3900,
                     top: 300, bottom: this.levelHeight
-                }
+                },
+                rejoinSupportIds: [
+                    'aurora-sky-rejoin',
+                    'aurora-sky-prism'
+                ]
+            },
+            onMainSelected: () => {
+                this.selectAuroraRoute('shadow_current');
+            },
+            onOptionalSelected: () => {
+                this.selectAuroraRoute('quiet_light');
             },
             onComplete: () => {
                 this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1);
+                this.refreshPersistedExpeditionRouteState();
             }
         });
 
         const shelter = this.add.circle(
             3415,
-            groundY - 365,
+            groundY - 330,
             18,
             0xF2C94C,
             0.95
@@ -616,66 +860,208 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 strokeThickness: 4
             }
         ).setOrigin(0.5).setDepth(721);
+        this.optionalRoutePickupLabel = shelterLabel;
 
-        this.tweens.add({
-            targets: [shelter, shelterLabel],
-            y: '-=10',
-            duration: 900,
+        if (this.shouldAnimateAuroraDecorations()) {
+            this.optionalRoutePickupTween = this.tweens.add({
+                targets: [shelter, shelterLabel],
+                y: '-=10',
+                duration: 900,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        this.optionalRoutePickupOverlap = this.physics.add.overlap(
+            this.player,
+            shelter,
+            () => {
+                if (
+                    this.quietLightClaimed ||
+                    this.auroraRouteChoice === 'shadow_current' ||
+                    !shelter.active
+                ) return;
+                if (!this.isPlayerGroundedOnTraversalSupport(
+                    'aurora-quiet-step-3'
+                )) return;
+
+                this.quietLightClaimed = true;
+                this.selectAuroraRoute('quiet_light');
+                const rewardX = shelter.x;
+                const rewardY = shelter.y;
+                this.clearQuietLightPickup();
+                this.recordOptionalRouteProgress('aurora_quiet_light', {
+                    x: rewardX,
+                    y: rewardY
+                });
+                window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
+                    count: 22,
+                    color: [0xF2C94C, 0x7FFFD4, 0xFFFFFF],
+                    duration: 1000
+                });
+                window.AchievementSystem?.recordEvent?.('story_interaction', {
+                    event: 'aurora_quiet_light_route'
+                });
+            }
+        );
+    }
+
+    clearQuietLightPickup() {
+        this.optionalRoutePickupOverlap?.destroy?.();
+        this.optionalRoutePickupOverlap = null;
+        this.optionalRoutePickupTween?.remove?.();
+        this.optionalRoutePickupTween = null;
+        this.optionalRoutePickup?.destroy?.();
+        this.optionalRoutePickupLabel?.destroy?.();
+        this.optionalRoutePickup = null;
+        this.optionalRoutePickupLabel = null;
+    }
+
+    selectAuroraRoute(choice) {
+        if (!['quiet_light', 'shadow_current'].includes(choice)) return false;
+        if (this.auroraRouteChoice) return this.auroraRouteChoice === choice;
+
+        this.auroraRouteChoice = choice;
+        if (choice === 'shadow_current') {
+            this.currentChargeReady = true;
+            this.createCurrentChargeAura();
+            this.clearQuietLightPickup();
+            this.showFloatingText(
+                'CURRENT CHARGE // YOUR NEXT HIT +2 DAMAGE',
+                this.player.x,
+                this.player.y - 68,
+                '#D7A8FF'
+            );
+            window.FXLibrary?.stardustBurst?.(this, this.player.x, this.player.y, {
+                count: 20,
+                color: [0xC9A7E8, 0x7FFFD4, 0xFFFFFF],
+                duration: 850
+            });
+        }
+        this.refreshPersistedExpeditionRouteState();
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: choice === 'quiet_light'
+                ? 'aurora_quiet_light_route_selected'
+                : 'aurora_shadow_current_route'
+        });
+        return true;
+    }
+
+    clearCurrentChargeAura() {
+        this.currentChargeAuraTween?.remove?.();
+        this.currentChargeAuraTween = null;
+        this.currentChargeAura?.destroy?.();
+        this.currentChargeAura = null;
+    }
+
+    createCurrentChargeAura() {
+        this.clearCurrentChargeAura();
+        if (!this.player?.active) return null;
+
+        const aura = this.add.graphics()
+            .setPosition(this.player.x, this.player.y)
+            .setDepth(755);
+        aura.lineStyle(4, 0xC9A7E8, 0.92);
+        aura.strokeCircle(0, 0, 34);
+        aura.lineStyle(2, 0x7FFFD4, 0.8);
+        aura.strokeCircle(0, 0, 43);
+        aura.lineBetween(-30, 18, -43, 28);
+        aura.lineBetween(30, -18, 43, -28);
+        this.currentChargeAuraTween = this.tweens.add({
+            targets: aura,
+            scale: { from: 0.88, to: 1.12 },
+            alpha: { from: 0.55, to: 1 },
+            duration: 620,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+        this.currentChargeAura = aura;
+        return aura;
+    }
 
-        this.physics.add.overlap(this.player, shelter, () => {
-            if (this.quietLightClaimed || !shelter.active) return;
+    consumeCurrentCharge() {
+        if (!this.currentChargeReady) return 0;
 
-            this.quietLightClaimed = true;
-            const rewardX = shelter.x;
-            const rewardY = shelter.y;
-            shelter.destroy();
-            shelterLabel.destroy();
-            this.recordOptionalRouteProgress('aurora_quiet_light', {
-                x: rewardX,
-                y: rewardY
-            });
-            window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
-                count: 22,
-                color: [0xF2C94C, 0x7FFFD4, 0xFFFFFF],
-                duration: 1000
-            });
-            window.AchievementSystem?.recordEvent?.('story_interaction', {
-                event: 'aurora_quiet_light_route'
-            });
+        this.currentChargeReady = false;
+        this.clearCurrentChargeAura();
+        this.refreshPersistedExpeditionRouteState();
+        window.FXLibrary?.stardustBurst?.(this, this.boss.x, this.boss.y, {
+            count: 26,
+            color: [0xC9A7E8, 0x7FFFD4, 0xFFFFFF],
+            duration: 900
         });
+        return this.currentChargeDamage;
+    }
+
+    getExpeditionRouteState() {
+        if (!this.auroraRouteChoice) return null;
+        const quietRoute = this.optionalRouteRewards?.get?.(
+            'aurora_quiet_light'
+        );
+        return {
+            auroraRouteChoice: this.auroraRouteChoice,
+            currentChargeReady: this.currentChargeReady === true,
+            quietLightRewardClaimed: quietRoute?.completed === true,
+            quietLightGuardCharges: this.auroraRouteChoice === 'quiet_light'
+                ? this.optionalRouteGuardCharges
+                : 0
+        };
+    }
+
+    onOptionalRouteGuardConsumed() {
+        if (this.auroraRouteChoice === 'quiet_light') {
+            this.refreshPersistedExpeditionRouteState();
+        }
+    }
+
+    restoreAuroraRouteChoice(routeState) {
+        const choice = routeState?.auroraRouteChoice;
+        if (!['quiet_light', 'shadow_current'].includes(choice)) return false;
+
+        this.auroraRouteChoice = choice;
+        const route = this.optionalRouteRewards?.get?.('aurora_quiet_light');
+        const routeChoice = route?.choice;
+        if (routeChoice) {
+            routeChoice.selectedPath = choice === 'quiet_light'
+                ? 'optional'
+                : 'main';
+            routeChoice.optionalEntered = choice === 'quiet_light';
+            routeChoice.mainEntered = choice === 'shadow_current';
+            routeChoice.sequence = 1;
+        }
+
+        if (choice === 'shadow_current') {
+            this.currentChargeReady = routeState?.currentChargeReady === true;
+            this.clearQuietLightPickup();
+            if (this.currentChargeReady) this.createCurrentChargeAura();
+        } else if (routeState?.quietLightRewardClaimed === true) {
+            this.quietLightClaimed = true;
+            this.optionalRouteGuardCharges = Phaser.Math.Clamp(
+                Number(routeState?.quietLightGuardCharges) || 0,
+                0,
+                1
+            );
+            if (route) {
+                route.progress = route.required;
+                route.completed = true;
+                this.refreshOptionalRouteReward(route);
+            }
+            this.clearQuietLightPickup();
+        }
+        return true;
     }
 
     createHUD() {
         super.createHUD();
-
-        // Keep objectives readable above the playfield and mobile controls.
-        const { width, height } = this.cameras.main;
-        const isShortLandscape = width > height && height < 620;
-        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
-        this.objectiveDisplay = this.add.text(
-            width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
-            this.getAuroraObjectiveText(),
+        this.createCampaignObjectiveDisplay(
+            () => this.getAuroraObjectiveText(),
             {
-                fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
                 color: '#EFFFFB',
-                backgroundColor: 'rgba(6, 24, 31, 0.92)',
-                padding: { x: 10, y: 7 },
-                lineSpacing: 2,
-                align: 'left',
-                wordWrap: {
-                    width: this.isCompactObjectiveHUD ? 215 : 340
-                }
+                backgroundColor: 'rgba(6, 24, 31, 0.92)'
             }
-        ).setOrigin(1, 0)
-            .setScrollFactor(0)
-            .setDepth(1000);
+        );
     }
 
     getAuroraObjectiveText() {
@@ -683,7 +1069,12 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             'aurora_quiet_light',
             'OPTIONAL // QUIET LIGHT WARD'
         );
-        const optional = `${routeReward}\nOPTIONAL // AURORA FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
+        const routeStatus = this.auroraRouteChoice === 'shadow_current'
+            ? (this.currentChargeReady
+                ? 'DIRECT ROUTE // YOUR NEXT HIT +2 DAMAGE'
+                : 'DIRECT ROUTE // DAMAGE BONUS USED')
+            : routeReward;
+        const optional = `${routeStatus}\nOPTIONAL // AURORA FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
 
         if (this.bossDefeated) {
             return `QUIET UPLINK READY\nEARTH CONTACT NOT TRANSMITTED\n${optional}`;
@@ -712,12 +1103,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     showObjectiveToast() {
         const { width, height } = this.cameras.main;
         const isMobileLayout = this.isMobile || width <= 480 || height < 620;
+        const toastY = isMobileLayout
+            ? (height < 620 ? Math.min(142, height * 0.38) : Math.min(225, height * 0.28))
+            : 90;
         const toast = this.add.text(
             width / 2,
-            isMobileLayout ? 165 : 90,
-            'Align the aurora prisms without opening the uplink',
+            toastY,
+            'Follow the lit platforms. Align 3 prisms. Do not send the signal to Earth.',
             {
-                fontSize: isMobileLayout ? '16px' : '18px',
+                fontSize: isMobileLayout ? '15px' : '18px',
                 color: '#F2C94C',
                 backgroundColor: 'rgba(4, 18, 25, 0.82)',
                 padding: { x: 16, y: 8 },
@@ -729,7 +1123,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: toast,
             alpha: 0,
-            y: 60,
+            y: toastY - 20,
             delay: 2800,
             duration: 600,
             onComplete: () => toast.destroy()
@@ -742,6 +1136,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             { x: 2020, width: 170 },
             { x: 3230, width: 180 }
         ];
+        const pulseTargets = [];
 
         currents.forEach(({ x, width }) => {
             const y = this.levelHeight - 88;
@@ -755,25 +1150,42 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             visual.strokeRoundedRect(x, y - 28, width, 56, 12);
             visual.setDepth(110);
 
-            this.tweens.add({
-                targets: visual,
-                alpha: { from: 0.45, to: 0.9 },
-                duration: 950,
-                yoyo: true,
-                repeat: -1
-            });
+            const label = this.add.text(
+                x + width / 2,
+                y - 48,
+                'SHADOW CURRENT // JUMP',
+                {
+                    fontSize: '11px',
+                    color: '#F2C94C',
+                    fontStyle: 'bold',
+                    stroke: '#061319',
+                    strokeThickness: 4,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(111);
+            pulseTargets.push(visual);
 
             this.physics.add.overlap(this.player, zone, () => {
                 if (!this.isInvincible && !this.bossDefeated) {
                     this.takeDamage(1);
                 }
             });
-            this.shadowCurrents.push({ zone, visual });
+            this.shadowCurrents.push({ zone, visual, label });
+        });
+
+        this.shadowCurrentPulseTween?.remove?.();
+        this.shadowCurrentPulseTween = this.tweens.add({
+            targets: pulseTargets,
+            alpha: { from: 0.45, to: 0.9 },
+            duration: 950,
+            yoyo: true,
+            repeat: -1
         });
     }
 
     createAuroraFragments() {
         this.auroraFragments = this.physics.add.group();
+        const fragmentTargets = [];
         const positions = [
             [740, this.levelHeight - 340],
             [1490, this.levelHeight - 395],
@@ -790,16 +1202,21 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             fragment.body.setAllowGravity(false);
             fragment.body.setSize(32, 32);
             this.auroraFragments.add(fragment);
+            fragmentTargets.push(fragment);
+        });
 
-            this.tweens.add({
-                targets: fragment,
+        this.auroraFragmentTween?.remove?.();
+        this.auroraFragmentTween = null;
+        if (this.shouldAnimateAuroraDecorations()) {
+            this.auroraFragmentTween = this.tweens.add({
+                targets: fragmentTargets,
                 angle: 360,
-                y: y - 12,
+                y: '-=12',
                 duration: 1600,
                 repeat: -1,
                 yoyo: true
             });
-        });
+        }
 
         this.physics.add.overlap(
             this.player,
@@ -835,6 +1252,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             this.starFragmentsCollected >= this.totalStarFragments &&
             !this.auroraEggAwarded
         ) {
+            this.auroraFragmentTween?.remove?.();
+            this.auroraFragmentTween = null;
             this.auroraEggAwarded = true;
             this.time.delayedCall(450, () => {
                 this.showFloatingText(
@@ -858,9 +1277,27 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     createSignalPrisms() {
         const prisms = [
-            { id: 'aurora_prism_1', x: 1150, y: 610, label: 'LOWER PRISM' },
-            { id: 'aurora_prism_2', x: 2480, y: 490, label: 'HEART PRISM' },
-            { id: 'aurora_prism_3', x: 3680, y: 560, label: 'SKY PRISM' }
+            {
+                id: 'aurora_prism_1',
+                x: 1150,
+                y: 610,
+                label: 'LOWER PRISM',
+                activationSupportIds: ['aurora-lower-prism']
+            },
+            {
+                id: 'aurora_prism_2',
+                x: 2710,
+                y: 580,
+                label: 'HEART PRISM',
+                activationSupportIds: ['aurora-heart-launch']
+            },
+            {
+                id: 'aurora_prism_3',
+                x: 3820,
+                y: 560,
+                label: 'SKY PRISM',
+                activationSupportIds: ['aurora-sky-prism']
+            }
         ];
 
         prisms.forEach((prism, index) => {
@@ -868,13 +1305,19 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawSignalPrism(visual, prism.x, prism.y, false);
 
-            const label = this.add.text(prism.x, prism.y - 100, `${index + 1} // ${prism.label}`, {
-                fontSize: '11px',
-                color: '#87A49E',
-                fontStyle: 'bold',
-                stroke: '#061319',
-                strokeThickness: 3
-            }).setOrigin(0.5).setDepth(181);
+            const label = this.add.text(
+                prism.x,
+                prism.y - 100,
+                `${index + 1} // ${prism.label}\nLAND + ALIGN`,
+                {
+                    fontSize: '11px',
+                    color: '#87A49E',
+                    fontStyle: 'bold',
+                    stroke: '#061319',
+                    strokeThickness: 3,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(181);
 
             const zone = this.createObjectiveTriggerZone(
                 prism.x,
@@ -888,9 +1331,29 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                 visual,
                 label,
                 zone,
+                landingGuide: this.createTraversalLandingGuide(
+                    prism.activationSupportIds[0],
+                    0x7FFFD4,
+                    { animate: this.shouldAnimateAuroraDecorations() }
+                ),
                 aligned: false
             };
             this.physics.add.overlap(this.player, zone, () => {
+                if (!this.isPlayerGroundedOnTraversalSupport(
+                    signalPrism.activationSupportIds
+                )) {
+                    const now = this.time.now;
+                    if (now >= this.routeHintUntil) {
+                        this.showFloatingText(
+                            `LAND ON THE LIT PLATFORM // ${signalPrism.label}`,
+                            signalPrism.x,
+                            signalPrism.y - 135,
+                            '#F2C94C'
+                        );
+                        this.routeHintUntil = now + 1400;
+                    }
+                    return;
+                }
                 this.alignSignalPrism(signalPrism);
             });
             this.signalPrisms.push(signalPrism);
@@ -949,10 +1412,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         prism.aligned = true;
         prism.zone?.destroy?.();
         prism.zone = null;
+        this.retireTraversalLandingGuide(prism);
         this.prismsAligned++;
         this.drawSignalPrism(prism.visual, prism.x, prism.y, true);
         this.refreshPrismRouteReadability();
-        this.setCheckpoint(prism.x, this.levelHeight - 130, {
+        const checkpoint = this.getTraversalSupportCheckpoint(
+            prism.activationSupportIds[0],
+            prism.x
+        );
+        this.setCheckpoint(checkpoint.x, checkpoint.y, {
             persist: true,
             checkpointId: prism.id,
             checkpointIndex: prism.index
@@ -1010,24 +1478,48 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         );
     }
 
+    getTraversalAuditTargets() {
+        const shelter = {
+            id: 'aurora_quiet_light_shelter',
+            label: 'QUIET LIGHT SHELTER',
+            optional: true,
+            activationSupportIds: ['aurora-quiet-step-3'],
+            x: this.optionalRoutePickup?.x || 3415,
+            y: this.optionalRoutePickup?.y || this.levelHeight - 380,
+            body: this.optionalRoutePickup?.body
+        };
+        return [
+            ...this.signalPrisms,
+            shelter,
+            {
+                id: 'aurora_reactor_gate',
+                label: 'PHOENIX REACTOR',
+                activationSupportIds: ['aurora-phoenix-gate'],
+                x: this.reactorTriggerZone?.x || 4320,
+                y: this.reactorTriggerZone?.y || this.levelHeight / 2,
+                zone: this.reactorTriggerZone
+            }
+        ].sort((left, right) => Number(left.x) - Number(right.x));
+    }
+
     restoreExpeditionRouteState(resume) {
-        return this.restoreExpeditionRouteSignals(resume, {
+        const restored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.signalPrisms,
             activeProperty: 'aligned',
             countProperty: 'prismsAligned',
             readyProperty: 'uplinkRiskUnderstood',
             labelColor: '#A9F3E4',
-            drawSignal: prism => this.drawSignalPrism(
-                prism.visual,
-                prism.x,
-                prism.y,
-                true
-            ),
+            drawSignal: prism => {
+                this.drawSignalPrism(prism.visual, prism.x, prism.y, true);
+                this.retireTraversalLandingGuide(prism);
+            },
             onRestored: () => {
+                this.restoreAuroraRouteChoice(resume?.routeState);
                 this.refreshPrismRouteReadability();
-                this.objectiveDisplay?.setText?.(this.getAuroraObjectiveText());
+                this.syncCampaignObjectiveDisplay();
             }
         });
+        return restored;
     }
 
     createBossArena() {
@@ -1053,6 +1545,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             this.levelHeight
         );
         this.physics.add.existing(triggerZone, true);
+        this.reactorTriggerZone = triggerZone;
         this.createGuardianGateState({
             x: arenaX + 320,
             y: groundY - 70,
@@ -1062,10 +1555,30 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             color: 0x00E676,
             readyColor: 0xF2C94C
         });
+        this.phoenixLandingGuide = this.createTraversalLandingGuide(
+            'aurora-phoenix-gate',
+            0xF2C94C,
+            { animate: this.shouldAnimateAuroraDecorations() }
+        );
 
         if (this.player) {
             this.physics.add.overlap(this.player, triggerZone, () => {
                 if (!this.bossFightActive && !this.bossDefeated) {
+                    if (!this.isPlayerGroundedOnTraversalSupport(
+                        'aurora-phoenix-gate'
+                    )) {
+                        const now = this.time.now;
+                        if (now >= this.reactorGateHintUntil) {
+                            this.showFloatingText(
+                                'LAND AT THE PHOENIX GATE',
+                                this.player.x,
+                                this.player.y - 70,
+                                '#F2C94C'
+                            );
+                            this.reactorGateHintUntil = now + 1400;
+                        }
+                        return;
+                    }
                     if (!this.uplinkRiskUnderstood) {
                         const now = this.time.now;
                         if (now >= this.reactorGateHintUntil) {
@@ -1082,13 +1595,16 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                     const guardianEntered = this.beginGuardianEncounter({
                         id: 'shadow_phoenix',
                         title: 'AURORA PHOENIX',
-                        checkpoint: {
-                            x: 4070,
-                            y: this.levelHeight - 170
-                        },
+                        checkpoint: this.getTraversalSupportCheckpoint(
+                            'aurora-phoenix-gate',
+                            arenaX + 320
+                        ),
                         start: () => this.startBossFight()
                     });
-                    if (guardianEntered) triggerZone.destroy();
+                    if (guardianEntered) {
+                        triggerZone.destroy();
+                        this.reactorTriggerZone = null;
+                    }
                 }
             });
         }
@@ -1099,6 +1615,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         console.log('[AuroraDepthsLevel] Starting Aurora Phoenix restoration!');
         this.bossFightActive = true;
+        this.retireAuroraPatrolsForPhoenix();
 
         this.physics.pause();
         window.FeedbackManager?.cameraFlash?.(this, 220, 0, 230, 118);
@@ -1903,17 +2420,20 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     damageBoss(amount = 1) {
-        if (!this.boss?.active || this.bossDefeated) return;
+        if (!this.boss?.active || this.bossDefeated) return false;
 
         const recoveryBonus = this.time.now < this.bossRecoveryUntil ? 1 : 0;
-        const finalAmount = amount + recoveryBonus;
+        const routeBonus = this.consumeCurrentCharge();
+        const finalAmount = amount + recoveryBonus + routeBonus;
         this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.updateBossHealthBar();
 
         this.showFloatingText(
-            recoveryBonus
-                ? `OPEN EXPOSURE -${finalAmount}`
-                : `EXPOSURE -${finalAmount}`,
+            routeBonus
+                ? `CURRENT RELEASE -${finalAmount}`
+                : recoveryBonus
+                    ? `OPEN EXPOSURE -${finalAmount}`
+                    : `EXPOSURE -${finalAmount}`,
             this.boss.x,
             this.boss.y - 100,
             '#A9F3E4'
@@ -1948,6 +2468,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         if (window.AudioManager) {
             window.AudioManager.playAttack();
         }
+        return true;
     }
 
     beginPhoenixPhase(nextPhase, {
@@ -2303,8 +2824,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.clearBossEncounterTimers();
         this.clearBossEncounterEffects();
 
-        this.auroraLights.forEach(aurora => aurora.graphics.destroy());
-        this.auroraLights = [];
         this.signalPrisms.forEach(prism => {
             prism.visual?.destroy?.();
             prism.label?.destroy?.();
@@ -2314,12 +2833,24 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.shadowCurrents.forEach(current => {
             current.zone?.destroy?.();
             current.visual?.destroy?.();
+            current.label?.destroy?.();
         });
+        this.shadowCurrentPulseTween?.remove?.();
+        this.shadowCurrentPulseTween = null;
         this.shadowCurrents = [];
+        this.clearQuietLightPickup();
+        this.clearCurrentChargeAura();
+        this.auroraFragmentTween?.remove?.();
+        this.auroraFragmentTween = null;
         // Phaser owns this physics group and destroys it during Scene shutdown.
         // Clearing it here can run after the physics world has already disposed
         // the group's body set when campaign scenes are stopped in quick succession.
         this.auroraFragments = null;
+        this.auroraEnemyAISchedulerActive = false;
+        this.auroraProximityEnemies = [];
+        this.auroraEnemyActivationBounds = null;
+        this.quietLightRouteVisual = null;
+        this.phoenixLandingGuide = null;
         this.objectiveDisplay?.destroy?.();
         this.objectiveDisplay = null;
 

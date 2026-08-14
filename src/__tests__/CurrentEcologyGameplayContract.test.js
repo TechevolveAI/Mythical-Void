@@ -28,6 +28,7 @@ describe('Current ecology gameplay contract', () => {
         expect(source).toContain('aurora_depths_1: Object.freeze({');
         expect(source).toContain('final_void_1: Object.freeze({');
         expect(source).toContain('this.createCurrentEcologyNode();');
+        expect(source).toContain("supportId: 'caves-chamber-bridge'");
     });
 
     test('applies and explains one bounded upstream consequence', () => {
@@ -70,7 +71,15 @@ describe('Current ecology gameplay contract', () => {
     test('supports touch and a dedicated keyboard interaction', () => {
         expect(source).toContain('Phaser.Input.Keyboard.KeyCodes.E');
         expect(source).toContain(
-            "zone.on('pointerdown', () => this.showCurrentEcologyModal());"
+            "prompt.on('pointerdown', () => this.requestCurrentEcologyInteraction());"
+        );
+        expect(source).toContain(
+            "zone.on('pointerdown', () => this.requestCurrentEcologyInteraction());"
+        );
+        expect(source).toContain("'TAP TO SCAN LIVING CURRENT'");
+        expect(source).toContain("'[E] SCAN LIVING CURRENT'");
+        expect(source).toContain(
+            'const zone = this.add.zone(x, y - 30, 240, 240)'
         );
         expect(source).toContain('this.hidePlatformerMobileControls?.();');
     });

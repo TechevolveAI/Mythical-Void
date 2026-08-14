@@ -1,8 +1,19 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
+import { calculateBallisticLaunchVelocity } from '../../systems/TraversalTopology.js';
 
 const COSMIC_TITAN_TEXTURE = 'cosmicTitan';
 const COSMIC_TITAN_ASSET = '/game/guardians/cosmic-titan.webp';
 const COSMIC_TITAN_DISPLAY_HEIGHT = 300;
+const COSMIC_TITAN_MOBILE_DISPLAY_HEIGHT = 240;
+
+const TITAN_ARENA = Object.freeze({
+    playerEntryX: 4500,
+    introFocusX: 4610,
+    bossX: 4720,
+    playerBottomOffset: 295,
+    bossBottomOffset: 435,
+    openingGraceMs: 3000
+});
 
 const TITAN_ATTACK_WINDOWS = Object.freeze({
     gravityCrush: 1800,
@@ -13,6 +24,78 @@ const TITAN_ATTACK_WINDOWS = Object.freeze({
 const TITAN_ATTACK_WINDUP = 700;
 const TITAN_RECOVERY_WINDOW = 650;
 const TITAN_PHASE_RECOVERY = 1300;
+
+const PEAK_ENCOUNTER_PLAN = Object.freeze([
+    Object.freeze({
+        beat: 'opening-clear',
+        supportId: 'peak-opening-step',
+        lane: 'shared',
+        health: 1,
+        patrolRange: 55,
+        speed: 38
+    }),
+    Object.freeze({
+        beat: 'lower-relay-lesson',
+        supportId: 'peak-ground-lower-relay',
+        lane: 'shared',
+        offsetX: -160,
+        health: 2,
+        patrolRange: 80,
+        speed: 40
+    }),
+    Object.freeze({
+        beat: 'climb-pressure',
+        supportId: 'peak-lower-ascent',
+        lane: 'shared',
+        health: 2,
+        patrolRange: 55,
+        speed: 42
+    }),
+    Object.freeze({
+        beat: 'lower-route-guard',
+        supportId: 'peak-floor-lower',
+        lane: 'shared',
+        offsetX: -100,
+        health: 3,
+        patrolRange: 90,
+        speed: 43
+    }),
+    Object.freeze({
+        beat: 'warning-line-guard',
+        supportId: 'peak-floor-summit',
+        lane: 'main',
+        offsetX: -140,
+        health: 2,
+        patrolRange: 50,
+        speed: 44
+    }),
+    Object.freeze({
+        beat: 'summit-floor-guard',
+        supportId: 'peak-floor-summit',
+        lane: 'main',
+        offsetX: 120,
+        health: 3,
+        patrolRange: 55,
+        speed: 45
+    }),
+    Object.freeze({
+        beat: 'titan-approach',
+        supportId: 'peak-ground-titan-pass',
+        lane: 'shared',
+        offsetX: -450,
+        health: 3,
+        patrolRange: 110,
+        speed: 46
+    }),
+    Object.freeze({
+        beat: 'titan-overlook',
+        supportId: 'peak-titan-overlook',
+        lane: 'shared',
+        health: 4,
+        patrolRange: 65,
+        speed: 47
+    })
+]);
 
 /**
  * VoidPeaksLevel - mountain platformer level before the final void.
@@ -42,6 +125,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
 
         this.starFragmentsCollected = 0;
+        this.peakCollectedFragmentMask = 0;
+        this.peakRouteChoice = '';
         this.totalStarFragments = 5;
         this.bossDefeated = false;
         this.bossFightActive = false;
@@ -52,10 +137,27 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossPhase = 1;
         this.bossAttackTimer = null;
         this.peakHazards = [];
+        this.peakReturnCurrents = [];
+        this.activePeakReturnCurrent = null;
         this.beaconRelays = [];
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
         this.replySignals = [];
+        this.peakStarField = [];
+        this.peakStarLayer = null;
+        this.peakEmbers = [];
+        this.peakEmberLayer = null;
+        this.peakEmberDrawNextAt = 0;
+        this.peakEmberViewCenterX = Number.NaN;
+        this.peakEmberDrawCount = 0;
+        this.peakEmberVisibleCount = 0;
+        this.peakProximityEnemies = [];
+        this.peakEnemyAISchedulerActive = false;
+        this.peakEnemyActivationBounds = null;
+        this.peakEnemyActivationNextAt = 0;
+        this.peakEnemyPatrolNextAt = 0;
+        this.peakEnemyPatrolUpdateCount = 0;
+        this.titanGate = null;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
         this.cosmicEggAwarded = false;
@@ -67,7 +169,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossEncounterEffects = new Set();
         this.bossEncounterTimers = new Set();
         this.bossAttackPreview = null;
+        this.bossAttackPreviewTimer = null;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.bossPressureText = null;
+        this.peakEncounterRhythm = [];
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
     }
@@ -77,6 +183,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         this.testMode = data?.testMode || false;
         this.starFragmentsCollected = 0;
+        this.peakCollectedFragmentMask = 0;
+        this.peakRouteChoice = '';
         this.bossDefeated = false;
         this.bossFightActive = false;
         this.boss = null;
@@ -85,10 +193,27 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossPhase = 1;
         this.bossAttackTimer = null;
         this.peakHazards = [];
+        this.peakReturnCurrents = [];
+        this.activePeakReturnCurrent = null;
         this.beaconRelays = [];
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
         this.replySignals = [];
+        this.peakStarField = [];
+        this.peakStarLayer = null;
+        this.peakEmbers = [];
+        this.peakEmberLayer = null;
+        this.peakEmberDrawNextAt = 0;
+        this.peakEmberViewCenterX = Number.NaN;
+        this.peakEmberDrawCount = 0;
+        this.peakEmberVisibleCount = 0;
+        this.peakProximityEnemies = [];
+        this.peakEnemyAISchedulerActive = false;
+        this.peakEnemyActivationBounds = null;
+        this.peakEnemyActivationNextAt = 0;
+        this.peakEnemyPatrolNextAt = 0;
+        this.peakEnemyPatrolUpdateCount = 0;
+        this.titanGate = null;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
         this.cosmicEggAwarded = false;
@@ -99,6 +224,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.titanRecoveryUntil = 0;
         this.bossEncounterEffects = new Set();
         this.bossEncounterTimers = new Set();
+        this.bossAttackPreviewTimer = null;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.bossAttackPreview = [
             'gravityCrush',
             'starRain',
@@ -108,6 +236,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             ? data.bossAttackPreview
             : null;
         this.bossPressureText = null;
+        this.peakEncounterRhythm = [];
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
 
@@ -143,7 +272,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.createPeakAtmosphere();
 
         if (this.player) {
-            this.player.setPosition(4200, this.levelHeight - 210);
+            this.player.setPosition(
+                TITAN_ARENA.playerEntryX,
+                this.levelHeight - TITAN_ARENA.playerBottomOffset
+            );
         }
 
         this.showPlatformerMobileControls();
@@ -247,6 +379,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
         entryElements.push(enterBtn);
 
+        this.layoutCampaignEntryContent(
+            layout,
+            [title, subtitle, mission, objective, checklist, enterBtn],
+            { gaps: [8, 10, 10, 10, 14] }
+        );
+
         enterBtn.on('pointerover', () => enterBtn.setColor('#FFD700'));
         enterBtn.on('pointerout', () => enterBtn.setColor('#FF6B35'));
 
@@ -317,17 +455,21 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }
         bg.setDepth(-900);
 
-        for (let i = 0; i < 35; i++) {
-            const star = this.add.circle(
-                Phaser.Math.Between(0, this.levelWidth),
-                Phaser.Math.Between(20, 360),
-                Phaser.Math.FloatBetween(1, 3),
-                Phaser.Utils.Array.GetRandom([0x8B008B, 0xFF4500, 0xFFFFFF]),
-                Phaser.Math.FloatBetween(0.25, 0.75)
-            );
-            star.setScrollFactor(0.18);
-            star.setDepth(-850);
-        }
+        this.peakStarField = Array.from({ length: 35 }, () => ({
+            x: Phaser.Math.Between(0, this.levelWidth),
+            y: Phaser.Math.Between(20, 360),
+            radius: Phaser.Math.FloatBetween(1, 3),
+            color: Phaser.Utils.Array.GetRandom([0x8B008B, 0xFF4500, 0xFFFFFF]),
+            alpha: Phaser.Math.FloatBetween(0.25, 0.75),
+            batched: true
+        }));
+        this.peakStarLayer = this.add.graphics()
+            .setScrollFactor(0.18)
+            .setDepth(-850);
+        this.peakStarField.forEach(star => {
+            this.peakStarLayer.fillStyle(star.color, star.alpha);
+            this.peakStarLayer.fillCircle(star.x, star.y, star.radius);
+        });
     }
 
     createPlatforms() {
@@ -335,32 +477,49 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         const groundY = this.levelHeight - 50;
         // Floor islands are recovery spaces. Wide geyser breaks keep them from becoming a bypass.
-        this.createPlatform(0, groundY, 620, 80, 'solid');
-        this.createPlatform(980, groundY, 520, 80, 'solid');
-        this.createPlatform(1880, groundY, 540, 80, 'solid');
-        this.createPlatform(2920, groundY, 460, 80, 'solid');
-        this.createPlatform(3900, groundY, 1300, 80, 'solid');
+        const arrivalGround = this.createPlatform(0, groundY, 620, 80, 'solid');
+        arrivalGround.traversalId = 'peak-ground-arrival';
+        const lowerRelayGround = this.createPlatform(980, groundY, 520, 80, 'solid');
+        lowerRelayGround.traversalId = 'peak-ground-lower-relay';
+        const lowerRecoveryIsland = this.createPlatform(1880, groundY, 540, 80, 'solid');
+        lowerRecoveryIsland.traversalId = 'peak-floor-lower';
+        lowerRecoveryIsland.traversalLinks = ['peak-warning-lower'];
+        const summitRecoveryIsland = this.createPlatform(2920, groundY, 460, 80, 'solid');
+        summitRecoveryIsland.traversalId = 'peak-floor-summit';
+        summitRecoveryIsland.traversalLinks = ['peak-warning-summit'];
+        const titanGround = this.createPlatform(3900, groundY, 1300, 80, 'solid');
+        titanGround.traversalId = 'peak-ground-titan-pass';
 
         const ledges = [
-            [520, groundY - 145, 210], [820, groundY - 245, 180], [1180, groundY - 180, 260],
-            [1560, groundY - 310, 220], [1980, groundY - 235, 230], [2380, groundY - 365, 220],
-            [2780, groundY - 265, 210], [3180, groundY - 400, 240], [3580, groundY - 270, 220],
-            [4020, groundY - 210, 260], [4420, groundY - 320, 240]
+            // Keep the first required landing inside the opening mobile view.
+            [300, groundY - 145, 210, 'solid', 'peak-opening-step'],
+            [600, groundY - 245, 180, 'solid', 'peak-opening-rise'],
+            [980, groundY - 150, 460, 'solid', 'peak-lower-relay-overlook'],
+            [1560, groundY - 290, 220, 'solid', 'peak-lower-ascent'],
+            [1980, groundY - 235, 230, 'solid', 'peak-ridge-approach'],
+            [2280, groundY - 365, 320, 'one-way', 'peak-warning-lower'],
+            [2780, groundY - 265, 210, 'solid', 'peak-main-handoff'],
+            [3180, groundY - 400, 240, 'one-way', 'peak-warning-summit'],
+            [3580, groundY - 270, 220, 'solid', 'peak-summit-relay'],
+            [4020, groundY - 210, 260, 'solid', 'peak-titan-approach'],
+            [4420, groundY - 320, 240, 'solid', 'peak-titan-overlook']
         ];
 
-        ledges.forEach(([x, y, width]) => {
-            this.createPlatform(x, y, width, 28, 'solid');
+        ledges.forEach(([x, y, width, type = 'solid', id = null]) => {
+            const platform = this.createPlatform(x, y, width, 28, type);
+            if (id) platform.traversalId = id;
         });
 
         // Optional Relic Ridge: a higher, safer line with two Star Fragments.
         const relicRidge = [
-            [2640, 345, 180],
-            [2910, 280, 190],
-            [3190, 250, 200],
-            [3440, 350, 180]
+            [2640, 345, 180, 'peak-relic-ridge-1'],
+            [2910, 280, 190, 'peak-relic-ridge-2'],
+            [3190, 250, 200, 'peak-relic-ridge-3'],
+            [3440, 350, 180, 'peak-relic-ridge-4']
         ];
-        relicRidge.forEach(([x, y, width]) => {
-            this.createPlatform(x, y, width, 28, 'one-way');
+        relicRidge.forEach(([x, y, width, id]) => {
+            const platform = this.createPlatform(x, y, width, 28, 'one-way');
+            platform.traversalId = id;
         });
 
         this.createBossArena();
@@ -372,6 +531,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.collectibles = this.physics.add.group();
 
         this.createVoidGeysers();
+        this.createPeakReturnCurrents();
         this.createPeakEnemies();
         this.createStarFragments();
         this.createSignalRelays();
@@ -381,29 +541,81 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.physics.add.overlap(this.player, this.collectibles, this.collectItem, null, this);
     }
 
+    shouldAnimatePeakRouteDecorations() {
+        const width = Number(this.cameras?.main?.width) || 0;
+        const height = Number(this.cameras?.main?.height) || 0;
+        return !(this.isMobile || width <= 480 || height < 620);
+    }
+
     createPeakAtmosphere() {
-        for (let i = 0; i < 18; i++) {
-            const ember = this.add.circle(
-                Phaser.Math.Between(0, this.levelWidth),
-                Phaser.Math.Between(120, this.levelHeight - 180),
-                Phaser.Math.FloatBetween(3, 8),
-                Phaser.Utils.Array.GetRandom([0xFF4500, 0x9400D3, 0xFFD700]),
-                0.55
-            );
-            ember.setDepth(40);
-            this.tweens.add({
-                targets: ember,
-                y: ember.y - Phaser.Math.Between(80, 180),
-                alpha: 0.05,
-                duration: Phaser.Math.Between(3200, 6200),
-                repeat: -1,
-                yoyo: true,
-                ease: 'Sine.easeInOut'
-            });
+        this.peakEmberLayer?.destroy?.();
+        this.peakEmberLayer = this.add.graphics().setDepth(40);
+        this.peakEmbers = Array.from({ length: 18 }, () => ({
+            x: Phaser.Math.Between(0, this.levelWidth),
+            originY: Phaser.Math.Between(120, this.levelHeight - 180),
+            radius: Phaser.Math.FloatBetween(3, 8),
+            color: Phaser.Utils.Array.GetRandom([0xFF4500, 0x9400D3, 0xFFD700]),
+            travel: Phaser.Math.Between(80, 180),
+            duration: Phaser.Math.Between(3200, 6200),
+            phaseOffset: Phaser.Math.Between(0, 6200),
+            batched: true
+        }));
+        this.peakEmberDrawNextAt = 0;
+        this.peakEmberViewCenterX = Number.NaN;
+        this.peakEmberDrawCount = 0;
+        this.drawPeakEmbers(0, true);
+    }
+
+    drawPeakEmbers(time, force = false) {
+        if (!this.peakEmberLayer?.active) return;
+
+        const now = Number(time) || 0;
+        const view = this.cameras?.main?.worldView;
+        const left = Number(view?.left) || 0;
+        const right = Number(view?.right) || this.levelWidth;
+        const top = Number(view?.top) || 0;
+        const bottom = Number(view?.bottom) || this.levelHeight;
+        const viewCenterX = (left + right) / 2;
+        const compactViewport = this.isMobile ||
+            (Number(this.cameras?.main?.width) || 0) <= 480 ||
+            (Number(this.cameras?.main?.height) || 0) < 620;
+
+        if (!force && compactViewport) {
+            const redrawDistance = Math.max(180, (right - left) * 0.45);
+            if (
+                Number.isFinite(this.peakEmberViewCenterX) &&
+                Math.abs(viewCenterX - this.peakEmberViewCenterX) < redrawDistance
+            ) return;
+        } else if (!force && now < this.peakEmberDrawNextAt) {
+            return;
         }
+
+        this.peakEmberDrawNextAt = now + 50;
+        this.peakEmberViewCenterX = viewCenterX;
+        const renderTime = compactViewport ? 0 : now;
+        let visibleCount = 0;
+        this.peakEmberLayer.clear();
+        this.peakEmbers.forEach(ember => {
+            if (ember.x < left - 140 || ember.x > right + 140) return;
+            const phase = ((renderTime + ember.phaseOffset) % ember.duration) /
+                ember.duration;
+            const rise = (Math.sin((phase * Math.PI * 2) - (Math.PI / 2)) + 1) / 2;
+            const y = ember.originY - (ember.travel * rise);
+            if (y < top - 100 || y > bottom + 100) return;
+            const alpha = 0.05 + ((1 - rise) * 0.5);
+
+            visibleCount += 1;
+            this.peakEmberLayer.fillStyle(ember.color, alpha * 0.34);
+            this.peakEmberLayer.fillCircle(ember.x, y, ember.radius * 1.8);
+            this.peakEmberLayer.fillStyle(ember.color, alpha);
+            this.peakEmberLayer.fillCircle(ember.x, y, ember.radius);
+        });
+        this.peakEmberVisibleCount = visibleCount;
+        this.peakEmberDrawCount += 1;
     }
 
     createVoidGeysers() {
+        const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
         const geysers = [
             { x: 620, width: 360 }, { x: 1500, width: 380 },
             { x: 2420, width: 500 }, { x: 3380, width: 520 }
@@ -423,13 +635,15 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             visual.strokeRoundedRect(x, y - 86, width, 86, 10);
             visual.setDepth(120);
 
-            this.tweens.add({
-                targets: visual,
-                alpha: { from: 0.35, to: 0.85 },
-                duration: 900,
-                yoyo: true,
-                repeat: -1
-            });
+            if (animateRouteDecorations) {
+                this.tweens.add({
+                    targets: visual,
+                    alpha: { from: 0.35, to: 0.85 },
+                    duration: 900,
+                    yoyo: true,
+                    repeat: -1
+                });
+            }
 
             this.physics.add.overlap(this.player, hazard, () => {
                 if (!this.isInvincible) {
@@ -439,39 +653,413 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
     }
 
-    createPeakEnemies() {
-        const enemyPositions = [
-            { x: 1160, y: this.levelHeight - 110, health: 3 },
-            { x: 2050, y: this.levelHeight - 110, health: 3 },
-            { x: 3200, y: this.levelHeight - 110, health: 4 },
-            { x: 4300, y: this.levelHeight - 110, health: 4 }
+    createPeakReturnCurrents() {
+        const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
+        const currents = [
+            {
+                id: 'peak-return-lower',
+                x: 2350,
+                top: 460,
+                bottom: this.levelHeight - 48,
+                width: 120,
+                destinationId: 'peak-warning-lower'
+            },
+            {
+                id: 'peak-return-summit',
+                x: 3260,
+                top: 425,
+                bottom: this.levelHeight - 48,
+                width: 150,
+                destinationId: 'peak-warning-summit'
+            }
         ];
 
-        enemyPositions.forEach((enemyData, index) => {
-            const textureKey = `voidPeakSentinel_${index}`;
-            this.createSentinelTexture(textureKey, index % 2 === 0 ? 0x4B0082 : 0x8B0000);
+        currents.forEach(definition => {
+            const height = definition.bottom - definition.top;
+            const zone = this.add.zone(
+                definition.x,
+                definition.top + height / 2,
+                definition.width,
+                height
+            );
+            this.physics.add.existing(zone, true);
 
-            const enemy = this.physics.add.sprite(enemyData.x, enemyData.y, textureKey);
+            const visual = this.add.graphics();
+            visual.fillStyle(0x8FE3CF, 0.12);
+            visual.fillRoundedRect(
+                definition.x - definition.width / 2,
+                definition.top,
+                definition.width,
+                height,
+                14
+            );
+            visual.lineStyle(2, 0x8FE3CF, 0.72);
+            visual.lineBetween(
+                definition.x,
+                definition.bottom - 18,
+                definition.x,
+                definition.top + 24
+            );
+            for (let y = definition.bottom - 55; y > definition.top + 35; y -= 58) {
+                visual.strokeTriangle(
+                    definition.x - 14,
+                    y + 10,
+                    definition.x,
+                    y - 8,
+                    definition.x + 14,
+                    y + 10
+                );
+            }
+            visual.setDepth(130);
+
+            const label = this.add.text(
+                definition.x,
+                definition.bottom - 68,
+                'RETURN CURRENT\nTO WARNING LINE ↑',
+                {
+                    fontSize: '11px',
+                    color: '#8FE3CF',
+                    fontStyle: 'bold',
+                    stroke: '#09030E',
+                    strokeThickness: 4,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(185);
+
+            const current = {
+                ...definition,
+                zone,
+                visual,
+                label,
+                activations: 0,
+                lastLiftAt: Number.NEGATIVE_INFINITY
+            };
+            this.physics.add.overlap(this.player, zone, () => {
+                this.activatePeakReturnCurrent(current);
+            });
+            if (animateRouteDecorations) {
+                this.tweens.add({
+                    targets: visual,
+                    alpha: { from: 0.55, to: 1 },
+                    duration: 720,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
+            this.peakReturnCurrents.push(current);
+        });
+    }
+
+    activatePeakReturnCurrent(current) {
+        if (
+            !current ||
+            !this.player?.body ||
+            this.isPlayerDead ||
+            this.activePeakReturnCurrent
+        ) return false;
+
+        const body = this.player.body;
+        const grounded = body.blocked.down || this.isGrounded;
+        const inLaunchBand = body.bottom >= current.bottom - 90;
+        const now = Number(this.time?.now) || 0;
+
+        if (!grounded || !inLaunchBand) return false;
+        if (now - current.lastLiftAt < 650) return false;
+
+        current.activations += 1;
+        current.lastLiftAt = now;
+        this.showFloatingText(
+            'RETURN CURRENT // WARNING LINE',
+            current.x,
+            this.player.y - 55,
+            '#8FE3CF'
+        );
+
+        const horizontalCorrection = Phaser.Math.Clamp(
+            (current.x - this.player.x) * 2.4,
+            -85,
+            85
+        );
+        const launchVelocity = calculateBallisticLaunchVelocity({
+            gravityY: this.gravityY,
+            rise: current.bottom - current.top - 20,
+            minimumSpeed: 330
+        });
+        this.player.setVelocityX(horizontalCorrection);
+        this.player.setVelocityY(Math.max(launchVelocity, -470));
+        this.activePeakReturnCurrent = {
+            id: current.id,
+            destinationId: current.destinationId,
+            phase: 'lift',
+            expiresAt: now + 3600
+        };
+        return true;
+    }
+
+    updatePeakReturnCurrentGuidance() {
+        const active = this.activePeakReturnCurrent;
+        const body = this.player?.body;
+        if (!active || !body) return false;
+        if (this.isPlayerDead || this.isRespawning) {
+            this.activePeakReturnCurrent = null;
+            return false;
+        }
+
+        if (this.isPlayerSettledOnTraversalSupport(active.destinationId)) {
+            this.activePeakReturnCurrent = null;
+            return true;
+        }
+
+        const now = Number(this.time?.now) || 0;
+        const destination = this.getTraversalSupport(active.destinationId);
+        if (!destination?.body || now >= active.expiresAt) {
+            this.activePeakReturnCurrent = null;
+            return false;
+        }
+
+        const targetX = Phaser.Math.Clamp(
+            destination.x,
+            destination.body.left + 42,
+            destination.body.right - 42
+        );
+        const correction = Phaser.Math.Clamp(
+            (targetX - this.player.x) * 1.35,
+            -150,
+            150
+        );
+        if (Math.abs(targetX - this.player.x) > 8) {
+            this.player.setVelocityX(correction);
+        }
+        if (active.phase === 'lift') {
+            if (body.bottom > destination.body.top - 70) {
+                this.player.setVelocityY(Math.min(body.velocity.y, -330));
+            } else {
+                active.phase = 'settle';
+                this.player.setVelocityY(Math.max(body.velocity.y, 35));
+            }
+        } else if (body.velocity.y < 25) {
+            this.player.setVelocityY(25);
+        }
+        return true;
+    }
+
+    createPeakEnemies() {
+        this.peakEncounterRhythm = PEAK_ENCOUNTER_PLAN.map((encounter, index) => {
+            const support = this.getTraversalSupport(encounter.supportId);
+            if (!support?.body) {
+                throw new Error(
+                    `[VoidPeaksLevel] Missing encounter support ${encounter.supportId}`
+                );
+            }
+
+            const bodyInset = 28;
+            const centerX = (support.body.left + support.body.right) / 2;
+            const x = Phaser.Math.Clamp(
+                centerX + (Number(encounter.offsetX) || 0),
+                support.body.left + bodyInset,
+                support.body.right - bodyInset
+            );
+            const availablePatrol = Math.max(0, Math.min(
+                x - support.body.left - bodyInset,
+                support.body.right - bodyInset - x
+            ));
+            const patrolRange = Math.min(encounter.patrolRange, availablePatrol);
+            const textureKey = `voidPeakSentinel_${index}`;
+            const bodyColor = encounter.health === 1
+                ? 0x275B68
+                : encounter.health >= 3
+                    ? 0x4B0082
+                    : 0x8B3658;
+            this.createSentinelTexture(textureKey, bodyColor);
+
+            const enemy = this.physics.add.sprite(
+                x,
+                support.body.top - 36,
+                textureKey
+            );
             enemy.setCollideWorldBounds(true);
-            enemy.setBounce(0.1);
-            enemy.health = enemyData.health;
-            enemy.maxHealth = enemyData.health;
+            enemy.setBounce(0.05);
+            enemy.body.setSize(44, 52, true);
+            enemy.health = encounter.health;
+            enemy.maxHealth = encounter.health;
             enemy.enemyType = 'voidPeakSentinel';
-            enemy.patrolMin = enemyData.x - 130;
-            enemy.patrolMax = enemyData.x + 130;
-            enemy.setVelocityX(index % 2 === 0 ? 45 : -45);
+            enemy.encounterBeat = encounter.beat;
+            enemy.encounterLane = encounter.lane;
+            enemy.encounterSupportId = encounter.supportId;
+            enemy.patrolMin = x - patrolRange;
+            enemy.patrolMax = x + patrolRange;
+            enemy.patrolSpeed = encounter.speed;
+            enemy.setVelocityX(index % 2 === 0 ? encounter.speed : -encounter.speed);
             enemy.setDepth(850);
+            enemy.peakProximityActive = null;
 
             this.configureEnemyCombat(enemy, {
-                role: 'armored',
-                maxHealth: enemyData.health,
+                role: encounter.health >= 3 ? 'armored' : 'stompable',
+                maxHealth: encounter.health,
                 stompDamage: 1,
                 cueOffsetY: -62
             });
 
             this.enemies.add(enemy);
             this.physics.add.collider(enemy, this.platforms);
+            return enemy;
         });
+
+        this.startPeakEnemyScheduler();
+        return this.peakEncounterRhythm;
+    }
+
+    retirePeakPatrolsForTitan() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        this.peakEnemyAISchedulerActive = false;
+        this.peakProximityEnemies = [];
+        this.peakEnemyActivationBounds = null;
+        const retirement = this.retireRouteEnemies(patrols);
+        this.peakEncounterRhythm = [];
+        this.peakEnemyPatrolNextAt = 0;
+        return retirement.enemyCount;
+    }
+
+    startPeakEnemyScheduler() {
+        this.peakEnemyAISchedulerActive = true;
+        this.peakEnemyActivationNextAt = 0;
+        this.peakEnemyPatrolNextAt = 0;
+        this.peakEnemyPatrolUpdateCount = 0;
+        this.updatePeakEnemyActivation(true);
+    }
+
+    getPeakEnemyActivationBounds() {
+        const view = this.cameras?.main?.worldView;
+        const playerX = Number(this.player?.x) || 0;
+        const playerY = Number(this.player?.y) || 0;
+        const width = Math.max(
+            320,
+            Number(view?.width) || Number(this.cameras?.main?.width) || 390
+        );
+        const height = Math.max(
+            320,
+            Number(view?.height) || Number(this.cameras?.main?.height) || 720
+        );
+        const horizontalMargin = this.isMobile ? 520 : 800;
+        const verticalMargin = this.isMobile ? 280 : 420;
+        const viewLeft = Number(view?.left) || 0;
+        const viewRight = Number(view?.right) || width;
+        const viewTop = Number(view?.top) || 0;
+        const viewBottom = Number(view?.bottom) || height;
+        return {
+            left: Math.min(viewLeft, playerX - width / 2) - horizontalMargin,
+            right: Math.max(viewRight, playerX + width / 2) + horizontalMargin,
+            top: Math.min(viewTop, playerY - height / 2) - verticalMargin,
+            bottom: Math.max(viewBottom, playerY + height / 2) + verticalMargin,
+            horizontalMargin,
+            verticalMargin
+        };
+    }
+
+    setPeakEnemyRenderAttached(enemy, attached) {
+        if (!enemy || !this.children) return 0;
+        const targets = [
+            enemy,
+            enemy.combatCue,
+            enemy.instructionLabel
+        ].filter(target => Boolean(target) && target.active !== false);
+        let changedCount = 0;
+        targets.forEach(target => {
+            const isAttached = target.displayList === this.children;
+            if (attached && !isAttached) {
+                this.children.add(target);
+                changedCount += 1;
+            } else if (!attached && isAttached) {
+                this.children.remove(target);
+                changedCount += 1;
+            }
+        });
+        return changedCount;
+    }
+
+    setPeakEnemyProximityActive(enemy, enabled) {
+        if (!enemy?.active || !enemy.body) return false;
+        const nextState = enabled === true;
+        if (enemy.peakProximityActive === nextState) return nextState;
+
+        const firstActivationDecision = enemy.peakProximityActive == null;
+        enemy.peakProximityActive = nextState;
+        if (nextState) {
+            this.setPeakEnemyRenderAttached(enemy, true);
+            enemy.setVisible(true);
+            enemy.body.enable = true;
+            enemy.body.updateFromGameObject?.();
+            const patrolSpeed = Math.max(25, Number(enemy.patrolSpeed) || 42);
+            enemy.setVelocityX(enemy.flipX ? -patrolSpeed : patrolSpeed);
+        } else {
+            if (firstActivationDecision) {
+                const support = this.getTraversalSupport(
+                    enemy.encounterSupportId
+                );
+                if (support?.body) {
+                    enemy.setY(
+                        support.body.top -
+                        (Number(enemy.body.halfHeight) || 0)
+                    );
+                }
+            }
+            enemy.setVelocity?.(0, 0);
+            enemy.body.updateFromGameObject?.();
+            enemy.body.enable = false;
+            enemy.setVisible(false);
+            enemy.combatCue?.setVisible?.(false);
+            enemy.instructionLabel?.setVisible?.(false);
+            this.setPeakEnemyRenderAttached(enemy, false);
+        }
+        return nextState;
+    }
+
+    updatePeakEnemyActivation(force = false) {
+        if (!this.peakEnemyAISchedulerActive || !this.scene.isActive()) return 0;
+        const now = Number(this.time?.now) || 0;
+        if (!force && now < this.peakEnemyActivationNextAt) {
+            return this.peakProximityEnemies.length;
+        }
+        this.peakEnemyActivationNextAt = now + (this.isMobile ? 120 : 80);
+
+        const bounds = this.getPeakEnemyActivationBounds();
+        const nearby = [];
+        (this.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (!enemy?.active || !enemy.body) return;
+            const shouldWake =
+                enemy.x >= bounds.left &&
+                enemy.x <= bounds.right &&
+                enemy.y >= bounds.top &&
+                enemy.y <= bounds.bottom;
+            this.setPeakEnemyProximityActive(enemy, shouldWake);
+            if (shouldWake) nearby.push(enemy);
+        });
+        this.peakProximityEnemies = nearby;
+        this.peakEnemyActivationBounds = bounds;
+        return nearby.length;
+    }
+
+    getRuntimePatrolEnemies() {
+        if (!this.peakEnemyAISchedulerActive) {
+            return super.getRuntimePatrolEnemies();
+        }
+        return this.peakProximityEnemies;
+    }
+
+    updatePatrolEnemyMovement() {
+        if (!this.peakEnemyAISchedulerActive) {
+            return super.updatePatrolEnemyMovement();
+        }
+        return this.updatePeakEnemyPatrols(this.time?.now);
+    }
+
+    updatePeakEnemyPatrols(time) {
+        const now = Number(time) || 0;
+        if (now < this.peakEnemyPatrolNextAt) return true;
+        this.peakEnemyPatrolNextAt = now + (this.isMobile ? 80 : 40);
+        this.peakEnemyPatrolUpdateCount += 1;
+        return super.updatePatrolEnemyMovement();
     }
 
     createSentinelTexture(textureKey, color) {
@@ -492,6 +1080,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createStarFragments() {
+        const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
         const positions = [
             [610, this.levelHeight - 240], [1680, this.levelHeight - 395],
             [2730, 300, 'peaks_relic_ridge'],
@@ -503,57 +1092,46 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             const fragment = this.add.star(x, y, 5, 7, 18, 0xFFD700, 1);
             fragment.setDepth(700);
             this.physics.add.existing(fragment);
+            this.collectibles.add(fragment);
             fragment.body.setAllowGravity(false);
+            fragment.body.setVelocity(0, 0);
             fragment.body.setSize(32, 32);
             fragment.fragmentIndex = index;
             fragment.optionalRouteId = optionalRouteId || null;
-            this.collectibles.add(fragment);
 
-            this.tweens.add({
-                targets: fragment,
-                angle: 360,
-                y: y - 12,
-                duration: 1600,
-                repeat: -1,
-                yoyo: true
-            });
+            if (animateRouteDecorations) {
+                this.tweens.add({
+                    targets: fragment,
+                    angle: 360,
+                    y: y - 12,
+                    duration: 1600,
+                    repeat: -1,
+                    yoyo: true
+                });
+            }
         });
     }
 
     createHUD() {
         super.createHUD();
-
-        // Keep objectives above the playfield and away from mobile controls.
-        const { width, height } = this.cameras.main;
-        const isShortLandscape = width > height && height < 620;
-        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
-        this.objectiveDisplay = this.add.text(
-            width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
-            this.getPeakObjectiveText(),
+        this.createCampaignObjectiveDisplay(
+            () => this.getPeakObjectiveText(),
             {
-                fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
                 color: '#F8F2FF',
-                backgroundColor: 'rgba(12, 4, 22, 0.92)',
-                padding: { x: 10, y: 7 },
-                lineSpacing: 2,
-                align: 'left',
-                wordWrap: {
-                    width: this.isCompactObjectiveHUD ? 205 : 330
-                }
+                backgroundColor: 'rgba(12, 4, 22, 0.92)'
             }
-        ).setOrigin(1, 0)
-            .setScrollFactor(0)
-            .setDepth(1000);
+        );
     }
 
     getPeakObjectiveText() {
-        const optional = this.getOptionalRouteStatusText(
-            'peaks_relic_ridge',
-            `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
-        );
+        const optional = this.peakRouteChoice === 'main'
+            ? this.freeSpecialAttackCharges > 0
+                ? 'TITAN SURGE // 1 FREE BLAST READY'
+                : 'TITAN SURGE // FREE BLAST SPENT'
+            : this.getOptionalRouteStatusText(
+                'peaks_relic_ridge',
+                `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
+            );
 
         if (this.bossDefeated) {
             return `WARNING NETWORK RESTORED\nTHE TITAN IS SAFE\n${optional}`;
@@ -579,12 +1157,29 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createSignalRelays() {
+        const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
         const relays = [
-            { id: 'peaks_relay_1', x: 1180, y: 680, label: 'LOWER RELAY', respawnY: 700 },
-            { id: 'peaks_relay_2', x: 2380, y: 520, label: 'RIDGE RELAY', respawnY: 700 },
-            // The summit relay sits above a ground gap. Respawn above its ledge,
-            // not beneath it, so a fall cannot become a checkpoint death loop.
-            { id: 'peaks_relay_3', x: 3680, y: 600, label: 'SUMMIT RELAY', respawnY: 480 }
+            {
+                id: 'peaks_relay_1',
+                x: 1280,
+                y: 605,
+                label: 'LOWER RELAY',
+                activationSupportIds: ['peak-lower-relay-overlook']
+            },
+            {
+                id: 'peaks_relay_2',
+                x: 2380,
+                y: 390,
+                label: 'RIDGE RELAY',
+                activationSupportIds: ['peak-warning-lower']
+            },
+            {
+                id: 'peaks_relay_3',
+                x: 3680,
+                y: 485,
+                label: 'SUMMIT RELAY',
+                activationSupportIds: ['peak-summit-relay']
+            }
         ];
 
         relays.forEach((relay, index) => {
@@ -592,12 +1187,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawSignalRelay(visual, relay.x, relay.y, false);
 
-            const label = this.add.text(relay.x, relay.y - 94, `${index + 1} // ${relay.label}`, {
+            const label = this.add.text(relay.x, relay.y - 94, `${index + 1} // ${relay.label}\nLAND + TRANSMIT`, {
                 fontSize: '11px',
                 color: '#7E718A',
                 fontStyle: 'bold',
                 stroke: '#09030E',
-                strokeThickness: 3
+                strokeThickness: 3,
+                align: 'center'
             }).setOrigin(0.5).setDepth(181);
 
             const zone = this.createObjectiveTriggerZone(
@@ -612,15 +1208,49 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 visual,
                 label,
                 zone,
+                landingGuide: this.createTraversalLandingGuide(
+                    relay.activationSupportIds[0],
+                    0xFF8A4C,
+                    { animate: animateRouteDecorations }
+                ),
                 activated: false
             };
             this.physics.add.overlap(this.player, zone, () => {
+                if (!this.isPlayerGroundedOnTraversalSupport(
+                    beacon.activationSupportIds
+                )) {
+                    const now = this.time.now;
+                    if (now >= this.routeHintUntil) {
+                        this.showFloatingText(
+                            `LAND ON THE LIT PLATFORM // ${beacon.label}`,
+                            beacon.x,
+                            beacon.y - 125,
+                            '#F2C94C'
+                        );
+                        this.routeHintUntil = now + 1400;
+                    }
+                    return;
+                }
                 this.activateSignalRelay(beacon);
             });
             this.beaconRelays.push(beacon);
         });
 
         this.refreshSignalRouteReadability();
+    }
+
+    getTraversalAuditTargets() {
+        return [
+            ...this.beaconRelays,
+            {
+                id: 'titan_pass',
+                label: 'TITAN PASS',
+                activationSupportIds: ['peak-titan-gate'],
+                x: this.titanGate?.x || 4680,
+                y: this.titanGate?.y || this.levelHeight - 158,
+                zone: this.titanGate
+            }
+        ];
     }
 
     drawSignalRelay(graphics, x, y, activated) {
@@ -664,8 +1294,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         relay.zone = null;
         this.beaconRelaysActivated++;
         this.drawSignalRelay(relay.visual, relay.x, relay.y, true);
+        this.retireTraversalLandingGuide(relay);
         this.refreshSignalRouteReadability();
-        this.setCheckpoint(relay.x, relay.respawnY, {
+        const checkpoint = this.getTraversalSupportCheckpoint(
+            relay.activationSupportIds[0],
+            relay.x
+        );
+        this.setCheckpoint(checkpoint.x, checkpoint.y, {
             persist: true,
             checkpointId: relay.id,
             checkpointIndex: relay.index
@@ -741,56 +1376,234 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             marker: relicRoute,
             returnLabel: 'WARNING LINE →',
             choice: {
-                mainLabel: 'WARNING LINE →',
-                mainTradeoff: 'LOWER // VOID GEYSERS',
-                challengeLabel: 'HIGH CLIMB + 2 RELICS',
+                mainLabel: 'LOW WARNING LINE →',
+                mainTradeoff: 'SHORT + RISKY\nEARNS: TITAN SURGE // 1 FREE BLAST',
+                challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS',
                 mainMarker: spine,
                 mainZone: {
                     left: 2440, right: 3420,
                     top: 470, bottom: this.levelHeight
                 },
+                mainSupportIds: [
+                    'peak-main-handoff',
+                    'peak-floor-summit'
+                ],
                 optionalZone: {
                     left: 2520, right: 3500,
                     top: 150, bottom: 470
                 },
+                optionalSupportIds: ['peak-relic-ridge-1'],
                 rejoinZone: {
                     left: 3500, right: 4100,
                     top: 300, bottom: this.levelHeight
-                }
+                },
+                rejoinSupportIds: ['peak-summit-relay']
             },
+            onMainSelected: () => this.selectPeakRoute('main'),
+            onOptionalSelected: () => this.selectPeakRoute('optional'),
             onComplete: () => {
                 this.grantOptionalRouteGuard('RIDGE GUARD', 1);
+                this.refreshPersistedExpeditionRouteState();
             }
         });
 
-        this.tweens.add({
-            targets: [spine, relicRoute],
-            alpha: { from: 0.68, to: 1 },
-            duration: 900,
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.shouldAnimatePeakRouteDecorations()) {
+            this.tweens.add({
+                targets: [spine, relicRoute],
+                alpha: { from: 0.68, to: 1 },
+                duration: 900,
+                yoyo: true,
+                repeat: -1
+            });
+        } else {
+            spine.setAlpha(0.9);
+            relicRoute.setAlpha(0.9);
+        }
     }
 
     restoreExpeditionRouteState(resume) {
-        return this.restoreExpeditionRouteSignals(resume, {
+        const signalsRestored = this.restoreExpeditionRouteSignals(resume, {
             signals: this.beaconRelays,
             countProperty: 'beaconRelaysActivated',
             readyProperty: 'creatureNetworkReached',
-            drawSignal: relay => this.drawSignalRelay(
-                relay.visual,
-                relay.x,
-                relay.y,
-                true
-            ),
+            drawSignal: relay => {
+                this.drawSignalRelay(relay.visual, relay.x, relay.y, true);
+                this.retireTraversalLandingGuide(relay);
+            },
             onRestored: (relay, restoredCount) => {
                 this.refreshSignalRouteReadability();
                 if (restoredCount === this.beaconRelays.length) {
                     this.showDistantReplyNetwork(relay);
                 }
-                this.objectiveDisplay?.setText?.(this.getPeakObjectiveText());
+                this.syncCampaignObjectiveDisplay();
             }
         });
+        if (!signalsRestored) return false;
+
+        this.restorePeakRouteState(resume.routeState, {
+            rejoined: Number(resume.checkpointIndex) >= 2
+        });
+        this.syncCampaignObjectiveDisplay();
+        return true;
+    }
+
+    getExpeditionRouteState() {
+        const route = this.optionalRouteRewards?.get?.('peaks_relic_ridge');
+        return {
+            peakRouteChoice: this.peakRouteChoice || '',
+            peakFragmentMask: this.peakCollectedFragmentMask,
+            relicRidgeProgress: Number(route?.progress) || 0,
+            relicRidgeCompleted: route?.completed === true,
+            titanSurgeCharges: this.peakRouteChoice === 'main'
+                ? this.freeSpecialAttackCharges
+                : 0,
+            ridgeGuardCharges: this.peakRouteChoice === 'optional'
+                ? this.optionalRouteGuardCharges
+                : 0,
+            peakSignalEggAwarded: this.cosmicEggAwarded === true
+        };
+    }
+
+    selectPeakRoute(path, { restoring = false, rejoined = false } = {}) {
+        if (!['main', 'optional'].includes(path)) return false;
+        if (this.peakRouteChoice && this.peakRouteChoice !== path) return false;
+
+        const firstSelection = !this.peakRouteChoice;
+        this.peakRouteChoice = path;
+        const choice = this.optionalRouteRewards?.get?.('peaks_relic_ridge')?.choice;
+        if (choice) {
+            choice.selectedPath = path;
+            choice.mainEntered = path === 'main';
+            choice.optionalEntered = path === 'optional';
+            choice.rejoined = rejoined && path === 'optional';
+            choice.sequence ||= 1;
+        }
+        if (path === 'main') {
+            this.retireUnavailablePeakRouteFragments();
+            if (!restoring && firstSelection) {
+                this.freeSpecialAttackCharges += 1;
+            }
+        }
+        if (!restoring) this.refreshPersistedExpeditionRouteState();
+        return true;
+    }
+
+    restorePeakRouteState(routeState, { rejoined = false } = {}) {
+        if (!routeState || typeof routeState !== 'object') return false;
+
+        const path = routeState.peakRouteChoice;
+        if (['main', 'optional'].includes(path)) {
+            this.selectPeakRoute(path, { restoring: true, rejoined });
+        }
+
+        this.peakCollectedFragmentMask = Phaser.Math.Clamp(
+            Math.floor(Number(routeState.peakFragmentMask) || 0),
+            0,
+            (1 << this.totalStarFragments) - 1
+        );
+        this.starFragmentsCollected = this.countCollectedPeakFragments();
+        this.cosmicEggAwarded = routeState.peakSignalEggAwarded === true ||
+            this.hasPeakSignalEgg();
+        this.retireCollectedPeakFragments();
+
+        const route = this.optionalRouteRewards?.get?.('peaks_relic_ridge');
+        if (path === 'main') {
+            const persistedSurgeCharges = Number(routeState.titanSurgeCharges);
+            this.freeSpecialAttackCharges = Phaser.Math.Clamp(
+                Number.isFinite(persistedSurgeCharges)
+                    ? persistedSurgeCharges
+                    : 1,
+                0,
+                10
+            );
+        } else if (route && path === 'optional') {
+            route.progress = Phaser.Math.Clamp(
+                Number(routeState.relicRidgeProgress) || 0,
+                0,
+                route.required
+            );
+            route.completed = routeState.relicRidgeCompleted === true ||
+                route.progress >= route.required;
+            this.refreshOptionalRouteReward(route);
+            this.optionalRouteGuardLabel = 'RIDGE GUARD';
+            this.optionalRouteGuardCharges = Phaser.Math.Clamp(
+                Number(routeState.ridgeGuardCharges) || 0,
+                0,
+                1
+            );
+        }
+
+        if (
+            this.starFragmentsCollected >= this.totalStarFragments &&
+            !this.cosmicEggAwarded &&
+            this.awardPeakSignalEgg()
+        ) {
+            this.refreshPersistedExpeditionRouteState();
+        }
+        return true;
+    }
+
+    retireUnavailablePeakRouteFragments() {
+        [...(this.collectibles?.getChildren?.() || [])].forEach(item => {
+            if (item?.optionalRouteId === 'peaks_relic_ridge') {
+                item.destroy?.();
+            }
+        });
+    }
+
+    countCollectedPeakFragments() {
+        let count = 0;
+        for (let index = 0; index < this.totalStarFragments; index += 1) {
+            if ((this.peakCollectedFragmentMask & (1 << index)) !== 0) count++;
+        }
+        return count;
+    }
+
+    retireCollectedPeakFragments() {
+        const fragments = [...(this.collectibles?.getChildren?.() || [])];
+        fragments.forEach(item => {
+            if (
+                item?.fragmentIndex !== undefined &&
+                (this.peakCollectedFragmentMask & (1 << item.fragmentIndex)) !== 0
+            ) {
+                item.destroy?.();
+            }
+        });
+    }
+
+    hasPeakSignalEgg() {
+        return window.InventoryManager?.getAllItems?.().some(
+            item => item?.id === 'peak_signal_egg'
+        ) === true;
+    }
+
+    awardPeakSignalEgg() {
+        if (this.cosmicEggAwarded || this.hasPeakSignalEgg()) {
+            this.cosmicEggAwarded = true;
+            return true;
+        }
+        const awarded = window.InventoryManager?.addItem?.({
+            id: 'peak_signal_egg',
+            name: 'Signal Egg',
+            type: 'egg',
+            rarity: 'rare',
+            description: 'An egg warmed by the warning calls exchanged across the Void Peaks.',
+            icon: '🥚📡'
+        }) === true;
+        if (awarded) this.cosmicEggAwarded = true;
+        return awarded;
+    }
+
+    onOptionalRouteGuardConsumed() {
+        if (this.peakRouteChoice === 'optional') {
+            this.refreshPersistedExpeditionRouteState();
+        }
+    }
+
+    onFreeSpecialAttackConsumed() {
+        if (this.peakRouteChoice === 'main') {
+            this.refreshPersistedExpeditionRouteState();
+        }
     }
 
     showDistantReplyNetwork(relay) {
@@ -842,6 +1655,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const y = this.levelHeight - 158;
         const gate = this.add.zone(x, y, 150, 190);
         this.physics.add.existing(gate, true);
+        this.titanGate = gate;
 
         this.createGuardianGateState({
             x,
@@ -852,9 +1666,27 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             color: 0xFF4500,
             readyColor: 0x8FE3CF
         });
+        const titanLandingGuide = this.createTraversalLandingGuide(
+            'peak-titan-gate',
+            0xF2C94C,
+            { animate: this.shouldAnimatePeakRouteDecorations() }
+        );
 
         this.physics.add.overlap(this.player, gate, () => {
             if (!this.bossFightActive && !this.bossDefeated) {
+                if (!this.isPlayerGroundedOnTraversalSupport('peak-titan-gate')) {
+                    const now = this.time.now;
+                    if (now >= this.bossGateHintUntil) {
+                        this.showFloatingText(
+                            'LAND AT TITAN PASS',
+                            this.player.x,
+                            this.player.y - 70,
+                            '#F2C94C'
+                        );
+                        this.bossGateHintUntil = now + 1400;
+                    }
+                    return;
+                }
                 if (!this.creatureNetworkReached) {
                     const now = this.time.now;
                     if (now >= this.bossGateHintUntil) {
@@ -871,32 +1703,61 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 const guardianEntered = this.beginGuardianEncounter({
                     id: 'cosmic_titan',
                     title: 'COSMIC TITAN',
-                    checkpoint: {
-                        x: 4180,
-                        y: this.levelHeight - 295
-                    },
+                    checkpoint: this.getTraversalSupportCheckpoint(
+                        'peak-titan-gate',
+                        4680
+                    ),
                     start: () => this.startBossFight()
                 });
-                if (guardianEntered) gate.destroy();
+                if (guardianEntered) {
+                    titanLandingGuide?.tween?.remove?.();
+                    titanLandingGuide?.visual?.setAlpha?.(0.18);
+                    gate.destroy();
+                    this.titanGate = null;
+                }
             }
         });
     }
 
     createBossArena() {
-        this.createPlatform(4050, this.levelHeight - 225, 900, 35, 'solid');
-        this.createPlatform(4300, this.levelHeight - 350, 190, 28, 'solid');
-        this.createPlatform(4700, this.levelHeight - 350, 190, 28, 'solid');
+        const gate = this.createPlatform(
+            4230,
+            this.levelHeight - 225,
+            900,
+            35,
+            'solid'
+        );
+        gate.traversalId = 'peak-titan-gate';
+        const left = this.createPlatform(
+            4300,
+            this.levelHeight - 350,
+            190,
+            28,
+            'solid'
+        );
+        left.traversalId = 'peak-titan-left';
+        const right = this.createPlatform(
+            4700,
+            this.levelHeight - 350,
+            190,
+            28,
+            'solid'
+        );
+        right.traversalId = 'peak-titan-right';
     }
 
     showObjectiveToast() {
         const { width, height } = this.cameras.main;
         const isMobileLayout = this.isMobile || width <= 480 || height < 620;
+        const toastY = isMobileLayout
+            ? (height < 620 ? Math.min(142, height * 0.38) : Math.min(225, height * 0.28))
+            : 90;
         const toast = this.add.text(
             width / 2,
-            isMobileLayout ? 165 : 90,
+            toastY,
             'Restore the warning relays and reach Titan Pass',
             {
-            fontSize: '18px',
+            fontSize: isMobileLayout ? '15px' : '18px',
             color: '#FFD700',
             backgroundColor: 'rgba(0,0,0,0.72)',
             padding: { x: 18, y: 8 },
@@ -907,7 +1768,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: toast,
             alpha: 0,
-            y: 60,
+            y: toastY - 20,
             delay: 2600,
             duration: 600,
             onComplete: () => toast.destroy()
@@ -915,29 +1776,16 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     update(time, delta) {
+        this.updatePeakEnemyActivation();
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
-        if (this.enemies) {
-            this.enemies.getChildren().forEach(enemy => {
-                if (enemy.enemyType === 'voidPeakSentinel') {
-                    if (enemy.x <= enemy.patrolMin) {
-                        enemy.setVelocityX(Math.abs(enemy.body.velocity.x || 45));
-                        enemy.setFlipX(false);
-                    } else if (enemy.x >= enemy.patrolMax) {
-                        enemy.setVelocityX(-Math.abs(enemy.body.velocity.x || 45));
-                        enemy.setFlipX(true);
-                    }
-                }
-            });
-        }
+        this.drawPeakEmbers(time);
+        this.updatePeakReturnCurrentGuidance();
 
-        if (this.objectiveDisplay) {
-            this.objectiveDisplay.setText(this.getPeakObjectiveText());
-            this.objectiveDisplay.setVisible(
-                !(this.isCompactObjectiveHUD && this.bossFightActive)
-            );
-        }
+        this.syncCampaignObjectiveDisplay({
+            visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
+        });
         this.updateBossIndicator();
     }
 
@@ -945,13 +1793,26 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         if (item.fragmentIndex !== undefined) {
             const collectX = item.x;
             const collectY = item.y;
-            this.starFragmentsCollected += 1;
-            if (item.optionalRouteId) {
-                this.recordOptionalRouteProgress(item.optionalRouteId, {
+            const fragmentIndex = Math.max(0, Number(item.fragmentIndex) || 0);
+            const fragmentBit = 1 << fragmentIndex;
+            if ((this.peakCollectedFragmentMask & fragmentBit) !== 0) return;
+            if (
+                item.optionalRouteId &&
+                !this.recordOptionalRouteProgress(item.optionalRouteId, {
                     x: collectX,
                     y: collectY
-                });
+                })
+            ) {
+                return;
             }
+            this.peakCollectedFragmentMask |= fragmentBit;
+            this.starFragmentsCollected += 1;
+            const completedCollection =
+                this.starFragmentsCollected >= this.totalStarFragments;
+            const signalEggAwarded = completedCollection &&
+                !this.cosmicEggAwarded &&
+                this.awardPeakSignalEgg();
+            this.refreshPersistedExpeditionRouteState();
             window.FXLibrary?.stardustBurst?.(this, collectX, collectY, {
                 count: 18,
                 color: [0xFFD700, 0x8FE3CF, 0xFFFFFF],
@@ -966,11 +1827,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             window.AudioManager?.playCollect?.();
             item.destroy();
 
-            if (
-                this.starFragmentsCollected >= this.totalStarFragments &&
-                !this.cosmicEggAwarded
-            ) {
-                this.cosmicEggAwarded = true;
+            if (signalEggAwarded) {
                 this.time.delayedCall(450, () => {
                     this.showFloatingText(
                         'ALL SIGNAL FRAGMENTS - EGG AWAKENED',
@@ -978,14 +1835,6 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                         collectY - 75,
                         '#8FE3CF'
                     );
-                    window.InventoryManager?.addItem?.({
-                        id: 'peak_signal_egg',
-                        name: 'Signal Egg',
-                        type: 'egg',
-                        rarity: 'rare',
-                        description: 'An egg warmed by the warning calls exchanged across the Void Peaks.',
-                        icon: '🥚📡'
-                    });
                     window.AudioManager?.playAchievement?.();
                 });
             }
@@ -1000,13 +1849,24 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         console.log('[VoidPeaksLevel] Starting Cosmic Titan boss fight!');
         this.bossFightActive = true;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
+        this.titanAttackLocked = true;
+        this.retirePeakPatrolsForTitan();
+        this.clearGuardianGateState();
         this.physics.pause();
+        this.hidePlatformerMobileControls();
+        this.stageTitanArenaEntry();
+        this.cameras.main.stopFollow();
+        this.cameras.main.pan(
+            TITAN_ARENA.introFocusX,
+            this.levelHeight / 2,
+            900
+        );
         window.FeedbackManager?.cameraFlash?.(this, 220, 75, 0, 130);
         window.FeedbackManager?.cameraShake?.(this, 450, 0.012);
-
-        if (this.player) {
-            this.player.setPosition(4180, this.levelHeight - 295);
-        }
 
         const { width, height } = this.cameras.main;
         const warning = this.add.text(
@@ -1032,19 +1892,40 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
     }
 
+    stageTitanArenaEntry() {
+        if (!this.player) return false;
+
+        const y = this.levelHeight - TITAN_ARENA.playerBottomOffset;
+        if (this.player.body?.reset) {
+            this.player.body.reset(TITAN_ARENA.playerEntryX, y);
+        } else {
+            this.player.setPosition(TITAN_ARENA.playerEntryX, y);
+        }
+        this.player.setVelocity?.(0, 0);
+        this.player.facingRight = true;
+        return true;
+    }
+
     spawnCosmicTitan() {
         this.createTitanTexture();
 
         this.boss = this.physics.add.sprite(
-            4720,
-            this.levelHeight - 435,
+            TITAN_ARENA.bossX,
+            this.levelHeight - TITAN_ARENA.bossBottomOffset,
             COSMIC_TITAN_TEXTURE
         );
         this.boss.setImmovable(true);
         this.boss.setCollideWorldBounds(true);
         this.boss.body.setAllowGravity(false);
-        this.bossTargetScale = COSMIC_TITAN_DISPLAY_HEIGHT /
+        const isMobileArena = this.isMobile ||
+            this.cameras.main.width <= 480;
+        const desktopBossScale = COSMIC_TITAN_DISPLAY_HEIGHT /
             Math.max(1, this.boss.height);
+        const mobileBossScale = COSMIC_TITAN_MOBILE_DISPLAY_HEIGHT /
+            Math.max(1, this.boss.height);
+        this.bossTargetScale = isMobileArena
+            ? mobileBossScale
+            : desktopBossScale;
         this.boss.body.setSize(
             this.boss.width * 0.4,
             this.boss.height * 0.66
@@ -1059,18 +1940,80 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         this.bossHealth = this.bossMaxHealth;
         this.createBossHealthBar();
-        this.physics.resume();
-        if (this.bossAttackPreview) {
-            this.time.delayedCall(1200, () => {
-                this.performTitanAttack(this.bossAttackPreview);
-            });
-        } else {
-            this.bossAttackTimer = this.time.addEvent({
-                delay: 2600,
-                callback: () => this.performTitanAttack(),
-                loop: true
-            });
+        this.time.delayedCall(500, () => {
+            if (!this.player?.active || !this.cameras.main) return;
+            this.cameras.main.pan(
+                this.player.x,
+                this.player.y,
+                1000,
+                'Power2',
+                true,
+                (camera, progress) => {
+                    if (progress >= 0.999) {
+                        this.beginTitanCombat(camera);
+                    }
+                }
+            );
+        });
+    }
+
+    beginTitanCombat(camera = this.cameras.main) {
+        if (
+            this.bossCombatReady ||
+            !this.bossFightActive ||
+            !this.boss?.active ||
+            !this.player?.active
+        ) return false;
+
+        this.bossCombatReady = true;
+        this.bossCombatReadyAt = this.time.now;
+        this.titanAttackLocked = false;
+        if (this.isMobile || camera.width <= 480) {
+            this.cameraLeadAmount = Math.max(
+                this.cameraLeadAmount,
+                camera.width * 0.35
+            );
         }
+        camera.startFollow(this.player, true, 0.08, 0.1);
+        camera.setFollowOffset(
+            -this.cameraLeadAmount,
+            this.cameraBaseOffsetY
+        );
+        this.currentCameraLeadX = -this.cameraLeadAmount;
+        this.targetCameraLeadX = -this.cameraLeadAmount;
+        this.physics.resume();
+        this.showPlatformerMobileControls();
+        this.bossSubtitle?.setText?.(
+            'TITAN IN VIEW // READ THE WARNING LINE'
+        );
+
+        this.bossAttackPreviewTimer = this.time.delayedCall(
+            TITAN_ARENA.openingGraceMs,
+            () => {
+                this.bossAttackPreviewTimer = null;
+                if (this.bossAttackPreview) {
+                    this.performTitanAttack(this.bossAttackPreview);
+                } else {
+                    this.performTitanAttack();
+                    this.startTitanAttackLoop();
+                }
+            }
+        );
+        console.log('[VoidPeaksLevel] Arena framed; Titan combat enabled');
+        return true;
+    }
+
+    startTitanAttackLoop() {
+        if (!this.bossCombatReady || !this.bossFightActive || this.bossDefeated) {
+            return null;
+        }
+        this.bossAttackTimer?.remove?.();
+        this.bossAttackTimer = this.time.addEvent({
+            delay: 2600,
+            callback: () => this.performTitanAttack(),
+            loop: true
+        });
+        return this.bossAttackTimer;
     }
 
     createTitanTexture() {
@@ -1272,6 +2215,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     performTitanAttack(forcedAttack = null) {
         if (
+            !this.bossCombatReady ||
+            !this.bossFightActive ||
             !this.boss?.active ||
             !this.player?.active ||
             this.bossDefeated ||
@@ -1467,7 +2412,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     damageBoss(amount) {
-        if (!this.boss?.active || this.bossDefeated) return;
+        if (!this.boss?.active || this.bossDefeated) return false;
 
         const recoveryBonus = this.time.now < this.titanRecoveryUntil ? 1 : 0;
         const finalAmount = amount + recoveryBonus;
@@ -1496,6 +2441,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         if (this.bossHealth <= 0) {
             this.defeatBoss();
         }
+        return true;
     }
 
     defeatBoss() {
@@ -1504,7 +2450,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         console.log('[VoidPeaksLevel] Cosmic Titan restored!');
         this.bossDefeated = true;
         this.bossFightActive = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.bossAttackTimer?.remove?.();
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
         this.titanWarningTimer?.remove?.();
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer?.remove?.();
@@ -1666,6 +2616,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     shutdown() {
         this.clearLevelEntryKeyHandler();
         this.bossAttackTimer?.remove?.();
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.titanWarningTimer?.remove?.();
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer?.remove?.();
@@ -1677,6 +2631,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.titanAttackLocked = false;
         this.titanRecoveryUntil = 0;
         this.peakHazards = [];
+        this.peakReturnCurrents = [];
+        this.activePeakReturnCurrent = null;
         this.boss?.destroy?.();
         this.boss = null;
         this.bossHealthBar?.destroy?.();
@@ -1697,6 +2653,22 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.beaconRelays = [];
         this.replySignals.forEach(signal => signal?.destroy?.());
         this.replySignals = [];
+        this.peakStarLayer?.destroy?.();
+        this.peakStarLayer = null;
+        this.peakStarField = [];
+        this.peakEmberLayer?.destroy?.();
+        this.peakEmberLayer = null;
+        this.peakEmbers = [];
+        this.peakEmberDrawNextAt = 0;
+        this.peakEmberViewCenterX = Number.NaN;
+        this.peakEmberDrawCount = 0;
+        this.peakEmberVisibleCount = 0;
+        this.peakEnemyAISchedulerActive = false;
+        this.peakProximityEnemies = [];
+        this.peakEnemyActivationBounds = null;
+        this.peakEnemyActivationNextAt = 0;
+        this.peakEnemyPatrolNextAt = 0;
+        this.peakEnemyPatrolUpdateCount = 0;
         super.shutdown();
         console.log('[VoidPeaksLevel] Shutting down');
     }

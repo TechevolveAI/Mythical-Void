@@ -100,4 +100,22 @@ describe('katana artifact presentation', () => {
             'onClose: () => this.showLevelComplete()'
         );
     });
+
+    test('serializes the resident release and katana reward on touch devices', () => {
+        expect(platformerSource).toContain('if (this.residentReleaseOpen)');
+        expect(platformerSource).toContain(
+            'this.pendingResidentReleaseContinuation = () => {'
+        );
+        expect(platformerSource).toContain('this.time.delayedCall(100, () => {');
+    });
+
+    test('uses a one-shot pointer-native continuation on mobile', () => {
+        expect(artifactSource).toContain(
+            "button.addEventListener('pointerup', this.closeHandler)"
+        );
+        expect(artifactSource).toContain('if (!this.domElement) return;');
+        expect(artifactSource).toContain(
+            "this.continueButton.removeEventListener('pointerup', this.closeHandler)"
+        );
+    });
 });
