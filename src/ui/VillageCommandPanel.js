@@ -40,7 +40,7 @@ function createBuildingArtwork(definitionId, {
 
 function createCreatureAvatar(creature) {
     const avatar = createElement('span', 'village-creature-avatar');
-    const name = creature?.name || 'Companion';
+    const name = creature?.name || 'Creature';
     const palette = ['#8fe3cf', '#f2c14e', '#f4f4f4', '#df5d5d'];
     const colorIndex = [...name].reduce((total, character) => (
         total + character.charCodeAt(0)
@@ -82,7 +82,7 @@ function createVillageVision() {
     const impact = createElement('div', 'village-vision-impact');
     [
         ['NOW', 'Buildings give useful help in care and expeditions.'],
-        ['LATER', 'A stronger base can welcome more rescued companions.']
+        ['LATER', 'A stronger base can welcome more rescued creatures.']
     ].forEach(([label, description]) => {
         const line = createElement('span', 'village-impact-line');
         line.append(createElement('b', '', label), createElement('span', '', description));
@@ -142,7 +142,7 @@ function formatResult(result) {
         prerequisites_missing: 'Build the required producer structures first.',
         already_built: 'Phase one supports one of each structure.',
         building_not_assignable: 'Finish construction before inviting a contribution.',
-        unknown_creature: 'That companion record is not available.'
+        unknown_creature: 'That creature record is not available.'
     };
     return messages[result?.reason] || 'The Village Heart could not complete that request.';
 }
@@ -480,7 +480,7 @@ export default class VillageCommandPanel {
         plan.append(plotGrid);
 
         const assignments = createElement('section', 'village-assignments');
-        assignments.append(createElement('h3', 'village-section-title', 'COMPANION HELP'));
+        assignments.append(createElement('h3', 'village-section-title', 'CREATURE HELP'));
         const assignable = snapshot.buildings.filter(
             building => building.status === 'complete' && building.definition.production
         );
@@ -494,7 +494,7 @@ export default class VillageCommandPanel {
             assignments.append(createElement(
                 'p',
                 'village-empty-state',
-                'No companion record is available for settlement work.'
+                'No creature record is available for settlement work.'
             ));
         } else {
             assignable.forEach(building => {
@@ -517,7 +517,7 @@ export default class VillageCommandPanel {
                 );
                 const controls = createElement('div', 'village-assignment-controls');
                 const select = createElement('select', 'village-creature-select');
-                select.setAttribute('aria-label', `Companion for ${building.definition.label}`);
+                select.setAttribute('aria-label', `Creature for ${building.definition.label}`);
                 snapshot.roster.forEach(creature => {
                     const option = createElement('option', '', creature.name);
                     option.value = creature.id;
