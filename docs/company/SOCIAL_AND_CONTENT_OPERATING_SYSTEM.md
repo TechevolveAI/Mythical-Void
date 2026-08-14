@@ -242,3 +242,16 @@ publication, replies, promotion, or any other external action.
 Every later atomized package must preserve the same source-to-claim chain. A
 variant that adds an unsupported claim, testimonial, asset, account identity,
 tracking parameter, destination, or stronger qualifier fails before review.
+
+## 15. Signal Log reuse loop
+
+The public Signal Log is now the starting point for milestone-led release
+drafts. `build-signal-release-pack.cjs` turns each live note into a
+professional-network draft, a future video-community draft, and a recipient-free
+press/creator source note. It copies the checked destination and media label from
+the public source, adds no tracking parameters, and grants no publishing power.
+
+The generated pack remains internal until a channel is verified, Kevin reviews
+the complete post, and adult reply coverage exists where comments could open.
+The automation is described in
+[`content/SIGNAL_LOG_TO_SOCIAL_AUTOMATION.md`](content/SIGNAL_LOG_TO_SOCIAL_AUTOMATION.md).
