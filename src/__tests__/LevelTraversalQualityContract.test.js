@@ -131,6 +131,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("removeEventListener('touchcancel', this.platformerTouchEndHandler)");
         expect(source).toContain('(touch.clientX - bounds.left) *');
         expect(source).toContain('(touch.clientY - bounds.top) *');
+        expect(source).toContain('const jumpTarget = this.mobileControlTargets?.jump;');
+        expect(source).toContain('this.platformerControlsVisible &&');
+        expect(source).toContain('this.queueVirtualJumpInput();');
     });
 
     test('Cosmic Reef keeps shared recovery while adding deliberate mobile descent', () => {
@@ -1389,6 +1392,51 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('const guardianEntered = this.beginGuardianEncounter({');
     });
 
+    test.each([
+        [
+            'levels/MythicalForestLevel.js',
+            'retireForestPatrolsForElder()',
+            'this.retireForestPatrolsForElder();'
+        ],
+        [
+            'levels/CrystalCavesLevel.js',
+            'retireCavePatrolsForGolem()',
+            'this.retireCavePatrolsForGolem();'
+        ],
+        [
+            'levels/ReefLevel.js',
+            'retireReefPatrolsForNyxvoral()',
+            'this.retireReefPatrolsForNyxvoral();'
+        ],
+        [
+            'levels/VoidPeaksLevel.js',
+            'retirePeakPatrolsForTitan()',
+            'this.retirePeakPatrolsForTitan();'
+        ],
+        [
+            'levels/AuroraDepthsLevel.js',
+            'retireAuroraPatrolsForPhoenix()',
+            'this.retireAuroraPatrolsForPhoenix();'
+        ],
+        [
+            'levels/FinalVoidLevel.js',
+            'retireFinalPatrolsForEmpress()',
+            'this.retireFinalPatrolsForEmpress();'
+        ]
+    ])('%s retires route combat before its guardian begins', (
+        relativePath,
+        methodDeclaration,
+        methodCall
+    ) => {
+        const source = read(relativePath);
+
+        expect(source).toContain(methodDeclaration);
+        expect(source).toContain(methodCall);
+        expect(source).toContain('enemy?.combatCue?.destroy?.();');
+        expect(source).toContain('enemy?.instructionLabel?.destroy?.();');
+        expect(source).toContain('enemy?.destroy?.();');
+    });
+
     test('Reef inherits shared safety and route updates from the platformer loop', () => {
         const reefSource = read('levels/ReefLevel.js');
         const platformerSource = read('PlatformerLevelScene.js');
@@ -1851,6 +1899,46 @@ describe('campaign traversal quality contracts', () => {
         expect(scene.executeJump).toHaveBeenCalledTimes(1);
         expect(scene.jumpBufferPressed).toBe(false);
         expect(scene.jumpBufferFramesRemaining).toBe(0);
+    });
+
+    test('a queued mobile jump survives a low-FPS platform seam settle', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'JumpSeamBufferTest' });
+        scene.jumpKey = { isDown: false };
+        scene.cursors = { up: { isDown: false } };
+        scene.wasdKeys = { W: { isDown: false } };
+        scene.player = {
+            body: {
+                blocked: { down: false },
+                touching: { down: false },
+                velocity: { y: 25 }
+            }
+        };
+        scene.isGrounded = false;
+        scene.canJump = true;
+        scene.lastGroundedTime = 0;
+        scene.executeJump = jest.fn(() => {
+            scene.jumpBufferPressed = false;
+            scene.jumpBufferFramesRemaining = 0;
+            scene.clearVirtualJumpInput();
+        });
+
+        scene.queueVirtualJumpInput();
+        scene.releaseVirtualJumpInput();
+        scene.handleJump(1000);
+        for (let frame = 1; frame <= 7; frame += 1) {
+            scene.handleJump(1000 + frame * 200);
+        }
+
+        expect(scene.executeJump).not.toHaveBeenCalled();
+        expect(scene.jumpBufferFramesRemaining).toBe(1);
+
+        scene.isGrounded = true;
+        scene.player.body.blocked.down = true;
+        scene.handleJump(2600);
+
+        expect(scene.executeJump).toHaveBeenCalledTimes(1);
+        expect(scene.jumpBufferPressed).toBe(false);
     });
 
     test('cancellation clears any queued mobile jump edge', () => {

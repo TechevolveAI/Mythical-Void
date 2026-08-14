@@ -2882,12 +2882,31 @@ class PlatformerLevelScene extends Phaser.Scene {
             };
         };
         this.platformerTouchStartHandler = (event) => {
+            const touches = Array.from(event.changedTouches || []).map(candidate => ({
+                candidate,
+                point: mapNativeTouch(candidate)
+            }));
+            const jumpTarget = this.mobileControlTargets?.jump;
+            const jumpRadius = Number(jumpTarget?.radius) + 10;
+            const jumpTouch = this.platformerControlsVisible &&
+                jumpTarget?.zone?.input?.enabled !== false &&
+                Number.isFinite(jumpRadius) &&
+                touches.find(({ point }) =>
+                    Phaser.Math.Distance.Between(
+                        point.x,
+                        point.y,
+                        jumpTarget.x,
+                        jumpTarget.y
+                    ) <= jumpRadius
+                );
+            if (jumpTouch) {
+                // Phaser can occasionally miss pointerdown after a cold mobile
+                // frame. Queueing twice is harmless when its handler also runs.
+                this.queueVirtualJumpInput();
+            }
+
             if (this.joystickActive) return;
-            const touch = Array.from(event.changedTouches || [])
-                .map(candidate => ({
-                    candidate,
-                    point: mapNativeTouch(candidate)
-                }))
+            const touch = touches
                 .find(({ point }) =>
                     point.x >= 0 &&
                     point.x <= joystickZoneWidth &&
@@ -4830,14 +4849,35 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Determine if we can jump (grounded OR within coyote time)
         const canJumpNow = (this.isGrounded || canCoyoteJump) && this.canJump;
 
+        if (queuedJump) {
+            this.lastVirtualJumpResolution = {
+                time,
+                isGrounded: this.isGrounded,
+                blockedDown: this.player?.body?.blocked?.down === true,
+                touchingDown: this.player?.body?.touching?.down === true,
+                canJump: this.canJump,
+                canCoyoteJump,
+                canJumpNow,
+                velocityY: this.player?.body?.velocity?.y
+            };
+        }
+
         if ((jumpPressed || bufferedJumpActive) && canJumpNow) {
             this.executeJump();
+            if (queuedJump && this.lastVirtualJumpResolution) {
+                this.lastVirtualJumpResolution.executed = true;
+            }
         } else if (jumpPressed && !canJumpNow) {
             // Player pressed jump just before landing or during the short jump
             // cooldown. Buffer it instead of dropping a valid input edge.
             this.jumpBufferPressed = true;
             this.jumpBufferTimestamp = time;
-            this.jumpBufferFramesRemaining = 3;
+            // Eight updates is roughly 133ms at 60 FPS, while still covering
+            // a brief platform seam settle on a 15 FPS mobile frame budget.
+            this.jumpBufferFramesRemaining = 8;
+            if (queuedJump && this.lastVirtualJumpResolution) {
+                this.lastVirtualJumpResolution.buffered = true;
+            }
         }
 
         if (queuedJump) {
@@ -4845,7 +4885,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         // At low frame rates, 150ms can elapse between updates. Retain the tap
-        // for a few real simulation frames so a short cooldown cannot eat it.
+        // for enough real simulation frames to survive a platform seam settle.
         if (this.jumpBufferPressed && !jumpPressed) {
             if (this.jumpBufferFramesRemaining > 0) {
                 this.jumpBufferFramesRemaining -= 1;
