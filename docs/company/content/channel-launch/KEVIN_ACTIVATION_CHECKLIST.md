@@ -32,6 +32,8 @@ LinkedIn says a Company Page is free. Creating these pages does not require anot
 
 Once the two links are recorded, the studio can add the correct links to the website and place the finished [`First Signal` previews](FIRST_SIGNAL_REVIEW.md) in front of Kevin for one final yes or no. Six prepared LinkedIn posts already cover real gameplay, the father-and-son origin, the creature universe, the Project Beacon choice, and the free STEM Creature Lab.
 
+The studio records each exact URL through the protected [`channel-link recording`](CHANNEL_LINK_RECORDING.md) step. Recording a real link does not automatically add it to the website or approve a first release.
+
 Kevin will approve the exact image and caption together, choose the posting time, and confirm that an adult can check comments. Nothing is posted merely because an account link has been recorded.
 
 Creator outreach will start with a small researched list of relevant adults. Nobody will be bulk-messaged, a child will never be privately approached, and no message will be sent without Kevin approving the named recipient and the finished introduction.

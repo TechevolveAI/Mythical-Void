@@ -22,9 +22,10 @@ const paths = {
     liveSearch: process.argv[15] ? path.resolve(process.argv[15]) : defaultPaths.liveSearch,
     founderStory: process.argv[16] ? path.resolve(process.argv[16]) : defaultPaths.founderStory,
     scienceWeek: process.argv[17] ? path.resolve(process.argv[17]) : defaultPaths.scienceWeek,
-    dashboard: process.argv[18] ? path.resolve(process.argv[18]) : dashboardDefault
+    registry: process.argv[18] ? path.resolve(process.argv[18]) : defaultPaths.registry,
+    dashboard: process.argv[19] ? path.resolve(process.argv[19]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -46,8 +47,20 @@ requireValue(values.outreach.authority?.sendingAuthorized === false && values.ou
 
 const youtube = values.activation.channels?.find(channel => channel.channelRef === 'CH-002');
 const linkedin = values.activation.channels?.find(channel => channel.channelRef === 'CH-004');
-requireValue(youtube?.accountState === 'not_created_owner_confirmed', 'YouTube must remain recorded as not created.');
-requireValue(linkedin?.accountState === 'not_created_owner_confirmed', 'LinkedIn must remain recorded as not created.');
+const registryYoutube = values.registry.channels?.find(channel => channel.channelRef === 'CH-002');
+const registryLinkedin = values.registry.channels?.find(channel => channel.channelRef === 'CH-004');
+for (const [label, activationChannel, registryChannel] of [['YouTube', youtube, registryYoutube], ['LinkedIn', linkedin, registryLinkedin]]) {
+    requireValue(Boolean(registryChannel), `${label} must exist in the official channel registry.`);
+    requireValue(activationChannel?.accountState === registryChannel?.accountState, `${label} activation state must match the official channel registry.`);
+    const created = registryChannel?.accountState === 'created_owner_confirmed_not_published';
+    if (created) {
+        requireValue(activationChannel?.officialUrl === registryChannel?.officialUrl && /^https:\/\//.test(registryChannel?.officialUrl || ''), `${label} must retain its owner-confirmed official URL.`);
+        requireValue(registryChannel?.confirmedBy === 'Kevin Murphy' && Boolean(registryChannel?.confirmedAt), `${label} must retain Kevin's dated confirmation.`);
+    } else {
+        requireValue(registryChannel?.accountState === 'not_created_owner_confirmed' && registryChannel?.officialUrl === null, `${label} must remain honestly recorded as not created.`);
+    }
+    requireValue(registryChannel?.firstPublicationAuthorized === false && registryChannel?.engagementAuthorized === false && registryChannel?.paidPromotionAuthorized === false, `${label} publication, engagement and paid activity must remain closed.`);
+}
 requireValue(youtube?.firstUploads?.length === 6, 'The YouTube activation pack must retain six prepared upload items.');
 requireValue(linkedin?.firstPosts?.length === 6, 'The LinkedIn activation pack must retain six prepared posts.');
 requireValue(youtube?.channelKit?.profileAsset === 'public/marketing/channel-kit/youtube/youtube-profile-v1.png', 'Founder view must retain the prepared YouTube profile image.');

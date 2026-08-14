@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { buildDashboard } = require('./build-founder-launch-dashboard.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const validator = path.join(__dirname, 'validate-founder-launch-dashboard.cjs');
@@ -24,13 +25,14 @@ const sources = {
     liveSearch: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/search/LIVE_SEARCH_FINDABILITY_EVIDENCE_2026-08-14.json'), 'utf8')),
     founderStory: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/IRISH_FOUNDER_STORY_RELEASE.json'), 'utf8')),
     scienceWeek: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/SCIENCE_WEEK_WATER_CONCEPT_2026.json'), 'utf8')),
+    registry: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/OFFICIAL_CHANNEL_REGISTRY.json'), 'utf8')),
     dashboard: fs.readFileSync(path.join(root, 'docs/company/FOUNDER_LAUNCH_DASHBOARD.md'), 'utf8')
 };
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-founder-dashboard-'));
 
 function run(name, changes = {}) {
     const values = { ...sources, ...changes };
-    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek'].map(key => {
+    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry'].map(key => {
         const file = path.join(temp, `${name}-${key}.json`);
         fs.writeFileSync(file, `${JSON.stringify(values[key], null, 2)}\n`);
         return file;
@@ -58,6 +60,24 @@ try {
     const inventedChannel = structuredClone(sources.activation);
     inventedChannel.channels.find(channel => channel.channelRef === 'CH-002').accountState = 'created';
     if (run('invented-channel', { activation: inventedChannel }).status === 0) throw new Error('An invented social channel was accepted.');
+
+    const recordedYoutubeRegistry = structuredClone(sources.registry);
+    const recordedYoutubeActivation = structuredClone(sources.activation);
+    Object.assign(recordedYoutubeRegistry.channels.find(channel => channel.channelRef === 'CH-002'), {
+        accountState: 'created_owner_confirmed_not_published',
+        officialUrl: 'https://www.youtube.com/@MythicalVoid',
+        confirmedBy: 'Kevin Murphy',
+        confirmedAt: '2026-08-14T19:30:00Z'
+    });
+    recordedYoutubeRegistry.state = 'one_channel_owner_confirmed_not_published';
+    Object.assign(recordedYoutubeActivation.channels.find(channel => channel.channelRef === 'CH-002'), {
+        accountState: 'created_owner_confirmed_not_published',
+        officialUrl: 'https://www.youtube.com/@MythicalVoid',
+        ownerConfirmedAt: '2026-08-14T19:30:00Z',
+        handleAvailabilityVerified: true
+    });
+    const recordedDashboard = buildDashboard({ ...sources, registry: recordedYoutubeRegistry, activation: recordedYoutubeActivation });
+    if (run('recorded-youtube', { registry: recordedYoutubeRegistry, activation: recordedYoutubeActivation, dashboard: recordedDashboard }).status !== 0) throw new Error('Valid owner-confirmed YouTube state was rejected.');
 
     const releasedChoicePost = structuredClone(sources.activation);
     releasedChoicePost.channels.find(channel => channel.channelRef === 'CH-004').firstPosts.find(post => post.id === 'LI-006').approvalState = 'published';
@@ -122,7 +142,7 @@ try {
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot plus 20 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, one recorded-channel transition, plus 20 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

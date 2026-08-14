@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "OFFICIAL-CHANNEL-REGISTRY-2026-08-14",
+  "state": "waiting_for_first_owner_confirmed_channel",
+  "asOf": "2026-08-14",
+  "channels": [
+    {
+      "platform": "youtube",
+      "channelRef": "CH-002",
+      "accountState": "not_created_owner_confirmed",
+      "officialUrl": null,
+      "confirmedBy": null,
+      "confirmedAt": null,
+      "linkReachabilityVerified": false,
+      "websiteLinkApproved": false,
+      "firstPublicationAuthorized": false,
+      "engagementAuthorized": false,
+      "paidPromotionAuthorized": false
+    },
+    {
+      "platform": "linkedin",
+      "channelRef": "CH-004",
+      "accountState": "not_created_owner_confirmed",
+      "officialUrl": null,
+      "confirmedBy": null,
+      "confirmedAt": null,
+      "linkReachabilityVerified": false,
+      "websiteLinkApproved": false,
+      "firstPublicationAuthorized": false,
+      "engagementAuthorized": false,
+      "paidPromotionAuthorized": false
+    }
+  ],
+  "recordingRule": "Record a channel only after Kevin provides its exact public URL. Recording proves ownership confirmation, not reachability, publication approval, engagement coverage or advertising authority.",
+  "authority": {
+    "localRecordingAfterKevinConfirmationAuthorized": true,
+    "accountCreationAuthorized": false,
+    "externalMutationAuthorized": false,
+    "publicationAuthorized": false,
+    "engagementAuthorized": false,
+    "paidPromotionAuthorized": false
+  }
+}
