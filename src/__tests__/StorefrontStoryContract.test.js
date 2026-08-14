@@ -158,6 +158,8 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('AI-generated marketing illustration');
         expect(storefront).toContain('It is not gameplay footage.');
         expect(storefront).toContain('NASA does not endorse the game.');
+        expect(storefront).toContain('Download the STEM activity');
+        expect(storefront).toContain('/resources/mythical-void-stem-creature-lab.pdf');
         expect(storefront).toContain('Press & creators');
         expect(sitemap).toContain('<loc>https://mythicalvoid.com/press/</loc>');
         expect(pressFactSheet).toContain('PLAY THE CURRENT GAME');
@@ -175,6 +177,9 @@ describe('storefront Project Beacon story contract', () => {
             'https://mythicalvoid.com/press/gameplay-video/manifest.json'
         );
         expect(pressAssets.assets).toHaveLength(11);
+        expect(pressAssets.educatorResources).toHaveLength(1);
+        expect(pressAssets.educatorResources[0].kind).toBe('adult_led_printable_activity');
+        expect(pressAssets.educatorResources[0].disclosure).toContain('NASA does not endorse');
         expect(pressAssets.assets.filter(asset => (
             asset.kind === 'authentic_running_build_screenshot'
         ))).toHaveLength(5);

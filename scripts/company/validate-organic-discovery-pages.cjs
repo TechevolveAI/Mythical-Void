@@ -13,7 +13,7 @@ const pages = [
     {
         route: '/nasa-space-science/',
         file: 'public/nasa-space-science/index.html',
-        required: ['NASA does not endorse Mythical Void', 'Observe', 'Infer', 'Check', 'https://apod.nasa.gov/apod/ap240720.html']
+        required: ['NASA does not endorse Mythical Void', 'Observe', 'Infer', 'Check', 'https://apod.nasa.gov/apod/ap240720.html', '/resources/mythical-void-stem-creature-lab.pdf', 'Invent an organism from another dimension']
     },
     {
         route: '/parents/',
