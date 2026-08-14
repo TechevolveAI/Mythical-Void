@@ -101,6 +101,14 @@ describe('katana artifact presentation', () => {
         );
     });
 
+    test('serializes the resident release and katana reward on touch devices', () => {
+        expect(platformerSource).toContain('if (this.residentReleaseOpen)');
+        expect(platformerSource).toContain(
+            'this.pendingResidentReleaseContinuation = () => {'
+        );
+        expect(platformerSource).toContain('this.time.delayedCall(100, () => {');
+    });
+
     test('uses a one-shot pointer-native continuation on mobile', () => {
         expect(artifactSource).toContain(
             "button.addEventListener('pointerup', this.closeHandler)"

@@ -156,8 +156,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossTargetScale = 1;
 
         // Aurora effects
-        this.auroraLights = [];
-        this.colorShiftTime = 0;
         this.signalPrisms = [];
         this.prismsAligned = 0;
         this.uplinkRiskUnderstood = false;
@@ -221,8 +219,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossIndicator = null;
         this.bossTargetScale = 1;
 
-        this.auroraLights = [];
-        this.colorShiftTime = 0;
         this.signalPrisms = [];
         this.prismsAligned = 0;
         this.uplinkRiskUnderstood = false;
@@ -276,7 +272,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     startTestMode() {
         console.log('[AuroraDepthsLevel] TEST MODE - Starting Phoenix restoration');
-        this.createAuroraBackground();
         this.prismsAligned = 3;
         this.uplinkRiskUnderstood = true;
 
@@ -452,7 +447,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     startLevel() {
         console.log('[AuroraDepthsLevel] Starting level');
-        this.createAuroraBackground();
         this.createLevelSpecificContentOnce();
         this.showObjectiveToast();
     }
@@ -506,83 +500,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         });
 
         console.log(`[AuroraDepthsLevel] Created ${this.platforms.getLength()} platforms`);
-    }
-
-    createAuroraBackground() {
-        const { width, height } = this.cameras.main;
-
-        const bg = this.add.graphics();
-        bg.setScrollFactor(0);
-        bg.setDepth(-100);
-
-        // Deep blue to teal gradient
-        for (let y = 0; y < height; y++) {
-            const ratio = y / height;
-            const r = Math.floor(10 + ratio * 20);
-            const g = Math.floor(30 + ratio * 60);
-            const b = Math.floor(50 + ratio * 40);
-            bg.fillStyle(Phaser.Display.Color.GetColor(r, g, b), 1);
-            bg.fillRect(0, y, width, 1);
-        }
-
-        // Aurora lights
-        this.createAuroraLights();
-    }
-
-    createAuroraLights() {
-        const { width, height } = this.cameras.main;
-
-        for (let i = 0; i < 5; i++) {
-            const aurora = this.add.graphics();
-            aurora.setScrollFactor(0.2 + i * 0.1);
-            aurora.setDepth(-50 + i);
-            aurora.setAlpha(0.3);
-
-            const auroraData = {
-                graphics: aurora,
-                x: Math.random() * width,
-                baseY: height * 0.3 + Math.random() * height * 0.2,
-                width: 200 + Math.random() * 300,
-                colorIndex: i
-            };
-
-            this.auroraLights.push(auroraData);
-        }
-
-        // Animate aurora
-        this.time.addEvent({
-            delay: 50,
-            callback: () => this.updateAuroraLights(),
-            loop: true
-        });
-    }
-
-    updateAuroraLights() {
-        this.colorShiftTime += 0.02;
-
-        const colors = [0x00E676, 0x7FFFD4, 0x00FA9A, 0xFFD700, 0x00CED1];
-
-        this.auroraLights.forEach((aurora, i) => {
-            aurora.graphics.clear();
-
-            const colorIndex = Math.floor((this.colorShiftTime + i) % colors.length);
-            const color = colors[colorIndex];
-
-            aurora.graphics.fillStyle(color, 0.2 + Math.sin(this.colorShiftTime + i) * 0.1);
-
-            // Wavy aurora shape
-            aurora.graphics.beginPath();
-            aurora.graphics.moveTo(aurora.x, aurora.baseY + 100);
-
-            for (let x = 0; x < aurora.width; x += 20) {
-                const waveY = aurora.baseY + Math.sin((x + this.colorShiftTime * 50) * 0.02) * 30;
-                aurora.graphics.lineTo(aurora.x + x, waveY);
-            }
-
-            aurora.graphics.lineTo(aurora.x + aurora.width, aurora.baseY + 100);
-            aurora.graphics.closePath();
-            aurora.graphics.fillPath();
-        });
     }
 
     update(time, delta) {
@@ -2726,8 +2643,6 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.clearBossEncounterTimers();
         this.clearBossEncounterEffects();
 
-        this.auroraLights.forEach(aurora => aurora.graphics.destroy());
-        this.auroraLights = [];
         this.signalPrisms.forEach(prism => {
             prism.visual?.destroy?.();
             prism.label?.destroy?.();

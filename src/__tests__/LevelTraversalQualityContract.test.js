@@ -674,8 +674,11 @@ describe('campaign traversal quality contracts', () => {
         expect(source).not.toContain('this.physics.add.overlap(this.player, sprite');
         expect(source).toContain('if (!this.isMobile) {');
         expect(source).toContain('ensureForestCoinLayer()');
-        expect(source).toContain('this.forestCoinPickupGroup = this.physics.add.staticGroup();');
-        expect(source).toContain('this.collectForestCoin(zone?.forestCoinPickup)');
+        expect(source).toContain('updateForestCoinPickups()');
+        expect(source).toContain('x >= body.left - pickupPadding');
+        expect(source).toContain('this.collectForestCoin(pickup, { redraw: false })');
+        expect(source).not.toContain('this.forestCoinPickupGroup');
+        expect(source).not.toContain('this.forestCoinPickupOverlap');
         expect(source).toContain('redrawForestCoinLayer()');
         expect(source).not.toContain('const branch = this.add.graphics();');
         expect(source).not.toContain('const shadow = this.add.graphics();');
@@ -2214,10 +2217,21 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("enemy?.combatRole === 'armored'");
         expect(smoke).toContain('scene.player.setVelocity?.(0, 680)');
         expect(smoke).toContain('message: `${sceneName} live stomp collision`');
-        expect(smoke).toContain('state.displayCount > 345');
-        expect(smoke).toContain('framePacing.activeTweenCount > 75');
+        expect(smoke).toContain('const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({');
+        expect(smoke).toContain('state.displayCount > 275');
+        expect(smoke).toContain(
+            'framePacing.displayCount > renderBudget.displayCount'
+        );
+        expect(smoke).toContain(
+            'framePacing.activeTweenCount > renderBudget.activeTweenCount'
+        );
         expect(smoke).toContain('framePacing.postPipelineCount !== 0');
-        expect(smoke).toContain("framePacing.performanceTier !== 'mobile'");
+        expect(smoke).toContain(
+            'framePacing.performanceTier !== renderBudget.performanceTier'
+        );
+        expect(smoke).toContain(
+            "SMOKE_CASE !== 'all' && framePacing.p95FrameMs > 100"
+        );
         expect(smoke).toContain('!framePacing.forestEnemyOverlapActive');
         expect(smoke).toContain('framePacing.parallaxLayers?.nebula !== 3');
         expect(smoke).toContain('framePacing.parallaxLayers?.starField !== 2');
@@ -2227,10 +2241,11 @@ describe('campaign traversal quality contracts', () => {
             'Number(stagedOptional.progress) >= optionalIndex + 1'
         );
         expect(smoke).toContain('renderStability.endCount > renderStability.startCount + 8');
-        expect(smoke).toContain('state.ambientRendering?.layerCount !== 4');
-        expect(smoke).toContain('state.ambientRendering?.pointCount !== 194');
+        expect(smoke).toContain('state.ambientRendering?.layerCount !== 1');
+        expect(smoke).toContain('state.ambientRendering?.pointCount !== 164');
         expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');
         expect(smoke).toContain('state.coinRendering?.legacyVisualCount !== 0');
+        expect(smoke).toContain('state.coinRendering?.pickupBodyCount !== 0');
         expect(smoke).toContain('Forest grouped coin did not resolve exactly once');
         expect(smoke).toContain('activeTouchIdentifier = nextTouchIdentifier;');
         expect(smoke).toContain('nextTouchIdentifier += 1;');

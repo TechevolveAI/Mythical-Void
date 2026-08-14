@@ -22,6 +22,38 @@ const SMOKE_TOUCH_PROTOCOL = process.env.SMOKE_TOUCH_PROTOCOL || 'dispatch';
 const SMOKE_SKIP_PREVIEW = process.env.SMOKE_SKIP_PREVIEW === '1';
 const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
 const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
+const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
+    mythicalForest: Object.freeze({
+        displayCount: 275,
+        activeTweenCount: 55,
+        performanceTier: 'mobile'
+    }),
+    crystalCaves: Object.freeze({
+        displayCount: 250,
+        activeTweenCount: 75,
+        performanceTier: 'mobile'
+    }),
+    reef: Object.freeze({
+        displayCount: 250,
+        activeTweenCount: 80,
+        performanceTier: 'custom'
+    }),
+    voidPeaks: Object.freeze({
+        displayCount: 240,
+        activeTweenCount: 60,
+        performanceTier: 'mobile'
+    }),
+    auroraDepths: Object.freeze({
+        displayCount: 185,
+        activeTweenCount: 45,
+        performanceTier: 'mobile'
+    }),
+    finalVoid: Object.freeze({
+        displayCount: 175,
+        activeTweenCount: 35,
+        performanceTier: 'mobile'
+    })
+});
 let activeTouchPoint = { x: 0, y: 0 };
 let activeTouchIdentifier = null;
 let nextTouchIdentifier = 1;
@@ -198,6 +230,23 @@ async function sampleFramePacing(session, sceneName, {
                     counts[key] = (counts[key] || 0) + 1;
                     return counts;
                 }, {});
+            const graphicsTweenProfiles = tweenTargets
+                .filter(target => target?.type === 'Graphics')
+                .reduce((counts, target) => {
+                    const key = [
+                        'scene:' + (target?.scene?.scene?.key || 'unknown'),
+                        'depth:' + (Number(target?.depth) || 0),
+                        'commands:' + (target?.commandBuffer?.length || 0),
+                        'scroll:' + (Number(target?.scrollFactorX) || 0),
+                        'container:' + Boolean(target?.parentContainer)
+                    ].join('|');
+                    counts[key] = (counts[key] || 0) + 1;
+                    return counts;
+                }, {});
+            const biomeManaged = Boolean(
+                window.ParallaxBiome?.isActive &&
+                window.ParallaxBiome?.scene === scene
+            );
             resolve({
                 sceneActive: Boolean(scene?.scene?.isActive?.()),
                 warmupMs: ${warmupMs},
@@ -220,6 +269,7 @@ async function sampleFramePacing(session, sceneName, {
                 activeTweenCount: scene?.tweens?.getTweens?.().length || 0,
                 tweenTargetCounts,
                 graphicsTweenDepths,
+                graphicsTweenProfiles,
                 timerCount: scene?.time?.getAllEvents?.().length || 0,
                 forestEnemyOverlapActive:
                     scene?.forestEnemyOverlap?.active !== false &&
@@ -227,7 +277,9 @@ async function sampleFramePacing(session, sceneName, {
                 renderer: window.mythicalGame?.renderer?.type,
                 postPipelineCount:
                     scene?.cameras?.main?.postPipelines?.length || 0,
-                performanceTier: window.ParallaxBiome?.performanceTier || null,
+                performanceTier: biomeManaged
+                    ? window.ParallaxBiome?.performanceTier || null
+                    : 'custom',
                 parallaxLayers: window.ParallaxBiome?.layers?.reduce?.(
                     (counts, layer) => {
                         const key = layer?.type || 'unknown';
@@ -293,8 +345,7 @@ async function smokeForestBatchedCoinPickup(session) {
         const pickup = scene.coinSprites?.find(
             item => item?.batched && !item.collected && item.x > 4000
         );
-        const zone = pickup?.pickupZone;
-        if (!pickup || !zone?.body || !scene.player?.body) return null;
+        if (!pickup || !scene.player?.body) return null;
 
         scene.isInvincible = true;
         (scene.enemies?.getChildren?.() || []).forEach(enemy => {
@@ -304,7 +355,7 @@ async function smokeForestBatchedCoinPickup(session) {
         const activeBefore = scene.coinSprites.filter(
             item => item?.batched && !item.collected
         ).length;
-        scene.player.body.reset(zone.x, zone.y);
+        scene.player.body.reset(pickup.x, pickup.y);
         scene.player.setVelocity(0, 0);
         return {
             x: pickup.x,
@@ -329,7 +380,7 @@ async function smokeForestBatchedCoinPickup(session) {
                 if (!pickup?.collected) return null;
                 return {
                     collected: true,
-                    pickupZoneActive: pickup.pickupZone?.active === true,
+                    pickupBodyActive: pickup.pickupZone?.body?.enable === true,
                     balanceAfter: window.EconomyManager?.getBalance?.() || 0,
                     activeAfter: scene.coinSprites.filter(
                         item => item?.batched && !item.collected
@@ -342,7 +393,7 @@ async function smokeForestBatchedCoinPickup(session) {
             { timeoutMs: 1800, message: 'Forest grouped coin overlap' }
         );
         if (
-            collected.pickupZoneActive ||
+            collected.pickupBodyActive ||
             collected.balanceAfter - staged.balanceBefore !== staged.expectedAward ||
             collected.activeAfter !== staged.activeBefore - 1 ||
             collected.layerCount !== 1
@@ -376,6 +427,15 @@ async function navigate(session, url) {
     activeTouchIdentifier = null;
     activeTouchPoint = { x: 0, y: 0 };
     nextTouchIdentifier = 1;
+    await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        if (!game?.destroy) return false;
+        game.destroy(true);
+        window.mythicalGame = null;
+        return true;
+    })()`).catch(() => false);
+    await session.call('HeapProfiler.enable').catch(() => null);
+    await session.call('HeapProfiler.collectGarbage').catch(() => null);
     await session.call('Page.navigate', { url });
     await waitFor(
         () => evaluate(session, 'document.readyState === "complete"'),
@@ -2023,8 +2083,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 layerCount: scene.children?.list?.filter(
                     item => item === scene.forestCoinLayer
                 ).length || 0,
-                pickupCount: scene.forestCoinPickupGroup?.getChildren?.()
-                    ?.filter(zone => zone?.active !== false).length || 0
+                pickupCount: scene.coinSprites.filter(
+                    coin => coin?.batched && !coin.collected
+                ).length,
+                pickupBodyCount: scene.coinSprites.filter(
+                    coin => coin?.pickupZone?.body
+                ).length
             } : null,
             routeGuidance: (() => {
                 const nextSignal = scene?.getNextOrderedRouteSignal?.();
@@ -2055,13 +2119,14 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     if (
         route === 'mythicalForest' &&
         (
-            state.displayCount > 345 ||
-            state.ambientRendering?.layerCount !== 4 ||
-            state.ambientRendering?.pointCount !== 194 ||
+            state.displayCount > 275 ||
+            state.ambientRendering?.layerCount !== 1 ||
+            state.ambientRendering?.pointCount !== 164 ||
             state.coinRendering?.batchedCount < 40 ||
             state.coinRendering?.legacyVisualCount !== 0 ||
             state.coinRendering?.layerCount !== 1 ||
-            state.coinRendering?.pickupCount !== state.coinRendering?.batchedCount
+            state.coinRendering?.pickupCount !== state.coinRendering?.batchedCount ||
+            state.coinRendering?.pickupBodyCount !== 0
         )
     ) {
         throw new Error(
@@ -2069,20 +2134,41 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         );
     }
     let renderStability = null;
-    let framePacing = null;
+    const framePacing = await sampleFramePacing(session, sceneName);
+    if (!framePacing?.sceneActive || framePacing.frameCount < 12) {
+        throw new Error(
+            `${sceneName} did not produce a sustained frame sample: ` +
+            JSON.stringify(framePacing)
+        );
+    }
+    process.stdout.write(
+        `PERF ${sceneName} ` + JSON.stringify({
+            averageFps: framePacing.averageFps,
+            p95FrameMs: framePacing.p95FrameMs,
+            phaserActualFps: framePacing.phaserActualFps,
+            displayCount: framePacing.displayCount,
+            activeTweenCount: framePacing.activeTweenCount,
+            timerCount: framePacing.timerCount,
+            postPipelineCount: framePacing.postPipelineCount,
+            performanceTier: framePacing.performanceTier
+        }) + '\n'
+    );
+    const renderBudget = CAMPAIGN_MOBILE_RENDER_BUDGETS[route];
+    if (
+        !renderBudget ||
+        framePacing.displayCount > renderBudget.displayCount ||
+        framePacing.activeTweenCount > renderBudget.activeTweenCount ||
+        framePacing.postPipelineCount !== 0 ||
+        framePacing.performanceTier !== renderBudget.performanceTier ||
+        (SMOKE_CASE !== 'all' && framePacing.p95FrameMs > 100)
+    ) {
+        throw new Error(
+            `${sceneName} exceeded its sustained mobile render budget: ` +
+            JSON.stringify({ renderBudget, framePacing })
+        );
+    }
     if (route === 'mythicalForest') {
-        framePacing = await sampleFramePacing(session, sceneName);
-        if (!framePacing?.sceneActive || framePacing.frameCount < 12) {
-            throw new Error(
-                `${sceneName} did not produce a sustained frame sample: ` +
-                JSON.stringify(framePacing)
-            );
-        }
         if (
-            framePacing.displayCount > 345 ||
-            framePacing.activeTweenCount > 75 ||
-            framePacing.postPipelineCount !== 0 ||
-            framePacing.performanceTier !== 'mobile' ||
             !framePacing.forestEnemyOverlapActive ||
             framePacing.parallaxLayers?.nebula !== 3 ||
             framePacing.parallaxLayers?.starField !== 2 ||
@@ -6124,6 +6210,7 @@ async function smokeHubForestTransition(session, exceptions) {
             checkpointIndex: persisted?.checkpointIndex,
             checkpointX: persisted?.x,
             checkpointY: persisted?.y,
+            authoredCheckpointY: checkpoint.respawnY,
             routeState: persisted?.routeState,
             selectedPath: route.choice?.selectedPath,
             progress: route.progress,
@@ -6137,7 +6224,7 @@ async function smokeHubForestTransition(session, exceptions) {
         checkpointSetup?.checkpointId !== 'forest_anchor_1' ||
         checkpointSetup.checkpointIndex !== 0 ||
         checkpointSetup.checkpointX !== 1770 ||
-        checkpointSetup.checkpointY !== 1000 ||
+        checkpointSetup.checkpointY !== checkpointSetup.authoredCheckpointY ||
         checkpointSetup.selectedPath !== 'optional' ||
         checkpointSetup.progress !== 2 ||
         checkpointSetup.completed !== true ||
@@ -6231,9 +6318,9 @@ async function smokeHubForestTransition(session, exceptions) {
         resumedCheckpoint.checkpointId !== 'forest_anchor_1' ||
         resumedCheckpoint.checkpointIndex !== 0 ||
         resumedCheckpoint.checkpointX !== 1770 ||
-        resumedCheckpoint.checkpointY !== 1000 ||
+        resumedCheckpoint.checkpointY !== checkpointSetup.authoredCheckpointY ||
         resumedCheckpoint.playerX !== 1770 ||
-        resumedCheckpoint.playerY !== 1000 ||
+        resumedCheckpoint.playerY !== checkpointSetup.authoredCheckpointY ||
         resumedCheckpoint.selectedPath !== 'optional' ||
         resumedCheckpoint.progress !== 2 ||
         resumedCheckpoint.completed !== true ||
@@ -7998,19 +8085,30 @@ async function main() {
             results.homeEntry = await smokeHomeStart(session, exceptions);
             process.stdout.write('PASS HomeStartToEgg\n');
         } else if (SMOKE_MODE === 'interaction') {
-            const knownCases = ['all', 'egg', ...levels.map(([route]) => route)];
+            const knownCases = [
+                'all',
+                'egg',
+                'finalVoidWithCreature',
+                ...levels.map(([route]) => route)
+            ];
             if (!knownCases.includes(SMOKE_CASE)) {
                 throw new Error(
                     `Unknown SMOKE_CASE ${JSON.stringify(SMOKE_CASE)}. ` +
                     `Use one of: ${knownCases.join(', ')}.`
                 );
             }
-            if (['all', 'egg'].includes(SMOKE_CASE)) {
+            if (['all', 'egg', 'finalVoidWithCreature'].includes(SMOKE_CASE)) {
                 results.purchasedEgg = await smokePurchasedEgg(session, exceptions);
                 process.stdout.write('PASS PurchasedEggHatch\n');
             }
             for (const [route, sceneName] of levels.filter(
-                ([route]) => SMOKE_CASE === 'all' || SMOKE_CASE === route
+                ([route]) =>
+                    SMOKE_CASE === 'all' ||
+                    SMOKE_CASE === route ||
+                    (
+                        SMOKE_CASE === 'finalVoidWithCreature' &&
+                        route === 'finalVoid'
+                    )
             )) {
                 results[route] = await smokeLevel(
                     session,

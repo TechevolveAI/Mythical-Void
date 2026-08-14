@@ -43,15 +43,17 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
 }
 
 describe('first expedition rescue loop', () => {
-    test('batches Forest ambient lights into a bounded mobile render budget', () => {
+    test('uses the shared Forest biome with one bounded authored foliage layer', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
             'utf8'
         );
 
         expect(source).toContain('this.forestAmbientLayers = [];');
-        expect(source).toContain('const pointsPerLayer = 10;');
-        expect(source).toContain('for (let layerIndex = 0; layerIndex < 3; layerIndex += 1)');
+        expect(source).toContain("biomeId: 'mythical_forest'");
+        expect(source).not.toContain('createForestBackground()');
+        expect(source).not.toContain('createMysticalMist()');
+        expect(source).not.toContain('createForestParticles()');
         expect(source).toContain('this.forestFoliageLayer = this.add.graphics().setDepth(35);');
         expect(source).toContain('const foliageGlow = this.forestFoliageLayer;');
         expect(source).toContain('targets: this.forestFoliageLayer');

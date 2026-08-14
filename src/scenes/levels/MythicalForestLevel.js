@@ -121,8 +121,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
-        this.forestCoinPickupGroup = null;
-        this.forestCoinPickupOverlap = null;
 
         // Cosmic trees - the core of this level
         this.cosmicTrees = [];
@@ -241,8 +239,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
-        this.forestCoinPickupGroup = null;
-        this.forestCoinPickupOverlap = null;
 
         // Reset cosmic trees and platforms
         this.cosmicTrees = [];
@@ -479,9 +475,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     startTestMode() {
         console.log('[MythicalForestLevel] TEST MODE - Spawning boss immediately');
-
-        // Create forest background
-        this.createForestBackground();
 
         // Create basic platform for boss arena
         this.createTestArenaPlatform();
@@ -748,7 +741,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     startLevel() {
         console.log('[MythicalForestLevel] Starting level');
-        this.createForestBackground();
         this.createLevelSpecificContentOnce();
         this.showPlatformerMobileControls();
         this.startFirstExpeditionDrill({
@@ -1166,6 +1158,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     update(time, delta) {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
+        this.updateForestCoinPickups();
         this.updateFirstExpeditionDrill();
         if (this.objectiveDisplay) {
             this.objectiveDisplay.setText(this.getForestObjectiveText());
@@ -1218,93 +1211,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 drill.katanaStrikePending = false;
                 this.advanceFirstExpeditionDrill('melee');
             });
-        }
-    }
-
-    /**
-     * Create mystical forest background
-     */
-    createForestBackground() {
-        const { width, height } = this.cameras.main;
-
-        // Dark forest gradient background
-        const bg = this.add.graphics();
-        bg.setScrollFactor(0);
-        bg.setDepth(-100);
-
-        // Gradient from dark purple to dark green
-        for (let y = 0; y < height; y++) {
-            const ratio = y / height;
-            const r = Math.floor(10 + ratio * 20);
-            const g = Math.floor(20 + ratio * 40);
-            const b = Math.floor(30 + ratio * 20);
-            bg.fillStyle(Phaser.Display.Color.GetColor(r, g, b), 1);
-            bg.fillRect(0, y, width, 1);
-        }
-
-        // Add mystical mist/fog
-        this.createMysticalMist();
-
-        // Add floating particles
-        this.createForestParticles();
-    }
-
-    /**
-     * Create mystical mist effect
-     */
-    createMysticalMist() {
-        const { width, height } = this.cameras.main;
-
-        for (let i = 0; i < 5; i++) {
-            const mist = this.add.graphics();
-            mist.setScrollFactor(0.1 + i * 0.1);
-            mist.setDepth(-50 + i);
-            mist.fillStyle(0x228B22, 0.05);
-
-            // Create organic mist shapes
-            for (let j = 0; j < 3; j++) {
-                const x = Math.random() * width;
-                const y = height * 0.6 + Math.random() * height * 0.3;
-                const radius = 100 + Math.random() * 150;
-                mist.fillCircle(x, y, radius);
-            }
-        }
-    }
-
-    /**
-     * Create floating forest particles
-     */
-    createForestParticles() {
-        const colors = [0x90EE90, 0xFFD700, 0x9370DB, 0x00FF7F];
-        const pointsPerLayer = 10;
-
-        // Animate three point fields instead of thirty independent Graphics
-        // objects and tweens. The forest keeps the same light density while
-        // mobile render-list and animation bookkeeping remain bounded.
-        for (let layerIndex = 0; layerIndex < 3; layerIndex += 1) {
-            const layer = this.add.graphics().setDepth(48 + layerIndex);
-            for (let pointIndex = 0; pointIndex < pointsPerLayer; pointIndex += 1) {
-                const x = Math.random() * this.levelWidth;
-                const y = Math.random() * this.levelHeight * 0.8;
-                const color = colors[
-                    (layerIndex + pointIndex) % colors.length
-                ];
-                layer.fillStyle(color, 0.58);
-                layer.fillCircle(x, y, 2 + Math.random() * 3);
-                this.forestAmbientPointCount += 1;
-            }
-
-            this.tweens.add({
-                targets: layer,
-                x: { from: -3 - layerIndex, to: 3 + layerIndex },
-                y: { from: 0, to: -18 - layerIndex * 7 },
-                alpha: { from: 0.42, to: 0.72 },
-                duration: 3200 + layerIndex * 700,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-            this.forestAmbientLayers.push(layer);
         }
     }
 
@@ -2822,40 +2728,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
             }
         });
 
-        // Create pickup zone
-        const pickupZone = this.add.zone(x, y, 30, 30);
-        this.physics.add.existing(pickupZone, true);
-
-        if (this.player) {
-            this.physics.add.overlap(this.player, pickupZone, () => {
-                if (window.EconomyManager?.addCoins) {
-                    window.EconomyManager.addCoins(10, 'forest_platform_coin');
-                }
-                coin.destroy();
-                pickupZone.destroy();
-
-                if (window.AudioManager) {
-                    window.AudioManager.playCoinCollect();
-                }
-
-                // Floating +10 text
-                const coinText = this.add.text(x, y - 20, '+10', {
-                    fontSize: '16px',
-                    color: '#FFD700',
-                    fontStyle: 'bold'
-                }).setOrigin(0.5).setDepth(200);
-
-                this.tweens.add({
-                    targets: coinText,
-                    y: y - 60,
-                    alpha: 0,
-                    duration: 800,
-                    onComplete: () => coinText.destroy()
-                });
-            });
-        }
-
-        this.coinSprites.push({ coin, pickupZone });
+        this.coinSprites.push({
+            x,
+            y,
+            type: 'drop',
+            collected: false,
+            batched: false,
+            coin
+        });
     }
 
     /**
@@ -2991,6 +2871,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             }
         });
 
+        this.redrawForestCoinLayer();
         console.log(`[MythicalForestLevel] Placed ${this.starFragmentSprites.length} Star Fragments and ${this.coinSprites.length} coins`);
     }
 
@@ -3258,16 +3139,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
             y,
             type,
             collected: false,
-            batched: true,
-            pickupZone: null
+            batched: true
         };
-        const pickupZone = this.add.zone(x, y, 25, 25);
-        pickupZone.forestCoinPickup = pickup;
-        this.forestCoinPickupGroup.add(pickupZone);
-        pickupZone.refreshBody?.();
-        pickup.pickupZone = pickupZone;
         this.coinSprites.push(pickup);
-        this.redrawForestCoinLayer();
     }
 
     ensureForestCoinLayer() {
@@ -3281,14 +3155,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 repeat: -1,
                 ease: 'Sine.easeInOut'
             });
-        }
-        if (!this.forestCoinPickupGroup) {
-            this.forestCoinPickupGroup = this.physics.add.staticGroup();
-            this.forestCoinPickupOverlap = this.physics.add.overlap(
-                this.player,
-                this.forestCoinPickupGroup,
-                (_player, zone) => this.collectForestCoin(zone?.forestCoinPickup)
-            );
         }
     }
 
@@ -3306,12 +3172,38 @@ class MythicalForestLevel extends PlatformerLevelScene {
         return true;
     }
 
-    collectForestCoin(pickup) {
-        if (!pickup?.batched || pickup.collected) return false;
+    updateForestCoinPickups() {
+        const body = this.player?.body;
+        if (!body) return 0;
+
+        const pickupPadding = 15;
+        let collectedCount = 0;
+        this.coinSprites.forEach(pickup => {
+            if (!pickup || pickup.collected) return;
+            const visual = pickup.coin?.active ? pickup.coin : null;
+            const x = visual?.x ?? pickup.x;
+            const y = visual?.y ?? pickup.y;
+            const overlapsPlayer =
+                x >= body.left - pickupPadding &&
+                x <= body.right + pickupPadding &&
+                y >= body.top - pickupPadding &&
+                y <= body.bottom + pickupPadding;
+            if (!overlapsPlayer) return;
+            if (this.collectForestCoin(pickup, { redraw: false })) {
+                collectedCount += 1;
+            }
+        });
+
+        if (collectedCount > 0) this.redrawForestCoinLayer();
+        return collectedCount;
+    }
+
+    collectForestCoin(pickup, { redraw = true } = {}) {
+        if (!pickup || pickup.collected) return false;
         pickup.collected = true;
-        pickup.pickupZone?.destroy?.();
-        pickup.pickupZone = null;
-        this.redrawForestCoinLayer();
+        pickup.coin?.destroy?.();
+        pickup.coin = null;
+        if (pickup.batched && redraw) this.redrawForestCoinLayer();
 
         const coinValue = pickup.type === 'bonus' ? 15 : 10;
         window.EconomyManager?.addCoins?.(
@@ -5104,12 +4996,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         this.coinSprites.forEach(c => {
             if (c.coin?.active) c.coin.destroy();
-            if (c.pickupZone?.active) c.pickupZone.destroy();
         });
         this.coinSprites = [];
-        this.forestCoinPickupOverlap?.destroy?.();
-        this.forestCoinPickupOverlap = null;
-        this.forestCoinPickupGroup = null;
         this.forestCoinLayerTween?.remove?.();
         this.forestCoinLayerTween = null;
         this.forestCoinLayer?.destroy?.();
