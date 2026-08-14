@@ -25,8 +25,17 @@ const expectedFiles = [
     'realm-auroradepths.png',
     'realm-finalvoid.png',
     'village-base-builder.png',
-    'village-first-construction.png'
+    'village-first-construction.png',
+    'nasa-apollo11-real-space-discovery.png'
 ];
+
+const groupFiles = {
+    opening: expectedFiles.slice(0, 3),
+    realms: expectedFiles.slice(3, 9),
+    village: expectedFiles.slice(9, 11),
+    nasa: expectedFiles.slice(11, 12),
+    all: expectedFiles
+};
 
 function delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -90,17 +99,32 @@ function gitValue(args) {
 }
 
 function writeManifest() {
-    const captures = expectedFiles.map((filename) => {
-        const absolutePath = path.join(captureDir, filename);
-        if (!fs.existsSync(absolutePath)) {
-            throw new Error(`Expected gameplay capture is missing: ${filename}`);
+    const manifestPath = path.join(captureDir, 'manifest.json');
+    let previousManifest = null;
+    if (fs.existsSync(manifestPath)) {
+        try {
+            previousManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        } catch (error) {
+            throw new Error(`Existing gameplay manifest is invalid: ${error.message}`);
         }
+    }
+    const currentSourceCommit = gitValue(['rev-parse', 'HEAD']);
+    const capturedNow = new Set(groupFiles[captureGroup]);
+    for (const filename of groupFiles[captureGroup]) {
+        if (!fs.existsSync(path.join(captureDir, filename))) {
+            throw new Error(`Required ${captureGroup} capture is missing: ${filename}`);
+        }
+    }
+    const captures = expectedFiles.filter((filename) => (
+        fs.existsSync(path.join(captureDir, filename))
+    )).map((filename) => {
+        const absolutePath = path.join(captureDir, filename);
         const buffer = fs.readFileSync(absolutePath);
         const dimensions = readPngDimensions(buffer);
         if (dimensions.width < 390 || dimensions.height < 810) {
             throw new Error(`Gameplay capture is too small: ${filename} (${dimensions.width}x${dimensions.height})`);
         }
-        return {
+        const capture = {
             id: `GP-${String(expectedFiles.indexOf(filename) + 1).padStart(3, '0')}`,
             filename,
             publicPath: `/press/gameplay/${filename}`,
@@ -109,24 +133,41 @@ function writeManifest() {
             ...dimensions,
             classification: 'authentic_running_build_screenshot',
             fixture: 'company_controlled_qa_state_no_personal_data',
+            sourceCommit: capturedNow.has(filename)
+                ? currentSourceCommit
+                : previousManifest?.captures?.find(item => item.filename === filename)?.sourceCommit ||
+                    previousManifest?.sourceCommit ||
+                    null,
             disclosure: 'Captured from the real Mythical Void browser game; not a generated mockup.'
         };
+        if (filename === 'nasa-apollo11-real-space-discovery.png') {
+            capture.embeddedSource = {
+                name: 'NASA Astronomy Picture of the Day — Apollo 11 Landing Panorama',
+                date: '2024-07-20',
+                url: 'https://apod.nasa.gov/apod/ap240720.html',
+                imageCredit: 'Neil Armstrong · Apollo 11 · NASA'
+            };
+            capture.disclosure = 'Captured from the real Mythical Void browser game. The in-game panel contains a credited NASA Apollo 11 image and clearly separates real space material from the creature’s imagined reaction.';
+        }
+        return capture;
     });
     const manifest = {
         schemaVersion: 1,
         asOf: new Date().toISOString(),
-        sourceCommit: gitValue(['rev-parse', 'HEAD']),
+        sourceCommit: currentSourceCommit,
         sourceBranch: gitValue(['branch', '--show-current']),
         sourceRoute: '/play/',
         captureMethod: 'Automated first-party browser journeys using a clean invented QA state.',
-        rights: 'First-party Mythical Void game capture.',
+        captureSourcePolicy: 'The top-level sourceCommit records the build that last updated this manifest. Each capture has its own sourceCommit, which remains unchanged during partial recaptures.',
+        captureSourceCommits: [...new Set(captures.map(capture => capture.sourceCommit).filter(Boolean))],
+        rights: 'First-party Mythical Void game capture. Any embedded public NASA material retains the exact source and credit recorded on its capture.',
         privacy: 'No player name, child identity, account, message, notification or personal save data is used.',
         presentationBoundary: 'These are authentic screenshots of a running build. Some in-game art may have its own disclosed production provenance; none of these images is a generated gameplay mockup.',
         approvalState: 'internal_review_required_before_public_promotion',
         captures
     };
     fs.writeFileSync(
-        path.join(captureDir, 'manifest.json'),
+        manifestPath,
         `${JSON.stringify(manifest, null, 2)}\n`
     );
     return manifest;
@@ -138,7 +179,7 @@ async function main() {
         throw new Error('Production build is missing. Run npm run build before capturing gameplay.');
     }
     fs.mkdirSync(captureDir, { recursive: true });
-    if (!['all', 'opening', 'realms', 'village'].includes(captureGroup)) {
+    if (!['all', 'opening', 'realms', 'village', 'nasa'].includes(captureGroup)) {
         throw new Error(`Unknown MYTHICAL_CAPTURE_GROUP: ${captureGroup}`);
     }
 
@@ -180,6 +221,15 @@ async function main() {
         if (['all', 'village'].includes(captureGroup)) {
             runSmoke({
                 mode: 'village-ui',
+                smokeCase: 'all',
+                width: 390,
+                height: 844,
+                extraEnv: { SMOKE_SKIP_PREVIEW: '1' }
+            });
+        }
+        if (['all', 'nasa'].includes(captureGroup)) {
+            runSmoke({
+                mode: 'nasa-content',
                 smokeCase: 'all',
                 width: 390,
                 height: 844,

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "SEARCH-RELEASE-2026-08-14",
+  "asOf": "2026-08-14",
+  "state": "approved_for_owned_website_release",
+  "purpose": "Give players, parents, educators, creators and press useful ways to discover Mythical Void without waiting for social accounts or paid promotion.",
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "searchEngineSubmissionAuthorized": false,
+    "paidSearchAuthorized": false,
+    "linkOutreachAuthorized": false,
+    "source": "Kevin's active company-building goal and explicit autonomy for in-scope decisions"
+  },
+  "shared": {
+    "style": "public/discovery.css",
+    "analytics": "public/discovery.js",
+    "analyticsDefault": "denied",
+    "advertisingFeatures": false,
+    "canonicalHome": "https://mythicalvoid.com/",
+    "playUrl": "https://mythicalvoid.com/play/"
+  },
+  "pages": [
+    {
+      "route": "/creature-genetics/",
+      "audience": "Players, creature-game fans, creators and game developers",
+      "intent": "Understand the varied creature genetics and the boundary between the playable form and wider artwork",
+      "claimIds": ["CL-005"],
+      "proof": ["public/press/gameplay/creature-cosmic-egg-hatch.png", "docs/company/content/technology-proof-map.json"]
+    },
+    {
+      "route": "/nasa-space-science/",
+      "audience": "Families, educators, STEM communities, creators and press",
+      "intent": "Understand how selected public NASA material can support optional discovery inside a fictional world",
+      "claimIds": ["CL-013"],
+      "proof": ["public/press/gameplay/nasa-apollo11-real-space-discovery.png", "https://apod.nasa.gov/apod/ap240720.html"]
+    },
+    {
+      "route": "/parents/",
+      "audience": "Parents, guardians and adults evaluating a younger player's first use",
+      "intent": "Understand cost, access, saves, fantasy combat, privacy and AI boundaries before play",
+      "claimIds": ["CL-001", "CL-002", "CL-003", "CL-007", "CL-013"],
+      "proof": ["public/press/gameplay/project-beacon-start.png", "public/privacy/index.html"]
+    },
+    {
+      "route": "/studio/",
+      "audience": "Players, families, press, creators, partners and game-development peers",
+      "intent": "Understand the father-and-son origin and how a small human-led studio uses generative AI tools",
+      "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005"],
+      "proof": ["public/press/gameplay/realm-mythicalforest.png", "public/press/gameplay-video/manifest.json"]
+    }
+  ],
+  "releaseChecks": [
+    "unique title, description, heading and canonical URL",
+    "crawlable body copy with a useful purpose independent of ranking",
+    "direct play link and internal links between useful pages",
+    "no retired companion wording",
+    "no absolute creature-uniqueness promise",
+    "generated artwork and real gameplay labelled separately",
+    "NASA source, credit boundary and non-endorsement statement",
+    "analytics off until the visitor chooses to allow it",
+    "all routes present in the sitemap"
+  ],
+  "remainingExternalGates": [
+    "Connect verified Google Search Console or equivalent read access",
+    "Submit or inspect the sitemap only after authenticated webmaster access is available",
+    "Do not claim indexing or rankings until verified evidence exists",
+    "Do not buy search traffic or request links without a separate approved plan"
+  ]
+}

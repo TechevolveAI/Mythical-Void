@@ -2005,6 +2005,52 @@ footer {
     gap: 1.15rem;
 }
 
+.press-proof-feature-grid {
+    display: grid;
+    grid-template-columns: .86fr 1.14fr;
+    align-items: stretch;
+    gap: 1.15rem;
+    margin-bottom: 1.15rem;
+}
+
+.press-proof-feature-grid .press-gameplay-card {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.press-video-shell {
+    display: grid;
+    min-height: 610px;
+    place-items: center;
+    padding: 1.25rem;
+    background:
+        radial-gradient(circle at 50% 36%, rgba(124, 232, 207, .18), transparent 36%),
+        #070614;
+}
+
+.press-video-shell video {
+    display: block;
+    width: min(100%, 300px);
+    max-height: 590px;
+    border: 1px solid rgba(143, 227, 207, .3);
+    border-radius: 1rem;
+    background: #05040e;
+    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .42);
+}
+
+.press-nasa-card > img {
+    height: 610px;
+    object-fit: contain;
+    padding: 1rem;
+    background:
+        radial-gradient(circle at 50% 38%, rgba(126, 87, 224, .22), transparent 42%),
+        #070614;
+}
+
+.press-nasa-card figcaption a + a {
+    margin-left: 1rem;
+}
+
 .press-gameplay-card {
     overflow: hidden;
     margin: 0;
@@ -2068,6 +2114,10 @@ footer {
 }
 
 .press-gameplay-proof {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .7rem 1.2rem;
     margin: 1.4rem 0 0;
     text-align: right;
 }
@@ -2216,6 +2266,9 @@ footer {
     .press-origin-mark { min-height: 400px; }
     .press-gameplay-grid { grid-template-columns: 1fr 1fr; }
     .press-gameplay-wide { grid-column: 1 / -1; }
+    .press-proof-feature-grid { grid-template-columns: 1fr 1fr; }
+    .press-video-shell,
+    .press-nasa-card > img { min-height: 540px; height: 540px; }
 }
 
 @media (max-width: 620px) {
@@ -2231,6 +2284,7 @@ footer {
     .press-fact-grid,
     .press-assets-grid,
     .press-gameplay-grid,
+    .press-proof-feature-grid,
     .press-language-cards { grid-template-columns: 1fr; }
     .press-asset-wide { grid-column: auto; }
     .press-gameplay-wide { grid-column: auto; }
@@ -2238,6 +2292,10 @@ footer {
     .press-asset-wide > img { height: 260px; }
     .press-gameplay-card > img,
     .press-gameplay-wide > img { height: 360px; }
+    .press-video-shell { min-height: 570px; height: auto; }
+    .press-nasa-card > img { height: 570px; }
+    .press-nasa-card figcaption a { display: block; }
+    .press-nasa-card figcaption a + a { margin: .65rem 0 0; }
     .press-origin-mark { min-height: 330px; }
 }
 

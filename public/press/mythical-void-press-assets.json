@@ -4,7 +4,22 @@
   "canonicalPressRoom": "https://mythicalvoid.com/press/",
   "playUrl": "https://mythicalvoid.com/play/",
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
+  "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
   "assets": [
+    {
+      "name": "Mythical Forest authentic gameplay video",
+      "url": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+      "posterUrl": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+      "kind": "authentic_running_build_gameplay_video",
+      "description": "A short vertical recording made directly from the real Mythical Void browser game, with real movement, jumping, touch controls and route display; no generated frames or replacement scenery."
+    },
+    {
+      "name": "Apollo 11 real-space discovery",
+      "url": "https://mythicalvoid.com/press/gameplay/nasa-apollo11-real-space-discovery.png",
+      "sourceUrl": "https://apod.nasa.gov/apod/ap240720.html",
+      "kind": "authentic_running_build_screenshot",
+      "description": "A real in-game NASA learning card containing a credited Apollo 11 image, a space-scientist observation activity and a clearly marked fictional creature reaction. Image credit: Neil Armstrong, Apollo 11, NASA."
+    },
     {
       "name": "Begin Project Beacon",
       "url": "https://mythicalvoid.com/press/gameplay/project-beacon-start.png",
@@ -63,6 +78,7 @@
   "permissions": "Assets may be used in truthful editorial coverage of Mythical Void with their descriptions and disclosures preserved.",
   "restrictions": [
     "Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.",
+    "Only assets labelled authentic_running_build_gameplay_video may be described as gameplay footage.",
     "Do not present marketing illustrations or game-world artwork as gameplay footage.",
     "Do not imply NASA endorsement or partnership.",
     "Do not imply sentience, consciousness, global creature uniqueness or a fully autonomous studio."

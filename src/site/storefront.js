@@ -123,6 +123,20 @@ function renderPressPage() {
                         <div><p class="kicker">CAPTURED FROM THE GAME</p><h2>This is what players really see.</h2></div>
                         <p>Every frame below was captured automatically from a tested Mythical Void build using an invented game state. No mock gameplay, private save or player identity is involved.</p>
                     </div>
+                    <div class="press-proof-feature-grid">
+                        <figure class="press-gameplay-card press-video-card">
+                            <div class="press-video-shell">
+                                <video controls muted playsinline preload="metadata" poster="/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" aria-label="Real vertical gameplay in the Mythical Forest">
+                                    <source src="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" type="video/mp4">
+                                </video>
+                            </div>
+                            <figcaption><span>REAL GAMEPLAY VIDEO</span><strong>Move through the Mythical Forest</strong><p>A short unfiltered journey with real movement, jumping, touch controls and the live route display. There are no generated frames or replacement scenery.</p><a href="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" download>Download gameplay video ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-gameplay-card press-nasa-card">
+                            <img src="/press/gameplay/nasa-apollo11-real-space-discovery.png" alt="A real Mythical Void learning card showing a credited NASA Apollo 11 panorama, observation prompts and an imagined creature reaction" loading="lazy">
+                            <figcaption><span>REAL GAME + REAL NASA IMAGE</span><strong>Turn a space picture into a question</strong><p>The game clearly separates the Apollo 11 image and credit from the creature’s imagined reaction, then asks the player to observe, infer and check evidence.</p><a href="https://apod.nasa.gov/apod/ap240720.html" target="_blank" rel="noopener noreferrer">View the NASA source ↗</a><a href="/press/gameplay/nasa-apollo11-real-space-discovery.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                    </div>
                     <div class="press-gameplay-grid">
                         <figure class="press-gameplay-card press-gameplay-wide">
                             <img src="/press/gameplay/project-beacon-start.png" alt="The real Mythical Void opening screen showing Project Beacon and the Wanderer-77 crash site" loading="lazy">
@@ -141,7 +155,7 @@ function renderPressPage() {
                             <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
                         </figure>
                     </div>
-                    <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View build record and file fingerprints →</a></p>
+                    <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View video build record →</a></p>
                 </div>
             </section>
 
@@ -265,8 +279,8 @@ function renderLegalPage(type) {
 
 function renderStorefront() {
     updatePageMetadata({
-        title: 'Mythical Void | Project Beacon',
-        description: 'Recover Wanderer-77, restore the Fend, and decide what Project Beacon should tell Earth. Play free in your browser.',
+        title: 'Mythical Void | Free Creature Adventure Browser Game',
+        description: 'Play Mythical Void free in your browser. Hatch a varied alien creature, explore six living realms, restore their guardians and shape Project Beacon.',
         path: '/'
     });
 
@@ -301,7 +315,7 @@ function renderStorefront() {
                 <div class="hero-inner">
                     <div class="hero-copy-block">
                         <p class="kicker"><span></span> A universe of creatures</p>
-                        <h1>One universe. <em>No two creatures alike.</em></h1>
+                        <h1>One universe. <em>Every hatch opens a new possibility.</em></h1>
                         <p class="hero-copy">Every hatch mixes body, colour, personality, cosmic power and rare mutations. What arrives from the Void will be truly yours.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
@@ -375,10 +389,10 @@ function renderStorefront() {
                         <p>Under the story is a set of living systems designed to make each creature and each expedition feel personal.</p>
                     </div>
                     <div class="systems-grid">
-                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your creature is built from a profile—not picked from one poster.</p><a href="/play/">See it in the game →</a></article>
+                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your creature is built from a profile—not picked from one poster.</p><a href="/creature-genetics/">Explore creature genetics →</a></article>
                         <article class="system-card"><span class="system-index">02</span><h3>A living browser world</h3><p>Phaser 3 is the game engine underneath the adventure. It lets the movement, exploration, battles, guardians, village, and story scenes happen right in your browser.</p><a href="/play/">Enter the Fend →</a></article>
-                        <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your creature’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="#parents">Read the family notes →</a></article>
-                        <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures, Mars images, and space-weather signals. It gives curious players a friendly way to ask questions, spot patterns, and discover that the space around the story is real.</p><a href="#studio">See the STEM promise →</a></article>
+                        <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your creature’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="/parents/">Read the family notes →</a></article>
+                        <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures, Mars images, and space-weather signals. It gives curious players a friendly way to ask questions, spot patterns, and discover that the space around the story is real.</p><a href="/nasa-space-science/">See the STEM promise →</a></article>
                     </div>
                 </div>
             </section>
@@ -492,6 +506,7 @@ function renderStorefront() {
                                 <span><b>02</b> AI helps us explore</span>
                                 <span><b>03</b> Children deserve care</span>
                             </div>
+                            <a class="text-link" href="/studio/">Read how the project began <span aria-hidden="true">→</span></a>
                         </div>
                     </div>
                 </div>
@@ -504,7 +519,7 @@ function renderStorefront() {
                         <h2>A big adventure with thoughtful choices.</h2>
                         <p>Mythical Void mixes exploration and age-appropriate fantasy battles with problem solving, care, responsibility, and restoration rather than destruction.</p>
                         <p class="parent-answer"><strong>The short answer:</strong> children can start playing without an account, an email address, or payment details.</p>
-                        <span class="text-link text-link-muted">Parent contact opens soon <span aria-hidden="true">→</span></span>
+                        <a class="text-link" href="/parents/">Read the full family guide <span aria-hidden="true">→</span></a>
                     </div>
                     <ul class="safety-list">
                         <li><span aria-hidden="true">✓</span><div><strong>No account needed</strong><p>Start without sharing a name or email.</p></div></li>
@@ -579,7 +594,10 @@ function renderStorefront() {
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
                     <a href="/press/">Press & creators</a>
-                    <a href="#parents">For grown-ups</a>
+                    <a href="/creature-genetics/">Creature genetics</a>
+                    <a href="/nasa-space-science/">NASA & STEM</a>
+                    <a href="/studio/">Our story</a>
+                    <a href="/parents/">For grown-ups</a>
                     <a href="/privacy/">Privacy & safety</a>
                     <a href="/terms/">Terms</a>
                         <span class="footer-link-muted">Contact opens soon</span>
