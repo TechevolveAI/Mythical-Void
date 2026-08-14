@@ -971,7 +971,16 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.peakStarLayer = this.add.graphics()');
         expect(source).toContain('this.peakEmbers = Array.from({ length: 18 }');
         expect(source).toContain('drawPeakEmbers(time)');
+        expect(source).toContain('this.drawPeakEmbers(0, true);');
+        expect(source).toContain('const cadence = this.isMobile ? 100 : 50;');
+        expect(source).toContain('ember.x < left - 140 || ember.x > right + 140');
+        expect(source).toContain('this.peakEmberDrawCount += 1;');
         expect(source).toContain('this.peakEmberLayer.fillCircle(');
+        expect(source).toContain('updatePeakEnemyPatrols(time)');
+        expect(source).toContain('this.peakEnemyPatrolNextAt = now + (this.isMobile ? 80 : 40);');
+        expect(source).toContain('enemy.patrolSpeed');
+        expect(source).toContain('const toastY = isMobileLayout');
+        expect(source).toContain('y: toastY - 20');
         expect(source).not.toContain('targets: ember,');
     });
 
@@ -2615,6 +2624,9 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('state.reefAmbientRendering?.decorativeTweenCount !== 0');
         expect(smoke).toContain('state.peaksAmbientRendering?.starCount !== 35');
         expect(smoke).toContain('state.peaksAmbientRendering?.emberLayerCount !== 1');
+        expect(smoke).toContain('framePacing.peaksRuntime?.emberRedrawsDuringSample > 22');
+        expect(smoke).toContain('framePacing.peaksRuntime?.patrolUpdatesDuringSample > 28');
+        expect(smoke).toContain('did not keep Peaks runtime work bounded');
         expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');
         expect(smoke).toContain('state.coinRendering?.legacyVisualCount !== 0');
         expect(smoke).toContain('state.coinRendering?.pickupBodyCount !== 0');

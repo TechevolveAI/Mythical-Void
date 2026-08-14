@@ -137,6 +137,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.peakStarLayer = null;
         this.peakEmbers = [];
         this.peakEmberLayer = null;
+        this.peakEmberDrawNextAt = 0;
+        this.peakEmberDrawCount = 0;
+        this.peakEmberVisibleCount = 0;
+        this.peakEnemyPatrolNextAt = 0;
+        this.peakEnemyPatrolUpdateCount = 0;
         this.titanGate = null;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
@@ -180,6 +185,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.peakStarLayer = null;
         this.peakEmbers = [];
         this.peakEmberLayer = null;
+        this.peakEmberDrawNextAt = 0;
+        this.peakEmberDrawCount = 0;
+        this.peakEmberVisibleCount = 0;
+        this.peakEnemyPatrolNextAt = 0;
+        this.peakEnemyPatrolUpdateCount = 0;
         this.titanGate = null;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
@@ -521,25 +531,42 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             phaseOffset: Phaser.Math.Between(0, 6200),
             batched: true
         }));
-        this.drawPeakEmbers(0);
+        this.peakEmberDrawNextAt = 0;
+        this.peakEmberDrawCount = 0;
+        this.drawPeakEmbers(0, true);
     }
 
-    drawPeakEmbers(time) {
+    drawPeakEmbers(time, force = false) {
         if (!this.peakEmberLayer?.active) return;
 
         const now = Number(time) || 0;
+        const cadence = this.isMobile ? 100 : 50;
+        if (!force && now < this.peakEmberDrawNextAt) return;
+        this.peakEmberDrawNextAt = now + cadence;
+
+        const view = this.cameras?.main?.worldView;
+        const left = Number(view?.left) || 0;
+        const right = Number(view?.right) || this.levelWidth;
+        const top = Number(view?.top) || 0;
+        const bottom = Number(view?.bottom) || this.levelHeight;
+        let visibleCount = 0;
         this.peakEmberLayer.clear();
         this.peakEmbers.forEach(ember => {
+            if (ember.x < left - 140 || ember.x > right + 140) return;
             const phase = ((now + ember.phaseOffset) % ember.duration) / ember.duration;
             const rise = (Math.sin((phase * Math.PI * 2) - (Math.PI / 2)) + 1) / 2;
             const y = ember.originY - (ember.travel * rise);
+            if (y < top - 100 || y > bottom + 100) return;
             const alpha = 0.05 + ((1 - rise) * 0.5);
 
+            visibleCount += 1;
             this.peakEmberLayer.fillStyle(ember.color, alpha * 0.34);
             this.peakEmberLayer.fillCircle(ember.x, y, ember.radius * 1.8);
             this.peakEmberLayer.fillStyle(ember.color, alpha);
             this.peakEmberLayer.fillCircle(ember.x, y, ember.radius);
         });
+        this.peakEmberVisibleCount = visibleCount;
+        this.peakEmberDrawCount += 1;
     }
 
     createVoidGeysers() {
@@ -840,7 +867,29 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
         const retirement = this.retireRouteEnemies(patrols);
         this.peakEncounterRhythm = [];
+        this.peakEnemyPatrolNextAt = 0;
         return retirement.enemyCount;
+    }
+
+    updatePeakEnemyPatrols(time) {
+        const now = Number(time) || 0;
+        if (now < this.peakEnemyPatrolNextAt) return 0;
+        this.peakEnemyPatrolNextAt = now + (this.isMobile ? 80 : 40);
+
+        let updatedCount = 0;
+        (this.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (enemy?.enemyType !== 'voidPeakSentinel' || !enemy.body?.enable) return;
+            if (enemy.x <= enemy.patrolMin) {
+                enemy.setVelocityX(Math.abs(enemy.body.velocity.x || enemy.patrolSpeed));
+                enemy.setFlipX(false);
+            } else if (enemy.x >= enemy.patrolMax) {
+                enemy.setVelocityX(-Math.abs(enemy.body.velocity.x || enemy.patrolSpeed));
+                enemy.setFlipX(true);
+            }
+            updatedCount += 1;
+        });
+        this.peakEnemyPatrolUpdateCount += 1;
+        return updatedCount;
     }
 
     createSentinelTexture(textureKey, color) {
@@ -1521,12 +1570,15 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     showObjectiveToast() {
         const { width, height } = this.cameras.main;
         const isMobileLayout = this.isMobile || width <= 480 || height < 620;
+        const toastY = isMobileLayout
+            ? (height < 620 ? Math.min(142, height * 0.38) : Math.min(225, height * 0.28))
+            : 90;
         const toast = this.add.text(
             width / 2,
-            isMobileLayout ? 165 : 90,
+            toastY,
             'Restore the warning relays and reach Titan Pass',
             {
-            fontSize: '18px',
+            fontSize: isMobileLayout ? '15px' : '18px',
             color: '#FFD700',
             backgroundColor: 'rgba(0,0,0,0.72)',
             padding: { x: 18, y: 8 },
@@ -1537,7 +1589,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: toast,
             alpha: 0,
-            y: 60,
+            y: toastY - 20,
             delay: 2600,
             duration: 600,
             onComplete: () => toast.destroy()
@@ -1550,20 +1602,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         this.drawPeakEmbers(time);
         this.updatePeakReturnCurrentGuidance();
-
-        if (this.enemies) {
-            this.enemies.getChildren().forEach(enemy => {
-                if (enemy.enemyType === 'voidPeakSentinel') {
-                    if (enemy.x <= enemy.patrolMin) {
-                        enemy.setVelocityX(Math.abs(enemy.body.velocity.x || 45));
-                        enemy.setFlipX(false);
-                    } else if (enemy.x >= enemy.patrolMax) {
-                        enemy.setVelocityX(-Math.abs(enemy.body.velocity.x || 45));
-                        enemy.setFlipX(true);
-                    }
-                }
-            });
-        }
+        this.updatePeakEnemyPatrols(time);
 
         this.syncCampaignObjectiveDisplay({
             visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
@@ -2338,6 +2377,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.peakEmberLayer?.destroy?.();
         this.peakEmberLayer = null;
         this.peakEmbers = [];
+        this.peakEmberDrawNextAt = 0;
+        this.peakEmberDrawCount = 0;
+        this.peakEmberVisibleCount = 0;
+        this.peakEnemyPatrolNextAt = 0;
+        this.peakEnemyPatrolUpdateCount = 0;
         super.shutdown();
         console.log('[VoidPeaksLevel] Shutting down');
     }

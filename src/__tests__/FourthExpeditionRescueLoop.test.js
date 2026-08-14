@@ -173,7 +173,10 @@ describe('fourth expedition rescue loop', () => {
             'const isMobileLayout = this.isMobile || width <= 480 || height < 620'
         );
         expect(source).toContain('const barY = isMobileLayout ? 118 : 60');
-        expect(source).toContain('isMobileLayout ? 165 : 90');
+        expect(source).toContain('const toastY = isMobileLayout');
+        expect(source).toContain('height < 620 ? Math.min(142, height * 0.38)');
+        expect(source).toContain('Math.min(225, height * 0.28)');
+        expect(source).toContain('y: toastY - 20');
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('WARNING ${current}/3 // ${nextRelay}');
         expect(source).toContain('TITAN PASS OPEN');
