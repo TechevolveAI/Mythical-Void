@@ -17,9 +17,10 @@ const paths = {
     discovery: process.argv[10] ? path.resolve(process.argv[10]) : defaultPaths.discovery,
     hatchReview: process.argv[11] ? path.resolve(process.argv[11]) : defaultPaths.hatchReview,
     restorationReview: process.argv[12] ? path.resolve(process.argv[12]) : defaultPaths.restorationReview,
-    dashboard: process.argv[13] ? path.resolve(process.argv[13]) : dashboardDefault
+    choiceReview: process.argv[13] ? path.resolve(process.argv[13]) : defaultPaths.choiceReview,
+    dashboard: process.argv[14] ? path.resolve(process.argv[14]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -81,6 +82,10 @@ requireValue(values.hatchReview.qualityIssues?.length === 4, 'The founder view m
 requireValue(values.restorationReview.captureIds?.join(',') === 'GP-014,GP-015', 'Founder view must use both reviewed restoration frames.');
 requireValue(values.restorationReview.reviewState === 'authentic_supporting_proof_not_approved_as_lead_world_change' && values.restorationReview.publicUseApproved === false, 'The restoration pair must remain withheld as lead world-change proof.');
 requireValue(values.restorationReview.qualityIssues?.length === 4, 'The founder view must retain all four restoration quality issues.');
+
+requireValue(values.choiceReview.captureIds?.join(',') === 'GP-016,GP-017', 'Founder view must use both reviewed Project Beacon choice frames.');
+requireValue(values.choiceReview.reviewState === 'authentic_spoiler_safe_supporting_proof_ready_for_kevin_review' && values.choiceReview.publicUseApproved === false, 'The Project Beacon choice proof must remain spoiler-safe and waiting for Kevin review.');
+requireValue(values.choiceReview.qualityIssues?.length === 2, 'The founder view must retain both Project Beacon choice limitations.');
 
 const engagementTrack = values.launch.tracks?.find(track => track.id === 'LT-007');
 requireValue(engagementTrack?.status === 'blocked' && /safeguarding/i.test((engagementTrack.blockers || []).join(' ')), 'Public engagement must remain blocked until safeguarding and response ownership exist.');

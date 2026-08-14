@@ -15,14 +15,15 @@ const defaultPaths = {
     calendar: path.join(root, 'docs/company/content/channel-launch/FOUR_WEEK_LAUNCH_CALENDAR.json'),
     discovery: path.join(root, 'docs/company/search/organic-discovery-release-2026-08-14.json'),
     hatchReview: path.join(root, 'docs/company/content/HATCH_REVEAL_PROOF_REVIEW.json'),
-    restorationReview: path.join(root, 'docs/company/content/RESTORATION_PROOF_REVIEW.json')
+    restorationReview: path.join(root, 'docs/company/content/RESTORATION_PROOF_REVIEW.json'),
+    choiceReview: path.join(root, 'docs/company/content/PROJECT_BEACON_CHOICE_PROOF_REVIEW.json')
 };
 
 function readJson(file) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-function buildDashboard({ evidence, outreach, activation, itch, launch, trailer, analytics, calendar, discovery, hatchReview, restorationReview }) {
+function buildDashboard({ evidence, outreach, activation, itch, launch, trailer, analytics, calendar, discovery, hatchReview, restorationReview, choiceReview }) {
     const checkedDate = evidence.checkedAt.slice(0, 10).split('-').reverse().join('/');
     const livePageCount = evidence.routes.filter(route => route.route !== '/play/' && route.verified).length;
     const firstWaveCount = outreach.messages.length;
@@ -65,6 +66,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Social launch:** ${preparedYouTubeCount} YouTube upload items and ${preparedLinkedInCount} LinkedIn posts are prepared, alongside a four-week plan containing ${publicCalendarCount} outward releases and one internal review.
 - **Honest game proof:** the real hatch reached a visible creature and Confirm contact, but the captured frame was rejected for public promotion after ${hatchReview.qualityIssues.length} visible quality problems were recorded for Game Development.
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after ${restorationReview.qualityIssues.length} quality limits were recorded.
+- **Project Beacon choice:** ${choiceReview.captureIds.length} real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with ${choiceReview.qualityIssues.length} visible limitations recorded.
 - **First outreach:** ${firstWaveCount} personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. ${laterOpportunityCount} later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 
@@ -80,7 +82,7 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 
 - Improve and recapture the real creature reveal, then complete the hatch-to-first-response proof without pretending the current frame is launch quality.
 - Strengthen and recapture the stable realm aftermath so the difference is visible without relying on the words, then complete the continuous restoration proof.
-- Capture a spoiler-safe Project Beacon choice.
+- Prepare one tightly worded choice-led post using only the reviewed claims, ready for Kevin after the trailer decision.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
 - Check every claim against the game and label generated artwork separately from gameplay.

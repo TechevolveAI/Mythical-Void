@@ -2774,6 +2774,61 @@ async function smokeRestorationProof(session, exceptions) {
     return { corrupted, restorationStarted, releaseButton, restored };
 }
 
+async function smokeProjectBeaconChoiceProof(session, exceptions) {
+    exceptions.length = 0;
+    if (!['wide', 'phone'].includes(SMOKE_CASE)) {
+        throw new Error('Project Beacon choice proof case must be wide or phone');
+    }
+    await navigate(session, `${BASE_URL}/play/?testEnding=choice`);
+    await waitForScene(session, 'VictoryScene', 18000);
+    const state = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('VictoryScene');
+            const visibleText = scene?.children?.list
+                ?.filter(item => item?.type === 'Text' && item?.active && item?.visible)
+                ?.map(item => item.text) || [];
+            const required = [
+                'WHAT COMES FIRST?',
+                'DEFEND FIRST\\nRestore communities',
+                'PREPARE HOMECOMING\\nPreserve a secret route',
+                'PREPARE HONEST CONTACT\\nBuild consent and proof'
+            ];
+            if (!required.every(text => visibleText.includes(text))) return null;
+            return {
+                active: window.mythicalGame.scene.isActive('VictoryScene'),
+                endingPreview: scene.endingPreview,
+                isPreview: scene.isPreview,
+                requiredChoiceCount: required.length - 1,
+                savedEndingChoice: window.GameState?.get?.('story.projectBeacon.endingChoice') ?? null,
+                savedFinalPriority: window.GameState?.get?.('story.projectBeacon.finale.priority') ?? null,
+                transmissionHeld: visibleText.some(text => /NO TRANSMISSION|does not transmit/i.test(text)),
+                departureHeld: visibleText.some(text => /NO DEPARTURE|does not .*depart/i.test(text))
+            };
+        })()`),
+        { timeoutMs: 12000, message: 'Spoiler-safe Project Beacon priority choice' }
+    );
+    if (
+        !state.active ||
+        state.endingPreview !== 'choice' ||
+        state.isPreview !== true ||
+        state.requiredChoiceCount !== 3 ||
+        state.savedEndingChoice !== null ||
+        state.savedFinalPriority !== null ||
+        !state.transmissionHeld ||
+        !state.departureHeld
+    ) {
+        throw new Error(`Project Beacon choice proof was unsafe or incomplete: ${JSON.stringify(state)}`);
+    }
+    const filename = SMOKE_CASE === 'phone'
+        ? 'project-beacon-priority-choice-phone.png'
+        : 'project-beacon-priority-choice.png';
+    await captureGameplayStill(session, filename);
+    if (exceptions.length) {
+        throw new Error(`Project Beacon choice proof raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+    return { ...state, filename };
+}
+
 async function main() {
     if (!fs.existsSync(CHROME_PATH)) {
         throw new Error(`Chrome was not found at ${CHROME_PATH}`);
@@ -2934,10 +2989,16 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS RestorationProof\n');
+        } else if (SMOKE_MODE === 'choice-proof') {
+            results.choiceProof = await smokeProjectBeaconChoiceProof(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS ProjectBeaconChoiceProof\n');
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, nasa-content, interaction, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, guardian-pacing, or restoration-proof.'
+                'Use home-entry, nasa-content, interaction, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, guardian-pacing, restoration-proof, or choice-proof.'
             );
         }
         console.log(JSON.stringify({

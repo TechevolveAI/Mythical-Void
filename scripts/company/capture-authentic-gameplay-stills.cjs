@@ -29,7 +29,9 @@ const expectedFiles = [
     'nasa-apollo11-real-space-discovery.png',
     'creature-cosmic-egg-reveal.png',
     'guardian-void-empress-corrupted.png',
-    'guardian-void-empress-restored.png'
+    'guardian-void-empress-restored.png',
+    'project-beacon-priority-choice.png',
+    'project-beacon-priority-choice-phone.png'
 ];
 
 const groupFiles = {
@@ -38,6 +40,7 @@ const groupFiles = {
     village: expectedFiles.slice(9, 11),
     nasa: expectedFiles.slice(11, 12),
     restoration: expectedFiles.slice(13, 15),
+    choice: expectedFiles.slice(15, 17),
     all: expectedFiles
 };
 
@@ -183,7 +186,7 @@ async function main() {
         throw new Error('Production build is missing. Run npm run build before capturing gameplay.');
     }
     fs.mkdirSync(captureDir, { recursive: true });
-    if (!['all', 'opening', 'realms', 'village', 'nasa', 'restoration'].includes(captureGroup)) {
+    if (!['all', 'opening', 'realms', 'village', 'nasa', 'restoration', 'choice'].includes(captureGroup)) {
         throw new Error(`Unknown MYTHICAL_CAPTURE_GROUP: ${captureGroup}`);
     }
 
@@ -244,6 +247,20 @@ async function main() {
             runSmoke({
                 mode: 'restoration-proof',
                 smokeCase: 'finalVoid',
+                width: 390,
+                height: 844
+            });
+        }
+        if (['all', 'choice'].includes(captureGroup)) {
+            runSmoke({
+                mode: 'choice-proof',
+                smokeCase: 'wide',
+                width: 1440,
+                height: 810
+            });
+            runSmoke({
+                mode: 'choice-proof',
+                smokeCase: 'phone',
                 width: 390,
                 height: 844
             });

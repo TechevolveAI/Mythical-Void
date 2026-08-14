@@ -67,6 +67,12 @@ GP-014 and GP-015 show the real Void Empress before the final restoration point 
 
 The pair supports only a narrow claim: Mythical Void treats the final guardian outcome as restoration. It does not show the full player battle, and the realm behind the result does not yet change enough to lead a promise that players visibly bring worlds back to life. Keep it internal until a stable healed guardian or realm aftermath is strong enough to understand without the words.
 
+## The Project Beacon priority is spoiler-safe supporting proof
+
+GP-016 and GP-017 show the real responsive “What comes first?” screen in wide and phone layouts. They show three preparation priorities while explicitly holding transmission and departure. The preview does not select or save an outcome.
+
+The exact claim and spoiler limits are recorded in `docs/company/content/PROJECT_BEACON_CHOICE_PROOF_REVIEW.json`. The pair is a strong candidate for a story or founder post after Kevin approves the finished image and wording together. Do not add confirmation screens, epilogues, consequences or a selected priority to the release.
+
 ## Build the launch trailer
 
 The first 64-second launch trailer is now reproducible from the proof assets:

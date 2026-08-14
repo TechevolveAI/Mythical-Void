@@ -16,6 +16,8 @@
     "test:hatch-reveal-proof": "node scripts/company/test-hatch-reveal-proof.cjs",
     "validate:restoration-proof": "node scripts/company/validate-restoration-proof.cjs",
     "test:restoration-proof": "node scripts/company/test-restoration-proof.cjs",
+    "validate:choice-proof": "node scripts/company/validate-project-beacon-choice-proof.cjs",
+    "test:choice-proof": "node scripts/company/test-project-beacon-choice-proof.cjs",
     "package:itch": "npm run build:portable && node scripts/company/validate-portable-browser-build.cjs && node scripts/package-itch-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",

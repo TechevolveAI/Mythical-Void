@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "PROJECT-BEACON-CHOICE-REVIEW-001",
+  "asOf": "2026-08-14",
+  "captureIds": [
+    "GP-016",
+    "GP-017"
+  ],
+  "capturePaths": [
+    "public/press/gameplay/project-beacon-priority-choice.png",
+    "public/press/gameplay/project-beacon-priority-choice-phone.png"
+  ],
+  "sourceCommit": "c14221a7a3b00e5d38b16f50e89e0a9adae0165d",
+  "reviewState": "authentic_spoiler_safe_supporting_proof_ready_for_kevin_review",
+  "publicUseApproved": false,
+  "recommendedUse": "Candidate supporting visual for the story page, a founder post or a carefully worded choice-focused launch post after Kevin reviews the finished image and copy together.",
+  "whatTheRunningBuildProves": [
+    "The real game contains a responsive Project Beacon priority screen with three visible options.",
+    "The options are Defend first, Prepare homecoming and Prepare honest contact.",
+    "The screen explicitly says the choice is preparation only and does not transmit or depart.",
+    "The preview does not select, save or reveal an ending outcome.",
+    "Both frames use a company-controlled invented state with no player or child identity."
+  ],
+  "spoilerBoundary": "The frames may show the three preparation priorities and the fact that coordinates, transmission and departure remain held. They must not show confirmation screens, epilogue pages, consequences, the canonical outcome, or which priority any player chose.",
+  "qualityStrengths": [
+    "The central question is understandable without technical language.",
+    "All three choices are readable in both wide and phone layouts.",
+    "The screen communicates responsibility without claiming that one option is correct.",
+    "The dark starfield and distinct button colours make the decision easy to scan."
+  ],
+  "qualityIssues": [
+    {
+      "id": "BQ-001",
+      "severity": "medium",
+      "observation": "The screen says the creature stays beside the player, but the preview leaves the central visual space empty.",
+      "impact": "The emotional relationship is described rather than shown, and the wide frame feels more sparse than intended.",
+      "handoff": "Make the saved creature form reliably visible in the safe choice preview and final decision screen."
+    },
+    {
+      "id": "BQ-002",
+      "severity": "low",
+      "observation": "The screen names Wanderer-77 but has little visible ship or Fend context beyond the text.",
+      "impact": "A viewer who has not played may understand the choices but not immediately connect them to Project Beacon's wider world.",
+      "handoff": "Consider a restrained ship, Fend or protected-coordinate motif that does not reduce button readability."
+    }
+  ],
+  "allowedClaims": [
+    "Project Beacon asks players what Wanderer-77 should prepare first.",
+    "The implemented screen offers three preparation priorities.",
+    "No signal or departure happens on this choice screen.",
+    "The choice is framed around responsibility rather than a simple good-or-bad answer."
+  ],
+  "claimsNotAllowed": [
+    "Every choice changes the entire game world.",
+    "The frames show the consequences of any choice.",
+    "A particular ending or priority is canonically correct.",
+    "The game has selected or saved an ending in this preview.",
+    "The screen proves unrestricted branching or unlimited story outcomes."
+  ],
+  "approvalChecklist": [
+    "Kevin confirms that showing all three priority names is acceptably spoiler-safe.",
+    "The final post or page copy uses only an allowed claim.",
+    "The image is labelled as real gameplay from a running build.",
+    "No confirmation screen, epilogue or selected outcome is added to the release.",
+    "The exact wide or phone frame is approved with its final placement."
+  ],
+  "nextCompanyAction": "Keep GP-016 and GP-017 as prepared supporting proof. They may move to public review after the trailer decision, but nothing is published until Kevin approves the exact image and words together."
+}

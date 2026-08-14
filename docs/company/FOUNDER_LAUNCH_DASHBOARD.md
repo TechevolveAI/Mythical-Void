@@ -23,6 +23,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Social launch:** 6 YouTube upload items and 5 LinkedIn posts are prepared, alongside a four-week plan containing 7 outward releases and one internal review.
 - **Honest game proof:** the real hatch reached a visible creature and Confirm contact, but the captured frame was rejected for public promotion after 4 visible quality problems were recorded for Game Development.
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after 4 quality limits were recorded.
+- **Project Beacon choice:** 2 real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with 2 visible limitations recorded.
 - **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 
@@ -38,7 +39,7 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 
 - Improve and recapture the real creature reveal, then complete the hatch-to-first-response proof without pretending the current frame is launch quality.
 - Strengthen and recapture the stable realm aftermath so the difference is visible without relying on the words, then complete the continuous restoration proof.
-- Capture a spoiler-safe Project Beacon choice.
+- Prepare one tightly worded choice-led post using only the reviewed claims, ready for Kevin after the trailer decision.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
 - Check every claim against the game and label generated artwork separately from gameplay.
