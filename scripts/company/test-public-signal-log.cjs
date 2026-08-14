@@ -27,11 +27,12 @@ try {
     assert.notStrictEqual(run('unpublished', data => { data.entries[0].status = 'draft'; }).status, 0);
     assert.notStrictEqual(run('tracked', data => { data.entries[0].destination += '?utm_source=test'; }).status, 0);
     assert.notStrictEqual(run('mislabelled-art', data => { data.entries[0].disclosure = 'A beautiful creature image.'; }).status, 0);
+    assert.notStrictEqual(run('mislabelled-generated-art', data => { data.entries.find(entry => entry.imageClass === 'ai_generated_marketing_illustration').disclosure = 'A beautiful creature image.'; }).status, 0);
     assert.notStrictEqual(run('invented-metric', data => { data.entries[0].summary = 'Already enjoyed by 10,000 players.'; }).status, 0);
     assert.notStrictEqual(run('opened-comments', data => { data.publicationBoundary.commentsEnabled = true; }).status, 0);
     assert.notStrictEqual(run('unsupported-field', data => { data.entries[0].email = 'hello@example.com'; }).status, 0);
     assert.notStrictEqual(run('stale', value => value, true).status, 0);
-    console.log('Public Signal Log safeguards passed (8 cases).');
+    console.log('Public Signal Log safeguards passed (9 cases).');
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

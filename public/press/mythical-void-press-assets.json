@@ -47,6 +47,20 @@
       "description": "Captured from the real Mythical Void browser game using an invented QA state; not a generated mockup."
     },
     {
+      "name": "Project Beacon story social artwork — wide",
+      "url": "https://mythicalvoid.com/press/social/project-beacon-story-wide.png",
+      "kind": "branded_social_artwork_with_authentic_gameplay_frame",
+      "dimensions": "1200x630",
+      "description": "A branded Mythical Void sharing layout built around the authentic Begin Project Beacon running-build screenshot. The complete layout is not a raw gameplay screenshot; the framed scene is real gameplay captured with an invented test state."
+    },
+    {
+      "name": "Project Beacon story social artwork — square",
+      "url": "https://mythicalvoid.com/press/social/project-beacon-story-square.png",
+      "kind": "branded_social_artwork_with_authentic_gameplay_frame",
+      "dimensions": "1200x1200",
+      "description": "A square branded Mythical Void sharing layout built around the authentic Begin Project Beacon running-build screenshot. The complete layout is not a raw gameplay screenshot; the framed scene is real gameplay captured with an invented test state."
+    },
+    {
       "name": "First contact",
       "url": "https://mythicalvoid.com/press/gameplay/project-beacon-live-egg.png",
       "kind": "authentic_running_build_screenshot",

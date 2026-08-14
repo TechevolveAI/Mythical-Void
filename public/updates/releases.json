@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-003",
+      "publishedOn": "2026-08-14",
+      "status": "live",
+      "category": "READY TO SHARE",
+      "title": "Project Beacon artwork is ready to share",
+      "summary": "Adults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.",
+      "details": [
+        "Both layouts show the clean mythicalvoid.com/story address with no tracking code.",
+        "The framed Project Beacon scene comes from the real running browser game using an invented test state.",
+        "The complete layouts are branded sharing artwork, not raw gameplay screenshots."
+      ],
+      "image": "/press/social/project-beacon-story-square.png",
+      "imageAlt": "Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame",
+      "imageClass": "branded_social_artwork_with_authentic_gameplay_frame",
+      "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+      "destination": "/press/",
+      "linkText": "Download the Project Beacon sharing artwork",
+      "download": false
+    },
+    {
       "id": "SIGNAL-002",
       "publishedOn": "2026-08-14",
       "status": "live",

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "FIRST-SOCIAL-RELEASE-PROJECT-BEACON-2026-08-14",
+  "state": "complete_review_pack_waiting_for_verified_channel_and_kevin_approval",
+  "purpose": "Give Mythical Void one complete, truthful first social release built around real gameplay and a live story destination.",
+  "selection": {
+    "sourceEntryId": "SIGNAL-001",
+    "sourcePack": "docs/company/content/generated/signal-log-release-pack.json",
+    "publicSignalUrl": "https://mythicalvoid.com/updates/#signal-001",
+    "destination": "https://mythicalvoid.com/story/",
+    "reason": "Project Beacon explains the emotional centre of the game, links to a spoiler-light live page and can be shown with authentic running-build gameplay rather than generated marketing artwork."
+  },
+  "audience": {
+    "primary": "Adult and general game discovery audiences, parents and guardians, creators, press, industry and partners",
+    "childTargetedAdvertising": false,
+    "behaviouralTargeting": false,
+    "directMinorContact": false
+  },
+  "assets": [
+    {
+      "id": "PROJECT-BEACON-SOCIAL-WIDE",
+      "path": "public/press/social/project-beacon-story-wide.png",
+      "publicUrl": "https://mythicalvoid.com/press/social/project-beacon-story-wide.png",
+      "width": 1200,
+      "height": 630,
+      "sha256": "cf8ddab0cab57c546c324738dcf34907fc9fa1c9cb926135995304557a0411c3",
+      "classification": "branded_social_artwork_with_authentic_gameplay_frame",
+      "sourceGameplayPath": "public/press/gameplay/project-beacon-start.png",
+      "alt": "Wide Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame",
+      "disclosure": "Branded sharing layout, not a raw screenshot. The framed scene is real gameplay captured from the running browser game using an invented test state; no player information is shown."
+    },
+    {
+      "id": "PROJECT-BEACON-SOCIAL-SQUARE",
+      "path": "public/press/social/project-beacon-story-square.png",
+      "publicUrl": "https://mythicalvoid.com/press/social/project-beacon-story-square.png",
+      "width": 1200,
+      "height": 1200,
+      "sha256": "91e9e03f799ff491b08bf0501d7dfbc5476709d7e93f720a1e9d249bfa44a15d",
+      "classification": "branded_social_artwork_with_authentic_gameplay_frame",
+      "sourceGameplayPath": "public/press/gameplay/project-beacon-start.png",
+      "alt": "Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame",
+      "disclosure": "Branded sharing layout, not a raw screenshot. The framed scene is real gameplay captured from the running browser game using an invented test state; no player information is shown."
+    }
+  ],
+  "drafts": {
+    "professionalNetwork": {
+      "sourceDraftPath": "items[DRAFT-SIGNAL-001].drafts.professionalNetwork.body",
+      "channelRef": "CH-004",
+      "assetId": "PROJECT-BEACON-SOCIAL-WIDE",
+      "copy": "The Project Beacon story is live\n\nA new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.\n\n• Six realm images come from the real running game.\n• The page explains why the guardians are restored rather than destroyed.\n• The ending remains for players to discover themselves.\n\nSee what changed: https://mythicalvoid.com/story/\n\nCaptured from the real browser game using an invented test state; no player information is shown."
+    },
+    "videoCommunity": {
+      "sourceDraftPath": "items[DRAFT-SIGNAL-001].drafts.videoCommunity.body",
+      "channelRef": "CH-002",
+      "assetId": "PROJECT-BEACON-SOCIAL-SQUARE",
+      "copy": "New from the Void: The Project Beacon story is live\n\nA new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.\n\nhttps://mythicalvoid.com/story/\n\nCaptured from the real browser game using an invented test state; no player information is shown."
+    }
+  },
+  "releaseOrder": [
+    "Use the professional-network version first if a verified company Page exists and its public replies can stay closed or staffed.",
+    "Use the video-community version only after the official video channel is verified and adult reply coverage is active.",
+    "Keep both versions unpublished until Kevin sees the exact artwork, copy, destination, audience and engagement setting together."
+  ],
+  "qualityEvidence": {
+    "wideArtworkVisuallyReviewed": true,
+    "squareArtworkVisuallyReviewed": true,
+    "sourceImageLoadedAtNaturalSize": true,
+    "browserWarningsOrErrorsObserved": false,
+    "cleanDestinationShownInArtwork": true,
+    "realGameplayLabelShownInArtwork": true,
+    "generatedMarketingArtworkUsed": false,
+    "trackingParametersUsed": false
+  },
+  "authority": {
+    "officialSocialAccountVerified": false,
+    "contentApproved": false,
+    "channelApproved": false,
+    "publishingAuthorized": false,
+    "schedulingAuthorized": false,
+    "replyingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionPerformed": false,
+    "approvedBy": null,
+    "approvedAt": null,
+    "publishedAt": null
+  }
+}

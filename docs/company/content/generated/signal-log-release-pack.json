@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "8178c09065fafa66f8483351e5ba9639bd231c5a9237a57eaf8bb9e925c00e89",
-    "liveEntryCount": 2,
+    "sourceFingerprint": "2d443a5b8d66b4bc8977779a9b7bd7f503d8508a2ebef94a8a3d59590fd1e321",
+    "liveEntryCount": 3,
     "latestSourceDate": "2026-08-14"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-003",
+      "sourceEntryId": "SIGNAL-003",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/press/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social/project-beacon-story-square.png",
+        "alt": "Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame",
+        "class": "branded_social_artwork_with_authentic_gameplay_frame",
+        "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Project Beacon artwork is ready to share\n\nAdults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.\n\n• Both layouts show the clean mythicalvoid.com/story address with no tracking code.\n• The framed Project Beacon scene comes from the real running browser game using an invented test state.\n• The complete layouts are branded sharing artwork, not raw gameplay screenshots.\n\nSee what changed: https://mythicalvoid.com/press/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 677
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Project Beacon artwork is ready to share\n\nAdults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.\n\nhttps://mythicalvoid.com/press/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 406
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Project Beacon artwork is ready to share",
+          "body": "Mythical Void has a new live update: Project Beacon artwork is ready to share.\n\nAdults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.\n\nBoth layouts show the clean mythicalvoid.com/story address with no tracking code. The framed Project Beacon scene comes from the real running browser game using an invented test state. The complete layouts are branded sharing artwork, not raw gameplay screenshots.\n\nThe checked public destination is https://mythicalvoid.com/press/\n\nMedia note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 812,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-002",
       "sourceEntryId": "SIGNAL-002",

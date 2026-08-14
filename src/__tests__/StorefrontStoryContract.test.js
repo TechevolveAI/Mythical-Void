@@ -163,6 +163,10 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('Print and share the game');
         expect(storefront).toContain('Get the play-and-share card');
         expect(storefront).toContain('/resources/mythical-void-play-share-card.pdf');
+        expect(storefront).toContain('Tell the Project Beacon story.');
+        expect(storefront).toContain('/press/social/project-beacon-story-wide.png');
+        expect(storefront).toContain('/press/social/project-beacon-story-square.png');
+        expect(storefront).toContain('These are branded sharing layouts, not raw screenshots.');
         expect(pressAssets.sharingResources).toEqual(expect.arrayContaining([
             expect.objectContaining({
                 kind: 'adult_led_printable_play_share_card',
@@ -187,7 +191,7 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.gameplayVideoProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay-video/manifest.json'
         );
-        expect(pressAssets.assets).toHaveLength(11);
+        expect(pressAssets.assets).toHaveLength(13);
         expect(pressAssets.educatorResources).toHaveLength(1);
         expect(pressAssets.educatorResources[0].kind).toBe('adult_led_printable_activity');
         expect(pressAssets.educatorResources[0].disclosure).toContain('NASA does not endorse');

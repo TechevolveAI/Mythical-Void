@@ -14,6 +14,8 @@
     "build:signal-release-pack": "node scripts/company/build-signal-release-pack.cjs",
     "validate:signal-release-pack": "node scripts/company/validate-signal-release-pack.cjs",
     "test:signal-release-pack": "node scripts/company/test-signal-release-pack.cjs",
+    "validate:first-social-release": "node scripts/company/validate-first-social-release.cjs",
+    "test:first-social-release": "node scripts/company/test-first-social-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand",
