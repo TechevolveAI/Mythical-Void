@@ -33,8 +33,17 @@ describe('release test gate', () => {
 
         expect(packageJson.scripts.test).toBe('jest --runInBand');
         expect(packageJson.scripts['test:unit']).toBe('jest --runInBand');
+        expect(packageJson.scripts['test:deploy']).toBe('jest --runInBand');
         expect(packageJson.scripts['test:manual']).toBe(
             'node ./scripts/serve-test-framework.js'
+        );
+    });
+
+    test('Netlify refuses to build a release that fails the deploy test gate', () => {
+        const netlifyConfig = read('netlify.toml');
+
+        expect(netlifyConfig).toContain(
+            'command = "npm run test:deploy && npm run build"'
         );
     });
 
@@ -142,7 +151,7 @@ describe('release test gate', () => {
         expect(source).toContain('for (const smokeCase of interactionCases)');
         expect(source).toContain('for (const viewport of homeEntryViewports)');
         expect(source).toContain("smokeCase: 'wide-touch'");
-        expect(source).toContain('width: 860, height: 720');
+        expect(source).toContain('width: 860, height: 768');
         expect(source).toContain('SMOKE_CASE: smokeCase');
         expect(source).toContain('for (const guardianCase of guardianCases)');
         expect(source).toContain('SMOKE_CASE: guardianCase');

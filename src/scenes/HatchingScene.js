@@ -86,6 +86,8 @@ class HatchingScene extends Phaser.Scene {
         this.homeContentReady = false;
         this.homeStartRecoveryTimer = null;
         this.nextHomeStartHealthCheck = 0;
+        this.homeStartFallback = null;
+        this.homeStartFallbackCleanup = null;
         this.portraitPromise = null;
         this.portraitError = null;
 
@@ -284,6 +286,10 @@ class HatchingScene extends Phaser.Scene {
         if (this.homeContentReady) return;
         this.homeContentReady = true;
 
+        // Establish a browser-native route into the game before drawing the
+        // canvas presentation. It remains usable even if a later render fails.
+        this.createHomeStartFallback();
+
         // Main title with glow effect
         this.createEnhancedTitle();
 
@@ -312,6 +318,10 @@ class HatchingScene extends Phaser.Scene {
     ensureHomeStartReady() {
         if (!this.sys?.isActive() || getGameState().get('session.gameStarted')) {
             return;
+        }
+
+        if (!this.homeStartFallback?.isConnected) {
+            this.createHomeStartFallback();
         }
 
         const button = this.startButton;
@@ -350,6 +360,63 @@ class HatchingScene extends Phaser.Scene {
             return;
         }
         this.createEnhancedStartButton();
+    }
+
+    createHomeStartFallback() {
+        if (typeof document === 'undefined' || this.homeStartFallback?.isConnected) {
+            return;
+        }
+
+        const gameRoot = document.getElementById('game');
+        if (!gameRoot) return;
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'home-start-fallback';
+        button.dataset.mythicalHomeStart = 'true';
+        button.setAttribute('aria-label', firstSessionFraming.homeCta);
+        button.innerHTML = `<span aria-hidden="true">&#128640;</span><strong>${firstSessionFraming.homeCta}</strong>`;
+
+        const activate = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!this.sys?.isActive() || this.isStartingGame || this.startFlowQueued) return;
+
+            this.startButtonPressedAt = Date.now();
+            this.onStartRelease(
+                this.startButton,
+                this.scale.width / 2,
+                this.scale.height * 0.5
+            );
+        };
+        button.addEventListener('click', activate);
+        button.addEventListener('pointerdown', () => MobileHelpers.vibrate(35), { passive: true });
+        gameRoot.appendChild(button);
+
+        this.homeStartFallback = button;
+        const cleanup = () => {
+            this.events?.off?.(Phaser.Scenes.Events.SHUTDOWN, cleanup);
+            button.removeEventListener('click', activate);
+            button.remove();
+            if (this.homeStartFallback === button) {
+                this.homeStartFallback = null;
+            }
+            if (this.homeStartFallbackCleanup === cleanup) {
+                this.homeStartFallbackCleanup = null;
+            }
+        };
+        this.homeStartFallbackCleanup = cleanup;
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanup);
+    }
+
+    removeHomeStartFallback() {
+        if (this.homeStartFallbackCleanup) {
+            this.homeStartFallbackCleanup();
+            this.homeStartFallbackCleanup = null;
+            return;
+        }
+        this.homeStartFallback?.remove();
+        this.homeStartFallback = null;
     }
 
     loadThemeMusicInBackground() {
@@ -4338,6 +4405,7 @@ class HatchingScene extends Phaser.Scene {
     }
 
     animateStartRelease(buttonContainer) {
+        if (!buttonContainer?.active) return;
         this.tweens.add({
             targets: buttonContainer,
             scaleX: 1.06,
@@ -4360,6 +4428,7 @@ class HatchingScene extends Phaser.Scene {
         this.isStartingGame = true;
         this.startFlowQueued = true;
         this.startButtonPressed = false;
+        this.removeHomeStartFallback();
 
         // Show loading indicator immediately for user feedback
         if (window.UXEnhancements) {

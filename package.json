@@ -23,6 +23,7 @@
     "preview": "vite preview",
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand",
+    "test:deploy": "jest --runInBand",
     "test:manual": "node ./scripts/serve-test-framework.js",
     "test:release": "npm test && npm run smoke:release",
     "smoke:supabase-fusion": "node scripts/smoke-fusion-authority.js",
