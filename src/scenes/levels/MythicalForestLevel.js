@@ -132,6 +132,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestEnemyAISchedulerActive = false;
         this.forestEnemyAICursor = 0;
         this.forestEnemyMotionNextAt = 0;
+        this.forestEnemyActivationNextAt = 0;
+        this.forestProximityEnemies = [];
+        this.forestEnemyActivationBounds = null;
         this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
@@ -255,6 +258,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestEnemyAISchedulerActive = false;
         this.forestEnemyAICursor = 0;
         this.forestEnemyMotionNextAt = 0;
+        this.forestEnemyActivationNextAt = 0;
+        this.forestProximityEnemies = [];
+        this.forestEnemyActivationBounds = null;
         this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
@@ -1165,6 +1171,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     update(time, delta) {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
+        this.updateForestEnemyActivation();
         if (this.forestEnemyAISchedulerActive) this.updateForestEnemyAI();
         this.updateForestEnemyMotion(time);
         this.updateForestCoinPickups();
@@ -2002,6 +2009,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
     retireForestPatrolsForElder() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
         this.forestEnemyAISchedulerActive = false;
+        this.forestProximityEnemies = [];
+        this.forestEnemyActivationBounds = null;
         const retirement = this.retireRouteEnemies(patrols);
 
         this.forestEnemyOverlap?.destroy?.();
@@ -2027,13 +2036,112 @@ class MythicalForestLevel extends PlatformerLevelScene {
     startForestEnemyAIScheduler() {
         this.forestEnemyAICursor = 0;
         this.forestEnemyAISchedulerActive = true;
+        this.updateForestEnemyActivation(true);
+    }
+
+    getForestEnemyActivationBounds() {
+        const view = this.cameras?.main?.worldView;
+        const playerX = Number(this.player?.x) || 0;
+        const playerY = Number(this.player?.y) || 0;
+        const width = Math.max(
+            320,
+            Number(view?.width) || Number(this.cameras?.main?.width) || 390
+        );
+        const height = Math.max(
+            320,
+            Number(view?.height) || Number(this.cameras?.main?.height) || 720
+        );
+        const horizontalMargin = this.isMobile ? 520 : 800;
+        const verticalMargin = this.isMobile ? 280 : 420;
+        const viewLeft = Number(view?.left) || 0;
+        const viewRight = Number(view?.right) || width;
+        const viewTop = Number(view?.top) || 0;
+        const viewBottom = Number(view?.bottom) || height;
+        return {
+            left: Math.min(viewLeft, playerX - width / 2) - horizontalMargin,
+            right: Math.max(viewRight, playerX + width / 2) + horizontalMargin,
+            top: Math.min(viewTop, playerY - height / 2) - verticalMargin,
+            bottom: Math.max(viewBottom, playerY + height / 2) + verticalMargin,
+            horizontalMargin,
+            verticalMargin
+        };
+    }
+
+    setForestEnemyProximityActive(enemy, enabled) {
+        if (!enemy?.active || !enemy.body) return false;
+        const nextState = enabled === true;
+        if (enemy.forestProximityActive === nextState) return nextState;
+
+        enemy.forestProximityActive = nextState;
+        if (nextState) {
+            enemy.body.enable = true;
+            enemy.body.updateFromGameObject?.();
+            enemy.setVisible?.(true);
+            enemy.forestNextAiAt = Math.min(
+                Number(enemy.forestNextAiAt) || Number.POSITIVE_INFINITY,
+                (Number(this.time?.now) || 0) + 40
+            );
+        } else {
+            enemy.setVelocity?.(0, 0);
+            enemy.body.enable = false;
+            enemy.setVisible?.(false);
+            enemy.forestTrail = [];
+            enemy.combatCue?.setVisible?.(false);
+            enemy.instructionLabel?.setVisible?.(false);
+        }
+        return nextState;
+    }
+
+    isForestEnemyReadyForSuspension(enemy) {
+        if (!enemy?.body || enemy.enemyType !== 'voidSprite') return true;
+        if (enemy.forestSettledForStreaming) return true;
+
+        const support = this.getTraversalSupport?.(enemy.forestSupportId);
+        const settled = Boolean(
+            support?.body &&
+            enemy.body.right > support.body.left + 4 &&
+            enemy.body.left < support.body.right - 4 &&
+            Math.abs(enemy.body.bottom - support.body.top) <= 12
+        );
+        if (settled) enemy.forestSettledForStreaming = true;
+        return settled;
+    }
+
+    updateForestEnemyActivation(force = false) {
+        if (!this.scene.isActive()) return 0;
+        const now = Number(this.time?.now) || 0;
+        if (!force && now < this.forestEnemyActivationNextAt) {
+            return this.forestProximityEnemies.length;
+        }
+        this.forestEnemyActivationNextAt = now + (this.isMobile ? 120 : 80);
+
+        const bounds = this.getForestEnemyActivationBounds();
+        const nearby = [];
+        (this.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (!enemy?.active || !enemy.body) return;
+            const inWindow =
+                enemy.x >= bounds.left &&
+                enemy.x <= bounds.right &&
+                enemy.y >= bounds.top &&
+                enemy.y <= bounds.bottom;
+            const shouldStayActive = inWindow ||
+                !this.isForestEnemyReadyForSuspension(enemy);
+            this.setForestEnemyProximityActive(enemy, shouldStayActive);
+            if (shouldStayActive) nearby.push(enemy);
+        });
+        this.forestProximityEnemies = nearby;
+        this.forestEnemyActivationBounds = bounds;
+        this.forestEnemyAICursor = nearby.length
+            ? this.forestEnemyAICursor % nearby.length
+            : 0;
+        return nearby.length;
     }
 
     updateForestEnemyAI() {
         if (!this.scene.isActive()) return;
 
         const now = Number(this.time?.now) || 0;
-        const enemies = this.enemies?.getChildren?.() || [];
+        const enemies = this.forestProximityEnemies || [];
         if (!enemies.length) return;
         const actionBudget = this.isMobile ? 3 : 5;
         let scannedCount = 0;
@@ -2081,7 +2189,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (now < this.forestEnemyMotionNextAt) return;
         this.forestEnemyMotionNextAt = now + (this.isMobile ? 32 : 16);
         this.sporeDrifters.forEach(sprite => {
-            if (!sprite?.active) return;
+            if (!sprite?.active || sprite.forestProximityActive === false) return;
             const phase = (
                 (now + sprite.forestMotionOffset) % sprite.forestMotionDuration
             ) / sprite.forestMotionDuration;
@@ -2095,7 +2203,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         });
 
         this.forestWisps.forEach(sprite => {
-            if (!sprite?.active || sprite.forestTeleporting) return;
+            if (
+                !sprite?.active ||
+                sprite.forestProximityActive === false ||
+                sprite.forestTeleporting
+            ) return;
             const phase = (
                 (now + sprite.forestMotionOffset) % 1600
             ) / 1600;
@@ -2120,7 +2232,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 layer.clear();
                 const view = this.cameras.main.worldView;
                 this.voidSprites.forEach(sprite => {
-                    if (!sprite?.active) return;
+                    if (!sprite?.active || sprite.forestProximityActive === false) return;
                     if (
                         sprite.x < view.left - 120 ||
                         sprite.x > view.right + 120 ||
@@ -2792,6 +2904,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.branchCrawlers = this.branchCrawlers.filter(e => e !== enemy);
         this.sporeDrifters = this.sporeDrifters.filter(e => e !== enemy);
         this.forestWisps = this.forestWisps.filter(e => e !== enemy);
+        this.forestProximityEnemies = this.forestProximityEnemies.filter(
+            candidate => candidate !== enemy
+        );
 
         if (window.AudioManager) {
             window.AudioManager.playEnemyHit();
@@ -5131,6 +5246,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestEnemyOverlap?.destroy?.();
         this.forestEnemyOverlap = null;
         this.forestEnemyAISchedulerActive = false;
+        this.forestProximityEnemies = [];
+        this.forestEnemyActivationBounds = null;
+        this.forestEnemyActivationNextAt = 0;
 
         // Clean up platforms
         this.branchPlatforms = [];
