@@ -2014,7 +2014,7 @@ async function smokeHomeStart(session, exceptions) {
     }
 
     let recovery = null;
-    if (SMOKE_CASE === 'wide-touch') {
+    if (['mobile-landscape', 'wide-touch'].includes(SMOKE_CASE)) {
         // Disable the Phaser control and prove the independent native action
         // still gets the player to the live egg.
         await evaluate(session, `(() => {

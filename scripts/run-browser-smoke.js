@@ -109,9 +109,24 @@ async function main() {
         }
 
         const failures = [];
+
+        // Run the two-scene Village journey before opening several independent
+        // first-session browser profiles. macOS can briefly retain WebGL process
+        // resources after sequential Chromium sessions, which can delay the
+        // heavier GameScene boot without indicating a gameplay failure.
+        console.log('\n[release-smoke] Shop Base Builder mobile UI suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'village-ui'
+            });
+        } catch (error) {
+            failures.push(`village-ui: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] First-session Start-to-egg viewport suite');
         const homeEntryViewports = [
             { smokeCase: 'phone', width: 390, height: 844 },
+            { smokeCase: 'mobile-landscape', width: 430, height: 384 },
             { smokeCase: 'wide-touch', width: 860, height: 768 }
         ];
         for (const viewport of homeEntryViewports) {
@@ -125,18 +140,6 @@ async function main() {
             } catch (error) {
                 failures.push(`home-entry:${viewport.smokeCase}: ${error.message}`);
             }
-        }
-
-        // Run the two-scene Village journey before the campaign WebGL stress
-        // cases. Each case owns a fresh browser, but macOS can briefly retain
-        // GPU-process resources after several sequential Chromium sessions.
-        console.log('\n[release-smoke] Shop Base Builder mobile UI suite');
-        try {
-            await runNodeScript('scripts/smoke-secondary-journeys.js', {
-                SMOKE_MODE: 'village-ui'
-            });
-        } catch (error) {
-            failures.push(`village-ui: ${error.message}`);
         }
 
         console.log('\n[release-smoke] Genuine interaction suite');
