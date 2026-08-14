@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "SIGNAL-LOG-SYNDICATION-2026-08-14",
+  "state": "complete_owned_site_release_waiting_for_production_verification",
+  "source": {
+    "path": "public/updates/releases.json",
+    "fingerprintSha256": "94dc731b00f8dd7efb8ed92bfd86a8b00e0b1e523b8075565c40fccc1c92d3bc",
+    "liveEntryCount": 8
+  },
+  "feeds": {
+    "rss": {
+      "path": "public/updates/feed.xml",
+      "url": "https://mythicalvoid.com/updates/feed.xml",
+      "mimeType": "application/rss+xml; charset=utf-8",
+      "sha256": "d5b3d913a1a24d9ac134e9aa5096c7912834ee12eb38a02e7d749591d132dd0b",
+      "itemCount": 8
+    },
+    "json": {
+      "path": "public/updates/feed.json",
+      "url": "https://mythicalvoid.com/updates/feed.json",
+      "mimeType": "application/feed+json; charset=utf-8",
+      "sha256": "7a766f5e2136e82ec4392b2703507ca54b2598a17def0b6740c043d9c6f21a49",
+      "itemCount": 8
+    }
+  },
+  "discovery": {
+    "publicPagesWithFeedMetadata": 7,
+    "updatesPage": "https://mythicalvoid.com/updates/",
+    "pressManifest": "https://mythicalvoid.com/press/mythical-void-press-assets.json",
+    "machineReadableSiteGuide": "https://mythicalvoid.com/llms.txt"
+  },
+  "safeguards": {
+    "requiresAccount": false,
+    "emailSignupEnabled": false,
+    "contactCollectionEnabled": false,
+    "recipientCollectionEnabled": false,
+    "trackingParametersPermitted": false,
+    "commentsEnabled": false,
+    "sourceBoundBuild": true,
+    "artworkDisclosuresPreserved": true
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "externalSyndicationAuthorized": false,
+    "emailSendingAuthorized": false,
+    "socialPostingAuthorized": false,
+    "externalActionTaken": false
+  }
+}

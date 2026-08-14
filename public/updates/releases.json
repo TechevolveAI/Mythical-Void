@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-008",
+      "publishedOn": "2026-08-14",
+      "status": "live",
+      "category": "FOLLOW THE SIGNAL",
+      "title": "The Signal Log can now travel",
+      "summary": "The checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.",
+      "details": [
+        "Both feeds are built from the same checked source as the public Signal Log, so titles, links and media notes cannot quietly drift apart.",
+        "Every item keeps a clean mythicalvoid.com destination, its artwork or gameplay disclosure and no tracking parameters.",
+        "Following the feed happens in the reader a person chooses; Mythical Void does not collect an email address, account or recipient."
+      ],
+      "image": "/press/social/project-beacon-story-wide.png",
+      "imageAlt": "Wide Mythical Void Project Beacon sharing artwork with a real gameplay frame",
+      "imageClass": "branded_social_artwork_with_authentic_gameplay_frame",
+      "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+      "destination": "/updates/feed.xml",
+      "linkText": "Open the Signal feed",
+      "download": false
+    },
+    {
       "id": "SIGNAL-007",
       "publishedOn": "2026-08-14",
       "status": "live",
