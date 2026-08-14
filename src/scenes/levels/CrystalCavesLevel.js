@@ -8,6 +8,17 @@ import { calculateBallisticLaunchVelocity } from '../../systems/TraversalTopolog
 const CRYSTAL_GUARDIAN_TEXTURE = 'crystalGuardianArtwork';
 const CRYSTAL_GUARDIAN_ASSET = '/game/guardians/crystal-guardian.webp';
 const CRYSTAL_GUARDIAN_DISPLAY_HEIGHT = 190;
+const CRYSTAL_GUARDIAN_MOBILE_DISPLAY_HEIGHT = 170;
+
+const CRYSTAL_GUARDIAN_ARENA = Object.freeze({
+    coreX: 4850,
+    playerEntryX: 5050,
+    introFocusX: 5150,
+    bossX: 5250,
+    playerBottomOffset: 130,
+    bossBottomOffset: 180,
+    openingGraceMs: 3000
+});
 
 const CRYSTAL_GUARDIAN_ATTACK_WINDOWS = Object.freeze({
     ground_slam: 1400,
@@ -179,6 +190,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossPhasePending = false;
         this.bossTelegraphs = new Set();
         this.bossAttackPreview = null;
+        this.bossAttackPreviewTimer = null;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.bossTargetScale = 1;
 
         this.spiderAttackWindupTimer = null;
@@ -260,6 +274,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossPhaseTransitioning = false;
         this.bossPhasePending = false;
         this.bossTelegraphs = new Set();
+        this.bossAttackPreviewTimer = null;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.bossTargetScale = 1;
         this.bossAttackPreview = [
             'ground_slam',
@@ -326,7 +343,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         console.log('[CrystalCavesLevel] TEST MODE - Spawning Crystal Golem');
 
         if (this.player) {
-            this.player.setPosition(this.levelWidth - 900, this.levelHeight - 200);
+            this.player.setPosition(
+                CRYSTAL_GUARDIAN_ARENA.playerEntryX,
+                this.levelHeight - CRYSTAL_GUARDIAN_ARENA.playerBottomOffset
+            );
         }
 
         this.showPlatformerMobileControls();
@@ -4062,8 +4082,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                     id: 'crystal_golem',
                     title: 'CRYSTAL GOLEM',
                     checkpoint: {
-                        x: 5050,
-                        y: this.levelHeight - 130
+                        x: CRYSTAL_GUARDIAN_ARENA.playerEntryX,
+                        y: this.levelHeight -
+                            CRYSTAL_GUARDIAN_ARENA.playerBottomOffset
                     },
                     start: () => this.startBossFight()
                 });
@@ -4107,10 +4128,22 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     startBossFight() {
         console.log('[CrystalCavesLevel] Starting Crystal Golem boss fight!');
         this.bossFightActive = true;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
         this.retireCavePatrolsForGolem();
 
         // Dramatic pause
         this.physics.pause();
+        this.hidePlatformerMobileControls();
+        this.stageCrystalGuardianArenaEntry();
+        this.cameras.main.stopFollow();
+        this.cameras.main.pan(
+            CRYSTAL_GUARDIAN_ARENA.introFocusX,
+            this.levelHeight / 2,
+            900
+        );
 
         // Flash warning
         window.FeedbackManager?.cameraFlash?.(this, 500, 150, 0, 200);
@@ -4146,6 +4179,25 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }
     }
 
+    stageCrystalGuardianArenaEntry() {
+        if (!this.player) return false;
+
+        const x = Math.max(
+            Number(this.player.x) || 0,
+            CRYSTAL_GUARDIAN_ARENA.playerEntryX
+        );
+        const y = this.levelHeight -
+            CRYSTAL_GUARDIAN_ARENA.playerBottomOffset;
+        if (this.player.body?.reset) {
+            this.player.body.reset(x, y);
+        } else {
+            this.player.setPosition(x, y);
+        }
+        this.player.setVelocity?.(0, 0);
+        this.player.facingRight = true;
+        return true;
+    }
+
     /**
      * Change atmosphere to spooky for boss fight
      */
@@ -4167,8 +4219,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             duration: 1000
         });
 
-        // Camera zoom for intensity
-        this.cameras.main.zoomTo(1.1, 1000);
+        // Fixed HUD and touch controls share the mobile camera.
+        if (this.isMobile || width <= 480) {
+            this.cameras.main.setZoom(1);
+        } else {
+            this.cameras.main.zoomTo(1.1, 1000);
+        }
 
         // Shake the ground
         window.FeedbackManager?.cameraShake?.(this, 1500, 0.015);
@@ -4176,7 +4232,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // After atmosphere change, spawn the boss
         this.time.delayedCall(1500, () => {
             this.spawnCrystalGolem();
-            this.physics.resume();
         });
     }
 
@@ -4263,15 +4318,22 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Spawn position - center of boss arena (section 5)
         const spawnX = 5250;
-        const spawnY = this.levelHeight - 180;
+        const spawnY = this.levelHeight -
+            CRYSTAL_GUARDIAN_ARENA.bossBottomOffset;
 
         // Create boss sprite
         this.boss = this.physics.add.sprite(spawnX, spawnY, textureKey);
         this.boss.setCollideWorldBounds(true);
         this.boss.setBounce(0);
         this.boss.setDepth(880);
+        const isMobileArena = this.isMobile ||
+            this.cameras.main.width <= 480;
+        const desktopBossScale =
+            CRYSTAL_GUARDIAN_DISPLAY_HEIGHT / this.boss.height;
+        const mobileBossScale =
+            CRYSTAL_GUARDIAN_MOBILE_DISPLAY_HEIGHT / this.boss.height;
         this.bossTargetScale = textureKey === CRYSTAL_GUARDIAN_TEXTURE
-            ? CRYSTAL_GUARDIAN_DISPLAY_HEIGHT / this.boss.height
+            ? (isMobileArena ? mobileBossScale : desktopBossScale)
             : 1;
         const bodyWidth = this.boss.width * 0.48;
         const bodyHeight = this.boss.height * 0.68;
@@ -4318,14 +4380,21 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Create boss health bar
         this.createBossHealthBar();
 
-        // Keep authored attack previews deterministic for mobile QA.
-        if (this.bossAttackPreview) {
-            this.time.delayedCall(650, () => {
-                this.bossPerformAttack(this.bossAttackPreview);
-            });
-        } else {
-            this.startBossAI();
-        }
+        this.time.delayedCall(500, () => {
+            if (!this.player?.active || !this.cameras.main) return;
+            this.cameras.main.pan(
+                this.player.x,
+                this.player.y,
+                1000,
+                'Power2',
+                true,
+                (camera, progress) => {
+                    if (progress >= 0.999) {
+                        this.beginCrystalGuardianCombat(camera);
+                    }
+                }
+            );
+        });
 
         // Ground slam effect
         if (window.FXLibrary) {
@@ -4340,6 +4409,52 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (window.AudioManager) {
             window.AudioManager.playAttack();
         }
+    }
+
+    beginCrystalGuardianCombat(camera = this.cameras.main) {
+        if (
+            this.bossCombatReady ||
+            !this.bossFightActive ||
+            !this.boss?.active ||
+            !this.player?.active
+        ) return false;
+
+        this.bossCombatReady = true;
+        this.bossCombatReadyAt = this.time.now;
+        if (this.isMobile || camera.width <= 480) {
+            this.cameraLeadAmount = Math.max(
+                this.cameraLeadAmount,
+                camera.width * 0.2
+            );
+        }
+        camera.startFollow(this.player, true, 0.08, 0.1);
+        camera.setFollowOffset(
+            -this.cameraLeadAmount,
+            this.cameraBaseOffsetY
+        );
+        this.currentCameraLeadX = -this.cameraLeadAmount;
+        this.targetCameraLeadX = -this.cameraLeadAmount;
+        this.physics.resume();
+        this.showPlatformerMobileControls();
+        this.showBossAttackInstruction(
+            'GUARDIAN IN VIEW // READ THE PULSE',
+            1800
+        );
+
+        this.bossAttackPreviewTimer = this.time.delayedCall(
+            CRYSTAL_GUARDIAN_ARENA.openingGraceMs,
+            () => {
+                this.bossAttackPreviewTimer = null;
+                if (this.bossAttackPreview) {
+                    this.bossPerformAttack(this.bossAttackPreview);
+                } else {
+                    this.bossPerformAttack();
+                    this.startBossAI();
+                }
+            }
+        );
+        console.log('[CrystalCavesLevel] Arena framed; guardian combat enabled');
+        return true;
     }
 
     /**
@@ -4417,13 +4532,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         this.updateBossHealthBar();
 
-        // Camera zoom out for better boss visibility
-        this.tweens.add({
-            targets: this.cameras.main,
-            zoom: 0.92,
-            duration: 800,
-            ease: 'Power2'
-        });
+        if (isMobileLayout) {
+            this.cameras.main.setZoom(1);
+        } else {
+            this.tweens.add({
+                targets: this.cameras.main,
+                zoom: 0.92,
+                duration: 800,
+                ease: 'Power2'
+            });
+        }
 
         // Start off-screen boss indicator
         this.startBossIndicator();
@@ -4531,6 +4649,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Start boss AI behavior
      */
     startBossAI() {
+        if (!this.bossCombatReady || !this.bossFightActive || this.bossDefeated) {
+            return false;
+        }
+        this.bossAITimer?.remove?.();
+        this.bossAttackTimer?.remove?.();
+
         // Main AI update loop
         this.bossAITimer = this.time.addEvent({
             delay: 50,
@@ -4544,13 +4668,20 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             callback: () => this.bossPerformAttack(),
             loop: true
         });
+        return true;
     }
 
     /**
      * Update boss AI movement and behavior
      */
     updateBossAI() {
-        if (!this.boss || !this.boss.active || !this.player || this.bossDefeated) return;
+        if (
+            !this.bossCombatReady ||
+            !this.boss ||
+            !this.boss.active ||
+            !this.player ||
+            this.bossDefeated
+        ) return;
 
         const distToPlayer = Phaser.Math.Distance.Between(
             this.boss.x, this.boss.y,
@@ -4694,7 +4825,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Boss performs an attack
      */
     bossPerformAttack(forcedAttack = null) {
-        if (!this.boss || !this.boss.active || this.boss.isAttacking || this.bossPhaseTransitioning) return;
+        if (
+            !this.bossCombatReady ||
+            !this.bossFightActive ||
+            !this.boss ||
+            !this.boss.active ||
+            this.boss.isAttacking ||
+            this.bossPhaseTransitioning
+        ) return;
 
         const attackType = forcedAttack || {
             1: 'ground_slam',
@@ -5132,6 +5270,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         console.log('[CrystalCavesLevel] Crystal Guardian stabilized!');
         this.bossDefeated = true;
         this.bossFightActive = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
 
         // Record guardian restoration for achievements.
         if (window.AchievementSystem?.recordEvent) {
@@ -5145,6 +5285,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.bossAttackTimer) {
             this.bossAttackTimer.remove();
         }
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
         this.clearCrystalBossPacing({ includePhase: true });
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
@@ -5689,6 +5831,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.bossAttackTimer.remove();
             this.bossAttackTimer = null;
         }
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.clearCrystalBossPacing({ includePhase: true });
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;

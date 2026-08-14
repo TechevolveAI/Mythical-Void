@@ -791,11 +791,16 @@ async function initializeGame() {
                 setTimeout(async () => {
                     const testBossScenes = {
                         mythicalForest: 'MythicalForestLevel',
+                        forest: 'MythicalForestLevel',
                         crystalCaves: 'CrystalCavesLevel',
+                        crystal: 'CrystalCavesLevel',
                         reef: 'ReefLevel',
                         auroraDepths: 'AuroraDepthsLevel',
+                        aurora: 'AuroraDepthsLevel',
                         voidPeaks: 'VoidPeaksLevel',
+                        peaks: 'VoidPeaksLevel',
                         finalVoid: 'FinalVoidLevel',
+                        final: 'FinalVoidLevel',
                         victory: 'VictoryScene'
                     };
 
