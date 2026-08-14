@@ -988,6 +988,22 @@ describe('campaign traversal quality contracts', () => {
     test('Crystal Spider Walk is a persistent, mutually exclusive chamber route', () => {
         const source = read('levels/CrystalCavesLevel.js');
 
+        expect(source).toContain('const CAVE_ENCOUNTER_PLAN = Object.freeze([');
+        expect(source).toContain("beat: 'opening-stomp-lesson'");
+        expect(source).toContain("beat: 'lower-passage-armor'");
+        expect(source).toContain("beat: 'spider-walk-miniboss'");
+        expect(source).toContain("beat: 'guardian-approach-armor'");
+        expect(source).toContain("supportId: 'caves-ground-entry'");
+        expect(source).toContain("supportId: 'caves-lower-2'");
+        expect(source).toContain("supportId: 'caves-spider-arena'");
+        expect(source).toContain("supportId: 'caves-guardian-approach'");
+        expect(source).toContain("lane: 'main'");
+        expect(source).toContain("lane: 'optional'");
+        expect(source).toContain('enemy.encounterAirborne = true;');
+        expect(source).toContain('enemy.encounterBeat = encounter.beat;');
+        expect(source).toContain(
+            "role: health >= 3 ? 'armored' : 'stompable'"
+        );
         expect(source).toContain("id: 'caves_secret_slide'");
         expect(source).toContain("title: 'SPIDER WALK'");
         expect(source).toContain("rewardLabel: 'CRYSTAL WARD // 1 HIT'");
@@ -1836,6 +1852,9 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('state.encounterRhythm?.count < 8');
         expect(smoke).toContain('state.encounterRhythm.unsupported.length > 0');
         expect(smoke).toContain('has no deliberate encounter rhythm');
+        expect(smoke).toContain("route === 'crystalCaves'");
+        expect(smoke).toContain('state.encounterRhythm.clearCount < 3');
+        expect(smoke).toContain('state.encounterRhythm.optionalCount < 1');
         expect(smoke).toContain("route === 'finalVoid'");
         expect(smoke).toContain('Number(audit?.flow?.requiredJumpCount) < 4');
         expect(smoke).toContain("target.id === 'final_bond_1'");

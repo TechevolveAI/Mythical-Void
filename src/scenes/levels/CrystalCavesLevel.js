@@ -34,6 +34,87 @@ const CRYSTAL_SPIDER_ATTACK_PACING = Object.freeze({
     web_drop: { windup: 400, recovery: 600, color: 0xE8F7FF, cue: 'WEB DROP // CLEAR THE LANE' }
 });
 
+const CAVE_ENCOUNTER_PLAN = Object.freeze([
+    Object.freeze({
+        kind: 'crawler',
+        beat: 'opening-stomp-lesson',
+        supportId: 'caves-ground-entry',
+        lane: 'shared',
+        offsetX: 100,
+        health: 1,
+        patrolRange: 70,
+        speed: 48
+    }),
+    Object.freeze({
+        kind: 'bat',
+        beat: 'echo-gallery-flyer',
+        supportId: 'caves-echo-upper',
+        lane: 'exploration',
+        altitude: 110,
+        health: 1,
+        patrolRange: 75,
+        speed: 68
+    }),
+    Object.freeze({
+        kind: 'crawler',
+        beat: 'lower-passage-armor',
+        supportId: 'caves-lower-2',
+        lane: 'main',
+        health: 3,
+        patrolRange: 70,
+        speed: 54
+    }),
+    Object.freeze({
+        kind: 'spider',
+        beat: 'spider-walk-miniboss',
+        supportId: 'caves-spider-arena',
+        lane: 'optional',
+        altitude: 50,
+        health: 4,
+        patrolRange: 90
+    }),
+    Object.freeze({
+        kind: 'crawler',
+        beat: 'grove-rejoin-pressure',
+        supportId: 'caves-grove-rejoin',
+        lane: 'shared',
+        offsetX: -180,
+        health: 2,
+        patrolRange: 90,
+        speed: 54
+    }),
+    Object.freeze({
+        kind: 'bat',
+        beat: 'grove-rise-flyer',
+        supportId: 'caves-grove-rise',
+        lane: 'shared',
+        altitude: 105,
+        health: 1,
+        patrolRange: 70,
+        speed: 72
+    }),
+    Object.freeze({
+        kind: 'bat',
+        beat: 'guardian-bridge-flyer',
+        supportId: 'caves-guardian-bridge',
+        lane: 'shared',
+        altitude: 120,
+        health: 1,
+        patrolRange: 90,
+        speed: 76
+    }),
+    Object.freeze({
+        kind: 'crawler',
+        beat: 'guardian-approach-armor',
+        supportId: 'caves-guardian-approach',
+        lane: 'shared',
+        offsetX: -400,
+        health: 3,
+        patrolRange: 110,
+        speed: 58
+    })
+]);
+
 /**
  * CrystalCavesLevel - Crystal Caves platformer level
  *
@@ -106,6 +187,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Enemy spawns
         this.enemySpawns = [];
+        this.caveEncounterRhythm = [];
 
         // Ambient audio controller
         this.ambientAudio = null;
@@ -152,6 +234,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.crystalCoreFound = false;  // Renamed from crystalHeartFound
         this.bossFightActive = false;
         this.enemySpawns = [];
+        this.caveEncounterRhythm = [];
 
         // Reset boss state
         this.boss = null;
@@ -1661,23 +1744,76 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     createEnemies() {
         this.enemies = this.physics.add.group();
 
-        // PURPOSEFUL ENEMY PLACEMENT - Each enemy has a clear role
-        // Total: 2 bats + 3 crawlers + 1 miniboss = 6 purposeful encounters.
+        this.caveEncounterRhythm = CAVE_ENCOUNTER_PLAN.map(encounter => {
+            const placement = this.resolveCaveEncounterPlacement(encounter);
+            let enemy;
+            if (encounter.kind === 'bat') {
+                enemy = this.createShadowBat(placement.x, placement.y, {
+                    health: encounter.health,
+                    patrolRange: placement.patrolRange,
+                    speed: encounter.speed
+                });
+                enemy.encounterAirborne = true;
+            } else if (encounter.kind === 'spider') {
+                enemy = this.createCrystalSpider(placement.x, placement.y);
+                enemy.patrolStartX = placement.x - placement.patrolRange;
+                enemy.patrolEndX = placement.x + placement.patrolRange;
+                enemy.encounterAirborne = true;
+            } else {
+                enemy = this.createCaveCrawler(placement.x, placement.y, {
+                    health: encounter.health,
+                    patrolRange: placement.patrolRange,
+                    speed: encounter.speed
+                });
+            }
 
-        // Shadow Bats - Guard optional exploration paths
-        this.createShadowBat(1100, this.levelHeight - 380);   // Guards upper exploration area
-        this.createShadowBat(2900, this.levelHeight - 350);   // Warns of approaching boss area
+            enemy.encounterBeat = encounter.beat;
+            enemy.encounterLane = encounter.lane;
+            enemy.encounterSupportId = encounter.supportId;
+            return enemy;
+        });
 
-        // Cave Crawlers - Ground threats in key areas
-        this.createCaveCrawler(800, this.levelHeight - 100);   // Tutorial - teaches stomping
-        this.createCaveCrawler(3800, this.levelHeight - 100);  // Boss arena - adds arena tension
+        console.log(
+            `[CrystalCavesLevel] Created ${this.caveEncounterRhythm.length} ` +
+            'authored encounters (including Crystal Spider miniboss)'
+        );
+        return this.caveEncounterRhythm;
+    }
 
-        // Crystal Spider Miniboss - Guards Crystal Chamber
-        this.createCaveCrawler(2150, this.levelHeight - 130);   // Lower Passage tradeoff
+    resolveCaveEncounterPlacement(encounter) {
+        const support = this.getTraversalSupport(encounter.supportId);
+        if (!support?.body) {
+            throw new Error(
+                `[CrystalCavesLevel] Missing encounter support ${encounter.supportId}`
+            );
+        }
 
-        this.createCrystalSpider(2160, this.levelHeight - 470); // Spider Walk miniboss
+        const bodyInset = encounter.kind === 'spider'
+            ? 34
+            : encounter.kind === 'bat'
+                ? 20
+                : 28;
+        const centerX = (support.body.left + support.body.right) / 2;
+        const x = Phaser.Math.Clamp(
+            centerX + (Number(encounter.offsetX) || 0),
+            support.body.left + bodyInset,
+            support.body.right - bodyInset
+        );
+        const availablePatrol = Math.max(0, Math.min(
+            x - support.body.left - bodyInset,
+            support.body.right - bodyInset - x
+        ));
 
-        console.log(`[CrystalCavesLevel] Created ${this.enemies.getLength()} enemies (including Crystal Spider miniboss)`);
+        return {
+            x,
+            y: encounter.kind === 'crawler'
+                ? support.body.top - 22
+                : support.body.top - (Number(encounter.altitude) || 90),
+            patrolRange: Math.min(
+                Math.max(0, Number(encounter.patrolRange) || 0),
+                availablePatrol
+            )
+        };
     }
 
     /**
@@ -2466,7 +2602,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     /**
      * Create a Shadow Bat enemy
      */
-    createShadowBat(x, y) {
+    createShadowBat(x, y, {
+        health = 1,
+        patrolRange = 100,
+        speed = 80
+    } = {}) {
         // Generate bat texture
         const textureKey = 'shadowBat';
         if (!this.textures.exists(textureKey)) {
@@ -2495,14 +2635,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         bat.setBounce(0);
         bat.body.setAllowGravity(false);  // Bats fly
         bat.setDepth(850); // Above platforms (Y-based depth up to 800), below player (900)
-        bat.health = 1;
+        bat.health = health;
         bat.enemyType = 'shadowBat';
-        bat.patrolStartX = x - 100;
-        bat.patrolEndX = x + 100;
+        bat.patrolStartX = x - patrolRange;
+        bat.patrolEndX = x + patrolRange;
+        bat.patrolSpeed = speed;
         bat.patrolDirection = 1;
         this.configureEnemyCombat(bat, {
             role: 'flyer',
-            maxHealth: 1,
+            maxHealth: health,
             cueOffsetY: -30
         });
 
@@ -2531,7 +2672,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     updateBatPatrol(bat) {
         if (!bat.active) return;
 
-        const speed = 80;
+        const speed = Math.max(25, Number(bat.patrolSpeed) || 80);
         bat.setVelocityX(speed * bat.patrolDirection);
 
         // Reverse at patrol bounds
@@ -2550,7 +2691,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     /**
      * Create a Cave Crawler enemy
      */
-    createCaveCrawler(x, y) {
+    createCaveCrawler(x, y, {
+        health = 2,
+        patrolRange = 150,
+        speed = 60
+    } = {}) {
         const textureKey = 'caveCrawler';
         if (!this.textures.exists(textureKey)) {
             const graphics = this.make.graphics({ add: false });
@@ -2585,14 +2730,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         crawler.setCollideWorldBounds(true);
         crawler.setBounce(0);
         crawler.setDepth(850); // Above platforms (Y-based depth up to 800), below player (900)
-        crawler.health = 2;
+        crawler.health = health;
         crawler.enemyType = 'caveCrawler';
-        crawler.patrolStartX = x - 150;
-        crawler.patrolEndX = x + 150;
+        crawler.patrolStartX = x - patrolRange;
+        crawler.patrolEndX = x + patrolRange;
+        crawler.patrolSpeed = speed;
         crawler.patrolDirection = 1;
         this.configureEnemyCombat(crawler, {
-            role: 'armored',
-            maxHealth: 2,
+            role: health >= 3 ? 'armored' : 'stompable',
+            maxHealth: health,
             stompDamage: 1,
             cueOffsetY: -38
         });
@@ -2613,7 +2759,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     updateCrawlerPatrol(crawler) {
         if (!crawler.active) return;
 
-        const speed = 60;
+        const speed = Math.max(25, Number(crawler.patrolSpeed) || 60);
         crawler.setVelocityX(speed * crawler.patrolDirection);
 
         // Reverse at patrol bounds
