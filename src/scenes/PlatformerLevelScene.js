@@ -91,8 +91,9 @@ const CURRENT_NODE_LEVEL_CONFIG = Object.freeze({
         label: 'ROOT CURRENT'
     }),
     crystal_caves_1: Object.freeze({
-        x: 760,
+        x: 1500,
         groundOffset: 125,
+        supportId: 'caves-chamber-bridge',
         label: 'CRYSTAL CURRENT'
     }),
     reef_1: Object.freeze({
@@ -5470,6 +5471,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         );
         this.nextRangedDamageMultiplier = 1;
         if (rangedDamage > 1) {
+            this.onNextRangedDamageConsumed?.(rangedDamage);
             this.showFloatingText(
                 `POWER SHOT x${rangedDamage}`,
                 this.player.x,

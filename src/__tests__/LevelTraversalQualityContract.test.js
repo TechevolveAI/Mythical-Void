@@ -1403,6 +1403,11 @@ describe('campaign traversal quality contracts', () => {
 
     test('Crystal Spider Walk is a persistent, mutually exclusive chamber route', () => {
         const source = read('levels/CrystalCavesLevel.js');
+        const platformerSource = read('PlatformerLevelScene.js');
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
 
         expect(source).toContain('const CAVE_ENCOUNTER_PLAN = Object.freeze([');
         expect(source).toContain("beat: 'opening-stomp-lesson'");
@@ -1426,11 +1431,34 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("shield.optionalRouteId = 'caves_secret_slide'");
         expect(source).toContain("onMainSelected: () => this.selectCrystalChamberRoute('main')");
         expect(source).toContain("onOptionalSelected: () => this.selectCrystalChamberRoute('optional')");
+        expect(source).toContain(
+            "mainTradeoff: 'SHORT // ARMORED CRAWLER\\nEARNS: CRYSTAL FOCUS // NEXT SHOT x2'"
+        );
+        expect(source).toContain(
+            "challengeLabel: 'SPIDER + SLIDE // EARN 1-HIT WARD'"
+        );
         expect(source).toContain("'CALM THE CRYSTAL SPIDER FIRST'");
         expect(source).toContain('restoreCrystalChamberRoute(resume.routeState');
         expect(source).toContain('crystalWardGuardCharges');
+        expect(source).toContain('crystalFocusReady');
+        expect(source).toContain('onNextRangedDamageConsumed()');
+        expect(source).toContain('shouldAnimateCrystalRouteDecorations()');
+        expect(source).toContain('{ depth: 84, animate: animateRouteDecorations }');
+        expect(source).toContain('!this.bossFightActive');
         expect(source).toContain("this.grantOptionalRouteGuard('CRYSTAL WARD', 1)");
         expect(source).not.toContain('this.activateShield();');
+        expect(platformerSource).toContain(
+            'this.onNextRangedDamageConsumed?.(rangedDamage);'
+        );
+        expect(smoke).toContain('lower passage selection');
+        expect(smoke).toContain('CRYSTAL FOCUS x2 READY');
+        expect(smoke).toContain(
+            'The Spider Walk must be proven from an independent clean scene'
+        );
+        expect(smoke).toContain(
+            'kept offscreen cave guidance animating on mobile'
+        );
+        expect(smoke).toContain("'caves-chamber-bridge'");
     });
 
     test('Final Void rewards the Trust Bridge with one reliable rescue', () => {
@@ -1525,8 +1553,8 @@ describe('campaign traversal quality contracts', () => {
             'levels/CrystalCavesLevel.js',
             "id: 'caves_secret_slide'",
             "mainLabel: 'LOWER PASSAGE →'",
-            "mainTradeoff: 'SHORT // ARMORED CRAWLER'",
-            "challengeLabel: 'SPIDER + CRYSTAL SLIDE'"
+            "mainTradeoff: 'SHORT // ARMORED CRAWLER\\nEARNS: CRYSTAL FOCUS // NEXT SHOT x2'",
+            "challengeLabel: 'SPIDER + SLIDE // EARN 1-HIT WARD'"
         ],
         [
             'levels/ReefLevel.js',

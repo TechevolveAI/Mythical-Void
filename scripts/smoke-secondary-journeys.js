@@ -30,7 +30,7 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
     }),
     crystalCaves: Object.freeze({
         displayCount: 225,
-        activeTweenCount: 60,
+        activeTweenCount: 30,
         performanceTier: 'mobile'
     }),
     reef: Object.freeze({
@@ -2511,7 +2511,18 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.caveCrystalRendering?.layerCount !== 1 ||
             state.caveAmbientRendering?.parallaxLayerCount !== 2 ||
             state.caveAmbientRendering?.storyDecorationTweenCount !== 0 ||
-            state.caveAmbientRendering?.coinLayerTweenCount !== 0
+            state.caveAmbientRendering?.coinLayerTweenCount !== 0 ||
+            state.currentEcologyPlacement?.supportId !==
+                'caves-chamber-bridge' ||
+            state.currentEcologyPlacement?.x <
+                state.currentEcologyPlacement?.supportLeft ||
+            state.currentEcologyPlacement?.x >
+                state.currentEcologyPlacement?.supportRight ||
+            Math.abs(
+                state.currentEcologyPlacement?.y -
+                state.currentEcologyPlacement?.supportTop
+            ) > 8 ||
+            state.currentEcologyPlacement?.spawnDistance < 1000
         )
     ) {
         throw new Error(
@@ -2648,6 +2659,21 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         throw new Error(
             `${sceneName} exceeded its sustained mobile render budget: ` +
             JSON.stringify({ renderBudget, framePacing })
+        );
+    }
+    if (
+        route === 'crystalCaves' &&
+        (state.canvasWidth <= 480 || state.canvasHeight < 620) &&
+        [
+            'depth:-5:visible',
+            'depth:44:visible',
+            'depth:45:visible',
+            'depth:84:visible'
+        ].some(depth => framePacing.graphicsTweenDepths?.[depth])
+    ) {
+        throw new Error(
+            `${sceneName} kept offscreen cave guidance animating on mobile: ` +
+            JSON.stringify(framePacing.graphicsTweenDepths)
         );
     }
     if (route === 'mythicalForest') {
@@ -3646,6 +3672,106 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     JSON.stringify({ choicePresentation, mainRouteEffect })
                 );
             }
+            await startCampaignScene(session, { route, sceneName });
+            await delay(400);
+        }
+        if (route === 'crystalCaves') {
+            const mainRouteStaged = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(
+                    'CrystalCavesLevel'
+                );
+                const routeState = scene?.optionalRouteRewards?.get?.(
+                    'caves_secret_slide'
+                );
+                const support = scene?.getTraversalSupport?.(
+                    routeState?.choice?.mainSupportIds?.[0]
+                );
+                if (!scene?.player?.body || !routeState?.choice || !support?.body) {
+                    return null;
+                }
+                scene.player.body.reset(
+                    support.x,
+                    support.body.top - scene.player.body.height - 4
+                );
+                scene.player.setVelocity?.(0, 0);
+                return { supportId: support.traversalId };
+            })()`);
+            if (!mainRouteStaged) {
+                throw new Error(`${sceneName} could not stage its lower passage`);
+            }
+            mainRouteEffect = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(
+                        'CrystalCavesLevel'
+                    );
+                    const routeState = scene?.optionalRouteRewards?.get?.(
+                        'caves_secret_slide'
+                    );
+                    if (routeState?.choice?.selectedPath !== 'main') return null;
+                    const optionalAccepted = scene.recordOptionalRouteProgress(
+                        'caves_secret_slide',
+                        { x: scene.player.x, y: scene.player.y }
+                    );
+                    const energyBefore = scene.crystalEnergy;
+                    const multiplierBefore = scene.nextRangedDamageMultiplier;
+                    const objectiveBefore = scene.getCrystalObjectiveText?.() || '';
+                    const persistedBefore = scene.getExpeditionRouteState?.()
+                        .crystalFocusReady;
+                    scene.performRangedAttack();
+                    return {
+                        selectedPath: routeState.choice.selectedPath,
+                        crystalChamberRoute: scene.crystalChamberRoute,
+                        optionalAccepted,
+                        progress: routeState.progress,
+                        completed: routeState.completed,
+                        wardPickupActive: scene.crystalWardPickup?.active === true,
+                        optionalPickupsRemaining: (
+                            scene.collectibles?.getChildren?.() || []
+                        ).filter(item => (
+                            item?.optionalRouteId === 'caves_secret_slide' &&
+                            item.active !== false
+                        )).length,
+                        objective: scene.getCrystalObjectiveText?.() || '',
+                        objectiveBefore,
+                        energyBefore,
+                        energyAfter: scene.crystalEnergy,
+                        multiplierBefore,
+                        multiplierAfter: scene.nextRangedDamageMultiplier,
+                        persistedBefore,
+                        persistedAfter: scene.getExpeditionRouteState?.()
+                            .crystalFocusReady
+                    };
+                })()`),
+                { timeoutMs: 2500, message: `${sceneName} lower passage selection` }
+            );
+            if (
+                mainRouteEffect.selectedPath !== 'main' ||
+                mainRouteEffect.crystalChamberRoute !== 'main' ||
+                mainRouteEffect.optionalAccepted !== false ||
+                mainRouteEffect.progress !== 0 ||
+                mainRouteEffect.completed !== false ||
+                mainRouteEffect.wardPickupActive !== false ||
+                mainRouteEffect.optionalPickupsRemaining !== 0 ||
+                mainRouteEffect.multiplierBefore !== 2 ||
+                mainRouteEffect.multiplierAfter !== 1 ||
+                mainRouteEffect.energyAfter !== mainRouteEffect.energyBefore ||
+                mainRouteEffect.persistedBefore !== true ||
+                mainRouteEffect.persistedAfter !== false ||
+                !mainRouteEffect.objectiveBefore.includes(
+                    'CRYSTAL FOCUS x2 READY'
+                ) ||
+                !mainRouteEffect.objective.includes('CRYSTAL FOCUS SPENT') ||
+                !choicePresentation.mainTradeoff.includes('NEXT SHOT x2') ||
+                !choicePresentation.challengeLabel.includes('1-HIT WARD') ||
+                !choicePresentation.rewardLabel.includes('1 HIT')
+            ) {
+                throw new Error(
+                    `${sceneName} route rewards contradicted their promise: ` +
+                    JSON.stringify({ choicePresentation, mainRouteEffect })
+                );
+            }
+            // The Spider Walk must be proven from an independent clean scene;
+            // choosing the lower passage intentionally retires its Ward.
             await startCampaignScene(session, { route, sceneName });
             await delay(400);
         }

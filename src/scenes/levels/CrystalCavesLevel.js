@@ -212,6 +212,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.woundedCrystalGrove = null;
         this.crystalChamberRoute = null;
         this.crystalSpiderCalmed = false;
+        this.crystalFocusReady = false;
         this.crystalWardPickup = null;
         this.crystalCoreLift = null;
         this.wardGateHintUntil = 0;
@@ -290,6 +291,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.woundedCrystalGrove = null;
         this.crystalChamberRoute = null;
         this.crystalSpiderCalmed = false;
+        this.crystalFocusReady = false;
         this.crystalWardPickup = null;
         this.crystalCoreLift = null;
         this.wardGateHintUntil = 0;
@@ -783,29 +785,43 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.powerWell.wellY = y;
         this.powerWell.wellRadius = 35;
 
-        // Pulsing animation
-        this.tweens.add({
-            targets: this.powerWell,
-            alpha: { from: 0.7, to: 1 },
-            scaleX: { from: 0.95, to: 1.05 },
-            scaleY: { from: 0.95, to: 1.05 },
-            duration: 1500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (this.shouldAnimateCrystalRouteDecorations()) {
+            this.tweens.add({
+                targets: this.powerWell,
+                alpha: { from: 0.7, to: 1 },
+                scaleX: { from: 0.95, to: 1.05 },
+                scaleY: { from: 0.95, to: 1.05 },
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        } else {
+            this.powerWell.setAlpha(0.9);
+        }
 
         // Particle effect
         this.time.addEvent({
             delay: 500,
             callback: () => {
-                if (this.powerWell && window.FXLibrary) {
-                    window.FXLibrary.stardustBurst(this, this.powerWell.wellX, this.powerWell.wellY - 10, {
+                const well = this.powerWell;
+                const worldView = this.cameras?.main?.worldView;
+                if (
+                    !well?.active ||
+                    !this.bossFightActive ||
+                    !window.FXLibrary ||
+                    (worldView?.contains && !worldView.contains(well.wellX, well.wellY))
+                ) return;
+                window.FXLibrary.stardustBurst(
+                    this,
+                    well.wellX,
+                    well.wellY - 10,
+                    {
                         count: 3,
                         color: [0xE040FB, 0x7B68EE],
                         duration: 800
-                    });
-                }
+                    }
+                );
             },
             loop: true
         });
@@ -1143,6 +1159,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.createCrystalCoreEngine();
     }
 
+    shouldAnimateCrystalRouteDecorations() {
+        const width = Number(this.cameras?.main?.width) || 0;
+        const height = Number(this.cameras?.main?.height) || 0;
+        return !(this.isMobile || width <= 480 || height < 620);
+    }
+
     createCrystalCoreLift() {
         const x = 4820;
         const bottom = this.levelHeight - 50;
@@ -1185,14 +1207,18 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         });
         this.refreshCrystalCoreLift();
 
-        this.tweens.add({
-            targets: visual,
-            alpha: { from: 0.68, to: 1 },
-            duration: 720,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (this.shouldAnimateCrystalRouteDecorations()) {
+            this.tweens.add({
+                targets: visual,
+                alpha: { from: 0.68, to: 1 },
+                duration: 720,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        } else {
+            visual.setAlpha(0.86);
+        }
     }
 
     refreshCrystalCoreLift() {
@@ -1274,6 +1300,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     createBeaconCheckpoints() {
+        const animateRouteDecorations = this.shouldAnimateCrystalRouteDecorations();
         const anchors = [
             {
                 id: 'caves_anchor_1',
@@ -1335,7 +1362,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 landingGuide: this.createTraversalLandingGuide(
                     supportId,
                     0x00FFFF,
-                    { depth: 84 }
+                    { depth: 84, animate: animateRouteDecorations }
                 ),
                 activated: false,
                 respawnY: supportCheckpoint.y
@@ -1546,6 +1573,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             crystalWardGuardCharges: this.crystalChamberRoute === 'optional'
                 ? this.optionalRouteGuardCharges
                 : 0,
+            crystalFocusReady: this.crystalChamberRoute === 'main'
+                ? this.crystalFocusReady === true
+                : false,
             crystalWoundTended: this.crystalWoundTended === true
         };
     }
@@ -1556,6 +1586,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             return false;
         }
 
+        const firstSelection = !this.crystalChamberRoute;
         this.crystalChamberRoute = path;
         const route = this.optionalRouteRewards?.get?.('caves_secret_slide');
         const choice = route?.choice;
@@ -1569,6 +1600,23 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         if (path === 'main') {
             this.clearCrystalWardPickup();
+            if (!restoring && firstSelection) {
+                this.crystalFocusReady = true;
+                this.nextRangedDamageMultiplier = Math.max(
+                    2,
+                    Number(this.nextRangedDamageMultiplier) || 1
+                );
+                window.FXLibrary?.stardustBurst?.(
+                    this,
+                    this.player?.x || 2040,
+                    (this.player?.y || this.levelHeight - 120) - 35,
+                    {
+                        count: 18,
+                        color: [0x00FFFF, 0x7B68EE, 0xFFFFFF],
+                        duration: 800
+                    }
+                );
+            }
         }
         if (!restoring) {
             this.refreshPersistedExpeditionRouteState();
@@ -1586,7 +1634,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.retireCrystalSpiderFromResume();
         }
 
-        if (path === 'optional' && routeState?.crystalWardClaimed === true) {
+        if (path === 'main') {
+            this.crystalFocusReady = routeState?.crystalFocusReady !== false;
+            if (this.crystalFocusReady) {
+                this.nextRangedDamageMultiplier = Math.max(
+                    2,
+                    Number(this.nextRangedDamageMultiplier) || 1
+                );
+            }
+        } else if (routeState?.crystalWardClaimed === true) {
             const route = this.optionalRouteRewards?.get?.('caves_secret_slide');
             if (route) {
                 route.progress = route.required;
@@ -1621,6 +1677,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.crystalChamberRoute === 'optional') {
             this.refreshPersistedExpeditionRouteState();
         }
+    }
+
+    onNextRangedDamageConsumed() {
+        if (this.crystalChamberRoute !== 'main' || !this.crystalFocusReady) return;
+        this.crystalFocusReady = false;
+        this.refreshPersistedExpeditionRouteState();
     }
 
     createWoundedCrystalGrove() {
@@ -2872,8 +2934,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             returnLabel: 'SLIDE BACK TO THE CAVE ROUTE →',
             choice: {
                 mainLabel: 'LOWER PASSAGE →',
-                mainTradeoff: 'SHORT // ARMORED CRAWLER',
-                challengeLabel: 'SPIDER + CRYSTAL SLIDE',
+                mainTradeoff: 'SHORT // ARMORED CRAWLER\nEARNS: CRYSTAL FOCUS // NEXT SHOT x2',
+                challengeLabel: 'SPIDER + SLIDE // EARN 1-HIT WARD',
                 mainMarker: chamberRouteMarker,
                 mainZone: {
                     left: 1900, right: 2440,
@@ -2977,27 +3039,19 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         shield.collectibleType = 'crystalShield';
         shield.optionalRouteId = 'caves_secret_slide';
 
-        // Pulsing glow animation
-        this.tweens.add({
-            targets: shield,
-            alpha: { from: 0.8, to: 1 },
-            scaleX: { from: 1, to: 1.15 },
-            scaleY: { from: 1, to: 1.15 },
-            duration: 800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // Rotating shine effect
-        this.tweens.add({
-            targets: shield,
-            angle: { from: -5, to: 5 },
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (this.shouldAnimateCrystalRouteDecorations()) {
+            this.tweens.add({
+                targets: shield,
+                alpha: { from: 0.8, to: 1 },
+                scaleX: { from: 1, to: 1.15 },
+                scaleY: { from: 1, to: 1.15 },
+                angle: { from: -5, to: 5 },
+                duration: 900,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
 
         return shield;
     }
@@ -3055,17 +3109,18 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         crystal.setPosition(x, y);
         crystal.setDepth(-5);
 
-        // Prominent pulse animation
-        this.tweens.add({
-            targets: crystal,
-            alpha: { from: 0.7, to: 1 },
-            scaleX: { from: 1, to: 1.2 },
-            scaleY: { from: 1, to: 1.2 },
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (this.shouldAnimateCrystalRouteDecorations()) {
+            this.tweens.add({
+                targets: crystal,
+                alpha: { from: 0.7, to: 1 },
+                scaleX: { from: 1, to: 1.2 },
+                scaleY: { from: 1, to: 1.2 },
+                duration: 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
 
         // Store as background crystal for proximity lighting too
         crystal.crystalColor = 0x00FFFF;
@@ -3195,17 +3250,18 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         relic.body.setAllowGravity(false);
         relic.collectibleType = 'starFragment';
 
-        // Pulsing glow animation
-        this.tweens.add({
-            targets: relic,
-            alpha: { from: 0.7, to: 1 },
-            scaleX: { from: 0.95, to: 1.05 },
-            scaleY: { from: 0.95, to: 1.05 },
-            duration: 1500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (this.shouldAnimateCrystalRouteDecorations()) {
+            this.tweens.add({
+                targets: relic,
+                alpha: { from: 0.7, to: 1 },
+                scaleX: { from: 0.95, to: 1.05 },
+                scaleY: { from: 0.95, to: 1.05 },
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
 
         return relic;
     }
@@ -3936,27 +3992,27 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         this.crystalCore = this.physics.add.staticSprite(coreX, coreY, textureKey);
         this.crystalCore.setDepth(50);
+        const animateRouteDecorations = this.shouldAnimateCrystalRouteDecorations();
 
-        // Pulsing animation
-        this.tweens.add({
-            targets: this.crystalCore,
-            scaleX: { from: 1, to: 1.15 },
-            scaleY: { from: 1, to: 1.15 },
-            alpha: { from: 0.8, to: 1 },
-            duration: 1200,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // Slow rotation
-        this.tweens.add({
-            targets: this.crystalCore,
-            angle: 360,
-            duration: 8000,
-            repeat: -1,
-            ease: 'Linear'
-        });
+        if (animateRouteDecorations) {
+            this.tweens.add({
+                targets: this.crystalCore,
+                scaleX: { from: 1, to: 1.15 },
+                scaleY: { from: 1, to: 1.15 },
+                alpha: { from: 0.8, to: 1 },
+                duration: 1200,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            this.tweens.add({
+                targets: this.crystalCore,
+                angle: 360,
+                duration: 8000,
+                repeat: -1,
+                ease: 'Linear'
+            });
+        }
 
         this.createGuardianGateState({
             x: coreX,
@@ -3979,15 +4035,18 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         beacon.fillStyle(0x00FFFF, 0.25);
         beacon.fillRect(coreX - 8, 0, 16, coreY);
 
-        // Pulsing beacon
-        this.tweens.add({
-            targets: beacon,
-            alpha: { from: 0.3, to: 0.8 },
-            duration: 1500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (animateRouteDecorations) {
+            this.tweens.add({
+                targets: beacon,
+                alpha: { from: 0.3, to: 0.8 },
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        } else {
+            beacon.setAlpha(0.65);
+        }
 
         // Overlap for collection - triggers boss fight
         this.physics.add.overlap(this.player, this.crystalCore, () => {
@@ -5449,7 +5508,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 ? 'SPIDER WALK // CLAIM THE WARD'
                 : 'SPIDER WALK // CALM THE SPIDER';
         }
-        if (path === 'main') return 'LOWER PASSAGE // REJOIN AHEAD';
+        if (path === 'main') {
+            return this.crystalFocusReady
+                ? 'LOWER PASSAGE // CRYSTAL FOCUS x2 READY'
+                : 'LOWER PASSAGE // CRYSTAL FOCUS SPENT';
+        }
         if (this.beaconAnchorsActivated === 1) {
             return 'CHAMBER FORK // CHOOSE A ROUTE';
         }

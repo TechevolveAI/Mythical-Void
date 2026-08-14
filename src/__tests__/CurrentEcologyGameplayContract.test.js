@@ -28,6 +28,7 @@ describe('Current ecology gameplay contract', () => {
         expect(source).toContain('aurora_depths_1: Object.freeze({');
         expect(source).toContain('final_void_1: Object.freeze({');
         expect(source).toContain('this.createCurrentEcologyNode();');
+        expect(source).toContain("supportId: 'caves-chamber-bridge'");
     });
 
     test('applies and explains one bounded upstream consequence', () => {
