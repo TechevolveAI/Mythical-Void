@@ -21,6 +21,73 @@ const REEF_GUARDIAN_PHASES = Object.freeze({
     3: { label: 'ROUTE COLLAPSE // HOLD THE LINE', color: 0xFF6B8A }
 });
 
+const REEF_ENCOUNTER_PLAN = Object.freeze([
+    Object.freeze({
+        beat: 'opening-phase-lesson',
+        supportId: 'reef-opening-2',
+        lane: 'shared',
+        kind: 'phase',
+        health: 1,
+        altitude: 115
+    }),
+    Object.freeze({
+        beat: 'drift-relay-clear',
+        supportId: 'reef-drift-relay',
+        lane: 'shared',
+        kind: 'spore',
+        health: 1,
+        altitude: 95
+    }),
+    Object.freeze({
+        beat: 'main-current-charge',
+        supportId: 'reef-current-bridge',
+        lane: 'main',
+        kind: 'dart',
+        health: 2,
+        altitude: 90
+    }),
+    Object.freeze({
+        beat: 'star-trench-wraith',
+        supportId: 'reef-trench-2',
+        lane: 'optional',
+        kind: 'wraith',
+        health: 3,
+        altitude: 90
+    }),
+    Object.freeze({
+        beat: 'drive-approach-phase',
+        supportId: 'reef-drive-approach',
+        lane: 'shared',
+        kind: 'phase',
+        health: 1,
+        altitude: 115
+    }),
+    Object.freeze({
+        beat: 'traveler-relay-charge',
+        supportId: 'reef-traveler-relay',
+        lane: 'shared',
+        kind: 'dart',
+        health: 2,
+        altitude: 90
+    }),
+    Object.freeze({
+        beat: 'passage-bridge-clear',
+        supportId: 'reef-passage-bridge',
+        lane: 'shared',
+        kind: 'spore',
+        health: 1,
+        altitude: 95
+    }),
+    Object.freeze({
+        beat: 'guardian-current-wraith',
+        supportId: 'reef-passage-rise',
+        lane: 'shared',
+        kind: 'wraith',
+        health: 3,
+        altitude: 110
+    })
+]);
+
 /**
  * ReefLevel - The Cosmic Abyss (Stellar Reef) underwater level
  *
@@ -103,6 +170,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.plasmaDarts = [];     // Replaces barracuda - fast energy projectiles
         this.phaseDrifters = [];   // Replaces jellyfish - ethereal phase beings
         this.lureWraiths = [];     // Replaces anglerfish - void predators
+        this.reefEncounterRhythm = [];
 
         // Collectibles
         this.starFragments = [];
@@ -179,6 +247,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.plasmaDarts = [];
         this.phaseDrifters = [];
         this.lureWraiths = [];
+        this.reefEncounterRhythm = [];
 
         // Reset collectibles
         this.starFragments = [];
@@ -1072,11 +1141,8 @@ class ReefLevel extends PlatformerLevelScene {
 
         this.enemies = this.physics.add.group();
 
-        // Spawn cosmic entities
-        this.spawnVoidSpores();
-        this.spawnPlasmaDarts();
-        this.spawnPhaseDrifters();
-        this.spawnLureWraiths();
+        // Place a deliberate sequence of readable encounters on the route.
+        this.createReefEncounterRhythm();
 
         // Collectibles
         this.spawnStarFragments();
@@ -1107,6 +1173,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.plasmaDarts = [];
         this.phaseDrifters = [];
         this.lureWraiths = [];
+        this.reefEncounterRhythm = [];
         return patrols.length;
     }
 
@@ -1834,29 +1901,71 @@ class ReefLevel extends PlatformerLevelScene {
         this.refreshPersistedExpeditionRouteState();
     }
 
-    /**
-     * Spawn Void Spores - crystalline organisms that burst into void shards
-     */
-    spawnVoidSpores() {
-        const positions = [
-            { x: 600, y: this.levelHeight - 500 },
-            { x: 1400, y: this.levelHeight - 650 },
-            { x: 2100, y: this.levelHeight - 750 },
-            { x: 2900, y: this.levelHeight - 550 },
-            { x: 3600, y: this.levelHeight - 850 },
-        ];
+    createReefEncounterRhythm() {
+        const factories = {
+            spore: (x, y, encounter) => this.createVoidSpore(x, y, encounter),
+            dart: (x, y, encounter) => this.createPlasmaDart(x, y, encounter),
+            phase: (x, y, encounter) => this.createPhaseDrifter(x, y, encounter),
+            wraith: (x, y, encounter) => this.createLureWraith(x, y, encounter)
+        };
+        const collections = {
+            spore: this.voidSpores,
+            dart: this.plasmaDarts,
+            phase: this.phaseDrifters,
+            wraith: this.lureWraiths
+        };
 
-        positions.forEach(pos => {
-            const spore = this.createVoidSpore(pos.x, pos.y);
-            this.voidSpores.push(spore);
-            this.enemies.add(spore);
+        this.reefEncounterRhythm = REEF_ENCOUNTER_PLAN.map(encounter => {
+            const placement = this.resolveReefEncounterPlacement(encounter);
+            const enemy = factories[encounter.kind](
+                placement.x,
+                placement.y,
+                encounter
+            );
+            enemy.encounterBeat = encounter.beat;
+            enemy.encounterLane = encounter.lane;
+            enemy.encounterSupportId = encounter.supportId;
+            enemy.encounterAirborne = true;
+            collections[encounter.kind].push(enemy);
+            this.enemies.add(enemy);
+            return enemy;
         });
+
+        return this.reefEncounterRhythm;
+    }
+
+    resolveReefEncounterPlacement(encounter) {
+        const support = this.getTraversalSupport(encounter.supportId);
+        if (!support?.body) {
+            throw new Error(
+                `[ReefLevel] Missing encounter support ${encounter.supportId}`
+            );
+        }
+
+        const bodyInset = {
+            spore: 38,
+            dart: 50,
+            phase: 34,
+            wraith: 74
+        }[encounter.kind] || 40;
+        const centerX = (support.body.left + support.body.right) / 2;
+        const x = Phaser.Math.Clamp(
+            centerX + (Number(encounter.offsetX) || 0),
+            support.body.left + bodyInset,
+            support.body.right - bodyInset
+        );
+        const y = Phaser.Math.Clamp(
+            support.body.top - (Number(encounter.altitude) || 90),
+            90,
+            this.levelHeight - 90
+        );
+        return { x, y };
     }
 
     /**
      * Create a Void Spore - crystalline pulsing organism
      */
-    createVoidSpore(x, y) {
+    createVoidSpore(x, y, { health = 1 } = {}) {
         const spore = this.add.graphics();
         spore.setDepth(200);
 
@@ -1891,14 +2000,14 @@ class ReefLevel extends PlatformerLevelScene {
 
         body.graphics = spore;
         body.enemyType = 'voidSpore';
-        body.health = 2;
+        body.health = health;
         body.baseX = x;
         body.baseY = y;
         body.phase = Math.random() * Math.PI * 2;
 
         this.configureEnemyCombat(body, {
             role: 'stompable',
-            maxHealth: 2,
+            maxHealth: health,
             cueOffsetY: -48
         });
 
@@ -1906,28 +2015,9 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Spawn Plasma Darts - fast-moving energy beings
-     */
-    spawnPlasmaDarts() {
-        const positions = [
-            { x: 900, y: this.levelHeight - 400 },
-            { x: 1700, y: this.levelHeight - 700 },
-            { x: 2600, y: this.levelHeight - 500 },
-            { x: 3400, y: this.levelHeight - 900 },
-            { x: 4200, y: this.levelHeight - 600 },
-        ];
-
-        positions.forEach(pos => {
-            const dart = this.createPlasmaDart(pos.x, pos.y);
-            this.plasmaDarts.push(dart);
-            this.enemies.add(dart);
-        });
-    }
-
-    /**
      * Create a Plasma Dart - elongated energy projectile creature
      */
-    createPlasmaDart(x, y) {
+    createPlasmaDart(x, y, { health = 2 } = {}) {
         const dart = this.add.graphics();
         dart.setDepth(200);
 
@@ -1963,7 +2053,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         body.graphics = dart;
         body.enemyType = 'plasmaDart';
-        body.health = 2;
+        body.health = health;
         body.baseX = x;
         body.baseY = y;
         body.isCharging = false;
@@ -1972,7 +2062,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         this.configureEnemyCombat(body, {
             role: 'charger',
-            maxHealth: 2,
+            maxHealth: health,
             cueOffsetY: -34
         });
 
@@ -1980,29 +2070,9 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Spawn Phase Drifters - ethereal beings that phase in and out
-     */
-    spawnPhaseDrifters() {
-        const positions = [
-            { x: 500, y: this.levelHeight - 600 },
-            { x: 1100, y: this.levelHeight - 450 },
-            { x: 1900, y: this.levelHeight - 800 },
-            { x: 2700, y: this.levelHeight - 650 },
-            { x: 3500, y: this.levelHeight - 750 },
-            { x: 4000, y: this.levelHeight - 550 },
-        ];
-
-        positions.forEach(pos => {
-            const drifter = this.createPhaseDrifter(pos.x, pos.y);
-            this.phaseDrifters.push(drifter);
-            this.enemies.add(drifter);
-        });
-    }
-
-    /**
      * Create a Phase Drifter - ghostly dimensional being
      */
-    createPhaseDrifter(x, y) {
+    createPhaseDrifter(x, y, { health = 1 } = {}) {
         const drifter = this.add.graphics();
         drifter.setDepth(200);
 
@@ -2051,7 +2121,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         body.graphics = drifter;
         body.enemyType = 'phaseDrifter';
-        body.health = 1;
+        body.health = health;
         body.baseX = x;
         body.baseY = y;
         body.isPhased = false;
@@ -2059,7 +2129,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         this.configureEnemyCombat(body, {
             role: 'phase',
-            maxHealth: 1,
+            maxHealth: health,
             cueOffsetY: -70
         });
 
@@ -2067,26 +2137,9 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     /**
-     * Spawn Lure Wraiths - void predators with hypnotic lures
-     */
-    spawnLureWraiths() {
-        const positions = [
-            { x: 1500, y: this.levelHeight - 250 },
-            { x: 3000, y: this.levelHeight - 350 },
-            { x: 4400, y: this.levelHeight - 300 },
-        ];
-
-        positions.forEach(pos => {
-            const wraith = this.createLureWraith(pos.x, pos.y);
-            this.lureWraiths.push(wraith);
-            this.enemies.add(wraith);
-        });
-    }
-
-    /**
      * Create a Lure Wraith - massive void predator with dimensional lure
      */
-    createLureWraith(x, y) {
+    createLureWraith(x, y, { health = 3 } = {}) {
         const wraith = this.add.graphics();
         wraith.setDepth(200);
 
@@ -2153,7 +2206,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         body.graphics = wraith;
         body.enemyType = 'lureWraith';
-        body.health = 5;
+        body.health = health;
         body.baseX = x;
         body.baseY = y;
         body.isLurking = true;
@@ -2162,7 +2215,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         this.configureEnemyCombat(body, {
             role: 'armored',
-            maxHealth: 5,
+            maxHealth: health,
             stompDamage: 1,
             cueOffsetY: -76
         });

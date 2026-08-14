@@ -343,6 +343,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.jumpBufferFramesRemaining = 0; // Low-FPS grace measured in actual gameplay updates
         this.wasGrounded = false; // Track previous grounded state for landing detection
         this.lastLandingY = 0; // Track Y position to calculate fall distance for dust
+        this.stuckFrameCount = 0;
 
         // Crystal Shield power-up
         this.hasShield = false; // Whether player has active shield
@@ -671,6 +672,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.isInvincible = false;
         this.isRespawning = false;
         this.invincibilityTween = null;
+        this.stuckFrameCount = 0;
 
         // Reset checkpoint data
         this.lastSafePosition = null;
@@ -5843,21 +5845,17 @@ class PlatformerLevelScene extends Phaser.Scene {
         // 1. Very low velocity (can't move)
         // 2. Blocked on multiple sides (embedded)
         // 3. Not recently spawning/respawning
-        const isStuck = (
+        const isPersistentWedgeCandidate = (
             Math.abs(body.velocity.x) < 5 &&
             Math.abs(body.velocity.y) < 5 &&
+            body.embedded === true &&
             body.blocked.down &&
             (body.blocked.left || body.blocked.right) &&
             !this.isRespawning &&
             !this.isPlayerDead
         );
 
-        // Track stuck frames
-        if (!this.stuckFrameCount) {
-            this.stuckFrameCount = 0;
-        }
-
-        if (isStuck) {
+        if (isPersistentWedgeCandidate) {
             this.stuckFrameCount++;
 
             // If stuck for more than 30 frames (~0.5 seconds), rescue the player
@@ -5888,14 +5886,6 @@ class PlatformerLevelScene extends Phaser.Scene {
         } else {
             // Reset counter when not stuck
             this.stuckFrameCount = 0;
-        }
-
-        // Also check for embedded in ground (body overlapping with tiles significantly)
-        // If player's feet are below the ground level they're standing on
-        if (body.blocked.down && body.embedded) {
-            console.warn('[PlatformerLevel] Player embedded detected - pushing up');
-            this.player.setPosition(this.player.x, this.player.y - 20);
-            this.player.setVelocityY(-50);
         }
     }
 
