@@ -160,6 +160,15 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('NASA does not endorse the game.');
         expect(storefront).toContain('Download the STEM activity');
         expect(storefront).toContain('/resources/mythical-void-stem-creature-lab.pdf');
+        expect(storefront).toContain('Print and share the game');
+        expect(storefront).toContain('Get the play-and-share card');
+        expect(storefront).toContain('/resources/mythical-void-play-share-card.pdf');
+        expect(pressAssets.sharingResources).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                kind: 'adult_led_printable_play_share_card',
+                url: 'https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf'
+            })
+        ]));
         expect(storefront).toContain('Press & creators');
         expect(sitemap).toContain('<loc>https://mythicalvoid.com/press/</loc>');
         expect(pressFactSheet).toContain('PLAY THE CURRENT GAME');

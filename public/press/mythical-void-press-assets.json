@@ -15,6 +15,16 @@
       "disclosure": "Independent Mythical Void activity. NASA does not endorse Mythical Void."
     }
   ],
+  "sharingResources": [
+    {
+      "name": "Mythical Void play-and-share card",
+      "url": "https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf",
+      "kind": "adult_led_printable_play_share_card",
+      "audience": "Adults, families, educators, clubs and events",
+      "description": "A free one-page A4 card with a clean QR link to the playable browser game, one real gameplay frame and clearly disclosed creature-universe artwork.",
+      "disclosure": "The large creature-universe image is an AI-generated marketing illustration, not gameplay. The framed Project Beacon image is real gameplay. NASA does not endorse Mythical Void."
+    }
+  ],
   "assets": [
     {
       "name": "Mythical Forest authentic gameplay video",
