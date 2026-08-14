@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-007",
+      "publishedOn": "2026-08-14",
+      "status": "live",
+      "category": "STUDIO STORY",
+      "title": "The father-and-son story is ready to share",
+      "summary": "Adults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.",
+      "details": [
+        "Both layouts use the clean mythicalvoid.com/studio address with no tracking code.",
+        "The background is labelled as AI-generated marketing artwork, while the framed first-contact screen is real gameplay.",
+        "No photograph, name or identifying detail of the child is used."
+      ],
+      "image": "/press/social/father-son-story-square.png",
+      "imageAlt": "Square Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame",
+      "imageClass": "branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame",
+      "disclosure": "Founder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown.",
+      "destination": "/press/#father-son-story-social-assets",
+      "linkText": "Download the founder-story artwork",
+      "download": false
+    },
+    {
       "id": "SIGNAL-006",
       "publishedOn": "2026-08-14",
       "status": "live",
