@@ -49,8 +49,8 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
         performanceTier: 'mobile'
     }),
     finalVoid: Object.freeze({
-        displayCount: 175,
-        activeTweenCount: 35,
+        displayCount: 165,
+        activeTweenCount: 12,
         performanceTier: 'mobile'
     })
 });
@@ -314,6 +314,17 @@ async function sampleFramePacing(session, sceneName, {
                     )
                 } : null,
                 activeTweenCount: scene?.tweens?.getTweens?.().length || 0,
+                landingDustTweenCount: (
+                    scene?.tweens?.getTweens?.() || []
+                ).filter(tween => (tween?.targets || []).some(
+                    target => target?.fxRole === 'landingDust'
+                )).length,
+                landingDustOrphanTweenCount: (
+                    scene?.tweens?.getTweens?.() || []
+                ).filter(tween => (tween?.targets || []).some(
+                    target => target?.fxRole === 'landingDust' &&
+                        (target.active === false || !target.scene)
+                )).length,
                 sharedAmbientFieldTweenCount: tweenTargets.filter(
                     target => sharedAmbientFieldObjects.has(target)
                 ).length,
@@ -485,7 +496,12 @@ async function smokeForestSharedEnemyScheduler(session) {
         scene.isInvincible = true;
         const playerStart = { x: scene.player.x, y: scene.player.y };
         const chaserStart = { x: chaser.x, y: chaser.y };
+        const crawlerStart = { x: crawler.x, y: crawler.y };
         chaser.body.reset(chaser.forestPatrolLeft, chaserStart.y);
+        crawler.body.reset(
+            (crawler.patrolLeft + crawler.patrolRight) / 2,
+            crawlerStart.y
+        );
         scene.player.body.reset(
             chaser.forestPatrolRight,
             scene.levelHeight - 130
@@ -497,10 +513,12 @@ async function smokeForestSharedEnemyScheduler(session) {
         chaser.forestNextAiAt = scene.time.now;
         crawler.forestNextAiAt = scene.time.now;
         chaser.setVelocity(0, 0);
+        crawler.setVelocity(0, 0);
         scene.player.setVelocity(0, 0);
         return {
             playerStart,
             chaserStart,
+            crawlerStart,
             chaserX: chaser.x,
             crawlerX: crawler.x
         };
@@ -510,32 +528,53 @@ async function smokeForestSharedEnemyScheduler(session) {
     }
 
     try {
-        await delay(180);
-        const advanced = await evaluate(session, `(() => {
-            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
-            const chaser = scene.voidSprites?.find(enemy => enemy?.active && enemy?.body);
-            const crawler = scene.branchCrawlers?.find(enemy => enemy?.active && enemy?.body);
-            return {
-                schedulerActive: Boolean(
-                    scene.forestEnemyAISchedulerActive
-                ),
-                chaserIsChasing: chaser?.isChasing === true,
-                chaserVelocityX: chaser?.body?.velocity?.x || 0,
-                chaserNextDelay: (chaser?.forestNextAiAt || 0) - scene.time.now,
-                crawlerDeltaX: (crawler?.x || 0) - ${staged.crawlerX},
-                individualTimerCount: (
-                    scene.enemies?.getChildren?.() || []
-                ).reduce(
-                    (total, enemy) => total + (enemy?.runtimeTimers?.size || 0),
-                    0
-                )
-            };
-        })()`);
+        const advanced = await waitFor(async () => {
+            const state = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                const chaser = scene.voidSprites?.find(enemy => enemy?.active && enemy?.body);
+                const crawler = scene.branchCrawlers?.find(enemy => enemy?.active && enemy?.body);
+                return {
+                    schedulerActive: Boolean(
+                        scene.forestEnemyAISchedulerActive
+                    ),
+                    chaserIsChasing: chaser?.isChasing === true,
+                    chaserVelocityX: chaser?.body?.velocity?.x || 0,
+                    chaserNextDelay: (chaser?.forestNextAiAt || 0) - scene.time.now,
+                    crawlerVelocityX: crawler?.body?.velocity?.x || 0,
+                    crawlerNextDelay: (crawler?.forestNextAiAt || 0) - scene.time.now,
+                    crawlerDeltaX: (crawler?.x || 0) - ${staged.crawlerX},
+                    individualTimerCount: (
+                        scene.enemies?.getChildren?.() || []
+                    ).reduce(
+                        (total, enemy) => total + (enemy?.runtimeTimers?.size || 0),
+                        0
+                    )
+                };
+            })()`);
+            return (
+                state.schedulerActive === true &&
+                state.chaserIsChasing === true &&
+                state.chaserNextDelay > 0 &&
+                state.crawlerNextDelay > 0 &&
+                (
+                    Math.abs(state.crawlerDeltaX) >= 1 ||
+                    Math.abs(state.crawlerVelocityX) >= 1
+                ) &&
+                state.individualTimerCount === 0
+            ) ? state : null;
+        }, {
+            timeoutMs: 1200,
+            message: 'Forest shared enemy scheduler advance'
+        });
         if (
             advanced.schedulerActive !== true ||
             advanced.chaserIsChasing !== true ||
             advanced.chaserNextDelay <= 0 ||
-            Math.abs(advanced.crawlerDeltaX) < 1 ||
+            advanced.crawlerNextDelay <= 0 ||
+            (
+                Math.abs(advanced.crawlerDeltaX) < 1 &&
+                Math.abs(advanced.crawlerVelocityX) < 1
+            ) ||
             advanced.individualTimerCount !== 0
         ) {
             throw new Error(
@@ -550,12 +589,18 @@ async function smokeForestSharedEnemyScheduler(session) {
         await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
             const chaser = scene.voidSprites?.find(enemy => enemy?.active && enemy?.body);
+            const crawler = scene.branchCrawlers?.find(enemy => enemy?.active && enemy?.body);
             scene.isInvincible = false;
             chaser?.body?.reset?.(
                 ${staged.chaserStart.x},
                 ${staged.chaserStart.y}
             );
             chaser?.setVelocity?.(0, 0);
+            crawler?.body?.reset?.(
+                ${staged.crawlerStart.x},
+                ${staged.crawlerStart.y}
+            );
+            crawler?.setVelocity?.(0, 0);
             scene.player?.body?.reset?.(
                 ${staged.playerStart.x},
                 ${staged.playerStart.y}
@@ -3062,6 +3107,15 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         );
     }
     if (
+        framePacing.landingDustTweenCount > 3 ||
+        framePacing.landingDustOrphanTweenCount !== 0
+    ) {
+        throw new Error(
+            `${sceneName} leaked landing feedback work after settlement: ` +
+            JSON.stringify(framePacing)
+        );
+    }
+    if (
         route === 'voidPeaks' &&
         (
             framePacing.peaksRuntime?.emberRedrawsDuringSample > 4 ||
@@ -3892,9 +3946,15 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             return result;
         };
 
-        scene.isInvincible = false;
         scene.player.body.reset?.(targetX, playerY);
         scene.player.setPosition?.(targetX, playerY);
+        scene.player.setVelocity?.(0, 0);
+        scene.updateForestEnemyActivation?.(true);
+        target.body.enable = true;
+        target.setVisible?.(true);
+        target.forestProximityActive = true;
+        target.forestNextAiAt = Number.POSITIVE_INFINITY;
+        scene.isInvincible = false;
         scene.player.setVelocity?.(0, 680);
         return { targetX, targetY, playerY, enemyType: state.enemyType };
     })()`);

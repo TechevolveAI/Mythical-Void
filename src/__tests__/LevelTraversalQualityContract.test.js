@@ -873,6 +873,22 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('redrawForestCoinLayer()');
         expect(source).not.toContain('const branch = this.add.graphics();');
         expect(source).not.toContain('const shadow = this.add.graphics();');
+
+        const smokeSource = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        expect(smokeSource).toContain(
+            "message: 'Forest shared enemy scheduler advance'"
+        );
+        expect(smokeSource).toContain('crawlerVelocityX');
+        expect(smokeSource).toContain('crawlerNextDelay');
+        expect(smokeSource).toContain(
+            'target.forestNextAiAt = Number.POSITIVE_INFINITY;'
+        );
+        expect(smokeSource).toContain(
+            'scene.updateForestEnemyActivation?.(true);'
+        );
     });
 
     test('shared biome rendering batches ambient fields and uses a phone tier', () => {
@@ -2488,6 +2504,55 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('spawnDistance < 850');
         expect(smoke).toContain(
             'placed the Current Heart inside its opening viewport'
+        );
+    });
+
+    test('shared landing dust uses one bounded tween per compact particle', () => {
+        const source = read('../systems/FXLibrary.js');
+        const landingDust = source.match(
+            /landingDust\(scene, x, y, options = \{\}\) \{([\s\S]*?)\n    \}\n\n    \/\*\*\n     \* Create individual dust particle/
+        );
+
+        expect(landingDust).not.toBeNull();
+        expect(landingDust[1]).toContain('compactViewport ? 3 : 20');
+        expect(landingDust[1]).toContain("particle.fxRole = 'landingDust';");
+        expect(landingDust[1]).toContain(
+            'this.activeEffects.delete(effectId);'
+        );
+        expect(landingDust[1]).toContain('scene,');
+        expect(
+            landingDust[1].match(/scene\.tweens\.add\(/g)
+        ).toHaveLength(1);
+
+        const stopEffect = source.match(
+            /stopEffect\(effectId\) \{([\s\S]*?)\n    \}\n\n    \/\*\*\n     \* Clean up all active effects/
+        );
+        expect(stopEffect).not.toBeNull();
+        expect(stopEffect[1]).toContain(
+            'effect.scene?.tweens?.killTweensOf?.(particle);'
+        );
+
+        const dustParticle = source.match(
+            /createDustParticle\(scene, x, y, options\) \{([\s\S]*?)\n    \}\n\n    \/\*\*/
+        );
+        expect(dustParticle).not.toBeNull();
+        expect(dustParticle[1]).toContain(
+            "const textureKey = 'fx_landing_dust_particle';"
+        );
+        expect(dustParticle[1]).toContain(
+            'const particle = scene.add.image(x, y, textureKey);'
+        );
+        expect(dustParticle[1]).not.toContain('scene.add.graphics()');
+
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        expect(smoke).toContain('landingDustTweenCount');
+        expect(smoke).toContain('landingDustOrphanTweenCount');
+        expect(smoke).toContain('activeTweenCount: 12');
+        expect(smoke).toContain(
+            'leaked landing feedback work after settlement'
         );
     });
 
