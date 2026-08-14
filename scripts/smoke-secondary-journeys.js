@@ -2550,11 +2550,23 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.peaksAmbientRendering?.starCount !== 35 ||
             state.peaksAmbientRendering?.starLayerCount !== 1 ||
             state.peaksAmbientRendering?.emberCount !== 18 ||
-            state.peaksAmbientRendering?.emberLayerCount !== 1
+            state.peaksAmbientRendering?.emberLayerCount !== 1 ||
+            state.currentEcologyPlacement?.supportId !==
+                'peak-ridge-approach' ||
+            state.currentEcologyPlacement?.x <
+                state.currentEcologyPlacement?.supportLeft ||
+            state.currentEcologyPlacement?.x >
+                state.currentEcologyPlacement?.supportRight ||
+            Math.abs(
+                state.currentEcologyPlacement?.y -
+                state.currentEcologyPlacement?.supportTop
+            ) > 8 ||
+            state.currentEcologyPlacement?.spawnDistance < 1200
         )
     ) {
         throw new Error(
-            `${sceneName} did not keep Peaks ambience batched: ${JSON.stringify(state)}`
+            `${sceneName} did not keep Peaks ambience and opening bounded: ` +
+            JSON.stringify(state)
         );
     }
     if (
@@ -2686,6 +2698,20 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     ) {
         throw new Error(
             `${sceneName} kept offscreen route decorations animating on mobile: ` +
+            JSON.stringify(framePacing.graphicsTweenDepths)
+        );
+    }
+    if (
+        route === 'voidPeaks' &&
+        (state.canvasWidth <= 480 || state.canvasHeight < 620) &&
+        [
+            'depth:120:visible',
+            'depth:130:visible',
+            'depth:179:visible'
+        ].some(depth => framePacing.graphicsTweenDepths?.[depth])
+    ) {
+        throw new Error(
+            `${sceneName} kept whole-route scenery animating on mobile: ` +
             JSON.stringify(framePacing.graphicsTweenDepths)
         );
     }
@@ -3620,6 +3646,102 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     JSON.stringify({ choicePresentation, mainRouteEffect })
                 );
             }
+            await startCampaignScene(session, { route, sceneName });
+            await delay(400);
+        }
+        if (route === 'voidPeaks') {
+            const mainRouteStaged = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(
+                    'VoidPeaksLevel'
+                );
+                const routeState = scene?.optionalRouteRewards?.get?.(
+                    'peaks_relic_ridge'
+                );
+                const support = scene?.getTraversalSupport?.(
+                    routeState?.choice?.mainSupportIds?.[0]
+                );
+                if (!scene?.player?.body || !routeState?.choice || !support?.body) {
+                    return null;
+                }
+                scene.player.body.reset(
+                    support.x,
+                    support.body.top - scene.player.body.height - 4
+                );
+                scene.player.setVelocity?.(0, 0);
+                return { supportId: support.traversalId };
+            })()`);
+            if (!mainRouteStaged) {
+                throw new Error(`${sceneName} could not stage its low warning line`);
+            }
+            mainRouteEffect = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(
+                        'VoidPeaksLevel'
+                    );
+                    const routeState = scene?.optionalRouteRewards?.get?.(
+                        'peaks_relic_ridge'
+                    );
+                    if (routeState?.choice?.selectedPath !== 'main') return null;
+                    const optionalAccepted = scene.recordOptionalRouteProgress(
+                        'peaks_relic_ridge',
+                        { x: scene.player.x, y: scene.player.y }
+                    );
+                    const energyBefore = scene.crystalEnergy;
+                    const chargesBefore = scene.freeSpecialAttackCharges;
+                    const objectiveBefore = scene.getPeakObjectiveText?.() || '';
+                    const persistedBefore =
+                        scene.getExpeditionRouteState?.().titanSurgeCharges;
+                    scene.performSpecialAttack();
+                    return {
+                        selectedPath: routeState.choice.selectedPath,
+                        peakRouteChoice: scene.peakRouteChoice,
+                        optionalAccepted,
+                        progress: routeState.progress,
+                        completed: routeState.completed,
+                        optionalFragmentsRemaining: (
+                            scene.collectibles?.getChildren?.() || []
+                        ).filter(item => (
+                            item?.optionalRouteId === 'peaks_relic_ridge' &&
+                            item.active !== false
+                        )).length,
+                        objective: scene.getPeakObjectiveText?.() || '',
+                        objectiveBefore,
+                        energyBefore,
+                        energyAfter: scene.crystalEnergy,
+                        chargesBefore,
+                        chargesAfter: scene.freeSpecialAttackCharges,
+                        persistedBefore,
+                        persistedCharges:
+                            scene.getExpeditionRouteState?.().titanSurgeCharges
+                    };
+                })()`),
+                { timeoutMs: 2500, message: `${sceneName} low warning line selection` }
+            );
+            if (
+                mainRouteEffect.selectedPath !== 'main' ||
+                mainRouteEffect.peakRouteChoice !== 'main' ||
+                mainRouteEffect.optionalAccepted !== false ||
+                mainRouteEffect.progress !== 0 ||
+                mainRouteEffect.completed !== false ||
+                mainRouteEffect.optionalFragmentsRemaining !== 0 ||
+                mainRouteEffect.chargesBefore !== 1 ||
+                mainRouteEffect.chargesAfter !== 0 ||
+                mainRouteEffect.energyAfter !== mainRouteEffect.energyBefore ||
+                mainRouteEffect.persistedBefore !== 1 ||
+                mainRouteEffect.persistedCharges !== 0 ||
+                !mainRouteEffect.objectiveBefore.includes('FREE BLAST READY') ||
+                !mainRouteEffect.objective.includes('FREE BLAST SPENT') ||
+                !choicePresentation.mainTradeoff.includes('1 FREE BLAST') ||
+                !choicePresentation.challengeLabel.includes('2 RELICS') ||
+                !choicePresentation.rewardLabel.includes('1 HIT')
+            ) {
+                throw new Error(
+                    `${sceneName} route rewards contradicted their promise: ` +
+                    JSON.stringify({ choicePresentation, mainRouteEffect })
+                );
+            }
+            // The high ridge must be proven in an independent clean scene;
+            // choosing the low line intentionally retires its relics.
             await startCampaignScene(session, { route, sceneName });
             await delay(400);
         }

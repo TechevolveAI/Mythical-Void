@@ -102,8 +102,9 @@ const CURRENT_NODE_LEVEL_CONFIG = Object.freeze({
         label: 'REEF CURRENT'
     }),
     void_peaks_1: Object.freeze({
-        x: 520,
-        groundOffset: 130,
+        x: 2095,
+        groundOffset: 235,
+        supportId: 'peak-ridge-approach',
         label: 'RIDGE CURRENT'
     }),
     aurora_depths_1: Object.freeze({

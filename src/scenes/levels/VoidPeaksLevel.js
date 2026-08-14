@@ -502,6 +502,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.physics.add.overlap(this.player, this.collectibles, this.collectItem, null, this);
     }
 
+    shouldAnimatePeakRouteDecorations() {
+        const width = Number(this.cameras?.main?.width) || 0;
+        const height = Number(this.cameras?.main?.height) || 0;
+        return !(this.isMobile || width <= 480 || height < 620);
+    }
+
     createPeakAtmosphere() {
         this.peakEmberLayer?.destroy?.();
         this.peakEmberLayer = this.add.graphics().setDepth(40);
@@ -537,6 +543,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createVoidGeysers() {
+        const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
         const geysers = [
             { x: 620, width: 360 }, { x: 1500, width: 380 },
             { x: 2420, width: 500 }, { x: 3380, width: 520 }
@@ -556,13 +563,15 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             visual.strokeRoundedRect(x, y - 86, width, 86, 10);
             visual.setDepth(120);
 
-            this.tweens.add({
-                targets: visual,
-                alpha: { from: 0.35, to: 0.85 },
-                duration: 900,
-                yoyo: true,
-                repeat: -1
-            });
+            if (animateRouteDecorations) {
+                this.tweens.add({
+                    targets: visual,
+                    alpha: { from: 0.35, to: 0.85 },
+                    duration: 900,
+                    yoyo: true,
+                    repeat: -1
+                });
+            }
 
             this.physics.add.overlap(this.player, hazard, () => {
                 if (!this.isInvincible) {
@@ -573,6 +582,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createPeakReturnCurrents() {
+        const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
         const currents = [
             {
                 id: 'peak-return-lower',
@@ -655,14 +665,16 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             this.physics.add.overlap(this.player, zone, () => {
                 this.activatePeakReturnCurrent(current);
             });
-            this.tweens.add({
-                targets: visual,
-                alpha: { from: 0.55, to: 1 },
-                duration: 720,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
+            if (animateRouteDecorations) {
+                this.tweens.add({
+                    targets: visual,
+                    alpha: { from: 0.55, to: 1 },
+                    duration: 720,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
             this.peakReturnCurrents.push(current);
         });
     }
@@ -889,10 +901,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     getPeakObjectiveText() {
-        const optional = this.getOptionalRouteStatusText(
-            'peaks_relic_ridge',
-            `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
-        );
+        const optional = this.peakRouteChoice === 'main'
+            ? this.freeSpecialAttackCharges > 0
+                ? 'TITAN SURGE // 1 FREE BLAST READY'
+                : 'TITAN SURGE // FREE BLAST SPENT'
+            : this.getOptionalRouteStatusText(
+                'peaks_relic_ridge',
+                `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
+            );
 
         if (this.bossDefeated) {
             return `WARNING NETWORK RESTORED\nTHE TITAN IS SAFE\n${optional}`;
@@ -918,6 +934,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createSignalRelays() {
+        const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
         const relays = [
             {
                 id: 'peaks_relay_1',
@@ -970,7 +987,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 zone,
                 landingGuide: this.createTraversalLandingGuide(
                     relay.activationSupportIds[0],
-                    0xFF8A4C
+                    0xFF8A4C,
+                    { animate: animateRouteDecorations }
                 ),
                 activated: false
             };
@@ -1136,7 +1154,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             returnLabel: 'WARNING LINE →',
             choice: {
                 mainLabel: 'LOW WARNING LINE →',
-                mainTradeoff: 'SHORTER // GEYSERS + HEAVY GUARDS',
+                mainTradeoff: 'SHORT + RISKY\nEARNS: TITAN SURGE // 1 FREE BLAST',
                 challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS',
                 mainMarker: spine,
                 mainZone: {
@@ -1208,6 +1226,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             peakFragmentMask: this.peakCollectedFragmentMask,
             relicRidgeProgress: Number(route?.progress) || 0,
             relicRidgeCompleted: route?.completed === true,
+            titanSurgeCharges: this.peakRouteChoice === 'main'
+                ? this.freeSpecialAttackCharges
+                : 0,
             ridgeGuardCharges: this.peakRouteChoice === 'optional'
                 ? this.optionalRouteGuardCharges
                 : 0,
@@ -1219,6 +1240,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         if (!['main', 'optional'].includes(path)) return false;
         if (this.peakRouteChoice && this.peakRouteChoice !== path) return false;
 
+        const firstSelection = !this.peakRouteChoice;
         this.peakRouteChoice = path;
         const choice = this.optionalRouteRewards?.get?.('peaks_relic_ridge')?.choice;
         if (choice) {
@@ -1227,6 +1249,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             choice.optionalEntered = path === 'optional';
             choice.rejoined = rejoined && path === 'optional';
             choice.sequence ||= 1;
+        }
+        if (path === 'main') {
+            this.retireUnavailablePeakRouteFragments();
+            if (!restoring && firstSelection) {
+                this.freeSpecialAttackCharges += 1;
+            }
         }
         if (!restoring) this.refreshPersistedExpeditionRouteState();
         return true;
@@ -1251,7 +1279,16 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.retireCollectedPeakFragments();
 
         const route = this.optionalRouteRewards?.get?.('peaks_relic_ridge');
-        if (route && path === 'optional') {
+        if (path === 'main') {
+            const persistedSurgeCharges = Number(routeState.titanSurgeCharges);
+            this.freeSpecialAttackCharges = Phaser.Math.Clamp(
+                Number.isFinite(persistedSurgeCharges)
+                    ? persistedSurgeCharges
+                    : 1,
+                0,
+                10
+            );
+        } else if (route && path === 'optional') {
             route.progress = Phaser.Math.Clamp(
                 Number(routeState.relicRidgeProgress) || 0,
                 0,
@@ -1276,6 +1313,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             this.refreshPersistedExpeditionRouteState();
         }
         return true;
+    }
+
+    retireUnavailablePeakRouteFragments() {
+        [...(this.collectibles?.getChildren?.() || [])].forEach(item => {
+            if (item?.optionalRouteId === 'peaks_relic_ridge') {
+                item.destroy?.();
+            }
+        });
     }
 
     countCollectedPeakFragments() {
@@ -1323,6 +1368,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     onOptionalRouteGuardConsumed() {
         if (this.peakRouteChoice === 'optional') {
+            this.refreshPersistedExpeditionRouteState();
+        }
+    }
+
+    onFreeSpecialAttackConsumed() {
+        if (this.peakRouteChoice === 'main') {
             this.refreshPersistedExpeditionRouteState();
         }
     }
@@ -1389,7 +1440,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
         const titanLandingGuide = this.createTraversalLandingGuide(
             'peak-titan-gate',
-            0xF2C94C
+            0xF2C94C,
+            { animate: this.shouldAnimatePeakRouteDecorations() }
         );
 
         this.physics.add.overlap(this.player, gate, () => {

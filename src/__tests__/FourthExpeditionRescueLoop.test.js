@@ -106,6 +106,37 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('window.InventoryManager?.addItem?.({');
     });
 
+    test('makes both Peaks routes consequential and persists their combat rewards', () => {
+        const source = readLevel();
+
+        expect(source).toContain(
+            "mainTradeoff: 'SHORT + RISKY\\nEARNS: TITAN SURGE // 1 FREE BLAST'"
+        );
+        expect(source).toContain(
+            "challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS'"
+        );
+        expect(source).toContain('titanSurgeCharges: this.peakRouteChoice');
+        expect(source).toContain('this.freeSpecialAttackCharges += 1');
+        expect(source).toContain('this.retireUnavailablePeakRouteFragments()');
+        expect(source).toContain('TITAN SURGE // 1 FREE BLAST READY');
+        expect(source).toContain('TITAN SURGE // FREE BLAST SPENT');
+        expect(source).toContain('onFreeSpecialAttackConsumed()');
+        expect(source).toContain('this.refreshPersistedExpeditionRouteState()');
+    });
+
+    test('keeps whole-route decoration static on compact mobile screens', () => {
+        const source = readLevel();
+
+        expect(source).toContain('shouldAnimatePeakRouteDecorations()');
+        expect(source).toContain(
+            'return !(this.isMobile || width <= 480 || height < 620)'
+        );
+        expect(source).toContain('{ animate: animateRouteDecorations }');
+        expect(source).toContain(
+            '{ animate: this.shouldAnimatePeakRouteDecorations() }'
+        );
+    });
+
     test('protects the player during the intro and after restoration begins', () => {
         const source = readLevel();
         const startBoss = source.match(
