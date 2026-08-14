@@ -33,7 +33,7 @@
   "canonical": {
     "language": "en",
     "audience": "Adult and general creature/narrative-game audience; not child-targeted advertising",
-    "copy": "Earth sent Project Beacon looking for hope. What it found was alive.\n\nIn Mythical Void, restore six living realms beside an alien companion in a free browser adventure. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
+    "copy": "Earth sent Project Beacon looking for hope. What it found was alive.\n\nIn Mythical Void, restore six living realms beside an alien creature in a free browser adventure. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
     "fictionSeparated": true,
     "generatedMedia": false
   },
@@ -68,7 +68,7 @@
       "context": "owned_web_summary",
       "audience": "General players and adult/guardian discovery audiences",
       "language": "en",
-      "copy": "Earth sent Project Beacon looking for hope. What it found was alive.\n\nIn Mythical Void, restore six living realms beside an alien companion in a free browser adventure. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
+      "copy": "Earth sent Project Beacon looking for hope. What it found was alive.\n\nIn Mythical Void, restore six living realms beside an alien creature in a free browser adventure. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
       "claimIds": ["CL-001", "CL-002", "CL-004", "CL-008"],
       "claimEvidence": [
         { "claimId": "CL-001", "excerpt": "a free browser adventure" },
@@ -89,7 +89,7 @@
       "context": "professional_company_context",
       "audience": "Industry, partners, talent, press, and professional peers",
       "language": "en",
-      "copy": "Project Beacon sent you to find hope for Earth. What it found was alive.\n\nMythical Void is a free browser adventure: explore and restore six living realms beside an alien companion. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
+      "copy": "Project Beacon sent you to find hope for Earth. What it found was alive.\n\nMythical Void is a free browser adventure: explore and restore six living realms beside an alien creature. No download or account is required to start.\n\nhttps://mythicalvoid.com/",
       "claimIds": ["CL-001", "CL-002", "CL-004", "CL-008"],
       "claimEvidence": [
         { "claimId": "CL-001", "excerpt": "a free browser adventure" },

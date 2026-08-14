@@ -7,6 +7,7 @@
     "dev": "vite",
     "start": "vite",
     "build": "vite build && node scripts/inject-build-timestamp.js",
+    "validate:story-page": "node scripts/company/validate-story-production-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand",

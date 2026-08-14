@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-08",
+  "canonicalPressRoom": "https://mythicalvoid.com/press/",
+  "playUrl": "https://mythicalvoid.com/play/",
+  "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
+  "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
+  "educatorResources": [
+    {
+      "name": "Mythical Void STEM Creature Lab",
+      "url": "https://mythicalvoid.com/resources/mythical-void-stem-creature-lab.pdf",
+      "kind": "adult_led_printable_activity",
+      "audience": "Ages 9-14, families, clubs and classrooms",
+      "description": "A free four-page activity that starts with a real NASA clue, separates science from fiction, and invites young designers to invent and test an organism from another dimension.",
+      "disclosure": "Independent Mythical Void activity. NASA does not endorse Mythical Void."
+    }
+  ],
+  "sharingResources": [
+    {
+      "name": "Mythical Void play-and-share card",
+      "url": "https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf",
+      "kind": "adult_led_printable_play_share_card",
+      "audience": "Adults, families, educators, clubs and events",
+      "description": "A free one-page A4 card with a clean QR link to the playable browser game, one real gameplay frame and clearly disclosed creature-universe artwork.",
+      "disclosure": "The large creature-universe image is an AI-generated marketing illustration, not gameplay. The framed Project Beacon image is real gameplay. NASA does not endorse Mythical Void."
+    }
+  ],
+  "assets": [
+    {
+      "name": "Mythical Forest authentic gameplay video",
+      "url": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+      "posterUrl": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+      "kind": "authentic_running_build_gameplay_video",
+      "description": "A short vertical recording made directly from the real Mythical Void browser game, with real movement, jumping, touch controls and route display; no generated frames or replacement scenery."
+    },
+    {
+      "name": "Apollo 11 real-space discovery",
+      "url": "https://mythicalvoid.com/press/gameplay/nasa-apollo11-real-space-discovery.png",
+      "sourceUrl": "https://apod.nasa.gov/apod/ap240720.html",
+      "kind": "authentic_running_build_screenshot",
+      "description": "A real in-game NASA learning card containing a credited Apollo 11 image, a space-scientist observation activity and a clearly marked fictional creature reaction. Image credit: Neil Armstrong, Apollo 11, NASA."
+    },
+    {
+      "name": "Begin Project Beacon",
+      "url": "https://mythicalvoid.com/press/gameplay/project-beacon-start.png",
+      "kind": "authentic_running_build_screenshot",
+      "description": "Captured from the real Mythical Void browser game using an invented QA state; not a generated mockup."
+    },
+    {
+      "name": "First contact",
+      "url": "https://mythicalvoid.com/press/gameplay/project-beacon-live-egg.png",
+      "kind": "authentic_running_build_screenshot",
+      "description": "The real first-contact egg interaction at the Wanderer-77 crash site."
+    },
+    {
+      "name": "Mythical Forest phone gameplay",
+      "url": "https://mythicalvoid.com/press/gameplay/realm-mythicalforest.png",
+      "kind": "authentic_running_build_screenshot",
+      "description": "Real phone gameplay showing the astronaut, route display, platforming world and touch controls."
+    },
+    {
+      "name": "Village Heart builder",
+      "url": "https://mythicalvoid.com/press/gameplay/village-base-builder.png",
+      "kind": "authentic_running_build_screenshot",
+      "description": "Real phone gameplay showing village resources, objectives and the Forager Hut."
+    },
+    {
+      "name": "A Universe of Creatures",
+      "url": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "kind": "ai_generated_marketing_illustration",
+      "description": "Inspired by profiles from the creature genetics engine; not gameplay footage."
+    },
+    {
+      "name": "Wanderer-77 crash site",
+      "url": "https://mythicalvoid.com/game/project-beacon-crash-site.webp",
+      "kind": "current_game_world_asset",
+      "description": "First-party asset used by the game; does not demonstrate animation or a complete gameplay sequence."
+    },
+    {
+      "name": "The Fend village heart",
+      "url": "https://mythicalvoid.com/game/village/village-heart-command.webp",
+      "kind": "current_game_world_asset",
+      "description": "First-party environment asset used by the game; does not show a completed restoration outcome."
+    },
+    {
+      "name": "The Void Empress",
+      "url": "https://mythicalvoid.com/game/guardians/void-empress.webp",
+      "kind": "current_game_world_asset",
+      "description": "First-party guardian asset; the story target is the corruption holding the guardian."
+    },
+    {
+      "name": "Mythical Void emblem",
+      "url": "https://mythicalvoid.com/marketing/mythical-void-emblem-v3.png",
+      "kind": "ai_generated_and_refined_brand_art",
+      "description": "Transparent official purple-and-gold studio emblem."
+    }
+  ],
+  "permissions": "Assets may be used in truthful editorial coverage of Mythical Void with their descriptions and disclosures preserved.",
+  "restrictions": [
+    "Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.",
+    "Only assets labelled authentic_running_build_gameplay_video may be described as gameplay footage.",
+    "Do not present marketing illustrations or game-world artwork as gameplay footage.",
+    "Do not imply NASA endorsement or partnership.",
+    "Do not imply sentience, consciousness, global creature uniqueness or a fully autonomous studio."
+  ]
+}

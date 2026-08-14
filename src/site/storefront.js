@@ -43,6 +43,196 @@ const playLink = (label, className = 'button button-primary') => `
     </a>
 `;
 
+const brandMark = () => `
+    <img class="brand-mark" src="/marketing/mythical-void-emblem-v3.png" alt="" width="38" height="58">
+`;
+
+function renderPressPage() {
+    updatePageMetadata({
+        title: 'Press & Creator Room | Mythical Void',
+        description: 'Official Mythical Void facts, founder story, playable game link, approved artwork and clear media disclosures.',
+        path: '/press/'
+    });
+
+    app.innerHTML = `
+        <header class="press-header">
+            <div class="header-inner">
+                <a class="brand" href="/" aria-label="Return to Mythical Void home">
+                    ${brandMark()}
+                    <span>MYTHICAL VOID</span>
+                </a>
+                <div class="press-header-actions">
+                    <a href="/">Main website</a>
+                    ${playLink('Play now', 'button button-small')}
+                </div>
+            </div>
+        </header>
+
+        <main class="press-page">
+            <section class="press-hero">
+                <img src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="A wide marketing illustration showing many possible alien creatures in the Mythical Void universe">
+                <div class="press-hero-shade" aria-hidden="true"></div>
+                <div class="section-inner press-hero-copy">
+                    <p class="kicker">OFFICIAL PRESS & CREATOR ROOM</p>
+                    <h1>A small Irish studio.<br><em>A universe of creatures.</em></h1>
+                    <p>Everything needed to understand, describe and share Mythical Void—without guessing what is gameplay, what is marketing art, or what the game promises.</p>
+                    <div class="press-hero-actions">
+                        ${playLink('Play the current game')}
+                        <a class="button button-quiet" href="/press/mythical-void-fact-sheet.txt" download>Download the fact sheet</a>
+                        <a class="button button-quiet" href="/resources/mythical-void-stem-creature-lab.pdf" download>Download the STEM activity</a>
+                        <a class="button button-quiet" href="/resources/mythical-void-play-share-card.pdf" download>Print and share the game</a>
+                    </div>
+                    <p class="press-art-disclosure">Hero image: AI-generated marketing illustration inspired by creature profiles from the genetics engine. It is not gameplay footage.</p>
+                </div>
+            </section>
+
+            <section class="press-facts-section">
+                <div class="section-inner">
+                    <div class="press-section-heading">
+                        <p class="kicker">THE SHORT VERSION</p>
+                        <h2>What is Mythical Void?</h2>
+                    </div>
+                    <div class="press-fact-grid">
+                        <article><span>GAME</span><strong>Mythical Void</strong><p>A science-fantasy creature adventure built to play in a browser.</p></article>
+                        <article><span>PLAY</span><strong>Free early access</strong><p>No download or account is required to start the current release.</p></article>
+                        <article><span>JOURNEY</span><strong>Six living realms</strong><p>Explore, fight the corruption, restore guardians and shape Project Beacon.</p></article>
+                        <article><span>CREATURES</span><strong>Procedural genetics</strong><p>Appearance, affinity, personality and potential emerge from a varied genetics system.</p></article>
+                        <article><span>STUDIO</span><strong>Independent · Ireland</strong><p>A father-and-son experiment growing into an AI-first, human-governed game studio.</p></article>
+                        <article><span>DISCOVERY</span><strong>Optional NASA data</strong><p>Selected public space data can appear in optional learning moments. NASA does not endorse the game.</p></article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="press-origin-section">
+                <div class="section-inner press-origin-grid">
+                    <div class="press-origin-mark">
+                        <img src="/marketing/mythical-void-emblem-v3.png" alt="The purple and gold Mythical Void creature emblem">
+                        <span>IMAGINATION FIRST</span>
+                    </div>
+                    <div class="press-origin-copy">
+                        <p class="kicker">THE BEGINNING</p>
+                        <h2>A father, his nine-year-old son and one enormous idea.</h2>
+                        <p>Mythical Void began at home with Kevin and his nine-year-old son exploring what generative AI tools and a lot of imagination could make possible.</p>
+                        <p>Their conversations became strange creatures, living worlds and playable moments. AI helps the small team explore and build; people remain responsible for the story, safety and important choices.</p>
+                        <blockquote>“What if we could build the game we imagined together?”</blockquote>
+                    </div>
+                </div>
+            </section>
+
+            <section class="press-gameplay-section">
+                <div class="section-inner">
+                    <div class="press-section-heading press-heading-split">
+                        <div><p class="kicker">CAPTURED FROM THE GAME</p><h2>This is what players really see.</h2></div>
+                        <p>Every frame below was captured automatically from a tested Mythical Void build using an invented game state. No mock gameplay, private save or player identity is involved.</p>
+                    </div>
+                    <div class="press-proof-feature-grid">
+                        <figure class="press-gameplay-card press-video-card">
+                            <div class="press-video-shell">
+                                <video controls muted playsinline preload="metadata" poster="/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" aria-label="Real vertical gameplay in the Mythical Forest">
+                                    <source src="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" type="video/mp4">
+                                </video>
+                            </div>
+                            <figcaption><span>REAL GAMEPLAY VIDEO</span><strong>Move through the Mythical Forest</strong><p>A short unfiltered journey with real movement, jumping, touch controls and the live route display. There are no generated frames or replacement scenery.</p><a href="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" download>Download gameplay video ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-gameplay-card press-nasa-card">
+                            <img src="/press/gameplay/nasa-apollo11-real-space-discovery.png" alt="A real Mythical Void learning card showing a credited NASA Apollo 11 panorama, observation prompts and an imagined creature reaction" loading="lazy">
+                            <figcaption><span>REAL GAME + REAL NASA IMAGE</span><strong>Turn a space picture into a question</strong><p>The game clearly separates the Apollo 11 image and credit from the creature’s imagined reaction, then asks the player to observe, infer and check evidence.</p><a href="https://apod.nasa.gov/apod/ap240720.html" target="_blank" rel="noopener noreferrer">View the NASA source ↗</a><a href="/press/gameplay/nasa-apollo11-real-space-discovery.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                    </div>
+                    <div class="press-gameplay-grid">
+                        <figure class="press-gameplay-card press-gameplay-wide">
+                            <img src="/press/gameplay/project-beacon-start.png" alt="The real Mythical Void opening screen showing Project Beacon and the Wanderer-77 crash site" loading="lazy">
+                            <figcaption><span>REAL RUNNING BUILD</span><strong>Begin Project Beacon</strong><p>The opening screen players reach before first contact.</p><a href="/press/gameplay/project-beacon-start.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-gameplay-card">
+                            <img src="/press/gameplay/project-beacon-live-egg.png" alt="The real first-contact screen with an alien egg waiting above a signal platform" loading="lazy">
+                            <figcaption><span>REAL RUNNING BUILD</span><strong>First contact</strong><p>The live egg interaction at the Wanderer-77 crash site.</p><a href="/press/gameplay/project-beacon-live-egg.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-gameplay-card press-gameplay-portrait">
+                            <img src="/press/gameplay/realm-mythicalforest.png" alt="Phone gameplay in the Mythical Forest with the astronaut, route display and touch controls" loading="lazy">
+                            <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Mythical Forest</strong><p>Platforming, route guidance and the astronaut’s on-screen controls.</p><a href="/press/gameplay/realm-mythicalforest.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-gameplay-card press-gameplay-portrait">
+                            <img src="/press/gameplay/village-base-builder.png" alt="The real Village Heart builder showing resources, structures and a Forager Hut" loading="lazy">
+                            <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                    </div>
+                    <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View video build record →</a></p>
+                </div>
+            </section>
+
+            <section class="press-assets-section">
+                <div class="section-inner">
+                    <div class="press-section-heading press-heading-split">
+                        <div><p class="kicker">APPROVED ARTWORK</p><h2>Imagination with honest labels.</h2></div>
+                        <p>These files may be used when covering Mythical Void. Keep the supplied description with each image. Unlike the section above, these are artwork—not screenshots of play.</p>
+                    </div>
+                    <div class="press-assets-grid">
+                        <figure class="press-asset-card press-asset-wide">
+                            <img src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Many possible alien creature forms gathered in a luminous cosmic realm">
+                            <figcaption><span>MARKETING KEY ART</span><strong>A Universe of Creatures</strong><p>AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay footage.</p><a href="/marketing/mythical-void-creature-universe-hero-v2.webp" download>Download image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-asset-card">
+                            <img src="/game/project-beacon-crash-site.webp" alt="The Wanderer-77 crash site in Mythical Void">
+                            <figcaption><span>CURRENT GAME-WORLD ART</span><strong>Wanderer-77 crash site</strong><p>A first-party asset used by the game. It does not demonstrate animation or a complete gameplay sequence.</p><a href="/game/project-beacon-crash-site.webp" download>Download image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-asset-card">
+                            <img src="/game/village/village-heart-command.webp" alt="The command area at the heart of the Fend village">
+                            <figcaption><span>CURRENT GAME-WORLD ART</span><strong>The Fend village heart</strong><p>A first-party environment asset used by the game. It does not show a completed restoration outcome.</p><a href="/game/village/village-heart-command.webp" download>Download image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-asset-card">
+                            <img src="/game/guardians/void-empress.webp" alt="The Void Empress guardian from Mythical Void">
+                            <figcaption><span>CURRENT GAME-WORLD ART</span><strong>The Void Empress</strong><p>A first-party guardian asset. In the story, the corruption is fought so the guardian can be restored.</p><a href="/game/guardians/void-empress.webp" download>Download image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-asset-card press-logo-asset">
+                            <div><img src="/marketing/mythical-void-emblem-v3.png" alt="Transparent Mythical Void creature emblem"></div>
+                            <figcaption><span>OFFICIAL BRAND ART</span><strong>Mythical Void emblem</strong><p>Transparent purple-and-gold emblem created with generative AI and professionally refined for the studio.</p><a href="/marketing/mythical-void-emblem-v3.png" download>Download transparent PNG ↓</a></figcaption>
+                        </figure>
+                    </div>
+                </div>
+            </section>
+
+            <section class="press-language-section">
+                <div class="section-inner press-language-grid">
+                    <div>
+                        <p class="kicker">DESCRIBE IT ACCURATELY</p>
+                        <h2>Useful language</h2>
+                        <p class="press-boilerplate">Mythical Void is a free early-access browser adventure from an independent Irish studio. Players hatch a genetically varied alien creature, explore six living realms, fight the corruption holding their guardians and decide what Project Beacon should become.</p>
+                    </div>
+                    <div class="press-language-cards">
+                        <article><strong>Please say</strong><ul><li>Creature adventure</li><li>Procedural creature genetics</li><li>Playable in a browser</li><li>AI-assisted creative work</li><li>Generated marketing illustration</li></ul></article>
+                        <article><strong>Please avoid</strong><ul><li>Sentient or conscious creatures</li><li>Guaranteed global uniqueness</li><li>Generated artwork described as gameplay</li><li>NASA partnership or endorsement</li><li>A fully autonomous studio</li></ul></article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="press-contact-section">
+                <div class="section-inner">
+                    <p class="kicker">PLAY BEFORE YOU WRITE</p>
+                    <h2>The signal is already live.</h2>
+                    <p>Mythical Void is available to try now. An official press contact channel is being prepared; until it opens, this page remains the canonical source for approved facts and artwork.</p>
+                    <div class="press-hero-actions">
+                        ${playLink('Play Mythical Void')}
+                        <a class="button button-quiet" href="/resources/mythical-void-stem-creature-lab.pdf" download>Get the free STEM activity</a>
+                        <a class="button button-quiet" href="/resources/mythical-void-play-share-card.pdf" download>Get the play-and-share card</a>
+                        <a class="button button-quiet" href="/press/mythical-void-press-assets.json">View the media manifest</a>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-inner">
+                <div class="footer-brand"><a class="brand" href="/">${brandMark()}<span>MYTHICAL VOID</span></a><p>Your creature. Your journey. Your choice.</p></div>
+                <nav aria-label="Press room navigation"><a href="/">Main website</a><a href="/play/">Play game</a><a href="/privacy/">Privacy & safety</a><a href="/terms/">Terms</a></nav>
+                <small>© ${new Date().getFullYear()} Mythical Void. Made in Ireland for curious minds everywhere.</small>
+            </div>
+        </footer>
+    `;
+
+    mountAnalyticsConsent();
+}
+
 function renderLegalPage(type) {
     const isPrivacy = type === 'privacy';
     updatePageMetadata({
@@ -56,7 +246,7 @@ function renderLegalPage(type) {
     app.innerHTML = `
         <main class="legal-page">
             <a class="brand legal-brand" href="/" aria-label="Return to Mythical Void home">
-                <img src="/marketing/mythical-void-logo.webp" alt="">
+                ${brandMark()}
                 <span>MYTHICAL VOID</span>
             </a>
             <article>
@@ -93,8 +283,8 @@ function renderLegalPage(type) {
 
 function renderStorefront() {
     updatePageMetadata({
-        title: 'Mythical Void | Project Beacon',
-        description: 'Recover Wanderer-77, restore the Fend, and decide what Project Beacon should tell Earth. Play free in your browser.',
+        title: 'Mythical Void | Free Creature Adventure Browser Game',
+        description: 'Play Mythical Void free in your browser. Hatch a varied alien creature, explore six living realms, restore their guardians and shape Project Beacon.',
         path: '/'
     });
 
@@ -104,7 +294,7 @@ function renderStorefront() {
         <header class="site-header" data-header>
             <div class="header-inner">
                 <a class="brand" href="#hero" aria-label="Mythical Void home">
-                    <img src="/marketing/mythical-void-logo.webp" alt="">
+                    ${brandMark()}
                     <span>MYTHICAL VOID</span>
                 </a>
                 <button class="menu-button" type="button" aria-label="Open menu" aria-expanded="false" data-menu-button>
@@ -115,7 +305,7 @@ function renderStorefront() {
                     <a href="#how-it-works">How it works</a>
                     <a href="#studio">The studio</a>
                     <a href="#creatures">Creatures</a>
-                    <a href="#story">The story</a>
+                    <a href="/story/">The story</a>
                     <a href="#parents">For grown-ups</a>
                     ${playLink('Play now', 'button button-small')}
                 </nav>
@@ -124,36 +314,26 @@ function renderStorefront() {
 
         <main id="main-content">
             <section class="hero" id="hero">
-                <img class="hero-world" src="/game/project-beacon-crash-site.webp" alt="" fetchpriority="high">
-                <div class="hero-glow" aria-hidden="true"></div>
-                <div class="hero-orbit" aria-hidden="true"></div>
+                <img class="hero-world" src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Alien creatures reimagined from the body shapes and mutations supported by the Mythical Void genetics engine" fetchpriority="high">
+                <div class="hero-veil" aria-hidden="true"></div>
                 <div class="hero-inner">
                     <div class="hero-copy-block">
-                        <p class="kicker"><span></span> A free creature adventure</p>
-                        <h1>Somewhere in the Void, <em>a friend is waiting.</em></h1>
-                        <p class="hero-copy">Hatch a creature unlike any other. Grow together. Save its world. Then make a choice that could change both your homes forever.</p>
+                        <p class="kicker"><span></span> A universe of creatures</p>
+                        <h1>One universe. <em>Every hatch opens a new possibility.</em></h1>
+                        <p class="hero-copy">Every hatch mixes body, colour, personality, cosmic power and rare mutations. What arrives from the Void will be truly yours.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
-                            <a class="button button-quiet" href="#adventure">See the adventure</a>
+                            <a class="button button-quiet" href="#creatures">Meet the possibilities</a>
                         </div>
-                        <ul class="trust-list" aria-label="Quick game facts">
-                            <li>Plays in your browser</li>
-                            <li>No account needed</li>
-                            <li>Made for families</li>
+                        <ul class="hero-genetics" aria-label="How this scene was made">
+                            <li><strong>1,000</strong><span>real engine hatches explored</span></li>
+                            <li><strong>72</strong><span>varied profiles shaped this scene</span></li>
+                            <li><strong>1</strong><span>creature made for your story</span></li>
                         </ul>
                     </div>
-
-                    <div class="hero-creature" aria-label="The Wanderer-77 crash site from the game">
-                        <div class="signal-card">
-                            <span class="signal-label">PROJECT BEACON // CRASH SITE</span>
-                            <img src="/game/project-beacon-crash-site.webp" alt="The Wanderer-77 crash site in the game" fetchpriority="high">
-                            <div class="signal-footer">
-                                <strong>Wanderer-77 is down.</strong>
-                                <span>Recover the field kit. Find out what survived.</span>
-                            </div>
-                        </div>
-                        <span class="orbit-word orbit-word-one">CURIOUS</span>
-                        <span class="orbit-word orbit-word-two">BRAVE</span>
+                    <div class="hero-art-note">
+                        <span class="hero-art-note-star" aria-hidden="true">✦</span>
+                        <span><strong>From 72 engine-born profiles</strong>Real silhouettes and mutations, reimagined for the Void</span>
                     </div>
                 </div>
                 <a class="scroll-cue" href="#adventure"><span>Begin the story</span><b aria-hidden="true">↓</b></a>
@@ -164,26 +344,40 @@ function renderStorefront() {
                     <div class="section-heading centred">
                         <p class="kicker">YOUR ADVENTURE</p>
                         <h2>One little creature.<br>One enormous journey.</h2>
-                        <p>Mythical Void is part creature companion, part action adventure, and part story shaped by your choices.</p>
+                        <p>Mythical Void is part creature-raising game, part action adventure, and part story shaped by your choices.</p>
                     </div>
                     <div class="adventure-path">
                         <article class="path-card path-card-hatch">
                             <span class="path-number">01</span>
-                            <div class="path-icon" aria-hidden="true">✦</div>
+                            <div class="path-icon path-icon-recovery" aria-hidden="true">
+                                <span class="recovery-moon"></span>
+                                <span class="recovery-signal"></span>
+                                <span class="recovery-ship"><i></i></span>
+                            </div>
                             <h3>Recover what survived</h3>
                             <p>Wanderer-77 is down. Find the field kit, read the signal, and begin Project Beacon from the crash site.</p>
                         </article>
                         <div class="path-line" aria-hidden="true">···</div>
                         <article class="path-card path-card-explore">
                             <span class="path-number">02</span>
-                            <div class="path-icon" aria-hidden="true">⌁</div>
+                            <div class="path-icon path-icon-clearing" aria-hidden="true">
+                                <span class="clearing-void"></span>
+                                <span class="clearing-creature"><i></i></span>
+                                <span class="clearing-burst"></span>
+                            </div>
                             <h3>Clear the corruption</h3>
-                            <p>Run, leap, fight beside your companion, and break the Void pressure holding each guardian.</p>
+                            <p>Run, leap, fight beside your creature, and break the Void pressure holding each guardian.</p>
                         </article>
                         <div class="path-line" aria-hidden="true">···</div>
                         <article class="path-card path-card-choose">
                             <span class="path-number">03</span>
-                            <div class="path-icon" aria-hidden="true">◇</div>
+                            <div class="path-icon path-icon-choice" aria-hidden="true">
+                                <span class="choice-beacon"><i></i></span>
+                                <span class="choice-path choice-path-left"></span>
+                                <span class="choice-path choice-path-right"></span>
+                                <span class="choice-world choice-world-left"></span>
+                                <span class="choice-world choice-world-right"></span>
+                            </div>
                             <h3>Restore, then choose</h3>
                             <p>When a guardian is safe, its world changes. What you repair first helps decide what Project Beacon becomes.</p>
                         </article>
@@ -196,13 +390,13 @@ function renderStorefront() {
                     <div class="section-heading centred">
                         <p class="kicker">WHY MYTHICAL VOID IS DIFFERENT</p>
                         <h2>A game world that remembers how you play.</h2>
-                        <p>Under the story is a set of living systems designed to make each companion and each expedition feel personal.</p>
+                        <p>Under the story is a set of living systems designed to make each creature and each expedition feel personal.</p>
                     </div>
                     <div class="systems-grid">
-                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your companion is built from a profile—not picked from one poster.</p><a href="/play/">See it in the game →</a></article>
+                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your creature is built from a profile—not picked from one poster.</p><a href="/creature-genetics/">Explore creature genetics →</a></article>
                         <article class="system-card"><span class="system-index">02</span><h3>A living browser world</h3><p>Phaser 3 is the game engine underneath the adventure. It lets the movement, exploration, battles, guardians, village, and story scenes happen right in your browser.</p><a href="/play/">Enter the Fend →</a></article>
-                        <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your companion’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="#parents">Read the family notes →</a></article>
-                        <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures, Mars images, and space-weather signals. It gives curious players a friendly way to ask questions, spot patterns, and discover that the space around the story is real.</p><a href="#studio">See the STEM promise →</a></article>
+                        <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your creature’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="/parents/">Read the family notes →</a></article>
+                        <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures, Mars images, and space-weather signals. It gives curious players a friendly way to ask questions, spot patterns, and discover that the space around the story is real.</p><a href="/nasa-space-science/">See the STEM promise →</a></article>
                     </div>
                 </div>
             </section>
@@ -219,7 +413,7 @@ function renderStorefront() {
                     </div>
                     <div class="creature-copy">
                         <p class="kicker">SEE THE REAL GAME</p>
-                        <h2>Your companion grows inside a living world.</h2>
+                        <h2>Your creature grows inside a living world.</h2>
                         <p>The game is about more than a character portrait. You repair the Fend, recover Wanderer-77, work with its people, and decide what Project Beacon should become.</p>
                         <div class="creature-details" aria-live="polite">
                             <div><span>PLACE</span><strong data-featured-personality>The Fend</strong></div>
@@ -249,7 +443,7 @@ function renderStorefront() {
                     <p>You are the astronaut-pilot of The Wanderer-77, launched from a desperate Earth to find life, recover samples, and send home a reason for hope. Then your ship crashes in the Void.</p>
                     <p>A creature hatches in the wreckage. It is intelligent, vulnerable, and the first alien life to trust a human.</p>
                     <p>As you restore its world, your old mission starts to feel very different. In the end, you decide what Project Beacon should tell Earth—and decide what home means.</p>
-                    <a class="text-link" href="#worlds">See what stands in your way <span aria-hidden="true">→</span></a>
+                    <a class="text-link" href="/story/">Follow the full Project Beacon story <span aria-hidden="true">→</span></a>
                 </div>
             </section>
 
@@ -258,7 +452,7 @@ function renderStorefront() {
                     <div class="worlds-copy">
                         <p class="kicker">SIX WORLDS TO RESTORE</p>
                         <h2>You are fighting the corruption, not the guardian.</h2>
-                        <p>In each guardian encounter, the purple corruption is the thing you reduce. Learn the guardian’s attacks, move with your companion, and clear the pressure around it. When the corruption reaches zero, the guardian is restored and the world can move forward.</p>
+                        <p>In each guardian encounter, the purple corruption is the thing you reduce. Learn the guardian’s attacks, move with your creature, and clear the pressure around it. When the corruption reaches zero, the guardian is restored and the world can move forward.</p>
                         <ul class="world-facts">
                             <li><span>6</span> strange worlds</li>
                             <li><span>6</span> lost guardians</li>
@@ -288,16 +482,35 @@ function renderStorefront() {
             </section>
 
             <section class="studio-section" id="studio">
-                <div class="section-inner studio-layout">
-                    <div>
-                        <p class="kicker">THE MYTHICAL STUDIO</p>
-                        <h2>Small team. Big worlds. Careful AI.</h2>
+                <div class="section-inner">
+                    <div class="studio-heading">
+                        <p class="kicker">OUR BEGINNING</p>
+                        <h2>A dad. His nine-year-old son.<br><em>One enormous idea.</em></h2>
+                        <p class="studio-intro">Mythical Void began at home as a father-and-son project—Kevin and his nine-year-old son exploring what generative AI tools and a lot of imagination could make possible.</p>
                     </div>
-                    <div class="studio-copy">
-                        <p>Mythical is an independent studio in Ireland building games where animation, story, systems, and intelligent companions belong in the same world.</p>
-                        <p>We use AI as a creative tool for new kinds of companion moments—not as a shortcut around people, safety, or good writing. The player stays in control, and the important choices stay understandable.</p>
-                        <div class="studio-principles" aria-label="Mythical studio principles">
-                            <span>Human-led stories</span><span>AI with boundaries</span><span>Made for curious minds</span>
+                    <div class="studio-story-grid">
+                        <div class="studio-origin-card" aria-label="How two imaginations became Mythical Void">
+                            <div class="origin-stars" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                            <div class="origin-thought origin-thought-dad"><span>A father's curiosity</span></div>
+                            <div class="origin-thought origin-thought-son"><span>A nine-year-old's imagination</span></div>
+                            <div class="origin-thread origin-thread-left" aria-hidden="true"></div>
+                            <div class="origin-thread origin-thread-right" aria-hidden="true"></div>
+                            <div class="origin-spark">
+                                <img src="/marketing/mythical-void-emblem-v3.png" alt="" width="56" height="92">
+                                <span>MYTHICAL VOID</span>
+                            </div>
+                            <blockquote>“What if we could build the game we imagined together?”</blockquote>
+                        </div>
+                        <div class="studio-copy">
+                            <p class="studio-lead">The ideas did not begin with a business plan. They began with conversations: strange creatures, impossible worlds, living beings and the kind of choices a child would genuinely care about.</p>
+                            <p>Generative AI helped turn those shared ideas into pictures, movement, characters and playable moments. Imagination still leads. AI is one of the tools that helps us explore further and build faster.</p>
+                            <p>That experiment is growing into an independent Irish game studio—still guided by the same promise: make something wondrous for curious young minds, keep people in charge, and build safety into the world from the beginning.</p>
+                            <div class="studio-principles" aria-label="What guides the Mythical studio">
+                                <span><b>01</b> Imagination leads</span>
+                                <span><b>02</b> AI helps us explore</span>
+                                <span><b>03</b> Children deserve care</span>
+                            </div>
+                            <a class="text-link" href="/studio/">Read how the project began <span aria-hidden="true">→</span></a>
                         </div>
                     </div>
                 </div>
@@ -310,7 +523,7 @@ function renderStorefront() {
                         <h2>A big adventure with thoughtful choices.</h2>
                         <p>Mythical Void mixes exploration and age-appropriate fantasy battles with problem solving, care, responsibility, and restoration rather than destruction.</p>
                         <p class="parent-answer"><strong>The short answer:</strong> children can start playing without an account, an email address, or payment details.</p>
-                        <span class="text-link text-link-muted">Parent contact opens soon <span aria-hidden="true">→</span></span>
+                        <a class="text-link" href="/parents/">Read the full family guide <span aria-hidden="true">→</span></a>
                     </div>
                     <ul class="safety-list">
                         <li><span aria-hidden="true">✓</span><div><strong>No account needed</strong><p>Start without sharing a name or email.</p></div></li>
@@ -364,7 +577,11 @@ function renderStorefront() {
                     <p class="kicker">THE SIGNAL IS GETTING STRONGER</p>
                     <h2>Your creature is waiting.</h2>
                     <p>Free to play. No download. No account needed.</p>
-                    ${playLink('Play Mythical Void')}
+                    <div class="final-cta-actions">
+                        ${playLink('Play Mythical Void')}
+                        <button class="button button-share" type="button" data-share-game>Share the game</button>
+                    </div>
+                    <p class="share-status" data-share-status aria-live="polite"></p>
                 </div>
             </section>
         </main>
@@ -373,14 +590,18 @@ function renderStorefront() {
             <div class="footer-inner">
                 <div class="footer-brand">
                     <a class="brand" href="#hero">
-                        <img src="/marketing/mythical-void-logo.webp" alt="">
+                        ${brandMark()}
                         <span>MYTHICAL VOID</span>
                     </a>
                     <p>Your creature. Your journey. Your choice.</p>
                 </div>
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
-                    <a href="#parents">For grown-ups</a>
+                    <a href="/press/">Press & creators</a>
+                    <a href="/creature-genetics/">Creature genetics</a>
+                    <a href="/nasa-space-science/">NASA & STEM</a>
+                    <a href="/studio/">Our story</a>
+                    <a href="/parents/">For grown-ups</a>
                     <a href="/privacy/">Privacy & safety</a>
                     <a href="/terms/">Terms</a>
                         <span class="footer-link-muted">Contact opens soon</span>
@@ -464,9 +685,40 @@ function bindInteractions() {
             if (marker) marker.textContent = detail.open ? '−' : '+';
         });
     });
+
+    const shareButton = app.querySelector('[data-share-game]');
+    const shareStatus = app.querySelector('[data-share-status]');
+    const shareData = {
+        title: 'Mythical Void',
+        text: 'Try Mythical Void — a free creature adventure you can play in your browser. No download or account needed.',
+        url: 'https://mythicalvoid.com/'
+    };
+
+    if (shareButton && !navigator.share) {
+        shareButton.textContent = 'Copy game link';
+    }
+
+    shareButton?.addEventListener('click', async () => {
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+                if (shareStatus) shareStatus.textContent = 'Thanks for sharing the signal.';
+                return;
+            }
+
+            await navigator.clipboard.writeText(shareData.url);
+            if (shareStatus) shareStatus.textContent = 'Game link copied. Send it to someone curious.';
+        } catch (error) {
+            if (error?.name !== 'AbortError' && shareStatus) {
+                shareStatus.textContent = 'You can share mythicalvoid.com from your browser.';
+            }
+        }
+    });
 }
 
-if (pagePath === '/privacy') {
+if (pagePath === '/press') {
+    renderPressPage();
+} else if (pagePath === '/privacy') {
     renderLegalPage('privacy');
 } else if (pagePath === '/terms') {
     renderLegalPage('terms');

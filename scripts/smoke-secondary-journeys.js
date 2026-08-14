@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -54,10 +54,18 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
         performanceTier: 'mobile'
     })
 });
+const SMOKE_CAPTURE_DIR = process.env.SMOKE_CAPTURE_DIR
+    ? path.resolve(process.env.SMOKE_CAPTURE_DIR)
+    : null;
+const SMOKE_VIDEO_PATH = process.env.SMOKE_VIDEO_PATH
+    ? path.resolve(process.env.SMOKE_VIDEO_PATH)
+    : null;
+const SMOKE_VIDEO_FPS = Number(process.env.SMOKE_VIDEO_FPS) || 12;
 let activeTouchPoint = { x: 0, y: 0 };
 let activeTouchIdentifier = null;
 let nextTouchIdentifier = 1;
 let evaluationSequence = 0;
+let activeVideoCapture = null;
 
 function trace(message, details = null) {
     if (!SMOKE_TRACE) return;
@@ -398,6 +406,107 @@ async function sampleFramePacing(session, sceneName, {
         };
         requestAnimationFrame(capture);
     }))()`);
+}
+
+async function captureGameplayStill(session, filename) {
+    if (!SMOKE_CAPTURE_DIR) return null;
+    const safeFilename = String(filename || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    if (!safeFilename || !safeFilename.endsWith('.png')) {
+        throw new Error(`Invalid gameplay capture filename: ${JSON.stringify(filename)}`);
+    }
+    fs.mkdirSync(SMOKE_CAPTURE_DIR, { recursive: true });
+    await session.call('Page.bringToFront');
+    await delay(250);
+    const result = await session.call('Page.captureScreenshot', {
+        format: 'png',
+        fromSurface: true,
+        captureBeyondViewport: false
+    });
+    const destination = path.join(SMOKE_CAPTURE_DIR, safeFilename);
+    fs.writeFileSync(destination, Buffer.from(result.data, 'base64'));
+    process.stdout.write(`[gameplay-capture] ${destination}\n`);
+    return destination;
+}
+
+async function startGameplayVideo(session) {
+    if (!SMOKE_VIDEO_PATH || activeVideoCapture) return activeVideoCapture;
+    if (!SMOKE_VIDEO_PATH.endsWith('.mp4')) {
+        throw new Error('SMOKE_VIDEO_PATH must end in .mp4');
+    }
+    const framesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-video-frames-'));
+    const capture = {
+        active: true,
+        framesDir,
+        frameCount: 0,
+        startedAt: Date.now(),
+        session
+    };
+    activeVideoCapture = capture;
+    session.on('Page.screencastFrame', params => {
+        session.call('Page.screencastFrameAck', {
+            sessionId: params.sessionId
+        }).catch(() => {});
+        if (!capture.active) return;
+        capture.frameCount++;
+        const filename = `frame-${String(capture.frameCount).padStart(6, '0')}.jpg`;
+        fs.writeFileSync(
+            path.join(framesDir, filename),
+            Buffer.from(params.data, 'base64')
+        );
+    });
+    await session.call('Page.startScreencast', {
+        format: 'jpeg',
+        quality: 92,
+        maxWidth: SMOKE_VIEWPORT_WIDTH,
+        maxHeight: SMOKE_VIEWPORT_HEIGHT,
+        everyNthFrame: 1
+    });
+    process.stdout.write(`[gameplay-video] recording ${SMOKE_VIDEO_PATH}\n`);
+    await delay(500);
+    return capture;
+}
+
+async function stopGameplayVideo() {
+    const capture = activeVideoCapture;
+    if (!capture) return null;
+    activeVideoCapture = null;
+    await delay(350);
+    capture.active = false;
+    await capture.session.call('Page.stopScreencast').catch(() => {});
+    if (capture.frameCount < 20) {
+        throw new Error(`Gameplay video captured too few frames: ${capture.frameCount}`);
+    }
+    fs.mkdirSync(path.dirname(SMOKE_VIDEO_PATH), { recursive: true });
+    const ffmpeg = spawnSync('ffmpeg', [
+        '-hide_banner',
+        '-loglevel', 'error',
+        '-y',
+        '-framerate', String(SMOKE_VIDEO_FPS),
+        '-i', path.join(capture.framesDir, 'frame-%06d.jpg'),
+        '-c:v', 'libx264',
+        '-preset', 'medium',
+        '-crf', '20',
+        '-pix_fmt', 'yuv420p',
+        '-movflags', '+faststart',
+        '-an',
+        SMOKE_VIDEO_PATH
+    ], { encoding: 'utf8' });
+    fs.rmSync(capture.framesDir, { recursive: true, force: true });
+    if (ffmpeg.status !== 0) {
+        throw new Error(`ffmpeg could not create gameplay video: ${ffmpeg.stderr || ffmpeg.stdout}`);
+    }
+    const result = {
+        path: SMOKE_VIDEO_PATH,
+        frames: capture.frameCount,
+        fps: SMOKE_VIDEO_FPS,
+        encodedDurationSeconds: Number((capture.frameCount / SMOKE_VIDEO_FPS).toFixed(2)),
+        journeyDurationSeconds: Number(((Date.now() - capture.startedAt) / 1000).toFixed(2))
+    };
+    process.stdout.write(`[gameplay-video] ${JSON.stringify(result)}\n`);
+    return result;
 }
 
 async function dispatchDomTouch(session, type, x, y, identifier = 23) {
@@ -4098,6 +4207,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         );
     }
     trace('live gameplay verified', state);
+    if (SMOKE_VIDEO_PATH) {
+        await startGameplayVideo(session);
+        await delay(700);
+    }
     if (SMOKE_TRACE) {
         const heartbeatBefore = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -4469,7 +4582,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     await holdTouchDrag(
         session,
         { x: joystick.centerX, y: joystick.centerY },
-        { x: joystick.centerX + dragDistance, y: joystick.centerY }
+        { x: joystick.centerX + dragDistance, y: joystick.centerY },
+        SMOKE_VIDEO_PATH ? 1500 : 450
     );
     const movedRight = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -4490,7 +4604,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         };
     })()`);
     await releaseTouch(session);
-    await delay(150);
+    await delay(SMOKE_VIDEO_PATH ? 450 : 150);
     const rightReleased = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
         return scene?.virtualJoystickX;
@@ -4504,12 +4618,23 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     if (Math.abs(rightReleased || 0) > 0.05) {
         throw new Error(`${sceneName} retained right input after touch release: ${rightReleased}`);
     }
+    if (SMOKE_VIDEO_PATH && route !== 'reef') {
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                return Boolean(scene?.isGrounded || scene?.player?.body?.blocked?.down);
+            })()`),
+            { timeoutMs: 3000, message: `${sceneName} grounded for filmed jump` }
+        );
+        await touch(session, jumpControl.x, jumpControl.y);
+        await delay(850);
+    }
 
     await holdTouchDrag(
         session,
         { x: joystick.centerX, y: joystick.centerY },
         { x: joystick.centerX - dragDistance, y: joystick.centerY },
-        700
+        SMOKE_VIDEO_PATH ? 950 : 700
     );
     const movedLeft = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -7064,6 +7189,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     if (exceptions.length) {
         throw new Error(`${sceneName} raised browser exceptions: ${exceptions.join(' | ')}`);
     }
+    const gameplayVideo = await stopGameplayVideo();
+    await captureGameplayStill(session, `realm-${route}.png`);
     return {
         ...state,
         guardianGate,
@@ -7099,7 +7226,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         routeHandoff,
         routeCompletion,
         optionalRouteCompletion,
-        guardianRecovery
+        guardianRecovery,
+        gameplayVideo
     };
 }
 
@@ -7955,6 +8083,7 @@ async function smokePurchasedEgg(session, exceptions) {
     if (state.inventoryCount !== 0) {
         throw new Error(`Purchased egg was not reserved exactly once: ${JSON.stringify(state)}`);
     }
+    await captureGameplayStill(session, 'creature-cosmic-egg-hatch.png');
     if (exceptions.length) {
         throw new Error(`Purchased egg flow raised browser exceptions: ${exceptions.join(' | ')}`);
     }
@@ -8012,6 +8141,7 @@ async function smokeHomeStart(session, exceptions) {
     ) {
         throw new Error(`Home Start control is outside the viewport: ${JSON.stringify(start)}`);
     }
+    await captureGameplayStill(session, 'project-beacon-start.png');
 
     let recovery = null;
     if (SMOKE_CASE === 'wide-touch') {
@@ -8073,10 +8203,71 @@ async function smokeHomeStart(session, exceptions) {
     if (!advanced.eggInteractive) {
         throw new Error(`Home Start reached a non-interactive egg: ${JSON.stringify(advanced)}`);
     }
+    await captureGameplayStill(session, 'project-beacon-live-egg.png');
     if (exceptions.length) {
         throw new Error(`Home Start raised browser exceptions: ${exceptions.join(' | ')}`);
     }
     return { start, recovery, advanced };
+}
+
+async function smokeNASAContent(session, exceptions) {
+    exceptions.length = 0;
+    const fixture = JSON.parse(fs.readFileSync(
+        path.join(__dirname, 'company/fixtures/nasa-apollo11-apod.json'),
+        'utf8'
+    ));
+
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(() => {
+        localStorage.setItem('mythical_void_age_confirmed', 'true');
+        localStorage.setItem('mythical_void_age_group', 'age_18_plus');
+        location.reload();
+        return true;
+    })()`);
+    await waitFor(
+        () => evaluate(session, 'document.readyState === "complete"'),
+        { message: 'NASA capture reload' }
+    );
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('HatchingScene');
+        const content = ${JSON.stringify(fixture.content)};
+        window.NASAContentSystem.getDailyContentQueue = async () => [content];
+        window.OnboardingManager.initialize(scene);
+        window.OnboardingManager.showNASAContent(() => {});
+        return true;
+    })()`);
+
+    const visible = await waitFor(
+        () => evaluate(session, `(() => {
+            const image = Array.from(document.images).find(candidate =>
+                candidate.src.includes('a11pan1040226lftsm.jpg')
+            );
+            const scene = window.mythicalGame.scene.getScene('HatchingScene');
+            const labels = (scene?.children?.list || [])
+                .map(item => typeof item?.text === 'string' ? item.text : '')
+                .filter(Boolean);
+            if (!image?.complete || image.naturalWidth < 1) return null;
+            if (!labels.some(label => label.includes('REAL NASA IMAGE'))) return null;
+            if (!labels.some(label => label.includes('NASA Astronomy Picture of the Day'))) return null;
+            if (!labels.some(label => label.includes('MYTHICAL VOID IMAGINES'))) return null;
+            return {
+                imageLoaded: true,
+                titlePresent: labels.some(label => label.includes('Apollo 11 Landing Panorama')),
+                sourcePresent: true,
+                boundaryPresent: true,
+                sourceUrl: ${JSON.stringify(fixture.content.sourceUrl)}
+            };
+        })()`),
+        { timeoutMs: 20000, message: 'credited NASA discovery presentation' }
+    );
+
+    await captureGameplayStill(session, 'nasa-apollo11-real-space-discovery.png');
+    if (exceptions.length) {
+        throw new Error(`NASA discovery raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+    return visible;
 }
 
 async function smokeSanctuaryNavigation(session, exceptions) {
@@ -9668,6 +9859,7 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.is-visible'))`),
         { timeoutMs: 12000, message: 'Base Builder opened from Shop Build tab' }
     );
+    await captureGameplayStill(session, 'village-base-builder.png');
     const construction = await evaluate(session, `(() => {
         const action = document.querySelector('.village-construct-action:not(:disabled)');
         if (!action) return { clicked: false, text: null };
@@ -9686,6 +9878,7 @@ async function smokeVillageUi(session, exceptions) {
         )`),
         { timeoutMs: 8000, message: 'Base Builder construction persisted' }
     );
+    await captureGameplayStill(session, 'village-first-construction.png');
     const closeResult = await evaluate(session, `(() => {
         document.querySelector('.village-command-close')?.click();
         const shop = window.mythicalGame.scene.getScene('ShopScene');
@@ -10300,7 +10493,7 @@ async function main() {
         '--disable-background-networking',
         `--remote-debugging-port=${DEBUG_PORT}`,
         `--user-data-dir=${profileDir}`,
-        '--window-size=390,844',
+        `--window-size=${SMOKE_VIEWPORT_WIDTH},${SMOKE_VIEWPORT_HEIGHT}`,
         'about:blank'
     ], { stdio: ['ignore', 'ignore', 'ignore'] });
 
@@ -10325,7 +10518,7 @@ async function main() {
             width: SMOKE_VIEWPORT_WIDTH,
             height: SMOKE_VIEWPORT_HEIGHT,
             deviceScaleFactor: 1,
-            mobile: true,
+            mobile: SMOKE_VIEWPORT_WIDTH <= 600,
             screenWidth: SMOKE_VIEWPORT_WIDTH,
             screenHeight: SMOKE_VIEWPORT_HEIGHT
         });
@@ -10367,6 +10560,9 @@ async function main() {
         if (SMOKE_MODE === 'home-entry') {
             results.homeEntry = await smokeHomeStart(session, exceptions);
             process.stdout.write('PASS HomeStartToEgg\n');
+        } else if (SMOKE_MODE === 'nasa-content') {
+            results.nasaContent = await smokeNASAContent(session, exceptions);
+            process.stdout.write('PASS NASALearningContent\n');
         } else if (SMOKE_MODE === 'interaction') {
             const knownCases = [
                 'all',
@@ -10462,7 +10658,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
+                'Use home-entry, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
             );
         }
         console.log(JSON.stringify({
@@ -10475,6 +10671,11 @@ async function main() {
             `[smoke-result] ${SMOKE_MODE}:${SMOKE_CASE}:pass\n`
         );
     } finally {
+        if (activeVideoCapture) {
+            await stopGameplayVideo().catch(error => {
+                console.error(`[gameplay-video] cleanup failed: ${error.message}`);
+            });
+        }
         session?.close();
         chrome.kill('SIGKILL');
         chrome.unref();

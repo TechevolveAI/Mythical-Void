@@ -6,7 +6,7 @@
   "audience": "Adult players, parents and guardians, creators, partners, and games press; not child-targeted advertising",
   "channel": "Unassigned social, press, or partner channel",
   "contentType": "text",
-  "copy": "Mythical Void is built in layers. A structured genetics system shapes a companion’s appearance, personality, rarity, and cosmic affinity. Phaser 3 runs the world in your browser, from exploration and guardians to the village and story scenes. Then an optional, age-gated AI layer can turn that in-game identity into a portrait or short cinematic companion moment.\n\nThe important boundary matters: AI adds expression, while the story, dialogue, safety decisions, and player choices remain authored and understandable.",
+  "copy": "Mythical Void is built in layers. A structured genetics system shapes a creature’s appearance, personality, rarity, and cosmic affinity. Phaser 3 runs the world in your browser, from exploration and guardians to the village and story scenes. Then an optional, age-gated AI layer can turn that in-game identity into a portrait or short cinematic creature moment.\n\nThe important boundary matters: AI adds expression, while the story, dialogue, safety decisions, and player choices remain authored and understandable.",
   "claimRefs": ["CL-005", "TECH-001", "TECH-002", "TECH-003"],
   "proofRefs": ["technology-proof-map.json"],
   "sourceChecked": "2026-08-11",

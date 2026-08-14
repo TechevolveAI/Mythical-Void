@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-14T13:56:32.863Z",
+  "sourceCommit": "ef195f7762feacf72a0aee2c3778b52dcddcd2d7",
+  "sourceBranch": "codex/logo-production",
+  "sourceRoute": "/play/",
+  "captureMethod": "First-party automated browser journey recorded directly from the running Mythical Void canvas and interface.",
+  "privacy": "A clean invented QA state is used. No player name, child identity, account, message, notification or personal save data appears.",
+  "presentationBoundary": "Authentic running-build gameplay. No generated frames, simulated interface, replacement scenery or generated audio.",
+  "approvalState": "internal_review_required_before_public_promotion",
+  "asset": {
+    "id": "GV-001",
+    "filename": "mythical-forest-authentic-gameplay.mp4",
+    "publicPath": "/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+    "posterFilename": "mythical-forest-authentic-gameplay-poster.png",
+    "posterPublicPath": "/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+    "sha256": "3b9aa5e41bef7f9b2b5529a3c3d3e1a3cc6448676cb0e2643d0e61bd6c418a8c",
+    "posterSha256": "7ad7b821bcf3c872804133f7c22da7ae3aa12cccfdea3dafc0d425224e164376",
+    "classification": "authentic_running_build_gameplay_video",
+    "disclosure": "Recorded directly from the real Mythical Void browser game; not generated footage.",
+    "width": 390,
+    "height": 844,
+    "frameRate": "12/1",
+    "durationSeconds": 19.58,
+    "bytes": 2131695,
+    "capturedFrames": 235,
+    "journeyDurationSeconds": 14.35,
+    "audio": "none"
+  }
+}

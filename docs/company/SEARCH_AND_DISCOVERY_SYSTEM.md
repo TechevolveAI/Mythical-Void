@@ -1,8 +1,22 @@
 # Search and Discovery System
 
-**Status:** Foundation; local technical fixes are unapproved and no search
-submission or new page publication is authorized  
-**Date:** 11 August 2026
+**Status:** Technical foundation live; four useful owned-site discovery pages approved for release; search-engine account work still gated
+**Updated:** 14 August 2026
+
+## Current release
+
+The first useful discovery layer is now recorded in
+[`search/organic-discovery-release-2026-08-14.json`](search/organic-discovery-release-2026-08-14.json).
+It adds dedicated pages for creature genetics, NASA and STEM discovery, parents
+and guardians, and the father-and-son studio story. Each page has a unique
+purpose, clear public evidence, a direct route to play, its own canonical
+metadata, and an entry in the sitemap.
+
+This release does not submit a sitemap, connect a webmaster account, claim a
+ranking, buy traffic, or ask another site for a link. Those remain separate
+external actions. The original opportunity map below remains the dated
+11 August research baseline rather than pretending that its old search sample
+has been refreshed.
 
 ## 1. Objective
 
@@ -18,7 +32,7 @@ The machine-readable opportunity map is
 validates its claims, proof, target paths, sources, dependencies, and external
 gates.
 
-## 2. Current evidence
+## 2. Original 11 August evidence
 
 On 11 August 2026, a directional web-search sample used eight branded,
 domain, and category queries. The sampled `site:mythicalvoid.com`, exact-name,
@@ -133,16 +147,20 @@ Search impressions, average position, and clicks require verified Search
 Console or equivalent access and must retain query/sample limitations. They do
 not prove players, customers, retention, or revenue.
 
-## 7. Release order
+## 7. Next release order
 
-1. Review and preview the isolated RM-001 technical foundation.
-2. Name release/rollback owners, approve the exact artifact, deploy through the
-   Game Development workflow, and rerun A-001.
-3. Verify sitemap/index coverage through restricted webmaster access.
-4. Run adult positioning and guardian-trust research.
-5. Capture PF-003, PF-004, and PF-005 gameplay proof.
-6. Reconcile provider and public-policy truth.
-7. Review proposed category, story, parent, and craft pages as evidence-led
-   product resources—not a publishing quota.
+1. Release and verify the four owned-site discovery pages.
+2. Connect verified Search Console or equivalent read access when Kevin is
+   ready to grant it.
+3. Inspect sitemap and indexing coverage without assuming a result.
+4. Use consented, aggregate page visits and play selections to learn which
+   audience found something useful.
+5. Run adult positioning and guardian-trust research.
+6. Build a dedicated story page only if it adds information that the home,
+   studio and press pages do not already provide.
+7. Improve or retire pages based on real comprehension and play evidence—not a
+   publishing quota.
 
-No step in this document authorizes external execution.
+Owned-website publication is authorized for the recorded 14 August release.
+Search submission, webmaster changes, paid search, outreach and ranking claims
+are not authorized by this document.

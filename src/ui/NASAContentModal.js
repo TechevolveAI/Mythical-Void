@@ -73,8 +73,8 @@ class NASAContentModal {
         this.elements.push(overlay);
 
         // Modal panel
-        const panelWidth = Math.min(500, width - 40);
-        const panelHeight = Math.min(600, height - 60);
+        const panelWidth = Math.min(560, width - 32);
+        const panelHeight = Math.min(720, height - 32);
         const panelX = centerX - panelWidth / 2;
         const panelY = centerY - panelHeight / 2;
 
@@ -87,13 +87,12 @@ class NASAContentModal {
         panel.setDepth(16001);
         this.elements.push(panel);
 
-        // Type indicator (Star for APOD, Mars icon for Mars)
-        const typeIcon = content.type === 'apod' ? '⭐' : '🔴';
-        const typeColor = content.type === 'apod' ? '#FFD700' : '#FF6B35';
+        const typeIcon = content.type === 'apod' ? '✦' : '●';
+        const typeColor = content.type === 'apod' ? '#FFD66B' : '#FF8A62';
 
         // Title
-        const title = this.scene.add.text(centerX, panelY + 25, `${typeIcon} ${content.title}`, {
-            fontSize: '20px',
+        const title = this.scene.add.text(centerX, panelY + 22, `${typeIcon} ${content.title}`, {
+            fontSize: '19px',
             fontFamily: 'Arial, sans-serif',
             color: typeColor,
             fontStyle: 'bold'
@@ -101,22 +100,47 @@ class NASAContentModal {
         this.elements.push(title);
 
         // Subtitle
-        const subtitle = this.scene.add.text(centerX, panelY + 55, content.subtitle, {
+        const subtitle = this.scene.add.text(centerX, panelY + 51, content.subtitle, {
             fontSize: '14px',
             fontFamily: 'Arial, sans-serif',
-            color: '#AAAAFF',
-            fontStyle: 'italic'
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: panelWidth - 44 }
         }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(16002);
         this.elements.push(subtitle);
 
+        const realDataLabel = this.scene.add.text(
+            centerX,
+            panelY + 78,
+            `${content.realDataLabel || 'REAL NASA DATA'}  •  ${content.date || 'DATE RECORDED'}`,
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#0D0D2B',
+                backgroundColor: '#8FE3CF',
+                fontStyle: 'bold',
+                padding: { x: 10, y: 5 }
+            }
+        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(16003);
+        this.elements.push(realDataLabel);
+
         // Image container
-        const imageY = panelY + 85;
+        const imageY = panelY + 112;
         const imageMaxWidth = panelWidth - 40;
-        const imageMaxHeight = panelHeight - 250;
+        const imageMaxHeight = Math.min(width < 600 ? 220 : 280, panelHeight - 390);
 
         // Load and display image
+        let displayedImageHeight = imageMaxHeight;
         try {
-            await this.loadAndDisplayImage(content.imageUrl, centerX, imageY, imageMaxWidth, imageMaxHeight);
+            const displayedImage = await this.loadAndDisplayImage(
+                content.imageUrl,
+                centerX,
+                imageY,
+                imageMaxWidth,
+                imageMaxHeight
+            );
+            displayedImageHeight = displayedImage?.sceneHeight || imageMaxHeight;
         } catch (e) {
             // Show placeholder on error
             const placeholder = this.scene.add.text(centerX, imageY + imageMaxHeight / 2,
@@ -128,9 +152,9 @@ class NASAContentModal {
         }
 
         // Description
-        const descY = imageY + imageMaxHeight + 15;
+        const descY = imageY + displayedImageHeight + 12;
         const description = this.scene.add.text(centerX, descY, content.description, {
-            fontSize: '13px',
+            fontSize: '12px',
             fontFamily: 'Arial, sans-serif',
             color: '#CCCCCC',
             wordWrap: { width: panelWidth - 40 },
@@ -138,16 +162,81 @@ class NASAContentModal {
         }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(16002);
         this.elements.push(description);
 
+        const scienceTop = Math.min(
+            panelY + panelHeight - 320,
+            Math.max(descY + 58, panelY + 360)
+        );
+        const scienceCard = this.scene.add.graphics();
+        scienceCard.fillStyle(0x15143B, 0.96);
+        scienceCard.fillRoundedRect(panelX + 20, scienceTop, panelWidth - 40, 104, 10);
+        scienceCard.lineStyle(1, 0x3D7990, 0.9);
+        scienceCard.strokeRoundedRect(panelX + 20, scienceTop, panelWidth - 40, 104, 10);
+        scienceCard.setScrollFactor(0).setDepth(16002);
+        this.elements.push(scienceCard);
+
+        const scienceSteps = content.scienceSteps || [
+            'OBSERVE — What can you see?',
+            'INFER — What might it mean?',
+            'CHECK — What evidence would help?'
+        ];
+        const scienceLog = this.scene.add.text(
+            panelX + 34,
+            scienceTop + 10,
+            `SPACE SCIENTIST’S LOG\n${scienceSteps.join('\n')}`,
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#DDECF2',
+                lineSpacing: 4,
+                wordWrap: { width: panelWidth - 68 }
+            }
+        ).setOrigin(0, 0).setScrollFactor(0).setDepth(16003);
+        this.elements.push(scienceLog);
+
+        const sourceY = panelY + panelHeight - 196;
+        const source = this.scene.add.text(
+            centerX,
+            sourceY,
+            `${content.sourceLabel || 'NASA public data'}\n${content.sourceCredit || 'Source credit supplied by NASA'}`,
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8FE3CF',
+                align: 'center',
+                wordWrap: { width: panelWidth - 44 }
+            }
+        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(16002);
+        this.elements.push(source);
+
+        const prompt = this.scene.add.text(
+            centerX,
+            panelY + panelHeight - 151,
+            `LOOK CLOSER  •  ${content.learningPrompt || 'What do you notice?'}`,
+            {
+                fontSize: '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#FFD66B',
+                fontStyle: 'bold',
+                align: 'center',
+                wordWrap: { width: panelWidth - 50 }
+            }
+        ).setOrigin(0.5, 0).setScrollFactor(0).setDepth(16002);
+        this.elements.push(prompt);
+
         // Creature comment bubble
-        const commentY = panelY + panelHeight - 80;
+        const commentY = panelY + panelHeight - 92;
         const commentBg = this.scene.add.graphics();
         commentBg.fillStyle(0x4B0082, 0.8);
-        commentBg.fillRoundedRect(panelX + 20, commentY - 10, panelWidth - 40, 45, 10);
+        commentBg.fillRoundedRect(panelX + 20, commentY - 12, panelWidth - 40, 48, 10);
         commentBg.setScrollFactor(0).setDepth(16002);
         this.elements.push(commentBg);
 
-        const comment = this.scene.add.text(centerX, commentY + 12, `💬 "${content.creatureComment}"`, {
-            fontSize: '12px',
+        const comment = this.scene.add.text(
+            centerX,
+            commentY + 11,
+            `${content.storyBoundaryLabel || 'MYTHICAL VOID IMAGINES'}\n“${content.creatureComment}”`,
+            {
+            fontSize: '10px',
             fontFamily: 'Arial, sans-serif',
             color: '#FFFFFF',
             fontStyle: 'italic',
@@ -157,11 +246,11 @@ class NASAContentModal {
         this.elements.push(comment);
 
         // Dismiss button
-        const buttonY = panelY + panelHeight - 25;
-        const buttonText = this.currentContentIndex < this.contentQueue.length - 1 ? 'Next ➡️' : 'Amazing! ✨';
+        const buttonY = panelY + panelHeight - 24;
+        const buttonText = this.currentContentIndex < this.contentQueue.length - 1 ? 'Next discovery' : 'Back to the adventure';
 
         const button = this.scene.add.text(centerX, buttonY, buttonText, {
-            fontSize: '16px',
+            fontSize: '14px',
             fontFamily: 'Arial, sans-serif',
             color: '#FFFFFF',
             backgroundColor: '#7B68EE',
@@ -194,6 +283,15 @@ class NASAContentModal {
             nativeButton.type = 'button';
             nativeButton.className = 'nasa-content-dismiss';
             nativeButton.textContent = buttonText.replace(/[➡️✨]/gu, '').trim();
+            nativeButton.style.width = '216px';
+            nativeButton.style.height = '44px';
+            nativeButton.style.minWidth = '216px';
+            nativeButton.style.minHeight = '44px';
+            nativeButton.style.display = 'flex';
+            nativeButton.style.alignItems = 'center';
+            nativeButton.style.justifyContent = 'center';
+            nativeButton.style.whiteSpace = 'nowrap';
+            nativeButton.style.fontSize = '13px';
             nativeButton.setAttribute('aria-label', nativeButton.textContent);
             nativeButton.setAttribute('data-testid', 'nasa-content-dismiss');
             const nativeAdvance = event => {
@@ -233,14 +331,28 @@ class NASAContentModal {
             const img = document.createElement('img');
             img.referrerPolicy = 'no-referrer';
 
+            const canvas = this.scene.game?.canvas;
+            const canvasBounds = canvas?.getBoundingClientRect?.() || {
+                left: 0,
+                top: 0,
+                width: window.innerWidth,
+                height: window.innerHeight
+            };
+            const sceneWidth = this.scene.scale?.width || window.innerWidth;
+            const sceneHeight = this.scene.scale?.height || window.innerHeight;
+            const scaleX = canvasBounds.width / sceneWidth;
+            const scaleY = canvasBounds.height / sceneHeight;
+            const screenX = canvasBounds.left + x * scaleX;
+            const screenY = canvasBounds.top + y * scaleY;
+
             // Use simpler viewport-centered positioning
             img.style.cssText = `
                 position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -40%);
-                max-width: ${Math.min(maxWidth, window.innerWidth - 60)}px;
-                max-height: ${Math.min(maxHeight, window.innerHeight * 0.4)}px;
+                top: ${screenY}px;
+                left: ${screenX}px;
+                transform: translate(-50%, 0);
+                max-width: ${Math.min(maxWidth * scaleX, window.innerWidth - 50)}px;
+                max-height: ${Math.min(maxHeight * scaleY, window.innerHeight * 0.38)}px;
                 width: auto;
                 height: auto;
                 object-fit: contain;
@@ -258,7 +370,12 @@ class NASAContentModal {
             img.onload = () => {
                 console.log('[NASAModal] Image loaded! Size:', img.naturalWidth, 'x', img.naturalHeight);
                 img.style.backgroundColor = 'transparent';
-                resolve();
+                requestAnimationFrame(() => {
+                    const renderedHeight = img.getBoundingClientRect().height;
+                    resolve({
+                        sceneHeight: renderedHeight / Math.max(scaleY, 0.001)
+                    });
+                });
             };
 
             img.onerror = (e) => {
