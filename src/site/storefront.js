@@ -390,7 +390,11 @@ function renderStorefront() {
                     <p class="kicker">THE SIGNAL IS GETTING STRONGER</p>
                     <h2>Your creature is waiting.</h2>
                     <p>Free to play. No download. No account needed.</p>
-                    ${playLink('Play Mythical Void')}
+                    <div class="final-cta-actions">
+                        ${playLink('Play Mythical Void')}
+                        <button class="button button-share" type="button" data-share-game>Share the game</button>
+                    </div>
+                    <p class="share-status" data-share-status aria-live="polite"></p>
                 </div>
             </section>
         </main>
@@ -489,6 +493,35 @@ function bindInteractions() {
             const marker = detail.querySelector('summary span');
             if (marker) marker.textContent = detail.open ? '−' : '+';
         });
+    });
+
+    const shareButton = app.querySelector('[data-share-game]');
+    const shareStatus = app.querySelector('[data-share-status]');
+    const shareData = {
+        title: 'Mythical Void',
+        text: 'Try Mythical Void — a free creature adventure you can play in your browser. No download or account needed.',
+        url: 'https://mythicalvoid.com/'
+    };
+
+    if (shareButton && !navigator.share) {
+        shareButton.textContent = 'Copy game link';
+    }
+
+    shareButton?.addEventListener('click', async () => {
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+                if (shareStatus) shareStatus.textContent = 'Thanks for sharing the signal.';
+                return;
+            }
+
+            await navigator.clipboard.writeText(shareData.url);
+            if (shareStatus) shareStatus.textContent = 'Game link copied. Send it to someone curious.';
+        } catch (error) {
+            if (error?.name !== 'AbortError' && shareStatus) {
+                shareStatus.textContent = 'You can share mythicalvoid.com from your browser.';
+            }
+        }
     });
 }
 

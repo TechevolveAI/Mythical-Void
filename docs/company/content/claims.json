@@ -40,7 +40,7 @@
       "id": "CL-006",
       "class": "C3",
       "status": "qualified",
-      "approvedText": "Your companion can remember specific parts of the journey you share.",
+      "approvedText": "Your creature can remember specific parts of the journey you share.",
       "conditions": "Show or name the specific implemented memory; never say it remembers everything."
     },
     {

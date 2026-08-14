@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "id": "CMP-PLAYABLE-NOW-001",
+  "name": "A Universe of Creatures — Playable Now",
+  "state": "internal_draft_ready_accounts_and_publication_gated",
+  "canonicalUrl": "https://mythicalvoid.com/",
+  "primaryOutcome": "qualified_visit_and_play_selection",
+  "audiencePolicy": "Adult-run general and family discovery; no child-targeted behavioural advertising or private contact with children.",
+  "message": "Mythical Void is a free browser creature adventure that can be played now, with no download or account required to start.",
+  "prohibitedPhrases": [
+    "AI companion",
+    "sentient creature",
+    "every creature is unique",
+    "no two creatures are alike",
+    "safe for every child"
+  ],
+  "authority": {
+    "accountCreationAuthorized": false,
+    "publishingAuthorized": false,
+    "replyingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "trackingParametersAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "content": [
+    {
+      "id": "PN-001",
+      "title": "Playable now",
+      "audience": "General players and families",
+      "recommendedChannel": "Any verified official Mythical channel",
+      "copy": "A universe of creatures is waiting.\n\nMythical Void is a free browser adventure: hatch a strange creature, explore six living realms and decide what Project Beacon becomes.\n\nNo download or account is needed to start. Play now: https://mythicalvoid.com/",
+      "claimIds": ["CL-001", "CL-002", "CL-004", "CL-008"],
+      "asset": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "assetType": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by creature profiles from the genetics engine; not gameplay footage.",
+      "approvalState": "awaiting_kevin_and_channel"
+    },
+    {
+      "id": "PN-002",
+      "title": "Father-and-son beginning",
+      "audience": "Industry, parents, partners and creative-technology peers",
+      "recommendedChannel": "Professional company network",
+      "copy": "Mythical Void began at home with a father, his nine-year-old son and a question: what could generative AI tools and a lot of imagination make possible?\n\nTheir conversations became strange creatures, living worlds and a browser game you can play today. Imagination still leads. AI helps the small team explore and build. People remain responsible for the story, safety and important choices.\n\nPlay Mythical Void: https://mythicalvoid.com/",
+      "claimIds": ["CL-001", "CL-002"],
+      "asset": "public/marketing/mythical-void-emblem-v3.png",
+      "assetType": "ai_generated_brand_art",
+      "disclosure": "Brand artwork created with generative AI and refined for Mythical Void.",
+      "approvalState": "awaiting_kevin_and_channel"
+    },
+    {
+      "id": "PN-003",
+      "title": "Creature possibilities",
+      "audience": "Creature-game, indie-game and fantasy audiences",
+      "recommendedChannel": "Short visual or image-led channel",
+      "copy": "What might hatch from the Void?\n\nCreature genetics mix body shapes, colours, personalities, cosmic affinities and rare mutations. The result is a world of strange possibilities—not a menu of fixed mascots.\n\nMeet the creatures and play free in your browser: https://mythicalvoid.com/",
+      "claimIds": ["CL-001", "CL-005"],
+      "asset": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "assetType": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by real genetics-engine profiles; not gameplay footage.",
+      "approvalState": "awaiting_kevin_and_channel"
+    },
+    {
+      "id": "PN-004",
+      "title": "Restore rather than destroy",
+      "audience": "Narrative and family game audiences",
+      "recommendedChannel": "Gameplay video channel",
+      "copy": "The guardians are not the enemy. The Void corruption is.\n\nLearn each encounter, fight beside your creature and clear the pressure holding a guardian. Restoration changes the world and moves the story forward.\n\nPlay in your browser: https://mythicalvoid.com/",
+      "claimIds": ["CL-001", "CL-004"],
+      "asset": null,
+      "assetType": "authentic_gameplay_required",
+      "disclosure": "Use only build-linked gameplay capture. Do not substitute generated footage.",
+      "approvalState": "blocked_until_gameplay_proof"
+    },
+    {
+      "id": "PN-005",
+      "title": "NASA-powered discovery",
+      "audience": "Parents, educators and STEM communities",
+      "recommendedChannel": "Professional or education-facing channel",
+      "copy": "A fictional universe can open a door to real space.\n\nMythical Void can use NASA's public astronomy, Mars and space-weather data for optional discovery moments. The adventure stays playful; the curiosity can travel much further.\n\nSee the game and its family notes: https://mythicalvoid.com/",
+      "claimIds": ["CL-001"],
+      "asset": null,
+      "assetType": "product_screenshot_required",
+      "disclosure": "Show a real NASA learning moment from a named game build and credit the source data.",
+      "approvalState": "blocked_until_product_proof"
+    },
+    {
+      "id": "PN-006",
+      "title": "For grown-ups",
+      "audience": "Parents and guardians",
+      "recommendedChannel": "Owned website or verified adult-facing channel",
+      "copy": "Want to see what the child in your life is exploring?\n\nMythical Void is free to play in a browser. No download, account or payment details are needed to start. The adventure combines exploration, problem-solving, creature care and restoration-focused fantasy battles.\n\nRead the family notes and play: https://mythicalvoid.com/",
+      "claimIds": ["CL-001", "CL-002", "CL-007"],
+      "asset": null,
+      "assetType": "website_card_or_gameplay_capture",
+      "disclosure": "Do not describe this as a formal age rating or universal safety guarantee.",
+      "approvalState": "awaiting_kevin_and_channel"
+    },
+    {
+      "id": "PN-007",
+      "title": "Creator and press introduction",
+      "audience": "Games creators, journalists and newsletter writers",
+      "recommendedChannel": "Individual human-reviewed outreach",
+      "copy": "Mythical Void is a playable browser adventure that began as a father-and-son experiment with generative AI and imagination. It combines procedural creature genetics, six restorable realms, story choices and optional NASA-powered discovery.\n\nIt is free to try with no download or account required: https://mythicalvoid.com/\n\nIf the project fits your audience, we can provide build-linked gameplay footage, artwork disclosures and a concise fact sheet.",
+      "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005"],
+      "asset": null,
+      "assetType": "tailored_press_pack_required",
+      "disclosure": "Send individually only after relevance, identity and contact route are human-verified. No bulk outreach.",
+      "approvalState": "blocked_until_recipient_and_proof_review"
+    }
+  ],
+  "successMeasures": [
+    "qualified website visits",
+    "play selections",
+    "useful adult or guardian feedback",
+    "relevant creator, press, educator or partner replies"
+  ],
+  "guardrails": [
+    "unsupported claim rate",
+    "misleading gameplay expectation",
+    "moderation workload",
+    "safeguarding concern",
+    "private contact from or to a child"
+  ]
+}

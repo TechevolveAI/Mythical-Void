@@ -1728,8 +1728,32 @@ body.site-mode h3 {
     font-size: 1.03rem;
 }
 
-.final-cta .button {
+.final-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .75rem;
     margin-top: 20px;
+}
+
+.final-cta .button-share {
+    border: 1px solid rgba(255, 255, 255, .34);
+    background: rgba(8, 7, 25, .5);
+    color: var(--paper);
+    cursor: pointer;
+}
+
+.final-cta .button-share:hover,
+.final-cta .button-share:focus-visible {
+    border-color: var(--mint);
+    background: rgba(124, 232, 207, .12);
+}
+
+.final-cta .share-status {
+    min-height: 1.4em;
+    margin: .85rem 0 0;
+    color: var(--mint);
+    font-size: .78rem;
 }
 
 footer {
@@ -2156,6 +2180,10 @@ footer {
 
     .final-cta {
         min-height: 540px;
+    }
+
+    .final-cta-actions {
+        display: grid;
     }
 
     .footer-inner nav {
