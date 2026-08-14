@@ -84,6 +84,13 @@
       "status": "blocked_absolute",
       "approvedText": "Creatures are generated from varied procedural genetics.",
       "conditions": "The phrases 1 of 1, every creature is unique, and no two creatures are alike are blocked pending proof."
+    },
+    {
+      "id": "CL-013",
+      "class": "C3",
+      "status": "qualified",
+      "approvedText": "The game can use selected NASA public space data for optional discovery moments.",
+      "conditions": "Do not imply NASA endorsement, an official NASA product, guaranteed live availability, or that fictional material is real scientific data."
     }
   ]
 }
