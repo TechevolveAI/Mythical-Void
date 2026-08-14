@@ -7,7 +7,7 @@
       "id": "CQ-001",
       "priority": "P0",
       "title": "What is Mythical Void?",
-      "pillar": "living_companion",
+      "pillar": "living_creature",
       "objective": "Make the hatch-to-bond experience immediately understandable through authentic gameplay.",
       "audience": "General players and adult/guardian trust audiences",
       "contentType": "video",
@@ -41,7 +41,7 @@
       "id": "CQ-003",
       "priority": "P1",
       "title": "What the creature remembers",
-      "pillar": "living_companion",
+      "pillar": "living_creature",
       "objective": "Show one implemented memory with an explicit boundary rather than claiming unrestricted intelligence.",
       "audience": "Players, parents/guardians, creators, and responsible-AI audiences",
       "contentType": "video",
@@ -122,6 +122,24 @@
       "requiresProviderPolicyReady": true,
       "draftPackage": "docs/company/content/drafts/MYTHICAL_DIFFERENCE.json",
       "campaignPackage": null,
+      "externalActionAllowed": false
+    },
+    {
+      "id": "CQ-008",
+      "priority": "P0",
+      "title": "First Signal social campaign",
+      "pillar": "launch_and_discovery",
+      "objective": "Introduce the playable game through five finished social previews with exact captions, authentic proof, honest generated-art labels and a reusable approval pack.",
+      "audience": "Adult and general player discovery, parents and guardians, educators, creators and professional peers; not child-targeted behavioural advertising",
+      "contentType": "image",
+      "channelIds": ["CH-003", "CH-004"],
+      "claimIds": ["CL-001", "CL-002", "CL-005", "CL-008", "CL-013", "CL-014", "CL-015"],
+      "proofIds": ["PF-007", "PF-008", "PF-009"],
+      "dependencyRefs": ["D-011", "D-014", "A-033"],
+      "requiresAcceptedCustomerEvidence": false,
+      "requiresProviderPolicyReady": false,
+      "draftPackage": null,
+      "campaignPackage": "docs/company/content/campaigns/first-signal-social.json",
       "externalActionAllowed": false
     }
   ]

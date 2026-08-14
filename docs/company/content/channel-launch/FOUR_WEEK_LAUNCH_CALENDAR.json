@@ -40,22 +40,22 @@
           "id": "CAL-001",
           "day": "Tuesday",
           "channel": "LinkedIn",
-          "contentRef": "LI-001",
+          "contentRef": "SS-001",
           "title": "How a father-and-son question became a game",
-          "asset": "public/marketing/mythical-void-emblem-v3.png",
-          "assetClass": "generated_brand_art",
-          "disclosure": "Brand artwork created with generative AI and refined for Mythical Void.",
+          "asset": "public/marketing/social/first-signal/01-origin.jpg",
+          "assetClass": "reviewed_composite_social_card",
+          "disclosure": "The card uses Mythical Void brand artwork created with generative AI and refined for the studio; it contains no image or identifying detail of Kevin's child.",
           "state": "waiting_for_channel_and_kevin_approval"
         },
         {
           "id": "CAL-002",
           "day": "Thursday",
           "channel": "LinkedIn",
-          "contentRef": "LI-002",
+          "contentRef": "SS-002",
           "title": "Mythical Void is playable now",
-          "asset": "public/press/gameplay/project-beacon-start.png",
-          "assetClass": "authentic_running_build_screenshot",
-          "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup.",
+          "asset": "public/marketing/social/first-signal/02-playable-now.jpg",
+          "assetClass": "reviewed_composite_social_card_with_authentic_gameplay",
+          "disclosure": "The card contains a screenshot captured from the real Mythical Void browser game; it is not a generated gameplay mockup.",
           "state": "waiting_for_channel_and_kevin_approval"
         }
       ]
@@ -68,9 +68,9 @@
           "id": "CAL-003",
           "day": "Tuesday",
           "channel": "LinkedIn",
-          "contentRef": "PN-003",
-          "title": "Six strange realms to explore",
-          "asset": "public/press/gameplay/realm-mythicalforest.png",
+          "contentRef": "SS-003",
+          "title": "A universe of creatures",
+          "asset": "public/marketing/social/first-signal/03-creature-universe.jpg",
           "additionalAssets": [
             "public/press/gameplay/realm-crystalcaves.png",
             "public/press/gameplay/realm-reef.png",
@@ -78,8 +78,8 @@
             "public/press/gameplay/realm-auroradepths.png",
             "public/press/gameplay/realm-finalvoid.png"
           ],
-          "assetClass": "authentic_running_build_screenshot",
-          "disclosure": "Captured from the real Mythical Void browser game; not generated gameplay.",
+          "assetClass": "reviewed_composite_social_card_with_marketing_illustration",
+          "disclosure": "AI-generated marketing illustration inspired by real genetics-engine profiles; not gameplay footage.",
           "state": "waiting_for_channel_and_kevin_approval"
         },
         {
@@ -105,20 +105,20 @@
           "channel": "LinkedIn",
           "contentRef": "LI-003",
           "title": "An AI-first studio with people responsible",
-          "asset": "public/press/gameplay/village-first-construction.png",
-          "assetClass": "authentic_running_build_screenshot",
-          "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup.",
+          "asset": "public/marketing/social/first-signal/01-origin.jpg",
+          "assetClass": "reviewed_composite_social_card",
+          "disclosure": "The card uses Mythical Void brand artwork created with generative AI and refined for the studio; people remain responsible for story, safety and publication.",
           "state": "waiting_for_channel_and_kevin_approval"
         },
         {
           "id": "CAL-006",
           "day": "Thursday",
           "channel": "LinkedIn",
-          "contentRef": "LI-004",
-          "title": "Why real NASA data belongs in a fantasy game",
-          "asset": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
-          "assetClass": "authentic_running_build_screenshot",
-          "disclosure": "Captured from the real Mythical Void browser game using NASA APOD: Apollo 11 Landing Panorama, 20 July 2024. Image credit: Neil Armstrong · Apollo 11 · NASA. NASA does not endorse Mythical Void.",
+          "contentRef": "SS-004",
+          "title": "A free STEM Creature Lab",
+          "asset": "public/marketing/social/first-signal/04-stem-creature-lab.jpg",
+          "assetClass": "reviewed_composite_social_card_with_authentic_gameplay",
+          "disclosure": "The card contains a real in-game learning moment using NASA APOD: Apollo 11 Landing Panorama, 20 July 2024. Image credit: Neil Armstrong · Apollo 11 · NASA. NASA does not endorse Mythical Void.",
           "state": "waiting_for_channel_and_kevin_approval"
         }
       ]
@@ -131,11 +131,11 @@
           "id": "CAL-007",
           "day": "Tuesday",
           "channel": "LinkedIn",
-          "contentRef": "LI-005",
-          "title": "The Mythical Void press room is open",
-          "asset": "public/press/gameplay/creature-cosmic-egg-hatch.png",
-          "assetClass": "authentic_running_build_screenshot",
-          "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup.",
+          "contentRef": "SS-005",
+          "title": "First contact changes the mission",
+          "asset": "public/marketing/social/first-signal/05-first-contact.jpg",
+          "assetClass": "reviewed_composite_social_card_with_authentic_gameplay",
+          "disclosure": "The card contains a screenshot captured from the real Mythical Void browser game; it is not a generated gameplay mockup.",
           "state": "waiting_for_channel_and_kevin_approval"
         },
         {

@@ -76,12 +76,12 @@
       "title": "NASA-powered discovery",
       "audience": "Parents, educators and STEM communities",
       "recommendedChannel": "Professional or education-facing channel",
-      "copy": "A fictional universe can open a door to real space.\n\nMythical Void can use NASA's public astronomy, Mars and space-weather data for optional discovery moments. The adventure stays playful; the curiosity can travel much further.\n\nSee the game and its family notes: https://mythicalvoid.com/",
-      "claimIds": ["CL-001", "CL-013"],
-      "asset": null,
-      "assetType": "product_screenshot_required",
-      "disclosure": "Show a real NASA learning moment from a named game build and credit the source data.",
-      "approvalState": "blocked_until_product_proof"
+      "copy": "A fictional universe can open a door to real space.\n\nMythical Void can use selected NASA public space data for optional discovery moments. We have also made a free four-page STEM Creature Lab for ages 9-14, families, clubs and classrooms.\n\nGet the activity: https://mythicalvoid.com/nasa-space-science/\nPlay the game: https://mythicalvoid.com/\n\nIndependent Mythical Void activity. NASA does not endorse Mythical Void.",
+      "claimIds": ["CL-001", "CL-013", "CL-015"],
+      "asset": "public/marketing/social/first-signal/04-stem-creature-lab.jpg",
+      "assetType": "reviewed_composite_social_card",
+      "disclosure": "The card contains a real in-game NASA learning moment from a named build and a clearly stated NASA non-endorsement notice.",
+      "approvalState": "awaiting_kevin_and_channel"
     },
     {
       "id": "PN-006",
@@ -102,10 +102,10 @@
       "recommendedChannel": "Individual human-reviewed outreach",
       "copy": "Mythical Void is a playable browser adventure that began as a father-and-son experiment with generative AI and imagination. It combines procedural creature genetics, six restorable realms, story choices and optional NASA-powered discovery.\n\nIt is free to try with no download or account required: https://mythicalvoid.com/\n\nIf the project fits your audience, we can provide build-linked gameplay footage, artwork disclosures and a concise fact sheet.",
       "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005"],
-      "asset": null,
-      "assetType": "tailored_press_pack_required",
+      "asset": "public/marketing/social/first-signal/05-first-contact.jpg",
+      "assetType": "reviewed_composite_social_card_with_authentic_gameplay",
       "disclosure": "Send individually only after relevance, identity and contact route are human-verified. No bulk outreach.",
-      "approvalState": "blocked_until_recipient_and_proof_review"
+      "approvalState": "ready_after_named_recipient_sender_and_kevin_approval"
     }
   ],
   "successMeasures": [

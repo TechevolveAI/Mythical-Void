@@ -91,6 +91,20 @@
       "status": "qualified",
       "approvedText": "The game can use selected NASA public space data for optional discovery moments.",
       "conditions": "Do not imply NASA endorsement, an official NASA product, guaranteed live availability, or that fictional material is real scientific data."
+    },
+    {
+      "id": "CL-014",
+      "class": "C1",
+      "status": "usable",
+      "approvedText": "Mythical Void began as a father-and-son project between Kevin and his nine-year-old son.",
+      "conditions": "The origin can be shared. Do not publish the child's name, image, school, location, routine, private account or other identifying details."
+    },
+    {
+      "id": "CL-015",
+      "class": "C1",
+      "status": "usable",
+      "approvedText": "The free four-page Mythical Void STEM Creature Lab is designed for ages 9-14, families, clubs and classrooms.",
+      "conditions": "Younger designers should work with an adult. Do not call it a NASA resource or imply NASA endorsement."
     }
   ]
 }

@@ -6,6 +6,7 @@
   "ownerStatement": "Kevin confirmed that Mythical Void does not yet have official email or social accounts.",
   "canonicalUrl": "https://mythicalvoid.com/",
   "pressUrl": "https://mythicalvoid.com/press/",
+  "firstSignalCampaignRef": "docs/company/content/campaigns/first-signal-social.json",
   "authority": {
     "accountCreationAuthorized": false,
     "publishingAuthorized": false,
@@ -164,8 +165,8 @@
           "sequence": 1,
           "theme": "Father-and-son beginning",
           "copy": "Mythical Void began at home with a father, his nine-year-old son and a question: what could generative AI tools and a lot of imagination make possible?\n\nThe answer became strange creatures, living worlds and a browser game you can play today. Imagination still leads. AI helps a very small team explore and build. People remain responsible for the story, safety and important choices.\n\nPlay Mythical Void: https://mythicalvoid.com/",
-          "asset": "public/marketing/mythical-void-emblem-v3.png",
-          "disclosure": "Brand artwork created with generative AI and refined for Mythical Void.",
+          "asset": "public/marketing/social/first-signal/01-origin.jpg",
+          "disclosure": "The reviewed card uses brand artwork created with generative AI and refined for Mythical Void; it contains no image or identifying detail of Kevin's child.",
           "approvalState": "awaiting_kevin_and_page"
         },
         {
@@ -173,8 +174,8 @@
           "sequence": 2,
           "theme": "Playable now",
           "copy": "Mythical Void is now playable in a browser.\n\nHatch a strange creature. Explore six living realms. Restore guardians affected by the Void. Decide what Project Beacon becomes.\n\nThere is no download or account needed to start: https://mythicalvoid.com/",
-          "asset": "public/press/gameplay/project-beacon-start.png",
-          "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup.",
+          "asset": "public/marketing/social/first-signal/02-playable-now.jpg",
+          "disclosure": "The reviewed card contains a screenshot captured from the real Mythical Void browser game; it is not a generated gameplay mockup.",
           "approvalState": "awaiting_kevin_and_page"
         },
         {
@@ -182,17 +183,17 @@
           "sequence": 3,
           "theme": "Responsible AI",
           "copy": "We are trying to build an AI-first game studio without making responsibility disappear.\n\nAt Mythical Void, AI can help us imagine, test, organise and create. It cannot make a safety decision, invent evidence, quietly publish as the studio or replace human judgement where children and families are involved.\n\nThat boundary is part of the product, not paperwork added afterwards. Read our story and play: https://mythicalvoid.com/",
-          "asset": "simple_brand_card_or_studio_page_capture",
-          "disclosure": "Label any generated artwork; do not use a generated studio photograph.",
+          "asset": "public/marketing/social/first-signal/01-origin.jpg",
+          "disclosure": "The reviewed card uses brand artwork created with generative AI and refined for Mythical Void; it is not a generated studio photograph.",
           "approvalState": "awaiting_kevin_and_page"
         },
         {
           "id": "LI-004",
           "sequence": 4,
           "theme": "NASA and STEM",
-          "copy": "A fantasy game can still open a door to real science.\n\nMythical Void can use NASA's public astronomy, Mars and space-weather data for optional discovery moments. The universe in the game is imagined. The curiosity it sparks can travel much further.\n\nWe will show the real feature and credit its data source when the product capture is ready. Explore Mythical Void: https://mythicalvoid.com/",
-          "asset": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
-          "disclosure": "Captured from the real Mythical Void browser game using NASA APOD: Apollo 11 Landing Panorama, 20 July 2024. Image credit: Neil Armstrong · Apollo 11 · NASA. NASA does not endorse Mythical Void.",
+          "copy": "A fantasy game can still open a door to real science.\n\nMythical Void can use selected NASA public space data for optional discovery moments. We have also made a free four-page STEM Creature Lab for ages 9-14, families, clubs and classrooms.\n\nGet the activity: https://mythicalvoid.com/nasa-space-science/\nPlay the game: https://mythicalvoid.com/\n\nIndependent Mythical Void activity. NASA does not endorse Mythical Void.",
+          "asset": "public/marketing/social/first-signal/04-stem-creature-lab.jpg",
+          "disclosure": "The reviewed card contains a real in-game learning moment using NASA APOD: Apollo 11 Landing Panorama, 20 July 2024. Image credit: Neil Armstrong · Apollo 11 · NASA. NASA does not endorse Mythical Void.",
           "approvalState": "awaiting_kevin_and_page"
         },
         {
@@ -200,8 +201,8 @@
           "sequence": 5,
           "theme": "Press and creator invitation",
           "copy": "For games writers, creators, educators and people exploring responsible creative AI: our Mythical Void press room is open.\n\nIt includes the playable link, a clear fact sheet, the father-and-son origin and honest notes explaining which images are generated artwork and which captures are gameplay.\n\nPress room: https://mythicalvoid.com/press/",
-          "asset": "press_room_page_capture",
-          "disclosure": "Website capture; no additional artwork claim needed.",
+          "asset": "public/marketing/social/first-signal/03-creature-universe.jpg",
+          "disclosure": "AI-generated marketing illustration inspired by real genetics-engine profiles; not gameplay footage.",
           "approvalState": "awaiting_kevin_and_page"
         }
       ]

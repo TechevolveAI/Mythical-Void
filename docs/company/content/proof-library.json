@@ -84,7 +84,7 @@
       "title": "Mythical Void technology source map",
       "asset": "docs/company/content/technology-proof-map.json",
       "kind": "code_source_map",
-      "status": "source_bound",
+      "status": "approved",
       "capturedFromBuild": null,
       "shows": "Repository sources for plain-language descriptions of creature genetics, the Phaser browser world, bounded AI media and optional NASA public data.",
       "doesNotProve": [
@@ -98,6 +98,54 @@
       "generatedMediaProvenance": "Not a media asset",
       "alt": "Not applicable; internal text evidence map",
       "expiryTrigger": "Relevant source, provider, safety boundary or public wording changes"
+    },
+    {
+      "id": "PF-007",
+      "title": "Project Beacon opening gameplay screenshot",
+      "captureId": "GP-001",
+      "asset": "public/press/gameplay/project-beacon-start.png",
+      "kind": "authentic_running_build_screenshot",
+      "status": "approved",
+      "capturedFromBuild": "cf0f9c2409b5915a0177f65b287f539932352021",
+      "shows": "The real Project Beacon opening at the Wanderer-77 crash site.",
+      "doesNotProve": ["complete game quality", "full campaign progression", "creature behaviour after hatching"],
+      "claims": ["CL-001", "CL-002", "CL-008"],
+      "rights": "First-party capture from a clean company-controlled QA state with no personal player data.",
+      "generatedMediaProvenance": "Authentic running-build screenshot; not a generated gameplay mockup.",
+      "alt": "Project Beacon opening in the real Mythical Void browser game at the Wanderer-77 crash site.",
+      "expiryTrigger": "Opening scene, public access, game route, capture record or source build changes"
+    },
+    {
+      "id": "PF-008",
+      "title": "First-contact egg gameplay screenshot",
+      "captureId": "GP-003",
+      "asset": "public/press/gameplay/creature-cosmic-egg-hatch.png",
+      "kind": "authentic_running_build_screenshot",
+      "status": "approved",
+      "capturedFromBuild": "cf0f9c2409b5915a0177f65b287f539932352021",
+      "shows": "The real first-contact egg interaction beside the Wanderer-77 wreck.",
+      "doesNotProve": ["post-hatch creature behaviour", "unrestricted intelligence", "complete story progression"],
+      "claims": ["CL-001", "CL-008"],
+      "rights": "First-party capture from a clean company-controlled QA state with no personal player data.",
+      "generatedMediaProvenance": "Authentic running-build screenshot; not a generated gameplay mockup.",
+      "alt": "An alien egg hovering above a signal platform in the real Mythical Void browser game.",
+      "expiryTrigger": "First-contact scene, story claim, capture record or source build changes"
+    },
+    {
+      "id": "PF-009",
+      "title": "Apollo 11 discovery gameplay screenshot",
+      "captureId": "GP-012",
+      "asset": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
+      "kind": "authentic_running_build_screenshot_with_credited_public_nasa_image",
+      "status": "approved",
+      "capturedFromBuild": "24ea30df367a20df762b237a4989604b35734435",
+      "shows": "A real in-game learning card that separates a credited Apollo 11 image and observation prompts from the game's imagined creature response.",
+      "doesNotProve": ["NASA endorsement", "official NASA product status", "guaranteed live data availability", "scientific truth of fictional creatures"],
+      "claims": ["CL-013", "CL-015"],
+      "rights": "First-party gameplay capture. Embedded source: NASA Astronomy Picture of the Day, Apollo 11 Landing Panorama, 20 July 2024. Image credit: Neil Armstrong, Apollo 11, NASA.",
+      "generatedMediaProvenance": "Authentic running-build screenshot; the embedded public NASA image and fictional game response are visibly separated.",
+      "alt": "Apollo 11 panorama, NASA credit, observation prompts and a separately labelled imagined creature response inside Mythical Void.",
+      "expiryTrigger": "NASA source, credit, non-endorsement boundary, learning design, capture record or source build changes"
     }
   ]
 }
