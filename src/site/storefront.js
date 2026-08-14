@@ -47,6 +47,146 @@ const brandMark = () => `
     <img class="brand-mark" src="/marketing/mythical-void-emblem-v3.png" alt="" width="38" height="58">
 `;
 
+function renderPressPage() {
+    updatePageMetadata({
+        title: 'Press & Creator Room | Mythical Void',
+        description: 'Official Mythical Void facts, founder story, playable game link, approved artwork and clear media disclosures.',
+        path: '/press/'
+    });
+
+    app.innerHTML = `
+        <header class="press-header">
+            <div class="header-inner">
+                <a class="brand" href="/" aria-label="Return to Mythical Void home">
+                    ${brandMark()}
+                    <span>MYTHICAL VOID</span>
+                </a>
+                <div class="press-header-actions">
+                    <a href="/">Main website</a>
+                    ${playLink('Play now', 'button button-small')}
+                </div>
+            </div>
+        </header>
+
+        <main class="press-page">
+            <section class="press-hero">
+                <img src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="A wide marketing illustration showing many possible alien creatures in the Mythical Void universe">
+                <div class="press-hero-shade" aria-hidden="true"></div>
+                <div class="section-inner press-hero-copy">
+                    <p class="kicker">OFFICIAL PRESS & CREATOR ROOM</p>
+                    <h1>A small Irish studio.<br><em>A universe of creatures.</em></h1>
+                    <p>Everything needed to understand, describe and share Mythical Void—without guessing what is gameplay, what is marketing art, or what the game promises.</p>
+                    <div class="press-hero-actions">
+                        ${playLink('Play the current game')}
+                        <a class="button button-quiet" href="/press/mythical-void-fact-sheet.txt" download>Download the fact sheet</a>
+                    </div>
+                    <p class="press-art-disclosure">Hero image: AI-generated marketing illustration inspired by creature profiles from the genetics engine. It is not gameplay footage.</p>
+                </div>
+            </section>
+
+            <section class="press-facts-section">
+                <div class="section-inner">
+                    <div class="press-section-heading">
+                        <p class="kicker">THE SHORT VERSION</p>
+                        <h2>What is Mythical Void?</h2>
+                    </div>
+                    <div class="press-fact-grid">
+                        <article><span>GAME</span><strong>Mythical Void</strong><p>A science-fantasy creature adventure built to play in a browser.</p></article>
+                        <article><span>PLAY</span><strong>Free early access</strong><p>No download or account is required to start the current release.</p></article>
+                        <article><span>JOURNEY</span><strong>Six living realms</strong><p>Explore, fight the corruption, restore guardians and shape Project Beacon.</p></article>
+                        <article><span>CREATURES</span><strong>Procedural genetics</strong><p>Appearance, affinity, personality and potential emerge from a varied genetics system.</p></article>
+                        <article><span>STUDIO</span><strong>Independent · Ireland</strong><p>A father-and-son experiment growing into an AI-first, human-governed game studio.</p></article>
+                        <article><span>DISCOVERY</span><strong>Optional NASA data</strong><p>Selected public space data can appear in optional learning moments. NASA does not endorse the game.</p></article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="press-origin-section">
+                <div class="section-inner press-origin-grid">
+                    <div class="press-origin-mark">
+                        <img src="/marketing/mythical-void-emblem-v3.png" alt="The purple and gold Mythical Void creature emblem">
+                        <span>IMAGINATION FIRST</span>
+                    </div>
+                    <div class="press-origin-copy">
+                        <p class="kicker">THE BEGINNING</p>
+                        <h2>A father, his nine-year-old son and one enormous idea.</h2>
+                        <p>Mythical Void began at home with Kevin and his nine-year-old son exploring what generative AI tools and a lot of imagination could make possible.</p>
+                        <p>Their conversations became strange creatures, living worlds and playable moments. AI helps the small team explore and build; people remain responsible for the story, safety and important choices.</p>
+                        <blockquote>“What if we could build the game we imagined together?”</blockquote>
+                    </div>
+                </div>
+            </section>
+
+            <section class="press-assets-section">
+                <div class="section-inner">
+                    <div class="press-section-heading press-heading-split">
+                        <div><p class="kicker">APPROVED MEDIA</p><h2>Images with honest labels.</h2></div>
+                        <p>These files may be used when covering Mythical Void. Please keep the supplied description with each image and do not present game-world art as a gameplay capture.</p>
+                    </div>
+                    <div class="press-assets-grid">
+                        <figure class="press-asset-card press-asset-wide">
+                            <img src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Many possible alien creature forms gathered in a luminous cosmic realm">
+                            <figcaption><span>MARKETING KEY ART</span><strong>A Universe of Creatures</strong><p>AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay footage.</p><a href="/marketing/mythical-void-creature-universe-hero-v2.webp" download>Download image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-asset-card">
+                            <img src="/game/project-beacon-crash-site.webp" alt="The Wanderer-77 crash site in Mythical Void">
+                            <figcaption><span>CURRENT GAME-WORLD ART</span><strong>Wanderer-77 crash site</strong><p>A first-party asset used by the game. It does not demonstrate animation or a complete gameplay sequence.</p><a href="/game/project-beacon-crash-site.webp" download>Download image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-asset-card">
+                            <img src="/game/village/village-heart-command.webp" alt="The command area at the heart of the Fend village">
+                            <figcaption><span>CURRENT GAME-WORLD ART</span><strong>The Fend village heart</strong><p>A first-party environment asset used by the game. It does not show a completed restoration outcome.</p><a href="/game/village/village-heart-command.webp" download>Download image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-asset-card">
+                            <img src="/game/guardians/void-empress.webp" alt="The Void Empress guardian from Mythical Void">
+                            <figcaption><span>CURRENT GAME-WORLD ART</span><strong>The Void Empress</strong><p>A first-party guardian asset. In the story, the corruption is fought so the guardian can be restored.</p><a href="/game/guardians/void-empress.webp" download>Download image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-asset-card press-logo-asset">
+                            <div><img src="/marketing/mythical-void-emblem-v3.png" alt="Transparent Mythical Void creature emblem"></div>
+                            <figcaption><span>OFFICIAL BRAND ART</span><strong>Mythical Void emblem</strong><p>Transparent purple-and-gold emblem created with generative AI and professionally refined for the studio.</p><a href="/marketing/mythical-void-emblem-v3.png" download>Download transparent PNG ↓</a></figcaption>
+                        </figure>
+                    </div>
+                </div>
+            </section>
+
+            <section class="press-language-section">
+                <div class="section-inner press-language-grid">
+                    <div>
+                        <p class="kicker">DESCRIBE IT ACCURATELY</p>
+                        <h2>Useful language</h2>
+                        <p class="press-boilerplate">Mythical Void is a free early-access browser adventure from an independent Irish studio. Players hatch a genetically varied alien creature, explore six living realms, fight the corruption holding their guardians and decide what Project Beacon should become.</p>
+                    </div>
+                    <div class="press-language-cards">
+                        <article><strong>Please say</strong><ul><li>Creature adventure</li><li>Procedural creature genetics</li><li>Playable in a browser</li><li>AI-assisted creative work</li><li>Generated marketing illustration</li></ul></article>
+                        <article><strong>Please avoid</strong><ul><li>Sentient or conscious creatures</li><li>Guaranteed global uniqueness</li><li>Generated artwork described as gameplay</li><li>NASA partnership or endorsement</li><li>A fully autonomous studio</li></ul></article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="press-contact-section">
+                <div class="section-inner">
+                    <p class="kicker">PLAY BEFORE YOU WRITE</p>
+                    <h2>The signal is already live.</h2>
+                    <p>Mythical Void is available to try now. An official press contact channel is being prepared; until it opens, this page remains the canonical source for approved facts and artwork.</p>
+                    <div class="press-hero-actions">
+                        ${playLink('Play Mythical Void')}
+                        <a class="button button-quiet" href="/press/mythical-void-press-assets.json">View the media manifest</a>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-inner">
+                <div class="footer-brand"><a class="brand" href="/">${brandMark()}<span>MYTHICAL VOID</span></a><p>Your creature. Your journey. Your choice.</p></div>
+                <nav aria-label="Press room navigation"><a href="/">Main website</a><a href="/play/">Play game</a><a href="/privacy/">Privacy & safety</a><a href="/terms/">Terms</a></nav>
+                <small>© ${new Date().getFullYear()} Mythical Void. Made in Ireland for curious minds everywhere.</small>
+            </div>
+        </footer>
+    `;
+
+    mountAnalyticsConsent();
+}
+
 function renderLegalPage(type) {
     const isPrivacy = type === 'privacy';
     updatePageMetadata({
@@ -410,6 +550,7 @@ function renderStorefront() {
                 </div>
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
+                    <a href="/press/">Press & creators</a>
                     <a href="#parents">For grown-ups</a>
                     <a href="/privacy/">Privacy & safety</a>
                     <a href="/terms/">Terms</a>
@@ -525,7 +666,9 @@ function bindInteractions() {
     });
 }
 
-if (pagePath === '/privacy') {
+if (pagePath === '/press') {
+    renderPressPage();
+} else if (pagePath === '/privacy') {
     renderLegalPage('privacy');
 } else if (pagePath === '/terms') {
     renderLegalPage('terms');

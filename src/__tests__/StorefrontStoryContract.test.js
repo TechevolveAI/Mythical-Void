@@ -14,6 +14,15 @@ const styles = fs.readFileSync(
     'utf8'
 );
 const projectBeacon = require('../config/project-beacon.json');
+const sitemap = fs.readFileSync(
+    path.join(__dirname, '../../public/sitemap.xml'),
+    'utf8'
+);
+const pressFactSheet = fs.readFileSync(
+    path.join(__dirname, '../../public/press/mythical-void-fact-sheet.txt'),
+    'utf8'
+);
+const pressAssets = require('../../public/press/mythical-void-press-assets.json');
 
 describe('storefront Project Beacon story contract', () => {
     test('matches the implemented 2026 astronaut opening', () => {
@@ -138,5 +147,24 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('navigator.clipboard.writeText');
         expect(storefront).toContain('https://mythicalvoid.com/');
         expect(storefront).not.toContain('utm_');
+    });
+
+    test('provides a truthful public press and creator room', () => {
+        expect(storefront).toContain("path: '/press/'");
+        expect(storefront).toContain('OFFICIAL PRESS & CREATOR ROOM');
+        expect(storefront).toContain('Download the fact sheet');
+        expect(storefront).toContain('AI-generated marketing illustration');
+        expect(storefront).toContain('It is not gameplay footage.');
+        expect(storefront).toContain('NASA does not endorse the game.');
+        expect(storefront).toContain('Press & creators');
+        expect(sitemap).toContain('<loc>https://mythicalvoid.com/press/</loc>');
+        expect(pressFactSheet).toContain('PLAY THE CURRENT GAME');
+        expect(pressFactSheet).toContain('father-and-son project');
+        expect(pressFactSheet).not.toMatch(/\bcompanions?\b/i);
+        expect(pressAssets.assets).toHaveLength(5);
+        expect(pressAssets.assets[0].kind).toBe('ai_generated_marketing_illustration');
+        expect(pressAssets.restrictions).toContain(
+            'Do not present marketing illustrations or game-world stills as gameplay footage.'
+        );
     });
 });
