@@ -173,6 +173,23 @@ function renderPressPage() {
                             </figure>
                         </div>
                         <p class="press-social-note">These are branded sharing layouts, not raw screenshots. The image inside each layout is real gameplay; no player information is shown.</p>
+                        <div class="press-social-subsection" id="nasa-stem-social-assets">
+                            <div class="press-section-heading press-heading-split">
+                                <div><p class="kicker">SPACE DISCOVERY · READY TO SHARE</p><h2>Share a real-space question.</h2></div>
+                                <p>For adults, families, educators and creators: two finished layouts show how a real NASA public image can become a playful, optional discovery moment inside Mythical Void.</p>
+                            </div>
+                            <div class="press-social-grid">
+                                <figure class="press-asset-card">
+                                    <img src="/press/social/nasa-stem-discovery-wide.png" alt="Wide Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and the words Real space, strange worlds, questions worth asking" loading="lazy">
+                                    <figcaption><span>WIDE SOCIAL ARTWORK · REAL GAME + NASA PUBLIC IMAGE</span><strong>Real space, imagined worlds — wide</strong><p>1200 × 630 PNG for link previews and wide posts. The framed screen comes from the running game and shows the image credit and the boundary between science and fiction.</p><a href="/press/social/nasa-stem-discovery-wide.png" download>Download wide PNG ↓</a></figcaption>
+                                </figure>
+                                <figure class="press-asset-card">
+                                    <img src="/press/social/nasa-stem-discovery-square.png" alt="Square Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and an observation question" loading="lazy">
+                                    <figcaption><span>SQUARE SOCIAL ARTWORK · REAL GAME + NASA PUBLIC IMAGE</span><strong>Real space, imagined worlds — square</strong><p>1200 × 1200 PNG for square posts. The clean destination shown in the artwork is mythicalvoid.com/nasa-space-science.</p><a href="/press/social/nasa-stem-discovery-square.png" download>Download square PNG ↓</a></figcaption>
+                                </figure>
+                            </div>
+                            <p class="press-social-note">These are branded sharing layouts, not raw screenshots. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image. NASA does not endorse Mythical Void. <a href="/nasa-space-science/">See how science and fiction are separated →</a></p>
+                        </div>
                     </div>
                     <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View video build record →</a></p>
                 </div>

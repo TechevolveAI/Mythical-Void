@@ -86,7 +86,7 @@ for (const page of manifest.pages || []) {
     if (page.classification === 'ai_generated_marketing_illustration') {
         requireValue(/not gameplay/i.test(page.disclosure || ''), `${label} generated artwork must be disclosed as not gameplay.`);
     }
-    if (page.classification === 'branded_social_artwork_with_authentic_gameplay_frame') {
+    if ((page.classification || '').startsWith('branded_social_artwork_with_authentic_gameplay_frame')) {
         requireValue(/not a raw screenshot/i.test(page.disclosure || '') && /real gameplay/i.test(page.disclosure || '') && /no player information/i.test(page.disclosure || ''), `${label} branded artwork must retain its gameplay and privacy disclosure.`);
     }
     if (/nasa/i.test(page.classification || '')) {

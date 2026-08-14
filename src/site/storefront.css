@@ -2188,6 +2188,17 @@ footer {
     font-size: .84rem;
 }
 
+.press-social-note a {
+    color: #2f6f68;
+    font-weight: 800;
+}
+
+.press-social-subsection {
+    margin-top: 4.25rem;
+    padding-top: 4.25rem;
+    border-top: 1px solid rgba(32, 32, 58, .12);
+}
+
 .press-asset-card {
     overflow: hidden;
     margin: 0;
