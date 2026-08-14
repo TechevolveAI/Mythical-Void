@@ -93,6 +93,7 @@ function buildDashboard({ evidence, outreach, activation, itch, launch, trailer,
 - ${livePageCount} public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, and Signal Log.
 - The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
 - The Signal Log is live with ${signalLog.liveEntries.length} checked release notes. Its merged draft builder has already turned them into ${signalLog.draftAutomation.reviewDraftCount} internal review drafts for later social, press, and creator use without publishing anything.
+- People can now follow those same checked releases through the live RSS feed, while the JSON feed gives future Mythical tools the same source. Neither feed needs an account or email address, collects a recipient, or adds tracking code.
 - The homepage now offers ${signalLog.homepageSharingRelease.shareActionCount} user-controlled ways to share the clean game link, including one beside Play on the first screen. The control does not collect a recipient or add tracking code.
 - ${signalLog.socialPreviewRelease.routeSpecificPageCount} important public pages now carry checked, route-specific social preview images and accessible image text. The Project Beacon story uses its purpose-built wide artwork.
 - The first Project Beacon social release is live in the press room with ${signalLog.firstSocialRelease.assets.length} finished, downloadable images. Posting still waits for an official channel and Kevin's approval.

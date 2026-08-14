@@ -186,10 +186,14 @@ try {
     exposedFounderChildIdentity.fatherSonStorySocialRelease.childPhotoNameQuoteContactOrIdentifyingDetailUsed = true;
     if (run('exposed-founder-child-identity', { signalLog: exposedFounderChildIdentity }).status === 0) throw new Error('A founder-story release exposing child identity was accepted.');
 
+    const openedExternalFeedSyndication = structuredClone(sources.signalLog);
+    openedExternalFeedSyndication.signalLogSyndicationRelease.externalSyndicationAuthorized = true;
+    if (run('opened-external-feed-syndication', { signalLog: openedExternalFeedSyndication }).status === 0) throw new Error('Unauthorized external feed syndication was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 28 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 29 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

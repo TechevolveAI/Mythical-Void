@@ -3,11 +3,17 @@
   "id": "SIGNAL-LOG-RELEASE-2026-08-14",
   "state": "published_to_owned_website_and_live_verified",
   "publicUrl": "https://mythicalvoid.com/updates/",
-  "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/85",
-  "productionCommit": "b319c1f9bbec7becbbfdd25256bf503477f2a18b",
-  "verifiedAt": "2026-08-14T22:19:29Z",
+  "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/92",
+  "productionCommit": "7f76f35eec068af07bf380283f76626d11dbc24f",
+  "verifiedAt": "2026-08-14T22:35:52Z",
   "purpose": "Give players, families, creators and search engines one plain-language source for meaningful Mythical Void releases, with a working destination for every note.",
   "liveEntries": [
+    {
+      "id": "SIGNAL-008",
+      "title": "The Signal Log can now travel",
+      "destination": "https://mythicalvoid.com/updates/feed.xml",
+      "destinationStatusObserved": 200
+    },
     {
       "id": "SIGNAL-007",
       "title": "The father-and-son story is ready to share",
@@ -66,8 +72,8 @@
     "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/86",
     "productionCommit": "bddd9b29d40c1b7f8798575219b0eacc6574a004",
     "generatedPack": "docs/company/content/generated/signal-log-release-pack.json",
-    "sourceEntryCount": 7,
-    "reviewDraftCount": 21,
+    "sourceEntryCount": 8,
+    "reviewDraftCount": 24,
     "draftTypesPerEntry": [
       "professional network post",
       "video community text post",
@@ -218,6 +224,26 @@
     "kevinApprovalRequiredBeforePosting": true,
     "externalActionPerformed": false
   },
+  "signalLogSyndicationRelease": {
+    "state": "published_to_owned_website_and_live_verified",
+    "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/92",
+    "productionCommit": "7f76f35eec068af07bf380283f76626d11dbc24f",
+    "rssFeedUrl": "https://mythicalvoid.com/updates/feed.xml",
+    "rssContentTypeObserved": "application/rss+xml; charset=utf-8",
+    "rssSha256": "d5b3d913a1a24d9ac134e9aa5096c7912834ee12eb38a02e7d749591d132dd0b",
+    "jsonFeedUrl": "https://mythicalvoid.com/updates/feed.json",
+    "jsonContentTypeObserved": "application/feed+json; charset=utf-8",
+    "jsonSha256": "7a766f5e2136e82ec4392b2703507ca54b2598a17def0b6740c043d9c6f21a49",
+    "itemCount": 8,
+    "sourceBoundBuild": true,
+    "accountRequired": false,
+    "emailSignupEnabled": false,
+    "recipientOrContactCollectionEnabled": false,
+    "trackingParametersPermitted": false,
+    "externalSyndicationAuthorized": false,
+    "autonomousSocialPostingAuthorized": false,
+    "externalActionPerformed": false
+  },
   "boundaries": {
     "commentsEnabled": false,
     "contactCollectionEnabled": false,
@@ -233,8 +259,8 @@
     "horizontalOverflowObserved": false,
     "browserWarningsOrErrorsObserved": false,
     "signalLogSafeguardCasesPassed": 9,
-    "fullTestSuitesPassed": 169,
-    "fullTestsPassed": 1441,
+    "fullTestSuitesPassed": 170,
+    "fullTestsPassed": 1445,
     "productionPageVerified": true,
     "homepageLinkVerified": true,
     "sitemapEntryVerified": true
