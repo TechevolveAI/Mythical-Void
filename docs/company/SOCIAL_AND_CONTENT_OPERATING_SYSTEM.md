@@ -25,7 +25,7 @@ company outcome.
 
 | Pillar | Role | Example proof | Approximate share after proof exists |
 | --- | --- | --- | ---: |
-| Living companion | Emotional differentiation | Hatch, behavior, specific memory, animation | 35% |
+| Living creature | Emotional differentiation | Hatch, behavior, specific memory, animation | 35% |
 | Living world and choice | Narrative/game depth | Restoration, Project Beacon discoveries, consequence | 25% |
 | Craft and technology | Credible innovation | Animation system, procedural genetics, agent design | 20% |
 | Trust and learning | Responsible company differentiation | What changed from research, privacy/safety design, limitations | 15% |
@@ -198,7 +198,7 @@ as players, customers, or revenue.
 1. **What is Mythical Void?** Authentic hatch/bond footage and exact current
    access facts.
 2. **The world was alive.** Restoration proof and Project Beacon premise.
-3. **What the companion remembers.** One specific implemented example with
+3. **What the creature remembers.** One specific implemented example with
    boundaries.
 4. **How Mythical uses AI responsibly.** Actual systems, age gates, providers,
    data boundaries, and what remains human-authored.

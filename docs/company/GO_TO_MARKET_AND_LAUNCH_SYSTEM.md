@@ -21,7 +21,7 @@ launch.
 
 Lead with the emotional and playable truth:
 
-> A one-of-one alien companion, a living world to restore, and choices that
+> A richly varied alien creature, a living world to restore, and choices that
 > change what getting home means.
 
 Use AI, procedural generation, and animation as supported craft evidence—not

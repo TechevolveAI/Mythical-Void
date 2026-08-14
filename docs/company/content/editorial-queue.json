@@ -40,7 +40,7 @@
     {
       "id": "CQ-003",
       "priority": "P1",
-      "title": "What the companion remembers",
+      "title": "What the creature remembers",
       "pillar": "living_companion",
       "objective": "Show one implemented memory with an explicit boundary rather than claiming unrestricted intelligence.",
       "audience": "Players, parents/guardians, creators, and responsible-AI audiences",
@@ -116,7 +116,7 @@
       "contentType": "text",
       "channelIds": ["CH-001", "CH-004"],
       "claimIds": ["CL-005"],
-      "proofIds": ["technology-proof-map.json"],
+      "proofIds": ["PF-006"],
       "dependencyRefs": ["D-006", "D-011", "D-013"],
       "requiresAcceptedCustomerEvidence": false,
       "requiresProviderPolicyReady": true,

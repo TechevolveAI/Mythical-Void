@@ -14,6 +14,16 @@ const styles = fs.readFileSync(
     'utf8'
 );
 const projectBeacon = require('../config/project-beacon.json');
+const sitemap = fs.readFileSync(
+    path.join(__dirname, '../../public/sitemap.xml'),
+    'utf8'
+);
+const pressFactSheet = fs.readFileSync(
+    path.join(__dirname, '../../public/press/mythical-void-fact-sheet.txt'),
+    'utf8'
+);
+const pressAssets = require('../../public/press/mythical-void-press-assets.json');
+const gameplayManifest = require('../../public/press/gameplay/manifest.json');
 
 describe('storefront Project Beacon story contract', () => {
     test('matches the implemented 2026 astronaut opening', () => {
@@ -57,7 +67,7 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('path-icon-clearing');
         expect(storefront).toContain('path-icon-choice');
         expect(storefront).toContain('recovery-ship');
-        expect(storefront).toContain('clearing-companion');
+        expect(storefront).toContain('clearing-creature');
         expect(storefront).toContain('choice-beacon');
         expect(storefront).not.toContain('aria-hidden="true">⌁</div>');
     });
@@ -84,7 +94,9 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('1,000');
         expect(storefront).toContain('72');
         expect(storefront).toContain('real engine hatches explored');
-        expect(storefront).toContain('No two companions alike.');
+        expect(storefront).toContain('A universe of creatures');
+        expect(storefront).toContain('No two creatures alike.');
+        expect(storefront).not.toMatch(/\bcompanions?\b/i);
         expect(storefront).toContain(
             '/marketing/mythical-void-creature-universe-hero-v2.webp'
         );
@@ -128,5 +140,45 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('Our feedback channel is being prepared now');
         expect(storefront).not.toContain('mailto:hello@mythicalvoid.com');
         expect(storefront).not.toContain('mailto:parents@mythicalvoid.com');
+    });
+
+    test('offers a privacy-safe player-led sharing path', () => {
+        expect(storefront).toContain('data-share-game');
+        expect(storefront).toContain('navigator.share');
+        expect(storefront).toContain('navigator.clipboard.writeText');
+        expect(storefront).toContain('https://mythicalvoid.com/');
+        expect(storefront).not.toContain('utm_');
+    });
+
+    test('provides a truthful public press and creator room', () => {
+        expect(storefront).toContain("path: '/press/'");
+        expect(storefront).toContain('OFFICIAL PRESS & CREATOR ROOM');
+        expect(storefront).toContain('Download the fact sheet');
+        expect(storefront).toContain('AI-generated marketing illustration');
+        expect(storefront).toContain('It is not gameplay footage.');
+        expect(storefront).toContain('NASA does not endorse the game.');
+        expect(storefront).toContain('Press & creators');
+        expect(sitemap).toContain('<loc>https://mythicalvoid.com/press/</loc>');
+        expect(pressFactSheet).toContain('PLAY THE CURRENT GAME');
+        expect(pressFactSheet).toContain('father-and-son project');
+        expect(pressFactSheet).not.toMatch(/\bcompanions?\b/i);
+        expect(storefront).toContain('This is what players really see.');
+        expect(storefront).toContain('/press/gameplay/manifest.json');
+        expect(pressAssets.gameplayProofManifest).toBe(
+            'https://mythicalvoid.com/press/gameplay/manifest.json'
+        );
+        expect(pressAssets.assets).toHaveLength(9);
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'authentic_running_build_screenshot'
+        ))).toHaveLength(4);
+        expect(pressAssets.assets[0].kind).toBe('authentic_running_build_screenshot');
+        expect(gameplayManifest.captures).toHaveLength(11);
+        expect(gameplayManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
+        expect(gameplayManifest.approvalState).toBe(
+            'internal_review_required_before_public_promotion'
+        );
+        expect(pressAssets.restrictions).toContain(
+            'Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.'
+        );
     });
 });
