@@ -95,6 +95,10 @@ try {
     inventedSearchResult.publicSearchSample.ownedResultObserved = true;
     if (run('invented-search-result', { liveSearch: inventedSearchResult }).status === 0) throw new Error('An invented public search result was accepted.');
 
+    const hiddenRelatedSearchResult = structuredClone(sources.liveSearch);
+    hiddenRelatedSearchResult.followUpSearchSample.relatedResultObserved = false;
+    if (run('hidden-related-search-result', { liveSearch: hiddenRelatedSearchResult }).status === 0) throw new Error('The observed related search result was erased.');
+
     const sentFounderStory = structuredClone(sources.founderStory);
     sentFounderStory.pitch.sentAt = '2026-08-14T00:00:00Z';
     if (run('sent-founder-story', { founderStory: sentFounderStory }).status === 0) throw new Error('An unapproved founder story pitch was accepted as sent.');
@@ -114,7 +118,7 @@ try {
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot plus 18 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot plus 19 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

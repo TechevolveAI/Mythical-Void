@@ -101,9 +101,11 @@ requireValue(values.adultStemOutreach.messages?.length === 2, 'Founder view must
 requireValue(values.adultStemOutreach.messages?.every(message => message.approved === false && message.sentAt === null), 'Every adult STEM introduction must remain unapproved and unsent.');
 requireValue(values.adultStemOutreach.authority?.sendingAuthorized === false && values.adultStemOutreach.authority?.childWorkCollectionAuthorized === false, 'Adult STEM sending and child-work collection must remain unauthorized.');
 
-requireValue(values.liveSearch.state === 'crawl_foundation_live_public_discovery_not_observed', 'Founder view must retain the honest live search state.');
+requireValue(values.liveSearch.state === 'crawl_foundation_live_related_result_observed_owned_discovery_not_observed', 'Founder view must retain the honest live search and related-result state.');
 requireValue(values.liveSearch.ownedCrawlFoundation?.homepageStatus === 200 && values.liveSearch.ownedCrawlFoundation?.sitemapRouteCount === 8, 'Founder view must retain the reachable homepage and eight-route sitemap evidence.');
 requireValue(values.liveSearch.publicSearchSample?.ownedResultObserved === false, 'Founder view must not invent a public search result.');
+requireValue(values.liveSearch.followUpSearchSample?.ownedResultObserved === false && values.liveSearch.followUpSearchSample?.relatedResultObserved === true, 'Founder view must retain the missing owned result and observed related result.');
+requireValue(values.liveSearch.followUpSearchSample?.currentRelatedPageClaim === 'Every creature is unique.', 'Founder view must retain the related-site correction reason.');
 requireValue(values.liveSearch.webmasterEvidence?.googleSearchConsoleConnected === false && values.liveSearch.webmasterEvidence?.indexCoverageKnown === false, 'Founder view must retain unverified Search Console and index coverage.');
 requireValue(values.liveSearch.authority?.searchEngineSubmissionAuthorized === false, 'Search submission must remain unauthorized.');
 

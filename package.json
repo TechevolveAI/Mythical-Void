@@ -22,6 +22,8 @@
     "test:adult-stem-outreach": "node scripts/company/test-adult-stem-outreach.cjs",
     "validate:live-search": "node scripts/company/validate-live-search-findability.cjs",
     "test:live-search": "node scripts/company/test-live-search-findability.cjs",
+    "validate:search-referral-correction": "node scripts/company/validate-search-referral-correction.cjs",
+    "test:search-referral-correction": "node scripts/company/test-search-referral-correction.cjs",
     "validate:founder-story": "node scripts/company/validate-irish-founder-story.cjs",
     "test:founder-story": "node scripts/company/test-irish-founder-story.cjs",
     "validate:science-week-water": "node scripts/company/validate-science-week-water-concept.cjs",

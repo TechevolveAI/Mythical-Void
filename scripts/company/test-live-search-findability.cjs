@@ -36,7 +36,15 @@ try {
     submissionAuthority.authority.searchEngineSubmissionAuthorized = true;
     if (run('submission-authority', submissionAuthority).status === 0) throw new Error('Unauthorized search submission was accepted.');
 
-    console.log('Live search findability tests passed: valid evidence plus 4 discovery and authority mutations checked.');
+    const hiddenRelatedResult = structuredClone(source);
+    hiddenRelatedResult.followUpSearchSample.relatedResultObserved = false;
+    if (run('hidden-related-result', hiddenRelatedResult).status === 0) throw new Error('The observed related search result was erased.');
+
+    const inventedOwnedResult = structuredClone(source);
+    inventedOwnedResult.followUpSearchSample.ownedResultObserved = true;
+    if (run('invented-owned-result', inventedOwnedResult).status === 0) throw new Error('An invented owned result was accepted in the follow-up sample.');
+
+    console.log('Live search findability tests passed: valid evidence plus 6 discovery, referral and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "SEARCH-REFERRAL-CORRECTION-001",
+  "checkedAt": "2026-08-14T18:54:10Z",
+  "state": "correction_ready_external_site_unchanged",
+  "purpose": "Make an already-visible related website describe Mythical Void accurately and send interested people to the owned game page without making absolute genetics claims.",
+  "source": {
+    "page": "https://www.techevolveai.com/",
+    "pageOwnerRelationship": "Kevin's separate consultancy website; outside the Mythical Void repository and deployment boundary",
+    "searchQuery": "\"Mythical Void\" free browser game",
+    "searchObservation": "A public search returned TechEvolveAI while no mythicalvoid.com result was observed in the sampled results.",
+    "currentLiveClaim": "Every creature is unique.",
+    "currentLiveDescription": "A live browser-based creature-bonding RPG with procedural genetics and evolving game systems—taken from a family idea through product design, engineering, launch, analytics and ongoing iteration.",
+    "currentLiveLink": "https://www.mythicalvoid.com/",
+    "cachedSearchExcerptAlsoObserved": [
+      "Every creature is 1-of-1. Yours will be completely unique with advanced genetic algorithms.",
+      "Fight through 5 cosmic biomes and defeat legendary guardians to collect your ship parts."
+    ],
+    "cachedExcerptCaution": "The public search excerpt may reflect an older crawl and is not treated as the current source page. It is recorded because searchers can still see it until the source is corrected and recrawled."
+  },
+  "problems": [
+    {
+      "id": "REF-ISSUE-001",
+      "severity": "high",
+      "problem": "The current page says every creature is unique, which is an absolute promise the procedural engine evidence does not prove.",
+      "requiredChange": "Replace the uniqueness line with varied procedural creatures."
+    },
+    {
+      "id": "REF-ISSUE-002",
+      "severity": "high",
+      "problem": "The cached search excerpt says 1-of-1 and completely unique, strengthening the unsupported promise shown to searchers.",
+      "requiredChange": "Remove every absolute uniqueness claim from the source page, metadata and any hidden structured content."
+    },
+    {
+      "id": "REF-ISSUE-003",
+      "severity": "medium",
+      "problem": "The cached excerpt says five biomes while the current game and public fact sheet describe six living realms.",
+      "requiredChange": "Use six living realms, or omit the number if the source cannot be kept current."
+    },
+    {
+      "id": "REF-ISSUE-004",
+      "severity": "medium",
+      "problem": "The visible description calls the game a creature-bonding RPG, while the owned site now uses clearer creature-adventure language for families and general players.",
+      "requiredChange": "Use free alien-creature browser adventure and describe the real playable journey."
+    }
+  ],
+  "approvedReplacement": {
+    "eyebrow": "MYTHICAL VOID · FREE BROWSER ADVENTURE",
+    "heading": "Mythical Void",
+    "description": "A free browser adventure where players hatch a genetically varied alien creature, explore six living realms, restore their guardians and shape Project Beacon. The game began as a father-and-son experiment and is growing into an independent Irish game studio.",
+    "cta": "Play Mythical Void",
+    "ctaUrl": "https://mythicalvoid.com/",
+    "accessibleImageAlt": "Alien creatures from the Mythical Void universe",
+    "optionalTrustLine": "Free to play. No download. No account needed to start."
+  },
+  "updateChecklist": [
+    "Replace the visible uniqueness line and current Mythical Void description with the approved replacement.",
+    "Search the page source, metadata and structured data for unique, 1-of-1, completely unique and five biomes.",
+    "Keep the direct HTTPS link to https://mythicalvoid.com/ and make the CTA name the game.",
+    "Use a truthful image and accessible text; do not present generated artwork as a gameplay capture.",
+    "Preview the page on phone and desktop before publishing the correction.",
+    "After publication, verify the live source and then request a fresh crawl only through an account Kevin already controls."
+  ],
+  "successChecks": [
+    "The live TechEvolveAI page contains no absolute creature-uniqueness promise.",
+    "The live description says six living realms or makes no numbered realm claim.",
+    "The CTA reaches https://mythicalvoid.com/ with a 200 response.",
+    "A later public search excerpt no longer shows 1-of-1, completely unique or five biomes.",
+    "No search ranking or traffic improvement is claimed without authenticated evidence."
+  ],
+  "authority": {
+    "externalSiteEditAuthorized": false,
+    "externalSitePublicationAuthorized": false,
+    "searchRecrawlAuthorized": false,
+    "rankingClaimAuthorized": false,
+    "paidSearchAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "nextKevinDecision": "Approve, edit or reject the exact TechEvolveAI replacement. Updating that separate website and requesting a recrawl remain Kevin-controlled external actions."
+}
