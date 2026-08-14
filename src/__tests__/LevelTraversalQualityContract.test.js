@@ -683,6 +683,30 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("[2730, 300, 'peaks_relic_ridge']");
         expect(source).toContain("[3000, 235, 'peaks_relic_ridge']");
         expect(source).toContain("onOptionalSelected: () => this.selectPeakRoute('optional')");
+        expect(source).toContain('const PEAK_ENCOUNTER_PLAN = Object.freeze([');
+        expect(source).toContain("beat: 'opening-clear'");
+        expect(source).toContain("beat: 'warning-line-guard'");
+        expect(source).toContain("beat: 'titan-overlook'");
+        expect(source).toContain("supportId: 'peak-opening-step'");
+        expect(source).toContain("supportId: 'peak-floor-summit'");
+        expect(source).toContain("supportId: 'peak-titan-overlook'");
+        expect(source).toContain("lane: 'main'");
+        expect(source).not.toContain("lane: 'optional'");
+        expect(source).toContain('enemy.encounterBeat = encounter.beat;');
+        expect(source).toContain('enemy.encounterSupportId = encounter.supportId;');
+        expect(source).toContain(
+            "role: encounter.health >= 3 ? 'armored' : 'stompable'"
+        );
+        expect(source).toContain('retirePeakPatrolsForTitan()');
+        expect(source).toContain('enemy?.combatCue?.destroy?.();');
+        expect(source).toContain('this.retirePeakPatrolsForTitan();');
+        expect(source).toContain("mainLabel: 'LOW WARNING LINE →'");
+        expect(source).toContain(
+            "mainTradeoff: 'SHORTER // GEYSERS + HEAVY GUARDS'"
+        );
+        expect(source).toContain(
+            "challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS'"
+        );
         expect(source).toContain('peakFragmentMask: this.peakCollectedFragmentMask');
         expect(source).toContain('restorePeakRouteState(resume.routeState');
         expect(source).toContain('this.retireCollectedPeakFragments();');
@@ -1041,9 +1065,9 @@ describe('campaign traversal quality contracts', () => {
         [
             'levels/VoidPeaksLevel.js',
             "id: 'peaks_relic_ridge'",
-            "mainLabel: 'WARNING LINE →'",
-            "mainTradeoff: 'LOWER // VOID GEYSERS'",
-            "challengeLabel: 'HIGH CLIMB + 2 RELICS'"
+            "mainLabel: 'LOW WARNING LINE →'",
+            "mainTradeoff: 'SHORTER // GEYSERS + HEAVY GUARDS'",
+            "challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS'"
         ],
         [
             'levels/AuroraDepthsLevel.js',
@@ -1809,6 +1833,9 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('current.lastLiftAt = Number.NEGATIVE_INFINITY;');
         expect(smoke).toContain('guidanceActive: scene.activePeakReturnCurrent?.id === current.id');
         expect(smoke).toContain('destabilized after landing');
+        expect(smoke).toContain('state.encounterRhythm?.count < 8');
+        expect(smoke).toContain('state.encounterRhythm.unsupported.length > 0');
+        expect(smoke).toContain('has no deliberate encounter rhythm');
         expect(smoke).toContain("route === 'finalVoid'");
         expect(smoke).toContain('Number(audit?.flow?.requiredJumpCount) < 4');
         expect(smoke).toContain("target.id === 'final_bond_1'");

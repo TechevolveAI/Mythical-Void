@@ -15,6 +15,78 @@ const TITAN_ATTACK_WINDUP = 700;
 const TITAN_RECOVERY_WINDOW = 650;
 const TITAN_PHASE_RECOVERY = 1300;
 
+const PEAK_ENCOUNTER_PLAN = Object.freeze([
+    Object.freeze({
+        beat: 'opening-clear',
+        supportId: 'peak-opening-step',
+        lane: 'shared',
+        health: 1,
+        patrolRange: 55,
+        speed: 38
+    }),
+    Object.freeze({
+        beat: 'lower-relay-lesson',
+        supportId: 'peak-ground-lower-relay',
+        lane: 'shared',
+        offsetX: -160,
+        health: 2,
+        patrolRange: 80,
+        speed: 40
+    }),
+    Object.freeze({
+        beat: 'climb-pressure',
+        supportId: 'peak-lower-ascent',
+        lane: 'shared',
+        health: 2,
+        patrolRange: 55,
+        speed: 42
+    }),
+    Object.freeze({
+        beat: 'lower-route-guard',
+        supportId: 'peak-floor-lower',
+        lane: 'shared',
+        offsetX: -100,
+        health: 3,
+        patrolRange: 90,
+        speed: 43
+    }),
+    Object.freeze({
+        beat: 'warning-line-guard',
+        supportId: 'peak-floor-summit',
+        lane: 'main',
+        offsetX: -140,
+        health: 2,
+        patrolRange: 50,
+        speed: 44
+    }),
+    Object.freeze({
+        beat: 'summit-floor-guard',
+        supportId: 'peak-floor-summit',
+        lane: 'main',
+        offsetX: 120,
+        health: 3,
+        patrolRange: 55,
+        speed: 45
+    }),
+    Object.freeze({
+        beat: 'titan-approach',
+        supportId: 'peak-ground-titan-pass',
+        lane: 'shared',
+        offsetX: -450,
+        health: 3,
+        patrolRange: 110,
+        speed: 46
+    }),
+    Object.freeze({
+        beat: 'titan-overlook',
+        supportId: 'peak-titan-overlook',
+        lane: 'shared',
+        health: 4,
+        patrolRange: 65,
+        speed: 47
+    })
+]);
+
 /**
  * VoidPeaksLevel - mountain platformer level before the final void.
  *
@@ -74,6 +146,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossEncounterTimers = new Set();
         this.bossAttackPreview = null;
         this.bossPressureText = null;
+        this.peakEncounterRhythm = [];
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
     }
@@ -119,6 +192,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             ? data.bossAttackPreview
             : null;
         this.bossPressureText = null;
+        this.peakEncounterRhythm = [];
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
 
@@ -656,38 +730,78 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createPeakEnemies() {
-        const enemyPositions = [
-            { x: 1160, y: this.levelHeight - 110, health: 3 },
-            { x: 2050, y: this.levelHeight - 110, health: 3 },
-            { x: 3200, y: this.levelHeight - 110, health: 4 },
-            { x: 4300, y: this.levelHeight - 110, health: 4 }
-        ];
+        this.peakEncounterRhythm = PEAK_ENCOUNTER_PLAN.map((encounter, index) => {
+            const support = this.getTraversalSupport(encounter.supportId);
+            if (!support?.body) {
+                throw new Error(
+                    `[VoidPeaksLevel] Missing encounter support ${encounter.supportId}`
+                );
+            }
 
-        enemyPositions.forEach((enemyData, index) => {
+            const bodyInset = 28;
+            const centerX = (support.body.left + support.body.right) / 2;
+            const x = Phaser.Math.Clamp(
+                centerX + (Number(encounter.offsetX) || 0),
+                support.body.left + bodyInset,
+                support.body.right - bodyInset
+            );
+            const availablePatrol = Math.max(0, Math.min(
+                x - support.body.left - bodyInset,
+                support.body.right - bodyInset - x
+            ));
+            const patrolRange = Math.min(encounter.patrolRange, availablePatrol);
             const textureKey = `voidPeakSentinel_${index}`;
-            this.createSentinelTexture(textureKey, index % 2 === 0 ? 0x4B0082 : 0x8B0000);
+            const bodyColor = encounter.health === 1
+                ? 0x275B68
+                : encounter.health >= 3
+                    ? 0x4B0082
+                    : 0x8B3658;
+            this.createSentinelTexture(textureKey, bodyColor);
 
-            const enemy = this.physics.add.sprite(enemyData.x, enemyData.y, textureKey);
+            const enemy = this.physics.add.sprite(
+                x,
+                support.body.top - 36,
+                textureKey
+            );
             enemy.setCollideWorldBounds(true);
-            enemy.setBounce(0.1);
-            enemy.health = enemyData.health;
-            enemy.maxHealth = enemyData.health;
+            enemy.setBounce(0.05);
+            enemy.body.setSize(44, 52, true);
+            enemy.health = encounter.health;
+            enemy.maxHealth = encounter.health;
             enemy.enemyType = 'voidPeakSentinel';
-            enemy.patrolMin = enemyData.x - 130;
-            enemy.patrolMax = enemyData.x + 130;
-            enemy.setVelocityX(index % 2 === 0 ? 45 : -45);
+            enemy.encounterBeat = encounter.beat;
+            enemy.encounterLane = encounter.lane;
+            enemy.encounterSupportId = encounter.supportId;
+            enemy.patrolMin = x - patrolRange;
+            enemy.patrolMax = x + patrolRange;
+            enemy.patrolSpeed = encounter.speed;
+            enemy.setVelocityX(index % 2 === 0 ? encounter.speed : -encounter.speed);
             enemy.setDepth(850);
 
             this.configureEnemyCombat(enemy, {
-                role: 'armored',
-                maxHealth: enemyData.health,
+                role: encounter.health >= 3 ? 'armored' : 'stompable',
+                maxHealth: encounter.health,
                 stompDamage: 1,
                 cueOffsetY: -62
             });
 
             this.enemies.add(enemy);
             this.physics.add.collider(enemy, this.platforms);
+            return enemy;
         });
+
+        return this.peakEncounterRhythm;
+    }
+
+    retirePeakPatrolsForTitan() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        patrols.forEach(enemy => {
+            enemy?.combatCue?.destroy?.();
+            enemy?.instructionLabel?.destroy?.();
+            enemy?.destroy?.();
+        });
+        this.peakEncounterRhythm = [];
+        return patrols.length;
     }
 
     createSentinelTexture(textureKey, color) {
@@ -1012,9 +1126,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             marker: relicRoute,
             returnLabel: 'WARNING LINE →',
             choice: {
-                mainLabel: 'WARNING LINE →',
-                mainTradeoff: 'LOWER // VOID GEYSERS',
-                challengeLabel: 'HIGH CLIMB + 2 RELICS',
+                mainLabel: 'LOW WARNING LINE →',
+                mainTradeoff: 'SHORTER // GEYSERS + HEAVY GUARDS',
+                challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS',
                 mainMarker: spine,
                 mainZone: {
                     left: 2440, right: 3420,
@@ -1458,6 +1572,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         console.log('[VoidPeaksLevel] Starting Cosmic Titan boss fight!');
         this.bossFightActive = true;
+        this.retirePeakPatrolsForTitan();
         this.physics.pause();
         window.FeedbackManager?.cameraFlash?.(this, 220, 75, 0, 130);
         window.FeedbackManager?.cameraShake?.(this, 450, 0.012);
