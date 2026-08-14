@@ -4615,11 +4615,12 @@ class GameScene extends Phaser.Scene {
         if (this.villageHeartLandmark && villageSnapshot.unlock.unlocked) {
             destinations.push({
                 name: villageNeedsGuidance ? 'Village Heart: New' : 'Village Heart',
-                icon: 'V',
+                icon: '+',
                 x: this.villageHeartLandmark.zone.x,
                 y: this.villageHeartLandmark.zone.y,
                 color: 0x71E6B1,
-                description: 'Plan the shared settlement'
+                description: 'Plan the shared settlement',
+                showMarker: false
             });
         }
 
@@ -4639,7 +4640,9 @@ class GameScene extends Phaser.Scene {
         // Create glowing path trails and floating markers for each destination
         destinations.forEach((dest, index) => {
             this.createGlowingPath(centerX, centerY, dest.x, dest.y, dest.color);
-            this.createFloatingMarker(dest);
+            if (dest.showMarker !== false) {
+                this.createFloatingMarker(dest);
+            }
         });
 
         console.log(`[GameScene] Navigation paths created for ${destinations.length} destinations`);
@@ -7901,14 +7904,17 @@ class GameScene extends Phaser.Scene {
         if (needsGuidance) {
             markVillageGuidanceSeen(window.GameState);
         }
+        const openAction = this.mobileControls
+            ? 'Tap a build site or use BUILD · Open Village Builder'
+            : 'Press SPACE or click a build site · Open Village Builder';
         this.showInteractionHint(
             snapshot.unlock.unlocked
                 ? needsGuidance
-                    ? 'Village Heart awakened · Press SPACE to place your first structure'
-                    : 'Press SPACE · Open Village Heart'
+                    ? `Village Heart awakened · ${openAction}`
+                    : openAction
                 : `Village Heart offline · ${snapshot.unlock.reason}`
         );
-        this.mobileControls?.updateInteractIcon('V');
+        this.mobileControls?.updateInteractIcon('🏗');
     }
 
     getVillageRenderSignature(snapshot) {

@@ -9926,14 +9926,12 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const landmark = scene?.villageHeartLandmark;
-            const artworkKeys = (landmark?.buildingElements || []).flatMap(
-                container => (container?.list || [])
-                    .map(element => element?.texture?.key)
-                    .filter(key => String(key || '').startsWith('village-'))
-            );
-            return new Set(artworkKeys).size >= 3;
+            return landmark?.plotHitZones?.length === 5 &&
+                landmark?.buildingElements?.filter(
+                    element => element?.type === 'Container'
+                ).length === 5;
         })()`),
-        { timeoutMs: 12000, message: 'Village Heart world artwork' }
+        { timeoutMs: 12000, message: 'Village Heart interactive world district' }
     );
 
     const layout = await evaluate(session, `(() => {
@@ -9945,24 +9943,19 @@ async function smokeVillageUi(session, exceptions) {
         const milestones = [...document.querySelectorAll('.village-milestone')];
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const landmark = scene.villageHeartLandmark;
-        const worldArtworkKeys = (landmark?.buildingElements || []).flatMap(
-            container => (container?.list || [])
-                .map(element => element?.texture?.key)
-                .filter(key => String(key || '').startsWith('village-'))
-        );
-        const worldArtworkBounds = (landmark?.buildingElements || []).flatMap(
-            container => (container?.list || [])
-                .filter(element => String(element?.texture?.key || '').startsWith('village-'))
-                .map(element => {
-                    const rect = element.getBounds();
-                    return {
-                        left: rect.left,
-                        right: rect.right,
-                        top: rect.top,
-                        bottom: rect.bottom
-                    };
-                })
-        );
+        const worldStructures = (landmark?.buildingElements || [])
+            .filter(element => element?.type === 'Container');
+        const plotHitZones = (landmark?.plotHitZones || []).map(zone => {
+            const rect = zone.getBounds();
+            return {
+                left: rect.left,
+                right: rect.right,
+                top: rect.top,
+                bottom: rect.bottom,
+                inputEnabled: zone.input?.enabled === true,
+                cursor: zone.input?.cursor || ''
+            };
+        });
         const bounds = element => {
             const rect = element.getBoundingClientRect();
             return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
@@ -9989,8 +9982,12 @@ async function smokeVillageUi(session, exceptions) {
                 completedMilestones: milestones.filter(item => item.classList.contains('is-complete')).length
             },
             worldPresentation: {
-                artworkKeys: worldArtworkKeys,
-                artworkBounds: worldArtworkBounds,
+                structureCount: worldStructures.length,
+                plotHitZones,
+                districtTerrainActive: landmark?.districtTerrain?.active === true,
+                currentPathsActive: landmark?.currentPaths?.active === true,
+                actionLabel: landmark?.actionLabel?.text || '',
+                statusLabel: landmark?.statusLabel?.text || '',
                 animatedElements: landmark?.buildingTweens?.length || 0
             },
             commandBody: {
@@ -10016,14 +10013,20 @@ async function smokeVillageUi(session, exceptions) {
         new Set(layout.artworks.map(artwork => artwork.backgroundImage)).size !== 5 ||
         layout.phase.milestoneCount !== 4 ||
         !layout.phase.title ||
-        new Set(layout.worldPresentation.artworkKeys).size < 3 ||
-        layout.worldPresentation.artworkBounds.some(bounds => (
+        layout.worldPresentation.structureCount !== 5 ||
+        layout.worldPresentation.plotHitZones.length !== 5 ||
+        layout.worldPresentation.plotHitZones.some(bounds => (
             bounds.left < -1 ||
             bounds.right > layout.innerWidth + 1 ||
             bounds.top < -1 ||
-            bounds.bottom > layout.innerHeight + 1
+            bounds.bottom > layout.innerHeight + 1 ||
+            !bounds.inputEnabled
         )) ||
-        layout.worldPresentation.animatedElements < 3 ||
+        !layout.worldPresentation.districtTerrainActive ||
+        !layout.worldPresentation.currentPathsActive ||
+        layout.worldPresentation.actionLabel !== 'TAP TO BUILD' ||
+        !layout.worldPresentation.statusLabel.includes('SITES BUILT') ||
+        layout.worldPresentation.animatedElements < 8 ||
         !withinViewport(layout.shell) ||
         !withinViewport(layout.close)
     ) {
@@ -10031,6 +10034,10 @@ async function smokeVillageUi(session, exceptions) {
     }
 
     const placed = await evaluate(session, `(() => {
+        const habitat = [...document.querySelectorAll('.village-building-card')]
+            .find(button => button.textContent.includes('SHARED HABITAT'));
+        if (!habitat || habitat.disabled) return false;
+        habitat.click();
         const plot = [...document.querySelectorAll('.village-plot')]
             .find(button => button.textContent.includes('ROOT 04'));
         if (!plot || plot.disabled) return false;
@@ -10071,7 +10078,29 @@ async function smokeVillageUi(session, exceptions) {
             `Village mobile interaction failed: ${JSON.stringify({ interaction, exceptions })}`
         );
     }
-    return { layout, interaction };
+
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { message: 'Village world district after closing builder' }
+    );
+    await captureGameplayStill(session, 'village-sanctuary-district.png');
+    const directWorldTap = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const openSite = scene?.villageHeartLandmark?.plotHitZones?.[4];
+        if (!openSite?.input?.enabled) return false;
+        openSite.emit('pointerdown');
+        return true;
+    })()`);
+    if (!directWorldTap) {
+        throw new Error('Village world build site was not directly tappable');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.is-visible'))`),
+        { message: 'Village Builder reopened from world build site' }
+    );
+
+    return { layout, directWorldTap, interaction };
 }
 
 async function smokeForestArrival(session, exceptions) {

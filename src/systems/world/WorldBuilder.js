@@ -11,7 +11,6 @@ import { CURRENT_VEIL_ANCHORS } from '../CurrentVeilMission.js';
 import { getFusionPodLandmarkSnapshot } from '../FusionPodLandmark.js';
 import {
     getVillageSnapshot,
-    VILLAGE_BUILDING_ARTWORK,
     VILLAGE_BUILDING_DEFINITIONS,
     VILLAGE_PLOTS
 } from '../VillageSettlement.js';
@@ -275,9 +274,23 @@ class WorldBuilder {
         zone.landmarkId = 'villageHeart';
         zone.landmarkData = landmarkData;
 
+        const districtTerrain = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(y - 3);
+        const currentPaths = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(y - 2);
         const heart = this.scene.add.graphics().setPosition(x, y).setDepth(y + 2);
         const glow = this.scene.add.graphics().setPosition(x, y).setDepth(y + 1);
-        const label = this.scene.add.text(x, y + 78, 'VILLAGE HEART', {
+        const actionLabel = this.scene.add.text(x, y - 72, 'TAP TO BUILD', {
+            fontSize: '9px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F2C14E',
+            fontStyle: 'bold',
+            stroke: '#071411',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(y + 5);
+        const label = this.scene.add.text(x, y + 64, 'VILLAGE HEART', {
             fontSize: '12px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
@@ -285,7 +298,7 @@ class WorldBuilder {
             stroke: '#050505',
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(y + 4);
-        const statusLabel = this.scene.add.text(x, y + 95, '', {
+        const statusLabel = this.scene.add.text(x, y + 81, '', {
             fontSize: '9px',
             fontFamily: 'Arial, sans-serif',
             color: '#8FE3CF',
@@ -296,15 +309,39 @@ class WorldBuilder {
 
         const landmark = {
             zone,
+            districtTerrain,
+            currentPaths,
             heart,
             glow,
+            actionLabel,
             label,
             statusLabel,
             buildingElements: [],
             buildingTweens: [],
+            plotHitZones: [],
             pulseTween: null,
             snapshot: null
         };
+
+        zone.setInteractive({ useHandCursor: true });
+        zone.on('pointerover', () => {
+            heart.setScale(1.04);
+            glow.setScale(1.08);
+            actionLabel.setColor('#FFFFFF').setScale(1.06);
+        });
+        zone.on('pointerout', () => {
+            heart.setScale(1);
+            glow.setScale(1);
+            actionLabel
+                .setColor(
+                    landmark.snapshot?.unlock?.unlocked
+                        ? '#F2C14E'
+                        : '#93A2A9'
+                )
+                .setScale(1);
+        });
+        zone.on('pointerdown', () => this.activateVillageHeart(landmark));
+
         const snapshot = snapshotOverride || (
             typeof window !== 'undefined' && window.GameState
                 ? getVillageSnapshot(window.GameState)
@@ -320,59 +357,22 @@ class WorldBuilder {
         landmark.pulseTween?.stop?.();
         landmark.buildingTweens?.forEach(tween => tween?.stop?.());
         landmark.buildingElements?.forEach(element => element?.destroy?.(true));
+        landmark.plotHitZones?.forEach(zone => zone?.destroy?.());
         landmark.buildingTweens = [];
         landmark.buildingElements = [];
+        landmark.plotHitZones = [];
         landmark.snapshot = snapshot;
 
         const unlocked = snapshot?.unlock?.unlocked === true;
-        const { heart, glow, label, statusLabel } = landmark;
-        heart.clear();
-        glow.clear();
-
-        glow.fillStyle(unlocked ? 0x3FAE62 : 0x53616A, unlocked ? 0.16 : 0.1);
-        glow.fillCircle(0, 0, unlocked ? 72 : 58);
-        glow.lineStyle(2, unlocked ? 0x71E6B1 : 0x748087, unlocked ? 0.42 : 0.28);
-        glow.strokeCircle(0, 0, unlocked ? 61 : 50);
-
-        heart.fillStyle(0x050505, 0.98);
-        heart.fillEllipse(0, 38, 112, 30);
-        heart.fillStyle(0x101616, 1);
-        heart.fillRoundedRect(-42, -31, 84, 66, 8);
-        heart.lineStyle(3, 0xF4F4F4, 0.9);
-        heart.strokeRoundedRect(-42, -31, 84, 66, 8);
-        heart.lineStyle(4, unlocked ? 0x3FAE62 : 0x53616A, 1);
-        heart.strokeCircle(0, 0, 24);
-        heart.lineStyle(3, unlocked ? 0xD94B4B : 0x748087, 0.95);
-        heart.lineBetween(-26, 22, 0, -4);
-        heart.lineBetween(0, -4, 26, 22);
-        heart.fillStyle(0xF4F4F4, unlocked ? 1 : 0.52);
-        heart.fillCircle(0, -4, 7);
-        heart.fillStyle(unlocked ? 0xF2C14E : 0x53616A, 1);
-        heart.fillCircle(0, -4, 3);
-
-        label.setColor(unlocked ? '#F4F4F4' : '#93A2A9');
-        statusLabel
-            .setText(unlocked
-                ? `${snapshot.buildings.length}/${VILLAGE_PLOTS.length} FOUNDATIONS`
-                : 'AWAITING FIRST LIGHT SHELTER'
-            )
-            .setColor(unlocked ? '#8FE3CF' : '#93A2A9');
-
-        landmark.pulseTween = this.scene.tweens.add({
-            targets: glow,
-            alpha: { from: unlocked ? 0.72 : 0.42, to: 1 },
-            scaleX: { from: 0.96, to: 1.05 },
-            scaleY: { from: 0.96, to: 1.05 },
-            duration: unlocked ? 1450 : 2300,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // A wide settlement reads well beside the Village Heart on desktop, but
-        // those same world offsets put half of the working structures outside a
-        // phone viewport. Keep the mobile district deliberately compact so its
-        // built plots are visible around the landmark rather than off-screen.
+        const {
+            districtTerrain,
+            currentPaths,
+            heart,
+            glow,
+            actionLabel,
+            label,
+            statusLabel
+        } = landmark;
         const compactSettlement = this.scene.scale.width <= 600;
         const plotOffsets = compactSettlement
             ? [
@@ -389,6 +389,96 @@ class WorldBuilder {
                 { x: 330, y: 96 },
                 { x: 470, y: -12 }
             ];
+
+        districtTerrain.clear();
+        currentPaths.clear();
+        heart.clear();
+        glow.clear();
+
+        const districtWidth = compactSettlement ? 390 : 650;
+        const districtCenterX = compactSettlement ? 0 : 240;
+        districtTerrain.fillStyle(0x173B35, unlocked ? 0.2 : 0.12);
+        districtTerrain.fillEllipse(
+            districtCenterX,
+            compactSettlement ? 2 : -2,
+            districtWidth,
+            compactSettlement ? 390 : 310
+        );
+        districtTerrain.lineStyle(2, unlocked ? 0x3FAE62 : 0x53616A, 0.28);
+        districtTerrain.strokeEllipse(
+            districtCenterX,
+            compactSettlement ? 2 : -2,
+            districtWidth - 14,
+            compactSettlement ? 376 : 296
+        );
+
+        plotOffsets.forEach((offset, index) => {
+            const elbowX = offset.x * (compactSettlement ? 0.42 : 0.5);
+            const elbowY = offset.y * 0.32 + (index % 2 === 0 ? -12 : 12);
+            currentPaths.lineStyle(7, 0x071411, 0.42);
+            currentPaths.beginPath();
+            currentPaths.moveTo(0, 20);
+            currentPaths.lineTo(elbowX, elbowY);
+            currentPaths.lineTo(offset.x, offset.y + 18);
+            currentPaths.strokePath();
+            currentPaths.lineStyle(2, unlocked ? 0x71E6B1 : 0x657682, 0.5);
+            currentPaths.beginPath();
+            currentPaths.moveTo(0, 20);
+            currentPaths.lineTo(elbowX, elbowY);
+            currentPaths.lineTo(offset.x, offset.y + 18);
+            currentPaths.strokePath();
+        });
+
+        glow.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.14 : 0.08);
+        glow.fillEllipse(0, 18, unlocked ? 154 : 132, unlocked ? 108 : 92);
+        glow.lineStyle(2, unlocked ? 0x71E6B1 : 0x748087, unlocked ? 0.54 : 0.3);
+        glow.strokeEllipse(0, 20, unlocked ? 142 : 124, unlocked ? 96 : 84);
+
+        // The Heart is a stone-and-living-current dais, not a screen placed on the map.
+        heart.fillStyle(0x0C201D, 0.95);
+        heart.fillEllipse(0, 31, 126, 48);
+        heart.lineStyle(3, unlocked ? 0x3FAE62 : 0x53616A, 0.9);
+        heart.strokeEllipse(0, 27, 112, 43);
+        heart.fillStyle(0x183B34, 1);
+        heart.fillCircle(0, 1, 39);
+        heart.lineStyle(3, 0xF4F4F4, unlocked ? 0.82 : 0.4);
+        heart.strokeCircle(0, 1, 34);
+        heart.lineStyle(5, unlocked ? 0x3FAE62 : 0x53616A, 0.95);
+        heart.beginPath();
+        heart.arc(0, 1, 26, Math.PI * 0.16, Math.PI * 0.84, false);
+        heart.strokePath();
+        heart.lineStyle(4, unlocked ? 0xD94B4B : 0x657682, 0.9);
+        heart.lineBetween(-32, 28, -12, 11);
+        heart.lineBetween(32, 28, 12, 11);
+        heart.fillStyle(0xF4F4F4, unlocked ? 1 : 0.55);
+        heart.fillTriangle(0, -31, -13, 4, 13, 4);
+        heart.fillStyle(unlocked ? 0x71E6B1 : 0x657682, 1);
+        heart.fillTriangle(0, -23, -7, -1, 7, -1);
+        heart.fillStyle(unlocked ? 0xF2C14E : 0x53616A, 1);
+        heart.fillCircle(0, 9, 5);
+
+        label.setColor(unlocked ? '#F4F4F4' : '#93A2A9');
+        actionLabel
+            .setText(unlocked ? 'TAP TO BUILD' : 'DORMANT')
+            .setColor(unlocked ? '#F2C14E' : '#93A2A9');
+        statusLabel
+            .setText(unlocked
+                ? `${snapshot.buildings.length}/${VILLAGE_PLOTS.length} SITES BUILT`
+                : 'HATCH A COMPANION TO WAKE IT'
+            )
+            .setColor(unlocked ? '#8FE3CF' : '#93A2A9');
+
+        landmark.pulseTween = this.scene.tweens.add({
+            targets: glow,
+            alpha: { from: unlocked ? 0.72 : 0.42, to: 1 },
+            scaleX: { from: 0.96, to: 1.05 },
+            scaleY: { from: 0.96, to: 1.05 },
+            duration: unlocked ? 1450 : 2300,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
         const buildingByPlot = new Map(
             snapshot?.buildings?.map(building => [building.plotId, building]) || []
         );
@@ -399,52 +489,35 @@ class WorldBuilder {
             const building = buildingByPlot.get(plot.id) || null;
             const container = this.scene.add.container(plotX, plotY).setDepth(plotY + 2);
             const drawing = this.scene.add.graphics();
-            let artwork = null;
-            let currentSignal = null;
-            drawing.fillStyle(0x050505, 0.58);
-            drawing.fillEllipse(0, 28, 104, 28);
+            const currentSignal = this.scene.add.graphics();
+            drawing.fillStyle(0x173B35, building ? 0.88 : 0.54);
+            drawing.fillEllipse(0, 27, building ? 118 : 104, building ? 38 : 32);
             drawing.lineStyle(
-                building ? 2 : 1,
-                building ? 0x71E6B1 : 0x53616A,
-                building ? 0.72 : 0.42
+                building ? 3 : 2,
+                building ? 0x71E6B1 : 0x8FE3CF,
+                building ? 0.74 : 0.48
             );
-            drawing.strokeEllipse(0, 24, 96, 30);
+            drawing.strokeEllipse(0, 24, building ? 108 : 94, building ? 32 : 27);
             if (building) {
-                const art = VILLAGE_BUILDING_ARTWORK[building.definitionId];
-                if (art && this.scene.textures.exists(art.key)) {
-                    const constructing = building.status === 'constructing';
-                    drawing.fillStyle(0x07100F, 0.9);
-                    drawing.fillRoundedRect(-64, -45, 128, 72, 7);
-                    drawing.lineStyle(2, constructing ? 0xF2C14E : 0x71E6B1, 0.92);
-                    drawing.strokeRoundedRect(-64, -45, 128, 72, 7);
-                    artwork = this.scene.add.image(0, -9, art.key)
-                        .setDisplaySize(118, 66)
-                        .setAlpha(constructing ? 0.58 : 0.92);
-                    currentSignal = this.scene.add.graphics();
-                    currentSignal.fillStyle(0x71E6B1, 0.95);
-                    currentSignal.fillCircle(0, 0, 3);
-                    currentSignal.lineStyle(1, 0xF4F4F4, 0.85);
-                    currentSignal.strokeCircle(0, 0, 5);
-                    currentSignal.setPosition(-48, 19);
-                    currentSignal.setBlendMode?.(Phaser.BlendModes.ADD);
-                    if (constructing) {
-                        drawing.lineStyle(2, 0xF2C14E, 0.82);
-                        drawing.lineBetween(-56, -38, 56, 19);
-                        drawing.lineBetween(-56, 19, 56, -38);
-                        drawing.lineBetween(-48, -45, -48, 27);
-                        drawing.lineBetween(48, -45, 48, 27);
-                    }
-                } else {
-                    this.drawVillageBuilding(
-                        drawing,
-                        building.definitionId,
-                        building.status
-                    );
-                }
+                this.drawVillageBuilding(
+                    drawing,
+                    building.definitionId,
+                    building.status
+                );
+                currentSignal.fillStyle(0x71E6B1, 0.95);
+                currentSignal.fillCircle(0, 0, 3);
+                currentSignal.lineStyle(1, 0xF4F4F4, 0.85);
+                currentSignal.strokeCircle(0, 0, 5);
+                currentSignal.setPosition(-42, 20);
+                currentSignal.setBlendMode?.(Phaser.BlendModes.ADD);
             } else {
-                drawing.lineStyle(1, 0x8FE3CF, 0.25);
-                drawing.strokeRoundedRect(-33, -5, 66, 33, 5);
-                drawing.lineBetween(-25, 11, 25, 11);
+                drawing.lineStyle(2, 0x8FE3CF, 0.38);
+                drawing.strokeCircle(0, 2, 23);
+                drawing.lineStyle(3, 0xF2C14E, unlocked ? 0.9 : 0.35);
+                drawing.lineBetween(-8, 2, 8, 2);
+                drawing.lineBetween(0, -6, 0, 10);
+                drawing.fillStyle(0x71E6B1, unlocked ? 0.7 : 0.25);
+                [-34, 34].forEach(nodeX => drawing.fillCircle(nodeX, 20, 3));
             }
             const definition = building
                 ? VILLAGE_BUILDING_DEFINITIONS.find(entry => entry.id === building.definitionId)
@@ -452,11 +525,11 @@ class WorldBuilder {
             const plotLabel = this.scene.add.text(
                 0,
                 45,
-                definition?.shortLabel || plot.label,
+                definition?.shortLabel || `BUILD SITE ${index + 1}`,
                 {
                     fontSize: '9px',
                     fontFamily: 'Arial, sans-serif',
-                    color: building ? '#F4F4F4' : '#788A92',
+                    color: building ? '#F4F4F4' : '#C9F7E9',
                     fontStyle: 'bold',
                     stroke: '#050505',
                     strokeThickness: 3
@@ -468,45 +541,36 @@ class WorldBuilder {
                 building
                     ? building.status === 'complete'
                         ? building.creature
-                            ? `${building.creature.name.toUpperCase()} ${Math.round(building.workProfile.multiplier * 100)}%`
-                            : 'READY FOR CONTRIBUTION'
-                        : 'CONSTRUCTING'
-                    : '',
+                            ? `ACTIVE · ${building.creature.name.toUpperCase()} ${Math.round(building.workProfile.multiplier * 100)}%`
+                            : 'ACTIVE · ASSIGN A HELPER'
+                        : 'BUILDING NOW'
+                    : unlocked
+                        ? 'TAP TO CHOOSE'
+                        : 'DORMANT',
                 {
                     fontSize: '8px',
                     fontFamily: 'Arial, sans-serif',
-                    color: building?.status === 'complete' ? '#8FE3CF' : '#F2C14E',
+                    color: building?.status === 'complete'
+                        ? '#8FE3CF'
+                        : building
+                            ? '#F2C14E'
+                            : '#F2C14E',
                     fontStyle: 'bold',
-                    backgroundColor: building ? '#101616' : undefined,
-                    padding: building ? { x: 4, y: 2 } : undefined,
                     stroke: '#050505',
-                    strokeThickness: 2
+                    strokeThickness: 3
                 }
             ).setOrigin(0.5);
             container.add([
                 drawing,
-                ...(artwork ? [artwork] : []),
-                ...(currentSignal ? [currentSignal] : []),
+                ...(building ? [currentSignal] : []),
                 plotLabel,
                 stateLabel
             ]);
             landmark.buildingElements.push(container);
-            if (artwork && building?.status === 'complete') {
-                landmark.buildingTweens.push(this.scene.tweens.add({
-                    targets: artwork,
-                    y: { from: -11, to: -7 },
-                    scaleX: { from: artwork.scaleX * 1.01, to: artwork.scaleX },
-                    scaleY: { from: artwork.scaleY * 1.01, to: artwork.scaleY },
-                    duration: 2300 + index * 170,
-                    yoyo: true,
-                    repeat: -1,
-                    ease: 'Sine.easeInOut'
-                }));
-            }
-            if (currentSignal) {
+            if (building) {
                 landmark.buildingTweens.push(this.scene.tweens.add({
                     targets: currentSignal,
-                    x: { from: -48, to: 48 },
+                    x: { from: -42, to: 42 },
                     alpha: { from: 0.3, to: 1 },
                     duration: 1800 + index * 140,
                     yoyo: true,
@@ -514,6 +578,52 @@ class WorldBuilder {
                     ease: 'Sine.easeInOut'
                 }));
             }
+
+            const pathSignal = this.scene.add.circle(
+                landmark.zone.x,
+                landmark.zone.y + 20,
+                3,
+                unlocked ? 0x71E6B1 : 0x657682,
+                unlocked ? 0.85 : 0.25
+            ).setDepth(Math.min(landmark.zone.y, plotY) - 1);
+            pathSignal.setBlendMode?.(Phaser.BlendModes.ADD);
+            landmark.buildingElements.push(pathSignal);
+            landmark.buildingTweens.push(this.scene.tweens.add({
+                targets: pathSignal,
+                x: plotX,
+                y: plotY + 18,
+                alpha: { from: unlocked ? 0.15 : 0.08, to: unlocked ? 1 : 0.2 },
+                duration: 2400 + index * 240,
+                delay: index * 180,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            }));
+
+            const plotHitZone = this.scene.add.zone(plotX, plotY, 124, 108)
+                .setDepth(plotY + 6)
+                .setInteractive({ useHandCursor: unlocked });
+            plotHitZone.plotId = plot.id;
+            plotHitZone.on('pointerover', () => {
+                container.setScale(1.06);
+                stateLabel.setText(unlocked ? 'TAP TO OPEN BUILDER' : 'DORMANT');
+            });
+            plotHitZone.on('pointerout', () => {
+                container.setScale(1);
+                stateLabel.setText(
+                    building
+                        ? building.status === 'complete'
+                            ? building.creature
+                                ? `ACTIVE · ${building.creature.name.toUpperCase()} ${Math.round(building.workProfile.multiplier * 100)}%`
+                                : 'ACTIVE · ASSIGN A HELPER'
+                            : 'BUILDING NOW'
+                        : unlocked
+                            ? 'TAP TO CHOOSE'
+                            : 'DORMANT'
+                );
+            });
+            plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark));
+            landmark.plotHitZones.push(plotHitZone);
+
             if (building?.status === 'constructing') {
                 landmark.buildingTweens.push(this.scene.tweens.add({
                     targets: container,
@@ -525,6 +635,23 @@ class WorldBuilder {
                 }));
             }
         });
+    }
+
+    activateVillageHeart(landmark) {
+        const snapshot = landmark?.snapshot;
+        if (!snapshot?.unlock?.unlocked) {
+            this.scene.showInteractionHint?.(
+                snapshot?.unlock?.reason || 'Hatch a companion to wake the Village Heart'
+            );
+            if (typeof window !== 'undefined') {
+                window.AudioManager?.playError?.();
+            }
+            return false;
+        }
+
+        this.scene.nearVillageHeart = true;
+        this.scene.showInteractionHint?.('Opening Village Builder');
+        return this.scene.openVillageCommand?.() === true;
     }
 
     drawVillageBuilding(graphics, definitionId, status) {

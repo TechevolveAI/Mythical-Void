@@ -25,6 +25,8 @@ describe('Village settlement gameplay contract', () => {
         expect(zoneSource).toContain("onInteract: 'openVillageCommand'");
         expect(worldSource).toContain('createVillageHeart(');
         expect(worldSource).toContain('refreshVillageSettlement(');
+        expect(worldSource).toContain("zone.on('pointerdown', () => this.activateVillageHeart(landmark))");
+        expect(worldSource).toContain("plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark))");
         expect(sceneSource).toContain('VILLAGE_HEART_INTERACT_DISTANCE');
         expect(sceneSource).toContain('this.openVillageCommand();');
     });
@@ -131,7 +133,7 @@ describe('Village settlement gameplay contract', () => {
         });
     });
 
-    test('completed buildings appear as animated artwork in the Sanctuary', () => {
+    test('completed buildings appear as connected world structures in the Sanctuary', () => {
         const world = read('systems/world/WorldBuilder.js');
         const scene = read('scenes/GameScene.js');
 
@@ -139,9 +141,12 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('notifyVillageProgress(previous, next)');
         expect(scene).toContain('showVillageCompletionMoment(completed)');
         expect(scene).toContain('markVillageGuidanceSeen(window.GameState)');
-        expect(world).toContain('VILLAGE_BUILDING_ARTWORK[building.definitionId]');
         expect(world).toContain('const compactSettlement = this.scene.scale.width <= 600;');
-        expect(world).toContain('.setDisplaySize(118, 66)');
+        expect(world).toContain('districtTerrain.fillEllipse(');
+        expect(world).toContain('currentPaths.lineTo(offset.x, offset.y + 18)');
+        expect(world).toContain('this.drawVillageBuilding(');
+        expect(world).toContain('`BUILD SITE ${index + 1}`');
+        expect(world).toContain("'TAP TO OPEN BUILDER'");
         expect(world).toContain('Phaser.BlendModes.ADD');
     });
 });
