@@ -198,6 +198,9 @@ async function sampleFramePacing(session, sceneName, {
         );
         const intervals = [];
         const startedAt = performance.now();
+        const objectiveTextureRevisionAtStart = Number(
+            scene?.campaignObjectiveTextureRevision
+        ) || 0;
         let previousAt = null;
 
         const percentile = (sorted, ratio) => {
@@ -279,6 +282,16 @@ async function sampleFramePacing(session, sceneName, {
                     (window.mythicalGame?.loop?.actualFps || 0).toFixed(2)
                 ),
                 displayCount: scene?.children?.list?.length || 0,
+                objectiveHudRendering: {
+                    textureRevision: Number(
+                        scene?.campaignObjectiveTextureRevision
+                    ) || 0,
+                    rebuildsDuringSample: Math.max(
+                        0,
+                        (Number(scene?.campaignObjectiveTextureRevision) || 0) -
+                            objectiveTextureRevisionAtStart
+                    )
+                },
                 activeTweenCount: scene?.tweens?.getTweens?.().length || 0,
                 sharedAmbientFieldTweenCount: tweenTargets.filter(
                     target => sharedAmbientFieldObjects.has(target)
@@ -2193,6 +2206,33 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     await startCampaignScene(session, { route, sceneName });
     await delay(400);
 
+    if (route === 'mythicalForest') {
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame?.scene?.getScene?.(
+                    'MythicalForestLevel'
+                );
+                const enemies = scene?.voidSprites || [];
+                return enemies.length === 5 && enemies.every(enemy => {
+                    if (!enemy?.active || !enemy?.body) return false;
+                    const support = scene.getTraversalSupport?.(
+                        enemy.forestSupportId
+                    );
+                    return Boolean(
+                        support?.body &&
+                        enemy.body.right > support.body.left + 4 &&
+                        enemy.body.left < support.body.right - 4 &&
+                        Math.abs(enemy.body.bottom - support.body.top) <= 12
+                    );
+                });
+            })()`),
+            {
+                timeoutMs: 3500,
+                message: 'Forest authored enemies settled on their supports'
+            }
+        );
+    }
+
     const state = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
         return {
@@ -2517,6 +2557,26 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             `${sceneName} did not keep Peaks ambience batched: ${JSON.stringify(state)}`
         );
     }
+    const renderBudget = CAMPAIGN_MOBILE_RENDER_BUDGETS[route];
+    if (!renderBudget) {
+        throw new Error(`${sceneName} has no authored mobile render budget`);
+    }
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene?.(
+                ${JSON.stringify(sceneName)}
+            );
+            if (!scene?.scene?.isActive?.()) return false;
+            return (
+                (scene.children?.list?.length || 0) <= ${renderBudget.displayCount} &&
+                (scene.tweens?.getTweens?.().length || 0) <= ${renderBudget.activeTweenCount}
+            );
+        })()`),
+        {
+            timeoutMs: 4500,
+            message: `${sceneName} entry effects retired within render budget`
+        }
+    );
     let renderStability = null;
     const framePacing = await sampleFramePacing(session, sceneName);
     if (!framePacing?.sceneActive || framePacing.frameCount < 12) {
@@ -2537,11 +2597,13 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             performanceTier: framePacing.performanceTier
         }) + '\n'
     );
-    const renderBudget = CAMPAIGN_MOBILE_RENDER_BUDGETS[route];
     if (
-        !renderBudget ||
         framePacing.displayCount > renderBudget.displayCount ||
         framePacing.activeTweenCount > renderBudget.activeTweenCount ||
+        !Number.isFinite(
+            framePacing.objectiveHudRendering?.rebuildsDuringSample
+        ) ||
+        framePacing.objectiveHudRendering?.rebuildsDuringSample > 2 ||
         (
             framePacing.performanceTier === 'mobile' &&
             framePacing.sharedAmbientFieldTweenCount !== 0

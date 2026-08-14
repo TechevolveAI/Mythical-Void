@@ -62,6 +62,87 @@ function loadPlatformerLevelScene() {
 }
 
 describe('campaign traversal quality contracts', () => {
+    test('campaign objective HUD only rerasterizes when state changes', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'ObjectiveHudBudgetTest' });
+        let objective = 'SIGNAL 1/3';
+        scene.campaignObjectiveTextProvider = () => objective;
+        scene.objectiveDisplay = {
+            active: true,
+            text: objective,
+            visible: true,
+            setText: jest.fn(function setText(text) {
+                this.text = text;
+                return this;
+            }),
+            setVisible: jest.fn(function setVisible(visible) {
+                this.visible = visible;
+                return this;
+            })
+        };
+
+        expect(scene.syncCampaignObjectiveDisplay()).toBe(false);
+        expect(scene.objectiveDisplay.setText).not.toHaveBeenCalled();
+        expect(scene.objectiveDisplay.setVisible).not.toHaveBeenCalled();
+        expect(scene.campaignObjectiveTextureRevision).toBeUndefined();
+
+        objective = 'SIGNAL 2/3';
+        expect(scene.syncCampaignObjectiveDisplay()).toBe(true);
+        expect(scene.objectiveDisplay.setText).toHaveBeenCalledTimes(1);
+        expect(scene.objectiveDisplay.text).toBe('SIGNAL 2/3');
+        expect(scene.campaignObjectiveTextureRevision).toBe(1);
+
+        expect(scene.syncCampaignObjectiveDisplay({ visible: false })).toBe(true);
+        expect(scene.objectiveDisplay.setText).toHaveBeenCalledTimes(1);
+        expect(scene.objectiveDisplay.setVisible).toHaveBeenCalledWith(false);
+
+        expect(scene.syncCampaignObjectiveDisplay({
+            visible: false,
+            force: true
+        })).toBe(true);
+        expect(scene.objectiveDisplay.setText).toHaveBeenCalledTimes(2);
+        expect(scene.campaignObjectiveTextureRevision).toBe(2);
+
+        expect(read('PlatformerLevelScene.js')).toContain(
+            'visible: this.objectiveDisplay.visible'
+        );
+        expect(read('../../scripts/smoke-secondary-journeys.js')).toContain(
+            'objectiveHudRendering?.rebuildsDuringSample > 2'
+        );
+        expect(read('../../scripts/smoke-secondary-journeys.js')).toContain(
+            '!Number.isFinite('
+        );
+    });
+
+    test('all campaign levels use the shared objective HUD render budget', () => {
+        [
+            'levels/MythicalForestLevel.js',
+            'levels/CrystalCavesLevel.js',
+            'levels/ReefLevel.js',
+            'levels/VoidPeaksLevel.js',
+            'levels/AuroraDepthsLevel.js',
+            'levels/FinalVoidLevel.js'
+        ].forEach(relativePath => {
+            const source = read(relativePath);
+            expect(source).toContain('this.syncCampaignObjectiveDisplay({');
+            expect(source).not.toMatch(/objectiveDisplay.*setText/);
+        });
+    });
+
+    test('release smoke waits for steady authored runtime state', () => {
+        const smoke = read('../../scripts/smoke-secondary-journeys.js');
+
+        expect(smoke).toContain(
+            "message: 'Forest authored enemies settled on their supports'"
+        );
+        expect(smoke).toContain('enemy.body.bottom - support.body.top');
+        expect(smoke).toContain('timeoutMs: 3500');
+        expect(smoke).toContain(
+            'entry effects retired within render budget'
+        );
+        expect(smoke).toContain('timeoutMs: 4500');
+    });
+
     test('authored movement survives a scene reset', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({

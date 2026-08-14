@@ -4473,9 +4473,37 @@ class PlatformerLevelScene extends Phaser.Scene {
         }).setOrigin(layout.originX, layout.originY)
             .setScrollFactor(0)
             .setDepth(1000);
+        this.campaignObjectiveTextureRevision = 1;
 
         this.scale?.on?.('resize', this.layoutCampaignObjectiveDisplay, this);
         return this.objectiveDisplay;
+    }
+
+    syncCampaignObjectiveDisplay({ visible = true, force = false } = {}) {
+        const display = this.objectiveDisplay;
+        if (!display?.active) return false;
+
+        const providedText = typeof this.campaignObjectiveTextProvider === 'function'
+            ? this.campaignObjectiveTextProvider()
+            : this.campaignObjectiveTextProvider;
+        const nextText = String(providedText || '');
+        const nextVisible = visible !== false;
+        let changed = false;
+
+        // Phaser rerasterizes Text whenever setText runs. Campaign objectives are
+        // state-driven, so avoid rebuilding the same canvas texture every frame.
+        if (force || display.text !== nextText) {
+            display.setText(nextText);
+            this.campaignObjectiveTextureRevision =
+                (Number(this.campaignObjectiveTextureRevision) || 0) + 1;
+            changed = true;
+        }
+        if (force || display.visible !== nextVisible) {
+            display.setVisible(nextVisible);
+            changed = true;
+        }
+
+        return changed;
     }
 
     layoutCampaignObjectiveDisplay(gameSize = this.scale?.gameSize) {
@@ -4497,7 +4525,10 @@ class PlatformerLevelScene extends Phaser.Scene {
             .setWordWrapWidth(layout.maxWidth);
 
         if (typeof this.campaignObjectiveTextProvider === 'function') {
-            this.objectiveDisplay.setText(this.campaignObjectiveTextProvider());
+            this.syncCampaignObjectiveDisplay({
+                visible: this.objectiveDisplay.visible,
+                force: true
+            });
         }
     }
 

@@ -1157,7 +1157,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             },
             onRestored: () => {
                 this.refreshBondRouteReadability();
-                this.objectiveDisplay?.setText?.(this.getFinalObjectiveText());
+                this.syncCampaignObjectiveDisplay();
             }
         });
         if (!signalsRestored) return false;
@@ -1165,7 +1165,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.restoreFinalRouteState(resume.routeState, {
             rejoined: Number(resume.checkpointIndex) >= 2
         });
-        this.objectiveDisplay?.setText?.(this.getFinalObjectiveText());
+        this.syncCampaignObjectiveDisplay();
         return true;
     }
 
@@ -1354,13 +1354,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
-        if (this.objectiveDisplay?.active) {
-            this.objectiveDisplay.setText(this.getFinalObjectiveText());
-            this.objectiveDisplay.setVisible(
+        this.syncCampaignObjectiveDisplay({
+            visible:
                 this.levelStarted &&
                 !(this.isCompactObjectiveHUD && this.bossFightActive)
-            );
-        }
+        });
 
         this.updateBossIndicator();
 

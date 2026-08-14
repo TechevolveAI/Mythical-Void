@@ -516,12 +516,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
-        if (this.objectiveDisplay) {
-            this.objectiveDisplay.setText(this.getAuroraObjectiveText());
-            this.objectiveDisplay.setVisible(
-                !(this.isCompactObjectiveHUD && this.bossFightActive)
-            );
-        }
+        this.syncCampaignObjectiveDisplay({
+            visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
+        });
         if (this.currentChargeAura?.active && this.player?.active) {
             this.currentChargeAura.setPosition(this.player.x, this.player.y);
         }
@@ -1327,7 +1324,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             onRestored: () => {
                 this.restoreAuroraRouteChoice(resume?.routeState);
                 this.refreshPrismRouteReadability();
-                this.objectiveDisplay?.setText?.(this.getAuroraObjectiveText());
+                this.syncCampaignObjectiveDisplay();
             }
         });
         return restored;

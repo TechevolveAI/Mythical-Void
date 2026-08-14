@@ -1854,14 +1854,14 @@ class ReefLevel extends PlatformerLevelScene {
                     this.retireOpeningSignalCurrent();
                 }
                 this.refreshBeaconRouteReadability();
-                this.objectiveDisplay?.setText?.(this.getReefObjectiveText());
+                this.syncCampaignObjectiveDisplay();
             }
         });
         if (!signalsRestored) return false;
         this.restoreReefRouteState(resume.routeState, {
             rejoined: Number(resume.checkpointIndex) >= 1
         });
-        this.objectiveDisplay?.setText?.(this.getReefObjectiveText());
+        this.syncCampaignObjectiveDisplay();
         return true;
     }
 
@@ -4005,12 +4005,9 @@ class ReefLevel extends PlatformerLevelScene {
         // Update swim indicator
         this.updateSwimIndicator();
 
-        if (this.objectiveDisplay) {
-            this.objectiveDisplay.setText(this.getReefObjectiveText());
-            this.objectiveDisplay.setVisible(
-                !(this.isCompactObjectiveHUD && this.bossFightActive)
-            );
-        }
+        this.syncCampaignObjectiveDisplay({
+            visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
+        });
     }
 
     /**

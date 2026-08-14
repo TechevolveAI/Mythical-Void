@@ -1189,7 +1189,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 if (restoredCount === this.beaconRelays.length) {
                     this.showDistantReplyNetwork(relay);
                 }
-                this.objectiveDisplay?.setText?.(this.getPeakObjectiveText());
+                this.syncCampaignObjectiveDisplay();
             }
         });
         if (!signalsRestored) return false;
@@ -1197,7 +1197,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.restorePeakRouteState(resume.routeState, {
             rejoined: Number(resume.checkpointIndex) >= 2
         });
-        this.objectiveDisplay?.setText?.(this.getPeakObjectiveText());
+        this.syncCampaignObjectiveDisplay();
         return true;
     }
 
@@ -1513,12 +1513,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             });
         }
 
-        if (this.objectiveDisplay) {
-            this.objectiveDisplay.setText(this.getPeakObjectiveText());
-            this.objectiveDisplay.setVisible(
-                !(this.isCompactObjectiveHUD && this.bossFightActive)
-            );
-        }
+        this.syncCampaignObjectiveDisplay({
+            visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
+        });
         this.updateBossIndicator();
     }
 
