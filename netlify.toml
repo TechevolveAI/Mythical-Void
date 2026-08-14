@@ -51,6 +51,17 @@
   status = 200
 
 [[redirects]]
+  # Keep the public Signal Log ahead of the SPA fallback.
+  from = "/updates"
+  to = "/updates/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/updates/"
+  to = "/updates/index.html"
+  status = 200
+
+[[redirects]]
   # Fallback to index.html for client-side routing
   from = "/*"
   to = "/index.html"
