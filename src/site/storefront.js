@@ -340,8 +340,13 @@ function renderStorefront() {
                         <p class="hero-copy">Every hatch mixes body, colour, personality, cosmic power and rare mutations. What arrives from the Void will be truly yours.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
+                            <button class="button button-quiet button-share" type="button" data-share-game>
+                                <span data-share-label>Share the game</span>
+                                <span class="button-arrow" aria-hidden="true">↗</span>
+                            </button>
                             <a class="button button-quiet" href="#creatures">Meet the possibilities</a>
                         </div>
+                        <p class="hero-share-status share-status" data-share-status aria-live="polite"></p>
                         <ul class="hero-genetics" aria-label="How this scene was made">
                             <li><strong>1,000</strong><span>real engine hatches explored</span></li>
                             <li><strong>72</strong><span>varied profiles shaped this scene</span></li>
@@ -596,7 +601,10 @@ function renderStorefront() {
                     <p>Free to play. No download. No account needed.</p>
                     <div class="final-cta-actions">
                         ${playLink('Play Mythical Void')}
-                        <button class="button button-share" type="button" data-share-game>Share the game</button>
+                        <button class="button button-share" type="button" data-share-game>
+                            <span data-share-label>Share the game</span>
+                            <span class="button-arrow" aria-hidden="true">↗</span>
+                        </button>
                     </div>
                     <p class="share-status" data-share-status aria-live="polite"></p>
                 </div>
@@ -704,33 +712,41 @@ function bindInteractions() {
         });
     });
 
-    const shareButton = app.querySelector('[data-share-game]');
-    const shareStatus = app.querySelector('[data-share-status]');
+    const shareButtons = [...app.querySelectorAll('[data-share-game]')];
+    const shareStatuses = [...app.querySelectorAll('[data-share-status]')];
     const shareData = {
         title: 'Mythical Void',
         text: 'Try Mythical Void — a free creature adventure you can play in your browser. No download or account needed.',
         url: 'https://mythicalvoid.com/'
     };
+    const setShareStatus = (message) => {
+        shareStatuses.forEach((status) => { status.textContent = message; });
+    };
 
-    if (shareButton && !navigator.share) {
-        shareButton.textContent = 'Copy game link';
+    if (!navigator.share) {
+        shareButtons.forEach((button) => {
+            const label = button.querySelector('[data-share-label]');
+            if (label) label.textContent = 'Copy game link';
+        });
     }
 
-    shareButton?.addEventListener('click', async () => {
-        try {
-            if (navigator.share) {
-                await navigator.share(shareData);
-                if (shareStatus) shareStatus.textContent = 'Thanks for sharing the signal.';
-                return;
-            }
+    shareButtons.forEach((button) => {
+        button.addEventListener('click', async () => {
+            try {
+                if (navigator.share) {
+                    await navigator.share(shareData);
+                    setShareStatus('Thanks for sharing the signal.');
+                    return;
+                }
 
-            await navigator.clipboard.writeText(shareData.url);
-            if (shareStatus) shareStatus.textContent = 'Game link copied. Send it to someone curious.';
-        } catch (error) {
-            if (error?.name !== 'AbortError' && shareStatus) {
-                shareStatus.textContent = 'You can share mythicalvoid.com from your browser.';
+                await navigator.clipboard.writeText(shareData.url);
+                setShareStatus('Clean game link copied — no tracking code.');
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    setShareStatus('You can share mythicalvoid.com from your browser.');
+                }
             }
-        }
+        });
     });
 }
 

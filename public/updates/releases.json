@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-004",
+      "publishedOn": "2026-08-14",
+      "status": "live",
+      "category": "EASIER TO SHARE",
+      "title": "Share the game from the first screen",
+      "summary": "A new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.",
+      "details": [
+        "On supported phones and computers, the button opens the device's normal sharing choices.",
+        "Where device sharing is unavailable, it copies the clean mythicalvoid.com address instead.",
+        "The shared address contains no tracking code, and the Mythical Void control does not collect a recipient or contact details."
+      ],
+      "image": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageAlt": "An imagined gathering of strange alien creatures in a luminous Mythical Void realm",
+      "imageClass": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "destination": "/",
+      "linkText": "Try the new sharing action",
+      "download": false
+    },
+    {
       "id": "SIGNAL-003",
       "publishedOn": "2026-08-14",
       "status": "live",
