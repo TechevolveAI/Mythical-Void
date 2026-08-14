@@ -5,6 +5,16 @@
   "playUrl": "https://mythicalvoid.com/play/",
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
+  "educatorResources": [
+    {
+      "name": "Mythical Void STEM Creature Lab",
+      "url": "https://mythicalvoid.com/resources/mythical-void-stem-creature-lab.pdf",
+      "kind": "adult_led_printable_activity",
+      "audience": "Ages 9-14, families, clubs and classrooms",
+      "description": "A free four-page activity that starts with a real NASA clue, separates science from fiction, and invites young designers to invent and test an organism from another dimension.",
+      "disclosure": "Independent Mythical Void activity. NASA does not endorse Mythical Void."
+    }
+  ],
   "assets": [
     {
       "name": "Mythical Forest authentic gameplay video",

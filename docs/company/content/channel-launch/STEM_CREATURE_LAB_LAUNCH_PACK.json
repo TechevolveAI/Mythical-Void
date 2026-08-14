@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "STEM-LAUNCH-001",
+  "asOf": "2026-08-14",
+  "state": "owned_assets_ready_external_posting_waits_for_kevin",
+  "primaryUrl": "https://mythicalvoid.com/nasa-space-science/",
+  "playUrl": "https://mythicalvoid.com/play/",
+  "pressUrl": "https://mythicalvoid.com/press/",
+  "resourceUrl": "https://mythicalvoid.com/resources/mythical-void-stem-creature-lab.pdf",
+  "audiences": [
+    "families with young people aged 9-14",
+    "teachers and youth clubs",
+    "game and STEM creators",
+    "Irish game and technology communities"
+  ],
+  "message": "Start with a real space clue, invent an organism from another dimension, then test the idea like a scientist and a game designer.",
+  "originStory": "Mythical Void began as a father-and-son question shared by Kevin and his nine-year-old son: what could imagination and generative AI tools make possible?",
+  "socialSequence": [
+    "the father-and-son origin",
+    "observe before guessing",
+    "invent the impossible organism",
+    "turn imagination into a prediction",
+    "download the activity and play the game"
+  ],
+  "authority": {
+    "ownedWebsiteReleaseApproved": true,
+    "externalPostingAuthorized": false,
+    "bulkOutreachAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "directContactWithChildrenAuthorized": false,
+    "childWorkCollectionAuthorized": false
+  },
+  "requiredClaims": [
+    "The activity is free and four pages long.",
+    "The suggested audience is ages 9-14, families, clubs and classrooms.",
+    "Younger designers should work with an adult.",
+    "The activity separates real observations from fictional ideas.",
+    "Mythical Void is independent and NASA does not endorse it."
+  ],
+  "forbiddenClaims": [
+    "NASA partnership",
+    "NASA-approved activity",
+    "every creature is unique",
+    "no two creatures are alike",
+    "sentient or conscious creatures",
+    "fully autonomous studio"
+  ],
+  "privacyRules": [
+    "Do not collect names, ages, faces, voices, schools, locations or contact details from children.",
+    "Do not invite children to send their designs directly.",
+    "Only share a young person's work later with adult permission and without identifying details."
+  ],
+  "firstTwoWeekQuestions": [
+    "Did people open the NASA and STEM page?",
+    "Did they choose the activity download?",
+    "Did they move from the activity page to Play?",
+    "Which message earned a useful adult reply?"
+  ]
+}
