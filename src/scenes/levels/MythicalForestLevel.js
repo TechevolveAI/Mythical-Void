@@ -2083,13 +2083,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     retireForestPatrolsForElder() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
-        patrols.forEach(enemy => {
-            this.tweens?.killTweensOf?.(enemy);
-            enemy?.combatCue?.destroy?.();
-            enemy?.instructionLabel?.destroy?.();
-            enemy?.graphics?.destroy?.();
-            enemy?.destroy?.();
-        });
+        const retirement = this.retireRouteEnemies(patrols);
 
         this.forestEnemyOverlap?.destroy?.();
         this.forestEnemyOverlap = null;
@@ -2100,7 +2094,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.branchCrawlers = [];
         this.sporeDrifters = [];
         this.forestWisps = [];
-        return patrols.length;
+        return retirement.enemyCount;
     }
 
     startForestEnemyTrailRenderer() {
@@ -2221,11 +2215,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         // AI behavior
-        this.time.addEvent({
+        this.trackEnemyTimer(sprite, this.time.addEvent({
             delay: 200,
             callback: () => this.updateVoidSpriteAI(sprite),
             loop: true
-        });
+        }));
 
         this.voidSprites.push(sprite);
     }
@@ -2323,7 +2317,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         });
 
         // Patrol AI
-        this.time.addEvent({
+        this.trackEnemyTimer(sprite, this.time.addEvent({
             delay: 50,
             callback: () => {
                 if (!sprite.active || !this.scene.isActive()) return;
@@ -2339,7 +2333,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 }
             },
             loop: true
-        });
+        }));
 
         this.branchCrawlers.push(sprite);
     }
@@ -2410,11 +2404,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         });
 
         // Spore cloud emission
-        this.time.addEvent({
+        this.trackEnemyTimer(sprite, this.time.addEvent({
             delay: 2000 + Math.random() * 2000,
             callback: () => this.emitSporeCloud(sprite),
             loop: true
-        });
+        }));
 
         this.sporeDrifters.push(sprite);
     }
@@ -2570,11 +2564,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         });
 
         // AI behavior - teleport and shoot
-        this.time.addEvent({
+        this.trackEnemyTimer(sprite, this.time.addEvent({
             delay: 1500,
             callback: () => this.updateForestWispAI(sprite),
             loop: true
-        });
+        }));
 
         this.forestWisps.push(sprite);
     }
@@ -2603,12 +2597,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
             sprite.isStunned = true;
             sprite.setTint(0x666666);  // Dim to show vulnerability
 
-            this.time.delayedCall(2000, () => {
+            this.trackEnemyTimer(sprite, this.time.delayedCall(2000, () => {
                 if (sprite.active) {
                     sprite.isStunned = false;
                     sprite.clearTint();  // Restore normal appearance
                 }
-            });
+            }));
         }
     }
 
@@ -2679,18 +2673,27 @@ class MythicalForestLevel extends PlatformerLevelScene {
         projectile.fillCircle(-2, -2, 2);
         projectile.setPosition(sprite.x, sprite.y);
         projectile.setDepth(120);
+        this.trackEnemyArtifact(sprite, projectile);
 
         // Move projectile
         const speed = 200;
         const velocityX = Math.cos(angle) * speed;
         const velocityY = Math.sin(angle) * speed;
 
+        let projectileTimer = null;
+        const retireProjectile = () => {
+            projectileTimer?.remove?.(false);
+            sprite.runtimeTimers?.delete?.(projectileTimer);
+            projectile?.destroy?.();
+            sprite.runtimeArtifacts?.delete?.(projectile);
+        };
+
         // Update projectile position
-        const projectileTimer = this.time.addEvent({
+        projectileTimer = this.trackEnemyTimer(sprite, this.time.addEvent({
             delay: 16,
             callback: () => {
                 if (!projectile.active || !this.scene.isActive()) {
-                    projectileTimer.remove();
+                    retireProjectile();
                     return;
                 }
 
@@ -2702,8 +2705,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     const dist = Phaser.Math.Distance.Between(projectile.x, projectile.y, this.player.x, this.player.y);
                     if (dist < 25) {
                         this.handlePlayerDamage(1);
-                        projectile.destroy();
-                        projectileTimer.remove();
+                        retireProjectile();
                         return;
                     }
                 }
@@ -2711,12 +2713,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 // Destroy if off-screen or traveled too far
                 const distTraveled = Phaser.Math.Distance.Between(sprite.x, sprite.y, projectile.x, projectile.y);
                 if (distTraveled > 400) {
-                    projectile.destroy();
-                    projectileTimer.remove();
+                    retireProjectile();
                 }
             },
             loop: true
-        });
+        }));
     }
 
     /**
@@ -2743,6 +2744,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     killEnemy(enemy) {
         if (!enemy.active) return;
+
+        this.disposeEnemyRuntime(enemy);
 
         enemy.combatCue?.destroy?.();
         enemy.combatCue = null;

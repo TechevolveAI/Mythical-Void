@@ -626,13 +626,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
     retireFinalPatrolsForEmpress() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
-        patrols.forEach(enemy => {
-            enemy?.combatCue?.destroy?.();
-            enemy?.instructionLabel?.destroy?.();
-            enemy?.destroy?.();
-        });
+        const retirement = this.retireRouteEnemies(patrols);
         this.finalEncounterRhythm = [];
-        return patrols.length;
+        return retirement.enemyCount;
     }
 
     createTrustBridgeRoute() {

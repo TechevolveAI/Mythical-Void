@@ -151,7 +151,7 @@ describe('early guardian and miniboss pacing contracts', () => {
         expect(crystalSource.match(/this\.clearCrystalBossPacing\(\{ includePhase: true \}\);/g))
             .toHaveLength(2);
         expect(crystalSource.match(/this\.clearSpiderBossPacing\(\);/g))
-            .toHaveLength(3);
+            .toHaveLength(4);
     });
 
     test('Crystal Spider rewards cannot overwrite a later guardian checkpoint', () => {

@@ -795,13 +795,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     retirePeakPatrolsForTitan() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
-        patrols.forEach(enemy => {
-            enemy?.combatCue?.destroy?.();
-            enemy?.instructionLabel?.destroy?.();
-            enemy?.destroy?.();
-        });
+        const retirement = this.retireRouteEnemies(patrols);
         this.peakEncounterRhythm = [];
-        return patrols.length;
+        return retirement.enemyCount;
     }
 
     createSentinelTexture(textureKey, color) {

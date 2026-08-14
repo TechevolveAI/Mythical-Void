@@ -4493,6 +4493,14 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             const persisted = window.GameState?.get?.(
                 'story.projectBeacon.expeditionCheckpoint'
             );
+            let stagedEnemyArtifactCount = 0;
+            if (${JSON.stringify(route)} === 'mythicalForest') {
+                const wisp = scene.forestWisps?.find(enemy => enemy?.active);
+                if (wisp) {
+                    scene.wispShoot?.(wisp);
+                    stagedEnemyArtifactCount = wisp.runtimeArtifacts?.size || 0;
+                }
+            }
             if ([
                 'auroraDepths',
                 'voidPeaks',
@@ -4517,6 +4525,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             return {
                 persistedId: persisted?.checkpointId || null,
                 persistedIndex: persisted?.checkpointIndex ?? null,
+                stagedEnemyArtifactCount,
                 stagedSupportId: ${JSON.stringify(route)} === 'auroraDepths'
                     ? 'aurora-phoenix-gate'
                     : (${JSON.stringify(route)} === 'voidPeaks'
@@ -4553,6 +4562,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     remainingCombatCues: (scene.enemies?.getChildren?.() || [])
                         .filter(enemy => enemy?.active !== false && enemy?.combatCue?.active)
                         .length,
+                    retirement: scene.lastRouteEnemyRetirement
+                        ? { ...scene.lastRouteEnemyRetirement }
+                        : null,
+                    runtimeDisposals: scene.enemyRuntimeDisposalTotals
+                        ? { ...scene.enemyRuntimeDisposalTotals }
+                        : null,
                     persistedId: persisted?.checkpointId || null,
                     persistedIndex: persisted?.checkpointIndex ?? null
                 };
@@ -4567,6 +4582,16 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             guardianEntry.duplicateAccepted !== false ||
             guardianEntry.remainingPatrols !== 0 ||
             guardianEntry.remainingCombatCues !== 0 ||
+            guardianEntry.retirement?.enemyCount < 1 ||
+            (route === 'mythicalForest' &&
+                guardianEntry.runtimeDisposals?.timerCount < 23) ||
+            (route === 'mythicalForest' &&
+                guardianEntrySetup.stagedEnemyArtifactCount < 1) ||
+            (route === 'mythicalForest' &&
+                guardianEntry.runtimeDisposals?.artifactCount <
+                    guardianEntrySetup.stagedEnemyArtifactCount) ||
+            (route === 'crystalCaves' &&
+                guardianEntry.runtimeDisposals?.timerCount < 10) ||
             guardianEntry.persistedId !== guardianEntrySetup.persistedId ||
             guardianEntry.persistedIndex !== guardianEntrySetup.persistedIndex
         ) {

@@ -1162,19 +1162,13 @@ class ReefLevel extends PlatformerLevelScene {
 
     retireReefPatrolsForNyxvoral() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
-        patrols.forEach(enemy => {
-            this.tweens?.killTweensOf?.(enemy);
-            enemy?.combatCue?.destroy?.();
-            enemy?.instructionLabel?.destroy?.();
-            enemy?.graphics?.destroy?.();
-            enemy?.destroy?.();
-        });
+        const retirement = this.retireRouteEnemies(patrols);
         this.voidSpores = [];
         this.plasmaDarts = [];
         this.phaseDrifters = [];
         this.lureWraiths = [];
         this.reefEncounterRhythm = [];
-        return patrols.length;
+        return retirement.enemyCount;
     }
 
     createBeaconWaypoints() {

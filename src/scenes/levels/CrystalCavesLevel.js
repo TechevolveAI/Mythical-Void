@@ -1782,16 +1782,19 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
     retireCavePatrolsForGolem() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
-        patrols.forEach(enemy => {
-            this.tweens?.killTweensOf?.(enemy);
-            enemy?.combatCue?.destroy?.();
-            enemy?.instructionLabel?.destroy?.();
-            enemy?.graphics?.destroy?.();
-            enemy?.destroy?.();
-        });
-        this.retireCrystalSpiderFromResume();
+        const retirement = this.retireRouteEnemies(patrols);
+        this.spiderAITimer = null;
+        this.spiderAttackTimer = null;
+        this.spiderWebSprayTimer = null;
+        this.clearSpiderBossPacing();
+        this.crystalSpider = null;
+        this.spiderUI?.destroy?.();
+        this.spiderUI = null;
+        this.spiderHealthBar = null;
+        this.spiderHealthBarBg = null;
+        this.spiderNameText = null;
         this.caveEncounterRhythm = [];
-        return patrols.length;
+        return retirement.enemyCount;
     }
 
     resolveCaveEncounterPlacement(encounter) {
@@ -1920,25 +1923,25 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.createSpiderHealthBar();
 
         // Start spider AI
-        this.spiderAITimer = this.time.addEvent({
+        this.spiderAITimer = this.trackEnemyTimer(this.crystalSpider, this.time.addEvent({
             delay: 50,
             callback: () => this.updateCrystalSpiderAI(),
             loop: true
-        });
+        }));
 
         // Attack timer
-        this.spiderAttackTimer = this.time.addEvent({
+        this.spiderAttackTimer = this.trackEnemyTimer(this.crystalSpider, this.time.addEvent({
             delay: 3000,
             callback: () => this.spiderPerformAttack(),
             loop: true
-        });
+        }));
 
         // Web spray timer - sprays web downward while patrolling on ceiling
-        this.spiderWebSprayTimer = this.time.addEvent({
+        this.spiderWebSprayTimer = this.trackEnemyTimer(this.crystalSpider, this.time.addEvent({
             delay: 1500,
             callback: () => this.spiderSprayWebDown(),
             loop: true
-        });
+        }));
 
         console.log('[CrystalCavesLevel] Crystal Spider miniboss created at', x, y);
 
@@ -2529,16 +2532,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         spider.combatCue = null;
         this.clearSpiderBossPacing();
 
-        // Stop AI timers
-        if (this.spiderAITimer) {
-            this.spiderAITimer.remove();
-        }
-        if (this.spiderAttackTimer) {
-            this.spiderAttackTimer.remove();
-        }
-        if (this.spiderWebSprayTimer) {
-            this.spiderWebSprayTimer.remove();
-        }
+        this.disposeEnemyRuntime(spider);
+        this.spiderAITimer = null;
+        this.spiderAttackTimer = null;
+        this.spiderWebSprayTimer = null;
 
         // The spider settles as the crystal pulse clears.
         spider.setVelocity(0, 0);
@@ -2671,11 +2668,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         });
 
         // Patrol behavior
-        this.time.addEvent({
+        this.trackEnemyTimer(bat, this.time.addEvent({
             delay: 50,
             callback: () => this.updateBatPatrol(bat),
             loop: true
-        });
+        }));
 
         return bat;
     }
@@ -2758,11 +2755,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         });
 
         // Patrol movement
-        this.time.addEvent({
+        this.trackEnemyTimer(crawler, this.time.addEvent({
             delay: 50,
             callback: () => this.updateCrawlerPatrol(crawler),
             loop: true
-        });
+        }));
 
         return crawler;
     }
@@ -2992,11 +2989,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     retireCrystalSpiderFromResume() {
-        this.spiderAITimer?.remove?.();
+        this.disposeEnemyRuntime(this.crystalSpider);
         this.spiderAITimer = null;
-        this.spiderAttackTimer?.remove?.();
         this.spiderAttackTimer = null;
-        this.spiderWebSprayTimer?.remove?.();
         this.spiderWebSprayTimer = null;
         this.clearSpiderBossPacing();
         this.crystalSpider?.destroy?.();

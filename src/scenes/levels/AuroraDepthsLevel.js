@@ -663,13 +663,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     retireAuroraPatrolsForPhoenix() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
-        patrols.forEach(enemy => {
-            enemy?.combatCue?.destroy?.();
-            enemy?.instructionLabel?.destroy?.();
-            enemy?.destroy?.();
-        });
+        const retirement = this.retireRouteEnemies(patrols);
         this.auroraEncounterRhythm = [];
-        return patrols.length;
+        return retirement.enemyCount;
     }
 
     createQuietLightRoute() {
