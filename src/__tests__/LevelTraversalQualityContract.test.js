@@ -2627,6 +2627,11 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('framePacing.peaksRuntime?.emberRedrawsDuringSample > 22');
         expect(smoke).toContain('framePacing.peaksRuntime?.patrolUpdatesDuringSample > 28');
         expect(smoke).toContain('did not keep Peaks runtime work bounded');
+        expect(smoke).toContain('activeTweenCount: 22');
+        expect(smoke).toContain('state.auroraAmbientRendering?.shadowCurrentLabelCount !== 3');
+        expect(smoke).toContain('state.auroraAmbientRendering?.shadowPulseTweenCount !== 1');
+        expect(smoke).toContain('state.auroraAmbientRendering?.fragmentPulseTweenCount !== 1');
+        expect(smoke).toContain('did not keep Aurora hazards readable and batched');
         expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');
         expect(smoke).toContain('state.coinRendering?.legacyVisualCount !== 0');
         expect(smoke).toContain('state.coinRendering?.pickupBodyCount !== 0');
