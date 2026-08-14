@@ -444,6 +444,7 @@ async function smokeForestBatchedCoinPickup(session) {
             scene.isInvincible = false;
             scene.player?.body?.reset?.(300, scene.levelHeight - 130);
             scene.player?.setVelocity?.(0, 0);
+            scene.updateForestEnemyActivation(true);
             return true;
         })()`);
     }
@@ -463,13 +464,17 @@ async function smokeForestSharedEnemyScheduler(session) {
         scene.isInvincible = true;
         const playerStart = { x: scene.player.x, y: scene.player.y };
         const chaserStart = { x: chaser.x, y: chaser.y };
-        chaser.forestNextAiAt = scene.time.now;
-        crawler.forestNextAiAt = scene.time.now;
         chaser.body.reset(chaser.forestPatrolLeft, chaserStart.y);
         scene.player.body.reset(
             chaser.forestPatrolRight,
             scene.levelHeight - 130
         );
+        scene.updateForestEnemyActivation(true);
+        scene.forestProximityEnemies.forEach(enemy => {
+            enemy.forestNextAiAt = scene.time.now + 5000;
+        });
+        chaser.forestNextAiAt = scene.time.now;
+        crawler.forestNextAiAt = scene.time.now;
         chaser.setVelocity(0, 0);
         scene.player.setVelocity(0, 0);
         return {
@@ -535,6 +540,173 @@ async function smokeForestSharedEnemyScheduler(session) {
                 ${staged.playerStart.y}
             );
             scene.player?.setVelocity?.(0, 0);
+            scene.updateForestEnemyActivation(true);
+            return true;
+        })()`);
+    }
+}
+
+async function smokeForestEnemyActivationWindow(session) {
+    const staged = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        const target = [...(scene.voidSprites || [])]
+            .filter(enemy => enemy?.active && enemy?.body)
+            .sort((left, right) => right.x - left.x)[0];
+        if (!scene.player?.body || !target?.forestSupportId) return null;
+
+        const camera = scene.cameras.main;
+        const playerStart = {
+            x: scene.player.x,
+            y: scene.player.y,
+            invincible: scene.isInvincible === true
+        };
+        const cameraStart = { x: camera.scrollX, y: camera.scrollY };
+        const targetStart = {
+            x: target.x,
+            y: target.y,
+            nextAiAt: target.forestNextAiAt,
+            isChasing: target.isChasing === true
+        };
+
+        scene.isInvincible = true;
+        scene.player.body.reset(300, scene.levelHeight - 130);
+        scene.player.setVelocity(0, 0);
+        camera.centerOn(scene.player.x, scene.player.y);
+        camera.preRender?.();
+        scene.updateForestEnemyActivation(true);
+
+        return {
+            targetSupportId: target.forestSupportId,
+            totalEnemyCount: (scene.enemies?.getChildren?.() || []).filter(
+                enemy => enemy?.active
+            ).length,
+            playerStart,
+            cameraStart,
+            targetStart,
+            far: {
+                proximityActive: target.forestProximityActive === true,
+                bodyEnabled: target.body.enable === true,
+                visible: target.visible === true,
+                nearby: scene.forestProximityEnemies.includes(target),
+                activeCount: scene.forestProximityEnemies.length
+            }
+        };
+    })()`);
+    if (!staged) {
+        throw new Error('Forest enemy activation window could not be staged');
+    }
+
+    try {
+        const awakened = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const target = (scene.voidSprites || []).find(
+                enemy => enemy?.forestSupportId === ${JSON.stringify(staged.targetSupportId)}
+            );
+            if (!target?.body || !scene.player?.body) return null;
+
+            scene.player.body.reset(target.x - 180, target.y);
+            scene.player.setVelocity(0, 0);
+            scene.cameras.main.centerOn(scene.player.x, scene.player.y);
+            scene.cameras.main.preRender?.();
+            scene.updateForestEnemyActivation(true);
+            scene.forestProximityEnemies.forEach(enemy => {
+                enemy.forestNextAiAt = scene.time.now + 5000;
+            });
+            target.forestNextAiAt = scene.time.now;
+            scene.updateForestEnemyAI();
+
+            return {
+                proximityActive: target.forestProximityActive === true,
+                bodyEnabled: target.body.enable === true,
+                visible: target.visible === true,
+                nearby: scene.forestProximityEnemies.includes(target),
+                isChasing: target.isChasing === true,
+                velocityX: Number(target.body.velocity?.x) || 0,
+                activeCount: scene.forestProximityEnemies.length
+            };
+        })()`);
+        if (
+            staged.totalEnemyCount !== 23 ||
+            staged.far.proximityActive !== false ||
+            staged.far.bodyEnabled !== false ||
+            staged.far.visible !== false ||
+            staged.far.nearby !== false ||
+            awakened?.proximityActive !== true ||
+            awakened?.bodyEnabled !== true ||
+            awakened?.visible !== true ||
+            awakened?.nearby !== true ||
+            awakened?.isChasing !== true ||
+            Math.abs(awakened?.velocityX || 0) < 1
+        ) {
+            throw new Error(
+                `Forest enemy activation did not wake before contact: ${JSON.stringify({
+                    staged,
+                    awakened
+                })}`
+            );
+        }
+
+        const slept = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const target = (scene.voidSprites || []).find(
+                enemy => enemy?.forestSupportId === ${JSON.stringify(staged.targetSupportId)}
+            );
+            if (!target?.body || !scene.player?.body) return null;
+
+            target.body.reset(${staged.targetStart.x}, ${staged.targetStart.y});
+            target.setVelocity(0, 0);
+            scene.player.body.reset(300, scene.levelHeight - 130);
+            scene.player.setVelocity(0, 0);
+            scene.cameras.main.centerOn(scene.player.x, scene.player.y);
+            scene.cameras.main.preRender?.();
+            scene.updateForestEnemyActivation(true);
+            return {
+                proximityActive: target.forestProximityActive === true,
+                bodyEnabled: target.body.enable === true,
+                visible: target.visible === true,
+                nearby: scene.forestProximityEnemies.includes(target),
+                activeCount: scene.forestProximityEnemies.length
+            };
+        })()`);
+        if (
+            slept?.proximityActive !== false ||
+            slept?.bodyEnabled !== false ||
+            slept?.visible !== false ||
+            slept?.nearby !== false
+        ) {
+            throw new Error(
+                `Forest enemy activation did not suspend after departure: ${JSON.stringify({
+                    staged,
+                    awakened,
+                    slept
+                })}`
+            );
+        }
+        return { staged, awakened, slept };
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const target = (scene.voidSprites || []).find(
+                enemy => enemy?.forestSupportId === ${JSON.stringify(staged.targetSupportId)}
+            );
+            target?.body?.reset?.(${staged.targetStart.x}, ${staged.targetStart.y});
+            target?.setVelocity?.(0, 0);
+            if (target) {
+                target.forestNextAiAt = ${Number(staged.targetStart.nextAiAt) || 0};
+                target.isChasing = ${staged.targetStart.isChasing === true};
+            }
+            scene.player?.body?.reset?.(
+                ${staged.playerStart.x},
+                ${staged.playerStart.y}
+            );
+            scene.player?.setVelocity?.(0, 0);
+            scene.cameras.main.setScroll(
+                ${staged.cameraStart.x},
+                ${staged.cameraStart.y}
+            );
+            scene.cameras.main.preRender?.();
+            scene.isInvincible = ${staged.playerStart.invincible === true};
+            scene.updateForestEnemyActivation(true);
             return true;
         })()`);
     }
@@ -2332,6 +2504,24 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 aiSchedulerActive: Boolean(
                     scene?.forestEnemyAISchedulerActive
                 ),
+                proximityActiveCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => enemy?.forestProximityActive === true).length,
+                sleepingEnemyCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => enemy?.forestProximityActive === false).length,
+                enabledBodyCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => enemy?.body?.enable === true).length,
+                visibleEnemyCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => enemy?.visible === true).length,
+                activationBounds: scene.forestEnemyActivationBounds ? {
+                    horizontalMargin:
+                        scene.forestEnemyActivationBounds.horizontalMargin,
+                    verticalMargin:
+                        scene.forestEnemyActivationBounds.verticalMargin
+                } : null,
                 groundEnemySupportIds: (scene.voidSprites || []).map(
                     enemy => enemy?.forestSupportId || null
                 ),
@@ -2554,6 +2744,16 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.forestEnemyRuntime?.scheduledEnemyCount !== 23 ||
             state.forestEnemyRuntime?.individualTimerCount !== 0 ||
             state.forestEnemyRuntime?.aiSchedulerActive !== true ||
+            state.forestEnemyRuntime?.proximityActiveCount > 10 ||
+            state.forestEnemyRuntime?.sleepingEnemyCount < 13 ||
+            state.forestEnemyRuntime?.proximityActiveCount +
+                state.forestEnemyRuntime?.sleepingEnemyCount !== 23 ||
+            state.forestEnemyRuntime?.enabledBodyCount !==
+                state.forestEnemyRuntime?.proximityActiveCount ||
+            state.forestEnemyRuntime?.visibleEnemyCount !==
+                state.forestEnemyRuntime?.proximityActiveCount ||
+            state.forestEnemyRuntime?.activationBounds?.horizontalMargin !== 520 ||
+            state.forestEnemyRuntime?.activationBounds?.verticalMargin !== 280 ||
             state.forestEnemyRuntime?.groundEnemySupportIds?.length !== 5 ||
             new Set(
                 state.forestEnemyRuntime?.groundEnemySupportIds || []
@@ -2813,6 +3013,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             JSON.stringify(framePacing.graphicsTweenDepths)
         );
     }
+    const forestEnemyActivation = route === 'mythicalForest'
+        ? await smokeForestEnemyActivationWindow(session)
+        : null;
     const forestEnemyScheduler = route === 'mythicalForest'
         ? await smokeForestSharedEnemyScheduler(session)
         : null;
@@ -5971,6 +6174,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         reefWaypointSupports,
         forestAnchorSupports,
         framePacing,
+        forestEnemyActivation,
         forestEnemyScheduler,
         forestCoinPickup,
         caveCoinPickup,
