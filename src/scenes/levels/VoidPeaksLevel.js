@@ -4,6 +4,16 @@ import { calculateBallisticLaunchVelocity } from '../../systems/TraversalTopolog
 const COSMIC_TITAN_TEXTURE = 'cosmicTitan';
 const COSMIC_TITAN_ASSET = '/game/guardians/cosmic-titan.webp';
 const COSMIC_TITAN_DISPLAY_HEIGHT = 300;
+const COSMIC_TITAN_MOBILE_DISPLAY_HEIGHT = 240;
+
+const TITAN_ARENA = Object.freeze({
+    playerEntryX: 4500,
+    introFocusX: 4610,
+    bossX: 4720,
+    playerBottomOffset: 295,
+    bossBottomOffset: 435,
+    openingGraceMs: 3000
+});
 
 const TITAN_ATTACK_WINDOWS = Object.freeze({
     gravityCrush: 1800,
@@ -138,6 +148,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.peakEmbers = [];
         this.peakEmberLayer = null;
         this.peakEmberDrawNextAt = 0;
+        this.peakEmberViewCenterX = Number.NaN;
         this.peakEmberDrawCount = 0;
         this.peakEmberVisibleCount = 0;
         this.peakEnemyPatrolNextAt = 0;
@@ -154,6 +165,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossEncounterEffects = new Set();
         this.bossEncounterTimers = new Set();
         this.bossAttackPreview = null;
+        this.bossAttackPreviewTimer = null;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.bossPressureText = null;
         this.peakEncounterRhythm = [];
         this.levelEntryDismissing = false;
@@ -186,6 +200,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.peakEmbers = [];
         this.peakEmberLayer = null;
         this.peakEmberDrawNextAt = 0;
+        this.peakEmberViewCenterX = Number.NaN;
         this.peakEmberDrawCount = 0;
         this.peakEmberVisibleCount = 0;
         this.peakEnemyPatrolNextAt = 0;
@@ -201,6 +216,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.titanRecoveryUntil = 0;
         this.bossEncounterEffects = new Set();
         this.bossEncounterTimers = new Set();
+        this.bossAttackPreviewTimer = null;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.bossAttackPreview = [
             'gravityCrush',
             'starRain',
@@ -246,7 +264,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.createPeakAtmosphere();
 
         if (this.player) {
-            this.player.setPosition(4200, this.levelHeight - 210);
+            this.player.setPosition(
+                TITAN_ARENA.playerEntryX,
+                this.levelHeight - TITAN_ARENA.playerBottomOffset
+            );
         }
 
         this.showPlatformerMobileControls();
@@ -532,6 +553,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             batched: true
         }));
         this.peakEmberDrawNextAt = 0;
+        this.peakEmberViewCenterX = Number.NaN;
         this.peakEmberDrawCount = 0;
         this.drawPeakEmbers(0, true);
     }
@@ -540,20 +562,35 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         if (!this.peakEmberLayer?.active) return;
 
         const now = Number(time) || 0;
-        const cadence = this.isMobile ? 100 : 50;
-        if (!force && now < this.peakEmberDrawNextAt) return;
-        this.peakEmberDrawNextAt = now + cadence;
-
         const view = this.cameras?.main?.worldView;
         const left = Number(view?.left) || 0;
         const right = Number(view?.right) || this.levelWidth;
         const top = Number(view?.top) || 0;
         const bottom = Number(view?.bottom) || this.levelHeight;
+        const viewCenterX = (left + right) / 2;
+        const compactViewport = this.isMobile ||
+            (Number(this.cameras?.main?.width) || 0) <= 480 ||
+            (Number(this.cameras?.main?.height) || 0) < 620;
+
+        if (!force && compactViewport) {
+            const redrawDistance = Math.max(180, (right - left) * 0.45);
+            if (
+                Number.isFinite(this.peakEmberViewCenterX) &&
+                Math.abs(viewCenterX - this.peakEmberViewCenterX) < redrawDistance
+            ) return;
+        } else if (!force && now < this.peakEmberDrawNextAt) {
+            return;
+        }
+
+        this.peakEmberDrawNextAt = now + 50;
+        this.peakEmberViewCenterX = viewCenterX;
+        const renderTime = compactViewport ? 0 : now;
         let visibleCount = 0;
         this.peakEmberLayer.clear();
         this.peakEmbers.forEach(ember => {
             if (ember.x < left - 140 || ember.x > right + 140) return;
-            const phase = ((now + ember.phaseOffset) % ember.duration) / ember.duration;
+            const phase = ((renderTime + ember.phaseOffset) % ember.duration) /
+                ember.duration;
             const rise = (Math.sin((phase * Math.PI * 2) - (Math.PI / 2)) + 1) / 2;
             const y = ember.originY - (ember.travel * rise);
             if (y < top - 100 || y > bottom + 100) return;
@@ -910,6 +947,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createStarFragments() {
+        const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
         const positions = [
             [610, this.levelHeight - 240], [1680, this.levelHeight - 395],
             [2730, 300, 'peaks_relic_ridge'],
@@ -921,20 +959,23 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             const fragment = this.add.star(x, y, 5, 7, 18, 0xFFD700, 1);
             fragment.setDepth(700);
             this.physics.add.existing(fragment);
+            this.collectibles.add(fragment);
             fragment.body.setAllowGravity(false);
+            fragment.body.setVelocity(0, 0);
             fragment.body.setSize(32, 32);
             fragment.fragmentIndex = index;
             fragment.optionalRouteId = optionalRouteId || null;
-            this.collectibles.add(fragment);
 
-            this.tweens.add({
-                targets: fragment,
-                angle: 360,
-                y: y - 12,
-                duration: 1600,
-                repeat: -1,
-                yoyo: true
-            });
+            if (animateRouteDecorations) {
+                this.tweens.add({
+                    targets: fragment,
+                    angle: 360,
+                    y: y - 12,
+                    duration: 1600,
+                    repeat: -1,
+                    yoyo: true
+                });
+            }
         });
     }
 
@@ -1233,13 +1274,18 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             }
         });
 
-        this.tweens.add({
-            targets: [spine, relicRoute],
-            alpha: { from: 0.68, to: 1 },
-            duration: 900,
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.shouldAnimatePeakRouteDecorations()) {
+            this.tweens.add({
+                targets: [spine, relicRoute],
+                alpha: { from: 0.68, to: 1 },
+                duration: 900,
+                yoyo: true,
+                repeat: -1
+            });
+        } else {
+            spine.setAlpha(0.9);
+            relicRoute.setAlpha(0.9);
+        }
     }
 
     restoreExpeditionRouteState(resume) {
@@ -1670,14 +1716,24 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         console.log('[VoidPeaksLevel] Starting Cosmic Titan boss fight!');
         this.bossFightActive = true;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
+        this.titanAttackLocked = true;
         this.retirePeakPatrolsForTitan();
+        this.clearGuardianGateState();
         this.physics.pause();
+        this.hidePlatformerMobileControls();
+        this.stageTitanArenaEntry();
+        this.cameras.main.stopFollow();
+        this.cameras.main.pan(
+            TITAN_ARENA.introFocusX,
+            this.levelHeight / 2,
+            900
+        );
         window.FeedbackManager?.cameraFlash?.(this, 220, 75, 0, 130);
         window.FeedbackManager?.cameraShake?.(this, 450, 0.012);
-
-        if (this.player) {
-            this.player.setPosition(4180, this.levelHeight - 295);
-        }
 
         const { width, height } = this.cameras.main;
         const warning = this.add.text(
@@ -1703,19 +1759,40 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
     }
 
+    stageTitanArenaEntry() {
+        if (!this.player) return false;
+
+        const y = this.levelHeight - TITAN_ARENA.playerBottomOffset;
+        if (this.player.body?.reset) {
+            this.player.body.reset(TITAN_ARENA.playerEntryX, y);
+        } else {
+            this.player.setPosition(TITAN_ARENA.playerEntryX, y);
+        }
+        this.player.setVelocity?.(0, 0);
+        this.player.facingRight = true;
+        return true;
+    }
+
     spawnCosmicTitan() {
         this.createTitanTexture();
 
         this.boss = this.physics.add.sprite(
-            4720,
-            this.levelHeight - 435,
+            TITAN_ARENA.bossX,
+            this.levelHeight - TITAN_ARENA.bossBottomOffset,
             COSMIC_TITAN_TEXTURE
         );
         this.boss.setImmovable(true);
         this.boss.setCollideWorldBounds(true);
         this.boss.body.setAllowGravity(false);
-        this.bossTargetScale = COSMIC_TITAN_DISPLAY_HEIGHT /
+        const isMobileArena = this.isMobile ||
+            this.cameras.main.width <= 480;
+        const desktopBossScale = COSMIC_TITAN_DISPLAY_HEIGHT /
             Math.max(1, this.boss.height);
+        const mobileBossScale = COSMIC_TITAN_MOBILE_DISPLAY_HEIGHT /
+            Math.max(1, this.boss.height);
+        this.bossTargetScale = isMobileArena
+            ? mobileBossScale
+            : desktopBossScale;
         this.boss.body.setSize(
             this.boss.width * 0.4,
             this.boss.height * 0.66
@@ -1730,18 +1807,80 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         this.bossHealth = this.bossMaxHealth;
         this.createBossHealthBar();
-        this.physics.resume();
-        if (this.bossAttackPreview) {
-            this.time.delayedCall(1200, () => {
-                this.performTitanAttack(this.bossAttackPreview);
-            });
-        } else {
-            this.bossAttackTimer = this.time.addEvent({
-                delay: 2600,
-                callback: () => this.performTitanAttack(),
-                loop: true
-            });
+        this.time.delayedCall(500, () => {
+            if (!this.player?.active || !this.cameras.main) return;
+            this.cameras.main.pan(
+                this.player.x,
+                this.player.y,
+                1000,
+                'Power2',
+                true,
+                (camera, progress) => {
+                    if (progress >= 0.999) {
+                        this.beginTitanCombat(camera);
+                    }
+                }
+            );
+        });
+    }
+
+    beginTitanCombat(camera = this.cameras.main) {
+        if (
+            this.bossCombatReady ||
+            !this.bossFightActive ||
+            !this.boss?.active ||
+            !this.player?.active
+        ) return false;
+
+        this.bossCombatReady = true;
+        this.bossCombatReadyAt = this.time.now;
+        this.titanAttackLocked = false;
+        if (this.isMobile || camera.width <= 480) {
+            this.cameraLeadAmount = Math.max(
+                this.cameraLeadAmount,
+                camera.width * 0.35
+            );
         }
+        camera.startFollow(this.player, true, 0.08, 0.1);
+        camera.setFollowOffset(
+            -this.cameraLeadAmount,
+            this.cameraBaseOffsetY
+        );
+        this.currentCameraLeadX = -this.cameraLeadAmount;
+        this.targetCameraLeadX = -this.cameraLeadAmount;
+        this.physics.resume();
+        this.showPlatformerMobileControls();
+        this.bossSubtitle?.setText?.(
+            'TITAN IN VIEW // READ THE WARNING LINE'
+        );
+
+        this.bossAttackPreviewTimer = this.time.delayedCall(
+            TITAN_ARENA.openingGraceMs,
+            () => {
+                this.bossAttackPreviewTimer = null;
+                if (this.bossAttackPreview) {
+                    this.performTitanAttack(this.bossAttackPreview);
+                } else {
+                    this.performTitanAttack();
+                    this.startTitanAttackLoop();
+                }
+            }
+        );
+        console.log('[VoidPeaksLevel] Arena framed; Titan combat enabled');
+        return true;
+    }
+
+    startTitanAttackLoop() {
+        if (!this.bossCombatReady || !this.bossFightActive || this.bossDefeated) {
+            return null;
+        }
+        this.bossAttackTimer?.remove?.();
+        this.bossAttackTimer = this.time.addEvent({
+            delay: 2600,
+            callback: () => this.performTitanAttack(),
+            loop: true
+        });
+        return this.bossAttackTimer;
     }
 
     createTitanTexture() {
@@ -1943,6 +2082,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     performTitanAttack(forcedAttack = null) {
         if (
+            !this.bossCombatReady ||
+            !this.bossFightActive ||
             !this.boss?.active ||
             !this.player?.active ||
             this.bossDefeated ||
@@ -2176,7 +2317,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         console.log('[VoidPeaksLevel] Cosmic Titan restored!');
         this.bossDefeated = true;
         this.bossFightActive = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.bossAttackTimer?.remove?.();
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
         this.titanWarningTimer?.remove?.();
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer?.remove?.();
@@ -2338,6 +2483,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     shutdown() {
         this.clearLevelEntryKeyHandler();
         this.bossAttackTimer?.remove?.();
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.titanWarningTimer?.remove?.();
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer?.remove?.();
@@ -2378,6 +2527,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.peakEmberLayer = null;
         this.peakEmbers = [];
         this.peakEmberDrawNextAt = 0;
+        this.peakEmberViewCenterX = Number.NaN;
         this.peakEmberDrawCount = 0;
         this.peakEmberVisibleCount = 0;
         this.peakEnemyPatrolNextAt = 0;

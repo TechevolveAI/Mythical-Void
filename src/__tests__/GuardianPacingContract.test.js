@@ -81,6 +81,31 @@ describe('guardian encounter pacing contracts', () => {
         expect(source).toContain('this.bossAttackPreviewTimer?.remove?.();');
     });
 
+    test('Void Peaks frames the Titan before enabling controls or attacks', () => {
+        const source = readLevel('VoidPeaksLevel.js');
+
+        expect(source).toContain('const TITAN_ARENA = Object.freeze({');
+        expect(source).toContain('stageTitanArenaEntry() {');
+        expect(source).toMatch(
+            /startBossFight\(\)[\s\S]*this\.hidePlatformerMobileControls\(\);[\s\S]*this\.stageTitanArenaEntry\(\);/
+        );
+        expect(source).toContain(
+            'beginTitanCombat(camera = this.cameras.main)'
+        );
+        expect(source).toContain('openingGraceMs: 3000');
+        expect(source).toContain(
+            'const COSMIC_TITAN_MOBILE_DISPLAY_HEIGHT = 240;'
+        );
+        expect(source).toContain('this.bossCombatReadyAt = this.time.now;');
+        expect(source).toContain('camera.width * 0.35');
+        expect(source).toContain('this.clearGuardianGateState();');
+        expect(source).toMatch(
+            /beginTitanCombat[\s\S]*this\.physics\.resume\(\);[\s\S]*this\.showPlatformerMobileControls\(\);[\s\S]*this\.startTitanAttackLoop\(\);/
+        );
+        expect(source).toContain('!this.bossCombatReady ||');
+        expect(source).toContain('this.bossAttackPreviewTimer?.remove?.();');
+    });
+
     test('Reef echo summons use the shared readable combat contract', () => {
         const source = readLevel('ReefLevel.js');
         const createMinion = source.match(

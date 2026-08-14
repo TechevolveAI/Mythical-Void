@@ -3064,8 +3064,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     if (
         route === 'voidPeaks' &&
         (
-            framePacing.peaksRuntime?.emberRedrawsDuringSample < 10 ||
-            framePacing.peaksRuntime?.emberRedrawsDuringSample > 22 ||
+            framePacing.peaksRuntime?.emberRedrawsDuringSample > 4 ||
             framePacing.peaksRuntime?.emberVisibleCount > 6 ||
             framePacing.peaksRuntime?.patrolUpdatesDuringSample < 10 ||
             framePacing.peaksRuntime?.patrolUpdatesDuringSample > 28
@@ -9222,7 +9221,10 @@ async function smokeGuardianPacing(session, exceptions) {
         );
 
         let openingFraming = null;
-        if (['CrystalCavesLevel', 'ReefLevel'].includes(sceneName)) {
+        if (
+            ['CrystalCavesLevel', 'ReefLevel', 'VoidPeaksLevel']
+                .includes(sceneName)
+        ) {
             openingFraming = await waitFor(
                 () => evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
