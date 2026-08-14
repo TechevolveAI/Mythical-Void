@@ -251,6 +251,62 @@ describe('second expedition rescue loop', () => {
         );
     });
 
+    test('gives the armored lower passage a persisted Crystal Focus shot', () => {
+        const CrystalCavesLevel = loadLevelClass();
+        const scene = new CrystalCavesLevel();
+        const choice = {};
+        scene.optionalRouteRewards = new Map([
+            ['caves_secret_slide', {
+                completed: false,
+                choice
+            }]
+        ]);
+        scene.nextRangedDamageMultiplier = 1;
+        scene.clearCrystalWardPickup = jest.fn();
+        scene.refreshPersistedExpeditionRouteState = jest.fn();
+
+        expect(scene.selectCrystalChamberRoute('main')).toBe(true);
+        expect(scene.crystalChamberRoute).toBe('main');
+        expect(scene.crystalFocusReady).toBe(true);
+        expect(scene.nextRangedDamageMultiplier).toBe(2);
+        expect(scene.getCrystalChamberStatusText('fallback')).toContain(
+            'CRYSTAL FOCUS x2 READY'
+        );
+        expect(scene.getExpeditionRouteState().crystalFocusReady).toBe(true);
+        expect(scene.selectCrystalChamberRoute('optional')).toBe(false);
+
+        scene.onNextRangedDamageConsumed(2);
+        expect(scene.crystalFocusReady).toBe(false);
+        expect(scene.getCrystalChamberStatusText('fallback')).toContain(
+            'CRYSTAL FOCUS SPENT'
+        );
+        expect(scene.getExpeditionRouteState().crystalFocusReady).toBe(false);
+    });
+
+    test('restores Crystal Focus and keeps compact route decoration static', () => {
+        const CrystalCavesLevel = loadLevelClass();
+        const scene = new CrystalCavesLevel();
+        scene.optionalRouteRewards = new Map([
+            ['caves_secret_slide', { completed: false, choice: {} }]
+        ]);
+        scene.nextRangedDamageMultiplier = 1;
+        scene.clearCrystalWardPickup = jest.fn();
+
+        expect(scene.restoreCrystalChamberRoute({
+            crystalChamberRoute: 'main',
+            crystalFocusReady: true
+        })).toBe(true);
+        expect(scene.crystalFocusReady).toBe(true);
+        expect(scene.nextRangedDamageMultiplier).toBe(2);
+
+        scene.isMobile = true;
+        scene.cameras = { main: { width: 390, height: 844 } };
+        expect(scene.shouldAnimateCrystalRouteDecorations()).toBe(false);
+        scene.isMobile = false;
+        scene.cameras.main = { width: 1280, height: 720 };
+        expect(scene.shouldAnimateCrystalRouteDecorations()).toBe(true);
+    });
+
     test('changes the live objective from route-finding to companion rescue and guardian contact', () => {
         const CrystalCavesLevel = loadLevelClass();
         const scene = new CrystalCavesLevel();
