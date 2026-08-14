@@ -24,8 +24,8 @@ const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
 const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
 const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
     mythicalForest: Object.freeze({
-        displayCount: 260,
-        activeTweenCount: 40,
+        displayCount: 255,
+        activeTweenCount: 18,
         performanceTier: 'mobile'
     }),
     crystalCaves: Object.freeze({
@@ -2354,6 +2354,48 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     scene.forestWisps?.includes?.(target)
                 ))).length
             } : null,
+            forestDecorationRendering:
+                scene?.scene?.key === 'MythicalForestLevel' ? (() => {
+                    const tweens = scene?.tweens?.getTweens?.() || [];
+                    const fragmentTargets = new Set(
+                        (scene.starFragmentSprites || [])
+                            .map(fragment => fragment?.sprite)
+                            .filter(Boolean)
+                    );
+                    const landingGuideTargets = new Set(
+                        (scene.checkpointAnchors || [])
+                            .map(checkpoint => checkpoint?.landingGuide)
+                            .filter(Boolean)
+                    );
+                    return {
+                        starFragmentTweenCount: tweens.filter(
+                            tween => (tween?.targets || []).some(
+                                target => fragmentTargets.has(target)
+                            )
+                        ).length,
+                        landingGuideTweenCount: tweens.filter(
+                            tween => (tween?.targets || []).some(
+                                target => landingGuideTargets.has(target)
+                            )
+                        ).length,
+                        voidMoteTweenCount: tweens.filter(
+                            tween => (tween?.targets || []).includes(
+                                scene.forestVoidMoteLayer
+                            )
+                        ).length,
+                        arenaParticleTweenCount: tweens.filter(
+                            tween => (tween?.targets || []).some(
+                                target => target?.forestArenaAmbientParticle
+                            )
+                        ).length,
+                        arenaAmbientLayerCount: scene.children?.list?.filter(
+                            item => item === scene.forestArenaAmbientLayer
+                        ).length || 0,
+                        arenaAmbientTimerActive: Boolean(
+                            scene.forestArenaAmbientTimer?.active
+                        )
+                    };
+                })() : null,
             caveCoinRendering: Array.isArray(scene?.caveCoinPickups) ? {
                 batchedCount: scene.caveCoinPickups.filter(
                     coin => coin?.batched && !coin.collected
@@ -2517,7 +2559,13 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 state.forestEnemyRuntime?.groundEnemySupportIds || []
             ).size !== 5 ||
             state.forestEnemyRuntime?.unsupportedGroundEnemyIds?.length !== 0 ||
-            state.forestEnemyRuntime?.airborneMotionTweenCount !== 0
+            state.forestEnemyRuntime?.airborneMotionTweenCount !== 0 ||
+            state.forestDecorationRendering?.starFragmentTweenCount !== 0 ||
+            state.forestDecorationRendering?.landingGuideTweenCount !== 0 ||
+            state.forestDecorationRendering?.voidMoteTweenCount !== 0 ||
+            state.forestDecorationRendering?.arenaParticleTweenCount !== 0 ||
+            state.forestDecorationRendering?.arenaAmbientLayerCount !== 1 ||
+            state.forestDecorationRendering?.arenaAmbientTimerActive !== false
         )
     ) {
         throw new Error(
