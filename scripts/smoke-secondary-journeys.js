@@ -24,7 +24,7 @@ const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
 const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
 const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
     mythicalForest: Object.freeze({
-        displayCount: 255,
+        displayCount: 215,
         activeTweenCount: 18,
         performanceTier: 'mobile'
     }),
@@ -269,6 +269,17 @@ async function sampleFramePacing(session, sceneName, {
                     counts[key] = (counts[key] || 0) + 1;
                     return counts;
                 }, {});
+            const displayObjects = scene?.children?.list || [];
+            const countDisplayTypes = objects => objects.reduce(
+                (counts, object) => {
+                    const key = object?.type ||
+                        object?.constructor?.name ||
+                        'unknown';
+                    counts[key] = (counts[key] || 0) + 1;
+                    return counts;
+                },
+                {}
+            );
             resolve({
                 sceneActive: Boolean(scene?.scene?.isActive?.()),
                 warmupMs: ${warmupMs},
@@ -287,7 +298,14 @@ async function sampleFramePacing(session, sceneName, {
                 phaserActualFps: Number(
                     (window.mythicalGame?.loop?.actualFps || 0).toFixed(2)
                 ),
-                displayCount: scene?.children?.list?.length || 0,
+                displayCount: displayObjects.length,
+                displayTypeCounts: countDisplayTypes(displayObjects),
+                visibleDisplayTypeCounts: countDisplayTypes(
+                    displayObjects.filter(object => object?.visible !== false)
+                ),
+                hiddenDisplayTypeCounts: countDisplayTypes(
+                    displayObjects.filter(object => object?.visible === false)
+                ),
                 objectiveHudRendering: {
                     textureRevision: Number(
                         scene?.campaignObjectiveTextureRevision
@@ -2445,30 +2463,65 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     await delay(400);
 
     if (route === 'mythicalForest') {
-        await waitFor(
-            () => evaluate(session, `(() => {
+        let forestEnemySettlement = null;
+        try {
+            await waitFor(
+                async () => {
+                    forestEnemySettlement = await evaluate(session, `(() => {
                 const scene = window.mythicalGame?.scene?.getScene?.(
                     'MythicalForestLevel'
                 );
                 const enemies = scene?.voidSprites || [];
-                return enemies.length === 5 && enemies.every(enemy => {
-                    if (!enemy?.active || !enemy?.body) return false;
+                const enemyStates = enemies.map(enemy => {
                     const support = scene.getTraversalSupport?.(
                         enemy.forestSupportId
                     );
-                    return Boolean(
+                    const settled = Boolean(
+                        enemy?.active &&
+                        enemy?.body &&
                         support?.body &&
                         enemy.body.right > support.body.left + 4 &&
                         enemy.body.left < support.body.right - 4 &&
                         Math.abs(enemy.body.bottom - support.body.top) <= 12
                     );
+                    return {
+                        supportId: enemy?.forestSupportId || null,
+                        active: enemy?.active === true,
+                        bodyEnabled: enemy?.body?.enable === true,
+                        proximityActive: enemy?.forestProximityActive,
+                        renderAttached: enemy?.displayList === scene.children,
+                        x: enemy?.x,
+                        y: enemy?.y,
+                        bodyBottom: enemy?.body?.bottom,
+                        supportTop: support?.body?.top,
+                        blockedDown: enemy?.body?.blocked?.down === true,
+                        touchingDown: enemy?.body?.touching?.down === true,
+                        settled
+                    };
                 });
-            })()`),
-            {
-                timeoutMs: 3500,
-                message: 'Forest authored enemies settled on their supports'
-            }
-        );
+                return {
+                    ready: enemyStates.length === 5 &&
+                        enemyStates.every(enemy => enemy.settled),
+                    enemies: enemyStates
+                };
+            })()`);
+                    return forestEnemySettlement?.ready
+                        ? forestEnemySettlement
+                        : null;
+                },
+                {
+                    timeoutMs: 3500,
+                    message: 'Forest authored enemies settled on their supports'
+                }
+            );
+        } catch (error) {
+            throw new Error(
+                `${error.message}: ${JSON.stringify({
+                    settlement: forestEnemySettlement,
+                    exceptions
+                })}`
+            );
+        }
     }
 
     const state = await evaluate(session, `(() => {
@@ -2578,6 +2631,21 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 visibleEnemyCount: (
                     scene?.enemies?.getChildren?.() || []
                 ).filter(enemy => enemy?.visible === true).length,
+                renderAttachedEnemyCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => enemy?.displayList === scene.children).length,
+                renderAttachedCueCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(
+                    enemy => enemy?.combatCue?.displayList === scene.children
+                ).length,
+                sleepingDetachedCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => (
+                    enemy?.forestProximityActive === false &&
+                    enemy?.displayList !== scene.children &&
+                    enemy?.combatCue?.displayList !== scene.children
+                )).length,
                 activationBounds: scene.forestEnemyActivationBounds ? {
                     horizontalMargin:
                         scene.forestEnemyActivationBounds.horizontalMargin,
@@ -2822,7 +2890,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     if (
         route === 'mythicalForest' &&
         (
-            state.displayCount > 275 ||
+            state.displayCount > 225 ||
             state.ambientRendering?.layerCount !== 1 ||
             state.ambientRendering?.pointCount !== 164 ||
             state.coinRendering?.batchedCount < 40 ||
@@ -2841,6 +2909,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 state.forestEnemyRuntime?.proximityActiveCount ||
             state.forestEnemyRuntime?.visibleEnemyCount !==
                 state.forestEnemyRuntime?.proximityActiveCount ||
+            state.forestEnemyRuntime?.renderAttachedEnemyCount !==
+                state.forestEnemyRuntime?.proximityActiveCount ||
+            state.forestEnemyRuntime?.renderAttachedCueCount !==
+                state.forestEnemyRuntime?.proximityActiveCount ||
+            state.forestEnemyRuntime?.sleepingDetachedCount !==
+                state.forestEnemyRuntime?.sleepingEnemyCount ||
             state.forestEnemyRuntime?.activationBounds?.horizontalMargin !== 520 ||
             state.forestEnemyRuntime?.activationBounds?.verticalMargin !== 280 ||
             state.forestEnemyRuntime?.groundEnemySupportIds?.length !== 5 ||
