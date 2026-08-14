@@ -2649,9 +2649,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             Phaser.Input.Keyboard.KeyCodes.E
         );
         this.currentEcologyInteractKey.on('down', () => {
-            if (this.currentEcologyPlayerNearby) {
-                this.showCurrentEcologyModal();
-            }
+            this.requestCurrentEcologyInteraction();
         });
 
         // ESC to pause/return
@@ -7095,7 +7093,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                 node.y
             );
             this.currentEcologyPlayerNearby = true;
-            node.prompt?.setVisible?.(true);
+            this.setCurrentEcologyInteractionAvailable(true);
             this.cameras.main.centerOn(node.x, node.y);
         }
         this.physics?.resume?.();
@@ -7178,18 +7176,27 @@ class PlatformerLevelScene extends Phaser.Scene {
         const prompt = this.add.text(
             x,
             y - (compactNodeLayout ? 115 : 110),
-            'TAP / E  READ CURRENT',
+            this.isMobile
+                ? 'TAP TO SCAN LIVING CURRENT'
+                : '[E] SCAN LIVING CURRENT',
             {
-            fontSize: '12px',
+            fontSize: compactNodeLayout ? '11px' : '12px',
             color: '#FFFFFF',
             backgroundColor: 'rgba(5, 8, 16, 0.92)',
             padding: { x: 9, y: 6 }
             }
-        ).setOrigin(0.5).setDepth(846).setVisible(false);
-        const zone = this.add.zone(x, y, 120, 150)
+        )
+            .setOrigin(0.5)
+            .setDepth(846)
+            .setVisible(false)
+            .setInteractive({ useHandCursor: true });
+        // One generous target covers both the visible prompt and the node.
+        // Its lower edge remains above the mobile control dock.
+        const zone = this.add.zone(x, y - 30, 240, 240)
             .setInteractive({ useHandCursor: true })
             .setDepth(847);
-        zone.on('pointerdown', () => this.showCurrentEcologyModal());
+        prompt.on('pointerdown', () => this.requestCurrentEcologyInteraction());
+        zone.on('pointerdown', () => this.requestCurrentEcologyInteraction());
 
         this.currentEcologyNode = {
             config,
@@ -7216,8 +7223,31 @@ class PlatformerLevelScene extends Phaser.Scene {
                 zone
             ]
         };
+        this.setCurrentEcologyInteractionAvailable(false);
         this.drawCurrentEcologyProjection(snapshot.projection);
         return this.currentEcologyNode;
+    }
+
+    requestCurrentEcologyInteraction() {
+        if (!this.currentEcologyPlayerNearby) return false;
+        this.showCurrentEcologyModal();
+        return true;
+    }
+
+    setCurrentEcologyInteractionAvailable(available) {
+        const node = this.currentEcologyNode;
+        if (!node) return false;
+
+        const enabled = Boolean(
+            available && this.currentEcologyModalElements.length === 0
+        );
+        node.prompt?.setVisible?.(enabled);
+        [node.prompt, node.zone].forEach(target => {
+            if (target?.input) {
+                target.input.enabled = enabled;
+            }
+        });
+        return enabled;
     }
 
     drawCurrentEcologyProjection(projection) {
@@ -7496,7 +7526,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const nearby = distance <= 165;
         if (nearby !== this.currentEcologyPlayerNearby) {
             this.currentEcologyPlayerNearby = nearby;
-            node.prompt.setVisible(nearby);
+            this.setCurrentEcologyInteractionAvailable(nearby);
         }
     }
 
@@ -7589,6 +7619,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.currentEcologyWasPaused = Boolean(this.physics?.world?.isPaused);
         this.physics?.pause?.();
         this.hidePlatformerMobileControls?.();
+        this.setCurrentEcologyInteractionAvailable(false);
 
         const overlay = this.add.rectangle(0, 0, width, height, 0x050811, 0.88)
             .setOrigin(0)
@@ -7845,6 +7876,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.currentEcologyModalElements = [];
         this.currentEcologyModalActionButtons = new Map();
         this.currentEcologyModalView = null;
+        this.setCurrentEcologyInteractionAvailable(
+            this.currentEcologyPlayerNearby
+        );
         if (
             resume &&
             !this.currentEcologyWasPaused &&

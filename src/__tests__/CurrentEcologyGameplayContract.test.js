@@ -70,7 +70,15 @@ describe('Current ecology gameplay contract', () => {
     test('supports touch and a dedicated keyboard interaction', () => {
         expect(source).toContain('Phaser.Input.Keyboard.KeyCodes.E');
         expect(source).toContain(
-            "zone.on('pointerdown', () => this.showCurrentEcologyModal());"
+            "prompt.on('pointerdown', () => this.requestCurrentEcologyInteraction());"
+        );
+        expect(source).toContain(
+            "zone.on('pointerdown', () => this.requestCurrentEcologyInteraction());"
+        );
+        expect(source).toContain("'TAP TO SCAN LIVING CURRENT'");
+        expect(source).toContain("'[E] SCAN LIVING CURRENT'");
+        expect(source).toContain(
+            'const zone = this.add.zone(x, y - 30, 240, 240)'
         );
         expect(source).toContain('this.hidePlatformerMobileControls?.();');
     });

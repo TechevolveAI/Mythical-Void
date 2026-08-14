@@ -169,6 +169,41 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('without adding display objects or animation');
     });
 
+    test('the visible Current prompt and node share proximity-gated input', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'CurrentInteractionTest' });
+        const prompt = {
+            input: { enabled: false },
+            setVisible: jest.fn()
+        };
+        const zone = { input: { enabled: false } };
+        scene.currentEcologyNode = {
+            x: 100,
+            y: 100,
+            prompt,
+            zone
+        };
+        scene.player = { x: 100, y: 100 };
+        scene.showCurrentEcologyModal = jest.fn();
+
+        scene.updateCurrentEcologyNodeProximity();
+        expect(scene.currentEcologyPlayerNearby).toBe(true);
+        expect(prompt.setVisible).toHaveBeenLastCalledWith(true);
+        expect(prompt.input.enabled).toBe(true);
+        expect(zone.input.enabled).toBe(true);
+        expect(scene.requestCurrentEcologyInteraction()).toBe(true);
+        expect(scene.showCurrentEcologyModal).toHaveBeenCalledTimes(1);
+
+        scene.player.x = 400;
+        scene.updateCurrentEcologyNodeProximity();
+        expect(scene.currentEcologyPlayerNearby).toBe(false);
+        expect(prompt.setVisible).toHaveBeenLastCalledWith(false);
+        expect(prompt.input.enabled).toBe(false);
+        expect(zone.input.enabled).toBe(false);
+        expect(scene.requestCurrentEcologyInteraction()).toBe(false);
+        expect(scene.showCurrentEcologyModal).toHaveBeenCalledTimes(1);
+    });
+
     test('ground contact cannot trigger anti-stuck movement while a real wedge still recovers', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'AntiStuckTest' });
