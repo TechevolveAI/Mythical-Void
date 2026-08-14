@@ -182,10 +182,14 @@ try {
     autoPostedNasaStemRelease.nasaStemSocialRelease.autonomousSocialPostingAuthorized = true;
     if (run('auto-posted-nasa-stem-release', { signalLog: autoPostedNasaStemRelease }).status === 0) throw new Error('Autonomous posting of the NASA/STEM social release was accepted.');
 
+    const exposedFounderChildIdentity = structuredClone(sources.signalLog);
+    exposedFounderChildIdentity.fatherSonStorySocialRelease.childPhotoNameQuoteContactOrIdentifyingDetailUsed = true;
+    if (run('exposed-founder-child-identity', { signalLog: exposedFounderChildIdentity }).status === 0) throw new Error('A founder-story release exposing child identity was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 27 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 28 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

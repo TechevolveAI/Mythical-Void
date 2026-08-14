@@ -5,9 +5,15 @@
   "publicUrl": "https://mythicalvoid.com/updates/",
   "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/85",
   "productionCommit": "b319c1f9bbec7becbbfdd25256bf503477f2a18b",
-  "verifiedAt": "2026-08-14T22:00:47Z",
+  "verifiedAt": "2026-08-14T22:19:29Z",
   "purpose": "Give players, families, creators and search engines one plain-language source for meaningful Mythical Void releases, with a working destination for every note.",
   "liveEntries": [
+    {
+      "id": "SIGNAL-007",
+      "title": "The father-and-son story is ready to share",
+      "destination": "https://mythicalvoid.com/press/#father-son-story-social-assets",
+      "destinationStatusObserved": 200
+    },
     {
       "id": "SIGNAL-006",
       "title": "A real-space sharing kit is ready",
@@ -60,8 +66,8 @@
     "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/86",
     "productionCommit": "bddd9b29d40c1b7f8798575219b0eacc6574a004",
     "generatedPack": "docs/company/content/generated/signal-log-release-pack.json",
-    "sourceEntryCount": 6,
-    "reviewDraftCount": 18,
+    "sourceEntryCount": 7,
+    "reviewDraftCount": 21,
     "draftTypesPerEntry": [
       "professional network post",
       "video community text post",
@@ -171,6 +177,42 @@
     "safeguardFailureCasesPassed": 16,
     "nasaNonEndorsementRequired": true,
     "scienceAndFictionSeparated": true,
+    "adultFacingAudienceOnly": true,
+    "autonomousSocialPostingAuthorized": false,
+    "kevinApprovalRequiredBeforePosting": true,
+    "externalActionPerformed": false
+  },
+  "fatherSonStorySocialRelease": {
+    "state": "published_as_owned_press_assets_waiting_for_channel_and_kevin_approval",
+    "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/91",
+    "productionCommit": "e3b1f14c2c0ef03034199a8ba32827b725ccce1e",
+    "pressRoomUrl": "https://mythicalvoid.com/press/#father-son-story-social-assets",
+    "studioStoryUrl": "https://mythicalvoid.com/studio/",
+    "assets": [
+      {
+        "format": "wide",
+        "publicUrl": "https://mythicalvoid.com/press/social/father-son-story-wide.png",
+        "dimensions": "1200x630",
+        "sha256": "ed2a70de84d79364b52de55f6735d434354bd763e7bde7efe780a56b214677ff",
+        "productionStatusObserved": 200,
+        "productionContentTypeObserved": "image/png",
+        "productionBytesObserved": 874866
+      },
+      {
+        "format": "square",
+        "publicUrl": "https://mythicalvoid.com/press/social/father-son-story-square.png",
+        "dimensions": "1200x1200",
+        "sha256": "ce06512fec52015051a51ca076b6ddfb1a33ecc91fde9a0691bd26cf2ccac28c",
+        "productionStatusObserved": 200,
+        "productionContentTypeObserved": "image/png",
+        "productionBytesObserved": 1402935
+      }
+    ],
+    "sourceBoundDrafts": 2,
+    "safeguardFailureCasesPassed": 16,
+    "marketingArtworkDisclosedAsNotGameplay": true,
+    "authenticGameplayFrameRequired": true,
+    "childPhotoNameQuoteContactOrIdentifyingDetailUsed": false,
     "adultFacingAudienceOnly": true,
     "autonomousSocialPostingAuthorized": false,
     "kevinApprovalRequiredBeforePosting": true,

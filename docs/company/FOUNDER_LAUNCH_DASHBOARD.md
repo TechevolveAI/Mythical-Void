@@ -11,11 +11,12 @@
 - The public homepage and game entry worked during the last production check.
 - 8 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, and Signal Log.
 - The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
-- The Signal Log is live with 6 checked release notes. Its merged draft builder has already turned them into 18 internal review drafts for later social, press, and creator use without publishing anything.
+- The Signal Log is live with 7 checked release notes. Its merged draft builder has already turned them into 21 internal review drafts for later social, press, and creator use without publishing anything.
 - The homepage now offers 2 user-controlled ways to share the clean game link, including one beside Play on the first screen. The control does not collect a recipient or add tracking code.
 - 7 important public pages now carry checked, route-specific social preview images and accessible image text. The Project Beacon story uses its purpose-built wide artwork.
 - The first Project Beacon social release is live in the press room with 2 finished, downloadable images. Posting still waits for an official channel and Kevin's approval.
 - The NASA/STEM sharing release is live with 2 downloadable images built around a real Apollo 11 game screen. The NASA source, non-endorsement and science-versus-fiction boundary are explicit; posting still waits for an official channel and Kevin's approval.
+- The father-and-son studio story now has 2 downloadable sharing images and a purpose-built link preview. The marketing-art and real-game boundaries are labelled, and no photograph, name, quote, contact detail or identifying detail of the child is used.
 - The game created its playable canvas during that check.
 - Real gameplay screenshots and a short real gameplay video are available for truthful promotion.
 
