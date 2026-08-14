@@ -434,6 +434,29 @@ body.site-mode h3 {
     margin-top: 30px;
 }
 
+.button-share {
+    cursor: pointer;
+    font: inherit;
+}
+
+.hero .button-share {
+    border-color: rgba(124, 232, 207, 0.46);
+    background: rgba(8, 7, 25, 0.62);
+}
+
+.hero .button-share:hover,
+.hero .button-share:focus-visible {
+    border-color: var(--mint);
+    background: rgba(124, 232, 207, 0.14);
+}
+
+.hero-share-status {
+    min-height: 1.3em;
+    margin: 10px 0 0;
+    color: var(--mint);
+    font-size: 0.75rem;
+}
+
 .hero-genetics {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

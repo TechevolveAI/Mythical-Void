@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "2d443a5b8d66b4bc8977779a9b7bd7f503d8508a2ebef94a8a3d59590fd1e321",
-    "liveEntryCount": 3,
+    "sourceFingerprint": "046f19cb186df69ba90961132ae6909267f7c735977ddecbf1d4d3be6691f951",
+    "liveEntryCount": 4,
     "latestSourceDate": "2026-08-14"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-004",
+      "sourceEntryId": "SIGNAL-004",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "An imagined gathering of strange alien creatures in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Share the game from the first screen\n\nA new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.\n\n• On supported phones and computers, the button opens the device's normal sharing choices.\n• Where device sharing is unavailable, it copies the clean mythicalvoid.com address instead.\n• The shared address contains no tracking code, and the Mythical Void control does not collect a recipient or contact details.\n\nSee what changed: https://mythicalvoid.com/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 622
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Share the game from the first screen\n\nA new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.\n\nhttps://mythicalvoid.com/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 311
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Share the game from the first screen",
+          "body": "Mythical Void has a new live update: Share the game from the first screen.\n\nA new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.\n\nOn supported phones and computers, the button opens the device's normal sharing choices. Where device sharing is unavailable, it copies the clean mythicalvoid.com address instead. The shared address contains no tracking code, and the Mythical Void control does not collect a recipient or contact details.\n\nThe checked public destination is https://mythicalvoid.com/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 757,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-003",
       "sourceEntryId": "SIGNAL-003",

@@ -144,10 +144,14 @@ describe('storefront Project Beacon story contract', () => {
     });
 
     test('offers a privacy-safe player-led sharing path', () => {
-        expect(storefront).toContain('data-share-game');
+        expect((storefront.match(/<button[^>]+data-share-game/g) || [])).toHaveLength(2);
+        expect(storefront).toContain('hero-share-status');
+        expect(storefront).toContain("const shareButtons = [...app.querySelectorAll('[data-share-game]')]");
+        expect(storefront).toContain('data-share-label');
         expect(storefront).toContain('navigator.share');
         expect(storefront).toContain('navigator.clipboard.writeText');
         expect(storefront).toContain('https://mythicalvoid.com/');
+        expect(storefront).toContain('Clean game link copied — no tracking code.');
         expect(storefront).not.toContain('utm_');
     });
 
