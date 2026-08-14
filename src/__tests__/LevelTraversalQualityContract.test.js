@@ -721,6 +721,32 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
     });
 
+    test('Crystal Caves batches route coins without collectible physics bodies', () => {
+        const source = read('levels/CrystalCavesLevel.js');
+
+        expect(source).toContain('ensureCaveCoinLayer()');
+        expect(source).toContain('redrawCaveCoinLayer()');
+        expect(source).toContain('updateCaveCoinPickups()');
+        expect(source).toContain('this.collectCaveCoin(pickup, { redraw: false })');
+        expect(source).toContain('redrawCaveCrystalField()');
+        expect(source).toContain('this.caveCrystalField.push(crystal);');
+        expect(source).toContain('!Number.isFinite(crystal.lastDrawnAlpha)');
+        expect(source).not.toContain("const coin = this.collectibles.create(x, y, textureKey);");
+        expect(source).not.toContain('targets: coin,');
+    });
+
+    test('Stellar Reef batches ambient fields and bounds reusable cosmic dust', () => {
+        const source = read('levels/ReefLevel.js');
+
+        expect(source).toContain('for (let layerIndex = 0; layerIndex < 2; layerIndex += 1)');
+        expect(source).toContain('this.voidRifts.push(riftLayer);');
+        expect(source).toContain('this.cosmicDustParticles.length >= 12');
+        expect(source).toContain('updateCosmicDust(delta)');
+        expect(source).toContain('targets: [...allElements, entryParticles].filter(Boolean)');
+        expect(source).not.toContain('this.nebulaParticles.push(wisp);');
+        expect(source).not.toContain('this.voidRifts.push(rift);');
+    });
+
     test('shared route guidance resets before the first invalid contact', () => {
         const source = read('PlatformerLevelScene.js');
 
@@ -2243,6 +2269,11 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('renderStability.endCount > renderStability.startCount + 8');
         expect(smoke).toContain('state.ambientRendering?.layerCount !== 1');
         expect(smoke).toContain('state.ambientRendering?.pointCount !== 164');
+        expect(smoke).toContain('smokeCaveBatchedCoinPickup(session)');
+        expect(smoke).toContain('state.caveCoinRendering?.physicsCoinCount !== 0');
+        expect(smoke).toContain('state.caveCrystalRendering?.layerCount !== 1');
+        expect(smoke).toContain('state.reefAmbientRendering?.nebulaLayerCount !== 2');
+        expect(smoke).toContain('state.reefAmbientRendering?.dustParticleCount > 12');
         expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');
         expect(smoke).toContain('state.coinRendering?.legacyVisualCount !== 0');
         expect(smoke).toContain('state.coinRendering?.pickupBodyCount !== 0');

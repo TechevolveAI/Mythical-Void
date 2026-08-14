@@ -181,6 +181,11 @@ class ReefLevel extends PlatformerLevelScene {
         this.nebulaParticles = [];
         this.voidRifts = [];
         this.starfieldLayer = null;
+        this.entryCosmicParticleLayer = null;
+        this.entryCosmicParticleTween = null;
+        this.cosmicDustLayer = null;
+        this.cosmicDustTimer = null;
+        this.cosmicDustParticles = [];
 
         // Project Beacon expedition state
         this.beaconAnchors = [];
@@ -248,6 +253,14 @@ class ReefLevel extends PlatformerLevelScene {
         this.phaseDrifters = [];
         this.lureWraiths = [];
         this.reefEncounterRhythm = [];
+        this.nebulaParticles = [];
+        this.voidRifts = [];
+        this.starfieldLayer = null;
+        this.entryCosmicParticleLayer = null;
+        this.entryCosmicParticleTween = null;
+        this.cosmicDustLayer = null;
+        this.cosmicDustTimer = null;
+        this.cosmicDustParticles = [];
 
         // Reset collectibles
         this.starFragments = [];
@@ -504,14 +517,23 @@ class ReefLevel extends PlatformerLevelScene {
             this.startCosmicAmbience();
             this.showPlatformerMobileControls();
             this.createSwimIndicator();
+            const entryParticles = this.entryCosmicParticleLayer?.active
+                ? this.entryCosmicParticleLayer
+                : null;
+            this.entryCosmicParticleTween?.remove?.();
+            this.entryCosmicParticleTween = null;
             this.tweens.add({
-                targets: allElements,
+                targets: [...allElements, entryParticles].filter(Boolean),
                 alpha: 0,
                 duration: 600,
                 onComplete: () => {
                     allElements.forEach(el => {
                         if (el && el.destroy) el.destroy();
                     });
+                    entryParticles?.destroy?.();
+                    if (this.entryCosmicParticleLayer === entryParticles) {
+                        this.entryCosmicParticleLayer = null;
+                    }
                 }
             });
         };
@@ -580,29 +602,35 @@ class ReefLevel extends PlatformerLevelScene {
      * Create cosmic particles for entry screen
      */
     createEntryCosmicParticles(panelX, panelY, panelWidth, panelHeight) {
-        for (let i = 0; i < 15; i++) {
-            const particle = this.add.graphics();
-            particle.setScrollFactor(0);
-            particle.setDepth(2999);
+        const particleLayer = this.add.graphics();
+        particleLayer.setScrollFactor(0);
+        particleLayer.setDepth(2999);
 
+        for (let i = 0; i < 15; i++) {
             const startX = panelX + Math.random() * panelWidth;
-            const startY = panelY + panelHeight + 30;
+            const startY = panelY + panelHeight + 20 + Math.random() * 80;
             const colors = [0x9B30FF, 0xE066FF, 0x00FFFF, 0xFF69B4];
             const color = Phaser.Utils.Array.GetRandom(colors);
-
-            particle.fillStyle(color, 0.6);
-            particle.fillCircle(startX, startY, 2 + Math.random() * 4);
-
-            this.tweens.add({
-                targets: particle,
-                y: -panelHeight - 100,
-                x: (Math.random() - 0.5) * 100,
-                alpha: 0,
-                duration: 4000 + Math.random() * 3000,
-                delay: i * 200,
-                onComplete: () => particle.destroy()
-            });
+            particleLayer.fillStyle(color, 0.6);
+            particleLayer.fillCircle(startX, startY, 2 + Math.random() * 4);
         }
+
+        this.entryCosmicParticleLayer = particleLayer;
+        this.entryCosmicParticleTween = this.tweens.add({
+            targets: particleLayer,
+            y: -panelHeight - 100,
+            x: (Math.random() - 0.5) * 40,
+            alpha: 0,
+            duration: 5200,
+            ease: 'Sine.easeOut',
+            onComplete: () => {
+                particleLayer.destroy();
+                if (this.entryCosmicParticleLayer === particleLayer) {
+                    this.entryCosmicParticleLayer = null;
+                    this.entryCosmicParticleTween = null;
+                }
+            }
+        });
     }
 
     /**
@@ -661,36 +689,34 @@ class ReefLevel extends PlatformerLevelScene {
     createNebulaWisps() {
         const wispColors = [0x9B30FF, 0xE066FF, 0x00FFFF, 0xFF1493, 0x4169E1];
 
-        for (let i = 0; i < 20; i++) {
-            const wisp = this.add.graphics();
-            wisp.setDepth(-100);
+        for (let layerIndex = 0; layerIndex < 2; layerIndex += 1) {
+            const wispLayer = this.add.graphics();
+            wispLayer.setDepth(-100 - layerIndex);
 
-            const x = Math.random() * this.levelWidth;
-            const y = Math.random() * this.levelHeight;
-            const color = Phaser.Utils.Array.GetRandom(wispColors);
-            const size = 30 + Math.random() * 50;
+            for (let i = layerIndex; i < 20; i += 2) {
+                const x = Math.random() * this.levelWidth;
+                const y = Math.random() * this.levelHeight;
+                const color = Phaser.Utils.Array.GetRandom(wispColors);
+                const size = 30 + Math.random() * 50;
+                wispLayer.fillStyle(color, 0.15);
+                wispLayer.fillCircle(x, y, size);
+                wispLayer.fillStyle(color, 0.25);
+                wispLayer.fillCircle(x, y, size * 0.6);
+                wispLayer.fillStyle(color, 0.4);
+                wispLayer.fillCircle(x, y, size * 0.3);
+            }
 
-            // Soft glowing wisp
-            wisp.fillStyle(color, 0.15);
-            wisp.fillCircle(x, y, size);
-            wisp.fillStyle(color, 0.25);
-            wisp.fillCircle(x, y, size * 0.6);
-            wisp.fillStyle(color, 0.4);
-            wisp.fillCircle(x, y, size * 0.3);
-
-            // Animate drifting
             this.tweens.add({
-                targets: wisp,
-                x: (Math.random() - 0.5) * 150,
-                y: (Math.random() - 0.5) * 100,
-                alpha: { from: 1, to: 0.5 },
-                duration: 8000 + Math.random() * 5000,
+                targets: wispLayer,
+                x: layerIndex === 0 ? 45 : -45,
+                y: layerIndex === 0 ? -24 : 24,
+                alpha: { from: 0.72, to: 1 },
+                duration: 9000 + layerIndex * 1800,
                 yoyo: true,
                 repeat: -1,
                 ease: 'Sine.easeInOut'
             });
-
-            this.nebulaParticles.push(wisp);
+            this.nebulaParticles.push(wispLayer);
         }
     }
 
@@ -705,72 +731,86 @@ class ReefLevel extends PlatformerLevelScene {
             { x: 4000, y: 600 },
         ];
 
-        riftPositions.forEach(pos => {
-            const rift = this.add.graphics();
-            rift.setDepth(-50);
+        const riftLayer = this.add.graphics();
+        riftLayer.setDepth(-50);
 
+        riftPositions.forEach(pos => {
             // Draw swirling void rift
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
                 const innerRadius = 30;
-                const outerRadius = 80;
 
-                rift.lineStyle(3, 0x9B30FF, 0.4 - i * 0.04);
-                rift.beginPath();
-                rift.arc(pos.x, pos.y, innerRadius + i * 6, angle, angle + 1.5);
-                rift.strokePath();
+                riftLayer.lineStyle(3, 0x9B30FF, 0.4 - i * 0.04);
+                riftLayer.beginPath();
+                riftLayer.arc(pos.x, pos.y, innerRadius + i * 6, angle, angle + 1.5);
+                riftLayer.strokePath();
             }
 
             // Center void
-            rift.fillStyle(0x1A0030, 0.8);
-            rift.fillCircle(pos.x, pos.y, 25);
-            rift.fillStyle(0x000000, 0.9);
-            rift.fillCircle(pos.x, pos.y, 15);
-
-            // Animate rotation effect
-            this.tweens.add({
-                targets: rift,
-                angle: 360,
-                duration: 10000,
-                repeat: -1,
-                ease: 'Linear'
-            });
-
-            this.voidRifts.push(rift);
+            riftLayer.fillStyle(0x1A0030, 0.8);
+            riftLayer.fillCircle(pos.x, pos.y, 25);
+            riftLayer.fillStyle(0x000000, 0.9);
+            riftLayer.fillCircle(pos.x, pos.y, 15);
         });
+
+        this.tweens.add({
+            targets: riftLayer,
+            alpha: { from: 0.68, to: 1 },
+            duration: 1800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        this.voidRifts.push(riftLayer);
     }
 
     /**
      * Create cosmic dust particles
      */
     createCosmicDust() {
-        // Continuous particle spawning
-        this.time.addEvent({
-            delay: 200,
+        this.cosmicDustLayer = this.add.graphics().setDepth(50);
+        this.cosmicDustParticles = [];
+        this.cosmicDustTimer = this.time.addEvent({
+            delay: 240,
             callback: () => {
-                if (Math.random() > 0.5) return;
-
-                const dust = this.add.graphics();
-                dust.setDepth(50);
+                if (Math.random() > 0.55 || this.cosmicDustParticles.length >= 12) return;
 
                 const x = this.cameras.main.scrollX + Math.random() * this.cameras.main.width;
                 const y = this.cameras.main.scrollY + this.cameras.main.height + 20;
                 const colors = [0xE066FF, 0x00FFFF, 0xFFFFFF, 0x9B30FF];
-                const color = Phaser.Utils.Array.GetRandom(colors);
-
-                dust.fillStyle(color, 0.5);
-                dust.fillCircle(x, y, 1 + Math.random() * 2);
-
-                this.tweens.add({
-                    targets: dust,
-                    y: y - 300 - Math.random() * 200,
-                    x: x + (Math.random() - 0.5) * 100,
-                    alpha: 0,
-                    duration: 3000 + Math.random() * 2000,
-                    onComplete: () => dust.destroy()
+                this.cosmicDustParticles.push({
+                    x,
+                    y,
+                    velocityX: (Math.random() - 0.5) * 22,
+                    velocityY: -(72 + Math.random() * 44),
+                    size: 1 + Math.random() * 2,
+                    color: Phaser.Utils.Array.GetRandom(colors),
+                    age: 0,
+                    duration: 3000 + Math.random() * 1600
                 });
             },
             loop: true
+        });
+    }
+
+    updateCosmicDust(delta) {
+        const layer = this.cosmicDustLayer;
+        if (!layer?.active || this.cosmicDustParticles.length === 0) return;
+
+        const elapsed = Math.min(50, Math.max(0, Number(delta) || 0));
+        const seconds = elapsed / 1000;
+        this.cosmicDustParticles = this.cosmicDustParticles.filter(particle => {
+            particle.age += elapsed;
+            particle.x += particle.velocityX * seconds;
+            particle.y += particle.velocityY * seconds;
+            return particle.age < particle.duration;
+        });
+
+        layer.clear();
+        this.cosmicDustParticles.forEach(particle => {
+            const alpha = 0.5 * (1 - (particle.age / particle.duration));
+            layer.fillStyle(particle.color, alpha);
+            layer.fillCircle(particle.x, particle.y, particle.size);
         });
     }
 
@@ -3952,6 +3992,7 @@ class ReefLevel extends PlatformerLevelScene {
         if (!this.player || this.isPlayerDead || this.levelCompletionActive) return;
 
         this.updateReefAscentCurrentGuidance();
+        this.updateCosmicDust(delta);
 
         this.updateEnemies(time, delta);
 
@@ -4110,8 +4151,20 @@ class ReefLevel extends PlatformerLevelScene {
         }
 
         this.nebulaParticles.forEach(p => p?.destroy());
+        this.nebulaParticles = [];
         this.voidRifts.forEach(r => r?.destroy());
+        this.voidRifts = [];
         this.starfieldLayer?.destroy();
+        this.starfieldLayer = null;
+        this.entryCosmicParticleTween?.remove?.();
+        this.entryCosmicParticleTween = null;
+        this.entryCosmicParticleLayer?.destroy?.();
+        this.entryCosmicParticleLayer = null;
+        this.cosmicDustTimer?.remove?.();
+        this.cosmicDustTimer = null;
+        this.cosmicDustLayer?.destroy?.();
+        this.cosmicDustLayer = null;
+        this.cosmicDustParticles = [];
 
         super.shutdown();
     }
