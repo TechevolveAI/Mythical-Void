@@ -201,6 +201,12 @@ async function sampleFramePacing(session, sceneName, {
         const objectiveTextureRevisionAtStart = Number(
             scene?.campaignObjectiveTextureRevision
         ) || 0;
+        const peakEmberDrawCountAtStart = Number(
+            scene?.peakEmberDrawCount
+        ) || 0;
+        const peakEnemyPatrolUpdateCountAtStart = Number(
+            scene?.peakEnemyPatrolUpdateCount
+        ) || 0;
         let previousAt = null;
 
         const percentile = (sorted, ratio) => {
@@ -292,6 +298,21 @@ async function sampleFramePacing(session, sceneName, {
                             objectiveTextureRevisionAtStart
                     )
                 },
+                peaksRuntime: scene?.scene?.key === 'VoidPeaksLevel' ? {
+                    emberRedrawsDuringSample: Math.max(
+                        0,
+                        (Number(scene?.peakEmberDrawCount) || 0) -
+                            peakEmberDrawCountAtStart
+                    ),
+                    emberVisibleCount: Number(
+                        scene?.peakEmberVisibleCount
+                    ) || 0,
+                    patrolUpdatesDuringSample: Math.max(
+                        0,
+                        (Number(scene?.peakEnemyPatrolUpdateCount) || 0) -
+                            peakEnemyPatrolUpdateCountAtStart
+                    )
+                } : null,
                 activeTweenCount: scene?.tweens?.getTweens?.().length || 0,
                 sharedAmbientFieldTweenCount: tweenTargets.filter(
                     target => sharedAmbientFieldObjects.has(target)
@@ -2702,7 +2723,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 ).length || 0,
                 emberLayerCount: scene.children?.list?.filter(
                     item => item === scene.peakEmberLayer
-                ).length || 0
+                ).length || 0,
+                emberVisibleCount: Number(scene.peakEmberVisibleCount) || 0,
+                emberDrawCount: Number(scene.peakEmberDrawCount) || 0,
+                patrolUpdateCount: Number(
+                    scene.peakEnemyPatrolUpdateCount
+                ) || 0
             } : null,
             routeGuidance: (() => {
                 const nextSignal = scene?.getNextOrderedRouteSignal?.();
@@ -2834,6 +2860,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.peaksAmbientRendering?.starLayerCount !== 1 ||
             state.peaksAmbientRendering?.emberCount !== 18 ||
             state.peaksAmbientRendering?.emberLayerCount !== 1 ||
+            state.peaksAmbientRendering?.emberVisibleCount > 6 ||
+            state.peaksAmbientRendering?.emberDrawCount < 1 ||
+            state.peaksAmbientRendering?.patrolUpdateCount < 1 ||
             state.currentEcologyPlacement?.supportId !==
                 'peak-ridge-approach' ||
             state.currentEcologyPlacement?.x <
@@ -2997,6 +3026,21 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         throw new Error(
             `${sceneName} kept offscreen route decorations animating on mobile: ` +
             JSON.stringify(framePacing.graphicsTweenDepths)
+        );
+    }
+    if (
+        route === 'voidPeaks' &&
+        (
+            framePacing.peaksRuntime?.emberRedrawsDuringSample < 10 ||
+            framePacing.peaksRuntime?.emberRedrawsDuringSample > 22 ||
+            framePacing.peaksRuntime?.emberVisibleCount > 6 ||
+            framePacing.peaksRuntime?.patrolUpdatesDuringSample < 10 ||
+            framePacing.peaksRuntime?.patrolUpdatesDuringSample > 28
+        )
+    ) {
+        throw new Error(
+            `${sceneName} did not keep Peaks runtime work bounded: ` +
+            JSON.stringify(framePacing.peaksRuntime)
         );
     }
     if (
