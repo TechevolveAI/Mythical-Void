@@ -24,8 +24,8 @@ const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
 const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
 const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
     mythicalForest: Object.freeze({
-        displayCount: 275,
-        activeTweenCount: 55,
+        displayCount: 260,
+        activeTweenCount: 40,
         performanceTier: 'mobile'
     }),
     crystalCaves: Object.freeze({
@@ -414,6 +414,97 @@ async function smokeForestBatchedCoinPickup(session) {
             });
             scene.isInvincible = false;
             scene.player?.body?.reset?.(300, scene.levelHeight - 130);
+            scene.player?.setVelocity?.(0, 0);
+            return true;
+        })()`);
+    }
+}
+
+async function smokeForestSharedEnemyScheduler(session) {
+    const staged = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        const chaser = scene.voidSprites?.find(enemy => enemy?.active && enemy?.body);
+        const crawler = scene.branchCrawlers?.find(enemy => enemy?.active && enemy?.body);
+        if (!scene.player?.body || !chaser || !crawler) return null;
+        if (
+            !Number.isFinite(chaser.forestPatrolLeft) ||
+            !Number.isFinite(chaser.forestPatrolRight)
+        ) return null;
+
+        scene.isInvincible = true;
+        const playerStart = { x: scene.player.x, y: scene.player.y };
+        const chaserStart = { x: chaser.x, y: chaser.y };
+        chaser.forestNextAiAt = scene.time.now;
+        crawler.forestNextAiAt = scene.time.now;
+        chaser.body.reset(chaser.forestPatrolLeft, chaserStart.y);
+        scene.player.body.reset(
+            chaser.forestPatrolRight,
+            scene.levelHeight - 130
+        );
+        chaser.setVelocity(0, 0);
+        scene.player.setVelocity(0, 0);
+        return {
+            playerStart,
+            chaserStart,
+            chaserX: chaser.x,
+            crawlerX: crawler.x
+        };
+    })()`);
+    if (!staged) {
+        throw new Error('Forest shared enemy scheduler could not be staged');
+    }
+
+    try {
+        await delay(180);
+        const advanced = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const chaser = scene.voidSprites?.find(enemy => enemy?.active && enemy?.body);
+            const crawler = scene.branchCrawlers?.find(enemy => enemy?.active && enemy?.body);
+            return {
+                schedulerActive: Boolean(
+                    scene.forestEnemyAISchedulerActive
+                ),
+                chaserIsChasing: chaser?.isChasing === true,
+                chaserVelocityX: chaser?.body?.velocity?.x || 0,
+                chaserNextDelay: (chaser?.forestNextAiAt || 0) - scene.time.now,
+                crawlerDeltaX: (crawler?.x || 0) - ${staged.crawlerX},
+                individualTimerCount: (
+                    scene.enemies?.getChildren?.() || []
+                ).reduce(
+                    (total, enemy) => total + (enemy?.runtimeTimers?.size || 0),
+                    0
+                )
+            };
+        })()`);
+        if (
+            advanced.schedulerActive !== true ||
+            advanced.chaserIsChasing !== true ||
+            advanced.chaserNextDelay <= 0 ||
+            Math.abs(advanced.crawlerDeltaX) < 1 ||
+            advanced.individualTimerCount !== 0
+        ) {
+            throw new Error(
+                `Forest shared enemy scheduler did not advance patrol AI: ${JSON.stringify({
+                    staged,
+                    advanced
+                })}`
+            );
+        }
+        return { staged, advanced };
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const chaser = scene.voidSprites?.find(enemy => enemy?.active && enemy?.body);
+            scene.isInvincible = false;
+            chaser?.body?.reset?.(
+                ${staged.chaserStart.x},
+                ${staged.chaserStart.y}
+            );
+            chaser?.setVelocity?.(0, 0);
+            scene.player?.body?.reset?.(
+                ${staged.playerStart.x},
+                ${staged.playerStart.y}
+            );
             scene.player?.setVelocity?.(0, 0);
             return true;
         })()`);
@@ -2172,6 +2263,41 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     coin => coin?.pickupZone?.body
                 ).length
             } : null,
+            forestEnemyRuntime: scene?.scene?.key === 'MythicalForestLevel' ? {
+                scheduledEnemyCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => Number.isFinite(enemy?.forestNextAiAt)).length,
+                individualTimerCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).reduce(
+                    (total, enemy) => total + (enemy?.runtimeTimers?.size || 0),
+                    0
+                ),
+                aiSchedulerActive: Boolean(
+                    scene?.forestEnemyAISchedulerActive
+                ),
+                groundEnemySupportIds: (scene.voidSprites || []).map(
+                    enemy => enemy?.forestSupportId || null
+                ),
+                unsupportedGroundEnemyIds: (scene.voidSprites || [])
+                    .filter(enemy => {
+                        if (!enemy?.active || !enemy?.body) return false;
+                        const support = scene.getTraversalSupport?.(
+                            enemy.forestSupportId
+                        );
+                        return !support?.body ||
+                            enemy.body.right <= support.body.left + 4 ||
+                            enemy.body.left >= support.body.right - 4 ||
+                            Math.abs(enemy.body.bottom - support.body.top) > 12;
+                    })
+                    .map(enemy => enemy?.forestSupportId || 'missing-support'),
+                airborneMotionTweenCount: (
+                    scene?.tweens?.getTweens?.() || []
+                ).filter(tween => (tween?.targets || []).some(target => (
+                    scene.sporeDrifters?.includes?.(target) ||
+                    scene.forestWisps?.includes?.(target)
+                ))).length
+            } : null,
             caveCoinRendering: Array.isArray(scene?.caveCoinPickups) ? {
                 batchedCount: scene.caveCoinPickups.filter(
                     coin => coin?.batched && !coin.collected
@@ -2256,7 +2382,16 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.coinRendering?.legacyVisualCount !== 0 ||
             state.coinRendering?.layerCount !== 1 ||
             state.coinRendering?.pickupCount !== state.coinRendering?.batchedCount ||
-            state.coinRendering?.pickupBodyCount !== 0
+            state.coinRendering?.pickupBodyCount !== 0 ||
+            state.forestEnemyRuntime?.scheduledEnemyCount !== 23 ||
+            state.forestEnemyRuntime?.individualTimerCount !== 0 ||
+            state.forestEnemyRuntime?.aiSchedulerActive !== true ||
+            state.forestEnemyRuntime?.groundEnemySupportIds?.length !== 5 ||
+            new Set(
+                state.forestEnemyRuntime?.groundEnemySupportIds || []
+            ).size !== 5 ||
+            state.forestEnemyRuntime?.unsupportedGroundEnemyIds?.length !== 0 ||
+            state.forestEnemyRuntime?.airborneMotionTweenCount !== 0
         )
     ) {
         throw new Error(
@@ -2375,6 +2510,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             );
         }
     }
+    const forestEnemyScheduler = route === 'mythicalForest'
+        ? await smokeForestSharedEnemyScheduler(session)
+        : null;
     const forestCoinPickup = route === 'mythicalForest'
         ? await smokeForestBatchedCoinPickup(session)
         : null;
@@ -4754,11 +4892,13 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 'story.projectBeacon.expeditionCheckpoint'
             );
             let stagedEnemyArtifactCount = 0;
+            let stagedEnemyTimerCount = 0;
             if (${JSON.stringify(route)} === 'mythicalForest') {
                 const wisp = scene.forestWisps?.find(enemy => enemy?.active);
                 if (wisp) {
                     scene.wispShoot?.(wisp);
                     stagedEnemyArtifactCount = wisp.runtimeArtifacts?.size || 0;
+                    stagedEnemyTimerCount = wisp.runtimeTimers?.size || 0;
                 }
             }
             if ([
@@ -4786,6 +4926,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 persistedId: persisted?.checkpointId || null,
                 persistedIndex: persisted?.checkpointIndex ?? null,
                 stagedEnemyArtifactCount,
+                stagedEnemyTimerCount,
                 stagedSupportId: ${JSON.stringify(route)} === 'auroraDepths'
                     ? 'aurora-phoenix-gate'
                     : (${JSON.stringify(route)} === 'voidPeaks'
@@ -4828,6 +4969,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     runtimeDisposals: scene.enemyRuntimeDisposalTotals
                         ? { ...scene.enemyRuntimeDisposalTotals }
                         : null,
+                    forestEnemyAISchedulerActive: Boolean(
+                        scene.forestEnemyAISchedulerActive
+                    ),
                     persistedId: persisted?.checkpointId || null,
                     persistedIndex: persisted?.checkpointIndex ?? null
                 };
@@ -4844,7 +4988,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             guardianEntry.remainingCombatCues !== 0 ||
             guardianEntry.retirement?.enemyCount < 1 ||
             (route === 'mythicalForest' &&
-                guardianEntry.runtimeDisposals?.timerCount < 23) ||
+                guardianEntry.runtimeDisposals?.timerCount <
+                    guardianEntrySetup.stagedEnemyTimerCount) ||
+            (route === 'mythicalForest' &&
+                guardianEntrySetup.stagedEnemyTimerCount < 1) ||
+            (route === 'mythicalForest' &&
+                guardianEntry.forestEnemyAISchedulerActive !== false) ||
             (route === 'mythicalForest' &&
                 guardianEntrySetup.stagedEnemyArtifactCount < 1) ||
             (route === 'mythicalForest' &&
@@ -5102,6 +5251,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         reefWaypointSupports,
         forestAnchorSupports,
         framePacing,
+        forestEnemyScheduler,
         forestCoinPickup,
         caveCoinPickup,
         renderStability,

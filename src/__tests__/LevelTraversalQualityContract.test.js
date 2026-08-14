@@ -214,7 +214,7 @@ describe('campaign traversal quality contracts', () => {
         });
     });
 
-    test('all guardian handoffs share route-enemy cleanup and bespoke AI owns its timers', () => {
+    test('all guardian handoffs share route-enemy cleanup and transient AI owns its timers', () => {
         [
             'levels/MythicalForestLevel.js',
             'levels/CrystalCavesLevel.js',
@@ -231,7 +231,9 @@ describe('campaign traversal quality contracts', () => {
         const forest = read('levels/MythicalForestLevel.js');
         const caves = read('levels/CrystalCavesLevel.js');
         expect((forest.match(/this\.trackEnemyTimer\(/g) || []).length)
-            .toBeGreaterThanOrEqual(6);
+            .toBeGreaterThanOrEqual(2);
+        expect(forest).toContain('this.forestEnemyAISchedulerActive = true;');
+        expect(forest).toContain('this.forestEnemyAISchedulerActive = false;');
         expect((caves.match(/this\.trackEnemyTimer\(/g) || []).length)
             .toBeGreaterThanOrEqual(5);
         expect(forest).toContain('this.trackEnemyArtifact(sprite, projectile);');
@@ -672,6 +674,29 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.forestEnemyOverlap = this.physics.add.overlap(');
         expect(source).toContain('(_player, enemy) => this.handleEnemyCollision(enemy)');
         expect(source).not.toContain('this.physics.add.overlap(this.player, sprite');
+        expect(source).toContain('startForestEnemyAIScheduler()');
+        expect(source).toContain('if (this.forestEnemyAISchedulerActive) this.updateForestEnemyAI();');
+        expect(source).toContain('const actionBudget = this.isMobile ? 3 : 5;');
+        expect(source).toContain('actionCount < actionBudget');
+        expect(source).toContain('this.forestEnemyAICursor + scannedCount');
+        expect(source).toContain('updateForestEnemyMotion(time)');
+        expect(source).toContain('sprite.forestNextAiAt = now + sprite.forestAiInterval');
+        expect(source).toContain('sprite.setVelocityX(sprite.direction * sprite.speed);');
+        expect(source).not.toContain('sprite.x += sprite.direction * sprite.speed');
+        expect(source).toContain('const FOREST_GROUND_SECTIONS = Object.freeze([');
+        expect(source).toContain('FOREST_GROUND_SECTIONS.forEach(section => {');
+        expect(source).toContain('.filter(section => Number.isFinite(section.enemyX))');
+        expect(source).toContain('sprite.forestSupportId = support?.id || null;');
+        expect(source).toContain('const supportedX = Phaser.Math.Clamp(');
+        expect(source).toContain('sprite.setVelocityX(atSupportEdge ? 0 : direction * sprite.speed);');
+        expect(source).not.toContain('{ x: 700, y: this.levelHeight - 150 }');
+        expect(source).toContain('this.forestFoliageLayer.setAlpha(0.82);');
+        expect(source).toContain('layer.fillStyle(color, this.isMobile ? 0.72 : 0.6);');
+        expect(source).toMatch(
+            /ensureForestCoinLayer\(\)[\s\S]*if \(!this\.isMobile\) \{[\s\S]*this\.forestCoinLayerTween/
+        );
+        expect(source).not.toContain('callback: () => this.updateVoidSpriteAI(sprite)');
+        expect(source).not.toContain('targets: sprite,\n            y: y + 15');
         expect(source).toContain('if (!this.isMobile) {');
         expect(source).toContain('ensureForestCoinLayer()');
         expect(source).toContain('updateForestCoinPickups()');
@@ -2290,6 +2315,15 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');
         expect(smoke).toContain('state.coinRendering?.legacyVisualCount !== 0');
         expect(smoke).toContain('state.coinRendering?.pickupBodyCount !== 0');
+        expect(smoke).toContain('state.forestEnemyRuntime?.scheduledEnemyCount !== 23');
+        expect(smoke).toContain('state.forestEnemyRuntime?.individualTimerCount !== 0');
+        expect(smoke).toContain('state.forestEnemyRuntime?.groundEnemySupportIds?.length !== 5');
+        expect(smoke).toContain('state.forestEnemyRuntime?.unsupportedGroundEnemyIds?.length !== 0');
+        expect(smoke).toContain('unsupportedGroundEnemyIds');
+        expect(smoke).toContain('groundEnemySupportIds');
+        expect(smoke).toContain('state.forestEnemyRuntime?.airborneMotionTweenCount !== 0');
+        expect(smoke).toContain('smokeForestSharedEnemyScheduler(session)');
+        expect(smoke).toContain('Forest shared enemy scheduler did not advance patrol AI');
         expect(smoke).toContain('Forest grouped coin did not resolve exactly once');
         expect(smoke).toContain('activeTouchIdentifier = nextTouchIdentifier;');
         expect(smoke).toContain('nextTouchIdentifier += 1;');
