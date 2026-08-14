@@ -202,6 +202,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.caveCoinLayerTween = null;
         this.caveCrystalField = [];
         this.caveCrystalFieldLayer = null;
+        this.caveParallaxLayers = [];
 
         // Project Beacon expedition state
         this.beaconAnchors = [];
@@ -281,6 +282,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.caveCoinLayerTween = null;
         this.caveCrystalField = [];
         this.caveCrystalFieldLayer = null;
+        this.caveParallaxLayers = [];
         this.beaconAnchors = [];
         this.beaconAnchorsActivated = 0;
         this.caveRouteAligned = false;
@@ -3098,14 +3100,16 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (this.caveCoinLayer?.active) return this.caveCoinLayer;
 
         this.caveCoinLayer = this.add.graphics().setDepth(125);
-        this.caveCoinLayerTween = this.tweens.add({
-            targets: this.caveCoinLayer,
-            y: { from: 0, to: -6 },
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (!this.isMobile) {
+            this.caveCoinLayerTween = this.tweens.add({
+                targets: this.caveCoinLayer,
+                y: { from: 0, to: -6 },
+                duration: 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
         return this.caveCoinLayer;
     }
 
@@ -3398,8 +3402,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      * Create a parallax background layer
      */
     createParallaxLayer(scrollFactor, elements, depth) {
+        const graphics = this.add.graphics();
+
         elements.forEach(element => {
-            const graphics = this.add.graphics();
+            const originX = element.x;
 
             if (element.type === 'crystalCluster') {
                 // Distant crystal cluster
@@ -3411,9 +3417,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                     const offsetX = Phaser.Math.Between(-element.size / 2, element.size / 2);
                     const height = Phaser.Math.Between(element.size * 0.5, element.size);
                     graphics.fillTriangle(
-                        offsetX - 15, 0,
-                        offsetX + 15, 0,
-                        offsetX, -height
+                        originX + offsetX - 15, 0,
+                        originX + offsetX + 15, 0,
+                        originX + offsetX, -height
                     );
                 }
             } else if (element.type === 'stalactites') {
@@ -3424,29 +3430,40 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                     const offsetX = (i - 3) * 20;
                     const height = Phaser.Math.Between(40, element.size);
                     graphics.fillTriangle(
-                        offsetX - 8, 0,
-                        offsetX + 8, 0,
-                        offsetX, height
+                        originX + offsetX - 8, 0,
+                        originX + offsetX + 8, 0,
+                        originX + offsetX, height
                     );
                 }
             } else if (element.type === 'caveWall') {
                 // Cave wall formation
                 graphics.fillStyle(0x1A1025, 0.4);
-                graphics.fillRect(-element.size / 2, -100, element.size, 300);
+                graphics.fillRect(
+                    originX - element.size / 2,
+                    -100,
+                    element.size,
+                    300
+                );
 
                 // Add some texture
                 graphics.fillStyle(0x2D1B4E, 0.3);
                 for (let i = 0; i < 8; i++) {
-                    const x = Phaser.Math.Between(-element.size / 2, element.size / 2);
+                    const x = originX + Phaser.Math.Between(
+                        -element.size / 2,
+                        element.size / 2
+                    );
                     const y = Phaser.Math.Between(-80, 180);
                     graphics.fillCircle(x, y, Phaser.Math.Between(5, 20));
                 }
             }
-
-            graphics.setPosition(element.x, this.levelHeight - 300);
-            graphics.setScrollFactor(scrollFactor, 1);
-            graphics.setDepth(depth);
         });
+
+        graphics.setPosition(0, this.levelHeight - 300);
+        graphics.setScrollFactor(scrollFactor, 1);
+        graphics.setDepth(depth);
+        graphics.caveAmbientRole = 'parallaxLayer';
+        this.caveParallaxLayers.push(graphics);
+        return graphics;
     }
 
     /**
@@ -3525,15 +3542,20 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         graphics.setPosition(x, y);
         graphics.setDepth(20);
+        graphics.caveAmbientRole = 'brokenLantern';
 
         // Subtle flicker
-        this.tweens.add({
-            targets: graphics,
-            alpha: { from: 0.6, to: 0.9 },
-            duration: Phaser.Math.Between(200, 400),
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.isMobile) {
+            graphics.setAlpha(0.78);
+        } else {
+            this.tweens.add({
+                targets: graphics,
+                alpha: { from: 0.6, to: 0.9 },
+                duration: Phaser.Math.Between(200, 400),
+                yoyo: true,
+                repeat: -1
+            });
+        }
     }
 
     /**
@@ -3610,15 +3632,20 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         graphics.setPosition(x, y);
         graphics.setDepth(10);
+        graphics.caveAmbientRole = 'minerSkeleton';
 
         // Subtle ambient movement (settling dust)
-        this.tweens.add({
-            targets: graphics,
-            alpha: { from: 0.8, to: 0.9 },
-            duration: 3000,
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.isMobile) {
+            graphics.setAlpha(0.85);
+        } else {
+            this.tweens.add({
+                targets: graphics,
+                alpha: { from: 0.8, to: 0.9 },
+                duration: 3000,
+                yoyo: true,
+                repeat: -1
+            });
+        }
     }
 
     /**
