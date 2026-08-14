@@ -86,12 +86,12 @@
           "id": "CAL-004",
           "day": "Thursday",
           "channel": "YouTube",
-          "contentRef": "YT-002",
-          "title": "From crash site to first creature",
-          "asset": null,
-          "assetClass": "authentic_gameplay_video_required",
-          "disclosure": "Use only a recording of the real running game.",
-          "state": "blocked_until_video_and_channel_exist"
+          "contentRef": "YT-006",
+          "title": "10 seconds in the Mythical Forest",
+          "asset": "public/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+          "assetClass": "authentic_running_build_gameplay_video",
+          "disclosure": "Recorded directly from the real Mythical Void browser game; not generated footage.",
+          "state": "waiting_for_channel_and_kevin_approval"
         }
       ]
     },
@@ -116,10 +116,10 @@
           "channel": "LinkedIn",
           "contentRef": "LI-004",
           "title": "Why real NASA data belongs in a fantasy game",
-          "asset": null,
-          "assetClass": "named_nasa_product_capture_required",
-          "disclosure": "The finished post must show the real feature and credit the NASA source used.",
-          "state": "blocked_until_nasa_product_capture"
+          "asset": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
+          "assetClass": "authentic_running_build_screenshot",
+          "disclosure": "Captured from the real Mythical Void browser game using NASA APOD: Apollo 11 Landing Panorama, 20 July 2024. Image credit: Neil Armstrong · Apollo 11 · NASA. NASA does not endorse Mythical Void.",
+          "state": "waiting_for_channel_and_kevin_approval"
         }
       ]
     },

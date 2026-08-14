@@ -119,6 +119,18 @@
           "description": "Mythical Void can turn NASA's public astronomy, Mars and space-weather data into optional discovery moments. The adventure is fictional; the space data is real and credited. Explore the game: https://mythicalvoid.com/",
           "proofState": "blocked_until_product_and_source_capture",
           "audienceDecision": "required_at_upload"
+        },
+        {
+          "id": "YT-006",
+          "sequence": 6,
+          "title": "10 Seconds in the Mythical Forest | Real Gameplay",
+          "format": "10-second vertical gameplay short",
+          "purpose": "Give players immediate proof that Mythical Void is a real playable game.",
+          "asset": "public/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+          "assetRule": "Authentic running-build gameplay only. Do not add generated frames or replacement scenery.",
+          "description": "Run, jump and follow the signal through one of Mythical Void’s six realms. This is recorded directly from the real browser game. Play free with no download or account: https://mythicalvoid.com/",
+          "proofState": "awaiting_kevin_and_channel",
+          "audienceDecision": "required_at_upload"
         }
       ]
     },
@@ -179,9 +191,9 @@
           "sequence": 4,
           "theme": "NASA and STEM",
           "copy": "A fantasy game can still open a door to real science.\n\nMythical Void can use NASA's public astronomy, Mars and space-weather data for optional discovery moments. The universe in the game is imagined. The curiosity it sparks can travel much further.\n\nWe will show the real feature and credit its data source when the product capture is ready. Explore Mythical Void: https://mythicalvoid.com/",
-          "asset": "product_screenshot_required",
-          "disclosure": "Name and credit the NASA source shown in the finished post.",
-          "approvalState": "blocked_until_product_proof"
+          "asset": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
+          "disclosure": "Captured from the real Mythical Void browser game using NASA APOD: Apollo 11 Landing Panorama, 20 July 2024. Image credit: Neil Armstrong · Apollo 11 · NASA. NASA does not endorse Mythical Void.",
+          "approvalState": "awaiting_kevin_and_page"
         },
         {
           "id": "LI-005",

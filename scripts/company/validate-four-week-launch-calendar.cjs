@@ -43,6 +43,10 @@ for (const item of releases) {
     if (item.assetClass === 'authentic_running_build_screenshot') {
         requireValue(item.disclosure?.includes('real Mythical Void browser game'), `${item.id} must plainly identify authentic gameplay.`);
     }
+    if (item.assetClass === 'authentic_running_build_gameplay_video') {
+        requireValue(item.disclosure?.includes('real Mythical Void browser game'), `${item.id} must plainly identify authentic gameplay video.`);
+        requireValue(item.asset?.endsWith('.mp4'), `${item.id} must use the verified MP4 asset.`);
+    }
 }
 
 requireValue(calendar.automationBoundary?.mustNot?.some((rule) => /publish without Kevin/i.test(rule)), 'Automation boundary must preserve Kevin publication approval.');

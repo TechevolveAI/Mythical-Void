@@ -24,6 +24,7 @@ const pressFactSheet = fs.readFileSync(
 );
 const pressAssets = require('../../public/press/mythical-void-press-assets.json');
 const gameplayManifest = require('../../public/press/gameplay/manifest.json');
+const gameplayVideoManifest = require('../../public/press/gameplay-video/manifest.json');
 
 describe('storefront Project Beacon story contract', () => {
     test('matches the implemented 2026 astronaut opening', () => {
@@ -164,15 +165,24 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressFactSheet).not.toMatch(/\bcompanions?\b/i);
         expect(storefront).toContain('This is what players really see.');
         expect(storefront).toContain('/press/gameplay/manifest.json');
+        expect(storefront).toContain('/press/gameplay-video/manifest.json');
+        expect(storefront).toContain('REAL GAMEPLAY VIDEO');
+        expect(storefront).toContain('REAL GAME + REAL NASA IMAGE');
         expect(pressAssets.gameplayProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay/manifest.json'
         );
-        expect(pressAssets.assets).toHaveLength(9);
+        expect(pressAssets.gameplayVideoProofManifest).toBe(
+            'https://mythicalvoid.com/press/gameplay-video/manifest.json'
+        );
+        expect(pressAssets.assets).toHaveLength(11);
         expect(pressAssets.assets.filter(asset => (
             asset.kind === 'authentic_running_build_screenshot'
-        ))).toHaveLength(4);
-        expect(pressAssets.assets[0].kind).toBe('authentic_running_build_screenshot');
-        expect(gameplayManifest.captures).toHaveLength(11);
+        ))).toHaveLength(5);
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'authentic_running_build_gameplay_video'
+        ))).toHaveLength(1);
+        expect(pressAssets.assets[0].kind).toBe('authentic_running_build_gameplay_video');
+        expect(gameplayManifest.captures).toHaveLength(12);
         expect(gameplayManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
         expect(gameplayManifest.approvalState).toBe(
             'internal_review_required_before_public_promotion'
@@ -180,5 +190,10 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.restrictions).toContain(
             'Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.'
         );
+        expect(gameplayVideoManifest.asset.classification).toBe(
+            'authentic_running_build_gameplay_video'
+        );
+        expect(gameplayVideoManifest.asset.durationSeconds).toBeGreaterThanOrEqual(3);
+        expect(gameplayVideoManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
     });
 });

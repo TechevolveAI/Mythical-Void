@@ -55,7 +55,15 @@ requireValue(!/\bevery creature is unique\b/i.test(publicCopy), 'Public launch c
 for (const item of youtube?.firstUploads || []) {
     requireValue(item.description?.includes(activation.canonicalUrl), `${item.id} must include the canonical URL.`);
     requireValue(item.audienceDecision === 'required_at_upload', `${item.id} must require an audience decision.`);
-    requireValue(item.proofState?.startsWith('blocked_until_'), `${item.id} must remain blocked until its proof exists.`);
+    requireValue(
+        item.proofState?.startsWith('blocked_until_') || item.proofState === 'awaiting_kevin_and_channel',
+        `${item.id} must remain proof-blocked or await Kevin and an official channel.`
+    );
+    if (item.proofState === 'awaiting_kevin_and_channel') {
+        requireValue(Boolean(item.asset), `${item.id} needs a verified asset before it can await approval.`);
+        requireValue(fs.existsSync(path.join(root, item.asset)), `${item.id} verified asset is missing: ${item.asset}`);
+        requireValue(/Authentic running-build gameplay/i.test(item.assetRule || ''), `${item.id} must preserve the authentic-gameplay boundary.`);
+    }
 }
 for (const item of linkedin?.firstPosts || []) {
     requireValue(item.copy?.includes('https://mythicalvoid.com/'), `${item.id} must include an approved Mythical URL.`);
