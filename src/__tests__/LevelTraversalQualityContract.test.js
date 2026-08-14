@@ -964,7 +964,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).not.toContain('this.voidRifts.push(rift);');
     });
 
-    test('Void Peaks batches static stars and animated embers', () => {
+    test('Void Peaks batches stars and bounds ember redraws by viewport movement', () => {
         const source = read('levels/VoidPeaksLevel.js');
 
         expect(source).toContain('this.peakStarField = Array.from({ length: 35 }');
@@ -972,10 +972,20 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.peakEmbers = Array.from({ length: 18 }');
         expect(source).toContain('drawPeakEmbers(time)');
         expect(source).toContain('this.drawPeakEmbers(0, true);');
-        expect(source).toContain('const cadence = this.isMobile ? 100 : 50;');
+        expect(source).toContain('const redrawDistance = Math.max(180, (right - left) * 0.45);');
+        expect(source).toContain('const renderTime = compactViewport ? 0 : now;');
         expect(source).toContain('ember.x < left - 140 || ember.x > right + 140');
         expect(source).toContain('this.peakEmberDrawCount += 1;');
         expect(source).toContain('this.peakEmberLayer.fillCircle(');
+        expect(source).toMatch(
+            /createStarFragments\(\)[\s\S]*if \(animateRouteDecorations\) \{[\s\S]*targets: fragment,/
+        );
+        expect(source).toMatch(
+            /this\.collectibles\.add\(fragment\);\s*fragment\.body\.setAllowGravity\(false\);\s*fragment\.body\.setVelocity\(0, 0\);/
+        );
+        expect(source).toMatch(
+            /createPeakRouteChoiceMarkers\(\)[\s\S]*if \(this\.shouldAnimatePeakRouteDecorations\(\)\) \{[\s\S]*targets: \[spine, relicRoute\]/
+        );
         expect(source).toContain('updatePeakEnemyPatrols(time)');
         expect(source).toContain('this.peakEnemyPatrolNextAt = now + (this.isMobile ? 80 : 40);');
         expect(source).toContain('enemy.patrolSpeed');
@@ -2624,7 +2634,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('state.reefAmbientRendering?.decorativeTweenCount !== 0');
         expect(smoke).toContain('state.peaksAmbientRendering?.starCount !== 35');
         expect(smoke).toContain('state.peaksAmbientRendering?.emberLayerCount !== 1');
-        expect(smoke).toContain('framePacing.peaksRuntime?.emberRedrawsDuringSample > 22');
+        expect(smoke).toContain('framePacing.peaksRuntime?.emberRedrawsDuringSample > 4');
         expect(smoke).toContain('framePacing.peaksRuntime?.patrolUpdatesDuringSample > 28');
         expect(smoke).toContain('did not keep Peaks runtime work bounded');
         expect(smoke).toContain('activeTweenCount: 22');
