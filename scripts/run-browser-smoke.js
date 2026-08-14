@@ -147,7 +147,8 @@ async function main() {
             'reef',
             'voidPeaks',
             'auroraDepths',
-            'finalVoid'
+            'finalVoid',
+            'finalVoidWithCreature'
         ];
         for (const smokeCase of interactionCases) {
             console.log(`[release-smoke] Interaction case: ${smokeCase}`);

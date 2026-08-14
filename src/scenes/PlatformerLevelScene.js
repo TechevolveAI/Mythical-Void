@@ -409,6 +409,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.residentReleaseElements = [];
         this.residentReleaseOpen = false;
         this.residentReleaseTableau = null;
+        this.pendingResidentReleaseContinuation = null;
         this._returningToHub = false;
         this.currentEcologyNode = null;
         this.currentAtmosphere = null;
@@ -727,6 +728,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.residentReleaseOpen = false;
         this.residentReleaseTableau?.destroy?.();
         this.residentReleaseTableau = null;
+        this.pendingResidentReleaseContinuation = null;
         this.residentReleaseElements?.forEach(element => element?.destroy?.());
         this.residentReleaseElements = [];
         this._returningToHub = false;
@@ -7895,6 +7897,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.residentReleaseOpen = false;
         this.residentReleaseTableau?.destroy?.();
         this.residentReleaseTableau = null;
+        this.pendingResidentReleaseContinuation = null;
         this.residentReleaseElements?.forEach(element => element?.destroy?.());
         this.residentReleaseElements = [];
         this.clearCurrentEcologyModal({ resume: false });
@@ -8080,6 +8083,13 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (!this.levelCompletionResult?.katanaUpgradeAwarded) {
             onClose?.();
             return false;
+        }
+
+        if (this.residentReleaseOpen) {
+            this.pendingResidentReleaseContinuation = () => {
+                this.showKatanaUpgradeReveal({ onClose });
+            };
+            return true;
         }
 
         const fieldKit = window.GameState?.get?.(
@@ -8299,11 +8309,19 @@ class PlatformerLevelScene extends Phaser.Scene {
         const close = () => {
             if (!this.residentReleaseOpen) return;
             this.residentReleaseOpen = false;
+            const continuation = this.pendingResidentReleaseContinuation;
+            this.pendingResidentReleaseContinuation = null;
             this.residentReleaseTableau?.destroy?.();
             this.residentReleaseTableau = null;
             elements.forEach(element => element?.destroy?.());
             this.residentReleaseElements = [];
             window.AudioManager?.playButtonClick?.();
+            if (continuation) {
+                this.time.delayedCall(100, () => {
+                    if (this.sys?.isActive?.() === false) return;
+                    continuation();
+                });
+            }
         };
         button.on('pointerup', close);
         this.time.delayedCall(700, () => {

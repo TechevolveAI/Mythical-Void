@@ -179,8 +179,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.pendingBossPhase = null;
 
         // Void effects
-        this.voidParticles = [];
         this.realityDistortion = 0;
+        this.realityDistortionTimer = null;
         this.bondAnchors = [];
         this.bondAnchorsActivated = 0;
         this.finalSignalReady = false;
@@ -246,8 +246,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossPhaseTransitionActive = false;
         this.pendingBossPhase = null;
 
-        this.voidParticles = [];
         this.realityDistortion = 0;
+        this.realityDistortionTimer = null;
         this.bondAnchors = [];
         this.bondAnchorsActivated = 0;
         this.finalSignalReady = false;
@@ -305,7 +305,6 @@ class FinalVoidLevel extends PlatformerLevelScene {
     startTestMode() {
         console.log('[FinalVoidLevel] TEST MODE - Spawning final boss');
         this.levelStarted = true;
-        this.createVoidBackground();
         this.bondAnchorsActivated = 3;
         this.finalSignalReady = true;
 
@@ -511,7 +510,6 @@ class FinalVoidLevel extends PlatformerLevelScene {
     startLevel() {
         console.log('[FinalVoidLevel] Starting final level');
         this.levelStarted = true;
-        this.createVoidBackground();
         this.createLevelSpecificContentOnce();
         this.showObjectiveToast();
     }
@@ -1238,67 +1236,6 @@ class FinalVoidLevel extends PlatformerLevelScene {
         return true;
     }
 
-    createVoidBackground() {
-        const { width, height } = this.cameras.main;
-
-        const bg = this.add.graphics();
-        bg.setScrollFactor(0);
-        bg.setDepth(-100);
-
-        // Deep void gradient - almost black with hints of purple
-        for (let y = 0; y < height; y++) {
-            const ratio = y / height;
-            const r = Math.floor(5 + ratio * 15);
-            const g = Math.floor(0 + ratio * 5);
-            const b = Math.floor(15 + ratio * 30);
-            bg.fillStyle(Phaser.Display.Color.GetColor(r, g, b), 1);
-            bg.fillRect(0, y, width, 1);
-        }
-
-        // Void particles
-        this.createVoidParticles();
-
-        // Reality distortion effect
-        this.time.addEvent({
-            delay: 100,
-            callback: () => this.updateRealityDistortion(),
-            loop: true
-        });
-    }
-
-    createVoidParticles() {
-        const { width, height } = this.cameras.main;
-
-        for (let i = 0; i < 40; i++) {
-            const particle = this.add.graphics();
-            const x = Math.random() * width;
-            const y = Math.random() * height;
-
-            const colors = [0x4B0082, 0x8B008B, 0x9400D3, 0xFF00FF];
-            const color = colors[Math.floor(Math.random() * colors.length)];
-
-            particle.fillStyle(color, 0.5);
-            particle.fillCircle(0, 0, 2 + Math.random() * 4);
-            particle.setPosition(x, y);
-            particle.setDepth(-50);
-            particle.setScrollFactor(0.3);
-
-            // Drift animation
-            this.tweens.add({
-                targets: particle,
-                x: x + (Math.random() - 0.5) * 200,
-                y: y + (Math.random() - 0.5) * 200,
-                alpha: { from: 0.5, to: 0.1 },
-                duration: 5000 + Math.random() * 3000,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-
-            this.voidParticles.push(particle);
-        }
-    }
-
     updateRealityDistortion() {
         this.realityDistortion += 0.05;
 
@@ -1459,6 +1396,12 @@ class FinalVoidLevel extends PlatformerLevelScene {
         console.log('[FinalVoidLevel] Starting Void Empress boss fight!');
         this.bossFightActive = true;
         this.retireFinalPatrolsForEmpress();
+        this.realityDistortionTimer?.remove?.();
+        this.realityDistortionTimer = this.time.addEvent({
+            delay: 100,
+            callback: () => this.updateRealityDistortion(),
+            loop: true
+        });
 
         this.physics.pause();
 
@@ -2909,6 +2852,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         console.log('[FinalVoidLevel] Void Empress restored.');
         this.bossDefeated = true;
         this.bossFightActive = false;
+        this.realityDistortionTimer?.remove?.();
+        this.realityDistortionTimer = null;
         this.clearFinalBossPacingTimers();
 
         if (this.bossAITimer) {
@@ -3250,6 +3195,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.clearCompanionHighPowerMoment();
         this.clearFinalBossPacingTimers();
         this.bossFightActive = false;
+        this.realityDistortionTimer?.remove?.();
+        this.realityDistortionTimer = null;
         // SceneManager may have disposed the camera transform before a rapid
         // campaign stop reaches this cleanup hook. The next init establishes
         // the correct camera position, so shutdown must not mutate it.
@@ -3280,9 +3227,6 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.empressOrbs.forEach(orb => orb.graphics.destroy());
             this.empressOrbs = [];
         }
-
-        this.voidParticles.forEach(p => p.destroy());
-        this.voidParticles = [];
 
         this.bondAnchors.forEach(anchor => {
             anchor.zone?.destroy?.();
