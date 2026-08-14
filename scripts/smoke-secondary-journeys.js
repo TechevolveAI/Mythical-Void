@@ -2366,6 +2366,35 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     item => item === scene.entryCosmicParticleLayer
                 ).length || 0
             } : null,
+            currentEcologyPlacement: scene?.currentEcologyNode ? (() => {
+                const node = scene.currentEcologyNode;
+                const support = node.supportId
+                    ? scene.getTraversalSupport?.(node.supportId)
+                    : null;
+                return {
+                    supportId: node.supportId || null,
+                    x: Number(node.x),
+                    y: Number(node.y),
+                    supportLeft: Number(support?.body?.left),
+                    supportRight: Number(support?.body?.right),
+                    supportTop: Number(support?.body?.top),
+                    spawnDistance: Math.hypot(
+                        Number(node.x) - Number(scene.playerSpawnX || 200),
+                        Number(node.y) - Number(scene.playerSpawnY || (
+                            scene.levelHeight - 290
+                        ))
+                    )
+                };
+            })() : null,
+            reefOpeningGuidance: scene?.openingSignalCurrent ? {
+                departureCueX: Number(
+                    scene.openingSignalCurrent.departureCue?.x
+                ),
+                departureCueY: Number(
+                    scene.openingSignalCurrent.departureCue?.y
+                ),
+                active: scene.openingSignalCurrent.visual?.active !== false
+            } : null,
             peaksAmbientRendering: Array.isArray(scene?.peakStarField) ? {
                 starCount: scene.peakStarField.filter(
                     star => star?.batched
@@ -2456,7 +2485,19 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.reefAmbientRendering?.riftLayerCount !== 1 ||
             state.reefAmbientRendering?.dustLayerCount !== 1 ||
             state.reefAmbientRendering?.dustParticleCount > 12 ||
-            state.reefAmbientRendering?.entryLayerCount > 1
+            state.reefAmbientRendering?.entryLayerCount > 1 ||
+            state.currentEcologyPlacement?.supportId !== 'reef-opening-3' ||
+            state.currentEcologyPlacement?.x <
+                state.currentEcologyPlacement?.supportLeft ||
+            state.currentEcologyPlacement?.x >
+                state.currentEcologyPlacement?.supportRight ||
+            Math.abs(
+                state.currentEcologyPlacement?.y -
+                state.currentEcologyPlacement?.supportTop
+            ) > 8 ||
+            state.currentEcologyPlacement?.spawnDistance < 450 ||
+            state.reefOpeningGuidance?.active !== true ||
+            state.reefOpeningGuidance?.departureCueX > 360
         )
     ) {
         throw new Error(

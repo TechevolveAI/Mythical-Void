@@ -96,8 +96,9 @@ const CURRENT_NODE_LEVEL_CONFIG = Object.freeze({
         label: 'CRYSTAL CURRENT'
     }),
     reef_1: Object.freeze({
-        x: 260,
-        groundOffset: 145,
+        x: 850,
+        groundOffset: 445,
+        supportId: 'reef-opening-3',
         label: 'REEF CURRENT'
     }),
     void_peaks_1: Object.freeze({
@@ -7334,8 +7335,22 @@ class PlatformerLevelScene extends Phaser.Scene {
         const snapshot = ecology.getCurrentRegionSnapshot(window.GameState, this.levelId);
         if (!snapshot) return null;
 
-        const x = config.x;
-        const y = this.levelHeight - config.groundOffset;
+        const support = config.supportId
+            ? this.getTraversalSupport?.(config.supportId)
+            : null;
+        const supportCheckpoint = support?.body
+            ? this.getTraversalSupportCheckpoint?.(
+                config.supportId,
+                support.x
+            )
+            : null;
+        const supportTop = Number(support?.body?.top);
+        const x = Number.isFinite(Number(supportCheckpoint?.x))
+            ? Number(supportCheckpoint.x)
+            : config.x;
+        const y = Number.isFinite(supportTop)
+            ? supportTop + 5
+            : this.levelHeight - config.groundOffset;
         const compactNodeLayout =
             this.isMobile || this.cameras.main.height < 620;
         const fieldWash = this.add.rectangle(
@@ -7413,6 +7428,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.currentEcologyNode = {
             config,
+            supportId: config.supportId || null,
             x,
             y,
             snapshot,
