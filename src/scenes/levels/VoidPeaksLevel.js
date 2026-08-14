@@ -133,6 +133,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
         this.replySignals = [];
+        this.peakStarField = [];
+        this.peakStarLayer = null;
+        this.peakEmbers = [];
+        this.peakEmberLayer = null;
         this.titanGate = null;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
@@ -172,6 +176,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
         this.replySignals = [];
+        this.peakStarField = [];
+        this.peakStarLayer = null;
+        this.peakEmbers = [];
+        this.peakEmberLayer = null;
         this.titanGate = null;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
@@ -402,17 +410,21 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }
         bg.setDepth(-900);
 
-        for (let i = 0; i < 35; i++) {
-            const star = this.add.circle(
-                Phaser.Math.Between(0, this.levelWidth),
-                Phaser.Math.Between(20, 360),
-                Phaser.Math.FloatBetween(1, 3),
-                Phaser.Utils.Array.GetRandom([0x8B008B, 0xFF4500, 0xFFFFFF]),
-                Phaser.Math.FloatBetween(0.25, 0.75)
-            );
-            star.setScrollFactor(0.18);
-            star.setDepth(-850);
-        }
+        this.peakStarField = Array.from({ length: 35 }, () => ({
+            x: Phaser.Math.Between(0, this.levelWidth),
+            y: Phaser.Math.Between(20, 360),
+            radius: Phaser.Math.FloatBetween(1, 3),
+            color: Phaser.Utils.Array.GetRandom([0x8B008B, 0xFF4500, 0xFFFFFF]),
+            alpha: Phaser.Math.FloatBetween(0.25, 0.75),
+            batched: true
+        }));
+        this.peakStarLayer = this.add.graphics()
+            .setScrollFactor(0.18)
+            .setDepth(-850);
+        this.peakStarField.forEach(star => {
+            this.peakStarLayer.fillStyle(star.color, star.alpha);
+            this.peakStarLayer.fillCircle(star.x, star.y, star.radius);
+        });
     }
 
     createPlatforms() {
@@ -484,25 +496,37 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     createPeakAtmosphere() {
-        for (let i = 0; i < 18; i++) {
-            const ember = this.add.circle(
-                Phaser.Math.Between(0, this.levelWidth),
-                Phaser.Math.Between(120, this.levelHeight - 180),
-                Phaser.Math.FloatBetween(3, 8),
-                Phaser.Utils.Array.GetRandom([0xFF4500, 0x9400D3, 0xFFD700]),
-                0.55
-            );
-            ember.setDepth(40);
-            this.tweens.add({
-                targets: ember,
-                y: ember.y - Phaser.Math.Between(80, 180),
-                alpha: 0.05,
-                duration: Phaser.Math.Between(3200, 6200),
-                repeat: -1,
-                yoyo: true,
-                ease: 'Sine.easeInOut'
-            });
-        }
+        this.peakEmberLayer?.destroy?.();
+        this.peakEmberLayer = this.add.graphics().setDepth(40);
+        this.peakEmbers = Array.from({ length: 18 }, () => ({
+            x: Phaser.Math.Between(0, this.levelWidth),
+            originY: Phaser.Math.Between(120, this.levelHeight - 180),
+            radius: Phaser.Math.FloatBetween(3, 8),
+            color: Phaser.Utils.Array.GetRandom([0xFF4500, 0x9400D3, 0xFFD700]),
+            travel: Phaser.Math.Between(80, 180),
+            duration: Phaser.Math.Between(3200, 6200),
+            phaseOffset: Phaser.Math.Between(0, 6200),
+            batched: true
+        }));
+        this.drawPeakEmbers(0);
+    }
+
+    drawPeakEmbers(time) {
+        if (!this.peakEmberLayer?.active) return;
+
+        const now = Number(time) || 0;
+        this.peakEmberLayer.clear();
+        this.peakEmbers.forEach(ember => {
+            const phase = ((now + ember.phaseOffset) % ember.duration) / ember.duration;
+            const rise = (Math.sin((phase * Math.PI * 2) - (Math.PI / 2)) + 1) / 2;
+            const y = ember.originY - (ember.travel * rise);
+            const alpha = 0.05 + ((1 - rise) * 0.5);
+
+            this.peakEmberLayer.fillStyle(ember.color, alpha * 0.34);
+            this.peakEmberLayer.fillCircle(ember.x, y, ember.radius * 1.8);
+            this.peakEmberLayer.fillStyle(ember.color, alpha);
+            this.peakEmberLayer.fillCircle(ember.x, y, ember.radius);
+        });
     }
 
     createVoidGeysers() {
@@ -1483,6 +1507,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
+        this.drawPeakEmbers(time);
         this.updatePeakReturnCurrentGuidance();
 
         if (this.enemies) {
@@ -2269,6 +2294,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.beaconRelays = [];
         this.replySignals.forEach(signal => signal?.destroy?.());
         this.replySignals = [];
+        this.peakStarLayer?.destroy?.();
+        this.peakStarLayer = null;
+        this.peakStarField = [];
+        this.peakEmberLayer?.destroy?.();
+        this.peakEmberLayer = null;
+        this.peakEmbers = [];
         super.shutdown();
         console.log('[VoidPeaksLevel] Shutting down');
     }

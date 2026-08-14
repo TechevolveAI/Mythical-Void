@@ -747,6 +747,17 @@ describe('campaign traversal quality contracts', () => {
         expect(source).not.toContain('this.voidRifts.push(rift);');
     });
 
+    test('Void Peaks batches static stars and animated embers', () => {
+        const source = read('levels/VoidPeaksLevel.js');
+
+        expect(source).toContain('this.peakStarField = Array.from({ length: 35 }');
+        expect(source).toContain('this.peakStarLayer = this.add.graphics()');
+        expect(source).toContain('this.peakEmbers = Array.from({ length: 18 }');
+        expect(source).toContain('drawPeakEmbers(time)');
+        expect(source).toContain('this.peakEmberLayer.fillCircle(');
+        expect(source).not.toContain('targets: ember,');
+    });
+
     test('shared route guidance resets before the first invalid contact', () => {
         const source = read('PlatformerLevelScene.js');
 
@@ -2274,6 +2285,8 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('state.caveCrystalRendering?.layerCount !== 1');
         expect(smoke).toContain('state.reefAmbientRendering?.nebulaLayerCount !== 2');
         expect(smoke).toContain('state.reefAmbientRendering?.dustParticleCount > 12');
+        expect(smoke).toContain('state.peaksAmbientRendering?.starCount !== 35');
+        expect(smoke).toContain('state.peaksAmbientRendering?.emberLayerCount !== 1');
         expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');
         expect(smoke).toContain('state.coinRendering?.legacyVisualCount !== 0');
         expect(smoke).toContain('state.coinRendering?.pickupBodyCount !== 0');

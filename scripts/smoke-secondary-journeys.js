@@ -39,8 +39,8 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
         performanceTier: 'custom'
     }),
     voidPeaks: Object.freeze({
-        displayCount: 240,
-        activeTweenCount: 60,
+        displayCount: 185,
+        activeTweenCount: 35,
         performanceTier: 'mobile'
     }),
     auroraDepths: Object.freeze({
@@ -2206,6 +2206,20 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     item => item === scene.entryCosmicParticleLayer
                 ).length || 0
             } : null,
+            peaksAmbientRendering: Array.isArray(scene?.peakStarField) ? {
+                starCount: scene.peakStarField.filter(
+                    star => star?.batched
+                ).length,
+                starLayerCount: scene.children?.list?.filter(
+                    item => item === scene.peakStarLayer
+                ).length || 0,
+                emberCount: scene.peakEmbers?.filter(
+                    ember => ember?.batched
+                ).length || 0,
+                emberLayerCount: scene.children?.list?.filter(
+                    item => item === scene.peakEmberLayer
+                ).length || 0
+            } : null,
             routeGuidance: (() => {
                 const nextSignal = scene?.getNextOrderedRouteSignal?.();
                 return {
@@ -2275,6 +2289,19 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     ) {
         throw new Error(
             `${sceneName} did not keep Reef ambience bounded: ${JSON.stringify(state)}`
+        );
+    }
+    if (
+        route === 'voidPeaks' &&
+        (
+            state.peaksAmbientRendering?.starCount !== 35 ||
+            state.peaksAmbientRendering?.starLayerCount !== 1 ||
+            state.peaksAmbientRendering?.emberCount !== 18 ||
+            state.peaksAmbientRendering?.emberLayerCount !== 1
+        )
+    ) {
+        throw new Error(
+            `${sceneName} did not keep Peaks ambience batched: ${JSON.stringify(state)}`
         );
     }
     let renderStability = null;
