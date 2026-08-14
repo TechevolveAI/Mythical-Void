@@ -1,57 +1,79 @@
-# Mythical’s website visit counter
+# Mythical’s public website measurement
 
-Status: code ready for the public release; live deployment and live measurement still need checking.
+**Status:** live on the public website; consent required; reporting trust still needs Kevin’s Google property check
 
-The public shop window now has the Google tag requested for Mythical:
+The Google tag requested for Mythical is live:
 
 `G-FTM4W73EQC`
 
-It is limited to the public pages before the game. The game does not load it.
+It is limited to the public website. It is not loaded inside the game.
 
-## What visitors see
+## What visitors choose
 
 The first time someone visits, they see a simple choice:
 
-- “No thanks” keeps analytics off.
-- “Allow analytics” allows a basic visit count for the public website.
+- **No thanks** keeps analytics off.
+- **Allow analytics** allows public-page counting and two small website actions.
 
-Analytics starts off. Advertising features start off. A visitor’s choice is kept in that browser so the question does not appear every time.
+Advertising features remain off. The visitor’s choice is kept in that browser
+so the question does not appear every time.
 
-## What the tag does not receive from Mythical
+## What Mythical can count after “Allow analytics”
 
-The tag is not given a player name, email, age, child detail, account number, creature name, save data, story choice, or user ID. It uses the public page path rather than a full address with extra query details.
+1. A visit to a public information page.
+2. `public_play_selected` when someone chooses a public Play link.
+3. `public_share_selected` when someone chooses the Share button.
 
-It is not used to measure the game, follow children, build advertising audiences, or personalise adverts.
+The two actions carry one broad page group such as `home`, `parents`,
+`nasa_stem` or `studio`. They do not carry the button wording, full address,
+query string, referrer or search term.
 
-## Checks completed
+These are selections, not people or completed outcomes:
 
-The source checker confirms:
+- a Play selection does not prove that the game loaded or that someone played;
+- a Share selection does not prove that sharing completed;
+- no public event should be described as a child, customer or unique player.
+
+## What Mythical does not send
+
+Mythical does not add a player name, email, age, child detail, account number,
+creature identity, save, game progress, story choice, full URL, query string,
+raw referrer, search term, user ID or advertising ID.
+
+The game does not use this measurement. There is no gameplay event, in-game
+funnel, child profile, advertising audience or personalised advertising.
+
+## What is already checked
 
 - the tag ID is correct;
-- consent is denied at the start;
-- no page view is sent before a visitor allows analytics;
-- the game routes are excluded;
-- advertising features are off;
-- both production hosting policies allow the required Google files; and
-- the privacy page explains the choice.
+- analytics starts denied;
+- the public action helper checks for an affirmative choice;
+- only two action names and one broad property are allowed;
+- game routes stop before the tag loads;
+- advertising features and Google Signals are off;
+- the privacy page explains the page and action counting;
+- all eight public information routes use the same boundary;
+- production hosting allows only the files needed by the tag; and
+- removing the small tag and helper remains the kill switch.
 
-The independent check covers 25 cases. The public website tests still pass, and the release package now includes the consent helper and both hosting policy changes.
+## Before numbers become company truth
 
-## Before we trust live numbers
+Kevin still needs to confirm inside Google Analytics:
 
-The live site still needs a check that:
+1. which Google property receives `G-FTM4W73EQC`;
+2. who owns and can remove access;
+3. the retention setting;
+4. that the eight public page groups and two allowed actions arrive; and
+5. that no game route or unexpected field appears.
 
-1. the public pages load the tag;
-2. the game does not;
-3. “No thanks” sends nothing;
-4. “Allow analytics” sends only the public page visit; and
-5. advertising remains off.
+Until then, the measurement may operate after consent, but a dashboard number
+must not be used as an official studio result. If the property receives an
+unexpected event or advertising feature, remove the tag and investigate.
 
-Kevin should also confirm the Google property, who can remove the tag, and the chosen retention setting. A live number is not treated as company truth until those checks are recorded.
-
-## Files
+## Working files
 
 - Contract: `docs/company/automation/website-analytics-tag.json`
 - Contract shape: `docs/company/automation/website-analytics-tag.schema.json`
 - Source check: `scripts/company/validate-website-analytics-tag.cjs`
 - Independent checks: `scripts/company/test-website-analytics-tag.cjs`
+- Browser-behaviour checks: `src/__tests__/PublicWebsiteMeasurement.test.js`

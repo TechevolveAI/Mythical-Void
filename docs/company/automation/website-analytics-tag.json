@@ -1,16 +1,25 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-11",
-  "status": "consent_gated_public_shop_window_tag_ready_for_production_review",
-  "purpose": "Describe the small Google tag used on Mythical’s public shop window. The tag is not part of the game. It starts with analytics and advertising storage turned off, asks visitors before enabling analytics, sends only a simple public-page visit after an affirmative choice, turns advertising features off, and never receives a game save, creature name, account number, email, age, child detail, full query string, or user ID from Mythical. A visitor can say no. The tag is checked in the page source, the consent helper, the public privacy page, and both production hosting policies before release.",
+  "asOf": "2026-08-14",
+  "status": "consent_gated_public_website_measurement_live_source_verified",
+  "purpose": "Describe the small Google Analytics measurement used on Mythical Void's public website. The tag is not part of the game. It starts with analytics and advertising storage turned off, asks visitors before enabling analytics, counts a canonical public-page visit only after an affirmative choice, and can record only two allowlisted public actions: choosing a Play link or choosing the Share button. Each action includes only a broad page group. Mythical does not send a name, age, child detail, account number, email, creature identity, save, story choice, full URL, query string, raw referrer, button wording, user ID, advertising ID, or gameplay event. Advertising and Google Signals remain off. The production source and routes are verified, but the resulting numbers are not company truth until Google property access, receipt, retention, and reporting are checked.",
   "decisionRefs": ["D-003", "D-004", "D-015"],
   "riskRefs": ["R-001", "R-005", "R-011"],
   "workflowRefs": ["A-006", "A-018", "A-055", "A-058"],
   "tag": {
     "measurementId": "G-FTM4W73EQC",
     "scriptUrl": "https://www.googletagmanager.com/gtag/js?id=G-FTM4W73EQC",
-    "scope": "public_shop_window_only",
-    "includedRoutes": ["/", "/privacy/", "/terms/"],
+    "scope": "consented_public_website_only",
+    "includedRoutes": [
+      "/",
+      "/press/",
+      "/privacy/",
+      "/terms/",
+      "/parents/",
+      "/creature-genetics/",
+      "/nasa-space-science/",
+      "/studio/"
+    ],
     "excludedRoutes": ["/play/", "/game/", "?testBoss"],
     "defaultAnalyticsStorage": "denied",
     "defaultAdStorage": "denied",
@@ -22,39 +31,87 @@
     "pageViewBeforeChoice": false,
     "pageLocationUsesCanonicalPathOnly": true
   },
+  "publicActions": {
+    "enabled": true,
+    "consentRequired": true,
+    "eventNames": ["public_play_selected", "public_share_selected"],
+    "allowedProperty": "page_group",
+    "allowedPageGroups": [
+      "home",
+      "press",
+      "privacy",
+      "terms",
+      "parents",
+      "creature_genetics",
+      "nasa_stem",
+      "studio",
+      "other"
+    ],
+    "meaning": {
+      "public_play_selected": "A visitor who allowed analytics activated a public website link to the game. This is a selection event, not proof that the game loaded or that a person played.",
+      "public_share_selected": "A visitor who allowed analytics activated the public Share button. This is a selection event, not proof that sharing completed."
+    }
+  },
   "authority": {
     "productionDeploymentAuthorizedByKevin": true,
-    "liveMeasurementApproved": false,
+    "consentedPublicWebsiteMeasurementApproved": true,
     "adPersonalizationAuthorized": false,
     "gameMeasurementAuthorized": false,
     "userProfilingAuthorized": false,
-    "externalActionAuthorized": false
+    "paidMediaUseAuthorized": false
   },
   "sourceChecks": [
-    { "id": "GA-001", "path": "index.html", "purpose": "tag id, consent default, and game exclusion" },
-    { "id": "GA-002", "path": "src/site/analytics-consent.js", "purpose": "visitor choice and no-message banner" },
-    { "id": "GA-003", "path": "src/site/storefront.js", "purpose": "public-page banner and privacy wording" },
+    { "id": "GA-001", "path": "index.html", "purpose": "tag id, consent default, canonical public-page view and game exclusion" },
+    { "id": "GA-002", "path": "src/site/analytics-consent.js", "purpose": "visitor choice and allowlisted public action measurement" },
+    { "id": "GA-003", "path": "src/site/storefront.js", "purpose": "public-page banner, action setup and privacy wording" },
     { "id": "GA-004", "path": "src/site/storefront.css", "purpose": "readable choice banner" },
-    { "id": "GA-005", "path": "netlify.toml", "purpose": "production script and connection permissions" },
-    { "id": "GA-006", "path": "vercel.json", "purpose": "alternate production script and connection permissions" }
+    { "id": "GA-005", "path": "public/discovery.js", "purpose": "same consent and action boundaries on the static discovery pages" },
+    { "id": "GA-006", "path": "netlify.toml", "purpose": "production script and connection permissions" },
+    { "id": "GA-007", "path": "vercel.json", "purpose": "alternate production script and connection permissions" }
   ],
-  "prohibitedData": ["user_id", "account_id", "email", "name", "age", "age_band", "birth_date", "child_data", "creature_id", "creature_name", "game_save", "story_choice", "full_url", "query_string", "raw_referrer", "ip_address", "advertising_id"],
+  "prohibitedData": [
+    "user_id",
+    "account_id",
+    "email",
+    "name",
+    "age",
+    "age_band",
+    "birth_date",
+    "child_data",
+    "creature_id",
+    "creature_name",
+    "game_save",
+    "game_progress",
+    "story_choice",
+    "full_url",
+    "query_string",
+    "raw_referrer",
+    "button_text",
+    "search_term",
+    "ip_address",
+    "advertising_id"
+  ],
   "activationGates": [
-    { "id": "GA-G01", "name": "Tag id checked", "satisfied": false },
-    { "id": "GA-G02", "name": "Consent default checked", "satisfied": false },
-    { "id": "GA-G03", "name": "Visitor choice checked", "satisfied": false },
-    { "id": "GA-G04", "name": "Game exclusion checked", "satisfied": false },
-    { "id": "GA-G05", "name": "Advertising off checked", "satisfied": false },
-    { "id": "GA-G06", "name": "Canonical path checked", "satisfied": false },
-    { "id": "GA-G07", "name": "Privacy wording checked", "satisfied": false },
-    { "id": "GA-G08", "name": "Netlify policy checked", "satisfied": false },
-    { "id": "GA-G09", "name": "Vercel policy checked", "satisfied": false },
-    { "id": "GA-G10", "name": "No game source change checked", "satisfied": false },
-    { "id": "GA-G11", "name": "Production page check", "satisfied": false },
-    { "id": "GA-G12", "name": "Removal path checked", "satisfied": false }
+    { "id": "GA-G01", "name": "Tag id checked", "satisfied": true },
+    { "id": "GA-G02", "name": "Consent default checked", "satisfied": true },
+    { "id": "GA-G03", "name": "Visitor choice checked", "satisfied": true },
+    { "id": "GA-G04", "name": "Game exclusion checked", "satisfied": true },
+    { "id": "GA-G05", "name": "Advertising off checked", "satisfied": true },
+    { "id": "GA-G06", "name": "Canonical path checked", "satisfied": true },
+    { "id": "GA-G07", "name": "Privacy wording checked", "satisfied": true },
+    { "id": "GA-G08", "name": "Netlify policy checked", "satisfied": true },
+    { "id": "GA-G09", "name": "Vercel policy checked", "satisfied": true },
+    { "id": "GA-G10", "name": "No game source measurement checked", "satisfied": true },
+    { "id": "GA-G11", "name": "Production public routes checked", "satisfied": true },
+    { "id": "GA-G12", "name": "Removal path checked", "satisfied": true }
   ],
-  "tagImplementationReadyForReview": true,
-  "productionDeployed": false,
-  "externalActionAuthorized": false,
-  "nextDecision": "The tag is ready to publish with consent off by default. Before treating the numbers as trusted, Kevin should confirm the live domain, Google property, privacy wording, retention choice, access to the Google property, and the person who can remove the tag. The first production check should confirm that the shop window loads the tag, the game does not, no page view is sent before a visitor allows analytics, “No thanks” keeps it off, and “Allow analytics” sends only a public canonical page visit. Advertising features must remain off. If the property, privacy review, or live check is not ready, remove the tag from the release rather than treating a partial measurement result as company truth."
+  "reportingTrustGates": {
+    "googlePropertyOwnerConfirmed": false,
+    "retentionSettingConfirmed": false,
+    "reportAccessVerified": false,
+    "productionDataReceptionVerified": false
+  },
+  "productionDeployed": true,
+  "trustedForCompanyReporting": false,
+  "nextDecision": "Kevin should later confirm the Google Analytics property owner, who can remove the tag, the chosen retention setting, and access to the reports. A trusted reporting check should then prove that consented public page views and the two allowlisted action names arrive with only a broad page_group, while game routes produce no analytics. Until that check is recorded, the code may collect consented public-website measurements but no dashboard number should be treated as a player, a child, a successful game load, a completed share, or a company performance result. If an unexpected field, advertising feature, gameplay event, or unapproved route appears, disable the tag and investigate before using the data."
 }

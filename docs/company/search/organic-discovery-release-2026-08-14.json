@@ -15,6 +15,9 @@
     "style": "public/discovery.css",
     "analytics": "public/discovery.js",
     "analyticsDefault": "denied",
+    "consentedPublicActions": ["public_play_selected", "public_share_selected"],
+    "publicActionProperty": "page_group",
+    "trustedForCompanyReporting": false,
     "advertisingFeatures": false,
     "canonicalHome": "https://mythicalvoid.com/",
     "playUrl": "https://mythicalvoid.com/play/"

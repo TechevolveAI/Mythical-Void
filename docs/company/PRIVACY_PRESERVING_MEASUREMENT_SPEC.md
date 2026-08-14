@@ -1,6 +1,6 @@
 # Privacy-Preserving Measurement Specification
 
-**Status:** A-006 offline contract pilot; no new collection is authorized  
+**Status:** A-006 in-game measurement remains offline; consented public-website page and action measurement is governed separately by A-058
 **Date:** 11 August 2026  
 **Decision gate:** Kevin approval plus privacy/DPIA review
 
@@ -25,6 +25,13 @@ The machine-readable proposal lives at
 validates the event/property allowlists, prohibited fields, disabled state,
 approval gates, and selected source-code signals. It has no endpoint and cannot
 collect an event.
+
+The public website is a separate, smaller measurement surface. After a visitor
+actively allows analytics, A-058 can count canonical public-page visits and two
+allowlisted selections: a public Play link or the Share button. Each selection
+uses only a broad page group. It never measures the game, a hatch, a child, a
+creature, a save or a story choice. See
+[`WEBSITE_ANALYTICS_TAG_SYSTEM.md`](WEBSITE_ANALYTICS_TAG_SYSTEM.md).
 
 ## 2. Measurement modes
 

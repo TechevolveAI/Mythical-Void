@@ -95,6 +95,9 @@ if (release.authority?.searchEngineSubmissionAuthorized !== false) {
 if (release.authority?.paidSearchAuthorized !== false || release.authority?.linkOutreachAuthorized !== false) {
     errors.push('organic discovery release: paid search and link outreach must remain off');
 }
+if (release.shared?.trustedForCompanyReporting !== false) {
+    errors.push('organic discovery release: public analytics must remain untrusted until the Google property is checked');
+}
 for (const page of pages) {
     if (!(release.pages || []).some(item => item.route === page.route)) {
         errors.push(`organic discovery release: missing ${page.route}`);
@@ -116,7 +119,11 @@ for (const required of [
     "analytics_storage: 'denied'",
     "ad_storage: 'denied'",
     'send_page_view: false',
-    'allow_ad_personalization_signals: false'
+    'allow_ad_personalization_signals: false',
+    'public_play_selected',
+    'public_share_selected',
+    "readChoice() !== 'granted'",
+    'page_group'
 ]) {
     if (!analytics.includes(required)) errors.push(`public/discovery.js: missing privacy boundary ${required}`);
 }

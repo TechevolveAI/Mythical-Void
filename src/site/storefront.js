@@ -1,5 +1,8 @@
 import './storefront.css';
-import { mountAnalyticsConsent } from './analytics-consent.js';
+import {
+    mountAnalyticsConsent,
+    mountPublicActionMeasurement
+} from './analytics-consent.js';
 
 const showcaseScenes = [
     { name: 'Shared Habitat', image: '/game/village/shared-habitat.webp', detail: 'The Fend', mission: 'Build a home' },
@@ -227,6 +230,7 @@ function renderPressPage() {
     `;
 
     mountAnalyticsConsent();
+    mountPublicActionMeasurement();
 }
 
 function renderLegalPage(type) {
@@ -255,7 +259,7 @@ function renderLegalPage(type) {
                     <h2>Online services</h2>
                     <p>Cloud Save uses Supabase. The game may also ask trusted outside services for public space-weather or game-help information. Like most online services, they may receive basic connection information such as an internet address.</p>
                     <h2>Optional website analytics</h2>
-                    <p>The public website may use Google Analytics to count visits and improve the shop window. It is off by default. If you choose “Allow analytics”, Google receives limited visit information for the public website only. It is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
+                    <p>The public website may use Google Analytics to count visits and whether someone chooses a Play button or the Share button. It is off by default. If you choose “Allow analytics”, Google receives the public page group and one of those two action names. Mythical does not send names, ages, creature details, game progress, full addresses, search terms, or button wording. Analytics is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
                     <h2>Children</h2>
                     <p>Children can play without Cloud Save. A child should only use Cloud Save when a parent or guardian has given any permission required where they live.</p>
                     <h2>Contact</h2>
@@ -275,6 +279,7 @@ function renderLegalPage(type) {
         </main>
     `;
     mountAnalyticsConsent();
+    mountPublicActionMeasurement();
 }
 
 function renderStorefront() {
@@ -609,6 +614,7 @@ function renderStorefront() {
 
     bindInteractions();
     mountAnalyticsConsent();
+    mountPublicActionMeasurement();
 }
 
 function bindInteractions() {
