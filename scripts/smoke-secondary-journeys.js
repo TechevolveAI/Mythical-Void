@@ -783,12 +783,12 @@ async function smokeVoidPeaksReturnCurrents(session) {
     const routes = [
         {
             id: 'peak-return-lower',
-            start: { x: 2250, y: 740 },
+            start: { x: 2310, y: 740 },
             destinationId: 'peak-warning-lower'
         },
         {
             id: 'peak-return-summit',
-            start: { x: 3140, y: 740 },
+            start: { x: 3200, y: 740 },
             destinationId: 'peak-warning-summit'
         }
     ];
@@ -1960,6 +1960,40 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 ?.filter(enemy => enemy?.active !== false).length || 0,
             combatCueCount: scene?.enemies?.getChildren?.()
                 ?.filter(enemy => enemy?.active !== false && enemy?.combatCue?.active).length || 0,
+            encounterRhythm: (() => {
+                const encounters = scene?.enemies?.getChildren?.().filter(
+                    enemy => enemy?.active !== false && enemy?.encounterBeat
+                ) || [];
+                if (!encounters.length) return null;
+                const unsupported = encounters.filter(enemy => {
+                    const support = scene.getTraversalSupport?.(
+                        enemy.encounterSupportId
+                    );
+                    const body = enemy.body;
+                    return !support?.body || !body ||
+                        body.right <= support.body.left + 4 ||
+                        body.left >= support.body.right - 4 ||
+                        Math.abs(body.bottom - support.body.top) > 9;
+                }).map(enemy => enemy.encounterBeat);
+                return {
+                    count: encounters.length,
+                    clearCount: encounters.filter(
+                        enemy => Number(enemy.maxHealth) === 1
+                    ).length,
+                    armoredCount: encounters.filter(
+                        enemy => enemy.combatRole === 'armored'
+                    ).length,
+                    mainCount: encounters.filter(
+                        enemy => enemy.encounterLane === 'main'
+                    ).length,
+                    optionalCount: encounters.filter(
+                        enemy => enemy.encounterLane === 'optional'
+                    ).length,
+                    beats: encounters.map(enemy => enemy.encounterBeat),
+                    supportIds: encounters.map(enemy => enemy.encounterSupportId),
+                    unsupported
+                };
+            })(),
             ambientRendering: scene?.forestAmbientLayers ? {
                 layerCount: scene.forestAmbientLayers.filter(
                     layer => layer?.active !== false
@@ -2085,6 +2119,23 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     ) {
         throw new Error(
             `${sceneName} has enemies without combat readability cues: ${JSON.stringify(state)}`
+        );
+    }
+    if (
+        route === 'voidPeaks' &&
+        (
+            state.encounterRhythm?.count < 8 ||
+            state.encounterRhythm.clearCount < 1 ||
+            state.encounterRhythm.armoredCount < 4 ||
+            state.encounterRhythm.mainCount < 2 ||
+            state.encounterRhythm.optionalCount !== 0 ||
+            state.encounterRhythm.unsupported.length > 0
+        )
+    ) {
+        throw new Error(
+            `${sceneName} has no deliberate encounter rhythm: ${JSON.stringify(
+                state.encounterRhythm
+            )}`
         );
     }
     const guardianGate = await evaluate(session, `(() => {
@@ -2913,22 +2964,79 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             scene.player.setVelocity?.(0, 0);
             return true;
         })()`);
-        const optionalEntry = await waitFor(
-            () => evaluate(session, `(() => {
+        let optionalEntry;
+        try {
+            optionalEntry = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    const choice = scene?.optionalRouteRewards?.get?.(
+                        ${JSON.stringify(optionalRouteId)}
+                    )?.choice;
+                    if (!choice?.optionalEntered) return null;
+                    return {
+                        selectedPath: choice.selectedPath,
+                        optionalEntered: choice.optionalEntered,
+                        mainEntered: choice.mainEntered,
+                        sequence: choice.sequence
+                    };
+                })()`),
+                { timeoutMs: 5000, message: `${sceneName} optional route entry` }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                 const choice = scene?.optionalRouteRewards?.get?.(
                     ${JSON.stringify(optionalRouteId)}
                 )?.choice;
-                if (!choice?.optionalEntered) return null;
+                const support = scene?.getTraversalSupport?.(
+                    choice?.optionalSupportIds?.[0]
+                );
+                const body = scene?.player?.body;
                 return {
-                    selectedPath: choice.selectedPath,
-                    optionalEntered: choice.optionalEntered,
-                    mainEntered: choice.mainEntered,
-                    sequence: choice.sequence
+                    choice: choice ? {
+                        selectedPath: choice.selectedPath,
+                        mainEntered: choice.mainEntered,
+                        optionalEntered: choice.optionalEntered,
+                        optionalSupportIds: choice.optionalSupportIds,
+                        optionalZone: choice.optionalZone
+                    } : null,
+                    player: body ? {
+                        left: Math.round(body.left),
+                        right: Math.round(body.right),
+                        top: Math.round(body.top),
+                        bottom: Math.round(body.bottom),
+                        velocityX: Math.round(body.velocity.x),
+                        velocityY: Math.round(body.velocity.y),
+                        blockedDown: body.blocked.down,
+                        touchingDown: body.touching.down,
+                        grounded: scene.isGrounded
+                    } : null,
+                    support: support?.body ? {
+                        id: support.traversalId,
+                        left: Math.round(support.body.left),
+                        right: Math.round(support.body.right),
+                        top: Math.round(support.body.top),
+                        bottom: Math.round(support.body.bottom)
+                    } : null,
+                    committed: choice ? scene.isPlayerCommittedToRouteChoice(
+                        choice.optionalZone,
+                        choice.optionalSupportIds
+                    ) : false,
+                    activeTransport: scene.activePeakReturnCurrent ||
+                        scene.activeReefAscentCurrent || null,
+                    nearbyEncounters: (scene.enemies?.getChildren?.() || [])
+                        .filter(enemy => enemy?.active !== false && body &&
+                            Math.abs(enemy.x - body.center.x) < 280)
+                        .map(enemy => ({
+                            beat: enemy.encounterBeat || null,
+                            supportId: enemy.encounterSupportId || null,
+                            x: Math.round(enemy.x),
+                            y: Math.round(enemy.y)
+                        }))
                 };
-            })()`),
-            { timeoutMs: 5000, message: `${sceneName} optional route entry` }
-        );
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
 
         await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -3234,10 +3342,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     ? { ...scene.checkpointPosition }
                     : null;
                 scene.player.body.reset(signal.x, signal.y - 35);
-                scene.player.setVelocity?.(0, -120);
+                scene.player.setVelocity?.(0, -300);
                 return { checkpointBefore };
             })()`);
-            await delay(260);
+            await delay(180);
             const airborneResult = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                 const signal = ${JSON.stringify(route)} === 'auroraDepths'
@@ -3779,10 +3887,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         if (!support?.body || !scene.player?.body) {
                             return { missing: true, supportMissing: true };
                         }
-                        scene.player.body.reset(
-                            item.x,
-                            support.body.top - scene.player.body.height - 18
-                        );
+                        const playerY = ${JSON.stringify(route)} === 'voidPeaks'
+                            ? item.y
+                            : support.body.top - scene.player.body.height - 18;
+                        scene.player.body.reset(item.x, playerY);
                     } else {
                         scene.player.setPosition(item.x, item.y);
                     }
@@ -3795,19 +3903,65 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         JSON.stringify(stagedOptional)
                     );
                 }
-                await waitFor(
-                    () => evaluate(session, `(() => {
+                try {
+                    await waitFor(
+                        () => evaluate(session, `(() => {
+                            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                            const reward = scene?.optionalRouteRewards?.get?.(
+                                ${JSON.stringify(optionalRouteId)}
+                            );
+                            return reward?.progress >= ${optionalIndex + 1};
+                        })()`),
+                        {
+                            timeoutMs: 5000,
+                            message: `${sceneName} optional reward ${optionalIndex + 1}`
+                        }
+                    );
+                } catch (error) {
+                    const diagnostics = await evaluate(session, `(() => {
                         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                         const reward = scene?.optionalRouteRewards?.get?.(
                             ${JSON.stringify(optionalRouteId)}
                         );
-                        return reward?.progress >= ${optionalIndex + 1};
-                    })()`),
-                    {
-                        timeoutMs: 2500,
-                        message: `${sceneName} optional reward ${optionalIndex + 1}`
-                    }
-                );
+                        const collectibles = scene?.optionalRoutePickup?.active !== false &&
+                            scene?.optionalRoutePickup
+                            ? [scene.optionalRoutePickup]
+                            : (${JSON.stringify(route)} === 'mythicalForest'
+                                ? (scene?.starFragmentSprites || []).map(entry => entry?.pickupZone)
+                                : (${JSON.stringify(route)} === 'reef'
+                                    ? scene?.starFragments || []
+                                    : scene?.collectibles?.getChildren?.() || []));
+                        const item = collectibles.find(entry => (
+                            entry?.active !== false &&
+                            entry?.optionalRouteId === ${JSON.stringify(optionalRouteId)}
+                        ));
+                        const body = scene?.player?.body;
+                        return {
+                            progress: reward?.progress,
+                            required: reward?.required,
+                            completed: reward?.completed,
+                            selectedPath: reward?.choice?.selectedPath,
+                            player: body ? {
+                                left: Math.round(body.left),
+                                right: Math.round(body.right),
+                                top: Math.round(body.top),
+                                bottom: Math.round(body.bottom),
+                                velocityY: Math.round(body.velocity.y)
+                            } : null,
+                            item: item?.body ? {
+                                x: Math.round(item.x),
+                                y: Math.round(item.y),
+                                left: Math.round(item.body.left),
+                                right: Math.round(item.body.right),
+                                top: Math.round(item.body.top),
+                                bottom: Math.round(item.body.bottom),
+                                active: item.active !== false,
+                                fragmentIndex: item.fragmentIndex
+                            } : null
+                        };
+                    })()`);
+                    throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+                }
             }
 
             optionalRouteCompletion = await evaluate(session, `(() => {

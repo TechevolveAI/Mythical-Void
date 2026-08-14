@@ -157,7 +157,10 @@ describe('playable level combat contracts', () => {
         ['MythicalForestLevel.js', "role: 'armored'"],
         ['CrystalCavesLevel.js', "role: 'armored'"],
         ['ReefLevel.js', "role: 'charger'"],
-        ['VoidPeaksLevel.js', "role: 'armored'"]
+        [
+            'VoidPeaksLevel.js',
+            "role: encounter.health >= 3 ? 'armored' : 'stompable'"
+        ]
     ])('%s configures readable enemy combat roles', (fileName, roleContract) => {
         const source = readLevel(fileName);
 
