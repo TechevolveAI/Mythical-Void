@@ -1644,6 +1644,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('const trustBridgeRoute = [');
         expect(source).toContain("'final-rift-step-1'");
         expect(source).toContain("'final-rift-step-4'");
+        expect(source).toContain(
+            "[2180, groundY - 150, 260, 'final-rift-step-4']"
+        );
         expect(source).toContain("mainLabel: 'LOW RIFT CROSSING →'");
         expect(source).toContain(
             "mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE + 2 GUARDS'"
@@ -2736,6 +2739,9 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('smokeFinalVoidRiftCrossing(session)');
         expect(smoke).toContain("'final-rift-step-1'");
         expect(smoke).toContain("'final-rift-step-4'");
+        expect(smoke).toContain(
+            "supportId === 'final-rift-step-4' ? 3200 : 1900"
+        );
         expect(smoke).toContain('smokeAuroraQuietLightClimb(session)');
         expect(smoke).toContain("'aurora-heart-launch'");
         expect(smoke).toContain("'aurora-quiet-step-3'");

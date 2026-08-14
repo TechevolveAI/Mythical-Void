@@ -550,7 +550,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
             [1650, groundY - 130, 130, 'final-rift-step-1'],
             [1850, groundY - 240, 190, 'final-rift-step-2'],
             [2070, groundY - 210, 150, 'final-rift-step-3'],
-            [2240, groundY - 150, 200, 'final-rift-step-4']
+            // Preserve the 2440 endpoint while overlapping the downhill handoff.
+            [2180, groundY - 150, 260, 'final-rift-step-4']
         ];
         const trustBridgeRoute = [
             [1790, groundY - 420, 220, 'final-trust-bridge-1'],

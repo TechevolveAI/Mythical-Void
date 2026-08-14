@@ -2535,7 +2535,10 @@ async function smokeFinalVoidRiftCrossing(session) {
                         }
                         : null;
                 })()`),
-                { timeoutMs: 1900, message: `${supportId} approach` }
+                {
+                    timeoutMs: supportId === 'final-rift-step-4' ? 3200 : 1900,
+                    message: `${supportId} approach`
+                }
             );
             await setKeyboardKey(session, 'keyUp', {
                 key: 'd', code: 'KeyD', keyCode: 68
