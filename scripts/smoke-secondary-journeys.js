@@ -39,8 +39,8 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
         performanceTier: 'custom'
     }),
     voidPeaks: Object.freeze({
-        displayCount: 185,
-        activeTweenCount: 35,
+        displayCount: 165,
+        activeTweenCount: 10,
         performanceTier: 'mobile'
     }),
     auroraDepths: Object.freeze({
@@ -1077,6 +1077,144 @@ async function smokeAuroraEnemyActivationWindow(session) {
             );
             scene.cameras.main.preRender?.();
             scene.updateAuroraEnemyActivation(true);
+            return true;
+        })()`);
+        await delay(120);
+    }
+}
+
+async function smokePeakEnemyActivationWindow(session) {
+    const staged = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+        const target = [...(scene.enemies?.getChildren?.() || [])]
+            .filter(enemy => enemy?.active && enemy?.body)
+            .sort((left, right) => right.x - left.x)[0];
+        if (!scene.player?.body || !target) return null;
+
+        const playerStart = { x: scene.player.x, y: scene.player.y };
+        const cameraStart = {
+            scrollX: scene.cameras.main.scrollX,
+            scrollY: scene.cameras.main.scrollY
+        };
+        const targetStart = { x: target.x, y: target.y };
+        scene.isInvincible = true;
+        scene.player.body.reset(300, scene.levelHeight - 130);
+        scene.player.setVelocity(0, 0);
+        scene.cameras.main.centerOn(scene.player.x, scene.player.y);
+        scene.cameras.main.preRender?.();
+        scene.updatePeakEnemyActivation(true);
+        return {
+            playerStart,
+            cameraStart,
+            targetStart,
+            encounterBeat: target.encounterBeat,
+            far: {
+                proximityActive: target.peakProximityActive === true,
+                bodyEnabled: target.body.enable === true,
+                renderAttached: target.displayList === scene.children,
+                cueAttached: target.combatCue?.displayList === scene.children,
+                runtimeIncludes: scene.getRuntimePatrolEnemies().includes(target)
+            }
+        };
+    })()`);
+    if (!staged) throw new Error('Peaks enemy activation window could not be staged');
+
+    try {
+        const awakened = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+            const target = (scene.enemies?.getChildren?.() || []).find(
+                enemy => enemy?.encounterBeat === ${JSON.stringify(staged.encounterBeat)}
+            );
+            if (!target?.body || !scene.player?.body) return null;
+            scene.player.body.reset(target.x - 180, target.y);
+            scene.player.setVelocity(0, 0);
+            scene.cameras.main.centerOn(scene.player.x, scene.player.y);
+            scene.cameras.main.preRender?.();
+            scene.updatePeakEnemyActivation(true);
+            scene.peakEnemyPatrolNextAt = 0;
+            scene.updatePatrolEnemyMovement();
+            return {
+                proximityActive: target.peakProximityActive === true,
+                bodyEnabled: target.body.enable === true,
+                renderAttached: target.displayList === scene.children,
+                cueAttached: target.combatCue?.displayList === scene.children,
+                runtimeIncludes: scene.getRuntimePatrolEnemies().includes(target),
+                velocityX: Number(target.body.velocity?.x) || 0
+            };
+        })()`);
+        if (
+            staged.far.proximityActive !== false ||
+            staged.far.bodyEnabled !== false ||
+            staged.far.renderAttached !== false ||
+            staged.far.cueAttached !== false ||
+            staged.far.runtimeIncludes !== false ||
+            awakened?.proximityActive !== true ||
+            awakened?.bodyEnabled !== true ||
+            awakened?.renderAttached !== true ||
+            awakened?.cueAttached !== true ||
+            awakened?.runtimeIncludes !== true ||
+            Math.abs(awakened?.velocityX || 0) < 1
+        ) {
+            throw new Error(
+                `Peaks enemy activation did not wake before contact: ${JSON.stringify({
+                    staged,
+                    awakened
+                })}`
+            );
+        }
+
+        const slept = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+            const target = (scene.enemies?.getChildren?.() || []).find(
+                enemy => enemy?.encounterBeat === ${JSON.stringify(staged.encounterBeat)}
+            );
+            if (!target?.body || !scene.player?.body) return null;
+            target.body.reset(${staged.targetStart.x}, ${staged.targetStart.y});
+            target.setVelocity(0, 0);
+            scene.player.body.reset(300, scene.levelHeight - 130);
+            scene.player.setVelocity(0, 0);
+            scene.cameras.main.centerOn(scene.player.x, scene.player.y);
+            scene.cameras.main.preRender?.();
+            scene.updatePeakEnemyActivation(true);
+            return {
+                proximityActive: target.peakProximityActive === true,
+                bodyEnabled: target.body.enable === true,
+                renderAttached: target.displayList === scene.children,
+                cueAttached: target.combatCue?.displayList === scene.children,
+                runtimeIncludes: scene.getRuntimePatrolEnemies().includes(target)
+            };
+        })()`);
+        if (
+            slept?.proximityActive !== false ||
+            slept?.bodyEnabled !== false ||
+            slept?.renderAttached !== false ||
+            slept?.cueAttached !== false ||
+            slept?.runtimeIncludes !== false
+        ) {
+            throw new Error(
+                `Peaks enemy activation did not suspend after departure: ${JSON.stringify({
+                    staged,
+                    awakened,
+                    slept
+                })}`
+            );
+        }
+        return { staged, awakened, slept };
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+            scene.isInvincible = false;
+            scene.player?.body?.reset?.(
+                ${staged.playerStart.x},
+                ${staged.playerStart.y}
+            );
+            scene.player?.setVelocity?.(0, 0);
+            scene.cameras.main.setScroll(
+                ${staged.cameraStart.scrollX},
+                ${staged.cameraStart.scrollY}
+            );
+            scene.cameras.main.preRender?.();
+            scene.updatePeakEnemyActivation(true);
             return true;
         })()`);
         await delay(120);
@@ -2761,10 +2899,23 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         enemy.encounterSupportId
                     );
                     const body = enemy.body;
+                    const halfWidth = Number(body?.halfWidth) ||
+                        (Number(body?.width) || 0) / 2;
+                    const halfHeight = Number(body?.halfHeight) ||
+                        (Number(body?.height) || 0) / 2;
+                    const enemyLeft = body?.enable === false
+                        ? enemy.x - halfWidth
+                        : body?.left;
+                    const enemyRight = body?.enable === false
+                        ? enemy.x + halfWidth
+                        : body?.right;
+                    const enemyBottom = body?.enable === false
+                        ? enemy.y + halfHeight
+                        : body?.bottom;
                     return !support?.body || !body ||
-                        body.right <= support.body.left + 4 ||
-                        body.left >= support.body.right - 4 ||
-                        Math.abs(body.bottom - support.body.top) > 9;
+                        enemyRight <= support.body.left + 4 ||
+                        enemyLeft >= support.body.right - 4 ||
+                        Math.abs(enemyBottom - support.body.top) > 9;
                 }).map(enemy => enemy.encounterBeat);
                 return {
                     count: encounters.length,
@@ -2976,6 +3127,49 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     ).length
                 };
             })() : null,
+            peakEnemyRuntime:
+                scene?.scene?.key === 'VoidPeaksLevel' ? (() => {
+                    const enemies = scene?.enemies?.getChildren?.() || [];
+                    return {
+                        scheduledEnemyCount: enemies.filter(
+                            enemy => typeof enemy?.peakProximityActive === 'boolean'
+                        ).length,
+                        aiSchedulerActive: Boolean(
+                            scene.peakEnemyAISchedulerActive
+                        ),
+                        proximityActiveCount: enemies.filter(
+                            enemy => enemy?.peakProximityActive === true
+                        ).length,
+                        sleepingEnemyCount: enemies.filter(
+                            enemy => enemy?.peakProximityActive === false
+                        ).length,
+                        enabledBodyCount: enemies.filter(
+                            enemy => enemy?.body?.enable === true
+                        ).length,
+                        renderAttachedEnemyCount: enemies.filter(
+                            enemy => enemy?.displayList === scene.children
+                        ).length,
+                        renderAttachedCueCount: enemies.filter(
+                            enemy => enemy?.combatCue?.displayList === scene.children
+                        ).length,
+                        sleepingDetachedCount: enemies.filter(enemy => (
+                            enemy?.peakProximityActive === false &&
+                            enemy?.displayList !== scene.children &&
+                            enemy?.combatCue?.displayList !== scene.children
+                        )).length,
+                        runtimePatrolCount:
+                            scene.getRuntimePatrolEnemies?.().length || 0,
+                        activationBounds: scene.peakEnemyActivationBounds ? {
+                            horizontalMargin:
+                                scene.peakEnemyActivationBounds.horizontalMargin,
+                            verticalMargin:
+                                scene.peakEnemyActivationBounds.verticalMargin
+                        } : null,
+                        patrolUpdateCount: Number(
+                            scene.peakEnemyPatrolUpdateCount
+                        ) || 0
+                    };
+                })() : null,
             auroraEnemyRuntime:
                 scene?.scene?.key === 'AuroraDepthsLevel' ? (() => {
                     const enemies = scene?.enemies?.getChildren?.() || [];
@@ -3405,6 +3599,25 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.peaksAmbientRendering?.emberVisibleCount > 6 ||
             state.peaksAmbientRendering?.emberDrawCount < 1 ||
             state.peaksAmbientRendering?.patrolUpdateCount < 1 ||
+            state.peakEnemyRuntime?.scheduledEnemyCount !== 8 ||
+            state.peakEnemyRuntime?.aiSchedulerActive !== true ||
+            state.peakEnemyRuntime?.proximityActiveCount > 3 ||
+            state.peakEnemyRuntime?.sleepingEnemyCount < 5 ||
+            state.peakEnemyRuntime?.proximityActiveCount +
+                state.peakEnemyRuntime?.sleepingEnemyCount !== 8 ||
+            state.peakEnemyRuntime?.enabledBodyCount !==
+                state.peakEnemyRuntime?.proximityActiveCount ||
+            state.peakEnemyRuntime?.renderAttachedEnemyCount !==
+                state.peakEnemyRuntime?.proximityActiveCount ||
+            state.peakEnemyRuntime?.renderAttachedCueCount !==
+                state.peakEnemyRuntime?.proximityActiveCount ||
+            state.peakEnemyRuntime?.sleepingDetachedCount !==
+                state.peakEnemyRuntime?.sleepingEnemyCount ||
+            state.peakEnemyRuntime?.runtimePatrolCount !==
+                state.peakEnemyRuntime?.proximityActiveCount ||
+            state.peakEnemyRuntime?.activationBounds?.horizontalMargin !== 520 ||
+            state.peakEnemyRuntime?.activationBounds?.verticalMargin !== 280 ||
+            state.peakEnemyRuntime?.patrolUpdateCount < 1 ||
             state.currentEcologyPlacement?.supportId !==
                 'peak-ridge-approach' ||
             state.currentEcologyPlacement?.x <
@@ -3684,6 +3897,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         : null;
     const reefTrailBudget = route === 'reef'
         ? await smokeReefTrailBudget(session)
+        : null;
+    const peakEnemyActivation = route === 'voidPeaks'
+        ? await smokePeakEnemyActivationWindow(session)
         : null;
     const auroraEnemyActivation = route === 'auroraDepths'
         ? await smokeAuroraEnemyActivationWindow(session)
@@ -6575,6 +6791,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     caveEnemyAISchedulerActive: Boolean(
                         scene.caveEnemyAISchedulerActive
                     ),
+                    peakEnemyAISchedulerActive: Boolean(
+                        scene.peakEnemyAISchedulerActive
+                    ),
                     auroraEnemyAISchedulerActive: Boolean(
                         scene.auroraEnemyAISchedulerActive
                     ),
@@ -6611,6 +6830,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 guardianEntry.runtimeDisposals?.timerCount !== 2) ||
             (route === 'crystalCaves' &&
                 guardianEntry.caveEnemyAISchedulerActive !== false) ||
+            (route === 'voidPeaks' &&
+                guardianEntry.peakEnemyAISchedulerActive !== false) ||
             (route === 'auroraDepths' &&
                 guardianEntry.auroraEnemyAISchedulerActive !== false) ||
             guardianEntry.persistedId !== guardianEntrySetup.persistedId ||
@@ -6868,6 +7089,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         forestCoinPickup,
         caveCoinPickup,
         reefTrailBudget,
+        peakEnemyActivation,
         auroraEnemyActivation,
         renderStability,
         combatFeedback,

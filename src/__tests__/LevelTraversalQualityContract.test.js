@@ -1028,6 +1028,7 @@ describe('campaign traversal quality contracts', () => {
 
     test('Void Peaks batches stars and bounds ember redraws by viewport movement', () => {
         const source = read('levels/VoidPeaksLevel.js');
+        const smoke = read('../../scripts/smoke-secondary-journeys.js');
 
         expect(source).toContain('this.peakStarField = Array.from({ length: 35 }');
         expect(source).toContain('this.peakStarLayer = this.add.graphics()');
@@ -1050,10 +1051,26 @@ describe('campaign traversal quality contracts', () => {
         );
         expect(source).toContain('updatePeakEnemyPatrols(time)');
         expect(source).toContain('this.peakEnemyPatrolNextAt = now + (this.isMobile ? 80 : 40);');
+        expect(source).toContain('startPeakEnemyScheduler()');
+        expect(source).toContain('updatePeakEnemyActivation(force = false)');
+        expect(source).toContain('setPeakEnemyRenderAttached(enemy, attached)');
+        expect(source).toContain('getRuntimePatrolEnemies()');
+        expect(source).toContain('this.peakProximityEnemies');
+        expect(source).toContain('return this.updatePeakEnemyPatrols(this.time?.now);');
         expect(source).toContain('enemy.patrolSpeed');
         expect(source).toContain('const toastY = isMobileLayout');
         expect(source).toContain('y: toastY - 20');
         expect(source).not.toContain('targets: ember,');
+        expect(smoke).toContain('state.peakEnemyRuntime?.scheduledEnemyCount !== 8');
+        expect(smoke).toContain('state.peakEnemyRuntime?.proximityActiveCount > 3');
+        expect(smoke).toContain('state.peakEnemyRuntime?.runtimePatrolCount !==');
+        expect(smoke).toContain('guardianEntry.peakEnemyAISchedulerActive !== false');
+        expect(smoke).toContain('smokePeakEnemyActivationWindow(session)');
+        expect(smoke).toContain('Peaks enemy activation did not wake before contact');
+        expect(smoke).toContain('Peaks enemy activation did not suspend after departure');
+        expect(smoke).toMatch(
+            /voidPeaks: Object\.freeze\(\{[\s\S]*displayCount: 165,[\s\S]*activeTweenCount: 10,/
+        );
     });
 
     test('Aurora Depths streams patrols and keeps mobile route cues static', () => {

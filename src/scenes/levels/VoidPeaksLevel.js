@@ -151,6 +151,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.peakEmberViewCenterX = Number.NaN;
         this.peakEmberDrawCount = 0;
         this.peakEmberVisibleCount = 0;
+        this.peakProximityEnemies = [];
+        this.peakEnemyAISchedulerActive = false;
+        this.peakEnemyActivationBounds = null;
+        this.peakEnemyActivationNextAt = 0;
         this.peakEnemyPatrolNextAt = 0;
         this.peakEnemyPatrolUpdateCount = 0;
         this.titanGate = null;
@@ -203,6 +207,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.peakEmberViewCenterX = Number.NaN;
         this.peakEmberDrawCount = 0;
         this.peakEmberVisibleCount = 0;
+        this.peakProximityEnemies = [];
+        this.peakEnemyAISchedulerActive = false;
+        this.peakEnemyActivationBounds = null;
+        this.peakEnemyActivationNextAt = 0;
         this.peakEnemyPatrolNextAt = 0;
         this.peakEnemyPatrolUpdateCount = 0;
         this.titanGate = null;
@@ -884,6 +892,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             enemy.patrolSpeed = encounter.speed;
             enemy.setVelocityX(index % 2 === 0 ? encounter.speed : -encounter.speed);
             enemy.setDepth(850);
+            enemy.peakProximityActive = null;
 
             this.configureEnemyCombat(enemy, {
                 role: encounter.health >= 3 ? 'armored' : 'stompable',
@@ -897,36 +906,160 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             return enemy;
         });
 
+        this.startPeakEnemyScheduler();
         return this.peakEncounterRhythm;
     }
 
     retirePeakPatrolsForTitan() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
+        this.peakEnemyAISchedulerActive = false;
+        this.peakProximityEnemies = [];
+        this.peakEnemyActivationBounds = null;
         const retirement = this.retireRouteEnemies(patrols);
         this.peakEncounterRhythm = [];
         this.peakEnemyPatrolNextAt = 0;
         return retirement.enemyCount;
     }
 
+    startPeakEnemyScheduler() {
+        this.peakEnemyAISchedulerActive = true;
+        this.peakEnemyActivationNextAt = 0;
+        this.peakEnemyPatrolNextAt = 0;
+        this.peakEnemyPatrolUpdateCount = 0;
+        this.updatePeakEnemyActivation(true);
+    }
+
+    getPeakEnemyActivationBounds() {
+        const view = this.cameras?.main?.worldView;
+        const playerX = Number(this.player?.x) || 0;
+        const playerY = Number(this.player?.y) || 0;
+        const width = Math.max(
+            320,
+            Number(view?.width) || Number(this.cameras?.main?.width) || 390
+        );
+        const height = Math.max(
+            320,
+            Number(view?.height) || Number(this.cameras?.main?.height) || 720
+        );
+        const horizontalMargin = this.isMobile ? 520 : 800;
+        const verticalMargin = this.isMobile ? 280 : 420;
+        const viewLeft = Number(view?.left) || 0;
+        const viewRight = Number(view?.right) || width;
+        const viewTop = Number(view?.top) || 0;
+        const viewBottom = Number(view?.bottom) || height;
+        return {
+            left: Math.min(viewLeft, playerX - width / 2) - horizontalMargin,
+            right: Math.max(viewRight, playerX + width / 2) + horizontalMargin,
+            top: Math.min(viewTop, playerY - height / 2) - verticalMargin,
+            bottom: Math.max(viewBottom, playerY + height / 2) + verticalMargin,
+            horizontalMargin,
+            verticalMargin
+        };
+    }
+
+    setPeakEnemyRenderAttached(enemy, attached) {
+        if (!enemy || !this.children) return 0;
+        const targets = [
+            enemy,
+            enemy.combatCue,
+            enemy.instructionLabel
+        ].filter(target => Boolean(target) && target.active !== false);
+        let changedCount = 0;
+        targets.forEach(target => {
+            const isAttached = target.displayList === this.children;
+            if (attached && !isAttached) {
+                this.children.add(target);
+                changedCount += 1;
+            } else if (!attached && isAttached) {
+                this.children.remove(target);
+                changedCount += 1;
+            }
+        });
+        return changedCount;
+    }
+
+    setPeakEnemyProximityActive(enemy, enabled) {
+        if (!enemy?.active || !enemy.body) return false;
+        const nextState = enabled === true;
+        if (enemy.peakProximityActive === nextState) return nextState;
+
+        const firstActivationDecision = enemy.peakProximityActive == null;
+        enemy.peakProximityActive = nextState;
+        if (nextState) {
+            this.setPeakEnemyRenderAttached(enemy, true);
+            enemy.setVisible(true);
+            enemy.body.enable = true;
+            enemy.body.updateFromGameObject?.();
+            const patrolSpeed = Math.max(25, Number(enemy.patrolSpeed) || 42);
+            enemy.setVelocityX(enemy.flipX ? -patrolSpeed : patrolSpeed);
+        } else {
+            if (firstActivationDecision) {
+                const support = this.getTraversalSupport(
+                    enemy.encounterSupportId
+                );
+                if (support?.body) {
+                    enemy.setY(
+                        support.body.top -
+                        (Number(enemy.body.halfHeight) || 0)
+                    );
+                }
+            }
+            enemy.setVelocity?.(0, 0);
+            enemy.body.updateFromGameObject?.();
+            enemy.body.enable = false;
+            enemy.setVisible(false);
+            enemy.combatCue?.setVisible?.(false);
+            enemy.instructionLabel?.setVisible?.(false);
+            this.setPeakEnemyRenderAttached(enemy, false);
+        }
+        return nextState;
+    }
+
+    updatePeakEnemyActivation(force = false) {
+        if (!this.peakEnemyAISchedulerActive || !this.scene.isActive()) return 0;
+        const now = Number(this.time?.now) || 0;
+        if (!force && now < this.peakEnemyActivationNextAt) {
+            return this.peakProximityEnemies.length;
+        }
+        this.peakEnemyActivationNextAt = now + (this.isMobile ? 120 : 80);
+
+        const bounds = this.getPeakEnemyActivationBounds();
+        const nearby = [];
+        (this.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (!enemy?.active || !enemy.body) return;
+            const shouldWake =
+                enemy.x >= bounds.left &&
+                enemy.x <= bounds.right &&
+                enemy.y >= bounds.top &&
+                enemy.y <= bounds.bottom;
+            this.setPeakEnemyProximityActive(enemy, shouldWake);
+            if (shouldWake) nearby.push(enemy);
+        });
+        this.peakProximityEnemies = nearby;
+        this.peakEnemyActivationBounds = bounds;
+        return nearby.length;
+    }
+
+    getRuntimePatrolEnemies() {
+        if (!this.peakEnemyAISchedulerActive) {
+            return super.getRuntimePatrolEnemies();
+        }
+        return this.peakProximityEnemies;
+    }
+
+    updatePatrolEnemyMovement() {
+        if (!this.peakEnemyAISchedulerActive) {
+            return super.updatePatrolEnemyMovement();
+        }
+        return this.updatePeakEnemyPatrols(this.time?.now);
+    }
+
     updatePeakEnemyPatrols(time) {
         const now = Number(time) || 0;
-        if (now < this.peakEnemyPatrolNextAt) return 0;
+        if (now < this.peakEnemyPatrolNextAt) return true;
         this.peakEnemyPatrolNextAt = now + (this.isMobile ? 80 : 40);
-
-        let updatedCount = 0;
-        (this.enemies?.getChildren?.() || []).forEach(enemy => {
-            if (enemy?.enemyType !== 'voidPeakSentinel' || !enemy.body?.enable) return;
-            if (enemy.x <= enemy.patrolMin) {
-                enemy.setVelocityX(Math.abs(enemy.body.velocity.x || enemy.patrolSpeed));
-                enemy.setFlipX(false);
-            } else if (enemy.x >= enemy.patrolMax) {
-                enemy.setVelocityX(-Math.abs(enemy.body.velocity.x || enemy.patrolSpeed));
-                enemy.setFlipX(true);
-            }
-            updatedCount += 1;
-        });
         this.peakEnemyPatrolUpdateCount += 1;
-        return updatedCount;
+        return super.updatePatrolEnemyMovement();
     }
 
     createSentinelTexture(textureKey, color) {
@@ -1643,12 +1776,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     update(time, delta) {
+        this.updatePeakEnemyActivation();
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
         this.drawPeakEmbers(time);
         this.updatePeakReturnCurrentGuidance();
-        this.updatePeakEnemyPatrols(time);
 
         this.syncCampaignObjectiveDisplay({
             visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
@@ -2530,6 +2663,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.peakEmberViewCenterX = Number.NaN;
         this.peakEmberDrawCount = 0;
         this.peakEmberVisibleCount = 0;
+        this.peakEnemyAISchedulerActive = false;
+        this.peakProximityEnemies = [];
+        this.peakEnemyActivationBounds = null;
+        this.peakEnemyActivationNextAt = 0;
         this.peakEnemyPatrolNextAt = 0;
         this.peakEnemyPatrolUpdateCount = 0;
         super.shutdown();
