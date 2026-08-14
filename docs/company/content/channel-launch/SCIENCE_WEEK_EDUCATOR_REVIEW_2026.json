@@ -114,12 +114,17 @@
   "readiness": {
     "checklistBuilt": true,
     "feedbackLogBuilt": true,
-    "reviewInvitationBuilt": false,
+    "reviewInvitationBuilt": true,
     "reviewerCandidatesChosen": false,
     "reviewCompleted": false,
     "changesResolved": false,
     "kevinApproved": false,
     "publicReleaseReady": false
+  },
+  "invitation": {
+    "record": "docs/company/content/channel-launch/SCIENCE_WEEK_EDUCATOR_REVIEW_INVITATION.json",
+    "humanReadableDraft": "docs/company/content/channel-launch/SCIENCE_WEEK_EDUCATOR_REVIEW_INVITATION.md",
+    "state": "one_adult_only_draft_ready_waiting_for_kevin"
   },
   "authority": {
     "reviewInvitationSendingAuthorized": false,
@@ -132,6 +137,6 @@
     "spendAuthorized": false,
     "externalActionAuthorized": false
   },
-  "nextStudioAction": "Prepare a short adult-only review invitation for Kevin to approve. Do not send it or recruit reviewers yet.",
+  "nextStudioAction": "Keep the invitation unsent and prepare its day-of-send route and link recheck. Do not recruit reviewers yet.",
   "nextKevinDecision": "Kevin will choose or approve the adult reviewers and every recipient before an invitation is sent."
 }

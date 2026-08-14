@@ -74,6 +74,7 @@ if (fs.existsSync(artifactPath)) {
     requireValue(requiredText.every(text => extracted.stdout.includes(text)), 'Activity PDF must retain its child activity, adult guidance and science boundary text.');
 }
 requireValue(concept.educatorReview?.state === 'internal_review_packet_ready_no_review_completed', 'Activity must retain its unused adult educator review packet.');
+requireValue(concept.educatorReview?.invitationState === 'one_adult_only_draft_ready_waiting_for_kevin', 'Activity must retain its one unsent adult-only review invitation.');
 requireValue(fs.existsSync(path.resolve(root, concept.educatorReview?.record || '')), 'Structured adult educator review record must exist.');
 requireValue(fs.existsSync(path.resolve(root, concept.educatorReview?.humanReadableChecklist || '')), 'Human-readable adult educator checklist must exist.');
 for (const field of ['eventCreationAuthorized', 'eventSubmissionAuthorized', 'partnershipOutreachAuthorized', 'logoUseAuthorized', 'publicationAuthorized', 'childContactAuthorized', 'childWorkCollectionAuthorized', 'spendAuthorized', 'externalActionAuthorized']) {

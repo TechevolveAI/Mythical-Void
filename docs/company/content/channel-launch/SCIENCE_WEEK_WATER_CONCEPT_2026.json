@@ -137,7 +137,8 @@
   "educatorReview": {
     "record": "docs/company/content/channel-launch/SCIENCE_WEEK_EDUCATOR_REVIEW_2026.json",
     "humanReadableChecklist": "docs/company/content/channel-launch/SCIENCE_WEEK_EDUCATOR_REVIEW_2026.md",
-    "state": "internal_review_packet_ready_no_review_completed"
+    "state": "internal_review_packet_ready_no_review_completed",
+    "invitationState": "one_adult_only_draft_ready_waiting_for_kevin"
   },
   "authority": {
     "eventCreationAuthorized": false,

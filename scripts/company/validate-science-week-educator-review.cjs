@@ -30,12 +30,15 @@ requireValue(review.completionGate?.requiredCoverage?.length === 2 && review.com
 requireValue(review.completionGate?.allStopConditionsResolved === true && review.completionGate?.kevinApprovalStillRequired === true, 'Stop-condition resolution and Kevin approval must remain required.');
 requireValue(Array.isArray(review.reviewLog) && review.reviewLog.length === 0, 'No educator review may be claimed before one is recorded.');
 
-for (const field of ['checklistBuilt', 'feedbackLogBuilt']) {
+for (const field of ['checklistBuilt', 'feedbackLogBuilt', 'reviewInvitationBuilt']) {
     requireValue(review.readiness?.[field] === true, `${field} must remain true.`);
 }
-for (const field of ['reviewInvitationBuilt', 'reviewerCandidatesChosen', 'reviewCompleted', 'changesResolved', 'kevinApproved', 'publicReleaseReady']) {
+for (const field of ['reviewerCandidatesChosen', 'reviewCompleted', 'changesResolved', 'kevinApproved', 'publicReleaseReady']) {
     requireValue(review.readiness?.[field] === false, `${field} must remain false.`);
 }
+requireValue(review.invitation?.state === 'one_adult_only_draft_ready_waiting_for_kevin', 'Review system must retain the one unused adult-only invitation.');
+requireValue(fs.existsSync(path.resolve(root, review.invitation?.record || '')), 'Structured adult-only invitation must exist.');
+requireValue(fs.existsSync(path.resolve(root, review.invitation?.humanReadableDraft || '')), 'Human-readable adult-only invitation must exist.');
 for (const field of ['reviewInvitationSendingAuthorized', 'childTestingAuthorized', 'childDataCollectionAuthorized', 'reviewerContactDataCollectionAuthorized', 'publicationAuthorized', 'eventSubmissionAuthorized', 'partnershipClaimAuthorized', 'spendAuthorized', 'externalActionAuthorized']) {
     requireValue(review.authority?.[field] === false, `${field} must remain false.`);
 }

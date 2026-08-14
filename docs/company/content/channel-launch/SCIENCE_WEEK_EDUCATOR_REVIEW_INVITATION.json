@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "SCIENCE-WEEK-REVIEW-INVITATION-001",
+  "asOf": "2026-08-14",
+  "state": "one_adult_only_draft_ready_waiting_for_kevin",
+  "reviewPacketRef": "docs/company/content/channel-launch/SCIENCE_WEEK_EDUCATOR_REVIEW_2026.json",
+  "candidateSourceRef": "docs/company/content/channel-launch/ADULT_STEM_DISCOVERY_PIPELINE_2026-08-14.json",
+  "candidate": {
+    "candidateRef": "RC-011",
+    "recipient": "MTU Blackrock Castle Observatory education team",
+    "route": "info@bco.ie",
+    "routeSource": "https://www.bco.ie/plan-your-visit/",
+    "routeType": "public professional email",
+    "whyThisAdultTeam": "Its verified education work includes space activities and teacher resources. The request is for an adult educator's judgement, not access to children or promotion.",
+    "approvedByKevin": false,
+    "contactedAt": null
+  },
+  "invitation": {
+    "subject": "Adult educator review of a short ocean-world design activity",
+    "body": "Hi Blackrock Castle Observatory education team,\n\nI’m Kevin, the founder of Mythical Void in Ireland. I’m preparing a short, independent learning activity called Water That Isn’t Water for ages 9-14 with an adult facilitator. It begins with Earth, Europa and Titan, clearly separates observation, scientific inference and fiction, and then asks learners to design an unfamiliar organism for the fictional Stellar Reef in our browser game.\n\nThe pack is three A4 pages: two activity pages and one adult facilitator note. It has not been published, submitted as an event or endorsed by NASA, Science Week, Research Ireland, ESERO or BCO. We do not want access to children and do not collect children’s work or personal information.\n\nWould one adult member of your education team be open to reviewing the pack for clarity, scientific boundaries, practical timing and safety? This is a request for private professional feedback, not promotion, endorsement or a partnership. I would only send the PDF after you confirm that this is relevant. If it is not a fit, no reply is needed.\n\nBackground on the existing game and its independently credited space-science work: https://mythicalvoid.com/nasa-space-science/\n\nThanks,\nKevin\nMythical Void",
+    "attachmentOnFirstContact": false,
+    "approved": false,
+    "sentAt": null,
+    "replyReceivedAt": null
+  },
+  "approvalChecklist": [
+    "Kevin approves the named adult professional team, subject and complete body.",
+    "Kevin chooses the existing professional sending address and signs the message as himself.",
+    "The BCO route and Mythical Void background link are rechecked on the day of sending.",
+    "No PDF is attached to the first message and no child, parent, teacher or school is copied.",
+    "The message still says this is private adult feedback rather than promotion, endorsement or partnership.",
+    "The invitation is sent alone; no second organisation is contacted until its result is known or at least seven days have passed."
+  ],
+  "responseRules": {
+    "positiveReply": "Thank the adult respondent. Ask Kevin to approve the exact follow-up and PDF attachment before sending either.",
+    "decline": "Thank them once and close the route.",
+    "noReply": "Do not follow up sooner than seven days. At most one short follow-up may be prepared for Kevin approval.",
+    "requestForChildTestingOrData": "Decline and stop. Do not arrange child testing or collect any child information.",
+    "paidOrPartnershipOffer": "Stop and bring the full terms to Kevin; no spend, rights or partnership is pre-approved."
+  },
+  "authority": {
+    "recipientApproved": false,
+    "sendingAuthorized": false,
+    "attachmentAuthorized": false,
+    "followUpAuthorized": false,
+    "childTestingAuthorized": false,
+    "childDataCollectionAuthorized": false,
+    "endorsementClaimAuthorized": false,
+    "partnershipClaimAuthorized": false,
+    "spendAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "nextKevinDecision": "Approve, edit or reject this one adult-only invitation and choose the existing professional sending address. Nothing will be sent automatically."
+}
