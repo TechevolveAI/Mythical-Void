@@ -19,6 +19,15 @@ const ELDER_TREANT_DISPLAY_HEIGHT = 310;
 const FOREST_ARRIVAL_TEXTURE = 'mythicalForestArrival';
 const FOREST_ARRIVAL_CINEMATIC_VERSION = 2;
 
+const FOREST_GROUND_SECTIONS = Object.freeze([
+    Object.freeze({ id: 'forest-ground-1', x: 0, width: 400 }),
+    Object.freeze({ id: 'forest-ground-2', x: 900, width: 200, enemyX: 1000 }),
+    Object.freeze({ id: 'forest-ground-3', x: 1700, width: 300, enemyX: 1850 }),
+    Object.freeze({ id: 'forest-ground-4', x: 2600, width: 200, enemyX: 2700 }),
+    Object.freeze({ id: 'forest-ground-5', x: 3500, width: 300, enemyX: 3650 }),
+    Object.freeze({ id: 'forest-ground-6', x: 5200, width: 2800, enemyX: 5350 })
+]);
+
 const FOREST_GUARDIAN_ATTACK_WINDOWS = Object.freeze({
     root_slam: 1700,
     vine_whip: 1500,
@@ -118,6 +127,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestBridgeLayer = null;
         this.forestEnemyTrailLayer = null;
         this.forestEnemyTrailTimer = null;
+        this.forestEnemyAISchedulerActive = false;
+        this.forestEnemyAICursor = 0;
+        this.forestEnemyMotionNextAt = 0;
         this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
@@ -236,6 +248,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestBridgeLayer = null;
         this.forestEnemyTrailLayer = null;
         this.forestEnemyTrailTimer = null;
+        this.forestEnemyAISchedulerActive = false;
+        this.forestEnemyAICursor = 0;
+        this.forestEnemyMotionNextAt = 0;
         this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
@@ -1158,6 +1173,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
     update(time, delta) {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
+        if (this.forestEnemyAISchedulerActive) this.updateForestEnemyAI();
+        this.updateForestEnemyMotion(time);
         this.updateForestCoinPickups();
         this.updateFirstExpeditionDrill();
         if (this.objectiveDisplay) {
@@ -1607,21 +1624,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Ground sections with MAJOR gaps - impossible to jump across
         // Each gap is 400-600px - players MUST climb trees to cross
-        const groundSections = [
-            { x: 0, width: 400 },       // Starting area - climb Tree 1
-            // GAP: 400-900 (500px) - MUST climb Tree 1 to cross
-            { x: 900, width: 200 },     // Small landing
-            // GAP: 1100-1700 (600px) - MUST climb Tree 2 to cross
-            { x: 1700, width: 300 },    // Mid checkpoint
-            // GAP: 2000-2600 (600px) - MUST climb Tree 3 to cross
-            { x: 2600, width: 200 },    // Small landing
-            // GAP: 2800-3500 (700px) - MUST climb Tree 4 to cross
-            { x: 3500, width: 300 },    // Pre-boss area
-            // GAP: 3800-5200 (1400px) - MUST climb Tree 5 to reach boss
-            { x: 5200, width: 2800 }    // Boss arena (extended for longer level)
-        ];
-
-        groundSections.forEach((section, index) => {
+        FOREST_GROUND_SECTIONS.forEach(section => {
             // Dark cosmic soil
             groundLayer.fillStyle(0x1A251A, 1);
             groundLayer.fillRect(section.x, groundY, section.width, 100);
@@ -1653,7 +1656,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 20
             );
             this.physics.add.existing(platformZone, true);
-            platformZone.traversalId = `forest-ground-${index + 1}`;
+            platformZone.traversalId = section.id;
             this.platforms.add(platformZone);
         });
 
@@ -1731,16 +1734,20 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.createCosmicTree(config, index);
         });
 
-        this.forestFoliageTween = this.tweens.add({
-            targets: this.forestFoliageLayer,
-            x: { from: -2, to: 2 },
-            y: { from: 1, to: -5 },
-            alpha: { from: 0.62, to: 0.9 },
-            duration: 2600,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (this.isMobile) {
+            this.forestFoliageLayer.setAlpha(0.82);
+        } else {
+            this.forestFoliageTween = this.tweens.add({
+                targets: this.forestFoliageLayer,
+                x: { from: -2, to: 2 },
+                y: { from: 1, to: -5 },
+                alpha: { from: 0.62, to: 0.9 },
+                duration: 2600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
         this.forestAmbientLayers.push(this.forestFoliageLayer);
 
         // Create connecting platforms between trees
@@ -1892,19 +1899,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Create floating bioluminescent orbs (alien "foliage")
      */
     createBioluminescentOrbs(layer, x, y, color, count) {
+        layer.fillStyle(color, this.isMobile ? 0.72 : 0.6);
         for (let i = 0; i < count; i++) {
             const orbX = x + (Math.random() - 0.5) * 60;
             const orbY = y + (Math.random() - 0.5) * 40 - 20;
             const orbSize = 4 + Math.random() * 4;
 
-            layer.fillStyle(color, 0.6);
             layer.fillCircle(orbX, orbY, orbSize);
-            layer.fillStyle(0xFFFFFF, 0.8);
-            layer.fillCircle(
-                orbX - orbSize / 3,
-                orbY - orbSize / 3,
-                orbSize / 3
-            );
+            if (!this.isMobile) {
+                layer.fillStyle(0xFFFFFF, 0.8);
+                layer.fillCircle(
+                    orbX - orbSize / 3,
+                    orbY - orbSize / 3,
+                    orbSize / 3
+                );
+                layer.fillStyle(color, 0.6);
+            }
             this.forestAmbientPointCount += 1;
         }
     }
@@ -1919,16 +1929,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // === VOID SPRITES: Ground-based chasers ===
         // These lurk in the shadows and chase the player
-        const voidSpritePositions = [
-            { x: 700, y: this.levelHeight - 150 },
-            { x: 1600, y: this.levelHeight - 150 },
-            { x: 2300, y: this.levelHeight - 150 },
-            { x: 3100, y: this.levelHeight - 150 },
-            { x: 4500, y: this.levelHeight - 150 }
-        ];
+        const voidSpritePositions = FOREST_GROUND_SECTIONS
+            .filter(section => Number.isFinite(section.enemyX))
+            .map(section => ({
+                x: section.enemyX,
+                y: this.levelHeight - 150,
+                support: section
+            }));
 
         voidSpritePositions.forEach((pos, index) => {
-            this.createVoidSprite(pos.x, pos.y, index);
+            this.createVoidSprite(pos.x, pos.y, index, pos.support);
         });
 
         // === BRANCH CRAWLERS: Patrol on tree branches ===
@@ -1977,6 +1987,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         wispPositions.forEach((pos, index) => {
             this.createForestWisp(pos.x, pos.y, index);
         });
+        this.startForestEnemyAIScheduler();
         this.forestEnemyOverlap = this.physics.add.overlap(
             this.player,
             this.enemies,
@@ -1989,6 +2000,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
     retireForestPatrolsForElder() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
+        this.forestEnemyAISchedulerActive = false;
         const retirement = this.retireRouteEnemies(patrols);
 
         this.forestEnemyOverlap?.destroy?.();
@@ -2001,6 +2013,97 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.sporeDrifters = [];
         this.forestWisps = [];
         return retirement.enemyCount;
+    }
+
+    registerForestEnemyAI(sprite, interval, { jitter = 0 } = {}) {
+        if (!sprite) return;
+        sprite.forestAiInterval = Math.max(50, Number(interval) || 50);
+        sprite.forestAiJitter = Math.max(0, Number(jitter) || 0);
+        sprite.forestNextAiAt = (Number(this.time?.now) || 0) +
+            sprite.forestAiInterval + Math.random() * sprite.forestAiJitter;
+    }
+
+    startForestEnemyAIScheduler() {
+        this.forestEnemyAICursor = 0;
+        this.forestEnemyAISchedulerActive = true;
+    }
+
+    updateForestEnemyAI() {
+        if (!this.scene.isActive()) return;
+
+        const now = Number(this.time?.now) || 0;
+        const enemies = this.enemies?.getChildren?.() || [];
+        if (!enemies.length) return;
+        const actionBudget = this.isMobile ? 3 : 5;
+        let scannedCount = 0;
+        let actionCount = 0;
+        while (scannedCount < enemies.length && actionCount < actionBudget) {
+            const index = (
+                this.forestEnemyAICursor + scannedCount
+            ) % enemies.length;
+            scannedCount += 1;
+            const sprite = enemies[index];
+            if (
+                !sprite?.active ||
+                !Number.isFinite(sprite.forestNextAiAt) ||
+                now < sprite.forestNextAiAt
+            ) continue;
+
+            switch (sprite.enemyType) {
+                case 'voidSprite':
+                    this.updateVoidSpriteAI(sprite);
+                    break;
+                case 'branchCrawler':
+                    this.updateBranchCrawlerAI(sprite);
+                    break;
+                case 'sporeDrifter':
+                    this.emitSporeCloud(sprite);
+                    break;
+                case 'forestWisp':
+                    this.updateForestWispAI(sprite);
+                    break;
+                default:
+                    continue;
+            }
+
+            actionCount += 1;
+            sprite.forestNextAiAt = now + sprite.forestAiInterval +
+                Math.random() * sprite.forestAiJitter;
+        }
+        this.forestEnemyAICursor = (
+            this.forestEnemyAICursor + scannedCount
+        ) % enemies.length;
+    }
+
+    updateForestEnemyMotion(time) {
+        const now = Number(time) || 0;
+        if (now < this.forestEnemyMotionNextAt) return;
+        this.forestEnemyMotionNextAt = now + (this.isMobile ? 32 : 16);
+        this.sporeDrifters.forEach(sprite => {
+            if (!sprite?.active) return;
+            const phase = (
+                (now + sprite.forestMotionOffset) % sprite.forestMotionDuration
+            ) / sprite.forestMotionDuration;
+            const drift = (
+                Math.sin((phase * Math.PI * 2) - (Math.PI / 2)) + 1
+            ) / 2;
+            sprite.setPosition(
+                sprite.forestMotionOriginX + sprite.forestMotionTravelX * drift,
+                sprite.forestMotionOriginY + 15 * drift
+            );
+        });
+
+        this.forestWisps.forEach(sprite => {
+            if (!sprite?.active || sprite.forestTeleporting) return;
+            const phase = (
+                (now + sprite.forestMotionOffset) % 1600
+            ) / 1600;
+            const pulse = (
+                Math.sin((phase * Math.PI * 2) - (Math.PI / 2)) + 1
+            ) / 2;
+            sprite.setScale(1 + 0.2 * pulse);
+            sprite.setAlpha(1 - 0.3 * pulse);
+        });
     }
 
     startForestEnemyTrailRenderer() {
@@ -2042,7 +2145,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     /**
      * Create a Void Sprite enemy - shadow creature that chases player on ground
      */
-    createVoidSprite(x, y, index) {
+    createVoidSprite(x, y, index, support) {
         // Create texture if not exists
         const textureKey = 'voidSprite';
         if (!this.textures.exists(textureKey)) {
@@ -2091,6 +2194,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
         sprite.speed = 80;
         sprite.detectionRange = 250;
         sprite.isChasing = false;
+        sprite.forestSupportId = support?.id || null;
+        sprite.forestPatrolLeft = Number.isFinite(support?.x)
+            ? support.x + 40
+            : null;
+        sprite.forestPatrolRight = Number.isFinite(support?.x) &&
+            Number.isFinite(support?.width)
+            ? support.x + support.width - 40
+            : null;
         this.enemies.add(sprite);
         this.configureEnemyCombat(sprite, {
             role: 'chaser',
@@ -2120,12 +2231,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.physics.add.collider(sprite, this.platforms);
         }
 
-        // AI behavior
-        this.trackEnemyTimer(sprite, this.time.addEvent({
-            delay: 200,
-            callback: () => this.updateVoidSpriteAI(sprite),
-            loop: true
-        }));
+        this.registerForestEnemyAI(sprite, 200);
 
         this.voidSprites.push(sprite);
     }
@@ -2136,12 +2242,30 @@ class MythicalForestLevel extends PlatformerLevelScene {
     updateVoidSpriteAI(sprite) {
         if (!sprite.active || !this.player || !this.scene.isActive()) return;
 
+        const hasPatrolBounds = Number.isFinite(sprite.forestPatrolLeft) &&
+            Number.isFinite(sprite.forestPatrolRight);
+        if (hasPatrolBounds) {
+            const supportedX = Phaser.Math.Clamp(
+                sprite.x,
+                sprite.forestPatrolLeft,
+                sprite.forestPatrolRight
+            );
+            if (supportedX !== sprite.x) {
+                sprite.setX(supportedX);
+                sprite.body?.updateFromGameObject?.();
+            }
+        }
+
         const distance = Phaser.Math.Distance.Between(sprite.x, sprite.y, this.player.x, this.player.y);
 
         if (distance < sprite.detectionRange) {
             sprite.isChasing = true;
             const direction = this.player.x > sprite.x ? 1 : -1;
-            sprite.setVelocityX(direction * sprite.speed);
+            const atSupportEdge = hasPatrolBounds && (
+                (direction < 0 && sprite.x <= sprite.forestPatrolLeft) ||
+                (direction > 0 && sprite.x >= sprite.forestPatrolRight)
+            );
+            sprite.setVelocityX(atSupportEdge ? 0 : direction * sprite.speed);
             sprite.setFlipX(direction < 0);
         } else {
             sprite.isChasing = false;
@@ -2222,26 +2346,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
             onDefeat: enemy => this.killEnemy(enemy)
         });
 
-        // Patrol AI
-        this.trackEnemyTimer(sprite, this.time.addEvent({
-            delay: 50,
-            callback: () => {
-                if (!sprite.active || !this.scene.isActive()) return;
-
-                sprite.x += sprite.direction * sprite.speed * 0.05;
-
-                if (sprite.x >= sprite.patrolRight) {
-                    sprite.direction = -1;
-                    sprite.setFlipX(true);
-                } else if (sprite.x <= sprite.patrolLeft) {
-                    sprite.direction = 1;
-                    sprite.setFlipX(false);
-                }
-            },
-            loop: true
-        }));
+        this.registerForestEnemyAI(sprite, 100);
 
         this.branchCrawlers.push(sprite);
+    }
+
+    updateBranchCrawlerAI(sprite) {
+        if (!sprite?.active || !this.scene.isActive()) return;
+
+        if (sprite.x >= sprite.patrolRight) {
+            sprite.direction = -1;
+            sprite.setFlipX(true);
+        } else if (sprite.x <= sprite.patrolLeft) {
+            sprite.direction = 1;
+            sprite.setFlipX(false);
+        }
+        sprite.setVelocityX(sprite.direction * sprite.speed);
     }
 
     /**
@@ -2297,24 +2417,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
             onDefeat: enemy => this.killEnemy(enemy)
         });
 
-        // One motion tween keeps both axes alive without doubling the mobile
-        // animation bookkeeping for every airborne hazard.
-        this.tweens.add({
-            targets: sprite,
-            y: y + 15,
-            x: x + (Math.random() - 0.5) * 80,
-            duration: 2400 + Math.random() * 900,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // Spore cloud emission
-        this.trackEnemyTimer(sprite, this.time.addEvent({
-            delay: 2000 + Math.random() * 2000,
-            callback: () => this.emitSporeCloud(sprite),
-            loop: true
-        }));
+        sprite.forestMotionOriginX = x;
+        sprite.forestMotionOriginY = y;
+        sprite.forestMotionTravelX = (Math.random() - 0.5) * 80;
+        sprite.forestMotionDuration = 2400 + Math.random() * 900;
+        sprite.forestMotionOffset = Math.random() * sprite.forestMotionDuration;
+        this.registerForestEnemyAI(sprite, 2000, { jitter: 2000 });
 
         this.sporeDrifters.push(sprite);
     }
@@ -2457,24 +2565,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
             onDefeat: enemy => this.killEnemy(enemy)
         });
 
-        // Pulse animation
-        this.tweens.add({
-            targets: sprite,
-            scaleX: 1.2,
-            scaleY: 1.2,
-            alpha: 0.7,
-            duration: 800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // AI behavior - teleport and shoot
-        this.trackEnemyTimer(sprite, this.time.addEvent({
-            delay: 1500,
-            callback: () => this.updateForestWispAI(sprite),
-            loop: true
-        }));
+        sprite.forestMotionOffset = Math.random() * 1600;
+        sprite.forestTeleporting = false;
+        this.registerForestEnemyAI(sprite, 1500);
 
         this.forestWisps.push(sprite);
     }
@@ -2519,6 +2612,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (!sprite.active) return;
 
         sprite.lastTeleportTime = this.time.now;
+        sprite.forestTeleporting = true;
 
         // Fade out
         this.tweens.add({
@@ -2541,7 +2635,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     alpha: 1,
                     scaleX: 1,
                     scaleY: 1,
-                    duration: 200
+                    duration: 200,
+                    onComplete: () => {
+                        if (sprite.active) sprite.forestTeleporting = false;
+                    }
                 });
             }
         });
@@ -3147,14 +3244,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
     ensureForestCoinLayer() {
         if (!this.forestCoinLayer?.active) {
             this.forestCoinLayer = this.add.graphics().setDepth(125);
-            this.forestCoinLayerTween = this.tweens.add({
-                targets: this.forestCoinLayer,
-                y: { from: 0, to: -5 },
-                duration: 960,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
+            if (!this.isMobile) {
+                this.forestCoinLayerTween = this.tweens.add({
+                    targets: this.forestCoinLayer,
+                    y: { from: 0, to: -5 },
+                    duration: 960,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
         }
     }
 
@@ -3162,13 +3261,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const layer = this.forestCoinLayer;
         if (!layer?.active) return false;
         layer.clear();
+        layer.fillStyle(0xFFD700, 1);
         this.coinSprites.forEach(pickup => {
             if (!pickup?.batched || pickup.collected) return;
-            layer.fillStyle(0xFFD700, 1);
             layer.fillCircle(pickup.x, pickup.y, 8);
-            layer.fillStyle(0xFFA500, 1);
-            layer.fillCircle(pickup.x - 2, pickup.y - 2, 3);
         });
+        if (!this.isMobile) {
+            layer.fillStyle(0xFFA500, 1);
+            this.coinSprites.forEach(pickup => {
+                if (!pickup?.batched || pickup.collected) return;
+                layer.fillCircle(pickup.x - 2, pickup.y - 2, 3);
+            });
+        }
         return true;
     }
 
@@ -5004,6 +5108,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestCoinLayer = null;
         this.forestEnemyOverlap?.destroy?.();
         this.forestEnemyOverlap = null;
+        this.forestEnemyAISchedulerActive = false;
 
         // Clean up platforms
         this.branchPlatforms = [];
