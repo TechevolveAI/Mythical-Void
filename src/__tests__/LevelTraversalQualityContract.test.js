@@ -383,8 +383,18 @@ describe('campaign traversal quality contracts', () => {
             .toBeGreaterThanOrEqual(2);
         expect(forest).toContain('this.forestEnemyAISchedulerActive = true;');
         expect(forest).toContain('this.forestEnemyAISchedulerActive = false;');
-        expect((caves.match(/this\.trackEnemyTimer\(/g) || []).length)
-            .toBeGreaterThanOrEqual(5);
+        expect((caves.match(/this\.trackEnemyTimer\(/g) || []).length).toBe(2);
+        expect(caves).toContain('startCaveEnemyAIScheduler()');
+        expect(caves).toContain('updateCaveEnemyActivation(force = false)');
+        expect(caves).toContain('updateCaveEnemyAI(time, force = false)');
+        expect(caves).toContain('setCaveEnemyRenderAttached(enemy, attached)');
+        expect(caves).toContain('enemy.body.enable = false;');
+        expect(caves).toContain('enemy.body.enable = true;');
+        expect(caves).toContain('this.spiderAttackTimer.paused = !nextState;');
+        expect(caves).toContain('this.spiderWebSprayTimer.paused = !nextState;');
+        expect(caves).not.toContain('callback: () => this.updateBatPatrol(bat)');
+        expect(caves).not.toContain('callback: () => this.updateCrawlerPatrol(crawler)');
+        expect(caves).not.toContain('callback: () => this.updateCrystalSpiderAI()');
         expect(forest).toContain('this.trackEnemyArtifact(sprite, projectile);');
     });
 
@@ -2715,6 +2725,14 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('smokeCaveBatchedCoinPickup(session)');
         expect(smoke).toContain('state.caveCoinRendering?.physicsCoinCount !== 0');
         expect(smoke).toContain('state.caveCrystalRendering?.layerCount !== 1');
+        expect(smoke).toContain('state.caveEnemyRuntime?.scheduledEnemyCount !== 8');
+        expect(smoke).toContain('state.caveEnemyRuntime?.individualTimerCount !== 2');
+        expect(smoke).toContain('state.caveEnemyRuntime?.proximityActiveCount > 3');
+        expect(smoke).toContain('state.caveEnemyRuntime?.sleepingEnemyCount < 5');
+        expect(smoke).toContain('state.caveEnemyRuntime?.spiderTimersPaused !== true');
+        expect(smoke).toContain('state.caveEnemyRuntime?.batMotionTweenCount !== 0');
+        expect(smoke).toContain('displayCount: 185');
+        expect(smoke).toContain('activeTweenCount: 12');
         expect(smoke).toContain('state.reefAmbientRendering?.nebulaLayerCount !== 2');
         expect(smoke).toContain('state.reefAmbientRendering?.dustParticleCount > 6');
         expect(smoke).toContain('state.reefAmbientRendering?.decorativeTweenCount !== 0');
