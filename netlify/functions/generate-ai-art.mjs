@@ -13,9 +13,10 @@ _internal.setRuntime({
             transport: WebSocket
         }
     }),
-    createGeminiClient: () => new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY
-    })
+    // Let the official SDK read both GEMINI_API_KEY and
+    // GOOGLE_GEMINI_BASE_URL. Netlify AI Gateway injects them together; passing
+    // only apiKey here bypasses the managed gateway and its billing.
+    createGeminiClient: () => new GoogleGenAI({})
 });
 
 function createLambdaEvent(request) {

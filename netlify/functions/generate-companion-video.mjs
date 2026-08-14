@@ -13,9 +13,8 @@ _internal.setRuntime({
             transport: WebSocket
         }
     }),
-    createGeminiClient: () => new GoogleGenAI({
-        apiKey: process.env.GEMINI_API_KEY
-    })
+    // Preserve Netlify AI Gateway routing for Veo as well as Gemini images.
+    createGeminiClient: () => new GoogleGenAI({})
 });
 
 export { handler };

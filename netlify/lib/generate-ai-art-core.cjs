@@ -671,10 +671,12 @@ async function startPrediction(spec, style, referenceImage) {
     const preferGemini = (
         process.env.PORTRAIT_IMAGE_PROVIDER || 'gemini'
     ).toLowerCase() !== 'replicate';
+    let primaryGeminiError = null;
     if (preferGemini) {
         try {
             return await startGeminiGeneration(spec, style, referenceImage);
         } catch (gatewayError) {
+            primaryGeminiError = gatewayError;
             if (!process.env.REPLICATE_API_TOKEN) throw gatewayError;
             console.warn('[LivingPortrait] Managed image gateway unavailable; trying Replicate', {
                 providerStatus: gatewayError.providerStatus
@@ -704,6 +706,9 @@ async function startPrediction(spec, style, referenceImage) {
         console.warn('[LivingPortrait] Replicate unavailable; using managed image gateway', {
             providerStatus: error.providerStatus
         });
+        if (primaryGeminiError) {
+            throw primaryGeminiError;
+        }
         return startGeminiGeneration(spec, style, referenceImage);
     }
 }
@@ -743,13 +748,16 @@ async function startGeminiGeneration(spec, style, referenceImage) {
             providerError?.statusCode ||
             providerError?.code
         );
-        const directGeminiConfigured = Boolean(process.env.GEMINI_API_KEY);
         const managedGatewayConfigured = Boolean(
             process.env.GEMINI_API_KEY &&
             process.env.GOOGLE_GEMINI_BASE_URL
         );
+        const directGeminiConfigured = Boolean(
+            process.env.GEMINI_API_KEY &&
+            !process.env.GOOGLE_GEMINI_BASE_URL
+        );
         const configurationFailure = (
-            !directGeminiConfigured ||
+            (!directGeminiConfigured && !managedGatewayConfigured) ||
             /api key|credential|configured/i.test(providerError?.message || '')
         );
         console.error(`[LivingPortrait] Gemini request failed ${JSON.stringify({
@@ -792,7 +800,9 @@ async function startGeminiGeneration(spec, style, referenceImage) {
     return {
         id: `netlify-gateway-${runtime.now()}`,
         status: 'succeeded',
-        provider: 'Netlify AI Gateway',
+        provider: process.env.GOOGLE_GEMINI_BASE_URL
+            ? 'Netlify AI Gateway'
+            : 'Google Gemini',
         model: GEMINI_IMAGE_MODEL,
         output: {
             inlineImage: {
