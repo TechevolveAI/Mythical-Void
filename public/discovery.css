@@ -98,8 +98,11 @@ img { display: block; max-width: 100%; }
 }
 
 .site-nav a { text-decoration: none; color: var(--muted); }
+.site-nav a.button-primary { color: #071411; }
 .site-nav a:hover,
 .site-nav a:focus-visible { color: var(--cream); }
+.site-nav a.button-primary:hover,
+.site-nav a.button-primary:focus-visible { color: #071411; }
 
 .button {
     display: inline-flex;
@@ -339,6 +342,104 @@ details p { margin: 0.9rem 0 0; }
 .final-cta p { color: var(--muted); font-size: 1.1rem; }
 .final-cta .hero-actions { justify-content: center; }
 
+.trailer-page {
+    background:
+        radial-gradient(circle at 50% 5%, rgba(167, 104, 255, 0.25), transparent 35rem),
+        radial-gradient(circle at 12% 38%, rgba(118, 227, 207, 0.11), transparent 30rem),
+        #07050f;
+}
+
+.trailer-hero {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(4rem, 8vw, 7.5rem) 0 clamp(4.5rem, 8vw, 7rem);
+}
+
+.trailer-heading {
+    position: relative;
+    z-index: 1;
+    max-width: 1020px;
+    text-align: center;
+}
+
+.trailer-heading h1 {
+    max-width: none;
+    margin-bottom: 1.2rem;
+    font-size: clamp(3.4rem, 8vw, 7.7rem);
+}
+
+.trailer-heading h1 em {
+    color: var(--mint);
+    font-style: normal;
+}
+
+.trailer-heading > p:last-child {
+    max-width: 780px;
+    margin: 0 auto 2.4rem;
+    color: var(--muted);
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+}
+
+.trailer-stage {
+    position: relative;
+    z-index: 2;
+    padding: clamp(0.45rem, 1.5vw, 0.85rem);
+    border: 1px solid rgba(118, 227, 207, 0.35);
+    border-radius: clamp(1.2rem, 3vw, 2.5rem);
+    background: linear-gradient(145deg, rgba(118, 227, 207, 0.1), rgba(167, 104, 255, 0.12));
+    box-shadow: 0 3rem 9rem rgba(0, 0, 0, 0.62), 0 0 5rem rgba(118, 227, 207, 0.08);
+}
+
+.trailer-stage video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: clamp(0.85rem, 2vw, 1.8rem);
+    background: #020106;
+}
+
+.trailer-actions {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.8rem;
+    margin-top: 2rem;
+}
+
+.trailer-orbit {
+    position: absolute;
+    border: 1px solid rgba(118, 227, 207, 0.17);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.trailer-orbit-one { width: 48rem; height: 48rem; top: 12rem; left: -32rem; }
+.trailer-orbit-two { width: 30rem; height: 30rem; top: -16rem; right: -12rem; box-shadow: 0 0 0 5rem rgba(167, 104, 255, 0.03); }
+
+.trailer-truth {
+    border-block: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.trailer-truth-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.trailer-truth-grid div {
+    min-height: 150px;
+    padding: 1.6rem;
+    border-right: 1px solid var(--line);
+}
+
+.trailer-truth-grid div:last-child { border-right: 0; }
+.trailer-truth-grid span { display: block; margin-bottom: 0.5rem; color: var(--gold); font-size: 0.72rem; font-weight: 950; letter-spacing: 0.13em; }
+.trailer-truth-grid strong { display: block; line-height: 1.35; }
+.trailer-story .section-lead { color: var(--cream); }
+.trailer-origin .proof-frame img { aspect-ratio: 16 / 10; object-fit: cover; }
+
 .site-footer { border-top: 1px solid var(--line); }
 .footer-inner { padding: 2.5rem 0; }
 .footer-links { display: flex; flex-wrap: wrap; gap: 0.8rem 1.3rem; margin: 1.5rem 0; }
@@ -382,6 +483,9 @@ details p { margin: 0.9rem 0 0; }
     .truth-grid { grid-template-columns: repeat(2, 1fr); }
     .truth-grid div:nth-child(2) { border-right: 0; }
     .truth-grid div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+    .trailer-truth-grid { grid-template-columns: repeat(2, 1fr); }
+    .trailer-truth-grid div:nth-child(2) { border-right: 0; }
+    .trailer-truth-grid div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
 }
 
 @media (max-width: 560px) {
@@ -396,6 +500,9 @@ details p { margin: 0.9rem 0 0; }
     .truth-grid { grid-template-columns: 1fr; }
     .truth-grid div { min-height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
     .truth-grid div:last-child { border-bottom: 0; }
+    .trailer-truth-grid { grid-template-columns: 1fr; }
+    .trailer-truth-grid div { min-height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    .trailer-truth-grid div:last-child { border-bottom: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

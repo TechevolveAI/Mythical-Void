@@ -45,7 +45,7 @@ try {
     assert.strictEqual(baseline.output.scope, 'consented_public_website_only');
     assert.strictEqual(baseline.output.loadingMode, 'basic_no_google_request_before_affirmative_consent');
     assert.strictEqual(baseline.output.defaultConsent, 'denied');
-    assert.strictEqual(baseline.output.publicRouteCount, 8);
+    assert.strictEqual(baseline.output.publicRouteCount, 9);
     assert.strictEqual(baseline.output.excludedGameRouteCount, 3);
     assert.deepStrictEqual(baseline.output.publicActionEvents, [
         'public_play_selected',

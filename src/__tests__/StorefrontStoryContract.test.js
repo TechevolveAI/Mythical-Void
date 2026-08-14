@@ -26,6 +26,10 @@ const pressAssets = require('../../public/press/mythical-void-press-assets.json'
 const gameplayManifest = require('../../public/press/gameplay/manifest.json');
 const gameplayVideoManifest = require('../../public/press/gameplay-video/manifest.json');
 const launchTrailerManifest = require('../../public/press/trailer/manifest.json');
+const trailerPage = fs.readFileSync(
+    path.join(__dirname, '../../public/trailer/index.html'),
+    'utf8'
+);
 
 describe('storefront Project Beacon story contract', () => {
     test('matches the implemented 2026 astronaut opening', () => {
@@ -171,6 +175,7 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('/press/gameplay-video/manifest.json');
         expect(storefront).toContain('/press/trailer/manifest.json');
         expect(storefront).toContain('OFFICIAL 64-SECOND LAUNCH TRAILER');
+        expect(storefront).toContain('Watch the official trailer');
         expect(storefront).toContain('Download launch trailer');
         expect(storefront).toContain('REAL GAMEPLAY VIDEO');
         expect(storefront).toContain('REAL GAME + REAL NASA IMAGE');
@@ -224,5 +229,10 @@ describe('storefront Project Beacon story contract', () => {
         expect(launchTrailerManifest.approvalState).toBe(
             'internal_review_ready_waiting_for_kevin'
         );
+        expect(trailerPage).toContain('The signal is real.');
+        expect(trailerPage).toContain('data-measure-trailer');
+        expect(trailerPage).toContain('No generated footage presented as gameplay');
+        expect(trailerPage).toContain('NASA does not endorse Mythical Void.');
+        expect(trailerPage).not.toMatch(/\bcompanions?\b/i);
     });
 });

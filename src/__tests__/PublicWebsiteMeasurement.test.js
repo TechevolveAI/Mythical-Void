@@ -178,7 +178,7 @@ describe('public website action measurement', () => {
     });
 
     test('records the first trailer start only and not its playback history', () => {
-        runDiscoveryMeasurement('/press/', 'granted');
+        runDiscoveryMeasurement('/trailer/', 'granted');
         const trailer = document.createElement('video');
         trailer.dataset.measureTrailer = '';
         document.body.appendChild(trailer);
@@ -189,7 +189,7 @@ describe('public website action measurement', () => {
         const events = measuredEvents();
         expect(events).toHaveLength(1);
         expect(events[0][1]).toBe('public_trailer_started');
-        expect(events[0][2].page_group).toBe('press');
+        expect(events[0][2].page_group).toBe('trailer');
     });
 
     test('ignores ordinary navigation links', () => {

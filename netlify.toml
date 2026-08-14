@@ -40,6 +40,17 @@
   headers = {Content-Type = "application/javascript"}
 
 [[redirects]]
+  # Keep the dedicated trailer watch page ahead of the SPA fallback.
+  from = "/trailer"
+  to = "/trailer/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/trailer/"
+  to = "/trailer/index.html"
+  status = 200
+
+[[redirects]]
   # Fallback to index.html for client-side routing
   from = "/*"
   to = "/index.html"

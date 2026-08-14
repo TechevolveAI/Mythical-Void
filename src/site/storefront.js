@@ -82,6 +82,7 @@ function renderPressPage() {
                     <p>Everything needed to understand, describe and share Mythical Void—without guessing what is gameplay, what is marketing art, or what the game promises.</p>
                     <div class="press-hero-actions">
                         ${playLink('Play the current game')}
+                        <a class="button button-quiet" href="/trailer/">Watch the official trailer</a>
                         <a class="button button-quiet" href="/press/mythical-void-fact-sheet.txt" download>Download the fact sheet</a>
                         <a class="button button-quiet" href="/resources/mythical-void-stem-creature-lab.pdf" download>Download the STEM activity</a>
                     </div>
@@ -135,7 +136,7 @@ function renderPressPage() {
                                 <track kind="captions" src="/press/trailer/mythical-void-play-free-launch-trailer.vtt" srclang="en" label="English">
                             </video>
                         </div>
-                        <figcaption><span>OFFICIAL 64-SECOND LAUNCH TRAILER</span><strong>From a father-and-son question to a playable universe</strong><p>Real game movement and verified running-build screenshots, edited with title cards and the game’s own theme. No generated gameplay footage.</p><a href="/press/trailer/mythical-void-play-free-launch-trailer.mp4" download>Download launch trailer ↓</a><a href="/press/trailer/mythical-void-play-free-launch-trailer.vtt" download>Download captions ↓</a></figcaption>
+                        <figcaption><span>OFFICIAL 64-SECOND LAUNCH TRAILER</span><strong>From a father-and-son question to a playable universe</strong><p>Real game movement and verified running-build screenshots, edited with title cards and the game’s own theme. No generated gameplay footage.</p><a href="/trailer/">Open the full trailer page →</a><a href="/press/trailer/mythical-void-play-free-launch-trailer.mp4" download>Download launch trailer ↓</a><a href="/press/trailer/mythical-void-play-free-launch-trailer.vtt" download>Download captions ↓</a></figcaption>
                     </figure>
                     <div class="press-proof-feature-grid">
                         <figure class="press-gameplay-card press-video-card">
@@ -342,7 +343,7 @@ function renderStorefront() {
                         <p class="hero-copy">Every hatch mixes body, colour, personality, cosmic power and rare mutations. What arrives from the Void will be truly yours.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
-                            <a class="button button-quiet" href="#creatures">Meet the possibilities</a>
+                            <a class="button button-quiet" href="/trailer/">Watch the official trailer</a>
                         </div>
                         <ul class="hero-genetics" aria-label="How this scene was made">
                             <li><strong>1,000</strong><span>real engine hatches explored</span></li>

@@ -14,6 +14,7 @@
     "includedRoutes": [
       "/",
       "/press/",
+      "/trailer/",
       "/privacy/",
       "/terms/",
       "/parents/",
@@ -48,6 +49,7 @@
     "allowedPageGroups": [
       "home",
       "press",
+      "trailer",
       "privacy",
       "terms",
       "parents",

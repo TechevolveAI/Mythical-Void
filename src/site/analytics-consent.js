@@ -9,6 +9,7 @@ const ALLOWED_PUBLIC_ACTIONS = new Set([
 const PAGE_GROUPS = new Map([
     ['/', 'home'],
     ['/press', 'press'],
+    ['/trailer', 'trailer'],
     ['/privacy', 'privacy'],
     ['/terms', 'terms'],
     ['/parents', 'parents'],

@@ -12,6 +12,7 @@
     var pageGroups = {
         '/': 'home',
         '/press': 'press',
+        '/trailer': 'trailer',
         '/privacy': 'privacy',
         '/terms': 'terms',
         '/parents': 'parents',

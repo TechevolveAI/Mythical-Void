@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-14",
+  "releaseState": "waiting_for_kevin_trailer_review",
+  "pagePath": "/trailer/",
+  "watchPagePrepared": true,
+  "productionPublished": false,
+  "searchIndexingEnabled": false,
+  "sitemapEntryEnabled": false,
+  "videoStructuredDataEnabled": false,
+  "publicUploadDate": null,
+  "reason": "The dedicated watch page and finished trailer are prepared on a feature branch. Kevin must watch the beginning, middle and end with sound and approve the film, wording and thumbnail before the page is released or given a public upload date.",
+  "approvalChecklist": [
+    "Watch all 64 seconds with sound.",
+    "Confirm the pace works for children, teenagers and families.",
+    "Confirm the gameplay statements still match the game people can play.",
+    "Approve the poster image, page wording and finished film together.",
+    "Record the real production publication date when the page is released."
+  ],
+  "releaseChanges": [
+    "Change the page robots instruction from noindex to index.",
+    "Add the trailer watch page and video details to the sitemap.",
+    "Add valid VideoObject data using the real public upload date.",
+    "Set productionPublished, searchIndexingEnabled, sitemapEntryEnabled and videoStructuredDataEnabled to true.",
+    "Change releaseState to approved_and_published."
+  ],
+  "searchGuidance": [
+    "The video must remain the main content on its watch page.",
+    "The poster, video file and page must remain crawlable after release.",
+    "The structured data name, description, thumbnail, duration, content URL and upload date must match the visible page and real asset."
+  ]
+}
