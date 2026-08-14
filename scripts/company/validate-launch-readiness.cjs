@@ -29,6 +29,7 @@ const eventContract = load(path.join(repositoryRoot, 'docs/company/measurement/e
 const financialModel = load(path.join(repositoryRoot, 'docs/company/finance/financial-model.json'), 'Financial model');
 const customerEvidence = load(path.join(repositoryRoot, 'docs/company/customer/evidence.json'), 'Customer evidence');
 const releaseManifest = load(path.join(repositoryRoot, 'docs/company/operations/release-manifests/DISCOVERY_SAFETY_2026-08-11.json'), 'Release manifest');
+const liveLaunchEvidence = load(path.join(repositoryRoot, 'docs/company/growth/live-launch-evidence-2026-08-14.json'), 'Live launch evidence');
 const decisionsMarkdown = fs.readFileSync(path.join(repositoryRoot, 'docs/company/registers/DECISIONS.md'), 'utf8');
 
 const maps = {
@@ -45,7 +46,7 @@ const proposedDecisionIds = new Set([...decisionsMarkdown.matchAll(/\| (D-\d{3})
 const expectedTrackIds = Array.from({ length: 8 }, (_, index) => `LT-${String(index + 1).padStart(3, '0')}`);
 const expectedStageIds = Array.from({ length: 7 }, (_, index) => `LS-${String(index + 1).padStart(3, '0')}`);
 const allowedTrackStatuses = new Set(['blocked', 'partially_ready', 'ready']);
-const allowedStageStates = new Set(['active_constrained', 'gated', 'deferred', 'ready_for_scoped_approval']);
+const allowedStageStates = new Set(['active_constrained', 'gated', 'deferred', 'ready_for_scoped_approval', 'completed']);
 
 if (plan.schemaVersion !== 1) failures.push('schemaVersion must be 1');
 if (!/^\d{4}-\d{2}-\d{2}$/.test(plan.asOf || '')) failures.push('asOf must be an ISO date');
@@ -76,6 +77,22 @@ for (const [field, expected] of [
     if (plan.principles?.[field] !== expected) failures.push(`principles.${field} must remain false`);
 }
 if (plan.principles?.primaryOutcome !== 'meaningful_play_trust_and_durable_learning') failures.push('primaryOutcome must remain meaningful play, trust, and durable learning');
+
+const requiredLiveRoutes = ['/', '/creature-genetics/', '/nasa-space-science/', '/parents/', '/studio/', '/press/', '/play/'];
+const liveRouteMap = new Map((liveLaunchEvidence.routes || []).map(route => [route.route, route]));
+const liveOwnedDiscoveryVerified =
+    liveLaunchEvidence.schemaVersion === 1 &&
+    liveLaunchEvidence.id === 'LIVE-LAUNCH-EVIDENCE-2026-08-14' &&
+    liveLaunchEvidence.result === 'owned_discovery_live_game_entry_working' &&
+    /^\d{4}-\d{2}-\d{2}T/.test(liveLaunchEvidence.checkedAt || '') &&
+    liveLaunchEvidence.checkedAt.startsWith(plan.asOf) &&
+    /^[0-9a-f]{7,40}$/.test(liveLaunchEvidence.productionCommit || '') &&
+    requiredLiveRoutes.every(route => {
+        const evidence = liveRouteMap.get(route);
+        return evidence?.verified === true && evidence.notFoundShown === false && evidence.resolvedUrl === `https://mythicalvoid.com${route}`;
+    }) &&
+    liveRouteMap.get('/play/')?.canvasCountAfterFiveSeconds === 1;
+if (!liveOwnedDiscoveryVerified) failures.push('live owned-discovery evidence is incomplete, stale, or inconsistent');
 
 function validateReferences(item, label) {
     for (const [field, map] of Object.entries(maps)) {
@@ -151,10 +168,16 @@ for (const [index, stage] of (plan.stages || []).entries()) {
     const missingProofs = (stage.proofIds || []).filter(id => maps.proofIds.get(id)?.status !== 'approved');
     const requiredTracksReady = (stage.requiredTrackIds || []).every(id => trackResultMap.get(id)?.ready === true);
     const requiredPriorStagesReady = (stage.requiredPriorStageIds || []).every(id => stageResults.find(result => result.id === id)?.ready === true);
+    const completedFromLiveEvidence = stage.id === 'LS-003' &&
+        stage.state === 'completed' &&
+        stage.completedEvidenceRef === liveLaunchEvidence.id &&
+        liveOwnedDiscoveryVerified;
     const derivedReady = stage.id === 'LS-001'
         ? true
-        : requiredTracksReady && requiredPriorStagesReady && unresolvedDecisions.length === 0 && missingProofs.length === 0;
+        : completedFromLiveEvidence || (requiredTracksReady && requiredPriorStagesReady && unresolvedDecisions.length === 0 && missingProofs.length === 0);
     if (stage.ready && !derivedReady) failures.push(`${label} claims readiness while required tracks, prior stages, decisions, or proof remain gated`);
+    if (stage.state === 'completed' && !completedFromLiveEvidence) failures.push(`${label} completion is not supported by the current live evidence`);
+    if (stage.state === 'completed' && stage.ready !== true) failures.push(`${label} completed state requires ready true`);
     if (stage.id === 'LS-001' && stage.ready !== true) failures.push('LS-001 must represent the active constrained current state');
     if (stage.id !== 'LS-001' && stage.state === 'active_constrained') failures.push(`${label} cannot be active while LS-001 is current`);
     stageResults.push({
@@ -209,9 +232,8 @@ console.log(JSON.stringify({
     trackResults,
     stageResults,
     failures,
-    nextAction: 'Resolve KDP-001 safeguarding ownership first, then prepare adult research, authentic gameplay proof, and the separately reviewed discovery release; no outward launch action is authorized.'
+    nextAction: 'Owned discovery is live. Next, choose a professional sender and approve one named adult-facing outreach message, then run the private itch.io acceptance test; nothing sends or publishes automatically.'
 }, null, 2));
 
 if (failures.length) process.exitCode = 1;
 else if (advancedStageReadyCount === 0 || !broadLaunchReady || !paidLaunchReady) process.exitCode = 2;
-

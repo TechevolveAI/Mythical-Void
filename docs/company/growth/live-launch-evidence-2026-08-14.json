@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "LIVE-LAUNCH-EVIDENCE-2026-08-14",
+  "checkedAt": "2026-08-14T15:14:50Z",
+  "checkedBy": "Codex in-app browser read-only verification",
+  "productionBranch": "origin/main",
+  "productionCommit": "d28ff09",
+  "canonicalUrl": "https://mythicalvoid.com/",
+  "result": "owned_discovery_live_game_entry_working",
+  "routes": [
+    {
+      "route": "/",
+      "title": "Mythical Void | Free Creature Adventure Browser Game",
+      "heading": "One universe. Every hatch opens a new possibility.",
+      "resolvedUrl": "https://mythicalvoid.com/",
+      "notFoundShown": false,
+      "verified": true
+    },
+    {
+      "route": "/creature-genetics/",
+      "title": "Alien Creature Genetics | Mythical Void",
+      "heading": "One engine. A universe of strange possibilities.",
+      "resolvedUrl": "https://mythicalvoid.com/creature-genetics/",
+      "notFoundShown": false,
+      "verified": true
+    },
+    {
+      "route": "/nasa-space-science/",
+      "title": "NASA Space Discovery & STEM | Mythical Void",
+      "heading": "A fantasy game can open a door to real science.",
+      "resolvedUrl": "https://mythicalvoid.com/nasa-space-science/",
+      "notFoundShown": false,
+      "verified": true
+    },
+    {
+      "route": "/parents/",
+      "title": "For Parents & Guardians | Mythical Void",
+      "heading": "Know the world before they enter it.",
+      "resolvedUrl": "https://mythicalvoid.com/parents/",
+      "notFoundShown": false,
+      "verified": true
+    },
+    {
+      "route": "/studio/",
+      "title": "The Father-and-Son Story | Mythical Void Studio",
+      "heading": "A dad. His nine-year-old son. One enormous idea.",
+      "resolvedUrl": "https://mythicalvoid.com/studio/",
+      "notFoundShown": false,
+      "verified": true
+    },
+    {
+      "route": "/press/",
+      "title": "Press & Creator Room | Mythical Void",
+      "heading": "A small Irish studio. A universe of creatures.",
+      "resolvedUrl": "https://mythicalvoid.com/press/",
+      "notFoundShown": false,
+      "verified": true
+    },
+    {
+      "route": "/play/",
+      "title": "Play Mythical Void",
+      "heading": null,
+      "resolvedUrl": "https://mythicalvoid.com/play/",
+      "notFoundShown": false,
+      "verified": true,
+      "canvasCountAfterFiveSeconds": 1
+    }
+  ],
+  "currentPreparedWork": {
+    "portableDistributionBuild": {
+      "source": "docs/company/distribution/itch-launch-pack-2026-08-14.json",
+      "state": "built_and_locally_tested_not_uploaded"
+    },
+    "firstOutreachWave": {
+      "source": "docs/company/content/channel-launch/FIRST_CREATOR_OUTREACH_WAVE.json",
+      "draftCount": 3,
+      "sentCount": 0
+    },
+    "officialSocialChannels": {
+      "source": "docs/company/content/channel-launch/channel-activation-pack.json",
+      "youtubeCreated": false,
+      "linkedinCreated": false
+    }
+  },
+  "boundaries": [
+    "This check proves that the named public pages loaded at the checked time; it does not prove search indexing, traffic, player satisfaction or uptime outside the check.",
+    "One game canvas after five seconds proves that the game entry started; it does not prove every scene, device or complete playthrough.",
+    "Prepared distribution and outreach work remains internal and unsubmitted."
+  ]
+}

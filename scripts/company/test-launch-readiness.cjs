@@ -33,11 +33,18 @@ try {
     assert.strictEqual(baseline.output.currentStageId, 'LS-001');
     assert.strictEqual(baseline.output.currentStageReady, true);
     assert.strictEqual(baseline.output.readyTrackCount, 0);
-    assert.strictEqual(baseline.output.advancedStageReadyCount, 0);
+    assert.strictEqual(baseline.output.advancedStageReadyCount, 1);
     assert.strictEqual(baseline.output.broadLaunchReady, false);
     assert.strictEqual(baseline.output.paidLaunchReady, false);
     assert.strictEqual(baseline.output.acceptedCustomerEvidenceCount, 0);
     assert.strictEqual(baseline.output.gameplayProofApprovedCount, 0);
+
+    const unsupportedCompletion = execute('unsupported-completion', {
+        ...source,
+        stages: replaceStage('LS-003', () => ({ completedEvidenceRef: 'INVENTED-EVIDENCE' }))
+    });
+    assert.strictEqual(unsupportedCompletion.status, 1);
+    assert(unsupportedCompletion.output.failures.some(failure => failure.includes('LS-003')));
 
     const launchAuthorization = execute('launch-authorization', {
         ...source,
@@ -102,8 +109,7 @@ try {
     assert.strictEqual(conversationApproval.status, 1);
     assert(conversationApproval.output.failures.some(failure => failure.includes('agentMayTreatConversationAsAuthorization')));
 
-    console.log('A-026 launch-readiness evaluations passed (10 cases).');
+    console.log('A-026 launch-readiness evaluations passed (11 cases).');
 } finally {
     fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 }
-

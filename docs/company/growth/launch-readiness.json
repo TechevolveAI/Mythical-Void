@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-11",
+  "asOf": "2026-08-14",
   "status": "foundation_gated",
   "currentStageId": "LS-001",
   "authority": {
@@ -49,7 +49,7 @@
     {
       "id": "LT-002",
       "name": "Product and release",
-      "status": "blocked",
+      "status": "partially_ready",
       "ready": false,
       "owner": "Game Development release owner unassigned",
       "workflowRefs": ["A-001", "A-018"],
@@ -61,8 +61,8 @@
       "opportunityRefs": [],
       "handoffRefs": ["GDH-001", "GDH-003"],
       "blockers": [
-        "RM-001 is proposed and isolated but unapproved, undeployed, and lacks a verified rollback owner/artifact.",
-        "The live public footprint still has major discovery findings."
+        "The public website and game route are live, but the continuing game release still needs a named release and rollback owner.",
+        "A stable public build is observable; broader launch changes still need build naming, rollback evidence and post-release checks."
       ],
       "exitEvidence": "Approved isolated release, verified rollback, clean post-release checks, and stable named build."
     },
@@ -89,7 +89,7 @@
     {
       "id": "LT-004",
       "name": "Proof and creative",
-      "status": "blocked",
+      "status": "partially_ready",
       "ready": false,
       "owner": "Game Development proof owner unassigned",
       "workflowRefs": ["A-003", "A-013", "A-027", "A-034"],
@@ -101,15 +101,15 @@
       "opportunityRefs": [],
       "handoffRefs": ["GDH-004"],
       "blockers": [
-        "Hatch/bond, restoration, and Project Beacon gameplay proofs are required and missing.",
-        "No approved proof set has completed provenance, rights, accessibility, representation, and claim review."
+        "A real gameplay gallery and a short real gameplay video now exist with source-build and privacy records.",
+        "The stricter hatch-to-bond, before-and-after restoration and Project Beacon choice sequences are still missing."
       ],
       "exitEvidence": "Three authentic, build-linked, rights-cleared, accessible proof assets approved for their exact claims and audiences."
     },
     {
       "id": "LT-005",
       "name": "Owned discovery and channels",
-      "status": "blocked",
+      "status": "partially_ready",
       "ready": false,
       "owner": "Search and channel owners unassigned",
       "workflowRefs": ["A-008", "A-013", "A-018", "A-021", "A-033", "A-034", "A-035"],
@@ -121,15 +121,15 @@
       "opportunityRefs": [],
       "handoffRefs": ["GDH-001", "GDH-004"],
       "blockers": [
-        "Owned discovery changes are local and search submission is unauthorized.",
-        "Channel accounts, owners, credentials, moderation, measurement, and publication approval are incomplete."
+        "The homepage, creature genetics, NASA and STEM, parents, studio and press pages are live and were checked on 2026-08-14.",
+        "Official social accounts do not exist yet; search-console access, trusted reporting, moderation ownership and publication access remain incomplete."
       ],
       "exitEvidence": "Verified owned discovery, approved canonical pages, named channel owners, moderation, measurement, and exact publication controls."
     },
     {
       "id": "LT-006",
       "name": "Distribution and partnerships",
-      "status": "blocked",
+      "status": "partially_ready",
       "ready": false,
       "owner": "Distribution owner unassigned",
       "workflowRefs": ["A-007", "A-011", "A-032", "A-035"],
@@ -141,8 +141,8 @@
       "opportunityRefs": ["OP-001", "OP-002", "OP-003", "OP-004"],
       "handoffRefs": ["GDH-005"],
       "blockers": [
-        "Four portal candidates are researched only; no portable-build feasibility decision exists.",
-        "No outreach, account, terms, upload, SDK, rights, or commercial action is authorized."
+        "A portable browser build, itch.io package, launch copy, cover and ranked platform plan are prepared and locally tested.",
+        "No itch.io account or private page exists; target-platform touch, fullscreen, terms, screenshot review and Kevin's publication decision remain open."
       ],
       "exitEvidence": "One evidence-ranked route with portable-build, rights, privacy, economics, integration, support, and scoped approval evidence."
     },
@@ -232,9 +232,10 @@
       "id": "LS-003",
       "order": 3,
       "name": "Owned discovery release",
-      "state": "gated",
-      "ready": false,
+      "state": "completed",
+      "ready": true,
       "authorized": false,
+      "completedEvidenceRef": "LIVE-LAUNCH-EVIDENCE-2026-08-14",
       "requiredTrackIds": ["LT-001", "LT-002", "LT-005"],
       "requiredPriorStageIds": ["LS-001"],
       "decisionRefs": ["D-012", "D-015"],
@@ -245,8 +246,8 @@
       "opportunityRefs": [],
       "handoffRefs": ["GDH-001", "GDH-003"],
       "workflowRefs": ["A-001", "A-018", "A-021", "A-033", "A-034"],
-      "blockers": ["RM-001 release ownership, approval, rollback, deployment, and post-deploy evidence are unresolved."],
-      "successEvidence": "Approved isolated release is deployed by its owner, reconciled to source, passes rollback/smoke checks, and removes all A-001 major findings."
+      "blockers": ["The owned discovery release is complete. Future website changes still require normal release and rollback checks."],
+      "successEvidence": "The homepage, four useful discovery pages, press room and playable game route are live and were independently checked in the browser on 2026-08-14."
     },
     {
       "id": "LS-004",
@@ -265,7 +266,7 @@
       "opportunityRefs": [],
       "handoffRefs": ["GDH-004"],
       "workflowRefs": ["A-003", "A-008", "A-011", "A-013", "A-020", "A-033", "A-034"],
-      "blockers": ["Audience evidence, authentic proof, stable release, verified channels, support, and exact outreach approval are absent."],
+      "blockers": ["Three tailored adult-facing introductions are ready, but Kevin has not approved a named message or chosen the professional sending address; no outreach has occurred."],
       "successEvidence": "A small adult-directed pilot reconciles exact outreach, qualified play, qualitative response, support load, and all guardrails."
     },
     {
@@ -285,7 +286,7 @@
       "opportunityRefs": ["OP-001", "OP-002", "OP-003", "OP-004"],
       "handoffRefs": ["GDH-005"],
       "workflowRefs": ["A-007", "A-011", "A-018", "A-022", "A-032"],
-      "blockers": ["Portable build, platform choice, rights/privacy/economics, support, measurement, and scoped submission approval are unresolved."],
+      "blockers": ["The itch.io package and page material are ready, but no account or private page exists and target-platform touch, fullscreen, terms and final screenshot checks remain open."],
       "successEvidence": "One bounded platform pilot produces reconciled technical, audience, cost, rights, reliability, and support evidence."
     },
     {
@@ -333,26 +334,26 @@
     {
       "priority": 1,
       "type": "kevin_decision",
-      "ref": "KDP-001",
-      "action": "Name safeguarding ownership and response coverage through D-012; this decision does not authorize external execution."
+      "ref": "OUTREACH-WAVE-001",
+      "action": "Choose the professional sending address and approve or reject the finished Imirt introduction; nothing sends automatically."
     },
     {
       "priority": 2,
-      "type": "internal_preparation",
-      "ref": "GDH-004",
-      "action": "Prepare build-linked capture specifications for the three missing gameplay proofs without publishing them."
+      "type": "private_platform_test",
+      "ref": "ITCH-ACCEPTANCE-HANDOFF",
+      "action": "Create the itch.io draft page, upload the prepared package privately and test touch, fullscreen, save and return before any public listing."
     },
     {
       "priority": 3,
-      "type": "kevin_decision",
-      "ref": "D-002",
-      "action": "Name the adult research owner and decide the audience hypothesis after the higher-priority safety packet is resolved."
+      "type": "internal_preparation",
+      "ref": "GDH-004",
+      "action": "Capture the three deeper real-game sequences: hatch to first response, realm restoration before and after, and a spoiler-safe Project Beacon choice."
     },
     {
       "priority": 4,
-      "type": "release_review",
-      "ref": "KDP-004",
-      "action": "Review only the isolated RM-001 preview boundary; production deployment remains separately gated."
+      "type": "kevin_decision",
+      "ref": "KDP-001",
+      "action": "Name the adult safeguarding owner and backup before opening comments, child-facing contact or wider community activity."
     }
   ]
 }
