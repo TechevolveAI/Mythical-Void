@@ -33,10 +33,11 @@ const requireValue = (condition, message) => {
     if (!condition) errors.push(message);
 };
 
-const requiredRoutes = ['/', '/creature-genetics/', '/nasa-space-science/', '/parents/', '/studio/', '/press/', '/play/'];
+const requiredRoutes = ['/', '/creature-genetics/', '/nasa-space-science/', '/parents/', '/studio/', '/press/', '/story/', '/play/'];
 const routeMap = new Map((values.evidence.routes || []).map(route => [route.route, route]));
 requireValue(values.evidence.result === 'owned_discovery_live_game_entry_working', 'Live evidence must record the working owned-discovery result.');
 requireValue(requiredRoutes.every(route => routeMap.get(route)?.verified === true && routeMap.get(route)?.notFoundShown === false), 'Every required public route must have a successful live check.');
+requireValue(routeMap.get('/story/')?.realGameplayRealmImages === 6 && routeMap.get('/story/')?.trailerLinked === false && routeMap.get('/story/')?.sitemapListed === true, 'The live story page must retain its six real-game realm images, sitemap entry and trailer boundary.');
 requireValue(routeMap.get('/play/')?.canvasCountAfterFiveSeconds === 1, 'The live game entry must create one canvas during the check.');
 
 requireValue(values.outreach.messages?.length === 3, 'Exactly three first-wave outreach messages must remain prepared.');
@@ -81,8 +82,8 @@ requireValue(calendarReleases.filter(release => release.channel === 'Internal re
 requireValue(calendarReleases.filter(release => release.channel !== 'Internal review').every(release => release.state === 'waiting_for_channel_and_kevin_approval'), 'Every outward calendar item must remain gated by channel creation and Kevin approval.');
 
 const storyPage = values.discovery.pages?.find(page => page.route === '/story/');
-requireValue(values.discovery.state === 'approved_for_owned_website_release' && Boolean(storyPage), 'The owned discovery release must include the prepared story page.');
-requireValue(!routeMap.has('/story/'), 'The prepared story page must not be described as part of the older production evidence.');
+requireValue(values.discovery.state === 'released_to_owned_website' && Boolean(storyPage), 'The owned discovery release must record the released story page.');
+requireValue(routeMap.get('/story/')?.verified === true, 'The released story page must be part of the production evidence.');
 
 requireValue(values.hatchReview.captureId === 'GP-013', 'Founder view must use the reviewed authentic hatch reveal.');
 requireValue(values.hatchReview.reviewState === 'authentic_internal_proof_rejected_for_public_promotion' && values.hatchReview.publicUseApproved === false, 'The weak hatch reveal must remain withheld from public promotion.');
@@ -102,7 +103,8 @@ requireValue(values.adultStemOutreach.messages?.every(message => message.approve
 requireValue(values.adultStemOutreach.authority?.sendingAuthorized === false && values.adultStemOutreach.authority?.childWorkCollectionAuthorized === false, 'Adult STEM sending and child-work collection must remain unauthorized.');
 
 requireValue(values.liveSearch.state === 'crawl_foundation_live_related_result_observed_owned_discovery_not_observed', 'Founder view must retain the honest live search and related-result state.');
-requireValue(values.liveSearch.ownedCrawlFoundation?.homepageStatus === 200 && values.liveSearch.ownedCrawlFoundation?.sitemapRouteCount === 8, 'Founder view must retain the reachable homepage and eight-route sitemap evidence.');
+requireValue(values.liveSearch.ownedCrawlFoundation?.homepageStatus === 200 && values.liveSearch.ownedCrawlFoundation?.sitemapRouteCount === 9, 'Founder view must retain the reachable homepage and nine-route sitemap evidence.');
+requireValue(values.liveSearch.ownedCrawlFoundation?.sitemapRoutes?.includes('/story/'), 'Founder view must retain the story route in the live sitemap evidence.');
 requireValue(values.liveSearch.publicSearchSample?.ownedResultObserved === false, 'Founder view must not invent a public search result.');
 requireValue(values.liveSearch.followUpSearchSample?.ownedResultObserved === false && values.liveSearch.followUpSearchSample?.relatedResultObserved === true, 'Founder view must retain the missing owned result and observed related result.');
 requireValue(values.liveSearch.followUpSearchSample?.currentRelatedPageClaim === 'Every creature is unique.', 'Founder view must retain the related-site correction reason.');

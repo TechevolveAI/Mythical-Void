@@ -27,10 +27,10 @@ try {
     inventedConsole.webmasterEvidence.googleSearchConsoleConnected = true;
     if (run('invented-console', inventedConsole).status === 0) throw new Error('Invented Search Console access was accepted.');
 
-    const inventedStoryRelease = structuredClone(source);
-    inventedStoryRelease.ownedCrawlFoundation.sitemapRoutes.push('/story/');
-    inventedStoryRelease.ownedCrawlFoundation.sitemapRouteCount += 1;
-    if (run('invented-story-release', inventedStoryRelease).status === 0) throw new Error('An invented live story route was accepted.');
+    const erasedStoryRelease = structuredClone(source);
+    erasedStoryRelease.ownedCrawlFoundation.sitemapRoutes = erasedStoryRelease.ownedCrawlFoundation.sitemapRoutes.filter(route => route !== '/story/');
+    erasedStoryRelease.ownedCrawlFoundation.sitemapRouteCount -= 1;
+    if (run('erased-story-release', erasedStoryRelease).status === 0) throw new Error('The verified live story route was erased.');
 
     const submissionAuthority = structuredClone(source);
     submissionAuthority.authority.searchEngineSubmissionAuthorized = true;

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "LIVE-LAUNCH-EVIDENCE-2026-08-14",
-  "checkedAt": "2026-08-14T15:14:50Z",
-  "checkedBy": "Codex in-app browser read-only verification",
+  "checkedAt": "2026-08-14T19:15:10Z",
+  "checkedBy": "Codex read-only production verification after Netlify publish",
   "productionBranch": "origin/main",
-  "productionCommit": "d28ff09",
+  "productionCommit": "cc8f7892bf4387fce24d6c9b81f07d82ed9967a1",
   "canonicalUrl": "https://mythicalvoid.com/",
   "result": "owned_discovery_live_game_entry_working",
   "routes": [
@@ -57,6 +57,17 @@
       "verified": true
     },
     {
+      "route": "/story/",
+      "title": "Project Beacon Story | Mythical Void",
+      "heading": "Earth sent you looking for hope.",
+      "resolvedUrl": "https://mythicalvoid.com/story/",
+      "notFoundShown": false,
+      "verified": true,
+      "realGameplayRealmImages": 6,
+      "trailerLinked": false,
+      "sitemapListed": true
+    },
+    {
       "route": "/play/",
       "title": "Play Mythical Void",
       "heading": null,
@@ -85,6 +96,7 @@
   "boundaries": [
     "This check proves that the named public pages loaded at the checked time; it does not prove search indexing, traffic, player satisfaction or uptime outside the check.",
     "One game canvas after five seconds proves that the game entry started; it does not prove every scene, device or complete playthrough.",
+    "The story check proves its page, six real-game realm images, play link and sitemap entry were reachable; the unapproved trailer remains unlinked.",
     "Prepared distribution and outreach work remains internal and unsubmitted."
   ]
 }

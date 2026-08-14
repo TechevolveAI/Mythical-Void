@@ -91,8 +91,8 @@ for (const page of pages) {
 }
 
 const release = JSON.parse(contentFor('docs/company/search/organic-discovery-release-2026-08-14.json') || '{}');
-if (release.state !== 'approved_for_owned_website_release') {
-    errors.push('organic discovery release: owned website publication is not approved');
+if (release.state !== 'released_to_owned_website') {
+    errors.push('organic discovery release: owned website publication is not recorded as released');
 }
 if (release.authority?.searchEngineSubmissionAuthorized !== false) {
     errors.push('organic discovery release: search-engine submission must remain off');

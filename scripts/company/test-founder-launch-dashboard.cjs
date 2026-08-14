@@ -47,6 +47,10 @@ try {
     failedRoute.routes.find(route => route.route === '/press/').verified = false;
     if (run('failed-route', { evidence: failedRoute }).status === 0) throw new Error('A failed live route was accepted.');
 
+    const erasedStoryRoute = structuredClone(sources.evidence);
+    erasedStoryRoute.routes = erasedStoryRoute.routes.filter(route => route.route !== '/story/');
+    if (run('erased-story-route', { evidence: erasedStoryRoute }).status === 0) throw new Error('The verified live story route was erased.');
+
     const sentMessage = structuredClone(sources.outreach);
     sentMessage.messages[0].sentAt = '2026-08-14T00:00:00Z';
     if (run('sent-message', { outreach: sentMessage }).status === 0) throw new Error('An unrecorded sent message was accepted.');
@@ -118,7 +122,7 @@ try {
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot plus 19 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot plus 20 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

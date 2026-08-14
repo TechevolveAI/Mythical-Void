@@ -38,9 +38,6 @@ function buildDashboard({ evidence, outreach, activation, itch, launch, trailer,
     const preparedLinkedInCount = linkedin.firstPosts.length;
     const calendarReleases = calendar.weeks.flatMap(week => week.releases);
     const publicCalendarCount = calendarReleases.filter(release => release.channel !== 'Internal review').length;
-    const storyPrepared = discovery.pages.some(page => page.route === '/story/');
-    const liveRoutes = new Set(evidence.routes.filter(route => route.verified).map(route => route.route));
-    const storyVerifiedLive = liveRoutes.has('/story/');
     const engagementTrack = launch.tracks.find(track => track.id === 'LT-007');
     const analyticsRouteCount = analytics.tag.includedRoutes.length;
     const analyticsActionCount = analytics.publicActions.eventNames.length;
@@ -56,7 +53,8 @@ function buildDashboard({ evidence, outreach, activation, itch, launch, trailer,
 ## Verified live
 
 - The public homepage and game entry worked during the last production check.
-- ${livePageCount} public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, and press room.
+- ${livePageCount} public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, and Project Beacon story.
+- The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
 - The game created its playable canvas during that check.
 - Real gameplay screenshots and a short real gameplay video are available for truthful promotion.
 
@@ -64,7 +62,6 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 
 ## Prepared, but not yet live
 
-- **The real story:** ${storyPrepared && !storyVerifiedLive ? 'a dedicated Project Beacon story page is prepared in the website release package, but it was not part of the last verified production check.' : 'the story page state needs review against the production evidence.'}
 - **The trailer:** the film and dedicated watch page are prepared. The page remains unpublished and hidden from search until Kevin approves the film, wording, and poster together.
 - **Safer measurement:** the current Google tag is live, while the tighter ${analyticsRouteCount}-route, ${analyticsActionCount}-action consent upgrade is prepared on this feature branch. Its numbers are not trusted for company decisions yet.
 - **Social launch:** ${preparedYouTubeCount} YouTube upload items and ${preparedLinkedInCount} LinkedIn posts are prepared, alongside a four-week plan containing ${publicCalendarCount} outward releases and one internal review.

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "SEARCH-RELEASE-2026-08-14",
   "asOf": "2026-08-14",
-  "state": "approved_for_owned_website_release",
+  "state": "released_to_owned_website",
   "purpose": "Give players, parents, educators, creators and press useful ways to discover Mythical Void without waiting for social accounts or paid promotion.",
   "authority": {
     "ownedWebsitePublicationAuthorized": true,

@@ -9,7 +9,8 @@
 ## Verified live
 
 - The public homepage and game entry worked during the last production check.
-- 6 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, and press room.
+- 7 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, and Project Beacon story.
+- The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
 - The game created its playable canvas during that check.
 - Real gameplay screenshots and a short real gameplay video are available for truthful promotion.
 
@@ -17,7 +18,6 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 
 ## Prepared, but not yet live
 
-- **The real story:** a dedicated Project Beacon story page is prepared in the website release package, but it was not part of the last verified production check.
 - **The trailer:** the film and dedicated watch page are prepared. The page remains unpublished and hidden from search until Kevin approves the film, wording, and poster together.
 - **Safer measurement:** the current Google tag is live, while the tighter 10-route, 5-action consent upgrade is prepared on this feature branch. Its numbers are not trusted for company decisions yet.
 - **Social launch:** 6 YouTube upload items and 6 LinkedIn posts are prepared, alongside a four-week plan containing 7 outward releases and one internal review.
@@ -25,7 +25,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after 4 quality limits were recorded.
 - **Project Beacon choice:** 2 real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with 2 visible limitations recorded.
 - **Adult STEM discovery:** 2 one-to-one introductions are prepared for the Blackrock Castle Observatory and ESERO Ireland education teams. Nothing has been sent, and both messages still require Kevin to approve the sender, recipient and final wording.
-- **Search findability:** the homepage, public robots file and 8-route live sitemap are reachable, but the public samples found no owned Mythical Void result. A related TechEvolveAI result is visible, but its source contains an unsupported uniqueness promise; an exact correction is prepared. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
+- **Search findability:** the homepage, public robots file and 9-route live sitemap are reachable, but the public samples found no owned Mythical Void result. A related TechEvolveAI result is visible, but its source contains an unsupported uniqueness promise; an exact correction is prepared. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
 - **Irish founder story:** a first-person contributed article or interview background and tailored Irish Tech News contribution pitch are prepared. Nothing has been sent or promised, and any paid feature, rights request or child-participation request stops for a separate Kevin decision.
 - **Science Week 2026:** the visually checked 3-page printable “Water That Isn't Water: Design Life for the Stellar Reef” joins 3 sourced ocean-world facts to the real Stellar Reef game realm. A 12-check adult review system and one adult-only invitation are ready, but nothing has been sent and no review has been completed; no event, submission, partnership, logo use or public release exists.
 - **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
