@@ -123,6 +123,20 @@ function renderPressPage() {
                         <div><p class="kicker">CAPTURED FROM THE GAME</p><h2>This is what players really see.</h2></div>
                         <p>Every frame below was captured automatically from a tested Mythical Void build using an invented game state. No mock gameplay, private save or player identity is involved.</p>
                     </div>
+                    <div class="press-proof-feature-grid">
+                        <figure class="press-gameplay-card press-video-card">
+                            <div class="press-video-shell">
+                                <video controls muted playsinline preload="metadata" poster="/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" aria-label="Real vertical gameplay in the Mythical Forest">
+                                    <source src="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" type="video/mp4">
+                                </video>
+                            </div>
+                            <figcaption><span>REAL GAMEPLAY VIDEO</span><strong>Move through the Mythical Forest</strong><p>A short unfiltered journey with real movement, jumping, touch controls and the live route display. There are no generated frames or replacement scenery.</p><a href="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" download>Download gameplay video ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-gameplay-card press-nasa-card">
+                            <img src="/press/gameplay/nasa-apollo11-real-space-discovery.png" alt="A real Mythical Void learning card showing a credited NASA Apollo 11 panorama, observation prompts and an imagined creature reaction" loading="lazy">
+                            <figcaption><span>REAL GAME + REAL NASA IMAGE</span><strong>Turn a space picture into a question</strong><p>The game clearly separates the Apollo 11 image and credit from the creature’s imagined reaction, then asks the player to observe, infer and check evidence.</p><a href="https://apod.nasa.gov/apod/ap240720.html" target="_blank" rel="noopener noreferrer">View the NASA source ↗</a><a href="/press/gameplay/nasa-apollo11-real-space-discovery.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                    </div>
                     <div class="press-gameplay-grid">
                         <figure class="press-gameplay-card press-gameplay-wide">
                             <img src="/press/gameplay/project-beacon-start.png" alt="The real Mythical Void opening screen showing Project Beacon and the Wanderer-77 crash site" loading="lazy">
@@ -141,7 +155,7 @@ function renderPressPage() {
                             <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
                         </figure>
                     </div>
-                    <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View build record and file fingerprints →</a></p>
+                    <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View video build record →</a></p>
                 </div>
             </section>
 
