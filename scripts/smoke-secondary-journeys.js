@@ -9222,13 +9222,15 @@ async function smokeGuardianPacing(session, exceptions) {
         );
 
         let openingFraming = null;
-        if (sceneName === 'ReefLevel') {
+        if (['CrystalCavesLevel', 'ReefLevel'].includes(sceneName)) {
             openingFraming = await waitFor(
                 () => evaluate(session, `(() => {
-                    const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                     const camera = scene?.cameras?.main;
                     const player = scene?.player;
-                    const boss = scene?.bossBody;
+                    const boss = ${JSON.stringify(sceneName)} === 'ReefLevel'
+                        ? scene?.bossBody
+                        : scene?.boss;
                     const view = camera?.worldView;
                     const orientationElapsed = scene?.time?.now -
                         scene?.bossCombatReadyAt;
@@ -9252,7 +9254,8 @@ async function smokeGuardianPacing(session, exceptions) {
                         openingAttackPending:
                             Boolean(scene.bossAttackPreviewTimer),
                         contactDamageArmed:
-                            scene.bossContactDamageArmed === true,
+                            ${JSON.stringify(sceneName)} === 'ReefLevel' &&
+                                scene.bossContactDamageArmed === true,
                         playerVisible: view.contains(player.x, player.y),
                         bossVisible: view.contains(boss.x, boss.y),
                         playerScreenX: Math.round((player.x - view.x) * camera.zoom),
@@ -9260,7 +9263,10 @@ async function smokeGuardianPacing(session, exceptions) {
                         viewportWidth: camera.width
                     };
                 })()`),
-                { timeoutMs: 15000, message: 'Reef mobile guardian framing' }
+                {
+                    timeoutMs: 15000,
+                    message: `${sceneName} mobile guardian framing`
+                }
             );
             if (
                 openingFraming.zoom !== 1 ||
@@ -9274,7 +9280,8 @@ async function smokeGuardianPacing(session, exceptions) {
                 openingFraming.bossScreenX > openingFraming.viewportWidth - 24
             ) {
                 throw new Error(
-                    `Reef guardian opened outside the playable view: ${JSON.stringify(openingFraming)}`
+                    `${sceneName} guardian opened outside the playable view: ` +
+                    JSON.stringify(openingFraming)
                 );
             }
         }

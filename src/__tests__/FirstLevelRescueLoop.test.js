@@ -694,6 +694,7 @@ describe('first expedition rescue loop', () => {
         expect(gameSource).toContain("urlParams.get('testAttack')");
         expect(gameSource).toContain('platformerPreviewSize:');
         expect(gameSource).toContain("urlParams.get('previewSize') === 'mobile'");
+        expect(gameSource).toContain("crystal: 'CrystalCavesLevel'");
         expect(hatchingSource).toMatch(
             /if \(\s*isLocalPreview &&\s*\([\s\S]*previewParams\.has\('testBoss'\)/
         );
