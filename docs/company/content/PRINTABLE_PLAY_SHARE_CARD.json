@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-14",
+  "state": "printable_share_card_built_and_visually_verified",
+  "purpose": "Help an adult share the playable Mythical Void browser game in person without a social account, contact form, mailing list or tracking link.",
+  "artifact": {
+    "path": "output/pdf/mythical-void-play-share-card.pdf",
+    "format": "A4 portrait PDF",
+    "pages": 1,
+    "playUrl": "https://mythicalvoid.com/",
+    "trackingParameters": false,
+    "qrCodeRenderDecodedToPlayUrl": true,
+    "realGameplayShown": true,
+    "generatedArtworkShown": true,
+    "generatedArtworkDisclosureShown": true,
+    "nasaEndorsementDisclaimerShown": true
+  },
+  "intendedUse": [
+    "adult-to-adult sharing",
+    "family play invitation",
+    "adult educator or club review",
+    "adult-led event handout"
+  ],
+  "notFor": [
+    "unsupervised child recruitment",
+    "collection of names or contact details",
+    "paid print run without approval",
+    "claiming generated artwork is gameplay",
+    "implying NASA endorsement"
+  ],
+  "authority": {
+    "kevinMayPrintOrShareDirectly": true,
+    "autonomousExternalDistributionByStudioAuthorized": false,
+    "paidPrintingAuthorized": false,
+    "websitePublicationAuthorized": false,
+    "schoolOrClubPartnershipClaimAuthorized": false,
+    "childContactAuthorized": false
+  },
+  "qualityEvidence": {
+    "pdfStructuralValidationPassed": true,
+    "latestRenderInspected": true,
+    "visibleClippingOrOverlapFound": false,
+    "qrDecodedFromRenderedPage": "https://mythicalvoid.com/"
+  }
+}

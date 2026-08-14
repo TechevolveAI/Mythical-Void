@@ -44,6 +44,8 @@
     "record:search-console": "node scripts/company/record-search-console-evidence.cjs",
     "validate:search-console": "node scripts/company/validate-search-console-connection.cjs",
     "test:search-console": "node scripts/company/test-search-console-connection.cjs",
+    "build:play-share-card": "python3 scripts/company/build-printable-play-share-card.py",
+    "validate:play-share-card": "python3 scripts/company/validate-printable-play-share-card.py",
     "record:family-play": "node scripts/company/record-family-play-observation.cjs",
     "validate:family-play": "node scripts/company/validate-family-play-observations.cjs",
     "test:family-play": "node scripts/company/test-family-play-observations.cjs",

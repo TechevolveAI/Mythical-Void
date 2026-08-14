@@ -26,9 +26,10 @@ const paths = {
     registry: process.argv[18] ? path.resolve(process.argv[18]) : defaultPaths.registry,
     searchConsole: process.argv[19] ? path.resolve(process.argv[19]) : defaultPaths.searchConsole,
     familyPlay: process.argv[20] ? path.resolve(process.argv[20]) : defaultPaths.familyPlay,
-    dashboard: process.argv[21] ? path.resolve(process.argv[21]) : dashboardDefault
+    playShare: process.argv[21] ? path.resolve(process.argv[21]) : defaultPaths.playShare,
+    dashboard: process.argv[22] ? path.resolve(process.argv[22]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry', 'searchConsole', 'familyPlay'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry', 'searchConsole', 'familyPlay', 'playShare'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -151,6 +152,11 @@ requireValue(values.searchConsole.authority?.dnsChangeByStudioAuthorized === fal
 requireValue(validateFamilyPlayRegister(values.familyPlay).length === 0, 'Family play observation register must pass its privacy and authority checks.');
 requireValue(values.familyPlay.evidenceBoundary?.customerEvidence === false && values.familyPlay.evidenceBoundary?.independentResearch === false, 'Family play observations must remain separate from customer evidence and independent research.');
 requireValue(values.familyPlay.authority?.publicIntakeAuthorized === false && values.familyPlay.authority?.directMinorContactAuthorized === false && values.familyPlay.authority?.publicationAuthorized === false, 'Family play observations must not open public intake, direct minor contact or publication.');
+
+requireValue(values.playShare.state === 'printable_share_card_built_and_visually_verified', 'Printable play share card must retain its built and visually verified state.');
+requireValue(values.playShare.artifact?.playUrl === 'https://mythicalvoid.com/' && values.playShare.artifact?.trackingParameters === false && values.playShare.artifact?.qrCodeRenderDecodedToPlayUrl === true, 'Printable play share card must retain its clean, decoded play URL.');
+requireValue(values.playShare.artifact?.realGameplayShown === true && values.playShare.artifact?.generatedArtworkDisclosureShown === true && values.playShare.artifact?.nasaEndorsementDisclaimerShown === true, 'Printable play share card must retain its gameplay, generated-art and NASA boundaries.');
+requireValue(values.playShare.authority?.kevinMayPrintOrShareDirectly === true && values.playShare.authority?.autonomousExternalDistributionByStudioAuthorized === false && values.playShare.authority?.paidPrintingAuthorized === false && values.playShare.authority?.websitePublicationAuthorized === false && values.playShare.authority?.childContactAuthorized === false, 'Printable play share card must stay Kevin-directed and closed to autonomous distribution, paid printing, website publication and child contact.');
 
 requireValue(values.founderStory.state === 'article_and_pitch_prepared_waiting_for_kevin_and_first_wave_learning', 'Founder story must remain prepared and waiting for Kevin.');
 requireValue(values.founderStory.target?.candidateRef === 'RC-007', 'Founder story must retain its reviewed Irish Tech News target.');
