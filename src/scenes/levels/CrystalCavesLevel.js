@@ -329,6 +329,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.player.setPosition(this.levelWidth - 900, this.levelHeight - 200);
         }
 
+        this.showPlatformerMobileControls();
+
         this.time.delayedCall(300, () => {
             this.crystalCoreFound = true;
             this.startBossFight();

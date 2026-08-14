@@ -315,6 +315,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
             );
         }
 
+        this.showPlatformerMobileControls();
+
         this.time.delayedCall(500, () => this.startBossFight());
 
         if (this.highPowerPreview) {

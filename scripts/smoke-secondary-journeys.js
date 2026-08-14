@@ -2440,11 +2440,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 scene?.levelStarted ||
                 scene?.gameStarted
             ),
-            mobileControls: Boolean(
-                scene?.mobileControls ||
-                scene?.platformerMobileControls ||
-                scene?.mobileControlElements?.length
-            ),
+            mobileControls: scene?.platformerControlsVisible === true,
             interactiveCount: scene?.input?._list?.length || 0,
             displayCount: scene?.children?.list?.length || 0,
             enemyCount: scene?.enemies?.getChildren?.()
@@ -2771,6 +2767,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     }
     if (!state.entryAccepted) {
         throw new Error(`${sceneName} did not accept entry input: ${JSON.stringify(state)}`);
+    }
+    if (!state.mobileControls) {
+        throw new Error(`${sceneName} entered gameplay without touch controls: ${JSON.stringify(state)}`);
     }
     if (!state.canvasWidth || !state.canvasHeight) {
         throw new Error(`${sceneName} rendered a blank-sized canvas`);
