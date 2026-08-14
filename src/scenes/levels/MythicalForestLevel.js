@@ -127,6 +127,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestBridgeLayer = null;
         this.forestEnemyTrailLayer = null;
         this.forestEnemyTrailTimer = null;
+        this.forestArenaAmbientLayer = null;
+        this.forestArenaAmbientTimer = null;
         this.forestEnemyAISchedulerActive = false;
         this.forestEnemyAICursor = 0;
         this.forestEnemyMotionNextAt = 0;
@@ -248,6 +250,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestBridgeLayer = null;
         this.forestEnemyTrailLayer = null;
         this.forestEnemyTrailTimer = null;
+        this.forestArenaAmbientLayer = null;
+        this.forestArenaAmbientTimer = null;
         this.forestEnemyAISchedulerActive = false;
         this.forestEnemyAICursor = 0;
         this.forestEnemyMotionNextAt = 0;
@@ -1251,7 +1255,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
         console.log('[MythicalForestLevel] Level content created!');
     }
 
+    shouldAnimateForestDecorations() {
+        const width = Number(this.cameras?.main?.width) || 0;
+        const height = Number(this.cameras?.main?.height) || 0;
+        return !(this.isMobile || width <= 480 || height < 620);
+    }
+
     createBeaconCheckpoints() {
+        const animateRouteDecorations = this.shouldAnimateForestDecorations();
         const groundY = this.levelHeight - 100;
         const anchors = [
             {
@@ -1313,7 +1324,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 landingGuide: this.createTraversalLandingGuide(
                     supportId,
                     0x8FE3CF,
-                    { depth: 84 }
+                    { depth: 84, animate: animateRouteDecorations }
                 ),
                 activated: false,
                 respawnY: supportCheckpoint.y
@@ -1682,15 +1693,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 );
             }
         });
-        this.tweens.add({
-            targets: moteLayer,
-            y: { from: 8, to: -16 },
-            alpha: { from: 0.35, to: 0.75 },
-            duration: 1800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (this.shouldAnimateForestDecorations()) {
+            this.tweens.add({
+                targets: moteLayer,
+                y: { from: 8, to: -16 },
+                alpha: { from: 0.35, to: 0.75 },
+                duration: 1800,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        } else {
+            moteLayer.setPosition(0, -4).setAlpha(0.58);
+        }
     }
 
     /**
@@ -3015,16 +3030,21 @@ class MythicalForestLevel extends PlatformerLevelScene {
         sprite.setDepth(140);
         sprite.optionalRouteId = optionalRouteId;
 
-        // Rotation drives the bob as well, halving the persistent tween count.
-        this.tweens.add({
-            targets: sprite,
-            angle: 360,
-            duration: 3000,
-            repeat: -1,
-            onUpdate: tween => {
-                sprite.y = y - Math.sin(tween.progress * Math.PI) * 8;
-            }
-        });
+        // Keep collectible silhouettes strong on compact screens without five
+        // permanent transforms competing with movement and enemy updates.
+        if (this.shouldAnimateForestDecorations()) {
+            this.tweens.add({
+                targets: sprite,
+                angle: 360,
+                duration: 3000,
+                repeat: -1,
+                onUpdate: tween => {
+                    sprite.y = y - Math.sin(tween.progress * Math.PI) * 8;
+                }
+            });
+        } else {
+            sprite.setAngle(index * 18);
+        }
 
         // Sparkle particles around it
         if (!this.isMobile) {
@@ -3608,30 +3628,46 @@ class MythicalForestLevel extends PlatformerLevelScene {
             });
         }
 
-        // Add atmospheric particles in arena
-        this.time.addEvent({
-            delay: 200,
-            callback: () => {
-                if (!this.scene.isActive()) return;
-                const particle = this.add.graphics();
-                particle.fillStyle(0x9370DB, 0.4);
-                particle.fillCircle(0, 0, 2 + Math.random() * 2);
-                particle.setPosition(
-                    arenaX + Math.random() * arenaWidth,
-                    groundY - 10 - Math.random() * 50
-                );
-                particle.setDepth(9);
+        // The arena is several screens away at spawn. Phones keep one batched
+        // field instead of allocating and destroying offscreen particles for
+        // the whole expedition; desktop retains the moving treatment.
+        if (this.shouldAnimateForestDecorations()) {
+            this.forestArenaAmbientTimer = this.time.addEvent({
+                delay: 200,
+                callback: () => {
+                    if (!this.scene.isActive()) return;
+                    const particle = this.add.graphics();
+                    particle.forestArenaAmbientParticle = true;
+                    particle.fillStyle(0x9370DB, 0.4);
+                    particle.fillCircle(0, 0, 2 + Math.random() * 2);
+                    particle.setPosition(
+                        arenaX + Math.random() * arenaWidth,
+                        groundY - 10 - Math.random() * 50
+                    );
+                    particle.setDepth(9);
 
-                this.tweens.add({
-                    targets: particle,
-                    y: particle.y - 60,
-                    alpha: 0,
-                    duration: 1500,
-                    onComplete: () => particle.destroy()
-                });
-            },
-            loop: true
-        });
+                    this.tweens.add({
+                        targets: particle,
+                        y: particle.y - 60,
+                        alpha: 0,
+                        duration: 1500,
+                        onComplete: () => particle.destroy()
+                    });
+                },
+                loop: true
+            });
+        } else {
+            const ambient = this.add.graphics().setDepth(9).setAlpha(0.68);
+            for (let index = 0; index < 16; index += 1) {
+                ambient.fillStyle(0x9370DB, 0.22 + (index % 3) * 0.07);
+                ambient.fillCircle(
+                    arenaX + 52 + index * 88,
+                    groundY - 18 - (index % 4) * 13,
+                    2 + (index % 2)
+                );
+            }
+            this.forestArenaAmbientLayer = ambient;
+        }
     }
 
     /**
@@ -5113,13 +5149,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestFoliageLayer = null;
         this.forestEnemyTrailTimer?.remove?.();
         this.forestEnemyTrailTimer = null;
+        this.forestArenaAmbientTimer?.remove?.();
+        this.forestArenaAmbientTimer = null;
         [
             'forestGroundLayer',
             'forestVoidLayer',
             'forestVoidMoteLayer',
             'forestTreeStructureLayer',
             'forestBridgeLayer',
-            'forestEnemyTrailLayer'
+            'forestEnemyTrailLayer',
+            'forestArenaAmbientLayer'
         ].forEach(property => {
             this.tweens?.killTweensOf?.(this[property]);
             this[property]?.destroy?.();

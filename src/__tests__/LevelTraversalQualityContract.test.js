@@ -841,6 +841,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).not.toContain('{ x: 700, y: this.levelHeight - 150 }');
         expect(source).toContain('this.forestFoliageLayer.setAlpha(0.82);');
         expect(source).toContain('layer.fillStyle(color, this.isMobile ? 0.72 : 0.6);');
+        expect(source).toContain('shouldAnimateForestDecorations()');
+        expect(source).toContain('{ depth: 84, animate: animateRouteDecorations }');
+        expect(source).toContain('sprite.setAngle(index * 18);');
+        expect(source).toContain('this.forestArenaAmbientLayer = ambient;');
+        expect(source).toContain('this.forestArenaAmbientTimer = this.time.addEvent({');
+        expect(source).toContain("'forestArenaAmbientLayer'");
         expect(source).toMatch(
             /ensureForestCoinLayer\(\)[\s\S]*if \(!this\.isMobile\) \{[\s\S]*this\.forestCoinLayerTween/
         );
@@ -2608,6 +2614,18 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('unsupportedGroundEnemyIds');
         expect(smoke).toContain('groundEnemySupportIds');
         expect(smoke).toContain('state.forestEnemyRuntime?.airborneMotionTweenCount !== 0');
+        expect(smoke).toContain(
+            'state.forestDecorationRendering?.starFragmentTweenCount !== 0'
+        );
+        expect(smoke).toContain(
+            'state.forestDecorationRendering?.landingGuideTweenCount !== 0'
+        );
+        expect(smoke).toContain(
+            'state.forestDecorationRendering?.arenaParticleTweenCount !== 0'
+        );
+        expect(smoke).toContain(
+            'state.forestDecorationRendering?.arenaAmbientLayerCount !== 1'
+        );
         expect(smoke).toContain('smokeForestSharedEnemyScheduler(session)');
         expect(smoke).toContain('Forest shared enemy scheduler did not advance patrol AI');
         expect(smoke).toContain('Forest grouped coin did not resolve exactly once');
