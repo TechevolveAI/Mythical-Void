@@ -5,9 +5,15 @@
   "publicUrl": "https://mythicalvoid.com/updates/",
   "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/85",
   "productionCommit": "b319c1f9bbec7becbbfdd25256bf503477f2a18b",
-  "verifiedAt": "2026-08-14T22:20:00Z",
+  "verifiedAt": "2026-08-14T21:30:35Z",
   "purpose": "Give players, families, creators and search engines one plain-language source for meaningful Mythical Void releases, with a working destination for every note.",
   "liveEntries": [
+    {
+      "id": "SIGNAL-004",
+      "title": "Share the game from the first screen",
+      "destination": "https://mythicalvoid.com/",
+      "destinationStatusObserved": 200
+    },
     {
       "id": "SIGNAL-003",
       "title": "Project Beacon artwork is ready to share",
@@ -42,8 +48,8 @@
     "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/86",
     "productionCommit": "bddd9b29d40c1b7f8798575219b0eacc6574a004",
     "generatedPack": "docs/company/content/generated/signal-log-release-pack.json",
-    "sourceEntryCount": 3,
-    "reviewDraftCount": 9,
+    "sourceEntryCount": 4,
+    "reviewDraftCount": 12,
     "draftTypesPerEntry": [
       "professional network post",
       "video community text post",
@@ -83,6 +89,28 @@
     },
     "autonomousSocialPostingAuthorized": false,
     "kevinApprovalRequiredBeforePosting": true,
+    "externalActionPerformed": false
+  },
+  "homepageSharingRelease": {
+    "state": "published_to_owned_homepage_and_live_verified",
+    "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/88",
+    "productionCommit": "ffa91dd37b9c8b364720e79e28fc82cef51f79c0",
+    "publicUrl": "https://mythicalvoid.com/",
+    "shareActionCount": 2,
+    "firstScreenShareAction": true,
+    "deviceShareUsedWhenAvailable": true,
+    "cleanCopyFallbackUrl": "https://mythicalvoid.com/",
+    "trackingParametersPermitted": false,
+    "recipientOrContactCollectionEnabled": false,
+    "visualReview": {
+      "desktopPassed": true,
+      "phoneWidth": 390,
+      "phonePassed": true,
+      "horizontalOverflowObserved": false,
+      "browserWarningsOrErrorsObserved": false
+    },
+    "fullTestSuitesPassed": 169,
+    "fullTestsPassed": 1441,
     "externalActionPerformed": false
   },
   "boundaries": {
