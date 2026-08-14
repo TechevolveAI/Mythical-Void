@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-14T13:54:27.586Z",
-  "sourceCommit": "24ea30df367a20df762b237a4989604b35734435",
-  "sourceBranch": "codex/living-creature-portraits",
+  "asOf": "2026-08-14T13:55:57.609Z",
+  "sourceCommit": "ef195f7762feacf72a0aee2c3778b52dcddcd2d7",
+  "sourceBranch": "codex/logo-production",
   "sourceRoute": "/play/",
   "captureMethod": "Automated first-party browser journeys using a clean invented QA state.",
   "captureSourcePolicy": "The top-level sourceCommit records the build that last updated this manifest. Each capture has its own sourceCommit, which remains unchanged during partial recaptures.",
   "captureSourceCommits": [
     "cf0f9c2409b5915a0177f65b287f539932352021",
-    "24ea30df367a20df762b237a4989604b35734435"
+    "ef195f7762feacf72a0aee2c3778b52dcddcd2d7"
   ],
   "rights": "First-party Mythical Void game capture. Any embedded public NASA material retains the exact source and credit recorded on its capture.",
   "privacy": "No player name, child identity, account, message, notification or personal save data is used.",
@@ -162,13 +162,13 @@
       "id": "GP-012",
       "filename": "nasa-apollo11-real-space-discovery.png",
       "publicPath": "/press/gameplay/nasa-apollo11-real-space-discovery.png",
-      "sha256": "1f841ccf802fa335868a6d326f56f1175186ef5de6affc390e93cd408c6b1957",
-      "bytes": 154923,
+      "sha256": "1546a49dcb8bea36ae0c761e7a48ee6a699c4de59789756b7fb08ae80af90682",
+      "bytes": 154919,
       "width": 390,
       "height": 844,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
-      "sourceCommit": "24ea30df367a20df762b237a4989604b35734435",
+      "sourceCommit": "ef195f7762feacf72a0aee2c3778b52dcddcd2d7",
       "disclosure": "Captured from the real Mythical Void browser game. The in-game panel contains a credited NASA Apollo 11 image and clearly separates real space material from the creature’s imagined reaction.",
       "embeddedSource": {
         "name": "NASA Astronomy Picture of the Day — Apollo 11 Landing Panorama",
