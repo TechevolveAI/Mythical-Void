@@ -174,10 +174,14 @@ try {
     trackedHomepageShare.homepageSharingRelease.trackingParametersPermitted = true;
     if (run('tracked-homepage-share', { signalLog: trackedHomepageShare }).status === 0) throw new Error('A tracked homepage sharing action was accepted.');
 
+    const hiddenPreviewLimitation = structuredClone(sources.signalLog);
+    hiddenPreviewLimitation.socialPreviewRelease.knownPressRoomStaticPreviewLimitationRecorded = false;
+    if (run('hidden-preview-limitation', { signalLog: hiddenPreviewLimitation }).status === 0) throw new Error('A hidden press-room social-preview limitation was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 25 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 26 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }
