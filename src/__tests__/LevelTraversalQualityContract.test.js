@@ -791,8 +791,20 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("const maxFloraFields = this.performanceTier === 'mobile' ? 1 : 3;");
         expect(source).toContain("type: 'starField'");
         expect(source).toContain("type: 'floraField'");
+        expect(source).toContain('shouldAnimateAmbientFields()');
+        expect(source).toContain("return this.performanceTier !== 'mobile'");
+        expect(source).toContain('layer.animate && this.shouldAnimateAmbientFields()');
+        expect(source).toContain('this.config.effects.enableTwinkling &&');
+        expect(source).toContain('this.config.effects.enableGentleFloat &&');
         expect(source).toContain("Mobile tier skips post shader");
         expect(source).toContain('this.scene?.tweens?.killTweensOf?.(layer.object);');
+
+        const smokeSource = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        expect(smokeSource).toContain('sharedAmbientFieldTweenCount');
+        expect(smokeSource).toContain("framePacing.performanceTier === 'mobile'");
     });
 
     test('Crystal Caves stages the objective and guardian in forward order', () => {
