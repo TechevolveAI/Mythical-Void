@@ -2264,12 +2264,30 @@ describe('campaign traversal quality contracts', () => {
 
     test('Stellar Reef visibly links its spawn to the first drift signal', () => {
         const source = read('levels/ReefLevel.js');
+        const shared = read('PlatformerLevelScene.js');
 
         expect(source).toContain('this.createOpeningSignalCurrent();');
         expect(source).toContain('DRIFT SIGNAL 01  →');
+        expect(source).toContain('x: 335');
+        expect(source).toContain('[departureCue.x, departureCue.y]');
+        expect(source).toContain('const isMobile = this.isMobile || (');
+        expect(source).toContain('JOYSTICK MOVES + DIVES');
+        expect(source).toContain('↑ BUTTON SWIMS UP');
         expect(source).toContain('visual.lineTo(destinationX, destinationY);');
         expect(source).toContain('this.retireOpeningSignalCurrent();');
         expect(source).toContain("current.label?.setText?.('DRIFT SIGNAL LINKED')");
+        expect(shared).toContain("supportId: 'reef-opening-3'");
+        expect(shared).toContain('this.getTraversalSupportCheckpoint?.(');
+        expect(shared).toContain('supportTop + 5');
+
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        expect(smoke).toContain('currentEcologyPlacement');
+        expect(smoke).toContain("supportId !== 'reef-opening-3'");
+        expect(smoke).toContain('spawnDistance < 450');
+        expect(smoke).toContain('departureCueX > 360');
     });
 
     test('Stellar Reef binds every required waypoint to a distinct relay support', () => {

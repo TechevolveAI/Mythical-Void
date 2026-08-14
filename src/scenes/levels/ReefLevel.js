@@ -467,10 +467,12 @@ class ReefLevel extends PlatformerLevelScene {
         }).setScrollFactor(0).setDepth(3002);
 
         // Controls hint - mobile-aware
-        const isMobile = 'ontouchstart' in window && window.innerWidth < 768;
+        const isMobile = this.isMobile || (
+            'ontouchstart' in window && window.innerWidth < 768
+        );
         const controlsHint = this.add.text(width / 2, y(420),
             isMobile
-                ? 'STEER IN ANY DIRECTION\nJUMP also swims upward'
+                ? 'JOYSTICK MOVES + DIVES\n↑ BUTTON SWIMS UP'
                 : 'ARROWS / WASD TO SWIM // SPACE ASCENDS', {
             fontSize: isMobile ? font(13, 12) : font(11, 10),
             color: '#9370DB',
@@ -1438,6 +1440,10 @@ class ReefLevel extends PlatformerLevelScene {
         const firstWaypoint = this.beaconAnchors[0];
         const destinationX = firstWaypoint?.x || 1250;
         const destinationY = firstWaypoint?.y || 700;
+        const departureCue = {
+            x: 335,
+            y: this.levelHeight - 300
+        };
         const visual = this.add.graphics().setDepth(114);
         visual.lineStyle(5, 0x8FE3CF, 0.58);
         visual.beginPath();
@@ -1450,6 +1456,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         visual.fillStyle(0xF2C94C, 0.92);
         [
+            [departureCue.x, departureCue.y],
             [430, this.levelHeight - 338],
             [690, this.levelHeight - 465],
             [950, this.levelHeight - 520],
@@ -1479,7 +1486,13 @@ class ReefLevel extends PlatformerLevelScene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
-        this.openingSignalCurrent = { visual, label, pulseTween, retired: false };
+        this.openingSignalCurrent = {
+            visual,
+            label,
+            pulseTween,
+            departureCue,
+            retired: false
+        };
     }
 
     retireOpeningSignalCurrent() {
