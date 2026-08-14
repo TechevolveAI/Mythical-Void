@@ -932,6 +932,21 @@ describe('campaign traversal quality contracts', () => {
     test('Aurora Depths rewards the Quiet Light route at the guardian', () => {
         const source = read('levels/AuroraDepthsLevel.js');
 
+        expect(source).toContain('const AURORA_ENCOUNTER_PLAN = Object.freeze([');
+        expect(source).toContain("beat: 'opening-clear'");
+        expect(source).toContain("beat: 'shadow-current-entry'");
+        expect(source).toContain("beat: 'phoenix-overlook-armor'");
+        expect(source).toContain("supportId: 'aurora-opening-step'");
+        expect(source).toContain("supportId: 'aurora-ground-3'");
+        expect(source).toContain("supportId: 'aurora-phoenix-overlook'");
+        expect(source).toContain("lane: 'main'");
+        expect(source).not.toContain("lane: 'optional'");
+        expect(source).toContain('enemy.encounterBeat = encounter.beat;');
+        expect(source).toContain('enemy.encounterLane = encounter.lane;');
+        expect(source).toContain('enemy.encounterSupportId = encounter.supportId;');
+        expect(source).toContain('retireAuroraPatrolsForPhoenix()');
+        expect(source).toContain('enemy?.combatCue?.destroy?.();');
+        expect(source).toContain('this.retireAuroraPatrolsForPhoenix();');
         expect(source).toContain('const quietLightRoute = [');
         expect(source).toContain("'aurora-heart-launch'");
         expect(source).toContain("'aurora-quiet-step-1'");
@@ -946,10 +961,10 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('optional: true');
         expect(source).toContain("mainLabel: 'SHADOW CURRENT →'");
         expect(source).toContain(
-            "mainTradeoff: 'DIRECT // NEXT PHOENIX HIT +2'"
+            "mainTradeoff: 'SHORTER // PHOENIX HITS HARDER + GUARDS'"
         );
         expect(source).toContain(
-            "challengeLabel: 'HIGH JUMPS + CURRENT SHELTER'"
+            "challengeLabel: 'HIGH JUMPS // SHELTER + FEWER GUARDS'"
         );
         expect(source).toContain("id: 'aurora_quiet_light'");
         expect(source).toContain("rewardLabel: 'QUIET LIGHT WARD // 1 HIT'");
@@ -1089,8 +1104,8 @@ describe('campaign traversal quality contracts', () => {
             'levels/AuroraDepthsLevel.js',
             "id: 'aurora_quiet_light'",
             "mainLabel: 'SHADOW CURRENT →'",
-            "mainTradeoff: 'DIRECT // NEXT PHOENIX HIT +2'",
-            "challengeLabel: 'HIGH JUMPS + CURRENT SHELTER'"
+            "mainTradeoff: 'SHORTER // PHOENIX HITS HARDER + GUARDS'",
+            "challengeLabel: 'HIGH JUMPS // SHELTER + FEWER GUARDS'"
         ],
         [
             'levels/FinalVoidLevel.js',
@@ -1352,17 +1367,28 @@ describe('campaign traversal quality contracts', () => {
     });
 
     test.each([
-        ['levels/AuroraDepthsLevel.js', 'createAuroraSentinels', 'auroraSentinel'],
-        ['levels/FinalVoidLevel.js', 'createVoidEchoSentinels', 'voidEchoSentinel']
+        [
+            'levels/AuroraDepthsLevel.js',
+            'createAuroraSentinels',
+            'auroraSentinel',
+            'const encounters = AURORA_ENCOUNTER_PLAN.map('
+        ],
+        [
+            'levels/FinalVoidLevel.js',
+            'createVoidEchoSentinels',
+            'voidEchoSentinel',
+            'const encounters = ['
+        ]
     ])('%s has authored combat between its route signals', (
         relativePath,
         factoryName,
-        enemyType
+        enemyType,
+        encounterDeclaration
     ) => {
         const source = read(relativePath);
 
         expect(source).toContain(`this.${factoryName}();`);
-        expect(source).toContain('const encounters = [');
+        expect(source).toContain(encounterDeclaration);
         expect(source).toContain(`enemyType: '${enemyType}'`);
         expect(source).toContain('health: 1');
         expect(source).toContain('health: 2');

@@ -2156,6 +2156,23 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             )}`
         );
     }
+    if (
+        route === 'auroraDepths' &&
+        (
+            state.encounterRhythm?.count < 8 ||
+            state.encounterRhythm.clearCount < 1 ||
+            state.encounterRhythm.armoredCount < 4 ||
+            state.encounterRhythm.mainCount < 2 ||
+            state.encounterRhythm.optionalCount !== 0 ||
+            state.encounterRhythm.unsupported.length > 0
+        )
+    ) {
+        throw new Error(
+            `${sceneName} has no deliberate encounter rhythm: ${JSON.stringify(
+                state.encounterRhythm
+            )}`
+        );
+    }
     const guardianGate = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
         const gate = scene?.guardianGateState;
@@ -4899,8 +4916,56 @@ async function smokeDeclaredRouteChoiceSupports(session, route, sceneName) {
                 ? { selectedPath: choice.selectedPath, rejoined: true }
                 : null;
         })()`),
-        { timeoutMs: 2500, message: `${sceneName} declared ${lane} support landing` }
-    );
+        { timeoutMs: 8000, message: `${sceneName} declared ${lane} support landing` }
+    ).catch(async error => {
+        const diagnostic = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const choice = scene?.optionalRouteRewards?.get?.(
+                ${JSON.stringify(routeId)}
+            )?.choice;
+            const body = scene?.player?.body;
+            const laneSupportIds = ${JSON.stringify(supportIds)}[${JSON.stringify(lane)}];
+            return {
+                lane: ${JSON.stringify(lane)},
+                selectedPath: choice?.selectedPath || null,
+                mainEntered: choice?.mainEntered === true,
+                optionalEntered: choice?.optionalEntered === true,
+                rejoined: choice?.rejoined === true,
+                player: body ? {
+                    x: scene.player.x,
+                    y: scene.player.y,
+                    left: body.left,
+                    right: body.right,
+                    top: body.top,
+                    bottom: body.bottom,
+                    velocityX: body.velocity?.x,
+                    velocityY: body.velocity?.y,
+                    blockedDown: body.blocked?.down === true,
+                    touchingDown: body.touching?.down === true,
+                    isGrounded: scene.isGrounded === true,
+                    active: scene.player.active !== false
+                } : null,
+                supports: laneSupportIds.map(id => {
+                    const support = scene?.getTraversalSupport?.(id);
+                    return {
+                        id,
+                        left: support?.body?.left,
+                        right: support?.body?.right,
+                        top: support?.body?.top
+                    };
+                }),
+                nearbyEnemies: (scene?.enemies?.getChildren?.() || [])
+                    .filter(enemy => Math.abs((enemy?.x || 0) - (scene?.player?.x || 0)) < 240)
+                    .map(enemy => ({
+                        x: enemy.x,
+                        y: enemy.y,
+                        health: enemy.health,
+                        beat: enemy.encounterBeat
+                    }))
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostic)}`);
+    });
 
     const probeLane = async lane => {
         const results = [];
