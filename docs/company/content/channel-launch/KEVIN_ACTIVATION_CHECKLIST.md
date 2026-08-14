@@ -20,9 +20,11 @@ Everything that can be prepared without account access is ready. You only need t
 1. From Kevin’s real LinkedIn profile, choose **For Business → Create a Company Page → Company**.
 2. Call the page **Mythical Void** and try `mythical-void` as the public address. If it is unavailable, try `play-mythical-void`.
 3. Use **Computer Games** as the industry and the smallest truthful company-size option.
-4. Paste the prepared tagline and About section from [`channel-activation-pack.json`](channel-activation-pack.json).
-5. Turn on multi-factor authentication. Kevin remains the first super admin; add future helpers using LinkedIn roles, never a shared password.
-6. Send back the exact page link. Five finished visual posts, captions, alt text and disclosures are ready but remain unpublished.
+4. Review and upload the finished 400 × 400 logo and 4200 × 700 cover from [`LINKEDIN_PAGE_HANDOFF.md`](LINKEDIN_PAGE_HANDOFF.md).
+5. Paste the prepared tagline and About section from [`channel-activation-pack.json`](channel-activation-pack.json).
+6. Keep Page messaging and posts off until the Page link is returned and a named adult review route exists.
+7. Turn on multi-factor authentication. Kevin remains the first super admin; add future helpers using LinkedIn roles, never a shared password.
+8. Send back the exact page link. Six finished posts, captions and disclosures are ready but remain unpublished.
 
 LinkedIn says a Company Page is free. Creating these pages does not require another Google Workspace subscription: YouTube can use an existing Google account, and LinkedIn uses Kevin’s existing personal profile to create the separate company page.
 

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "LINKEDIN-PAGE-KIT-2026-08-14",
+  "state": "ready_for_kevin_visual_check_and_page_creation",
+  "channelRef": "CH-004",
+  "builtAt": "2026-08-14T19:35:23Z",
+  "assets": {
+    "logo": {
+      "path": "public/marketing/channel-kit/linkedin/linkedin-page-logo-v1.png",
+      "width": 400,
+      "height": 400,
+      "bytes": 81902,
+      "sha256": "52744987aa01207ce1eb1b0b2a7fee7b7deb28b65c291d89c4a495b072719dc9"
+    },
+    "cover": {
+      "path": "public/marketing/channel-kit/linkedin/linkedin-page-cover-v1.jpg",
+      "width": 4200,
+      "height": 700,
+      "bytes": 561724,
+      "sha256": "4a7d84bd089c666779e4523c9dbea239e8f75fed80dff65457208957db3064a1",
+      "centralDetailArea": {
+        "x": 900,
+        "y": 90,
+        "width": 2400,
+        "height": 520
+      }
+    }
+  },
+  "wording": {
+    "pageName": "Mythical Void",
+    "coverPromise": "SMALL STUDIO. STRANGE WORLDS. CAREFUL AI.",
+    "coverAction": "PLAY FREE • MYTHICALVOID.COM"
+  },
+  "artworkDisclosure": "AI-generated Mythical Void company-page artwork, directed and assembled by the studio from the approved creature-universe visual language; not gameplay footage.",
+  "visualSource": "public/marketing/channel-kit/youtube/youtube-channel-banner-background-v1.png",
+  "sourceRules": [
+    "https://www.linkedin.com/help/linkedin/answer/a563309",
+    "https://www.linkedin.com/help/linkedin/answer/a543852/create-a-linkedin-page?lang=en",
+    "https://www.linkedin.com/help/linkedin/answer/a550647/linkedin-page-admin-roles-permissions?lang=en"
+  ],
+  "authority": {
+    "pageCreationAuthorized": false,
+    "assetUploadAuthorized": false,
+    "postPublicationAuthorized": false,
+    "pageMessagingAuthorized": false,
+    "commentReplyingAuthorized": false,
+    "paidPromotionAuthorized": false
+  },
+  "approval": {
+    "kevinVisualApprovalRequired": true,
+    "approvedAt": null,
+    "pageUrl": null
+  }
+}

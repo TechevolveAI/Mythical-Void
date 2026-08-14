@@ -161,7 +161,7 @@
       ],
       "publicUrlAvailabilityVerified": false,
       "tagline": "An independent Irish studio building a browser creature adventure with imagination, responsible AI and real space discovery.",
-      "about": "Mythical Void began at home with a father, his nine-year-old son and a question: what could generative AI tools and a lot of imagination make possible?\n\nThose conversations grew into strange creatures, living realms and a free browser adventure. Players hatch a creature, restore worlds affected by the Void and make choices about Project Beacon. Optional NASA-powered discoveries connect the fictional journey to real space.\n\nWe are building the studio in the same spirit: small, independent, ambitious and AI-first, while people remain responsible for the story, safety, evidence and important decisions.\n\nPlay now: https://mythicalvoid.com/\nPress room: https://mythicalvoid.com/press/",
+      "about": "Mythical Void began at home with a father, his nine-year-old son and a question: what could generative AI tools and a lot of imagination make possible?\n\nThose conversations grew into strange creatures, living realms and a free browser adventure. Players hatch a creature, restore worlds affected by the Void and make choices about Project Beacon. Optional NASA-powered discoveries connect the fictional journey to real space.\n\nWe are building the studio in the same spirit: small, independent, ambitious and AI-first, while people remain responsible for the story, safety, evidence and important decisions.\n\nPlay now: https://mythicalvoid.com/\nThe story: https://mythicalvoid.com/story/\nPress room: https://mythicalvoid.com/press/",
       "industry": "Computer Games",
       "companySizeChoice": "Use the smallest truthful option available",
       "organizationTypeChoice": "Privately Held if legally accurate; otherwise use the closest truthful available option",
@@ -171,6 +171,22 @@
         "futureAnalyst": null,
         "passwordSharingAllowed": false,
         "multiFactorAuthenticationRequired": true
+      },
+      "channelKit": {
+        "manifest": "public/marketing/channel-kit/linkedin/manifest.json",
+        "founderHandoff": "docs/company/content/channel-launch/LINKEDIN_PAGE_HANDOFF.md",
+        "logoAsset": "public/marketing/channel-kit/linkedin/linkedin-page-logo-v1.png",
+        "coverAsset": "public/marketing/channel-kit/linkedin/linkedin-page-cover-v1.jpg",
+        "artworkDisclosure": "AI-generated Mythical Void company-page artwork, directed and assembled by the studio from the approved creature-universe visual language; not gameplay footage.",
+        "kevinVisualApprovalRequired": true,
+        "uploadAuthorized": false
+      },
+      "engagementSetting": {
+        "pageMessagingBeforeAdultCoverage": "off",
+        "postsBeforeKevinApproval": "unpublished",
+        "privateRepliesToChildren": false,
+        "directMessagesAuthorized": false,
+        "namedAdultReviewCadenceRequired": true
       },
       "firstPosts": [
         {
@@ -261,6 +277,10 @@
     {
       "name": "LinkedIn Page creation",
       "url": "https://www.linkedin.com/help/linkedin/answer/a543852/create-a-linkedin-page?lang=en"
+    },
+    {
+      "name": "LinkedIn Page image specifications",
+      "url": "https://www.linkedin.com/help/linkedin/answer/a563309"
     },
     {
       "name": "LinkedIn Page admin roles",
