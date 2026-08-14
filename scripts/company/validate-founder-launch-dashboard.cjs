@@ -11,9 +11,14 @@ const paths = {
     activation: process.argv[4] ? path.resolve(process.argv[4]) : defaultPaths.activation,
     itch: process.argv[5] ? path.resolve(process.argv[5]) : defaultPaths.itch,
     launch: process.argv[6] ? path.resolve(process.argv[6]) : defaultPaths.launch,
-    dashboard: process.argv[7] ? path.resolve(process.argv[7]) : dashboardDefault
+    trailer: process.argv[7] ? path.resolve(process.argv[7]) : defaultPaths.trailer,
+    analytics: process.argv[8] ? path.resolve(process.argv[8]) : defaultPaths.analytics,
+    calendar: process.argv[9] ? path.resolve(process.argv[9]) : defaultPaths.calendar,
+    discovery: process.argv[10] ? path.resolve(process.argv[10]) : defaultPaths.discovery,
+    dashboard: process.argv[11] ? path.resolve(process.argv[11]) : dashboardDefault
 };
-const values = Object.fromEntries(['evidence', 'outreach', 'activation', 'itch', 'launch'].map(key => [key, readJson(paths[key])]));
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery'];
+const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
 const errors = [];
@@ -35,6 +40,8 @@ const youtube = values.activation.channels?.find(channel => channel.channelRef =
 const linkedin = values.activation.channels?.find(channel => channel.channelRef === 'CH-004');
 requireValue(youtube?.accountState === 'not_created_owner_confirmed', 'YouTube must remain recorded as not created.');
 requireValue(linkedin?.accountState === 'not_created_owner_confirmed', 'LinkedIn must remain recorded as not created.');
+requireValue(youtube?.firstUploads?.length === 6, 'The YouTube activation pack must retain six prepared upload items.');
+requireValue(linkedin?.firstPosts?.length === 5, 'The LinkedIn activation pack must retain five prepared posts.');
 
 requireValue(values.itch.state === 'internal_draft_not_submitted', 'The itch.io launch pack must remain an internal unsubmitted draft.');
 requireValue(values.itch.authority?.accountCreationAuthorized === false && values.itch.authority?.publicationAuthorized === false, 'Itch.io account creation and publication must remain unauthorized.');
@@ -45,8 +52,31 @@ requireValue(values.launch.asOf === values.evidence.checkedAt.slice(0, 10), 'Lau
 requireValue(ownedDiscoveryStage?.state === 'completed' && ownedDiscoveryStage?.ready === true, 'Owned discovery must be recorded as completed.');
 requireValue(ownedDiscoveryStage?.completedEvidenceRef === values.evidence.id, 'Owned discovery completion must cite the live evidence.');
 
+requireValue(values.trailer.releaseState === 'waiting_for_kevin_trailer_review', 'Trailer release must remain waiting for Kevin review.');
+requireValue(values.trailer.watchPagePrepared === true && values.trailer.productionPublished === false, 'The trailer page must be prepared but not recorded as published.');
+requireValue(values.trailer.searchIndexingEnabled === false && values.trailer.publicUploadDate === null, 'Unapproved trailer search indexing and upload dates must remain off.');
+
+requireValue(values.analytics.productionDeployed === true, 'The current consent-gated website tag must remain recorded as deployed.');
+requireValue(values.analytics.upgradeReleaseState === 'prepared_on_feature_branch_not_yet_deployed', 'The safer analytics upgrade must remain recorded as prepared but not deployed.');
+requireValue(values.analytics.trustedForCompanyReporting === false, 'Website analytics must remain untrusted for company reporting.');
+requireValue(values.analytics.tag?.includedRoutes?.length === 10, 'The analytics upgrade must retain its ten public routes.');
+requireValue(values.analytics.publicActions?.eventNames?.length === 5, 'The analytics upgrade must retain exactly five allowed public actions.');
+
+const calendarReleases = values.calendar.weeks?.flatMap(week => week.releases || []) || [];
+requireValue(values.calendar.state === 'prepared_waiting_for_official_channels', 'The four-week calendar must remain prepared and waiting for official channels.');
+requireValue(calendarReleases.filter(release => release.channel !== 'Internal review').length === 7, 'The calendar must retain seven outward release items.');
+requireValue(calendarReleases.filter(release => release.channel === 'Internal review').length === 1, 'The calendar must retain one internal review.');
+requireValue(calendarReleases.filter(release => release.channel !== 'Internal review').every(release => release.state === 'waiting_for_channel_and_kevin_approval'), 'Every outward calendar item must remain gated by channel creation and Kevin approval.');
+
+const storyPage = values.discovery.pages?.find(page => page.route === '/story/');
+requireValue(values.discovery.state === 'approved_for_owned_website_release' && Boolean(storyPage), 'The owned discovery release must include the prepared story page.');
+requireValue(!routeMap.has('/story/'), 'The prepared story page must not be described as part of the older production evidence.');
+
+const engagementTrack = values.launch.tracks?.find(track => track.id === 'LT-007');
+requireValue(engagementTrack?.status === 'blocked' && /safeguarding/i.test((engagementTrack.blockers || []).join(' ')), 'Public engagement must remain blocked until safeguarding and response ownership exist.');
+
 requireValue(dashboard === expectedDashboard, 'Founder dashboard is stale; rebuild it with build-founder-launch-dashboard.cjs.');
-requireValue(!/\bAI companions?\b/i.test(dashboard), 'Founder dashboard must use creature language.');
+requireValue(!/\bcompanions?\b/i.test(dashboard), 'Founder dashboard must use creature language.');
 requireValue(!/\bno two creatures (?:are )?alike\b|\bevery creature is unique\b/i.test(dashboard), 'Founder dashboard must not promise absolute uniqueness.');
 
 if (errors.length) {
@@ -55,4 +85,4 @@ if (errors.length) {
     process.exit(1);
 }
 
-console.log(`Founder launch dashboard valid: ${requiredRoutes.length} live routes, ${values.outreach.messages.length} unsent first-wave drafts, ${values.outreach.nextWave.length} later opportunities, no external action.`);
+console.log(`Founder launch command centre valid: ${requiredRoutes.length} verified live routes, trailer review gated, ${calendarReleases.length} calendar items, ${values.outreach.messages.length} unsent outreach drafts, no external action.`);

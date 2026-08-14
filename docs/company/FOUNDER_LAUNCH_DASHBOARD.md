@@ -1,48 +1,53 @@
-# Mythical Void — founder launch dashboard
+# Mythical Void — founder launch command centre
 
-**Last checked:** 14/08/2026
+**Last verified production check:** 14/08/2026
 
 **Public game:** https://mythicalvoid.com/
 
-**Overall position:** The game and its useful discovery pages are live. The next growth work is prepared, but nothing is waiting on a new paid tool.
+**Best single next move:** Kevin watches and approves the finished 64-second trailer. That unlocks the new trailer page, the strongest website arrival, and the first useful YouTube release without inventing more content.
 
-## Live now
+## Verified live
 
-- The public homepage and game entry are working.
-- 6 public information pages were checked: the homepage, creature genetics, NASA and STEM, parents, studio, and press room.
-- The game created its playable canvas during the live check.
+- The public homepage and game entry worked during the last production check.
+- 6 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, and press room.
+- The game created its playable canvas during that check.
 - Real gameplay screenshots and a short real gameplay video are available for truthful promotion.
 
-## Ready but waiting
+This is a dated production snapshot. It does not claim continuous uptime, search visibility, traffic, or a complete playthrough.
 
-- **First outreach:** 3 individual messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent.
-- **Later opportunities:** 7 other routes are ranked for the right future moment.
+## Prepared, but not yet live
+
+- **The real story:** a dedicated Project Beacon story page is prepared in the website release package, but it was not part of the last verified production check.
+- **The trailer:** the film and dedicated watch page are prepared. The page remains unpublished and hidden from search until Kevin approves the film, wording, and poster together.
+- **Safer measurement:** the current Google tag is live, while the tighter 10-route, 5-action consent upgrade is prepared on this feature branch. Its numbers are not trusted for company decisions yet.
+- **Social launch:** 6 YouTube upload items and 5 LinkedIn posts are prepared, alongside a four-week plan containing 7 outward releases and one internal review.
+- **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
-- **Social launch:** 2 channel plans are prepared for YouTube and LinkedIn, including the first posts and safety settings.
 
-## Not live yet
+## Kevin decisions that unlock the most value
 
-- No official Mythical Void YouTube or LinkedIn page exists.
-- No Mythical Void email address or chosen professional sending address is recorded.
-- No itch.io account, private draft page, or public listing exists.
-- The three deeper real-game proof sequences still need capturing: hatch to first response, a realm before and after restoration, and a spoiler-safe Project Beacon choice.
-- There is no accepted player or parent research yet, so audience claims remain ideas to test rather than facts.
-- Public play and share measurement is not trusted for company reporting yet.
+1. **Approve or reject the trailer.** Watch all 64 seconds with sound, including the beginning, middle, and end. Check the pace for children, teenagers, and families; the gameplay statements; and the poster image.
+2. **Create the first official channel when convenient.** YouTube is first because the finished trailer gives it a real purpose. Use the prepared account checklist, switch on multi-factor authentication, and return the exact channel link before anything is uploaded.
+3. **Name an adult safeguarding owner and backup before opening feedback, comments, direct messages, or community activity.** The current engagement track is blocked because those roles and response routes are not assigned.
 
-## Kevin's two shortest next steps
+Email and itch.io remain useful later, but they no longer sit ahead of the trailer and the first official channel.
 
-1. Choose the professional sending address and approve or reject the finished Imirt introduction; nothing sends automatically.
-2. Create the itch.io draft page, upload the prepared package privately and test touch, fullscreen, save and return before any public listing.
+## Work the studio can continue without Kevin
 
-Neither step needs a new Google Workspace subscription. The first can use Kevin's existing professional address if he chooses. The second needs an itch.io account and a private page, not a public launch.
+- Capture the three deeper real-game proof sequences: hatch to first response, a realm before and after restoration, and a spoiler-safe Project Beacon choice.
+- Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
+- Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
+- Check every claim against the game and label generated artwork separately from gameplay.
+- Prepare tests, review notes, release records, and a short founder summary whenever the live state changes.
 
-## What the studio can keep doing automatically
+## Deliberately kept closed
 
-- research suitable adult creators, press, platforms, and learning opportunities;
-- prepare one truthful message or post at a time;
-- check every claim against the game and label artwork separately from gameplay;
-- prepare portable builds, test packs, review notes, and weekly summaries;
-- stop and ask Kevin before sending, publishing, spending, opening public comments, or making a sensitive promise.
+- No official Mythical Void YouTube or LinkedIn account is recorded as created.
+- No outreach message has been approved or sent.
+- No itch.io page has been uploaded or published.
+- Public feedback, comments, direct messages, and child-facing contact stay closed until adult safeguarding and response ownership exist.
+- Analytics figures stay out of company reporting until the Google property, settings, receipt, retention, and access are checked.
+- No paid promotion or autonomous public posting is approved.
 
 ## Non-negotiable rules
 
@@ -51,4 +56,4 @@ Neither step needs a new Google Workspace subscription. The first can use Kevin'
 - Never present generated artwork as gameplay.
 - Never imply that NASA endorses Mythical Void.
 - Never privately contact children or expose the son's identifying information.
-- Nothing has been sent or published by the outreach system.
+- Stop and ask Kevin before sending, publishing, spending, opening public conversation, or making a sensitive promise.

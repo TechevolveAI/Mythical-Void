@@ -9,67 +9,85 @@ const defaultPaths = {
     outreach: path.join(root, 'docs/company/content/channel-launch/FIRST_CREATOR_OUTREACH_WAVE.json'),
     activation: path.join(root, 'docs/company/content/channel-launch/channel-activation-pack.json'),
     itch: path.join(root, 'docs/company/distribution/itch-launch-pack-2026-08-14.json'),
-    launch: path.join(root, 'docs/company/growth/launch-readiness.json')
+    launch: path.join(root, 'docs/company/growth/launch-readiness.json'),
+    trailer: path.join(root, 'docs/company/content/channel-launch/TRAILER_PAGE_RELEASE.json'),
+    analytics: path.join(root, 'docs/company/automation/website-analytics-tag.json'),
+    calendar: path.join(root, 'docs/company/content/channel-launch/FOUR_WEEK_LAUNCH_CALENDAR.json'),
+    discovery: path.join(root, 'docs/company/search/organic-discovery-release-2026-08-14.json')
 };
 
 function readJson(file) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-function buildDashboard({ evidence, outreach, activation, itch, launch }) {
+function buildDashboard({ evidence, outreach, activation, itch, launch, trailer, analytics, calendar, discovery }) {
     const checkedDate = evidence.checkedAt.slice(0, 10).split('-').reverse().join('/');
     const livePageCount = evidence.routes.filter(route => route.route !== '/play/' && route.verified).length;
     const firstWaveCount = outreach.messages.length;
     const laterOpportunityCount = outreach.nextWave.length;
-    const preparedSocialCount = activation.channels.length;
-    const firstAction = launch.nextAdmissibleWork.find(item => item.priority === 1)?.action;
-    const secondAction = launch.nextAdmissibleWork.find(item => item.priority === 2)?.action;
+    const youtube = activation.channels.find(channel => channel.channelRef === 'CH-002');
+    const linkedin = activation.channels.find(channel => channel.channelRef === 'CH-004');
+    const preparedYouTubeCount = youtube.firstUploads.length;
+    const preparedLinkedInCount = linkedin.firstPosts.length;
+    const calendarReleases = calendar.weeks.flatMap(week => week.releases);
+    const publicCalendarCount = calendarReleases.filter(release => release.channel !== 'Internal review').length;
+    const storyPrepared = discovery.pages.some(page => page.route === '/story/');
+    const liveRoutes = new Set(evidence.routes.filter(route => route.verified).map(route => route.route));
+    const storyVerifiedLive = liveRoutes.has('/story/');
+    const engagementTrack = launch.tracks.find(track => track.id === 'LT-007');
+    const analyticsRouteCount = analytics.tag.includedRoutes.length;
+    const analyticsActionCount = analytics.publicActions.eventNames.length;
 
-    return `# Mythical Void — founder launch dashboard
+    return `# Mythical Void — founder launch command centre
 
-**Last checked:** ${checkedDate}
+**Last verified production check:** ${checkedDate}
 
 **Public game:** https://mythicalvoid.com/
 
-**Overall position:** The game and its useful discovery pages are live. The next growth work is prepared, but nothing is waiting on a new paid tool.
+**Best single next move:** Kevin watches and approves the finished 64-second trailer. That unlocks the new trailer page, the strongest website arrival, and the first useful YouTube release without inventing more content.
 
-## Live now
+## Verified live
 
-- The public homepage and game entry are working.
-- ${livePageCount} public information pages were checked: the homepage, creature genetics, NASA and STEM, parents, studio, and press room.
-- The game created its playable canvas during the live check.
+- The public homepage and game entry worked during the last production check.
+- ${livePageCount} public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, and press room.
+- The game created its playable canvas during that check.
 - Real gameplay screenshots and a short real gameplay video are available for truthful promotion.
 
-## Ready but waiting
+This is a dated production snapshot. It does not claim continuous uptime, search visibility, traffic, or a complete playthrough.
 
-- **First outreach:** ${firstWaveCount} individual messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent.
-- **Later opportunities:** ${laterOpportunityCount} other routes are ranked for the right future moment.
+## Prepared, but not yet live
+
+- **The real story:** ${storyPrepared && !storyVerifiedLive ? 'a dedicated Project Beacon story page is prepared in the website release package, but it was not part of the last verified production check.' : 'the story page state needs review against the production evidence.'}
+- **The trailer:** the film and dedicated watch page are prepared. The page remains unpublished and hidden from search until Kevin approves the film, wording, and poster together.
+- **Safer measurement:** the current Google tag is live, while the tighter ${analyticsRouteCount}-route, ${analyticsActionCount}-action consent upgrade is prepared on this feature branch. Its numbers are not trusted for company decisions yet.
+- **Social launch:** ${preparedYouTubeCount} YouTube upload items and ${preparedLinkedInCount} LinkedIn posts are prepared, alongside a four-week plan containing ${publicCalendarCount} outward releases and one internal review.
+- **First outreach:** ${firstWaveCount} personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. ${laterOpportunityCount} later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
-- **Social launch:** ${preparedSocialCount} channel plans are prepared for YouTube and LinkedIn, including the first posts and safety settings.
 
-## Not live yet
+## Kevin decisions that unlock the most value
 
-- No official Mythical Void YouTube or LinkedIn page exists.
-- No Mythical Void email address or chosen professional sending address is recorded.
-- No itch.io account, private draft page, or public listing exists.
-- The three deeper real-game proof sequences still need capturing: hatch to first response, a realm before and after restoration, and a spoiler-safe Project Beacon choice.
-- There is no accepted player or parent research yet, so audience claims remain ideas to test rather than facts.
-- Public play and share measurement is not trusted for company reporting yet.
+1. **Approve or reject the trailer.** Watch all 64 seconds with sound, including the beginning, middle, and end. Check the pace for children, teenagers, and families; the gameplay statements; and the poster image.
+2. **Create the first official channel when convenient.** YouTube is first because the finished trailer gives it a real purpose. Use the prepared account checklist, switch on multi-factor authentication, and return the exact channel link before anything is uploaded.
+3. **Name an adult safeguarding owner and backup before opening feedback, comments, direct messages, or community activity.** The current engagement track is ${engagementTrack.status.replace('_', ' ')} because those roles and response routes are not assigned.
 
-## Kevin's two shortest next steps
+Email and itch.io remain useful later, but they no longer sit ahead of the trailer and the first official channel.
 
-1. ${firstAction}
-2. ${secondAction}
+## Work the studio can continue without Kevin
 
-Neither step needs a new Google Workspace subscription. The first can use Kevin's existing professional address if he chooses. The second needs an itch.io account and a private page, not a public launch.
+- Capture the three deeper real-game proof sequences: hatch to first response, a realm before and after restoration, and a spoiler-safe Project Beacon choice.
+- Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
+- Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
+- Check every claim against the game and label generated artwork separately from gameplay.
+- Prepare tests, review notes, release records, and a short founder summary whenever the live state changes.
 
-## What the studio can keep doing automatically
+## Deliberately kept closed
 
-- research suitable adult creators, press, platforms, and learning opportunities;
-- prepare one truthful message or post at a time;
-- check every claim against the game and label artwork separately from gameplay;
-- prepare portable builds, test packs, review notes, and weekly summaries;
-- stop and ask Kevin before sending, publishing, spending, opening public comments, or making a sensitive promise.
+- No official Mythical Void YouTube or LinkedIn account is recorded as created.
+- No outreach message has been approved or sent.
+- No itch.io page has been uploaded or published.
+- Public feedback, comments, direct messages, and child-facing contact stay closed until adult safeguarding and response ownership exist.
+- Analytics figures stay out of company reporting until the Google property, settings, receipt, retention, and access are checked.
+- No paid promotion or autonomous public posting is approved.
 
 ## Non-negotiable rules
 
@@ -78,7 +96,7 @@ Neither step needs a new Google Workspace subscription. The first can use Kevin'
 - Never present generated artwork as gameplay.
 - Never imply that NASA endorses Mythical Void.
 - Never privately contact children or expose the son's identifying information.
-- Nothing has been sent or published by the outreach system.
+- Stop and ask Kevin before sending, publishing, spending, opening public conversation, or making a sensitive promise.
 `;
 }
 
