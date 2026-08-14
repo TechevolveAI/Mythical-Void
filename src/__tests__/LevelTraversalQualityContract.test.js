@@ -873,6 +873,19 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('redrawForestCoinLayer()');
         expect(source).not.toContain('const branch = this.add.graphics();');
         expect(source).not.toContain('const shadow = this.add.graphics();');
+        expect(source).toContain('setForestEnemyRenderAttached(enemy, attached)');
+        expect(source).toContain(
+            'this.setForestEnemyRenderAttached(enemy, false);'
+        );
+        expect(source).toContain(
+            'this.setForestEnemyRenderAttached(enemy, true);'
+        );
+        expect(source).toContain(
+            'enemy.body.blocked?.down || enemy.body.touching?.down'
+        );
+        expect(source).toContain(
+            'Boolean(target) && target.active !== false'
+        );
 
         const smokeSource = fs.readFileSync(
             path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
@@ -889,6 +902,11 @@ describe('campaign traversal quality contracts', () => {
         expect(smokeSource).toContain(
             'scene.updateForestEnemyActivation?.(true);'
         );
+        expect(smokeSource).toContain('renderAttachedEnemyCount');
+        expect(smokeSource).toContain('renderAttachedCueCount');
+        expect(smokeSource).toContain('sleepingDetachedCount');
+        expect(smokeSource).toContain('displayCount: 215');
+        expect(smokeSource).toContain('state.displayCount > 225');
     });
 
     test('shared biome rendering batches ambient fields and uses a phone tier', () => {
@@ -2550,6 +2568,9 @@ describe('campaign traversal quality contracts', () => {
         );
         expect(smoke).toContain('landingDustTweenCount');
         expect(smoke).toContain('landingDustOrphanTweenCount');
+        expect(smoke).toContain('displayTypeCounts');
+        expect(smoke).toContain('visibleDisplayTypeCounts');
+        expect(smoke).toContain('hiddenDisplayTypeCounts');
         expect(smoke).toContain('activeTweenCount: 12');
         expect(smoke).toContain(
             'leaked landing feedback work after settlement'
@@ -2666,7 +2687,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('scene.player.setVelocity?.(0, 680)');
         expect(smoke).toContain('message: `${sceneName} live stomp collision`');
         expect(smoke).toContain('const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({');
-        expect(smoke).toContain('state.displayCount > 275');
+        expect(smoke).toContain('state.displayCount > 225');
         expect(smoke).toContain(
             'framePacing.displayCount > renderBudget.displayCount'
         );

@@ -2067,6 +2067,31 @@ class MythicalForestLevel extends PlatformerLevelScene {
         };
     }
 
+    setForestEnemyRenderAttached(enemy, attached) {
+        const displayList = this.children;
+        if (!enemy || !displayList) return 0;
+
+        const targets = [
+            enemy,
+            enemy.combatCue,
+            enemy.instructionLabel
+        ].filter(target => Boolean(target) && target.active !== false);
+        let changedCount = 0;
+
+        targets.forEach(target => {
+            const isAttached = target.displayList === displayList;
+            if (attached && !isAttached) {
+                displayList.add(target);
+                changedCount += 1;
+            } else if (!attached && isAttached) {
+                displayList.remove(target);
+                changedCount += 1;
+            }
+        });
+
+        return changedCount;
+    }
+
     setForestEnemyProximityActive(enemy, enabled) {
         if (!enemy?.active || !enemy.body) return false;
         const nextState = enabled === true;
@@ -2074,6 +2099,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         enemy.forestProximityActive = nextState;
         if (nextState) {
+            this.setForestEnemyRenderAttached(enemy, true);
             enemy.body.enable = true;
             enemy.body.updateFromGameObject?.();
             enemy.setVisible?.(true);
@@ -2088,6 +2114,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             enemy.forestTrail = [];
             enemy.combatCue?.setVisible?.(false);
             enemy.instructionLabel?.setVisible?.(false);
+            this.setForestEnemyRenderAttached(enemy, false);
         }
         return nextState;
     }
@@ -2097,7 +2124,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (enemy.forestSettledForStreaming) return true;
 
         const support = this.getTraversalSupport?.(enemy.forestSupportId);
+        const grounded = Boolean(
+            enemy.body.blocked?.down || enemy.body.touching?.down
+        );
         const settled = Boolean(
+            grounded &&
             support?.body &&
             enemy.body.right > support.body.left + 4 &&
             enemy.body.left < support.body.right - 4 &&
