@@ -22,13 +22,14 @@ const sources = {
     choiceReview: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/PROJECT_BEACON_CHOICE_PROOF_REVIEW.json'), 'utf8')),
     adultStemOutreach: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/ADULT_STEM_OUTREACH_WAVE.json'), 'utf8')),
     liveSearch: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/search/LIVE_SEARCH_FINDABILITY_EVIDENCE_2026-08-14.json'), 'utf8')),
+    founderStory: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/IRISH_FOUNDER_STORY_RELEASE.json'), 'utf8')),
     dashboard: fs.readFileSync(path.join(root, 'docs/company/FOUNDER_LAUNCH_DASHBOARD.md'), 'utf8')
 };
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-founder-dashboard-'));
 
 function run(name, changes = {}) {
     const values = { ...sources, ...changes };
-    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch'].map(key => {
+    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory'].map(key => {
         const file = path.join(temp, `${name}-${key}.json`);
         fs.writeFileSync(file, `${JSON.stringify(values[key], null, 2)}\n`);
         return file;
@@ -93,10 +94,14 @@ try {
     inventedSearchResult.publicSearchSample.ownedResultObserved = true;
     if (run('invented-search-result', { liveSearch: inventedSearchResult }).status === 0) throw new Error('An invented public search result was accepted.');
 
+    const sentFounderStory = structuredClone(sources.founderStory);
+    sentFounderStory.pitch.sentAt = '2026-08-14T00:00:00Z';
+    if (run('sent-founder-story', { founderStory: sentFounderStory }).status === 0) throw new Error('An unapproved founder story pitch was accepted as sent.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot plus 14 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot plus 15 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

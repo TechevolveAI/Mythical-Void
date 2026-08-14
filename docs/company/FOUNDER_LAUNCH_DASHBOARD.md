@@ -26,6 +26,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Project Beacon choice:** 2 real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with 2 visible limitations recorded.
 - **Adult STEM discovery:** 2 one-to-one introductions are prepared for the Blackrock Castle Observatory and ESERO Ireland education teams. Nothing has been sent, and both messages still require Kevin to approve the sender, recipient and final wording.
 - **Search findability:** the homepage, public robots file and 8-route live sitemap are reachable, but a 4-query public search sample found no owned Mythical Void result. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
+- **Irish founder story:** a first-person contributed article or interview background and tailored Irish Tech News contribution pitch are prepared. Nothing has been sent or promised, and any paid feature, rights request or child-participation request stops for a separate Kevin decision.
 - **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 
@@ -42,7 +43,7 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 
 - Improve and recapture the real creature reveal, then complete the hatch-to-first-response proof without pretending the current frame is launch quality.
 - Strengthen and recapture the stable realm aftermath so the difference is visible without relying on the words, then complete the continuous restoration proof.
-- Prepare one tightly worded choice-led post using only the reviewed claims, ready for Kevin after the trailer decision.
+- Prepare one focused Science Week 2026 concept around water and alien survival without claiming that an event or partnership already exists.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
 - Check every claim against the game and label generated artwork separately from gameplay.

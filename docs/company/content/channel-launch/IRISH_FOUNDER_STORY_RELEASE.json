@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "IRISH-FOUNDER-STORY-001",
+  "asOf": "2026-08-14",
+  "state": "article_and_pitch_prepared_waiting_for_kevin_and_first_wave_learning",
+  "target": {
+    "candidateRef": "RC-007",
+    "name": "Irish Tech News",
+    "route": "Public contribution address listed on the official team page",
+    "routeSource": "https://irishtechnews.ie/the-team/",
+    "verifiedAt": "2026-08-14",
+    "fit": "The official team page welcomes contributors and lists team interests including AI, gaming, space, science, STEAM, startups and technology."
+  },
+  "authority": {
+    "recipientApproved": false,
+    "outreachAuthorized": false,
+    "sendingAuthorized": false,
+    "publicationAuthorized": false,
+    "paidPlacementAuthorized": false,
+    "interviewAuthorized": false,
+    "childParticipationAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "article": {
+    "title": "What a father-and-son game taught me about using AI without handing over responsibility",
+    "byline": "Kevin Murphy, founder of Mythical Void",
+    "file": "docs/company/content/channel-launch/IRISH_FOUNDER_STORY_ARTICLE.md",
+    "format": "First-person contributed article or interview background",
+    "primaryUrl": "https://mythicalvoid.com/",
+    "pressUrl": "https://mythicalvoid.com/press/"
+  },
+  "pitch": {
+    "subject": "Contribution idea: the Irish father-and-son project that became a playable AI-assisted game",
+    "body": "Hi Irish Tech News team,\n\nI’m Kevin Murphy, the founder of Mythical Void in Ireland. I’m getting in touch because your team page welcomes contributions and includes AI, gaming, space, STEAM, startups and technology among its writers’ interests.\n\nMythical Void began at home with my nine-year-old son and a question: what could imagination and generative AI tools make possible? Those conversations have become a free, playable browser adventure with strange alien creatures, six living realms, story choices and optional discoveries using selected NASA public space data.\n\nThe more useful story is not that AI made a game by itself. It did not. The lesson has been where AI helps a tiny studio move faster, and where a person must still own the taste, truth, safety and final decision. I have written a plain-language first-person piece called ‘What a father-and-son game taught me about using AI without handing over responsibility’.\n\nThe game is playable here with no download or account: https://mythicalvoid.com/\nThe fact sheet and clearly labelled press material are here: https://mythicalvoid.com/press/\n\nWould the article, a founder interview, or a shorter Business Showcase answer set be useful to your readers? If not, no reply is needed and I will not keep following up.\n\nThanks,\nKevin Murphy\nMythical Void",
+    "attachmentAllowed": false,
+    "approved": false,
+    "sentAt": null,
+    "followUpDueAt": null
+  },
+  "verifiedStatements": [
+    {
+      "claimRef": "CL-001",
+      "statement": "The current game is free to play in a browser."
+    },
+    {
+      "claimRef": "CL-002",
+      "statement": "No download or account is required to start."
+    },
+    {
+      "claimRef": "CL-004",
+      "statement": "Players can explore and restore six living realms."
+    },
+    {
+      "claimRef": "CL-005",
+      "statement": "Procedural genetics shape parts of creature appearance, affinity, personality and potential."
+    },
+    {
+      "claimRef": "CL-013",
+      "statement": "The game can use selected NASA public space data for optional discovery moments."
+    },
+    {
+      "claimRef": "CL-014",
+      "statement": "Mythical Void began as a father-and-son project between Kevin and his nine-year-old son."
+    }
+  ],
+  "privacyBoundary": "The origin story may say father, son and age nine. Do not publish the child's name, image, voice, school, location, routine, private accounts, direct quotes or identifying details, and do not ask the child to participate in an interview.",
+  "claimBoundary": [
+    "Call the beings creatures.",
+    "Do not claim that AI made the game by itself or that the studio is fully autonomous.",
+    "Do not promise that every creature is unique or that no two creatures can be alike.",
+    "Do not present generated illustrations as gameplay.",
+    "Do not imply NASA endorsement, partnership or an official NASA product.",
+    "Do not claim players, traffic, coverage or commercial success without evidence."
+  ],
+  "financialBoundary": "If Irish Tech News offers only paid advertising, an advertorial or a promotional package, stop and ask Kevin before discussing price, accepting terms or supplying payment details.",
+  "approvalChecklist": [
+    "Kevin reads and approves the full article, not only the pitch.",
+    "Kevin approves Irish Tech News as the named recipient and chooses the sending address.",
+    "The live game and press-room links are checked on the day of sending.",
+    "The article still matches the current game and contains no identifying detail about Kevin's child.",
+    "No file is attached on first contact.",
+    "Any request for money, exclusivity, rights or child participation stops for a separate decision."
+  ],
+  "nextAction": "Keep the story as a prepared second-wave asset. Learn from the first three outreach decisions before Kevin decides whether this contribution should be sent."
+}

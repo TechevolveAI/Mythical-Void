@@ -99,8 +99,8 @@
     {
       "candidateRef": "RC-007",
       "name": "Irish Tech News",
-      "state": "prepare_founder_story_after_first_three",
-      "reason": "Strong Irish AI, STEAM and space angle, but the contribution route deserves a story with a clear lesson rather than a generic launch pitch."
+      "state": "founder_story_prepared_waiting_for_first_wave_learning_and_kevin",
+      "reason": "A first-person article and tailored contribution pitch now give the Irish AI, gaming, STEAM and space angle a clear lesson rather than a generic launch message."
     },
     {
       "candidateRef": "RC-008",

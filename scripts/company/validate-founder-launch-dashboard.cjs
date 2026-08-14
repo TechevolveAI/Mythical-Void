@@ -20,9 +20,10 @@ const paths = {
     choiceReview: process.argv[13] ? path.resolve(process.argv[13]) : defaultPaths.choiceReview,
     adultStemOutreach: process.argv[14] ? path.resolve(process.argv[14]) : defaultPaths.adultStemOutreach,
     liveSearch: process.argv[15] ? path.resolve(process.argv[15]) : defaultPaths.liveSearch,
-    dashboard: process.argv[16] ? path.resolve(process.argv[16]) : dashboardDefault
+    founderStory: process.argv[16] ? path.resolve(process.argv[16]) : defaultPaths.founderStory,
+    dashboard: process.argv[17] ? path.resolve(process.argv[17]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -104,6 +105,11 @@ requireValue(values.liveSearch.ownedCrawlFoundation?.homepageStatus === 200 && v
 requireValue(values.liveSearch.publicSearchSample?.ownedResultObserved === false, 'Founder view must not invent a public search result.');
 requireValue(values.liveSearch.webmasterEvidence?.googleSearchConsoleConnected === false && values.liveSearch.webmasterEvidence?.indexCoverageKnown === false, 'Founder view must retain unverified Search Console and index coverage.');
 requireValue(values.liveSearch.authority?.searchEngineSubmissionAuthorized === false, 'Search submission must remain unauthorized.');
+
+requireValue(values.founderStory.state === 'article_and_pitch_prepared_waiting_for_kevin_and_first_wave_learning', 'Founder story must remain prepared and waiting for Kevin.');
+requireValue(values.founderStory.target?.candidateRef === 'RC-007', 'Founder story must retain its reviewed Irish Tech News target.');
+requireValue(values.founderStory.pitch?.approved === false && values.founderStory.pitch?.sentAt === null, 'Founder story pitch must remain unapproved and unsent.');
+requireValue(values.founderStory.authority?.paidPlacementAuthorized === false && values.founderStory.authority?.childParticipationAuthorized === false, 'Paid placement and child participation must remain unauthorized.');
 
 const engagementTrack = values.launch.tracks?.find(track => track.id === 'LT-007');
 requireValue(engagementTrack?.status === 'blocked' && /safeguarding/i.test((engagementTrack.blockers || []).join(' ')), 'Public engagement must remain blocked until safeguarding and response ownership exist.');

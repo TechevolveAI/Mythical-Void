@@ -22,6 +22,8 @@
     "test:adult-stem-outreach": "node scripts/company/test-adult-stem-outreach.cjs",
     "validate:live-search": "node scripts/company/validate-live-search-findability.cjs",
     "test:live-search": "node scripts/company/test-live-search-findability.cjs",
+    "validate:founder-story": "node scripts/company/validate-irish-founder-story.cjs",
+    "test:founder-story": "node scripts/company/test-irish-founder-story.cjs",
     "package:itch": "npm run build:portable && node scripts/company/validate-portable-browser-build.cjs && node scripts/package-itch-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",
