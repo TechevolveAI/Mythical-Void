@@ -279,8 +279,8 @@ function renderLegalPage(type) {
 
 function renderStorefront() {
     updatePageMetadata({
-        title: 'Mythical Void | Project Beacon',
-        description: 'Recover Wanderer-77, restore the Fend, and decide what Project Beacon should tell Earth. Play free in your browser.',
+        title: 'Mythical Void | Free Creature Adventure Browser Game',
+        description: 'Play Mythical Void free in your browser. Hatch a varied alien creature, explore six living realms, restore their guardians and shape Project Beacon.',
         path: '/'
     });
 
@@ -315,7 +315,7 @@ function renderStorefront() {
                 <div class="hero-inner">
                     <div class="hero-copy-block">
                         <p class="kicker"><span></span> A universe of creatures</p>
-                        <h1>One universe. <em>No two creatures alike.</em></h1>
+                        <h1>One universe. <em>Every hatch opens a new possibility.</em></h1>
                         <p class="hero-copy">Every hatch mixes body, colour, personality, cosmic power and rare mutations. What arrives from the Void will be truly yours.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
@@ -389,10 +389,10 @@ function renderStorefront() {
                         <p>Under the story is a set of living systems designed to make each creature and each expedition feel personal.</p>
                     </div>
                     <div class="systems-grid">
-                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your creature is built from a profile—not picked from one poster.</p><a href="/play/">See it in the game →</a></article>
+                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your creature is built from a profile—not picked from one poster.</p><a href="/creature-genetics/">Explore creature genetics →</a></article>
                         <article class="system-card"><span class="system-index">02</span><h3>A living browser world</h3><p>Phaser 3 is the game engine underneath the adventure. It lets the movement, exploration, battles, guardians, village, and story scenes happen right in your browser.</p><a href="/play/">Enter the Fend →</a></article>
-                        <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your creature’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="#parents">Read the family notes →</a></article>
-                        <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures, Mars images, and space-weather signals. It gives curious players a friendly way to ask questions, spot patterns, and discover that the space around the story is real.</p><a href="#studio">See the STEM promise →</a></article>
+                        <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your creature’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="/parents/">Read the family notes →</a></article>
+                        <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures, Mars images, and space-weather signals. It gives curious players a friendly way to ask questions, spot patterns, and discover that the space around the story is real.</p><a href="/nasa-space-science/">See the STEM promise →</a></article>
                     </div>
                 </div>
             </section>
@@ -506,6 +506,7 @@ function renderStorefront() {
                                 <span><b>02</b> AI helps us explore</span>
                                 <span><b>03</b> Children deserve care</span>
                             </div>
+                            <a class="text-link" href="/studio/">Read how the project began <span aria-hidden="true">→</span></a>
                         </div>
                     </div>
                 </div>
@@ -518,7 +519,7 @@ function renderStorefront() {
                         <h2>A big adventure with thoughtful choices.</h2>
                         <p>Mythical Void mixes exploration and age-appropriate fantasy battles with problem solving, care, responsibility, and restoration rather than destruction.</p>
                         <p class="parent-answer"><strong>The short answer:</strong> children can start playing without an account, an email address, or payment details.</p>
-                        <span class="text-link text-link-muted">Parent contact opens soon <span aria-hidden="true">→</span></span>
+                        <a class="text-link" href="/parents/">Read the full family guide <span aria-hidden="true">→</span></a>
                     </div>
                     <ul class="safety-list">
                         <li><span aria-hidden="true">✓</span><div><strong>No account needed</strong><p>Start without sharing a name or email.</p></div></li>
@@ -593,7 +594,10 @@ function renderStorefront() {
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
                     <a href="/press/">Press & creators</a>
-                    <a href="#parents">For grown-ups</a>
+                    <a href="/creature-genetics/">Creature genetics</a>
+                    <a href="/nasa-space-science/">NASA & STEM</a>
+                    <a href="/studio/">Our story</a>
+                    <a href="/parents/">For grown-ups</a>
                     <a href="/privacy/">Privacy & safety</a>
                     <a href="/terms/">Terms</a>
                         <span class="footer-link-muted">Contact opens soon</span>
