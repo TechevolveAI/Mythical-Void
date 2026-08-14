@@ -23,6 +23,77 @@ const PHOENIX_ATTACK_WINDUP = 700;
 const PHOENIX_RECOVERY_WINDOW = 650;
 const PHOENIX_PHASE_RECOVERY = 1300;
 
+const AURORA_ENCOUNTER_PLAN = Object.freeze([
+    Object.freeze({
+        beat: 'opening-clear',
+        supportId: 'aurora-opening-step',
+        lane: 'shared',
+        health: 1,
+        patrolRange: 90,
+        speed: 38
+    }),
+    Object.freeze({
+        beat: 'lower-relay-pressure',
+        supportId: 'aurora-lower-relay',
+        lane: 'shared',
+        health: 2,
+        patrolRange: 70,
+        speed: 40
+    }),
+    Object.freeze({
+        beat: 'heart-rise-armor',
+        supportId: 'aurora-heart-rise',
+        lane: 'shared',
+        health: 3,
+        patrolRange: 70,
+        speed: 42
+    }),
+    Object.freeze({
+        beat: 'shadow-current-entry',
+        supportId: 'aurora-ground-3',
+        lane: 'main',
+        offsetX: 220,
+        health: 3,
+        patrolRange: 70,
+        speed: 44
+    }),
+    Object.freeze({
+        beat: 'shadow-current-exit',
+        supportId: 'aurora-ground-3',
+        lane: 'main',
+        offsetX: 420,
+        health: 2,
+        patrolRange: 60,
+        speed: 45
+    }),
+    Object.freeze({
+        beat: 'sky-prism-pressure',
+        supportId: 'aurora-ground-4',
+        lane: 'shared',
+        offsetX: -300,
+        health: 2,
+        patrolRange: 90,
+        speed: 45
+    }),
+    Object.freeze({
+        beat: 'phoenix-gate-armor',
+        supportId: 'aurora-ground-4',
+        lane: 'shared',
+        offsetX: 100,
+        health: 3,
+        patrolRange: 95,
+        speed: 46
+    }),
+    Object.freeze({
+        beat: 'phoenix-overlook-armor',
+        supportId: 'aurora-phoenix-overlook',
+        lane: 'shared',
+        health: 4,
+        patrolRange: 70,
+        speed: 47
+    })
+]);
+
 /**
  * AuroraDepthsLevel - Aurora Depths platformer level
  *
@@ -106,6 +177,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.currentChargeDamage = 2;
         this.currentChargeAura = null;
         this.currentChargeAuraTween = null;
+        this.auroraEncounterRhythm = [];
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
@@ -170,6 +242,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.currentChargeDamage = 2;
         this.currentChargeAura = null;
         this.currentChargeAuraTween = null;
+        this.auroraEncounterRhythm = [];
         this.objectiveDisplay = null;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
@@ -542,14 +615,34 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     }
 
     createAuroraSentinels() {
-        const groundY = this.levelHeight - 110;
-        const encounters = [
-            { x: 1460, y: groundY, health: 1, patrolRange: 105, speed: 38 },
-            { x: 2810, y: groundY, health: 2, patrolRange: 120, speed: 42 },
-            { x: 3920, y: groundY, health: 3, patrolRange: 120, speed: 46 }
-        ];
+        const encounters = AURORA_ENCOUNTER_PLAN.map(encounter => {
+            const support = this.getTraversalSupport(encounter.supportId);
+            if (!support?.body) {
+                throw new Error(
+                    `[AuroraDepthsLevel] Missing encounter support ${encounter.supportId}`
+                );
+            }
 
-        this.createPatrolSentinels(encounters, {
+            const bodyInset = 28;
+            const centerX = (support.body.left + support.body.right) / 2;
+            const x = Phaser.Math.Clamp(
+                centerX + (Number(encounter.offsetX) || 0),
+                support.body.left + bodyInset,
+                support.body.right - bodyInset
+            );
+            const availablePatrol = Math.max(0, Math.min(
+                x - support.body.left - bodyInset,
+                support.body.right - bodyInset - x
+            ));
+            return {
+                ...encounter,
+                x,
+                y: support.body.top - 28,
+                patrolRange: Math.min(encounter.patrolRange, availablePatrol)
+            };
+        });
+
+        const sentinels = this.createPatrolSentinels(encounters, {
             enemyType: 'auroraSentinel',
             texturePrefix: 'auroraSentinel',
             bodyColor: 0x173D49,
@@ -557,6 +650,26 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             eyeColor: 0xF2C94C,
             instructionText: null
         });
+
+        this.auroraEncounterRhythm = sentinels.map((enemy, index) => {
+            const encounter = encounters[index];
+            enemy.encounterBeat = encounter.beat;
+            enemy.encounterLane = encounter.lane;
+            enemy.encounterSupportId = encounter.supportId;
+            return enemy;
+        });
+        return this.auroraEncounterRhythm;
+    }
+
+    retireAuroraPatrolsForPhoenix() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        patrols.forEach(enemy => {
+            enemy?.combatCue?.destroy?.();
+            enemy?.instructionLabel?.destroy?.();
+            enemy?.destroy?.();
+        });
+        this.auroraEncounterRhythm = [];
+        return patrols.length;
     }
 
     createQuietLightRoute() {
@@ -611,8 +724,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             returnLabel: 'DESCEND TO SKY PRISM →',
             choice: {
                 mainLabel: 'SHADOW CURRENT →',
-                mainTradeoff: 'DIRECT // NEXT PHOENIX HIT +2',
-                challengeLabel: 'HIGH JUMPS + CURRENT SHELTER',
+                mainTradeoff: 'SHORTER // PHOENIX HITS HARDER + GUARDS',
+                challengeLabel: 'HIGH JUMPS // SHELTER + FEWER GUARDS',
                 mainMarker: directRouteMarker,
                 mainZone: {
                     left: 2700, right: 3500,
@@ -1408,6 +1521,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         console.log('[AuroraDepthsLevel] Starting Aurora Phoenix restoration!');
         this.bossFightActive = true;
+        this.retireAuroraPatrolsForPhoenix();
 
         this.physics.pause();
         window.FeedbackManager?.cameraFlash?.(this, 220, 0, 230, 118);
