@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "id": "COP-001",
+  "asOf": "2026-08-14",
+  "state": "system_ready_recipient_research_not_started",
+  "purpose": "Find a small number of relevant adult creators, writers and educators who may genuinely value Mythical Void, then prepare individual introductions without bulk messaging.",
+  "authority": {
+    "researchAuthorized": true,
+    "recipientApproved": false,
+    "outreachAuthorized": false,
+    "directMessagingAuthorized": false,
+    "bulkOutreachAuthorized": false,
+    "paidPlacementAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "audienceGroups": [
+    {
+      "id": "CG-001",
+      "name": "Indie and browser game creators",
+      "reason": "They can show authentic play and explain unusual systems to interested players."
+    },
+    {
+      "id": "CG-002",
+      "name": "Creature, genetics and worldbuilding creators",
+      "reason": "The creature range and underlying system fit their existing subject matter."
+    },
+    {
+      "id": "CG-003",
+      "name": "Family-game writers and adult reviewers",
+      "reason": "They can assess the game for parents and families without Mythical privately targeting children."
+    },
+    {
+      "id": "CG-004",
+      "name": "STEM and space educators speaking to adults, teachers or families",
+      "reason": "The optional NASA-powered discovery layer gives them a truthful learning angle."
+    },
+    {
+      "id": "CG-005",
+      "name": "Responsible creative-AI and small-studio writers",
+      "reason": "The father-and-son origin and human-led AI-first operating model offer a credible studio story."
+    }
+  ],
+  "qualification": {
+    "minimumScore": 15,
+    "maximumScore": 24,
+    "criteria": [
+      {
+        "id": "CR-001",
+        "name": "Subject fit",
+        "range": "0-4",
+        "question": "Does Mythical Void clearly fit what this person already covers?"
+      },
+      {
+        "id": "CR-002",
+        "name": "Audience fit",
+        "range": "0-4",
+        "question": "Is the audience made up of relevant players, adults, parents, educators or industry peers?"
+      },
+      {
+        "id": "CR-003",
+        "name": "Evidence of thoughtful coverage",
+        "range": "0-4",
+        "question": "Do recent examples show care, disclosure and actual engagement with projects?"
+      },
+      {
+        "id": "CR-004",
+        "name": "Reachability",
+        "range": "0-4",
+        "question": "Is there a public professional contact route intended for pitches?"
+      },
+      {
+        "id": "CR-005",
+        "name": "Safety and reputation",
+        "range": "0-4",
+        "question": "Is there no material child-safety, harassment, hate, deception or undisclosed-promotion concern?"
+      },
+      {
+        "id": "CR-006",
+        "name": "Learning value",
+        "range": "0-4",
+        "question": "Would a reply or piece of coverage teach the studio something useful even if reach is small?"
+      }
+    ],
+    "automaticRejects": [
+      "The recipient appears to be under 18 or the only route is a child's private account.",
+      "The contact details were scraped, guessed, purchased or obtained from a non-public source.",
+      "The outreach would require hiding AI involvement, paying without disclosure or making an unsupported claim.",
+      "The recipient has no visible connection to games, creatures, families, education, space, creative AI or independent studios.",
+      "The contact asks Mythical to move a child into private messaging or an unmoderated space."
+    ]
+  },
+  "stages": [
+    "research",
+    "identity_verified",
+    "qualified",
+    "kevin_approved",
+    "contacted",
+    "replied",
+    "closed",
+    "do_not_contact"
+  ],
+  "rules": {
+    "onePersonAtATime": true,
+    "tailoringRequired": true,
+    "publicProfessionalRouteOnly": true,
+    "maximumFollowUps": 1,
+    "minimumDaysBeforeFollowUp": 7,
+    "stopAfterNoResponse": true,
+    "noPrivateContactWithChildren": true,
+    "noAttachmentsOnFirstContact": true,
+    "usePressRoomLink": true,
+    "recordSourceAndDate": true
+  },
+  "messageTemplate": {
+    "subject": "A strange playable creature universe from an Irish father-and-son project",
+    "body": "Hi [name],\n\nI’m Kevin, the founder of Mythical Void. I’m reaching out because your work on [specific relevant piece] made me think this might genuinely fit your audience.\n\nMythical Void began as a father-and-son experiment with generative AI and imagination. It is now a free browser adventure with creature genetics, six restorable realms, story choices and optional NASA-powered discovery.\n\nYou can play it without a download or account: https://mythicalvoid.com/\nThe short fact sheet and clearly labelled press assets are here: https://mythicalvoid.com/press/\n\nIf it is not a fit, no reply is needed and I won’t keep chasing.\n\nKevin\nMythical Void",
+    "requiredTailoring": "Replace the bracketed line with one precise, truthful reference to the recipient's work."
+  },
+  "researchCandidates": [
+    {
+      "id": "RC-001",
+      "name": "Alpha Beta Gamer",
+      "kind": "Independent game site and YouTube channels",
+      "stage": "research",
+      "source": "https://www.alphabetagamer.com/contact-us/",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official Game Submissions page publishes a submissions email and says free public builds may be considered for site or YouTube coverage.",
+      "specificFit": "Mythical Void is free, playable in-browser and visually unusual, which matches the outlet's explicit interest in playable independent games.",
+      "suggestedAngle": "Lead with immediate browser play and authentic opening gameplay; mention the creature system only after proving the real build.",
+      "scores": {
+        "subjectFit": 4,
+        "audienceFit": 4,
+        "thoughtfulCoverage": 4,
+        "reachability": 4,
+        "safetyAndReputation": 3,
+        "learningValue": 4
+      },
+      "totalScore": 23,
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-002",
+      "name": "Wholesome Games",
+      "kind": "Games showcase, creator network and publisher",
+      "stage": "research",
+      "source": "https://wholesomegames.com/",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official site invites project submissions and offers creator, press and general routes; event forms open at specific times.",
+      "specificFit": "Restoring damaged worlds rather than destroying their guardians, creature care and the father-and-son origin may suit a hopeful-games audience.",
+      "suggestedAngle": "Lead with restoration, wonder and the playable link. Do not force a cosy label or submit to a closed event form.",
+      "scores": {
+        "subjectFit": 3,
+        "audienceFit": 4,
+        "thoughtfulCoverage": 4,
+        "reachability": 4,
+        "safetyAndReputation": 4,
+        "learningValue": 4
+      },
+      "totalScore": 23,
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-003",
+      "name": "Imirt — The Irish Game Makers Association",
+      "kind": "Irish games industry association and newsletter",
+      "stage": "research",
+      "source": "https://www.imirt.ie/newsletter",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official newsletter page invites product launches and studio updates from the Irish game-development community through its named contribution route.",
+      "specificFit": "Mythical Void is an independent Irish studio with a playable game, unusual responsible-AI practice and a clear founder story.",
+      "suggestedAngle": "Offer a concise Irish studio update: playable now, father-and-son origin, and one honest lesson from building an AI-first studio.",
+      "scores": {
+        "subjectFit": 4,
+        "audienceFit": 4,
+        "thoughtfulCoverage": 4,
+        "reachability": 4,
+        "safetyAndReputation": 4,
+        "learningValue": 4
+      },
+      "totalScore": 24,
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-004",
+      "name": "Indie Games Developer",
+      "kind": "Independent games website and magazine",
+      "stage": "research",
+      "source": "https://devcentral.indiegamesdeveloper.com/submit-your-game/",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official submission page accepts games and trailers for possible free website and magazine coverage, with no guarantee.",
+      "specificFit": "It is explicitly seeking independent games and allows a direct game submission once the project is sufficiently developed.",
+      "suggestedAngle": "Submit only after the real gameplay trailer is finished; make browser play and the creature system the lead proof.",
+      "scores": {
+        "subjectFit": 3,
+        "audienceFit": 3,
+        "thoughtfulCoverage": 3,
+        "reachability": 4,
+        "safetyAndReputation": 3,
+        "learningValue": 3
+      },
+      "totalScore": 19,
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-005",
+      "name": "IndieGameInn",
+      "kind": "Indie game showcase and YouTube publishing platform",
+      "stage": "research",
+      "source": "https://www.indiegameinn.com/",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official site provides a submission form and rules for developer-made presentations considered for its site and YouTube channel.",
+      "specificFit": "It welcomes original independent games and explicitly describes how it reviews generative-AI use, making Mythical's human oversight and clear disclosures relevant.",
+      "suggestedAngle": "Wait for a polished developer-commentary video using real gameplay, cleared music and labelled generated art.",
+      "scores": {
+        "subjectFit": 3,
+        "audienceFit": 3,
+        "thoughtfulCoverage": 3,
+        "reachability": 4,
+        "safetyAndReputation": 2,
+        "learningValue": 4
+      },
+      "totalScore": 19,
+      "outreachApproved": false,
+      "contactedAt": null
+    }
+  ],
+  "recipients": []
+}

@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "id": "CAP-001",
+  "asOf": "2026-08-14",
+  "state": "ready_for_kevin_to_create_accounts",
+  "ownerStatement": "Kevin confirmed that Mythical Void does not yet have official email or social accounts.",
+  "canonicalUrl": "https://mythicalvoid.com/",
+  "pressUrl": "https://mythicalvoid.com/press/",
+  "authority": {
+    "accountCreationAuthorized": false,
+    "publishingAuthorized": false,
+    "replyingAuthorized": false,
+    "directMessagingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "brandRules": {
+    "publicCreatureWord": "creature",
+    "prohibitedPublicPhrases": [
+      "AI companion",
+      "sentient creature",
+      "no two creatures are alike",
+      "every creature is unique"
+    ],
+    "gameplayRule": "Generated artwork must never be presented as gameplay.",
+    "defaultArtDisclosure": "AI-generated Mythical Void artwork inspired by the game's creature system; not gameplay footage.",
+    "founderPrivacyRule": "The father-and-son origin can be shared. Do not publish the child's name, image, school, location, routine or private account details."
+  },
+  "channels": [
+    {
+      "channelRef": "CH-002",
+      "platform": "YouTube",
+      "priority": 1,
+      "accountState": "not_created_owner_confirmed",
+      "recommendedAccountType": "Business-name channel with more than one manager or owner",
+      "displayName": "Mythical Void",
+      "handleCandidates": [
+        "@MythicalVoid",
+        "@PlayMythicalVoid",
+        "@MythicalVoidGame"
+      ],
+      "handleAvailabilityVerified": false,
+      "profileDescription": "Enter the Void. Hatch a strange creature, explore six living realms and decide what Project Beacon becomes. Mythical Void is a free browser adventure made by an independent Irish studio that began as a father-and-son experiment with imagination and generative AI. Play now with no download or account needed. Generated artwork is labelled; gameplay videos show the real game. https://mythicalvoid.com/",
+      "links": [
+        "https://mythicalvoid.com/",
+        "https://mythicalvoid.com/press/"
+      ],
+      "ownership": {
+        "primaryOwner": "Kevin Murphy",
+        "backupOwner": null,
+        "passwordSharingAllowed": false,
+        "useScopedChannelPermissions": true,
+        "multiFactorAuthenticationRequired": true
+      },
+      "audienceSetting": {
+        "recommendedChoice": "Review this setting for every video",
+        "reason": "Mythical Void can speak to families, teenagers, adult players, educators and industry audiences. Each upload must be labelled according to who that particular video is actually directed at.",
+        "legalReviewRequiredForUnclearUploads": true,
+        "doNotAssumeFamilyFriendlyMeansMadeForKids": true
+      },
+      "commentSetting": {
+        "beforeNamedAdultCoverage": "off",
+        "afterNamedAdultCoverage": "hold_all",
+        "privateRepliesToChildren": false,
+        "reviewCadenceRequired": true
+      },
+      "firstUploads": [
+        {
+          "id": "YT-001",
+          "sequence": 1,
+          "title": "Mythical Void — Play Free in Your Browser",
+          "format": "60 to 90 second trailer",
+          "purpose": "Show that the game is real and playable now.",
+          "assetRule": "Authentic build-linked gameplay only; generated title art may appear if clearly labelled.",
+          "description": "A universe of creatures is waiting. Hatch a strange creature, explore six living realms and decide what Project Beacon becomes. Play free with no download or account needed: https://mythicalvoid.com/\n\nAny generated title artwork is a marketing illustration, not gameplay.",
+          "proofState": "blocked_until_authentic_gameplay_capture",
+          "audienceDecision": "required_at_upload"
+        },
+        {
+          "id": "YT-002",
+          "sequence": 2,
+          "title": "From Crash Site to First Creature | Mythical Void Gameplay",
+          "format": "3 to 5 minute gameplay journey",
+          "purpose": "Prove the opening, movement and first creature encounter.",
+          "assetRule": "Unbroken or plainly edited authentic gameplay with the build recorded internally.",
+          "description": "Wanderer-77 is down. Recover what survived, follow the signal and meet the creature waiting in the Void. Play here: https://mythicalvoid.com/",
+          "proofState": "blocked_until_authentic_gameplay_capture",
+          "audienceDecision": "required_at_upload"
+        },
+        {
+          "id": "YT-003",
+          "sequence": 3,
+          "title": "You Restore the Guardians — You Don't Destroy Them",
+          "format": "2 to 4 minute gameplay explanation",
+          "purpose": "Make the restoration battle idea understandable.",
+          "assetRule": "Show a real guardian encounter and the resulting world change.",
+          "description": "The guardian is not the enemy. The Void corruption is. Learn the encounter, fight beside your creature and restore what was lost. Play here: https://mythicalvoid.com/",
+          "proofState": "blocked_until_authentic_gameplay_capture",
+          "audienceDecision": "required_at_upload"
+        },
+        {
+          "id": "YT-004",
+          "sequence": 4,
+          "title": "How Mythical Void Creates Strange New Creatures",
+          "format": "3 to 6 minute plain-language system story",
+          "purpose": "Explain the real range of the genetics system without absolute uniqueness claims.",
+          "assetRule": "Use real genetics outputs and real sprites; generated creature paintings must be labelled as interpretations.",
+          "description": "Shapes, colours, temperaments, cosmic affinities and rare mutations combine into a huge range of possible creatures. This video shows what the game really supports and where imaginative artwork takes the idea further. Play: https://mythicalvoid.com/",
+          "proofState": "blocked_until_genetics_output_capture",
+          "audienceDecision": "required_at_upload"
+        },
+        {
+          "id": "YT-005",
+          "sequence": 5,
+          "title": "Why NASA Data Appears Inside a Fantasy Game",
+          "format": "3 to 5 minute STEM discovery story",
+          "purpose": "Connect the fictional universe to real space curiosity.",
+          "assetRule": "Show a real product moment, name the NASA source and credit the public data used.",
+          "description": "Mythical Void can turn NASA's public astronomy, Mars and space-weather data into optional discovery moments. The adventure is fictional; the space data is real and credited. Explore the game: https://mythicalvoid.com/",
+          "proofState": "blocked_until_product_and_source_capture",
+          "audienceDecision": "required_at_upload"
+        }
+      ]
+    },
+    {
+      "channelRef": "CH-004",
+      "platform": "LinkedIn",
+      "priority": 2,
+      "accountState": "not_created_owner_confirmed",
+      "recommendedPageType": "Company",
+      "pageName": "Mythical Void",
+      "publicUrlCandidates": [
+        "linkedin.com/company/mythical-void",
+        "linkedin.com/company/play-mythical-void"
+      ],
+      "publicUrlAvailabilityVerified": false,
+      "tagline": "An independent Irish studio building a browser creature adventure with imagination, responsible AI and real space discovery.",
+      "about": "Mythical Void began at home with a father, his nine-year-old son and a question: what could generative AI tools and a lot of imagination make possible?\n\nThose conversations grew into strange creatures, living realms and a free browser adventure. Players hatch a creature, restore worlds affected by the Void and make choices about Project Beacon. Optional NASA-powered discoveries connect the fictional journey to real space.\n\nWe are building the studio in the same spirit: small, independent, ambitious and AI-first, while people remain responsible for the story, safety, evidence and important decisions.\n\nPlay now: https://mythicalvoid.com/\nPress room: https://mythicalvoid.com/press/",
+      "industry": "Computer Games",
+      "companySizeChoice": "Use the smallest truthful option available",
+      "organizationTypeChoice": "Privately Held if legally accurate; otherwise use the closest truthful available option",
+      "ownership": {
+        "superAdmin": "Kevin Murphy",
+        "futureContentAdmin": null,
+        "futureAnalyst": null,
+        "passwordSharingAllowed": false,
+        "multiFactorAuthenticationRequired": true
+      },
+      "firstPosts": [
+        {
+          "id": "LI-001",
+          "sequence": 1,
+          "theme": "Father-and-son beginning",
+          "copy": "Mythical Void began at home with a father, his nine-year-old son and a question: what could generative AI tools and a lot of imagination make possible?\n\nThe answer became strange creatures, living worlds and a browser game you can play today. Imagination still leads. AI helps a very small team explore and build. People remain responsible for the story, safety and important choices.\n\nPlay Mythical Void: https://mythicalvoid.com/",
+          "asset": "public/marketing/mythical-void-emblem-v3.png",
+          "disclosure": "Brand artwork created with generative AI and refined for Mythical Void.",
+          "approvalState": "awaiting_kevin_and_page"
+        },
+        {
+          "id": "LI-002",
+          "sequence": 2,
+          "theme": "Playable now",
+          "copy": "Mythical Void is now playable in a browser.\n\nHatch a strange creature. Explore six living realms. Restore guardians affected by the Void. Decide what Project Beacon becomes.\n\nThere is no download or account needed to start: https://mythicalvoid.com/",
+          "asset": "authentic_gameplay_capture_required",
+          "disclosure": "Use a real game capture from a recorded build.",
+          "approvalState": "blocked_until_gameplay_proof"
+        },
+        {
+          "id": "LI-003",
+          "sequence": 3,
+          "theme": "Responsible AI",
+          "copy": "We are trying to build an AI-first game studio without making responsibility disappear.\n\nAt Mythical Void, AI can help us imagine, test, organise and create. It cannot make a safety decision, invent evidence, quietly publish as the studio or replace human judgement where children and families are involved.\n\nThat boundary is part of the product, not paperwork added afterwards. Read our story and play: https://mythicalvoid.com/",
+          "asset": "simple_brand_card_or_studio_page_capture",
+          "disclosure": "Label any generated artwork; do not use a generated studio photograph.",
+          "approvalState": "awaiting_kevin_and_page"
+        },
+        {
+          "id": "LI-004",
+          "sequence": 4,
+          "theme": "NASA and STEM",
+          "copy": "A fantasy game can still open a door to real science.\n\nMythical Void can use NASA's public astronomy, Mars and space-weather data for optional discovery moments. The universe in the game is imagined. The curiosity it sparks can travel much further.\n\nWe will show the real feature and credit its data source when the product capture is ready. Explore Mythical Void: https://mythicalvoid.com/",
+          "asset": "product_screenshot_required",
+          "disclosure": "Name and credit the NASA source shown in the finished post.",
+          "approvalState": "blocked_until_product_proof"
+        },
+        {
+          "id": "LI-005",
+          "sequence": 5,
+          "theme": "Press and creator invitation",
+          "copy": "For games writers, creators, educators and people exploring responsible creative AI: our Mythical Void press room is open.\n\nIt includes the playable link, a clear fact sheet, the father-and-son origin and honest notes explaining which images are generated artwork and which captures are gameplay.\n\nPress room: https://mythicalvoid.com/press/",
+          "asset": "press_room_page_capture",
+          "disclosure": "Website capture; no additional artwork claim needed.",
+          "approvalState": "awaiting_kevin_and_page"
+        }
+      ]
+    }
+  ],
+  "sourceRules": [
+    {
+      "name": "YouTube channel creation",
+      "url": "https://support.google.com/youtube/answer/1646861?hl=en"
+    },
+    {
+      "name": "YouTube channel permissions",
+      "url": "https://support.google.com/youtube/answer/9481328?hl=en"
+    },
+    {
+      "name": "YouTube audience setting",
+      "url": "https://support.google.com/youtube/answer/9527654?hl=en-uk"
+    },
+    {
+      "name": "YouTube comments",
+      "url": "https://support.google.com/youtube/answer/9483359?hl=en"
+    },
+    {
+      "name": "YouTube altered or synthetic content",
+      "url": "https://support.google.com/youtube/answer/14328491?hl=en"
+    },
+    {
+      "name": "LinkedIn Page creation",
+      "url": "https://www.linkedin.com/help/linkedin/answer/a543852/create-a-linkedin-page?lang=en"
+    },
+    {
+      "name": "LinkedIn Page admin roles",
+      "url": "https://www.linkedin.com/help/linkedin/answer/a550647/"
+    }
+  ],
+  "kevinActivationChecklist": [
+    "Create the YouTube business-name channel using the Mythical Void display name.",
+    "Choose the first available handle from the prepared list; do not assume any handle is reserved.",
+    "Select 'review this setting for every video' for the YouTube audience setting.",
+    "Keep YouTube comments off until a named adult has a reliable review time; then use hold all.",
+    "Create a free LinkedIn Company Page and paste the prepared tagline and About copy.",
+    "Turn on multi-factor authentication and add a backup adult using platform roles rather than sharing passwords.",
+    "Send the exact YouTube and LinkedIn links back to the company register before any post is published."
+  ]
+}
