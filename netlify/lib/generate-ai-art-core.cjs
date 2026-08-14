@@ -10,6 +10,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 const REPLICATE_MODEL = process.env.REPLICATE_IMAGE_MODEL || 'openai/gpt-image-2';
 const REPLICATE_API_BASE = 'https://api.replicate.com/v1';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1';
 const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';
 const SUPABASE_PROJECT_URL = 'https://mkcmdbzcihjgidjuypqe.supabase.co';
 const PORTRAIT_BUCKET = 'creature-portraits';
@@ -193,11 +194,6 @@ const STAGE_SCALE = Object.freeze({
 
 const defaultRuntime = Object.freeze({
     createClient,
-    createGeminiClient: () => {
-        const error = new Error('Portrait service is not configured');
-        error.statusCode = 503;
-        throw error;
-    },
     fetch: (...args) => fetch(...args),
     now: () => Date.now()
 });
@@ -716,8 +712,8 @@ async function startGeminiGeneration(spec, style, referenceImage) {
     }];
     if (referenceImage) {
         parts.push({
-            inlineData: {
-                mimeType: 'image/png',
+            inline_data: {
+                mime_type: 'image/png',
                 data: referenceImage.slice('data:image/png;base64,'.length)
             }
         });
@@ -725,18 +721,44 @@ async function startGeminiGeneration(spec, style, referenceImage) {
 
     let payload;
     try {
-        const ai = runtime.createGeminiClient();
-        payload = await ai.models.generateContent({
-            model: GEMINI_IMAGE_MODEL,
-            contents: parts,
-            config: {
-                responseModalities: ['IMAGE'],
-                imageConfig: {
-                    aspectRatio: '1:1',
-                    imageSize: '1K'
-                }
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            const configurationError = new Error(
+                'Portrait service is not configured'
+            );
+            configurationError.statusCode = 503;
+            throw configurationError;
+        }
+        const response = await runtime.fetch(
+            `${GEMINI_API_BASE}/models/${encodeURIComponent(GEMINI_IMAGE_MODEL)}:generateContent`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey
+                },
+                body: JSON.stringify({
+                    contents: [{ role: 'user', parts }],
+                    generationConfig: {
+                        responseModalities: ['IMAGE'],
+                        responseFormat: {
+                            image: {
+                                aspectRatio: '1:1',
+                                imageSize: '1K'
+                            }
+                        }
+                    }
+                })
             }
-        });
+        );
+        payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const providerError = new Error(
+                payload?.error?.message || 'Gemini image request failed'
+            );
+            providerError.status = response.status;
+            throw providerError;
+        }
     } catch (providerError) {
         const providerStatus = Number(
             providerError?.status ||
@@ -744,10 +766,6 @@ async function startGeminiGeneration(spec, style, referenceImage) {
             providerError?.code
         );
         const directGeminiConfigured = Boolean(process.env.GEMINI_API_KEY);
-        const managedGatewayConfigured = Boolean(
-            process.env.GEMINI_API_KEY &&
-            process.env.GOOGLE_GEMINI_BASE_URL
-        );
         const configurationFailure = (
             !directGeminiConfigured ||
             /api key|credential|configured/i.test(providerError?.message || '')
@@ -756,11 +774,7 @@ async function startGeminiGeneration(spec, style, referenceImage) {
             providerStatus: Number.isFinite(providerStatus) ? providerStatus : null,
             reason: classifyGeminiFailure(providerError),
             directGeminiConfigured,
-            gatewayConfigured: managedGatewayConfigured,
-            universalGatewayConfigured: Boolean(
-                process.env.NETLIFY_AI_GATEWAY_KEY &&
-                process.env.NETLIFY_AI_GATEWAY_BASE_URL
-            )
+            transport: 'google-rest'
         })}`);
         const error = new Error(
             configurationFailure
@@ -792,7 +806,7 @@ async function startGeminiGeneration(spec, style, referenceImage) {
     return {
         id: `netlify-gateway-${runtime.now()}`,
         status: 'succeeded',
-        provider: 'Netlify AI Gateway',
+        provider: 'Google Gemini API',
         model: GEMINI_IMAGE_MODEL,
         output: {
             inlineImage: {

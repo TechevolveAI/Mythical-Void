@@ -44,7 +44,7 @@ describe('Exact hatched creature portrait pipeline', () => {
 
     test('uses the reference image in both supported model paths', () => {
         expect(server).toContain('input.input_images = [referenceImage]');
-        expect(server).toContain("mimeType: 'image/png'");
+        expect(server).toContain("mime_type: 'image/png'");
         expect(server).toContain(
             'IMAGE 1 IS THE AUTHORITATIVE IDENTITY REFERENCE'
         );

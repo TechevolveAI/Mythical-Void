@@ -8,21 +8,15 @@ describe('living portrait modern Netlify runtime', () => {
     );
     const adapterSource = fs.readFileSync(adapterPath, 'utf8');
 
-    test('uses a modern ESM default handler so AI Gateway variables are available', () => {
-        expect(adapterSource).toContain("import { GoogleGenAI } from '@google/genai'");
-        expect(adapterSource).toContain("import { createClient } from '@supabase/supabase-js'");
-        expect(adapterSource).toContain("import WebSocket from 'ws'");
-        expect(adapterSource).toContain('transport: WebSocket');
-        expect(adapterSource).toContain('export default async function generateAIArt(request)');
-        expect(adapterSource).toContain('new Response(');
+    test('keeps provider SDKs out of the function entrypoint', () => {
+        expect(adapterSource).not.toContain("from '@google/genai'");
+        expect(adapterSource).not.toContain("from '@supabase/supabase-js'");
+        expect(adapterSource).not.toContain("from 'ws'");
         expect(adapterSource).not.toContain('exports.handler');
     });
 
     test('preserves the existing request contract through the core handler', () => {
         expect(adapterSource).toContain("import portraitCore from '../lib/generate-ai-art-core.cjs'");
-        expect(adapterSource).toContain('httpMethod: request.method');
-        expect(adapterSource).toContain('queryStringParameters:');
-        expect(adapterSource).toContain('event.body = await request.text()');
-        expect(adapterSource).toContain('status: result.statusCode');
+        expect(adapterSource).toContain('export const handler = portraitCore.handler');
     });
 });
