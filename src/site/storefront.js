@@ -80,6 +80,7 @@ function renderPressPage() {
                         ${playLink('Play the current game')}
                         <a class="button button-quiet" href="/press/mythical-void-fact-sheet.txt" download>Download the fact sheet</a>
                         <a class="button button-quiet" href="/resources/mythical-void-stem-creature-lab.pdf" download>Download the STEM activity</a>
+                        <a class="button button-quiet" href="/resources/mythical-void-play-share-card.pdf" download>Print and share the game</a>
                     </div>
                     <p class="press-art-disclosure">Hero image: AI-generated marketing illustration inspired by creature profiles from the genetics engine. It is not gameplay footage.</p>
                 </div>
@@ -213,6 +214,7 @@ function renderPressPage() {
                     <div class="press-hero-actions">
                         ${playLink('Play Mythical Void')}
                         <a class="button button-quiet" href="/resources/mythical-void-stem-creature-lab.pdf" download>Get the free STEM activity</a>
+                        <a class="button button-quiet" href="/resources/mythical-void-play-share-card.pdf" download>Get the play-and-share card</a>
                         <a class="button button-quiet" href="/press/mythical-void-press-assets.json">View the media manifest</a>
                     </div>
                 </div>
