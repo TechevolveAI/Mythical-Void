@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "state": "route_specific_preview_metadata_bound_to_checked_assets",
+  "purpose": "Keep the image, wording and destination shown by social link previews truthful, accessible and specific to the page being shared.",
+  "pages": [
+    {
+      "route": "/",
+      "htmlPath": "index.html",
+      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageType": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "alt": "A universe of alien creatures in Mythical Void",
+      "classification": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay."
+    },
+    {
+      "route": "/story/",
+      "htmlPath": "public/story/index.html",
+      "imagePath": "public/press/social/project-beacon-story-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/project-beacon-story-wide.png",
+      "imageType": "image/png",
+      "width": 1200,
+      "height": 630,
+      "alt": "Mythical Void Project Beacon sharing artwork with a real game frame and the words Earth sent you looking for hope",
+      "classification": "branded_social_artwork_with_authentic_gameplay_frame",
+      "disclosure": "Branded sharing layout, not a raw screenshot. The framed scene is real gameplay captured from the running browser game using an invented test state; no player information is shown."
+    },
+    {
+      "route": "/updates/",
+      "htmlPath": "public/updates/index.html",
+      "imagePath": "public/press/social/project-beacon-story-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/project-beacon-story-wide.png",
+      "imageType": "image/png",
+      "width": 1200,
+      "height": 630,
+      "alt": "Mythical Void Project Beacon sharing artwork with a real game frame and the words Earth sent you looking for hope",
+      "classification": "branded_social_artwork_with_authentic_gameplay_frame",
+      "disclosure": "Branded sharing layout, not a raw screenshot. The framed scene is real gameplay captured from the running browser game using an invented test state; no player information is shown."
+    },
+    {
+      "route": "/creature-genetics/",
+      "htmlPath": "public/creature-genetics/index.html",
+      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageType": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "alt": "Many possible alien creature forms in the Mythical Void universe",
+      "classification": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay."
+    },
+    {
+      "route": "/nasa-space-science/",
+      "htmlPath": "public/nasa-space-science/index.html",
+      "imagePath": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
+      "imageUrl": "https://mythicalvoid.com/press/gameplay/nasa-apollo11-real-space-discovery.png",
+      "imageType": "image/png",
+      "width": 390,
+      "height": 844,
+      "alt": "Mythical Void learning card with a credited NASA Apollo 11 panorama",
+      "classification": "authentic_running_build_screenshot_with_public_nasa_image",
+      "disclosure": "Real in-game learning card containing a credited NASA public image and a clearly marked fictional creature reaction. NASA does not endorse Mythical Void."
+    },
+    {
+      "route": "/parents/",
+      "htmlPath": "public/parents/index.html",
+      "imagePath": "public/press/gameplay/project-beacon-start.png",
+      "imageUrl": "https://mythicalvoid.com/press/gameplay/project-beacon-start.png",
+      "imageType": "image/png",
+      "width": 1440,
+      "height": 810,
+      "alt": "The real Mythical Void opening screen at the Wanderer-77 crash site",
+      "classification": "authentic_running_build_screenshot",
+      "disclosure": "Captured from the real browser game using an invented test state; no player information is shown."
+    },
+    {
+      "route": "/studio/",
+      "htmlPath": "public/studio/index.html",
+      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageType": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "alt": "A universe of imagined creatures from Mythical Void",
+      "classification": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay."
+    }
+  ],
+  "knownLimitations": [
+    {
+      "route": "/press/",
+      "currentState": "The press room is an application-rendered page and currently inherits the homepage's static link-preview metadata.",
+      "boundary": "Do not claim that the press-room link has a dedicated social preview until a route-specific static shell is live and checked."
+    }
+  ],
+  "authority": {
+    "publishingToOwnedWebsiteAuthorized": true,
+    "autonomousSocialPostingAuthorized": false,
+    "trackingParametersPermitted": false,
+    "externalActionPerformed": false
+  }
+}

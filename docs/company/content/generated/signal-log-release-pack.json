@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "046f19cb186df69ba90961132ae6909267f7c735977ddecbf1d4d3be6691f951",
-    "liveEntryCount": 4,
+    "sourceFingerprint": "ac8af081f6ddcae24b5ab48d990566bb2dd56b89b473f6b4740498594b13f371",
+    "liveEntryCount": 5,
     "latestSourceDate": "2026-08-14"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-005",
+      "sourceEntryId": "SIGNAL-005",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/story/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social/project-beacon-story-wide.png",
+        "alt": "Wide Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame",
+        "class": "branded_social_artwork_with_authentic_gameplay_frame",
+        "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Shared links now carry the right picture\n\nThe Project Beacon story and other important Mythical Void pages now give social apps a clearer image, description and accessible image text when someone shares a link.\n\n• The Project Beacon story now uses its purpose-built wide sharing artwork instead of a generic or easily cropped image.\n• Seven public pages carry checked image sizes and matching alternative text for large link previews.\n• Every preview keeps its clean mythicalvoid.com destination and the artwork-versus-gameplay boundary.\n\nSee what changed: https://mythicalvoid.com/story/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 731
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Shared links now carry the right picture\n\nThe Project Beacon story and other important Mythical Void pages now give social apps a clearer image, description and accessible image text when someone shares a link.\n\nhttps://mythicalvoid.com/story/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 405
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Shared links now carry the right picture",
+          "body": "Mythical Void has a new live update: Shared links now carry the right picture.\n\nThe Project Beacon story and other important Mythical Void pages now give social apps a clearer image, description and accessible image text when someone shares a link.\n\nThe Project Beacon story now uses its purpose-built wide sharing artwork instead of a generic or easily cropped image. Seven public pages carry checked image sizes and matching alternative text for large link previews. Every preview keeps its clean mythicalvoid.com destination and the artwork-versus-gameplay boundary.\n\nThe checked public destination is https://mythicalvoid.com/story/\n\nMedia note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 866,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-004",
       "sourceEntryId": "SIGNAL-004",

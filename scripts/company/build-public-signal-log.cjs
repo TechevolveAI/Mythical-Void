@@ -66,15 +66,19 @@ function buildSignalLog(data) {
     <meta name="theme-color" content="#090711">
     <meta property="og:title" content="${escapeHtml(data.page.title)}">
     <meta property="og:description" content="${escapeHtml(data.page.introduction)}">
-    <meta property="og:image" content="https://mythicalvoid.com/press/gameplay/project-beacon-start.png">
-    <meta property="og:image:alt" content="Real Mythical Void gameplay showing the Project Beacon opening">
+    <meta property="og:image" content="https://mythicalvoid.com/press/social/project-beacon-story-wide.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Mythical Void Project Beacon sharing artwork with a real game frame and the words Earth sent you looking for hope">
     <meta property="og:url" content="${escapeHtml(data.page.canonicalUrl)}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Mythical Void">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(data.page.title)}">
     <meta name="twitter:description" content="Real Mythical Void releases, useful new resources and honest notes about what changed.">
-    <meta name="twitter:image" content="https://mythicalvoid.com/press/gameplay/project-beacon-start.png">
+    <meta name="twitter:image" content="https://mythicalvoid.com/press/social/project-beacon-story-wide.png">
+    <meta name="twitter:image:alt" content="Mythical Void Project Beacon sharing artwork with a real game frame and the words Earth sent you looking for hope">
     <link rel="canonical" href="${escapeHtml(data.page.canonicalUrl)}">
     <link rel="icon" type="image/png" sizes="32x32" href="/marketing/mythical-void-mark-32.png">
     <link rel="stylesheet" href="/discovery.css">
