@@ -70,10 +70,28 @@ describe('third expedition rescue loop', () => {
 
         expect(source).toContain('CURRENT LINK ACTIVE // KATANA STRIKES AMPLIFIED');
         expect(source).toContain('const currentLinkedDamage = meleeDamage + 1');
+        expect(source).toContain('const getStrikeDamage = () => currentLinkedDamage');
         expect(source).toContain(
-            "this.resolveBossHit(currentLinkedDamage, { source: 'katana_current' })"
+            "{ source: 'katana_current' }"
         );
         expect(source).toContain('reefAmplified: true');
+    });
+
+    test('makes the direct Signal Current earn a saved one-hit katana reward', () => {
+        const source = readLevel();
+
+        expect(source).toContain(
+            "mainTradeoff: 'FAST + PATROLS\\nEARNS: NEXT KATANA HIT +2'"
+        );
+        expect(source).toContain(
+            "challengeLabel: 'DEEP WATER + 2 RELICS'"
+        );
+        expect(source).toContain('this.reefCurrentEdgeReady = true');
+        expect(source).toContain('reefCurrentEdgeReady: this.reefRouteChoice');
+        expect(source).toContain('routeState.reefCurrentEdgeReady !== false');
+        expect(source).toContain('consumeReefCurrentEdge()');
+        expect(source).toContain('NEXT KATANA HIT +2 READY');
+        expect(source).toContain('CURRENT EDGE SPENT');
     });
 
     test('makes the Star Trench return current visible, narrow, and mechanically honest', () => {
@@ -257,10 +275,24 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain('shipPartCollected: this.shipPartCollected === true');
         expect(source).toContain('reefFragmentMask: this.reefCollectedFragmentMask');
         expect(source).toContain('starTrenchProgress: Number(route?.progress)');
+        expect(source).toContain('reefCurrentEdgeReady: this.reefRouteChoice');
         expect(source).toContain('restoreReefRouteState(resume.routeState');
         expect(source).toContain('this.clearShipPartPickup();');
         expect(source).toContain('this.retireCollectedReefFragments();');
         expect(source).toContain('onFreeSpecialAttackConsumed()');
+    });
+
+    test('keeps compact Reef guidance vivid without offscreen decorative tweens', () => {
+        const source = readLevel();
+
+        expect(source).toContain('shouldAnimateReefDecorations()');
+        expect(source).toContain(
+            'return !(this.isMobile || width <= 480 || height < 620);'
+        );
+        expect(source).toContain(
+            'const particleLimit = this.shouldAnimateReefDecorations() ? 12 : 6;'
+        );
+        expect(source).toContain('this.shouldAnimateReefDecorations()\n            ? this.tweens.add({');
     });
 
     test('makes the Reef entry keyboard accessible and single-fire', () => {
@@ -277,6 +309,10 @@ describe('third expedition rescue loop', () => {
         expect(source).toMatch(
             /shutdown\(\)[\s\S]*this\.clearLevelEntryKeyHandler\(\)/
         );
+        expect(entry).toContain('const leftDecoration = this.addCosmicDecoration(');
+        expect(entry).toContain('const rightDecoration = this.addCosmicDecoration(');
+        expect(entry).toContain('leftDecoration,\n            rightDecoration,');
+        expect(source).toMatch(/addCosmicDecoration\(x, y\)[\s\S]*return orb;/);
     });
 
     test('keeps harmless crystal facets inside safe platform silhouettes', () => {

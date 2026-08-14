@@ -35,7 +35,7 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
     }),
     reef: Object.freeze({
         displayCount: 205,
-        activeTweenCount: 45,
+        activeTweenCount: 24,
         performanceTier: 'custom'
     }),
     voidPeaks: Object.freeze({
@@ -2404,7 +2404,30 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 dustParticleCount: scene.cosmicDustParticles.length,
                 entryLayerCount: scene.children?.list?.filter(
                     item => item === scene.entryCosmicParticleLayer
-                ).length || 0
+                ).length || 0,
+                decorativeTweenCount: (() => {
+                    const routeState = scene.optionalRouteRewards?.get?.(
+                        'reef_star_trench'
+                    );
+                    const targets = new Set([
+                        ...(scene.nebulaParticles || []),
+                        ...(scene.voidRifts || []),
+                        ...(scene.starFragments || []).map(item => item?.graphics),
+                        scene.shipPart?.graphics,
+                        scene.shipPart?.label,
+                        routeState?.marker,
+                        routeState?.choice?.mainMarker,
+                        scene.abyssAscentCurrent?.visual,
+                        scene.abyssAscentCurrent?.label,
+                        scene.driftAscentCurrent?.visual,
+                        scene.driftAscentCurrent?.label,
+                        scene.travelerAscentCurrent?.visual,
+                        scene.travelerAscentCurrent?.label
+                    ].filter(Boolean));
+                    return (scene.tweens?.getTweens?.() || []).filter(
+                        tween => (tween?.targets || []).some(target => targets.has(target))
+                    ).length;
+                })()
             } : null,
             currentEcologyPlacement: scene?.currentEcologyNode ? (() => {
                 const node = scene.currentEcologyNode;
@@ -2535,8 +2558,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.reefAmbientRendering?.nebulaLayerCount !== 2 ||
             state.reefAmbientRendering?.riftLayerCount !== 1 ||
             state.reefAmbientRendering?.dustLayerCount !== 1 ||
-            state.reefAmbientRendering?.dustParticleCount > 12 ||
+            state.reefAmbientRendering?.dustParticleCount > 6 ||
             state.reefAmbientRendering?.entryLayerCount > 1 ||
+            state.reefAmbientRendering?.decorativeTweenCount !== 0 ||
             state.currentEcologyPlacement?.supportId !== 'reef-opening-3' ||
             state.currentEcologyPlacement?.x <
                 state.currentEcologyPlacement?.supportLeft ||
@@ -3672,6 +3696,111 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     JSON.stringify({ choicePresentation, mainRouteEffect })
                 );
             }
+            await startCampaignScene(session, { route, sceneName });
+            await delay(400);
+        }
+        if (route === 'reef') {
+            const mainRouteStaged = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                const routeState = scene?.optionalRouteRewards?.get?.(
+                    'reef_star_trench'
+                );
+                const support = scene?.getTraversalSupport?.(
+                    routeState?.choice?.mainSupportIds?.[0]
+                );
+                if (!scene?.player?.body || !routeState?.choice || !support?.body) {
+                    return null;
+                }
+                scene.player.body.reset(
+                    support.x,
+                    support.body.top - scene.player.body.height - 4
+                );
+                scene.player.setVelocity?.(0, 0);
+                return { supportId: support.traversalId };
+            })()`);
+            if (!mainRouteStaged) {
+                throw new Error(`${sceneName} could not stage its Signal Current`);
+            }
+            mainRouteEffect = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                    const routeState = scene?.optionalRouteRewards?.get?.(
+                        'reef_star_trench'
+                    );
+                    if (routeState?.choice?.selectedPath !== 'main') return null;
+                    const target = scene.enemies?.getChildren?.().find(
+                        enemy => enemy?.active
+                    );
+                    if (!target) return null;
+                    const optionalAccepted = scene.recordOptionalRouteProgress(
+                        'reef_star_trench',
+                        { x: scene.player.x, y: scene.player.y }
+                    );
+                    const objectiveBefore = scene.getReefObjectiveText?.() || '';
+                    const persistedBefore = scene.getExpeditionRouteState?.()
+                        .reefCurrentEdgeReady;
+                    const baseDamage = (
+                        Number(scene.katanaCombatProfile?.meleeDamage) || 2
+                    ) + 1;
+                    scene.enemies.getChildren().forEach(enemy => {
+                        enemy.x = -10000;
+                        enemy.y = -10000;
+                    });
+                    scene.player.facingRight = true;
+                    target.x = scene.player.x + 70;
+                    target.y = scene.player.y;
+                    const originalDamageEnemy = scene.damageEnemy;
+                    const damageCalls = [];
+                    scene.damageEnemy = (_enemy, amount) => {
+                        damageCalls.push(amount);
+                        return true;
+                    };
+                    scene.performAttack();
+                    scene.damageEnemy = originalDamageEnemy;
+                    return {
+                        selectedPath: routeState.choice.selectedPath,
+                        reefRouteChoice: scene.reefRouteChoice,
+                        optionalAccepted,
+                        progress: routeState.progress,
+                        completed: routeState.completed,
+                        objectiveBefore,
+                        objective: scene.getReefObjectiveText?.() || '',
+                        baseDamage,
+                        damageCalls,
+                        edgeReadyBefore: persistedBefore,
+                        edgeReadyAfter: scene.reefCurrentEdgeReady,
+                        persistedAfter: scene.getExpeditionRouteState?.()
+                            .reefCurrentEdgeReady
+                    };
+                })()`),
+                { timeoutMs: 2500, message: `${sceneName} Signal Current selection` }
+            );
+            if (
+                mainRouteEffect.selectedPath !== 'main' ||
+                mainRouteEffect.reefRouteChoice !== 'main' ||
+                mainRouteEffect.optionalAccepted !== false ||
+                mainRouteEffect.progress !== 0 ||
+                mainRouteEffect.completed !== false ||
+                mainRouteEffect.damageCalls?.[0] !==
+                    mainRouteEffect.baseDamage + 2 ||
+                mainRouteEffect.edgeReadyBefore !== true ||
+                mainRouteEffect.edgeReadyAfter !== false ||
+                mainRouteEffect.persistedAfter !== false ||
+                !mainRouteEffect.objectiveBefore.includes(
+                    'NEXT KATANA HIT +2 READY'
+                ) ||
+                !mainRouteEffect.objective.includes('CURRENT EDGE SPENT') ||
+                !choicePresentation.mainTradeoff.includes('KATANA HIT +2') ||
+                !choicePresentation.challengeLabel.includes('2 RELICS') ||
+                !choicePresentation.rewardLabel.includes('FREE SUPER BLAST')
+            ) {
+                throw new Error(
+                    `${sceneName} route rewards contradicted their promise: ` +
+                    JSON.stringify({ choicePresentation, mainRouteEffect })
+                );
+            }
+            // Prove the Star Trench from a clean scene; the Signal Current
+            // intentionally commits the route and spends only its own reward.
             await startCampaignScene(session, { route, sceneName });
             await delay(400);
         }
