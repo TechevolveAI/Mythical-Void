@@ -136,6 +136,39 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.queueVirtualJumpInput();');
     });
 
+    test('every dark campaign biome renders a stable high-contrast landing rim', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'PlatformReadabilityTest' });
+        const relativeLuminance = color => {
+            const channels = [16, 8, 0].map(shift => (
+                (color >> shift) & 0xFF
+            ) / 255);
+            return channels.reduce(
+                (total, channel, index) => total + channel * [0.2126, 0.7152, 0.0722][index],
+                0
+            );
+        };
+
+        [
+            'crystal_caves',
+            'stellar_reef',
+            'void_peaks',
+            'aurora_depths',
+            'final_void'
+        ].forEach(biomeId => {
+            scene.biomeId = biomeId;
+            const colors = scene.getPlatformColors();
+            expect(colors.edge).toEqual(expect.any(Number));
+            expect(relativeLuminance(colors.edge))
+                .toBeGreaterThan(relativeLuminance(colors.base) + 0.2);
+        });
+
+        const source = read('PlatformerLevelScene.js');
+        expect(source).toContain('graphics.strokeRoundedRect(');
+        expect(source).toContain('colors.edge || colors.crystal');
+        expect(source).toContain('without adding display objects or animation');
+    });
+
     test('ground contact cannot trigger anti-stuck movement while a real wedge still recovers', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'AntiStuckTest' });
@@ -893,6 +926,15 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("beat: 'warning-line-guard'");
         expect(source).toContain("beat: 'titan-overlook'");
         expect(source).toContain("supportId: 'peak-opening-step'");
+        expect(source).toContain(
+            "[300, groundY - 145, 210, 'solid', 'peak-opening-step']"
+        );
+        expect(source).toContain(
+            "[600, groundY - 245, 180, 'solid', 'peak-opening-rise']"
+        );
+        expect(source).toContain(
+            "[980, groundY - 150, 460, 'solid', 'peak-lower-relay-overlook']"
+        );
         expect(source).toContain("supportId: 'peak-floor-summit'");
         expect(source).toContain("supportId: 'peak-titan-overlook'");
         expect(source).toContain("lane: 'main'");

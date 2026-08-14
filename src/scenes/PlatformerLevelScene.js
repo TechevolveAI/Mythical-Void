@@ -2136,8 +2136,27 @@ class PlatformerLevelScene extends Phaser.Scene {
         graphics.fillRoundedRect(0, 0, width, height, cornerRadius);
 
         // Top highlight (lighter edge)
-        graphics.fillStyle(colors.highlight, 0.4);
+        graphics.fillStyle(colors.highlight, 0.58);
         graphics.fillRoundedRect(2, 2, width - 4, height / 3, cornerRadius - 2);
+
+        // A bright, stable rim makes landing surfaces readable against the
+        // dark campaign biomes without adding display objects or animation.
+        graphics.lineStyle(2, colors.edge || colors.crystal, 0.92);
+        graphics.strokeRoundedRect(
+            1,
+            1,
+            Math.max(1, width - 2),
+            Math.max(1, height - 2),
+            Math.max(1, cornerRadius - 1)
+        );
+        graphics.fillStyle(colors.edge || colors.crystal, 0.82);
+        graphics.fillRoundedRect(
+            4,
+            1,
+            Math.max(1, width - 8),
+            Math.min(3, Math.max(1, height / 5)),
+            1
+        );
 
         // Bottom shadow (darker edge)
         graphics.fillStyle(colors.shadow, 0.5);
@@ -2194,32 +2213,44 @@ class PlatformerLevelScene extends Phaser.Scene {
     getPlatformColors() {
         const palettes = {
             crystal_caves: {
-                base: 0x1A1025,
-                highlight: 0x2D1B3D,
-                shadow: 0x0D0818,
-                texture: 0x3D2B5D,
-                crystal: 0x7B68EE
+                base: 0x2D2050,
+                highlight: 0x8E7CFF,
+                shadow: 0x130B25,
+                texture: 0x5F45A0,
+                crystal: 0x7B68EE,
+                edge: 0x53D8FF
             },
             stellar_reef: {
-                base: 0x1A237E,
-                highlight: 0x283593,
-                shadow: 0x0D1642,
-                texture: 0x3949AB,
-                crystal: 0x00BCD4
+                base: 0x1C3D8F,
+                highlight: 0x5A75FF,
+                shadow: 0x071B44,
+                texture: 0x00A4C7,
+                crystal: 0x00BCD4,
+                edge: 0x6FE7FF
             },
             void_peaks: {
-                base: 0x1A1A2E,
-                highlight: 0x2F2F4F,
-                shadow: 0x0D0D0D,
-                texture: 0x483D8B,
-                crystal: 0xFF4500
+                base: 0x292947,
+                highlight: 0x6666A1,
+                shadow: 0x0A0A13,
+                texture: 0x845ED4,
+                crystal: 0xFF4500,
+                edge: 0xFF704D
             },
             aurora_depths: {
-                base: 0x0A192F,
-                highlight: 0x1B4332,
-                shadow: 0x051210,
-                texture: 0x2D6A4F,
-                crystal: 0x00FF7F
+                base: 0x123D35,
+                highlight: 0x39A06C,
+                shadow: 0x071913,
+                texture: 0x2D8A68,
+                crystal: 0x00FF7F,
+                edge: 0x69F5B4
+            },
+            final_void: {
+                base: 0x281640,
+                highlight: 0x7546A8,
+                shadow: 0x0E0718,
+                texture: 0x5C2A84,
+                crystal: 0xD68BFF,
+                edge: 0xF0A6FF
             }
         };
 
