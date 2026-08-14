@@ -939,7 +939,8 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain('for (let layerIndex = 0; layerIndex < 2; layerIndex += 1)');
         expect(source).toContain('this.voidRifts.push(riftLayer);');
-        expect(source).toContain('this.cosmicDustParticles.length >= 12');
+        expect(source).toContain('this.cosmicDustParticles.length >= particleLimit');
+        expect(source).toContain('shouldAnimateReefDecorations()');
         expect(source).toContain('updateCosmicDust(delta)');
         expect(source).toContain('targets: [...allElements, entryParticles].filter(Boolean)');
         expect(source).not.toContain('this.nebulaParticles.push(wisp);');
@@ -995,6 +996,12 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain("title: 'STAR TRENCH'");
         expect(source).toContain("rewardLabel: 'FREE SUPER BLAST'");
+        expect(source).toContain(
+            "mainTradeoff: 'FAST + PATROLS\\nEARNS: NEXT KATANA HIT +2'"
+        );
+        expect(source).toContain(
+            "challengeLabel: 'DEEP WATER + 2 RELICS'"
+        );
         expect(source).toContain("returnLabel: 'STAR TRENCH RETURN ↑ // SIGNAL ROUTE →'");
         expect(source).toContain('this.freeSpecialAttackCharges += 1;');
         expect(source).toContain('createAbyssAscentCurrent()');
@@ -1560,7 +1567,7 @@ describe('campaign traversal quality contracts', () => {
             'levels/ReefLevel.js',
             "id: 'reef_star_trench'",
             "mainLabel: 'SIGNAL CURRENT →'",
-            "mainTradeoff: 'FAST // ENEMY PATROLS'",
+            "mainTradeoff: 'FAST + PATROLS\\nEARNS: NEXT KATANA HIT +2'",
             "challengeLabel: 'DEEP WATER + 2 RELICS'"
         ],
         [
@@ -2587,7 +2594,8 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('state.caveCoinRendering?.physicsCoinCount !== 0');
         expect(smoke).toContain('state.caveCrystalRendering?.layerCount !== 1');
         expect(smoke).toContain('state.reefAmbientRendering?.nebulaLayerCount !== 2');
-        expect(smoke).toContain('state.reefAmbientRendering?.dustParticleCount > 12');
+        expect(smoke).toContain('state.reefAmbientRendering?.dustParticleCount > 6');
+        expect(smoke).toContain('state.reefAmbientRendering?.decorativeTweenCount !== 0');
         expect(smoke).toContain('state.peaksAmbientRendering?.starCount !== 35');
         expect(smoke).toContain('state.peaksAmbientRendering?.emberLayerCount !== 1');
         expect(smoke).toContain('smokeForestBatchedCoinPickup(session)');

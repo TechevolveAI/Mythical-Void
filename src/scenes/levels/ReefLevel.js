@@ -138,6 +138,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.totalStarFragments = 5;
         this.shipPartCollected = false;
         this.reefRouteChoice = null;
+        this.reefCurrentEdgeReady = false;
         this.reefCollectedFragmentMask = 0;
         this.bossDefeated = false;
         this.bossFightActive = false;
@@ -214,6 +215,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.starFragmentsCollected = 0;
         this.shipPartCollected = false;
         this.reefRouteChoice = null;
+        this.reefCurrentEdgeReady = false;
         this.reefCollectedFragmentMask = 0;
         this.bossDefeated = false;
         this.bossFightActive = false;
@@ -372,8 +374,14 @@ class ReefLevel extends PlatformerLevelScene {
         panel.setDepth(3001);
 
         // Cosmic decorations
-        this.addCosmicDecoration(panelX + (isCompact ? 28 : 40), y(40));
-        this.addCosmicDecoration(panelX + panelWidth - (isCompact ? 28 : 40), y(40));
+        const leftDecoration = this.addCosmicDecoration(
+            panelX + (isCompact ? 28 : 40),
+            y(40)
+        );
+        const rightDecoration = this.addCosmicDecoration(
+            panelX + panelWidth - (isCompact ? 28 : 40),
+            y(40)
+        );
 
         // Title
         const title = this.add.text(width / 2, y(55), 'STELLAR REEF', {
@@ -511,8 +519,22 @@ class ReefLevel extends PlatformerLevelScene {
         });
 
         // Collect all elements for dismissal
-        const allElements = [overlay, panel, title, subtitle, storyText, divider,
-                           objHeader, mainObj, shipObj, relicObj, controlsHint, enterBtn];
+        const allElements = [
+            overlay,
+            panel,
+            leftDecoration,
+            rightDecoration,
+            title,
+            subtitle,
+            storyText,
+            divider,
+            objHeader,
+            mainObj,
+            shipObj,
+            relicObj,
+            controlsHint,
+            enterBtn
+        ];
 
         // Dismiss function - used by button and tap anywhere
         const dismissEntry = () => {
@@ -579,6 +601,12 @@ class ReefLevel extends PlatformerLevelScene {
         ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
     }
 
+    shouldAnimateReefDecorations() {
+        const width = Number(this.cameras?.main?.width) || 0;
+        const height = Number(this.cameras?.main?.height) || 0;
+        return !(this.isMobile || width <= 480 || height < 620);
+    }
+
     /**
      * Add cosmic decoration (rotating nebula orb)
      */
@@ -605,6 +633,7 @@ class ReefLevel extends PlatformerLevelScene {
             orb.fillStyle(0x00FFFF, 0.7);
             orb.fillCircle(orbX, orbY, 2);
         }
+        return orb;
     }
 
     /**
@@ -715,16 +744,18 @@ class ReefLevel extends PlatformerLevelScene {
                 wispLayer.fillCircle(x, y, size * 0.3);
             }
 
-            this.tweens.add({
-                targets: wispLayer,
-                x: layerIndex === 0 ? 45 : -45,
-                y: layerIndex === 0 ? -24 : 24,
-                alpha: { from: 0.72, to: 1 },
-                duration: 9000 + layerIndex * 1800,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
+            if (this.shouldAnimateReefDecorations()) {
+                this.tweens.add({
+                    targets: wispLayer,
+                    x: layerIndex === 0 ? 45 : -45,
+                    y: layerIndex === 0 ? -24 : 24,
+                    alpha: { from: 0.72, to: 1 },
+                    duration: 9000 + layerIndex * 1800,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
             this.nebulaParticles.push(wispLayer);
         }
     }
@@ -762,14 +793,16 @@ class ReefLevel extends PlatformerLevelScene {
             riftLayer.fillCircle(pos.x, pos.y, 15);
         });
 
-        this.tweens.add({
-            targets: riftLayer,
-            alpha: { from: 0.68, to: 1 },
-            duration: 1800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        if (this.shouldAnimateReefDecorations()) {
+            this.tweens.add({
+                targets: riftLayer,
+                alpha: { from: 0.68, to: 1 },
+                duration: 1800,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
         this.voidRifts.push(riftLayer);
     }
 
@@ -779,10 +812,14 @@ class ReefLevel extends PlatformerLevelScene {
     createCosmicDust() {
         this.cosmicDustLayer = this.add.graphics().setDepth(50);
         this.cosmicDustParticles = [];
+        const particleLimit = this.shouldAnimateReefDecorations() ? 12 : 6;
         this.cosmicDustTimer = this.time.addEvent({
             delay: 240,
             callback: () => {
-                if (Math.random() > 0.55 || this.cosmicDustParticles.length >= 12) return;
+                if (
+                    Math.random() > 0.55 ||
+                    this.cosmicDustParticles.length >= particleLimit
+                ) return;
 
                 const x = this.cameras.main.scrollX + Math.random() * this.cameras.main.width;
                 const y = this.cameras.main.scrollY + this.cameras.main.height + 20;
@@ -1116,22 +1153,19 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     getReefObjectiveText() {
-        const optional = this.getOptionalRouteStatusText(
-            'reef_star_trench',
-            `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
-        );
+        const routeStatus = this.getReefRouteStatusText();
 
         if (this.bossDefeated) {
-            return `STELLAR PASSAGE RESTORED\nTHE GUARDIAN IS SAFE\n${optional}`;
+            return `STELLAR PASSAGE RESTORED\nTHE GUARDIAN IS SAFE\n${routeStatus}`;
         }
         if (this.bossFightActive) {
-            return `STABILIZE NYX'VORAL\nCURRENT-LINKED KATANA ACTIVE\n${optional}`;
+            return `STABILIZE NYX'VORAL\nCURRENT-LINKED KATANA ACTIVE\n${routeStatus}`;
         }
         if (this.reefRouteAligned && this.shipPartCollected) {
-            return `PASSAGE GUARDIAN AHEAD\nENTER THE OPEN CURRENT →\n${optional}`;
+            return `PASSAGE GUARDIAN AHEAD\nENTER THE OPEN CURRENT →\n${routeStatus}`;
         }
         if (this.beaconAnchorsActivated >= 1 && !this.shipPartCollected) {
-            return `RECOVER THE DIMENSIONAL DRIVE\n${this.getDriveCompassText()}\n${optional}`;
+            return `RECOVER THE DIMENSIONAL DRIVE\n${this.getDriveCompassText()}\n${routeStatus}`;
         }
 
         const nextWaypoint = [
@@ -1147,7 +1181,19 @@ class ReefLevel extends PlatformerLevelScene {
         const title = this.isCompactObjectiveHUD
             ? `ROUTE ${current}/3`
             : `ROUTE ${current}/3 // ${nextWaypoint}`;
-        return `${title}\n${compass || drive}\n${optional}`;
+        return `${title}\n${compass || drive}\n${routeStatus}`;
+    }
+
+    getReefRouteStatusText() {
+        if (this.reefRouteChoice === 'main') {
+            return this.reefCurrentEdgeReady
+                ? 'SIGNAL CURRENT // NEXT KATANA HIT +2 READY'
+                : 'SIGNAL CURRENT // CURRENT EDGE SPENT';
+        }
+        return this.getOptionalRouteStatusText(
+            'reef_star_trench',
+            `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
+        );
     }
 
     getDriveCompassText() {
@@ -1540,7 +1586,7 @@ class ReefLevel extends PlatformerLevelScene {
             returnLabel: 'STAR TRENCH RETURN ↑ // SIGNAL ROUTE →',
             choice: {
                 mainLabel: 'SIGNAL CURRENT →',
-                mainTradeoff: 'FAST // ENEMY PATROLS',
+                mainTradeoff: 'FAST + PATROLS\nEARNS: NEXT KATANA HIT +2',
                 challengeLabel: 'DEEP WATER + 2 RELICS',
                 mainMarker: mainRoute,
                 mainZone: {
@@ -1567,13 +1613,15 @@ class ReefLevel extends PlatformerLevelScene {
             }
         });
 
-        this.tweens.add({
-            targets: [mainRoute, optionalRoute],
-            alpha: { from: 0.68, to: 1 },
-            duration: 900,
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.shouldAnimateReefDecorations()) {
+            this.tweens.add({
+                targets: [mainRoute, optionalRoute],
+                alpha: { from: 0.68, to: 1 },
+                duration: 900,
+                yoyo: true,
+                repeat: -1
+            });
+        }
     }
 
     createAbyssAscentCurrent() {
@@ -1617,13 +1665,15 @@ class ReefLevel extends PlatformerLevelScene {
             }
         ).setOrigin(0.5).setDepth(183);
 
-        const pulseTween = this.tweens.add({
-            targets: [visual, label],
-            alpha: { from: 0.48, to: 0.9 },
-            duration: 1000,
-            yoyo: true,
-            repeat: -1
-        });
+        const pulseTween = this.shouldAnimateReefDecorations()
+            ? this.tweens.add({
+                targets: [visual, label],
+                alpha: { from: 0.48, to: 0.9 },
+                duration: 1000,
+                yoyo: true,
+                repeat: -1
+            })
+            : null;
 
         const current = {
             id,
@@ -1795,14 +1845,16 @@ class ReefLevel extends PlatformerLevelScene {
                 strokeThickness: 3
             }
         ).setOrigin(0.5).setDepth(183);
-        const pulseTween = this.tweens.add({
-            targets: [visual, label],
-            alpha: { from: 0.52, to: 0.94 },
-            duration: 850,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        const pulseTween = this.shouldAnimateReefDecorations()
+            ? this.tweens.add({
+                targets: [visual, label],
+                alpha: { from: 0.52, to: 0.94 },
+                duration: 850,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            })
+            : null;
 
         const current = {
             id,
@@ -1869,6 +1921,9 @@ class ReefLevel extends PlatformerLevelScene {
         const route = this.optionalRouteRewards?.get?.('reef_star_trench');
         return {
             reefRouteChoice: this.reefRouteChoice || '',
+            reefCurrentEdgeReady: this.reefRouteChoice === 'main'
+                ? this.reefCurrentEdgeReady === true
+                : false,
             shipPartCollected: this.shipPartCollected === true,
             reefFragmentMask: this.reefCollectedFragmentMask,
             starTrenchProgress: Number(route?.progress) || 0,
@@ -1881,6 +1936,7 @@ class ReefLevel extends PlatformerLevelScene {
         if (!['main', 'optional'].includes(path)) return false;
         if (this.reefRouteChoice && this.reefRouteChoice !== path) return false;
 
+        const firstSelection = !this.reefRouteChoice;
         this.reefRouteChoice = path;
         const choice = this.optionalRouteRewards?.get?.('reef_star_trench')?.choice;
         if (choice) {
@@ -1889,6 +1945,25 @@ class ReefLevel extends PlatformerLevelScene {
             choice.optionalEntered = path === 'optional';
             choice.rejoined = rejoined && path === 'optional';
             choice.sequence ||= 1;
+        }
+        if (path === 'main' && !restoring && firstSelection) {
+            this.reefCurrentEdgeReady = true;
+            this.showFloatingText?.(
+                'CURRENT EDGE CHARGED // NEXT KATANA HIT +2',
+                this.player?.x || 1900,
+                (this.player?.y || this.levelHeight - 500) - 45,
+                '#8FE3CF'
+            );
+            window.FXLibrary?.stardustBurst?.(
+                this,
+                this.player?.x || 1900,
+                (this.player?.y || this.levelHeight - 500) - 20,
+                {
+                    count: 16,
+                    color: [0x8FE3CF, 0x00FFFF, 0xFFFFFF],
+                    duration: 760
+                }
+            );
         }
         if (!restoring) this.refreshPersistedExpeditionRouteState();
         return true;
@@ -1900,6 +1975,9 @@ class ReefLevel extends PlatformerLevelScene {
         const path = routeState.reefRouteChoice;
         if (['main', 'optional'].includes(path)) {
             this.selectReefRoute(path, { restoring: true, rejoined });
+        }
+        if (path === 'main') {
+            this.reefCurrentEdgeReady = routeState.reefCurrentEdgeReady !== false;
         }
 
         this.reefCollectedFragmentMask = Math.max(
@@ -1935,6 +2013,21 @@ class ReefLevel extends PlatformerLevelScene {
 
     onFreeSpecialAttackConsumed() {
         this.refreshPersistedExpeditionRouteState();
+    }
+
+    consumeReefCurrentEdge() {
+        if (this.reefRouteChoice !== 'main' || !this.reefCurrentEdgeReady) {
+            return false;
+        }
+        this.reefCurrentEdgeReady = false;
+        this.showFloatingText?.(
+            'CURRENT EDGE +2',
+            this.player?.x || 0,
+            (this.player?.y || 0) - 65,
+            '#8FE3CF'
+        );
+        this.refreshPersistedExpeditionRouteState();
+        return true;
     }
 
     createReefEncounterRhythm() {
@@ -2477,16 +2570,17 @@ class ReefLevel extends PlatformerLevelScene {
 
         this.physics.add.overlap(this.player, body, () => this.collectStarFragment(body));
 
-        // Pulse animation
-        this.tweens.add({
-            targets: fragment,
-            alpha: 0.6,
-            scaleX: 1.15,
-            scaleY: 1.15,
-            duration: 1200,
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.shouldAnimateReefDecorations()) {
+            this.tweens.add({
+                targets: fragment,
+                alpha: 0.6,
+                scaleX: 1.15,
+                scaleY: 1.15,
+                duration: 1200,
+                yoyo: true,
+                repeat: -1
+            });
+        }
 
         return body;
     }
@@ -2625,25 +2719,24 @@ class ReefLevel extends PlatformerLevelScene {
 
         this.physics.add.overlap(this.player, body, () => this.collectShipPart(body));
 
-        // Rotation animation for energy rings
-        this.tweens.add({
-            targets: shipPart,
-            angle: 360,
-            duration: 8000,
-            repeat: -1,
-            ease: 'Linear'
-        });
-
-        // Pulse
-        this.tweens.add({
-            targets: [shipPart, label],
-            alpha: 0.7,
-            scaleX: 1.1,
-            scaleY: 1.1,
-            duration: 1500,
-            yoyo: true,
-            repeat: -1
-        });
+        if (this.shouldAnimateReefDecorations()) {
+            this.tweens.add({
+                targets: shipPart,
+                angle: 360,
+                duration: 8000,
+                repeat: -1,
+                ease: 'Linear'
+            });
+            this.tweens.add({
+                targets: [shipPart, label],
+                alpha: 0.7,
+                scaleX: 1.1,
+                scaleY: 1.1,
+                duration: 1500,
+                yoyo: true,
+                repeat: -1
+            });
+        }
 
         this.shipPart = body;
     }
@@ -3592,6 +3685,9 @@ class ReefLevel extends PlatformerLevelScene {
         const combatProfile = this.katanaCombatProfile || {};
         const meleeDamage = Number(combatProfile.meleeDamage) || 2;
         const currentLinkedDamage = meleeDamage + 1;
+        const getStrikeDamage = () => currentLinkedDamage + (
+            this.reefRouteChoice === 'main' && this.reefCurrentEdgeReady ? 2 : 0
+        );
         const enemyMeleeRange = Number(combatProfile.enemyMeleeRange) || 70;
         const bossMeleeRange = (Number(combatProfile.bossMeleeRange) || 80) + 40;
         const slashColor = combatProfile.slashColor || 0xE040FB;
@@ -3639,7 +3735,11 @@ class ReefLevel extends PlatformerLevelScene {
 
             const dist = Phaser.Math.Distance.Between(attackX, attackY, enemy.x, enemy.y);
             if (dist < enemyMeleeRange) {
-                this.damageEnemy(enemy, currentLinkedDamage);
+                const strikeDamage = getStrikeDamage();
+                const applied = this.damageEnemy(enemy, strikeDamage);
+                if (applied && strikeDamage > currentLinkedDamage) {
+                    this.consumeReefCurrentEdge();
+                }
             }
         });
 
@@ -3647,7 +3747,14 @@ class ReefLevel extends PlatformerLevelScene {
         if (this.bossFightActive && this.bossBody) {
             const distToBoss = Phaser.Math.Distance.Between(attackX, attackY, this.bossBody.x, this.bossBody.y);
             if (distToBoss < bossMeleeRange) {
-                this.resolveBossHit(currentLinkedDamage, { source: 'katana_current' });
+                const strikeDamage = getStrikeDamage();
+                const applied = this.resolveBossHit(
+                    strikeDamage,
+                    { source: 'katana_current' }
+                );
+                if (applied && strikeDamage > currentLinkedDamage) {
+                    this.consumeReefCurrentEdge();
+                }
             }
         }
 
