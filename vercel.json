@@ -4,6 +4,14 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/story",
+      "destination": "/story/index.html"
+    },
+    {
+      "source": "/story/",
+      "destination": "/story/index.html"
+    },
+    {
       "source": "/((?!assets/|marketing/|game/|audio/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }
