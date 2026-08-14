@@ -49,7 +49,7 @@ describe('storefront Project Beacon story contract', () => {
             'It is intelligent, vulnerable'
         );
         expect(metadata).toContain(
-            'Recover Wanderer-77, restore the Fend'
+            'Hatch a varied alien creature, explore six living realms'
         );
     });
 
@@ -96,7 +96,7 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('72');
         expect(storefront).toContain('real engine hatches explored');
         expect(storefront).toContain('A universe of creatures');
-        expect(storefront).toContain('No two creatures alike.');
+        expect(storefront).toContain('Every hatch opens a new possibility.');
         expect(storefront).not.toMatch(/\bcompanions?\b/i);
         expect(storefront).toContain(
             '/marketing/mythical-void-creature-universe-hero-v2.webp'
