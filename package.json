@@ -20,6 +20,8 @@
     "test:choice-proof": "node scripts/company/test-project-beacon-choice-proof.cjs",
     "validate:adult-stem-outreach": "node scripts/company/validate-adult-stem-outreach.cjs",
     "test:adult-stem-outreach": "node scripts/company/test-adult-stem-outreach.cjs",
+    "validate:live-search": "node scripts/company/validate-live-search-findability.cjs",
+    "test:live-search": "node scripts/company/test-live-search-findability.cjs",
     "package:itch": "npm run build:portable && node scripts/company/validate-portable-browser-build.cjs && node scripts/package-itch-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",

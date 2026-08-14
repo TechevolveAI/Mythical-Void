@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "SEARCH-LIVE-EVIDENCE-2026-08-14",
+  "checkedAt": "2026-08-14T18:22:11Z",
+  "state": "crawl_foundation_live_public_discovery_not_observed",
+  "method": "Read-only live checks of the owned homepage, robots file and sitemap, plus a four-query public web-search sample. No authenticated webmaster account was used.",
+  "ownedCrawlFoundation": {
+    "homepageUrl": "https://mythicalvoid.com/",
+    "homepageStatus": 200,
+    "robotsUrl": "https://mythicalvoid.com/robots.txt",
+    "robotsAllowsPublicCrawling": true,
+    "robotsDeclaresSitemap": true,
+    "sitemapUrl": "https://mythicalvoid.com/sitemap.xml",
+    "sitemapStatus": 200,
+    "sitemapRouteCount": 8,
+    "sitemapRoutes": [
+      "/",
+      "/privacy/",
+      "/press/",
+      "/creature-genetics/",
+      "/nasa-space-science/",
+      "/parents/",
+      "/studio/",
+      "/terms/"
+    ]
+  },
+  "publicSearchSample": {
+    "queryCount": 4,
+    "queries": [
+      "site:mythicalvoid.com",
+      "\"Mythical Void\" game",
+      "\"mythicalvoid.com\"",
+      "Mythical Void browser game creatures NASA"
+    ],
+    "ownedResultObserved": false,
+    "siteRestrictedResultObserved": false,
+    "sampleSource": "Public web search available to the studio; not an authenticated Google Search Console property.",
+    "limitations": "This is a small, dated search sample. Results vary by engine, location, time, language and personalisation. No observed result does not prove that every search engine has failed to index the site."
+  },
+  "webmasterEvidence": {
+    "googleSearchConsoleConnected": false,
+    "verifiedPropertyEvidenceAvailable": false,
+    "sitemapSubmittedByStudio": false,
+    "indexCoverageKnown": false,
+    "rankingKnown": false,
+    "searchTrafficKnown": false
+  },
+  "observedGap": "The site is technically open to crawling, but public discovery was not demonstrated. The prepared /story/ route is also absent from the current live sitemap snapshot.",
+  "interpretation": "The crawl foundation is present. The studio cannot yet tell whether the missing public results are caused by a new or unsubmitted site, delayed indexing, weak authority, or another coverage issue without verified Search Console evidence.",
+  "authority": {
+    "searchConsoleAccessAuthorized": false,
+    "searchEngineSubmissionAuthorized": false,
+    "paidSearchAuthorized": false,
+    "linkOutreachAuthorized": false,
+    "rankingClaimAuthorized": false
+  },
+  "nextKevinAction": "When convenient, use the existing Google account to verify mythicalvoid.com in Search Console, submit https://mythicalvoid.com/sitemap.xml, and return the coverage result. This does not require creating a new Mythical Void email address.",
+  "nextStudioAction": "Keep the current sitemap and canonical pages accurate. Do not claim indexing, rankings or search traffic until authenticated evidence exists."
+}

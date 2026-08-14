@@ -25,6 +25,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after 4 quality limits were recorded.
 - **Project Beacon choice:** 2 real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with 2 visible limitations recorded.
 - **Adult STEM discovery:** 2 one-to-one introductions are prepared for the Blackrock Castle Observatory and ESERO Ireland education teams. Nothing has been sent, and both messages still require Kevin to approve the sender, recipient and final wording.
+- **Search findability:** the homepage, public robots file and 8-route live sitemap are reachable, but a 4-query public search sample found no owned Mythical Void result. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
 - **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 
@@ -33,6 +34,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 1. **Approve or reject the trailer.** Watch all 64 seconds with sound, including the beginning, middle, and end. Check the pace for children, teenagers, and families; the gameplay statements; and the poster image.
 2. **Create the first official channel when convenient.** YouTube is first because the finished trailer gives it a real purpose. Use the prepared account checklist, switch on multi-factor authentication, and return the exact channel link before anything is uploaded.
 3. **Name an adult safeguarding owner and backup before opening feedback, comments, direct messages, or community activity.** The current engagement track is blocked because those roles and response routes are not assigned.
+4. **Verify the existing Google account in Search Console when convenient.** Submit the live sitemap and return the coverage result. A new Mythical Void email address is not required for this task.
 
 Email and itch.io remain useful later, but they no longer sit ahead of the trailer and the first official channel.
 
