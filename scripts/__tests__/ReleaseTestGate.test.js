@@ -28,6 +28,15 @@ describe('release test gate', () => {
         )).not.toThrow();
     });
 
+    test('browser smoke only awaits expressions that deliberately return promises', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("expression.includes('new Promise')");
+        expect(source).toContain("expression.includes('(async () =>')");
+        expect(source).toContain('awaitPromise: awaitsBrowserPromise');
+        expect(source).not.toContain('awaitPromise: true');
+    });
+
     test('npm test is finite and the manual framework has an explicit command', () => {
         const packageJson = JSON.parse(read('package.json'));
 

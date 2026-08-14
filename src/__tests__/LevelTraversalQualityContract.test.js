@@ -609,6 +609,24 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('now >= (Number(this.routeHintUntil) || 0)');
     });
 
+    test('shared transport settlement is stricter than route-trigger coyote time', () => {
+        const source = read('PlatformerLevelScene.js');
+        const settlement = source.slice(
+            source.indexOf('isPlayerSettledOnTraversalSupport(ids, {'),
+            source.indexOf('\n    isPlayerCommittedToRouteChoice', source.indexOf(
+                'isPlayerSettledOnTraversalSupport(ids, {'
+            ))
+        );
+
+        expect(settlement).toContain('horizontalInset = 8');
+        expect(settlement).toContain('surfaceTolerance = 7');
+        expect(settlement).toContain('body.velocity?.y < -1');
+        expect(settlement).toContain('Math.abs(body.bottom - support.body.top) <= surfaceTolerance');
+        expect(source).toContain(
+            'this.isPlayerGroundedOnTraversalSupport(supportIds);'
+        );
+    });
+
     test('Stellar Reef spawns above its opening floating platform', () => {
         const source = read('levels/ReefLevel.js');
 
@@ -631,9 +649,11 @@ describe('campaign traversal quality contracts', () => {
         );
         expect(source).toContain('activateReefAscentCurrent(current, mode');
         expect(source).toContain('updateReefAscentCurrentGuidance()');
-        expect(source).toContain('isPlayerSettledOnReefSupport(id)');
+        expect(read('PlatformerLevelScene.js')).toContain(
+            'isPlayerSettledOnTraversalSupport(ids, {'
+        );
         expect(source).toContain(
-            'this.isPlayerSettledOnReefSupport(active.destinationId)'
+            'this.isPlayerSettledOnTraversalSupport(active.destinationId)'
         );
         expect(source).toContain("phase: 'lift'");
         expect(source).toContain("active.phase = 'settle'");
@@ -680,7 +700,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.player.setVelocityY(Math.max(launchVelocity, -470))');
         expect(source).toContain('this.activePeakReturnCurrent = {');
         expect(source).toContain('updatePeakReturnCurrentGuidance()');
-        expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(active.destinationId)');
+        expect(source).toContain('this.isPlayerSettledOnTraversalSupport(active.destinationId)');
         expect(source).toContain('this.player.setVelocityX(correction)');
         expect(source).toContain("phase: 'lift'");
         expect(source).toContain("active.phase = 'settle'");
@@ -1787,6 +1807,8 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("id: 'peak-return-lower'");
         expect(smoke).toContain("id: 'peak-return-summit'");
         expect(smoke).toContain('current.lastLiftAt = Number.NEGATIVE_INFINITY;');
+        expect(smoke).toContain('guidanceActive: scene.activePeakReturnCurrent?.id === current.id');
+        expect(smoke).toContain('destabilized after landing');
         expect(smoke).toContain("route === 'finalVoid'");
         expect(smoke).toContain('Number(audit?.flow?.requiredJumpCount) < 4');
         expect(smoke).toContain("target.id === 'final_bond_1'");

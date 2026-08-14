@@ -1893,6 +1893,30 @@ class PlatformerLevelScene extends Phaser.Scene {
         });
     }
 
+    isPlayerSettledOnTraversalSupport(ids, {
+        horizontalInset = 8,
+        surfaceTolerance = 7
+    } = {}) {
+        const allowedIds = Array.isArray(ids) ? ids : [ids];
+        if (allowedIds.length === 0) return true;
+
+        const body = this.player?.body;
+        if (!body || body.velocity?.y < -1) return false;
+        if (!(body.blocked?.down || body.touching?.down || this.isGrounded)) {
+            return false;
+        }
+
+        return allowedIds.some(id => {
+            const support = this.getTraversalSupport(id);
+            return Boolean(
+                support?.body &&
+                body.right > support.body.left + horizontalInset &&
+                body.left < support.body.right - horizontalInset &&
+                Math.abs(body.bottom - support.body.top) <= surfaceTolerance
+            );
+        });
+    }
+
     isPlayerCommittedToRouteChoice(zone, supportIds = []) {
         return this.isPlayerInsideRouteChoiceZone(zone) &&
             this.isPlayerGroundedOnTraversalSupport(supportIds);

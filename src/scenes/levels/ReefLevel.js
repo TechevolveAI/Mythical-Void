@@ -1557,20 +1557,6 @@ class ReefLevel extends PlatformerLevelScene {
         return true;
     }
 
-    isPlayerSettledOnReefSupport(id) {
-        const body = this.player?.body;
-        const support = this.getTraversalSupport(id);
-        if (!body || !support?.body || body.velocity.y < -1) return false;
-        const horizontallySupported =
-            body.right > support.body.left + 8 &&
-            body.left < support.body.right - 8;
-        const onSurface =
-            Math.abs(body.bottom - support.body.top) <= 7;
-        return horizontallySupported && onSurface && Boolean(
-            body.blocked.down || body.touching.down || this.isGrounded
-        );
-    }
-
     updateReefAscentCurrentGuidance() {
         const active = this.activeReefAscentCurrent;
         const body = this.player?.body;
@@ -1580,7 +1566,7 @@ class ReefLevel extends PlatformerLevelScene {
             return false;
         }
 
-        if (this.isPlayerSettledOnReefSupport(active.destinationId)) {
+        if (this.isPlayerSettledOnTraversalSupport(active.destinationId)) {
             this.activeReefAscentCurrent = null;
             return true;
         }
