@@ -5,6 +5,8 @@ const isDistributionBuild = import.meta.env.VITE_DISTRIBUTION_BUILD === 'true';
 const isGameRoute = isDistributionBuild || path === '/play' || path === '/game' || params.has('testBoss');
 
 if (isGameRoute) {
+    window.__MYTHICAL_DISTRIBUTION_BUILD__ = isDistributionBuild;
+    window.__MYTHICAL_DISABLE_OBSERVABILITY__ = isDistributionBuild;
     document.documentElement.classList.add('game-mode');
     document.body.classList.add('game-mode');
     document.title = 'Play Mythical Void';

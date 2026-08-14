@@ -54,6 +54,7 @@ for (const [key, expected] of Object.entries({
     aiPortraits: false,
     aiVideos: false,
     cloudSaves: false,
+    observabilityDelivery: false,
     localProgress: true,
     publishingAuthorized: false
 })) {
@@ -62,6 +63,15 @@ for (const [key, expected] of Object.entries({
 if (totalBytes > 500 * 1024 * 1024) errors.push('portable build exceeds itch.io published extracted-size ceiling');
 if (files.length > 1000) errors.push('portable build exceeds itch.io published file-count ceiling');
 if (largestBytes > 200 * 1024 * 1024) errors.push('portable build exceeds itch.io published single-file ceiling');
+
+const mainSource = fs.readFileSync(path.join(root, 'src/main.js'), 'utf8');
+const errorHandlerSource = fs.readFileSync(path.join(root, 'src/systems/ErrorHandler.js'), 'utf8');
+if (!mainSource.includes('window.__MYTHICAL_DISABLE_OBSERVABILITY__ = isDistributionBuild')) {
+    errors.push('portable entry does not disable website-only observability delivery');
+}
+if (!errorHandlerSource.includes('window.__MYTHICAL_DISABLE_OBSERVABILITY__ !== true')) {
+    errors.push('error handler does not honour the portable observability boundary');
+}
 
 if (errors.length) {
     console.error('Portable browser build is not ready:\n');
@@ -79,5 +89,6 @@ console.log(JSON.stringify({
     analyticsGuard: 'on',
     hostedExtras: 'off',
     cloudSaves: 'off',
+    observabilityDelivery: 'off',
     publicationAuthorized: false
 }, null, 2));

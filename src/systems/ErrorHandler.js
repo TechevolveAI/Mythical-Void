@@ -348,11 +348,12 @@ class PrivacyObservabilityTransport {
 }
 
 class ErrorHandler {
-    constructor() {
+    constructor(options = {}) {
         this.errorQueue = [];
         this.maxErrors = 10;
         this.errorContainer = null;
         this.isInitialized = false;
+        this.observabilityEnabled = options.observabilityEnabled !== false;
         this.observability = new PrivacyObservabilityTransport();
         this.sceneWatchdog = null;
         this.sceneStartDeadlines = new Map();
@@ -395,7 +396,9 @@ class ErrorHandler {
         this.setupGlobalHandlers();
 
         // Start durable delivery for sanitized production diagnostics.
-        this.observability.initialize();
+        if (this.observabilityEnabled) {
+            this.observability.initialize();
+        }
 
         // Set up Phaser error handling
         this.setupPhaserErrorHandling();
@@ -1164,7 +1167,9 @@ class ErrorHandler {
 // Create global instance
 if (typeof window !== 'undefined') {
     window.ErrorHandler = ErrorHandler;
-    window.errorHandler = new ErrorHandler();
+    window.errorHandler = new ErrorHandler({
+        observabilityEnabled: window.__MYTHICAL_DISABLE_OBSERVABILITY__ !== true
+    });
 }
 
 if (typeof module !== 'undefined' && module.exports) {

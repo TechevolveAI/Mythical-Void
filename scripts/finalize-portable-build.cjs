@@ -42,6 +42,7 @@ const manifest = {
     aiPortraits: false,
     aiVideos: false,
     cloudSaves: false,
+    observabilityDelivery: false,
     localProgress: true,
     publishingAuthorized: false,
     note: 'Internal test artifact. Platform publication still requires Kevin approval.'

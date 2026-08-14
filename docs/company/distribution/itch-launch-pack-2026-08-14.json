@@ -6,13 +6,25 @@
     "command": "npm run build:portable",
     "output": "dist-platform",
     "status": "built_and_nested_path_launch_tested_locally",
-    "observedTotalMiB": 47.37,
-    "observedFileCount": 102,
+    "observedTotalMiB": 48.02,
+    "observedFileCount": 103,
     "browserLaunch": {
       "gameCanvasCreated": true,
       "loadErrorShown": false,
-      "consoleErrors": 0,
-      "testedBelowNestedPath": true
+      "appConsoleErrorsWithGameUrl": 0,
+      "testedBelowNestedPath": true,
+      "testedInsideIframe": true,
+      "localSaveReloaded": true,
+      "audioUnlockedAfterInteraction": true,
+      "phoneLayout": "390x844_without_horizontal_overflow",
+      "touchInput": "requires_real_touch_device_or_target_platform",
+      "fullscreen": "requires_target_platform_test"
+    },
+    "selfContainedCheck": {
+      "websiteObservabilityRequests": 0,
+      "testDurationSeconds": 12,
+      "cloudSaveDisabled": true,
+      "optionalApiFeaturesDisabled": true
     },
     "publicationAuthorized": false
   },
@@ -46,7 +58,11 @@
   "media": {
     "coverRequirement": {
       "recommendedPixels": "630x500",
-      "status": "needs_platform_cover_derived_from_real_gameplay_or_clearly_labelled_key_art"
+      "status": "prepared_as_clearly_labelled_key_art",
+      "asset": "public/marketing/mythical-void-itch-cover-v1.png",
+      "width": 630,
+      "height": 500,
+      "disclosure": "AI-generated marketing key art refined from the approved Mythical Void creature-universe and emblem references; not gameplay footage."
     },
     "screenshots": [
       "public/press/gameplay/project-beacon-start.png",
@@ -74,9 +90,10 @@
     {"item": "Create a separate portable build profile", "state": "completed"},
     {"item": "Use relative asset paths and confirm index.html is at the release root", "state": "completed"},
     {"item": "Disable or safely replace Netlify-only features in the portable build", "state": "completed"},
-    {"item": "Test a fresh save, return visit, controls, audio and fullscreen inside an iframe", "state": "not_started"},
-    {"item": "Test keyboard and supported touch layouts", "state": "not_started"},
-    {"item": "Create and review a 630x500 cover", "state": "not_started"},
+    {"item": "Test fresh save, return visit, controls and audio inside an iframe", "state": "completed_locally"},
+    {"item": "Test phone-size layout", "state": "completed_locally"},
+    {"item": "Test real touch input and fullscreen on the target platform", "state": "not_started"},
+    {"item": "Create and review a 630x500 cover", "state": "completed_internal_review"},
     {"item": "Review every screenshot and word against the current deployed build", "state": "not_started"},
     {"item": "Review itch.io's current rules and terms", "state": "not_started"},
     {"item": "Kevin approves account creation and the final public listing", "state": "blocked_on_kevin"}

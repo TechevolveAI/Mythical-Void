@@ -16,7 +16,7 @@ Kevin's part is a Google sign-in and ownership check. After that, submit `https:
 
 The generated game is inside itch.io's published size and file-count ceilings. The current website build is not yet a valid portable release: its asset links begin at the website root, some optional services call Mythical Void's Netlify functions, and the production site deliberately blocks other sites from placing it in a frame.
 
-The right solution is a separate portable build, not weakening the production site's protection. That build now exists as the repeatable `npm run build:portable` command. It uses relative paths, keeps `index.html` at the release root, and switches hosted extras to safe unavailable states. A local browser test from a nested platform-style path created the game canvas with no load error or console error. Fresh-save, return-visit, control, audio and fullscreen testing still remain before submission.
+The right solution is a separate portable build, not weakening the production site's protection. That build now exists as the repeatable `npm run build:portable` command. It uses relative paths, keeps `index.html` at the release root, and switches hosted extras to safe unavailable states. Local tests from a nested platform-style path and inside an iframe created the game canvas without an application error. Saving and reloading worked, keyboard input unlocked audio, the theme music started, and the 390x844 phone layout had no horizontal overflow. A 12-second self-contained check made no call to the website reporting service. Real touch input and fullscreen still need to be tested on the target platform.
 
 The draft listing is in `itch-launch-pack-2026-08-14.json`. It uses actual gameplay captures and avoids promises the game cannot prove.
 

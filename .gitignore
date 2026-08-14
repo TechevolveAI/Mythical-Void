@@ -21,6 +21,7 @@ secrets/
 # Build outputs
 dist/
 dist-platform/
+release-artifacts/
 build/
 .next/
 *.tgz

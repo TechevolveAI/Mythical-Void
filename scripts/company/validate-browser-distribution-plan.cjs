@@ -6,6 +6,7 @@ const path = require('path');
 const root = path.resolve(__dirname, '../..');
 const opportunitiesPath = path.join(root, 'docs/company/distribution/platform-opportunities-2026-08-14.json');
 const itchPackPath = path.join(root, 'docs/company/distribution/itch-launch-pack-2026-08-14.json');
+const itchApprovalPath = path.join(root, 'docs/company/distribution/itch-release-approval-DRAFT.json');
 const errors = [];
 
 function readJson(file) {
@@ -23,6 +24,7 @@ function readJson(file) {
 
 const opportunities = readJson(opportunitiesPath);
 const itchPack = readJson(itchPackPath);
+const itchApproval = readJson(itchApprovalPath);
 const ranking = opportunities.ranking || [];
 const expectedOrder = ['owned-search', 'itch', 'imirt', 'crazygames', 'poki'];
 
@@ -63,6 +65,11 @@ if (itchPack.state !== 'internal_draft_not_submitted') errors.push('itch pack mu
 for (const boundary of ['accountCreationAuthorized', 'publicationAuthorized', 'paymentsEnabled', 'donationsEnabled']) {
     if (itchPack.authority?.[boundary] !== false) errors.push(`itch pack: ${boundary} must remain false`);
 }
+if (itchApproval.state !== 'awaiting_private_platform_test') errors.push('itch approval record must remain awaiting private platform test');
+for (const boundary of ['accountCreated', 'draftPageCreated', 'publicationAuthorized', 'paymentsAuthorized', 'donationsAuthorized']) {
+    if (itchApproval[boundary] !== false) errors.push(`itch approval: ${boundary} must remain false`);
+}
+if (itchApproval.kevinDecision !== null) errors.push('itch approval: Kevin decision must remain empty until he reviews the private page');
 if ((itchPack.media?.screenshots || []).length < 3 || (itchPack.media?.screenshots || []).length > 5) {
     errors.push('itch pack: use three to five real gameplay screenshots');
 }
@@ -70,6 +77,24 @@ for (const screenshot of itchPack.media?.screenshots || []) {
     if (!fs.existsSync(path.join(root, screenshot))) errors.push(`itch pack: missing screenshot ${screenshot}`);
 }
 if (!fs.existsSync(path.join(root, itchPack.media?.gameplayVideo || ''))) errors.push('itch pack: gameplay video is missing');
+const cover = itchPack.media?.coverRequirement || {};
+if (cover.status !== 'prepared_as_clearly_labelled_key_art') errors.push('itch pack: platform cover is not marked prepared');
+if (cover.width !== 630 || cover.height !== 500) errors.push('itch pack: platform cover must be 630x500');
+if (!fs.existsSync(path.join(root, cover.asset || ''))) errors.push('itch pack: platform cover asset is missing');
+if (!/not gameplay/i.test(cover.disclosure || '')) errors.push('itch pack: generated cover disclosure is missing');
+if (cover.asset && fs.existsSync(path.join(root, cover.asset))) {
+    const coverBytes = fs.readFileSync(path.join(root, cover.asset));
+    const isPng = coverBytes.subarray(1, 4).toString('ascii') === 'PNG';
+    if (!isPng || coverBytes.length < 24) {
+        errors.push('itch pack: platform cover must be a readable PNG');
+    } else {
+        const actualWidth = coverBytes.readUInt32BE(16);
+        const actualHeight = coverBytes.readUInt32BE(20);
+        if (actualWidth !== 630 || actualHeight !== 500) {
+            errors.push(`itch pack: platform cover file is ${actualWidth}x${actualHeight}, expected 630x500`);
+        }
+    }
+}
 
 const combinedCopy = JSON.stringify({ opportunities, itchPack });
 if (/no two (?:creatures|companions) alike|every creature is unique|infinite unique creatures/i.test(combinedCopy)) {
@@ -90,5 +115,6 @@ console.log(JSON.stringify({
     externalSubmissionsMade: 0,
     spendAuthorized: false,
     itchScreenshotsPrepared: itchPack.media.screenshots.length,
-    gameplayVideoPrepared: true
+    gameplayVideoPrepared: true,
+    platformCoverPrepared: true
 }, null, 2));

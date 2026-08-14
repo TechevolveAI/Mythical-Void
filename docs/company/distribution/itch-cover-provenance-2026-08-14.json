@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-14",
+  "asset": "public/marketing/mythical-void-itch-cover-v1.png",
+  "purpose": "630x500 external-platform cover key art",
+  "classification": "AI-generated marketing key art; not gameplay footage",
+  "toolPath": "built-in image generation",
+  "sourceReferences": [
+    {
+      "path": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "role": "approved creature-universe visual language and colour reference"
+    },
+    {
+      "path": "public/marketing/mythical-void-emblem-v3.png",
+      "role": "approved central emblem identity reference"
+    }
+  ],
+  "generationPrompt": {
+    "useCase": "ads-marketing",
+    "request": "Create a premium 5:4 landscape cover showing a portal into another dimension and a wide alien creature universe.",
+    "scene": "A dimensional void above the Fend, revealing liquid gravity, crystalline weather, luminous fungal circuitry, folded starlight and floating terrain.",
+    "subjects": "Ten to fourteen distinct alien organisms with varied silhouettes, scale, symmetry, material, locomotion and light, centred on the purple-and-gold void-born emblem creature.",
+    "mood": "Awe, discovery, intelligence, mystery and hope in deep indigo, violet, cyan and warm gold.",
+    "boundaries": "Artwork only; no title, UI, screenshot frame, NASA marks, weapons, gore, horror or watermark. Clearly marketing key art, not gameplay."
+  },
+  "refinementPrompt": {
+    "useCase": "precise-object-edit",
+    "request": "Preserve the portal, central emblem creature, composition, lighting and finish while replacing familiar Earth-animal silhouettes.",
+    "replacements": [
+      "dragon-like form replaced by disconnected gravity arcs orbiting a dark centre",
+      "fish-like form replaced by a hollow negative-space organism",
+      "cat-like form replaced by a radial many-sided being",
+      "winged form replaced by a living weather colony",
+      "turtle-like support limbs replaced by levitating stone segments"
+    ],
+    "boundaries": "No animal anatomy, new typography, title, UI, humans, weapons, gore, horror or watermark."
+  },
+  "postProcessing": {
+    "operation": "lossless project copy followed by deterministic resize",
+    "sourcePixels": "1400x1120",
+    "finalPixels": "630x500",
+    "format": "PNG"
+  },
+  "review": {
+    "exactDimensionsVerified": true,
+    "textInImage": false,
+    "approvedEmblemRecognizable": true,
+    "nonAnimalAlienVariationImproved": true,
+    "mustBeLabelledAsGameplay": false,
+    "publicationAuthorized": false
+  }
+}

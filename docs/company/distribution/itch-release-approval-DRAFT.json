@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "platform": "itch.io",
+  "state": "awaiting_private_platform_test",
+  "accountCreated": false,
+  "draftPageCreated": false,
+  "publicationAuthorized": false,
+  "paymentsAuthorized": false,
+  "donationsAuthorized": false,
+  "reviewedBuild": null,
+  "reviewedAt": null,
+  "reviewedBy": null,
+  "privatePageUrl": null,
+  "acceptance": {
+    "openingLoads": "not_tested_on_platform",
+    "keyboardAndPointer": "not_tested_on_platform",
+    "audioAndMute": "not_tested_on_platform",
+    "saveAndReturn": "not_tested_on_platform",
+    "realTouchDevice": "not_tested_on_platform",
+    "fullscreenEnterExit": "not_tested_on_platform",
+    "noForcedAccountPaymentOrDownload": "not_tested_on_platform",
+    "hostedExtrasAbsent": "not_tested_on_platform",
+    "artworkAndGameplayLabelsAccurate": "not_tested_on_platform",
+    "nasaNonEndorsementAccurate": "not_tested_on_platform"
+  },
+  "deviceEvidence": [],
+  "failures": [],
+  "kevinDecision": null,
+  "notes": "This record cannot authorize itself. Kevin reviews the private page and makes the final publication decision."
+}
