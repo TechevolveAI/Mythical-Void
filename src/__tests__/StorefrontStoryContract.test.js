@@ -57,7 +57,7 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('path-icon-clearing');
         expect(storefront).toContain('path-icon-choice');
         expect(storefront).toContain('recovery-ship');
-        expect(storefront).toContain('clearing-companion');
+        expect(storefront).toContain('clearing-creature');
         expect(storefront).toContain('choice-beacon');
         expect(storefront).not.toContain('aria-hidden="true">⌁</div>');
     });
@@ -84,7 +84,9 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('1,000');
         expect(storefront).toContain('72');
         expect(storefront).toContain('real engine hatches explored');
-        expect(storefront).toContain('No two companions alike.');
+        expect(storefront).toContain('A universe of creatures');
+        expect(storefront).toContain('No two creatures alike.');
+        expect(storefront).not.toMatch(/\bcompanions?\b/i);
         expect(storefront).toContain(
             '/marketing/mythical-void-creature-universe-hero-v2.webp'
         );
