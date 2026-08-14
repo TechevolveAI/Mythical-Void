@@ -27,13 +27,14 @@ const sources = {
     scienceWeek: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/SCIENCE_WEEK_WATER_CONCEPT_2026.json'), 'utf8')),
     registry: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/OFFICIAL_CHANNEL_REGISTRY.json'), 'utf8')),
     searchConsole: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/search/SEARCH_CONSOLE_CONNECTION.json'), 'utf8')),
+    familyPlay: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/customer/family-play-observations.json'), 'utf8')),
     dashboard: fs.readFileSync(path.join(root, 'docs/company/FOUNDER_LAUNCH_DASHBOARD.md'), 'utf8')
 };
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-founder-dashboard-'));
 
 function run(name, changes = {}) {
     const values = { ...sources, ...changes };
-    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry', 'searchConsole'].map(key => {
+    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry', 'searchConsole', 'familyPlay'].map(key => {
         const file = path.join(temp, `${name}-${key}.json`);
         fs.writeFileSync(file, `${JSON.stringify(values[key], null, 2)}\n`);
         return file;
@@ -151,10 +152,14 @@ try {
     inventedScienceWeekReview.educatorReview.state = 'review_completed';
     if (run('invented-science-week-review', { scienceWeek: inventedScienceWeekReview }).status === 0) throw new Error('An invented completed Science Week review was accepted.');
 
+    const openedFamilyIntake = structuredClone(sources.familyPlay);
+    openedFamilyIntake.authority.publicIntakeAuthorized = true;
+    if (run('opened-family-intake', { familyPlay: openedFamilyIntake }).status === 0) throw new Error('Unauthorized public family feedback intake was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 20 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 21 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

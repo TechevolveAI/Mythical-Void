@@ -22,14 +22,15 @@ const defaultPaths = {
     founderStory: path.join(root, 'docs/company/content/channel-launch/IRISH_FOUNDER_STORY_RELEASE.json'),
     scienceWeek: path.join(root, 'docs/company/content/channel-launch/SCIENCE_WEEK_WATER_CONCEPT_2026.json'),
     registry: path.join(root, 'docs/company/content/channel-launch/OFFICIAL_CHANNEL_REGISTRY.json'),
-    searchConsole: path.join(root, 'docs/company/search/SEARCH_CONSOLE_CONNECTION.json')
+    searchConsole: path.join(root, 'docs/company/search/SEARCH_CONSOLE_CONNECTION.json'),
+    familyPlay: path.join(root, 'docs/company/customer/family-play-observations.json')
 };
 
 function readJson(file) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-function buildDashboard({ evidence, outreach, activation, itch, launch, trailer, analytics, calendar, discovery, hatchReview, restorationReview, choiceReview, adultStemOutreach, liveSearch, founderStory, scienceWeek, registry, searchConsole }) {
+function buildDashboard({ evidence, outreach, activation, itch, launch, trailer, analytics, calendar, discovery, hatchReview, restorationReview, choiceReview, adultStemOutreach, liveSearch, founderStory, scienceWeek, registry, searchConsole, familyPlay }) {
     const checkedDate = evidence.checkedAt.slice(0, 10).split('-').reverse().join('/');
     const livePageCount = evidence.routes.filter(route => route.route !== '/play/' && route.verified).length;
     const firstWaveCount = outreach.messages.length;
@@ -106,6 +107,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Search findability:** ${searchFindabilitySummary}
 - **Irish founder story:** a ${founderStory.article.format.toLowerCase()} and tailored Irish Tech News contribution pitch are prepared. Nothing has been sent or promised, and any paid feature, rights request or child-participation request stops for a separate Kevin decision.
 - **Science Week 2026:** the visually checked ${scienceWeek.artifact.pages}-page printable “${scienceWeek.title}” joins ${scienceWeek.realScience.length} sourced ocean-world facts to the real Stellar Reef game realm. A 12-check adult review system and one adult-only invitation are ready, but nothing has been sent and no review has been completed; no event, submission, partnership, logo use or public release exists.
+- **Family play observations:** a one-minute adult-only note route is ready with ${(familyPlay.observations || []).length} observations recorded. It accepts an adult's own play or a parent's de-identified account of family play, and it rejects names, contact details, exact ages, direct quotes, media, public use and any claim that these notes are independent customer research.
 - **First outreach:** ${firstWaveCount} personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. ${laterOpportunityCount} later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 
@@ -123,6 +125,7 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 - Improve and recapture the real creature reveal, then complete the hatch-to-first-response proof without pretending the current frame is launch quality.
 - Strengthen and recapture the stable realm aftermath so the difference is visible without relying on the words, then complete the continuous restoration proof.
 - Prepare the day-of-send route and link recheck for the Science Week invitation without contacting the proposed adult reviewer.
+- Record adult-written, de-identified family play observations and turn each one into a small product check without treating it as customer evidence.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
 - Check every claim against the game and label generated artwork separately from gameplay.

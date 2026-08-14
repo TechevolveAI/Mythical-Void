@@ -13,6 +13,12 @@ classification, de-identification assertions, retention, and obvious leakage;
 then aggregates only structured themes. It never turns repository observations
 or an empty register into customer insight.
 
+Mythical also has a separate
+[`family-play-observations.json`](../customer/family-play-observations.json)
+for short adult-written product notes. Those notes are deliberately marked as
+internal observations, not customer evidence. They cannot be used as proof of
+demand, testimonials, public claims, or independent research.
+
 ## De-identified entry template
 
 ```text

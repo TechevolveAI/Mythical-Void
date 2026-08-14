@@ -28,6 +28,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Search findability:** the homepage, public robots file and 9-route live sitemap are reachable, but the public samples found no owned Mythical Void result. A related TechEvolveAI result is visible, but its source contains an unsupported uniqueness promise; an exact correction is prepared. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
 - **Irish founder story:** a first-person contributed article or interview background and tailored Irish Tech News contribution pitch are prepared. Nothing has been sent or promised, and any paid feature, rights request or child-participation request stops for a separate Kevin decision.
 - **Science Week 2026:** the visually checked 3-page printable “Water That Isn't Water: Design Life for the Stellar Reef” joins 3 sourced ocean-world facts to the real Stellar Reef game realm. A 12-check adult review system and one adult-only invitation are ready, but nothing has been sent and no review has been completed; no event, submission, partnership, logo use or public release exists.
+- **Family play observations:** a one-minute adult-only note route is ready with 0 observations recorded. It accepts an adult's own play or a parent's de-identified account of family play, and it rejects names, contact details, exact ages, direct quotes, media, public use and any claim that these notes are independent customer research.
 - **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 
@@ -45,6 +46,7 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 - Improve and recapture the real creature reveal, then complete the hatch-to-first-response proof without pretending the current frame is launch quality.
 - Strengthen and recapture the stable realm aftermath so the difference is visible without relying on the words, then complete the continuous restoration proof.
 - Prepare the day-of-send route and link recheck for the Science Week invitation without contacting the proposed adult reviewer.
+- Record adult-written, de-identified family play observations and turn each one into a small product check without treating it as customer evidence.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
 - Check every claim against the game and label generated artwork separately from gameplay.

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-14",
+  "state": "internal_observation_route_ready_no_observations_recorded",
+  "purpose": "Short, de-identified product observations recorded by an adult after their own play or after observing family play.",
+  "evidenceBoundary": {
+    "customerEvidence": false,
+    "independentResearch": false,
+    "marketDemandEvidence": false,
+    "mayInformProductChecks": true,
+    "requiresSeparateHumanReviewBeforeCustomerEvidence": true
+  },
+  "dataBoundary": {
+    "adultRecorderOnly": true,
+    "personalDataPermitted": false,
+    "childIdentifiersPermitted": false,
+    "exactAgePermitted": false,
+    "directQuotesPermitted": false,
+    "audioVideoOrImagesPermitted": false,
+    "contactDetailsPermitted": false,
+    "creatureNamesPermitted": false
+  },
+  "authority": {
+    "publicIntakeAuthorized": false,
+    "externalRecruitmentAuthorized": false,
+    "participantContactAuthorized": false,
+    "directMinorContactAuthorized": false,
+    "publicationAuthorized": false,
+    "marketingUseAuthorized": false,
+    "automatedProductDecisionAuthorized": false
+  },
+  "allowedContexts": [
+    "adult_self_play",
+    "parent_observed_family_play"
+  ],
+  "allowedJourneys": [
+    "discover",
+    "understand",
+    "start",
+    "hatch",
+    "explore",
+    "combat",
+    "restore",
+    "project_beacon",
+    "nasa_stem",
+    "return",
+    "share",
+    "seek_help"
+  ],
+  "allowedThemes": [
+    "positioning",
+    "trust",
+    "performance",
+    "accessibility",
+    "controls",
+    "story",
+    "creature",
+    "progression",
+    "difficulty",
+    "safety",
+    "privacy",
+    "ai",
+    "support",
+    "stem"
+  ],
+  "observations": []
+}
