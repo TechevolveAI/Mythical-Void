@@ -2333,6 +2333,24 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     item => item === scene.caveCrystalFieldLayer
                 ).length || 0
             } : null,
+            caveAmbientRendering: Array.isArray(scene?.caveParallaxLayers) ? {
+                parallaxLayerCount: scene.caveParallaxLayers.filter(
+                    layer => layer?.active !== false
+                ).length,
+                storyDecorationTweenCount: (
+                    scene?.tweens?.getTweens?.() || []
+                ).filter(tween => (tween?.targets || []).some(
+                    target => [
+                        'brokenLantern',
+                        'minerSkeleton'
+                    ].includes(target?.caveAmbientRole)
+                )).length,
+                coinLayerTweenCount: (
+                    scene?.tweens?.getTweens?.() || []
+                ).filter(tween => (tween?.targets || []).includes(
+                    scene.caveCoinLayer
+                )).length
+            } : null,
             reefAmbientRendering: Array.isArray(scene?.cosmicDustParticles) ? {
                 nebulaLayerCount: scene.nebulaParticles?.filter(
                     layer => layer?.active !== false
@@ -2421,7 +2439,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.caveCoinRendering?.layerCount !== 1 ||
             state.caveCoinRendering?.physicsCoinCount !== 0 ||
             state.caveCrystalRendering?.batchedCount !== 11 ||
-            state.caveCrystalRendering?.layerCount !== 1
+            state.caveCrystalRendering?.layerCount !== 1 ||
+            state.caveAmbientRendering?.parallaxLayerCount !== 2 ||
+            state.caveAmbientRendering?.storyDecorationTweenCount !== 0 ||
+            state.caveAmbientRendering?.coinLayerTweenCount !== 0
         )
     ) {
         throw new Error(

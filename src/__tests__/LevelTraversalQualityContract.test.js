@@ -836,8 +836,21 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('redrawCaveCrystalField()');
         expect(source).toContain('this.caveCrystalField.push(crystal);');
         expect(source).toContain('!Number.isFinite(crystal.lastDrawnAlpha)');
+        expect(source).toContain('this.caveParallaxLayers.push(graphics);');
+        expect(source).toContain("graphics.caveAmbientRole = 'brokenLantern';");
+        expect(source).toContain("graphics.caveAmbientRole = 'minerSkeleton';");
+        expect(source).toContain('if (!this.isMobile) {');
         expect(source).not.toContain("const coin = this.collectibles.create(x, y, textureKey);");
         expect(source).not.toContain('targets: coin,');
+
+        const smokeSource = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        expect(smokeSource).toContain('caveAmbientRendering');
+        expect(smokeSource).toContain('parallaxLayerCount !== 2');
+        expect(smokeSource).toContain('storyDecorationTweenCount !== 0');
+        expect(smokeSource).toContain('coinLayerTweenCount !== 0');
     });
 
     test('Stellar Reef batches ambient fields and bounds reusable cosmic dust', () => {
