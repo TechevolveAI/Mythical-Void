@@ -3,7 +3,32 @@
   "updated": "2026-08",
   "canonicalPressRoom": "https://mythicalvoid.com/press/",
   "playUrl": "https://mythicalvoid.com/play/",
+  "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "assets": [
+    {
+      "name": "Begin Project Beacon",
+      "url": "https://mythicalvoid.com/press/gameplay/project-beacon-start.png",
+      "kind": "authentic_running_build_screenshot",
+      "description": "Captured from the real Mythical Void browser game using an invented QA state; not a generated mockup."
+    },
+    {
+      "name": "First contact",
+      "url": "https://mythicalvoid.com/press/gameplay/project-beacon-live-egg.png",
+      "kind": "authentic_running_build_screenshot",
+      "description": "The real first-contact egg interaction at the Wanderer-77 crash site."
+    },
+    {
+      "name": "Mythical Forest phone gameplay",
+      "url": "https://mythicalvoid.com/press/gameplay/realm-mythicalforest.png",
+      "kind": "authentic_running_build_screenshot",
+      "description": "Real phone gameplay showing the astronaut, route display, platforming world and touch controls."
+    },
+    {
+      "name": "Village Heart builder",
+      "url": "https://mythicalvoid.com/press/gameplay/village-base-builder.png",
+      "kind": "authentic_running_build_screenshot",
+      "description": "Real phone gameplay showing village resources, objectives and the Forager Hut."
+    },
     {
       "name": "A Universe of Creatures",
       "url": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
@@ -37,7 +62,8 @@
   ],
   "permissions": "Assets may be used in truthful editorial coverage of Mythical Void with their descriptions and disclosures preserved.",
   "restrictions": [
-    "Do not present marketing illustrations or game-world stills as gameplay footage.",
+    "Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.",
+    "Do not present marketing illustrations or game-world artwork as gameplay footage.",
     "Do not imply NASA endorsement or partnership.",
     "Do not imply sentience, consciousness, global creature uniqueness or a fully autonomous studio."
   ]

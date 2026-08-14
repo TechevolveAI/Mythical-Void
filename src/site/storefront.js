@@ -117,11 +117,39 @@ function renderPressPage() {
                 </div>
             </section>
 
+            <section class="press-gameplay-section">
+                <div class="section-inner">
+                    <div class="press-section-heading press-heading-split">
+                        <div><p class="kicker">CAPTURED FROM THE GAME</p><h2>This is what players really see.</h2></div>
+                        <p>Every frame below was captured automatically from a tested Mythical Void build using an invented game state. No mock gameplay, private save or player identity is involved.</p>
+                    </div>
+                    <div class="press-gameplay-grid">
+                        <figure class="press-gameplay-card press-gameplay-wide">
+                            <img src="/press/gameplay/project-beacon-start.png" alt="The real Mythical Void opening screen showing Project Beacon and the Wanderer-77 crash site" loading="lazy">
+                            <figcaption><span>REAL RUNNING BUILD</span><strong>Begin Project Beacon</strong><p>The opening screen players reach before first contact.</p><a href="/press/gameplay/project-beacon-start.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-gameplay-card">
+                            <img src="/press/gameplay/project-beacon-live-egg.png" alt="The real first-contact screen with an alien egg waiting above a signal platform" loading="lazy">
+                            <figcaption><span>REAL RUNNING BUILD</span><strong>First contact</strong><p>The live egg interaction at the Wanderer-77 crash site.</p><a href="/press/gameplay/project-beacon-live-egg.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-gameplay-card press-gameplay-portrait">
+                            <img src="/press/gameplay/realm-mythicalforest.png" alt="Phone gameplay in the Mythical Forest with the astronaut, route display and touch controls" loading="lazy">
+                            <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Mythical Forest</strong><p>Platforming, route guidance and the astronaut’s on-screen controls.</p><a href="/press/gameplay/realm-mythicalforest.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                        <figure class="press-gameplay-card press-gameplay-portrait">
+                            <img src="/press/gameplay/village-base-builder.png" alt="The real Village Heart builder showing resources, structures and a Forager Hut" loading="lazy">
+                            <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
+                        </figure>
+                    </div>
+                    <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View build record and file fingerprints →</a></p>
+                </div>
+            </section>
+
             <section class="press-assets-section">
                 <div class="section-inner">
                     <div class="press-section-heading press-heading-split">
-                        <div><p class="kicker">APPROVED MEDIA</p><h2>Images with honest labels.</h2></div>
-                        <p>These files may be used when covering Mythical Void. Please keep the supplied description with each image and do not present game-world art as a gameplay capture.</p>
+                        <div><p class="kicker">APPROVED ARTWORK</p><h2>Imagination with honest labels.</h2></div>
+                        <p>These files may be used when covering Mythical Void. Keep the supplied description with each image. Unlike the section above, these are artwork—not screenshots of play.</p>
                     </div>
                     <div class="press-assets-grid">
                         <figure class="press-asset-card press-asset-wide">
