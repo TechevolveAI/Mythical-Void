@@ -21,9 +21,10 @@ const paths = {
     adultStemOutreach: process.argv[14] ? path.resolve(process.argv[14]) : defaultPaths.adultStemOutreach,
     liveSearch: process.argv[15] ? path.resolve(process.argv[15]) : defaultPaths.liveSearch,
     founderStory: process.argv[16] ? path.resolve(process.argv[16]) : defaultPaths.founderStory,
-    dashboard: process.argv[17] ? path.resolve(process.argv[17]) : dashboardDefault
+    scienceWeek: process.argv[17] ? path.resolve(process.argv[17]) : defaultPaths.scienceWeek,
+    dashboard: process.argv[18] ? path.resolve(process.argv[18]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -110,6 +111,11 @@ requireValue(values.founderStory.state === 'article_and_pitch_prepared_waiting_f
 requireValue(values.founderStory.target?.candidateRef === 'RC-007', 'Founder story must retain its reviewed Irish Tech News target.');
 requireValue(values.founderStory.pitch?.approved === false && values.founderStory.pitch?.sentAt === null, 'Founder story pitch must remain unapproved and unsent.');
 requireValue(values.founderStory.authority?.paidPlacementAuthorized === false && values.founderStory.authority?.childParticipationAuthorized === false, 'Paid placement and child participation must remain unauthorized.');
+
+requireValue(values.scienceWeek.state === 'concept_ready_no_event_or_submission_exists', 'Science Week water work must remain an internal concept.');
+requireValue(values.scienceWeek.realScience?.length === 3 && values.scienceWeek.session?.length === 5, 'Founder view must retain the three sourced facts and five-part activity concept.');
+requireValue(values.scienceWeek.opportunity?.mythicalEventSubmitted === false && values.scienceWeek.opportunity?.mythicalPartnershipExists === false, 'Founder view must not invent a Science Week event or partnership.');
+requireValue(values.scienceWeek.authority?.eventSubmissionAuthorized === false && values.scienceWeek.authority?.publicationAuthorized === false, 'Science Week submission and publication must remain unauthorized.');
 
 const engagementTrack = values.launch.tracks?.find(track => track.id === 'LT-007');
 requireValue(engagementTrack?.status === 'blocked' && /safeguarding/i.test((engagementTrack.blockers || []).join(' ')), 'Public engagement must remain blocked until safeguarding and response ownership exist.');

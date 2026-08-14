@@ -23,13 +23,14 @@ const sources = {
     adultStemOutreach: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/ADULT_STEM_OUTREACH_WAVE.json'), 'utf8')),
     liveSearch: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/search/LIVE_SEARCH_FINDABILITY_EVIDENCE_2026-08-14.json'), 'utf8')),
     founderStory: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/IRISH_FOUNDER_STORY_RELEASE.json'), 'utf8')),
+    scienceWeek: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/SCIENCE_WEEK_WATER_CONCEPT_2026.json'), 'utf8')),
     dashboard: fs.readFileSync(path.join(root, 'docs/company/FOUNDER_LAUNCH_DASHBOARD.md'), 'utf8')
 };
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-founder-dashboard-'));
 
 function run(name, changes = {}) {
     const values = { ...sources, ...changes };
-    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory'].map(key => {
+    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek'].map(key => {
         const file = path.join(temp, `${name}-${key}.json`);
         fs.writeFileSync(file, `${JSON.stringify(values[key], null, 2)}\n`);
         return file;
@@ -98,10 +99,14 @@ try {
     sentFounderStory.pitch.sentAt = '2026-08-14T00:00:00Z';
     if (run('sent-founder-story', { founderStory: sentFounderStory }).status === 0) throw new Error('An unapproved founder story pitch was accepted as sent.');
 
+    const submittedScienceWeek = structuredClone(sources.scienceWeek);
+    submittedScienceWeek.opportunity.mythicalEventSubmitted = true;
+    if (run('submitted-science-week', { scienceWeek: submittedScienceWeek }).status === 0) throw new Error('An invented Science Week submission was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot plus 15 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot plus 16 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

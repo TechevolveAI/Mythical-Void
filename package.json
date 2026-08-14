@@ -24,6 +24,8 @@
     "test:live-search": "node scripts/company/test-live-search-findability.cjs",
     "validate:founder-story": "node scripts/company/validate-irish-founder-story.cjs",
     "test:founder-story": "node scripts/company/test-irish-founder-story.cjs",
+    "validate:science-week-water": "node scripts/company/validate-science-week-water-concept.cjs",
+    "test:science-week-water": "node scripts/company/test-science-week-water-concept.cjs",
     "package:itch": "npm run build:portable && node scripts/company/validate-portable-browser-build.cjs && node scripts/package-itch-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",

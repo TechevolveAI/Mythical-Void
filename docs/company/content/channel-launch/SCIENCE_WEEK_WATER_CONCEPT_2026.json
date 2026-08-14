@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "id": "SCIENCE-WEEK-WATER-001",
+  "asOf": "2026-08-14",
+  "title": "Water That Isn't Water: Design Life for the Stellar Reef",
+  "state": "concept_ready_no_event_or_submission_exists",
+  "purpose": "Create an adult-led Science Week 2026 concept that joins real ocean-world science to Mythical Void's fictional Stellar Reef without pretending that an event, partnership or approval already exists.",
+  "opportunity": {
+    "name": "Science Week Ireland 2026",
+    "dates": "8-15 November 2026",
+    "publishedTheme": "Water",
+    "source": "https://www.scienceweek.ie/",
+    "sourceCheckedAt": "2026-08-14",
+    "eventCalendarAcceptsSubmissions": true,
+    "mythicalEventSubmitted": false,
+    "mythicalEventAccepted": false,
+    "mythicalPartnershipExists": false
+  },
+  "audience": "Ages 9-14 with an adult facilitator; suitable in principle for families, clubs, libraries or classrooms after educator review",
+  "duration": "45-60 minutes",
+  "format": "Paper-led design lab with a short adult introduction; no account, child contact or specialist materials required",
+  "learningQuestion": "If a world has a liquid, an ocean or something that flows like water, what would an organism need in order to sense, move, find energy and survive there?",
+  "realScience": [
+    {
+      "id": "SCI-WATER-001",
+      "statement": "NASA describes ocean worlds as planets, moons and other bodies where water can exist as liquid, ice or vapour, sometimes beneath an icy crust.",
+      "source": "https://science.nasa.gov/solar-system/ocean-worlds/",
+      "sourceCheckedAt": "2026-08-14"
+    },
+    {
+      "id": "SCI-WATER-002",
+      "statement": "Scientists think Europa has a salty liquid-water ocean beneath its icy crust.",
+      "source": "https://science.nasa.gov/mission/europa-clipper/why-europa-ingredients-for-life/",
+      "sourceCheckedAt": "2026-08-14"
+    },
+    {
+      "id": "SCI-WATER-003",
+      "statement": "Titan has surface rivers, lakes and seas of liquid methane and ethane rather than liquid water.",
+      "source": "https://science.nasa.gov/saturn/moons/titan/facts/",
+      "sourceCheckedAt": "2026-08-14"
+    }
+  ],
+  "fictionBridge": {
+    "realm": "Stellar Reef",
+    "implementedGameEvidence": [
+      "src/config/biomes.json#stellar_reef",
+      "src/scenes/levels/ReefLevel.js"
+    ],
+    "implementedDescription": "The game describes Stellar Reef as an underwater cosmic realm and a luminous space between dimensions where cosmic energy flows like water.",
+    "fictionLabel": "Stellar Reef, the Current and every organism designed for it are fictional. They are prompts for imagination, not scientific discoveries or predictions about real extraterrestrial life."
+  },
+  "session": [
+    {
+      "step": 1,
+      "minutes": 8,
+      "name": "Three very different seas",
+      "adultPrompt": "Compare Earth water, Europa's possible hidden salty ocean and Titan's methane-and-ethane lakes. Ask what is observed, what scientists infer and what remains unknown."
+    },
+    {
+      "step": 2,
+      "minutes": 7,
+      "name": "Cross into the Stellar Reef",
+      "adultPrompt": "Reveal the fictional rule: cosmic energy flows like water. Make the move from real evidence to invention explicit."
+    },
+    {
+      "step": 3,
+      "minutes": 18,
+      "name": "Design an organism, not an Earth animal in costume",
+      "adultPrompt": "Choose how the organism holds a boundary, senses change, finds energy, moves through the flow and survives pressure or darkness. Radial, liquid, distributed, crystalline, field-like and changing forms are welcome."
+    },
+    {
+      "step": 4,
+      "minutes": 10,
+      "name": "Make one testable prediction",
+      "adultPrompt": "Complete: If the flow changes in this way, then the organism will respond in this way, because..."
+    },
+    {
+      "step": 5,
+      "minutes": 7,
+      "name": "Restore the reef",
+      "adultPrompt": "Choose one damaged part of the habitat to restore first and explain how that decision changes the organism's chance of survival."
+    }
+  ],
+  "alienDesignRules": [
+    "Do not begin with an Earth animal name. Begin with the environment and the organism's problem.",
+    "The organism does not need a face, head, limbs, skin or a single body.",
+    "Its form may be radial, liquid, crystalline, distributed, temporary, field-like or able to change state.",
+    "Every unusual feature must answer a survival question, even when the answer is fictional.",
+    "The final design must clearly label real evidence, scientific inference and fictional invention."
+  ],
+  "materials": [
+    "printed activity pages",
+    "pencils or pens",
+    "colours if available",
+    "an adult display of the credited NASA source pages if internet access is available"
+  ],
+  "safeguarding": [
+    "An adult leads the activity for younger designers.",
+    "Mythical Void does not collect children's designs, names, ages, images, voices, schools, locations or contact details.",
+    "No child is asked to create an account or contact the studio.",
+    "If work is ever displayed publicly, an adult must provide permission and remove identifying details.",
+    "No real methane, ethane, unknown chemical, live electrical setup or unsafe water experiment is used."
+  ],
+  "disclosures": [
+    "Mythical Void is independent. NASA does not endorse Mythical Void or this activity.",
+    "No partnership or approval from Science Week, Research Ireland, NASA, ESA or an education provider is claimed.",
+    "The NASA pages provide the real-space starting points; Stellar Reef and the designed organisms are fictional.",
+    "Do not use Science Week logos or describe this as an official Science Week event unless written permission and an accepted listing exist."
+  ],
+  "preparedPublicSummary": "Earth has water oceans. Europa may hide a salty ocean beneath ice. Titan has lakes and seas made from methane and ethane. What could survive in Mythical Void's fictional Stellar Reef, where cosmic energy flows like water? Water That Isn't Water is a proposed adult-led design lab for ages 9-14 that separates real evidence from wild invention.",
+  "readiness": {
+    "existingCreatureLabAvailable": true,
+    "implementedStellarReefAvailable": true,
+    "officialScienceWeekThemeVerified": true,
+    "nasaSourcesVerified": true,
+    "educatorReviewComplete": false,
+    "worksheetExtensionBuilt": false,
+    "facilitatorGuideBuilt": false,
+    "venueOrHostExists": false,
+    "adultSafeguardingOwnerNamed": false,
+    "submissionReady": false,
+    "publicationReady": false
+  },
+  "authority": {
+    "eventCreationAuthorized": false,
+    "eventSubmissionAuthorized": false,
+    "partnershipOutreachAuthorized": false,
+    "logoUseAuthorized": false,
+    "publicationAuthorized": false,
+    "childContactAuthorized": false,
+    "childWorkCollectionAuthorized": false,
+    "spendAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "nextStudioAction": "Build a two-page paper extension and a one-page adult facilitator note, then seek adult educator review. Keep all material internal until Kevin approves the finished pack and decides whether a real host or event should exist.",
+  "nextKevinDecision": "None is required to keep preparing the internal activity. Kevin must approve any public release, event, submission, logo use, partnership approach or spend."
+}
