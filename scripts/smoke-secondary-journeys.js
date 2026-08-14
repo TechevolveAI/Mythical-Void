@@ -22,6 +22,9 @@ const SMOKE_TOUCH_PROTOCOL = process.env.SMOKE_TOUCH_PROTOCOL || 'dispatch';
 const SMOKE_SKIP_PREVIEW = process.env.SMOKE_SKIP_PREVIEW === '1';
 const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
 const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
+const SMOKE_CAPTURE_DIR = process.env.SMOKE_CAPTURE_DIR
+    ? path.resolve(process.env.SMOKE_CAPTURE_DIR)
+    : null;
 let activeTouchPoint = { x: 0, y: 0 };
 
 function trace(message, details = null) {
@@ -132,6 +135,29 @@ async function evaluate(session, expression) {
         );
     }
     return result.result?.value;
+}
+
+async function captureGameplayStill(session, filename) {
+    if (!SMOKE_CAPTURE_DIR) return null;
+    const safeFilename = String(filename || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    if (!safeFilename || !safeFilename.endsWith('.png')) {
+        throw new Error(`Invalid gameplay capture filename: ${JSON.stringify(filename)}`);
+    }
+    fs.mkdirSync(SMOKE_CAPTURE_DIR, { recursive: true });
+    await session.call('Page.bringToFront');
+    await delay(250);
+    const result = await session.call('Page.captureScreenshot', {
+        format: 'png',
+        fromSurface: true,
+        captureBeyondViewport: false
+    });
+    const destination = path.join(SMOKE_CAPTURE_DIR, safeFilename);
+    fs.writeFileSync(destination, Buffer.from(result.data, 'base64'));
+    process.stdout.write(`[gameplay-capture] ${destination}\n`);
+    return destination;
 }
 
 async function dispatchDomTouch(session, type, x, y) {
@@ -831,6 +857,7 @@ async function smokeLevel(session, route, sceneName, exceptions) {
     if (exceptions.length) {
         throw new Error(`${sceneName} raised browser exceptions: ${exceptions.join(' | ')}`);
     }
+    await captureGameplayStill(session, `realm-${route}.png`);
     return {
         ...state,
         jump: { before: beforeJump, during: jumped, released: jumpReleased },
@@ -928,6 +955,7 @@ async function smokePurchasedEgg(session, exceptions) {
     if (state.inventoryCount !== 0) {
         throw new Error(`Purchased egg was not reserved exactly once: ${JSON.stringify(state)}`);
     }
+    await captureGameplayStill(session, 'creature-cosmic-egg-hatch.png');
     if (exceptions.length) {
         throw new Error(`Purchased egg flow raised browser exceptions: ${exceptions.join(' | ')}`);
     }
@@ -985,6 +1013,7 @@ async function smokeHomeStart(session, exceptions) {
     ) {
         throw new Error(`Home Start control is outside the viewport: ${JSON.stringify(start)}`);
     }
+    await captureGameplayStill(session, 'project-beacon-start.png');
 
     let recovery = null;
     if (SMOKE_CASE === 'wide-touch') {
@@ -1032,6 +1061,7 @@ async function smokeHomeStart(session, exceptions) {
     if (!advanced.eggInteractive) {
         throw new Error(`Home Start reached a non-interactive egg: ${JSON.stringify(advanced)}`);
     }
+    await captureGameplayStill(session, 'project-beacon-live-egg.png');
     if (exceptions.length) {
         throw new Error(`Home Start raised browser exceptions: ${exceptions.join(' | ')}`);
     }
@@ -1883,6 +1913,7 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.is-visible'))`),
         { timeoutMs: 12000, message: 'Base Builder opened from Shop Build tab' }
     );
+    await captureGameplayStill(session, 'village-base-builder.png');
     const construction = await evaluate(session, `(() => {
         const action = document.querySelector('.village-construct-action:not(:disabled)');
         if (!action) return { clicked: false, text: null };
@@ -1901,6 +1932,7 @@ async function smokeVillageUi(session, exceptions) {
         )`),
         { timeoutMs: 8000, message: 'Base Builder construction persisted' }
     );
+    await captureGameplayStill(session, 'village-first-construction.png');
     const closeResult = await evaluate(session, `(() => {
         document.querySelector('.village-command-close')?.click();
         const shop = window.mythicalGame.scene.getScene('ShopScene');
@@ -2394,7 +2426,7 @@ async function main() {
         '--disable-background-networking',
         `--remote-debugging-port=${DEBUG_PORT}`,
         `--user-data-dir=${profileDir}`,
-        '--window-size=390,844',
+        `--window-size=${SMOKE_VIEWPORT_WIDTH},${SMOKE_VIEWPORT_HEIGHT}`,
         'about:blank'
     ], { stdio: ['ignore', 'ignore', 'ignore'] });
 
@@ -2419,7 +2451,7 @@ async function main() {
             width: SMOKE_VIEWPORT_WIDTH,
             height: SMOKE_VIEWPORT_HEIGHT,
             deviceScaleFactor: 1,
-            mobile: true,
+            mobile: SMOKE_VIEWPORT_WIDTH <= 600,
             screenWidth: SMOKE_VIEWPORT_WIDTH,
             screenHeight: SMOKE_VIEWPORT_HEIGHT
         });
