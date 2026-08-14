@@ -1090,7 +1090,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.retirePeakPatrolsForTitan();');
         expect(source).toContain("mainLabel: 'LOW WARNING LINE →'");
         expect(source).toContain(
-            "mainTradeoff: 'SHORTER // GEYSERS + HEAVY GUARDS'"
+            "mainTradeoff: 'SHORT + RISKY\\nEARNS: TITAN SURGE // 1 FREE BLAST'"
         );
         expect(source).toContain(
             "challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS'"
@@ -1539,7 +1539,7 @@ describe('campaign traversal quality contracts', () => {
             'levels/VoidPeaksLevel.js',
             "id: 'peaks_relic_ridge'",
             "mainLabel: 'LOW WARNING LINE →'",
-            "mainTradeoff: 'SHORTER // GEYSERS + HEAVY GUARDS'",
+            "mainTradeoff: 'SHORT + RISKY\\nEARNS: TITAN SURGE // 1 FREE BLAST'",
             "challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS'"
         ],
         [
@@ -2623,6 +2623,29 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('Aurora Quiet Light pickup collision');
         expect(smoke).toContain('Aurora charge returned after reload');
         expect(smoke).toContain('Aurora Quiet Light returned after reload');
+    });
+
+    test('keeps the Peaks opening clear and proves both route rewards independently', () => {
+        const base = read('PlatformerLevelScene.js');
+        const smoke = read('../../scripts/smoke-secondary-journeys.js');
+
+        expect(base).toContain("supportId: 'peak-ridge-approach'");
+        expect(smoke).toContain(
+            "state.currentEcologyPlacement?.supportId !==\n                'peak-ridge-approach'"
+        );
+        expect(smoke).toContain(
+            "route === 'voidPeaks' &&\n        (state.canvasWidth <= 480"
+        );
+        expect(smoke).toContain("'depth:120:visible'");
+        expect(smoke).toContain("'depth:130:visible'");
+        expect(smoke).toContain(
+            "message: `${sceneName} low warning line selection`"
+        );
+        expect(smoke).toContain('optionalFragmentsRemaining !== 0');
+        expect(smoke).toContain('persistedCharges !== 0');
+        expect(smoke).toContain(
+            'choosing the low line intentionally retires its relics'
+        );
     });
 
     test('runtime checkpoints retain the same authored identity persisted for reload recovery', () => {
