@@ -4237,10 +4237,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         graphics.destroy();
     }
 
-    updatePatrolEnemyMovement() {
-        if (!this.enemies?.getChildren) return false;
+    getRuntimePatrolEnemies() {
+        return this.enemies?.getChildren?.() || [];
+    }
 
-        this.enemies.getChildren().forEach(enemy => {
+    updatePatrolEnemyMovement() {
+        const enemies = this.getRuntimePatrolEnemies();
+        if (!enemies.length) return false;
+
+        enemies.forEach(enemy => {
             if (
                 enemy?.active === false ||
                 !enemy?.body ||
@@ -4327,9 +4332,11 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     updateEnemyCombatReadability() {
-        if (!this.player?.active || !this.enemies?.getChildren) return false;
+        if (!this.player?.active) return false;
+        const enemies = this.getRuntimePatrolEnemies();
+        if (!enemies.length) return false;
 
-        this.enemies.getChildren().forEach(enemy => {
+        enemies.forEach(enemy => {
             const cue = enemy?.combatCue;
             if (!cue?.active) return;
             const visible = enemy.active !== false && Phaser.Math.Distance.Between(
