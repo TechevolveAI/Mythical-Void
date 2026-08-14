@@ -75,6 +75,7 @@ const includedRoutes = [
 if (tag.measurementId !== 'G-FTM4W73EQC') failures.push('measurementId is invalid');
 if (tag.scriptUrl !== 'https://www.googletagmanager.com/gtag/js?id=G-FTM4W73EQC') failures.push('scriptUrl is invalid');
 if (tag.scope !== 'consented_public_website_only') failures.push('scope is invalid');
+if (tag.loadingMode !== 'basic_no_google_request_before_affirmative_consent') failures.push('loadingMode is invalid');
 exactSet(tag.includedRoutes, includedRoutes, 'includedRoutes', failures);
 exactSet(tag.excludedRoutes, ['/play/', '/game/', '?testBoss'], 'excludedRoutes', failures);
 for (const field of ['defaultAnalyticsStorage', 'defaultAdStorage', 'defaultAdUserData', 'defaultAdPersonalization']) {
@@ -86,9 +87,18 @@ for (const field of ['allowGoogleSignals', 'allowAdPersonalizationSignals', 'pag
 for (const field of ['visitorChoiceRequired', 'pageLocationUsesCanonicalPathOnly']) {
     if (tag[field] !== true) failures.push(`${field} must be true`);
 }
+for (const field of ['pageReferrerBlanked', 'enhancedMeasurementMustBeDisabledInProperty']) {
+    if (tag[field] !== true) failures.push(`${field} must be true`);
+}
 
 const actions = contract.publicActions || {};
-const allowedEvents = ['public_play_selected', 'public_share_selected'];
+const allowedEvents = [
+    'public_play_selected',
+    'public_share_selected',
+    'public_trailer_started',
+    'public_stem_resource_selected',
+    'public_press_asset_selected'
+];
 const allowedPageGroups = ['home', 'press', 'privacy', 'terms', 'parents', 'creature_genetics', 'nasa_stem', 'studio', 'other'];
 if (actions.enabled !== true || actions.consentRequired !== true) failures.push('public actions must be enabled only with consent');
 exactSet(actions.eventNames, allowedEvents, 'public action events', failures);
@@ -131,25 +141,39 @@ const vercelText = read('vercel.json');
 
 for (const required of [
     'G-FTM4W73EQC', "analytics_storage: 'denied'", "ad_storage: 'denied'",
-    "ad_user_data: 'denied'", "ad_personalization: 'denied'", 'send_page_view: false',
+    "ad_user_data: 'denied'", "ad_personalization: 'denied'",
     'allow_google_signals: false', 'allow_ad_personalization_signals: false',
     "path === '/play'", "path === '/game'", "params.has('testBoss')",
-    'www.googletagmanager.com/gtag/js', 'if (isGameRoute) return'
+    'www.googletagmanager.com/gtag/js', 'if (isGameRoute) return',
+    'loadConsentedGoogleTag', 'send_page_view: true',
+    "getConsent() === 'granted'", 'clearGoogleAnalyticsCookies',
+    "page_referrer: ''"
 ]) if (!indexText.includes(required)) failures.push(`index.html missing ${required}`);
+for (const blocked of ['wait_for_update', 'send_page_view: false']) {
+    if (indexText.includes(blocked)) failures.push(`index.html must not use pre-consent advanced mode marker ${blocked}`);
+}
 
 for (const source of [consentText, discoveryText]) {
     for (const required of [
-        'public_play_selected', 'public_share_selected', 'page_group',
+        ...allowedEvents, 'page_group',
         "'granted'", "gtag('event'", 'transport_type'
     ]) if (!source.includes(required)) failures.push(`public action helper missing ${required}`);
     for (const blocked of ['full_url:', 'query_string:', 'raw_referrer:', 'button_text:', 'creature_id:', 'age_band:']) {
         if (source.includes(blocked)) failures.push(`public action helper contains blocked field ${blocked}`);
     }
 }
-for (const required of ['mountPublicActionMeasurement', 'Play buttons', 'Share button', 'not used in the game']) {
+if (!discoveryText.includes("page_referrer: ''")) failures.push('discovery pages must blank page_referrer');
+for (const required of [
+    'mountPublicActionMeasurement', 'Play and Share buttons', 'trailer',
+    'free resources', 'not loaded unless you say yes', 'not used in the game'
+]) {
     if (!consentText.includes(required)) failures.push(`analytics consent helper missing ${required}`);
 }
-for (const required of ['mountPublicActionMeasurement', 'public page group', 'game progress', 'search terms', 'not used in the game']) {
+for (const required of [
+    'mountPublicActionMeasurement', 'mountAnalyticsPreferenceControls',
+    'broad public page group', 'five action names', 'game progress',
+    'search terms', 'not used in the game', 'Turn analytics off'
+]) {
     if (!storefrontText.includes(required)) failures.push(`storefront missing ${required}`);
 }
 for (const required of ['analytics-consent', 'analytics-consent-actions', 'analytics-consent-yes']) {
@@ -170,6 +194,7 @@ const prohibitedData = [
     'user_id', 'account_id', 'email', 'name', 'age', 'age_band', 'birth_date',
     'child_data', 'creature_id', 'creature_name', 'game_save', 'game_progress',
     'story_choice', 'full_url', 'query_string', 'raw_referrer', 'button_text',
+    'resource_name', 'file_name', 'video_watch_time', 'download_result',
     'search_term', 'ip_address', 'advertising_id'
 ];
 exactSet(contract.prohibitedData, prohibitedData, 'prohibitedData', failures);
@@ -180,9 +205,16 @@ for (let index = 0; index < 12; index += 1) {
     if (gate?.id !== `GA-G${String(index + 1).padStart(2, '0')}` || gate?.satisfied !== true) failures.push(`activation gate ${index + 1} must be satisfied`);
 }
 
-const trustFields = ['googlePropertyOwnerConfirmed', 'retentionSettingConfirmed', 'reportAccessVerified', 'productionDataReceptionVerified'];
+const trustFields = [
+    'googlePropertyOwnerConfirmed',
+    'retentionSettingConfirmed',
+    'reportAccessVerified',
+    'productionDataReceptionVerified',
+    'enhancedMeasurementSettingsConfirmed'
+];
 for (const field of trustFields) if (contract.reportingTrustGates?.[field] !== false) failures.push(`reportingTrustGates.${field} must remain false until verified`);
 if (contract.productionDeployed !== true) failures.push('productionDeployed must be true');
+if (contract.upgradeReleaseState !== 'prepared_on_feature_branch_not_yet_deployed') failures.push('upgradeReleaseState is invalid');
 if (contract.trustedForCompanyReporting !== false) failures.push('trustedForCompanyReporting must remain false');
 if (typeof contract.nextDecision !== 'string' || contract.nextDecision.length < 500) failures.push('nextDecision is incomplete');
 
@@ -194,14 +226,18 @@ console.log(JSON.stringify({
     implementationLiveAndBounded,
     measurementId: tag.measurementId,
     scope: tag.scope,
+    loadingMode: tag.loadingMode,
     defaultConsent: 'denied',
     publicRouteCount: (tag.includedRoutes || []).length,
     excludedGameRouteCount: (tag.excludedRoutes || []).length,
     publicActionEvents: actions.eventNames || [],
     publicActionProperty: actions.allowedProperty,
     adFeaturesOff: tag.allowGoogleSignals === false && tag.allowAdPersonalizationSignals === false,
+    pageReferrerBlanked: tag.pageReferrerBlanked,
+    enhancedMeasurementMustBeDisabledInProperty: tag.enhancedMeasurementMustBeDisabledInProperty,
     gameMeasurementAuthorized: authority.gameMeasurementAuthorized,
     productionDeployed: contract.productionDeployed,
+    upgradeReleaseState: contract.upgradeReleaseState,
     reportingTrustReady,
     trustedForCompanyReporting: contract.trustedForCompanyReporting,
     failures,

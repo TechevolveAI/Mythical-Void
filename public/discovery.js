@@ -2,7 +2,13 @@
     var storageKey = 'mythical-analytics-consent';
     var tagId = 'G-FTM4W73EQC';
     var currentPath = window.location.pathname;
-    var allowedActions = ['public_play_selected', 'public_share_selected'];
+    var allowedActions = [
+        'public_play_selected',
+        'public_share_selected',
+        'public_trailer_started',
+        'public_stem_resource_selected',
+        'public_press_asset_selected'
+    ];
     var pageGroups = {
         '/': 'home',
         '/press': 'press',
@@ -14,10 +20,6 @@
         '/studio': 'studio'
     };
 
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { window.dataLayer.push(arguments); }
-    window.gtag = window.gtag || gtag;
-
     function readChoice() {
         try { return window.localStorage.getItem(storageKey); } catch (error) { return null; }
     }
@@ -26,21 +28,56 @@
         try { window.localStorage.setItem(storageKey, value); } catch (error) { /* Storage can be unavailable. */ }
     }
 
+    function clearGoogleAnalyticsCookies() {
+        document.cookie.split(';').forEach(function (part) {
+            var name = part.split('=')[0].trim();
+            if (!/^_ga(?:_|$)|^_gid$/.test(name)) return;
+            document.cookie = name + '=; Max-Age=0; path=/; SameSite=Lax';
+            document.cookie = name + '=; Max-Age=0; path=/; domain=' + window.location.hostname + '; SameSite=Lax';
+        });
+    }
+
     function applyChoice(value) {
-        window.gtag('consent', 'update', {
-            analytics_storage: value,
+        if (value !== 'granted') {
+            if (typeof window.gtag === 'function') window.gtag('consent', 'update', {
+                analytics_storage: 'denied',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied'
+            });
+            clearGoogleAnalyticsCookies();
+            return;
+        }
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { window.dataLayer.push(arguments); }
+        window.gtag = window.gtag || gtag;
+        window.gtag('consent', 'default', {
+            analytics_storage: 'denied',
             ad_storage: 'denied',
             ad_user_data: 'denied',
             ad_personalization: 'denied'
         });
-        if (value === 'granted') {
-            window.gtag('config', tagId, {
-                send_page_view: true,
-                allow_google_signals: false,
-                allow_ad_personalization_signals: false,
-                page_location: window.location.origin + currentPath,
-                page_path: currentPath
-            });
+        window.gtag('consent', 'update', {
+            analytics_storage: 'granted',
+            ad_storage: 'denied',
+            ad_user_data: 'denied',
+            ad_personalization: 'denied'
+        });
+        window.gtag('js', new Date());
+        window.gtag('config', tagId, {
+            send_page_view: true,
+            allow_google_signals: false,
+            allow_ad_personalization_signals: false,
+            page_location: window.location.origin + currentPath,
+            page_path: currentPath,
+            page_referrer: ''
+        });
+        if (!document.querySelector('script[data-mythical-google-tag]')) {
+            var tag = document.createElement('script');
+            tag.async = true;
+            tag.dataset.mythicalGoogleTag = '';
+            tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + tagId;
+            document.head.appendChild(tag);
         }
     }
 
@@ -58,27 +95,6 @@
         return true;
     }
 
-    window.gtag('consent', 'default', {
-        analytics_storage: 'denied',
-        ad_storage: 'denied',
-        ad_user_data: 'denied',
-        ad_personalization: 'denied',
-        wait_for_update: 500
-    });
-    window.gtag('js', new Date());
-    window.gtag('config', tagId, {
-        send_page_view: false,
-        allow_google_signals: false,
-        allow_ad_personalization_signals: false,
-        page_location: window.location.origin + currentPath,
-        page_path: currentPath
-    });
-
-    var tag = document.createElement('script');
-    tag.async = true;
-    tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + tagId;
-    document.head.appendChild(tag);
-
     if (window.MythicalDiscoveryActionHandler) {
         document.removeEventListener('click', window.MythicalDiscoveryActionHandler);
     }
@@ -90,9 +106,27 @@
         }
         if (target && target.closest('[data-share-game]')) {
             recordAction('public_share_selected');
+            return;
+        }
+        if (target && target.closest('a[href="/resources/mythical-void-stem-creature-lab.pdf"]')) {
+            recordAction('public_stem_resource_selected');
+            return;
+        }
+        if (target && target.closest('a[download][href^="/press/"]')) {
+            recordAction('public_press_asset_selected');
         }
     };
     document.addEventListener('click', window.MythicalDiscoveryActionHandler);
+    if (window.MythicalDiscoveryTrailerHandler) {
+        document.removeEventListener('play', window.MythicalDiscoveryTrailerHandler, true);
+    }
+    var measuredTrailers = new WeakSet();
+    window.MythicalDiscoveryTrailerHandler = function (event) {
+        var video = event.target instanceof HTMLVideoElement ? event.target : null;
+        if (!video || !video.matches('[data-measure-trailer]') || measuredTrailers.has(video)) return;
+        if (recordAction('public_trailer_started')) measuredTrailers.add(video);
+    };
+    document.addEventListener('play', window.MythicalDiscoveryTrailerHandler, true);
 
     var savedChoice = readChoice();
     if (savedChoice === 'granted' || savedChoice === 'denied') {
@@ -103,7 +137,7 @@
     var notice = document.createElement('aside');
     notice.className = 'analytics-choice';
     notice.setAttribute('aria-label', 'Optional website analytics');
-    notice.innerHTML = '<strong>Help us improve the website?</strong><p>Allow advertising-free counting of public page visits and Play or Share choices. The game itself is not measured.</p><div class="analytics-actions"><button type="button" data-allow>Allow analytics</button><button type="button" data-deny>No thanks</button></div>';
+    notice.innerHTML = '<strong>Help us improve the website?</strong><p>Allow counting of public page visits and whether Play, Share, the trailer or free resources are useful. Google Analytics is not loaded unless you say yes. The game itself is not measured.</p><div class="analytics-actions"><button type="button" data-allow>Allow analytics</button><button type="button" data-deny>No thanks</button></div>';
     document.body.appendChild(notice);
 
     notice.querySelector('[data-allow]').addEventListener('click', function () {

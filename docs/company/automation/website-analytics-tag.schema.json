@@ -19,6 +19,7 @@
     "activationGates",
     "reportingTrustGates",
     "productionDeployed",
+    "upgradeReleaseState",
     "trustedForCompanyReporting",
     "nextDecision"
   ],
@@ -38,6 +39,7 @@
     "activationGates": { "type": "array", "minItems": 12, "maxItems": 12 },
     "reportingTrustGates": { "type": "object" },
     "productionDeployed": { "const": true },
+    "upgradeReleaseState": { "enum": ["prepared_on_feature_branch_not_yet_deployed", "deployed_pending_live_verification"] },
     "trustedForCompanyReporting": { "const": false },
     "nextDecision": { "type": "string", "minLength": 500 }
   },

@@ -34,29 +34,57 @@
         var isGameRoute = path === '/play' || path === '/game' || params.has('testBoss');
         if (isGameRoute) return;
 
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { window.dataLayer.push(arguments); }
-        window.gtag = window.gtag || gtag;
         window.MYTHICAL_GOOGLE_TAG_ID = 'G-FTM4W73EQC';
-        gtag('consent', 'default', {
-            analytics_storage: 'denied',
-            ad_storage: 'denied',
-            ad_user_data: 'denied',
-            ad_personalization: 'denied',
-            wait_for_update: 500
-        });
-        gtag('js', new Date());
-        gtag('config', window.MYTHICAL_GOOGLE_TAG_ID, {
-            send_page_view: false,
-            allow_google_signals: false,
-            allow_ad_personalization_signals: false,
-            page_location: window.location.origin + path,
-            page_path: path
-        });
-        var tag = document.createElement('script');
-        tag.async = true;
-        tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.MYTHICAL_GOOGLE_TAG_ID;
-        document.head.appendChild(tag);
+        var googleTagLoaded = false;
+
+        function loadConsentedGoogleTag() {
+            window.dataLayer = window.dataLayer || [];
+            function gtag() { window.dataLayer.push(arguments); }
+            window.gtag = window.gtag || gtag;
+            if (googleTagLoaded) {
+                window.gtag('consent', 'update', {
+                    analytics_storage: 'granted',
+                    ad_storage: 'denied',
+                    ad_user_data: 'denied',
+                    ad_personalization: 'denied'
+                });
+                return;
+            }
+            googleTagLoaded = true;
+            window.gtag('consent', 'default', {
+                analytics_storage: 'denied',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied'
+            });
+            window.gtag('consent', 'update', {
+                analytics_storage: 'granted',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied'
+            });
+            window.gtag('js', new Date());
+            window.gtag('config', window.MYTHICAL_GOOGLE_TAG_ID, {
+                send_page_view: true,
+                allow_google_signals: false,
+                allow_ad_personalization_signals: false,
+                page_location: window.location.origin + path,
+                page_path: path,
+                page_referrer: ''
+            });
+            var tag = document.createElement('script');
+            tag.async = true;
+            tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.MYTHICAL_GOOGLE_TAG_ID;
+            document.head.appendChild(tag);
+        }
+        function clearGoogleAnalyticsCookies() {
+            document.cookie.split(';').forEach(function (part) {
+                var name = part.split('=')[0].trim();
+                if (!/^_ga(?:_|$)|^_gid$/.test(name)) return;
+                document.cookie = name + '=; Max-Age=0; path=/; SameSite=Lax';
+                document.cookie = name + '=; Max-Age=0; path=/; domain=' + window.location.hostname + '; SameSite=Lax';
+            });
+        }
         window.MythicalAnalytics = {
             getConsent: function () {
                 try { return window.localStorage.getItem('mythical-analytics-consent'); } catch (error) { return null; }
@@ -64,24 +92,21 @@
             setConsent: function (value) {
                 if (value !== 'granted' && value !== 'denied') return;
                 try { window.localStorage.setItem('mythical-analytics-consent', value); } catch (error) { /* private browsing can refuse storage */ }
-                window.gtag('consent', 'update', {
-                    analytics_storage: value,
-                    ad_storage: 'denied',
-                    ad_user_data: 'denied',
-                    ad_personalization: 'denied'
-                });
                 if (value === 'granted') {
-                    window.gtag('config', window.MYTHICAL_GOOGLE_TAG_ID, {
-                        send_page_view: true,
-                        allow_google_signals: false,
-                        allow_ad_personalization_signals: false,
-                        page_location: window.location.origin + path,
-                        page_path: path
+                    loadConsentedGoogleTag();
+                } else if (googleTagLoaded && typeof window.gtag === 'function') {
+                    window.gtag('consent', 'update', {
+                        analytics_storage: 'denied',
+                        ad_storage: 'denied',
+                        ad_user_data: 'denied',
+                        ad_personalization: 'denied'
                     });
                 }
+                if (value === 'denied') clearGoogleAnalyticsCookies();
                 window.dispatchEvent(new CustomEvent('mythical:analytics-consent', { detail: { value: value } }));
             }
         };
+        if (window.MythicalAnalytics.getConsent() === 'granted') loadConsentedGoogleTag();
     }());
     </script>
     <script type="application/ld+json">

@@ -181,7 +181,8 @@
       "opportunityRefs": [],
       "handoffRefs": ["GDH-002"],
       "blockers": [
-        "Event boundaries, privacy/DPIA, network/logging, retention, ownership, and kill-switch evidence are incomplete; collection is off.",
+        "The public website has a consent-gated Google tag and a source-verified five-action boundary; the stricter no-request-before-consent upgrade is prepared but not yet released.",
+        "Google property ownership, retention, report access, live event receipt and the weekly review owner are not yet verified, so no analytics number is trusted for company reporting.",
         "Entity, currency, cash, commitments, actuals, costs, runway, and unit economics have no verified restricted source."
       ],
       "exitEvidence": "Approved minimal measurement plus reconciled restricted financial baseline, unit costs, caps, stop rules, and runway method."

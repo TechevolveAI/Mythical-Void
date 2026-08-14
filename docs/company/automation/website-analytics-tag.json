@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "asOf": "2026-08-14",
   "status": "consent_gated_public_website_measurement_live_source_verified",
-  "purpose": "Describe the small Google Analytics measurement used on Mythical Void's public website. The tag is not part of the game. It starts with analytics and advertising storage turned off, asks visitors before enabling analytics, counts a canonical public-page visit only after an affirmative choice, and can record only two allowlisted public actions: choosing a Play link or choosing the Share button. Each action includes only a broad page group. Mythical does not send a name, age, child detail, account number, email, creature identity, save, story choice, full URL, query string, raw referrer, button wording, user ID, advertising ID, or gameplay event. Advertising and Google Signals remain off. The production source and routes are verified, but the resulting numbers are not company truth until Google property access, receipt, retention, and reporting are checked.",
+  "purpose": "Describe the small Google Analytics measurement used on Mythical Void's public website. The tag is not part of the game and the browser does not request Google's tag until a visitor actively allows analytics. After that choice, it counts a canonical public-page visit and can record only five Mythical-defined public actions: choosing Play, choosing Share, starting the official trailer, selecting the free STEM activity, or selecting a press download. Each action includes only a broad page group added by Mythical. The code blanks the page referrer and does not add a name, age, child detail, account number, email, creature identity, save, story choice, query string, resource name, button wording, user ID, advertising ID, or gameplay event. Google Analytics may still process its documented standard browser, device and connection information. Advertising and Google Signals remain off. The revised source is verified and awaiting release; the resulting numbers are not company truth until Google property access, enhanced-measurement settings, receipt, retention, and reporting are checked.",
   "decisionRefs": ["D-003", "D-004", "D-015"],
   "riskRefs": ["R-001", "R-005", "R-011"],
   "workflowRefs": ["A-006", "A-018", "A-055", "A-058"],
@@ -10,6 +10,7 @@
     "measurementId": "G-FTM4W73EQC",
     "scriptUrl": "https://www.googletagmanager.com/gtag/js?id=G-FTM4W73EQC",
     "scope": "consented_public_website_only",
+    "loadingMode": "basic_no_google_request_before_affirmative_consent",
     "includedRoutes": [
       "/",
       "/press/",
@@ -29,12 +30,20 @@
     "allowAdPersonalizationSignals": false,
     "visitorChoiceRequired": true,
     "pageViewBeforeChoice": false,
-    "pageLocationUsesCanonicalPathOnly": true
+    "pageLocationUsesCanonicalPathOnly": true,
+    "pageReferrerBlanked": true,
+    "enhancedMeasurementMustBeDisabledInProperty": true
   },
   "publicActions": {
     "enabled": true,
     "consentRequired": true,
-    "eventNames": ["public_play_selected", "public_share_selected"],
+    "eventNames": [
+      "public_play_selected",
+      "public_share_selected",
+      "public_trailer_started",
+      "public_stem_resource_selected",
+      "public_press_asset_selected"
+    ],
     "allowedProperty": "page_group",
     "allowedPageGroups": [
       "home",
@@ -49,7 +58,10 @@
     ],
     "meaning": {
       "public_play_selected": "A visitor who allowed analytics activated a public website link to the game. This is a selection event, not proof that the game loaded or that a person played.",
-      "public_share_selected": "A visitor who allowed analytics activated the public Share button. This is a selection event, not proof that sharing completed."
+      "public_share_selected": "A visitor who allowed analytics activated the public Share button. This is a selection event, not proof that sharing completed.",
+      "public_trailer_started": "A visitor who allowed analytics started the official trailer on a public page. It is recorded at most once on that page and does not describe watch time or completion.",
+      "public_stem_resource_selected": "A visitor who allowed analytics selected the free STEM activity. It does not include the resource name, download result, person, school, family or classroom.",
+      "public_press_asset_selected": "A visitor who allowed analytics selected a downloadable press asset. It does not include the asset name, file path, recipient, profession or download result."
     }
   },
   "authority": {
@@ -87,6 +99,10 @@
     "query_string",
     "raw_referrer",
     "button_text",
+    "resource_name",
+    "file_name",
+    "video_watch_time",
+    "download_result",
     "search_term",
     "ip_address",
     "advertising_id"
@@ -109,9 +125,11 @@
     "googlePropertyOwnerConfirmed": false,
     "retentionSettingConfirmed": false,
     "reportAccessVerified": false,
-    "productionDataReceptionVerified": false
+    "productionDataReceptionVerified": false,
+    "enhancedMeasurementSettingsConfirmed": false
   },
   "productionDeployed": true,
+  "upgradeReleaseState": "prepared_on_feature_branch_not_yet_deployed",
   "trustedForCompanyReporting": false,
-  "nextDecision": "Kevin should later confirm the Google Analytics property owner, who can remove the tag, the chosen retention setting, and access to the reports. A trusted reporting check should then prove that consented public page views and the two allowlisted action names arrive with only a broad page_group, while game routes produce no analytics. Until that check is recorded, the code may collect consented public-website measurements but no dashboard number should be treated as a player, a child, a successful game load, a completed share, or a company performance result. If an unexpected field, advertising feature, gameplay event, or unapproved route appears, disable the tag and investigate before using the data."
+  "nextDecision": "Kevin should later confirm the Google Analytics property owner, who can remove the tag, the chosen retention setting, access to reports, and that Google enhanced measurement is disabled for the web stream. After this source change is released, a trusted reporting check should prove that no Google tag request occurs before affirmative consent, the referrer is blank, consented public page views and the five Mythical-defined action names arrive with only a broad page_group added by Mythical, and game routes produce no analytics. Standard Google visit events and technical details must be documented rather than mistaken for Mythical action fields. Until that check is recorded, no dashboard number should be treated as a player, a child, a successful game load, a completed share, a completed download, a full trailer view, or a company performance result. If an unexpected field, pre-consent request, advertising feature, gameplay event, or unapproved route appears, disable the tag and investigate before using the data."
 }

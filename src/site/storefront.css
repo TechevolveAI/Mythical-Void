@@ -297,6 +297,38 @@ body.site-mode h3 {
     color: #10262a !important;
 }
 
+.analytics-preferences {
+    margin: 1.25rem 0 2rem;
+    padding: 1rem;
+    border: 1px solid rgba(124, 232, 207, .25);
+    border-radius: 1rem;
+    background: rgba(124, 232, 207, .07);
+}
+
+.analytics-preferences p {
+    margin: 0 0 .8rem;
+    font-weight: 750;
+}
+
+.analytics-preferences button {
+    margin: .2rem .45rem .2rem 0;
+    padding: .65rem .9rem;
+    border: 1px solid rgba(124, 232, 207, .4);
+    border-radius: 999px;
+    background: #17132d;
+    color: #fff;
+    font: inherit;
+    font-size: .84rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.analytics-preferences button:focus-visible,
+.analytics-preferences button:hover {
+    border-color: var(--mint);
+    outline: none;
+}
+
 @media (max-width: 680px) {
     .analytics-consent {
         display: block;

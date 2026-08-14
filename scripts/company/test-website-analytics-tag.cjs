@@ -43,25 +43,37 @@ try {
     assert.strictEqual(baseline.output.implementationLiveAndBounded, true);
     assert.strictEqual(baseline.output.measurementId, 'G-FTM4W73EQC');
     assert.strictEqual(baseline.output.scope, 'consented_public_website_only');
+    assert.strictEqual(baseline.output.loadingMode, 'basic_no_google_request_before_affirmative_consent');
     assert.strictEqual(baseline.output.defaultConsent, 'denied');
     assert.strictEqual(baseline.output.publicRouteCount, 8);
     assert.strictEqual(baseline.output.excludedGameRouteCount, 3);
-    assert.deepStrictEqual(baseline.output.publicActionEvents, ['public_play_selected', 'public_share_selected']);
+    assert.deepStrictEqual(baseline.output.publicActionEvents, [
+        'public_play_selected',
+        'public_share_selected',
+        'public_trailer_started',
+        'public_stem_resource_selected',
+        'public_press_asset_selected'
+    ]);
     assert.strictEqual(baseline.output.publicActionProperty, 'page_group');
     assert.strictEqual(baseline.output.adFeaturesOff, true);
+    assert.strictEqual(baseline.output.pageReferrerBlanked, true);
+    assert.strictEqual(baseline.output.enhancedMeasurementMustBeDisabledInProperty, true);
     assert.strictEqual(baseline.output.gameMeasurementAuthorized, false);
     assert.strictEqual(baseline.output.productionDeployed, true);
+    assert.strictEqual(baseline.output.upgradeReleaseState, 'prepared_on_feature_branch_not_yet_deployed');
     assert.strictEqual(baseline.output.reportingTrustReady, false);
     assert.strictEqual(baseline.output.trustedForCompanyReporting, false);
 
     invalid(value => { value.tag.measurementId = 'G-OTHER'; }, 'measurementId');
     invalid(value => { value.tag.scriptUrl = 'https://example.test/tag'; }, 'scriptUrl');
     invalid(value => { value.tag.scope = 'all_routes'; }, 'scope');
+    invalid(value => { value.tag.loadingMode = 'advanced'; }, 'loadingMode');
     invalid(value => { value.tag.includedRoutes.pop(); }, 'includedRoutes');
     invalid(value => { value.tag.excludedRoutes.pop(); }, 'excludedRoutes');
     invalid(value => { value.tag.defaultAnalyticsStorage = 'granted'; }, 'defaultAnalyticsStorage');
     invalid(value => { value.tag.allowGoogleSignals = true; }, 'allowGoogleSignals');
     invalid(value => { value.tag.visitorChoiceRequired = false; }, 'visitorChoiceRequired');
+    invalid(value => { value.tag.pageReferrerBlanked = false; }, 'pageReferrerBlanked');
     invalid(value => { value.publicActions.enabled = false; }, 'public actions');
     invalid(value => { value.publicActions.eventNames.push('button_clicked'); }, 'public action events');
     invalid(value => { value.publicActions.allowedProperty = 'full_url'; }, 'page_group');
@@ -73,7 +85,9 @@ try {
     invalid(value => { value.authority.consentedPublicWebsiteMeasurementApproved = false; }, 'consentedPublicWebsiteMeasurementApproved');
     invalid(value => { value.authority.gameMeasurementAuthorized = true; }, 'gameMeasurementAuthorized');
     invalid(value => { value.productionDeployed = false; }, 'productionDeployed');
+    invalid(value => { value.upgradeReleaseState = 'deployed'; }, 'upgradeReleaseState');
     invalid(value => { value.reportingTrustGates.reportAccessVerified = true; }, 'reportAccessVerified');
+    invalid(value => { value.reportingTrustGates.enhancedMeasurementSettingsConfirmed = true; }, 'enhancedMeasurementSettingsConfirmed');
     invalid(value => { value.trustedForCompanyReporting = true; }, 'trustedForCompanyReporting');
     invalid(value => { value.nextDecision = 'Trust it.'; }, 'nextDecision is incomplete');
     invalid(value => { value.workflowRefs.pop(); }, 'workflowRefs');
@@ -82,8 +96,8 @@ try {
     invalid(value => { value.status = 'active'; }, 'status is invalid');
     invalid(value => { value.purpose = 'Tag.'; }, 'purpose is incomplete');
 
-    assert.strictEqual(caseCount, 28);
-    console.log('A-058 public website measurement evaluations passed (28 cases).');
+    assert.strictEqual(caseCount, 32);
+    console.log('A-058 public website measurement evaluations passed (32 cases).');
 } finally {
     fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 }

@@ -1,6 +1,7 @@
 import './storefront.css';
 import {
     mountAnalyticsConsent,
+    mountAnalyticsPreferenceControls,
     mountPublicActionMeasurement
 } from './analytics-consent.js';
 
@@ -129,7 +130,7 @@ function renderPressPage() {
                     </div>
                     <figure class="press-gameplay-card press-trailer-card">
                         <div class="press-trailer-shell">
-                            <video controls playsinline preload="metadata" poster="/press/trailer/mythical-void-play-free-launch-trailer-poster.jpg" aria-label="Mythical Void launch trailer with real gameplay, verified game screenshots and on-screen text">
+                            <video controls playsinline preload="metadata" poster="/press/trailer/mythical-void-play-free-launch-trailer-poster.jpg" aria-label="Mythical Void launch trailer with real gameplay, verified game screenshots and on-screen text" data-measure-trailer>
                                 <source src="/press/trailer/mythical-void-play-free-launch-trailer.mp4" type="video/mp4">
                                 <track kind="captions" src="/press/trailer/mythical-void-play-free-launch-trailer.vtt" srclang="en" label="English">
                             </video>
@@ -270,7 +271,12 @@ function renderLegalPage(type) {
                     <h2>Online services</h2>
                     <p>Cloud Save uses Supabase. The game may also ask trusted outside services for public space-weather or game-help information. Like most online services, they may receive basic connection information such as an internet address.</p>
                     <h2>Optional website analytics</h2>
-                    <p>The public website may use Google Analytics to count visits and whether someone chooses a Play button or the Share button. It is off by default. If you choose “Allow analytics”, Google receives the public page group and one of those two action names. Mythical does not send names, ages, creature details, game progress, full addresses, search terms, or button wording. Analytics is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
+                    <p>The public website may use Google Analytics to count visits and whether someone chooses Play or Share, starts the official trailer, or selects a press or STEM resource. Google Analytics is not loaded unless you choose “Allow analytics”. Mythical adds only a broad public page group and one of those five action names. Google may also process standard browser, device and connection information needed to provide analytics. Mythical does not add names, ages, creature details, game progress, full addresses, search terms, resource names or button wording. Analytics is not used in the game, and advertising features are switched off.</p>
+                    <div class="analytics-preferences" aria-label="Change optional analytics choice">
+                        <p data-analytics-status></p>
+                        <button type="button" data-analytics-set="granted">Allow analytics</button>
+                        <button type="button" data-analytics-set="denied">Turn analytics off</button>
+                    </div>
                     <h2>Children</h2>
                     <p>Children can play without Cloud Save. A child should only use Cloud Save when a parent or guardian has given any permission required where they live.</p>
                     <h2>Contact</h2>
@@ -290,6 +296,7 @@ function renderLegalPage(type) {
         </main>
     `;
     mountAnalyticsConsent();
+    if (isPrivacy) mountAnalyticsPreferenceControls();
     mountPublicActionMeasurement();
 }
 

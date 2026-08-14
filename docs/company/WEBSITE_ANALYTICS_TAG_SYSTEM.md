@@ -12,8 +12,8 @@ It is limited to the public website. It is not loaded inside the game.
 
 The first time someone visits, they see a simple choice:
 
-- **No thanks** keeps analytics off.
-- **Allow analytics** allows public-page counting and two small website actions.
+- **No thanks** keeps analytics off and does not request the Google tag.
+- **Allow analytics** loads the Google tag for public-page counting and five small website actions.
 
 Advertising features remain off. The visitor’s choice is kept in that browser
 so the question does not appear every time.
@@ -23,15 +23,26 @@ so the question does not appear every time.
 1. A visit to a public information page.
 2. `public_play_selected` when someone chooses a public Play link.
 3. `public_share_selected` when someone chooses the Share button.
+4. `public_trailer_started` the first time someone starts the official trailer on that page.
+5. `public_stem_resource_selected` when someone chooses the free STEM activity.
+6. `public_press_asset_selected` when someone chooses a press download.
 
-The two actions carry one broad page group such as `home`, `parents`,
+The five actions carry one broad page group such as `home`, `parents`,
 `nasa_stem` or `studio`. They do not carry the button wording, full address,
-query string, referrer or search term.
+query string, referrer, search term, resource name or file name.
+
+That broad page group is the only extra detail Mythical adds to an action.
+Google Analytics may still process its standard browser, device and connection
+information after consent. The code blanks the page referrer. The Google
+property must also have enhanced measurement switched off so it does not add
+unapproved scroll, search, video, outbound-link or file-download events.
 
 These are selections, not people or completed outcomes:
 
 - a Play selection does not prove that the game loaded or that someone played;
 - a Share selection does not prove that sharing completed;
+- a trailer start does not prove that the trailer was watched to the end;
+- a resource selection does not prove that the file downloaded or was used; and
 - no public event should be described as a child, customer or unique player.
 
 ## What Mythical does not send
@@ -46,9 +57,10 @@ funnel, child profile, advertising audience or personalised advertising.
 ## What is already checked
 
 - the tag ID is correct;
-- analytics starts denied;
+- the browser does not request the Google tag before affirmative consent;
+- analytics and every advertising choice start denied when the tag is loaded;
 - the public action helper checks for an affirmative choice;
-- only two action names and one broad property are allowed;
+- only five action names and one broad property are allowed;
 - game routes stop before the tag loads;
 - advertising features and Google Signals are off;
 - the privacy page explains the page and action counting;
@@ -63,8 +75,11 @@ Kevin still needs to confirm inside Google Analytics:
 1. which Google property receives `G-FTM4W73EQC`;
 2. who owns and can remove access;
 3. the retention setting;
-4. that the eight public page groups and two allowed actions arrive; and
-5. that no game route or unexpected field appears.
+4. that enhanced measurement is switched off;
+5. that the eight public page groups and five allowed actions arrive; and
+6. that no game route or unexpected field appears.
+
+The privacy page always offers both **Allow analytics** and **Turn analytics off** so the choice can be changed later in the same browser.
 
 Until then, the measurement may operate after consent, but a dashboard number
 must not be used as an official studio result. If the property receives an
