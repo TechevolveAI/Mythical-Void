@@ -1057,10 +1057,49 @@ async function smokePurchasedEgg(session, exceptions) {
         throw new Error(`Purchased egg was not reserved exactly once: ${JSON.stringify(state)}`);
     }
     await captureGameplayStill(session, 'creature-cosmic-egg-hatch.png');
+
+    const eggTarget = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('HatchingScene');
+        const bounds = scene?.egg?.getBounds?.();
+        if (!bounds || !scene.egg?.input?.enabled) return null;
+        return {
+            x: Math.round(bounds.centerX),
+            y: Math.round(bounds.centerY)
+        };
+    })()`);
+    if (!eggTarget) throw new Error('Purchased egg was not interactive before the reveal');
+    await touch(session, eggTarget.x, eggTarget.y);
+
+    const reveal = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('HatchingScene');
+            if (
+                !scene?.creatureAppeared ||
+                !scene?.creature?.active ||
+                scene.creature.alpha < 0.95 ||
+                !scene?.keepUI?.keepZone?.active
+            ) return null;
+            return {
+                creatureAppeared: true,
+                creatureActive: true,
+                creatureAlpha: scene.creature.alpha,
+                confirmContactReady: true,
+                hatchingStarted: scene.hatchingStarted,
+                isHatching: scene.isHatching,
+                hasGenetics: Boolean(scene.creatureGenetics?.id)
+            };
+        })()`),
+        { timeoutMs: 30000, message: 'Purchased egg reveal and confirm-contact control' }
+    );
+    if (!reveal.hasGenetics || reveal.isHatching) {
+        throw new Error(`Purchased egg reveal was incomplete: ${JSON.stringify(reveal)}`);
+    }
+    await delay(500);
+    await captureGameplayStill(session, 'creature-cosmic-egg-reveal.png');
     if (exceptions.length) {
         throw new Error(`Purchased egg flow raised browser exceptions: ${exceptions.join(' | ')}`);
     }
-    return state;
+    return { ...state, eggTarget, reveal };
 }
 
 async function smokeHomeStart(session, exceptions) {

@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-14T13:54:27.586Z",
-  "sourceCommit": "24ea30df367a20df762b237a4989604b35734435",
+  "asOf": "2026-08-14T17:30:48.131Z",
+  "sourceCommit": "bbba24a24191ee3343fdd19d255edb372e52d973",
   "sourceBranch": "codex/living-creature-portraits",
   "sourceRoute": "/play/",
   "captureMethod": "Automated first-party browser journeys using a clean invented QA state.",
   "captureSourcePolicy": "The top-level sourceCommit records the build that last updated this manifest. Each capture has its own sourceCommit, which remains unchanged during partial recaptures.",
   "captureSourceCommits": [
+    "bbba24a24191ee3343fdd19d255edb372e52d973",
     "cf0f9c2409b5915a0177f65b287f539932352021",
     "24ea30df367a20df762b237a4989604b35734435"
   ],
@@ -19,39 +20,39 @@
       "id": "GP-001",
       "filename": "project-beacon-start.png",
       "publicPath": "/press/gameplay/project-beacon-start.png",
-      "sha256": "787641e1a94398db39b37a50064e6e0c7c616f5e03e8613984932f859fd46391",
-      "bytes": 750954,
+      "sha256": "a346a41b7b1edabc520475eb8cda07145f6f69a1de2c9ff6b42ae2ecb742642b",
+      "bytes": 751046,
       "width": 1440,
       "height": 810,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
-      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
+      "sourceCommit": "bbba24a24191ee3343fdd19d255edb372e52d973",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
       "id": "GP-002",
       "filename": "project-beacon-live-egg.png",
       "publicPath": "/press/gameplay/project-beacon-live-egg.png",
-      "sha256": "f6478b6b72b39a643063a32cd3cf36caa8712b99f56d0036f45ea2eb49bff759",
-      "bytes": 758314,
+      "sha256": "369c3537d6ba4f5c468e50d93eb07f2a76127b4dacec89b0821296e1e6df1420",
+      "bytes": 760144,
       "width": 1440,
       "height": 810,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
-      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
+      "sourceCommit": "bbba24a24191ee3343fdd19d255edb372e52d973",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
       "id": "GP-003",
       "filename": "creature-cosmic-egg-hatch.png",
       "publicPath": "/press/gameplay/creature-cosmic-egg-hatch.png",
-      "sha256": "a483e87cdfe9b0d6cbd39bdb719424ceedcbfb3664db5668ed82d0765042a120",
-      "bytes": 758843,
+      "sha256": "e542689d09db76305937e6b5fc521b68554f2c4843de3d7de1772ac1b16957a1",
+      "bytes": 760035,
       "width": 1440,
       "height": 810,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
-      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
+      "sourceCommit": "bbba24a24191ee3343fdd19d255edb372e52d973",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -176,6 +177,19 @@
         "url": "https://apod.nasa.gov/apod/ap240720.html",
         "imageCredit": "Neil Armstrong · Apollo 11 · NASA"
       }
+    },
+    {
+      "id": "GP-013",
+      "filename": "creature-cosmic-egg-reveal.png",
+      "publicPath": "/press/gameplay/creature-cosmic-egg-reveal.png",
+      "sha256": "48912f74f73e9fb93b5b47d7c57d0c562ccfb7db5a03866f91a55e5b7b5b7a0a",
+      "bytes": 383366,
+      "width": 1440,
+      "height": 810,
+      "classification": "authentic_running_build_screenshot",
+      "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "bbba24a24191ee3343fdd19d255edb372e52d973",
+      "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     }
   ]
 }

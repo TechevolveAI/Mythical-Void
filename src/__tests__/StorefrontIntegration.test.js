@@ -57,7 +57,10 @@ describe('storefront and game deployment integration', () => {
                 destination: '/index.html'
             })
         ]));
-        const rewriteSource = vercel.rewrites[0].source;
+        const rewriteSource = vercel.rewrites.find(rewrite => (
+            rewrite.destination === '/index.html'
+        ))?.source;
+        expect(rewriteSource).toBeDefined();
         [
             'assets/',
             'marketing/',

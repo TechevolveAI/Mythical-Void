@@ -24,6 +24,7 @@ const pressFactSheet = fs.readFileSync(
 );
 const pressAssets = require('../../public/press/mythical-void-press-assets.json');
 const gameplayManifest = require('../../public/press/gameplay/manifest.json');
+const hatchRevealReview = require('../../docs/company/content/HATCH_REVEAL_PROOF_REVIEW.json');
 const gameplayVideoManifest = require('../../public/press/gameplay-video/manifest.json');
 const launchTrailerManifest = require('../../public/press/trailer/manifest.json');
 const trailerPage = fs.readFileSync(
@@ -218,7 +219,7 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.assets[0].kind).toBe(
             'edited_first_party_launch_trailer_with_authentic_gameplay'
         );
-        expect(gameplayManifest.captures).toHaveLength(12);
+        expect(gameplayManifest.captures).toHaveLength(13);
         expect(gameplayManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
         expect(gameplayManifest.captureSourcePolicy).toContain(
             'Each capture has its own sourceCommit'
@@ -228,6 +229,16 @@ describe('storefront Project Beacon story contract', () => {
         });
         expect(gameplayManifest.approvalState).toBe(
             'internal_review_required_before_public_promotion'
+        );
+        expect(gameplayManifest.captures.find(capture => capture.id === 'GP-013')).toEqual(
+            expect.objectContaining({
+                filename: 'creature-cosmic-egg-reveal.png',
+                classification: 'authentic_running_build_screenshot'
+            })
+        );
+        expect(hatchRevealReview.publicUseApproved).toBe(false);
+        expect(hatchRevealReview.reviewState).toBe(
+            'authentic_internal_proof_rejected_for_public_promotion'
         );
         expect(pressAssets.restrictions).toContain(
             'Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.'

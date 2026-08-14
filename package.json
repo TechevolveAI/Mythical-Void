@@ -12,6 +12,8 @@
     "validate:launch-trailer": "node scripts/company/validate-authentic-launch-trailer.cjs",
     "validate:trailer-page": "node scripts/company/validate-trailer-watch-page.cjs",
     "validate:story-page": "node scripts/company/validate-story-discovery-page.cjs",
+    "validate:hatch-reveal-proof": "node scripts/company/validate-hatch-reveal-proof.cjs",
+    "test:hatch-reveal-proof": "node scripts/company/test-hatch-reveal-proof.cjs",
     "package:itch": "npm run build:portable && node scripts/company/validate-portable-browser-build.cjs && node scripts/package-itch-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",

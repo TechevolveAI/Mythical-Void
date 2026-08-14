@@ -15,9 +15,10 @@ const paths = {
     analytics: process.argv[8] ? path.resolve(process.argv[8]) : defaultPaths.analytics,
     calendar: process.argv[9] ? path.resolve(process.argv[9]) : defaultPaths.calendar,
     discovery: process.argv[10] ? path.resolve(process.argv[10]) : defaultPaths.discovery,
-    dashboard: process.argv[11] ? path.resolve(process.argv[11]) : dashboardDefault
+    hatchReview: process.argv[11] ? path.resolve(process.argv[11]) : defaultPaths.hatchReview,
+    dashboard: process.argv[12] ? path.resolve(process.argv[12]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -71,6 +72,10 @@ requireValue(calendarReleases.filter(release => release.channel !== 'Internal re
 const storyPage = values.discovery.pages?.find(page => page.route === '/story/');
 requireValue(values.discovery.state === 'approved_for_owned_website_release' && Boolean(storyPage), 'The owned discovery release must include the prepared story page.');
 requireValue(!routeMap.has('/story/'), 'The prepared story page must not be described as part of the older production evidence.');
+
+requireValue(values.hatchReview.captureId === 'GP-013', 'Founder view must use the reviewed authentic hatch reveal.');
+requireValue(values.hatchReview.reviewState === 'authentic_internal_proof_rejected_for_public_promotion' && values.hatchReview.publicUseApproved === false, 'The weak hatch reveal must remain withheld from public promotion.');
+requireValue(values.hatchReview.qualityIssues?.length === 4, 'The founder view must retain all four hatch-reveal quality issues.');
 
 const engagementTrack = values.launch.tracks?.find(track => track.id === 'LT-007');
 requireValue(engagementTrack?.status === 'blocked' && /safeguarding/i.test((engagementTrack.blockers || []).join(' ')), 'Public engagement must remain blocked until safeguarding and response ownership exist.');

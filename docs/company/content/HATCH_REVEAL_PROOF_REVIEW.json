@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "HATCH-REVEAL-REVIEW-001",
+  "asOf": "2026-08-14",
+  "captureId": "GP-013",
+  "capturePath": "public/press/gameplay/creature-cosmic-egg-reveal.png",
+  "sourceCommit": "bbba24a24191ee3343fdd19d255edb372e52d973",
+  "reviewState": "authentic_internal_proof_rejected_for_public_promotion",
+  "publicUseApproved": false,
+  "whatTheRunningBuildProves": [
+    "A purchased cosmic egg can enter the real Hatching Scene and be reserved once.",
+    "The egg can be activated and the hatch can finish in the running browser game.",
+    "A procedurally described creature appears and the Confirm contact action becomes available.",
+    "The capture uses a company-controlled invented state with no player or child identity."
+  ],
+  "qualityIssues": [
+    {
+      "id": "HQ-001",
+      "severity": "high",
+      "observation": "The creature occupies too little of the frame to be the emotional focus of a launch image.",
+      "impact": "The reveal feels distant and does not communicate the range or detail promised by the wider creature artwork.",
+      "handoff": "Give the revealed creature a deliberate close presentation before the decision controls appear."
+    },
+    {
+      "id": "HQ-002",
+      "severity": "high",
+      "observation": "The field-classification heading visibly overlaps its own secondary text.",
+      "impact": "The first-contact moment looks unfinished and is harder for children and families to read.",
+      "handoff": "Reflow the classification card at wide and phone sizes and add a screenshot check for collisions."
+    },
+    {
+      "id": "HQ-003",
+      "severity": "medium",
+      "observation": "The bottom instruction still says Click egg after the egg has disappeared.",
+      "impact": "The interface gives a stale instruction at the most important first decision.",
+      "handoff": "Change the instruction state when the creature appears and test the full hatch transition."
+    },
+    {
+      "id": "HQ-004",
+      "severity": "medium",
+      "observation": "The scan estimate, story prompt, decision control and controls panel compete in the same lower area.",
+      "impact": "The reveal has no clear reading order and the central choice loses impact.",
+      "handoff": "Simplify the reveal to creature, one short discovery line and one clear action before showing secondary controls."
+    }
+  ],
+  "claimsNotAllowed": [
+    "This is a polished launch-quality creature reveal.",
+    "The screenshot proves a complete hatch-to-first-response sequence.",
+    "Every creature is unique.",
+    "The creature understands or feels like a person.",
+    "The generated marketing artwork is identical to the in-game form."
+  ],
+  "gameDevelopmentHandoff": {
+    "priority": "high_before_using_hatch_as_lead_marketing",
+    "requestedOutcome": "Make the real creature reveal readable, emotionally strong and visually consistent with the game's honest pixel-and-Phaser form.",
+    "acceptanceChecks": [
+      "The creature is the obvious focus at both 1440 by 810 and 390 by 844.",
+      "No heading, label, prompt or button overlaps another element.",
+      "No instruction refers to the egg after the creature appears.",
+      "The player sees one clear next action.",
+      "A fresh automated capture passes before the image is considered for public promotion."
+    ]
+  },
+  "nextCompanyAction": "Keep GP-013 as internal evidence. Do not place it in launch posts or press downloads. Recapture after the reveal composition is improved, then review the new frame independently."
+}

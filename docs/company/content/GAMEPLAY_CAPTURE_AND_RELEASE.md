@@ -2,7 +2,7 @@
 
 Mythical Void now has a repeatable way to create honest screenshots from the real running game.
 
-The camera follows the same tested journeys used to check the game: the Project Beacon opening, the live egg, a cosmic hatch, all six realms, the village builder, and a credited NASA learning moment. It uses invented test data and records the exact build behind every image.
+The camera follows the same tested journeys used to check the game: the Project Beacon opening, the live egg, a cosmic hatch, the real creature reveal and Confirm contact state, all six realms, the village builder, and a credited NASA learning moment. It uses invented test data and records the exact build behind every image.
 
 ## Why this matters
 
@@ -54,6 +54,12 @@ The recording contains no voice, player name, account, message or personal save.
 6. For video, inspect the beginning, middle and end rather than approving it from the poster image alone.
 
 The capture system prepares verified proof assets. A trailer still needs a deliberate edit, a checked soundtrack and a final audience decision before upload; the first such edit is now reproducible below.
+
+## The hatch reveal has its own quality gate
+
+The camera now proves that the running build can move from a purchased cosmic egg to a visible creature and a working Confirm contact decision. That does not make the resulting frame good marketing automatically.
+
+The current review is recorded in `docs/company/content/HATCH_REVEAL_PROOF_REVIEW.json`. GP-013 is authentic internal evidence, but it is withheld from public promotion because the creature is too small, text collides, an egg instruction remains after the egg disappears, and the lower interface has no clear reading order. Game Development should improve the reveal composition and then the company camera should capture and review it again.
 
 ## Build the launch trailer
 

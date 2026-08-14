@@ -21,6 +21,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **The trailer:** the film and dedicated watch page are prepared. The page remains unpublished and hidden from search until Kevin approves the film, wording, and poster together.
 - **Safer measurement:** the current Google tag is live, while the tighter 10-route, 5-action consent upgrade is prepared on this feature branch. Its numbers are not trusted for company decisions yet.
 - **Social launch:** 6 YouTube upload items and 5 LinkedIn posts are prepared, alongside a four-week plan containing 7 outward releases and one internal review.
+- **Honest game proof:** the real hatch reached a visible creature and Confirm contact, but the captured frame was rejected for public promotion after 4 visible quality problems were recorded for Game Development.
 - **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 
@@ -34,7 +35,8 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 
 ## Work the studio can continue without Kevin
 
-- Capture the three deeper real-game proof sequences: hatch to first response, a realm before and after restoration, and a spoiler-safe Project Beacon choice.
+- Improve and recapture the real creature reveal, then complete the hatch-to-first-response proof without pretending the current frame is launch quality.
+- Capture a realm before and after restoration and a spoiler-safe Project Beacon choice.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
 - Check every claim against the game and label generated artwork separately from gameplay.

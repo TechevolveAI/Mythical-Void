@@ -17,13 +17,14 @@ const sources = {
     analytics: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/automation/website-analytics-tag.json'), 'utf8')),
     calendar: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/channel-launch/FOUR_WEEK_LAUNCH_CALENDAR.json'), 'utf8')),
     discovery: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/search/organic-discovery-release-2026-08-14.json'), 'utf8')),
+    hatchReview: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/HATCH_REVEAL_PROOF_REVIEW.json'), 'utf8')),
     dashboard: fs.readFileSync(path.join(root, 'docs/company/FOUNDER_LAUNCH_DASHBOARD.md'), 'utf8')
 };
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-founder-dashboard-'));
 
 function run(name, changes = {}) {
     const values = { ...sources, ...changes };
-    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery'].map(key => {
+    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview'].map(key => {
         const file = path.join(temp, `${name}-${key}.json`);
         fs.writeFileSync(file, `${JSON.stringify(values[key], null, 2)}\n`);
         return file;
@@ -64,10 +65,14 @@ try {
     ungatedCalendar.weeks[0].releases[0].state = 'published';
     if (run('ungated-calendar', { calendar: ungatedCalendar }).status === 0) throw new Error('An unapproved calendar publication was accepted.');
 
+    const falseHatchApproval = structuredClone(sources.hatchReview);
+    falseHatchApproval.publicUseApproved = true;
+    if (run('false-hatch-approval', { hatchReview: falseHatchApproval }).status === 0) throw new Error('A weak hatch frame was falsely accepted for promotion.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot plus 8 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot plus 9 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }
