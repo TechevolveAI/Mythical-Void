@@ -214,6 +214,23 @@ async function sampleFramePacing(session, sceneName, {
             const longFrames = intervals.filter(value => value > 33.4).length;
             const tweenTargets = (scene?.tweens?.getTweens?.() || [])
                 .flatMap(tween => tween?.targets || []);
+            const biomeManaged = Boolean(
+                window.ParallaxBiome?.isActive &&
+                window.ParallaxBiome?.scene === scene
+            );
+            const sharedAmbientFieldObjects = biomeManaged
+                ? new Set(
+                    (window.ParallaxBiome?.layers || [])
+                        .filter(layer => [
+                            'nebula',
+                            'starField',
+                            'rock',
+                            'floraField'
+                        ].includes(layer?.type))
+                        .map(layer => layer?.object)
+                        .filter(Boolean)
+                )
+                : new Set();
             const tweenTargetCounts = tweenTargets.reduce((counts, target) => {
                 const key = target?.texture?.key ||
                     target?.type ||
@@ -243,10 +260,6 @@ async function sampleFramePacing(session, sceneName, {
                     counts[key] = (counts[key] || 0) + 1;
                     return counts;
                 }, {});
-            const biomeManaged = Boolean(
-                window.ParallaxBiome?.isActive &&
-                window.ParallaxBiome?.scene === scene
-            );
             resolve({
                 sceneActive: Boolean(scene?.scene?.isActive?.()),
                 warmupMs: ${warmupMs},
@@ -267,6 +280,9 @@ async function sampleFramePacing(session, sceneName, {
                 ),
                 displayCount: scene?.children?.list?.length || 0,
                 activeTweenCount: scene?.tweens?.getTweens?.().length || 0,
+                sharedAmbientFieldTweenCount: tweenTargets.filter(
+                    target => sharedAmbientFieldObjects.has(target)
+                ).length,
                 tweenTargetCounts,
                 graphicsTweenDepths,
                 graphicsTweenProfiles,
@@ -2464,6 +2480,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         !renderBudget ||
         framePacing.displayCount > renderBudget.displayCount ||
         framePacing.activeTweenCount > renderBudget.activeTweenCount ||
+        (
+            framePacing.performanceTier === 'mobile' &&
+            framePacing.sharedAmbientFieldTweenCount !== 0
+        ) ||
         framePacing.postPipelineCount !== 0 ||
         framePacing.performanceTier !== renderBudget.performanceTier ||
         (SMOKE_CASE !== 'all' && framePacing.p95FrameMs > 100)

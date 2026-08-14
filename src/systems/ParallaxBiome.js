@@ -525,6 +525,11 @@ class ParallaxBiomeManager {
         console.log(`biome:info [ParallaxBiome] Biome '${this.config.name}' created with ${this.layers.length} layers + particle systems`);
     }
 
+    shouldAnimateAmbientFields() {
+        return this.performanceTier !== 'mobile' &&
+            this.config?.performance?.enableAnimations !== false;
+    }
+
     /**
      * Layer 1: Create nebula background with animated gradient
      */
@@ -556,7 +561,11 @@ class ParallaxBiomeManager {
 
             wisp.fillEllipse(centerX, centerY, size, size * 0.6);
 
-            if (layer.animate) {
+            if (this.performanceTier === 'mobile') {
+                wisp.setAlpha(0.18);
+            }
+
+            if (layer.animate && this.shouldAnimateAmbientFields()) {
                 this.scene.tweens.add({
                     targets: wisp,
                     x: wisp.x + 30,
@@ -626,6 +635,9 @@ class ParallaxBiomeManager {
             const field = this.scene.add.graphics();
             field.setScrollFactor(layer.parallax);
             field.setDepth(-45 + fieldIndex);
+            if (this.performanceTier === 'mobile') {
+                field.setAlpha(0.74 + fieldIndex * 0.06);
+            }
             this.layers.push({ type: 'starField', object: field, config: layer });
             return field;
         });
@@ -640,7 +652,10 @@ class ParallaxBiomeManager {
             );
         }
 
-        if (this.config.effects.enableTwinkling) {
+        if (
+            this.config.effects.enableTwinkling &&
+            this.shouldAnimateAmbientFields()
+        ) {
             fields.forEach((field, fieldIndex) => {
                 this.scene.tweens.add({
                     targets: field,
@@ -735,7 +750,11 @@ class ParallaxBiomeManager {
         }
 
         fields.forEach((field, fieldIndex) => {
-            if (layer.animate && this.config.effects.enableGentleFloat) {
+            if (
+                layer.animate &&
+                this.config.effects.enableGentleFloat &&
+                this.shouldAnimateAmbientFields()
+            ) {
                 this.scene.tweens.add({
                     targets: field,
                     y: field.y + Phaser.Math.Between(-12, 12),
@@ -957,7 +976,10 @@ class ParallaxBiomeManager {
             flora.fillCircle(x, y - baseHeight * 0.2, baseWidth * 2);
         }
 
-        if (layer.animate || this.config.effects.enableBioluminescence) {
+        if (
+            (layer.animate || this.config.effects.enableBioluminescence) &&
+            this.shouldAnimateAmbientFields()
+        ) {
             fields.forEach((field, fieldIndex) => {
                 this.scene.tweens.add({
                     targets: field,
