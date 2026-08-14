@@ -446,9 +446,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         titanGround.traversalId = 'peak-ground-titan-pass';
 
         const ledges = [
-            [520, groundY - 145, 210, 'solid', 'peak-opening-step'],
-            [820, groundY - 245, 180, 'solid', 'peak-opening-rise'],
-            [1180, groundY - 150, 260, 'solid', 'peak-lower-relay-overlook'],
+            // Keep the first required landing inside the opening mobile view.
+            [300, groundY - 145, 210, 'solid', 'peak-opening-step'],
+            [600, groundY - 245, 180, 'solid', 'peak-opening-rise'],
+            [980, groundY - 150, 460, 'solid', 'peak-lower-relay-overlook'],
             [1560, groundY - 290, 220, 'solid', 'peak-lower-ascent'],
             [1980, groundY - 235, 230, 'solid', 'peak-ridge-approach'],
             [2280, groundY - 365, 320, 'one-way', 'peak-warning-lower'],
