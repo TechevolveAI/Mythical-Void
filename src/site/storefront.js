@@ -128,12 +128,12 @@ function renderStorefront() {
 
         <main id="main-content">
             <section class="hero" id="hero">
-                <img class="hero-world" src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Alien companions reimagined from the body shapes and mutations supported by the Mythical Void genetics engine" fetchpriority="high">
+                <img class="hero-world" src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Alien creatures reimagined from the body shapes and mutations supported by the Mythical Void genetics engine" fetchpriority="high">
                 <div class="hero-veil" aria-hidden="true"></div>
                 <div class="hero-inner">
                     <div class="hero-copy-block">
-                        <p class="kicker"><span></span> A universe of companions</p>
-                        <h1>One universe. <em>No two companions alike.</em></h1>
+                        <p class="kicker"><span></span> A universe of creatures</p>
+                        <h1>One universe. <em>No two creatures alike.</em></h1>
                         <p class="hero-copy">Every hatch mixes body, colour, personality, cosmic power and rare mutations. What arrives from the Void will be truly yours.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
@@ -142,7 +142,7 @@ function renderStorefront() {
                         <ul class="hero-genetics" aria-label="How this scene was made">
                             <li><strong>1,000</strong><span>real engine hatches explored</span></li>
                             <li><strong>72</strong><span>varied profiles shaped this scene</span></li>
-                            <li><strong>1</strong><span>companion made for your story</span></li>
+                            <li><strong>1</strong><span>creature made for your story</span></li>
                         </ul>
                     </div>
                     <div class="hero-art-note">
@@ -158,7 +158,7 @@ function renderStorefront() {
                     <div class="section-heading centred">
                         <p class="kicker">YOUR ADVENTURE</p>
                         <h2>One little creature.<br>One enormous journey.</h2>
-                        <p>Mythical Void is part creature companion, part action adventure, and part story shaped by your choices.</p>
+                        <p>Mythical Void is part creature-raising game, part action adventure, and part story shaped by your choices.</p>
                     </div>
                     <div class="adventure-path">
                         <article class="path-card path-card-hatch">
@@ -176,11 +176,11 @@ function renderStorefront() {
                             <span class="path-number">02</span>
                             <div class="path-icon path-icon-clearing" aria-hidden="true">
                                 <span class="clearing-void"></span>
-                                <span class="clearing-companion"><i></i></span>
+                                <span class="clearing-creature"><i></i></span>
                                 <span class="clearing-burst"></span>
                             </div>
                             <h3>Clear the corruption</h3>
-                            <p>Run, leap, fight beside your companion, and break the Void pressure holding each guardian.</p>
+                            <p>Run, leap, fight beside your creature, and break the Void pressure holding each guardian.</p>
                         </article>
                         <div class="path-line" aria-hidden="true">···</div>
                         <article class="path-card path-card-choose">
@@ -204,12 +204,12 @@ function renderStorefront() {
                     <div class="section-heading centred">
                         <p class="kicker">WHY MYTHICAL VOID IS DIFFERENT</p>
                         <h2>A game world that remembers how you play.</h2>
-                        <p>Under the story is a set of living systems designed to make each companion and each expedition feel personal.</p>
+                        <p>Under the story is a set of living systems designed to make each creature and each expedition feel personal.</p>
                     </div>
                     <div class="systems-grid">
-                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your companion is built from a profile—not picked from one poster.</p><a href="/play/">See it in the game →</a></article>
+                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your creature is built from a profile—not picked from one poster.</p><a href="/play/">See it in the game →</a></article>
                         <article class="system-card"><span class="system-index">02</span><h3>A living browser world</h3><p>Phaser 3 is the game engine underneath the adventure. It lets the movement, exploration, battles, guardians, village, and story scenes happen right in your browser.</p><a href="/play/">Enter the Fend →</a></article>
-                        <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your companion’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="#parents">Read the family notes →</a></article>
+                        <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your creature’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="#parents">Read the family notes →</a></article>
                         <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures, Mars images, and space-weather signals. It gives curious players a friendly way to ask questions, spot patterns, and discover that the space around the story is real.</p><a href="#studio">See the STEM promise →</a></article>
                     </div>
                 </div>
@@ -227,7 +227,7 @@ function renderStorefront() {
                     </div>
                     <div class="creature-copy">
                         <p class="kicker">SEE THE REAL GAME</p>
-                        <h2>Your companion grows inside a living world.</h2>
+                        <h2>Your creature grows inside a living world.</h2>
                         <p>The game is about more than a character portrait. You repair the Fend, recover Wanderer-77, work with its people, and decide what Project Beacon should become.</p>
                         <div class="creature-details" aria-live="polite">
                             <div><span>PLACE</span><strong data-featured-personality>The Fend</strong></div>
@@ -266,7 +266,7 @@ function renderStorefront() {
                     <div class="worlds-copy">
                         <p class="kicker">SIX WORLDS TO RESTORE</p>
                         <h2>You are fighting the corruption, not the guardian.</h2>
-                        <p>In each guardian encounter, the purple corruption is the thing you reduce. Learn the guardian’s attacks, move with your companion, and clear the pressure around it. When the corruption reaches zero, the guardian is restored and the world can move forward.</p>
+                        <p>In each guardian encounter, the purple corruption is the thing you reduce. Learn the guardian’s attacks, move with your creature, and clear the pressure around it. When the corruption reaches zero, the guardian is restored and the world can move forward.</p>
                         <ul class="world-facts">
                             <li><span>6</span> strange worlds</li>
                             <li><span>6</span> lost guardians</li>
@@ -316,7 +316,7 @@ function renderStorefront() {
                             <blockquote>“What if we could build the game we imagined together?”</blockquote>
                         </div>
                         <div class="studio-copy">
-                            <p class="studio-lead">The ideas did not begin with a business plan. They began with conversations: strange creatures, impossible worlds, living companions and the kind of choices a child would genuinely care about.</p>
+                            <p class="studio-lead">The ideas did not begin with a business plan. They began with conversations: strange creatures, impossible worlds, living beings and the kind of choices a child would genuinely care about.</p>
                             <p>Generative AI helped turn those shared ideas into pictures, movement, characters and playable moments. Imagination still leads. AI is one of the tools that helps us explore further and build faster.</p>
                             <p>That experiment is growing into an independent Irish game studio—still guided by the same promise: make something wondrous for curious young minds, keep people in charge, and build safety into the world from the beginning.</p>
                             <div class="studio-principles" aria-label="What guides the Mythical studio">

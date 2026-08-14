@@ -663,7 +663,7 @@ body.site-mode h3 {
         0 13px 28px rgba(157, 61, 91, 0.13);
 }
 
-/* Three tiny story scenes: crash, companionship, then choice. */
+/* Three tiny story scenes: crash, creature bond, then choice. */
 .recovery-moon {
     position: absolute;
     top: 10px;
@@ -760,7 +760,7 @@ body.site-mode h3 {
     transform: rotate(-9deg);
 }
 
-.clearing-companion {
+.clearing-creature {
     position: absolute;
     z-index: 2;
     bottom: 12px;
@@ -773,8 +773,8 @@ body.site-mode h3 {
     box-shadow: 0 7px 14px rgba(24, 103, 88, 0.2);
 }
 
-.clearing-companion::before,
-.clearing-companion::after {
+.clearing-creature::before,
+.clearing-creature::after {
     position: absolute;
     top: 13px;
     width: 6px;
@@ -784,10 +784,10 @@ body.site-mode h3 {
     box-shadow: inset 0 2px 0 #fff6b3;
     content: "";
 }
-.clearing-companion::before { left: 7px; }
-.clearing-companion::after { right: 7px; }
+.clearing-creature::before { left: 7px; }
+.clearing-creature::after { right: 7px; }
 
-.clearing-companion i {
+.clearing-creature i {
     position: absolute;
     top: -12px;
     left: 15px;
