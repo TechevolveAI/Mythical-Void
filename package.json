@@ -26,6 +26,8 @@
     "test:founder-story": "node scripts/company/test-irish-founder-story.cjs",
     "validate:science-week-water": "node scripts/company/validate-science-week-water-concept.cjs",
     "test:science-week-water": "node scripts/company/test-science-week-water-concept.cjs",
+    "validate:science-week-educator-review": "node scripts/company/validate-science-week-educator-review.cjs",
+    "test:science-week-educator-review": "node scripts/company/test-science-week-educator-review.cjs",
     "package:itch": "npm run build:portable && node scripts/company/validate-portable-browser-build.cjs && node scripts/package-itch-release.cjs",
     "preview": "vite preview",
     "test": "jest --runInBand",

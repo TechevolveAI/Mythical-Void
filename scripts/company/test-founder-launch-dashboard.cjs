@@ -107,10 +107,14 @@ try {
     publishedScienceWeek.artifact.publicUseApproved = true;
     if (run('published-science-week', { scienceWeek: publishedScienceWeek }).status === 0) throw new Error('An unreviewed Science Week pack was accepted as public.');
 
+    const inventedScienceWeekReview = structuredClone(sources.scienceWeek);
+    inventedScienceWeekReview.educatorReview.state = 'review_completed';
+    if (run('invented-science-week-review', { scienceWeek: inventedScienceWeekReview }).status === 0) throw new Error('An invented completed Science Week review was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot plus 17 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot plus 18 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

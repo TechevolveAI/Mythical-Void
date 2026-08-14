@@ -134,6 +134,11 @@
     "reviewState": "internal_visual_qa_complete_waiting_for_adult_educator_review",
     "publicUseApproved": false
   },
+  "educatorReview": {
+    "record": "docs/company/content/channel-launch/SCIENCE_WEEK_EDUCATOR_REVIEW_2026.json",
+    "humanReadableChecklist": "docs/company/content/channel-launch/SCIENCE_WEEK_EDUCATOR_REVIEW_2026.md",
+    "state": "internal_review_packet_ready_no_review_completed"
+  },
   "authority": {
     "eventCreationAuthorized": false,
     "eventSubmissionAuthorized": false,
@@ -145,6 +150,6 @@
     "spendAuthorized": false,
     "externalActionAuthorized": false
   },
-  "nextStudioAction": "Prepare a short adult educator review checklist and an internal feedback log. Keep the finished printable pack internal until Kevin approves it and decides whether a real host or event should exist.",
+  "nextStudioAction": "Prepare a short adult-only review invitation for Kevin to approve. Do not send it or recruit reviewers yet. Keep the finished printable pack internal until Kevin approves it and decides whether a real host or event should exist.",
   "nextKevinDecision": "None is required to keep preparing the internal activity. Kevin must approve any public release, event, submission, logo use, partnership approach or spend."
 }

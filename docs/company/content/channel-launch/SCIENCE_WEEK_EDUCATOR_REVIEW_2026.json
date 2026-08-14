@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "id": "SCIENCE-WEEK-EDUCATOR-REVIEW-001",
+  "asOf": "2026-08-14",
+  "state": "internal_review_packet_ready_no_review_completed",
+  "activityId": "SCIENCE-WEEK-WATER-001",
+  "artifact": {
+    "file": "output/pdf/mythical-void-water-that-isnt-water.pdf",
+    "sha256": "dc8794baf131c6a7a9be39a8cc0f7041d64b0b60108d9ea93a086af6266d34b3",
+    "pages": 3
+  },
+  "purpose": "Help suitable adults review the activity consistently before Kevin decides whether it should be released, hosted or submitted anywhere.",
+  "allowedReviewerTypes": [
+    "adult educator",
+    "adult youth-work leader",
+    "adult family-learning practitioner",
+    "adult STEM-engagement practitioner",
+    "adult accessibility specialist"
+  ],
+  "reviewRules": [
+    "Review the printable pack as an adult; do not test it with children during this internal review.",
+    "Use a local reviewer code rather than recording a name, email address, phone number, school or organisation contact details.",
+    "Do not send children's work, images, voices, names, ages, schools, locations or contact details to Mythical Void.",
+    "Stop the review if any instruction could encourage unsafe materials, direct child contact or an unsupported science claim.",
+    "A review is advice, not permission to publish, create an event, use a logo or claim a partnership."
+  ],
+  "ratingScale": {
+    "1": "stop - unsafe, misleading or unusable",
+    "2": "major change needed",
+    "3": "minor change needed",
+    "4": "clear and ready for the next review gate"
+  },
+  "criteria": [
+    {
+      "id": "EDU-01",
+      "area": "plain language",
+      "question": "Can a typical 9-14-year-old understand the main task with ordinary adult help?"
+    },
+    {
+      "id": "EDU-02",
+      "area": "science boundary",
+      "question": "Are observation, scientific inference and fiction clearly separated?"
+    },
+    {
+      "id": "EDU-03",
+      "area": "Europa accuracy",
+      "question": "Does the pack consistently say scientists think or infer that Europa has a hidden ocean?"
+    },
+    {
+      "id": "EDU-04",
+      "area": "Titan accuracy",
+      "question": "Is it clear that Titan's surface lakes contain methane and ethane rather than liquid water?"
+    },
+    {
+      "id": "EDU-05",
+      "area": "independence",
+      "question": "Is it clear that NASA does not endorse the activity and no Science Week partnership is claimed?"
+    },
+    {
+      "id": "EDU-06",
+      "area": "creative range",
+      "question": "Does the task encourage unfamiliar organisms rather than Earth animals in costume?"
+    },
+    {
+      "id": "EDU-07",
+      "area": "learning value",
+      "question": "Does the prediction step help the learner explain cause and effect inside the invented rules?"
+    },
+    {
+      "id": "EDU-08",
+      "area": "game connection",
+      "question": "Does restoring the Stellar Reef connect the activity to a real part of Mythical Void without pretending the worksheet is gameplay?"
+    },
+    {
+      "id": "EDU-09",
+      "area": "timing",
+      "question": "Is the 45-60 minute session realistic for the stated age range and setting?"
+    },
+    {
+      "id": "EDU-10",
+      "area": "print use",
+      "question": "Are the text, answer spaces, drawing area and instructions usable on an ordinary A4 printout?"
+    },
+    {
+      "id": "EDU-11",
+      "area": "accessibility",
+      "question": "Can an adult adapt the activity for different reading, writing, motor or sensory needs without losing the main idea?"
+    },
+    {
+      "id": "EDU-12",
+      "area": "safety and privacy",
+      "question": "Does the pack avoid unsafe materials, child accounts, direct child contact and collection of identifying details?"
+    }
+  ],
+  "stopConditions": [
+    "any score of 1",
+    "an unsupported or unclear science claim",
+    "an instruction involving unsafe materials",
+    "a route for direct contact with a child",
+    "collection of child or reviewer contact details",
+    "confusion about NASA, Science Week or another organisation endorsing the activity"
+  ],
+  "completionGate": {
+    "minimumIndependentAdultReviews": 2,
+    "requiredCoverage": [
+      "education or youth learning",
+      "science, STEM engagement or science communication"
+    ],
+    "allCriteriaMinimumScore": 3,
+    "allStopConditionsResolved": true,
+    "kevinApprovalStillRequired": true
+  },
+  "reviewLog": [],
+  "readiness": {
+    "checklistBuilt": true,
+    "feedbackLogBuilt": true,
+    "reviewInvitationBuilt": false,
+    "reviewerCandidatesChosen": false,
+    "reviewCompleted": false,
+    "changesResolved": false,
+    "kevinApproved": false,
+    "publicReleaseReady": false
+  },
+  "authority": {
+    "reviewInvitationSendingAuthorized": false,
+    "childTestingAuthorized": false,
+    "childDataCollectionAuthorized": false,
+    "reviewerContactDataCollectionAuthorized": false,
+    "publicationAuthorized": false,
+    "eventSubmissionAuthorized": false,
+    "partnershipClaimAuthorized": false,
+    "spendAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "nextStudioAction": "Prepare a short adult-only review invitation for Kevin to approve. Do not send it or recruit reviewers yet.",
+  "nextKevinDecision": "Kevin will choose or approve the adult reviewers and every recipient before an invitation is sent."
+}

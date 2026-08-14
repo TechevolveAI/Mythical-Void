@@ -73,9 +73,13 @@ if (fs.existsSync(artifactPath)) {
     ];
     requireValue(requiredText.every(text => extracted.stdout.includes(text)), 'Activity PDF must retain its child activity, adult guidance and science boundary text.');
 }
+requireValue(concept.educatorReview?.state === 'internal_review_packet_ready_no_review_completed', 'Activity must retain its unused adult educator review packet.');
+requireValue(fs.existsSync(path.resolve(root, concept.educatorReview?.record || '')), 'Structured adult educator review record must exist.');
+requireValue(fs.existsSync(path.resolve(root, concept.educatorReview?.humanReadableChecklist || '')), 'Human-readable adult educator checklist must exist.');
 for (const field of ['eventCreationAuthorized', 'eventSubmissionAuthorized', 'partnershipOutreachAuthorized', 'logoUseAuthorized', 'publicationAuthorized', 'childContactAuthorized', 'childWorkCollectionAuthorized', 'spendAuthorized', 'externalActionAuthorized']) {
     requireValue(concept.authority?.[field] === false, `${field} must remain false.`);
 }
+requireValue(/Do not send it or recruit reviewers yet/i.test(concept.nextStudioAction || ''), 'The next studio action must retain the adult-review outreach gate.');
 requireValue(/Keep (?:the finished printable pack|all material) internal until Kevin approves/i.test(concept.nextStudioAction || ''), "The next studio action must retain Kevin's public-release gate.");
 
 const publicText = `${concept.title}\n${concept.preparedPublicSummary}\n${summary}`;

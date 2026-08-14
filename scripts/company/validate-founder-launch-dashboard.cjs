@@ -116,6 +116,7 @@ requireValue(values.scienceWeek.state === 'printable_pack_built_internal_review_
 requireValue(values.scienceWeek.realScience?.length === 3 && values.scienceWeek.session?.length === 5, 'Founder view must retain the three sourced facts and five-part activity concept.');
 requireValue(values.scienceWeek.readiness?.worksheetExtensionBuilt === true && values.scienceWeek.readiness?.facilitatorGuideBuilt === true, 'Founder view must retain the completed worksheet and facilitator note.');
 requireValue(values.scienceWeek.artifact?.pages === 3 && values.scienceWeek.artifact?.publicUseApproved === false, 'Founder view must retain the reviewed three-page pack as unapproved for public use.');
+requireValue(values.scienceWeek.educatorReview?.state === 'internal_review_packet_ready_no_review_completed', 'Founder view must retain the unused adult educator review packet.');
 requireValue(values.scienceWeek.opportunity?.mythicalEventSubmitted === false && values.scienceWeek.opportunity?.mythicalPartnershipExists === false, 'Founder view must not invent a Science Week event or partnership.');
 requireValue(values.scienceWeek.authority?.eventSubmissionAuthorized === false && values.scienceWeek.authority?.publicationAuthorized === false, 'Science Week submission and publication must remain unauthorized.');
 
