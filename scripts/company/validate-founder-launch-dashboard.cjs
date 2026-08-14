@@ -27,9 +27,10 @@ const paths = {
     searchConsole: process.argv[19] ? path.resolve(process.argv[19]) : defaultPaths.searchConsole,
     familyPlay: process.argv[20] ? path.resolve(process.argv[20]) : defaultPaths.familyPlay,
     playShare: process.argv[21] ? path.resolve(process.argv[21]) : defaultPaths.playShare,
-    dashboard: process.argv[22] ? path.resolve(process.argv[22]) : dashboardDefault
+    signalLog: process.argv[22] ? path.resolve(process.argv[22]) : defaultPaths.signalLog,
+    dashboard: process.argv[23] ? path.resolve(process.argv[23]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry', 'searchConsole', 'familyPlay', 'playShare'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry', 'searchConsole', 'familyPlay', 'playShare', 'signalLog'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -38,11 +39,13 @@ const requireValue = (condition, message) => {
     if (!condition) errors.push(message);
 };
 
-const requiredRoutes = ['/', '/creature-genetics/', '/nasa-space-science/', '/parents/', '/studio/', '/press/', '/story/', '/play/'];
+const requiredRoutes = ['/', '/creature-genetics/', '/nasa-space-science/', '/parents/', '/studio/', '/press/', '/story/', '/updates/', '/play/'];
 const routeMap = new Map((values.evidence.routes || []).map(route => [route.route, route]));
 requireValue(values.evidence.result === 'owned_discovery_live_game_entry_working', 'Live evidence must record the working owned-discovery result.');
 requireValue(requiredRoutes.every(route => routeMap.get(route)?.verified === true && routeMap.get(route)?.notFoundShown === false), 'Every required public route must have a successful live check.');
 requireValue(routeMap.get('/story/')?.realGameplayRealmImages === 6 && routeMap.get('/story/')?.trailerLinked === false && routeMap.get('/story/')?.sitemapListed === true, 'The live story page must retain its six real-game realm images, sitemap entry and trailer boundary.');
+requireValue(routeMap.get('/updates/')?.liveEntryCount === 2 && routeMap.get('/updates/')?.homepageLinked === true && routeMap.get('/updates/')?.sitemapListed === true, 'The live Signal Log must retain its two checked notes, homepage link and sitemap entry.');
+requireValue(routeMap.get('/updates/')?.commentsEnabled === false && routeMap.get('/updates/')?.contactCollectionEnabled === false && routeMap.get('/updates/')?.trackingParametersPermitted === false, 'The live Signal Log must not open comments, contact collection or tracking links.');
 requireValue(routeMap.get('/play/')?.canvasCountAfterFiveSeconds === 1, 'The live game entry must create one canvas during the check.');
 
 requireValue(values.outreach.messages?.length === 3, 'Exactly three first-wave outreach messages must remain prepared.');
@@ -127,8 +130,9 @@ requireValue(values.adultStemOutreach.messages?.every(message => message.approve
 requireValue(values.adultStemOutreach.authority?.sendingAuthorized === false && values.adultStemOutreach.authority?.childWorkCollectionAuthorized === false, 'Adult STEM sending and child-work collection must remain unauthorized.');
 
 requireValue(values.liveSearch.state === 'crawl_foundation_live_related_result_observed_owned_discovery_not_observed', 'Founder view must retain the honest live search and related-result state.');
-requireValue(values.liveSearch.ownedCrawlFoundation?.homepageStatus === 200 && values.liveSearch.ownedCrawlFoundation?.sitemapRouteCount === 9, 'Founder view must retain the reachable homepage and nine-route sitemap evidence.');
+requireValue(values.liveSearch.ownedCrawlFoundation?.homepageStatus === 200 && values.liveSearch.ownedCrawlFoundation?.sitemapRouteCount === 10, 'Founder view must retain the reachable homepage and ten-route sitemap evidence.');
 requireValue(values.liveSearch.ownedCrawlFoundation?.sitemapRoutes?.includes('/story/'), 'Founder view must retain the story route in the live sitemap evidence.');
+requireValue(values.liveSearch.ownedCrawlFoundation?.sitemapRoutes?.includes('/updates/'), 'Founder view must retain the Signal Log route in the live sitemap evidence.');
 requireValue(values.liveSearch.publicSearchSample?.ownedResultObserved === false, 'Founder view must not invent a public search result.');
 requireValue(values.liveSearch.followUpSearchSample?.ownedResultObserved === false && values.liveSearch.followUpSearchSample?.relatedResultObserved === true, 'Founder view must retain the missing owned result and observed related result.');
 requireValue(values.liveSearch.followUpSearchSample?.currentRelatedPageClaim === 'Every creature is unique.', 'Founder view must retain the related-site correction reason.');
@@ -158,6 +162,13 @@ requireValue(values.playShare.artifact?.playUrl === 'https://mythicalvoid.com/' 
 requireValue(values.playShare.artifact?.realGameplayShown === true && values.playShare.artifact?.generatedArtworkDisclosureShown === true && values.playShare.artifact?.nasaEndorsementDisclaimerShown === true, 'Printable play share card must retain its gameplay, generated-art and NASA boundaries.');
 requireValue(values.playShare.authority?.kevinMayPrintOrShareDirectly === true && values.playShare.authority?.autonomousExternalDistributionByStudioAuthorized === false && values.playShare.authority?.paidPrintingAuthorized === false && values.playShare.authority?.websitePublicationAuthorized === true && values.playShare.authority?.childContactAuthorized === false, 'Printable play share card must retain approved owned-site publication while staying closed to autonomous distribution, paid printing and child contact.');
 requireValue(values.playShare.qualityEvidence?.productionPublished === true && values.playShare.qualityEvidence?.productionDownloadValidated === true && values.playShare.qualityEvidence?.productionPressBundleContainsBothDownloadLinks === true, 'Printable play share card must retain its production publication and live verification evidence.');
+
+requireValue(values.signalLog.state === 'published_to_owned_website_and_live_verified' && values.signalLog.publicUrl === 'https://mythicalvoid.com/updates/', 'Signal Log must retain its live owned-site release state.');
+requireValue(values.signalLog.liveEntries?.length === 2 && values.signalLog.liveEntries?.every(entry => entry.destinationStatusObserved === 200), 'Signal Log must retain two checked release destinations.');
+requireValue(values.signalLog.boundaries?.commentsEnabled === false && values.signalLog.boundaries?.contactCollectionEnabled === false && values.signalLog.boundaries?.emailSignupEnabled === false && values.signalLog.boundaries?.trackingParametersPermitted === false, 'Signal Log must remain closed to comments, contact collection, email signup and tracking links.');
+requireValue(values.signalLog.boundaries?.inventedAudienceMetricsPermitted === false && values.signalLog.boundaries?.generatedArtworkMayBeCalledGameplay === false && values.signalLog.boundaries?.directMinorContactAuthorized === false, 'Signal Log must retain its claims, artwork and child-safety boundaries.');
+requireValue(values.signalLog.qualityEvidence?.desktopVisualReviewPassed === true && values.signalLog.qualityEvidence?.phoneVisualReviewPassed === true && values.signalLog.qualityEvidence?.fullTestSuitesPassed === 169 && values.signalLog.qualityEvidence?.fullTestsPassed === 1441, 'Signal Log must retain its visual and full-test evidence.');
+requireValue(values.signalLog.authority?.ownedWebsitePublicationAuthorized === true && values.signalLog.authority?.autonomousSocialPostingAuthorized === false && values.signalLog.authority?.outreachSendingAuthorized === false && values.signalLog.authority?.paidPromotionAuthorized === false && values.signalLog.authority?.publicEngagementAuthorized === false, 'Signal Log may be live without opening social posting, outreach, paid promotion or public engagement.');
 
 requireValue(values.founderStory.state === 'article_and_pitch_prepared_waiting_for_kevin_and_first_wave_learning', 'Founder story must remain prepared and waiting for Kevin.');
 requireValue(values.founderStory.target?.candidateRef === 'RC-007', 'Founder story must retain its reviewed Irish Tech News target.');

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "SEARCH-LIVE-EVIDENCE-2026-08-14",
-  "checkedAt": "2026-08-14T19:15:10Z",
+  "checkedAt": "2026-08-14T20:31:00Z",
   "state": "crawl_foundation_live_related_result_observed_owned_discovery_not_observed",
   "method": "Read-only live checks of the owned homepage, robots file and sitemap, plus a four-query public web-search sample. No authenticated webmaster account was used.",
   "ownedCrawlFoundation": {
@@ -12,7 +12,7 @@
     "robotsDeclaresSitemap": true,
     "sitemapUrl": "https://mythicalvoid.com/sitemap.xml",
     "sitemapStatus": 200,
-    "sitemapRouteCount": 9,
+    "sitemapRouteCount": 10,
     "sitemapRoutes": [
       "/",
       "/privacy/",
@@ -22,6 +22,7 @@
       "/parents/",
       "/studio/",
       "/story/",
+      "/updates/",
       "/terms/"
     ]
   },
@@ -57,7 +58,7 @@
     "rankingKnown": false,
     "searchTrafficKnown": false
   },
-  "observedGap": "The site is technically open to crawling and the Project Beacon story is now present in the live sitemap, but owned-domain discovery was not demonstrated. A related TechEvolveAI result is visible and links to Mythical Void, but its current source page makes an unsupported absolute uniqueness promise.",
+  "observedGap": "The site is technically open to crawling and the Project Beacon story and public Signal Log are now present in the live sitemap, but owned-domain discovery was not demonstrated. A related TechEvolveAI result is visible and links to Mythical Void, but its current source page makes an unsupported absolute uniqueness promise.",
   "interpretation": "The crawl foundation is present. The already-visible related result can become a truthful referral after Kevin approves a separate-site correction, but the studio still cannot diagnose owned-domain indexing or ranking without verified Search Console evidence.",
   "authority": {
     "searchConsoleAccessAuthorized": false,

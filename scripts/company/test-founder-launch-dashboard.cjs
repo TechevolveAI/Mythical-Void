@@ -29,13 +29,14 @@ const sources = {
     searchConsole: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/search/SEARCH_CONSOLE_CONNECTION.json'), 'utf8')),
     familyPlay: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/customer/family-play-observations.json'), 'utf8')),
     playShare: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/PRINTABLE_PLAY_SHARE_CARD.json'), 'utf8')),
+    signalLog: JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/SIGNAL_LOG_RELEASE_2026-08-14.json'), 'utf8')),
     dashboard: fs.readFileSync(path.join(root, 'docs/company/FOUNDER_LAUNCH_DASHBOARD.md'), 'utf8')
 };
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-founder-dashboard-'));
 
 function run(name, changes = {}) {
     const values = { ...sources, ...changes };
-    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry', 'searchConsole', 'familyPlay', 'playShare'].map(key => {
+    const paths = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry', 'searchConsole', 'familyPlay', 'playShare', 'signalLog'].map(key => {
         const file = path.join(temp, `${name}-${key}.json`);
         fs.writeFileSync(file, `${JSON.stringify(values[key], null, 2)}\n`);
         return file;
@@ -161,10 +162,14 @@ try {
     autoDistributedPlayCard.authority.autonomousExternalDistributionByStudioAuthorized = true;
     if (run('auto-distributed-play-card', { playShare: autoDistributedPlayCard }).status === 0) throw new Error('Autonomous external distribution of the play card was accepted.');
 
+    const inventedSignalMetric = structuredClone(sources.signalLog);
+    inventedSignalMetric.boundaries.inventedAudienceMetricsPermitted = true;
+    if (run('invented-signal-metric', { signalLog: inventedSignalMetric }).status === 0) throw new Error('Invented Signal Log audience metrics were accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 22 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 23 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

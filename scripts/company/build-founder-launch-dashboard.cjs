@@ -24,14 +24,15 @@ const defaultPaths = {
     registry: path.join(root, 'docs/company/content/channel-launch/OFFICIAL_CHANNEL_REGISTRY.json'),
     searchConsole: path.join(root, 'docs/company/search/SEARCH_CONSOLE_CONNECTION.json'),
     familyPlay: path.join(root, 'docs/company/customer/family-play-observations.json'),
-    playShare: path.join(root, 'docs/company/content/PRINTABLE_PLAY_SHARE_CARD.json')
+    playShare: path.join(root, 'docs/company/content/PRINTABLE_PLAY_SHARE_CARD.json'),
+    signalLog: path.join(root, 'docs/company/content/SIGNAL_LOG_RELEASE_2026-08-14.json')
 };
 
 function readJson(file) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-function buildDashboard({ evidence, outreach, activation, itch, launch, trailer, analytics, calendar, discovery, hatchReview, restorationReview, choiceReview, adultStemOutreach, liveSearch, founderStory, scienceWeek, registry, searchConsole, familyPlay, playShare }) {
+function buildDashboard({ evidence, outreach, activation, itch, launch, trailer, analytics, calendar, discovery, hatchReview, restorationReview, choiceReview, adultStemOutreach, liveSearch, founderStory, scienceWeek, registry, searchConsole, familyPlay, playShare, signalLog }) {
     const checkedDate = evidence.checkedAt.slice(0, 10).split('-').reverse().join('/');
     const livePageCount = evidence.routes.filter(route => route.route !== '/play/' && route.verified).length;
     const firstWaveCount = outreach.messages.length;
@@ -89,8 +90,9 @@ function buildDashboard({ evidence, outreach, activation, itch, launch, trailer,
 ## Verified live
 
 - The public homepage and game entry worked during the last production check.
-- ${livePageCount} public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, and Project Beacon story.
+- ${livePageCount} public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, and Signal Log.
 - The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
+- The Signal Log is live with ${signalLog.liveEntries.length} checked release notes and now provides the reusable source for later website, social, press, and creator updates.
 - The game created its playable canvas during that check.
 - Real gameplay screenshots and a short real gameplay video are available for truthful promotion.${verifiedChannelLine}
 
@@ -130,6 +132,7 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 - Record adult-written, de-identified family play observations and turn each one into a small product check without treating it as customer evidence.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
+- Add a Signal Log note only after a change is live, checked, and linked; reuse that note for later social and press drafts instead of rewriting claims from memory.
 - Check every claim against the game and label generated artwork separately from gameplay.
 - Prepare tests, review notes, release records, and a short founder summary whenever the live state changes.
 

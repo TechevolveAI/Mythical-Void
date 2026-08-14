@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "id": "SIGNAL-LOG-RELEASE-2026-08-14",
+  "state": "published_to_owned_website_and_live_verified",
+  "publicUrl": "https://mythicalvoid.com/updates/",
+  "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/85",
+  "productionCommit": "b319c1f9bbec7becbbfdd25256bf503477f2a18b",
+  "verifiedAt": "2026-08-14T20:31:00Z",
+  "purpose": "Give players, families, creators and search engines one plain-language source for meaningful Mythical Void releases, with a working destination for every note.",
+  "liveEntries": [
+    {
+      "id": "SIGNAL-002",
+      "title": "A new way to share the game",
+      "destination": "https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf",
+      "destinationStatusObserved": 200
+    },
+    {
+      "id": "SIGNAL-001",
+      "title": "The Project Beacon story is live",
+      "destination": "https://mythicalvoid.com/story/",
+      "destinationStatusObserved": 200
+    }
+  ],
+  "reuseLoop": {
+    "canonicalSource": "public/updates/releases.json on the production branch",
+    "futureUses": [
+      "homepage What's new link",
+      "searchable release note",
+      "source for a later social post",
+      "source for a later press or creator update"
+    ],
+    "rule": "A public note must describe a verified live change and link to the thing that changed. Drafts and future promises stay out."
+  },
+  "boundaries": {
+    "commentsEnabled": false,
+    "contactCollectionEnabled": false,
+    "emailSignupEnabled": false,
+    "trackingParametersPermitted": false,
+    "inventedAudienceMetricsPermitted": false,
+    "generatedArtworkMayBeCalledGameplay": false,
+    "directMinorContactAuthorized": false
+  },
+  "qualityEvidence": {
+    "desktopVisualReviewPassed": true,
+    "phoneVisualReviewPassed": true,
+    "horizontalOverflowObserved": false,
+    "browserWarningsOrErrorsObserved": false,
+    "signalLogSafeguardCasesPassed": 8,
+    "fullTestSuitesPassed": 169,
+    "fullTestsPassed": 1441,
+    "productionPageVerified": true,
+    "homepageLinkVerified": true,
+    "sitemapEntryVerified": true
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "autonomousSocialPostingAuthorized": false,
+    "outreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicEngagementAuthorized": false
+  }
+}

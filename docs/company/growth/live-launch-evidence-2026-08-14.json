@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "LIVE-LAUNCH-EVIDENCE-2026-08-14",
-  "checkedAt": "2026-08-14T19:15:10Z",
+  "checkedAt": "2026-08-14T20:31:00Z",
   "checkedBy": "Codex read-only production verification after Netlify publish",
   "productionBranch": "origin/main",
-  "productionCommit": "cc8f7892bf4387fce24d6c9b81f07d82ed9967a1",
+  "productionCommit": "b319c1f9bbec7becbbfdd25256bf503477f2a18b",
   "canonicalUrl": "https://mythicalvoid.com/",
   "result": "owned_discovery_live_game_entry_working",
   "routes": [
@@ -68,6 +68,20 @@
       "sitemapListed": true
     },
     {
+      "route": "/updates/",
+      "title": "Mythical Void Updates | The Signal Log",
+      "heading": "What changed in the Void.",
+      "resolvedUrl": "https://mythicalvoid.com/updates/",
+      "notFoundShown": false,
+      "verified": true,
+      "liveEntryCount": 2,
+      "homepageLinked": true,
+      "sitemapListed": true,
+      "commentsEnabled": false,
+      "contactCollectionEnabled": false,
+      "trackingParametersPermitted": false
+    },
+    {
       "route": "/play/",
       "title": "Play Mythical Void",
       "heading": null,
@@ -97,6 +111,7 @@
     "This check proves that the named public pages loaded at the checked time; it does not prove search indexing, traffic, player satisfaction or uptime outside the check.",
     "One game canvas after five seconds proves that the game entry started; it does not prove every scene, device or complete playthrough.",
     "The story check proves its page, six real-game realm images, play link and sitemap entry were reachable; the unapproved trailer remains unlinked.",
+    "The Signal Log check proves its page, two named release notes, homepage link and sitemap entry were reachable; it does not prove that anyone read or acted on them.",
     "Prepared distribution and outreach work remains internal and unsubmitted."
   ]
 }

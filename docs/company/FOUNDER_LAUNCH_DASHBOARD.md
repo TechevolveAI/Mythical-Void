@@ -9,8 +9,9 @@
 ## Verified live
 
 - The public homepage and game entry worked during the last production check.
-- 7 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, and Project Beacon story.
+- 8 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, and Signal Log.
 - The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
+- The Signal Log is live with 2 checked release notes and now provides the reusable source for later website, social, press, and creator updates.
 - The game created its playable canvas during that check.
 - Real gameplay screenshots and a short real gameplay video are available for truthful promotion.
 
@@ -25,7 +26,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after 4 quality limits were recorded.
 - **Project Beacon choice:** 2 real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with 2 visible limitations recorded.
 - **Adult STEM discovery:** 2 one-to-one introductions are prepared for the Blackrock Castle Observatory and ESERO Ireland education teams. Nothing has been sent, and both messages still require Kevin to approve the sender, recipient and final wording.
-- **Search findability:** the homepage, public robots file and 9-route live sitemap are reachable, but the public samples found no owned Mythical Void result. A related TechEvolveAI result is visible, but its source contains an unsupported uniqueness promise; an exact correction is prepared. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
+- **Search findability:** the homepage, public robots file and 10-route live sitemap are reachable, but the public samples found no owned Mythical Void result. A related TechEvolveAI result is visible, but its source contains an unsupported uniqueness promise; an exact correction is prepared. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
 - **Irish founder story:** a first-person contributed article or interview background and tailored Irish Tech News contribution pitch are prepared. Nothing has been sent or promised, and any paid feature, rights request or child-participation request stops for a separate Kevin decision.
 - **Science Week 2026:** the visually checked 3-page printable “Water That Isn't Water: Design Life for the Stellar Reef” joins 3 sourced ocean-world facts to the real Stellar Reef game realm. A 12-check adult review system and one adult-only invitation are ready, but nothing has been sent and no review has been completed; no event, submission, partnership, logo use or public release exists.
 - **Family play observations:** a one-minute adult-only note route is ready with 0 observations recorded. It accepts an adult's own play or a parent's de-identified account of family play, and it rejects names, contact details, exact ages, direct quotes, media, public use and any claim that these notes are independent customer research.
@@ -50,6 +51,7 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 - Record adult-written, de-identified family play observations and turn each one into a small product check without treating it as customer evidence.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
+- Add a Signal Log note only after a change is live, checked, and linked; reuse that note for later social and press drafts instead of rewriting claims from memory.
 - Check every claim against the game and label generated artwork separately from gameplay.
 - Prepare tests, review notes, release records, and a short founder summary whenever the live state changes.
 

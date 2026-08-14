@@ -20,10 +20,11 @@ requireValue(/^2026-08-14T/.test(evidence.checkedAt || ''), 'Live search evidenc
 const crawl = evidence.ownedCrawlFoundation || {};
 requireValue(crawl.homepageStatus === 200, 'Homepage must retain its observed 200 status.');
 requireValue(crawl.robotsAllowsPublicCrawling === true && crawl.robotsDeclaresSitemap === true, 'Robots evidence must retain public crawling and sitemap declaration.');
-requireValue(crawl.sitemapStatus === 200 && crawl.sitemapRouteCount === 9, 'Live sitemap evidence must retain nine reachable routes.');
+requireValue(crawl.sitemapStatus === 200 && crawl.sitemapRouteCount === 10, 'Live sitemap evidence must retain ten reachable routes.');
 requireValue(crawl.sitemapRoutes?.length === crawl.sitemapRouteCount, 'Live sitemap route count must match the recorded routes.');
 requireValue(crawl.sitemapRoutes?.includes('/nasa-space-science/') && crawl.sitemapRoutes?.includes('/parents/'), 'The live sitemap must retain its STEM and parent routes.');
 requireValue(crawl.sitemapRoutes?.includes('/story/'), 'The released story route must remain present in the live sitemap snapshot.');
+requireValue(crawl.sitemapRoutes?.includes('/updates/'), 'The public Signal Log route must remain present in the live sitemap snapshot.');
 
 const sample = evidence.publicSearchSample || {};
 requireValue(sample.queryCount === 4 && sample.queries?.length === 4, 'Public search sample must retain all four queries.');
