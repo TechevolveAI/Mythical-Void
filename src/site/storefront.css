@@ -1865,6 +1865,7 @@ footer {
 }
 
 .press-facts-section,
+.press-gameplay-section,
 .press-assets-section,
 .press-language-section {
     padding: 7.5rem 0;
@@ -1986,6 +1987,89 @@ footer {
 .press-assets-section {
     background: #f7f1e6;
     color: var(--ink);
+}
+
+.press-gameplay-section {
+    background:
+        radial-gradient(circle at 12% 18%, rgba(124, 232, 207, .15), transparent 26%),
+        #100d27;
+}
+
+.press-gameplay-section .press-heading-split > p {
+    color: #bdb6cf;
+}
+
+.press-gameplay-grid {
+    display: grid;
+    grid-template-columns: 1.25fr .75fr .75fr;
+    gap: 1.15rem;
+}
+
+.press-gameplay-card {
+    overflow: hidden;
+    margin: 0;
+    border: 1px solid rgba(143, 227, 207, .2);
+    border-radius: 1.5rem;
+    background: rgba(7, 6, 20, .82);
+    box-shadow: 0 1.4rem 3.5rem rgba(0, 0, 0, .28);
+}
+
+.press-gameplay-card > img {
+    display: block;
+    width: 100%;
+    height: 390px;
+    object-fit: cover;
+    object-position: center;
+    background: #080719;
+}
+
+.press-gameplay-wide {
+    grid-column: 1 / -1;
+}
+
+.press-gameplay-wide > img {
+    height: min(48vw, 650px);
+}
+
+.press-gameplay-portrait > img {
+    object-fit: contain;
+}
+
+.press-gameplay-card figcaption {
+    padding: 1.4rem 1.5rem 1.6rem;
+}
+
+.press-gameplay-card figcaption > span {
+    color: var(--mint);
+    font-size: .64rem;
+    font-weight: 900;
+    letter-spacing: .14em;
+}
+
+.press-gameplay-card strong {
+    display: block;
+    margin: .45rem 0 .55rem;
+    color: #fff8e7;
+    font-family: "Arial Rounded MT Bold", "Avenir Next", ui-rounded, system-ui, sans-serif;
+    font-size: 1.25rem;
+}
+
+.press-gameplay-card p {
+    margin: 0 0 1rem;
+    color: #bdb6cf;
+    font-size: .88rem;
+}
+
+.press-gameplay-card a,
+.press-gameplay-proof a {
+    color: var(--mint);
+    font-size: .83rem;
+    font-weight: 800;
+}
+
+.press-gameplay-proof {
+    margin: 1.4rem 0 0;
+    text-align: right;
 }
 
 .press-heading-split {
@@ -2130,6 +2214,8 @@ footer {
     .press-language-grid { grid-template-columns: 1fr; gap: 3rem; }
     .press-heading-split { grid-template-columns: 1fr; gap: 1.2rem; }
     .press-origin-mark { min-height: 400px; }
+    .press-gameplay-grid { grid-template-columns: 1fr 1fr; }
+    .press-gameplay-wide { grid-column: 1 / -1; }
 }
 
 @media (max-width: 620px) {
@@ -2139,14 +2225,19 @@ footer {
     .press-hero-copy h1 { font-size: 3.3rem; }
     .press-hero-actions { display: grid; }
     .press-facts-section,
+    .press-gameplay-section,
     .press-assets-section,
     .press-language-section { padding: 5.5rem 0; }
     .press-fact-grid,
     .press-assets-grid,
+    .press-gameplay-grid,
     .press-language-cards { grid-template-columns: 1fr; }
     .press-asset-wide { grid-column: auto; }
+    .press-gameplay-wide { grid-column: auto; }
     .press-asset-card > img,
     .press-asset-wide > img { height: 260px; }
+    .press-gameplay-card > img,
+    .press-gameplay-wide > img { height: 360px; }
     .press-origin-mark { min-height: 330px; }
 }
 

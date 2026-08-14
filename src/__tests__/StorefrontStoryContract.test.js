@@ -23,6 +23,7 @@ const pressFactSheet = fs.readFileSync(
     'utf8'
 );
 const pressAssets = require('../../public/press/mythical-void-press-assets.json');
+const gameplayManifest = require('../../public/press/gameplay/manifest.json');
 
 describe('storefront Project Beacon story contract', () => {
     test('matches the implemented 2026 astronaut opening', () => {
@@ -161,10 +162,23 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressFactSheet).toContain('PLAY THE CURRENT GAME');
         expect(pressFactSheet).toContain('father-and-son project');
         expect(pressFactSheet).not.toMatch(/\bcompanions?\b/i);
-        expect(pressAssets.assets).toHaveLength(5);
-        expect(pressAssets.assets[0].kind).toBe('ai_generated_marketing_illustration');
+        expect(storefront).toContain('This is what players really see.');
+        expect(storefront).toContain('/press/gameplay/manifest.json');
+        expect(pressAssets.gameplayProofManifest).toBe(
+            'https://mythicalvoid.com/press/gameplay/manifest.json'
+        );
+        expect(pressAssets.assets).toHaveLength(9);
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'authentic_running_build_screenshot'
+        ))).toHaveLength(4);
+        expect(pressAssets.assets[0].kind).toBe('authentic_running_build_screenshot');
+        expect(gameplayManifest.captures).toHaveLength(11);
+        expect(gameplayManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
+        expect(gameplayManifest.approvalState).toBe(
+            'internal_review_required_before_public_promotion'
+        );
         expect(pressAssets.restrictions).toContain(
-            'Do not present marketing illustrations or game-world stills as gameplay footage.'
+            'Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.'
         );
     });
 });
