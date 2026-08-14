@@ -45,6 +45,9 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('{ x: 810, width: 150 }');
         expect(source).toContain('{ x: 2020, width: 170 }');
         expect(source).toContain('{ x: 3230, width: 180 }');
+        expect(source).toContain('SHADOW CURRENT // JUMP');
+        expect(source).toContain('targets: pulseTargets');
+        expect(source).toContain('this.shadowCurrentPulseTween?.remove?.();');
         expect(source).toContain('this.takeDamage(1)');
     });
 
@@ -101,6 +104,9 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('createAuroraFragments()');
         expect(source).toContain('this.collectAuroraFragment');
         expect(source).toContain('AURORA FRAGMENT ${this.starFragmentsCollected}/${this.totalStarFragments}');
+        expect(source).toContain('targets: fragmentTargets');
+        expect(source).toContain("y: '-=12'");
+        expect(source).toContain('this.auroraFragmentTween?.remove?.();');
         expect(source).toContain("id: 'quiet_aurora_egg'");
         expect(source).toContain("name: 'Quiet Aurora Egg'");
         expect(source).toContain('this.auroraEggAwarded = true');
@@ -113,6 +119,12 @@ describe('fifth expedition rescue loop', () => {
             'this.isMobile || screenWidth <= 480 || screenHeight < 620'
         );
         expect(source).toContain('const barY = isMobileLayout ? 118 : 60');
+        expect(source).toContain('const toastY = isMobileLayout');
+        expect(source).toContain('height < 620 ? Math.min(142, height * 0.38)');
+        expect(source).toContain('y: toastY - 20');
+        expect(source).toContain(
+            'Follow the lit platforms. Align 3 prisms. Do not send the signal to Earth.'
+        );
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('QUIET ALIGNMENT ${current}/3 // ${nextPrism}');
         expect(source).toContain('EARTH CAN BE REACHED BY CHOICE');

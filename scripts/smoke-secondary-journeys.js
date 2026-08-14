@@ -45,7 +45,7 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
     }),
     auroraDepths: Object.freeze({
         displayCount: 185,
-        activeTweenCount: 45,
+        activeTweenCount: 22,
         performanceTier: 'mobile'
     }),
     finalVoid: Object.freeze({
@@ -2730,6 +2730,25 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     scene.peakEnemyPatrolUpdateCount
                 ) || 0
             } : null,
+            auroraAmbientRendering:
+                scene?.scene?.key === 'AuroraDepthsLevel' ? {
+                    shadowCurrentCount: scene.shadowCurrents?.length || 0,
+                    shadowCurrentLabelCount: scene.shadowCurrents?.filter(
+                        current => current?.label?.active !== false
+                    ).length || 0,
+                    shadowPulseTweenCount: (
+                        scene.tweens?.getTweens?.() || []
+                    ).filter(
+                        tween => tween === scene.shadowCurrentPulseTween
+                    ).length,
+                    fragmentCount: scene.auroraFragments?.getChildren?.()
+                        ?.filter(fragment => fragment?.active !== false).length || 0,
+                    fragmentPulseTweenCount: (
+                        scene.tweens?.getTweens?.() || []
+                    ).filter(
+                        tween => tween === scene.auroraFragmentTween
+                    ).length
+                } : null,
             routeGuidance: (() => {
                 const nextSignal = scene?.getNextOrderedRouteSignal?.();
                 return {
@@ -2879,6 +2898,21 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         throw new Error(
             `${sceneName} did not keep Peaks ambience and opening bounded: ` +
             JSON.stringify(state)
+        );
+    }
+    if (
+        route === 'auroraDepths' &&
+        (
+            state.auroraAmbientRendering?.shadowCurrentCount !== 3 ||
+            state.auroraAmbientRendering?.shadowCurrentLabelCount !== 3 ||
+            state.auroraAmbientRendering?.shadowPulseTweenCount !== 1 ||
+            state.auroraAmbientRendering?.fragmentCount !== 5 ||
+            state.auroraAmbientRendering?.fragmentPulseTweenCount !== 1
+        )
+    ) {
+        throw new Error(
+            `${sceneName} did not keep Aurora hazards readable and batched: ` +
+            JSON.stringify(state.auroraAmbientRendering)
         );
     }
     if (

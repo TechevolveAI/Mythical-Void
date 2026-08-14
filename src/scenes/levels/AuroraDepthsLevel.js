@@ -163,8 +163,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.reactorGateHintUntil = 0;
         this.reactorTriggerZone = null;
         this.auroraFragments = null;
+        this.auroraFragmentTween = null;
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
+        this.shadowCurrentPulseTween = null;
         this.quietLightClaimed = false;
         this.optionalRoutePickup = null;
         this.optionalRoutePickupLabel = null;
@@ -226,8 +228,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.reactorGateHintUntil = 0;
         this.reactorTriggerZone = null;
         this.auroraFragments = null;
+        this.auroraFragmentTween = null;
         this.auroraEggAwarded = false;
         this.shadowCurrents = [];
+        this.shadowCurrentPulseTween = null;
         this.quietLightClaimed = false;
         this.optionalRoutePickup = null;
         this.optionalRoutePickupLabel = null;
@@ -941,12 +945,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     showObjectiveToast() {
         const { width, height } = this.cameras.main;
         const isMobileLayout = this.isMobile || width <= 480 || height < 620;
+        const toastY = isMobileLayout
+            ? (height < 620 ? Math.min(142, height * 0.38) : Math.min(225, height * 0.28))
+            : 90;
         const toast = this.add.text(
             width / 2,
-            isMobileLayout ? 165 : 90,
-            'Align the aurora prisms without opening the uplink',
+            toastY,
+            'Follow the lit platforms. Align 3 prisms. Do not send the signal to Earth.',
             {
-                fontSize: isMobileLayout ? '16px' : '18px',
+                fontSize: isMobileLayout ? '15px' : '18px',
                 color: '#F2C94C',
                 backgroundColor: 'rgba(4, 18, 25, 0.82)',
                 padding: { x: 16, y: 8 },
@@ -958,7 +965,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.tweens.add({
             targets: toast,
             alpha: 0,
-            y: 60,
+            y: toastY - 20,
             delay: 2800,
             duration: 600,
             onComplete: () => toast.destroy()
@@ -971,6 +978,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             { x: 2020, width: 170 },
             { x: 3230, width: 180 }
         ];
+        const pulseTargets = [];
 
         currents.forEach(({ x, width }) => {
             const y = this.levelHeight - 88;
@@ -984,25 +992,42 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             visual.strokeRoundedRect(x, y - 28, width, 56, 12);
             visual.setDepth(110);
 
-            this.tweens.add({
-                targets: visual,
-                alpha: { from: 0.45, to: 0.9 },
-                duration: 950,
-                yoyo: true,
-                repeat: -1
-            });
+            const label = this.add.text(
+                x + width / 2,
+                y - 48,
+                'SHADOW CURRENT // JUMP',
+                {
+                    fontSize: '11px',
+                    color: '#F2C94C',
+                    fontStyle: 'bold',
+                    stroke: '#061319',
+                    strokeThickness: 4,
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(111);
+            pulseTargets.push(visual);
 
             this.physics.add.overlap(this.player, zone, () => {
                 if (!this.isInvincible && !this.bossDefeated) {
                     this.takeDamage(1);
                 }
             });
-            this.shadowCurrents.push({ zone, visual });
+            this.shadowCurrents.push({ zone, visual, label });
+        });
+
+        this.shadowCurrentPulseTween?.remove?.();
+        this.shadowCurrentPulseTween = this.tweens.add({
+            targets: pulseTargets,
+            alpha: { from: 0.45, to: 0.9 },
+            duration: 950,
+            yoyo: true,
+            repeat: -1
         });
     }
 
     createAuroraFragments() {
         this.auroraFragments = this.physics.add.group();
+        const fragmentTargets = [];
         const positions = [
             [740, this.levelHeight - 340],
             [1490, this.levelHeight - 395],
@@ -1019,15 +1044,17 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             fragment.body.setAllowGravity(false);
             fragment.body.setSize(32, 32);
             this.auroraFragments.add(fragment);
+            fragmentTargets.push(fragment);
+        });
 
-            this.tweens.add({
-                targets: fragment,
-                angle: 360,
-                y: y - 12,
-                duration: 1600,
-                repeat: -1,
-                yoyo: true
-            });
+        this.auroraFragmentTween?.remove?.();
+        this.auroraFragmentTween = this.tweens.add({
+            targets: fragmentTargets,
+            angle: 360,
+            y: '-=12',
+            duration: 1600,
+            repeat: -1,
+            yoyo: true
         });
 
         this.physics.add.overlap(
@@ -1064,6 +1091,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             this.starFragmentsCollected >= this.totalStarFragments &&
             !this.auroraEggAwarded
         ) {
+            this.auroraFragmentTween?.remove?.();
+            this.auroraFragmentTween = null;
             this.auroraEggAwarded = true;
             this.time.delayedCall(450, () => {
                 this.showFloatingText(
@@ -2637,10 +2666,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.shadowCurrents.forEach(current => {
             current.zone?.destroy?.();
             current.visual?.destroy?.();
+            current.label?.destroy?.();
         });
+        this.shadowCurrentPulseTween?.remove?.();
+        this.shadowCurrentPulseTween = null;
         this.shadowCurrents = [];
         this.clearQuietLightPickup();
         this.clearCurrentChargeAura();
+        this.auroraFragmentTween?.remove?.();
+        this.auroraFragmentTween = null;
         // Phaser owns this physics group and destroys it during Scene shutdown.
         // Clearing it here can run after the physics world has already disposed
         // the group's body set when campaign scenes are stopped in quick succession.
