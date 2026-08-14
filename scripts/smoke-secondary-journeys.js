@@ -3546,6 +3546,49 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             );
         }
 
+        let mainRouteEffect = null;
+        if (route === 'auroraDepths') {
+            mainRouteEffect = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(
+                    'AuroraDepthsLevel'
+                );
+                const selected = scene.selectAuroraRoute('shadow_current');
+                const result = {
+                    selected,
+                    routeChoice: scene.auroraRouteChoice,
+                    currentChargeReady: scene.currentChargeReady === true,
+                    auraActive: Boolean(scene.currentChargeAura?.active),
+                    objective: scene.getAuroraObjectiveText?.() || ''
+                };
+
+                scene.auroraRouteChoice = '';
+                scene.currentChargeReady = false;
+                scene.clearCurrentChargeAura?.();
+                scene.refreshPersistedExpeditionRouteState?.();
+                return result;
+            })()`);
+            if (
+                mainRouteEffect?.selected !== true ||
+                mainRouteEffect.routeChoice !== 'shadow_current' ||
+                mainRouteEffect.currentChargeReady !== true ||
+                mainRouteEffect.auraActive !== true ||
+                !mainRouteEffect.objective.includes(
+                    'YOUR NEXT HIT +2 DAMAGE'
+                ) ||
+                !choicePresentation.mainTradeoff.includes(
+                    'YOUR NEXT HIT +2'
+                ) ||
+                !choicePresentation.challengeLabel.includes('1-HIT WARD')
+            ) {
+                throw new Error(
+                    `${sceneName} route impact contradicted its promise: ` +
+                    JSON.stringify({ choicePresentation, mainRouteEffect })
+                );
+            }
+            await startCampaignScene(session, { route, sceneName });
+            await delay(400);
+        }
+
         let rejectedOptionalPickup = null;
         if (route === 'mythicalForest') {
             const stagedMainRoute = await evaluate(session, `(() => {
@@ -3864,6 +3907,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         }
         routeChoice = {
             presentation: choicePresentation,
+            mainRouteEffect,
             rejectedOptionalPickup,
             optionalEntry,
             rejoin
