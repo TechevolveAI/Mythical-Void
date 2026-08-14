@@ -1966,6 +1966,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 ) || [];
                 if (!encounters.length) return null;
                 const unsupported = encounters.filter(enemy => {
+                    if (enemy.encounterAirborne) return false;
                     const support = scene.getTraversalSupport?.(
                         enemy.encounterSupportId
                     );
@@ -2129,6 +2130,23 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.encounterRhythm.armoredCount < 4 ||
             state.encounterRhythm.mainCount < 2 ||
             state.encounterRhythm.optionalCount !== 0 ||
+            state.encounterRhythm.unsupported.length > 0
+        )
+    ) {
+        throw new Error(
+            `${sceneName} has no deliberate encounter rhythm: ${JSON.stringify(
+                state.encounterRhythm
+            )}`
+        );
+    }
+    if (
+        route === 'crystalCaves' &&
+        (
+            state.encounterRhythm?.count < 8 ||
+            state.encounterRhythm.clearCount < 3 ||
+            state.encounterRhythm.armoredCount < 3 ||
+            state.encounterRhythm.mainCount < 1 ||
+            state.encounterRhythm.optionalCount < 1 ||
             state.encounterRhythm.unsupported.length > 0
         )
     ) {
