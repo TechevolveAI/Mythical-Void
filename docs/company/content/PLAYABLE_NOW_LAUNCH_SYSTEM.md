@@ -71,7 +71,7 @@ No paid advertising is needed for the first campaign. The aim is to learn which 
 
 ## Ready material
 
-The complete draft set lives in [`campaigns/playable-now-launch.json`](campaigns/playable-now-launch.json). It contains channel-ready launch, founder, creature, NASA, parent and creator versions. Each item records its audience, proof boundary, asset, disclosure and approval state.
+The wider draft set lives in [`campaigns/playable-now-launch.json`](campaigns/playable-now-launch.json). The five finished visual previews and their exact captions live in [`campaigns/first-signal-social.json`](campaigns/first-signal-social.json), with a human-readable review sheet in [`channel-launch/FIRST_SIGNAL_REVIEW.md`](channel-launch/FIRST_SIGNAL_REVIEW.md). Every item records its audience, proof boundary, asset fingerprint, alt text, disclosure and approval state.
 
 Validate the pack with:
 
@@ -79,6 +79,8 @@ Validate the pack with:
 node scripts/company/validate-playable-now-launch.cjs
 node scripts/company/validate-four-week-launch-calendar.cjs
 ```
+
+The image campaign also has a dedicated fingerprint, dimensions, proof and safety check in `scripts/company/validate-first-signal-social-campaign.py`; Codex runs it through the workspace image runtime.
 
 ## Weekly operating rhythm
 

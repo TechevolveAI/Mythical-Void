@@ -20,13 +20,15 @@ Everything that can be prepared without account access is ready. You only need t
 3. Use **Computer Games** as the industry and the smallest truthful company-size option.
 4. Paste the prepared tagline and About section from [`channel-activation-pack.json`](channel-activation-pack.json).
 5. Turn on multi-factor authentication. Kevin remains the first super admin; add future helpers using LinkedIn roles, never a shared password.
-6. Send back the exact page link. The first five posts are already drafted but remain unpublished.
+6. Send back the exact page link. Five finished visual posts, captions, alt text and disclosures are ready but remain unpublished.
 
 LinkedIn says a Company Page is free. Creating these pages does not require another Google Workspace subscription: YouTube can use an existing Google account, and LinkedIn uses Kevin’s existing personal profile to create the separate company page.
 
 ## What happens next
 
-Once the two links are recorded, the studio can add the correct links to the website, prepare the finished profile artwork, capture authentic gameplay, and place the first posts in front of Kevin for one final yes or no.
+Once the two links are recorded, the studio can add the correct links to the website and place the finished [`First Signal` previews](FIRST_SIGNAL_REVIEW.md) in front of Kevin for one final yes or no. The first campaign already includes real gameplay, the father-and-son origin, the creature universe and the free STEM Creature Lab.
+
+Kevin will approve the exact image and caption together, choose the posting time, and confirm that an adult can check comments. Nothing is posted merely because an account link has been recorded.
 
 Creator outreach will start with a small researched list of relevant adults. Nobody will be bulk-messaged, a child will never be privately approached, and no message will be sent without Kevin approving the named recipient and the finished introduction.
 
