@@ -20,7 +20,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **The real story:** a dedicated Project Beacon story page is prepared in the website release package, but it was not part of the last verified production check.
 - **The trailer:** the film and dedicated watch page are prepared. The page remains unpublished and hidden from search until Kevin approves the film, wording, and poster together.
 - **Safer measurement:** the current Google tag is live, while the tighter 10-route, 5-action consent upgrade is prepared on this feature branch. Its numbers are not trusted for company decisions yet.
-- **Social launch:** 6 YouTube upload items and 5 LinkedIn posts are prepared, alongside a four-week plan containing 7 outward releases and one internal review.
+- **Social launch:** 6 YouTube upload items and 6 LinkedIn posts are prepared, alongside a four-week plan containing 7 outward releases and one internal review.
 - **Honest game proof:** the real hatch reached a visible creature and Confirm contact, but the captured frame was rejected for public promotion after 4 visible quality problems were recorded for Game Development.
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after 4 quality limits were recorded.
 - **Project Beacon choice:** 2 real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with 2 visible limitations recorded.

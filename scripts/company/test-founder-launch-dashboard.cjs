@@ -51,6 +51,10 @@ try {
     inventedChannel.channels.find(channel => channel.channelRef === 'CH-002').accountState = 'created';
     if (run('invented-channel', { activation: inventedChannel }).status === 0) throw new Error('An invented social channel was accepted.');
 
+    const releasedChoicePost = structuredClone(sources.activation);
+    releasedChoicePost.channels.find(channel => channel.channelRef === 'CH-004').firstPosts.find(post => post.id === 'LI-006').approvalState = 'published';
+    if (run('released-choice-post', { activation: releasedChoicePost }).status === 0) throw new Error('An unapproved Project Beacon post was accepted as published.');
+
     const publicItch = structuredClone(sources.itch);
     publicItch.authority.publicationAuthorized = true;
     if (run('public-itch', { itch: publicItch }).status === 0) throw new Error('An unauthorized itch.io publication state was accepted.');
@@ -82,7 +86,7 @@ try {
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot plus 11 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot plus 12 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

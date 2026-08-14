@@ -44,7 +44,12 @@ const linkedin = values.activation.channels?.find(channel => channel.channelRef 
 requireValue(youtube?.accountState === 'not_created_owner_confirmed', 'YouTube must remain recorded as not created.');
 requireValue(linkedin?.accountState === 'not_created_owner_confirmed', 'LinkedIn must remain recorded as not created.');
 requireValue(youtube?.firstUploads?.length === 6, 'The YouTube activation pack must retain six prepared upload items.');
-requireValue(linkedin?.firstPosts?.length === 5, 'The LinkedIn activation pack must retain five prepared posts.');
+requireValue(linkedin?.firstPosts?.length === 6, 'The LinkedIn activation pack must retain six prepared posts.');
+const choicePost = linkedin?.firstPosts?.find(post => post.id === 'LI-006');
+requireValue(choicePost?.asset === 'public/press/gameplay/project-beacon-priority-choice.png', 'The Project Beacon post must use the reviewed authentic wide frame.');
+requireValue(choicePost?.proofReview === 'docs/company/content/PROJECT_BEACON_CHOICE_PROOF_REVIEW.json', 'The Project Beacon post must cite its proof review.');
+requireValue(choicePost?.approvalState === 'awaiting_kevin_and_page' && /Kevin must approve/i.test(choicePost?.releaseBoundary || ''), 'The Project Beacon post must remain waiting for Kevin and the official page.');
+requireValue(/real Mythical Void browser game/i.test(choicePost?.disclosure || '') && /not their consequences/i.test(choicePost?.disclosure || ''), 'The Project Beacon post disclosure must identify real gameplay and its consequence limit.');
 
 requireValue(values.itch.state === 'internal_draft_not_submitted', 'The itch.io launch pack must remain an internal unsubmitted draft.');
 requireValue(values.itch.authority?.accountCreationAuthorized === false && values.itch.authority?.publicationAuthorized === false, 'Itch.io account creation and publication must remain unauthorized.');

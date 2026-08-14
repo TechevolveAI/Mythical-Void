@@ -207,6 +207,18 @@
           "asset": "public/marketing/social/first-signal/03-creature-universe.jpg",
           "disclosure": "AI-generated marketing illustration inspired by real genetics-engine profiles; not gameplay footage.",
           "approvalState": "awaiting_kevin_and_page"
+        },
+        {
+          "id": "LI-006",
+          "sequence": 6,
+          "theme": "Project Beacon choice",
+          "copy": "Before anything is sent to Earth, Mythical Void asks a harder question: what should Wanderer-77 prepare first?\n\nRestore communities. Preserve a secret route home. Or build consent and proof before contact.\n\nNo signal is sent on this screen and no ending is revealed. It asks the player to think about responsibility before action.\n\nThis is a real screen from the playable browser game. It shows the choice, not its consequences.\n\nPlay free: https://mythicalvoid.com/",
+          "asset": "public/press/gameplay/project-beacon-priority-choice.png",
+          "optionalPhoneAsset": "public/press/gameplay/project-beacon-priority-choice-phone.png",
+          "proofReview": "docs/company/content/PROJECT_BEACON_CHOICE_PROOF_REVIEW.json",
+          "disclosure": "Captured from the real Mythical Void browser game; not a generated gameplay mockup. The frame shows the available preparation choices, not their consequences.",
+          "approvalState": "awaiting_kevin_and_page",
+          "releaseBoundary": "Kevin must approve the exact copy and selected frame together. Do not add a chosen priority, confirmation screen, epilogue or claim about consequences."
         }
       ]
     }
