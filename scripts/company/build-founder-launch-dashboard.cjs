@@ -21,14 +21,15 @@ const defaultPaths = {
     liveSearch: path.join(root, 'docs/company/search/LIVE_SEARCH_FINDABILITY_EVIDENCE_2026-08-14.json'),
     founderStory: path.join(root, 'docs/company/content/channel-launch/IRISH_FOUNDER_STORY_RELEASE.json'),
     scienceWeek: path.join(root, 'docs/company/content/channel-launch/SCIENCE_WEEK_WATER_CONCEPT_2026.json'),
-    registry: path.join(root, 'docs/company/content/channel-launch/OFFICIAL_CHANNEL_REGISTRY.json')
+    registry: path.join(root, 'docs/company/content/channel-launch/OFFICIAL_CHANNEL_REGISTRY.json'),
+    searchConsole: path.join(root, 'docs/company/search/SEARCH_CONSOLE_CONNECTION.json')
 };
 
 function readJson(file) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-function buildDashboard({ evidence, outreach, activation, itch, launch, trailer, analytics, calendar, discovery, hatchReview, restorationReview, choiceReview, adultStemOutreach, liveSearch, founderStory, scienceWeek, registry }) {
+function buildDashboard({ evidence, outreach, activation, itch, launch, trailer, analytics, calendar, discovery, hatchReview, restorationReview, choiceReview, adultStemOutreach, liveSearch, founderStory, scienceWeek, registry, searchConsole }) {
     const checkedDate = evidence.checkedAt.slice(0, 10).split('-').reverse().join('/');
     const livePageCount = evidence.routes.filter(route => route.route !== '/play/' && route.verified).length;
     const firstWaveCount = outreach.messages.length;
@@ -63,6 +64,17 @@ function buildDashboard({ evidence, outreach, activation, itch, launch, trailer,
         : remainingChannels.length
             ? `${remainingChannels.map(channel => channel.platform === 'youtube' ? 'YouTube' : 'LinkedIn').join(' and ')} remains uncreated; every recorded channel remains closed to first publication, public engagement and paid activity.`
             : 'Both planned channels are recorded, but first publication, public engagement and paid activity remain closed.';
+    const searchConsoleConnected = searchConsole.property.googleSearchConsoleConnected === true;
+    const searchFindabilitySummary = !searchConsoleConnected
+        ? `the homepage, public robots file and ${liveSearch.ownedCrawlFoundation.sitemapRouteCount}-route live sitemap are reachable, but the public samples found no owned Mythical Void result. A related TechEvolveAI result is visible, but its source contains an unsupported uniqueness promise; an exact correction is prepared. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.`
+        : searchConsole.sitemap.submittedByStudio !== true
+            ? `the Domain property is owner-verified in Search Console, but sitemap submission is not yet recorded. Public search samples still do not prove owned discovery, indexing, rankings or search traffic.`
+            : `the Domain property is owner-verified and the sitemap submission is recorded as ${searchConsole.sitemap.searchConsoleStatus}. This still does not prove index coverage, rankings or search traffic; those reports remain untrusted until separately recorded.`;
+    const searchConsoleDecision = !searchConsoleConnected
+        ? '**Verify the existing Google account in Search Console when convenient.** Add the `mythicalvoid.com` Domain property, submit the live sitemap and return the exact status. A new Mythical Void email address is not required.'
+        : searchConsole.sitemap.submittedByStudio !== true
+            ? '**Submit the live sitemap in Search Console.** Use `https://mythicalvoid.com/sitemap.xml` and return the exact status, last-read value and discovered-URL count without estimating.'
+            : '**Bring back the first Page indexing report after Google has had time to process the sitemap.** Record the exact indexed and not-indexed totals and report date; do not treat submission alone as an indexing result.';
 
     return `# Mythical Void — founder launch command centre
 
@@ -91,7 +103,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after ${restorationReview.qualityIssues.length} quality limits were recorded.
 - **Project Beacon choice:** ${choiceReview.captureIds.length} real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with ${choiceReview.qualityIssues.length} visible limitations recorded.
 - **Adult STEM discovery:** ${adultStemOutreach.messages.length} one-to-one introductions are prepared for the Blackrock Castle Observatory and ESERO Ireland education teams. Nothing has been sent, and both messages still require Kevin to approve the sender, recipient and final wording.
-- **Search findability:** the homepage, public robots file and ${liveSearch.ownedCrawlFoundation.sitemapRouteCount}-route live sitemap are reachable, but the public samples found no owned Mythical Void result. A related TechEvolveAI result is visible, but its source contains an unsupported uniqueness promise; an exact correction is prepared. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
+- **Search findability:** ${searchFindabilitySummary}
 - **Irish founder story:** a ${founderStory.article.format.toLowerCase()} and tailored Irish Tech News contribution pitch are prepared. Nothing has been sent or promised, and any paid feature, rights request or child-participation request stops for a separate Kevin decision.
 - **Science Week 2026:** the visually checked ${scienceWeek.artifact.pages}-page printable “${scienceWeek.title}” joins ${scienceWeek.realScience.length} sourced ocean-world facts to the real Stellar Reef game realm. A 12-check adult review system and one adult-only invitation are ready, but nothing has been sent and no review has been completed; no event, submission, partnership, logo use or public release exists.
 - **First outreach:** ${firstWaveCount} personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. ${laterOpportunityCount} later opportunities are ranked.
@@ -102,7 +114,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 1. **Approve or reject the trailer.** Watch all 64 seconds with sound, including the beginning, middle, and end. Check the pace for children, teenagers, and families; the gameplay statements; and the poster image.
 2. ${nextChannelDecision}
 3. **Name an adult safeguarding owner and backup before opening feedback, comments, direct messages, or community activity.** The current engagement track is ${engagementTrack.status.replace('_', ' ')} because those roles and response routes are not assigned.
-4. **Verify the existing Google account in Search Console when convenient.** Submit the live sitemap and return the coverage result. A new Mythical Void email address is not required for this task.
+4. ${searchConsoleDecision}
 
 Email and itch.io remain useful later, but they no longer sit ahead of the trailer and the first official channel.
 

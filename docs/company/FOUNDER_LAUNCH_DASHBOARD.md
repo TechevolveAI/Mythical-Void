@@ -36,7 +36,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 1. **Approve or reject the trailer.** Watch all 64 seconds with sound, including the beginning, middle, and end. Check the pace for children, teenagers, and families; the gameplay statements; and the poster image.
 2. **Create the first official channel when convenient.** YouTube is first because the finished trailer gives it a real purpose. Review the prepared profile image and banner, use the short account handoff, switch on multi-factor authentication, and return the exact channel link before anything is uploaded.
 3. **Name an adult safeguarding owner and backup before opening feedback, comments, direct messages, or community activity.** The current engagement track is blocked because those roles and response routes are not assigned.
-4. **Verify the existing Google account in Search Console when convenient.** Submit the live sitemap and return the coverage result. A new Mythical Void email address is not required for this task.
+4. **Verify the existing Google account in Search Console when convenient.** Add the `mythicalvoid.com` Domain property, submit the live sitemap and return the exact status. A new Mythical Void email address is not required.
 
 Email and itch.io remain useful later, but they no longer sit ahead of the trailer and the first official channel.
 

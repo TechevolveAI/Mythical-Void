@@ -23,9 +23,10 @@ const paths = {
     founderStory: process.argv[16] ? path.resolve(process.argv[16]) : defaultPaths.founderStory,
     scienceWeek: process.argv[17] ? path.resolve(process.argv[17]) : defaultPaths.scienceWeek,
     registry: process.argv[18] ? path.resolve(process.argv[18]) : defaultPaths.registry,
-    dashboard: process.argv[19] ? path.resolve(process.argv[19]) : dashboardDefault
+    searchConsole: process.argv[19] ? path.resolve(process.argv[19]) : defaultPaths.searchConsole,
+    dashboard: process.argv[20] ? path.resolve(process.argv[20]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach', 'liveSearch', 'founderStory', 'scienceWeek', 'registry', 'searchConsole'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -130,6 +131,20 @@ requireValue(values.liveSearch.followUpSearchSample?.ownedResultObserved === fal
 requireValue(values.liveSearch.followUpSearchSample?.currentRelatedPageClaim === 'Every creature is unique.', 'Founder view must retain the related-site correction reason.');
 requireValue(values.liveSearch.webmasterEvidence?.googleSearchConsoleConnected === false && values.liveSearch.webmasterEvidence?.indexCoverageKnown === false, 'Founder view must retain unverified Search Console and index coverage.');
 requireValue(values.liveSearch.authority?.searchEngineSubmissionAuthorized === false, 'Search submission must remain unauthorized.');
+
+requireValue(values.searchConsole.id === 'SEARCH-CONSOLE-CONNECTION-2026-08-14', 'Founder view must use the protected Search Console connection record.');
+requireValue(/existing Google account/i.test(values.searchConsole.accountDecision || ''), 'Founder view must retain the existing-Google-account decision.');
+const searchConsoleConnected = values.searchConsole.property?.googleSearchConsoleConnected === true;
+if (searchConsoleConnected) {
+    requireValue(values.searchConsole.property?.verifiedPropertyEvidenceAvailable === true && values.searchConsole.property?.verifiedBy === 'Kevin Murphy', 'Connected Search Console state must retain Kevin verification evidence.');
+} else {
+    requireValue(values.searchConsole.property?.verifiedPropertyEvidenceAvailable === false && values.searchConsole.sitemap?.submittedByStudio === false, 'Unconnected Search Console state must not invent verification or submission.');
+}
+if (values.searchConsole.sitemap?.submittedByStudio === true) {
+    requireValue(searchConsoleConnected && ['Success', 'Has errors', 'Pending'].includes(values.searchConsole.sitemap?.searchConsoleStatus), 'Recorded sitemap submission must follow verification and retain its exact status.');
+}
+requireValue(values.searchConsole.reporting?.indexCoverageKnown === false && values.searchConsole.reporting?.rankingKnown === false && values.searchConsole.reporting?.searchTrafficKnown === false, 'Founder view must not turn Search Console setup into invented indexing, ranking or traffic evidence.');
+requireValue(values.searchConsole.authority?.dnsChangeByStudioAuthorized === false && values.searchConsole.authority?.searchConsoleMutationByStudioAuthorized === false, 'DNS and Search Console changes must remain Kevin-controlled.');
 
 requireValue(values.founderStory.state === 'article_and_pitch_prepared_waiting_for_kevin_and_first_wave_learning', 'Founder story must remain prepared and waiting for Kevin.');
 requireValue(values.founderStory.target?.candidateRef === 'RC-007', 'Founder story must retain its reviewed Irish Tech News target.');

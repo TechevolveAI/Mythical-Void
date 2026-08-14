@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "SEARCH-CONSOLE-CONNECTION-2026-08-14",
+  "state": "waiting_for_existing_google_account_domain_verification",
+  "asOf": "2026-08-14",
+  "service": "Google Search Console",
+  "cost": "free_service",
+  "accountDecision": "Use Kevin's existing Google account. Do not create or record a separate Mythical Void email address for this task.",
+  "property": {
+    "recommendedType": "domain",
+    "name": "mythicalvoid.com",
+    "verificationMethod": "dns_txt",
+    "googleSearchConsoleConnected": false,
+    "verifiedPropertyEvidenceAvailable": false,
+    "verifiedBy": null,
+    "verifiedAt": null
+  },
+  "sitemap": {
+    "url": "https://mythicalvoid.com/sitemap.xml",
+    "publicStatusObserved": 200,
+    "publicRouteCountObserved": 9,
+    "submittedByStudio": false,
+    "submittedAt": null,
+    "searchConsoleStatus": null,
+    "lastReadAt": null,
+    "discoveredUrls": null
+  },
+  "reporting": {
+    "indexCoverageKnown": false,
+    "rankingKnown": false,
+    "searchTrafficKnown": false,
+    "trustedForCompanyDecisions": false
+  },
+  "privacy": {
+    "googleAccountAddressStored": false,
+    "dnsVerificationTokenStored": false,
+    "screenshotsWithPersonalAccountDetailsStored": false
+  },
+  "authority": {
+    "kevinManualVerificationRequired": true,
+    "dnsChangeByStudioAuthorized": false,
+    "searchConsoleMutationByStudioAuthorized": false,
+    "paidSearchAuthorized": false,
+    "rankingClaimAuthorized": false
+  },
+  "sources": [
+    "https://support.google.com/webmasters/answer/10351509?hl=en",
+    "https://support.google.com/webmasters/answer/7451001?hl=en",
+    "https://support.google.com/webmasters/answer/7687615?hl=en"
+  ]
+}
