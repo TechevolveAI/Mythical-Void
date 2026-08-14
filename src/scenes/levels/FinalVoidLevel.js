@@ -43,6 +43,83 @@ const FINAL_BOSS_ATTACK_PACING = Object.freeze({
     }
 });
 
+const FINAL_ENCOUNTER_PLAN = Object.freeze([
+    Object.freeze({
+        beat: 'opening-echo-clear',
+        supportId: 'final-opening-rise',
+        lane: 'shared',
+        health: 1,
+        patrolRange: 70,
+        speed: 40
+    }),
+    Object.freeze({
+        beat: 'return-approach-armor',
+        supportId: 'final-return-approach',
+        lane: 'shared',
+        health: 3,
+        patrolRange: 80,
+        speed: 44
+    }),
+    Object.freeze({
+        beat: 'return-route-armor',
+        supportId: 'final-return-route',
+        lane: 'shared',
+        airborne: true,
+        altitude: 115,
+        health: 3,
+        patrolRange: 70,
+        speed: 46
+    }),
+    Object.freeze({
+        beat: 'low-rift-clear',
+        supportId: 'final-rift-step-2',
+        lane: 'main',
+        health: 1,
+        patrolRange: 60,
+        speed: 42
+    }),
+    Object.freeze({
+        beat: 'low-rift-armor',
+        supportId: 'final-rift-step-3',
+        lane: 'main',
+        airborne: true,
+        altitude: 100,
+        health: 3,
+        patrolRange: 50,
+        speed: 50
+    }),
+    Object.freeze({
+        beat: 'trust-bridge-guard',
+        supportId: 'final-trust-bridge-2',
+        lane: 'optional',
+        airborne: true,
+        altitude: 95,
+        health: 1,
+        patrolRange: 70,
+        speed: 48
+    }),
+    Object.freeze({
+        beat: 'trust-signal-pressure',
+        supportId: 'final-rift-step-4',
+        lane: 'shared',
+        airborne: true,
+        altitude: 105,
+        health: 2,
+        patrolRange: 70,
+        speed: 50
+    }),
+    Object.freeze({
+        beat: 'empress-seal-armor',
+        supportId: 'final-empress-gate',
+        lane: 'shared',
+        airborne: true,
+        altitude: 125,
+        health: 4,
+        patrolRange: 90,
+        speed: 52
+    })
+]);
+
 /**
  * FinalVoidLevel - The ultimate boss encounter
  *
@@ -112,6 +189,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossGateHintUntil = 0;
         this.empressGate = null;
         this.voidFractures = [];
+        this.finalEncounterRhythm = [];
         this.bondReserveReady = false;
         this.bondReserveEcho = null;
         this.finalRouteChoice = '';
@@ -178,6 +256,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         this.bossGateHintUntil = 0;
         this.empressGate = null;
         this.voidFractures = [];
+        this.finalEncounterRhythm = [];
         this.bondReserveReady = false;
         this.bondReserveEcho = null;
         this.finalRouteChoice = '';
@@ -495,14 +574,38 @@ class FinalVoidLevel extends PlatformerLevelScene {
     }
 
     createVoidEchoSentinels() {
-        const groundY = this.levelHeight - 110;
-        const encounters = [
-            { x: 780, y: groundY, health: 1, patrolRange: 90, speed: 38 },
-            { x: 1640, y: groundY, health: 2, patrolRange: 105, speed: 42 },
-            { x: 2350, y: groundY, health: 3, patrolRange: 60, speed: 45 }
-        ];
+        const encounters = FINAL_ENCOUNTER_PLAN.map(encounter => {
+            const support = this.getTraversalSupport(encounter.supportId);
+            if (!support?.body) {
+                throw new Error(
+                    `[FinalVoidLevel] Missing encounter support ${encounter.supportId}`
+                );
+            }
 
-        this.createPatrolSentinels(encounters, {
+            const bodyInset = encounter.airborne ? 20 : 28;
+            const centerX = (support.body.left + support.body.right) / 2;
+            const x = Phaser.Math.Clamp(
+                centerX + (Number(encounter.offsetX) || 0),
+                support.body.left + bodyInset,
+                support.body.right - bodyInset
+            );
+            const availablePatrol = Math.max(0, Math.min(
+                x - support.body.left - bodyInset,
+                support.body.right - bodyInset - x
+            ));
+            return {
+                ...encounter,
+                x,
+                y: support.body.top - (
+                    encounter.airborne
+                        ? Number(encounter.altitude) || 100
+                        : 28
+                ),
+                patrolRange: Math.min(encounter.patrolRange, availablePatrol)
+            };
+        });
+
+        const sentinels = this.createPatrolSentinels(encounters, {
             enemyType: 'voidEchoSentinel',
             texturePrefix: 'voidEchoSentinel',
             bodyColor: 0x260B38,
@@ -510,6 +613,26 @@ class FinalVoidLevel extends PlatformerLevelScene {
             eyeColor: 0xA9F3E4,
             instructionText: null
         });
+
+        this.finalEncounterRhythm = sentinels.map((enemy, index) => {
+            const encounter = encounters[index];
+            enemy.encounterBeat = encounter.beat;
+            enemy.encounterLane = encounter.lane;
+            enemy.encounterSupportId = encounter.supportId;
+            return enemy;
+        });
+        return this.finalEncounterRhythm;
+    }
+
+    retireFinalPatrolsForEmpress() {
+        const patrols = [...(this.enemies?.getChildren?.() || [])];
+        patrols.forEach(enemy => {
+            enemy?.combatCue?.destroy?.();
+            enemy?.instructionLabel?.destroy?.();
+            enemy?.destroy?.();
+        });
+        this.finalEncounterRhythm = [];
+        return patrols.length;
     }
 
     createTrustBridgeRoute() {
@@ -560,8 +683,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
             returnLabel: 'DESCEND TO TRUST SIGNAL →',
             choice: {
                 mainLabel: 'LOW RIFT CROSSING →',
-                mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE',
-                challengeLabel: 'HIGH CLIMB // EARN 1 RESCUE',
+                mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE + 2 GUARDS',
+                challengeLabel: 'HIGH CLIMB + 1 GUARD // EARN RESCUE',
                 mainMarker: fractureRouteMarker,
                 mainZone: {
                     left: 1600, right: 2250,
@@ -1339,6 +1462,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         console.log('[FinalVoidLevel] Starting Void Empress boss fight!');
         this.bossFightActive = true;
+        this.retireFinalPatrolsForEmpress();
 
         this.physics.pause();
 

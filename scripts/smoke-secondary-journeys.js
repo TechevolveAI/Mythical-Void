@@ -1984,6 +1984,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     armoredCount: encounters.filter(
                         enemy => enemy.combatRole === 'armored'
                     ).length,
+                    heavyCount: encounters.filter(
+                        enemy => Number(enemy.maxHealth) >= 3
+                    ).length,
                     mainCount: encounters.filter(
                         enemy => enemy.encounterLane === 'main'
                     ).length,
@@ -2173,6 +2176,23 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             )}`
         );
     }
+    if (
+        route === 'finalVoid' &&
+        (
+            state.encounterRhythm?.count < 8 ||
+            state.encounterRhythm.clearCount < 3 ||
+            state.encounterRhythm.heavyCount < 3 ||
+            state.encounterRhythm.mainCount < 2 ||
+            state.encounterRhythm.optionalCount < 1 ||
+            state.encounterRhythm.unsupported.length > 0
+        )
+    ) {
+        throw new Error(
+            `${sceneName} has no deliberate encounter rhythm: ${JSON.stringify(
+                state.encounterRhythm
+            )}`
+        );
+    }
     const guardianGate = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
         const gate = scene?.guardianGateState;
@@ -2326,9 +2346,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     scene?.isGrounded || scene?.player?.body?.blocked?.down
                 );
                 const velocityY = scene?.player?.body?.velocity?.y;
-                return supported && Number.isFinite(velocityY) && velocityY >= -1;
+                const inputReady = scene?.canJump !== false &&
+                    (Number(scene?.recoveryInputLockedUntil) || 0) <= scene.time.now;
+                return supported && inputReady &&
+                    Number.isFinite(velocityY) && velocityY >= -1;
             })()`),
-            { timeoutMs: 5000, message: `${sceneName} grounded before jump` }
+            { timeoutMs: 5000, message: `${sceneName} jump-ready support` }
         );
     }
     const beforeJump = await evaluate(session, `(() => {
@@ -2355,6 +2378,41 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             supportId: support?.traversalId || null
         };
     })()`);
+    const jumpProbeStarted = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        if (!scene?.events || !scene?.player?.body) return false;
+        scene.__smokeJumpProbeHandler &&
+            scene.events.off('update', scene.__smokeJumpProbeHandler);
+        scene.__smokeJumpProbe = {
+            minPlayerY: scene.player.y,
+            minVelocityY: scene.player.body.velocity.y,
+            sampleCount: 0
+        };
+        scene.__smokeJumpProbeHandler = () => {
+            const probe = scene.__smokeJumpProbe;
+            if (!probe || !scene.player?.body) return;
+            probe.minPlayerY = Math.min(probe.minPlayerY, scene.player.y);
+            probe.minVelocityY = Math.min(
+                probe.minVelocityY,
+                scene.player.body.velocity.y
+            );
+            probe.sampleCount += 1;
+        };
+        scene.events.on('update', scene.__smokeJumpProbeHandler);
+        return true;
+    })()`);
+    if (!jumpProbeStarted) {
+        throw new Error(`${sceneName} could not start jump-frame telemetry`);
+    }
+    const clearJumpProbe = () => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+        if (scene?.__smokeJumpProbeHandler) {
+            scene.events?.off?.('update', scene.__smokeJumpProbeHandler);
+        }
+        delete scene?.__smokeJumpProbeHandler;
+        delete scene?.__smokeJumpProbe;
+        return true;
+    })()`);
     // A genuine tap can begin and end between two low-FPS Phaser updates.
     // The game must preserve that edge until gameplay consumes it.
     await touch(session, jumpControl.x, jumpControl.y);
@@ -2369,15 +2427,30 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         velocityY: scene?.player?.body?.velocity?.y,
                         virtualJumpPressed: scene?.virtualJumpPressed,
                         virtualJumpQueued: scene?.virtualJumpQueued,
-                        isSwimmingUp: scene?.isSwimmingUp
+                        isSwimmingUp: scene?.isSwimmingUp,
+                        minPlayerY: scene?.__smokeJumpProbe?.minPlayerY,
+                        minVelocityY: scene?.__smokeJumpProbe?.minVelocityY,
+                        sampleCount: scene?.__smokeJumpProbe?.sampleCount
                     };
                 })()`);
+                const observedVelocityY = Math.min(
+                    response.velocityY,
+                    Number(response.minVelocityY) || response.velocityY
+                );
+                const observedPlayerY = Math.min(
+                    response.playerY,
+                    Number(response.minPlayerY) || response.playerY
+                );
                 const responded = route === 'reef'
-                    ? response.velocityY < beforeJump.velocityY - 5 ||
-                        response.playerY < beforeJump.playerY - 2
-                    : response.velocityY < -20 ||
-                        response.playerY < beforeJump.playerY - 2;
-                return responded ? response : null;
+                    ? observedVelocityY < beforeJump.velocityY - 5 ||
+                        observedPlayerY < beforeJump.playerY - 2
+                    : observedVelocityY < -20 ||
+                        observedPlayerY < beforeJump.playerY - 2;
+                return responded ? {
+                    ...response,
+                    playerY: observedPlayerY,
+                    velocityY: observedVelocityY
+                } : null;
             },
             // Software-rendered campaign runs can briefly stall while the first
             // level's larger asset set is promoted. Preserve a strict response
@@ -2405,6 +2478,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 jumpBufferTimestamp: scene?.jumpBufferTimestamp,
                 actionPointerCount: scene?.actionButtonPointers?.size,
                 actionReleaseCount: scene?.actionButtonReleases?.size,
+                jumpProbe: scene?.__smokeJumpProbe || null,
                 jumpTarget: target ? {
                     x: target.x,
                     y: target.y,
@@ -2414,8 +2488,10 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 } : null
             };
         })()`);
+        await clearJumpProbe();
         throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
     }
+    await clearJumpProbe();
     await delay(120);
     const jumpReleased = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -4353,6 +4429,11 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         checkpoint: { x: 100, y: 100 },
                         start: () => {}
                     }),
+                    remainingPatrols: (scene.enemies?.getChildren?.() || [])
+                        .filter(enemy => enemy?.active !== false).length,
+                    remainingCombatCues: (scene.enemies?.getChildren?.() || [])
+                        .filter(enemy => enemy?.active !== false && enemy?.combatCue?.active)
+                        .length,
                     persistedId: persisted?.checkpointId || null,
                     persistedIndex: persisted?.checkpointIndex ?? null
                 };
@@ -4365,6 +4446,13 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             !Number.isFinite(guardianEntry.checkpointY) ||
             guardianEntry.gateCleared !== true ||
             guardianEntry.duplicateAccepted !== false ||
+            (
+                ['auroraDepths', 'finalVoid'].includes(route) &&
+                (
+                    guardianEntry.remainingPatrols !== 0 ||
+                    guardianEntry.remainingCombatCues !== 0
+                )
+            ) ||
             guardianEntry.persistedId !== guardianEntrySetup.persistedId ||
             guardianEntry.persistedIndex !== guardianEntrySetup.persistedIndex
         ) {
