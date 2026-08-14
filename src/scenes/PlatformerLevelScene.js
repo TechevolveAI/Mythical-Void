@@ -340,6 +340,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.jumpBufferTime = this.movementProfile.jumpBufferTime;
         this.jumpBufferPressed = false; // Whether jump was pressed recently (for buffering)
         this.jumpBufferTimestamp = 0; // When jump buffer was activated
+        this.jumpBufferFramesRemaining = 0; // Low-FPS grace measured in actual gameplay updates
         this.wasGrounded = false; // Track previous grounded state for landing detection
         this.lastLandingY = 0; // Track Y position to calculate fall distance for dust
 
@@ -746,6 +747,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.lastGroundedTime = 0;
         this.jumpBufferPressed = false;
         this.jumpBufferTimestamp = 0;
+        this.jumpBufferFramesRemaining = 0;
         this.wasGrounded = false;
         this.lastLandingY = 0;
 
@@ -3353,6 +3355,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.releaseVirtualJumpInput();
         if (!preserveQueuedJump) {
             this.virtualJumpQueued = false;
+            this.jumpBufferPressed = false;
+            this.jumpBufferFramesRemaining = 0;
         }
         return true;
     }
@@ -3938,11 +3942,17 @@ class PlatformerLevelScene extends Phaser.Scene {
             const maxHealth = Math.max(1, Number(encounter.health) || 1);
             const patrolRange = Math.max(60, Number(encounter.patrolRange) || 115);
             const patrolSpeed = Math.max(25, Number(encounter.speed) || 42);
+            const airborne = encounter.airborne === true;
 
             sentinel.setCollideWorldBounds(true);
             sentinel.setBounce(0.05);
             sentinel.setDepth(850);
             sentinel.body.setSize(44, 52, true);
+            if (airborne) {
+                sentinel.body.setAllowGravity(false);
+                sentinel.setBounce(0);
+                sentinel.encounterAirborne = true;
+            }
             sentinel.enemyType = enemyType;
             sentinel.health = maxHealth;
             sentinel.maxHealth = maxHealth;
@@ -3953,7 +3963,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             sentinel.setFlipX(index % 2 !== 0);
 
             this.configureEnemyCombat(sentinel, {
-                role: maxHealth >= 3 ? 'armored' : 'stompable',
+                role: airborne ? 'flyer' : maxHealth >= 3 ? 'armored' : 'stompable',
                 maxHealth,
                 stompDamage: 1,
                 contactDamage: 1,
@@ -4517,7 +4527,13 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.lastLandingY = this.player.y;
 
         // Check for jump buffer - if player pressed jump while in air near landing
-        if (this.jumpBufferPressed && (time - this.jumpBufferTimestamp) < this.jumpBufferTime) {
+        if (
+            this.jumpBufferPressed &&
+            (
+                (time - this.jumpBufferTimestamp) < this.jumpBufferTime ||
+                this.jumpBufferFramesRemaining > 0
+            )
+        ) {
             // Execute buffered jump immediately
             this.time.delayedCall(20, () => {
                 if (this.isGrounded && this.canJump && !this.isDucking) {
@@ -4801,6 +4817,11 @@ class PlatformerLevelScene extends Phaser.Scene {
                            this.virtualJumpPressed ||
                            this.virtualJumpQueued;  // Mobile tap edge survives a low-FPS frame
         const queuedJump = this.virtualJumpQueued;
+        const bufferedJumpActive = this.jumpBufferPressed &&
+            (
+                (time - this.jumpBufferTimestamp) < this.jumpBufferTime ||
+                this.jumpBufferFramesRemaining > 0
+            );
 
         // Calculate if within coyote time (recently was grounded)
         const timeSinceGrounded = time - this.lastGroundedTime;
@@ -4809,22 +4830,32 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Determine if we can jump (grounded OR within coyote time)
         const canJumpNow = (this.isGrounded || canCoyoteJump) && this.canJump;
 
-        if (jumpPressed && canJumpNow) {
+        if ((jumpPressed || bufferedJumpActive) && canJumpNow) {
             this.executeJump();
         } else if (jumpPressed && !canJumpNow) {
             // Player pressed jump just before landing or during the short jump
             // cooldown. Buffer it instead of dropping a valid input edge.
             this.jumpBufferPressed = true;
             this.jumpBufferTimestamp = time;
+            this.jumpBufferFramesRemaining = 3;
         }
 
         if (queuedJump) {
             this.virtualJumpQueued = false;
         }
 
-        // Clear jump buffer if grounded and no jump pressed
-        if (this.isGrounded && !jumpPressed) {
-            this.jumpBufferPressed = false;
+        // At low frame rates, 150ms can elapse between updates. Retain the tap
+        // for a few real simulation frames so a short cooldown cannot eat it.
+        if (this.jumpBufferPressed && !jumpPressed) {
+            if (this.jumpBufferFramesRemaining > 0) {
+                this.jumpBufferFramesRemaining -= 1;
+            }
+            if (
+                (time - this.jumpBufferTimestamp) >= this.jumpBufferTime &&
+                this.jumpBufferFramesRemaining <= 0
+            ) {
+                this.jumpBufferPressed = false;
+            }
         }
     }
 
@@ -4845,6 +4876,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Clear jump buffer since we just jumped
         this.jumpBufferPressed = false;
+        this.jumpBufferFramesRemaining = 0;
 
         // Play jump sound
         if (window.AudioManager) {
@@ -7917,6 +7949,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.virtualJoystickY = 0;
         this.clearVirtualJumpInput();
         this.jumpBufferPressed = false;
+        this.jumpBufferFramesRemaining = 0;
         this.player?.setVelocity?.(0, 0);
         this.hidePlatformerMobileControls?.();
         this.physics?.pause?.();

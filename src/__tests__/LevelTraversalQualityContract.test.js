@@ -1035,15 +1035,35 @@ describe('campaign traversal quality contracts', () => {
     test('Final Void rewards the Trust Bridge with one reliable rescue', () => {
         const source = read('levels/FinalVoidLevel.js');
 
+        expect(source).toContain('const FINAL_ENCOUNTER_PLAN = Object.freeze([');
+        expect(source).toContain("beat: 'opening-echo-clear'");
+        expect(source).toContain("beat: 'return-approach-armor'");
+        expect(source).toContain("beat: 'low-rift-clear'");
+        expect(source).toContain("beat: 'trust-bridge-guard'");
+        expect(source).toContain("beat: 'empress-seal-armor'");
+        expect(source).toContain("supportId: 'final-opening-rise'");
+        expect(source).toContain("supportId: 'final-rift-step-3'");
+        expect(source).toContain("supportId: 'final-trust-bridge-2'");
+        expect(source).toContain("supportId: 'final-empress-gate'");
+        expect(source).toContain("lane: 'main'");
+        expect(source).toContain("lane: 'optional'");
+        expect(source).toContain('airborne: true');
+        expect(source).toContain('enemy.encounterBeat = encounter.beat;');
+        expect(source).toContain('enemy.encounterLane = encounter.lane;');
+        expect(source).toContain('enemy.encounterSupportId = encounter.supportId;');
+        expect(source).toContain('retireFinalPatrolsForEmpress()');
+        expect(source).toContain('this.retireFinalPatrolsForEmpress();');
         expect(source).toContain('const groundIslands = [');
         expect(source).toContain('const mainRiftRoute = [');
         expect(source).toContain('const trustBridgeRoute = [');
         expect(source).toContain("'final-rift-step-1'");
         expect(source).toContain("'final-rift-step-4'");
         expect(source).toContain("mainLabel: 'LOW RIFT CROSSING →'");
-        expect(source).toContain("mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE'");
         expect(source).toContain(
-            "challengeLabel: 'HIGH CLIMB // EARN 1 RESCUE'"
+            "mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE + 2 GUARDS'"
+        );
+        expect(source).toContain(
+            "challengeLabel: 'HIGH CLIMB + 1 GUARD // EARN RESCUE'"
         );
         expect(source).toContain("{ x: 930, width: 120, label: 'JUMP THE RIFT →' }");
         expect(source).toContain("{ x: 1720, width: 490, label: 'CHOOSE YOUR CROSSING' }");
@@ -1111,8 +1131,8 @@ describe('campaign traversal quality contracts', () => {
             'levels/FinalVoidLevel.js',
             "id: 'final_trust_bridge'",
             "mainLabel: 'LOW RIFT CROSSING →'",
-            "mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE'",
-            "challengeLabel: 'HIGH CLIMB // EARN 1 RESCUE'"
+            "mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE + 2 GUARDS'",
+            "challengeLabel: 'HIGH CLIMB + 1 GUARD // EARN RESCUE'"
         ]
     ])('%s declares a readable two-path choice', (
         relativePath,
@@ -1377,7 +1397,7 @@ describe('campaign traversal quality contracts', () => {
             'levels/FinalVoidLevel.js',
             'createVoidEchoSentinels',
             'voidEchoSentinel',
-            'const encounters = ['
+            'const encounters = FINAL_ENCOUNTER_PLAN.map('
         ]
     ])('%s has authored combat between its route signals', (
         relativePath,
@@ -1401,6 +1421,9 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain('createPatrolSentinels(encounters, {');
         expect(source).toContain('this.configureEnemyCombat(sentinel, {');
+        expect(source).toContain('const airborne = encounter.airborne === true;');
+        expect(source).toContain('sentinel.body.setAllowGravity(false);');
+        expect(source).toContain("role: airborne ? 'flyer'");
         expect(source).toContain('updatePatrolEnemyMovement()');
         expect(source).toContain('this.updatePatrolEnemyMovement();');
     });
@@ -1787,6 +1810,37 @@ describe('campaign traversal quality contracts', () => {
         expect(scene.virtualJumpQueued).toBe(false);
     });
 
+    test('a queued mobile jump survives a slow grounded cooldown frame', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'JumpCooldownBufferTest' });
+        scene.jumpKey = { isDown: false };
+        scene.cursors = { up: { isDown: false } };
+        scene.wasdKeys = { W: { isDown: false } };
+        scene.isGrounded = true;
+        scene.canJump = false;
+        scene.lastGroundedTime = 1000;
+        scene.executeJump = jest.fn(() => {
+            scene.jumpBufferPressed = false;
+            scene.jumpBufferFramesRemaining = 0;
+            scene.clearVirtualJumpInput();
+        });
+
+        scene.queueVirtualJumpInput();
+        scene.releaseVirtualJumpInput();
+        scene.handleJump(1000);
+
+        expect(scene.executeJump).not.toHaveBeenCalled();
+        expect(scene.jumpBufferPressed).toBe(true);
+        expect(scene.virtualJumpQueued).toBe(false);
+
+        scene.canJump = true;
+        scene.handleJump(1300);
+
+        expect(scene.executeJump).toHaveBeenCalledTimes(1);
+        expect(scene.jumpBufferPressed).toBe(false);
+        expect(scene.jumpBufferFramesRemaining).toBe(0);
+    });
+
     test('cancellation clears any queued mobile jump edge', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'JumpTapCancelTest' });
@@ -1796,6 +1850,8 @@ describe('campaign traversal quality contracts', () => {
 
         expect(scene.virtualJumpPressed).toBe(false);
         expect(scene.virtualJumpQueued).toBe(false);
+        expect(scene.jumpBufferPressed).toBe(false);
+        expect(scene.jumpBufferFramesRemaining).toBe(0);
     });
 
     test.each([
