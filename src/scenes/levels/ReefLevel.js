@@ -1097,31 +1097,13 @@ class ReefLevel extends PlatformerLevelScene {
 
     createHUD() {
         super.createHUD();
-
-        // Keep the objective away from mobile movement and combat controls.
-        const { width, height } = this.cameras.main;
-        const isShortLandscape = width > height && height < 620;
-        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
-        this.objectiveDisplay = this.add.text(
-            width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
-            this.getReefObjectiveText(),
+        this.createCampaignObjectiveDisplay(
+            () => this.getReefObjectiveText(),
             {
-                fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
                 color: '#F4F8FF',
-                backgroundColor: 'rgba(10, 0, 21, 0.92)',
-                padding: { x: 10, y: 7 },
-                lineSpacing: 2,
-                align: 'left',
-                wordWrap: {
-                    width: this.isCompactObjectiveHUD ? 205 : 330
-                }
+                backgroundColor: 'rgba(10, 0, 21, 0.92)'
             }
-        ).setOrigin(1, 0)
-            .setScrollFactor(0)
-            .setDepth(1000);
+        );
     }
 
     getReefObjectiveText() {

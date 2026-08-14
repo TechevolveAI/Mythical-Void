@@ -450,10 +450,7 @@ describe('first expedition rescue loop', () => {
 
         expect(source).toContain('getForestObjectiveText()');
         expect(source).toContain(
-            'this.isMobile || width <= 480 || height < 620'
-        );
-        expect(source).toContain(
-            'isShortLandscape ? 76 : 72'
+            'this.createCampaignObjectiveDisplay('
         );
         expect(source).toContain('FOLLOW THE CURRENT →');
         expect(source).toContain('ROUTE ${current}/3 // ${nextAnchor}');

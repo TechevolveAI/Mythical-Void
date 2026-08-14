@@ -239,9 +239,7 @@ describe('second expedition rescue loop', () => {
         const source = readLevel();
 
         expect(source).toContain('const barY = isMobileLayout ? 118 : 55');
-        expect(source).toContain('this.isMobile || width <= 480 || height < 620');
-        expect(source).toContain('isShortLandscape ? 76 : 72');
-        expect(source).toContain(': 28;');
+        expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('FOLLOW THE CAVE PULSE →');
         expect(source).toContain('FRACTURED GROVE AHEAD');
         expect(source).toContain('REACH IT TOGETHER →');

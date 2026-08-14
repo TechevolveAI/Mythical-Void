@@ -143,7 +143,7 @@ describe('fourth expedition rescue loop', () => {
         );
         expect(source).toContain('const barY = isMobileLayout ? 118 : 60');
         expect(source).toContain('isMobileLayout ? 165 : 90');
-        expect(source).toContain('isShortLandscape ? 76 : 72');
+        expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('WARNING ${current}/3 // ${nextRelay}');
         expect(source).toContain('TITAN PASS OPEN');
         expect(source).toContain(

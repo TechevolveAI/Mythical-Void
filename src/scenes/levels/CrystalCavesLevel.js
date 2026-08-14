@@ -5361,33 +5361,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      */
     createHUD() {
         super.createHUD();
-
-        // Keep the objective away from mobile movement and combat controls.
-        const { width, height } = this.cameras.main;
-        const isShortLandscape = width > height && height < 620;
-        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
-        const objectiveTop = this.isCompactObjectiveHUD
-            ? (isShortLandscape ? 76 : 72)
-            : 28;
-        this.objectiveDisplay = this.add.text(
-            width - (this.isCompactObjectiveHUD ? 12 : 20),
-            objectiveTop,
-            this.getCrystalObjectiveText(),
+        this.createCampaignObjectiveDisplay(
+            () => this.getCrystalObjectiveText(),
             {
-            fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
-            fontFamily: 'Arial, sans-serif',
-            fontStyle: 'bold',
-            color: '#F4EDFF',
-            backgroundColor: 'rgba(26, 16, 37, 0.92)',
-            padding: { x: 10, y: 7 },
-            lineSpacing: 2,
-            align: 'left',
-            wordWrap: {
-                width: this.isCompactObjectiveHUD ? 205 : 330
+                color: '#F4EDFF',
+                backgroundColor: 'rgba(26, 16, 37, 0.92)'
             }
-        }).setOrigin(1, 0)
-            .setScrollFactor(0)
-            .setDepth(1000);
+        );
     }
 
     getCrystalObjectiveText() {

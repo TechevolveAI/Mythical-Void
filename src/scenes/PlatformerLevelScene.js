@@ -5,7 +5,7 @@ import {
 } from '../systems/ProjectBeaconStory.js';
 import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import '../systems/ProjectBeaconFieldKit.js';
-import { getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
+import { getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
 import bossConfigs from '../config/bosses.json';
 import { analyzeTraversalTopology } from '../systems/TraversalTopology.js';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
@@ -2659,6 +2659,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Set up mobile controls for touch devices
         this.setupPlatformerMobileControls();
+        this.scale?.on?.('resize', this.handlePlatformerMobileResize, this);
     }
 
     /**
@@ -3098,6 +3099,56 @@ class PlatformerLevelScene extends Phaser.Scene {
         // CRITICAL: Hide controls initially - they'll be shown when intro screen is dismissed
         // This prevents controls from being visible during level entry screens
         this.hidePlatformerMobileControls();
+    }
+
+    handlePlatformerMobileResize(gameSize = this.scale?.gameSize) {
+        if (!this.isMobile && !this.detectMobile()) return;
+
+        const controlsWereVisible = this.platformerControlsVisible === true;
+        this.destroyPlatformerMobileControls();
+        this.setupPlatformerMobileControls();
+
+        const width = gameSize?.width || this.scale?.width || 800;
+        const height = gameSize?.height || this.scale?.height || 600;
+        const safeArea = this.getSafeAreaInsets();
+        const layout = getMobileControlLayout({ width, height, safeArea });
+        this.mobileControlZoneHeight = layout.dockHeight + safeArea.bottom;
+        this.cameraBaseOffsetY = -height * 0.12;
+        this.cameraLeadAmount = width * 0.15;
+        this.cameras?.main?.setDeadzone?.(width * 0.1, height * 0.35);
+        this.cameras?.main?.setFollowOffset?.(
+            this.currentCameraLeadX || 0,
+            this.cameraBaseOffsetY
+        );
+
+        if (controlsWereVisible) {
+            this.showPlatformerMobileControls();
+        }
+    }
+
+    destroyPlatformerMobileControls() {
+        this.releaseAllPlatformerActionButtons();
+        this.cleanupPlatformerInputHandlers();
+        this.clearMobileControlCoach();
+        this.mobileControlElements?.forEach(element => {
+            try {
+                element?.removeAllListeners?.();
+                element?.destroy?.();
+            } catch (error) {
+                console.warn('[PlatformerLevel] Mobile control cleanup skipped:', error);
+            }
+        });
+        this.mobileControlElements = [];
+        this.mobileControlTargets = {};
+        this.platformerControlsVisible = false;
+        this.joystickActive = false;
+        this.joystickPointerId = null;
+        this.joystickTouchIdentifier = null;
+        this.virtualJoystickX = 0;
+        this.virtualJoystickY = 0;
+        this.clearVirtualJumpInput();
+        this.joystickBase = null;
+        this.joystickThumb = null;
     }
 
     /**
@@ -4334,17 +4385,80 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.updateHealthDisplay();
 
         // Crystal energy display
-        this.energyDisplay = this.add.container(hudX, hudY + 38);
+        this.energyDisplay = this.add.container(
+            mobileLayout ? hudX + (mobileLayout.compact ? 82 : 92) : hudX,
+            mobileLayout ? hudY : hudY + 38
+        );
         this.energyDisplay.setScrollFactor(0);
         this.energyDisplay.setDepth(1000);
         this.updateEnergyDisplay();
 
-        this.katanaUpgradeDisplay = this.add.container(hudX, hudY + 76);
+        this.katanaUpgradeDisplay = this.add.container(
+            hudX,
+            mobileLayout ? hudY + 36 : hudY + 76
+        );
         this.katanaUpgradeDisplay.setScrollFactor(0);
         this.katanaUpgradeDisplay.setDepth(1000);
         this.layoutKatanaUpgradeDisplay();
         this.scale?.on?.('resize', this.layoutKatanaUpgradeDisplay, this);
         this.updateKatanaUpgradeDisplay();
+    }
+
+    createCampaignObjectiveDisplay(textProvider, {
+        color = '#F4F8FF',
+        backgroundColor = 'rgba(8, 13, 22, 0.92)'
+    } = {}) {
+        this.campaignObjectiveTextProvider = textProvider;
+        const { width, height } = this.cameras.main;
+        const layout = getCampaignObjectiveLayout({
+            width,
+            height,
+            safeArea: this.getSafeAreaInsets()
+        });
+        this.isCompactObjectiveHUD = layout.compact;
+        const text = typeof textProvider === 'function'
+            ? textProvider()
+            : String(textProvider || '');
+
+        this.objectiveDisplay = this.add.text(layout.x, layout.y, text, {
+            fontSize: `${layout.fontSize}px`,
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color,
+            backgroundColor,
+            padding: { x: 10, y: 7 },
+            lineSpacing: 2,
+            align: layout.align,
+            wordWrap: { width: layout.maxWidth }
+        }).setOrigin(layout.originX, layout.originY)
+            .setScrollFactor(0)
+            .setDepth(1000);
+
+        this.scale?.on?.('resize', this.layoutCampaignObjectiveDisplay, this);
+        return this.objectiveDisplay;
+    }
+
+    layoutCampaignObjectiveDisplay(gameSize = this.scale?.gameSize) {
+        if (!this.objectiveDisplay?.active) return;
+
+        const width = gameSize?.width || this.cameras?.main?.width || 800;
+        const height = gameSize?.height || this.cameras?.main?.height || 600;
+        const layout = getCampaignObjectiveLayout({
+            width,
+            height,
+            safeArea: this.getSafeAreaInsets()
+        });
+        this.isCompactObjectiveHUD = layout.compact;
+        this.objectiveDisplay
+            .setPosition(layout.x, layout.y)
+            .setOrigin(layout.originX, layout.originY)
+            .setAlign(layout.align)
+            .setFontSize(`${layout.fontSize}px`)
+            .setWordWrapWidth(layout.maxWidth);
+
+        if (typeof this.campaignObjectiveTextProvider === 'function') {
+            this.objectiveDisplay.setText(this.campaignObjectiveTextProvider());
+        }
     }
 
     layoutKatanaUpgradeDisplay(gameSize = this.scale?.gameSize) {
@@ -4361,7 +4475,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             });
             this.katanaUpgradeDisplay.setPosition(
                 layout.menu.x + 42,
-                Math.max(88, layout.safeArea.top + 84)
+                Math.max(48, layout.safeArea.top + 44)
             );
             return;
         }
@@ -4376,6 +4490,36 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.katanaUpgradeDisplay.removeAll(true);
         const upgrades = this.katanaCombatProfile?.upgradeIds || [];
         let row = 0;
+
+        if (this.detectMobile()) {
+            const statuses = [];
+            if (this.katanaEquipped) statuses.push('KATANA');
+            if (upgrades.includes('crystal_edge')) statuses.push('EDGE +1');
+            if (upgrades.includes('aurora_guard')) {
+                statuses.push(`GUARD ${this.auroraGuardCharges}`);
+            }
+            if (this.communityGuardCharges > 0 || this.fendCommunitySupport?.guardCharges > 0) {
+                statuses.push(`RELAY ${this.communityGuardCharges}`);
+            }
+            if (this.guardianTeamSupport?.guardianId) statuses.push('ALLY');
+            if (statuses.length === 0) return;
+
+            const blade = this.add.graphics();
+            blade.lineStyle(3, 0xDCE8ED, 1);
+            blade.lineBetween(2, 15, 18, 2);
+            blade.lineStyle(2, 0xF2C14E, 1);
+            blade.lineBetween(1, 10, 9, 18);
+            const label = this.add.text(26, 2, statuses.join(' // '), {
+                fontSize: '10px',
+                color: '#DCE8ED',
+                fontStyle: 'bold',
+                wordWrap: {
+                    width: Math.max(150, (this.scale?.width || 320) - this.katanaUpgradeDisplay.x - 12)
+                }
+            });
+            this.katanaUpgradeDisplay.add([blade, label]);
+            return;
+        }
 
         if (this.katanaEquipped && upgrades.length === 0) {
             const blade = this.add.graphics();
@@ -4493,6 +4637,21 @@ class PlatformerLevelScene extends Phaser.Scene {
     updateHealthDisplay() {
         this.healthDisplay.removeAll(true);
 
+        if (this.detectMobile()) {
+            const heart = this.add.graphics();
+            heart.fillStyle(this.health > 0 ? 0xFF6B6B : 0x3D2B5D, 1);
+            heart.fillCircle(6, 6, 6);
+            heart.fillCircle(14, 6, 6);
+            heart.fillTriangle(0, 8, 20, 8, 10, 20);
+            const count = this.add.text(26, 2, `${this.health}/${this.maxHealth}`, {
+                fontSize: '12px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            });
+            this.healthDisplay.add([heart, count]);
+            return;
+        }
+
         for (let i = 0; i < this.maxHealth; i++) {
             const heart = this.add.graphics();
             const filled = i < this.health;
@@ -4513,6 +4672,21 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     updateEnergyDisplay() {
         this.energyDisplay.removeAll(true);
+
+        if (this.detectMobile()) {
+            const crystal = this.add.graphics();
+            const filled = this.crystalEnergy > 0;
+            crystal.fillStyle(filled ? 0x7B68EE : 0x3D2B5D, filled ? 1 : 0.5);
+            crystal.fillTriangle(9, 0, 0, 11, 9, 22);
+            crystal.fillTriangle(9, 0, 18, 11, 9, 22);
+            const count = this.add.text(24, 2, `${this.crystalEnergy}/${this.maxCrystalEnergy}`, {
+                fontSize: '12px',
+                color: '#FFFFFF',
+                fontStyle: 'bold'
+            });
+            this.energyDisplay.add([crystal, count]);
+            return;
+        }
 
         for (let i = 0; i < this.maxCrystalEnergy; i++) {
             const crystal = this.add.graphics();
@@ -7953,6 +8127,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.levelInitializationErrorElements = [];
 
         this.scale?.off?.('resize', this.layoutKatanaUpgradeDisplay, this);
+        this.scale?.off?.('resize', this.layoutCampaignObjectiveDisplay, this);
+        this.scale?.off?.('resize', this.handlePlatformerMobileResize, this);
+        this.campaignObjectiveTextProvider = null;
         window.EconomyManager?.clearLevelCoinMultiplier?.();
         this.katanaArtifactModal?.destroy?.();
         this.katanaArtifactModal = null;
@@ -7992,27 +8169,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         }
 
-        // Clean up mobile controls
-        if (this.mobileControlElements && this.mobileControlElements.length > 0) {
-            this.mobileControlElements.forEach(element => {
-                try {
-                    element?.removeAllListeners?.();
-                    element?.destroy?.();
-                } catch (e) {
-                    // Element may already be destroyed
-                }
-            });
-        this.mobileControlElements = [];
-        }
-
-        // Reset mobile control state
-        this.releaseAllPlatformerActionButtons();
-        this.joystickActive = false;
-        this.virtualJoystickX = 0;
-        this.virtualJoystickY = 0;
-        this.clearVirtualJumpInput();
-        this.joystickThumb = null;
-        this.mobileControlTargets = {};
+        this.destroyPlatformerMobileControls();
 
         // Clean up pause menu
         if (this.pauseEscHandler) {

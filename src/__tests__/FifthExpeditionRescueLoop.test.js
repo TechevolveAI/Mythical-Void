@@ -113,7 +113,7 @@ describe('fifth expedition rescue loop', () => {
             'this.isMobile || screenWidth <= 480 || screenHeight < 620'
         );
         expect(source).toContain('const barY = isMobileLayout ? 118 : 60');
-        expect(source).toContain('isShortLandscape ? 76 : 72');
+        expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('QUIET ALIGNMENT ${current}/3 // ${nextPrism}');
         expect(source).toContain('EARTH CAN BE REACHED BY CHOICE');
         expect(source).toContain(

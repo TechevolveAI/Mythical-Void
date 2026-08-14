@@ -107,7 +107,8 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
         )
         .replace("import '../systems/ProjectBeaconFieldKit.js';", '')
         .replace(
-            "import { getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';",
+            "import { getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';",
+            'const getCampaignObjectiveLayout = () => ({});\n' +
             'const getMobileControlLayout = () => ({});\n' +
             'const getSafeAreaInsets = () => ({ top: 0, right: 0, bottom: 0, left: 0 });'
         )

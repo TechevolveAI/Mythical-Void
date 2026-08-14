@@ -890,31 +890,13 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     createHUD() {
         super.createHUD();
-
-        // Keep objectives readable above the playfield and mobile controls.
-        const { width, height } = this.cameras.main;
-        const isShortLandscape = width > height && height < 620;
-        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
-        this.objectiveDisplay = this.add.text(
-            width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
-            this.getAuroraObjectiveText(),
+        this.createCampaignObjectiveDisplay(
+            () => this.getAuroraObjectiveText(),
             {
-                fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
                 color: '#EFFFFB',
-                backgroundColor: 'rgba(6, 24, 31, 0.92)',
-                padding: { x: 10, y: 7 },
-                lineSpacing: 2,
-                align: 'left',
-                wordWrap: {
-                    width: this.isCompactObjectiveHUD ? 215 : 340
-                }
+                backgroundColor: 'rgba(6, 24, 31, 0.92)'
             }
-        ).setOrigin(1, 0)
-            .setScrollFactor(0)
-            .setDepth(1000);
+        );
     }
 
     getAuroraObjectiveText() {

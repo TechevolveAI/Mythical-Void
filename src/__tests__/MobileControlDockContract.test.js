@@ -6,7 +6,7 @@ function loadControlMath() {
     const filePath = path.join(__dirname, '../systems/MobileControlLayout.js');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace(/export function /g, 'function ')
-        .concat('\nmodule.exports = { getMobileControlLayout, getMobileInteractionPromptLayout, getJoystickVector };\n');
+        .concat('\nmodule.exports = { getMobileControlLayout, getMobileInteractionPromptLayout, getCampaignObjectiveLayout, getJoystickVector };\n');
     const sandbox = {
         module: { exports: {} },
         exports: {},
@@ -21,6 +21,7 @@ describe('shared mobile control dock', () => {
     const {
         getMobileControlLayout,
         getMobileInteractionPromptLayout,
+        getCampaignObjectiveLayout,
         getJoystickVector
     } = loadControlMath();
     const viewports = [
@@ -69,6 +70,27 @@ describe('shared mobile control dock', () => {
         expect(prompt.originY).toBe(1);
     });
 
+    test.each(viewports)('gives objectives a bounded portrait ribbon at %ix%i', (
+        width,
+        height
+    ) => {
+        const safeArea = { top: 47, right: 0, bottom: 34, left: 0 };
+        const objective = getCampaignObjectiveLayout({
+            width,
+            height,
+            safeArea
+        });
+        const panelWidth = objective.maxWidth + 20;
+        const left = objective.x - panelWidth * objective.originX;
+        const right = left + panelWidth;
+
+        expect(objective.mode).toBe('portrait');
+        expect(objective.align).toBe('center');
+        expect(objective.y).toBeGreaterThanOrEqual(safeArea.top + 76);
+        expect(left).toBeGreaterThanOrEqual(safeArea.left);
+        expect(right).toBeLessThanOrEqual(width - safeArea.right);
+    });
+
     test.each([
         [844, 390],
         [932, 430]
@@ -90,6 +112,15 @@ describe('shared mobile control dock', () => {
             safeArea
         });
         expect(prompt.y).toBeLessThan(prompt.dockTop);
+
+        const objective = getCampaignObjectiveLayout({
+            width,
+            height,
+            safeArea
+        });
+        expect(objective.mode).toBe('landscape');
+        expect(objective.x).toBeLessThanOrEqual(width - safeArea.right);
+        expect(objective.maxWidth).toBeLessThan(width / 2);
     });
 
     test.each([
@@ -180,6 +211,14 @@ describe('shared mobile control dock', () => {
         expect(mobileSource).toContain("window.addEventListener('pagehide'");
         expect(mobileSource).toContain("'visibilitychange'");
         expect(platformerSource).toContain('getMobileControlLayout');
+        expect(platformerSource).toContain('getCampaignObjectiveLayout');
+        expect(platformerSource).toContain("this.scale?.on?.('resize', this.layoutCampaignObjectiveDisplay, this)");
+        expect(platformerSource).toContain("this.scale?.off?.('resize', this.layoutCampaignObjectiveDisplay, this)");
+        expect(platformerSource).toContain("this.scale?.on?.('resize', this.handlePlatformerMobileResize, this)");
+        expect(platformerSource).toContain("this.scale?.off?.('resize', this.handlePlatformerMobileResize, this)");
+        expect(platformerSource).toContain('const controlsWereVisible = this.platformerControlsVisible === true');
+        expect(platformerSource).toContain('this.destroyPlatformerMobileControls()');
+        expect(platformerSource).toContain('this.mobileControlZoneHeight = layout.dockHeight + safeArea.bottom');
         expect(platformerSource).toContain('this.platformerPreviewSize');
         expect(platformerSource).toContain("].includes('mobile')");
         expect(platformerSource).not.toContain('arc layout above large jump button');
@@ -187,6 +226,26 @@ describe('shared mobile control dock', () => {
         expect(responsiveSource).not.toContain("new MouseEvent('mousedown'");
         expect(responsiveSource).not.toContain("new MouseEvent('mousemove'");
         expect(responsiveSource).not.toContain("new MouseEvent('mouseup'");
+    });
+
+    test('all campaign levels use the shared responsive objective display', () => {
+        const levelFiles = [
+            'MythicalForestLevel.js',
+            'CrystalCavesLevel.js',
+            'ReefLevel.js',
+            'VoidPeaksLevel.js',
+            'AuroraDepthsLevel.js',
+            'FinalVoidLevel.js'
+        ];
+
+        levelFiles.forEach((fileName) => {
+            const source = fs.readFileSync(
+                path.join(__dirname, '../scenes/levels', fileName),
+                'utf8'
+            );
+            expect(source).toContain('this.createCampaignObjectiveDisplay(');
+            expect(source).not.toContain('const isShortLandscape');
+        });
     });
 
     test('the sanctuary camera reserves room above the mobile control dock', () => {
