@@ -223,7 +223,7 @@ describe('third expedition rescue loop', () => {
 
         expect(source).toContain('const y = isMobileLayout ? 118 : 55');
         expect(source).toContain('this.isMobile || width <= 480 || height < 620');
-        expect(source).toContain('isShortLandscape ? 76 : 72');
+        expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('ROUTE ${current}/3 // ${nextWaypoint}');
         expect(source).toContain('PASSAGE GUARDIAN AHEAD');
         expect(source).toContain('RECOVER THE DIMENSIONAL DRIVE');

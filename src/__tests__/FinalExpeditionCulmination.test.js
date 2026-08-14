@@ -128,7 +128,7 @@ describe('Final Void expedition culmination', () => {
         );
         expect(finalVoidSource).toContain('const barY = compact ? 118 : 60');
         expect(finalVoidSource).toContain('compact ? 158 : 112');
-        expect(finalVoidSource).toContain('isShortLandscape ? 76 : 72');
+        expect(finalVoidSource).toContain('this.createCampaignObjectiveDisplay(');
         expect(finalVoidSource).toContain('BOND ${current}/3 // ${nextSignal}');
         expect(finalVoidSource).toContain('EMPRESS SEAL OPEN');
         expect(finalVoidSource).toContain(

@@ -153,3 +153,49 @@ export function getMobileInteractionPromptLayout({
         dockTop: controls.dockTop
     };
 }
+
+/**
+ * Keep campaign objectives out of the status cluster on narrow phones while
+ * preserving the familiar top-right position on landscape and desktop.
+ */
+export function getCampaignObjectiveLayout({
+    width,
+    height,
+    safeArea = { top: 0, right: 0, bottom: 0, left: 0 }
+}) {
+    const portraitPhone = width <= 480 && height >= width;
+    const shortLandscape = width > height && height < 620;
+    const compact = portraitPhone || shortLandscape || height < 620;
+    const inset = width < 380 ? 10 : 12;
+
+    if (portraitPhone) {
+        const contentLeft = safeArea.left + inset;
+        const contentRight = width - safeArea.right - inset;
+        return {
+            compact,
+            mode: 'portrait',
+            x: (contentLeft + contentRight) / 2,
+            y: Math.max(82, safeArea.top + 76),
+            originX: 0.5,
+            originY: 0,
+            align: 'center',
+            maxWidth: Math.max(200, contentRight - contentLeft - 20),
+            fontSize: width < 380 ? 11 : 12
+        };
+    }
+
+    const right = safeArea.right + (compact ? 12 : 20);
+    return {
+        compact,
+        mode: shortLandscape ? 'landscape' : 'desktop',
+        x: width - right,
+        y: shortLandscape ? Math.max(12, safeArea.top + 8) : 20,
+        originX: 1,
+        originY: 0,
+        align: 'left',
+        maxWidth: shortLandscape
+            ? clamp(Math.round(width * 0.38), 220, 320)
+            : clamp(Math.round(width * 0.3), 300, 350),
+        fontSize: compact ? 12 : 15
+    };
+}

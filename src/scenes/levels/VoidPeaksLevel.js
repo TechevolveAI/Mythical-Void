@@ -873,31 +873,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     createHUD() {
         super.createHUD();
-
-        // Keep objectives above the playfield and away from mobile controls.
-        const { width, height } = this.cameras.main;
-        const isShortLandscape = width > height && height < 620;
-        this.isCompactObjectiveHUD = this.isMobile || width <= 480 || height < 620;
-        this.objectiveDisplay = this.add.text(
-            width - (this.isCompactObjectiveHUD ? 12 : 20),
-            this.isCompactObjectiveHUD ? (isShortLandscape ? 76 : 72) : 20,
-            this.getPeakObjectiveText(),
+        this.createCampaignObjectiveDisplay(
+            () => this.getPeakObjectiveText(),
             {
-                fontSize: this.isCompactObjectiveHUD ? '12px' : '15px',
-                fontFamily: 'Arial, sans-serif',
-                fontStyle: 'bold',
                 color: '#F8F2FF',
-                backgroundColor: 'rgba(12, 4, 22, 0.92)',
-                padding: { x: 10, y: 7 },
-                lineSpacing: 2,
-                align: 'left',
-                wordWrap: {
-                    width: this.isCompactObjectiveHUD ? 205 : 330
-                }
+                backgroundColor: 'rgba(12, 4, 22, 0.92)'
             }
-        ).setOrigin(1, 0)
-            .setScrollFactor(0)
-            .setDepth(1000);
+        );
     }
 
     getPeakObjectiveText() {
