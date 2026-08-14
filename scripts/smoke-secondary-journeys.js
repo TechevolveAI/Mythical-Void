@@ -6020,7 +6020,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 ) return null;
                 return { bossHealth: Number(scene.bossHealth) };
             })()`),
-            { timeoutMs: 8000, message: `${sceneName} guardian combat start` }
+            { timeoutMs: 15000, message: `${sceneName} guardian combat start` }
         );
 
         const guardianBlast = await evaluate(session, `(() => {
@@ -9221,6 +9221,64 @@ async function smokeGuardianPacing(session, exceptions) {
             { timeoutMs: 15000, message: `${sceneName} guardian spawn` }
         );
 
+        let openingFraming = null;
+        if (sceneName === 'ReefLevel') {
+            openingFraming = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                    const camera = scene?.cameras?.main;
+                    const player = scene?.player;
+                    const boss = scene?.bossBody;
+                    const view = camera?.worldView;
+                    const orientationElapsed = scene?.time?.now -
+                        scene?.bossCombatReadyAt;
+                    if (
+                        !scene?.bossCombatReady ||
+                        !Number.isFinite(orientationElapsed) ||
+                        orientationElapsed < 900 ||
+                        scene?.physics?.world?.isPaused ||
+                        scene?.platformerControlsVisible !== true ||
+                        !camera || !view || !player?.active || !boss?.active
+                    ) return null;
+                    return {
+                        bossCombatReady: true,
+                        controlsVisible: true,
+                        physicsPaused: false,
+                        orientationElapsed: Math.round(orientationElapsed),
+                        zoom: camera.zoom,
+                        playerHealth: scene.health,
+                        bossHealth: scene.bossHealth,
+                        bossMaxHealth: scene.bossMaxHealth,
+                        openingAttackPending:
+                            Boolean(scene.bossAttackPreviewTimer),
+                        contactDamageArmed:
+                            scene.bossContactDamageArmed === true,
+                        playerVisible: view.contains(player.x, player.y),
+                        bossVisible: view.contains(boss.x, boss.y),
+                        playerScreenX: Math.round((player.x - view.x) * camera.zoom),
+                        bossScreenX: Math.round((boss.x - view.x) * camera.zoom),
+                        viewportWidth: camera.width
+                    };
+                })()`),
+                { timeoutMs: 15000, message: 'Reef mobile guardian framing' }
+            );
+            if (
+                openingFraming.zoom !== 1 ||
+                !openingFraming.playerVisible ||
+                !openingFraming.bossVisible ||
+                openingFraming.bossHealth !== openingFraming.bossMaxHealth ||
+                openingFraming.playerHealth !== 4 ||
+                !openingFraming.openingAttackPending ||
+                openingFraming.contactDamageArmed ||
+                openingFraming.playerScreenX < 24 ||
+                openingFraming.bossScreenX > openingFraming.viewportWidth - 24
+            ) {
+                throw new Error(
+                    `Reef guardian opened outside the playable view: ${JSON.stringify(openingFraming)}`
+                );
+            }
+        }
+
         if (triggerManually) {
             await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -9311,11 +9369,64 @@ async function smokeGuardianPacing(session, exceptions) {
             );
         }
 
+        let lungeContact = null;
+        if (sceneName === 'ReefLevel') {
+            const lungeStarted = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                if (!scene?.player?.active || !scene?.bossBody?.active) return null;
+                scene.health = scene.maxHealth;
+                scene.isInvincible = false;
+                scene.damageTaken = Number(scene.damageTaken) || 0;
+                scene.updateHealthDisplay?.();
+                scene.bossContactDamageArmed = false;
+                scene.bossContactDamageConsumed = false;
+                scene.bossBody.setPosition(5700, scene.levelHeight - 500);
+                scene.player.setPosition(5500, scene.levelHeight - 360);
+                scene.player.setVelocity?.(0, 0);
+                const damageBefore = scene.damageTaken;
+                scene.__smokeReefLungeDamageBefore = damageBefore;
+                scene.bossVoidLunge();
+                return { damageBefore, healthBefore: scene.health };
+            })()`);
+            if (!lungeStarted) {
+                throw new Error('Reef guardian lunge could not be staged');
+            }
+            lungeContact = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                    if (!scene?.bossContactDamageConsumed) return null;
+                    return {
+                        health: scene.health,
+                        maxHealth: scene.maxHealth,
+                        damageDelta: scene.damageTaken -
+                            scene.__smokeReefLungeDamageBefore,
+                        contactDamageArmed:
+                            scene.bossContactDamageArmed === true,
+                        contactDamageConsumed:
+                            scene.bossContactDamageConsumed === true
+                    };
+                })()`),
+                { timeoutMs: 5000, message: 'Reef single-hit lunge contact' }
+            );
+            if (
+                lungeContact.health !== lungeContact.maxHealth - 1 ||
+                lungeContact.damageDelta !== 1 ||
+                lungeContact.contactDamageArmed ||
+                !lungeContact.contactDamageConsumed
+            ) {
+                throw new Error(
+                    `Reef lunge applied repeated contact damage: ${JSON.stringify(lungeContact)}`
+                );
+            }
+        }
+
         results[sceneName] = {
+            openingFraming,
             attack,
             attackState,
             deferralState,
-            recoveryState
+            recoveryState,
+            lungeContact
         };
         process.stdout.write(`PASS ${sceneName}GuardianPacing\n`);
     }

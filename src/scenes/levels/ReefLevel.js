@@ -3,6 +3,7 @@ import PlatformerLevelScene from '../PlatformerLevelScene.js';
 const NYXVORAL_TEXTURE = 'nyxvoralArtwork';
 const NYXVORAL_ASSET = '/game/guardians/nyxvoral.webp';
 const NYXVORAL_DISPLAY_WIDTH = 430;
+const NYXVORAL_MOBILE_DISPLAY_WIDTH = 300;
 
 const REEF_GUARDIAN_ATTACK_WINDOWS = Object.freeze({
     voidLunge: 2600,
@@ -19,6 +20,17 @@ const REEF_GUARDIAN_ATTACK_CUES = Object.freeze({
 const REEF_GUARDIAN_PHASES = Object.freeze({
     2: { label: 'CURRENT SHEAR // NEW PATTERN', color: 0xF2C94C },
     3: { label: 'ROUTE COLLAPSE // HOLD THE LINE', color: 0xFF6B8A }
+});
+
+const REEF_GUARDIAN_ARENA = Object.freeze({
+    triggerX: 5200,
+    playerEntryX: 5500,
+    introFocusX: 5600,
+    bossX: 5700,
+    playerBottomOffset: 360,
+    bossBottomOffset: 500,
+    openingGraceMs: 3000,
+    contactDamage: 1
 });
 
 const REEF_ENCOUNTER_PLAN = Object.freeze([
@@ -154,7 +166,12 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossRouteText = null;
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer = null;
+        this.bossAttackPreviewTimer = null;
         this.bossAttackLocked = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
         this.bossAttackPreview = null;
         this.bossMinions = [];
         this.bossRecoveryUntil = 0;
@@ -231,7 +248,12 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossRouteText = null;
         this.bossInstructionTimer = null;
         this.bossAttackUnlockTimer = null;
+        this.bossAttackPreviewTimer = null;
         this.bossAttackLocked = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
         this.bossRecoveryUntil = 0;
         this.bossPhaseAdvanceLockedUntil = 0;
         this.bossPhaseTransitionTimer = null;
@@ -308,7 +330,10 @@ class ReefLevel extends PlatformerLevelScene {
         console.log("[ReefLevel] TEST MODE - Spawning Nyx'voral");
 
         if (this.player) {
-            this.player.setPosition(this.levelWidth - 900, this.levelHeight - 200);
+            this.player.setPosition(
+                REEF_GUARDIAN_ARENA.playerEntryX,
+                this.levelHeight - REEF_GUARDIAN_ARENA.playerBottomOffset
+            );
         }
 
         this.showPlatformerMobileControls();
@@ -1356,7 +1381,7 @@ class ReefLevel extends PlatformerLevelScene {
         const guardian = {
                 id: 'reef_guardian_gate',
                 label: 'PASSAGE GUARDIAN',
-                x: this.bossTriggerZone?.x || 5200,
+                x: this.bossTriggerZone?.x || REEF_GUARDIAN_ARENA.triggerX,
                 y: this.bossTriggerZone?.y || this.levelHeight / 2,
                 zone: this.bossTriggerZone
             };
@@ -2810,11 +2835,16 @@ class ReefLevel extends PlatformerLevelScene {
      * Create boss trigger
      */
     createBossTrigger() {
-        const triggerZone = this.add.zone(5200, this.levelHeight / 2, 100, this.levelHeight);
+        const triggerZone = this.add.zone(
+            REEF_GUARDIAN_ARENA.triggerX,
+            this.levelHeight / 2,
+            100,
+            this.levelHeight
+        );
         this.physics.add.existing(triggerZone, true);
         this.bossTriggerZone = triggerZone;
         this.createGuardianGateState({
-            x: 5200,
+            x: REEF_GUARDIAN_ARENA.triggerX,
             y: this.levelHeight - 470,
             title: 'STELLAR PASSAGE',
             getStatus: () => !this.reefRouteAligned
@@ -2850,8 +2880,8 @@ class ReefLevel extends PlatformerLevelScene {
                     id: 'nyxvoral',
                     title: "NYX'VORAL",
                     checkpoint: {
-                        x: 5420,
-                        y: this.levelHeight - 360
+                        x: REEF_GUARDIAN_ARENA.playerEntryX,
+                        y: this.levelHeight - REEF_GUARDIAN_ARENA.playerBottomOffset
                     },
                     start: () => this.startBossFight()
                 });
@@ -2869,15 +2899,43 @@ class ReefLevel extends PlatformerLevelScene {
     startBossFight() {
         this.bossFightActive = true;
         this.bossHealth = this.bossMaxHealth;
+        this.bossCombatReady = false;
+        this.bossAttackLocked = true;
         this.retireReefPatrolsForNyxvoral();
         this.physics.pause();
+        this.hidePlatformerMobileControls();
+        this.stageReefGuardianArenaEntry();
 
         console.log('[ReefLevel] BOSS FIGHT: Nyx\'voral the Void Serpent!');
 
         this.cameras.main.stopFollow();
-        this.cameras.main.pan(5600, this.levelHeight / 2, 1200);
+        this.cameras.main.pan(
+            REEF_GUARDIAN_ARENA.introFocusX,
+            this.levelHeight / 2,
+            1200
+        );
 
         this.showBossIntro();
+    }
+
+    stageReefGuardianArenaEntry() {
+        if (!this.player) return false;
+
+        const x = Math.max(
+            Number(this.player.x) || 0,
+            REEF_GUARDIAN_ARENA.playerEntryX
+        );
+        const y = this.levelHeight - REEF_GUARDIAN_ARENA.playerBottomOffset;
+        if (this.player.body?.reset) {
+            this.player.body.reset(x, y);
+        } else {
+            this.player.setPosition(x, y);
+        }
+        this.player.setVelocity?.(0, 0);
+        this.player.facingRight = true;
+        this.currentCameraLeadX = -this.cameraLeadAmount;
+        this.targetCameraLeadX = -this.cameraLeadAmount;
+        return true;
     }
 
     showBossIntro() {
@@ -2891,7 +2949,10 @@ class ReefLevel extends PlatformerLevelScene {
         darkness.setDepth(2000);
 
         // Boss name with cosmic styling
-        const bossTitle = this.add.text(5600, this.levelHeight / 2 - 55, 'NYX\'VORAL', {
+        const bossTitle = this.add.text(
+            REEF_GUARDIAN_ARENA.introFocusX,
+            this.levelHeight / 2 - 55,
+            'NYX\'VORAL', {
             fontSize: isMobileLayout ? '38px' : '52px',
             color: '#E066FF',
             fontStyle: 'bold',
@@ -2899,7 +2960,10 @@ class ReefLevel extends PlatformerLevelScene {
             strokeThickness: 8
         }).setOrigin(0.5).setDepth(2001).setAlpha(0);
 
-        const bossSubtitle = this.add.text(5600, this.levelHeight / 2 + 10, 'The passage guardian is trapped inside a broken route', {
+        const bossSubtitle = this.add.text(
+            REEF_GUARDIAN_ARENA.introFocusX,
+            this.levelHeight / 2 + 10,
+            'The passage guardian is trapped inside a broken route', {
             fontSize: isMobileLayout ? '17px' : '24px',
             color: '#BFA6FF',
             align: 'center',
@@ -2939,12 +3003,17 @@ class ReefLevel extends PlatformerLevelScene {
      * Spawn Nyx'voral the Void Serpent
      */
     spawnNyxvoral() {
-        const bossX = 5700;
-        const bossY = this.levelHeight - 500;
+        const bossX = REEF_GUARDIAN_ARENA.bossX;
+        const bossY = this.levelHeight - REEF_GUARDIAN_ARENA.bossBottomOffset;
 
         if (this.textures.exists(NYXVORAL_TEXTURE)) {
             this.boss = this.add.image(bossX, bossY, NYXVORAL_TEXTURE);
-            this.bossTargetScale = NYXVORAL_DISPLAY_WIDTH / this.boss.width;
+            const isMobileArena = this.isMobile ||
+                this.cameras.main.width <= 480;
+            const displayWidth = isMobileArena
+                ? NYXVORAL_MOBILE_DISPLAY_WIDTH
+                : NYXVORAL_DISPLAY_WIDTH;
+            this.bossTargetScale = displayWidth / this.boss.width;
             this.boss.setScale(this.bossTargetScale);
             this.bossUsesArtwork = true;
             this.bossArtworkPhase = 1;
@@ -2962,40 +3031,79 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossBody.body.setAllowGravity(false);
 
         this.physics.add.overlap(this.player, this.bossBody, () => {
-            this.takeDamage(2);
+            if (
+                !this.bossContactDamageArmed ||
+                this.bossContactDamageConsumed
+            ) return;
+
+            this.bossContactDamageConsumed = true;
+            this.bossContactDamageArmed = false;
+            this.takeDamage(REEF_GUARDIAN_ARENA.contactDamage);
         });
 
         this.createBossHealthBar();
-        if (this.bossAttackPreview) {
-            this.time.delayedCall(1800, () => {
-                this.bossAttack(this.bossAttackPreview);
-            });
-        } else {
-            this.startBossAI();
-        }
 
-        // CRITICAL: Restore camera to follow player after boss intro
-        // Pan back to player first, then re-enable follow
+        // Return to a composed arena view before enabling physics or attacks.
         this.time.delayedCall(500, () => {
             if (this.player && this.cameras.main) {
-                // Smooth pan back to player position
                 this.cameras.main.pan(
                     this.player.x,
                     this.player.y,
-                    1000, // 1 second pan
+                    1000,
                     'Power2',
-                    true, // force
+                    true,
                     (camera, progress) => {
-                        // When pan completes, restore camera follow
-                        if (progress === 1) {
-                            camera.startFollow(this.player, true, 0.08, 0.1);
-                            this.physics.resume();
-                            console.log('[ReefLevel] Camera follow restored after boss intro');
+                        if (progress >= 0.999) {
+                            this.beginReefGuardianCombat(camera);
                         }
                     }
                 );
             }
         });
+    }
+
+    beginReefGuardianCombat(camera = this.cameras.main) {
+        if (
+            this.bossCombatReady ||
+            !this.bossFightActive ||
+            !this.boss?.active ||
+            !this.player?.active
+        ) return false;
+
+        this.bossCombatReady = true;
+        this.bossCombatReadyAt = this.time.now;
+        this.bossAttackLocked = false;
+        if (this.isMobile || camera.width <= 480) {
+            this.cameraLeadAmount = Math.max(
+                this.cameraLeadAmount,
+                camera.width * 0.2
+            );
+        }
+        camera.startFollow(this.player, true, 0.08, 0.1);
+        camera.setFollowOffset(
+            -this.cameraLeadAmount,
+            this.cameraBaseOffsetY
+        );
+        this.currentCameraLeadX = -this.cameraLeadAmount;
+        this.targetCameraLeadX = -this.cameraLeadAmount;
+        this.physics.resume();
+        this.showPlatformerMobileControls();
+        this.showBossAttackInstruction('GUARDIAN IN VIEW // WATCH THE CURRENT', 1800);
+
+        this.bossAttackPreviewTimer = this.time.delayedCall(
+            REEF_GUARDIAN_ARENA.openingGraceMs,
+            () => {
+                this.bossAttackPreviewTimer = null;
+                if (this.bossAttackPreview) {
+                    this.bossAttack(this.bossAttackPreview);
+                } else {
+                    this.bossAttack();
+                    this.startBossAI();
+                }
+            }
+        );
+        console.log('[ReefLevel] Arena framed; controls and guardian combat enabled');
+        return true;
     }
 
     /**
@@ -3169,13 +3277,16 @@ class ReefLevel extends PlatformerLevelScene {
         // Store dimensions for updateBossHealthBar
         this.bossBarConfig = { x, y: y + 5, width: barWidth, height: barHeight };
 
-        // Camera zoom out for better boss visibility
-        this.tweens.add({
-            targets: this.cameras.main,
-            zoom: 0.9,
-            duration: 1000,
-            ease: 'Power2'
-        });
+        if (isMobileLayout) {
+            this.cameras.main.setZoom(1);
+        } else {
+            this.tweens.add({
+                targets: this.cameras.main,
+                zoom: 0.9,
+                duration: 1000,
+                ease: 'Power2'
+            });
+        }
 
         this.updateBossHealthBar();
 
@@ -3293,17 +3404,23 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     startBossAI() {
+        if (!this.bossCombatReady || !this.bossFightActive || this.bossDefeated) {
+            return null;
+        }
+        this.bossAttackTimer?.remove?.();
         this.bossAttackTimer = this.time.addEvent({
             delay: 2500,
             callback: () => this.bossAttack(),
             loop: true
         });
+        return this.bossAttackTimer;
     }
 
     bossAttack(forcedAttack = null) {
         if (
             !this.bossFightActive ||
             this.bossDefeated ||
+            !this.bossCombatReady ||
             this.bossAttackLocked ||
             this.time.now < this.bossRecoveryUntil
         ) return;
@@ -3313,6 +3430,8 @@ class ReefLevel extends PlatformerLevelScene {
         const attackWindow = REEF_GUARDIAN_ATTACK_WINDOWS[attack] || 2200;
 
         console.log(`[ReefLevel] Nyx'voral attack: ${attack}`);
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
         this.bossAttackLocked = true;
         this.showBossAttackInstruction(
             REEF_GUARDIAN_ATTACK_CUES[attack],
@@ -3388,7 +3507,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.showBossAttackInstruction('CURRENT EXPOSED // STRIKE NOW', duration);
         this.showFloatingText(
             'CURRENT EXPOSED // BONUS DAMAGE',
-            this.bossBody?.x || 5700,
+            this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
             (this.bossBody?.y || 700) - 110,
             '#8FE3CF'
         );
@@ -3407,15 +3526,16 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossAttackUnlockTimer = null;
         this.bossBody?.setVelocity?.(0, 0);
         this.createReefBossTelegraph({
-            x: this.bossBody?.x || 5700,
-            y: this.bossBody?.y || this.levelHeight - 500,
+            x: this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
+            y: this.bossBody?.y ||
+                this.levelHeight - REEF_GUARDIAN_ARENA.bossBottomOffset,
             radius: 95,
             color: phaseData.color,
             duration: 900
         });
         this.showFloatingText(
             phaseData.label,
-            this.bossBody?.x || 5700,
+            this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
             (this.bossBody?.y || 700) - 120,
             `#${phaseData.color.toString(16).padStart(6, '0')}`
         );
@@ -3501,6 +3621,8 @@ class ReefLevel extends PlatformerLevelScene {
             yoyo: true,
             onComplete: () => {
                 if (!this.bossFightActive || !this.bossBody?.active) return;
+                this.bossContactDamageArmed = true;
+                this.bossContactDamageConsumed = false;
                 this.tweens.add({
                     targets: this.bossBody,
                     x: targetX,
@@ -3510,11 +3632,14 @@ class ReefLevel extends PlatformerLevelScene {
                     onComplete: () => {
                         this.tweens.add({
                             targets: this.bossBody,
-                            x: 5700,
-                            y: this.levelHeight - 500,
+                            x: REEF_GUARDIAN_ARENA.bossX,
+                            y: this.levelHeight - REEF_GUARDIAN_ARENA.bossBottomOffset,
                             duration: 850,
                             ease: 'Sine.easeInOut',
-                            onComplete: () => this.openReefBossRecovery(750)
+                            onComplete: () => {
+                                this.bossContactDamageArmed = false;
+                                this.openReefBossRecovery(750);
+                            }
                         });
                     }
                 });
@@ -3581,8 +3706,9 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     bossSummonMinions() {
-        const spawnX = this.bossBody?.x || 5700;
-        const spawnY = this.bossBody?.y || this.levelHeight - 500;
+        const spawnX = this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX;
+        const spawnY = this.bossBody?.y ||
+            this.levelHeight - REEF_GUARDIAN_ARENA.bossBottomOffset;
         this.createReefBossTelegraph({
             x: spawnX,
             y: spawnY,
@@ -3594,7 +3720,7 @@ class ReefLevel extends PlatformerLevelScene {
             this.time.delayedCall(700 + i * 220, () => {
                 if (!this.bossFightActive) return;
                 const minion = this.createVoidMinion(
-                    5700 + (Math.random() - 0.5) * 200,
+                    REEF_GUARDIAN_ARENA.bossX + (Math.random() - 0.5) * 200,
                     this.levelHeight - 400 + (Math.random() - 0.5) * 300
                 );
                 this.bossMinions.push(minion);
@@ -3783,7 +3909,7 @@ class ReefLevel extends PlatformerLevelScene {
             recoveryBonus
                 ? `EXPOSED CURRENT -${finalAmount}`
                 : `ROUTE FRACTURE -${finalAmount}`,
-            this.bossBody?.x || 5700,
+            this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
             (this.bossBody?.y || 700) - 85,
             '#F0B6FF'
         );
@@ -3811,6 +3937,10 @@ class ReefLevel extends PlatformerLevelScene {
 
         this.bossDefeated = true;
         this.bossFightActive = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
 
         // Record guardian restoration for achievements.
         if (window.AchievementSystem?.recordEvent) {
@@ -3822,6 +3952,8 @@ class ReefLevel extends PlatformerLevelScene {
         }
         this.bossAttackUnlockTimer?.remove?.();
         this.bossAttackUnlockTimer = null;
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
         this.bossAttackLocked = false;
@@ -3848,7 +3980,7 @@ class ReefLevel extends PlatformerLevelScene {
         window.FeedbackManager?.cameraFlash?.(this, 450, 143, 227, 207);
         this.showFloatingText(
             'PASSAGE GUARDIAN STABLE',
-            this.bossBody?.x || 5700,
+            this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX,
             (this.bossBody?.y || 700) - 100,
             '#8FE3CF'
         );
@@ -3870,7 +4002,7 @@ class ReefLevel extends PlatformerLevelScene {
         });
 
         if (window.FXLibrary) {
-            const resonanceX = this.bossBody?.x || 5700;
+            const resonanceX = this.bossBody?.x || REEF_GUARDIAN_ARENA.bossX;
             const resonanceY = this.bossBody?.y || 700;
             for (let i = 0; i < 5; i++) {
                 this.time.delayedCall(i * 300, () => {
@@ -4188,9 +4320,15 @@ class ReefLevel extends PlatformerLevelScene {
         }
         this.bossAttackUnlockTimer?.remove?.();
         this.bossAttackUnlockTimer = null;
+        this.bossAttackPreviewTimer?.remove?.();
+        this.bossAttackPreviewTimer = null;
+        this.bossContactDamageArmed = false;
+        this.bossContactDamageConsumed = false;
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
         this.bossAttackLocked = false;
+        this.bossCombatReady = false;
+        this.bossCombatReadyAt = 0;
         this.bossPhaseTransitionTimer?.remove?.();
         this.bossPhaseTransitionTimer = null;
         this.bossPhaseTransitionActive = false;
