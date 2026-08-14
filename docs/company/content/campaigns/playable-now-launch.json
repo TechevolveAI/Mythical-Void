@@ -77,7 +77,7 @@
       "audience": "Parents, educators and STEM communities",
       "recommendedChannel": "Professional or education-facing channel",
       "copy": "A fictional universe can open a door to real space.\n\nMythical Void can use NASA's public astronomy, Mars and space-weather data for optional discovery moments. The adventure stays playful; the curiosity can travel much further.\n\nSee the game and its family notes: https://mythicalvoid.com/",
-      "claimIds": ["CL-001"],
+      "claimIds": ["CL-001", "CL-013"],
       "asset": null,
       "assetType": "product_screenshot_required",
       "disclosure": "Show a real NASA learning moment from a named game build and credit the source data.",
