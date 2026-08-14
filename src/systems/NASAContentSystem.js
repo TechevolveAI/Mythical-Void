@@ -187,35 +187,83 @@ class NASAContentSystem {
         // Add APOD if available
         const apod = await this.fetchAPOD();
         if (apod) {
-            queue.push({
-                type: 'apod',
-                title: 'Astronomy Picture of the Day',
-                subtitle: apod.title,
-                imageUrl: this.ensureHttps(apod.url),
-                hdUrl: this.ensureHttps(apod.hdurl),
-                description: this.simplifyDescription(apod.explanation),
-                date: apod.date,
-                creatureComment: this.getCreatureAPODComment(apod.title)
-            });
+            queue.push(this.createAPODDiscovery(apod));
         }
 
         // Add Mars photo (50% chance to include, alternate with APOD)
         if (Math.random() < 0.5) {
             const mars = await this.fetchMarsPhoto();
             if (mars) {
-                queue.push({
-                    type: 'mars',
-                    title: 'Postcard from Mars',
-                    subtitle: `${mars.rover.name} Rover - ${mars.camera.full_name}`,
-                    imageUrl: this.ensureHttps(mars.img_src),
-                    description: `This photo was taken on Mars by the ${mars.rover.name} rover on Sol ${mars.sol} (Martian day ${mars.sol}).`,
-                    date: mars.earth_date,
-                    creatureComment: this.getCreatureMarsComment()
-                });
+                queue.push(this.createMarsDiscovery(mars));
             }
         }
 
         return queue;
+    }
+
+    /**
+     * Turn an official APOD response into a clearly labelled learning moment.
+     * The real observation and the creature's imagined reaction stay separate.
+     */
+    createAPODDiscovery(apod) {
+        const compactDate = String(apod.date || '').replace(/-/g, '');
+        const sourceUrl = /^\d{8}$/.test(compactDate)
+            ? `https://apod.nasa.gov/apod/ap${compactDate.slice(2)}.html`
+            : 'https://apod.nasa.gov/apod/astropix.html';
+        const credit = String(apod.copyright || 'NASA / APOD')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        return {
+            type: 'apod',
+            title: 'Real Space Discovery',
+            subtitle: apod.title,
+            imageUrl: this.ensureHttps(apod.url),
+            hdUrl: this.ensureHttps(apod.hdurl),
+            description: this.simplifyDescription(apod.explanation),
+            date: apod.date,
+            realDataLabel: 'REAL NASA IMAGE',
+            sourceLabel: 'NASA Astronomy Picture of the Day',
+            sourceUrl,
+            sourceCredit: `Image credit: ${credit}`,
+            learningPrompt: 'What details would you record if you were exploring this place?',
+            scienceSteps: [
+                'OBSERVE — Name a shape, colour or shadow you can see.',
+                'INFER — What might that detail tell a scientist?',
+                'CHECK — What other evidence would you look for?'
+            ],
+            storyBoundaryLabel: 'MYTHICAL VOID IMAGINES',
+            creatureComment: this.getCreatureAPODComment(apod.title)
+        };
+    }
+
+    /**
+     * Turn an official Mars rover response into a credited learning moment.
+     */
+    createMarsDiscovery(mars) {
+        const roverName = mars.rover?.name || 'Mars';
+        const cameraName = mars.camera?.full_name || 'rover camera';
+        return {
+            type: 'mars',
+            title: 'Real Space Discovery',
+            subtitle: `${roverName} Rover — ${cameraName}`,
+            imageUrl: this.ensureHttps(mars.img_src),
+            description: `A real robot took this picture on Mars on Sol ${mars.sol}. A sol is one Martian day.`,
+            date: mars.earth_date,
+            realDataLabel: 'REAL NASA MARS IMAGE',
+            sourceLabel: 'NASA Mars Science Laboratory raw images',
+            sourceUrl: 'https://mars.nasa.gov/msl/multimedia/raw-images/',
+            sourceCredit: `Image credit: NASA/JPL-Caltech · ${roverName} rover`,
+            learningPrompt: 'What can the rocks, shadows and wheel tracks tell you about this place?',
+            scienceSteps: [
+                'OBSERVE — Find a rock, shadow or track.',
+                'INFER — What might have made it look that way?',
+                'CHECK — What should the rover photograph next?'
+            ],
+            storyBoundaryLabel: 'MYTHICAL VOID IMAGINES',
+            creatureComment: this.getCreatureMarsComment()
+        };
     }
 
     /**
