@@ -434,6 +434,29 @@ body.site-mode h3 {
     margin-top: 30px;
 }
 
+.button-share {
+    cursor: pointer;
+    font: inherit;
+}
+
+.hero .button-share {
+    border-color: rgba(124, 232, 207, 0.46);
+    background: rgba(8, 7, 25, 0.62);
+}
+
+.hero .button-share:hover,
+.hero .button-share:focus-visible {
+    border-color: var(--mint);
+    background: rgba(124, 232, 207, 0.14);
+}
+
+.hero-share-status {
+    min-height: 1.3em;
+    margin: 10px 0 0;
+    color: var(--mint);
+    font-size: 0.75rem;
+}
+
 .hero-genetics {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2141,6 +2164,41 @@ footer {
     gap: 1.2rem;
 }
 
+.press-social-release {
+    margin-top: 5rem;
+    padding-top: 4.5rem;
+    border-top: 1px solid rgba(32, 32, 58, .12);
+}
+
+.press-social-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, .65fr);
+    gap: 1.2rem;
+}
+
+.press-social-grid .press-asset-card > img {
+    height: 360px;
+    object-fit: contain;
+    background: #080719;
+}
+
+.press-social-note {
+    margin: 1.1rem 0 0;
+    color: #68677c;
+    font-size: .84rem;
+}
+
+.press-social-note a {
+    color: #2f6f68;
+    font-weight: 800;
+}
+
+.press-social-subsection {
+    margin-top: 4.25rem;
+    padding-top: 4.25rem;
+    border-top: 1px solid rgba(32, 32, 58, .12);
+}
+
 .press-asset-card {
     overflow: hidden;
     margin: 0;
@@ -2283,6 +2341,7 @@ footer {
     .press-language-section { padding: 5.5rem 0; }
     .press-fact-grid,
     .press-assets-grid,
+    .press-social-grid,
     .press-gameplay-grid,
     .press-proof-feature-grid,
     .press-language-cards { grid-template-columns: 1fr; }

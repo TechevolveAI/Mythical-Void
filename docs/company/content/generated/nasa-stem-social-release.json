@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "NASA-STEM-SOCIAL-RELEASE-2026-08-14",
+  "state": "complete_review_pack_waiting_for_verified_channel_and_kevin_approval",
+  "purpose": "Give Mythical Void a truthful adult-facing sharing pack that connects a real game screen, a credited NASA public image and an optional observation activity without blurring science and fiction.",
+  "selection": {
+    "sourceEntryId": "SIGNAL-006",
+    "sourcePack": "docs/company/content/generated/signal-log-release-pack.json",
+    "publicSignalUrl": "https://mythicalvoid.com/updates/#signal-006",
+    "destination": "https://mythicalvoid.com/press/#nasa-stem-social-assets",
+    "educationalDestination": "https://mythicalvoid.com/nasa-space-science/",
+    "nasaSourceUrl": "https://apod.nasa.gov/apod/ap240720.html",
+    "reason": "The Apollo 11 discovery screen is already present in the running game, shows its source and credit, asks an evidence-based question and keeps the fictional creature reaction in a separate labelled area."
+  },
+  "audience": {
+    "primary": "Adults, parents and guardians, educators, adult creators, press, industry and partners",
+    "childTargetedAdvertising": false,
+    "behaviouralTargeting": false,
+    "directMinorContact": false
+  },
+  "assets": [
+    {
+      "id": "NASA-STEM-SOCIAL-WIDE",
+      "path": "public/press/social/nasa-stem-discovery-wide.png",
+      "publicUrl": "https://mythicalvoid.com/press/social/nasa-stem-discovery-wide.png",
+      "width": 1200,
+      "height": 630,
+      "sha256": "0b6769cdb8a5b996bb0976b32545de8c0733fed5b9c6a4de60403097379295de",
+      "classification": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
+      "sourceGameplayPath": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
+      "alt": "Wide Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and the words Real space, strange worlds, questions worth asking",
+      "disclosure": "Branded sharing layout, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void."
+    },
+    {
+      "id": "NASA-STEM-SOCIAL-SQUARE",
+      "path": "public/press/social/nasa-stem-discovery-square.png",
+      "publicUrl": "https://mythicalvoid.com/press/social/nasa-stem-discovery-square.png",
+      "width": 1200,
+      "height": 1200,
+      "sha256": "b1639fa2bb15ea42c1f808ba98b74d1afdb82eb9c409fb9e6dc6f11037b8ff7a",
+      "classification": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
+      "sourceGameplayPath": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
+      "alt": "Square Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and an observation question",
+      "disclosure": "Branded sharing layout, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void."
+    }
+  ],
+  "drafts": {
+    "professionalNetwork": {
+      "sourceDraftPath": "items[DRAFT-SIGNAL-006].drafts.professionalNetwork.body",
+      "channelRef": "CH-004",
+      "assetId": "NASA-STEM-SOCIAL-WIDE",
+      "copy": "A real-space sharing kit is ready\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\n• Both layouts use the clean mythicalvoid.com/nasa-space-science address with no tracking code.\n• The framed screen comes from the running game and clearly credits the NASA public image inside it.\n• The complete layouts are branded sharing artwork, not raw screenshots, and NASA does not endorse Mythical Void.\n\nSee what changed: https://mythicalvoid.com/press/#nasa-stem-social-assets\n\nBranded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void."
+    },
+    "videoCommunity": {
+      "sourceDraftPath": "items[DRAFT-SIGNAL-006].drafts.videoCommunity.body",
+      "channelRef": "CH-002",
+      "assetId": "NASA-STEM-SOCIAL-SQUARE",
+      "copy": "New from the Void: A real-space sharing kit is ready\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\nhttps://mythicalvoid.com/press/#nasa-stem-social-assets\n\nBranded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void."
+    }
+  },
+  "releaseOrder": [
+    "Use the professional-network version first if a verified company Page exists and its public replies can stay closed or staffed.",
+    "Use the video-community version only after the official video channel is verified and adult reply coverage is active.",
+    "Keep both versions unpublished until Kevin sees the exact artwork, copy, destination, audience and engagement setting together."
+  ],
+  "qualityEvidence": {
+    "wideArtworkVisuallyReviewed": true,
+    "squareArtworkVisuallyReviewed": true,
+    "sourceImageLoadedAtNaturalSize": true,
+    "browserWarningsOrErrorsObserved": false,
+    "cleanDestinationShownInArtwork": true,
+    "realGameplayLabelShownInArtwork": true,
+    "nasaPublicImageLabelShownInArtwork": true,
+    "nasaNonEndorsementShownInArtwork": true,
+    "scienceAndFictionBoundaryShown": true,
+    "trackingParametersUsed": false
+  },
+  "authority": {
+    "officialSocialAccountVerified": false,
+    "contentApproved": false,
+    "channelApproved": false,
+    "publishingAuthorized": false,
+    "schedulingAuthorized": false,
+    "replyingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionPerformed": false,
+    "approvedBy": null,
+    "approvedAt": null,
+    "publishedAt": null
+  }
+}

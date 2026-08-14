@@ -1,7 +1,7 @@
 # Mythical Void
 
 > Mythical Void is a free, family-friendly browser adventure about a stranded
-> astronaut, Project Beacon, and a companion shaped by a structured genetics
+> astronaut, Project Beacon, and a creature shaped by a structured genetics
 > system. Players explore the Fend in a Phaser 3 browser world, restore damaged
 > realms, recover Wanderer-77, and make choices about what discovery and home
 > should mean. Optional NASA public space content and space-weather signals add
@@ -11,6 +11,7 @@ Canonical website: https://mythicalvoid.com/
 Play in a browser: https://mythicalvoid.com/play/
 Privacy and safety: https://mythicalvoid.com/privacy/
 Terms of use: https://mythicalvoid.com/terms/
+Updates: https://mythicalvoid.com/updates/
 
 Key facts:
 
@@ -25,7 +26,7 @@ Key facts:
   and cosmic affinity; this is structured variation, not a promise of infinite
   uniqueness.
 - Optional, experimental tools, available only with adult approval, can create a
-  companion portrait or short AI-made story scene. These moments add expression
+  creature portrait or short AI-made story scene. These moments add expression
   around the authored story and do not replace the game’s dialogue or important
   choices.
 - The story follows Project Beacon and the damaged ship Wanderer-77 across six

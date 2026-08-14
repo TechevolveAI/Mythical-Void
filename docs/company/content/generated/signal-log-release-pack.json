@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "id": "SIGNAL-DRAFT-PACK-2026-08-14",
+  "state": "draft_only_missing_verified_social_channels_and_approval",
+  "generatedFrom": {
+    "sourcePath": "public/updates/releases.json",
+    "publicSourceUrl": "https://mythicalvoid.com/updates/",
+    "sourceFingerprint": "5b2063a2cb8b191db3f442858a344fcd88c23ae689831ba414d9ecaac142d45e",
+    "liveEntryCount": 6,
+    "latestSourceDate": "2026-08-14"
+  },
+  "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
+  "audienceBoundary": {
+    "intendedReaders": [
+      "general players",
+      "parents and guardians",
+      "adult creators",
+      "press",
+      "industry and partners"
+    ],
+    "childTargetedAdvertising": false,
+    "directMinorContact": false,
+    "behaviouralTargeting": false
+  },
+  "authority": {
+    "socialAccountsVerified": false,
+    "publishingAuthorized": false,
+    "schedulingAuthorized": false,
+    "messagingAuthorized": false,
+    "replyingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionPerformed": false
+  },
+  "items": [
+    {
+      "id": "DRAFT-SIGNAL-006",
+      "sourceEntryId": "SIGNAL-006",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/press/#nasa-stem-social-assets",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social/nasa-stem-discovery-square.png",
+        "alt": "Square Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and an observation question",
+        "class": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
+        "disclosure": "Branded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "A real-space sharing kit is ready\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\n• Both layouts use the clean mythicalvoid.com/nasa-space-science address with no tracking code.\n• The framed screen comes from the running game and clearly credits the NASA public image inside it.\n• The complete layouts are branded sharing artwork, not raw screenshots, and NASA does not endorse Mythical Void.\n\nSee what changed: https://mythicalvoid.com/press/#nasa-stem-social-assets\n\nBranded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void.",
+          "characterCount": 802
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: A real-space sharing kit is ready\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\nhttps://mythicalvoid.com/press/#nasa-stem-social-assets\n\nBranded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void.",
+          "characterCount": 491
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: A real-space sharing kit is ready",
+          "body": "Mythical Void has a new live update: A real-space sharing kit is ready.\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\nBoth layouts use the clean mythicalvoid.com/nasa-space-science address with no tracking code. The framed screen comes from the running game and clearly credits the NASA public image inside it. The complete layouts are branded sharing artwork, not raw screenshots, and NASA does not endorse Mythical Void.\n\nThe checked public destination is https://mythicalvoid.com/press/#nasa-stem-social-assets\n\nMedia note: Branded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 937,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-005",
+      "sourceEntryId": "SIGNAL-005",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/story/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social/project-beacon-story-wide.png",
+        "alt": "Wide Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame",
+        "class": "branded_social_artwork_with_authentic_gameplay_frame",
+        "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Shared links now carry the right picture\n\nThe Project Beacon story and other important Mythical Void pages now give social apps a clearer image, description and accessible image text when someone shares a link.\n\n• The Project Beacon story now uses its purpose-built wide sharing artwork instead of a generic or easily cropped image.\n• Seven public pages carry checked image sizes and matching alternative text for large link previews.\n• Every preview keeps its clean mythicalvoid.com destination and the artwork-versus-gameplay boundary.\n\nSee what changed: https://mythicalvoid.com/story/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 731
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Shared links now carry the right picture\n\nThe Project Beacon story and other important Mythical Void pages now give social apps a clearer image, description and accessible image text when someone shares a link.\n\nhttps://mythicalvoid.com/story/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 405
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Shared links now carry the right picture",
+          "body": "Mythical Void has a new live update: Shared links now carry the right picture.\n\nThe Project Beacon story and other important Mythical Void pages now give social apps a clearer image, description and accessible image text when someone shares a link.\n\nThe Project Beacon story now uses its purpose-built wide sharing artwork instead of a generic or easily cropped image. Seven public pages carry checked image sizes and matching alternative text for large link previews. Every preview keeps its clean mythicalvoid.com destination and the artwork-versus-gameplay boundary.\n\nThe checked public destination is https://mythicalvoid.com/story/\n\nMedia note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 866,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-004",
+      "sourceEntryId": "SIGNAL-004",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "An imagined gathering of strange alien creatures in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Share the game from the first screen\n\nA new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.\n\n• On supported phones and computers, the button opens the device's normal sharing choices.\n• Where device sharing is unavailable, it copies the clean mythicalvoid.com address instead.\n• The shared address contains no tracking code, and the Mythical Void control does not collect a recipient or contact details.\n\nSee what changed: https://mythicalvoid.com/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 622
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Share the game from the first screen\n\nA new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.\n\nhttps://mythicalvoid.com/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 311
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Share the game from the first screen",
+          "body": "Mythical Void has a new live update: Share the game from the first screen.\n\nA new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.\n\nOn supported phones and computers, the button opens the device's normal sharing choices. Where device sharing is unavailable, it copies the clean mythicalvoid.com address instead. The shared address contains no tracking code, and the Mythical Void control does not collect a recipient or contact details.\n\nThe checked public destination is https://mythicalvoid.com/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 757,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-003",
+      "sourceEntryId": "SIGNAL-003",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/press/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social/project-beacon-story-square.png",
+        "alt": "Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame",
+        "class": "branded_social_artwork_with_authentic_gameplay_frame",
+        "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Project Beacon artwork is ready to share\n\nAdults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.\n\n• Both layouts show the clean mythicalvoid.com/story address with no tracking code.\n• The framed Project Beacon scene comes from the real running browser game using an invented test state.\n• The complete layouts are branded sharing artwork, not raw gameplay screenshots.\n\nSee what changed: https://mythicalvoid.com/press/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 677
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Project Beacon artwork is ready to share\n\nAdults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.\n\nhttps://mythicalvoid.com/press/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 406
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Project Beacon artwork is ready to share",
+          "body": "Mythical Void has a new live update: Project Beacon artwork is ready to share.\n\nAdults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.\n\nBoth layouts show the clean mythicalvoid.com/story address with no tracking code. The framed Project Beacon scene comes from the real running browser game using an invented test state. The complete layouts are branded sharing artwork, not raw gameplay screenshots.\n\nThe checked public destination is https://mythicalvoid.com/press/\n\nMedia note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 812,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-002",
+      "sourceEntryId": "SIGNAL-002",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "An imagined gathering of strange alien creatures in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "A new way to share the game\n\nAdults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.\n\n• The QR code goes straight to mythicalvoid.com with no tracking code attached.\n• The card includes one real Project Beacon game screen.\n• The large creature-universe image is clearly labelled as generated artwork, not gameplay.\n\nSee what changed: https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 557
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: A new way to share the game\n\nAdults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.\n\nhttps://mythicalvoid.com/resources/mythical-void-play-share-card.pdf\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 328
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: A new way to share the game",
+          "body": "Mythical Void has a new live update: A new way to share the game.\n\nAdults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.\n\nThe QR code goes straight to mythicalvoid.com with no tracking code attached. The card includes one real Project Beacon game screen. The large creature-universe image is clearly labelled as generated artwork, not gameplay.\n\nThe checked public destination is https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 692,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-001",
+      "sourceEntryId": "SIGNAL-001",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/story/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/gameplay/project-beacon-start.png",
+        "alt": "Real Mythical Void gameplay showing the Project Beacon opening at the Wanderer-77 crash site",
+        "class": "authentic_running_build_screenshot",
+        "disclosure": "Captured from the real browser game using an invented test state; no player information is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The Project Beacon story is live\n\nA new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.\n\n• Six realm images come from the real running game.\n• The page explains why the guardians are restored rather than destroyed.\n• The ending remains for players to discover themselves.\n\nSee what changed: https://mythicalvoid.com/story/\n\nCaptured from the real browser game using an invented test state; no player information is shown.",
+          "characterCount": 525
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The Project Beacon story is live\n\nA new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.\n\nhttps://mythicalvoid.com/story/\n\nCaptured from the real browser game using an invented test state; no player information is shown.",
+          "characterCount": 342
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The Project Beacon story is live",
+          "body": "Mythical Void has a new live update: The Project Beacon story is live.\n\nA new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.\n\nSix realm images come from the real running game. The page explains why the guardians are restored rather than destroyed. The ending remains for players to discover themselves.\n\nThe checked public destination is https://mythicalvoid.com/story/\n\nMedia note: Captured from the real browser game using an invented test state; no player information is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 660,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    }
+  ]
+}

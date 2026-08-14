@@ -4,7 +4,7 @@
 [build]
   # Build command - Vite production build
   # Netlify installs the locked dependencies before this command runs.
-  command = "npm run build"
+  command = "npm run test:deploy && npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"
@@ -48,6 +48,17 @@
 [[redirects]]
   from = "/story/"
   to = "/story/index.html"
+  status = 200
+
+[[redirects]]
+  # Keep the public Signal Log ahead of the SPA fallback.
+  from = "/updates"
+  to = "/updates/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/updates/"
+  to = "/updates/index.html"
   status = 200
 
 [[redirects]]

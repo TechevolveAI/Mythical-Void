@@ -157,6 +157,40 @@ function renderPressPage() {
                             <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
                         </figure>
                     </div>
+                    <div class="press-social-release" id="project-beacon-social-assets">
+                        <div class="press-section-heading press-heading-split">
+                            <div><p class="kicker">READY TO SHARE</p><h2>Tell the Project Beacon story.</h2></div>
+                            <p>Two finished layouts pair a real scene from the game with a working story link. They are ready for adults, press and creators to share.</p>
+                        </div>
+                        <div class="press-social-grid">
+                            <figure class="press-asset-card">
+                                <img src="/press/social/project-beacon-story-wide.png" alt="Wide Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame" loading="lazy">
+                                <figcaption><span>WIDE SOCIAL ARTWORK · REAL GAMEPLAY FRAME</span><strong>Project Beacon story — wide</strong><p>1200 × 630 PNG for link previews and wide posts. The framed scene is a real running-build capture using an invented test state.</p><a href="/press/social/project-beacon-story-wide.png" download>Download wide PNG ↓</a></figcaption>
+                            </figure>
+                            <figure class="press-asset-card">
+                                <img src="/press/social/project-beacon-story-square.png" alt="Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame" loading="lazy">
+                                <figcaption><span>SQUARE SOCIAL ARTWORK · REAL GAMEPLAY FRAME</span><strong>Project Beacon story — square</strong><p>1200 × 1200 PNG for square posts. The clean destination shown in the artwork is mythicalvoid.com/story.</p><a href="/press/social/project-beacon-story-square.png" download>Download square PNG ↓</a></figcaption>
+                            </figure>
+                        </div>
+                        <p class="press-social-note">These are branded sharing layouts, not raw screenshots. The image inside each layout is real gameplay; no player information is shown.</p>
+                        <div class="press-social-subsection" id="nasa-stem-social-assets">
+                            <div class="press-section-heading press-heading-split">
+                                <div><p class="kicker">SPACE DISCOVERY · READY TO SHARE</p><h2>Share a real-space question.</h2></div>
+                                <p>For adults, families, educators and creators: two finished layouts show how a real NASA public image can become a playful, optional discovery moment inside Mythical Void.</p>
+                            </div>
+                            <div class="press-social-grid">
+                                <figure class="press-asset-card">
+                                    <img src="/press/social/nasa-stem-discovery-wide.png" alt="Wide Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and the words Real space, strange worlds, questions worth asking" loading="lazy">
+                                    <figcaption><span>WIDE SOCIAL ARTWORK · REAL GAME + NASA PUBLIC IMAGE</span><strong>Real space, imagined worlds — wide</strong><p>1200 × 630 PNG for link previews and wide posts. The framed screen comes from the running game and shows the image credit and the boundary between science and fiction.</p><a href="/press/social/nasa-stem-discovery-wide.png" download>Download wide PNG ↓</a></figcaption>
+                                </figure>
+                                <figure class="press-asset-card">
+                                    <img src="/press/social/nasa-stem-discovery-square.png" alt="Square Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and an observation question" loading="lazy">
+                                    <figcaption><span>SQUARE SOCIAL ARTWORK · REAL GAME + NASA PUBLIC IMAGE</span><strong>Real space, imagined worlds — square</strong><p>1200 × 1200 PNG for square posts. The clean destination shown in the artwork is mythicalvoid.com/nasa-space-science.</p><a href="/press/social/nasa-stem-discovery-square.png" download>Download square PNG ↓</a></figcaption>
+                                </figure>
+                            </div>
+                            <p class="press-social-note">These are branded sharing layouts, not raw screenshots. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image. NASA does not endorse Mythical Void. <a href="/nasa-space-science/">See how science and fiction are separated →</a></p>
+                        </div>
+                    </div>
                     <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View video build record →</a></p>
                 </div>
             </section>
@@ -323,8 +357,13 @@ function renderStorefront() {
                         <p class="hero-copy">Every hatch mixes body, colour, personality, cosmic power and rare mutations. What arrives from the Void will be truly yours.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
+                            <button class="button button-quiet button-share" type="button" data-share-game>
+                                <span data-share-label>Share the game</span>
+                                <span class="button-arrow" aria-hidden="true">↗</span>
+                            </button>
                             <a class="button button-quiet" href="#creatures">Meet the possibilities</a>
                         </div>
+                        <p class="hero-share-status share-status" data-share-status aria-live="polite"></p>
                         <ul class="hero-genetics" aria-label="How this scene was made">
                             <li><strong>1,000</strong><span>real engine hatches explored</span></li>
                             <li><strong>72</strong><span>varied profiles shaped this scene</span></li>
@@ -579,7 +618,10 @@ function renderStorefront() {
                     <p>Free to play. No download. No account needed.</p>
                     <div class="final-cta-actions">
                         ${playLink('Play Mythical Void')}
-                        <button class="button button-share" type="button" data-share-game>Share the game</button>
+                        <button class="button button-share" type="button" data-share-game>
+                            <span data-share-label>Share the game</span>
+                            <span class="button-arrow" aria-hidden="true">↗</span>
+                        </button>
                     </div>
                     <p class="share-status" data-share-status aria-live="polite"></p>
                 </div>
@@ -598,6 +640,7 @@ function renderStorefront() {
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
                     <a href="/press/">Press & creators</a>
+                    <a href="/updates/">What's new</a>
                     <a href="/creature-genetics/">Creature genetics</a>
                     <a href="/nasa-space-science/">NASA & STEM</a>
                     <a href="/studio/">Our story</a>
@@ -686,33 +729,41 @@ function bindInteractions() {
         });
     });
 
-    const shareButton = app.querySelector('[data-share-game]');
-    const shareStatus = app.querySelector('[data-share-status]');
+    const shareButtons = [...app.querySelectorAll('[data-share-game]')];
+    const shareStatuses = [...app.querySelectorAll('[data-share-status]')];
     const shareData = {
         title: 'Mythical Void',
         text: 'Try Mythical Void — a free creature adventure you can play in your browser. No download or account needed.',
         url: 'https://mythicalvoid.com/'
     };
+    const setShareStatus = (message) => {
+        shareStatuses.forEach((status) => { status.textContent = message; });
+    };
 
-    if (shareButton && !navigator.share) {
-        shareButton.textContent = 'Copy game link';
+    if (!navigator.share) {
+        shareButtons.forEach((button) => {
+            const label = button.querySelector('[data-share-label]');
+            if (label) label.textContent = 'Copy game link';
+        });
     }
 
-    shareButton?.addEventListener('click', async () => {
-        try {
-            if (navigator.share) {
-                await navigator.share(shareData);
-                if (shareStatus) shareStatus.textContent = 'Thanks for sharing the signal.';
-                return;
-            }
+    shareButtons.forEach((button) => {
+        button.addEventListener('click', async () => {
+            try {
+                if (navigator.share) {
+                    await navigator.share(shareData);
+                    setShareStatus('Thanks for sharing the signal.');
+                    return;
+                }
 
-            await navigator.clipboard.writeText(shareData.url);
-            if (shareStatus) shareStatus.textContent = 'Game link copied. Send it to someone curious.';
-        } catch (error) {
-            if (error?.name !== 'AbortError' && shareStatus) {
-                shareStatus.textContent = 'You can share mythicalvoid.com from your browser.';
+                await navigator.clipboard.writeText(shareData.url);
+                setShareStatus('Clean game link copied — no tracking code.');
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    setShareStatus('You can share mythicalvoid.com from your browser.');
+                }
             }
-        }
+        });
     });
 }
 

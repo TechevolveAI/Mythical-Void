@@ -12,6 +12,14 @@
       "destination": "/story/index.html"
     },
     {
+      "source": "/updates",
+      "destination": "/updates/index.html"
+    },
+    {
+      "source": "/updates/",
+      "destination": "/updates/index.html"
+    },
+    {
       "source": "/((?!assets/|marketing/|game/|audio/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }

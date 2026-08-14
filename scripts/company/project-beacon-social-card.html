@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project Beacon social card</title>
+    <style>
+        :root {
+            --night: #070611;
+            --panel: #141027;
+            --paper: #fffaf0;
+            --muted: #c7bfd7;
+            --mint: #7ce8cf;
+            --gold: #ffd66b;
+            --violet: #a768ff;
+            font-family: "Avenir Next", Avenir, Inter, system-ui, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--night);
+        }
+
+        body {
+            color: var(--paper);
+            background:
+                radial-gradient(circle at 18% 18%, rgba(112, 73, 223, 0.3), transparent 36%),
+                radial-gradient(circle at 88% 76%, rgba(33, 77, 80, 0.45), transparent 35%),
+                var(--night);
+        }
+
+        .card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+            gap: 42px;
+            padding: 46px 54px;
+            isolation: isolate;
+        }
+
+        .card::before,
+        .card::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            border: 1px solid rgba(124, 232, 207, 0.18);
+            border-radius: 50%;
+        }
+
+        .card::before {
+            width: 460px;
+            height: 460px;
+            top: -260px;
+            left: -130px;
+        }
+
+        .card::after {
+            width: 360px;
+            height: 360px;
+            right: -190px;
+            bottom: -170px;
+        }
+
+        .copy {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 0.14em;
+        }
+
+        .brand img {
+            width: 44px;
+            height: 60px;
+            object-fit: contain;
+        }
+
+        .kicker {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0 0 20px;
+            color: var(--mint);
+            font-size: 17px;
+            font-weight: 900;
+            letter-spacing: 0.15em;
+        }
+
+        .kicker::before {
+            content: "";
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--mint);
+            box-shadow: 0 0 22px var(--mint);
+        }
+
+        h1 {
+            max-width: 540px;
+            margin: 0;
+            font-family: "Arial Rounded MT Bold", "Avenir Next", ui-rounded, system-ui, sans-serif;
+            font-size: clamp(56px, 5.7vw, 76px);
+            line-height: 0.96;
+            letter-spacing: -0.045em;
+        }
+
+        h1 span { color: var(--mint); }
+
+        .summary {
+            max-width: 500px;
+            margin: 24px 0 0;
+            color: var(--muted);
+            font-size: 21px;
+            line-height: 1.45;
+        }
+
+        .facts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 25px;
+        }
+
+        .fact {
+            padding: 8px 13px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 999px;
+            background: rgba(20, 16, 39, 0.7);
+            color: var(--paper);
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .destination {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--gold);
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .destination::after { content: "→"; }
+
+        .visual {
+            position: relative;
+            min-width: 0;
+            align-self: center;
+            transform: rotate(1.2deg);
+        }
+
+        .visual-frame {
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 34px;
+            background: var(--panel);
+            box-shadow: 0 35px 80px rgba(0, 0, 0, 0.45), 0 0 70px rgba(124, 232, 207, 0.1);
+        }
+
+        .visual-frame img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+        }
+
+        .visual-note {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 22px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .real-label {
+            flex: 0 0 auto;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: var(--mint);
+            color: #0a1420;
+            font-size: 12px;
+            font-weight: 950;
+            letter-spacing: 0.08em;
+        }
+
+        .signal-tag {
+            position: absolute;
+            top: -20px;
+            right: 26px;
+            padding: 10px 17px;
+            transform: rotate(-2deg);
+            border-radius: 999px;
+            background: var(--gold);
+            color: #261b08;
+            font-size: 14px;
+            font-weight: 950;
+            letter-spacing: 0.08em;
+        }
+
+        html.square body {
+            width: 1280px;
+            height: 1200px;
+            display: flex;
+            justify-content: center;
+        }
+
+        html.square .card {
+                width: 1200px;
+                height: 1200px;
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 440px;
+                gap: 26px;
+                padding: 38px 52px 42px;
+        }
+
+        html.square .copy { gap: 17px; }
+
+        html.square .copy-main { display: block; }
+
+        html.square .brand img {
+            width: 38px;
+            height: 52px;
+        }
+
+        html.square .kicker { margin-bottom: 13px; }
+
+        html.square h1 {
+            max-width: 100%;
+            font-size: 74px;
+        }
+
+        html.square .summary {
+            max-width: 980px;
+            margin: 17px 0 0;
+            font-size: 20px;
+        }
+
+        html.square .facts { margin-top: 17px; }
+
+        html.square .destination { font-size: 20px; }
+
+        html.square .visual {
+            width: 100%;
+            height: 440px;
+            align-self: start;
+            transform: rotate(-0.7deg);
+        }
+
+        html.square .visual-frame { height: 100%; }
+
+        html.square .visual-frame img {
+            height: calc(100% - 70px);
+            aspect-ratio: auto;
+            object-position: center 48%;
+        }
+
+        html.square .visual-note { height: 70px; }
+    </style>
+    <script>if (new URLSearchParams(location.search).has('square')) document.documentElement.classList.add('square');</script>
+</head>
+<body>
+    <main class="card" aria-label="Project Beacon social release artwork">
+        <section class="copy">
+            <div class="brand"><img src="/public/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></div>
+            <div class="copy-main">
+                <div>
+                    <p class="kicker">PROJECT BEACON // STORY NOW LIVE</p>
+                    <h1>Earth sent you looking for <span>hope.</span></h1>
+                </div>
+                <div>
+                    <p class="summary">Your ship has crashed. A creature has trusted you. Six living realms are waiting to be restored—and the final message home is yours to choose.</p>
+                    <div class="facts"><span class="fact">FREE BROWSER GAME</span><span class="fact">NO DOWNLOAD</span><span class="fact">NO ACCOUNT TO START</span></div>
+                </div>
+            </div>
+            <div class="destination">mythicalvoid.com/story</div>
+        </section>
+        <section class="visual">
+            <div class="signal-tag">THE SIGNAL IS LIVE</div>
+            <div class="visual-frame">
+                <img src="/public/press/gameplay/project-beacon-start.png" alt="Real Mythical Void gameplay showing the Project Beacon opening at the Wanderer-77 crash site">
+                <div class="visual-note"><span>Captured from the real browser game using an invented test state. No player information is shown.</span><strong class="real-label">REAL GAMEPLAY</strong></div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
