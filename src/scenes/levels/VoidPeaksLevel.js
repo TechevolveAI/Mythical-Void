@@ -563,7 +563,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     }
 
     activatePeakReturnCurrent(current) {
-        if (!current || !this.player?.body || this.isPlayerDead) return false;
+        if (
+            !current ||
+            !this.player?.body ||
+            this.isPlayerDead ||
+            this.activePeakReturnCurrent
+        ) return false;
 
         const body = this.player.body;
         const grounded = body.blocked.down || this.isGrounded;
@@ -612,7 +617,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             return false;
         }
 
-        if (this.isPlayerGroundedOnTraversalSupport(active.destinationId)) {
+        if (this.isPlayerSettledOnTraversalSupport(active.destinationId)) {
             this.activePeakReturnCurrent = null;
             return true;
         }

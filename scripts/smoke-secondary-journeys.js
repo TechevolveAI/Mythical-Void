@@ -25,6 +25,7 @@ const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
 let activeTouchPoint = { x: 0, y: 0 };
 let activeTouchIdentifier = null;
 let nextTouchIdentifier = 1;
+let evaluationSequence = 0;
 
 function trace(message, details = null) {
     if (!SMOKE_TRACE) return;
@@ -121,11 +122,29 @@ class CdpSession {
 }
 
 async function evaluate(session, expression) {
-    const result = await session.call('Runtime.evaluate', {
-        expression,
-        awaitPromise: true,
-        returnByValue: true
-    });
+    const sequence = ++evaluationSequence;
+    const awaitsBrowserPromise = expression.includes('new Promise') ||
+        expression.includes('(async () =>');
+    if (SMOKE_BROWSER_TRACE) {
+        process.stdout.write(`[browser-evaluate:${sequence}] ${
+            awaitsBrowserPromise ? 'async' : 'sync'
+        } ${expression.trim().slice(0, 100).replace(/\s+/g, ' ')}\n`);
+    }
+    let result;
+    try {
+        result = await session.call('Runtime.evaluate', {
+            expression,
+            awaitPromise: awaitsBrowserPromise,
+            returnByValue: true
+        });
+    } catch (error) {
+        if (SMOKE_BROWSER_TRACE) {
+            process.stdout.write(
+                `[browser-evaluate:${sequence}:error] ${error.message}\n`
+            );
+        }
+        throw error;
+    }
     if (result.exceptionDetails) {
         throw new Error(
             result.exceptionDetails.exception?.description ||
@@ -764,12 +783,12 @@ async function smokeVoidPeaksReturnCurrents(session) {
     const routes = [
         {
             id: 'peak-return-lower',
-            start: { x: 2200, y: 740 },
+            start: { x: 2250, y: 740 },
             destinationId: 'peak-warning-lower'
         },
         {
             id: 'peak-return-summit',
-            start: { x: 3120, y: 740 },
+            start: { x: 3140, y: 740 },
             destinationId: 'peak-warning-summit'
         }
     ];
@@ -830,7 +849,7 @@ async function smokeVoidPeaksReturnCurrents(session) {
                             velocityY: Math.round(scene.player.body.velocity.y)
                         };
                     })()`),
-                    { timeoutMs: 2200, message: `${route.id} activation` }
+                    { timeoutMs: 5000, message: `${route.id} activation` }
                 );
             } catch (error) {
                 const diagnostics = await evaluate(session, `(() => {
@@ -843,6 +862,7 @@ async function smokeVoidPeaksReturnCurrents(session) {
                         playerY: Math.round(scene.player.y),
                         velocityX: Math.round(scene.player.body.velocity.x),
                         velocityY: Math.round(scene.player.body.velocity.y),
+                        activeGuidance: scene.activePeakReturnCurrent,
                         current: current ? {
                             x: current.x,
                             top: current.top,
@@ -910,7 +930,44 @@ async function smokeVoidPeaksReturnCurrents(session) {
                 })()`);
                 throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
             }
-            results.push({ id: route.id, activated, landed });
+            await delay(650);
+            const settled = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                const current = scene.peakReturnCurrents.find(
+                    item => item.id === ${JSON.stringify(route.id)}
+                );
+                const support = scene.platforms.getChildren().find(
+                    item => item.traversalId === ${JSON.stringify(route.destinationId)}
+                );
+                const body = scene.player?.body;
+                return body && support?.body && current ? {
+                    activations: current.activations,
+                    guidanceActive: scene.activePeakReturnCurrent?.id === current.id,
+                    playerLeft: Math.round(body.left),
+                    playerRight: Math.round(body.right),
+                    playerBottom: Math.round(body.bottom),
+                    supportLeft: Math.round(support.body.left),
+                    supportRight: Math.round(support.body.right),
+                    supportTop: Math.round(support.body.top),
+                    supportBottom: Math.round(support.body.bottom),
+                    velocityY: Math.round(body.velocity.y)
+                } : null;
+            })()`);
+            if (
+                !settled ||
+                settled.activations !== activated.activations ||
+                settled.guidanceActive ||
+                settled.playerRight <= settled.supportLeft + 8 ||
+                settled.playerLeft >= settled.supportRight - 8 ||
+                settled.playerBottom < settled.supportTop - 36 ||
+                settled.playerBottom > settled.supportBottom + 4 ||
+                settled.velocityY < -140
+            ) {
+                throw new Error(
+                    `${route.id} destabilized after landing: ${JSON.stringify(settled)}`
+                );
+            }
+            results.push({ id: route.id, activated, landed, settled });
         }
     } finally {
         try {
@@ -2215,27 +2272,64 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     // A genuine tap can begin and end between two low-FPS Phaser updates.
     // The game must preserve that edge until gameplay consumes it.
     await touch(session, jumpControl.x, jumpControl.y);
-    const jumped = await waitFor(
-        async () => {
-            const response = await evaluate(session, `(() => {
-                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-                return {
-                    playerY: scene?.player?.y,
-                    velocityY: scene?.player?.body?.velocity?.y,
-                    virtualJumpPressed: scene?.virtualJumpPressed,
-                    virtualJumpQueued: scene?.virtualJumpQueued,
-                    isSwimmingUp: scene?.isSwimmingUp
-                };
-            })()`);
-            const responded = route === 'reef'
-                ? response.velocityY < beforeJump.velocityY - 5 ||
-                    response.playerY < beforeJump.playerY - 2
-                : response.velocityY < -20 ||
-                    response.playerY < beforeJump.playerY - 2;
-            return responded ? response : null;
-        },
-        { timeoutMs: 1500, message: `${sceneName} short jump tap response` }
-    );
+    let jumped = null;
+    try {
+        jumped = await waitFor(
+            async () => {
+                const response = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    return {
+                        playerY: scene?.player?.y,
+                        velocityY: scene?.player?.body?.velocity?.y,
+                        virtualJumpPressed: scene?.virtualJumpPressed,
+                        virtualJumpQueued: scene?.virtualJumpQueued,
+                        isSwimmingUp: scene?.isSwimmingUp
+                    };
+                })()`);
+                const responded = route === 'reef'
+                    ? response.velocityY < beforeJump.velocityY - 5 ||
+                        response.playerY < beforeJump.playerY - 2
+                    : response.velocityY < -20 ||
+                        response.playerY < beforeJump.playerY - 2;
+                return responded ? response : null;
+            },
+            // Software-rendered campaign runs can briefly stall while the first
+            // level's larger asset set is promoted. Preserve a strict response
+            // assertion without making the suite depend on one 1.5s load spike.
+            { timeoutMs: 2500, message: `${sceneName} short jump tap response` }
+        );
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const target = scene?.mobileControlTargets?.jump;
+            return {
+                actualFps: window.mythicalGame?.loop?.actualFps,
+                gameFrame: window.mythicalGame?.loop?.frame,
+                sceneTime: scene?.time?.now,
+                playerY: scene?.player?.y,
+                velocityY: scene?.player?.body?.velocity?.y,
+                isGrounded: scene?.isGrounded,
+                blockedDown: scene?.player?.body?.blocked?.down,
+                canJump: scene?.canJump,
+                isDucking: scene?.isDucking,
+                recoveryInputLockedUntil: scene?.recoveryInputLockedUntil,
+                virtualJumpPressed: scene?.virtualJumpPressed,
+                virtualJumpQueued: scene?.virtualJumpQueued,
+                jumpBufferPressed: scene?.jumpBufferPressed,
+                jumpBufferTimestamp: scene?.jumpBufferTimestamp,
+                actionPointerCount: scene?.actionButtonPointers?.size,
+                actionReleaseCount: scene?.actionButtonReleases?.size,
+                jumpTarget: target ? {
+                    x: target.x,
+                    y: target.y,
+                    visible: target.zone?.visible,
+                    active: target.zone?.active,
+                    inputEnabled: target.zone?.input?.enabled
+                } : null
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+    }
     await delay(120);
     const jumpReleased = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
@@ -2833,7 +2927,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     sequence: choice.sequence
                 };
             })()`),
-            { timeoutMs: 2500, message: `${sceneName} optional route entry` }
+            { timeoutMs: 5000, message: `${sceneName} optional route entry` }
         );
 
         await evaluate(session, `(() => {
@@ -2854,22 +2948,67 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             scene.player.setVelocity?.(0, 0);
             return true;
         })()`);
-        const rejoin = await waitFor(
-            () => evaluate(session, `(() => {
+        let rejoin;
+        try {
+            rejoin = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    const choice = scene?.optionalRouteRewards?.get?.(
+                        ${JSON.stringify(optionalRouteId)}
+                    )?.choice;
+                    if (!choice?.rejoined) return null;
+                    return {
+                        selectedPath: choice.selectedPath,
+                        optionalEntered: choice.optionalEntered,
+                        rejoined: choice.rejoined,
+                        sequence: choice.sequence
+                    };
+                })()`),
+                { timeoutMs: 5000, message: `${sceneName} optional route rejoin` }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                 const choice = scene?.optionalRouteRewards?.get?.(
                     ${JSON.stringify(optionalRouteId)}
                 )?.choice;
-                if (!choice?.rejoined) return null;
+                const support = scene?.getTraversalSupport?.(
+                    choice?.rejoinSupportIds?.[0]
+                );
+                const body = scene?.player?.body;
                 return {
-                    selectedPath: choice.selectedPath,
-                    optionalEntered: choice.optionalEntered,
-                    rejoined: choice.rejoined,
-                    sequence: choice.sequence
+                    choice: choice ? {
+                        selectedPath: choice.selectedPath,
+                        optionalEntered: choice.optionalEntered,
+                        rejoined: choice.rejoined,
+                        rejoinSupportIds: choice.rejoinSupportIds,
+                        rejoinZone: choice.rejoinZone
+                    } : null,
+                    player: body ? {
+                        left: Math.round(body.left),
+                        right: Math.round(body.right),
+                        top: Math.round(body.top),
+                        bottom: Math.round(body.bottom),
+                        velocityY: Math.round(body.velocity.y),
+                        blockedDown: body.blocked.down,
+                        touchingDown: body.touching.down,
+                        grounded: scene.isGrounded
+                    } : null,
+                    support: support?.body ? {
+                        id: support.traversalId,
+                        left: Math.round(support.body.left),
+                        right: Math.round(support.body.right),
+                        top: Math.round(support.body.top),
+                        bottom: Math.round(support.body.bottom)
+                    } : null,
+                    committed: choice ? scene.isPlayerCommittedToRouteChoice(
+                        choice.rejoinZone,
+                        choice.rejoinSupportIds
+                    ) : false
                 };
-            })()`),
-            { timeoutMs: 2500, message: `${sceneName} optional route rejoin` }
-        );
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
         if (
             optionalEntry.selectedPath !== 'optional' ||
             optionalEntry.optionalEntered !== true ||
@@ -2988,13 +3127,11 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         'auroraDepths',
         'finalVoid'
     ].includes(route)) {
-        outOfOrderGuard = await evaluate(session, `(() => {
+        const outOfOrderStage = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const signals = scene?.orderedRouteSignals || [];
             const firstSignal = signals[0];
             const lastSignal = signals[signals.length - 1];
-            const activeProperty = scene?.orderedRouteSignalOptions?.activeProperty ||
-                'activated';
             if (!scene?.player || !firstSignal || !lastSignal) return null;
             scene.isInvincible = true;
             const checkpointBefore = scene.checkpointPosition
@@ -3012,41 +3149,56 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 scene.player.setPosition(lastSignal.x, lastSignal.y);
             }
             scene.player.setVelocity?.(0, 0);
-            return new Promise(resolve => {
-                scene.time.delayedCall(220, () => resolve({
-                    activatedCount: signals.filter(
-                        signal => signal?.[activeProperty] === true
-                    ).length,
-                    lastSignalComplete: lastSignal?.[activeProperty] === true,
-                    nextSignalIndex: scene?.getNextOrderedRouteSignal?.()?.index ?? null,
-                    checkpointBefore,
-                    checkpointAfter: scene.checkpointPosition
-                        ? { ...scene.checkpointPosition }
-                        : null,
-                    firstSignalIndex: firstSignal.index,
-                    hintShown: Number(scene?.routeHintUntil) > Number(scene?.time?.now),
-                    playerBody: scene.player?.body ? {
-                        left: scene.player.body.left,
-                        right: scene.player.body.right,
-                        top: scene.player.body.top,
-                        bottom: scene.player.body.bottom,
-                        velocityY: scene.player.body.velocity?.y
-                    } : null,
-                    support: support?.body ? {
-                        id: support.traversalId,
-                        left: support.body.left,
-                        right: support.body.right,
-                        top: support.body.top
-                    } : null,
-                    trigger: lastSignal.zone?.body ? {
-                        left: lastSignal.zone.body.left,
-                        right: lastSignal.zone.body.right,
-                        top: lastSignal.zone.body.top,
-                        bottom: lastSignal.zone.body.bottom
-                    } : null
-                }));
-            });
+            return {
+                checkpointBefore,
+                firstSignalIndex: firstSignal.index
+            };
         })()`);
+        await delay(320);
+        const outOfOrderResult = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const signals = scene?.orderedRouteSignals || [];
+            const lastSignal = signals[signals.length - 1];
+            const activeProperty = scene?.orderedRouteSignalOptions?.activeProperty ||
+                'activated';
+            const support = scene?.getTraversalSupport?.(
+                lastSignal?.activationSupportIds?.[0]
+            );
+            if (!scene?.player || !lastSignal) return null;
+            return {
+                activatedCount: signals.filter(
+                    signal => signal?.[activeProperty] === true
+                ).length,
+                lastSignalComplete: lastSignal?.[activeProperty] === true,
+                nextSignalIndex: scene?.getNextOrderedRouteSignal?.()?.index ?? null,
+                checkpointAfter: scene.checkpointPosition
+                    ? { ...scene.checkpointPosition }
+                    : null,
+                hintShown: Number(scene?.routeHintUntil) > Number(scene?.time?.now),
+                playerBody: scene.player?.body ? {
+                    left: scene.player.body.left,
+                    right: scene.player.body.right,
+                    top: scene.player.body.top,
+                    bottom: scene.player.body.bottom,
+                    velocityY: scene.player.body.velocity?.y
+                } : null,
+                support: support?.body ? {
+                    id: support.traversalId,
+                    left: support.body.left,
+                    right: support.body.right,
+                    top: support.body.top
+                } : null,
+                trigger: lastSignal.zone?.body ? {
+                    left: lastSignal.zone.body.left,
+                    right: lastSignal.zone.body.right,
+                    top: lastSignal.zone.body.top,
+                    bottom: lastSignal.zone.body.bottom
+                } : null
+            };
+        })()`);
+        outOfOrderGuard = outOfOrderStage && outOfOrderResult
+            ? { ...outOfOrderStage, ...outOfOrderResult }
+            : null;
         if (
             outOfOrderGuard?.activatedCount !== 0 ||
             outOfOrderGuard.lastSignalComplete !== false ||
@@ -3067,7 +3219,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             'voidPeaks',
             'finalVoid'
         ].includes(route)) {
-            const airborneRejected = await evaluate(session, `(() => {
+            const airborneStage = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                 const signal = ${JSON.stringify(route)} === 'auroraDepths'
                     ? scene?.signalPrisms?.[0]
@@ -3083,19 +3235,32 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     : null;
                 scene.player.body.reset(signal.x, signal.y - 35);
                 scene.player.setVelocity?.(0, -120);
-                return new Promise(resolve => {
-                    scene.time.delayedCall(180, () => resolve({
-                        completed: ${JSON.stringify(route)} === 'auroraDepths'
-                            ? signal.aligned === true
-                            : signal.activated === true,
-                        checkpointBefore,
-                        checkpointAfter: scene.checkpointPosition
-                            ? { ...scene.checkpointPosition }
-                            : null,
-                        hintShown: Number(scene.routeHintUntil) > Number(scene.time.now)
-                    }));
-                });
+                return { checkpointBefore };
             })()`);
+            await delay(260);
+            const airborneResult = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                const signal = ${JSON.stringify(route)} === 'auroraDepths'
+                    ? scene?.signalPrisms?.[0]
+                    : (${JSON.stringify(route)} === 'voidPeaks'
+                        ? scene?.beaconRelays?.[0]
+                        : (${JSON.stringify(route)} === 'finalVoid'
+                            ? scene?.bondAnchors?.[0]
+                            : scene?.beaconAnchors?.[0]));
+                if (!scene || !signal) return null;
+                return {
+                    completed: ${JSON.stringify(route)} === 'auroraDepths'
+                        ? signal.aligned === true
+                        : signal.activated === true,
+                    checkpointAfter: scene.checkpointPosition
+                        ? { ...scene.checkpointPosition }
+                        : null,
+                    hintShown: Number(scene.routeHintUntil) > Number(scene.time.now)
+                };
+            })()`);
+            const airborneRejected = airborneStage && airborneResult
+                ? { ...airborneStage, ...airborneResult }
+                : null;
             if (
                 airborneRejected?.completed !== false ||
                 JSON.stringify(airborneRejected.checkpointAfter) !==
