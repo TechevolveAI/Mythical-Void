@@ -157,6 +157,23 @@ function renderPressPage() {
                             <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
                         </figure>
                     </div>
+                    <div class="press-social-release" id="project-beacon-social-assets">
+                        <div class="press-section-heading press-heading-split">
+                            <div><p class="kicker">READY TO SHARE</p><h2>Tell the Project Beacon story.</h2></div>
+                            <p>Two finished layouts pair a real scene from the game with a working story link. They are ready for adults, press and creators to share.</p>
+                        </div>
+                        <div class="press-social-grid">
+                            <figure class="press-asset-card">
+                                <img src="/press/social/project-beacon-story-wide.png" alt="Wide Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame" loading="lazy">
+                                <figcaption><span>WIDE SOCIAL ARTWORK · REAL GAMEPLAY FRAME</span><strong>Project Beacon story — wide</strong><p>1200 × 630 PNG for link previews and wide posts. The framed scene is a real running-build capture using an invented test state.</p><a href="/press/social/project-beacon-story-wide.png" download>Download wide PNG ↓</a></figcaption>
+                            </figure>
+                            <figure class="press-asset-card">
+                                <img src="/press/social/project-beacon-story-square.png" alt="Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame" loading="lazy">
+                                <figcaption><span>SQUARE SOCIAL ARTWORK · REAL GAMEPLAY FRAME</span><strong>Project Beacon story — square</strong><p>1200 × 1200 PNG for square posts. The clean destination shown in the artwork is mythicalvoid.com/story.</p><a href="/press/social/project-beacon-story-square.png" download>Download square PNG ↓</a></figcaption>
+                            </figure>
+                        </div>
+                        <p class="press-social-note">These are branded sharing layouts, not raw screenshots. The image inside each layout is real gameplay; no player information is shown.</p>
+                    </div>
                     <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View video build record →</a></p>
                 </div>
             </section>
