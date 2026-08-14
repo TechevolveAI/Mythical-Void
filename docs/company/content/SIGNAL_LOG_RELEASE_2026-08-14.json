@@ -5,9 +5,15 @@
   "publicUrl": "https://mythicalvoid.com/updates/",
   "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/85",
   "productionCommit": "b319c1f9bbec7becbbfdd25256bf503477f2a18b",
-  "verifiedAt": "2026-08-14T20:31:00Z",
+  "verifiedAt": "2026-08-14T22:20:00Z",
   "purpose": "Give players, families, creators and search engines one plain-language source for meaningful Mythical Void releases, with a working destination for every note.",
   "liveEntries": [
+    {
+      "id": "SIGNAL-003",
+      "title": "Project Beacon artwork is ready to share",
+      "destination": "https://mythicalvoid.com/press/",
+      "destinationStatusObserved": 200
+    },
     {
       "id": "SIGNAL-002",
       "title": "A new way to share the game",
@@ -36,14 +42,47 @@
     "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/86",
     "productionCommit": "bddd9b29d40c1b7f8798575219b0eacc6574a004",
     "generatedPack": "docs/company/content/generated/signal-log-release-pack.json",
-    "sourceEntryCount": 2,
-    "reviewDraftCount": 6,
+    "sourceEntryCount": 3,
+    "reviewDraftCount": 9,
     "draftTypesPerEntry": [
       "professional network post",
       "video community text post",
       "recipient-free press or creator source note"
     ],
-    "safeguardFailureCasesPassed": 11,
+    "safeguardFailureCasesPassed": 12,
+    "externalActionPerformed": false
+  },
+  "firstSocialRelease": {
+    "state": "published_as_owned_press_assets_waiting_for_channel_and_kevin_approval",
+    "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/87",
+    "productionCommit": "fcf719770296744782e6d7393c76213071fd4636",
+    "pressRoomUrl": "https://mythicalvoid.com/press/#project-beacon-social-assets",
+    "assets": [
+      {
+        "format": "wide",
+        "publicUrl": "https://mythicalvoid.com/press/social/project-beacon-story-wide.png",
+        "dimensions": "1200x630",
+        "productionStatusObserved": 200,
+        "productionContentTypeObserved": "image/png",
+        "productionBytesObserved": 529057
+      },
+      {
+        "format": "square",
+        "publicUrl": "https://mythicalvoid.com/press/social/project-beacon-story-square.png",
+        "dimensions": "1200x1200",
+        "productionStatusObserved": 200,
+        "productionContentTypeObserved": "image/png",
+        "productionBytesObserved": 655827
+      }
+    ],
+    "sourceBoundDrafts": 2,
+    "visualReview": {
+      "desktopPassed": true,
+      "phonePassed": true,
+      "horizontalOverflowObserved": false
+    },
+    "autonomousSocialPostingAuthorized": false,
+    "kevinApprovalRequiredBeforePosting": true,
     "externalActionPerformed": false
   },
   "boundaries": {
@@ -60,7 +99,7 @@
     "phoneVisualReviewPassed": true,
     "horizontalOverflowObserved": false,
     "browserWarningsOrErrorsObserved": false,
-    "signalLogSafeguardCasesPassed": 8,
+    "signalLogSafeguardCasesPassed": 9,
     "fullTestSuitesPassed": 169,
     "fullTestsPassed": 1441,
     "productionPageVerified": true,

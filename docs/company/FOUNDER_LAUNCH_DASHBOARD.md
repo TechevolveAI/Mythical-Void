@@ -11,7 +11,8 @@
 - The public homepage and game entry worked during the last production check.
 - 8 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, and Signal Log.
 - The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
-- The Signal Log is live with 2 checked release notes. Its merged draft builder has already turned them into 6 internal review drafts for later social, press, and creator use without publishing anything.
+- The Signal Log is live with 3 checked release notes. Its merged draft builder has already turned them into 9 internal review drafts for later social, press, and creator use without publishing anything.
+- The first Project Beacon social release is live in the press room with 2 finished, downloadable images. Posting still waits for an official channel and Kevin's approval.
 - The game created its playable canvas during that check.
 - Real gameplay screenshots and a short real gameplay video are available for truthful promotion.
 

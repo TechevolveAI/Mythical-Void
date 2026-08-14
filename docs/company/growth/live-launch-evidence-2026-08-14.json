@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "LIVE-LAUNCH-EVIDENCE-2026-08-14",
-  "checkedAt": "2026-08-14T20:31:00Z",
+  "checkedAt": "2026-08-14T22:20:00Z",
   "checkedBy": "Codex read-only production verification after Netlify publish",
   "productionBranch": "origin/main",
-  "productionCommit": "b319c1f9bbec7becbbfdd25256bf503477f2a18b",
+  "productionCommit": "fcf719770296744782e6d7393c76213071fd4636",
   "canonicalUrl": "https://mythicalvoid.com/",
   "result": "owned_discovery_live_game_entry_working",
   "routes": [
@@ -54,7 +54,9 @@
       "heading": "A small Irish studio. A universe of creatures.",
       "resolvedUrl": "https://mythicalvoid.com/press/",
       "notFoundShown": false,
-      "verified": true
+      "verified": true,
+      "socialAssetCount": 2,
+      "socialArtworkLinked": true
     },
     {
       "route": "/story/",
@@ -74,7 +76,7 @@
       "resolvedUrl": "https://mythicalvoid.com/updates/",
       "notFoundShown": false,
       "verified": true,
-      "liveEntryCount": 2,
+      "liveEntryCount": 3,
       "homepageLinked": true,
       "sitemapListed": true,
       "commentsEnabled": false,
@@ -111,7 +113,8 @@
     "This check proves that the named public pages loaded at the checked time; it does not prove search indexing, traffic, player satisfaction or uptime outside the check.",
     "One game canvas after five seconds proves that the game entry started; it does not prove every scene, device or complete playthrough.",
     "The story check proves its page, six real-game realm images, play link and sitemap entry were reachable; the unapproved trailer remains unlinked.",
-    "The Signal Log check proves its page, two named release notes, homepage link and sitemap entry were reachable; it does not prove that anyone read or acted on them.",
+    "The Signal Log check proves its page, three named release notes, homepage link and sitemap entry were reachable; it does not prove that anyone read or acted on them.",
+    "The press-room check proves that two Project Beacon social images were linked and served as PNG files; it does not prove that either was posted to an official social account or seen by an audience.",
     "Prepared distribution and outreach work remains internal and unsubmitted."
   ]
 }

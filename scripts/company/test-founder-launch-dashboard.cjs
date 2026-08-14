@@ -166,10 +166,14 @@ try {
     inventedSignalMetric.boundaries.inventedAudienceMetricsPermitted = true;
     if (run('invented-signal-metric', { signalLog: inventedSignalMetric }).status === 0) throw new Error('Invented Signal Log audience metrics were accepted.');
 
+    const autoPostedSocialRelease = structuredClone(sources.signalLog);
+    autoPostedSocialRelease.firstSocialRelease.autonomousSocialPostingAuthorized = true;
+    if (run('auto-posted-social-release', { signalLog: autoPostedSocialRelease }).status === 0) throw new Error('Autonomous posting of the first social release was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 23 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 24 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }
