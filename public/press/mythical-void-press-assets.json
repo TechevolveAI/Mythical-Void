@@ -5,6 +5,7 @@
   "playUrl": "https://mythicalvoid.com/play/",
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
+  "socialPreviewManifest": "https://mythicalvoid.com/press/mythical-void-social-previews.json",
   "educatorResources": [
     {
       "name": "Mythical Void STEM Creature Lab",

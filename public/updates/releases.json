@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-005",
+      "publishedOn": "2026-08-14",
+      "status": "live",
+      "category": "CLEARER SHARING",
+      "title": "Shared links now carry the right picture",
+      "summary": "The Project Beacon story and other important Mythical Void pages now give social apps a clearer image, description and accessible image text when someone shares a link.",
+      "details": [
+        "The Project Beacon story now uses its purpose-built wide sharing artwork instead of a generic or easily cropped image.",
+        "Seven public pages carry checked image sizes and matching alternative text for large link previews.",
+        "Every preview keeps its clean mythicalvoid.com destination and the artwork-versus-gameplay boundary."
+      ],
+      "image": "/press/social/project-beacon-story-wide.png",
+      "imageAlt": "Wide Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame",
+      "imageClass": "branded_social_artwork_with_authentic_gameplay_frame",
+      "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+      "destination": "/story/",
+      "linkText": "See the Project Beacon story",
+      "download": false
+    },
+    {
       "id": "SIGNAL-004",
       "publishedOn": "2026-08-14",
       "status": "live",
