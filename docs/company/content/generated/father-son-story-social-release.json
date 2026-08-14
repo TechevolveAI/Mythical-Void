@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "id": "FATHER-SON-STORY-SOCIAL-RELEASE-2026-08-14",
+  "state": "complete_review_pack_waiting_for_verified_channel_and_kevin_approval",
+  "purpose": "Give Mythical Void a truthful adult-facing sharing pack about the father-and-son origin of the studio while protecting the child's identity and distinguishing marketing artwork from real gameplay.",
+  "selection": {
+    "sourceEntryId": "SIGNAL-007",
+    "sourcePack": "docs/company/content/generated/signal-log-release-pack.json",
+    "publicSignalUrl": "https://mythicalvoid.com/updates/#signal-007",
+    "destination": "https://mythicalvoid.com/press/#father-son-story-social-assets",
+    "storyDestination": "https://mythicalvoid.com/studio/",
+    "reason": "The father-and-son origin is a distinctive, true studio story already explained on the public studio page. It can be shared without a child photograph, name, direct quotation or identifying detail."
+  },
+  "audience": {
+    "primary": "Adults, parents and guardians, adult creators, press, industry and partners",
+    "childTargetedAdvertising": false,
+    "behaviouralTargeting": false,
+    "directMinorContact": false
+  },
+  "identityBoundary": {
+    "childPhotoUsed": false,
+    "childNameUsed": false,
+    "childDirectQuoteUsed": false,
+    "childContactDetailUsed": false,
+    "childIdentifyingDetailUsed": false,
+    "approvedPublicDetail": "Kevin's son was nine years old when the project began",
+    "futureExpansionRequiresKevinReview": true
+  },
+  "assets": [
+    {
+      "id": "FATHER-SON-STORY-WIDE",
+      "path": "public/press/social/father-son-story-wide.png",
+      "publicUrl": "https://mythicalvoid.com/press/social/father-son-story-wide.png",
+      "width": 1200,
+      "height": 630,
+      "sha256": "ed2a70de84d79364b52de55f6735d434354bd763e7bde7efe780a56b214677ff",
+      "classification": "branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame",
+      "sourceGameplayPath": "public/press/gameplay/project-beacon-live-egg.png",
+      "sourceMarketingArtworkPath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "alt": "Wide Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame",
+      "disclosure": "Founder-story sharing layout, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay. The framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown."
+    },
+    {
+      "id": "FATHER-SON-STORY-SQUARE",
+      "path": "public/press/social/father-son-story-square.png",
+      "publicUrl": "https://mythicalvoid.com/press/social/father-son-story-square.png",
+      "width": 1200,
+      "height": 1200,
+      "sha256": "ce06512fec52015051a51ca076b6ddfb1a33ecc91fde9a0691bd26cf2ccac28c",
+      "classification": "branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame",
+      "sourceGameplayPath": "public/press/gameplay/project-beacon-live-egg.png",
+      "sourceMarketingArtworkPath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "alt": "Square Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame",
+      "disclosure": "Founder-story sharing layout, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay. The framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown."
+    }
+  ],
+  "drafts": {
+    "professionalNetwork": {
+      "sourceDraftPath": "items[DRAFT-SIGNAL-007].drafts.professionalNetwork.body",
+      "channelRef": "CH-004",
+      "assetId": "FATHER-SON-STORY-WIDE",
+      "copy": "The father-and-son story is ready to share\n\nAdults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.\n\n• Both layouts use the clean mythicalvoid.com/studio address with no tracking code.\n• The background is labelled as AI-generated marketing artwork, while the framed first-contact screen is real gameplay.\n• No photograph, name or identifying detail of the child is used.\n\nSee what changed: https://mythicalvoid.com/press/#father-son-story-social-assets\n\nFounder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown."
+    },
+    "videoCommunity": {
+      "sourceDraftPath": "items[DRAFT-SIGNAL-007].drafts.videoCommunity.body",
+      "channelRef": "CH-002",
+      "assetId": "FATHER-SON-STORY-SQUARE",
+      "copy": "New from the Void: The father-and-son story is ready to share\n\nAdults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.\n\nhttps://mythicalvoid.com/press/#father-son-story-social-assets\n\nFounder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown."
+    }
+  },
+  "releaseOrder": [
+    "Use the professional-network version first if a verified company Page exists and its public replies can stay closed or staffed.",
+    "Use the video-community version only after the official video channel is verified and adult reply coverage is active.",
+    "Keep both versions unpublished until Kevin sees the exact artwork, copy, destination, audience, child-identity boundary and engagement setting together."
+  ],
+  "qualityEvidence": {
+    "wideArtworkVisuallyReviewed": true,
+    "squareArtworkVisuallyReviewed": true,
+    "sourceImagesLoadedAtNaturalSize": true,
+    "browserWarningsOrErrorsObserved": false,
+    "cleanDestinationShownInArtwork": true,
+    "realGameplayLabelShownInArtwork": true,
+    "marketingArtworkNotGameplayDisclosureShown": true,
+    "childIdentityBoundaryShown": true,
+    "trackingParametersUsed": false
+  },
+  "authority": {
+    "officialSocialAccountVerified": false,
+    "contentApproved": false,
+    "channelApproved": false,
+    "publishingAuthorized": false,
+    "schedulingAuthorized": false,
+    "replyingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionPerformed": false,
+    "approvedBy": null,
+    "approvedAt": null,
+    "publishedAt": null
+  }
+}

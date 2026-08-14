@@ -190,6 +190,23 @@ function renderPressPage() {
                             </div>
                             <p class="press-social-note">These are branded sharing layouts, not raw screenshots. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image. NASA does not endorse Mythical Void. <a href="/nasa-space-science/">See how science and fiction are separated →</a></p>
                         </div>
+                        <div class="press-social-subsection" id="father-son-story-social-assets">
+                            <div class="press-section-heading press-heading-split">
+                                <div><p class="kicker">STUDIO ORIGIN · READY TO SHARE</p><h2>Share where Mythical Void began.</h2></div>
+                                <p>Two finished layouts tell the true story of an Irish father-and-son experiment that grew into a playable creature adventure—without using a photograph, name or identifying detail of the child.</p>
+                            </div>
+                            <div class="press-social-grid">
+                                <figure class="press-asset-card">
+                                    <img src="/press/social/father-son-story-wide.png" alt="Wide Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame" loading="lazy">
+                                    <figcaption><span>WIDE FOUNDER-STORY ARTWORK · REAL GAMEPLAY FRAME</span><strong>One enormous idea — wide</strong><p>1200 × 630 PNG for link previews and wide posts. It connects the father-and-son origin to the real playable result.</p><a href="/press/social/father-son-story-wide.png" download>Download wide PNG ↓</a></figcaption>
+                                </figure>
+                                <figure class="press-asset-card">
+                                    <img src="/press/social/father-son-story-square.png" alt="Square Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame" loading="lazy">
+                                    <figcaption><span>SQUARE FOUNDER-STORY ARTWORK · REAL GAMEPLAY FRAME</span><strong>One enormous idea — square</strong><p>1200 × 1200 PNG for square posts. The clean destination shown in the artwork is mythicalvoid.com/studio.</p><a href="/press/social/father-son-story-square.png" download>Download square PNG ↓</a></figcaption>
+                                </figure>
+                            </div>
+                            <p class="press-social-note">These are founder-story sharing layouts, not raw screenshots. The background is an AI-generated marketing illustration, not gameplay. The framed screen is real gameplay using a company-controlled test state. No photograph, name or identifying detail of the child is used. <a href="/studio/">Read the father-and-son story →</a></p>
+                        </div>
                     </div>
                     <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View video build record →</a></p>
                 </div>

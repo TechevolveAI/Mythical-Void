@@ -54,6 +54,7 @@ for (const item of pack.items || []) {
     if (entry?.imageClass === 'authentic_running_build_screenshot') requireValue(/real browser game/i.test(item.media?.disclosure || ''), `${label} running-build image needs a real-game disclosure.`);
     if ((entry?.imageClass || '').startsWith('branded_social_artwork_with_authentic_gameplay_frame')) requireValue(/branded sharing artwork/i.test(item.media?.disclosure || '') && /not a raw screenshot/i.test(item.media?.disclosure || '') && /no player information/i.test(item.media?.disclosure || ''), `${label} branded sharing artwork needs its layout, gameplay and privacy disclosure.`);
     if (/nasa/i.test(entry?.imageClass || '')) requireValue(/NASA does not endorse Mythical Void/i.test(item.media?.disclosure || ''), `${label} NASA artwork needs its non-endorsement boundary.`);
+    if (entry?.imageClass === 'branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame') requireValue(/founder-story sharing artwork/i.test(item.media?.disclosure || '') && /not a raw screenshot/i.test(item.media?.disclosure || '') && /not gameplay/i.test(item.media?.disclosure || '') && /real gameplay/i.test(item.media?.disclosure || '') && /no player information/i.test(item.media?.disclosure || '') && /identifying detail of the child/i.test(item.media?.disclosure || ''), `${label} founder-story artwork needs its generated-art, gameplay, privacy and child-identity boundaries.`);
 }
 
 if (errors.length) {

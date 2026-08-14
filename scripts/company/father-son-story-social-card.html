@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mythical Void father-and-son studio story social card</title>
+    <style>
+        :root {
+            --night: #070611;
+            --paper: #fff8e7;
+            --muted: #c8c1d9;
+            --mint: #79e5cf;
+            --gold: #ffd465;
+            --violet: #ad68ff;
+            font-family: "Avenir Next", Avenir, Inter, system-ui, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--night);
+        }
+
+        body {
+            color: var(--paper);
+            background:
+                linear-gradient(90deg, rgba(7,6,17,.99) 0%, rgba(7,6,17,.95) 48%, rgba(7,6,17,.36) 78%, rgba(7,6,17,.2) 100%),
+                url('/marketing/mythical-void-creature-universe-hero-v2.webp') center / cover no-repeat;
+        }
+
+        .card {
+            position: relative;
+            display: grid;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            grid-template-columns: minmax(0, 1fr) 430px;
+            gap: 42px;
+            padding: 36px 46px 34px;
+            isolation: isolate;
+        }
+
+        .card::before {
+            position: absolute;
+            z-index: -1;
+            inset: 0;
+            content: "";
+            background:
+                radial-gradient(circle at 78% 44%, rgba(173,104,255,.24), transparent 28%),
+                linear-gradient(180deg, rgba(7,6,17,.08), rgba(7,6,17,.45));
+        }
+
+        .grain {
+            position: absolute;
+            z-index: -1;
+            inset: 0;
+            opacity: .17;
+            background-image:
+                radial-gradient(circle, rgba(255,255,255,.8) 0 1px, transparent 1.4px),
+                radial-gradient(circle, rgba(121,229,207,.85) 0 1px, transparent 1.5px);
+            background-position: 18px 24px, 72px 52px;
+            background-size: 109px 96px, 143px 127px;
+        }
+
+        .copy {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            font-size: 18px;
+            font-weight: 950;
+            letter-spacing: .14em;
+        }
+
+        .brand img {
+            width: 38px;
+            height: 52px;
+            object-fit: contain;
+        }
+
+        .kicker {
+            margin: 0 0 14px;
+            color: var(--mint);
+            font-size: 14px;
+            font-weight: 950;
+            letter-spacing: .16em;
+        }
+
+        h1 {
+            max-width: 700px;
+            margin: 0;
+            font-family: "Arial Rounded MT Bold", "Avenir Next", ui-rounded, system-ui, sans-serif;
+            font-size: 68px;
+            line-height: .94;
+            letter-spacing: -.05em;
+        }
+
+        h1 em {
+            color: var(--gold);
+            font-style: normal;
+        }
+
+        .summary {
+            max-width: 700px;
+            margin: 18px 0 0;
+            color: var(--muted);
+            font-size: 18px;
+            line-height: 1.42;
+        }
+
+        .signals {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .signals span {
+            padding: 7px 11px;
+            border: 1px solid rgba(121,229,207,.27);
+            border-radius: 999px;
+            background: rgba(9,10,26,.62);
+            color: var(--paper);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .08em;
+        }
+
+        .destination {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .url {
+            color: var(--gold);
+            font-size: 18px;
+            font-weight: 950;
+        }
+
+        .url::after { content: "  →"; }
+
+        .disclaimer {
+            max-width: 390px;
+            color: #aba4bd;
+            font-size: 10px;
+            line-height: 1.35;
+            text-align: right;
+        }
+
+        .visual {
+            position: relative;
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .story-orbit {
+            position: absolute;
+            width: 390px;
+            height: 390px;
+            top: 62px;
+            border: 1px solid rgba(121,229,207,.28);
+            border-radius: 50%;
+            box-shadow: 0 0 90px rgba(105,64,227,.34), inset 0 0 70px rgba(121,229,207,.07);
+        }
+
+        .story-orbit::before,
+        .story-orbit::after {
+            position: absolute;
+            border-radius: 50%;
+            content: "";
+        }
+
+        .story-orbit::before {
+            width: 14px;
+            height: 14px;
+            left: 27px;
+            top: 88px;
+            background: var(--gold);
+            box-shadow: 0 0 22px rgba(255,212,101,.9);
+        }
+
+        .story-orbit::after {
+            width: 10px;
+            height: 10px;
+            right: 41px;
+            bottom: 73px;
+            background: var(--mint);
+            box-shadow: 0 0 22px rgba(121,229,207,.9);
+        }
+
+        .emblem {
+            position: relative;
+            z-index: 2;
+            width: 104px;
+            height: 155px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 28px rgba(173,104,255,.65));
+        }
+
+        .story-line {
+            position: relative;
+            z-index: 3;
+            display: grid;
+            width: 330px;
+            margin-top: -3px;
+            grid-template-columns: 1fr auto 1fr auto 1fr;
+            align-items: center;
+            gap: 7px;
+            color: var(--paper);
+            font-size: 10px;
+            font-weight: 950;
+            letter-spacing: .08em;
+            text-align: center;
+        }
+
+        .story-line i {
+            display: block;
+            width: 21px;
+            height: 1px;
+            background: rgba(121,229,207,.65);
+        }
+
+        .game-frame {
+            position: relative;
+            z-index: 4;
+            width: 360px;
+            margin-top: 20px;
+            padding: 6px;
+            transform: rotate(1.2deg);
+            border: 1px solid rgba(255,255,255,.28);
+            border-radius: 19px;
+            background: rgba(7,6,17,.9);
+            box-shadow: 0 24px 56px rgba(0,0,0,.48);
+        }
+
+        .game-frame img {
+            display: block;
+            width: 100%;
+            border-radius: 13px;
+        }
+
+        .proof-label {
+            position: absolute;
+            z-index: 5;
+            right: -5px;
+            bottom: -12px;
+            padding: 8px 12px;
+            transform: rotate(-2deg);
+            border-radius: 999px;
+            background: var(--mint);
+            color: #0b1520;
+            font-size: 10px;
+            font-weight: 950;
+            letter-spacing: .08em;
+        }
+
+        html.square body {
+            width: 1200px;
+            height: 1200px;
+            background:
+                linear-gradient(180deg, rgba(7,6,17,.99) 0%, rgba(7,6,17,.94) 48%, rgba(7,6,17,.34) 82%, rgba(7,6,17,.24) 100%),
+                url('/marketing/mythical-void-creature-universe-hero-v2.webp') center / cover no-repeat;
+        }
+
+        html.square .card {
+            grid-template-columns: 1fr;
+            grid-template-rows: 570px 1fr;
+            gap: 8px;
+            padding: 42px 50px 36px;
+        }
+
+        html.square h1 {
+            max-width: 1040px;
+            font-size: 82px;
+        }
+
+        html.square .summary {
+            max-width: 1020px;
+            font-size: 20px;
+        }
+
+        html.square .copy { gap: 17px; }
+        html.square .destination { align-items: center; }
+        html.square .disclaimer { max-width: 520px; }
+        html.square .visual { justify-content: flex-start; }
+
+        html.square .story-orbit {
+            width: 580px;
+            height: 580px;
+            top: -15px;
+        }
+
+        html.square .emblem {
+            width: 110px;
+            height: 170px;
+            margin-top: 10px;
+        }
+
+        html.square .story-line { width: 410px; font-size: 12px; }
+        html.square .game-frame { width: 610px; margin-top: 20px; }
+        html.square .proof-label { font-size: 12px; }
+    </style>
+    <script>if (new URLSearchParams(location.search).has('square')) document.documentElement.classList.add('square');</script>
+</head>
+<body>
+    <main class="card" aria-label="Mythical Void father-and-son studio story sharing artwork">
+        <div class="grain" aria-hidden="true"></div>
+        <section class="copy">
+            <div class="brand"><img src="/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></div>
+            <div>
+                <p class="kicker">AN IRISH FATHER-AND-SON PROJECT</p>
+                <h1>One enormous idea. <em>Built together.</em></h1>
+                <p class="summary">Mythical Void began at home when a dad and his nine-year-old son asked what imagination and generative AI tools could build together. It became a free browser game.</p>
+                <div class="signals"><span>IMAGINATION</span><span>GENERATIVE AI TOOLS</span><span>REAL GAME</span></div>
+            </div>
+            <div class="destination">
+                <span class="url">mythicalvoid.com/studio</span>
+                <span class="disclaimer">Founder-story artwork. Background: AI-generated marketing illustration, not gameplay. Framed image: real gameplay using a company-controlled test state. No image or identifying detail of the child is used.</span>
+            </div>
+        </section>
+        <section class="visual">
+            <div class="story-orbit" aria-hidden="true"></div>
+            <img class="emblem" src="/marketing/mythical-void-emblem-v3.png" alt="">
+            <div class="story-line"><span>A QUESTION</span><i></i><span>A UNIVERSE</span><i></i><span>A GAME</span></div>
+            <div class="game-frame">
+                <img src="/press/gameplay/project-beacon-live-egg.png" alt="Real Mythical Void first-contact gameplay at the Wanderer-77 crash site">
+                <span class="proof-label">REAL GAMEPLAY</span>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

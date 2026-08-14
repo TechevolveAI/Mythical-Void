@@ -78,14 +78,14 @@
     {
       "route": "/studio/",
       "htmlPath": "public/studio/index.html",
-      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageType": "image/webp",
-      "width": 1672,
-      "height": 941,
-      "alt": "A universe of imagined creatures from Mythical Void",
-      "classification": "ai_generated_marketing_illustration",
-      "disclosure": "AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay."
+      "imagePath": "public/press/social/father-son-story-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/father-son-story-wide.png",
+      "imageType": "image/png",
+      "width": 1200,
+      "height": 630,
+      "alt": "Mythical Void father-and-son founder-story artwork with the words One enormous idea, built together, and a real game frame",
+      "classification": "branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame",
+      "disclosure": "Founder-story sharing layout, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay. The framed screen is real gameplay using a company-controlled test state; no player information, photograph, name or identifying detail of the child is shown."
     }
   ],
   "knownLimitations": [

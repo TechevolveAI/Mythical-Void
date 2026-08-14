@@ -89,6 +89,9 @@ for (const page of manifest.pages || []) {
     if ((page.classification || '').startsWith('branded_social_artwork_with_authentic_gameplay_frame')) {
         requireValue(/not a raw screenshot/i.test(page.disclosure || '') && /real gameplay/i.test(page.disclosure || '') && /no player information/i.test(page.disclosure || ''), `${label} branded artwork must retain its gameplay and privacy disclosure.`);
     }
+    if (page.classification === 'branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame') {
+        requireValue(/not a raw screenshot/i.test(page.disclosure || '') && /not gameplay/i.test(page.disclosure || '') && /real gameplay/i.test(page.disclosure || '') && /no player information/i.test(page.disclosure || '') && /identifying detail of the child/i.test(page.disclosure || ''), `${label} founder-story artwork must retain its generated-art, real-gameplay, privacy and child-identity boundaries.`);
+    }
     if (/nasa/i.test(page.classification || '')) {
         requireValue(/NASA does not endorse Mythical Void/i.test(page.disclosure || ''), `${label} NASA preview must retain its non-endorsement boundary.`);
     }

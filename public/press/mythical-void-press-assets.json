@@ -78,6 +78,20 @@
       "description": "A square branded Mythical Void sharing layout built around a real in-game Apollo 11 discovery screen. The complete layout is not a raw gameplay screenshot; the framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image. NASA does not endorse Mythical Void."
     },
     {
+      "name": "One enormous idea founder-story artwork — wide",
+      "url": "https://mythicalvoid.com/press/social/father-son-story-wide.png",
+      "kind": "branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame",
+      "dimensions": "1200x630",
+      "description": "A branded founder-story sharing layout about the Irish father-and-son origin of Mythical Void. The background is an AI-generated marketing illustration, not gameplay. The framed first-contact screen is real gameplay using a company-controlled test state. No photograph, name or identifying detail of the child is used."
+    },
+    {
+      "name": "One enormous idea founder-story artwork — square",
+      "url": "https://mythicalvoid.com/press/social/father-son-story-square.png",
+      "kind": "branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame",
+      "dimensions": "1200x1200",
+      "description": "A square branded founder-story sharing layout about the Irish father-and-son origin of Mythical Void. The background is an AI-generated marketing illustration, not gameplay. The framed first-contact screen is real gameplay using a company-controlled test state. No photograph, name or identifying detail of the child is used."
+    },
+    {
       "name": "First contact",
       "url": "https://mythicalvoid.com/press/gameplay/project-beacon-live-egg.png",
       "kind": "authentic_running_build_screenshot",
