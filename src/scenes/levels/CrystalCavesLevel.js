@@ -338,7 +338,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.levelEntryDismissing = false;
         const layout = this.getLevelModalLayout({ maxWidth: 450, maxHeight: 400 });
         const {
-            width, height, panelWidth, panelHeight, panelX, panelY,
+            width, height, isCompact, panelWidth, panelHeight, panelX, panelY,
             contentWidth, contentLeft, contentRight, y, font, buttonPadding
         } = layout;
         const resume = this.getExpeditionResumePresentation();
@@ -453,6 +453,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             padding: buttonPadding
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
+
+        divider.setVisible(!isCompact);
+        this.layoutCampaignEntryContent(
+            layout,
+            [title, subtitle, objHeader, mainObj, anchors, grove, relic, enterBtn],
+            { gaps: [8, 10, 8, 10, 5, 5, 12] }
+        );
 
         // Button hover effects
         enterBtn.on('pointerover', () => {

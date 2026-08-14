@@ -678,6 +678,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
         entryElements.push(enterBtn);
 
+        divider.setVisible(!isCompact);
+        this.layoutCampaignEntryContent(
+            layout,
+            [title, subtitle, objHeader, mainObj, obj1, obj2, enterBtn],
+            { gaps: [8, 10, 8, 10, 6, 12] }
+        );
+
         enterBtn.on('pointerover', () => enterBtn.setColor('#90EE90'));
         enterBtn.on('pointerout', () => enterBtn.setColor('#228B22'));
 

@@ -6,7 +6,7 @@ function loadControlMath() {
     const filePath = path.join(__dirname, '../systems/MobileControlLayout.js');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace(/export function /g, 'function ')
-        .concat('\nmodule.exports = { getMobileControlLayout, getMobileInteractionPromptLayout, getCampaignObjectiveLayout, getJoystickVector };\n');
+        .concat('\nmodule.exports = { getMobileControlLayout, getMobileInteractionPromptLayout, getCampaignObjectiveLayout, getCampaignEntryStackLayout, getJoystickVector };\n');
     const sandbox = {
         module: { exports: {} },
         exports: {},
@@ -22,6 +22,7 @@ describe('shared mobile control dock', () => {
         getMobileControlLayout,
         getMobileInteractionPromptLayout,
         getCampaignObjectiveLayout,
+        getCampaignEntryStackLayout,
         getJoystickVector
     } = loadControlMath();
     const viewports = [
@@ -182,6 +183,45 @@ describe('shared mobile control dock', () => {
         expect(vector.y).toBe(0);
     });
 
+    test('lays out measured entry content without overlap', () => {
+        const heights = [34, 34, 14, 42, 34, 18, 42];
+        const layout = getCampaignEntryStackLayout({
+            top: 100,
+            bottom: 450,
+            itemHeights: heights,
+            gaps: [8, 10, 8, 10, 6, 12]
+        });
+
+        expect(layout.overflow).toBe(0);
+        expect(layout.positions[0]).toBeGreaterThanOrEqual(layout.innerTop);
+        heights.slice(0, -1).forEach((height, index) => {
+            expect(layout.positions[index] + height)
+                .toBeLessThanOrEqual(layout.positions[index + 1]);
+        });
+        expect(layout.positions.at(-1) + heights.at(-1))
+            .toBeLessThanOrEqual(layout.innerBottom);
+    });
+
+    test('contracts entry whitespace before content can collide', () => {
+        const heights = [34, 34, 22, 44, 36, 42];
+        const layout = getCampaignEntryStackLayout({
+            top: 0,
+            bottom: 250,
+            itemHeights: heights,
+            gaps: 12,
+            topPadding: 10,
+            bottomPadding: 10,
+            minGap: 4
+        });
+
+        expect(layout.overflow).toBe(0);
+        expect(layout.gaps.every((gap) => gap >= 0 && gap < 12)).toBe(true);
+        heights.slice(0, -1).forEach((height, index) => {
+            expect(layout.positions[index] + height)
+                .toBeLessThanOrEqual(layout.positions[index + 1]);
+        });
+    });
+
     test('both gameplay modes consume the shared geometry', () => {
         const mobileSource = fs.readFileSync(
             path.join(__dirname, '../systems/MobileControls.js'),
@@ -245,6 +285,25 @@ describe('shared mobile control dock', () => {
             );
             expect(source).toContain('this.createCampaignObjectiveDisplay(');
             expect(source).not.toContain('const isShortLandscape');
+        });
+    });
+
+    test('all campaign entry briefs use measured responsive stacking', () => {
+        const levelFiles = [
+            'MythicalForestLevel.js',
+            'CrystalCavesLevel.js',
+            'ReefLevel.js',
+            'VoidPeaksLevel.js',
+            'AuroraDepthsLevel.js',
+            'FinalVoidLevel.js'
+        ];
+
+        levelFiles.forEach((fileName) => {
+            const source = fs.readFileSync(
+                path.join(__dirname, '../scenes/levels', fileName),
+                'utf8'
+            );
+            expect(source).toContain('this.layoutCampaignEntryContent(');
         });
     });
 

@@ -5,7 +5,7 @@ import {
 } from '../systems/ProjectBeaconStory.js';
 import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import '../systems/ProjectBeaconFieldKit.js';
-import { getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
+import { getCampaignEntryStackLayout, getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
 import bossConfigs from '../config/bosses.json';
 import { analyzeTraversalTopology } from '../systems/TraversalTopology.js';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
@@ -550,6 +550,45 @@ class PlatformerLevelScene extends Phaser.Scene {
             font: (desktop, compact) => `${isCompact ? compact : desktop}px`,
             buttonPadding: isCompact ? { x: 16, y: 10 } : { x: 25, y: 12 }
         };
+    }
+
+    layoutCampaignEntryContent(layout, entries, {
+        gaps = 8,
+        topPadding = 18,
+        bottomPadding = 18,
+        minGap = 4
+    } = {}) {
+        if (!layout?.isCompact) return null;
+
+        const elements = entries.filter((element) => element && element.active !== false);
+        const itemHeights = elements.map((element) => {
+            const boundsHeight = element.getBounds?.()?.height;
+            const measuredHeight = Number(boundsHeight || element.displayHeight || element.height);
+            return Number.isFinite(measuredHeight) ? Math.max(0, measuredHeight) : 0;
+        });
+        const stack = getCampaignEntryStackLayout({
+            top: layout.panelY,
+            bottom: layout.panelY + layout.panelHeight,
+            itemHeights,
+            gaps,
+            topPadding,
+            bottomPadding,
+            minGap
+        });
+
+        elements.forEach((element, index) => {
+            const originY = Number.isFinite(Number(element.originY))
+                ? Number(element.originY)
+                : 0;
+            element.setY(stack.positions[index] + itemHeights[index] * originY);
+        });
+
+        if (stack.overflow > 0.5) {
+            console.warn(
+                `[PlatformerLevel] Campaign entry content exceeds its panel by ${stack.overflow.toFixed(1)}px`
+            );
+        }
+        return stack;
     }
 
     /**

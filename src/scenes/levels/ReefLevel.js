@@ -492,6 +492,13 @@ class ReefLevel extends PlatformerLevelScene {
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
 
+        divider.setVisible(!isCompact);
+        this.layoutCampaignEntryContent(
+            layout,
+            [title, subtitle, storyText, objHeader, mainObj, shipObj, relicObj, controlsHint, enterBtn],
+            { gaps: [7, 7, 10, 7, 6, 6, 8, 12], topPadding: 16, bottomPadding: 16 }
+        );
+
         enterBtn.on('pointerover', () => {
             enterBtn.setColor('#FF88FF');
             enterBtn.setScale(1.05);

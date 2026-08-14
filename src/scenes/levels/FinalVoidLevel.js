@@ -452,6 +452,12 @@ class FinalVoidLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002).setInteractive({ cursor: 'pointer' });
         entryElements.push(enterBtn);
 
+        this.layoutCampaignEntryContent(
+            layout,
+            [title, subtitle, mission, objective, checklist, enterBtn],
+            { gaps: [8, 10, 10, 10, 14] }
+        );
+
         enterBtn.on('pointerover', () => enterBtn.setColor('#FF00FF'));
         enterBtn.on('pointerout', () => enterBtn.setColor('#9400D3'));
 
