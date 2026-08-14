@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-08",
+  "canonicalPressRoom": "https://mythicalvoid.com/press/",
+  "playUrl": "https://mythicalvoid.com/play/",
+  "assets": [
+    {
+      "name": "A Universe of Creatures",
+      "url": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "kind": "ai_generated_marketing_illustration",
+      "description": "Inspired by profiles from the creature genetics engine; not gameplay footage."
+    },
+    {
+      "name": "Wanderer-77 crash site",
+      "url": "https://mythicalvoid.com/game/project-beacon-crash-site.webp",
+      "kind": "current_game_world_asset",
+      "description": "First-party asset used by the game; does not demonstrate animation or a complete gameplay sequence."
+    },
+    {
+      "name": "The Fend village heart",
+      "url": "https://mythicalvoid.com/game/village/village-heart-command.webp",
+      "kind": "current_game_world_asset",
+      "description": "First-party environment asset used by the game; does not show a completed restoration outcome."
+    },
+    {
+      "name": "The Void Empress",
+      "url": "https://mythicalvoid.com/game/guardians/void-empress.webp",
+      "kind": "current_game_world_asset",
+      "description": "First-party guardian asset; the story target is the corruption holding the guardian."
+    },
+    {
+      "name": "Mythical Void emblem",
+      "url": "https://mythicalvoid.com/marketing/mythical-void-emblem-v3.png",
+      "kind": "ai_generated_and_refined_brand_art",
+      "description": "Transparent official purple-and-gold studio emblem."
+    }
+  ],
+  "permissions": "Assets may be used in truthful editorial coverage of Mythical Void with their descriptions and disclosures preserved.",
+  "restrictions": [
+    "Do not present marketing illustrations or game-world stills as gameplay footage.",
+    "Do not imply NASA endorsement or partnership.",
+    "Do not imply sentience, consciousness, global creature uniqueness or a fully autonomous studio."
+  ]
+}
