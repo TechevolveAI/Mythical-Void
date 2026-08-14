@@ -2,7 +2,7 @@
 
 Mythical Void now has a repeatable way to create honest screenshots from the real running game.
 
-The camera follows the same tested journeys used to check the game: the Project Beacon opening, the live egg, a cosmic hatch, all six realms, and the village builder. It uses invented test data and records the exact build behind every image.
+The camera follows the same tested journeys used to check the game: the Project Beacon opening, the live egg, a cosmic hatch, all six realms, the village builder, and a credited NASA learning moment. It uses invented test data and records the exact build behind every image.
 
 ## Why this matters
 
@@ -20,6 +20,30 @@ node scripts/company/capture-authentic-gameplay-stills.cjs
 
 The finished images and their proof record are written to `public/press/gameplay/`. The proof record contains the source build, dimensions, file fingerprints, privacy boundary and required disclosure.
 
+To refresh only the NASA learning moment:
+
+```bash
+MYTHICAL_CAPTURE_GROUP=nasa node scripts/company/capture-authentic-gameplay-stills.cjs
+```
+
+The NASA card must keep three things visibly separate:
+
+- the real NASA image and date;
+- its exact source and image credit;
+- the creature’s imagined reaction inside the Mythical Void story.
+
+It also includes a short “space scientist’s log” so the feature asks players to observe, infer and look for evidence instead of simply showing a pretty picture.
+
+## Create a genuine gameplay clip
+
+```bash
+node scripts/company/capture-authentic-gameplay-video.cjs
+```
+
+This records a short vertical journey directly from the running Mythical Forest level. The journey performs real movement and jumping, verifies that the level is live, creates an MP4 and poster image, and records their fingerprints and dimensions in `public/press/gameplay-video/manifest.json`.
+
+The recording contains no voice, player name, account, message or personal save. It must be described as real gameplay. It must never be mixed with generated frames or replacement scenery.
+
 ## Before publishing any image
 
 1. Open it and make sure the game is readable and visually strong.
@@ -27,5 +51,6 @@ The finished images and their proof record are written to `public/press/gameplay
 3. Use the description: **Captured from the real Mythical Void browser game; not a generated mockup.**
 4. Kevin approves the finished image and post together.
 5. If the relevant game area changes, run the camera again rather than reusing an old image.
+6. For video, inspect the beginning, middle and end rather than approving it from the poster image alone.
 
-This system prepares screenshots, not finished trailers. Continuous gameplay video remains the stronger proof for movement, hatching, restoration and player choice.
+This system prepares verified proof assets, not a finished trailer. Longer videos still need a human edit, a checked soundtrack and a final audience decision before upload.

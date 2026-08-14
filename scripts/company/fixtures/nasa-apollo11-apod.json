@@ -1,0 +1,28 @@
+{
+  "fixtureVersion": 1,
+  "purpose": "Stable first-party QA capture of the real NASA learning presentation.",
+  "retrievedFrom": "https://apod.nasa.gov/apod/ap240720.html",
+  "retrievedAt": "2026-08-14",
+  "rightsNote": "NASA-credited Apollo 11 mission imagery. Preserve the supplied credit and source link.",
+  "content": {
+    "type": "apod",
+    "title": "Real Space Discovery",
+    "subtitle": "Apollo 11 Landing Panorama",
+    "imageUrl": "https://apod.nasa.gov/apod/image/2407/a11pan1040226lftsm.jpg",
+    "hdUrl": "https://apod.nasa.gov/apod/image/2407/a11pan1040226lft.jpg",
+    "description": "Neil Armstrong photographed this view from the Eagle lunar module shortly after Apollo 11 landed. The panorama records the Moon’s Sea of Tranquility.",
+    "date": "2024-07-20",
+    "realDataLabel": "REAL NASA IMAGE",
+    "sourceLabel": "NASA Astronomy Picture of the Day",
+    "sourceUrl": "https://apod.nasa.gov/apod/ap240720.html",
+    "sourceCredit": "Image credit: Neil Armstrong · Apollo 11 · NASA",
+    "learningPrompt": "What clues show that this picture was taken from a spacecraft?",
+    "scienceSteps": [
+      "OBSERVE — Find the spacecraft, shadows and crater edges.",
+      "INFER — Which direction does the sunlight come from?",
+      "CHECK — What could give this Moon landscape a sense of scale?"
+    ],
+    "storyBoundaryLabel": "MYTHICAL VOID IMAGINES",
+    "creatureComment": "A person stood inside that little spacecraft and looked out at another world!"
+  }
+}
