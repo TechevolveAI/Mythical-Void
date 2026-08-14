@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "page": {
+    "title": "Mythical Void Updates | The Signal Log",
+    "description": "See what is newly live in Mythical Void: game stories, useful resources and honest release notes linked to the playable browser game.",
+    "canonicalUrl": "https://mythicalvoid.com/updates/",
+    "heading": "What changed in the Void.",
+    "introduction": "Real releases, useful new ways to explore, and clear notes about what is still being built. No vague promises and no invented player numbers."
+  },
+  "publicationBoundary": {
+    "liveItemsOnly": true,
+    "commentsEnabled": false,
+    "contactCollectionEnabled": false,
+    "emailSignupEnabled": false,
+    "playerProfilesCreated": false,
+    "trackingParametersPermitted": false
+  },
+  "entries": [
+    {
+      "id": "SIGNAL-002",
+      "publishedOn": "2026-08-14",
+      "status": "live",
+      "category": "SHARE THE SIGNAL",
+      "title": "A new way to share the game",
+      "summary": "Adults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.",
+      "details": [
+        "The QR code goes straight to mythicalvoid.com with no tracking code attached.",
+        "The card includes one real Project Beacon game screen.",
+        "The large creature-universe image is clearly labelled as generated artwork, not gameplay."
+      ],
+      "image": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageAlt": "An imagined gathering of strange alien creatures in a luminous Mythical Void realm",
+      "imageClass": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "destination": "/resources/mythical-void-play-share-card.pdf",
+      "linkText": "Download the play-and-share card",
+      "download": true
+    },
+    {
+      "id": "SIGNAL-001",
+      "publishedOn": "2026-08-14",
+      "status": "live",
+      "category": "WORLD & STORY",
+      "title": "The Project Beacon story is live",
+      "summary": "A new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.",
+      "details": [
+        "Six realm images come from the real running game.",
+        "The page explains why the guardians are restored rather than destroyed.",
+        "The ending remains for players to discover themselves."
+      ],
+      "image": "/press/gameplay/project-beacon-start.png",
+      "imageAlt": "Real Mythical Void gameplay showing the Project Beacon opening at the Wanderer-77 crash site",
+      "imageClass": "authentic_running_build_screenshot",
+      "disclosure": "Captured from the real browser game using an invented test state; no player information is shown.",
+      "destination": "/story/",
+      "linkText": "Read the Project Beacon story",
+      "download": false
+    }
+  ]
+}

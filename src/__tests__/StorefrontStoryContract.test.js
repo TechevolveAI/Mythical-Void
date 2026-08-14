@@ -171,6 +171,8 @@ describe('storefront Project Beacon story contract', () => {
         ]));
         expect(storefront).toContain('Press & creators');
         expect(sitemap).toContain('<loc>https://mythicalvoid.com/press/</loc>');
+        expect(sitemap).toContain('<loc>https://mythicalvoid.com/updates/</loc>');
+        expect(storefront).toContain('href="/updates/">What\'s new</a>');
         expect(pressFactSheet).toContain('PLAY THE CURRENT GAME');
         expect(pressFactSheet).toContain('father-and-son project');
         expect(pressFactSheet).not.toMatch(/\bcompanions?\b/i);

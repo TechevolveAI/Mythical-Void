@@ -237,6 +237,100 @@ h3 { font-size: 1.45rem; }
 .content-section { padding: clamp(4.5rem, 9vw, 8rem) 0; }
 .content-section.alt { background: rgba(255, 255, 255, 0.025); }
 
+.updates-hero .hero-visual img {
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+}
+
+.signal-log-section {
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 56px 56px;
+}
+
+.signal-timeline {
+    position: relative;
+    display: grid;
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.signal-timeline::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 50%;
+    width: 1px;
+    background: linear-gradient(var(--mint), rgba(167, 104, 255, 0.2));
+}
+
+.signal-entry {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: clamp(1.5rem, 5vw, 4rem);
+    align-items: center;
+    padding: clamp(1rem, 2vw, 1.4rem);
+    border: 1px solid var(--line);
+    border-radius: 2rem;
+    background: rgba(14, 11, 30, 0.96);
+    box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.28);
+}
+
+.signal-entry::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 11px;
+    height: 11px;
+    border: 4px solid var(--ink);
+    border-radius: 50%;
+    background: var(--mint);
+    transform: translate(-50%, -50%);
+    box-sizing: content-box;
+}
+
+.signal-entry-image {
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 1.35rem;
+    background: var(--panel);
+}
+
+.signal-entry-image img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+}
+
+.signal-entry-image figcaption {
+    padding: 0.8rem 1rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.signal-entry-copy { padding: clamp(0.5rem, 2vw, 1.2rem); }
+.signal-entry-copy h2 { margin-bottom: 1rem; font-size: clamp(2rem, 4vw, 3.6rem); }
+.signal-entry-copy ul { margin: 1.3rem 0 1.6rem; padding-left: 1.2rem; color: var(--muted); }
+.signal-entry-copy li + li { margin-top: 0.55rem; }
+
+.signal-entry-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+    color: var(--mint);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+}
+
+.signal-entry-meta time { color: var(--gold); }
+.signal-entry-latest { border-color: rgba(118, 227, 207, 0.42); }
+
 .split {
     display: grid;
     grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
@@ -440,6 +534,9 @@ details p { margin: 0.9rem 0 0; }
     .story-path li { min-height: auto; border: 1px solid var(--line); border-radius: 1.2rem !important; }
     .story-path li > span { margin-bottom: 1.3rem; }
     .realm-story-grid { grid-template-columns: repeat(3, 1fr); }
+    .signal-entry { grid-template-columns: 1fr; }
+    .signal-entry::before,
+    .signal-timeline::before { display: none; }
 }
 
 @media (max-width: 560px) {
