@@ -123,6 +123,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
         this.abyssAscentCurrent = null;
+        this.activeReefAscentCurrent = null;
         this.driftAscentCurrent = null;
         this.travelerAscentCurrent = null;
     }
@@ -191,6 +192,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.clearLevelEntryKeyHandler();
         this.virtualJoystickY = 0;
         this.abyssAscentCurrent = null;
+        this.activeReefAscentCurrent = null;
         this.driftAscentCurrent = null;
         this.travelerAscentCurrent = null;
 
@@ -1517,28 +1519,106 @@ class ReefLevel extends PlatformerLevelScene {
             width,
             height: currentHeight,
             activations: 0,
-            activeUntil: 0
+            activeUntil: 0,
+            lastLiftAt: Number.NEGATIVE_INFINITY
         };
         this.abyssAscentCurrent = current;
 
         this.physics.add.overlap(this.player, zone, () => {
-            if (!this.player?.body) return;
-            const destination = this.platforms?.getChildren?.().find(
-                platform => platform.traversalId === current.destinationId
-            );
-            if (
-                destination?.body &&
-                this.player.body.top < destination.body.top
-            ) {
-                return;
-            }
-            const now = Number(this.time?.now) || Date.now();
-            if (now >= current.activeUntil) {
-                current.activations += 1;
-                current.activeUntil = now + 300;
-            }
-            this.player.setVelocityY(Math.min(this.player.body.velocity.y, -185));
+            this.activateReefAscentCurrent(current, 'vertical');
         });
+    }
+
+    activateReefAscentCurrent(current, mode = 'forward') {
+        const body = this.player?.body;
+        if (!current || !body || this.activeReefAscentCurrent) return false;
+        if (this.isPlayerDead || this.isRespawning) return false;
+        if (this.isPlayerGroundedOnTraversalSupport(current.destinationId)) {
+            return false;
+        }
+        if (body.bottom < current.bottom - 180) return false;
+
+        const now = Number(this.time?.now) || Date.now();
+        if (now - current.lastLiftAt < 650) return false;
+        current.activations += 1;
+        current.lastLiftAt = now;
+        current.activeUntil = now + 3600;
+        this.activeReefAscentCurrent = {
+            id: current.id,
+            destinationId: current.destinationId,
+            mode,
+            phase: 'lift',
+            expiresAt: current.activeUntil
+        };
+        if (mode === 'forward') {
+            this.player.setVelocityX(Math.max(body.velocity.x, 105));
+        }
+        this.player.setVelocityY(Math.min(body.velocity.y, -220));
+        return true;
+    }
+
+    isPlayerSettledOnReefSupport(id) {
+        const body = this.player?.body;
+        const support = this.getTraversalSupport(id);
+        if (!body || !support?.body || body.velocity.y < -1) return false;
+        const horizontallySupported =
+            body.right > support.body.left + 8 &&
+            body.left < support.body.right - 8;
+        const onSurface =
+            Math.abs(body.bottom - support.body.top) <= 7;
+        return horizontallySupported && onSurface && Boolean(
+            body.blocked.down || body.touching.down || this.isGrounded
+        );
+    }
+
+    updateReefAscentCurrentGuidance() {
+        const active = this.activeReefAscentCurrent;
+        const body = this.player?.body;
+        if (!active || !body) return false;
+        if (this.isPlayerDead || this.isRespawning) {
+            this.activeReefAscentCurrent = null;
+            return false;
+        }
+
+        if (this.isPlayerSettledOnReefSupport(active.destinationId)) {
+            this.activeReefAscentCurrent = null;
+            return true;
+        }
+
+        const now = Number(this.time?.now) || 0;
+        const destination = this.getTraversalSupport(active.destinationId);
+        if (!destination?.body || now >= active.expiresAt) {
+            this.activeReefAscentCurrent = null;
+            return false;
+        }
+
+        const targetX = Phaser.Math.Clamp(
+            destination.x,
+            destination.body.left + 36,
+            destination.body.right - 36
+        );
+        const correction = Phaser.Math.Clamp(
+            (targetX - this.player.x) * 1.5,
+            active.mode === 'forward' ? -155 : -125,
+            active.mode === 'forward' ? 155 : 125
+        );
+        if (Math.abs(targetX - this.player.x) > 6) {
+            this.player.setVelocityX(correction);
+        } else {
+            this.player.setVelocityX(body.velocity.x * 0.4);
+        }
+
+        if (active.phase === 'lift') {
+            if (body.bottom > destination.body.top - 72) {
+                this.player.setVelocityY(Math.min(body.velocity.y, -220));
+            } else {
+                active.phase = 'settle';
+                this.player.setVelocityY(Math.max(body.velocity.y, 45));
+            }
+        } else if (body.velocity.y < 35) {
+            this.player.setVelocityY(35);
+        }
+        return true;
     }
 
     createDriftAscentCurrent() {
@@ -1632,34 +1712,12 @@ class ReefLevel extends PlatformerLevelScene {
             width,
             height: currentHeight,
             activations: 0,
-            activeUntil: 0
+            activeUntil: 0,
+            lastLiftAt: Number.NEGATIVE_INFINITY
         };
 
         this.physics.add.overlap(this.player, zone, () => {
-            if (!this.player?.body) return;
-            const destination = this.platforms?.getChildren?.().find(
-                platform => platform.traversalId === current.destinationId
-            );
-            if (!destination?.body) return;
-
-            const alignedWithDestination = (
-                this.player.body.right > destination.body.left + 8 &&
-                this.player.body.left < destination.body.right - 8
-            );
-            if (
-                alignedWithDestination &&
-                this.player.body.bottom <= destination.body.top + 12
-            ) {
-                return;
-            }
-
-            const now = Number(this.time?.now) || Date.now();
-            if (now >= current.activeUntil) {
-                current.activations += 1;
-                current.activeUntil = now + 300;
-            }
-            this.player.setVelocityX(Math.max(this.player.body.velocity.x, 105));
-            this.player.setVelocityY(Math.min(this.player.body.velocity.y, -195));
+            this.activateReefAscentCurrent(current, 'forward');
         });
         return current;
     }
@@ -3843,6 +3901,8 @@ class ReefLevel extends PlatformerLevelScene {
         super.update(time, delta);
         if (!this.player || this.isPlayerDead || this.levelCompletionActive) return;
 
+        this.updateReefAscentCurrentGuidance();
+
         this.updateEnemies(time, delta);
 
         if (this.bossFightActive) {
@@ -3979,6 +4039,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.openingSignalCurrent = null;
         this.destroyReefCurrent(this.abyssAscentCurrent);
         this.abyssAscentCurrent = null;
+        this.activeReefAscentCurrent = null;
         this.destroyReefCurrent(this.driftAscentCurrent);
         this.driftAscentCurrent = null;
         this.destroyReefCurrent(this.travelerAscentCurrent);

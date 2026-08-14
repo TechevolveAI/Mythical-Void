@@ -1156,8 +1156,10 @@ async function smokeReefAscentCurrent(session) {
             })()`),
             { timeoutMs: 2600, message: 'Reef Star Trench current lift' }
         );
-        const landed = await waitFor(
-            () => evaluate(session, `(() => {
+        let landed;
+        try {
+            landed = await waitFor(
+                () => evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene('ReefLevel');
                 const support = scene.platforms.getChildren().find(
                     item => item.traversalId === 'reef-drive-step'
@@ -1175,9 +1177,44 @@ async function smokeReefAscentCurrent(session) {
                     supportTop: Math.round(support.body.top),
                     activations: scene.abyssAscentCurrent.activations
                 } : null;
-            })()`),
-            { timeoutMs: 7000, message: 'Reef current landing' }
-        );
+                })()`),
+                { timeoutMs: 7000, message: 'Reef current landing' }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                const support = scene.platforms.getChildren().find(
+                    item => item.traversalId === 'reef-drive-step'
+                );
+                const body = scene.player.body;
+                return {
+                    player: {
+                        x: Math.round(scene.player.x),
+                        y: Math.round(scene.player.y),
+                        left: Math.round(body.left),
+                        right: Math.round(body.right),
+                        top: Math.round(body.top),
+                        bottom: Math.round(body.bottom),
+                        velocityX: Math.round(body.velocity.x),
+                        velocityY: Math.round(body.velocity.y),
+                        blockedDown: body.blocked.down,
+                        grounded: scene.isGrounded
+                    },
+                    support: {
+                        left: Math.round(support.body.left),
+                        right: Math.round(support.body.right),
+                        top: Math.round(support.body.top),
+                        bottom: Math.round(support.body.bottom)
+                    },
+                    current: {
+                        activations: scene.abyssAscentCurrent.activations,
+                        activeUntil: scene.abyssAscentCurrent.activeUntil,
+                        phase: scene.abyssAscentCurrent.phase || null
+                    }
+                };
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
         await delay(650);
         const settled = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('ReefLevel');

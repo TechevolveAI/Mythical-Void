@@ -625,7 +625,18 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("returnLabel: 'STAR TRENCH RETURN ↑ // SIGNAL ROUTE →'");
         expect(source).toContain('this.freeSpecialAttackCharges += 1;');
         expect(source).toContain('createAbyssAscentCurrent()');
-        expect(source).toContain('this.player.setVelocityY(Math.min(this.player.body.velocity.y, -185))');
+        expect(source).toContain('this.activeReefAscentCurrent = {');
+        expect(source).toContain(
+            'body.bottom < current.bottom - 180'
+        );
+        expect(source).toContain('activateReefAscentCurrent(current, mode');
+        expect(source).toContain('updateReefAscentCurrentGuidance()');
+        expect(source).toContain('isPlayerSettledOnReefSupport(id)');
+        expect(source).toContain(
+            'this.isPlayerSettledOnReefSupport(active.destinationId)'
+        );
+        expect(source).toContain("phase: 'lift'");
+        expect(source).toContain("active.phase = 'settle'");
         expect(source).toContain("id: 'reef_star_trench'");
         expect(source).toContain('optional: true');
         expect(source).toContain("activationSupportIds: ['reef-trench-3']");

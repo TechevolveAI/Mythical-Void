@@ -87,9 +87,10 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain("'STAR TRENCH RETURN ↑'");
         expect(source).toContain("destinationId: 'reef-drive-step'");
         expect(source).toContain('this.abyssAscentCurrent = current;');
-        expect(source).toContain(
-            'this.player.body.top < destination.body.top'
-        );
+        expect(source).toContain("this.activateReefAscentCurrent(current, 'vertical')");
+        expect(source).toContain('if (body.bottom < current.bottom - 180) return false;');
+        expect(source).toContain('if (!current || !body || this.activeReefAscentCurrent) return false;');
+        expect(source).toContain('this.isPlayerSettledOnReefSupport(active.destinationId)');
         expect(source).not.toContain('const width = 1000;');
         expect(source).not.toContain(
             'visual.fillRect(startX, this.levelHeight - 210, width, 210);'
