@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "STEM-DISCOVERY-001",
+  "asOf": "2026-08-14",
+  "state": "research_verified_two_drafts_prepared_no_contact",
+  "purpose": "Help adult educators and trusted Irish space-learning organisations discover the free Mythical Void STEM Creature Lab without contacting children, implying endorsement or using bulk outreach.",
+  "authority": {
+    "researchAuthorized": true,
+    "recipientApproved": false,
+    "outreachAuthorized": false,
+    "sendingAuthorized": false,
+    "directMessagingAuthorized": false,
+    "bulkOutreachAuthorized": false,
+    "paidPlacementAuthorized": false,
+    "childWorkCollectionAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "qualification": {
+    "minimumScore": 15,
+    "maximumScore": 20,
+    "criteria": [
+      "fit with space, inquiry, games or creative STEM",
+      "clear adult educator audience",
+      "public professional contact route",
+      "safeguarding and reputation",
+      "useful learning even without promotion"
+    ]
+  },
+  "candidates": [
+    {
+      "id": "RC-011",
+      "name": "MTU Blackrock Castle Observatory education team",
+      "kind": "Irish observatory, science centre and space-education team",
+      "source": "https://www.bco.ie/education/",
+      "contactSource": "https://www.bco.ie/plan-your-visit/",
+      "sourceCheckedAt": "2026-08-14",
+      "verifiedFit": "Its official education page supports school visits, teacher resources and newly developed space activities, and names an adult education team.",
+      "publicProfessionalRoute": "info@bco.ie",
+      "suggestedAngle": "Ask for adult educator feedback on the free activity and the right route for sharing an external space-learning resource; do not ask for access to students.",
+      "scores": {
+        "subjectFit": 4,
+        "adultAudienceFit": 4,
+        "reachability": 4,
+        "safetyAndReputation": 4,
+        "learningValue": 4
+      },
+      "totalScore": 20,
+      "stage": "draft_prepared_waiting_for_kevin",
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-012",
+      "name": "ESERO Ireland teacher-support team",
+      "kind": "National space-education office for adult teachers and educators",
+      "source": "https://esero.ie/teacher-support/",
+      "sourceCheckedAt": "2026-08-14",
+      "verifiedFit": "Its official teacher-support page offers classroom resources, teacher workshops and direct support for bringing space into primary and post-primary learning.",
+      "publicProfessionalRoute": "eseroireland@researchireland.ie",
+      "suggestedAngle": "Ask whether there is a suitable review route for an independent, free activity that separates real space observation from fictional creature design and a testable prediction.",
+      "scores": {
+        "subjectFit": 4,
+        "adultAudienceFit": 4,
+        "reachability": 4,
+        "safetyAndReputation": 4,
+        "learningValue": 4
+      },
+      "totalScore": 20,
+      "stage": "draft_prepared_waiting_for_kevin",
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-013",
+      "name": "Research Ireland Curious Minds",
+      "kind": "National inquiry-led primary STEM programme",
+      "source": "https://www.researchireland.ie/curious-minds/",
+      "sourceCheckedAt": "2026-08-14",
+      "verifiedFit": "The programme supports teachers with hands-on, inquiry-based STEM resources and publishes a professional contact for the Curious Minds team.",
+      "publicProfessionalRoute": "curiousminds@researchireland.ie",
+      "suggestedAngle": "Hold as an alternative to ESERO rather than contacting two linked Research Ireland teams at once; ask for the correct resource-review route, not endorsement.",
+      "scores": {
+        "subjectFit": 4,
+        "adultAudienceFit": 4,
+        "reachability": 4,
+        "safetyAndReputation": 4,
+        "learningValue": 4
+      },
+      "totalScore": 20,
+      "stage": "qualified_alternative_not_drafted",
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-014",
+      "name": "Science Week Ireland 2026",
+      "kind": "National public science programme and event calendar",
+      "source": "https://www.scienceweek.ie/",
+      "sourceCheckedAt": "2026-08-14",
+      "verifiedFit": "Science Week runs from 8 to 15 November 2026, has Water as its published theme and accepts event-calendar submissions through its official site.",
+      "publicProfessionalRoute": "scienceweek@researchireland.ie",
+      "suggestedAngle": "Opportunity watch only. A future adult-led activity could connect water, alien environments and testable organism adaptations, but Mythical does not yet have an approved event to submit.",
+      "scores": {
+        "subjectFit": 3,
+        "adultAudienceFit": 4,
+        "reachability": 4,
+        "safetyAndReputation": 4,
+        "learningValue": 3
+      },
+      "totalScore": 18,
+      "stage": "future_opportunity_waiting_for_real_event_plan",
+      "outreachApproved": false,
+      "contactedAt": null
+    }
+  ],
+  "contactOrder": [
+    "RC-011",
+    "RC-012"
+  ],
+  "contactRule": "If Kevin later approves outreach, send one message at a time. Learn from the first response before sending the next, and do not contact RC-013 as well as RC-012 without a distinct reason.",
+  "truthAndSafetyRules": [
+    "Contact adult professional teams only through routes published on their official websites.",
+    "Do not contact a school, teacher, club, parent or child privately from this research list.",
+    "Do not collect children's names, ages, work, images, voices, schools, locations or contact details.",
+    "Do not imply review, approval, partnership or endorsement by NASA, ESA, ESERO, Research Ireland or an observatory.",
+    "Describe the activity as independent, free and adult-led for younger designers.",
+    "Do not attach files on first contact; use the owned activity and press-room links.",
+    "Stop after one unanswered follow-up, no sooner than seven days after the first message."
+  ]
+}

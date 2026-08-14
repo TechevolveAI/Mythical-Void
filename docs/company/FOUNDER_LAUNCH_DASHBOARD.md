@@ -24,6 +24,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Honest game proof:** the real hatch reached a visible creature and Confirm contact, but the captured frame was rejected for public promotion after 4 visible quality problems were recorded for Game Development.
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after 4 quality limits were recorded.
 - **Project Beacon choice:** 2 real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with 2 visible limitations recorded.
+- **Adult STEM discovery:** 2 one-to-one introductions are prepared for the Blackrock Castle Observatory and ESERO Ireland education teams. Nothing has been sent, and both messages still require Kevin to approve the sender, recipient and final wording.
 - **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 

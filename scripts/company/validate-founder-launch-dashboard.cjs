@@ -18,9 +18,10 @@ const paths = {
     hatchReview: process.argv[11] ? path.resolve(process.argv[11]) : defaultPaths.hatchReview,
     restorationReview: process.argv[12] ? path.resolve(process.argv[12]) : defaultPaths.restorationReview,
     choiceReview: process.argv[13] ? path.resolve(process.argv[13]) : defaultPaths.choiceReview,
-    dashboard: process.argv[14] ? path.resolve(process.argv[14]) : dashboardDefault
+    adultStemOutreach: process.argv[14] ? path.resolve(process.argv[14]) : defaultPaths.adultStemOutreach,
+    dashboard: process.argv[15] ? path.resolve(process.argv[15]) : dashboardDefault
 };
-const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview'];
+const sourceKeys = ['evidence', 'outreach', 'activation', 'itch', 'launch', 'trailer', 'analytics', 'calendar', 'discovery', 'hatchReview', 'restorationReview', 'choiceReview', 'adultStemOutreach'];
 const values = Object.fromEntries(sourceKeys.map(key => [key, readJson(paths[key])]));
 const dashboard = fs.readFileSync(paths.dashboard, 'utf8');
 const expectedDashboard = buildDashboard(values);
@@ -91,6 +92,11 @@ requireValue(values.restorationReview.qualityIssues?.length === 4, 'The founder 
 requireValue(values.choiceReview.captureIds?.join(',') === 'GP-016,GP-017', 'Founder view must use both reviewed Project Beacon choice frames.');
 requireValue(values.choiceReview.reviewState === 'authentic_spoiler_safe_supporting_proof_ready_for_kevin_review' && values.choiceReview.publicUseApproved === false, 'The Project Beacon choice proof must remain spoiler-safe and waiting for Kevin review.');
 requireValue(values.choiceReview.qualityIssues?.length === 2, 'The founder view must retain both Project Beacon choice limitations.');
+
+requireValue(values.adultStemOutreach.state === 'two_drafts_ready_waiting_for_sender_and_kevin_approval', 'Adult STEM outreach must remain a prepared draft.');
+requireValue(values.adultStemOutreach.messages?.length === 2, 'Founder view must retain the two adult STEM introductions.');
+requireValue(values.adultStemOutreach.messages?.every(message => message.approved === false && message.sentAt === null), 'Every adult STEM introduction must remain unapproved and unsent.');
+requireValue(values.adultStemOutreach.authority?.sendingAuthorized === false && values.adultStemOutreach.authority?.childWorkCollectionAuthorized === false, 'Adult STEM sending and child-work collection must remain unauthorized.');
 
 const engagementTrack = values.launch.tracks?.find(track => track.id === 'LT-007');
 requireValue(engagementTrack?.status === 'blocked' && /safeguarding/i.test((engagementTrack.blockers || []).join(' ')), 'Public engagement must remain blocked until safeguarding and response ownership exist.');

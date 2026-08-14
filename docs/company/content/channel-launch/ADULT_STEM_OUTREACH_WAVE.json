@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "STEM-OUTREACH-WAVE-001",
+  "asOf": "2026-08-14",
+  "state": "two_drafts_ready_waiting_for_sender_and_kevin_approval",
+  "pipelineRef": "docs/company/content/channel-launch/ADULT_STEM_DISCOVERY_PIPELINE_2026-08-14.json",
+  "activityUrl": "https://mythicalvoid.com/nasa-space-science/",
+  "resourceUrl": "https://mythicalvoid.com/resources/mythical-void-stem-creature-lab.pdf",
+  "pressUrl": "https://mythicalvoid.com/press/",
+  "authority": {
+    "recipientApproved": false,
+    "outreachAuthorized": false,
+    "sendingAuthorized": false,
+    "directMessagingAuthorized": false,
+    "bulkOutreachAuthorized": false,
+    "childWorkCollectionAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "senderGate": {
+    "officialStudioSenderAvailable": false,
+    "temporaryAlternative": "Kevin may later approve sending one message from his existing professional address if it clearly names him and Mythical Void.",
+    "attachmentsAllowedOnFirstContact": false
+  },
+  "messages": [
+    {
+      "id": "STEM-OW-001",
+      "candidateRef": "RC-011",
+      "recipient": "MTU Blackrock Castle Observatory education team",
+      "route": "info@bco.ie",
+      "routeSource": "https://www.bco.ie/plan-your-visit/",
+      "routeType": "public professional email",
+      "subject": "Educator feedback on a free space-and-creature activity",
+      "body": "Hi Blackrock Castle Observatory education team,\n\nI’m Kevin, the founder of Mythical Void in Ireland. I’m reaching out because your education team develops space activities and helps teachers find useful classroom resources.\n\nMythical Void began as a father-and-son experiment with imagination and generative AI. We have now made a free four-page STEM Creature Lab for ages 9-14, families, clubs and classrooms. Learners begin with a credited real-space source, separate observation from fiction, design an organism for an impossible environment and write a prediction they could test. Younger designers are asked to work with an adult.\n\nThe activity is here: https://mythicalvoid.com/nasa-space-science/\nThe game and clearly labelled press material are here: https://mythicalvoid.com/press/\n\nWe do not collect work or personal information from children. The activity is independent and is not endorsed by NASA, ESA, ESERO, Research Ireland or BCO.\n\nIf you have time, I would value an adult educator’s view on whether the activity is useful and whether there is an appropriate route for suggesting external resources. If it is not a fit, no reply is needed.\n\nThanks,\nKevin\nMythical Void",
+      "tailoredEvidence": "Refers to BCO's published teacher-resource and space-activity work.",
+      "approved": false,
+      "sentAt": null,
+      "followUpDueAt": null
+    },
+    {
+      "id": "STEM-OW-002",
+      "candidateRef": "RC-012",
+      "recipient": "ESERO Ireland teacher-support team",
+      "route": "eseroireland@researchireland.ie",
+      "routeSource": "https://esero.ie/teacher-support/",
+      "routeType": "public professional email",
+      "subject": "Question about a free independent space-learning activity",
+      "body": "Hi ESERO Ireland team,\n\nI’m Kevin, the founder of Mythical Void in Ireland. Your teacher-support page offers classroom resources and support for bringing space into primary and post-primary learning, so I wanted to ask for the right adult review route.\n\nMythical Void is a free browser game that began as a father-and-son experiment with imagination and generative AI. We have made a free four-page STEM Creature Lab for ages 9-14, families, clubs and classrooms. Learners start with a credited real-space source, distinguish observation from a fictional idea, design an organism for an impossible environment and write a prediction they could test.\n\nActivity: https://mythicalvoid.com/nasa-space-science/\nPress and background: https://mythicalvoid.com/press/\n\nWe do not collect work or personal information from children. The activity is independent and is not endorsed by NASA, ESA, ESERO or Research Ireland.\n\nCould you tell me whether there is a suitable route for an independent resource like this to be reviewed, or any changes an adult educator would recommend before it is shared more widely? If it is not relevant, no reply is needed.\n\nThanks,\nKevin\nMythical Void",
+      "tailoredEvidence": "Refers to ESERO Ireland's published classroom-resource and teacher-support work.",
+      "approved": false,
+      "sentAt": null,
+      "followUpDueAt": null
+    }
+  ],
+  "sendOrder": [
+    "STEM-OW-001",
+    "STEM-OW-002"
+  ],
+  "sendRule": "Do not send both together. If Kevin later approves the first message, wait for its result or at least seven days before deciding whether the second still adds value.",
+  "approvalChecklist": [
+    "Kevin chooses the professional sending address.",
+    "Kevin approves the named recipient and final message.",
+    "The activity and press links are working on the day of sending.",
+    "No file is attached and no child is copied or contacted.",
+    "The message still says the activity is independent and not endorsed."
+  ]
+}
