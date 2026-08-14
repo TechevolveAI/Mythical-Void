@@ -44,8 +44,18 @@
       "profileDescription": "Enter the Void. Hatch a strange creature, explore six living realms and decide what Project Beacon becomes. Mythical Void is a free browser adventure made by an independent Irish studio that began as a father-and-son experiment with imagination and generative AI. Play now with no download or account needed. Generated artwork is labelled; gameplay videos show the real game. https://mythicalvoid.com/",
       "links": [
         "https://mythicalvoid.com/",
+        "https://mythicalvoid.com/story/",
         "https://mythicalvoid.com/press/"
       ],
+      "channelKit": {
+        "manifest": "public/marketing/channel-kit/youtube/manifest.json",
+        "founderHandoff": "docs/company/content/channel-launch/YOUTUBE_CHANNEL_HANDOFF.md",
+        "profileAsset": "public/marketing/channel-kit/youtube/youtube-profile-v1.png",
+        "bannerAsset": "public/marketing/channel-kit/youtube/youtube-channel-banner-v1.jpg",
+        "artworkDisclosure": "AI-generated Mythical Void channel artwork, directed and assembled by the studio from the approved creature-universe visual language; not gameplay footage.",
+        "kevinVisualApprovalRequired": true,
+        "uploadAuthorized": false
+      },
       "ownership": {
         "primaryOwner": "Kevin Murphy",
         "backupOwner": null,
@@ -231,6 +241,10 @@
     {
       "name": "YouTube channel permissions",
       "url": "https://support.google.com/youtube/answer/9481328?hl=en"
+    },
+    {
+      "name": "YouTube channel branding",
+      "url": "https://support.google.com/youtube/answer/10456525?hl=en"
     },
     {
       "name": "YouTube audience setting",

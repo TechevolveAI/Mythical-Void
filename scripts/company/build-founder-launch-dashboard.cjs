@@ -64,7 +64,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 
 - **The trailer:** the film and dedicated watch page are prepared. The page remains unpublished and hidden from search until Kevin approves the film, wording, and poster together.
 - **Safer measurement:** the current Google tag is live, while the tighter ${analyticsRouteCount}-route, ${analyticsActionCount}-action consent upgrade is prepared on this feature branch. Its numbers are not trusted for company decisions yet.
-- **Social launch:** ${preparedYouTubeCount} YouTube upload items and ${preparedLinkedInCount} LinkedIn posts are prepared, alongside a four-week plan containing ${publicCalendarCount} outward releases and one internal review.
+- **Social launch:** ${preparedYouTubeCount} YouTube upload items and ${preparedLinkedInCount} LinkedIn posts are prepared, alongside a four-week plan containing ${publicCalendarCount} outward releases and one internal review. The first YouTube profile image, 2560 × 1440 banner and account handoff are also ready; no account or upload exists.
 - **Honest game proof:** the real hatch reached a visible creature and Confirm contact, but the captured frame was rejected for public promotion after ${hatchReview.qualityIssues.length} visible quality problems were recorded for Game Development.
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after ${restorationReview.qualityIssues.length} quality limits were recorded.
 - **Project Beacon choice:** ${choiceReview.captureIds.length} real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with ${choiceReview.qualityIssues.length} visible limitations recorded.
@@ -78,7 +78,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 ## Kevin decisions that unlock the most value
 
 1. **Approve or reject the trailer.** Watch all 64 seconds with sound, including the beginning, middle, and end. Check the pace for children, teenagers, and families; the gameplay statements; and the poster image.
-2. **Create the first official channel when convenient.** YouTube is first because the finished trailer gives it a real purpose. Use the prepared account checklist, switch on multi-factor authentication, and return the exact channel link before anything is uploaded.
+2. **Create the first official channel when convenient.** YouTube is first because the finished trailer gives it a real purpose. Review the prepared profile image and banner, use the short account handoff, switch on multi-factor authentication, and return the exact channel link before anything is uploaded.
 3. **Name an adult safeguarding owner and backup before opening feedback, comments, direct messages, or community activity.** The current engagement track is ${engagementTrack.status.replace('_', ' ')} because those roles and response routes are not assigned.
 4. **Verify the existing Google account in Search Console when convenient.** Submit the live sitemap and return the coverage result. A new Mythical Void email address is not required for this task.
 

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "YOUTUBE-CHANNEL-KIT-2026-08-14",
+  "state": "ready_for_kevin_visual_check_and_account_creation",
+  "channelRef": "CH-002",
+  "builtAt": "2026-08-14T19:27:38Z",
+  "assets": {
+    "profile": {
+      "path": "public/marketing/channel-kit/youtube/youtube-profile-v1.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 169594,
+      "sha256": "c1c5397472cbd09cec6d8f77fb5f549c6f866c2c589cde15a5c3b476084983f8"
+    },
+    "banner": {
+      "path": "public/marketing/channel-kit/youtube/youtube-channel-banner-v1.jpg",
+      "width": 2560,
+      "height": 1440,
+      "bytes": 917562,
+      "sha256": "6f4ce83b3812521d32cd9039df6be95366fbd84f356a3ee94d5606a928a2fd21",
+      "textAndLogoSafeArea": {
+        "x": 507,
+        "y": 508,
+        "width": 1546,
+        "height": 423
+      }
+    },
+    "generatedBackground": {
+      "path": "public/marketing/channel-kit/youtube/youtube-channel-banner-background-v1.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2662661,
+      "sha256": "54dfbfb0cd39cf2bf93fa11ed46743f787dde47752e2f6933c16a4a139da5093"
+    }
+  },
+  "wording": {
+    "channelName": "Mythical Void",
+    "bannerPromise": "A UNIVERSE OF CREATURES IS WAITING.",
+    "bannerAction": "PLAY FREE • MYTHICALVOID.COM"
+  },
+  "artworkDisclosure": "AI-generated Mythical Void channel artwork, directed and assembled by the studio from the approved creature-universe visual language; not gameplay footage.",
+  "generation": {
+    "mode": "built_in_image_generation_edit",
+    "reference": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+    "finalPrompt": "Preserve the exact wide composition, deep central negative space, luminous indigo-violet-gold palette and interdimensional landscape, but redesign the visible life forms so they feel genuinely alien and do not resemble ordinary Earth animals or toy humanoids. Replace obvious animal and little-person silhouettes with radically varied organisms: radial beings with orbiting sense organs; liquid bodies whose edges flow uphill; translucent chambers holding miniature weather systems; mineral colonies that communicate through changing refraction; gaseous knots held together by magnetic rings; folded ribbons that exist in several orientations; floating many-eyed apertures; asymmetric living prisms; organisms made from shadow around a bright core; soft plasma lattices; time-offset echoes; creatures that grow temporary limbs only where they touch the world. Keep creatures along the left and right thirds and lower edges, preserve the calm central safe area, and keep the result wondrous, intelligent, welcoming and family-friendly. No text, letters, logos or watermark; no familiar Earth animal anatomy, human-like bodies, generic grey aliens, robots or repeated creature designs."
+  },
+  "sourceRules": [
+    "https://support.google.com/youtube/answer/10456525?hl=en",
+    "https://support.google.com/youtube/answer/9481328?hl=en",
+    "https://support.google.com/youtube/answer/1646861?hl=en"
+  ],
+  "authority": {
+    "accountCreationAuthorized": false,
+    "assetUploadAuthorized": false,
+    "videoUploadAuthorized": false,
+    "publicationAuthorized": false,
+    "commentOpeningAuthorized": false,
+    "paidPromotionAuthorized": false
+  },
+  "approval": {
+    "kevinVisualApprovalRequired": true,
+    "approvedAt": null,
+    "channelUrl": null
+  }
+}

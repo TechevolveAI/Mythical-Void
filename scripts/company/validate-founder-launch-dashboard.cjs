@@ -50,6 +50,9 @@ requireValue(youtube?.accountState === 'not_created_owner_confirmed', 'YouTube m
 requireValue(linkedin?.accountState === 'not_created_owner_confirmed', 'LinkedIn must remain recorded as not created.');
 requireValue(youtube?.firstUploads?.length === 6, 'The YouTube activation pack must retain six prepared upload items.');
 requireValue(linkedin?.firstPosts?.length === 6, 'The LinkedIn activation pack must retain six prepared posts.');
+requireValue(youtube?.channelKit?.profileAsset === 'public/marketing/channel-kit/youtube/youtube-profile-v1.png', 'Founder view must retain the prepared YouTube profile image.');
+requireValue(youtube?.channelKit?.bannerAsset === 'public/marketing/channel-kit/youtube/youtube-channel-banner-v1.jpg', 'Founder view must retain the prepared YouTube banner.');
+requireValue(youtube?.channelKit?.kevinVisualApprovalRequired === true && youtube?.channelKit?.uploadAuthorized === false, 'YouTube artwork upload must remain gated by Kevin visual review.');
 const choicePost = linkedin?.firstPosts?.find(post => post.id === 'LI-006');
 requireValue(choicePost?.asset === 'public/press/gameplay/project-beacon-priority-choice.png', 'The Project Beacon post must use the reviewed authentic wide frame.');
 requireValue(choicePost?.proofReview === 'docs/company/content/PROJECT_BEACON_CHOICE_PROOF_REVIEW.json', 'The Project Beacon post must cite its proof review.');
