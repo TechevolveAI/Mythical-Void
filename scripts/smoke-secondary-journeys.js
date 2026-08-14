@@ -29,8 +29,8 @@ const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
         performanceTier: 'mobile'
     }),
     crystalCaves: Object.freeze({
-        displayCount: 225,
-        activeTweenCount: 30,
+        displayCount: 185,
+        activeTweenCount: 12,
         performanceTier: 'mobile'
     }),
     reef: Object.freeze({
@@ -2674,6 +2674,58 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     scene.forestWisps?.includes?.(target)
                 ))).length
             } : null,
+            caveEnemyRuntime: scene?.scene?.key === 'CrystalCavesLevel' ? {
+                scheduledEnemyCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => Number.isFinite(enemy?.caveNextAiAt)).length,
+                individualTimerCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).reduce(
+                    (total, enemy) => total + (enemy?.runtimeTimers?.size || 0),
+                    0
+                ),
+                aiSchedulerActive: Boolean(scene.caveEnemyAISchedulerActive),
+                proximityActiveCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => enemy?.caveProximityActive === true).length,
+                sleepingEnemyCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => enemy?.caveProximityActive === false).length,
+                enabledBodyCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => enemy?.body?.enable === true).length,
+                renderAttachedEnemyCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => enemy?.displayList === scene.children).length,
+                renderAttachedCueCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(
+                    enemy => enemy?.combatCue?.displayList === scene.children
+                ).length,
+                sleepingDetachedCount: (
+                    scene?.enemies?.getChildren?.() || []
+                ).filter(enemy => (
+                    enemy?.caveProximityActive === false &&
+                    enemy?.displayList !== scene.children &&
+                    enemy?.combatCue?.displayList !== scene.children
+                )).length,
+                activationBounds: scene.caveEnemyActivationBounds ? {
+                    horizontalMargin:
+                        scene.caveEnemyActivationBounds.horizontalMargin,
+                    verticalMargin:
+                        scene.caveEnemyActivationBounds.verticalMargin
+                } : null,
+                spiderTimersPaused: Boolean(
+                    scene.crystalSpider?.caveProximityActive === false &&
+                    scene.spiderAttackTimer?.paused &&
+                    scene.spiderWebSprayTimer?.paused
+                ),
+                batMotionTweenCount: (
+                    scene?.tweens?.getTweens?.() || []
+                ).filter(tween => (tween?.targets || []).some(
+                    target => target?.enemyType === 'shadowBat'
+                )).length
+            } : null,
             forestDecorationRendering:
                 scene?.scene?.key === 'MythicalForestLevel' ? (() => {
                     const tweens = scene?.tweens?.getTweens?.() || [];
@@ -2946,6 +2998,25 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.caveAmbientRendering?.parallaxLayerCount !== 2 ||
             state.caveAmbientRendering?.storyDecorationTweenCount !== 0 ||
             state.caveAmbientRendering?.coinLayerTweenCount !== 0 ||
+            state.caveEnemyRuntime?.scheduledEnemyCount !== 8 ||
+            state.caveEnemyRuntime?.individualTimerCount !== 2 ||
+            state.caveEnemyRuntime?.aiSchedulerActive !== true ||
+            state.caveEnemyRuntime?.proximityActiveCount > 3 ||
+            state.caveEnemyRuntime?.sleepingEnemyCount < 5 ||
+            state.caveEnemyRuntime?.proximityActiveCount +
+                state.caveEnemyRuntime?.sleepingEnemyCount !== 8 ||
+            state.caveEnemyRuntime?.enabledBodyCount !==
+                state.caveEnemyRuntime?.proximityActiveCount ||
+            state.caveEnemyRuntime?.renderAttachedEnemyCount !==
+                state.caveEnemyRuntime?.proximityActiveCount ||
+            state.caveEnemyRuntime?.renderAttachedCueCount !==
+                state.caveEnemyRuntime?.proximityActiveCount ||
+            state.caveEnemyRuntime?.sleepingDetachedCount !==
+                state.caveEnemyRuntime?.sleepingEnemyCount ||
+            state.caveEnemyRuntime?.activationBounds?.horizontalMargin !== 520 ||
+            state.caveEnemyRuntime?.activationBounds?.verticalMargin !== 280 ||
+            state.caveEnemyRuntime?.spiderTimersPaused !== true ||
+            state.caveEnemyRuntime?.batMotionTweenCount !== 0 ||
             state.currentEcologyPlacement?.supportId !==
                 'caves-chamber-bridge' ||
             state.currentEcologyPlacement?.x <
@@ -6034,6 +6105,14 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     stagedEnemyTimerCount = wisp.runtimeTimers?.size || 0;
                 }
             }
+            if (${JSON.stringify(route)} === 'crystalCaves') {
+                stagedEnemyTimerCount = (
+                    scene.enemies?.getChildren?.() || []
+                ).reduce(
+                    (total, enemy) => total + (enemy?.runtimeTimers?.size || 0),
+                    0
+                );
+            }
             if ([
                 'auroraDepths',
                 'voidPeaks',
@@ -6105,6 +6184,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     forestEnemyAISchedulerActive: Boolean(
                         scene.forestEnemyAISchedulerActive
                     ),
+                    caveEnemyAISchedulerActive: Boolean(
+                        scene.caveEnemyAISchedulerActive
+                    ),
                     persistedId: persisted?.checkpointId || null,
                     persistedIndex: persisted?.checkpointIndex ?? null
                 };
@@ -6133,7 +6215,11 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 guardianEntry.runtimeDisposals?.artifactCount <
                     guardianEntrySetup.stagedEnemyArtifactCount) ||
             (route === 'crystalCaves' &&
-                guardianEntry.runtimeDisposals?.timerCount < 10) ||
+                guardianEntrySetup.stagedEnemyTimerCount > 2) ||
+            (route === 'crystalCaves' &&
+                guardianEntry.runtimeDisposals?.timerCount !== 2) ||
+            (route === 'crystalCaves' &&
+                guardianEntry.caveEnemyAISchedulerActive !== false) ||
             guardianEntry.persistedId !== guardianEntrySetup.persistedId ||
             guardianEntry.persistedIndex !== guardianEntrySetup.persistedIndex
         ) {

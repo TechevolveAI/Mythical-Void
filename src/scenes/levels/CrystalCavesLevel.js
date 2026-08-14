@@ -202,6 +202,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Enemy spawns
         this.enemySpawns = [];
         this.caveEncounterRhythm = [];
+        this.caveProximityEnemies = [];
+        this.caveEnemyAISchedulerActive = false;
+        this.caveEnemyActivationBounds = null;
+        this.caveEnemyActivationNextAt = 0;
+        this.caveEnemyAINextAt = 0;
 
         // Ambient audio controller
         this.ambientAudio = null;
@@ -256,6 +261,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossFightActive = false;
         this.enemySpawns = [];
         this.caveEncounterRhythm = [];
+        this.caveProximityEnemies = [];
+        this.caveEnemyAISchedulerActive = false;
+        this.caveEnemyActivationBounds = null;
+        this.caveEnemyActivationNextAt = 0;
+        this.caveEnemyAINextAt = 0;
 
         // Reset boss state
         this.boss = null;
@@ -1873,8 +1883,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             enemy.encounterBeat = encounter.beat;
             enemy.encounterLane = encounter.lane;
             enemy.encounterSupportId = encounter.supportId;
+            this.registerCaveEnemyAI(enemy);
             return enemy;
         });
+        this.startCaveEnemyAIScheduler();
 
         console.log(
             `[CrystalCavesLevel] Created ${this.caveEncounterRhythm.length} ` +
@@ -1885,6 +1897,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
     retireCavePatrolsForGolem() {
         const patrols = [...(this.enemies?.getChildren?.() || [])];
+        this.caveEnemyAISchedulerActive = false;
+        this.caveProximityEnemies = [];
+        this.caveEnemyActivationBounds = null;
         const retirement = this.retireRouteEnemies(patrols);
         this.spiderAITimer = null;
         this.spiderAttackTimer = null;
@@ -1898,6 +1913,183 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.spiderNameText = null;
         this.caveEncounterRhythm = [];
         return retirement.enemyCount;
+    }
+
+    registerCaveEnemyAI(enemy) {
+        if (!enemy) return null;
+        enemy.caveNextAiAt = Number(this.time?.now) || 0;
+        enemy.caveMotionOffset = Phaser.Math.Between(0, 900);
+        enemy.caveProximityActive = null;
+        return enemy;
+    }
+
+    startCaveEnemyAIScheduler() {
+        this.caveEnemyAISchedulerActive = true;
+        this.caveEnemyActivationNextAt = 0;
+        this.caveEnemyAINextAt = 0;
+        this.updateCaveEnemyActivation(true);
+    }
+
+    getCaveEnemyActivationBounds() {
+        const view = this.cameras?.main?.worldView;
+        const playerX = Number(this.player?.x) || 0;
+        const playerY = Number(this.player?.y) || 0;
+        const width = Math.max(
+            320,
+            Number(view?.width) || Number(this.cameras?.main?.width) || 390
+        );
+        const height = Math.max(
+            320,
+            Number(view?.height) || Number(this.cameras?.main?.height) || 720
+        );
+        const horizontalMargin = this.isMobile ? 520 : 800;
+        const verticalMargin = this.isMobile ? 280 : 420;
+        const viewLeft = Number(view?.left) || 0;
+        const viewRight = Number(view?.right) || width;
+        const viewTop = Number(view?.top) || 0;
+        const viewBottom = Number(view?.bottom) || height;
+        return {
+            left: Math.min(viewLeft, playerX - width / 2) - horizontalMargin,
+            right: Math.max(viewRight, playerX + width / 2) + horizontalMargin,
+            top: Math.min(viewTop, playerY - height / 2) - verticalMargin,
+            bottom: Math.max(viewBottom, playerY + height / 2) + verticalMargin,
+            horizontalMargin,
+            verticalMargin
+        };
+    }
+
+    setCaveEnemyRenderAttached(enemy, attached) {
+        const displayList = this.children;
+        if (!enemy || !displayList) return 0;
+
+        const targets = [
+            enemy,
+            enemy.combatCue,
+            enemy.instructionLabel,
+            enemy === this.crystalSpider ? this.spiderUI : null
+        ].filter(target => Boolean(target) && target.active !== false);
+        let changedCount = 0;
+        targets.forEach(target => {
+            const isAttached = target.displayList === displayList;
+            if (attached && !isAttached) {
+                displayList.add(target);
+                changedCount += 1;
+            } else if (!attached && isAttached) {
+                displayList.remove(target);
+                changedCount += 1;
+            }
+        });
+        return changedCount;
+    }
+
+    setCaveEnemyProximityActive(enemy, enabled) {
+        if (!enemy?.active || !enemy.body) return false;
+        const nextState = enabled === true;
+        if (enemy.caveProximityActive === nextState) return nextState;
+
+        enemy.caveProximityActive = nextState;
+        if (nextState) {
+            this.setCaveEnemyRenderAttached(enemy, true);
+            enemy.body.enable = true;
+            enemy.body.updateFromGameObject?.();
+            enemy.setVisible?.(true);
+            enemy.caveNextAiAt = Math.min(
+                Number(enemy.caveNextAiAt) || Number.POSITIVE_INFINITY,
+                (Number(this.time?.now) || 0) + 40
+            );
+        } else {
+            enemy.setVelocity?.(0, 0);
+            enemy.body.enable = false;
+            enemy.setVisible?.(false);
+            enemy.combatCue?.setVisible?.(false);
+            enemy.instructionLabel?.setVisible?.(false);
+            this.setCaveEnemyRenderAttached(enemy, false);
+        }
+
+        if (enemy === this.crystalSpider) {
+            if (this.spiderAttackTimer) this.spiderAttackTimer.paused = !nextState;
+            if (this.spiderWebSprayTimer) this.spiderWebSprayTimer.paused = !nextState;
+        }
+        return nextState;
+    }
+
+    isCaveEnemyReadyForSuspension(enemy) {
+        if (!enemy?.body || enemy.enemyType !== 'caveCrawler') return true;
+        if (enemy.caveSettledForStreaming) return true;
+
+        const support = this.getTraversalSupport?.(enemy.encounterSupportId);
+        const grounded = Boolean(
+            enemy.body.blocked?.down || enemy.body.touching?.down
+        );
+        const settled = Boolean(
+            grounded &&
+            support?.body &&
+            enemy.body.right > support.body.left + 4 &&
+            enemy.body.left < support.body.right - 4 &&
+            Math.abs(enemy.body.bottom - support.body.top) <= 12
+        );
+        if (settled) enemy.caveSettledForStreaming = true;
+        return settled;
+    }
+
+    updateCaveEnemyActivation(force = false) {
+        if (!this.caveEnemyAISchedulerActive || !this.scene.isActive()) return 0;
+        const now = Number(this.time?.now) || 0;
+        if (!force && now < this.caveEnemyActivationNextAt) {
+            return this.caveProximityEnemies.length;
+        }
+        this.caveEnemyActivationNextAt = now + (this.isMobile ? 120 : 80);
+
+        const bounds = this.getCaveEnemyActivationBounds();
+        const nearby = [];
+        (this.enemies?.getChildren?.() || []).forEach(enemy => {
+            if (!enemy?.active || !enemy.body) return;
+            const inWindow =
+                enemy.x >= bounds.left &&
+                enemy.x <= bounds.right &&
+                enemy.y >= bounds.top &&
+                enemy.y <= bounds.bottom;
+            const shouldStayActive = inWindow ||
+                enemy.isAttacking === true ||
+                !this.isCaveEnemyReadyForSuspension(enemy);
+            this.setCaveEnemyProximityActive(enemy, shouldStayActive);
+            if (shouldStayActive) nearby.push(enemy);
+        });
+        this.caveProximityEnemies = nearby;
+        this.caveEnemyActivationBounds = bounds;
+        return nearby.length;
+    }
+
+    updateCaveEnemyAI(time, force = false) {
+        if (!this.caveEnemyAISchedulerActive || !this.scene.isActive()) return 0;
+        const now = Number(time) || Number(this.time?.now) || 0;
+        if (!force && now < this.caveEnemyAINextAt) return 0;
+        this.caveEnemyAINextAt = now + (this.isMobile ? 50 : 34);
+
+        let updatedCount = 0;
+        (this.caveProximityEnemies || []).forEach(enemy => {
+            if (!enemy?.active || enemy.caveProximityActive === false) return;
+            switch (enemy.enemyType) {
+                case 'shadowBat':
+                    this.updateBatPatrol(enemy);
+                    enemy.setScale(
+                        enemy.scaleX < 0 ? -1 : 1,
+                        1 + Math.sin((now + enemy.caveMotionOffset) / 150) * 0.1
+                    );
+                    break;
+                case 'caveCrawler':
+                    this.updateCrawlerPatrol(enemy);
+                    break;
+                case 'crystalSpider':
+                    this.updateCrystalSpiderAI();
+                    break;
+                default:
+                    return;
+            }
+            enemy.caveNextAiAt = now + (this.isMobile ? 50 : 34);
+            updatedCount += 1;
+        });
+        return updatedCount;
     }
 
     resolveCaveEncounterPlacement(encounter) {
@@ -2024,13 +2216,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Create miniboss health bar
         this.createSpiderHealthBar();
-
-        // Start spider AI
-        this.spiderAITimer = this.trackEnemyTimer(this.crystalSpider, this.time.addEvent({
-            delay: 50,
-            callback: () => this.updateCrystalSpiderAI(),
-            loop: true
-        }));
 
         // Attack timer
         this.spiderAttackTimer = this.trackEnemyTimer(this.crystalSpider, this.time.addEvent({
@@ -2761,22 +2946,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             cueOffsetY: -30
         });
 
-        // Flutter animation
-        this.tweens.add({
-            targets: bat,
-            scaleY: { from: 0.9, to: 1.1 },
-            duration: 150,
-            yoyo: true,
-            repeat: -1
-        });
-
-        // Patrol behavior
-        this.trackEnemyTimer(bat, this.time.addEvent({
-            delay: 50,
-            callback: () => this.updateBatPatrol(bat),
-            loop: true
-        }));
-
         return bat;
     }
 
@@ -2856,13 +3025,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             stompDamage: 1,
             cueOffsetY: -38
         });
-
-        // Patrol movement
-        this.trackEnemyTimer(crawler, this.time.addEvent({
-            delay: 50,
-            callback: () => this.updateCrawlerPatrol(crawler),
-            loop: true
-        }));
 
         return crawler;
     }
@@ -5670,6 +5832,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
+        this.updateCaveEnemyActivation();
+        this.updateCaveEnemyAI(time);
         this.updateCaveCoinPickups();
 
         this.syncCampaignObjectiveDisplay({
@@ -5755,6 +5919,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.caveCrystalFieldLayer = null;
         this.caveCrystalField = [];
         this.backgroundCrystals = [];
+        this.caveEnemyAISchedulerActive = false;
+        this.caveProximityEnemies = [];
+        this.caveEnemyActivationBounds = null;
 
         // Clean up Crystal Spider miniboss
         if (this.spiderAITimer) {
