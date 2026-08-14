@@ -3,7 +3,7 @@
   "id": "SCIENCE-WEEK-WATER-001",
   "asOf": "2026-08-14",
   "title": "Water That Isn't Water: Design Life for the Stellar Reef",
-  "state": "concept_ready_no_event_or_submission_exists",
+  "state": "printable_pack_built_internal_review_pending",
   "purpose": "Create an adult-led Science Week 2026 concept that joins real ocean-world science to Mythical Void's fictional Stellar Reef without pretending that an event, partnership or approval already exists.",
   "opportunity": {
     "name": "Science Week Ireland 2026",
@@ -114,12 +114,25 @@
     "officialScienceWeekThemeVerified": true,
     "nasaSourcesVerified": true,
     "educatorReviewComplete": false,
-    "worksheetExtensionBuilt": false,
-    "facilitatorGuideBuilt": false,
+    "worksheetExtensionBuilt": true,
+    "facilitatorGuideBuilt": true,
     "venueOrHostExists": false,
     "adultSafeguardingOwnerNamed": false,
     "submissionReady": false,
     "publicationReady": false
+  },
+  "artifact": {
+    "file": "output/pdf/mythical-void-water-that-isnt-water.pdf",
+    "format": "A4 printable PDF",
+    "pages": 3,
+    "sha256": "dc8794baf131c6a7a9be39a8cc0f7041d64b0b60108d9ea93a086af6266d34b3",
+    "contents": [
+      "one evidence-to-fiction explorer sheet",
+      "one creature-design worksheet",
+      "one adult facilitator note"
+    ],
+    "reviewState": "internal_visual_qa_complete_waiting_for_adult_educator_review",
+    "publicUseApproved": false
   },
   "authority": {
     "eventCreationAuthorized": false,
@@ -132,6 +145,6 @@
     "spendAuthorized": false,
     "externalActionAuthorized": false
   },
-  "nextStudioAction": "Build a two-page paper extension and a one-page adult facilitator note, then seek adult educator review. Keep all material internal until Kevin approves the finished pack and decides whether a real host or event should exist.",
+  "nextStudioAction": "Prepare a short adult educator review checklist and an internal feedback log. Keep the finished printable pack internal until Kevin approves it and decides whether a real host or event should exist.",
   "nextKevinDecision": "None is required to keep preparing the internal activity. Kevin must approve any public release, event, submission, logo use, partnership approach or spend."
 }

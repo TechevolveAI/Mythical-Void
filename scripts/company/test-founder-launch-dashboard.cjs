@@ -103,10 +103,14 @@ try {
     submittedScienceWeek.opportunity.mythicalEventSubmitted = true;
     if (run('submitted-science-week', { scienceWeek: submittedScienceWeek }).status === 0) throw new Error('An invented Science Week submission was accepted.');
 
+    const publishedScienceWeek = structuredClone(sources.scienceWeek);
+    publishedScienceWeek.artifact.publicUseApproved = true;
+    if (run('published-science-week', { scienceWeek: publishedScienceWeek }).status === 0) throw new Error('An unreviewed Science Week pack was accepted as public.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot plus 16 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot plus 17 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

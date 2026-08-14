@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 const root = path.resolve(__dirname, '../..');
 const conceptPath = process.argv[2]
@@ -20,7 +22,7 @@ const requireValue = (condition, message) => {
 };
 
 requireValue(concept.schemaVersion === 1, 'Science Week water concept schemaVersion must be 1.');
-requireValue(concept.state === 'concept_ready_no_event_or_submission_exists', 'Science Week water concept must remain a concept with no event or submission.');
+requireValue(concept.state === 'printable_pack_built_internal_review_pending', 'Science Week water work must remain an internal printable pack waiting for review.');
 requireValue(concept.opportunity?.dates === '8-15 November 2026' && concept.opportunity?.publishedTheme === 'Water', 'The dated Science Week opportunity must remain accurate.');
 requireValue(concept.opportunity?.source === 'https://www.scienceweek.ie/' && concept.opportunity?.sourceCheckedAt === '2026-08-14', 'Science Week facts must retain the official dated source.');
 for (const field of ['mythicalEventSubmitted', 'mythicalEventAccepted', 'mythicalPartnershipExists']) {
@@ -44,13 +46,37 @@ requireValue(concept.disclosures?.length === 4, 'Concept must retain four public
 requireValue(/No real methane, ethane/i.test((concept.safeguarding || []).join(' ')), 'The activity must forbid unsafe real chemicals.');
 requireValue(/Do not use Science Week logos/i.test((concept.disclosures || []).join(' ')), 'Science Week logo and official-event boundary must remain explicit.');
 
-for (const field of ['educatorReviewComplete', 'worksheetExtensionBuilt', 'facilitatorGuideBuilt', 'venueOrHostExists', 'adultSafeguardingOwnerNamed', 'submissionReady', 'publicationReady']) {
+for (const field of ['worksheetExtensionBuilt', 'facilitatorGuideBuilt']) {
+    requireValue(concept.readiness?.[field] === true, `${field} must remain true.`);
+}
+for (const field of ['educatorReviewComplete', 'venueOrHostExists', 'adultSafeguardingOwnerNamed', 'submissionReady', 'publicationReady']) {
     requireValue(concept.readiness?.[field] === false, `${field} must remain false.`);
+}
+const artifactPath = path.resolve(root, concept.artifact?.file || '');
+requireValue(concept.artifact?.format === 'A4 printable PDF' && concept.artifact?.pages === 3, 'Activity artifact must remain a three-page A4 printable PDF.');
+requireValue(concept.artifact?.reviewState === 'internal_visual_qa_complete_waiting_for_adult_educator_review', 'Activity pack must remain waiting for adult educator review.');
+requireValue(concept.artifact?.publicUseApproved === false, 'Activity pack must remain unapproved for public use.');
+requireValue(fs.existsSync(artifactPath), 'Activity PDF must exist at the recorded artifact path.');
+if (fs.existsSync(artifactPath)) {
+    const actualHash = crypto.createHash('sha256').update(fs.readFileSync(artifactPath)).digest('hex');
+    requireValue(actualHash === concept.artifact?.sha256, 'Activity PDF hash must match the reviewed artifact.');
+    const info = spawnSync('pdfinfo', [artifactPath], { encoding: 'utf8' });
+    requireValue(info.status === 0 && /^Pages:\s+3$/m.test(info.stdout) && /^Page size:\s+595\.276 x 841\.89 pts \(A4\)$/m.test(info.stdout), 'Activity PDF must remain three A4 pages.');
+    const extracted = spawnSync('pdftotext', ['-layout', artifactPath, '-'], { encoding: 'utf8' });
+    requireValue(extracted.status === 0, 'Activity PDF text must remain extractable.');
+    const requiredText = [
+        "WATER THAT ISN'T WATER",
+        'DESIGN THE ORGANISM',
+        'ADULT FACILITATOR NOTE',
+        'Scientists think Europa',
+        'NASA does not endorse Mythical Void'
+    ];
+    requireValue(requiredText.every(text => extracted.stdout.includes(text)), 'Activity PDF must retain its child activity, adult guidance and science boundary text.');
 }
 for (const field of ['eventCreationAuthorized', 'eventSubmissionAuthorized', 'partnershipOutreachAuthorized', 'logoUseAuthorized', 'publicationAuthorized', 'childContactAuthorized', 'childWorkCollectionAuthorized', 'spendAuthorized', 'externalActionAuthorized']) {
     requireValue(concept.authority?.[field] === false, `${field} must remain false.`);
 }
-requireValue(/Keep all material internal until Kevin approves/i.test(concept.nextStudioAction || ''), "The next studio action must retain Kevin's public-release gate.");
+requireValue(/Keep (?:the finished printable pack|all material) internal until Kevin approves/i.test(concept.nextStudioAction || ''), "The next studio action must retain Kevin's public-release gate.");
 
 const publicText = `${concept.title}\n${concept.preparedPublicSummary}\n${summary}`;
 requireValue(!/\bcompanions?\b/i.test(publicText), 'Science Week concept must use creature or organism language.');
@@ -64,4 +90,4 @@ if (errors.length) {
     process.exit(1);
 }
 
-console.log('Science Week water concept valid: official Water theme, 3 real-space sources, implemented Stellar Reef bridge, 5-part adult-led session, no event or submission claimed.');
+console.log('Science Week water activity valid: reviewed 3-page A4 pack, 3 real-space sources, implemented Stellar Reef bridge, no event or submission claimed.');

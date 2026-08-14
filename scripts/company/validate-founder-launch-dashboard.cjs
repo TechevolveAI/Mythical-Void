@@ -112,8 +112,10 @@ requireValue(values.founderStory.target?.candidateRef === 'RC-007', 'Founder sto
 requireValue(values.founderStory.pitch?.approved === false && values.founderStory.pitch?.sentAt === null, 'Founder story pitch must remain unapproved and unsent.');
 requireValue(values.founderStory.authority?.paidPlacementAuthorized === false && values.founderStory.authority?.childParticipationAuthorized === false, 'Paid placement and child participation must remain unauthorized.');
 
-requireValue(values.scienceWeek.state === 'concept_ready_no_event_or_submission_exists', 'Science Week water work must remain an internal concept.');
+requireValue(values.scienceWeek.state === 'printable_pack_built_internal_review_pending', 'Science Week water work must remain an internal printable pack waiting for review.');
 requireValue(values.scienceWeek.realScience?.length === 3 && values.scienceWeek.session?.length === 5, 'Founder view must retain the three sourced facts and five-part activity concept.');
+requireValue(values.scienceWeek.readiness?.worksheetExtensionBuilt === true && values.scienceWeek.readiness?.facilitatorGuideBuilt === true, 'Founder view must retain the completed worksheet and facilitator note.');
+requireValue(values.scienceWeek.artifact?.pages === 3 && values.scienceWeek.artifact?.publicUseApproved === false, 'Founder view must retain the reviewed three-page pack as unapproved for public use.');
 requireValue(values.scienceWeek.opportunity?.mythicalEventSubmitted === false && values.scienceWeek.opportunity?.mythicalPartnershipExists === false, 'Founder view must not invent a Science Week event or partnership.');
 requireValue(values.scienceWeek.authority?.eventSubmissionAuthorized === false && values.scienceWeek.authority?.publicationAuthorized === false, 'Science Week submission and publication must remain unauthorized.');
 

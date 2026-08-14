@@ -27,7 +27,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Adult STEM discovery:** 2 one-to-one introductions are prepared for the Blackrock Castle Observatory and ESERO Ireland education teams. Nothing has been sent, and both messages still require Kevin to approve the sender, recipient and final wording.
 - **Search findability:** the homepage, public robots file and 8-route live sitemap are reachable, but a 4-query public search sample found no owned Mythical Void result. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
 - **Irish founder story:** a first-person contributed article or interview background and tailored Irish Tech News contribution pitch are prepared. Nothing has been sent or promised, and any paid feature, rights request or child-participation request stops for a separate Kevin decision.
-- **Science Week 2026:** “Water That Isn't Water: Design Life for the Stellar Reef” is prepared as an internal adult-led concept joining 3 sourced ocean-world facts to the real Stellar Reef game realm. No event, submission, partnership, logo use or public release exists.
+- **Science Week 2026:** the visually checked 3-page printable “Water That Isn't Water: Design Life for the Stellar Reef” joins 3 sourced ocean-world facts to the real Stellar Reef game realm. It is waiting for adult educator review; no event, submission, partnership, logo use or public release exists.
 - **First outreach:** 3 personal messages are written for Imirt, Alpha Beta Gamer, and Phaser. Nothing has been sent. 7 later opportunities are ranked.
 - **Browser-game distribution:** the itch.io package, cover, page wording, screenshots, and private-test checklist are prepared. Nothing has been uploaded or published.
 
@@ -44,7 +44,7 @@ Email and itch.io remain useful later, but they no longer sit ahead of the trail
 
 - Improve and recapture the real creature reveal, then complete the hatch-to-first-response proof without pretending the current frame is launch quality.
 - Strengthen and recapture the stable realm aftermath so the difference is visible without relying on the words, then complete the continuous restoration proof.
-- Turn the Science Week water concept into a two-page paper activity and one-page adult facilitator note, then prepare it for educator review without publishing it.
+- Prepare one adult educator review checklist for the Science Week pack, then record feedback without collecting child data or publishing the pack.
 - Research suitable adult creators, press, browser-game platforms, educators, and STEM opportunities.
 - Prepare one truthful release at a time and keep the four-week calendar aligned with what is actually playable.
 - Check every claim against the game and label generated artwork separately from gameplay.

@@ -38,7 +38,15 @@ try {
     certainty.realScience[1].statement = 'Europa definitely has life in a salty ocean.';
     if (run('certainty', certainty).status === 0) throw new Error('An unsupported Europa certainty was accepted.');
 
-    console.log('Science Week water concept tests passed: valid concept plus 4 event, safety and science mutations checked.');
+    const falsePublicApproval = structuredClone(sourceConcept);
+    falsePublicApproval.artifact.publicUseApproved = true;
+    if (run('false-public-approval', falsePublicApproval).status === 0) throw new Error('An unreviewed activity pack was accepted for public use.');
+
+    const falseArtifactHash = structuredClone(sourceConcept);
+    falseArtifactHash.artifact.sha256 = '0'.repeat(64);
+    if (run('false-artifact-hash', falseArtifactHash).status === 0) throw new Error('A changed activity PDF was accepted as the reviewed artifact.');
+
+    console.log('Science Week water activity tests passed: valid pack plus 6 event, safety, science and artifact mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

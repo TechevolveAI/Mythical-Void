@@ -27,8 +27,8 @@ The design must label three things separately: real evidence, scientific inferen
 
 ## Current status
 
-This is a prepared concept only. Mythical Void has not created or submitted a Science Week event, and Science Week, Research Ireland, NASA, ESA and education providers have not approved or partnered with it.
+This is a prepared internal activity pack, not a public event. Mythical Void has not created or submitted a Science Week event, and Science Week, Research Ireland, NASA, ESA and education providers have not approved or partnered with it.
 
-The next internal work is a two-page activity extension and a one-page adult facilitator note. Those need adult educator review before any public release.
+The three-page printable pack now contains two child-facing activity pages and one adult facilitator note. Its latest render has passed internal visual checks, but it still needs adult educator review before any public release.
 
 No child account, child contact or submission of children’s work is part of the activity. No Science Week logo may be used unless an accepted listing and written permission exist.
