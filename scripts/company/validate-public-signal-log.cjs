@@ -48,6 +48,10 @@ for (const [index, entry] of (data.entries || []).entries()) {
 requireValue(page === buildSignalLog(data), 'Signal Log page is stale; rebuild it from releases.json');
 requireValue(page.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'page must be indexable');
 requireValue(page.includes('<script type="application/ld+json">'), 'page needs structured data');
+requireValue(page.includes('rel="alternate" type="application/rss+xml"'), 'page must advertise its RSS feed');
+requireValue(page.includes('rel="alternate" type="application/feed+json"'), 'page must advertise its JSON feed');
+requireValue(page.includes('href="/updates/feed.xml">Follow the Signal</a>'), 'page must give people a visible way to follow the Signal');
+requireValue(page.includes('href="/updates/feed.json">JSON feed</a>'), 'page must explain the machine-readable feed');
 requireValue(page.includes('No vague promises and no invented player numbers.'), 'page must state its evidence boundary plainly');
 requireValue(!/\bcompanions?\b/i.test(page), 'public page uses retired companion wording');
 
@@ -56,7 +60,8 @@ for (const [file, expectedText, label] of [
     ['netlify.toml', 'from = "/updates/"', 'Netlify route'],
     ['vercel.json', '"source": "/updates/"', 'Vercel route'],
     ['src/site/storefront.js', 'href="/updates/">What\'s new', 'homepage link'],
-    ['public/llms.txt', 'Updates: https://mythicalvoid.com/updates/', 'machine-readable discovery link']
+    ['public/llms.txt', 'RSS updates feed: https://mythicalvoid.com/updates/feed.xml', 'machine-readable RSS discovery link'],
+    ['public/llms.txt', 'JSON updates feed: https://mythicalvoid.com/updates/feed.json', 'machine-readable JSON discovery link']
 ]) requireValue(fs.readFileSync(path.join(root, file), 'utf8').includes(expectedText), `${label} is missing`);
 
 let structured;

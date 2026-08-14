@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>Mythical Void — The Signal Log</title>
+    <link>https://mythicalvoid.com/updates/</link>
+    <description>See what is newly live in Mythical Void: game stories, useful resources and honest release notes linked to the playable browser game.</description>
+    <language>en-ie</language>
+    <lastBuildDate>Fri, 14 Aug 2026 12:00:00 GMT</lastBuildDate>
+    <atom:link href="https://mythicalvoid.com/updates/feed.xml" rel="self" type="application/rss+xml" />
+    <image>
+      <url>https://mythicalvoid.com/marketing/mythical-void-mark-192.png</url>
+      <title>Mythical Void — The Signal Log</title>
+      <link>https://mythicalvoid.com/updates/</link>
+    </image>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-008</guid>
+      <title>The Signal Log can now travel</title>
+      <link>https://mythicalvoid.com/updates/#signal-008</link>
+      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+      <category>FOLLOW THE SIGNAL</category>
+      <description>The checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.
+
+• Both feeds are built from the same checked source as the public Signal Log, so titles, links and media notes cannot quietly drift apart.
+• Every item keeps a clean mythicalvoid.com destination, its artwork or gameplay disclosure and no tracking parameters.
+• Following the feed happens in the reader a person chooses; Mythical Void does not collect an email address, account or recipient.
+
+See the live change: https://mythicalvoid.com/updates/feed.xml
+
+Media note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.</description>
+      <media:content url="https://mythicalvoid.com/press/social/project-beacon-story-wide.png" type="image/png" medium="image">
+        <media:description>Wide Mythical Void Project Beacon sharing artwork with a real gameplay frame</media:description>
+      </media:content>
+    </item>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-007</guid>
+      <title>The father-and-son story is ready to share</title>
+      <link>https://mythicalvoid.com/updates/#signal-007</link>
+      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+      <category>STUDIO STORY</category>
+      <description>Adults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.
+
+• Both layouts use the clean mythicalvoid.com/studio address with no tracking code.
+• The background is labelled as AI-generated marketing artwork, while the framed first-contact screen is real gameplay.
+• No photograph, name or identifying detail of the child is used.
+
+See the live change: https://mythicalvoid.com/press/#father-son-story-social-assets
+
+Media note: Founder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown.</description>
+      <media:content url="https://mythicalvoid.com/press/social/father-son-story-square.png" type="image/png" medium="image">
+        <media:description>Square Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame</media:description>
+      </media:content>
+    </item>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-006</guid>
+      <title>A real-space sharing kit is ready</title>
+      <link>https://mythicalvoid.com/updates/#signal-006</link>
+      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+      <category>SPACE DISCOVERY</category>
+      <description>Adults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.
+
+• Both layouts use the clean mythicalvoid.com/nasa-space-science address with no tracking code.
+• The framed screen comes from the running game and clearly credits the NASA public image inside it.
+• The complete layouts are branded sharing artwork, not raw screenshots, and NASA does not endorse Mythical Void.
+
+See the live change: https://mythicalvoid.com/press/#nasa-stem-social-assets
+
+Media note: Branded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void.</description>
+      <media:content url="https://mythicalvoid.com/press/social/nasa-stem-discovery-square.png" type="image/png" medium="image">
+        <media:description>Square Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and an observation question</media:description>
+      </media:content>
+    </item>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-005</guid>
+      <title>Shared links now carry the right picture</title>
+      <link>https://mythicalvoid.com/updates/#signal-005</link>
+      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+      <category>CLEARER SHARING</category>
+      <description>The Project Beacon story and other important Mythical Void pages now give social apps a clearer image, description and accessible image text when someone shares a link.
+
+• The Project Beacon story now uses its purpose-built wide sharing artwork instead of a generic or easily cropped image.
+• Seven public pages carry checked image sizes and matching alternative text for large link previews.
+• Every preview keeps its clean mythicalvoid.com destination and the artwork-versus-gameplay boundary.
+
+See the live change: https://mythicalvoid.com/story/
+
+Media note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.</description>
+      <media:content url="https://mythicalvoid.com/press/social/project-beacon-story-wide.png" type="image/png" medium="image">
+        <media:description>Wide Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame</media:description>
+      </media:content>
+    </item>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-004</guid>
+      <title>Share the game from the first screen</title>
+      <link>https://mythicalvoid.com/updates/#signal-004</link>
+      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+      <category>EASIER TO SHARE</category>
+      <description>A new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.
+
+• On supported phones and computers, the button opens the device&apos;s normal sharing choices.
+• Where device sharing is unavailable, it copies the clean mythicalvoid.com address instead.
+• The shared address contains no tracking code, and the Mythical Void control does not collect a recipient or contact details.
+
+See the live change: https://mythicalvoid.com/
+
+Media note: AI-generated marketing illustration inspired by the creature system; not gameplay.</description>
+      <media:content url="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp" type="image/webp" medium="image">
+        <media:description>An imagined gathering of strange alien creatures in a luminous Mythical Void realm</media:description>
+      </media:content>
+    </item>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-003</guid>
+      <title>Project Beacon artwork is ready to share</title>
+      <link>https://mythicalvoid.com/updates/#signal-003</link>
+      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+      <category>READY TO SHARE</category>
+      <description>Adults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.
+
+• Both layouts show the clean mythicalvoid.com/story address with no tracking code.
+• The framed Project Beacon scene comes from the real running browser game using an invented test state.
+• The complete layouts are branded sharing artwork, not raw gameplay screenshots.
+
+See the live change: https://mythicalvoid.com/press/
+
+Media note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.</description>
+      <media:content url="https://mythicalvoid.com/press/social/project-beacon-story-square.png" type="image/png" medium="image">
+        <media:description>Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame</media:description>
+      </media:content>
+    </item>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-002</guid>
+      <title>A new way to share the game</title>
+      <link>https://mythicalvoid.com/updates/#signal-002</link>
+      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+      <category>SHARE THE SIGNAL</category>
+      <description>Adults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.
+
+• The QR code goes straight to mythicalvoid.com with no tracking code attached.
+• The card includes one real Project Beacon game screen.
+• The large creature-universe image is clearly labelled as generated artwork, not gameplay.
+
+See the live change: https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf
+
+Media note: AI-generated marketing illustration inspired by the creature system; not gameplay.</description>
+      <media:content url="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp" type="image/webp" medium="image">
+        <media:description>An imagined gathering of strange alien creatures in a luminous Mythical Void realm</media:description>
+      </media:content>
+    </item>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-001</guid>
+      <title>The Project Beacon story is live</title>
+      <link>https://mythicalvoid.com/updates/#signal-001</link>
+      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
+      <category>WORLD &amp; STORY</category>
+      <description>A new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.
+
+• Six realm images come from the real running game.
+• The page explains why the guardians are restored rather than destroyed.
+• The ending remains for players to discover themselves.
+
+See the live change: https://mythicalvoid.com/story/
+
+Media note: Captured from the real browser game using an invented test state; no player information is shown.</description>
+      <media:content url="https://mythicalvoid.com/press/gameplay/project-beacon-start.png" type="image/png" medium="image">
+        <media:description>Real Mythical Void gameplay showing the Project Beacon opening at the Wanderer-77 crash site</media:description>
+      </media:content>
+    </item>
+  </channel>
+</rss>

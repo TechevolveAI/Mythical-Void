@@ -12,6 +12,8 @@ Play in a browser: https://mythicalvoid.com/play/
 Privacy and safety: https://mythicalvoid.com/privacy/
 Terms of use: https://mythicalvoid.com/terms/
 Updates: https://mythicalvoid.com/updates/
+RSS updates feed: https://mythicalvoid.com/updates/feed.xml
+JSON updates feed: https://mythicalvoid.com/updates/feed.json
 
 Key facts:
 

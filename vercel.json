@@ -20,11 +20,25 @@
       "destination": "/updates/index.html"
     },
     {
-      "source": "/((?!assets/|marketing/|game/|audio/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
+      "source": "/((?!assets/|marketing/|game/|audio/|updates/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/updates/feed.xml",
+      "headers": [
+        { "key": "Content-Type", "value": "application/rss+xml; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/updates/feed.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/feed+json; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

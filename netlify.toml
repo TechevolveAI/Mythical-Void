@@ -106,6 +106,18 @@
 
 # Specific headers for JavaScript files
 [[headers]]
+  for = "/updates/feed.xml"
+  [headers.values]
+    Content-Type = "application/rss+xml; charset=utf-8"
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
+  for = "/updates/feed.json"
+  [headers.values]
+    Content-Type = "application/feed+json; charset=utf-8"
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+[[headers]]
   for = "/*.js"
   [headers.values]
     Content-Type = "application/javascript; charset=utf-8"

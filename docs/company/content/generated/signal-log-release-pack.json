@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "cc9173502923af7b65dfd65e680f78d2e8db494cd95af8c694d764dc2fc449ff",
-    "liveEntryCount": 7,
+    "sourceFingerprint": "94dc731b00f8dd7efb8ed92bfd86a8b00e0b1e523b8075565c40fccc1c92d3bc",
+    "liveEntryCount": 8,
     "latestSourceDate": "2026-08-14"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-008",
+      "sourceEntryId": "SIGNAL-008",
+      "sourcePublishedOn": "2026-08-14",
+      "destination": "https://mythicalvoid.com/updates/feed.xml",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social/project-beacon-story-wide.png",
+        "alt": "Wide Mythical Void Project Beacon sharing artwork with a real gameplay frame",
+        "class": "branded_social_artwork_with_authentic_gameplay_frame",
+        "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The Signal Log can now travel\n\nThe checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.\n\n• Both feeds are built from the same checked source as the public Signal Log, so titles, links and media notes cannot quietly drift apart.\n• Every item keeps a clean mythicalvoid.com destination, its artwork or gameplay disclosure and no tracking parameters.\n• Following the feed happens in the reader a person chooses; Mythical Void does not collect an email address, account or recipient.\n\nSee what changed: https://mythicalvoid.com/updates/feed.xml\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 793
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The Signal Log can now travel\n\nThe checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.\n\nhttps://mythicalvoid.com/updates/feed.xml\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
+          "characterCount": 402
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The Signal Log can now travel",
+          "body": "Mythical Void has a new live update: The Signal Log can now travel.\n\nThe checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.\n\nBoth feeds are built from the same checked source as the public Signal Log, so titles, links and media notes cannot quietly drift apart. Every item keeps a clean mythicalvoid.com destination, its artwork or gameplay disclosure and no tracking parameters. Following the feed happens in the reader a person chooses; Mythical Void does not collect an email address, account or recipient.\n\nThe checked public destination is https://mythicalvoid.com/updates/feed.xml\n\nMedia note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 928,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-007",
       "sourceEntryId": "SIGNAL-007",

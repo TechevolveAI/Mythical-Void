@@ -6,6 +6,12 @@
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
   "socialPreviewManifest": "https://mythicalvoid.com/press/mythical-void-social-previews.json",
+  "signalLogFeeds": {
+    "publicUpdates": "https://mythicalvoid.com/updates/",
+    "rss": "https://mythicalvoid.com/updates/feed.xml",
+    "jsonFeed": "https://mythicalvoid.com/updates/feed.json",
+    "sourcePolicy": "Both feeds are generated from the same checked live-release source as the public Signal Log. They contain no email signup, recipient collection or tracking parameters."
+  },
   "educatorResources": [
     {
       "name": "Mythical Void STEM Creature Lab",

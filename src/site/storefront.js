@@ -63,6 +63,7 @@ function renderPressPage() {
                 </a>
                 <div class="press-header-actions">
                     <a href="/">Main website</a>
+                    <a href="/updates/feed.xml">Signal feed</a>
                     ${playLink('Play now', 'button button-small')}
                 </div>
             </div>
