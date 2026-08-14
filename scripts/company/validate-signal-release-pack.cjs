@@ -52,7 +52,8 @@ for (const item of pack.items || []) {
     requireValue(item.drafts?.pressCreatorSourceNote?.characterCount <= 2500, `${label} press source note is too long.`);
     if (entry?.imageClass === 'ai_generated_marketing_illustration') requireValue(/not gameplay/i.test(item.media?.disclosure || ''), `${label} generated artwork needs a not-gameplay disclosure.`);
     if (entry?.imageClass === 'authentic_running_build_screenshot') requireValue(/real browser game/i.test(item.media?.disclosure || ''), `${label} running-build image needs a real-game disclosure.`);
-    if (entry?.imageClass === 'branded_social_artwork_with_authentic_gameplay_frame') requireValue(/branded sharing artwork/i.test(item.media?.disclosure || '') && /not a raw screenshot/i.test(item.media?.disclosure || '') && /no player information/i.test(item.media?.disclosure || ''), `${label} branded sharing artwork needs its layout, gameplay and privacy disclosure.`);
+    if ((entry?.imageClass || '').startsWith('branded_social_artwork_with_authentic_gameplay_frame')) requireValue(/branded sharing artwork/i.test(item.media?.disclosure || '') && /not a raw screenshot/i.test(item.media?.disclosure || '') && /no player information/i.test(item.media?.disclosure || ''), `${label} branded sharing artwork needs its layout, gameplay and privacy disclosure.`);
+    if (/nasa/i.test(entry?.imageClass || '')) requireValue(/NASA does not endorse Mythical Void/i.test(item.media?.disclosure || ''), `${label} NASA artwork needs its non-endorsement boundary.`);
 }
 
 if (errors.length) {

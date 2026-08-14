@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mythical Void NASA and STEM social card</title>
+    <style>
+        :root {
+            --night: #070611;
+            --night-soft: #111027;
+            --paper: #fffaf0;
+            --muted: #c9c3d8;
+            --mint: #7ce8cf;
+            --gold: #ffd66b;
+            --violet: #a768ff;
+            font-family: "Avenir Next", Avenir, Inter, system-ui, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--night);
+        }
+
+        body {
+            color: var(--paper);
+            background:
+                radial-gradient(circle at 86% 12%, rgba(124, 232, 207, .19), transparent 26%),
+                radial-gradient(circle at 20% 88%, rgba(108, 72, 230, .34), transparent 35%),
+                linear-gradient(135deg, #070611 0%, #0a0920 52%, #080817 100%);
+        }
+
+        .card {
+            position: relative;
+            display: grid;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            grid-template-columns: minmax(0, 1fr) 410px;
+            gap: 38px;
+            padding: 38px 46px 34px;
+            isolation: isolate;
+        }
+
+        .stars,
+        .stars::before,
+        .stars::after {
+            position: absolute;
+            z-index: -2;
+            inset: 0;
+            content: "";
+            background-image:
+                radial-gradient(circle, rgba(255,255,255,.72) 0 1px, transparent 1.4px),
+                radial-gradient(circle, rgba(124,232,207,.75) 0 1px, transparent 1.5px);
+            background-position: 15px 20px, 75px 55px;
+            background-size: 105px 92px, 137px 121px;
+            opacity: .26;
+        }
+
+        .orbit {
+            position: absolute;
+            z-index: -1;
+            width: 650px;
+            height: 650px;
+            right: -230px;
+            top: -230px;
+            border: 1px solid rgba(124, 232, 207, .2);
+            border-radius: 50%;
+            box-shadow: inset 0 0 80px rgba(124, 232, 207, .04);
+        }
+
+        .copy {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: .14em;
+        }
+
+        .brand img {
+            width: 38px;
+            height: 52px;
+            object-fit: contain;
+        }
+
+        .kicker {
+            margin: 0 0 15px;
+            color: var(--mint);
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: .15em;
+        }
+
+        h1 {
+            max-width: 720px;
+            margin: 0;
+            font-family: "Arial Rounded MT Bold", "Avenir Next", ui-rounded, system-ui, sans-serif;
+            font-size: 64px;
+            line-height: .96;
+            letter-spacing: -.045em;
+        }
+
+        h1 em {
+            color: var(--gold);
+            font-style: normal;
+        }
+
+        .summary {
+            max-width: 690px;
+            margin: 19px 0 0;
+            color: var(--muted);
+            font-size: 19px;
+            line-height: 1.43;
+        }
+
+        .method {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 19px;
+        }
+
+        .method span {
+            padding: 7px 11px;
+            border: 1px solid rgba(124, 232, 207, .28);
+            border-radius: 999px;
+            background: rgba(124, 232, 207, .08);
+            color: var(--paper);
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: .08em;
+        }
+
+        .destination {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .url {
+            color: var(--gold);
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .url::after { content: "  →"; }
+
+        .disclaimer {
+            max-width: 335px;
+            color: #9f99b3;
+            font-size: 11px;
+            line-height: 1.35;
+            text-align: right;
+        }
+
+        .visual {
+            position: relative;
+            display: grid;
+            place-items: center;
+            min-width: 0;
+        }
+
+        .visual::before {
+            position: absolute;
+            width: 360px;
+            height: 360px;
+            border: 1px solid rgba(167, 104, 255, .35);
+            border-radius: 50%;
+            box-shadow: 0 0 100px rgba(112, 73, 223, .23);
+            content: "";
+        }
+
+        .phone {
+            position: relative;
+            width: 246px;
+            padding: 7px;
+            transform: rotate(1.2deg);
+            border: 1px solid rgba(255,255,255,.24);
+            border-radius: 25px;
+            background: rgba(17, 16, 39, .92);
+            box-shadow: 0 28px 70px rgba(0,0,0,.5), 0 0 70px rgba(124,232,207,.09);
+        }
+
+        .phone img {
+            display: block;
+            width: 100%;
+            border-radius: 18px;
+        }
+
+        .proof-label {
+            position: absolute;
+            z-index: 2;
+            top: 38px;
+            right: -3px;
+            padding: 9px 13px;
+            transform: rotate(-2deg);
+            border-radius: 999px;
+            background: var(--mint);
+            color: #0c1720;
+            font-size: 10px;
+            font-weight: 950;
+            letter-spacing: .08em;
+        }
+
+        .question {
+            position: absolute;
+            z-index: 2;
+            right: -18px;
+            bottom: 42px;
+            width: 180px;
+            padding: 14px 15px;
+            border: 1px solid rgba(255,214,107,.34);
+            border-radius: 18px;
+            background: rgba(12,10,30,.95);
+            color: var(--paper);
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.35;
+            box-shadow: 0 18px 42px rgba(0,0,0,.38);
+        }
+
+        .question strong {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--gold);
+            font-size: 10px;
+            letter-spacing: .08em;
+        }
+
+        html.square body {
+            width: 1200px;
+            height: 1200px;
+        }
+
+        html.square .card {
+            grid-template-columns: 1fr;
+            grid-template-rows: 490px 1fr;
+            gap: 24px;
+            padding: 42px 50px 38px;
+        }
+
+        html.square h1 {
+            max-width: 1050px;
+            font-size: 76px;
+        }
+
+        html.square .summary {
+            max-width: 1020px;
+            font-size: 20px;
+        }
+
+        html.square .copy {
+            gap: 17px;
+        }
+
+        html.square .destination {
+            align-items: center;
+        }
+
+        html.square .visual {
+            display: block;
+            height: 100%;
+        }
+
+        html.square .visual::before {
+            width: 650px;
+            height: 650px;
+            left: 220px;
+            top: -44px;
+        }
+
+        html.square .phone {
+            width: 292px;
+            margin: -8px auto 0;
+            transform: rotate(-.7deg);
+        }
+
+        html.square .proof-label {
+            top: 55px;
+            right: 140px;
+            font-size: 13px;
+        }
+
+        html.square .question {
+            right: 92px;
+            bottom: 112px;
+            width: 245px;
+            padding: 18px;
+            font-size: 16px;
+        }
+
+        html.square .disclaimer {
+            max-width: 470px;
+        }
+    </style>
+    <script>if (new URLSearchParams(location.search).has('square')) document.documentElement.classList.add('square');</script>
+</head>
+<body>
+    <main class="card" aria-label="Mythical Void space discovery sharing artwork">
+        <div class="stars" aria-hidden="true"></div>
+        <div class="orbit" aria-hidden="true"></div>
+        <section class="copy">
+            <div class="brand"><img src="/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></div>
+            <div>
+                <p class="kicker">REAL SPACE // IMAGINED WORLDS</p>
+                <h1>Real space. Strange worlds. <em>Questions worth asking.</em></h1>
+                <p class="summary">Selected NASA public images become optional discovery moments inside a free creature adventure—clearly sourced, credited and separated from fiction.</p>
+                <div class="method"><span>OBSERVE</span><span>INFER</span><span>CHECK</span><span>IMAGINE</span></div>
+            </div>
+            <div class="destination">
+                <span class="url">mythicalvoid.com/nasa-space-science</span>
+                <span class="disclaimer">Independent Mythical Void project. NASA does not endorse Mythical Void. The framed screen is real gameplay using a company-controlled test state.</span>
+            </div>
+        </section>
+        <section class="visual">
+            <span class="proof-label">REAL GAMEPLAY + NASA PUBLIC IMAGE</span>
+            <div class="phone"><img src="/press/gameplay/nasa-apollo11-real-space-discovery.png" alt="Real Mythical Void learning card with a credited NASA Apollo 11 panorama"></div>
+            <div class="question"><strong>LOOK CLOSER</strong>What clues show this picture was taken from a spacecraft?</div>
+        </section>
+    </main>
+</body>
+</html>

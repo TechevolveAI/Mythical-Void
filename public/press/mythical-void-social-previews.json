@@ -54,14 +54,14 @@
     {
       "route": "/nasa-space-science/",
       "htmlPath": "public/nasa-space-science/index.html",
-      "imagePath": "public/press/gameplay/nasa-apollo11-real-space-discovery.png",
-      "imageUrl": "https://mythicalvoid.com/press/gameplay/nasa-apollo11-real-space-discovery.png",
+      "imagePath": "public/press/social/nasa-stem-discovery-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/nasa-stem-discovery-wide.png",
       "imageType": "image/png",
-      "width": 390,
-      "height": 844,
-      "alt": "Mythical Void learning card with a credited NASA Apollo 11 panorama",
-      "classification": "authentic_running_build_screenshot_with_public_nasa_image",
-      "disclosure": "Real in-game learning card containing a credited NASA public image and a clearly marked fictional creature reaction. NASA does not endorse Mythical Void."
+      "width": 1200,
+      "height": 630,
+      "alt": "Mythical Void space-discovery artwork with a real game screen and credited NASA Apollo 11 image",
+      "classification": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
+      "disclosure": "Branded sharing layout, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void."
     },
     {
       "route": "/parents/",

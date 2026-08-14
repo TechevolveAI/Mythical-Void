@@ -62,6 +62,22 @@
       "description": "A square branded Mythical Void sharing layout built around the authentic Begin Project Beacon running-build screenshot. The complete layout is not a raw gameplay screenshot; the framed scene is real gameplay captured with an invented test state."
     },
     {
+      "name": "Real space, imagined worlds social artwork — wide",
+      "url": "https://mythicalvoid.com/press/social/nasa-stem-discovery-wide.png",
+      "kind": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
+      "dimensions": "1200x630",
+      "sourceUrl": "https://apod.nasa.gov/apod/ap240720.html",
+      "description": "A branded Mythical Void sharing layout built around a real in-game Apollo 11 discovery screen. The complete layout is not a raw gameplay screenshot; the framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image. NASA does not endorse Mythical Void."
+    },
+    {
+      "name": "Real space, imagined worlds social artwork — square",
+      "url": "https://mythicalvoid.com/press/social/nasa-stem-discovery-square.png",
+      "kind": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
+      "dimensions": "1200x1200",
+      "sourceUrl": "https://apod.nasa.gov/apod/ap240720.html",
+      "description": "A square branded Mythical Void sharing layout built around a real in-game Apollo 11 discovery screen. The complete layout is not a raw gameplay screenshot; the framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image. NASA does not endorse Mythical Void."
+    },
+    {
       "name": "First contact",
       "url": "https://mythicalvoid.com/press/gameplay/project-beacon-live-egg.png",
       "kind": "authentic_running_build_screenshot",

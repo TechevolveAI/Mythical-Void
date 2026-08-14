@@ -40,7 +40,8 @@ for (const [index, entry] of (data.entries || []).entries()) {
     requireValue(!/\b\d[\d,.]*\s+(?:players|customers|downloads|followers|visits)\b/i.test(JSON.stringify(entry)), `${label} contains an unverified audience metric`);
     if (entry?.imageClass === 'ai_generated_marketing_illustration') requireValue(/not gameplay/i.test(entry?.disclosure || ''), `${label} generated artwork lacks a not-gameplay disclosure`);
     if (entry?.imageClass === 'authentic_running_build_screenshot') requireValue(/real browser game/i.test(entry?.disclosure || ''), `${label} gameplay image lacks a real-game disclosure`);
-    if (entry?.imageClass === 'branded_social_artwork_with_authentic_gameplay_frame') requireValue(/branded sharing artwork/i.test(entry?.disclosure || '') && /not a raw screenshot/i.test(entry?.disclosure || '') && /no player information/i.test(entry?.disclosure || ''), `${label} branded sharing artwork lacks its layout, gameplay and privacy disclosure`);
+    if ((entry?.imageClass || '').startsWith('branded_social_artwork_with_authentic_gameplay_frame')) requireValue(/branded sharing artwork/i.test(entry?.disclosure || '') && /not a raw screenshot/i.test(entry?.disclosure || '') && /no player information/i.test(entry?.disclosure || ''), `${label} branded sharing artwork lacks its layout, gameplay and privacy disclosure`);
+    if (/nasa/i.test(entry?.imageClass || '')) requireValue(/NASA does not endorse Mythical Void/i.test(entry?.disclosure || ''), `${label} NASA artwork lacks its non-endorsement boundary`);
 }
 
 requireValue(page === buildSignalLog(data), 'Signal Log page is stale; rebuild it from releases.json');

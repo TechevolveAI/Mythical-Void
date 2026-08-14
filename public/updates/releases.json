@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-006",
+      "publishedOn": "2026-08-14",
+      "status": "live",
+      "category": "SPACE DISCOVERY",
+      "title": "A real-space sharing kit is ready",
+      "summary": "Adults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.",
+      "details": [
+        "Both layouts use the clean mythicalvoid.com/nasa-space-science address with no tracking code.",
+        "The framed screen comes from the running game and clearly credits the NASA public image inside it.",
+        "The complete layouts are branded sharing artwork, not raw screenshots, and NASA does not endorse Mythical Void."
+      ],
+      "image": "/press/social/nasa-stem-discovery-square.png",
+      "imageAlt": "Square Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and an observation question",
+      "imageClass": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
+      "disclosure": "Branded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void.",
+      "destination": "/press/#nasa-stem-social-assets",
+      "linkText": "Download the space-discovery artwork",
+      "download": false
+    },
+    {
       "id": "SIGNAL-005",
       "publishedOn": "2026-08-14",
       "status": "live",

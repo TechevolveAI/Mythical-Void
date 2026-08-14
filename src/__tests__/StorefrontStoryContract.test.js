@@ -195,7 +195,10 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.gameplayVideoProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay-video/manifest.json'
         );
-        expect(pressAssets.assets).toHaveLength(13);
+        expect(pressAssets.assets).toHaveLength(15);
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image'
+        ))).toHaveLength(2);
         expect(pressAssets.educatorResources).toHaveLength(1);
         expect(pressAssets.educatorResources[0].kind).toBe('adult_led_printable_activity');
         expect(pressAssets.educatorResources[0].disclosure).toContain('NASA does not endorse');

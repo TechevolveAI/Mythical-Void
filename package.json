@@ -16,6 +16,8 @@
     "test:signal-release-pack": "node scripts/company/test-signal-release-pack.cjs",
     "validate:first-social-release": "node scripts/company/validate-first-social-release.cjs",
     "test:first-social-release": "node scripts/company/test-first-social-release.cjs",
+    "validate:nasa-stem-social-release": "node scripts/company/validate-nasa-stem-social-release.cjs",
+    "test:nasa-stem-social-release": "node scripts/company/test-nasa-stem-social-release.cjs",
     "validate:social-previews": "node scripts/company/validate-social-preview-metadata.cjs",
     "test:social-previews": "node scripts/company/test-social-preview-metadata.cjs",
     "preview": "vite preview",
