@@ -113,9 +113,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestVoidLayer = null;
         this.forestVoidMoteLayer = null;
         this.forestTreeStructureLayer = null;
+        this.forestFoliageLayer = null;
+        this.forestFoliageTween = null;
         this.forestBridgeLayer = null;
         this.forestEnemyTrailLayer = null;
         this.forestEnemyTrailTimer = null;
+        this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
         this.forestCoinPickupGroup = null;
@@ -230,9 +233,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestVoidLayer = null;
         this.forestVoidMoteLayer = null;
         this.forestTreeStructureLayer = null;
+        this.forestFoliageLayer = null;
+        this.forestFoliageTween = null;
         this.forestBridgeLayer = null;
         this.forestEnemyTrailLayer = null;
         this.forestEnemyTrailTimer = null;
+        this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
         this.forestCoinPickupGroup = null;
@@ -1799,6 +1805,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     createCosmicTrees() {
         this.forestTreeStructureLayer = this.add.graphics().setDepth(25);
+        this.forestFoliageLayer = this.add.graphics().setDepth(35);
         const treeConfigs = [
             // Tree 1: Tutorial tree - spans gap at x:400-900 - MUST climb to cross
             { x: 300, baseY: this.levelHeight - 100, height: 500, branches: 5, difficulty: 'easy' },
@@ -1817,6 +1824,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
         treeConfigs.forEach((config, index) => {
             this.createCosmicTree(config, index);
         });
+
+        this.forestFoliageTween = this.tweens.add({
+            targets: this.forestFoliageLayer,
+            x: { from: -2, to: 2 },
+            y: { from: 1, to: -5 },
+            alpha: { from: 0.62, to: 0.9 },
+            duration: 2600,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        this.forestAmbientLayers.push(this.forestFoliageLayer);
 
         // Create connecting platforms between trees
         this.createTreeBridges();
@@ -1853,7 +1872,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Glowing energy veins
         const veinColors = [0x00FF7F, 0x9370DB, 0x00CED1, 0xFF69B4];
         const veinColor = veinColors[treeIndex % veinColors.length];
-        const foliageGlow = this.add.graphics().setDepth(35);
+        const foliageGlow = this.forestFoliageLayer;
         structure.lineStyle(3, veinColor, 0.8);
 
         // Main central vein
@@ -1933,18 +1952,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 3 + ((treeIndex * 7 + i * 5) % 3)
             );
         }
-
-        this.tweens.add({
-            targets: foliageGlow,
-            x: { from: -2, to: 2 },
-            y: { from: 1, to: -5 },
-            alpha: { from: 0.58, to: 0.9 },
-            duration: 2200 + treeIndex * 260,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-        this.forestAmbientLayers.push(foliageGlow);
 
         // Add special platform at tree top
         const topPlatform = this.add.zone(x, baseY - height + 20, 100, 20);
@@ -2064,6 +2071,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         wispPositions.forEach((pos, index) => {
             this.createForestWisp(pos.x, pos.y, index);
         });
+        this.forestEnemyOverlap = this.physics.add.overlap(
+            this.player,
+            this.enemies,
+            (_player, enemy) => this.handleEnemyCollision(enemy)
+        );
         this.startForestEnemyTrailRenderer();
 
         console.log(`[MythicalForestLevel] Created ${this.voidSprites.length} Void Sprites, ${this.branchCrawlers.length} Branch Crawlers, ${this.sporeDrifters.length} Spore Drifters, ${this.forestWisps.length} Forest Wisps`);
@@ -2076,12 +2088,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestEnemyTrailLayer = layer;
 
         this.forestEnemyTrailTimer = this.time.addEvent({
-            delay: 100,
+            delay: this.isMobile ? 180 : 100,
             callback: () => {
                 if (!this.scene.isActive()) return;
                 layer.clear();
+                const view = this.cameras.main.worldView;
                 this.voidSprites.forEach(sprite => {
                     if (!sprite?.active) return;
+                    if (
+                        sprite.x < view.left - 120 ||
+                        sprite.x > view.right + 120 ||
+                        sprite.y < view.top - 120 ||
+                        sprite.y > view.bottom + 120
+                    ) {
+                        sprite.forestTrail = [];
+                        return;
+                    }
                     sprite.forestTrail ||= [];
                     sprite.forestTrail.push({ x: sprite.x, y: sprite.y + 10 });
                     sprite.forestTrail = sprite.forestTrail.slice(-3);
@@ -2174,13 +2196,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Add to platforms collider
         if (this.platforms) {
             this.physics.add.collider(sprite, this.platforms);
-        }
-
-        // Player collision
-        if (this.player) {
-            this.physics.add.overlap(this.player, sprite, () => {
-                this.handleEnemyCollision(sprite);
-            });
         }
 
         // AI behavior
@@ -2285,13 +2300,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
             onDefeat: enemy => this.killEnemy(enemy)
         });
 
-        // Player collision
-        if (this.player) {
-            this.physics.add.overlap(this.player, sprite, () => {
-                this.handleEnemyCollision(sprite);
-            });
-        }
-
         // Patrol AI
         this.time.addEvent({
             delay: 50,
@@ -2367,21 +2375,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
             onDefeat: enemy => this.killEnemy(enemy)
         });
 
-        // Float animation
+        // One motion tween keeps both axes alive without doubling the mobile
+        // animation bookkeeping for every airborne hazard.
         this.tweens.add({
             targets: sprite,
             y: y + 15,
-            duration: 2000 + Math.random() * 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // Horizontal drift
-        this.tweens.add({
-            targets: sprite,
             x: x + (Math.random() - 0.5) * 80,
-            duration: 3000 + Math.random() * 2000,
+            duration: 2400 + Math.random() * 900,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -2393,13 +2393,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
             callback: () => this.emitSporeCloud(sprite),
             loop: true
         });
-
-        // Player proximity damage
-        if (this.player) {
-            this.physics.add.overlap(this.player, sprite, () => {
-                this.handleEnemyCollision(sprite);
-            });
-        }
 
         this.sporeDrifters.push(sprite);
     }
@@ -2553,13 +2546,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
-
-        // Player collision
-        if (this.player) {
-            this.physics.add.overlap(this.player, sprite, () => {
-                this.handleEnemyCollision(sprite);
-            });
-        }
 
         // AI behavior - teleport and shoot
         this.time.addEvent({
@@ -3040,47 +3026,42 @@ class MythicalForestLevel extends PlatformerLevelScene {
         sprite.setDepth(140);
         sprite.optionalRouteId = optionalRouteId;
 
-        // Floating animation
-        this.tweens.add({
-            targets: sprite,
-            y: y - 8,
-            duration: 1500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // Rotation
+        // Rotation drives the bob as well, halving the persistent tween count.
         this.tweens.add({
             targets: sprite,
             angle: 360,
             duration: 3000,
-            repeat: -1
+            repeat: -1,
+            onUpdate: tween => {
+                sprite.y = y - Math.sin(tween.progress * Math.PI) * 8;
+            }
         });
 
         // Sparkle particles around it
-        this.time.addEvent({
-            delay: 500,
-            callback: () => {
-                if (!sprite.active || !this.scene.isActive()) return;
-                const particle = this.add.graphics();
-                const angle = Math.random() * Math.PI * 2;
-                const dist = 15 + Math.random() * 10;
-                particle.fillStyle(0xFFD700, 0.8);
-                particle.fillCircle(0, 0, 2);
-                particle.setPosition(sprite.x + Math.cos(angle) * dist, sprite.y + Math.sin(angle) * dist);
-                particle.setDepth(139);
+        if (!this.isMobile) {
+            this.time.addEvent({
+                delay: 500,
+                callback: () => {
+                    if (!sprite.active || !this.scene.isActive()) return;
+                    const particle = this.add.graphics();
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 15 + Math.random() * 10;
+                    particle.fillStyle(0xFFD700, 0.8);
+                    particle.fillCircle(0, 0, 2);
+                    particle.setPosition(sprite.x + Math.cos(angle) * dist, sprite.y + Math.sin(angle) * dist);
+                    particle.setDepth(139);
 
-                this.tweens.add({
-                    targets: particle,
-                    alpha: 0,
-                    scale: 0.3,
-                    duration: 500,
-                    onComplete: () => particle.destroy()
-                });
-            },
-            loop: true
-        });
+                    this.tweens.add({
+                        targets: particle,
+                        alpha: 0,
+                        scale: 0.3,
+                        duration: 500,
+                        onComplete: () => particle.destroy()
+                    });
+                },
+                loop: true
+            });
+        }
 
         // Create pickup zone
         const pickupZone = this.add.zone(x, y, 40, 40);
@@ -5107,6 +5088,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestCoinLayerTween = null;
         this.forestCoinLayer?.destroy?.();
         this.forestCoinLayer = null;
+        this.forestEnemyOverlap?.destroy?.();
+        this.forestEnemyOverlap = null;
 
         // Clean up platforms
         this.branchPlatforms = [];
@@ -5120,6 +5103,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         });
         this.forestAmbientLayers = [];
         this.forestAmbientPointCount = 0;
+        this.forestFoliageTween?.remove?.();
+        this.forestFoliageTween = null;
+        this.forestFoliageLayer = null;
         this.forestEnemyTrailTimer?.remove?.();
         this.forestEnemyTrailTimer = null;
         [

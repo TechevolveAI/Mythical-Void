@@ -541,12 +541,16 @@ class ParallaxBiomeManager {
         );
         nebulaBg.fillRect(0, 0, width * 2, height);
 
-        // Add nebula wisps with enhanced animation
-        for (let i = 0; i < 5; i++) {
+        // Phones keep the same full-screen coverage with fewer independently
+        // animated fields. This preserves the nebula instead of disabling it.
+        const wispCount = this.performanceTier === 'mobile' ? 3 : 5;
+        for (let i = 0; i < wispCount; i++) {
             const wisp = this.scene.add.graphics();
             wisp.fillStyle(this.config.palette.nebula, 0.15 + i * 0.03);
 
-            const centerX = width * (0.1 + i * 0.2);
+            const centerX = this.performanceTier === 'mobile'
+                ? width * ((i + 1) / (wispCount + 1))
+                : width * (0.1 + i * 0.2);
             const centerY = height * (0.2 + (i % 3) * 0.25);
             const size = 150 + i * 40;
 
@@ -613,7 +617,11 @@ class ParallaxBiomeManager {
         // individual display object and tween for every point. On phones this
         // removes dozens of per-frame transform updates from every biome.
         const starCount = Math.max(12, Math.round(layer.count / 2));
-        const fieldCount = Math.min(4, Math.max(2, Math.ceil(starCount / 18)));
+        const maxStarFields = this.performanceTier === 'mobile' ? 2 : 4;
+        const fieldCount = Math.min(
+            maxStarFields,
+            Math.max(2, Math.ceil(starCount / 18))
+        );
         const fields = Array.from({ length: fieldCount }, (_, fieldIndex) => {
             const field = this.scene.add.graphics();
             field.setScrollFactor(layer.parallax);
@@ -677,49 +685,73 @@ class ParallaxBiomeManager {
     createFloatingRocks() {
         const { width, height } = this.scene.cameras.main;
         const layer = this.config.layers.floatingRocks;
+        const batchRockFields = this.performanceTier === 'mobile';
+        const fieldCount = batchRockFields
+            ? Math.min(2, layer.count)
+            : layer.count;
+        const fields = Array.from({ length: fieldCount }, (_, fieldIndex) => {
+            const field = this.scene.add.graphics();
+            field.setScrollFactor(layer.parallax);
+            field.setAlpha(layer.alpha);
+            field.setDepth(-30 + fieldIndex);
+            this.layers.push({ type: 'rock', object: field, config: layer });
+            return field;
+        });
 
         for (let i = 0; i < layer.count; i++) {
-            const rock = this.scene.add.graphics();
+            const rock = fields[i % fieldCount];
             rock.fillStyle(this.config.palette.floatingRocks, 0.6);
 
             const baseSize = 40 + i * 15;
-            rock.fillEllipse(0, 0, baseSize, baseSize * 0.7);
-            rock.fillEllipse(baseSize * 0.3, -baseSize * 0.2, baseSize * 0.6, baseSize * 0.4);
+            const rockX = batchRockFields
+                ? Phaser.Math.Between(100, width + 200)
+                : 0;
+            const rockY = batchRockFields
+                ? Phaser.Math.Between(height * 0.2, height * 0.8)
+                : 0;
+            rock.fillEllipse(rockX, rockY, baseSize, baseSize * 0.7);
+            rock.fillEllipse(
+                rockX + baseSize * 0.3,
+                rockY - baseSize * 0.2,
+                baseSize * 0.6,
+                baseSize * 0.4
+            );
 
             // Add crystal accents on some rocks
             if (i % 2 === 0) {
                 rock.fillStyle(this.config.palette.accent, 0.4);
                 rock.fillTriangle(
-                    -baseSize * 0.2, -baseSize * 0.3,
-                    baseSize * 0.1, -baseSize * 0.3,
-                    -baseSize * 0.05, -baseSize * 0.6
+                    rockX - baseSize * 0.2, rockY - baseSize * 0.3,
+                    rockX + baseSize * 0.1, rockY - baseSize * 0.3,
+                    rockX - baseSize * 0.05, rockY - baseSize * 0.6
                 );
             }
+            if (!batchRockFields) {
+                rock.setPosition(
+                    Phaser.Math.Between(100, width + 200),
+                    Phaser.Math.Between(height * 0.2, height * 0.8)
+                );
+            }
+        }
 
-            rock.setPosition(
-                Phaser.Math.Between(100, width + 200),
-                Phaser.Math.Between(height * 0.2, height * 0.8)
-            );
-
+        fields.forEach((field, fieldIndex) => {
             if (layer.animate && this.config.effects.enableGentleFloat) {
                 this.scene.tweens.add({
-                    targets: rock,
-                    y: rock.y + Phaser.Math.Between(-20, 20),
-                    x: rock.x + Phaser.Math.Between(-15, 15),
-                    rotation: Phaser.Math.FloatBetween(-0.1, 0.1),
+                    targets: field,
+                    y: field.y + Phaser.Math.Between(-12, 12),
+                    x: field.x + Phaser.Math.Between(-10, 10),
+                    rotation: Phaser.Math.FloatBetween(
+                        batchRockFields ? -0.015 : -0.1,
+                        batchRockFields ? 0.015 : 0.1
+                    ),
                     duration: Phaser.Math.Between(5000, 9000),
                     ease: 'Sine.easeInOut',
                     yoyo: true,
                     repeat: -1,
-                    delay: i * 600
+                    delay: fieldIndex * 600
                 });
             }
-
-            rock.setScrollFactor(layer.parallax);
-            rock.setAlpha(layer.alpha);
-            rock.setDepth(-30 + i);
-            this.layers.push({ type: 'rock', object: rock, config: layer });
-        }
+        });
     }
 
     /**
@@ -884,7 +916,11 @@ class ParallaxBiomeManager {
     createCrystalFlora() {
         const { width, height } = this.scene.cameras.main;
         const layer = this.config.layers.crystalFlora;
-        const fieldCount = Math.min(3, Math.max(1, Math.ceil(layer.count / 5)));
+        const maxFloraFields = this.performanceTier === 'mobile' ? 1 : 3;
+        const fieldCount = Math.min(
+            maxFloraFields,
+            Math.max(1, Math.ceil(layer.count / 5))
+        );
         const fields = Array.from({ length: fieldCount }, (_, fieldIndex) => {
             const field = this.scene.add.graphics();
             field.setScrollFactor(layer.parallax);

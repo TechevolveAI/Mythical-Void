@@ -52,7 +52,9 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('this.forestAmbientLayers = [];');
         expect(source).toContain('const pointsPerLayer = 10;');
         expect(source).toContain('for (let layerIndex = 0; layerIndex < 3; layerIndex += 1)');
-        expect(source).toContain('const foliageGlow = this.add.graphics().setDepth(35);');
+        expect(source).toContain('this.forestFoliageLayer = this.add.graphics().setDepth(35);');
+        expect(source).toContain('const foliageGlow = this.forestFoliageLayer;');
+        expect(source).toContain('targets: this.forestFoliageLayer');
         expect(source).toContain('3 + ((treeIndex * 7 + i * 5) % 3)');
         expect(source).toContain('this.createBioluminescentOrbs(');
         expect(source).toContain('this.tweens?.killTweensOf?.(layer);');
