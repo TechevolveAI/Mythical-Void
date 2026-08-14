@@ -1165,13 +1165,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.updateForestEnemyMotion(time);
         this.updateForestCoinPickups();
         this.updateFirstExpeditionDrill();
-        if (this.objectiveDisplay) {
-            this.objectiveDisplay.setText(this.getForestObjectiveText());
-            this.objectiveDisplay.setVisible(
+        this.syncCampaignObjectiveDisplay({
+            visible:
                 !this.firstExpeditionDrill?.panelVisible &&
                 !(this.isCompactObjectiveHUD && this.bossFightActive)
-            );
-        }
+        });
     }
 
     executeJump() {
@@ -1471,7 +1469,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             },
             onRestored: () => {
                 this.refreshForestRouteReadability();
-                this.objectiveDisplay?.setText?.(this.getForestObjectiveText());
+                this.syncCampaignObjectiveDisplay();
             }
         });
         if (!signalsRestored) return false;
@@ -1479,7 +1477,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.restoreForestRouteState(resume.routeState, {
             rejoined: Number(resume.checkpointIndex) >= 2
         });
-        this.objectiveDisplay?.setText?.(this.getForestObjectiveText());
+        this.syncCampaignObjectiveDisplay();
         return true;
     }
 

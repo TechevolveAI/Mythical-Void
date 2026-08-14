@@ -1523,7 +1523,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 this.refreshCaveRouteReadability();
                 this.refreshCrystalCoreLift();
                 this.refreshCrystalCoreHint();
-                this.objectiveDisplay?.setText?.(this.getCrystalObjectiveText());
+                this.syncCampaignObjectiveDisplay();
             }
         });
         if (!signalsRestored) return false;
@@ -5465,13 +5465,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         this.updateCaveCoinPickups();
 
-        // Update objective display
-        if (this.objectiveDisplay) {
-            this.objectiveDisplay.setText(this.getCrystalObjectiveText());
-            this.objectiveDisplay.setVisible(
-                !(this.isCompactObjectiveHUD && this.bossFightActive)
-            );
-        }
+        this.syncCampaignObjectiveDisplay({
+            visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
+        });
 
         // Update dynamic lighting
         this.updateLighting();
