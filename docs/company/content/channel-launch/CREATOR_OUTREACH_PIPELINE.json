@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "COP-001",
   "asOf": "2026-08-14",
-  "state": "system_ready_recipient_research_not_started",
+  "state": "research_completed_first_wave_prepared",
   "purpose": "Find a small number of relevant adult creators, writers and educators who may genuinely value Mythical Void, then prepare individual introductions without bulk messaging.",
   "authority": {
     "researchAuthorized": true,
@@ -224,6 +224,116 @@
         "learningValue": 4
       },
       "totalScore": 19,
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-006",
+      "name": "Phaser",
+      "kind": "Browser-game engine community and showcase",
+      "stage": "research",
+      "source": "https://docs.phaser.io/phaser/getting-started/set-up-dev-environment",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official Phaser documentation invites developers to share games through the Phaser forum, its public social account or email.",
+      "specificFit": "Mythical Void is a substantial Phaser 3 browser game with a portable distribution build, real gameplay captures and unusual creature-generation systems.",
+      "suggestedAngle": "Ask whether the playable build is suitable for the Phaser showcase and lead with what was built in Phaser, not broad AI claims.",
+      "scores": {
+        "subjectFit": 4,
+        "audienceFit": 3,
+        "thoughtfulCoverage": 4,
+        "reachability": 4,
+        "safetyAndReputation": 4,
+        "learningValue": 4
+      },
+      "totalScore": 23,
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-007",
+      "name": "Irish Tech News",
+      "kind": "Irish technology publication and contributor network",
+      "stage": "research",
+      "source": "https://irishtechnews.ie/the-team/",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official team page publishes a contribution email and lists coverage interests including space, science, STEAM, startups and technology.",
+      "specificFit": "The Irish father-and-son origin, working browser game, optional NASA discovery layer and human-led AI-first studio model form a relevant Irish technology story.",
+      "suggestedAngle": "Offer a short founder story or interview about what a parent and nine-year-old imagined, what became real, and which decisions remain human.",
+      "scores": {
+        "subjectFit": 4,
+        "audienceFit": 3,
+        "thoughtfulCoverage": 3,
+        "reachability": 4,
+        "safetyAndReputation": 3,
+        "learningValue": 4
+      },
+      "totalScore": 21,
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-008",
+      "name": "Technology.ie",
+      "kind": "Irish technology news and podcast site",
+      "stage": "research",
+      "source": "https://technology.ie/submit-news/",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official submission page invites Irish technology product and company news through a named press-release address and states that coverage is not guaranteed.",
+      "specificFit": "Mythical Void is an Irish technology project with a live product, a family origin and a clear generative-AI studio angle.",
+      "suggestedAngle": "Wait for a concise launch note with a real milestone, then lead with playable-now proof and the Irish founder story.",
+      "scores": {
+        "subjectFit": 3,
+        "audienceFit": 3,
+        "thoughtfulCoverage": 3,
+        "reachability": 4,
+        "safetyAndReputation": 3,
+        "learningValue": 3
+      },
+      "totalScore": 19,
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-009",
+      "name": "Overlooked Games",
+      "kind": "Independent game review site",
+      "stage": "research",
+      "source": "https://overlooked.gg/request-review",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official review-request form says every submission is read and requires a public store link plus developer and contact details.",
+      "specificFit": "The site is expressly looking for overlooked independent games and buys selected games before giving an honest review.",
+      "suggestedAngle": "Do not submit until the itch page and official studio contact route exist; then use the store page rather than presenting the main website as a store listing.",
+      "scores": {
+        "subjectFit": 4,
+        "audienceFit": 3,
+        "thoughtfulCoverage": 4,
+        "reachability": 3,
+        "safetyAndReputation": 4,
+        "learningValue": 4
+      },
+      "totalScore": 22,
+      "outreachApproved": false,
+      "contactedAt": null
+    },
+    {
+      "id": "RC-010",
+      "name": "Games for Change",
+      "kind": "Social-impact games network, festival and awards",
+      "stage": "research",
+      "source": "https://festival.gamesforchange.org/2026-awards-categories",
+      "sourceCheckedAt": "2026-08-14",
+      "publicProfessionalRoute": "The official awards page publishes annual criteria, fees, dates and a submission process for playable games with a clear learning or social-impact purpose.",
+      "specificFit": "Mythical Void may eventually fit learning, narrative or innovation themes through restoration, responsible technology and optional real-space discovery.",
+      "suggestedAngle": "Opportunity watch only: the 2026 deadline has passed, there is a fee, and the studio needs clearer learning aims and evidence before a future submission.",
+      "scores": {
+        "subjectFit": 3,
+        "audienceFit": 4,
+        "thoughtfulCoverage": 4,
+        "reachability": 2,
+        "safetyAndReputation": 4,
+        "learningValue": 4
+      },
+      "totalScore": 21,
       "outreachApproved": false,
       "contactedAt": null
     }

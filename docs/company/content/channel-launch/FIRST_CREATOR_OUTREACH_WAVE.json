@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "id": "OUTREACH-WAVE-001",
+  "asOf": "2026-08-14",
+  "state": "drafts_ready_waiting_for_named_sender_and_kevin_approval",
+  "purpose": "Give Mythical Void a small, credible first route to discovery without bulk messaging, paid placement or private contact with children.",
+  "canonicalUrl": "https://mythicalvoid.com/",
+  "pressUrl": "https://mythicalvoid.com/press/",
+  "authority": {
+    "recipientApproved": false,
+    "outreachAuthorized": false,
+    "sendingAuthorized": false,
+    "directMessagingAuthorized": false,
+    "bulkOutreachAuthorized": false,
+    "paidPlacementAuthorized": false,
+    "externalActionAuthorized": false
+  },
+  "senderGate": {
+    "officialStudioSenderAvailable": false,
+    "temporaryAlternativeAllowed": "Kevin may later approve sending individually from his existing professional address if it clearly names him and Mythical Void.",
+    "doNot": [
+      "invent or guess a Mythical Void email address",
+      "send from an account that hides who Kevin is",
+      "use a child's name, image, school, location or private account",
+      "attach files on first contact"
+    ]
+  },
+  "waveStrategy": {
+    "maximumFirstWaveMessages": 3,
+    "sendIndividually": true,
+    "minimumDaysBeforeSingleFollowUp": 7,
+    "maximumFollowUps": 1,
+    "stopAfterNoResponse": true,
+    "firstWaveOrder": [
+      "RC-003",
+      "RC-001",
+      "RC-006"
+    ],
+    "reason": "These three have the clearest fit, public professional routes and immediate evidence: an Irish studio story, a playable browser build and a real Phaser game."
+  },
+  "messages": [
+    {
+      "id": "OW-001",
+      "candidateRef": "RC-003",
+      "recipient": "Imirt newsletter editor",
+      "route": "contact@imirt.ie",
+      "routeSource": "https://www.imirt.ie/newsletter",
+      "routeType": "public professional email",
+      "subject": "Newsletter contribution: a playable Irish father-and-son game",
+      "body": "Hi Imirt team,\n\nI’m Kevin, the founder of Mythical Void in Ireland. I’m sharing this because your newsletter explicitly welcomes product launches and studio updates from the Irish game-development community.\n\nMythical Void began as a father-and-son experiment: what could a nine-year-old’s imagination and generative AI tools make possible? It has grown into a free browser adventure with strange creatures, six restorable realms, story choices and optional discoveries drawn from NASA’s public data.\n\nThe game is playable with no download or account: https://mythicalvoid.com/\nA short fact sheet and clearly labelled press assets are here: https://mythicalvoid.com/press/\n\nIf useful, I can also share a short, honest studio note on what AI helped us do and which creative, safety and publishing decisions remain human.\n\nThanks for considering it,\nKevin\nMythical Void",
+      "tailoredEvidence": "Refers directly to Imirt's published invitation for product launches and studio updates.",
+      "readiness": "ready_after_sender_and_kevin_approval",
+      "missingPrerequisites": [
+        "Kevin chooses the professional sending address",
+        "Kevin approves this named recipient and final message"
+      ],
+      "approved": false,
+      "sentAt": null
+    },
+    {
+      "id": "OW-002",
+      "candidateRef": "RC-001",
+      "recipient": "Alpha Beta Gamer submissions",
+      "route": "Public submission email listed on the official page",
+      "routeSource": "https://www.alphabetagamer.com/contact-us/",
+      "routeType": "public professional email",
+      "subject": "Game submission: Mythical Void — free browser creature adventure",
+      "body": "Hi Alpha Beta Gamer,\n\nI’m Kevin, the developer of Mythical Void. I’m sending it because your submission page says you are looking for playable games in development and can cover full games on the site or YouTube.\n\nMythical Void is a free browser adventure. Players recover a crashed ship, hatch a strange creature, explore six damaged realms and choose what Project Beacon becomes. The creature system combines shapes, colours, temperaments, affinities and rare mutations into a wide range of outcomes.\n\nPlay immediately, with no download or account: https://mythicalvoid.com/\nThe fact sheet, real gameplay captures and clearly labelled marketing art are here: https://mythicalvoid.com/press/\n\nThe game is still developing, so honest feedback would be useful. If it is not a fit, no reply is needed.\n\nKevin\nMythical Void",
+      "tailoredEvidence": "Matches the outlet's stated interest in free public builds and possible site or YouTube coverage.",
+      "readiness": "ready_after_sender_and_kevin_approval",
+      "missingPrerequisites": [
+        "Kevin chooses the professional sending address",
+        "Kevin approves this named recipient and final message"
+      ],
+      "approved": false,
+      "sentAt": null
+    },
+    {
+      "id": "OW-003",
+      "candidateRef": "RC-006",
+      "recipient": "Phaser showcase team",
+      "route": "Official Phaser forum, public social account or email route",
+      "routeSource": "https://docs.phaser.io/phaser/getting-started/set-up-dev-environment",
+      "routeType": "public professional showcase route",
+      "subject": "Phaser showcase: Mythical Void browser game",
+      "body": "Hi Phaser team,\n\nI’m Kevin, the developer of Mythical Void. Your documentation invites developers to show what they have built with Phaser, so I wanted to ask whether this is suitable for the Phaser showcase.\n\nMythical Void is a free Phaser 3 browser adventure with a large world flow, six realms, creature genetics, restoration encounters and browser save support. We have also prepared a portable build for browser-game platforms while keeping the main site’s security rules intact.\n\nPlay it here: https://mythicalvoid.com/\nThe short fact sheet and real gameplay captures are here: https://mythicalvoid.com/press/\n\nI’d be happy to provide a concise technical summary if that helps your review.\n\nKevin\nMythical Void",
+      "tailoredEvidence": "Leads with the real Phaser implementation and the official invitation to share Phaser-made games.",
+      "readiness": "ready_after_sender_route_choice_and_kevin_approval",
+      "missingPrerequisites": [
+        "Kevin chooses email, forum or public social route",
+        "Kevin chooses the professional sender identity",
+        "Kevin approves this named recipient and final message"
+      ],
+      "approved": false,
+      "sentAt": null
+    }
+  ],
+  "nextWave": [
+    {
+      "candidateRef": "RC-007",
+      "name": "Irish Tech News",
+      "state": "prepare_founder_story_after_first_three",
+      "reason": "Strong Irish AI, STEAM and space angle, but the contribution route deserves a story with a clear lesson rather than a generic launch pitch."
+    },
+    {
+      "candidateRef": "RC-008",
+      "name": "Technology.ie",
+      "state": "wait_for_clear_launch_milestone",
+      "reason": "Its news route asks for Irish technology news. A public platform launch or meaningful player milestone will create a better reason to write."
+    },
+    {
+      "candidateRef": "RC-002",
+      "name": "Wholesome Games",
+      "state": "watch_for_relevant_open_submission",
+      "reason": "Restoration and wonder fit, but Mythical should not force a cosy label or use an unrelated publishing route."
+    },
+    {
+      "candidateRef": "RC-009",
+      "name": "Overlooked Games",
+      "state": "wait_for_public_store_page",
+      "reason": "Its review form requires a store link. The prepared itch release should be accepted and listed first."
+    },
+    {
+      "candidateRef": "RC-010",
+      "name": "Games for Change",
+      "state": "future_opportunity_watch",
+      "reason": "The 2026 deadline has passed and entry costs money. A future entry should have clear learning aims and evidence, not just a STEM association."
+    },
+    {
+      "candidateRef": "RC-005",
+      "name": "IndieGameInn",
+      "state": "wait_for_human_commentary_video",
+      "reason": "Its submission rules require an original developer presentation and active follow-through."
+    },
+    {
+      "candidateRef": "RC-004",
+      "name": "Indie Games Developer",
+      "state": "wait_for_gameplay_trailer",
+      "reason": "The submission will be stronger when the authentic gameplay trailer is complete."
+    }
+  ],
+  "claimBoundaries": [
+    "Always call the beings creatures.",
+    "Do not claim that every creature is unique or that no two can ever be alike.",
+    "Describe generated marketing art as illustration, never gameplay.",
+    "Say NASA public data or NASA-powered discovery; never imply NASA endorsement or partnership.",
+    "Describe Mythical Void as developing or playable now, not finished unless that becomes true.",
+    "Do not publish the child's identifying information."
+  ],
+  "trackingFieldsAfterApproval": [
+    "approvedByKevinAt",
+    "senderUsed",
+    "sentAt",
+    "followUpDueAt",
+    "replyState",
+    "usefulLearning",
+    "playOrCoverageOutcome"
+  ]
+}
