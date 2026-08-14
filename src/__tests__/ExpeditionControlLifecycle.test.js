@@ -10,16 +10,31 @@ const LEVEL_FILES = [
     'FinalVoidLevel.js'
 ];
 
+const readLevel = fileName => fs.readFileSync(
+    path.join(__dirname, '../scenes/levels', fileName),
+    'utf8'
+);
+
 describe('expedition control lifecycle', () => {
     test.each(LEVEL_FILES)(
         '%s restores touch controls after its entry overlay',
         (fileName) => {
-            const source = fs.readFileSync(
-                path.join(__dirname, '../scenes/levels', fileName),
-                'utf8'
-            );
+            const source = readLevel(fileName);
 
             expect(source).toContain('this.showPlatformerMobileControls()');
+        }
+    );
+
+    test.each(LEVEL_FILES)(
+        '%s exposes touch controls in its direct boss QA route',
+        (fileName) => {
+            const source = readLevel(fileName);
+            const methodStart = source.indexOf('startTestMode() {');
+            const methodEnd = source.indexOf('\n    }', methodStart);
+            const method = source.slice(methodStart, methodEnd);
+
+            expect(methodStart).toBeGreaterThan(-1);
+            expect(method).toContain('this.showPlatformerMobileControls()');
         }
     );
 
@@ -61,6 +76,20 @@ describe('expedition control lifecycle', () => {
         );
         expect(platformerSource).toMatch(
             /hidePauseMenu\(\)[\s\S]*this\.showPlatformerMobileControls\(\)/
+        );
+    });
+
+    test('release interaction smoke requires visible touch controls in every level', () => {
+        const smokeSource = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+
+        expect(smokeSource).toContain(
+            'mobileControls: scene?.platformerControlsVisible === true'
+        );
+        expect(smokeSource).toContain(
+            'entered gameplay without touch controls'
         );
     });
 });
