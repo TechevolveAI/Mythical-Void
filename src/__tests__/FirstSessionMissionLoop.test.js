@@ -158,6 +158,23 @@ describe('first-session Project Beacon mission loop', () => {
         expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
+    test('keeps the Sanctuary story CTA mobile-safe after the DOM reveal', () => {
+        const gameSceneSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/GameScene.js'),
+            'utf8'
+        );
+
+        expect(gameSceneSource).toContain(
+            "import { createCanvasTapBridge } from '../utils/CanvasTapBridge.js';"
+        );
+        expect(gameSceneSource).toContain("nextZone.on('pointerup'");
+        expect(gameSceneSource).toContain('const nextZoneWidth = isNarrow ? 136 : 120;');
+        expect(gameSceneSource).toContain(
+            "this.events?.once?.('shutdown', destroyNextTapBridge);"
+        );
+        expect(gameSceneSource).not.toContain("nextZone.on('pointerdown'");
+    });
+
     test('frames controls as the handoff into sanctuary agency', () => {
         const controlsSource = fs.readFileSync(
             path.join(__dirname, '../ui/ControlsTutorialOverlay.js'),

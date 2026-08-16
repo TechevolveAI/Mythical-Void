@@ -25,6 +25,7 @@ import CreatureRadialMenu from '../ui/CreatureRadialMenu.js';
 import AbilityHUD from '../ui/AbilityHUD.js';
 import AIArtModal from '../ui/AIArtModal.js';
 import LivingFormHandoff from '../ui/LivingFormHandoff.js';
+import { createCanvasTapBridge } from '../utils/CanvasTapBridge.js';
 import GameSceneSceneRouter from './controllers/GameSceneSceneRouter.js';
 import GameSceneHudController from './controllers/GameSceneHudController.js';
 import projectBeacon from '../config/project-beacon.json';
@@ -11719,16 +11720,28 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(12003);
         elements.push(nextBtn);
 
+        const nextZoneWidth = isNarrow ? 136 : 120;
         const nextZone = this.add.zone(
-            panelX + panelWidth - 68,
+            panelX + panelWidth - (nextZoneWidth / 2) - 12,
             panelY + panelHeight - 38,
-            104,
-            48
+            nextZoneWidth,
+            56
         ).setScrollFactor(0).setDepth(12004).setInteractive({ useHandCursor: true });
         elements.push(nextZone);
         nextZone.on('pointerover', () => nextBtn.setStyle({ backgroundColor: '#5AA0B4' }));
         nextZone.on('pointerout', () => nextBtn.setStyle({ backgroundColor: '#4A90A4' }));
+        let nextTapBridge = null;
+        let storyClosed = false;
+        const destroyNextTapBridge = () => {
+            nextTapBridge?.destroy?.();
+            nextTapBridge = null;
+        };
+        this.events?.once?.('shutdown', destroyNextTapBridge);
         const closeStory = () => {
+            if (storyClosed) return;
+            storyClosed = true;
+            this.events?.off?.('shutdown', destroyNextTapBridge);
+            destroyNextTapBridge();
             elements.forEach(el => {
                 el?.removeAllListeners?.();
                 el?.destroy?.();
@@ -11749,7 +11762,8 @@ class GameScene extends Phaser.Scene {
             if (onComplete) onComplete();
         };
 
-        nextZone.on('pointerdown', () => {
+        const activateNext = () => {
+            if (storyClosed) return;
             if (currentPage < storyPages.length - 1) {
                 currentPage++;
                 updatePage(currentPage);
@@ -11757,6 +11771,28 @@ class GameScene extends Phaser.Scene {
             } else {
                 closeStory();
             }
+        };
+        const nextBounds = () => ({
+            x: nextZone.x - (nextZone.displayWidth / 2),
+            y: nextZone.y - (nextZone.displayHeight / 2),
+            width: nextZone.displayWidth,
+            height: nextZone.displayHeight
+        });
+        nextTapBridge = createCanvasTapBridge({
+            canvas: this.game?.canvas,
+            getGameSize: () => ({
+                width: this.scale.width,
+                height: this.scale.height
+            }),
+            getBounds: nextBounds,
+            onActivate: activateNext
+        });
+        nextZone.on('pointerup', pointer => {
+            nextTapBridge?.activateGamePoint?.(
+                pointer?.x,
+                pointer?.y,
+                pointer?.event
+            );
         });
 
         // Recovery progress uses the same ship-part state as campaign completion.
