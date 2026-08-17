@@ -16,7 +16,7 @@ export function createCanvasTapBridge({
     getGameSize,
     getBounds,
     onActivate,
-    dedupeMs = 300,
+    dedupeMs = 180,
     now = () => performance.now()
 }) {
     let lastActivationAt = Number.NEGATIVE_INFINITY;

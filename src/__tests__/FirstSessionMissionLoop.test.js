@@ -184,7 +184,19 @@ describe('first-session Project Beacon mission loop', () => {
         expect(controlsSource).toContain(
             'PROJECT BEACON // FIELD CONTROLS'
         );
+        expect(controlsSource).toContain(
+            "import { createCanvasTapBridge } from '../utils/CanvasTapBridge.js';"
+        );
         expect(controlsSource).toContain('START FIELDWORK');
+        expect(controlsSource).toContain(
+            'this.continueTapBridge = createCanvasTapBridge({'
+        );
+        expect(controlsSource).toContain(
+            'this.continueTapBridge?.activateGamePoint(pointer.x, pointer.y);'
+        );
+        expect(controlsSource).toContain(
+            'this.continueTapBridge?.destroy?.();'
+        );
         expect(controlsSource).toContain(
             "const isMobile = width < 600 ||"
         );
