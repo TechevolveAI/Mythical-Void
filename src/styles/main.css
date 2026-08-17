@@ -217,6 +217,47 @@ body.game-mode {
   outline-offset: 2px;
 }
 
+.project-beacon-story-next,
+.project-beacon-story-back {
+  width: 160px;
+  height: 64px;
+  padding: 0 20px;
+  color: #ffffff;
+  background: #4a90a4;
+  border: 2px solid #8fe3cf;
+  border-radius: 6px;
+  font: 800 15px/1 Arial, sans-serif;
+  letter-spacing: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.project-beacon-story-back {
+  width: 112px;
+  color: #e4eaf0;
+  background: #2a2a4e;
+  border-color: #7d86a8;
+}
+
+.project-beacon-story-back:disabled {
+  color: #8b91a6;
+  background: #191a31;
+  border-color: #454a68;
+  cursor: default;
+  opacity: 0.68;
+}
+
+.project-beacon-story-next:hover,
+.project-beacon-story-next:focus-visible,
+.project-beacon-story-back:not(:disabled):hover,
+.project-beacon-story-back:not(:disabled):focus-visible {
+  background: #5aa0b4;
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 /* First-contact living-form handoff */
 .living-form-handoff {
   position: relative;

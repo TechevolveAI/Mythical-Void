@@ -171,6 +171,12 @@ describe('LivingFormHandoff mobile continuation', () => {
         expect(source).toContain(
             'this.restoreDomContainerStyles();'
         );
+        expect(source).toContain(
+            "this.previousDomContainerStyles.pointerEvents || 'none'"
+        );
+        expect(source).not.toContain(
+            "this.previousDomContainerStyles.pointerEvents || 'auto'"
+        );
     });
 
     test('a slow portrait never blocks entry and names its later destination', () => {

@@ -8,15 +8,11 @@ import PersonalityScene from './scenes/PersonalityScene.js';
 import NamingScene from './scenes/NamingScene.js';
 import SoulRevealScene from './scenes/SoulRevealScene.js';
 import GameScene from './scenes/GameScene.js';
-import ShopScene from './scenes/ShopScene.js';
-import InventoryScene from './scenes/InventoryScene.js';
 import FusionPodScene from './scenes/FusionPodScene.js';
 import BreedingHatchScene from './scenes/BreedingHatchScene.js';
 import HubWorldScene from './scenes/HubWorldScene.js';
-import CreatureProfileScene from './scenes/CreatureProfileScene.js';
 import WelcomeBackScene from './scenes/WelcomeBackScene.js';
 import VoidMiniGameScene from './scenes/VoidMiniGameScene.js';
-import AchievementMenuScene from './scenes/AchievementMenuScene.js';
 import AbilitySelectionScene from './scenes/AbilitySelectionScene.js';
 import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
 import VictoryScene from './scenes/VictoryScene.js';
@@ -40,6 +36,27 @@ const cloneConfig = (config) => {
     }
     return JSON.parse(JSON.stringify(config));
 };
+
+async function startSceneWhenReady(game, sceneKey, data = undefined, options = {}) {
+    const { stopScenes = [] } = options;
+
+    try {
+        if (window.SceneLoader) {
+            const loaded = await window.SceneLoader.loadScene(game, sceneKey);
+            if (!loaded) {
+                return false;
+            }
+        }
+
+        stopScenes.forEach(key => game.scene.stop(key));
+        game.scene.start(sceneKey, data);
+        return true;
+    } catch (error) {
+        console.error(`[Main] Could not start ${sceneKey}:`, error);
+        window.UXEnhancements?.hideLoading?.();
+        return false;
+    }
+}
 
 async function launchLocalHighPowerPreview(game) {
     const previewParams = new URLSearchParams(window.location.search);
@@ -544,7 +561,7 @@ async function initializeGame() {
             },
             // Individual platformer levels (CrystalCavesLevel, ReefLevel, etc.) are lazy loaded
             // via SceneLoader when player enters them from HubWorldScene
-            scene: [HatchingScene, PersonalityScene, NamingScene, SoulRevealScene, GameScene, ShopScene, InventoryScene, FusionPodScene, BreedingHatchScene, HubWorldScene, CreatureProfileScene, WelcomeBackScene, VoidMiniGameScene, AchievementMenuScene, AbilitySelectionScene, PlatformerLevelScene, VictoryScene],
+            scene: [HatchingScene, PersonalityScene, NamingScene, SoulRevealScene, GameScene, FusionPodScene, BreedingHatchScene, HubWorldScene, WelcomeBackScene, VoidMiniGameScene, AbilitySelectionScene, PlatformerLevelScene, VictoryScene],
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -1263,14 +1280,13 @@ async function initializeGame() {
         if (isLocalPreview && ['maps', 'crystals'].includes(testShop)) {
             game.events.once('ready', () => {
                 setTimeout(() => {
-                    game.scene.stop('HatchingScene');
-                    game.scene.start('ShopScene', {
+                    startSceneWhenReady(game, 'ShopScene', {
                         routeMapPreview: testShop === 'maps'
                             ? ['stellar_reef', 'crystal_caves']
                             : [],
                         voidCrystalCapacityPreview: testShop === 'crystals',
                         initialCategory: testShop === 'crystals' ? 'utilities' : 'eggs'
-                    });
+                    }, { stopScenes: ['HatchingScene'] });
                 }, 100);
             });
         }
@@ -1279,8 +1295,7 @@ async function initializeGame() {
         if (isLocalPreview && urlParams.get('testInventory') === 'kit') {
             game.events.once('ready', () => {
                 setTimeout(() => {
-                    game.scene.stop('HatchingScene');
-                    game.scene.start('InventoryScene', {
+                    startSceneWhenReady(game, 'InventoryScene', {
                         kitPreview: {
                             fieldKit: {
                                 id: 'wanderer_7_field_kit',
@@ -1299,7 +1314,7 @@ async function initializeGame() {
                             },
                             shipPartIds: ['crystal_core', 'forest_core']
                         }
-                    });
+                    }, { stopScenes: ['HatchingScene'] });
                 }, 100);
             });
         }
@@ -1650,7 +1665,7 @@ async function initializeGame() {
         ) {
             game.events.once('ready', () => {
                 setTimeout(() => {
-                    game.scene.start('CreatureProfileScene', {
+                    startSceneWhenReady(game, 'CreatureProfileScene', {
                         identityArchivePreview: testIdentityArchive,
                         identityArchivePreviewSize:
                             testIdentityArchiveSize === 'mobile'
@@ -1664,7 +1679,7 @@ async function initializeGame() {
         if (isLocalPreview && urlParams.has('testProfilePortrait')) {
             game.events.once('ready', () => {
                 setTimeout(() => {
-                    game.scene.start('CreatureProfileScene', {
+                    startSceneWhenReady(game, 'CreatureProfileScene', {
                         profilePortraitPreview: true,
                         profilePortraitPreviewSize:
                             urlParams.get('previewSize') === 'mobile'
@@ -2347,8 +2362,12 @@ async function initializeGame() {
         if (isLocalPreview && urlParams.has('testAchievements')) {
             game.events.once('ready', () => {
                 setTimeout(() => {
-                    game.scene.stop('HatchingScene');
-                    game.scene.start('AchievementMenuScene');
+                    startSceneWhenReady(
+                        game,
+                        'AchievementMenuScene',
+                        undefined,
+                        { stopScenes: ['HatchingScene'] }
+                    );
                 }, 100);
             });
         }

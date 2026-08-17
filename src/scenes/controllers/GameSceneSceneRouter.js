@@ -7,6 +7,7 @@ const AUDIO_METHODS = {
 export default class GameSceneSceneRouter {
     constructor(gameScene) {
         this.gameScene = gameScene;
+        this.pendingTransitions = new Map();
     }
 
     get sceneManager() {
@@ -40,52 +41,101 @@ export default class GameSceneSceneRouter {
         window.UXEnhancements?.showLoading?.(message);
     }
 
-    launchScene(sceneKey, data = undefined, options = {}) {
+    isSceneRegistered(sceneKey) {
+        const manager = this.gameScene?.game?.scene;
+        return Boolean(
+            manager?.keys?.[sceneKey] ||
+            manager?.scenes?.some?.(
+                scene => scene?.sys?.settings?.key === sceneKey
+            )
+        );
+    }
+
+    runWhenReady(sceneKey, transition, options = {}) {
         const {
-            bringToTop = false,
             loadingMessage = null,
             sound = null
         } = options;
 
+        if (this.pendingTransitions.has(sceneKey)) {
+            return this.pendingTransitions.get(sceneKey);
+        }
+
         this.playSound(sound);
         this.showLoading(loadingMessage);
 
-        const manager = this.sceneManager;
-        manager.launch(sceneKey, data);
+        const executeTransition = () => {
+            transition();
+            return true;
+        };
+        const loader = window.SceneLoader;
 
-        if (bringToTop) {
-            manager.bringToTop(sceneKey);
+        if (!loader?.loadScene || this.isSceneRegistered(sceneKey)) {
+            try {
+                return Promise.resolve(executeTransition());
+            } catch (error) {
+                console.error(`[SceneRouter] Failed to open ${sceneKey}:`, error);
+                window.UXEnhancements?.hideLoading?.();
+                return Promise.resolve(false);
+            }
         }
+
+        const pending = loader.loadScene(this.gameScene.game, sceneKey)
+            .then(loaded => {
+                if (!loaded) {
+                    throw new Error(`${sceneKey} could not be loaded`);
+                }
+                return executeTransition();
+            })
+            .catch(error => {
+                console.error(`[SceneRouter] Failed to open ${sceneKey}:`, error);
+                window.UXEnhancements?.hideLoading?.();
+                return false;
+            })
+            .finally(() => {
+                this.pendingTransitions.delete(sceneKey);
+            });
+
+        this.pendingTransitions.set(sceneKey, pending);
+        return pending;
+    }
+
+    launchScene(sceneKey, data = undefined, options = {}) {
+        const {
+            bringToTop = false
+        } = options;
+
+        return this.runWhenReady(sceneKey, () => {
+            const manager = this.sceneManager;
+            manager.launch(sceneKey, data);
+
+            if (bringToTop) {
+                manager.bringToTop(sceneKey);
+            }
+        }, options);
     }
 
     pauseAndLaunchScene(sceneKey, data = undefined, options = {}) {
         const {
-            bringToTop = false,
-            loadingMessage = null,
-            sound = null
+            bringToTop = false
         } = options;
 
-        this.playSound(sound);
-        this.showLoading(loadingMessage);
+        return this.runWhenReady(sceneKey, () => {
+            const manager = this.sceneManager;
+            manager.pause();
+            manager.launch(sceneKey, data);
 
-        const manager = this.sceneManager;
-        manager.pause();
-        manager.launch(sceneKey, data);
-
-        if (bringToTop) {
-            manager.bringToTop(sceneKey);
-        }
+            if (bringToTop) {
+                manager.bringToTop(sceneKey);
+            }
+        }, options);
     }
 
     startScene(sceneKey, data = undefined, options = {}) {
-        const {
-            loadingMessage = null,
-            sound = null
-        } = options;
-
-        this.playSound(sound);
-        this.showLoading(loadingMessage);
-
-        this.sceneManager.start(sceneKey, data);
+        return this.runWhenReady(
+            sceneKey,
+            () => this.sceneManager.start(sceneKey, data),
+            options
+        );
     }
 }

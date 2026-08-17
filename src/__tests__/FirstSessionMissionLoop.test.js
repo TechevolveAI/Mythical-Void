@@ -170,7 +170,19 @@ describe('first-session Project Beacon mission loop', () => {
         expect(gameSceneSource).toContain("nextZone.on('pointerup'");
         expect(gameSceneSource).toContain('const nextZoneWidth = isNarrow ? 136 : 120;');
         expect(gameSceneSource).toContain(
-            "this.events?.once?.('shutdown', destroyNextTapBridge);"
+            "this.events?.once?.('shutdown', cleanupStoryInput);"
+        );
+        expect(gameSceneSource).toContain(
+            "nativeNextButton.className = 'project-beacon-story-next';"
+        );
+        expect(gameSceneSource).toContain(
+            "nativeNextButton.setAttribute('data-testid', 'project-beacon-story-next');"
+        );
+        expect(gameSceneSource).toContain(
+            "nativeBackButton.setAttribute('data-testid', 'project-beacon-story-back');"
+        );
+        expect(gameSceneSource).toContain(
+            "previousDomContainerStyles.pointerEvents || 'none'"
         );
         expect(gameSceneSource).not.toContain("nextZone.on('pointerdown'");
     });
