@@ -235,6 +235,41 @@ describe('release test gate', () => {
         expect(source).toContain("'--disable-renderer-backgrounding'");
     });
 
+    test('allows each isolated Chrome profile to release WebGL resources', () => {
+        const source = read('scripts/run-browser-smoke.js');
+
+        expect(source).toContain('MYTHICAL_VOID_SMOKE_PROCESS_COOLDOWN_MS');
+        expect(source).toContain('await delay(processCooldownMs);');
+        expect(source).toContain('frame budgets measure the game');
+    });
+
+    test('confirms a mobile frame-budget miss without weakening the limit', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("framePacing.p95FrameMs > 100");
+        expect(source).toContain('warmupMs: 400');
+        expect(source).toContain('framePacingSamples.push(confirmation)');
+        expect(source).toContain(
+            'framePacingSamples.every(sample => sample.p95FrameMs > 100)'
+        );
+        expect(source).toContain('p95FrameSamples: framePacingSamples.map(');
+    });
+
+    test('Sanctuary lifecycle smoke uses the production scene transition path', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+        const start = source.indexOf('async function smokeSanctuaryNavigation');
+        const end = source.indexOf('async function smokeHubForestTransition');
+        const lifecycleSmoke = source.slice(start, end);
+
+        expect(lifecycleSmoke).toContain(
+            "const hatchingScene = game.scene.getScene('HatchingScene');"
+        );
+        expect(lifecycleSmoke).toContain(
+            "hatchingScene.scene.start('GameScene', {"
+        );
+        expect(lifecycleSmoke).not.toContain("game.scene.stop('HatchingScene')");
+    });
+
     test('production portrait smoke proves quota-free identity reuse', () => {
         const source = read('scripts/smoke-living-portrait-production.js');
 
