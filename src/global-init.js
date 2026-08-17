@@ -137,12 +137,8 @@ import './scenes/SoulRevealScene.js';
 import './scenes/GameScene.js';
 
 // ============================================
-// SCENES - Menus & UI
+// SCENES - Menus & UI (registered on demand by SceneLoader)
 // ============================================
-import './scenes/ShopScene.js';
-import './scenes/InventoryScene.js';
-import './scenes/CreatureProfileScene.js';
-import './scenes/AchievementMenuScene.js';
 
 // ============================================
 // SCENES - Hub & Levels
@@ -171,8 +167,7 @@ if (typeof window !== 'undefined' && !window.Phaser) {
 if (typeof window !== 'undefined' && window.SceneLoader) {
     const staticScenes = [
         'HatchingScene', 'PersonalityScene', 'NamingScene', 'SoulRevealScene',
-        'GameScene', 'ShopScene', 'InventoryScene', 'CreatureProfileScene',
-        'AchievementMenuScene', 'HubWorldScene', 'FusionPodScene',
+        'GameScene', 'HubWorldScene', 'FusionPodScene',
         'BreedingHatchScene', 'WelcomeBackScene', 'VoidMiniGameScene',
         'CreatureGatheringScene', 'AbilitySelectionScene'
     ];

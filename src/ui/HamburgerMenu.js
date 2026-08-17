@@ -310,38 +310,53 @@ export default class HamburgerMenu {
     /**
      * Navigation actions
      */
-    navigateToProfile() {
+    async ensureScene(sceneKey) {
+        if (!window.SceneLoader?.loadScene) {
+            return true;
+        }
+        return window.SceneLoader.loadScene(this.scene.game, sceneKey);
+    }
+
+    async navigateToProfile() {
         devLog('[HamburgerMenu] Navigate to Profile');
         if (typeof this.scene.openCreatureProfile === 'function') {
             this.scene.openCreatureProfile();
             return;
         }
-        this.scene.scene.start('CreatureProfileScene');
+        if (await this.ensureScene('CreatureProfileScene')) {
+            this.scene.scene.start('CreatureProfileScene');
+        }
     }
 
-    navigateToAchievements() {
+    async navigateToAchievements() {
         devLog('[HamburgerMenu] Navigate to Achievements');
         const returnScene = this.scene.sys?.settings?.key || 'GameScene';
-        this.scene.scene.pause(returnScene);
-        this.scene.scene.launch('AchievementMenuScene', { returnScene });
+        if (await this.ensureScene('AchievementMenuScene')) {
+            this.scene.scene.pause(returnScene);
+            this.scene.scene.launch('AchievementMenuScene', { returnScene });
+        }
     }
 
-    navigateToInventory() {
+    async navigateToInventory() {
         devLog('[HamburgerMenu] Navigate to Inventory');
         if (typeof this.scene.openInventory === 'function') {
             this.scene.openInventory();
             return;
         }
-        this.scene.scene.start('InventoryScene');
+        if (await this.ensureScene('InventoryScene')) {
+            this.scene.scene.start('InventoryScene');
+        }
     }
 
-    navigateToShop() {
+    async navigateToShop() {
         devLog('[HamburgerMenu] Navigate to Shop');
         if (typeof this.scene.openShop === 'function') {
             this.scene.openShop();
             return;
         }
-        this.scene.scene.start('ShopScene');
+        if (await this.ensureScene('ShopScene')) {
+            this.scene.scene.start('ShopScene');
+        }
     }
 
     navigateToHub() {

@@ -2528,7 +2528,10 @@ async function smokeFinalVoidRiftCrossing(session) {
                         item => item.traversalId === ${JSON.stringify(supportId)}
                     );
                     if (!support?.body || !scene.player?.body) return null;
-                    return scene.player.body.center.x >= support.body.left + 28
+                    const approachInset = ${JSON.stringify(supportId)} ===
+                        'final-rift-step-4' ? 60 : 28;
+                    return scene.player.body.center.x >=
+                        support.body.left + approachInset
                         ? {
                             playerX: Math.round(scene.player.x),
                             targetLeft: Math.round(support.body.left)
@@ -8004,7 +8007,7 @@ async function smokePurchasedEgg(session, exceptions) {
     await waitForScene(session, 'HatchingScene');
 
     process.stdout.write('EGG seed inventory\n');
-    const setup = await evaluate(session, `(() => {
+    const setup = await evaluate(session, `(async () => {
         const game = window.mythicalGame;
         const inventory = window.InventoryManager;
         inventory.inventory = [];
@@ -8025,6 +8028,11 @@ async function smokePurchasedEgg(session, exceptions) {
         });
         window.GameState.set('creature.hatched', true);
         window.GameState.set('maxCreatures', 8);
+        const loaded = await window.SceneLoader?.loadScene?.(
+            game,
+            'InventoryScene'
+        );
+        if (loaded === false) return -1;
         game.scene.stop('HatchingScene');
         game.scene.start('InventoryScene');
         return inventory.inventory.length;
@@ -8341,7 +8349,22 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                     ? item.text === 'Close'
                     : item.text === 'Next' || item.text.startsWith('Next')
             ));
-            if (!scene?.storyModalElements?.length || !indicator || !action?.getBounds) {
+            const nativeAction = document.querySelector(
+                '[data-testid="project-beacon-story-next"]'
+            );
+            const nativeBack = document.querySelector(
+                '[data-testid="project-beacon-story-back"]'
+            );
+            const nativeBounds = nativeAction?.getBoundingClientRect?.();
+            if (
+                !scene?.storyModalElements?.length ||
+                !indicator ||
+                !action?.getBounds ||
+                !nativeBack ||
+                !nativeBounds ||
+                nativeBounds.width < 120 ||
+                nativeBounds.height < 52
+            ) {
                 return null;
             }
             const bounds = action.getBounds();
@@ -8362,6 +8385,12 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 y: Math.round(bounds.centerY),
                 targetWidth: Math.round(targetBounds.width),
                 targetHeight: Math.round(targetBounds.height),
+                nativeAction: nativeAction.textContent?.trim(),
+                nativeBackDisabled: nativeBack.disabled,
+                nativeTarget: document.elementFromPoint(
+                    nativeBounds.left + nativeBounds.width / 2,
+                    nativeBounds.top + nativeBounds.height / 2
+                ) === nativeAction,
                 controlsSuspended: scene.mobileControls?.isSuspended === true,
                 physicsPaused: scene.physics?.world?.isPaused === true
             };
@@ -8375,6 +8404,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         handoffMs > 7000 ||
         firstPage.targetWidth < 120 ||
         firstPage.targetHeight < 52 ||
+        firstPage.nativeAction !== 'NEXT' ||
+        !firstPage.nativeBackDisabled ||
+        !firstPage.nativeTarget ||
         !firstPage.controlsSuspended ||
         !firstPage.physicsPaused
     ) {
@@ -8385,11 +8417,28 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     }
     await captureGameplayStill(session, 'first-sanctuary-story-mobile.png');
 
+    await touchDomButton(session, '[data-testid="project-beacon-story-next"]', {
+        message: 'Project Beacon story forward check'
+    });
+    const secondPage = await readStoryState(2);
+    if (secondPage.nativeBackDisabled) {
+        throw new Error('Project Beacon Back action stayed disabled on page 2');
+    }
+    await touchDomButton(session, '[data-testid="project-beacon-story-back"]', {
+        message: 'Project Beacon story Back action'
+    });
+    const returnedFirstPage = await readStoryState(1);
+    if (!returnedFirstPage.nativeBackDisabled) {
+        throw new Error('Project Beacon Back action did not return to page 1');
+    }
+
     const storyAdvanceMs = [];
-    let storyPage = firstPage;
+    let storyPage = returnedFirstPage;
     for (let page = 1; page <= 5; page += 1) {
         const advancedAt = Date.now();
-        await touch(session, storyPage.x, storyPage.y);
+        await touchDomButton(session, '[data-testid="project-beacon-story-next"]', {
+            message: `Project Beacon story page ${page} action`
+        });
         if (page < 5) {
             storyPage = await readStoryState(page + 1);
         } else {

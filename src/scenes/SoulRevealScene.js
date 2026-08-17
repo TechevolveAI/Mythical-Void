@@ -1413,11 +1413,11 @@ export default class SoulRevealScene extends Phaser.Scene {
             };
         }
 
-        // Ensure gameplay can proceed after any input handoff.
-        // If previous pointer state was never captured (e.g. cold path),
-        // default to non-blocking canvas behavior.
+        // Phaser's DOM container defaults to pointer-events: none. Restoring it
+        // to auto leaves an empty layer over the canvas that can swallow the
+        // first Sanctuary taps on physical mobile browsers.
         const restoredPointerEvents =
-            this.previousDomContainerStyles.pointerEvents || 'auto';
+            this.previousDomContainerStyles.pointerEvents || 'none';
 
         this.game.domContainer.style.zIndex = this.previousDomContainerStyles.zIndex || '';
         this.game.domContainer.style.pointerEvents = restoredPointerEvents;

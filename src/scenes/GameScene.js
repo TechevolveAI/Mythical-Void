@@ -11563,6 +11563,19 @@ class GameScene extends Phaser.Scene {
         const storyPages = projectBeacon.openingPages;
 
         let currentPage = 0;
+        let nativeNextButton = null;
+        let nativeNextDom = null;
+        let nativeBackButton = null;
+        let nativeBackDom = null;
+        const domContainer = this.game?.domContainer || null;
+        const previousDomContainerStyles = domContainer ? {
+            zIndex: domContainer.style.zIndex,
+            pointerEvents: domContainer.style.pointerEvents
+        } : null;
+        if (domContainer) {
+            domContainer.style.zIndex = '12010';
+            domContainer.style.pointerEvents = 'auto';
+        }
 
         // Create overlay
         const overlay = this.add.graphics();
@@ -11677,7 +11690,27 @@ class GameScene extends Phaser.Scene {
 
             // Update button visibility
             prevBtn.setAlpha(pageIndex > 0 ? 1 : 0.3);
+            if (nativeBackButton) {
+                nativeBackButton.disabled = pageIndex === 0;
+                nativeBackButton.setAttribute(
+                    'aria-label',
+                    pageIndex === 0
+                        ? 'No previous briefing page'
+                        : `Return to briefing page ${pageIndex}`
+                );
+            }
             nextBtn.setText(pageIndex === storyPages.length - 1 ? 'Close' : 'Next →');
+            if (nativeNextButton) {
+                nativeNextButton.textContent = pageIndex === storyPages.length - 1
+                    ? 'CLOSE'
+                    : 'NEXT';
+                nativeNextButton.setAttribute(
+                    'aria-label',
+                    pageIndex === storyPages.length - 1
+                        ? 'Close Project Beacon briefing'
+                        : `Continue to briefing page ${pageIndex + 2}`
+                );
+            }
         };
 
         // Previous button
@@ -11732,16 +11765,35 @@ class GameScene extends Phaser.Scene {
         nextZone.on('pointerout', () => nextBtn.setStyle({ backgroundColor: '#4A90A4' }));
         let nextTapBridge = null;
         let storyClosed = false;
+        let lastNextActivationAt = Number.NEGATIVE_INFINITY;
+        let lastBackActivationAt = Number.NEGATIVE_INFINITY;
         const destroyNextTapBridge = () => {
             nextTapBridge?.destroy?.();
             nextTapBridge = null;
         };
-        this.events?.once?.('shutdown', destroyNextTapBridge);
+        const restoreStoryDomLayer = () => {
+            nativeNextDom?.destroy?.();
+            nativeNextDom = null;
+            nativeNextButton = null;
+            nativeBackDom?.destroy?.();
+            nativeBackDom = null;
+            nativeBackButton = null;
+            if (domContainer && previousDomContainerStyles) {
+                domContainer.style.zIndex = previousDomContainerStyles.zIndex;
+                domContainer.style.pointerEvents =
+                    previousDomContainerStyles.pointerEvents || 'none';
+            }
+        };
+        const cleanupStoryInput = () => {
+            destroyNextTapBridge();
+            restoreStoryDomLayer();
+        };
+        this.events?.once?.('shutdown', cleanupStoryInput);
         const closeStory = () => {
             if (storyClosed) return;
             storyClosed = true;
-            this.events?.off?.('shutdown', destroyNextTapBridge);
-            destroyNextTapBridge();
+            this.events?.off?.('shutdown', cleanupStoryInput);
+            cleanupStoryInput();
             elements.forEach(el => {
                 el?.removeAllListeners?.();
                 el?.destroy?.();
@@ -11772,6 +11824,25 @@ class GameScene extends Phaser.Scene {
                 closeStory();
             }
         };
+        const requestNext = event => {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            const activatedAt = performance.now();
+            if (activatedAt - lastNextActivationAt < 180) return;
+            lastNextActivationAt = activatedAt;
+            activateNext();
+        };
+        const requestPrevious = event => {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            if (storyClosed || currentPage === 0) return;
+            const activatedAt = performance.now();
+            if (activatedAt - lastBackActivationAt < 180) return;
+            lastBackActivationAt = activatedAt;
+            currentPage--;
+            updatePage(currentPage);
+            window.AudioManager?.playButtonClick?.();
+        };
         const nextBounds = () => ({
             x: nextZone.x - (nextZone.displayWidth / 2),
             y: nextZone.y - (nextZone.displayHeight / 2),
@@ -11785,7 +11856,7 @@ class GameScene extends Phaser.Scene {
                 height: this.scale.height
             }),
             getBounds: nextBounds,
-            onActivate: activateNext
+            onActivate: requestNext
         });
         nextZone.on('pointerup', pointer => {
             nextTapBridge?.activateGamePoint?.(
@@ -11794,6 +11865,46 @@ class GameScene extends Phaser.Scene {
                 pointer?.event
             );
         });
+
+        // Keep the critical story action on the browser input layer. Physical
+        // iPhones can lose the first canvas release after the living-form DOM
+        // reveal, while a native button remains a reliable tap target.
+        if (domContainer) {
+            nativeBackButton = document.createElement('button');
+            nativeBackButton.type = 'button';
+            nativeBackButton.className = 'project-beacon-story-back';
+            nativeBackButton.textContent = 'BACK';
+            nativeBackButton.disabled = true;
+            nativeBackButton.setAttribute('aria-label', 'No previous briefing page');
+            nativeBackButton.setAttribute('data-testid', 'project-beacon-story-back');
+            nativeBackButton.addEventListener('pointerup', requestPrevious);
+            nativeBackButton.addEventListener('touchend', requestPrevious, {
+                passive: false
+            });
+            nativeBackButton.addEventListener('click', requestPrevious);
+            nativeBackDom = this.add.dom(
+                prevZone.x,
+                prevZone.y,
+                nativeBackButton
+            ).setOrigin(0.5).setScrollFactor(0).setDepth(12005);
+
+            nativeNextButton = document.createElement('button');
+            nativeNextButton.type = 'button';
+            nativeNextButton.className = 'project-beacon-story-next';
+            nativeNextButton.textContent = 'NEXT';
+            nativeNextButton.setAttribute('aria-label', 'Continue to briefing page 2');
+            nativeNextButton.setAttribute('data-testid', 'project-beacon-story-next');
+            nativeNextButton.addEventListener('pointerup', requestNext);
+            nativeNextButton.addEventListener('touchend', requestNext, {
+                passive: false
+            });
+            nativeNextButton.addEventListener('click', requestNext);
+            nativeNextDom = this.add.dom(
+                nextZone.x,
+                nextZone.y,
+                nativeNextButton
+            ).setOrigin(0.5).setScrollFactor(0).setDepth(12005);
+        }
 
         // Recovery progress uses the same ship-part state as campaign completion.
         const repairY = panelY + panelHeight - 155;
