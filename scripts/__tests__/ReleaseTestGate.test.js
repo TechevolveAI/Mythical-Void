@@ -153,6 +153,7 @@ describe('release test gate', () => {
         const source = read('scripts/run-browser-smoke.js');
         const villageUi = source.indexOf("SMOKE_MODE: 'village-ui'");
         const interaction = source.indexOf("SMOKE_MODE: 'interaction'");
+        const firstSanctuary = source.indexOf("SMOKE_MODE: 'first-sanctuary'");
         const stateContract = source.indexOf("SMOKE_MODE: 'state-contract'");
         const finalPriorityJourney = source.indexOf(
             "SMOKE_MODE: 'final-priority-journey'"
@@ -168,7 +169,8 @@ describe('release test gate', () => {
         );
 
         expect(villageUi).toBeGreaterThan(-1);
-        expect(interaction).toBeGreaterThan(villageUi);
+        expect(firstSanctuary).toBeGreaterThan(villageUi);
+        expect(interaction).toBeGreaterThan(firstSanctuary);
         expect(stateContract).toBeGreaterThan(interaction);
         expect(finalPriorityJourney).toBeGreaterThan(stateContract);
         expect(saveReloadJourney).toBeGreaterThan(finalPriorityJourney);
@@ -182,6 +184,7 @@ describe('release test gate', () => {
         expect(source).toContain('for (const guardianCase of guardianCases)');
         expect(source).toContain('SMOKE_CASE: guardianCase');
         expect(source).toContain('failures.push(`interaction:${smokeCase}:');
+        expect(source).toContain('failures.push(`first-sanctuary:');
         expect(source).toContain('failures.push(`guardian-pacing:${guardianCase}:');
         expect(source).toContain('failures.push(`village-ui:');
         expect(source).toContain('failures.push(`state-contract:');
@@ -193,6 +196,25 @@ describe('release test gate', () => {
         expect(source).toContain('stdout.includes(expectedMarker)');
         expect(source).toContain('Release smoke does not own');
         expect(source).toContain('[release-smoke-result] pass');
+    });
+
+    test('release smoke proves the living portrait handoff reaches playable Sanctuary', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+        const release = read('scripts/run-browser-smoke.js');
+
+        expect(source).toContain('async function smokeFirstSanctuaryOnboarding');
+        expect(source).toContain("SMOKE_MODE === 'first-sanctuary'");
+        expect(source).toContain("'[data-testid=\"living-form-continue\"]'");
+        expect(source).toContain('Project Beacon story page ${expectedPage}');
+        expect(source).toContain('Story page ${page} response exceeded 1500ms');
+        expect(source).toContain("item?.text === 'START FIELDWORK'");
+        expect(source).toContain('playable Sanctuary after onboarding');
+        expect(source).toContain('first Sanctuary joystick movement');
+        expect(source).toContain('first Sanctuary joystick release');
+        expect(source).toContain('First Sanctuary controls did not reach live play');
+        expect(release).toContain("SMOKE_MODE: 'first-sanctuary'");
+        expect(release).toContain("SMOKE_VIEWPORT_WIDTH: '390'");
+        expect(release).toContain("SMOKE_VIEWPORT_HEIGHT: '844'");
     });
 
     test('secondary journeys emit a success sentinel only after result output', () => {

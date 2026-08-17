@@ -8228,6 +8228,382 @@ async function smokeHomeStart(session, exceptions) {
     return { start, recovery, advanced };
 }
 
+async function smokeFirstSanctuaryOnboarding(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(() => {
+        localStorage.setItem('mythical_void_age_confirmed', 'true');
+        localStorage.setItem('mythical_void_age_group', 'age_18_plus');
+        localStorage.removeItem('mythical_creature_save');
+        return true;
+    })()`);
+    await navigate(session, `${BASE_URL}/play/?testSoulReveal=portrait`);
+    await waitForScene(session, 'SoulRevealScene');
+
+    const naming = await waitFor(
+        () => evaluate(session, `(() => {
+            const input = document.querySelector('[data-testid="creature-name-input"]');
+            const submit = document.querySelector('[data-testid="creature-name-submit"]');
+            const inputBounds = input?.getBoundingClientRect?.();
+            const submitBounds = submit?.getBoundingClientRect?.();
+            if (!input || !submit || !inputBounds || !submitBounds) return null;
+            if (inputBounds.width < 160 || inputBounds.height < 44) return null;
+            if (submitBounds.width < 160 || submitBounds.height < 44) return null;
+            return {
+                input: {
+                    left: Math.round(inputBounds.left),
+                    top: Math.round(inputBounds.top),
+                    width: Math.round(inputBounds.width),
+                    height: Math.round(inputBounds.height)
+                },
+                submit: {
+                    left: Math.round(submitBounds.left),
+                    top: Math.round(submitBounds.top),
+                    width: Math.round(submitBounds.width),
+                    height: Math.round(submitBounds.height)
+                }
+            };
+        })()`),
+        { timeoutMs: 12000, message: 'mobile creature naming controls' }
+    );
+    await evaluate(session, `(() => {
+        const input = document.querySelector('[data-testid="creature-name-input"]');
+        const setter = Object.getOwnPropertyDescriptor(
+            HTMLInputElement.prototype,
+            'value'
+        )?.set;
+        setter?.call(input, 'Nova');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        return input.value;
+    })()`);
+    await touchDomButton(session, '[data-testid="creature-name-submit"]', {
+        message: 'Reveal Living Form action'
+    });
+
+    const reveal = await waitFor(
+        () => evaluate(session, `(() => {
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const image = root?.querySelector('.living-form-image.is-ready');
+            const source = root?.querySelector('.living-form-source')?.textContent?.trim();
+            const button = root?.querySelector('[data-testid="living-form-continue"]');
+            const bounds = button?.getBoundingClientRect?.();
+            if (
+                !root ||
+                !image?.complete ||
+                image.naturalWidth < 256 ||
+                !bounds ||
+                bounds.width < 180 ||
+                bounds.height < 44
+            ) return null;
+            return {
+                source,
+                imageWidth: image.naturalWidth,
+                imageHeight: image.naturalHeight,
+                action: button.textContent?.trim(),
+                actionBounds: {
+                    left: Math.round(bounds.left),
+                    right: Math.round(bounds.right),
+                    top: Math.round(bounds.top),
+                    bottom: Math.round(bounds.bottom)
+                }
+            };
+        })()`),
+        { timeoutMs: 8000, message: 'high-resolution living-form reveal' }
+    );
+    if (
+        reveal.source !== 'PROTECTED LIVING PORTRAIT' ||
+        reveal.action !== 'ENTER SANCTUARY'
+    ) {
+        throw new Error(`Living-form handoff was incomplete: ${JSON.stringify(reveal)}`);
+    }
+    await captureGameplayStill(session, 'first-living-form-mobile.png');
+
+    const handoffStartedAt = Date.now();
+    await touchDomButton(session, '[data-testid="living-form-continue"]', {
+        message: 'Enter Sanctuary action'
+    });
+    await waitForScene(session, 'GameScene');
+
+    const readStoryState = expectedPage => waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            const texts = (scene?.children?.list || []).filter(item => (
+                typeof item?.text === 'string' &&
+                item.visible !== false &&
+                item.alpha > 0
+            ));
+            const indicator = texts.find(item => (
+                item.text === ${JSON.stringify(`Page ${expectedPage} of 5`)}
+            ));
+            const action = texts.find(item => (
+                ${expectedPage} === 5
+                    ? item.text === 'Close'
+                    : item.text === 'Next' || item.text.startsWith('Next')
+            ));
+            if (!scene?.storyModalElements?.length || !indicator || !action?.getBounds) {
+                return null;
+            }
+            const bounds = action.getBounds();
+            const target = (scene.input?._list || []).find(candidate => {
+                if (
+                    candidate?.input?.enabled !== true ||
+                    candidate?.visible === false ||
+                    !candidate?.getBounds
+                ) return false;
+                return candidate.getBounds().contains(bounds.centerX, bounds.centerY);
+            });
+            if (!target) return null;
+            const targetBounds = target.getBounds();
+            return {
+                page: ${expectedPage},
+                action: action.text,
+                x: Math.round(bounds.centerX),
+                y: Math.round(bounds.centerY),
+                targetWidth: Math.round(targetBounds.width),
+                targetHeight: Math.round(targetBounds.height),
+                controlsSuspended: scene.mobileControls?.isSuspended === true,
+                physicsPaused: scene.physics?.world?.isPaused === true
+            };
+        })()`),
+        { timeoutMs: 12000, message: `Project Beacon story page ${expectedPage}` }
+    );
+
+    const firstPage = await readStoryState(1);
+    const handoffMs = Date.now() - handoffStartedAt;
+    if (
+        handoffMs > 7000 ||
+        firstPage.targetWidth < 120 ||
+        firstPage.targetHeight < 52 ||
+        !firstPage.controlsSuspended ||
+        !firstPage.physicsPaused
+    ) {
+        throw new Error(`Sanctuary story was not safely interactive: ${JSON.stringify({
+            handoffMs,
+            firstPage
+        })}`);
+    }
+    await captureGameplayStill(session, 'first-sanctuary-story-mobile.png');
+
+    const storyAdvanceMs = [];
+    let storyPage = firstPage;
+    for (let page = 1; page <= 5; page += 1) {
+        const advancedAt = Date.now();
+        await touch(session, storyPage.x, storyPage.y);
+        if (page < 5) {
+            storyPage = await readStoryState(page + 1);
+        } else {
+            await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame?.scene?.getScene('GameScene');
+                    return scene?.storyModalElements?.length === 0;
+                })()`),
+                { timeoutMs: 1500, message: 'Project Beacon story dismissal' }
+            );
+        }
+        const elapsed = Date.now() - advancedAt;
+        storyAdvanceMs.push(elapsed);
+        if (elapsed > 1500) {
+            throw new Error(`Story page ${page} response exceeded 1500ms: ${elapsed}ms`);
+        }
+        await delay(220);
+    }
+
+    const controlsStartedAt = Date.now();
+    const controls = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            const action = (scene?.children?.list || []).find(item => (
+                item?.text === 'START FIELDWORK' &&
+                item.visible !== false &&
+                item.alpha > 0 &&
+                item.input?.enabled === true
+            ));
+            if (!scene?.controlsTutorial?.isVisible || !action?.getBounds) return null;
+            const bounds = action.getBounds();
+            return {
+                x: Math.round(bounds.centerX),
+                y: Math.round(bounds.centerY),
+                width: Math.round(bounds.width),
+                height: Math.round(bounds.height),
+                mobileControlsSuspended: scene.mobileControls?.isSuspended === true
+            };
+        })()`),
+        { timeoutMs: 4000, message: 'field controls handoff' }
+    );
+    const controlsReadyMs = Date.now() - controlsStartedAt;
+    if (
+        controlsReadyMs > 4000 ||
+        controls.width < 180 ||
+        controls.height < 44 ||
+        !controls.mobileControlsSuspended
+    ) {
+        throw new Error(`Field controls handoff was not mobile-safe: ${JSON.stringify({
+            controlsReadyMs,
+            controls
+        })}`);
+    }
+    await captureGameplayStill(session, 'first-sanctuary-controls-mobile.png');
+    await touch(session, controls.x, controls.y);
+
+    let gameplay;
+    try {
+        gameplay = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame?.scene?.getScene('GameScene');
+                if (
+                    !scene ||
+                    scene.controlsTutorial?.isVisible ||
+                    scene.mobileControls?.isSuspended ||
+                    scene.physics?.world?.isPaused ||
+                    window.OnboardingManager?.isProcessing
+                ) return null;
+                return {
+                    sceneActive: window.mythicalGame.scene.isActive('GameScene'),
+                    storySeen: window.GameState?.get?.('tutorial.crashStorySeen') === true,
+                    controlsSeen: window.GameState?.get?.('tutorial.controlsSeen') === true,
+                    mobileControlsVisible: scene.mobileControls?.isVisible === true,
+                    portraitDomCleared: !document.querySelector(
+                        '[data-testid="living-form-handoff"]'
+                    )
+                };
+            })()`),
+            { timeoutMs: 4000, message: 'playable Sanctuary after onboarding' }
+        );
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const game = window.mythicalGame;
+            const scene = game?.scene?.getScene('GameScene');
+            const onboarding = window.OnboardingManager;
+            return {
+                activeScenes: game?.scene?.getScenes?.(true)?.map(item => item.scene.key),
+                sceneActive: game?.scene?.isActive?.('GameScene'),
+                controlsVisible: scene?.controlsTutorial?.isVisible,
+                mobileControls: {
+                    isVisible: scene?.mobileControls?.isVisible,
+                    isSuspended: scene?.mobileControls?.isSuspended,
+                    joystickActive: scene?.mobileControls?.joystickActive
+                },
+                physicsPaused: scene?.physics?.world?.isPaused,
+                storyElements: scene?.storyModalElements?.length,
+                storyBannerElements: scene?.questTracker?.storyBannerElements?.length,
+                onboarding: {
+                    isProcessing: onboarding?.isProcessing,
+                    currentPopup: onboarding?.currentPopup?.id,
+                    queueLength: onboarding?.popupQueue?.length
+                },
+                storySeen: window.GameState?.get?.('tutorial.crashStorySeen'),
+                controlsSeen: window.GameState?.get?.('tutorial.controlsSeen'),
+                portraitDomPresent: Boolean(document.querySelector(
+                    '[data-testid="living-form-handoff"]'
+                ))
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+    }
+    if (
+        !gameplay.sceneActive ||
+        !gameplay.storySeen ||
+        !gameplay.controlsSeen ||
+        !gameplay.mobileControlsVisible ||
+        !gameplay.portraitDomCleared ||
+        exceptions.length
+    ) {
+        throw new Error(`First Sanctuary journey did not reach play: ${JSON.stringify({
+            gameplay,
+            exceptions
+        })}`);
+    }
+
+    const movementStart = await evaluate(session, `(() => {
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        const controls = scene?.mobileControls;
+        const canvasBounds = scene?.game?.canvas?.getBoundingClientRect?.();
+        if (
+            !scene?.player?.body ||
+            !controls ||
+            !canvasBounds ||
+            !Number.isFinite(controls.joystickCenterX) ||
+            !Number.isFinite(controls.joystickCenterY)
+        ) return null;
+        const toClientX = value => canvasBounds.left +
+            (value / scene.scale.width) * canvasBounds.width;
+        const toClientY = value => canvasBounds.top +
+            (value / scene.scale.height) * canvasBounds.height;
+        const dragDistance = Math.max(28, Math.min(controls.joystickMaxDistance, 44));
+        return {
+            start: {
+                x: Math.round(toClientX(controls.joystickCenterX)),
+                y: Math.round(toClientY(controls.joystickCenterY))
+            },
+            end: {
+                x: Math.round(toClientX(controls.joystickCenterX + dragDistance)),
+                y: Math.round(toClientY(controls.joystickCenterY))
+            },
+            playerX: scene.player.x
+        };
+    })()`);
+    if (!movementStart) {
+        throw new Error('Playable Sanctuary did not expose a usable mobile joystick');
+    }
+
+    let movement;
+    try {
+        await holdTouchDrag(session, movementStart.start, movementStart.end, 300);
+        movement = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame?.scene?.getScene('GameScene');
+                if (!scene || scene.joystickX <= 0.2) return null;
+                return {
+                    inputX: scene.joystickX,
+                    velocityX: scene.player?.body?.velocity?.x,
+                    playerX: scene.player?.x,
+                    joystickActive: scene.mobileControls?.joystickActive === true
+                };
+            })()`),
+            { timeoutMs: 1500, message: 'first Sanctuary joystick movement' }
+        );
+    } finally {
+        await releaseTouch(session);
+    }
+
+    const movementReleased = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            if (
+                !scene ||
+                Math.abs(scene.joystickX) > 0.01 ||
+                Math.abs(scene.joystickY) > 0.01 ||
+                scene.mobileControls?.joystickActive
+            ) return null;
+            return true;
+        })()`),
+        { timeoutMs: 1500, message: 'first Sanctuary joystick release' }
+    );
+    if (
+        !movement.joystickActive ||
+        movement.velocityX <= 20 ||
+        movement.playerX <= movementStart.playerX + 1 ||
+        !movementReleased
+    ) {
+        throw new Error(`First Sanctuary controls did not reach live play: ${JSON.stringify({
+            movementStart,
+            movement,
+            movementReleased
+        })}`);
+    }
+
+    return {
+        naming,
+        reveal,
+        handoffMs,
+        storyAdvanceMs,
+        controlsReadyMs,
+        gameplay,
+        movement
+    };
+}
+
 async function smokeNASAContent(session, exceptions) {
     exceptions.length = 0;
     const fixture = JSON.parse(fs.readFileSync(
@@ -10607,6 +10983,12 @@ async function main() {
         if (SMOKE_MODE === 'home-entry') {
             results.homeEntry = await smokeHomeStart(session, exceptions);
             process.stdout.write('PASS HomeStartToEgg\n');
+        } else if (SMOKE_MODE === 'first-sanctuary') {
+            results.firstSanctuary = await smokeFirstSanctuaryOnboarding(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS FirstSanctuaryOnboarding\n');
         } else if (SMOKE_MODE === 'nasa-content') {
             results.nasaContent = await smokeNASAContent(session, exceptions);
             process.stdout.write('PASS NASALearningContent\n');
@@ -10705,7 +11087,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
+                'Use home-entry, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
             );
         }
         console.log(JSON.stringify({

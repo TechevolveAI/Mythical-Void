@@ -142,6 +142,17 @@ async function main() {
             }
         }
 
+        console.log('\n[release-smoke] Living portrait to playable Sanctuary suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'first-sanctuary',
+                SMOKE_VIEWPORT_WIDTH: '390',
+                SMOKE_VIEWPORT_HEIGHT: '844'
+            });
+        } catch (error) {
+            failures.push(`first-sanctuary: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] Genuine interaction suite');
         const interactionCases = [
             'egg',

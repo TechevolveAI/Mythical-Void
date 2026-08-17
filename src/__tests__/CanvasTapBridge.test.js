@@ -55,7 +55,7 @@ describe('CanvasTapBridge', () => {
         expect(onActivate).toHaveBeenCalledTimes(1);
         expect(touchEvent.defaultPrevented).toBe(true);
 
-        timestamp += 350;
+        timestamp += 220;
         bridge.activateGamePoint(320, 630);
         expect(onActivate).toHaveBeenCalledTimes(2);
         bridge.destroy();

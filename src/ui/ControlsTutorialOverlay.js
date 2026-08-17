@@ -4,6 +4,7 @@
  */
 
 import { devLog } from '../utils/devLogger.js';
+import { createCanvasTapBridge } from '../utils/CanvasTapBridge.js';
 
 export default class ControlsTutorialOverlay {
     constructor(scene) {
@@ -11,6 +12,7 @@ export default class ControlsTutorialOverlay {
         this.elements = [];
         this.isVisible = false;
         this.anyKeyHandler = null;
+        this.continueTapBridge = null;
     }
 
     /**
@@ -74,7 +76,19 @@ export default class ControlsTutorialOverlay {
             padding: { x: 30, y: 12 }
         }).setOrigin(0.5).setDepth(13002).setScrollFactor(0);
         continueBtn.setInteractive({ useHandCursor: true });
-        continueBtn.on('pointerup', () => this.hide());
+        this.continueTapBridge?.destroy?.();
+        this.continueTapBridge = createCanvasTapBridge({
+            canvas: this.scene.game?.canvas,
+            getGameSize: () => ({
+                width: this.scene.scale.width,
+                height: this.scene.scale.height
+            }),
+            getBounds: () => continueBtn.active ? continueBtn.getBounds() : null,
+            onActivate: () => this.hide()
+        });
+        continueBtn.on('pointerup', pointer => {
+            this.continueTapBridge?.activateGamePoint(pointer.x, pointer.y);
+        });
         continueBtn.on('pointerover', () => continueBtn.setBackgroundColor('#8AF5EC'));
         continueBtn.on('pointerout', () => continueBtn.setBackgroundColor('#6FE7DD'));
         this.elements.push(continueBtn);
@@ -231,6 +245,8 @@ export default class ControlsTutorialOverlay {
             this.scene.input.keyboard?.off('keydown', this.anyKeyHandler);
             this.anyKeyHandler = null;
         }
+        this.continueTapBridge?.destroy?.();
+        this.continueTapBridge = null;
 
         this.elements.forEach(el => {
             if (el) {
